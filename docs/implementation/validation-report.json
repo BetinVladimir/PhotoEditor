@@ -1,0 +1,2006 @@
+{
+  "date": "2026-09-21",
+  "status": "passed",
+  "scope": "Documentation structure, schema envelope fixtures, registry consistency, requirement mapping and source inventory integrity and unchanged legacy quality baseline; not implementation/algorithm acceptance.",
+  "counts": {
+    "tables": 65,
+    "operations": 67,
+    "endpoints": 123,
+    "packages": 19,
+    "checks": 497
+  },
+  "legacy_tests": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -p no:cacheprovider",
+    "result": "22 passed in 0.67s"
+  },
+  "checks": [
+    {
+      "check": "all_json_parse",
+      "status": "passed"
+    },
+    {
+      "check": "link:README.md:00-baseline.md",
+      "status": "passed"
+    },
+    {
+      "check": "link:README.md:01-architecture.md",
+      "status": "passed"
+    },
+    {
+      "check": "link:README.md:02-data-migrations.md",
+      "status": "passed"
+    },
+    {
+      "check": "link:README.md:03-security.md",
+      "status": "passed"
+    },
+    {
+      "check": "link:README.md:04-api-services.md",
+      "status": "passed"
+    },
+    {
+      "check": "link:README.md:05-orchestration.md",
+      "status": "passed"
+    },
+    {
+      "check": "link:README.md:06-worker-operations.md",
+      "status": "passed"
+    },
+    {
+      "check": "link:README.md:07-style-color.md",
+      "status": "passed"
+    },
+    {
+      "check": "link:README.md:08-image-algorithms.md",
+      "status": "passed"
+    },
+    {
+      "check": "link:README.md:09-media-delivery.md",
+      "status": "passed"
+    },
+    {
+      "check": "link:README.md:10-clients.md",
+      "status": "passed"
+    },
+    {
+      "check": "link:README.md:11-runtime-operations.md",
+      "status": "passed"
+    },
+    {
+      "check": "link:README.md:12-verification.md",
+      "status": "passed"
+    },
+    {
+      "check": "link:README.md:13-development-plan.md",
+      "status": "passed"
+    },
+    {
+      "check": "link:README.md:14-traceability.md",
+      "status": "passed"
+    },
+    {
+      "check": "link:README.md:15-contracts.md",
+      "status": "passed"
+    },
+    {
+      "check": "link:README.md:contracts/tables.json",
+      "status": "passed"
+    },
+    {
+      "check": "link:README.md:contracts/operations.json",
+      "status": "passed"
+    },
+    {
+      "check": "link:README.md:contracts/endpoints.json",
+      "status": "passed"
+    },
+    {
+      "check": "link:README.md:contracts/work-packages.json",
+      "status": "passed"
+    },
+    {
+      "check": "link:README.md:contracts/source-inventory.json",
+      "status": "passed"
+    },
+    {
+      "check": "link:README.md:16-internal-contracts.md",
+      "status": "passed"
+    },
+    {
+      "check": "link:README.md:validation-report.json",
+      "status": "passed"
+    },
+    {
+      "check": "tables:unique",
+      "status": "passed"
+    },
+    {
+      "check": "operations:unique",
+      "status": "passed"
+    },
+    {
+      "check": "endpoints:unique",
+      "status": "passed"
+    },
+    {
+      "check": "packages:unique",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:users",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:auth_challenges",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:sessions",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:mail_payloads",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:auth_rate_limits",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:tenants",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:memberships",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:memberships",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:invitations",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:invitations",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:tenant_usage",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:tenant_usage",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:audit_log",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:audit_log",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:projects",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:projects",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:project_acl",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:project_acl",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:artifacts",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:artifacts",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:assets",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:assets",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:asset_versions",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:asset_versions",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:asset_version_sources",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:asset_version_sources",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:collections",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:collections",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:sections",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:sections",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:collection_items",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:collection_items",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:publications",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:publications",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:share_links",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:share_links",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:share_sessions",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:share_sessions",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:upload_sessions",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:upload_sessions",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:upload_parts",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:upload_parts",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:quota_reservations",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:quota_reservations",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:styles",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:styles",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:style_versions",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:style_versions",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:style_asset_bindings",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:style_asset_bindings",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:training_sets",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:training_sets",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:training_pairs",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:training_pairs",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:snapshots",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:snapshots",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:snapshot_items",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:snapshot_items",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:runs",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:runs",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:tasks",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:tasks",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:task_edges",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:task_edges",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:task_attempts",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:task_attempts",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:task_results",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:task_results",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:outbox",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:outbox",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:inbox",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:inbox",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:tenant_event_cursors",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:tenant_event_cursors",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:run_events",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:run_events",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:worker_registrations",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:worker_registrations",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:result_cache",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:result_cache",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:reviews",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:reviews",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:overrides",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:overrides",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:editor_drafts",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:editor_drafts",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:bulk_operations",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:bulk_operations",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:bulk_item_results",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:bulk_item_results",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:derivatives",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:derivatives",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:export_presets",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:export_presets",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:exports",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:exports",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:download_jobs",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:download_jobs",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:download_job_items",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:download_job_items",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:download_volumes",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:download_volumes",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:download_intents",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:download_intents",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:artifact_leases",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:artifact_leases",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:idempotency_records",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:idempotency_records",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:auth_idempotency_records",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:deletion_jobs",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:deletion_jobs",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:legacy_imports",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:legacy_imports",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:auth_mail_outbox",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:scheduler_tenants",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:scheduler_tenants",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:graph_expansions",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:graph_expansions",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:resource_slots",
+      "status": "passed"
+    },
+    {
+      "check": "table_fields:resource_reservations",
+      "status": "passed"
+    },
+    {
+      "check": "tenant_column:resource_reservations",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:asset.verify",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:asset.verify",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:asset.inspect",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:asset.inspect",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:asset.decode",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:asset.decode",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:pair.register",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:pair.register",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:features.scene",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:features.scene",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:color.stats",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:color.stats",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:mask.person",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:mask.person",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:mask.face_skin",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:mask.face_skin",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:face.detect",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:face.detect",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:face.landmarks",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:face.landmarks",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:pose.detect",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:pose.detect",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:face.parse",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:face.parse",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:scene.parse",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:scene.parse",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:alpha.predict",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:alpha.predict",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:mask.prompt",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:mask.prompt",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:mask.rasterize",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:mask.rasterize",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:mask.transform",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:mask.transform",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:alpha.refine",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:alpha.refine",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:depth.predict",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:depth.predict",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:pair.fit.body",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:pair.fit.body",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:pair.fit.color",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:pair.fit.color",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:pair.fit.beauty",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:pair.fit.beauty",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:pair.fit.defects",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:pair.fit.defects",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:style.aggregate",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:style.aggregate",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:style.validate",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:style.validate",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:style.import",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:style.import",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:style.package",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:style.package",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:collection.group",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:collection.group",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:collection.cull",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:collection.cull",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:editor.preview",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:editor.preview",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:style.resolve",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:style.resolve",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:series.measure",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:series.measure",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:series.balance",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:series.balance",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:image.denoise",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:image.denoise",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:geometry.body",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:geometry.body",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:image.color",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:image.color",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:image.local",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:image.local",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:portrait.beauty",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:portrait.beauty",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:portrait.detail",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:portrait.detail",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:defects.propose",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:defects.propose",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:defects.repair",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:defects.repair",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:sensor.dust",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:sensor.dust",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:sensor.dust_repair",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:sensor.dust_repair",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:composition.structure",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:composition.structure",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:composition.plan",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:composition.plan",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:geometry.crop",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:geometry.crop",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:image.inpaint",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:image.inpaint",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:image.generate",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:image.generate",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:image.outpaint",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:image.outpaint",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:background.compose",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:background.compose",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:background.blur",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:background.blur",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:background.sky",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:background.sky",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:image.upscale",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:image.upscale",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:hdr.register",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:hdr.register",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:hdr.merge",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:hdr.merge",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:hdr.window_pull",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:hdr.window_pull",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:quality.check",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:quality.check",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:media.thumbnail",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:media.thumbnail",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:media.preview",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:media.preview",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:derivative.resize",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:derivative.resize",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:derivative.sharpen",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:derivative.sharpen",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:derivative.watermark",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:derivative.watermark",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:export.encode",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:export.encode",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:metadata.write",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:metadata.write",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:archive.build",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:archive.build",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:collection.mutate",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:collection.mutate",
+      "status": "passed"
+    },
+    {
+      "check": "op_contract:report.contact_sheet",
+      "status": "passed"
+    },
+    {
+      "check": "op_timeout:report.contact_sheet",
+      "status": "passed"
+    },
+    {
+      "check": "package_dag:P00",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P00:00",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P00:01",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P00:15",
+      "status": "passed"
+    },
+    {
+      "check": "package_dag:P01",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P01:06",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P01:07",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P01:11",
+      "status": "passed"
+    },
+    {
+      "check": "package_dag:P02",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P02:02",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P02:03",
+      "status": "passed"
+    },
+    {
+      "check": "package_dag:P03",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P03:03",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P03:04",
+      "status": "passed"
+    },
+    {
+      "check": "package_dag:P04",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P04:02",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P04:04",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P04:09",
+      "status": "passed"
+    },
+    {
+      "check": "package_dag:P05",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P05:05",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P05:06",
+      "status": "passed"
+    },
+    {
+      "check": "package_dag:P06",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P06:06",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P06:09",
+      "status": "passed"
+    },
+    {
+      "check": "package_dag:P07",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P07:04",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P07:09",
+      "status": "passed"
+    },
+    {
+      "check": "package_dag:P08",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P08:10",
+      "status": "passed"
+    },
+    {
+      "check": "package_dag:P09",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P09:07",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P09:15",
+      "status": "passed"
+    },
+    {
+      "check": "package_dag:P10",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P10:04",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P10:07",
+      "status": "passed"
+    },
+    {
+      "check": "package_dag:P11",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P11:04",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P11:05",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P11:07",
+      "status": "passed"
+    },
+    {
+      "check": "package_dag:P12",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P12:06",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P12:08",
+      "status": "passed"
+    },
+    {
+      "check": "package_dag:P13",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P13:04",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P13:08",
+      "status": "passed"
+    },
+    {
+      "check": "package_dag:P14",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P14:06",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P14:08",
+      "status": "passed"
+    },
+    {
+      "check": "package_dag:P15",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P15:10",
+      "status": "passed"
+    },
+    {
+      "check": "package_dag:P16",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P16:09",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P16:11",
+      "status": "passed"
+    },
+    {
+      "check": "package_dag:P17",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P17:00",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P17:02",
+      "status": "passed"
+    },
+    {
+      "check": "package_dag:P18",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P18:12",
+      "status": "passed"
+    },
+    {
+      "check": "package_doc:P18:14",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:1",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:2",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:3",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:4",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:5",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:6",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:7",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:8",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:9",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:10",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:11",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:12",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:13",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:14",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:15",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:16",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:17",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:18",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:19",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:20",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:21",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:22",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:23",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:24",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:25",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:26",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:27",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:28",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:29",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:30",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:31",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:32",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:33",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:34",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:35",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:36",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:37",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:38",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:39",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:40",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:41",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:42",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:43",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:44",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:45",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:46",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:47",
+      "status": "passed"
+    },
+    {
+      "check": "requirement:48",
+      "status": "passed"
+    },
+    {
+      "check": "task-command:reject_unknown",
+      "status": "passed"
+    },
+    {
+      "check": "task-command:reject_bad_uuid",
+      "status": "passed"
+    },
+    {
+      "check": "task-command:example_valid",
+      "status": "passed"
+    },
+    {
+      "check": "task-result:reject_unknown",
+      "status": "passed"
+    },
+    {
+      "check": "task-result:reject_bad_uuid",
+      "status": "passed"
+    },
+    {
+      "check": "task-result:example_valid",
+      "status": "passed"
+    },
+    {
+      "check": "fixed_example_shape",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:src/photoeditor/__init__.py",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:src/photoeditor/__init__.py",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:src/photoeditor/analysis.py",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:src/photoeditor/analysis.py",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:src/photoeditor/cli.py",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:src/photoeditor/cli.py",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:src/photoeditor/config.py",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:src/photoeditor/config.py",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:src/photoeditor/io.py",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:src/photoeditor/io.py",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:src/photoeditor/jobs.py",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:src/photoeditor/jobs.py",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:src/photoeditor/models.py",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:src/photoeditor/models.py",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:src/photoeditor/render.py",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:src/photoeditor/render.py",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:src/photoeditor/studio.py",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:src/photoeditor/studio.py",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:src/photoeditor.egg-info/PKG-INFO",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:src/photoeditor.egg-info/PKG-INFO",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:src/photoeditor.egg-info/SOURCES.txt",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:src/photoeditor.egg-info/SOURCES.txt",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:src/photoeditor.egg-info/dependency_links.txt",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:src/photoeditor.egg-info/dependency_links.txt",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:src/photoeditor.egg-info/entry_points.txt",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:src/photoeditor.egg-info/entry_points.txt",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:src/photoeditor.egg-info/requires.txt",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:src/photoeditor.egg-info/requires.txt",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:src/photoeditor.egg-info/top_level.txt",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:src/photoeditor.egg-info/top_level.txt",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:tests/test_pipeline.py",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:tests/test_pipeline.py",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:scripts/codeformer_arcface_gate.py",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:scripts/codeformer_arcface_gate.py",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:scripts/setup-codeformer.sh",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:scripts/setup-codeformer.sh",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:scripts/setup.sh",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:scripts/setup.sh",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:scripts/verify-e2e.py",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:scripts/verify-e2e.py",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:configs/natural.yaml",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:configs/natural.yaml",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:schemas/config.schema.json",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:schemas/config.schema.json",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:docs/architecture.md",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:docs/architecture.md",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:docs/current-pipeline.md",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:docs/current-pipeline.md",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:docs/e2e-studio-series.md",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:docs/e2e-studio-series.md",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:docs/face-restoration.md",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:docs/face-restoration.md",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:docs/implementation.md",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:docs/implementation.md",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:docs/photo_pipelines_spec.docx.md",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:docs/photo_pipelines_spec.docx.md",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:e2e/config/studio_soft.yaml",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:e2e/config/studio_soft.yaml",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:e2e/input/01_window_overexposure.jpg",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:e2e/input/01_window_overexposure.jpg",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:e2e/input/02_low_light.jpg",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:e2e/input/02_low_light.jpg",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:e2e/input/03_family_backlight.jpg",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:e2e/input/03_family_backlight.jpg",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:e2e/input/04_harsh_sun_shadows.jpg",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:e2e/input/04_harsh_sun_shadows.jpg",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:e2e/input/05_mixed_light_flash.jpg",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:e2e/input/05_mixed_light_flash.jpg",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:e2e/input/06_seaside_sun_dress.jpg",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:e2e/input/06_seaside_sun_dress.jpg",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:README.md",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:README.md",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:pyproject.toml",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:pyproject.toml",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:requirements.lock",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:requirements.lock",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:run.sh",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:run.sh",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:run-e2e.sh",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:run-e2e.sh",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_record:.gitignore",
+      "status": "passed"
+    },
+    {
+      "check": "source_inventory_path:.gitignore",
+      "status": "passed"
+    },
+    {
+      "check": "legacy_quality_unchanged:src/photoeditor.egg-info/PKG-INFO",
+      "status": "passed"
+    },
+    {
+      "check": "legacy_quality_unchanged:src/photoeditor.egg-info/SOURCES.txt",
+      "status": "passed"
+    },
+    {
+      "check": "legacy_quality_unchanged:src/photoeditor.egg-info/entry_points.txt",
+      "status": "passed"
+    },
+    {
+      "check": "legacy_quality_unchanged:src/photoeditor.egg-info/requires.txt",
+      "status": "passed"
+    },
+    {
+      "check": "legacy_quality_unchanged:src/photoeditor.egg-info/top_level.txt",
+      "status": "passed"
+    },
+    {
+      "check": "legacy_quality_unchanged:src/photoeditor.egg-info/dependency_links.txt",
+      "status": "passed"
+    },
+    {
+      "check": "legacy_quality_unchanged:src/photoeditor/config.py",
+      "status": "passed"
+    },
+    {
+      "check": "legacy_quality_unchanged:src/photoeditor/studio.py",
+      "status": "passed"
+    },
+    {
+      "check": "legacy_quality_unchanged:src/photoeditor/analysis.py",
+      "status": "passed"
+    },
+    {
+      "check": "legacy_quality_unchanged:src/photoeditor/models.py",
+      "status": "passed"
+    },
+    {
+      "check": "legacy_quality_unchanged:src/photoeditor/render.py",
+      "status": "passed"
+    },
+    {
+      "check": "legacy_quality_unchanged:src/photoeditor/io.py",
+      "status": "passed"
+    },
+    {
+      "check": "legacy_quality_unchanged:src/photoeditor/__init__.py",
+      "status": "passed"
+    },
+    {
+      "check": "legacy_quality_unchanged:src/photoeditor/jobs.py",
+      "status": "passed"
+    },
+    {
+      "check": "legacy_quality_unchanged:src/photoeditor/cli.py",
+      "status": "passed"
+    },
+    {
+      "check": "legacy_quality_unchanged:configs/natural.yaml",
+      "status": "passed"
+    },
+    {
+      "check": "legacy_quality_unchanged:e2e/config/studio_soft.yaml",
+      "status": "passed"
+    },
+    {
+      "check": "legacy_quality_unchanged:tests/test_pipeline.py",
+      "status": "passed"
+    }
+  ]
+}

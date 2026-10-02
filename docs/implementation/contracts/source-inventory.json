@@ -1,0 +1,867 @@
+{
+  "captured_at": "2026-09-20",
+  "root": "/Users/freelancer/Documents/PhotoEditor",
+  "excluded": [
+    ".git",
+    ".venv",
+    ".venv-codeformer",
+    ".models",
+    ".cache",
+    "__pycache__",
+    "generated e2e/output"
+  ],
+  "files": [
+    {
+      "path": "src/photoeditor/__init__.py",
+      "bytes": 22,
+      "sha256": "f0a7026135c7f7d0b6fa008bb8f20b26fb53f587ed45626c6abb48c7a4d0d996",
+      "symbols": []
+    },
+    {
+      "path": "src/photoeditor/analysis.py",
+      "bytes": 6203,
+      "sha256": "2ad1c9c79f7a5b113718c9e8de7278bdd0250666d1abd2e94c267f3d4bc7c0d8",
+      "symbols": [
+        {
+          "name": "luma",
+          "line": 12,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "linear",
+          "line": 16,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "encoded",
+          "line": 20,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "polygon",
+          "line": 24,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "blur",
+          "line": 31,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "Analyzer",
+          "line": 35,
+          "kind": "ClassDef"
+        },
+        {
+          "name": "__init__",
+          "line": 36,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "close",
+          "line": 48,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "image",
+          "line": 52,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "analyze",
+          "line": 55,
+          "kind": "FunctionDef"
+        }
+      ]
+    },
+    {
+      "path": "src/photoeditor/cli.py",
+      "bytes": 3222,
+      "sha256": "cb1f8c8003b77960f428d093242dbd2cdf7c54f338600380999f95b3aada1d3c",
+      "symbols": [
+        {
+          "name": "main",
+          "line": 12,
+          "kind": "FunctionDef"
+        }
+      ]
+    },
+    {
+      "path": "src/photoeditor/config.py",
+      "bytes": 9048,
+      "sha256": "1cda535e72ec4434cbeeb25dc87fd403228cc7009a5f0db064a6552ecd2ccfa7",
+      "symbols": [
+        {
+          "name": "Model",
+          "line": 15,
+          "kind": "ClassDef"
+        },
+        {
+          "name": "Input",
+          "line": 19,
+          "kind": "ClassDef"
+        },
+        {
+          "name": "Runtime",
+          "line": 25,
+          "kind": "ClassDef"
+        },
+        {
+          "name": "Color",
+          "line": 32,
+          "kind": "ClassDef"
+        },
+        {
+          "name": "Collection",
+          "line": 46,
+          "kind": "ClassDef"
+        },
+        {
+          "name": "Effect",
+          "line": 55,
+          "kind": "ClassDef"
+        },
+        {
+          "name": "Light",
+          "line": 60,
+          "kind": "ClassDef"
+        },
+        {
+          "name": "Skin",
+          "line": 65,
+          "kind": "ClassDef"
+        },
+        {
+          "name": "HighlightCleanup",
+          "line": 72,
+          "kind": "ClassDef"
+        },
+        {
+          "name": "FaceColorFinish",
+          "line": 80,
+          "kind": "ClassDef"
+        },
+        {
+          "name": "PostWhiteBalance",
+          "line": 88,
+          "kind": "ClassDef"
+        },
+        {
+          "name": "Blemishes",
+          "line": 97,
+          "kind": "ClassDef"
+        },
+        {
+          "name": "Beauty",
+          "line": 105,
+          "kind": "ClassDef"
+        },
+        {
+          "name": "Geometry",
+          "line": 119,
+          "kind": "ClassDef"
+        },
+        {
+          "name": "Detail",
+          "line": 134,
+          "kind": "ClassDef"
+        },
+        {
+          "name": "BlurDetection",
+          "line": 140,
+          "kind": "ClassDef"
+        },
+        {
+          "name": "FaceRecovery",
+          "line": 160,
+          "kind": "ClassDef"
+        },
+        {
+          "name": "Export",
+          "line": 167,
+          "kind": "ClassDef"
+        },
+        {
+          "name": "Config",
+          "line": 179,
+          "kind": "ClassDef"
+        },
+        {
+          "name": "merge",
+          "line": 198,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "for_image",
+          "line": 205,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "load",
+          "line": 212,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "env_paths",
+          "line": 240,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "channels",
+          "line": 40,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "rectangles",
+          "line": 127,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "candidates",
+          "line": 152,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "nonempty",
+          "line": 173,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "geometry_contract",
+          "line": 192,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "UniqueLoader",
+          "line": 222,
+          "kind": "ClassDef"
+        },
+        {
+          "name": "mapping",
+          "line": 224,
+          "kind": "FunctionDef"
+        }
+      ]
+    },
+    {
+      "path": "src/photoeditor/io.py",
+      "bytes": 4800,
+      "sha256": "05d30eca6e3b12222191c34fc53d8b1a5427bf62f1f8738e651f8c45d4b78f1a",
+      "symbols": [
+        {
+          "name": "digest",
+          "line": 15,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "hash_object",
+          "line": 23,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "atomic_json",
+          "line": 27,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "read_rgb",
+          "line": 38,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "proxy_rgb",
+          "line": 83,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "write_jpeg",
+          "line": 94,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "write_tiff",
+          "line": 107,
+          "kind": "FunctionDef"
+        }
+      ]
+    },
+    {
+      "path": "src/photoeditor/jobs.py",
+      "bytes": 24426,
+      "sha256": "543c457f18d98da145cf9500e88a1aea138b6196261bfabe6d612891fdd62982",
+      "symbols": [
+        {
+          "name": "emit",
+          "line": 22,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "job_lock",
+          "line": 27,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "scan",
+          "line": 42,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "make_plan",
+          "line": 60,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "validate_plan",
+          "line": 122,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "ensure_plan",
+          "line": 130,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "face_sharpness",
+          "line": 147,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "metrics",
+          "line": 164,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "publish_delivery",
+          "line": 184,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "cleanup_all_face_highlights",
+          "line": 204,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "restore_soft_faces",
+          "line": 250,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "save_review",
+          "line": 314,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "contact_sheet",
+          "line": 328,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "run_batch",
+          "line": 348,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "spread",
+          "line": 169,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "progress",
+          "line": 387,
+          "kind": "FunctionDef"
+        }
+      ]
+    },
+    {
+      "path": "src/photoeditor/models.py",
+      "bytes": 1844,
+      "sha256": "8a1baf6feedd9998d6593d17457e3d2584de27c02fae2e16120b8e650ac8d9c5",
+      "symbols": [
+        {
+          "name": "model_dir",
+          "line": 18,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "ensure_models",
+          "line": 22,
+          "kind": "FunctionDef"
+        }
+      ]
+    },
+    {
+      "path": "src/photoeditor/render.py",
+      "bytes": 21877,
+      "sha256": "b3ca4fe7d4a093f6906881eb220c3124647afd9c8729c6954b3c78c824ad8cda",
+      "symbols": [
+        {
+          "name": "sample_map",
+          "line": 7,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "prepare_maps",
+          "line": 16,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "process_tile",
+          "line": 89,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "geometry_field",
+          "line": 188,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "cleanup_face_highlights",
+          "line": 228,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "finish_face_color",
+          "line": 274,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "post_white_balance",
+          "line": 317,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "render",
+          "line": 352,
+          "kind": "FunctionDef"
+        }
+      ]
+    },
+    {
+      "path": "src/photoeditor/studio.py",
+      "bytes": 6759,
+      "sha256": "68326a41e4a53566cb80e0d118ad67554d2f1347aed6833328f55eff712b2f69",
+      "symbols": [
+        {
+          "name": "launch",
+          "line": 11,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "Studio",
+          "line": 20,
+          "kind": "ClassDef"
+        },
+        {
+          "name": "__init__",
+          "line": 21,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "changed",
+          "line": 51,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "snapshot",
+          "line": 54,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "validate",
+          "line": 63,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "save",
+          "line": 68,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "show_before",
+          "line": 72,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "show_pixmap",
+          "line": 74,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "preview",
+          "line": 77,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "batch",
+          "line": 80,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "start",
+          "line": 81,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "read_output",
+          "line": 98,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "finished",
+          "line": 106,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "cancel",
+          "line": 111,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "closeEvent",
+          "line": 115,
+          "kind": "FunctionDef"
+        }
+      ]
+    },
+    {
+      "path": "src/photoeditor.egg-info/PKG-INFO",
+      "bytes": 597,
+      "sha256": "6b83c7db1a470de72a1924ed6cd8b4f04bdf6db592ad3f15962c63b8869008af"
+    },
+    {
+      "path": "src/photoeditor.egg-info/SOURCES.txt",
+      "bytes": 512,
+      "sha256": "fc8a626cca85c06154ecb8b7b9644c6dc483e33c66d4d96255438b6670793c05"
+    },
+    {
+      "path": "src/photoeditor.egg-info/dependency_links.txt",
+      "bytes": 1,
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "path": "src/photoeditor.egg-info/entry_points.txt",
+      "bytes": 53,
+      "sha256": "e6b22edcc6a176558bf661d38c7524d0b9a215708969964e77e86525a8536c1e"
+    },
+    {
+      "path": "src/photoeditor.egg-info/requires.txt",
+      "bytes": 214,
+      "sha256": "79296436f788437487418d7849918ef1f8d225ad520f8559234a2adabb45a595"
+    },
+    {
+      "path": "src/photoeditor.egg-info/top_level.txt",
+      "bytes": 12,
+      "sha256": "9bfaba989ca77b4313a294aed82a56663e5c59b5c73a70993eebb98ab2c48cda"
+    },
+    {
+      "path": "tests/test_pipeline.py",
+      "bytes": 13544,
+      "sha256": "783fd9d9ae5d44dfc312a048deedece6e3e43069d7bf981e03e537228f075883",
+      "symbols": [
+        {
+          "name": "no_op",
+          "line": 15,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "maps_for",
+          "line": 20,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "test_config_rejects_unknown_conflict_duplicate_and_alias",
+          "line": 25,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "test_overrides_checked_before_render",
+          "line": 33,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "test_env_rejects_overlap_and_symlink",
+          "line": 41,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "test_linear_transfer_roundtrip",
+          "line": 50,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "test_noop_preserves_16bit_and_tiff_roundtrip",
+          "line": 55,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "test_tiles_match_full_reference",
+          "line": 68,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "test_geometry_off_and_field_bounds",
+          "line": 83,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "test_orientation_applied_once",
+          "line": 96,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "test_scan_no_symlink_and_stable_ids",
+          "line": 102,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "test_lock_released_on_exception",
+          "line": 111,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "test_batch_resume_and_corrupt_file_isolation",
+          "line": 120,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "test_corrupt_analysis_cache_is_rebuilt",
+          "line": 150,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "test_brightening_does_not_create_white_clipping",
+          "line": 168,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "test_body_warp_does_not_move_inside_face",
+          "line": 178,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "test_even_light_reduces_large_face_shadow_without_flattening_detail",
+          "line": 186,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "test_auto_red_blemish_reduces_local_red_chroma",
+          "line": 201,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "test_face_blur_score_separates_soft_and_detailed_crop",
+          "line": 215,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "test_face_recovery_activates_only_for_soft_face",
+          "line": 227,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "test_restoration_candidate_config_is_bounded",
+          "line": 246,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "test_post_highlight_cleanup_reduces_glare_and_preserves_features",
+          "line": 256,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "test_face_color_finish_warms_gray_skin_without_luma_shift",
+          "line": 273,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "test_post_white_balance_neutralizes_cast_and_protects_highlights",
+          "line": 294,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "FakeAnalyzer",
+          "line": 126,
+          "kind": "ClassDef"
+        },
+        {
+          "name": "FakeAnalyzer",
+          "line": 155,
+          "kind": "ClassDef"
+        },
+        {
+          "name": "analyze",
+          "line": 127,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "close",
+          "line": 131,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "analyze",
+          "line": 156,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "close",
+          "line": 159,
+          "kind": "FunctionDef"
+        }
+      ]
+    },
+    {
+      "path": "scripts/codeformer_arcface_gate.py",
+      "bytes": 5757,
+      "sha256": "11b54c235d1cfa5af6679986f066186aced02bc5d161f4011e8a0ab0e4e9a573",
+      "symbols": [
+        {
+          "name": "sharpness",
+          "line": 26,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "clipped",
+          "line": 31,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "embedding",
+          "line": 35,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "restore",
+          "line": 42,
+          "kind": "FunctionDef"
+        },
+        {
+          "name": "main",
+          "line": 49,
+          "kind": "FunctionDef"
+        }
+      ]
+    },
+    {
+      "path": "scripts/setup-codeformer.sh",
+      "bytes": 1776,
+      "sha256": "64df44079d5e95732a4c141bb808d521cc118951f7d13b07775e6445a38969bb"
+    },
+    {
+      "path": "scripts/setup.sh",
+      "bytes": 998,
+      "sha256": "295b8b7b87aa6ac15c9cb1e67de2bad71863c86ecec79b64f7e2133ec8940929"
+    },
+    {
+      "path": "scripts/verify-e2e.py",
+      "bytes": 1559,
+      "sha256": "07b30f0f4c0ebfbc491304b130c7dd77a1330d5554e9ed32c553ac2b4014b61a",
+      "symbols": []
+    },
+    {
+      "path": "configs/natural.yaml",
+      "bytes": 1288,
+      "sha256": "74b29981ffc660b4ce15b090b948a7b41be5b49fa9966f7a80aa3238163273ec"
+    },
+    {
+      "path": "schemas/config.schema.json",
+      "bytes": 17447,
+      "sha256": "0aebec74315bd2a9ae21292cb84362f3d7a323795305281be8f691c9ddf32c56"
+    },
+    {
+      "path": "docs/architecture.md",
+      "bytes": 58671,
+      "sha256": "4b8997acd229dca4af0fee8ff4141604c05523b9a648d971985a8538de7724d7"
+    },
+    {
+      "path": "docs/current-pipeline.md",
+      "bytes": 21720,
+      "sha256": "0c83b3d7c2dd554949f5a50b053e706fae06258d608f568c80c7f55f428980dc"
+    },
+    {
+      "path": "docs/e2e-studio-series.md",
+      "bytes": 29200,
+      "sha256": "9a7c7ca59715763b735d981c8489fc8e66b62997a146b0ee103011e4d02d9679"
+    },
+    {
+      "path": "docs/face-restoration.md",
+      "bytes": 3110,
+      "sha256": "45d0f964c280b0d49a438f7750b1c4af6cc4be48473d9d835347e83dae030f8e"
+    },
+    {
+      "path": "docs/implementation.md",
+      "bytes": 20149,
+      "sha256": "abe428dd5b6b077373ea1e2b67cffd1ea10ee89b252db22da483f610cced52ce"
+    },
+    {
+      "path": "docs/photo_pipelines_spec.docx.md",
+      "bytes": 237083,
+      "sha256": "2f00b6878b3156fa86d744f96effb7172e2dc697af86d7d3991896733f5947cc"
+    },
+    {
+      "path": "e2e/config/studio_soft.yaml",
+      "bytes": 3904,
+      "sha256": "900c89311f808f9e1bb23e5671f82aa95a717686dc09e59e4dbd256abdd78a0a"
+    },
+    {
+      "path": "e2e/input/01_window_overexposure.jpg",
+      "bytes": 14772637,
+      "sha256": "2d0a833cff6250051d575c7173be881ec909a5b3ddf3cadfdf4e10960d03cf5f"
+    },
+    {
+      "path": "e2e/input/02_low_light.jpg",
+      "bytes": 12896352,
+      "sha256": "08ab67fa169f6e073aef8d9063f124ccdfeb82aa5eb68dfd48491b5cf8db1a05"
+    },
+    {
+      "path": "e2e/input/03_family_backlight.jpg",
+      "bytes": 18158414,
+      "sha256": "d23537a9ae93addc64c06d21b3c9a46b70d71a15b9de03c073a71dc7e1ee2a31"
+    },
+    {
+      "path": "e2e/input/04_harsh_sun_shadows.jpg",
+      "bytes": 19647681,
+      "sha256": "b004f3261a77e3ba85805de8482b63e7b76bce6a2a6075ba30ca601bb891d723"
+    },
+    {
+      "path": "e2e/input/05_mixed_light_flash.jpg",
+      "bytes": 16826686,
+      "sha256": "4d0131d685de5b45897900c08e9bbac63fb52cb143cb6fb2e7df5cb76ca7be98"
+    },
+    {
+      "path": "e2e/input/06_seaside_sun_dress.jpg",
+      "bytes": 18878948,
+      "sha256": "9b5501915bb404411b4420639b0813af0453c71551366850bfd8586d6e9983a2"
+    },
+    {
+      "path": "README.md",
+      "bytes": 30529,
+      "sha256": "c8eb2b260f13f6c4c5131e9aa0b6a3dca60ba13f040e23235de477725c2c0558"
+    },
+    {
+      "path": "pyproject.toml",
+      "bytes": 717,
+      "sha256": "a92897dfc2cabad4d125ab1af559aa22732088ba124924cbc890d247cc38d5ac"
+    },
+    {
+      "path": "requirements.lock",
+      "bytes": 737,
+      "sha256": "f730323d3235515d9cfd95d50277ae20ff0ef2a78f96c9dd5fce843f51c7c66c"
+    },
+    {
+      "path": "run.sh",
+      "bytes": 739,
+      "sha256": "9fb19af86ca33bf09a20052e3e96aac5fd0fb684f5a71dd36a943f04c9388154"
+    },
+    {
+      "path": "run-e2e.sh",
+      "bytes": 292,
+      "sha256": "704d4abcd81e3545a30e7bf80e24716e6d1f1b61227c16b4ee24af0698ace185"
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 4880,
+      "sha256": "ea31e66d0eb5f5e36c3e01ef274af87b4ed9e77d86ba718dcf4b68f63b916687"
+    }
+  ]
+}

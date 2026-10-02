@@ -1,0 +1,118 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/inpaint-report.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "alpha_preserved": {
+      "title": "Alpha Preserved",
+      "type": "boolean"
+    },
+    "backend": {
+      "enum": [
+        "cpu",
+        "cuda",
+        "mps"
+      ],
+      "title": "Backend",
+      "type": "string"
+    },
+    "candidate_requires_review": {
+      "const": true,
+      "default": true,
+      "title": "Candidate Requires Review",
+      "type": "boolean"
+    },
+    "changed_pixels": {
+      "maximum": 200000000,
+      "minimum": 0,
+      "title": "Changed Pixels",
+      "type": "integer"
+    },
+    "feather_pixels": {
+      "maximum": 64,
+      "minimum": 1,
+      "title": "Feather Pixels",
+      "type": "integer"
+    },
+    "global_pass": {
+      "title": "Global Pass",
+      "type": "boolean"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "mask": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "model_id": {
+      "const": "big_lama",
+      "title": "Model Id",
+      "type": "string"
+    },
+    "model_lock_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Model Lock Id",
+      "type": "string"
+    },
+    "protected_pixels": {
+      "maximum": 200000000,
+      "minimum": 0,
+      "title": "Protected Pixels",
+      "type": "integer"
+    },
+    "roi": {
+      "items": {
+        "type": "integer"
+      },
+      "maxItems": 4,
+      "minItems": 4,
+      "title": "Roi",
+      "type": "array"
+    },
+    "target_pixels": {
+      "maximum": 200000000,
+      "minimum": 1,
+      "title": "Target Pixels",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "image",
+    "mask",
+    "model_id",
+    "model_lock_id",
+    "backend",
+    "changed_pixels",
+    "target_pixels",
+    "protected_pixels",
+    "global_pass",
+    "roi",
+    "feather_pixels",
+    "alpha_preserved"
+  ],
+  "title": "InpaintReport",
+  "type": "object"
+}

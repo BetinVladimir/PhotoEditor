@@ -1,0 +1,10 @@
+import {expect,it} from 'vitest';
+import {canonicalJSON} from '@photoeditor/api-client';
+import {sha256} from '@noble/hashes/sha2.js';
+import {bytesToHex} from '@noble/hashes/utils.js';
+import {comparePreview} from './compare-preview';
+import type {MediaLink} from './catalog-types';
+const icc='b'.repeat(64),source='a'.repeat(64);
+const link:MediaLink={asset_version_id:'version',artifact_sha256:'c'.repeat(64),icc_sha256:icc,profile_hash:bytesToHex(sha256(new TextEncoder().encode(canonicalJSON({schema_version:1,variant:'preview1600',long_edge:1600,quality:88,icc_sha256:icc,no_upscale:true,metadata_policy:'stripped'})))),variant:'preview1600',url:'https://media.test/preview?versionId=pinned',expires_at:'2030-01-01T00:00:00Z',width:1600,height:1000,media_type:'image/jpeg'};
+it('binds an authorized preview to its version and server profile policy',()=>{expect(comparePreview(link,'version',source,0)).toEqual({versionId:'version',sourceSha:source,iccSha:icc,previewURI:link.url});});
+it('rejects missing evidence, stale links and altered policy or scope',()=>{for(const patch of [{icc_sha256:undefined},{asset_version_id:'other'},{profile_hash:'d'.repeat(64)},{variant:'thumb640'},{width:1601},{url:'javascript:alert(1)'},{expires_at:'invalid'}])expect(()=>comparePreview({...link,...patch} as MediaLink,'version',source,0)).toThrow('COMPARE_PREVIEW_INVALID');expect(()=>comparePreview(link,'version',source,Date.parse(link.expires_at))).toThrow();});

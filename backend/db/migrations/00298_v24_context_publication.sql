@@ -1,0 +1,195 @@
+-- +goose Up
+ALTER TABLE photo.capture_assessment_jobs ADD COLUMN document_bodies jsonb NOT NULL DEFAULT '{}'::jsonb
+ CHECK(jsonb_typeof(document_bodies)='object' AND octet_length(document_bodies::text)<=20971520);
+-- +goose StatementBegin
+CREATE FUNCTION photo.guard_capture_document_bodies() RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog,photo AS $$
+DECLARE entry record;
+BEGIN
+ FOR entry IN SELECT key,value FROM jsonb_each(OLD.document_bodies) LOOP
+  IF NEW.document_bodies->entry.key IS DISTINCT FROM entry.value THEN
+   RAISE EXCEPTION 'immutable capture document body' USING ERRCODE='23514';
+  END IF;
+ END LOOP;
+ RETURN NEW;
+END $$;
+-- +goose StatementEnd
+ALTER FUNCTION photo.guard_capture_document_bodies() OWNER TO photo_fn_owner;
+REVOKE ALL ON FUNCTION photo.guard_capture_document_bodies() FROM PUBLIC;
+CREATE TRIGGER capture_document_bodies_immutable BEFORE UPDATE ON photo.capture_assessment_jobs FOR EACH ROW EXECUTE FUNCTION photo.guard_capture_document_bodies();
+-- +goose StatementBegin
+CREATE FUNCTION photo.stage_capture_document_body(p_tenant uuid,p_job uuid,p_token uuid,p_purpose text,p_jcs text) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,photo AS $$
+DECLARE job photo.capture_assessment_jobs%ROWTYPE; body jsonb; packet jsonb;
+BEGIN
+ IF p_purpose IS NULL OR p_purpose NOT IN('v24_capture_shots','v24_capture_consents','v24_capture_context','v24_capture_assess_params')
+ OR p_jcs IS NULL OR octet_length(p_jcs) NOT BETWEEN 2 AND (CASE WHEN p_purpose IN('v24_capture_consents','v24_capture_context') THEN 8388608 ELSE 1048576 END) THEN
+  RAISE EXCEPTION 'invalid capture document body' USING ERRCODE='22023';
+ END IF;
+ body:=p_jcs::jsonb;
+ IF jsonb_typeof(body)<>'object' OR body->'schema_version' IS DISTINCT FROM '1'::jsonb THEN
+  RAISE EXCEPTION 'invalid capture document schema' USING ERRCODE='22023';
+ END IF;
+ PERFORM id FROM photo.tenants WHERE id=p_tenant AND status='active' FOR SHARE;
+ IF NOT FOUND THEN RETURN false; END IF;
+ SELECT * INTO job FROM photo.capture_assessment_jobs WHERE tenant_id=p_tenant AND id=p_job FOR UPDATE;
+ IF NOT FOUND OR job.state<>'leased' OR job.lease_token IS DISTINCT FROM p_token OR job.lease_until<=clock_timestamp() THEN RETURN false; END IF;
+ PERFORM r.id FROM photo.runs r JOIN photo.v2_workflows w ON w.tenant_id=r.tenant_id AND w.run_id=r.id
+ WHERE r.tenant_id=p_tenant AND w.id=job.preparation_workflow_id AND w.project_id=job.project_id
+ AND w.workflow_type='capture' AND r.status='running' AND NOT r.graph_sealed AND NOT r.cancel_requested FOR SHARE OF r;
+ IF NOT FOUND OR job.selection_seed IS NULL OR job.consent_seed IS NULL OR job.coverage_seed IS NULL THEN RETURN false; END IF;
+ PERFORM photo.freeze_capture_consents(p_tenant,p_job,p_token,job.consent_people);
+ PERFORM photo.freeze_capture_coverage(p_tenant,p_job,p_token);
+ IF p_purpose='v24_capture_consents' AND body IS DISTINCT FROM job.consent_seed THEN
+  RAISE EXCEPTION 'capture consent body mismatch' USING ERRCODE='23514';
+ END IF;
+ IF p_purpose='v24_capture_shots' AND (job.selection_seed->'shot_document'<>'null'::jsonb
+ OR body IS DISTINCT FROM '{"schema_version":1,"requirements":[]}'::jsonb) THEN
+  RAISE EXCEPTION 'capture empty shot body mismatch' USING ERRCODE='23514';
+ END IF;
+ IF p_purpose='v24_capture_context' AND (body->>'session_id' IS DISTINCT FROM job.session_id::text
+ OR body->'recent_content_shas' IS DISTINCT FROM job.selection_seed->'recent_content_shas') THEN
+  RAISE EXCEPTION 'capture context body mismatch' USING ERRCODE='23514';
+ END IF;
+ packet:=jsonb_build_object('jcs',p_jcs,'sha256',encode(sha256(convert_to(p_jcs,'UTF8')),'hex'));
+ IF job.document_bodies ? p_purpose THEN
+  IF job.document_bodies->p_purpose IS DISTINCT FROM packet THEN RAISE EXCEPTION 'capture document replay conflict' USING ERRCODE='23514'; END IF;
+ ELSE
+  UPDATE photo.capture_assessment_jobs SET document_bodies=document_bodies||jsonb_build_object(p_purpose,packet) WHERE tenant_id=p_tenant AND id=p_job;
+ END IF;
+ RETURN true;
+END $$;
+-- +goose StatementEnd
+ALTER FUNCTION photo.stage_capture_document_body(uuid,uuid,uuid,text,text) OWNER TO photo_fn_owner;
+REVOKE ALL ON FUNCTION photo.stage_capture_document_body(uuid,uuid,uuid,text,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION photo.stage_capture_document_body(uuid,uuid,uuid,text,text) TO photo_scheduler;
+ALTER TABLE photo.backend_documents DROP CONSTRAINT backend_documents_purpose_check;
+ALTER TABLE photo.backend_documents ADD CONSTRAINT backend_documents_purpose_check
+ CHECK (purpose IN ('task_params','review_selection','v2_input_manifest',
+  'v2_session_plan_params','v2_analysis_input_snapshot','v2_analysis_context',
+  'v2_analysis_consents','v23_training_manifest','v23_training_snapshot',
+  'v23_fit_params','v23_evaluate_params','v23_frozen_base',
+  'v23_frozen_approved','v23_zero_profile','v24_capture_prepare_params','v24_capture_shots','v24_capture_consents','v24_capture_context','v24_capture_assess_params') OR
+  CASE WHEN purpose ~ '^v2_input_chunk_([0-9]|[1-9][0-9]{1,3})$'
+   THEN substring(purpose from 16)::integer BETWEEN 0 AND 1953 ELSE false END OR
+  CASE WHEN purpose ~ '^v2_analysis_describe_params_([0-9]|[1-3][0-9])$'
+   THEN true ELSE false END);
+
+-- +goose StatementBegin
+CREATE OR REPLACE FUNCTION photo.v24_capture_document_scope(p_tenant uuid,p_run uuid,p_owner uuid,p_purpose text,p_sha text)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,photo AS $$
+ SELECT EXISTS(SELECT 1 FROM photo.runs r JOIN photo.v2_workflows w ON w.tenant_id=r.tenant_id AND w.run_id=r.id
+ JOIN photo.capture_assessment_jobs j ON j.tenant_id=w.tenant_id AND j.preparation_workflow_id=w.id AND j.id=p_owner
+ JOIN photo.tenants tenant ON tenant.id=r.tenant_id AND tenant.status='active'
+ JOIN photo.quota_reservations q ON q.tenant_id=r.tenant_id AND q.holder_type='run' AND q.holder_id=r.id
+ WHERE r.tenant_id=p_tenant AND r.id=p_run AND r.kind='v2' AND NOT r.graph_sealed AND NOT r.cancel_requested
+ AND w.workflow_type='capture' AND w.renderer_version='v2.2' AND j.state='leased' AND j.lease_until>clock_timestamp()
+ AND q.state='reserved' AND q.expires_at>clock_timestamp() AND ((r.status='draft' AND p_purpose='v24_capture_prepare_params'
+ AND p_sha=r.config_snapshot->'v24_capture'->>'params_sha'
+ AND p_sha=encode(sha256(convert_to(r.config_snapshot->'v24_capture'->>'params_jcs','UTF8')),'hex')
+ AND (r.config_snapshot->'v24_capture'->>'params_jcs')::jsonb=r.config_snapshot->'v24_capture'->'params') OR (r.status='running' AND p_purpose IN('v24_capture_shots','v24_capture_consents','v24_capture_context','v24_capture_assess_params')
+ AND j.document_bodies->p_purpose->>'sha256'=p_sha
+ AND p_sha=encode(sha256(convert_to(j.document_bodies->p_purpose->>'jcs','UTF8')),'hex'))));
+$$;
+-- +goose StatementEnd
+ALTER FUNCTION photo.v24_capture_document_scope(uuid,uuid,uuid,text,text) OWNER TO photo_fn_owner;
+REVOKE ALL ON FUNCTION photo.v24_capture_document_scope(uuid,uuid,uuid,text,text) FROM PUBLIC;
+-- +goose StatementBegin
+CREATE OR REPLACE FUNCTION photo.reserve_v24_capture_document(p_tenant uuid,p_run uuid,
+ p_owner uuid,p_purpose text,p_sha text,p_bytes bigint,p_bucket text)
+RETURNS TABLE(outcome text,artifact_id uuid,token uuid,ready boolean)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,photo AS $$
+DECLARE d photo.backend_documents%ROWTYPE; capacity numeric; used numeric;
+ aid uuid:=gen_random_uuid(); fence uuid:=gen_random_uuid();
+BEGIN
+ IF p_sha IS NULL OR p_sha !~ '^[0-9a-f]{64}$' OR p_bytes IS NULL
+  OR p_bytes NOT BETWEEN 2 AND (CASE WHEN p_purpose IN
+   ('v24_capture_context','v24_capture_consents') THEN 8388608 ELSE 1048576 END)
+  OR p_bucket IS NULL OR length(p_bucket) NOT BETWEEN 3 AND 63 THEN
+  RAISE EXCEPTION 'INVALID_CAPTURE_DOCUMENT' USING ERRCODE='22023';
+ END IF;
+ PERFORM id FROM photo.tenants WHERE id=p_tenant AND status='active' FOR SHARE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'CAPTURE_TENANT_INACTIVE' USING ERRCODE='55000'; END IF;
+ PERFORM id FROM photo.tenant_usage WHERE tenant_id=p_tenant FOR UPDATE;
+ PERFORM id FROM photo.runs WHERE tenant_id=p_tenant AND id=p_run FOR UPDATE;
+ IF NOT photo.v24_capture_document_scope(p_tenant,p_run,p_owner,p_purpose,p_sha)
+  THEN RETURN QUERY SELECT 'forbidden',NULL::uuid,NULL::uuid,false; RETURN; END IF;
+ SELECT * INTO d FROM photo.backend_documents b WHERE b.tenant_id=p_tenant
+  AND b.run_id=p_run AND b.owner_id=p_owner AND b.purpose=p_purpose FOR UPDATE;
+ IF FOUND THEN
+  IF d.sha256<>p_sha OR d.bytes<>p_bytes OR d.bucket<>p_bucket THEN
+   RETURN QUERY SELECT 'conflict',NULL::uuid,NULL::uuid,false; RETURN; END IF;
+  IF d.state='ready' THEN
+   IF NOT EXISTS(SELECT 1 FROM photo.artifacts a WHERE a.tenant_id=p_tenant
+    AND a.id=d.artifact_id AND a.state='ready' AND a.sha256=d.sha256
+    AND a.object_version=d.object_version) THEN
+    RETURN QUERY SELECT 'stale',NULL::uuid,NULL::uuid,false; RETURN; END IF;
+   RETURN QUERY SELECT 'replayed',d.artifact_id,d.token,true; RETURN;
+  END IF;
+  IF d.state<>'pending' THEN
+   RETURN QUERY SELECT 'stale',NULL::uuid,NULL::uuid,false; RETURN; END IF;
+  UPDATE photo.backend_documents SET token=fence WHERE id=d.id;
+  RETURN QUERY SELECT 'resumed',d.artifact_id,fence,false; RETURN;
+ END IF;
+ SELECT (quotas->>'storage_bytes')::numeric INTO capacity FROM photo.tenants WHERE id=p_tenant;
+ SELECT storage_bytes::numeric+reserved_bytes INTO used FROM photo.tenant_usage WHERE tenant_id=p_tenant;
+ IF capacity IS NULL OR used IS NULL OR used+p_bytes>capacity
+  OR used+p_bytes>9007199254740991 THEN
+  RETURN QUERY SELECT 'quota',NULL::uuid,NULL::uuid,false; RETURN; END IF;
+ INSERT INTO photo.backend_documents(tenant_id,run_id,owner_id,purpose,
+  artifact_id,token,sha256,bytes,bucket)
+ VALUES(p_tenant,p_run,p_owner,p_purpose,aid,fence,p_sha,p_bytes,p_bucket);
+ UPDATE photo.tenant_usage SET reserved_bytes=reserved_bytes+p_bytes WHERE tenant_id=p_tenant;
+ RETURN QUERY SELECT 'created',aid,fence,false;
+END $$;
+-- +goose StatementEnd
+ALTER FUNCTION photo.reserve_v24_capture_document(uuid,uuid,uuid,text,text,bigint,text) OWNER TO photo_fn_owner;
+REVOKE ALL ON FUNCTION photo.reserve_v24_capture_document(uuid,uuid,uuid,text,text,bigint,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION photo.reserve_v24_capture_document(uuid,uuid,uuid,text,text,bigint,text) TO photo_scheduler;
+
+-- +goose StatementBegin
+CREATE OR REPLACE FUNCTION photo.complete_v24_capture_document(p_tenant uuid,p_run uuid,
+ p_owner uuid,p_purpose text,p_artifact uuid,p_token uuid,p_sha text,p_bytes bigint,
+ p_bucket text,p_version text) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,photo AS $$
+DECLARE d photo.backend_documents%ROWTYPE; target text;
+BEGIN
+ IF p_token IS NULL OR p_version IS NULL OR p_version IN ('','null')
+  OR length(p_version)>1024 THEN RETURN false; END IF;
+ PERFORM id FROM photo.tenants WHERE id=p_tenant AND status='active' FOR SHARE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'CAPTURE_TENANT_INACTIVE' USING ERRCODE='55000'; END IF;
+ PERFORM id FROM photo.tenant_usage WHERE tenant_id=p_tenant FOR UPDATE;
+ PERFORM id FROM photo.runs WHERE tenant_id=p_tenant AND id=p_run FOR UPDATE;
+ IF NOT photo.v24_capture_document_scope(p_tenant,p_run,p_owner,p_purpose,p_sha)
+  THEN RETURN false; END IF;
+ SELECT * INTO d FROM photo.backend_documents b WHERE b.tenant_id=p_tenant
+  AND b.run_id=p_run AND b.owner_id=p_owner AND b.purpose=p_purpose FOR UPDATE;
+ IF d.id IS NULL OR d.artifact_id IS DISTINCT FROM p_artifact OR
+  d.token IS DISTINCT FROM p_token OR d.sha256 IS DISTINCT FROM p_sha OR
+  d.bytes IS DISTINCT FROM p_bytes OR d.bucket IS DISTINCT FROM p_bucket
+  THEN RETURN false; END IF;
+ IF d.state='ready' THEN
+  RETURN d.object_version=p_version AND EXISTS(SELECT 1 FROM photo.artifacts a
+   WHERE a.tenant_id=p_tenant AND a.id=p_artifact AND a.state='ready'
+    AND a.sha256=d.sha256 AND a.object_version=p_version); END IF;
+ IF d.state<>'pending' THEN RETURN false; END IF;
+ target:='tenants/'||p_tenant||'/runs/'||p_run||'/documents/'||p_artifact;
+ INSERT INTO photo.artifacts(id,tenant_id,bucket,object_key,object_version,sha256,
+  bytes,media_type,state,verified_at,output_role)
+ VALUES(p_artifact,p_tenant,p_bucket,target,p_version,p_sha,p_bytes,
+  'application/json','ready',clock_timestamp(),p_purpose);
+ UPDATE photo.tenant_usage SET reserved_bytes=reserved_bytes-d.bytes,
+  storage_bytes=storage_bytes+d.bytes WHERE tenant_id=p_tenant AND reserved_bytes>=d.bytes;
+ IF NOT FOUND THEN RAISE EXCEPTION 'DOCUMENT_QUOTA_ACCOUNTING' USING ERRCODE='23514'; END IF;
+ UPDATE photo.backend_documents SET state='ready',object_version=p_version,
+  completed_at=clock_timestamp() WHERE id=d.id;
+ RETURN true;
+END $$;
+-- +goose StatementEnd
+ALTER FUNCTION photo.complete_v24_capture_document(uuid,uuid,uuid,text,uuid,uuid,text,bigint,text,text) OWNER TO photo_fn_owner;
+REVOKE ALL ON FUNCTION photo.complete_v24_capture_document(uuid,uuid,uuid,text,uuid,uuid,text,bigint,text,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION photo.complete_v24_capture_document(uuid,uuid,uuid,text,uuid,uuid,text,bigint,text,text) TO photo_scheduler;
+
+-- +goose Down
+-- +goose StatementBegin
+DO $$ BEGIN RAISE EXCEPTION 'Forward-only migration'; END $$;
+-- +goose StatementEnd

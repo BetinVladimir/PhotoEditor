@@ -1,0 +1,88 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/watermark-params.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "algorithm": {
+      "const": "linear_alpha_v1",
+      "default": "linear_alpha_v1",
+      "title": "Algorithm",
+      "type": "string"
+    },
+    "anchor": {
+      "enum": [
+        "top_left",
+        "top_right",
+        "bottom_left",
+        "bottom_right",
+        "center"
+      ],
+      "title": "Anchor",
+      "type": "string"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "margin_x": {
+      "default": 0.03,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Margin X",
+      "type": "number"
+    },
+    "margin_y": {
+      "default": 0.03,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Margin Y",
+      "type": "number"
+    },
+    "max_width_fraction": {
+      "default": 0.25,
+      "exclusiveMinimum": 0,
+      "maximum": 1,
+      "title": "Max Width Fraction",
+      "type": "number"
+    },
+    "opacity": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Opacity",
+      "type": "number"
+    },
+    "watermark": {
+      "$ref": "#/$defs/ArtifactRef"
+    }
+  },
+  "required": [
+    "image",
+    "watermark",
+    "opacity",
+    "anchor"
+  ],
+  "title": "WatermarkParams",
+  "type": "object"
+}

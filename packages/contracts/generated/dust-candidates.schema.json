@@ -1,0 +1,182 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "DustCandidate": {
+      "additionalProperties": false,
+      "properties": {
+        "decision": {
+          "const": "pending",
+          "default": "pending",
+          "title": "Decision",
+          "type": "string"
+        },
+        "eligible_frames": {
+          "maximum": 64,
+          "minimum": 1,
+          "title": "Eligible Frames",
+          "type": "integer"
+        },
+        "id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "observed_frames": {
+          "maximum": 64,
+          "minimum": 1,
+          "title": "Observed Frames",
+          "type": "integer"
+        },
+        "radius_sensor_px": {
+          "exclusiveMinimum": 0,
+          "maximum": 32,
+          "title": "Radius Sensor Px",
+          "type": "number"
+        },
+        "recurrence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Recurrence",
+          "type": "number"
+        },
+        "sensor_x": {
+          "minimum": 0,
+          "title": "Sensor X",
+          "type": "number"
+        },
+        "sensor_y": {
+          "minimum": 0,
+          "title": "Sensor Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "sensor_x",
+        "sensor_y",
+        "radius_sensor_px",
+        "observed_frames",
+        "eligible_frames",
+        "recurrence"
+      ],
+      "title": "DustCandidate",
+      "type": "object"
+    },
+    "SensorCrop": {
+      "additionalProperties": false,
+      "properties": {
+        "height": {
+          "minimum": 8,
+          "title": "Height",
+          "type": "integer"
+        },
+        "width": {
+          "minimum": 8,
+          "title": "Width",
+          "type": "integer"
+        },
+        "x": {
+          "minimum": 0,
+          "title": "X",
+          "type": "integer"
+        },
+        "y": {
+          "minimum": 0,
+          "title": "Y",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "title": "SensorCrop",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/dust-candidates.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "algorithm": {
+      "const": "sensor_dust_log_v1",
+      "default": "sensor_dust_log_v1",
+      "title": "Algorithm",
+      "type": "string"
+    },
+    "camera_id": {
+      "title": "Camera Id",
+      "type": "string"
+    },
+    "candidates": {
+      "items": {
+        "$ref": "#/$defs/DustCandidate"
+      },
+      "maxItems": 4096,
+      "title": "Candidates",
+      "type": "array"
+    },
+    "frames": {
+      "items": {
+        "$ref": "#/$defs/ArtifactRef"
+      },
+      "maxItems": 64,
+      "minItems": 5,
+      "title": "Frames",
+      "type": "array"
+    },
+    "raw_crop": {
+      "$ref": "#/$defs/SensorCrop"
+    },
+    "sensor_height": {
+      "title": "Sensor Height",
+      "type": "integer"
+    },
+    "sensor_width": {
+      "title": "Sensor Width",
+      "type": "integer"
+    },
+    "warnings": {
+      "items": {
+        "const": "no_repeated_dust",
+        "type": "string"
+      },
+      "maxItems": 1,
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "frames",
+    "camera_id",
+    "sensor_width",
+    "sensor_height",
+    "raw_crop",
+    "candidates",
+    "warnings"
+  ],
+  "title": "DustCandidates",
+  "type": "object"
+}

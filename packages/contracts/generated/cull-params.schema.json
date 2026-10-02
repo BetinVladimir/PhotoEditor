@@ -1,0 +1,114 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/cull-params.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "algorithm": {
+      "const": "cullrank_v1",
+      "default": "cullrank_v1",
+      "title": "Algorithm",
+      "type": "string"
+    },
+    "eye_policy": {
+      "const": "review",
+      "default": "review",
+      "title": "Eye Policy",
+      "type": "string"
+    },
+    "features": {
+      "items": {
+        "$ref": "#/$defs/ArtifactRef"
+      },
+      "maxItems": 2000,
+      "minItems": 1,
+      "title": "Features",
+      "type": "array"
+    },
+    "groups": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "intentional_closed": {
+      "default": [],
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "maxItems": 2000,
+      "title": "Intentional Closed",
+      "type": "array"
+    },
+    "manual_picks": {
+      "default": [],
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "maxItems": 2000,
+      "title": "Manual Picks",
+      "type": "array"
+    },
+    "never_delete": {
+      "const": true,
+      "default": true,
+      "title": "Never Delete",
+      "type": "boolean"
+    },
+    "target_count": {
+      "anyOf": [
+        {
+          "maximum": 2000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Target Count"
+    },
+    "target_fraction": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Target Fraction"
+    }
+  },
+  "required": [
+    "groups",
+    "features"
+  ],
+  "title": "CullParams",
+  "type": "object"
+}

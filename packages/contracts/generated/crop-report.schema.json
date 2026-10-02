@@ -1,0 +1,85 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/crop-report.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "alpha_preserved": {
+      "title": "Alpha Preserved",
+      "type": "boolean"
+    },
+    "applied": {
+      "title": "Applied",
+      "type": "boolean"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "interpolation": {
+      "const": "lanczos4",
+      "title": "Interpolation",
+      "type": "string"
+    },
+    "output_height": {
+      "minimum": 1,
+      "title": "Output Height",
+      "type": "integer"
+    },
+    "output_width": {
+      "minimum": 1,
+      "title": "Output Width",
+      "type": "integer"
+    },
+    "plan": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "review_reasons": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 8,
+      "title": "Review Reasons",
+      "type": "array"
+    },
+    "transform_count": {
+      "const": 1,
+      "title": "Transform Count",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "image",
+    "plan",
+    "applied",
+    "output_width",
+    "output_height",
+    "transform_count",
+    "interpolation",
+    "alpha_preserved",
+    "review_reasons"
+  ],
+  "title": "CropReport",
+  "type": "object"
+}

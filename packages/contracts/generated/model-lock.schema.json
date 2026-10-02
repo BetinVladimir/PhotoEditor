@@ -1,0 +1,211 @@
+{
+  "$defs": {
+    "BackendEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "report_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Report Sha256"
+        },
+        "status": {
+          "enum": [
+            "unsupported",
+            "untested",
+            "passed"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "reason",
+        "report_sha256"
+      ],
+      "title": "BackendEvidence",
+      "type": "object"
+    },
+    "ModelFile": {
+      "additionalProperties": false,
+      "properties": {
+        "bytes": {
+          "exclusiveMinimum": 0,
+          "maximum": 8589934592,
+          "title": "Bytes",
+          "type": "integer"
+        },
+        "path": {
+          "maxLength": 240,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "bytes",
+        "url"
+      ],
+      "title": "ModelFile",
+      "type": "object"
+    },
+    "ModelLockEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "approved_for_install": {
+          "title": "Approved For Install",
+          "type": "boolean"
+        },
+        "architecture": {
+          "title": "Architecture",
+          "type": "string"
+        },
+        "backends": {
+          "additionalProperties": {
+            "$ref": "#/$defs/BackendEvidence"
+          },
+          "propertyNames": {
+            "enum": [
+              "cpu",
+              "cuda",
+              "mps"
+            ]
+          },
+          "title": "Backends",
+          "type": "object"
+        },
+        "code_license": {
+          "minLength": 1,
+          "title": "Code License",
+          "type": "string"
+        },
+        "files": {
+          "items": {
+            "$ref": "#/$defs/ModelFile"
+          },
+          "maxItems": 256,
+          "minItems": 1,
+          "title": "Files",
+          "type": "array"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "notices": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notices",
+          "type": "array"
+        },
+        "packages_lock_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Packages Lock Hash",
+          "type": "string"
+        },
+        "preprocessing_id": {
+          "title": "Preprocessing Id",
+          "type": "string"
+        },
+        "redistribution_policy": {
+          "enum": [
+            "allowed",
+            "restricted",
+            "unresolved"
+          ],
+          "title": "Redistribution Policy",
+          "type": "string"
+        },
+        "repository": {
+          "title": "Repository",
+          "type": "string"
+        },
+        "revision": {
+          "maxLength": 128,
+          "minLength": 7,
+          "title": "Revision",
+          "type": "string"
+        },
+        "weight_id": {
+          "title": "Weight Id",
+          "type": "string"
+        },
+        "weights_license": {
+          "minLength": 1,
+          "title": "Weights License",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "architecture",
+        "weight_id",
+        "repository",
+        "revision",
+        "files",
+        "preprocessing_id",
+        "packages_lock_hash",
+        "code_license",
+        "weights_license",
+        "notices",
+        "redistribution_policy",
+        "approved_for_install",
+        "backends"
+      ],
+      "title": "ModelLockEntry",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/model-lock.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "lock_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Lock Id",
+      "type": "string"
+    },
+    "models": {
+      "items": {
+        "$ref": "#/$defs/ModelLockEntry"
+      },
+      "title": "Models",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "lock_id",
+    "models"
+  ],
+  "title": "ModelLock",
+  "type": "object"
+}

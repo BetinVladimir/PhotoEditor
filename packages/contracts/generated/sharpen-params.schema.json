@@ -1,0 +1,72 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/sharpen-params.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "algorithm": {
+      "const": "luma_unsharp_v1",
+      "default": "luma_unsharp_v1",
+      "title": "Algorithm",
+      "type": "string"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "max_delta": {
+      "default": 0.03,
+      "exclusiveMinimum": 0,
+      "maximum": 0.03,
+      "title": "Max Delta",
+      "type": "number"
+    },
+    "radius": {
+      "maximum": 5,
+      "minimum": 0.1,
+      "title": "Radius",
+      "type": "number"
+    },
+    "strength": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Strength",
+      "type": "number"
+    },
+    "threshold": {
+      "maximum": 0.1,
+      "minimum": 0,
+      "title": "Threshold",
+      "type": "number"
+    }
+  },
+  "required": [
+    "image",
+    "radius",
+    "strength",
+    "threshold"
+  ],
+  "title": "SharpenParams",
+  "type": "object"
+}

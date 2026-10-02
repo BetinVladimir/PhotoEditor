@@ -1,0 +1,62 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/metadata-params.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "copy_gps": {
+      "default": false,
+      "title": "Copy Gps",
+      "type": "boolean"
+    },
+    "document": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "encoded": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "policy": {
+      "enum": [
+        "copyright_only",
+        "safe_camera"
+      ],
+      "title": "Policy",
+      "type": "string"
+    },
+    "tool_id": {
+      "const": "exiftool_v1",
+      "default": "exiftool_v1",
+      "title": "Tool Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "encoded",
+    "document",
+    "policy"
+  ],
+  "title": "MetadataParams",
+  "type": "object"
+}

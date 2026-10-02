@@ -1,0 +1,115 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/media-params.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "matte_rgb": {
+      "anyOf": [
+        {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            }
+          ],
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Matte Rgb"
+    },
+    "profile_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Profile Hash",
+      "type": "string"
+    },
+    "source_kind": {
+      "default": "working",
+      "enum": [
+        "working",
+        "master"
+      ],
+      "title": "Source Kind",
+      "type": "string"
+    },
+    "suffix": {
+      "anyOf": [
+        {
+          "enum": [
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".tif",
+            ".tiff",
+            ".webp"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Suffix"
+    },
+    "variant": {
+      "enum": [
+        "thumb320",
+        "thumb640",
+        "preview1600",
+        "preview2560"
+      ],
+      "title": "Variant",
+      "type": "string"
+    }
+  },
+  "required": [
+    "image",
+    "variant",
+    "profile_hash"
+  ],
+  "title": "MediaParams",
+  "type": "object"
+}

@@ -1,0 +1,178 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/composition-plan.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "center_offset": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Center Offset",
+      "type": "number"
+    },
+    "disposition": {
+      "enum": [
+        "apply",
+        "review",
+        "outpaint"
+      ],
+      "title": "Disposition",
+      "type": "string"
+    },
+    "forward_matrix": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 9,
+      "minItems": 9,
+      "title": "Forward Matrix",
+      "type": "array"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "outpaint_pixels": {
+      "anyOf": [
+        {
+          "maximum": 8192,
+          "minimum": 8,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Outpaint Pixels"
+    },
+    "outpaint_side": {
+      "anyOf": [
+        {
+          "enum": [
+            "left",
+            "right",
+            "top",
+            "bottom"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Outpaint Side"
+    },
+    "output_height": {
+      "minimum": 1,
+      "title": "Output Height",
+      "type": "integer"
+    },
+    "output_width": {
+      "minimum": 1,
+      "title": "Output Width",
+      "type": "integer"
+    },
+    "perspective_area_change": {
+      "maximum": 0.15,
+      "minimum": 0,
+      "title": "Perspective Area Change",
+      "type": "number"
+    },
+    "protected_points_preserved": {
+      "title": "Protected Points Preserved",
+      "type": "boolean"
+    },
+    "reasons": {
+      "items": {
+        "enum": [
+          "large_rotation",
+          "no_valid_crop",
+          "subject_loss",
+          "no_structure"
+        ],
+        "type": "string"
+      },
+      "maxItems": 4,
+      "title": "Reasons",
+      "type": "array"
+    },
+    "retained_subject_fraction": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Retained Subject Fraction",
+      "type": "number"
+    },
+    "rotation_degrees": {
+      "maximum": 5,
+      "minimum": -5,
+      "title": "Rotation Degrees",
+      "type": "number"
+    },
+    "source_height": {
+      "minimum": 1,
+      "title": "Source Height",
+      "type": "integer"
+    },
+    "source_quad": {
+      "items": {
+        "maximum": 1000000000.0,
+        "minimum": -1000000000.0,
+        "type": "number"
+      },
+      "maxItems": 8,
+      "minItems": 8,
+      "title": "Source Quad",
+      "type": "array"
+    },
+    "source_width": {
+      "minimum": 1,
+      "title": "Source Width",
+      "type": "integer"
+    },
+    "structure": {
+      "$ref": "#/$defs/ArtifactRef"
+    }
+  },
+  "required": [
+    "image",
+    "structure",
+    "source_width",
+    "source_height",
+    "output_width",
+    "output_height",
+    "forward_matrix",
+    "source_quad",
+    "rotation_degrees",
+    "perspective_area_change",
+    "retained_subject_fraction",
+    "center_offset",
+    "protected_points_preserved",
+    "disposition",
+    "reasons"
+  ],
+  "title": "CompositionPlan",
+  "type": "object"
+}

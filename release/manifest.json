@@ -1,0 +1,38 @@
+{
+  "dirty": true,
+  "lockfiles": [
+    {
+      "bytes": 737,
+      "path": "requirements.lock",
+      "sha256": "f730323d3235515d9cfd95d50277ae20ff0ef2a78f96c9dd5fce843f51c7c66c"
+    },
+    {
+      "bytes": 1573,
+      "path": "backend/go.mod",
+      "sha256": "c46e832ffc63240e2faa7df003c734bdc13cbe75efa338c783e5c00e91d2d761"
+    },
+    {
+      "bytes": 7053,
+      "path": "backend/go.sum",
+      "sha256": "34b11e3b1fb3383bc495936d0d0d51be2db31a6d8e8c2cb7821e193377357f62"
+    },
+    {
+      "bytes": 52207,
+      "path": "apps/portal/package-lock.json",
+      "sha256": "c3305538f46480c5219b124062ffa393a0b66c590da5d132b0cbadfe107b26dd"
+    },
+    {
+      "bytes": 372436,
+      "path": "apps/photographer/package-lock.json",
+      "sha256": "55f1bbd1cfcde099bdd10728df3ba0d8da1aedce933f952dabd1cd3f8c6faa1d"
+    },
+    {
+      "bytes": 610,
+      "path": "configs/capacity-rtx3060.json",
+      "sha256": "ee59250b35f6b3f5431e95673339d9f0be5caaffdc319b955a2b95eca9e2ecbf"
+    }
+  ],
+  "sbom_sha256": "3b14303e9636f4c4ccc58c11d9cfab422843b79a485c6a312f4f094342e20391",
+  "schema_version": 1,
+  "source_commit": "fee5be46bca3afff31e953676627b20834bc3084"
+}

@@ -1,0 +1,191 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "AssetMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "bit_depth": {
+          "enum": [
+            8,
+            16
+          ],
+          "title": "Bit Depth",
+          "type": "integer"
+        },
+        "format": {
+          "enum": [
+            "jpeg",
+            "png",
+            "tiff",
+            "raw"
+          ],
+          "title": "Format",
+          "type": "string"
+        },
+        "has_alpha": {
+          "title": "Has Alpha",
+          "type": "boolean"
+        },
+        "height": {
+          "maximum": 200000000,
+          "minimum": 1,
+          "title": "Height",
+          "type": "integer"
+        },
+        "icc_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Icc Sha256"
+        },
+        "orientation": {
+          "maximum": 8,
+          "minimum": 1,
+          "title": "Orientation",
+          "type": "integer"
+        },
+        "sensor_alignment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SensorAlignment"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "source": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "width": {
+          "maximum": 200000000,
+          "minimum": 1,
+          "title": "Width",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "source",
+        "width",
+        "height",
+        "bit_depth",
+        "has_alpha",
+        "orientation",
+        "icc_sha256",
+        "format"
+      ],
+      "title": "AssetMetadata",
+      "type": "object"
+    },
+    "SensorAlignment": {
+      "additionalProperties": false,
+      "properties": {
+        "camera_id": {
+          "pattern": "^raw-[0-9a-f]{64}$",
+          "title": "Camera Id",
+          "type": "string"
+        },
+        "crop_height": {
+          "minimum": 8,
+          "title": "Crop Height",
+          "type": "integer"
+        },
+        "crop_width": {
+          "minimum": 8,
+          "title": "Crop Width",
+          "type": "integer"
+        },
+        "crop_x": {
+          "minimum": 0,
+          "title": "Crop X",
+          "type": "integer"
+        },
+        "crop_y": {
+          "minimum": 0,
+          "title": "Crop Y",
+          "type": "integer"
+        },
+        "orientation": {
+          "const": 1,
+          "title": "Orientation",
+          "type": "integer"
+        },
+        "sensor_height": {
+          "maximum": 200000,
+          "minimum": 8,
+          "title": "Sensor Height",
+          "type": "integer"
+        },
+        "sensor_width": {
+          "maximum": 200000,
+          "minimum": 8,
+          "title": "Sensor Width",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "camera_id",
+        "sensor_width",
+        "sensor_height",
+        "crop_x",
+        "crop_y",
+        "crop_width",
+        "crop_height",
+        "orientation"
+      ],
+      "title": "SensorAlignment",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/verified-asset.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "bytes": {
+      "maximum": 536870912,
+      "minimum": 1,
+      "title": "Bytes",
+      "type": "integer"
+    },
+    "metadata": {
+      "$ref": "#/$defs/AssetMetadata"
+    },
+    "source": {
+      "$ref": "#/$defs/ArtifactRef"
+    }
+  },
+  "required": [
+    "source",
+    "bytes",
+    "metadata"
+  ],
+  "title": "VerifiedAsset",
+  "type": "object"
+}

@@ -1,0 +1,151 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "BodyWarpMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "max_displacement_pixels": {
+          "minimum": 0,
+          "title": "Max Displacement Pixels",
+          "type": "number"
+        },
+        "min_jacobian": {
+          "maximum": 1000000.0,
+          "minimum": -1000000.0,
+          "title": "Min Jacobian",
+          "type": "number"
+        },
+        "protected_center_displacement_pixels": {
+          "minimum": 0,
+          "title": "Protected Center Displacement Pixels",
+          "type": "number"
+        }
+      },
+      "required": [
+        "max_displacement_pixels",
+        "min_jacobian",
+        "protected_center_displacement_pixels"
+      ],
+      "title": "BodyWarpMetrics",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/body-warp-report.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "applied": {
+      "title": "Applied",
+      "type": "boolean"
+    },
+    "attempts": {
+      "maximum": 4,
+      "minimum": 0,
+      "title": "Attempts",
+      "type": "integer"
+    },
+    "effective_strength": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Effective Strength",
+      "type": "number"
+    },
+    "faces": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "metrics": {
+      "$ref": "#/$defs/BodyWarpMetrics"
+    },
+    "object_ids": {
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "maxItems": 100,
+      "title": "Object Ids",
+      "type": "array"
+    },
+    "person": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "poses": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "reason": {
+      "enum": [
+        "applied",
+        "zero_strength",
+        "no_people",
+        "unsafe",
+        "ambiguous_overlap"
+      ],
+      "title": "Reason",
+      "type": "string"
+    },
+    "requested_strength": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Requested Strength",
+      "type": "number"
+    },
+    "warnings": {
+      "items": {
+        "enum": [
+          "no_people",
+          "unsafe_identity",
+          "overlapping_people"
+        ],
+        "type": "string"
+      },
+      "maxItems": 3,
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "image",
+    "poses",
+    "person",
+    "faces",
+    "requested_strength",
+    "effective_strength",
+    "attempts",
+    "applied",
+    "reason",
+    "metrics",
+    "object_ids",
+    "warnings"
+  ],
+  "title": "BodyWarpReport",
+  "type": "object"
+}

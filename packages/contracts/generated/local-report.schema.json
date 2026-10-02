@@ -1,0 +1,199 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "LocalClipping": {
+      "additionalProperties": false,
+      "properties": {
+        "above_one": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Above One",
+          "type": "number"
+        },
+        "below_zero": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Below Zero",
+          "type": "number"
+        },
+        "stage": {
+          "enum": [
+            "series",
+            "local",
+            "regions"
+          ],
+          "title": "Stage",
+          "type": "string"
+        }
+      },
+      "required": [
+        "stage",
+        "below_zero",
+        "above_one"
+      ],
+      "title": "LocalClipping",
+      "type": "object"
+    },
+    "RegionSkip": {
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "enum": [
+            "missing_mask",
+            "selector_mismatch",
+            "mask_unreliable"
+          ],
+          "title": "Reason",
+          "type": "string"
+        },
+        "region_id": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Region Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "region_id",
+        "reason"
+      ],
+      "title": "RegionSkip",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/local-report.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "base_aligned": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "clipping": {
+      "items": {
+        "$ref": "#/$defs/LocalClipping"
+      },
+      "maxItems": 2,
+      "title": "Clipping",
+      "type": "array"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "local_applied": {
+      "title": "Local Applied",
+      "type": "boolean"
+    },
+    "local_skip": {
+      "anyOf": [
+        {
+          "enum": [
+            "disabled",
+            "missing_mask",
+            "mask_unreliable"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Local Skip"
+    },
+    "pixel_count": {
+      "maximum": 200000000,
+      "minimum": 1,
+      "title": "Pixel Count",
+      "type": "integer"
+    },
+    "region_algorithm": {
+      "const": "linear_rec2020_regions_v1",
+      "default": "linear_rec2020_regions_v1",
+      "title": "Region Algorithm",
+      "type": "string"
+    },
+    "region_skips": {
+      "items": {
+        "$ref": "#/$defs/RegionSkip"
+      },
+      "maxItems": 128,
+      "title": "Region Skips",
+      "type": "array"
+    },
+    "resolved": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "series": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "series_applied": {
+      "default": false,
+      "title": "Series Applied",
+      "type": "boolean"
+    },
+    "series_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Series Reason"
+    },
+    "strength": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Strength",
+      "type": "number"
+    },
+    "strength_applied": {
+      "const": true,
+      "default": true,
+      "title": "Strength Applied",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "image",
+    "base_aligned",
+    "resolved",
+    "pixel_count",
+    "strength",
+    "local_applied",
+    "local_skip",
+    "region_skips",
+    "clipping"
+  ],
+  "title": "LocalReport",
+  "type": "object"
+}

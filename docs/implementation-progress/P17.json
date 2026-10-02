@@ -1,0 +1,54 @@
+{
+  "package_id": "P17",
+  "status": "complete",
+  "source_commit": "fee5be46bca3afff31e953676627b20834bc3084",
+  "changed_files": [
+    "workers/photo_worker/legacy_migrate.py",
+    "tests/migration/test_legacy_scan.py",
+    "docs/implementation/02-data-migrations.md",
+    "work/legacy-import-plan.json",
+    "work/legacy-input-sha-after-scan.txt"
+  ],
+  "checks": [
+    {
+      "id": "legacy-scanner",
+      "command": "python -m pytest tests/migration/test_legacy_scan.py -q -p no:cacheprovider",
+      "exit_code": 0,
+      "note": "9 tests pass: deterministic scan, unchanged originals, revalidation, corruption/config/traversal/duplicate-key/symlink rejection, confined CLI output, per-run draft collections, multipart execution, pre-network rehash, and explicit CLI credential/scope gates."
+    },
+    {
+      "id": "durable-reconciliation",
+      "command": "python -m pytest tests/integration/test_go_services.py -q -p no:cacheprovider",
+      "exit_code": 0,
+      "note": "2 integration harness tests pass. The new Go integration case proves verified-upload binding, exact SHA, project ownership, one legacy_imports row, and stable replay on isolated migrated PostgreSQL."
+    },
+    {
+      "id": "repository-e2e-dry-run",
+      "command": "python -m photo_worker.legacy_migrate e2e > work/legacy-import-plan.json",
+      "exit_code": 0,
+      "note": "Read-only plan covers 13 runs and 248 files; duplicate and unlinked records remain explicit issues; input SHA evidence saved."
+    },
+    {
+      "id": "full-regression",
+      "command": "cd backend && go test ./... && python -m pytest tests/migration tests/platform -q -p no:cacheprovider",
+      "exit_code": 0,
+      "note": "All Go packages, 431 platform tests, 9 migration tests and 44 live PostgreSQL integration tests pass."
+    },
+    {
+      "id": "legacy-regression",
+      "command": ".venv/bin/python -m pytest tests/test_*.py -q -p no:cacheprovider",
+      "exit_code": 0,
+      "note": "22 legacy quality-pipeline tests pass."
+    },
+    {
+      "id": "contracts-and-legacy",
+      "command": "make contracts-check && git diff --check",
+      "exit_code": 0,
+      "note": "Generated contracts are clean; legacy quality source and presets remain unchanged; git diff --check passes."
+    }
+  ],
+  "blocked_gates": [],
+  "decisions": [
+    "Legacy scan/validate/dry-run is implemented with bounded strict JSON, selected-root confinement, no symlinks, streaming SHA-256, deterministic plan hash and provenance-only legacy config handling. Existing e2e originals remain unchanged. Upload execution creates deterministic draft collections for originals and every legacy run, uses the ordinary multipart owner API with deterministic collection/begin/complete idempotency keys and pre-network byte revalidation, waits for verified ingest, and records the exact asset version through the owner reconciliation endpoint. The endpoint rechecks user upload ownership, expected SHA, editor project ACL and asset project binding. Unique plan/path/content identity plus API idempotency provides durable replay without duplicate import."
+  ]
+}

@@ -1,0 +1,23 @@
+import {readFileSync} from 'node:fs';
+import {it,expect,vi} from 'vitest';
+import {verifyRegionManifest,type RegionManifestBinding} from './region-preview-manifest';
+import {loadRegionPreview} from './region-preview-load';
+import type {RunOutput,RunStatus} from './catalog-types';
+type Case={raw:string;encoded:string;document:RunOutput;derivative:RunOutput;binding:RegionManifestBinding};
+const path=process.env.PHOTO_REGION_CLIENT_CASES;
+const cases:Case[]=path?JSON.parse(readFileSync(path,'utf8')):[];
+for(const alpha of [false,true])it.skipIf(!path)(`accepts actual worker ${alpha?'WebP alpha':'JPEG'} outputs`,async()=>{
+ const value=cases.find(item=>item.binding.alpha===alpha)!;expect(value).toBeDefined();
+ const raw=new Uint8Array(Buffer.from(value.raw,'base64')),encoded=new Uint8Array(Buffer.from(value.encoded,'base64'));
+ const manifest=verifyRegionManifest(raw,value.document,value.derivative,value.binding);
+ expect(manifest.geometry.output_width).toBe(400);expect(manifest.geometry.output_height).toBe(300);
+ const id='11111111-1111-4111-8111-111111111111';
+ const reader={run:vi.fn().mockResolvedValue({id,status:'completed'} as RunStatus),runOutputs:vi.fn().mockResolvedValue({items:[value.document,value.derivative]})};
+ const transport=vi.fn().mockResolvedValueOnce(new Response(raw)).mockResolvedValueOnce(new Response(encoded));
+ const result=await loadRegionPreview(reader,{run_id:id,workflow_id:id,state:'queued'},value.binding,new AbortController().signal,transport);
+ expect(()=>verifyRegionManifest(raw,value.document,value.derivative,{...value.binding,iccSha256:'f'.repeat(64)})).toThrow();
+ const corrupted=encoded.slice();corrupted[corrupted.length-1]^=1;
+ const badTransport=vi.fn().mockResolvedValueOnce(new Response(raw)).mockResolvedValueOnce(new Response(corrupted));
+ await expect(loadRegionPreview(reader,{run_id:id,workflow_id:id,state:'queued'},value.binding,new AbortController().signal,badTransport)).rejects.toThrow('REGION_ARTIFACT_SHA');
+ expect(result.encodedBytes).toEqual(encoded);expect(result.manifest.cacheKey).toBe(manifest.cacheKey);expect(transport).toHaveBeenCalledTimes(2);
+});

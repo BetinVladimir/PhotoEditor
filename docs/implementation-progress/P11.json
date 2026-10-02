@@ -1,0 +1,152 @@
+{
+  "package_id": "P11",
+  "status": "in_progress",
+  "source_commit": "fee5be46bca3afff31e953676627b20834bc3084",
+  "changed_files": [
+    "workers/photo_worker/contracts/resolved.py",
+    "workers/photo_worker/contracts/images.py",
+    "workers/photo_worker/operations/style/resolve.py",
+    "workers/photo_worker/operations/color/stats.py",
+    "workers/photo_worker/runtime/service.py",
+    "backend/db/migrations/00032_resolved_style_output_policies.sql",
+    "packages/contracts/generated/resolved-style.schema.json",
+    "packages/contracts/generated/resolve-params.schema.json",
+    "tests/platform/test_resolve_adapter.py",
+    "workers/photo_worker/runtime/arrays.py",
+    "tests/platform/test_arrays.py",
+    "workers/photo_worker/contracts/image_color.py",
+    "workers/photo_worker/operations/image/color.py",
+    "workers/photo_worker/operations/image/__init__.py",
+    "backend/db/migrations/00033_image_color_output_policies.sql",
+    "packages/contracts/generated/color-params.schema.json",
+    "packages/contracts/generated/color-report.schema.json",
+    "tests/platform/test_image_color_adapter.py",
+    "workers/photo_worker/algorithms/regions.py",
+    "tests/platform/test_regions.py",
+    "workers/photo_worker/contracts/image_local.py",
+    "workers/photo_worker/operations/image/local.py",
+    "workers/photo_worker/algorithms/color.py",
+    "backend/db/migrations/00034_image_local_output_policies.sql",
+    "packages/contracts/generated/local-params.schema.json",
+    "packages/contracts/generated/local-report.schema.json",
+    "tests/platform/test_image_local_adapter.py",
+    "workers/photo_worker/contracts/effective.py",
+    "workers/photo_worker/algorithms/effective.py",
+    "tests/platform/test_effective_params.py",
+    "packages/contracts/generated/effective-params.schema.json",
+    "backend/internal/run/apply.go",
+    "backend/internal/run/service_test.go",
+    "backend/internal/httpapi/catalog.go",
+    "backend/db/migrations/00120_apply_builds.sql",
+    "tests/platform/test_apply_build_migration.py",
+    "backend/db/migrations/00121_apply_output_quota.sql",
+    "backend/db/migrations/00122_apply_nodes.sql",
+    "backend/db/migrations/00123_adopt_apply_results.sql",
+    "backend/internal/workflow/apply.go",
+    "backend/internal/workflow/apply_test.go",
+    "tests/platform/test_apply_output_quota_migration.py",
+    "tests/platform/test_apply_nodes_migration.py",
+    "tests/platform/test_apply_adoption_migration.py",
+    "backend/db/migrations/00155_apply_quality_gate.sql",
+    "tests/platform/test_apply_quality_migration.py",
+    "backend/internal/run/identity_style.json",
+    "backend/db/migrations/00165_identity_save_edits.sql",
+    "workers/photo_worker/contracts/override.py",
+    "workers/photo_worker/contracts/composition.py",
+    "workers/photo_worker/operations/composition/structure.py",
+    "backend/internal/workflow/apply_v4_plan.go",
+    "backend/db/migrations/00187_apply_v4_composition.sql",
+    "tests/platform/test_composition_crop.py",
+    "tests/platform/test_apply_v4_composition_migration.py",
+    "workers/photo_worker/contracts/style.py",
+    "workers/photo_worker/operations/composition/plan.py",
+    "backend/db/migrations/00188_apply_v4_composition_outpaint.sql",
+    "tests/platform/test_apply_v4_composition_outpaint_migration.py"
+  ],
+  "checks": [
+    {
+      "id": "style-resolve-task",
+      "command": "pytest tests/platform -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/resolve-adapter-platform-tests.log",
+      "note": "167 passed. Fixed/adaptive output, binary LUT staging, strict skip/group policy, Stats20 source binding and resolved hash validation; controlled artifact ports."
+    },
+    {
+      "id": "resolved-lut-reader",
+      "command": "pytest tests/platform/test_arrays.py tests/platform/test_resolve_adapter.py -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/lut-reader-tests.log",
+      "note": "18 passed; exact33/65 absolute grids, float32/range/layout checks, mapping cleanup; ordinary image reader still rejects4D."
+    },
+    {
+      "id": "image-color-platform",
+      "command": "pytest tests/platform -q --tb=short; make contracts-check",
+      "exit_code": 0,
+      "evidence": "work/evidence/image-color-platform-tests.log",
+      "note": "174 passed. Fixed/adaptive tiled global color, clipping aggregation, immutable alpha/geometry preservation, no premature strength blend, cancellation cleanup; controlled artifact ports. Generated contracts and legacy source/preset checksums pass. SQL33/live service integration remains unverified."
+    },
+    {
+      "id": "regional-color-core",
+      "command": "pytest tests/platform/test_regions.py tests/platform/test_color.py tests/platform/test_image_color_adapter.py -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/region-color-tests.log",
+      "note": "31 passed. Soft priority/overlap composition, EV/hue linear luminance, tile equivalence, clipping, missing masks and cancellation. Legacy SHA unchanged. image.local task adapter remains unfinished."
+    },
+    {
+      "id": "image-local-platform",
+      "command": "pytest tests/platform -q --tb=short; make contracts-check",
+      "exit_code": 0,
+      "evidence": "work/evidence/image-local-platform-tests.log",
+      "note": "185 passed. Local/region/strength results, alpha preservation, confidence skip, geometry rejection, clipping and cancellation cleanup. Generated schemas and legacy SHA pass. Controlled artifact ports; SQL34/live orchestration unverified."
+    },
+    {
+      "id": "effective-params",
+      "command": "pytest tests/platform/test_effective_params.py tests/platform/test_image_local_adapter.py -q --tb=short; make contracts-check",
+      "exit_code": 0,
+      "evidence": "work/evidence/effective-params-tests.log",
+      "note": "11 passed; strength0/.5/1, geometry scaling once, preserved texture constraint, source hash/immutability and rejection of already effective input. Effect adapters are not yet wired."
+    },
+    {
+      "id": "apply-runtime-and-live-sql",
+      "command": "make test; make test-db",
+      "exit_code": 0,
+      "evidence": "work/evidence/apply-runtime-tests.log",
+      "note": "Contract drift, 22 legacy, 376 platform and all Go packages passed. All migrations through SQL123 applied on live isolated PostgreSQL; 43 PostgreSQL/RabbitMQ/MinIO integration tests passed. External weights, accelerator qualification and real-photo visual gates remain unavailable."
+    },
+    {
+      "id": "apply-master-quality-gate",
+      "command": "go -C backend test ./internal/workflow && pytest tests/platform/test_apply_quality_migration.py tests/platform/test_quality_check.py -q -p no:cacheprovider && make test-db",
+      "exit_code": 0,
+      "note": "Apply now materializes quality.check as a separate sealed epoch over each canonical image.local result. Four targeted tests and all 49 live PostgreSQL integration tests pass. Adoption requires a canonical fenced quality_report; the coordinator rejects malformed reports and atomically fails the run on status=fail while allowing pass/review masters to retain the existing pending-review workflow."
+    },
+    {
+      "id": "strict-overrides-and-identity-save-edits",
+      "command": "make test && make test-db",
+      "exit_code": 0,
+      "note": "22 legacy, 462 platform, all Go packages and 57 live PostgreSQL integration tests pass. Per-image overrides are exact source/version bound and affect resolved pixels; SaveEdits reuses the atomic apply path with a frozen production identity style."
+    },
+    {
+      "id": "apply-v4-composition",
+      "command": "pytest tests/platform -q; go -C backend test ./...; pytest tests/integration/test_database.py -q; make contracts-check; validate-docs.py",
+      "exit_code": 0,
+      "note": "Apply v4 composition now executes composition.structure→composition.plan→geometry.crop→mandatory composition_review. Structure binds image pixels and exact-geometry person mask, performs bounded deterministic Canny/Hough extraction, and emits protected subject geometry. Fresh PostgreSQL applied migrations00184–00187; 516 platform tests, all Go packages, 10 DB integration cases, contract drift and 495 documentation checks pass."
+    },
+    {
+      "id": "apply-v4-composition-outpaint",
+      "command": "pytest composition tests; go test run/workflow; fresh PostgreSQL migrations; contracts generation",
+      "exit_code": 0,
+      "note": "Immutable composition_render now selects geometry.crop or image.outpaint per signed CompositionPlan. Outpaint is bounded to one deterministic side, requires explicit review policy and prompt, exact SD1.5 runtime lock and qualified backend, and enters the existing candidate/base/skip review barrier. Migration00188 passed all 10 clean-database checks; 518 platform tests, all Go packages, contract drift, 22 legacy checks and 495 documentation checks pass."
+    }
+  ],
+  "blocked_gates": [],
+  "decisions": [
+    "CPU style.resolve installed. ResolvedStyle has strict mode/color/evidence invariants and JCS body hash; adaptive LUT is separate float32 NPY, typed remaining modules preserved. Stats20.source_image emitted by color.stats and required to match resolver input. Strict OOD produces explicit skip manifest; downstream graph must honor it. Migration32 added but SQL20–32/live orchestration unverified; complete apply renderer and effect operations remain unfinished.",
+    "Dedicated read_lut consumes resolved binary LUT artifacts with strict shape/dtype/range and bounded NPY verification. CPU image.color adapter now applies global color in tiles, preserves alpha/geometry metadata, publishes pixel/image/report outputs and leaves strength blending to image.local. image.local and the complete apply graph remain unfinished. Migration33 is not yet verified on live PostgreSQL.",
+    "linear_rec2020_regions_v1 fixes the hue rotation and priority coverage formulas in specification07. Region math is implemented independently of mask inference; runtime provenance validation and image.local wiring remain pending.",
+    "CPU image.local installed: strict aligned-base/mask geometry validation, semantic and regional corrections, one final linear strength blend, explicit missing/unreliable-mask skips and pre-clamp clipping report. Migration34 added; live SQL/runtime verification and series corrections/full apply graph remain outstanding.",
+    "Implemented effective_params_v1 for independent beauty/geometry/generation strengths, without modifying color-region strengths or texture/safety controls. Live development infrastructure is now available; migrations through SQL123 and the full 43-test PostgreSQL/RabbitMQ/MinIO suite pass. External model and visual gates remain separate.",
+    "Apply and generic RunCreate(apply) endpoints share one idempotent transaction: editor ACL, exact collection revision, immutable selection snapshot, accepted same-project style with rehashed JCS config and ready exact-hash export artifact, optional owned overrides, bounded job overrides, conservative storage quota reservation, draft output collection, apply run and durable apply_builds row. all_change_selected copies untouched memberships without new bytes. SQL121 transfers task output reservations from the run budget without double counting. SQL122 plus ApplyCoordinator materialize fixed/adaptive resolve→color→local epochs with immutable plans, fenced params and canonical predecessor binding. SQL155 adds an obligatory per-item quality.check epoch bound to the canonical image.local output and original master; malformed or technical-fail reports cannot reach adoption. SQL123/155 atomically adopt only quality-gated canonical working_image outputs into new asset versions, lineage and output memberships and release unused run quota. Geometry, series, beauty, defects, generation, composition and export branches remain incomplete. Generic RunCreate rejects non-apply kinds until their dedicated compilers exist.",
+    "Job overrides apply first and exact source-bound per-image overrides apply last. Unknown module fields, stale source SHA and version mismatches fail before graph creation. SaveEdits without a selected style freezes the embedded identity StyleV2 and still runs resolve, local strength, quality and immutable adoption.",
+    "Composition is admitted only as a complete reviewed branch. Crop candidates may change Canvas only through one validated matrix step extending the base TransformChain; candidate/base/skip remains immutable and skip-aware at adoption. Outpaint is an explicit per-item choice: deterministic side/pixel geometry, review-only style authorization, pinned SD1.5 runtime, qualified image.outpaint worker and mandatory candidate/base/skip review."
+  ]
+}

@@ -1,0 +1,105 @@
+{
+  "schema_version": "2.0.0",
+  "renderer_version": "photo_renderer_v2",
+  "style_id": "identity",
+  "mode": "fixed",
+  "strength": 1,
+  "color": {
+    "profile_id": "work_rec2020_gamma24_v1",
+    "intent": "relative",
+    "bpc": false
+  },
+  "raw_recipe": "raw_camera_wb_linear_srgb_ahd_v1",
+  "models": [],
+  "global": {
+    "gains_rgb": [
+      1,
+      1,
+      1
+    ],
+    "saturation": 1,
+    "master_curve": [
+      0,
+      0.0625,
+      0.125,
+      0.25,
+      0.5,
+      0.75,
+      1
+    ],
+    "rgb_curves": [
+      [
+        0,
+        0.0625,
+        0.125,
+        0.25,
+        0.5,
+        0.75,
+        1
+      ],
+      [
+        0,
+        0.0625,
+        0.125,
+        0.25,
+        0.5,
+        0.75,
+        1
+      ],
+      [
+        0,
+        0.0625,
+        0.125,
+        0.25,
+        0.5,
+        0.75,
+        1
+      ]
+    ],
+    "residual_lut": {
+      "kind": "residual",
+      "size": 17,
+      "order": "RGB_C",
+      "domain": [
+        0,
+        1
+      ],
+      "encoding": "constant",
+      "values": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "local": {
+    "enabled": false
+  },
+  "adaptation": null,
+  "beauty": {
+    "enabled": false
+  },
+  "defects": {
+    "enabled": false
+  },
+  "geometry": {
+    "enabled": false
+  },
+  "extensions": {},
+  "provenance": {
+    "pair_count": 0,
+    "session_count": 0,
+    "seed": 42,
+    "manifest_sha256": null,
+    "runtime_lock_id": null
+  },
+  "quality": {
+    "status": "example",
+    "reconstruction": null,
+    "validation": null,
+    "beauty_validation": null,
+    "geometry_validation": null,
+    "transfer_confidence": "unvalidated",
+    "warnings": []
+  }
+}

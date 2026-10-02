@@ -1,0 +1,271 @@
+{
+  "package_id": "P10",
+  "status": "complete",
+  "source_commit": "fee5be46bca3afff31e953676627b20834bc3084",
+  "changed_files": [
+    "backend/internal/style/service.go",
+    "backend/internal/style/service_test.go",
+    "backend/internal/httpapi/catalog.go",
+    "workers/photo_worker/contracts/style_aggregate.py",
+    "workers/photo_worker/algorithms/style_aggregate.py",
+    "workers/photo_worker/operations/style/aggregate.py",
+    "backend/db/migrations/00116_style_aggregate_output_policies.sql",
+    "tests/platform/test_style_aggregate.py",
+    "tests/platform/test_style_aggregate_migration.py",
+    "packages/contracts/generated/style-aggregate-params.schema.json",
+    "packages/contracts/generated/style-aggregate-report.schema.json",
+    "backend/db/migrations/00117_style_candidates.sql",
+    "backend/db/migrations/00118_style_analysis_builds.sql",
+    "backend/db/migrations/00119_style_analysis_nodes.sql",
+    "backend/internal/workflow/style_candidate.go",
+    "backend/internal/workflow/style_candidate_test.go",
+    "backend/internal/workflow/style_analysis.go",
+    "backend/internal/workflow/style_analysis_test.go",
+    "tests/platform/test_style_candidates_migration.py",
+    "tests/platform/test_style_analysis_build_migration.py",
+    "workers/photo_worker/algorithms/sampling.py",
+    "tests/platform/test_torch_color.py",
+    "workers/photo_worker/algorithms/fitting.py",
+    "workers/photo_worker/algorithms/registration.py",
+    "tests/platform/test_fitting.py",
+    "tests/platform/test_registration.py",
+    "workers/photo_worker/operations/pair/register.py",
+    "workers/photo_worker/contracts/pair.py",
+    "workers/photo_worker/runtime/arrays.py",
+    "workers/photo_worker/runtime/artifacts.py",
+    "workers/photo_worker/runtime/service.py",
+    "tests/platform/test_arrays.py",
+    "tests/platform/test_pair_adapter.py",
+    "backend/db/migrations/00028_registration_output_policy.sql",
+    "packages/contracts/generated/registration-params.schema.json",
+    "packages/contracts/generated/pair-alignment.schema.json",
+    "tests/platform/test_sampling_streaming.py",
+    "tests/fixtures/sampling-reference.json",
+    "workers/photo_worker/algorithms/warp.py",
+    "tests/platform/test_warp.py",
+    "workers/photo_worker/operations/pair/prepare.py",
+    "tests/platform/test_pair_prepare.py",
+    "workers/photo_worker/operations/pair/fit/color.py",
+    "workers/photo_worker/contracts/color_fit.py",
+    "tests/platform/test_color_fit_adapter.py",
+    "backend/db/migrations/00029_color_fit_output_policy.sql",
+    "packages/contracts/generated/color-fit-params.schema.json",
+    "packages/contracts/generated/color-fit.schema.json",
+    "workers/photo_worker/runtime/capacity.py",
+    "workers/photo_worker/runtime/service.py",
+    "workers/photo_worker/runtime/database.py",
+    "backend/db/migrations/00030_accelerator_worker_heartbeat.sql",
+    "tests/platform/test_capacity.py",
+    "tests/platform/test_worker_service.py",
+    "tests/integration/test_worker_preflight.py",
+    "tests/integration/test_admission.py",
+    "scripts/check-fitting-backends.py",
+    "Makefile",
+    "backend/db/migrations/00171_style_analysis_runtime_selection.sql",
+    "backend/internal/style/service.go",
+    "backend/internal/style/service_integration_test.go",
+    "workers/photo_worker/operations/style/aggregate.py",
+    "tests/platform/test_style_aggregate.py",
+    "tests/platform/test_style_runtime_selection_migration.py",
+    "tests/integration/test_go_services.py",
+    "workers/photo_worker/operations/style/validate.py",
+    "tests/platform/test_style_validation_package.py",
+    "workers/photo_worker/operations/style/package.py",
+    "backend/internal/workflow/service.go",
+    "tests/integration/test_database.py",
+    "backend/db/migrations/00172_style_validation_epochs.sql",
+    "workers/photo_worker/contracts/pair_effects.py",
+    "workers/photo_worker/operations/pair/fit/defects.py",
+    "packages/contracts/generated/defect-fit-params.schema.json",
+    "tests/platform/test_style_validation_epochs_migration.py",
+    "docs/implementation/contracts/endpoints.json",
+    "docs/implementation-progress/coverage.json",
+    "docs/implementation/04-api-services.md",
+    "docs/implementation/13-development-plan.md"
+  ],
+  "checks": [
+    {
+      "id": "holdout-no-leakage",
+      "command": "pytest tests/platform/test_torch_color.py",
+      "exit_code": 0,
+      "evidence": "work/evidence/torch-color-tests.log"
+    },
+    {
+      "id": "pair-registration",
+      "command": "pytest tests/platform/test_registration.py",
+      "exit_code": 0,
+      "evidence": "work/evidence/registration-tests.log"
+    },
+    {
+      "id": "full-default-fit-synthetic",
+      "command": "fit_color(pair, FitOptions())",
+      "exit_code": 0,
+      "evidence": "work/evidence/fitting-default.json"
+    },
+    {
+      "id": "fit-stages",
+      "command": "pytest tests/platform/test_fitting.py tests/platform/test_asset_decode.py",
+      "exit_code": 0,
+      "evidence": "work/evidence/fit-decode-tests.log"
+    },
+    {
+      "id": "pair-register-runtime",
+      "command": "pytest tests/platform -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/pair-adapter-platform-tests.log",
+      "note": "102 passed; real registration through controlled artifact ports; malformed NPY and profile/layout/memory checks. No live full-service integration."
+    },
+    {
+      "id": "bounded-sampling",
+      "command": "pytest tests/platform -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/sampling-platform-tests.log",
+      "note": "117 passed. 12 original-sampler digest fixtures, noncontiguous views, cancellation, bounded temporary memory. Detailed sampling-only allocation measurement in work/evidence/sampling-memory.json."
+    },
+    {
+      "id": "fit-cancellation",
+      "command": "pytest tests/platform/test_fitting.py -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/fitting-cancellation-tests.log",
+      "note": "6 passed, including cancellation before further Adam steps, subsequent task isolation, and cancellation during final metrics."
+    },
+    {
+      "id": "tiled-pair-warp",
+      "command": "pytest tests/platform -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/tiled-warp-platform-tests.log",
+      "note": "126 passed. Analytic linear-light interpolation, exact tile-size equivalence, support erosion, cancellation, 4MP bounded temporary memory, legacy SHA baseline."
+    },
+    {
+      "id": "pair-disk-preparation",
+      "command": "pytest tests/platform -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/pair-disk-prepare-platform-tests.log",
+      "note": "132 passed; owned warp/split memmaps, reservation lifetime, cancellation/consumer exceptions, split digest parity and alias rejection."
+    },
+    {
+      "id": "gamma24-sampling",
+      "command": "pytest tests/platform/test_sampling_streaming.py -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/gamma-sampling-tests.log",
+      "note": "19 passed; block conversion gives exact explicit-linearization sample indices."
+    },
+    {
+      "id": "prepared-pair-samples",
+      "command": "pytest tests/platform/test_pair_prepare.py -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/prepared-samples-tests.log",
+      "note": "7 passed; bounded copied samples, independent spatial populations, stable provenance digests and scratch release."
+    },
+    {
+      "id": "color-fit-task-adapter",
+      "command": "pytest tests/platform -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/color-fit-platform-tests.log",
+      "note": "141 passed. Real default optimizer through controlled artifact ports: identity and nonidentity holdout improvement; source binding/config rejection and explicit global-only. GPU CLI and live service integration not enabled/verified."
+    },
+    {
+      "id": "gpu-runtime-startup",
+      "command": "pytest tests/platform -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/gpu-runtime-platform-tests.log",
+      "note": "145 passed. Explicit backend wrapper/startup, capacity reporting wiring, CUDA port tests and MPS shared memory accounting. Actual MPS availability measured in work/evidence/mps-capacity-measurement.json; no CUDA hardware/full live integration."
+    },
+    {
+      "id": "cpu-mps-default-fitting",
+      "command": "./scripts/run-platform.sh .venv-platform/bin/python scripts/check-fitting-backends.py",
+      "exit_code": 0,
+      "evidence": "work/evidence/fitting-backends.json",
+      "note": "CPU and actual MPS passed default synthetic global/residual/local fitting, 512 train/256 holdout. CPU-MPS p95 DeltaE00=0.0004829058; CUDA unavailable. Not a full-size/photo/model qualification."
+    },
+    {
+      "id": "style-analyze-live-trust-boundary",
+      "command": "pytest tests/integration/test_go_services.py::test_go_auth; focused P10 platform/Go/contracts/release checks",
+      "exit_code": 0,
+      "note": "Real photo_api/PostgreSQL accepts one and multiple confirmed pairs, excludes unconfirmed pairs, and creates no run for an all-unconfirmed set. Runtime selection and build creation use narrow tenant-bound trusted functions."
+    },
+    {
+      "id": "effect-aggregate-provenance",
+      "command": "pytest tests/platform/test_style_aggregate.py",
+      "exit_code": 0,
+      "note": "7 passed; beauty/defect evidence must bind a unique existing ColorFit pair and exact before/after refs before aggregation."
+    },
+    {
+      "id": "post-runtime-selection-full-regression",
+      "command": "pytest tests/platform; go test ./...; pytest tests/integration",
+      "exit_code": 0,
+      "note": "494 platform passed, all Go packages passed, 65 live integration passed after migration00171 and aggregate provenance hardening."
+    },
+    {
+      "id": "validate-package-artifact-chain",
+      "command": "pytest tests/platform/test_style_validation_package.py",
+      "exit_code": 0,
+      "note": "3 passed including direct handoff of exact immutable validated_style and quality_report refs into style.package."
+    },
+    {
+      "id": "style-package-validation-promotion",
+      "command": "pytest tests/platform/test_style_validation_package.py",
+      "exit_code": 0,
+      "note": "4 passed; accepted independent metrics produce exact canonical validated package, rejected metrics preserve unvalidated package and review."
+    },
+    {
+      "id": "style-analysis-scheduler-preflight",
+      "command": "pytest style runtime migration + live database signature; go test workflow",
+      "exit_code": 0,
+      "note": "Current six-argument output projection exists live, obsolete five-argument function is absent, and scheduler preflight now requires the callable signature."
+    },
+    {
+      "id": "post-validation-package-full-regression",
+      "command": "pytest platform; go test ./...; pytest integration; contracts-check; release-check",
+      "exit_code": 0,
+      "note": "497 platform passed, all Go packages passed, 67 live integration passed; contracts, legacy quality and release manifest remain exact."
+    },
+    {
+      "id": "analyze-v3-unit-contract-regression",
+      "command": "make test-unit",
+      "exit_code": 0,
+      "note": "22 legacy, 502 platform and all Go packages passed; generated contracts/sqlc and legacy quality baseline are exact."
+    },
+    {
+      "id": "analyze-v3-live-integration",
+      "command": "make test-integration",
+      "exit_code": 0,
+      "note": "67 live PostgreSQL/MinIO/RabbitMQ integration tests passed with migration00172 installed."
+    },
+    {
+      "id": "analyze-v3-holdout-service",
+      "command": "pytest tests/integration/test_go_services.py::test_go_auth",
+      "exit_code": 0,
+      "note": "Live photo_api creates immutable separate holdout snapshot, rejects session overlap, freezes digest, and creates graph_version=3 Analyze run."
+    },
+    {
+      "id": "analyze-v3-epochs",
+      "command": "pytest tests/platform/test_style_validation_epochs_migration.py tests/platform/test_style_aggregate.py tests/platform/test_style_validation_package.py",
+      "exit_code": 0,
+      "note": "Fenced face/effect/holdout epochs, exact evidence provenance, validation/package chain, v1/v2 compatibility and broker input bound verified."
+    }
+  ],
+  "blocked_gates": [],
+  "decisions": [
+    "Seeded spatial holdout and balanced luma sampling implemented without train/holdout overlap. SIFT/RANSAC/ECC similarity registration and manual crop-aware transform validated. Staged global/residual/local Adam fit implements holdout checkpoints, multi-start, equal pair weights and regularization. Full default synthetic fit measured median delta E00=0.0387397344, p95=0.0728191385; real photograph reconstruction/transfer acceptance remains unmeasured. Artifact operation wrappers, aggregation/validation reports and backend style acceptance remain.",
+    "pair.register CPU adapter with strict RegistrationParams/PairAlignment, explicit manual confirmation, optional canvas-bound background mask, declared-input artifact manifests and exact NPY mappings. Preview rounding projected back to full-resolution similarity, then quality gates re-evaluated. Admission requires 256MiB RAM; bounded array validation and cancellation between C calls. Migration28 output policy added but SQL20–28 not live-verified. Analyze DAG, remaining fit/aggregate adapters, real photograph quality gates and backend acceptance still incomplete.",
+    "Sampler now maps sampled ranks via bounded block scans instead of full available/remaining RGB arrays. Uniform/balanced-luma/filler draw order and seeded index digests retained. Measured temporary Python/NumPy peak 12388574 bytes for 2048x2048 input, excluding existing input and native RSS. Full fitting task adapter/warp/ML and live integration remain unfinished. Docker readiness rechecked and unavailable. Legacy SHA baseline unchanged.",
+    "fit_color/holdout/stages/reconstruction_metrics now propagate check_active, including after metric computation and before optimizer steps. Cancellation is cooperative between PyTorch calls; no instantaneous in-kernel stop claimed. Numerical settings preserved, legacy SHA baseline unchanged. Task adapter/warp and live broker integration remain incomplete.",
+    "linear_bilinear_global_v1 warp iterator gathers four source neighbours per tile and interpolates in linear light; global float64 coordinates and validity halo avoid seams. Full-frame convenience wrapper now uses this iterator. Fractional outputs intentionally do not promise bit parity with old OpenCV interpolation tables; real photo qualification remains pending. pair.fit.color task adapter and artifact lifecycle still unfinished.",
+    "warped_pair and spatial_split context managers reserve all intermediate NPY files before allocation, close mappings before release and expose readonly borrowed arrays. split_blocks can fill preallocated C-contiguous bool outputs; writes and packed digest are chunked without changing split semantics. Total nested extra scratch 15*pixel_count+16384 bytes; input reservations separate. Full fitting task adapter and live service checks still pending. Legacy baseline unchanged.",
+    "prepare_samples now connects owned warp/split maps to bounded before/after/person PairSamples and SampleEvidence, using gamma24 block conversion for linear-luma sampling. Train seed=seed, holdout=(seed+1) mod2^32; each sample set<=65536. Mask canvas provenance remains task adapter responsibility. pair.fit.color runtime adapter/backend/output policy still unfinished.",
+    "pair.fit.color adapter/factory, strict ColorFitParams/ColorFit schemas and migration29 implemented. Exact before/after/alignment canvas binding, person mask provenance, 1GiB admitted RAM minimum, optional512MiB device minimum, profile-selected backend without silent fallback. Default optimizer stages unchanged; local unavailable/unreliable produces explicit warning/review. Output preserves sampling and reconstruction evidence with transfer_confidence=unvalidated. Factory not yet enabled by CLI: GPU registration/capacity support pending. SQL20–29 remain live-unverified. Legacy baseline unchanged.",
+    "GPU class CLI now installs pair.fit.color only, requires explicit PHOTO_WORKER_BACKEND and exact registration backend. SQL30 qualified-node preflight/heartbeat clamps capacity and revokes legacy unrestricted report_worker_capacity from photo_worker. CUDA requires one visible device; MPS splits available unified memory conservatively without double counting. SQL20–30 not live-tested; registration/certificate provisioning, model/hardware qualification and whole pipeline E2E remain. Legacy baseline unchanged.",
+    "Actual CPU/MPS fitting with default stages passed independent synthetic holdout and cross-backend comparison. Reproducible make check-fitting-backends added; never auto-qualifies registration. CUDA, photographic corpus, production65536-sample benchmark and end-to-end service execution remain unverified.",
+    "Style version pagination now exposes immutable config, exact config hash, renderer/schema versions, metrics and provenance under current project ACL. Style package export only signs a ready, exact-version artifact after re-hashing stored canonical config and checking the configured bucket; missing packages fail closed. Analyze, candidate acceptance and import orchestration remain incomplete.",
+    "style.aggregate CPU adapter now emits strict StyleV2 and evidence report from 1..32 declared ColorFit artifacts. Equal-pair component medians preserve monotonic curves; duplicate pairs/incompatible LUTs fail, and local fitting requires a warning-free majority. Candidate remains needs_review/unvalidated without invented validation metrics. Generated schemas and migration00116 output bounds are checked; full platform regression is 356 passed.",
+    "Migration00117 and scheduler materializer bind ready style/report artifacts to the canonical succeeded aggregate task, verify configured bucket, exact object version, bounds, SHA and JCS before persisting a fenced candidate. Invalid candidates become failed and ready candidates move the run to waiting_review. AcceptCandidate requires current project editor ACL, exact style revision, idempotency and explicit low-confidence acknowledgement; it re-hashes config and atomically inserts immutable style_versions plus candidate/style revisions.",
+    "Style Analyze API freezes an exact 1..32-pair JCS snapshot with version-pinned ready WorkingImage manifests, optional mask refs, session IDs, source revision, holdout identity, selected fit backend and fresh qualified runtime locks. Migrations00118–00119 and StyleAnalysisCoordinator execute registration, global color fit and aggregate through sealed dispatch epochs. Plans, params documents, task inputs, canonical predecessor outputs and graph edges are immutable/fenced; leases renew across object IO and partial publication replays safely. Training ignore masks are canvas-bound and removed from train/holdout validity in bounded blocks. geometry_enabled nodes remain incomplete, as do style import and live PostgreSQL/object-store execution. Full Go suite passes; HTTP handler coverage is 103/117.",
+    "Live STYLE01 coverage exposed two real authorization failures: photo_api could neither inspect private worker registrations nor insert scheduler-owned style_analysis_builds. Migration00171 adds tenant-bound SECURITY DEFINER runtime selection and validated build construction, grants late-created analysis tables to photo_fn_owner, and forces deferred FKs before 202. One/multi confirmed snapshots now work live; all-unconfirmed creates no run.",
+    "style.aggregate now rejects beauty/defect evidence whose pair_id is absent/duplicated or whose exact before/after artifact refs differ from the corresponding ColorFit. This closes a provenance substitution path; evidence epochs and optional independent validation/package orchestration remain required before P10 completion.",
+    "Fixed an artifact provenance mismatch that made real style.validate→style.package execution impossible: StyleQualityReport.style now binds the newly staged validated_style ref rather than the aggregate input ref. A direct two-operation test passes without rewriting either reference.",
+    "style.package is now the explicit transfer acceptance gate: it promotes measured/experimental/no-warning StyleV2 to validated only when the bound StyleQualityReport accepted independent metrics. Failed or insufficient holdout remains needs_review/unvalidated byte-for-byte. Package manifest hashes the actual promoted bytes.",
+    "Scheduler startup checked the obsolete five-argument style_analysis_stage_outputs removed by migration00148, so a fully migrated production scheduler could not start. Preflight now requires the six-argument role-aware function actually called by StyleAnalysisStore.outputs; live PostgreSQL proves exact signature presence and old signature absence.",
+    "Migration00172 completes Analyze graph v3 with separate face detect, landmarks/parse, skin, beauty/defect evidence, aggregate, holdout person-mask/registration, validation and package epochs. Each epoch opens only after the exact canonical predecessor count; v1/v2 transition rules remain unchanged. Defect evidence now applies the bound PairAlignment before residual measurement. Runtime selection fails closed unless one immutable lock qualifies the full model chain and the CPU service qualifies all evidence/aggregate/validation operations. A separate editor-authorized holdout snapshot freezes exact artifacts, sessions, masks and JCS digest; training-session overlap is rejected. P10 acceptance STYLE01/STYLE02, one/multiple-pair equal-weight aggregation and provenance is functionally complete; photographic/visual quality remains governed by external numerical gates rather than this status."
+  ]
+}

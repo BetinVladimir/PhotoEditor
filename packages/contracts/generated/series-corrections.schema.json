@@ -1,0 +1,140 @@
+{
+  "$defs": {
+    "ItemCorrection": {
+      "additionalProperties": false,
+      "properties": {
+        "accepted": {
+          "title": "Accepted",
+          "type": "boolean"
+        },
+        "applied_ev": {
+          "maximum": 0.35,
+          "minimum": -0.35,
+          "title": "Applied Ev",
+          "type": "number"
+        },
+        "applied_gains": {
+          "items": {
+            "maximum": 1.05,
+            "minimum": 0.95,
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Applied Gains",
+          "type": "array"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "item_id": {
+          "format": "uuid",
+          "title": "Item Id",
+          "type": "string"
+        },
+        "raw_ev": {
+          "maximum": 10,
+          "minimum": -10,
+          "title": "Raw Ev",
+          "type": "number"
+        },
+        "raw_gains": {
+          "items": {
+            "maximum": 100,
+            "minimum": 0.01,
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Raw Gains",
+          "type": "array"
+        },
+        "reason": {
+          "enum": [
+            "applied",
+            "reference",
+            "low_confidence",
+            "no_common_regions",
+            "residual_not_improved",
+            "clipping_regression"
+          ],
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "item_id",
+        "raw_ev",
+        "raw_gains",
+        "applied_ev",
+        "applied_gains",
+        "confidence",
+        "accepted",
+        "reason"
+      ],
+      "title": "ItemCorrection",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/series-corrections.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "algorithm": {
+      "const": "seriesmatch_v1",
+      "default": "seriesmatch_v1",
+      "title": "Algorithm",
+      "type": "string"
+    },
+    "common_region_ids": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 32,
+      "title": "Common Region Ids",
+      "type": "array"
+    },
+    "items": {
+      "items": {
+        "$ref": "#/$defs/ItemCorrection"
+      },
+      "maxItems": 2000,
+      "minItems": 2,
+      "title": "Items",
+      "type": "array"
+    },
+    "reference_item_id": {
+      "format": "uuid",
+      "title": "Reference Item Id",
+      "type": "string"
+    },
+    "scene_id": {
+      "title": "Scene Id",
+      "type": "string"
+    },
+    "warnings": {
+      "items": {
+        "enum": [
+          "no_common_regions",
+          "items_skipped"
+        ],
+        "type": "string"
+      },
+      "maxItems": 2,
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "scene_id",
+    "reference_item_id",
+    "common_region_ids",
+    "items",
+    "warnings"
+  ],
+  "title": "SeriesCorrections",
+  "type": "object"
+}

@@ -1,0 +1,675 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "BodyCoefficients": {
+      "additionalProperties": false,
+      "properties": {
+        "face_slim": {
+          "maximum": 0.05,
+          "minimum": 0,
+          "title": "Face Slim",
+          "type": "number"
+        },
+        "hip_slim": {
+          "maximum": 0.08,
+          "minimum": 0,
+          "title": "Hip Slim",
+          "type": "number"
+        },
+        "leg_length": {
+          "maximum": 0.03,
+          "minimum": 0,
+          "title": "Leg Length",
+          "type": "number"
+        },
+        "torso_slim": {
+          "maximum": 0.08,
+          "minimum": 0,
+          "title": "Torso Slim",
+          "type": "number"
+        },
+        "waist_slim": {
+          "maximum": 0.08,
+          "minimum": 0,
+          "title": "Waist Slim",
+          "type": "number"
+        }
+      },
+      "required": [
+        "face_slim",
+        "waist_slim",
+        "hip_slim",
+        "torso_slim",
+        "leg_length"
+      ],
+      "title": "BodyCoefficients",
+      "type": "object"
+    },
+    "BodyFitMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "background_anchor_error": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Background Anchor Error",
+          "type": "number"
+        },
+        "iou": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Iou",
+          "type": "number"
+        },
+        "landmark_error": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Landmark Error",
+          "type": "number"
+        },
+        "silhouette_error": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Silhouette Error",
+          "type": "number"
+        }
+      },
+      "required": [
+        "iou",
+        "landmark_error",
+        "silhouette_error",
+        "background_anchor_error"
+      ],
+      "title": "BodyFitMetrics",
+      "type": "object"
+    },
+    "BodyFitParams": {
+      "additionalProperties": false,
+      "properties": {
+        "after": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "after_faces": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "after_person": {
+          "$ref": "#/$defs/MaskRef"
+        },
+        "after_pose": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "algorithm": {
+          "const": "bodywarp_v1",
+          "default": "bodywarp_v1",
+          "title": "Algorithm",
+          "type": "string"
+        },
+        "alignment": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "before": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "before_faces": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "before_person": {
+          "$ref": "#/$defs/MaskRef"
+        },
+        "before_pose": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "evidence_mode": {
+          "const": "fitted",
+          "default": "fitted",
+          "title": "Evidence Mode",
+          "type": "string"
+        },
+        "min_confidence": {
+          "const": 0.75,
+          "default": 0.75,
+          "title": "Min Confidence",
+          "type": "number"
+        },
+        "pair_id": {
+          "format": "uuid",
+          "title": "Pair Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "pair_id",
+        "before",
+        "after",
+        "alignment",
+        "before_pose",
+        "after_pose",
+        "before_person",
+        "after_person"
+      ],
+      "title": "BodyFitParams",
+      "type": "object"
+    },
+    "BodyObjectFit": {
+      "additionalProperties": false,
+      "properties": {
+        "accepted": {
+          "title": "Accepted",
+          "type": "boolean"
+        },
+        "after_object_id": {
+          "format": "uuid",
+          "title": "After Object Id",
+          "type": "string"
+        },
+        "ambiguity_margin": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Ambiguity Margin",
+          "type": "number"
+        },
+        "applied": {
+          "$ref": "#/$defs/BodyCoefficients"
+        },
+        "before_object_id": {
+          "format": "uuid",
+          "title": "Before Object Id",
+          "type": "string"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "match_cost": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Match Cost",
+          "type": "number"
+        },
+        "metrics": {
+          "$ref": "#/$defs/BodyFitMetrics"
+        },
+        "reason": {
+          "enum": [
+            "applied",
+            "ambiguous",
+            "low_confidence",
+            "missing_anchors",
+            "sitting_or_occluded"
+          ],
+          "title": "Reason",
+          "type": "string"
+        },
+        "requested": {
+          "$ref": "#/$defs/BodyCoefficients"
+        }
+      },
+      "required": [
+        "before_object_id",
+        "after_object_id",
+        "confidence",
+        "match_cost",
+        "ambiguity_margin",
+        "requested",
+        "applied",
+        "metrics",
+        "accepted",
+        "reason"
+      ],
+      "title": "BodyObjectFit",
+      "type": "object"
+    },
+    "Canvas": {
+      "additionalProperties": false,
+      "properties": {
+        "height": {
+          "maximum": 2147483647,
+          "minimum": 1,
+          "title": "Height",
+          "type": "integer"
+        },
+        "orientation": {
+          "const": 1,
+          "title": "Orientation",
+          "type": "integer"
+        },
+        "source_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Sha256",
+          "type": "string"
+        },
+        "space_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$",
+          "title": "Space Id",
+          "type": "string"
+        },
+        "width": {
+          "maximum": 2147483647,
+          "minimum": 1,
+          "title": "Width",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "width",
+        "height",
+        "orientation",
+        "space_id",
+        "source_sha256"
+      ],
+      "title": "Canvas",
+      "type": "object"
+    },
+    "CropTransform": {
+      "additionalProperties": false,
+      "properties": {
+        "crop_rect": {
+          "$ref": "#/$defs/Rect"
+        },
+        "from_canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "invertibility": {
+          "enum": [
+            "invertible",
+            "partial",
+            "noninvertible"
+          ],
+          "title": "Invertibility",
+          "type": "string"
+        },
+        "kind": {
+          "const": "crop",
+          "title": "Kind",
+          "type": "string"
+        },
+        "to_canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "valid_region": {
+          "$ref": "#/$defs/Rect"
+        }
+      },
+      "required": [
+        "from_canvas",
+        "to_canvas",
+        "invertibility",
+        "valid_region",
+        "kind",
+        "crop_rect"
+      ],
+      "title": "CropTransform",
+      "type": "object"
+    },
+    "DenseWarpTransform": {
+      "additionalProperties": false,
+      "properties": {
+        "from_canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "inverse_field": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "invertibility": {
+          "enum": [
+            "invertible",
+            "partial",
+            "noninvertible"
+          ],
+          "title": "Invertibility",
+          "type": "string"
+        },
+        "kind": {
+          "const": "dense_warp",
+          "title": "Kind",
+          "type": "string"
+        },
+        "pixel_centers": {
+          "const": "half_pixel",
+          "type": "string"
+        },
+        "to_canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "valid_region": {
+          "$ref": "#/$defs/Rect"
+        }
+      },
+      "required": [
+        "from_canvas",
+        "to_canvas",
+        "invertibility",
+        "valid_region",
+        "kind",
+        "inverse_field"
+      ],
+      "title": "DenseWarpTransform",
+      "type": "object"
+    },
+    "MaskRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "model_lock_id": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Model Lock Id"
+        },
+        "object_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Object Id"
+        },
+        "protected": {
+          "title": "Protected",
+          "type": "boolean"
+        },
+        "selector": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$",
+          "title": "Selector",
+          "type": "string"
+        },
+        "transform_chain": {
+          "$ref": "#/$defs/TransformChain"
+        }
+      },
+      "required": [
+        "artifact",
+        "canvas",
+        "transform_chain",
+        "selector",
+        "confidence",
+        "model_lock_id",
+        "protected"
+      ],
+      "title": "MaskRef",
+      "type": "object"
+    },
+    "MatrixTransform": {
+      "additionalProperties": false,
+      "properties": {
+        "forward_matrix": {
+          "items": {
+            "maximum": 1000000000000.0,
+            "minimum": -1000000000000.0,
+            "type": "number"
+          },
+          "maxItems": 9,
+          "minItems": 9,
+          "title": "Forward Matrix",
+          "type": "array"
+        },
+        "from_canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "invertibility": {
+          "enum": [
+            "invertible",
+            "partial",
+            "noninvertible"
+          ],
+          "title": "Invertibility",
+          "type": "string"
+        },
+        "kind": {
+          "const": "matrix",
+          "title": "Kind",
+          "type": "string"
+        },
+        "to_canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "valid_region": {
+          "$ref": "#/$defs/Rect"
+        }
+      },
+      "required": [
+        "from_canvas",
+        "to_canvas",
+        "invertibility",
+        "valid_region",
+        "kind",
+        "forward_matrix"
+      ],
+      "title": "MatrixTransform",
+      "type": "object"
+    },
+    "Rect": {
+      "additionalProperties": false,
+      "properties": {
+        "height": {
+          "maximum": 2147483647,
+          "minimum": 1,
+          "title": "Height",
+          "type": "integer"
+        },
+        "width": {
+          "maximum": 2147483647,
+          "minimum": 1,
+          "title": "Width",
+          "type": "integer"
+        },
+        "x": {
+          "minimum": 0,
+          "title": "X",
+          "type": "integer"
+        },
+        "y": {
+          "minimum": 0,
+          "title": "Y",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "title": "Rect",
+      "type": "object"
+    },
+    "ResizeTransform": {
+      "additionalProperties": false,
+      "properties": {
+        "from_canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "invertibility": {
+          "enum": [
+            "invertible",
+            "partial",
+            "noninvertible"
+          ],
+          "title": "Invertibility",
+          "type": "string"
+        },
+        "kind": {
+          "const": "resize",
+          "title": "Kind",
+          "type": "string"
+        },
+        "pixel_centers": {
+          "const": "half_pixel",
+          "title": "Pixel Centers",
+          "type": "string"
+        },
+        "to_canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "valid_region": {
+          "$ref": "#/$defs/Rect"
+        }
+      },
+      "required": [
+        "from_canvas",
+        "to_canvas",
+        "invertibility",
+        "valid_region",
+        "kind",
+        "pixel_centers"
+      ],
+      "title": "ResizeTransform",
+      "type": "object"
+    },
+    "TransformChain": {
+      "additionalProperties": false,
+      "properties": {
+        "hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Hash",
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "crop": "#/$defs/CropTransform",
+                "dense_warp": "#/$defs/DenseWarpTransform",
+                "matrix": "#/$defs/MatrixTransform",
+                "resize": "#/$defs/ResizeTransform"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/MatrixTransform"
+              },
+              {
+                "$ref": "#/$defs/DenseWarpTransform"
+              },
+              {
+                "$ref": "#/$defs/CropTransform"
+              },
+              {
+                "$ref": "#/$defs/ResizeTransform"
+              }
+            ]
+          },
+          "maxItems": 128,
+          "title": "Steps",
+          "type": "array"
+        }
+      },
+      "required": [
+        "steps",
+        "hash"
+      ],
+      "title": "TransformChain",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/body-fit.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "algorithm": {
+      "const": "bodywarp_v1",
+      "default": "bodywarp_v1",
+      "title": "Algorithm",
+      "type": "string"
+    },
+    "evidence_mode": {
+      "const": "fitted",
+      "default": "fitted",
+      "title": "Evidence Mode",
+      "type": "string"
+    },
+    "objects": {
+      "items": {
+        "$ref": "#/$defs/BodyObjectFit"
+      },
+      "maxItems": 100,
+      "title": "Objects",
+      "type": "array"
+    },
+    "params": {
+      "$ref": "#/$defs/BodyFitParams"
+    },
+    "warnings": {
+      "items": {
+        "enum": [
+          "no_people",
+          "unmatched_people",
+          "ambiguous_match",
+          "low_confidence",
+          "face_evidence_unavailable"
+        ],
+        "type": "string"
+      },
+      "maxItems": 5,
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "params",
+    "objects",
+    "warnings"
+  ],
+  "title": "BodyFit",
+  "type": "object"
+}

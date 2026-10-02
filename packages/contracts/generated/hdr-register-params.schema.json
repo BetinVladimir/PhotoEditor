@@ -1,0 +1,84 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "BracketFrame": {
+      "additionalProperties": false,
+      "properties": {
+        "exposure_seconds": {
+          "exclusiveMinimum": 0,
+          "maximum": 3600,
+          "title": "Exposure Seconds",
+          "type": "number"
+        },
+        "image": {
+          "$ref": "#/$defs/ArtifactRef"
+        }
+      },
+      "required": [
+        "image",
+        "exposure_seconds"
+      ],
+      "title": "BracketFrame",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/hdr-register-params.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "frames": {
+      "items": {
+        "$ref": "#/$defs/BracketFrame"
+      },
+      "maxItems": 9,
+      "minItems": 3,
+      "title": "Frames",
+      "type": "array"
+    },
+    "reference_index": {
+      "maximum": 8,
+      "minimum": 0,
+      "title": "Reference Index",
+      "type": "integer"
+    },
+    "seed": {
+      "default": 42,
+      "maximum": 4294967295,
+      "minimum": 0,
+      "title": "Seed",
+      "type": "integer"
+    },
+    "wb_recipe": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$",
+      "title": "Wb Recipe",
+      "type": "string"
+    }
+  },
+  "required": [
+    "frames",
+    "reference_index",
+    "wb_recipe"
+  ],
+  "title": "HDRRegisterParams",
+  "type": "object"
+}

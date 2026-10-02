@@ -1,0 +1,322 @@
+[
+  {
+    "name": "global",
+    "requested": [
+      "focus",
+      "clipping"
+    ],
+    "checks": [
+      {
+        "code": "focus",
+        "status": "pass",
+        "face_id": null,
+        "score": 0.9,
+        "threshold": null,
+        "region": null,
+        "reason": null
+      },
+      {
+        "code": "clipping",
+        "status": "pass",
+        "face_id": null,
+        "score": 0.05,
+        "threshold": null,
+        "region": null,
+        "reason": null
+      }
+    ],
+    "quality": 0.9
+  },
+  {
+    "name": "clipping",
+    "requested": [
+      "focus",
+      "clipping"
+    ],
+    "checks": [
+      {
+        "code": "focus",
+        "status": "pass",
+        "face_id": null,
+        "score": 0.9,
+        "threshold": null,
+        "region": null,
+        "reason": null
+      },
+      {
+        "code": "clipping",
+        "status": "pass",
+        "face_id": null,
+        "score": 0.4,
+        "threshold": null,
+        "region": null,
+        "reason": null
+      }
+    ],
+    "quality": 0.6
+  },
+  {
+    "name": "worst_face",
+    "requested": [
+      "focus",
+      "clipping",
+      "eyes",
+      "glare"
+    ],
+    "checks": [
+      {
+        "code": "focus",
+        "status": "pass",
+        "face_id": null,
+        "score": 0.9,
+        "threshold": null,
+        "region": null,
+        "reason": null
+      },
+      {
+        "code": "clipping",
+        "status": "pass",
+        "face_id": null,
+        "score": 0.05,
+        "threshold": null,
+        "region": null,
+        "reason": null
+      },
+      {
+        "code": "eyes",
+        "status": "pass",
+        "face_id": "00000000-0000-4000-8000-000000000001",
+        "score": 0.7,
+        "threshold": null,
+        "region": null,
+        "reason": null
+      },
+      {
+        "code": "glare",
+        "status": "pass",
+        "face_id": "00000000-0000-4000-8000-000000000001",
+        "score": 0.6,
+        "threshold": null,
+        "region": null,
+        "reason": null
+      }
+    ],
+    "quality": 0.4
+  },
+  {
+    "name": "context_not_quality",
+    "requested": [
+      "focus",
+      "clipping",
+      "duplicate"
+    ],
+    "checks": [
+      {
+        "code": "focus",
+        "status": "pass",
+        "face_id": null,
+        "score": 0.9,
+        "threshold": null,
+        "region": null,
+        "reason": null
+      },
+      {
+        "code": "clipping",
+        "status": "pass",
+        "face_id": null,
+        "score": 0.05,
+        "threshold": null,
+        "region": null,
+        "reason": null
+      },
+      {
+        "code": "duplicate",
+        "status": "pass",
+        "face_id": null,
+        "score": 1,
+        "threshold": null,
+        "region": null,
+        "reason": null
+      }
+    ],
+    "quality": 0.9
+  },
+  {
+    "name": "unavailable",
+    "requested": [
+      "focus",
+      "clipping",
+      "eyes"
+    ],
+    "checks": [
+      {
+        "code": "focus",
+        "status": "pass",
+        "face_id": null,
+        "score": 0.9,
+        "threshold": null,
+        "region": null,
+        "reason": null
+      },
+      {
+        "code": "clipping",
+        "status": "pass",
+        "face_id": null,
+        "score": 0.05,
+        "threshold": null,
+        "region": null,
+        "reason": null
+      },
+      {
+        "code": "eyes",
+        "status": "unavailable",
+        "face_id": "00000000-0000-4000-8000-000000000001",
+        "score": null,
+        "threshold": null,
+        "region": null,
+        "reason": "UNAVAILABLE"
+      }
+    ],
+    "quality": null
+  },
+  {
+    "name": "no_foundation",
+    "requested": [
+      "focus"
+    ],
+    "checks": [
+      {
+        "code": "focus",
+        "status": "pass",
+        "face_id": null,
+        "score": 0.9,
+        "threshold": null,
+        "region": null,
+        "reason": null
+      }
+    ],
+    "quality": null
+  },
+  {
+    "name": "face_only_foundation",
+    "requested": [
+      "focus",
+      "clipping"
+    ],
+    "checks": [
+      {
+        "code": "focus",
+        "status": "pass",
+        "face_id": "00000000-0000-4000-8000-000000000001",
+        "score": 0.8,
+        "threshold": null,
+        "region": null,
+        "reason": null
+      },
+      {
+        "code": "clipping",
+        "status": "pass",
+        "face_id": null,
+        "score": 0.05,
+        "threshold": null,
+        "region": null,
+        "reason": null
+      }
+    ],
+    "quality": null
+  },
+  {
+    "name": "missing_score",
+    "requested": [
+      "focus",
+      "clipping"
+    ],
+    "checks": [
+      {
+        "code": "focus",
+        "status": "pass",
+        "face_id": null,
+        "score": 0.9,
+        "threshold": null,
+        "region": null,
+        "reason": null
+      },
+      {
+        "code": "clipping",
+        "status": "pass",
+        "face_id": null,
+        "score": null,
+        "threshold": null,
+        "region": null,
+        "reason": null
+      }
+    ],
+    "quality": null
+  },
+  {
+    "name": "duplicate",
+    "requested": [
+      "focus",
+      "clipping"
+    ],
+    "checks": [
+      {
+        "code": "focus",
+        "status": "pass",
+        "face_id": null,
+        "score": 0.9,
+        "threshold": null,
+        "region": null,
+        "reason": null
+      },
+      {
+        "code": "focus",
+        "status": "pass",
+        "face_id": null,
+        "score": 0.9,
+        "threshold": null,
+        "region": null,
+        "reason": null
+      },
+      {
+        "code": "clipping",
+        "status": "pass",
+        "face_id": null,
+        "score": 0.05,
+        "threshold": null,
+        "region": null,
+        "reason": null
+      }
+    ],
+    "error": true
+  },
+  {
+    "name": "coverage_mismatch",
+    "requested": [
+      "focus",
+      "clipping",
+      "eyes"
+    ],
+    "checks": [
+      {
+        "code": "focus",
+        "status": "pass",
+        "face_id": null,
+        "score": 0.9,
+        "threshold": null,
+        "region": null,
+        "reason": null
+      },
+      {
+        "code": "clipping",
+        "status": "pass",
+        "face_id": null,
+        "score": 0.05,
+        "threshold": null,
+        "region": null,
+        "reason": null
+      }
+    ],
+    "error": true
+  }
+]

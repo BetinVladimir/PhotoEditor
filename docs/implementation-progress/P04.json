@@ -1,0 +1,120 @@
+{
+  "package_id": "P04",
+  "status": "complete",
+  "source_commit": "fee5be46bca3afff31e953676627b20834bc3084",
+  "changed_files": [
+    "backend/internal/collection",
+    "backend/internal/asset",
+    "backend/internal/editor",
+    "backend/internal/eventstream",
+    "backend/internal/httpapi/catalog.go",
+    "backend/internal/workflow/service.go",
+    "backend/internal/workflow/media_retry.go",
+    "backend/internal/workflow/media_retry_store.go",
+    "backend/db/migrations/00149_media_retry_intake.sql",
+    "backend/db/migrations/00150_media_retry_claim.sql",
+    "backend/db/migrations/00151_media_retry_plan.sql",
+    "backend/db/migrations/00152_media_retry_finalize.sql",
+    "backend/db/migrations/00095_bulk_chunks.sql",
+    "tests/platform/test_bulk_chunk_migration.py",
+    "docs/implementation/04-api-services.md",
+    "backend/db/migrations/00156_apply_result_media.sql",
+    "tests/platform/test_apply_result_media_migration.py",
+    "backend/internal/exportjob",
+    "backend/db/migrations/00158_feedback_pair_provenance.sql",
+    "tests/platform/test_feedback_provenance_migration.py",
+    "backend/db/migrations/00168_blind_download_projection.sql",
+    "tests/platform/test_blind_download_migration.py",
+    "tests/integration/test_portal_permissions.py",
+    "backend/internal/portal/service.go",
+    "backend/internal/portal/download_intent_test.go",
+    "tests/integration/test_bulk_revision_fence.py",
+    "backend/internal/collection/worker_integration_test.go",
+    "tests/integration/test_go_services.py"
+  ],
+  "checks": [
+    {
+      "id": "collection-service-unit",
+      "command": "cd backend && go test ./internal/collection ./internal/httpapi",
+      "exit_code": 0,
+      "note": "Collection/item DTO and HTTP checks pass; live PostgreSQL immutable, share, revision-fence and worker transport criteria are covered by the package integration checks."
+    },
+    {
+      "id": "bulk-chunk-contract",
+      "command": "python -m pytest tests/platform/test_bulk_chunk_migration.py -q -p no:cacheprovider",
+      "exit_code": 0,
+      "note": "Static migration contract complements live PostgreSQL chunk/revision and live RabbitMQ worker tests recorded below."
+    },
+    {
+      "id": "platform-regression",
+      "command": "python -m pytest tests/platform -q -p no:cacheprovider",
+      "exit_code": 0,
+      "note": "287 platform tests pass after collection-worker, media adapter and owner media-link integration."
+    },
+    {
+      "id": "go-regression",
+      "command": "cd backend && go test ./...",
+      "exit_code": 0,
+      "note": "All Go packages pass."
+    },
+    {
+      "id": "contracts-and-legacy",
+      "command": "make contracts-check && git diff --check",
+      "exit_code": 0,
+      "note": "Generators are clean; Legacy quality source and presets unchanged."
+    },
+    {
+      "id": "catalog-editor-event-regression",
+      "command": "cd backend && go test ./... && cd .. && make test-python && make test-legacy && make contracts-check",
+      "exit_code": 0,
+      "note": "All Go packages, 350 platform tests, 22 legacy tests and contract drift checks pass. HTTP implementation coverage is 98/117; live PostgreSQL concurrency remains unverified."
+    },
+    {
+      "id": "apply-result-moderation",
+      "command": "go -C backend test ./internal/collection ./internal/httpapi && pytest tests/integration/test_ingest_media_derivatives.py -q -p no:cacheprovider",
+      "exit_code": 0,
+      "note": "Editor-only collection item moderation is revision-serialized and restricted to the immutable version/run owning an Apply output collection. Three live PostgreSQL media tests prove pending Apply versions stay gated and acceptance creates a claimable exact-origin derivative job."
+    },
+    {
+      "id": "feedback-export-status",
+      "command": "go test ./internal/style ./internal/exportjob ./internal/httpapi; pytest tests/platform/test_feedback_provenance_migration.py",
+      "exit_code": 0,
+      "note": "Feedback validation/idempotency and sanitized Export.Get compile and pass focused tests; provenance migration passes on clean PostgreSQL in the 52-test database suite."
+    },
+    {
+      "id": "share-permission-and-revocation-matrix",
+      "command": "pytest tests/platform/test_blind_download_migration.py tests/integration/test_portal_permissions.py tests/integration/test_portal_item_download.py; go test ./internal/portal ./internal/httpapi",
+      "exit_code": 0,
+      "note": "Live PostgreSQL covers four view/download/upload combinations, upload-only redaction, blind download-only all snapshot, selected denial, immediate policy revocation, multipart revoke-before-complete, and function-only portal role. Portal read/download URLs are capped at 60s; multipart PUT remains 600s."
+    },
+    {
+      "id": "bulk-live-revision-fence",
+      "command": ".venv-platform/bin/python -m pytest -q tests/integration/test_bulk_revision_fence.py -p no:cacheprovider",
+      "exit_code": 0,
+      "note": "Live PostgreSQL processes a 501-item bulk mutation as a 500-item committed chunk, preserves its ratings, then reports the remaining item as REVISION_CONFLICT after an external collection revision change; run and bulk finish completed_with_errors with a complete per-item report."
+    },
+    {
+      "id": "bulk-rabbit-worker-e2e",
+      "command": ".venv-platform/bin/python -m pytest -q tests/integration/test_go_services.py::test_go_queue -p no:cacheprovider",
+      "exit_code": 0,
+      "note": "A disposable PostgreSQL database and isolated RabbitMQ vhost prove persistent collection.mutate routing through the production collection consumer, photo_worker SQL role, event fence, atomic rating mutation, terminal run/bulk state, ACK, and an empty queue."
+    }
+  ],
+  "blocked_gates": [],
+  "decisions": [
+    "Collection/item/section CRUD, publication, archive, share lifecycle, owner selection snapshots and durable bulk start/status/cancel are wired with tenant/project ACL, revision serialization, signed scoped cursors, exact artifact eligibility checks, audit and idempotency. Apply output item moderation locks the collection/item/version together, accepts only the version produced by the owning Apply run, synchronizes item/version state and leaves visibility hidden until explicit publication. Asset list/get/delete, tenant event filtering, immutable source-hash-bound overrides and per-user editor drafts are connected. Bulk requests freeze strict action params and an exact user snapshot into a linked bulk run. Durable retry_media uses exact outbox intake, leased deterministic materialization and canonical fenced derivative adoption. Live PostgreSQL covers bulk replay, forged-event refusal, ingest and accepted-Apply origins.",
+    "Training.AddFeedback requires explicit consent, exact draft training revision, same-project collection membership and verifiable source lineage. Generated results are marked user_added_generated. Export.Get exposes readiness and bounded metadata without storage identity.",
+    "Migration00168 fixes A19: download-only links expose a blind all-download capability and may create only scope=all snapshots; catalog, sections, cover, selected/filter and item metadata stay view-gated. It also makes pgcrypto explicit, qualifies digest in SECURITY DEFINER functions and repairs begin_portal_upload column ambiguity found by live execution.",
+    "BULK01 has a live PostgreSQL revision-fence proof: chunk one commits exactly 500 successes and advances both collection and expected revisions; a conflicting external revision before chunk two preserves those effects and records the sole remaining item as REVISION_CONFLICT. Rabbit publisher/consumer delivery remains covered separately and is not claimed by this SQL execution test.",
+    "The collection worker transport is live-verified end to end in an isolated RabbitMQ vhost: production topology routes collection.mutate, RunWorker consumes with prefetch one, executes the event-fenced PostgreSQL function under photo_worker, acknowledges only after commit, and shuts down cleanly."
+  ],
+  "completion_basis": {
+    "criteria": "P04: IMM constraints; SHARE01; SHARE02; revision conflicts",
+    "evidence": [
+      "Live PostgreSQL immutable style-version and tenant/FK/RLS constraints in tests/integration/test_database.py.",
+      "Live four-way share permission matrix and immediate revocation/no-adoption behavior in tests/integration/test_portal_permissions.py and test_portal_item_download.py.",
+      "Live 501-item revision fence with retained completed chunk in tests/integration/test_bulk_revision_fence.py.",
+      "Live RabbitMQ production collection worker delivery, SQL role, commit-before-ACK and terminal state in worker_integration_test.go."
+    ]
+  }
+}

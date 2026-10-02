@@ -1,0 +1,91 @@
+schema_version: 1
+profile: e2e_studio_soft_v1
+input:
+  recursive: false
+  formats: [jpg, jpeg, tif, tiff]
+  missing_icc: assume_srgb
+runtime:
+  analysis_long_edge: 1600
+  tile_size: 768
+  threads: 4
+  max_megapixels: 80
+collection:
+  enabled: true
+  mode: target
+  target_face_luma: 0.50
+  strength: 0.74
+  max_correction_ev: 1.8
+  expected_faces:
+    01_window_overexposure.jpg: 1
+    02_low_light.jpg: 2
+    03_family_backlight.jpg: 3
+    04_harsh_sun_shadows.jpg: 1
+    05_mixed_light_flash.jpg: 2
+    06_seaside_sun_dress.jpg: 1
+color:
+  enabled: true
+  exposure_ev: 0
+  wb_gains: [1, 1, 1]
+  contrast: 0.025
+  saturation: 0.01
+  gamma: 1.03
+beauty:
+  enabled: true
+  preserve_geometry: false
+  skin: {enabled: true, face_strength: 0.28, body_strength: 0.16, texture_retention: 0.96}
+  even_light: {enabled: true, strength: 0.72, max_local_ev: 0.85}
+  specular: {enabled: true, strength: 0.32}
+  highlight_cleanup: {enabled: true, strength: 0.42, threshold: 0.66, local_contrast: 0.035, max_reduction: 0.12}
+  face_color_finish: {enabled: true, strength: 0.40, saturation: 0.10, warmth: 0.012, max_chroma_shift: 0.035}
+  post_white_balance: {enabled: true, strength: 0.45, max_gain: 0.12, neutral_saturation: 0.20, highlight_start: 0.82, highlight_headroom: 0.975}
+  redness: {enabled: true, strength: 0.18}
+  contour_light: {enabled: true, strength: 0.14}
+  blemishes: {enabled: true, auto_redness: true, auto_strength: 0.50, circles: []}
+geometry:
+  enabled: true
+  face_strength: 0.32
+  body_strength: 0.26
+  max_face_displacement: 0.015
+  max_body_displacement: 0.02
+  body_regions: []
+detail:
+  sharpening: {enabled: true, strength: 0.52}
+  blur_detection: {enabled: true, threshold: 0.002, restoration_model: codeformer, fidelity: 0.9, min_identity_similarity: 0.75, auto_restore: true, fidelity_candidates: [0.85, 0.92, 0.97], blend: 0.65}
+  face_recovery: {enabled: true, strength: 0.55, max_detail_gain: 0.045}
+export:
+  master: true
+  delivery: true
+  jpeg_quality: 95
+  preview_long_edge: 1600
+image_overrides:
+  01_window_overexposure.jpg:
+    color: {exposure_ev: -0.12}
+    geometry: {body_regions: [[0.25, 0.57, 0.93, 1.0]]}
+  02_low_light.jpg:
+    color: {wb_gains: [0.92, 1.0, 1.16], gamma: 1.12}
+    geometry: {body_regions: [[0.44, 0.32, 0.77, 0.91]]}
+  03_family_backlight.jpg:
+    color: {wb_gains: [0.97, 1.0, 1.04]}
+    beauty:
+      skin: {enabled: true, face_strength: 0.12, body_strength: 0.14, texture_retention: 1.0}
+    detail:
+      sharpening: {enabled: true, strength: 0.68}
+      blur_detection: {enabled: true, threshold: 0.002, restoration_model: codeformer, fidelity: 0.9, min_identity_similarity: 0.75, auto_restore: true, fidelity_candidates: [0.85, 0.92, 0.97], blend: 0.65}
+      face_recovery: {enabled: true, strength: 0.9, max_detail_gain: 0.06}
+    geometry: {body_regions: [[0.315, 0.29, 0.485, 0.63], [0.49, 0.26, 0.68, 0.68]]}
+  04_harsh_sun_shadows.jpg:
+    beauty: {even_light: {enabled: true, strength: 0.82, max_local_ev: 1.0}}
+    geometry: {body_regions: [[0.10, 0.50, 0.81, 1.0]]}
+  05_mixed_light_flash.jpg:
+    color: {wb_gains: [0.98, 1.0, 1.04]}
+    geometry: {body_regions: [[0.04, 0.38, 0.55, 0.92]]}
+  06_seaside_sun_dress.jpg:
+    beauty:
+      skin: {enabled: true, face_strength: 0.18, body_strength: 0.12, texture_retention: 0.98}
+      even_light: {enabled: true, strength: 0.42, max_local_ev: 0.45}
+      specular: {enabled: true, strength: 0.18}
+      highlight_cleanup: {enabled: true, strength: 0.72, threshold: 0.56, local_contrast: 0.025, max_reduction: 0.16}
+      face_color_finish: {enabled: true, strength: 0.85, saturation: 0.20, warmth: 0.025, max_chroma_shift: 0.055}
+      post_white_balance: {enabled: true, strength: 0.58, max_gain: 0.10, neutral_saturation: 0.18, highlight_start: 0.76, highlight_headroom: 0.96}
+      redness: {enabled: true, strength: 0.10}
+    geometry: {body_regions: [[0.24, 0.28, 0.48, 0.87]]}

@@ -1,0 +1,29 @@
+{
+  "format_version": 1,
+  "profiles": [
+    {
+      "id": "work_rec2020_gamma24_v1",
+      "path": "work_rec2020_gamma24_v1.icc",
+      "sha256": "a525b6d4afd90340bc8f69535dae83594925224f3569a3b90b988ac5f937e6e9",
+      "bytes": 648,
+      "license": "CC0-1.0",
+      "generator_lcms_version": 2190
+    },
+    {
+      "id": "srgb_v1",
+      "path": "srgb_v1.icc",
+      "sha256": "fc0d083e97a5a47aacaf5a3c1c58a537742f6f0e6dd95ba02efed15f36d92228",
+      "bytes": 632,
+      "license": "CC0-1.0",
+      "generator_lcms_version": 2190
+    },
+    {
+      "id": "linear_srgb_v1",
+      "path": "linear_srgb_v1.icc",
+      "sha256": "25f7241171e92bfb99c2172440a55f714875d9caf9891f8a29a32368e0f15acc",
+      "bytes": 628,
+      "license": "CC0-1.0",
+      "generator_lcms_version": 2190
+    }
+  ]
+}

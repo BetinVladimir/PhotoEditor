@@ -1,0 +1,111 @@
+{
+  "input": "/Users/freelancer/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-legal-memorandum/assets/reference.docx",
+  "fonts_by_char_count": {
+    "Garamond": 7109,
+    "Arial": 41
+  },
+  "direct_run_formatting_runs": 39,
+  "direct_paragraph_formatting_paragraphs": 24,
+  "heading_like_paragraphs_not_heading_style": [
+    {
+      "para_index": 2,
+      "text": "LEGAL MEMO",
+      "style": "normal"
+    },
+    {
+      "para_index": 4,
+      "text": "To: \t[Recipient name and title]",
+      "style": "normal"
+    },
+    {
+      "para_index": 6,
+      "text": "From:\t[Author name and title]",
+      "style": "normal"
+    },
+    {
+      "para_index": 7,
+      "text": "Date:\t[Date]",
+      "style": "normal"
+    },
+    {
+      "para_index": 8,
+      "text": "Re:\t[Matter or decision]",
+      "style": "normal"
+    },
+    {
+      "para_index": 11,
+      "text": "Background",
+      "style": "normal"
+    },
+    {
+      "para_index": 22,
+      "text": "Analysis",
+      "style": "normal"
+    },
+    {
+      "para_index": 29,
+      "text": "Conclusion",
+      "style": "normal"
+    }
+  ],
+  "examples": {
+    "direct_run_formatting": [
+      {
+        "para_index": 2,
+        "run_text": "LEGAL MEMO",
+        "style": "normal"
+      },
+      {
+        "para_index": 4,
+        "run_text": "To",
+        "style": "normal"
+      },
+      {
+        "para_index": 4,
+        "run_text": ": \t[Recipient name and title]",
+        "style": "normal"
+      },
+      {
+        "para_index": 5,
+        "run_text": "[Additional recipient name and title]",
+        "style": "normal"
+      },
+      {
+        "para_index": 6,
+        "run_text": "From",
+        "style": "normal"
+      }
+    ],
+    "direct_paragraph_formatting": [
+      {
+        "para_index": 5,
+        "text": "[Additional recipient name and title]",
+        "style": "normal"
+      },
+      {
+        "para_index": 12,
+        "text": "\t[Summarize the parties, governing document, transaction, relevant location, and the event or decision that prompted thi",
+        "style": "normal"
+      },
+      {
+        "para_index": 13,
+        "text": "\t[Describe the governing relationship, material obligations, effective dates, renewal or termination provisions, and ope",
+        "style": "normal"
+      },
+      {
+        "para_index": 14,
+        "text": "[List the principal documents or authorities reviewed:]",
+        "style": "normal"
+      },
+      {
+        "para_index": 15,
+        "text": "[Primary agreement or governing instrument];",
+        "style": "normal"
+      }
+    ]
+  },
+  "notes": [
+    "Direct formatting is not always wrong, but it often causes inconsistent output when templates change.",
+    "Heading-like paragraphs not using Heading styles can break TOC and accessibility."
+  ]
+}

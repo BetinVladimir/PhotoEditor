@@ -1,0 +1,89 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/sky-report.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "changed_pixels": {
+      "maximum": 200000000,
+      "minimum": 0,
+      "title": "Changed Pixels",
+      "type": "integer"
+    },
+    "gains_rgb": {
+      "items": {
+        "maximum": 1.25,
+        "minimum": 0.75,
+        "type": "number"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "title": "Gains Rgb",
+      "type": "array"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "linear_light": {
+      "const": true,
+      "default": true,
+      "title": "Linear Light",
+      "type": "boolean"
+    },
+    "match_limit": {
+      "maximum": 0.25,
+      "minimum": 0,
+      "title": "Match Limit",
+      "type": "number"
+    },
+    "pixel_count": {
+      "maximum": 200000000,
+      "minimum": 1,
+      "title": "Pixel Count",
+      "type": "integer"
+    },
+    "protected": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "sky": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "sky_mask": {
+      "$ref": "#/$defs/ArtifactRef"
+    }
+  },
+  "required": [
+    "image",
+    "sky_mask",
+    "protected",
+    "sky",
+    "pixel_count",
+    "changed_pixels",
+    "match_limit",
+    "gains_rgb"
+  ],
+  "title": "SkyReport",
+  "type": "object"
+}

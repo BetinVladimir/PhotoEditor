@@ -1,0 +1,82 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/pose-params.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "max_people": {
+      "default": 32,
+      "maximum": 100,
+      "minimum": 1,
+      "title": "Max People",
+      "type": "integer"
+    },
+    "max_size": {
+      "const": 1024,
+      "default": 1024,
+      "title": "Max Size",
+      "type": "integer"
+    },
+    "min_size": {
+      "const": 640,
+      "default": 640,
+      "title": "Min Size",
+      "type": "integer"
+    },
+    "model_id": {
+      "const": "keypointrcnn_resnet50_fpn",
+      "default": "keypointrcnn_resnet50_fpn",
+      "title": "Model Id",
+      "type": "string"
+    },
+    "model_lock_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Model Lock Id",
+      "type": "string"
+    },
+    "preprocessing_id": {
+      "const": "keypointrcnn_coco_v1",
+      "default": "keypointrcnn_coco_v1",
+      "title": "Preprocessing Id",
+      "type": "string"
+    },
+    "score_threshold": {
+      "default": 0.75,
+      "maximum": 0.99,
+      "minimum": 0.5,
+      "title": "Score Threshold",
+      "type": "number"
+    }
+  },
+  "required": [
+    "image",
+    "model_lock_id"
+  ],
+  "title": "PoseParams",
+  "type": "object"
+}

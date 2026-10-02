@@ -1,0 +1,1377 @@
+{
+  "format_version": 1,
+  "notation": "field:type!: required; ?: nullable; =literal: non-null default. IDs use domain FK rules in 02; JSON types in 15.",
+  "tables": [
+    {
+      "migration": "001",
+      "scope": "global",
+      "name": "users",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()"
+      ],
+      "columns": [
+        "email_normalized:text!",
+        "locale:text=en",
+        "theme:text=system",
+        "timezone:text=UTC",
+        "status:text=active",
+        "auth_epoch:bigint=0",
+        "revision:bigint=1"
+      ],
+      "constraints": "U(email_normalized); enum locale ru/bg/en; theme light/dark/system"
+    },
+    {
+      "migration": "001",
+      "scope": "global",
+      "name": "auth_challenges",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()"
+      ],
+      "columns": [
+        "email_normalized:text!",
+        "code_hmac:bytea!",
+        "expires_at:timestamptz!",
+        "attempts:int=0",
+        "consumed_at:timestamptz?",
+        "locale:text!",
+        "request_ip_hash:bytea!"
+      ],
+      "constraints": "attempts 0..5; index(email_normalized,created_at)"
+    },
+    {
+      "migration": "001",
+      "scope": "global",
+      "name": "sessions",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()"
+      ],
+      "columns": [
+        "user_id:uuid!",
+        "refresh_hash:bytea!",
+        "family_id:uuid!",
+        "parent_id:uuid?",
+        "client_type:text!",
+        "expires_at:timestamptz!",
+        "revoked_at:timestamptz?",
+        "used_at:timestamptz?",
+        "csrf_hash:bytea?"
+      ],
+      "constraints": "U(refresh_hash); FK user_id users; parent_id sessions; index(family_id)"
+    },
+    {
+      "migration": "001",
+      "scope": "global",
+      "name": "mail_payloads",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()"
+      ],
+      "columns": [
+        "challenge_id:uuid?",
+        "recipient_cipher:bytea!",
+        "payload_cipher:bytea!",
+        "key_id:text!",
+        "expires_at:timestamptz!",
+        "status:text=queued",
+        "message_id:text!",
+        "attempt:int=0",
+        "next_attempt_at:timestamptz?",
+        "lease_until:timestamptz?",
+        "fencing_token:bigint=0",
+        "kind:text=otp",
+        "invitation_id:uuid?",
+        "worker_id:uuid?"
+      ],
+      "constraints": "U(message_id); FK challenge_id auth_challenges; delete ciphertext at send/expiry"
+    },
+    {
+      "migration": "001",
+      "scope": "global",
+      "name": "auth_rate_limits",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()"
+      ],
+      "columns": [
+        "scope_hash:bytea!",
+        "window_start:timestamptz!",
+        "count:int=0",
+        "expires_at:timestamptz!"
+      ],
+      "constraints": "U(scope_hash,window_start); index(expires_at)"
+    },
+    {
+      "migration": "002",
+      "scope": "global",
+      "name": "tenants",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()"
+      ],
+      "columns": [
+        "name:text!",
+        "owner_user_id:uuid!",
+        "status:text=active",
+        "revision:bigint=1",
+        "quotas:jsonb!",
+        "retention:jsonb!"
+      ],
+      "constraints": "FK owner_user_id users; owner membership invariant deferred trigger"
+    },
+    {
+      "migration": "002",
+      "scope": "tenant",
+      "name": "memberships",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "user_id:uuid!",
+        "role:text!",
+        "status:text=active",
+        "revision:bigint=1"
+      ],
+      "constraints": "U(tenant_id,user_id); FK user_id users; role owner/admin/editor/viewer; one active owner partial unique"
+    },
+    {
+      "migration": "002",
+      "scope": "tenant",
+      "name": "invitations",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "email_normalized:text!",
+        "role:text!",
+        "token_hash:bytea!",
+        "expires_at:timestamptz!",
+        "accepted_at:timestamptz?",
+        "invited_by:uuid!"
+      ],
+      "constraints": "U(tenant_id,token_hash); FK invited_by users; cannot invite owner"
+    },
+    {
+      "migration": "002",
+      "scope": "tenant",
+      "name": "tenant_usage",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "storage_bytes:bigint=0",
+        "reserved_bytes:bigint=0",
+        "source_files:bigint=0",
+        "reserved_files:bigint=0",
+        "active_runs:int=0",
+        "active_gpu_tasks:int=0"
+      ],
+      "constraints": "U(tenant_id); counters nonnegative; row lock quota authority"
+    },
+    {
+      "migration": "002",
+      "scope": "tenant",
+      "name": "audit_log",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "actor_type:text!",
+        "actor_id:uuid?",
+        "action:text!",
+        "resource_type:text!",
+        "resource_id:uuid?",
+        "request_id:uuid!",
+        "details:jsonb!"
+      ],
+      "constraints": "append-only; index(tenant_id,created_at,id)"
+    },
+    {
+      "migration": "003",
+      "scope": "tenant",
+      "name": "projects",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "name:text!",
+        "description:text=''",
+        "visibility:text=workspace",
+        "download_allowed:bool=true",
+        "revision:bigint=1",
+        "archived_at:timestamptz?"
+      ],
+      "constraints": "name 1..120; index(tenant_id,created_at,id)"
+    },
+    {
+      "migration": "003",
+      "scope": "tenant",
+      "name": "project_acl",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "project_id:uuid!",
+        "user_id:uuid!",
+        "role:text!"
+      ],
+      "constraints": "U(tenant_id,project_id,user_id); FK project_id projects; FK user_id users"
+    },
+    {
+      "migration": "003",
+      "scope": "tenant",
+      "name": "artifacts",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "bucket:text!",
+        "object_key:text!",
+        "object_version:text?",
+        "sha256:text!",
+        "bytes:bigint!",
+        "media_type:text!",
+        "width:int?",
+        "height:int?",
+        "icc_sha256:text?",
+        "state:text=ready",
+        "expires_at:timestamptz?",
+        "created_by_task_id:uuid?"
+      ],
+      "constraints": "U(tenant_id,bucket,object_key); sha256 hex64; bytes>=0; task FK added 006"
+    },
+    {
+      "migration": "003",
+      "scope": "tenant",
+      "name": "assets",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "project_id:uuid!",
+        "original_artifact_id:uuid!",
+        "metadata:jsonb!",
+        "upload_state:text!",
+        "deleted_at:timestamptz?",
+        "provenance:jsonb!",
+        "revision:bigint=1"
+      ],
+      "constraints": "FK project_id projects; original_artifact_id artifacts; no unique sha across tenants or imports"
+    },
+    {
+      "migration": "003",
+      "scope": "tenant",
+      "name": "asset_versions",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "asset_id:uuid!",
+        "master_artifact_id:uuid!",
+        "parent_asset_version_id:uuid?",
+        "created_by_run_id:uuid?",
+        "content_hash:text!",
+        "metadata:jsonb!",
+        "review_state:text!",
+        "version_no:int=1"
+      ],
+      "constraints": "U(tenant_id,asset_id,version_no); FK asset_id assets; master_artifact_id artifacts; parent_asset_version_id asset_versions; run FK added 006; immutable content"
+    },
+    {
+      "migration": "003",
+      "scope": "tenant",
+      "name": "asset_version_sources",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "version_id:uuid!",
+        "source_version_id:uuid!",
+        "role:text!",
+        "ordinal:int!"
+      ],
+      "constraints": "U(tenant_id,version_id,source_version_id,role); FK both versions asset_versions; ordered HDR/provenance"
+    },
+    {
+      "migration": "003",
+      "scope": "tenant",
+      "name": "collections",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "project_id:uuid!",
+        "name:text!",
+        "description:text=''",
+        "state:text=draft",
+        "revision:bigint=1",
+        "cover_item_id:uuid?",
+        "sort_mode:text=manual",
+        "source_collection_id:uuid?",
+        "source_revision:bigint?",
+        "source_run_id:uuid?",
+        "applied_style_version_id:uuid?",
+        "deleted_at:timestamptz?"
+      ],
+      "constraints": "FK project_id projects; source_collection_id collections; deferred cyclic FKs 006; state draft/published/archived/deleting"
+    },
+    {
+      "migration": "003",
+      "scope": "tenant",
+      "name": "sections",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "collection_id:uuid!",
+        "name:text!",
+        "position:bigint!",
+        "revision:bigint=1"
+      ],
+      "constraints": "FK collection_id collections; U(tenant_id,collection_id,id)"
+    },
+    {
+      "migration": "003",
+      "scope": "tenant",
+      "name": "collection_items",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "collection_id:uuid!",
+        "asset_id:uuid!",
+        "asset_version_id:uuid!",
+        "section_id:uuid?",
+        "position:bigint!",
+        "visibility:text=hidden",
+        "moderation_state:text=pending_review",
+        "rating:int=0",
+        "flag:text=none",
+        "tags:jsonb=[]",
+        "created_by_run_id:uuid?",
+        "source_item_id:uuid?"
+      ],
+      "constraints": "U(tenant_id,collection_id,asset_id); FK collection_id collections; FK asset/version tuple; section same collection; rating 0..5; version immutable; index(tenant_id,collection_id,position,id)"
+    },
+    {
+      "migration": "003",
+      "scope": "tenant",
+      "name": "publications",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "item_id:uuid!",
+        "asset_version_id:uuid!",
+        "state:text=published",
+        "published_by:uuid!",
+        "published_at:timestamptz!",
+        "policy_version:bigint=1"
+      ],
+      "constraints": "U(tenant_id,item_id); FK item/version tuple collection_items; FK published_by users; unpublish changes state only"
+    },
+    {
+      "migration": "004",
+      "scope": "tenant",
+      "name": "share_links",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "collection_id:uuid!",
+        "secret_hash:bytea!",
+        "label:text=''",
+        "permissions:jsonb!",
+        "policy_version:bigint=1",
+        "expires_at:timestamptz?",
+        "revoked_at:timestamptz?",
+        "limits:jsonb!",
+        "moderation:text=owner_review",
+        "allowed_presets:jsonb!",
+        "created_by:uuid!",
+        "used_bytes:bigint=0",
+        "reserved_bytes:bigint=0",
+        "used_files:bigint=0",
+        "reserved_files:bigint=0"
+      ],
+      "constraints": "FK collection_id collections; created_by users; index(tenant_id,collection_id); no plaintext secret"
+    },
+    {
+      "migration": "004",
+      "scope": "tenant",
+      "name": "share_sessions",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "share_id:uuid!",
+        "collection_id:uuid!",
+        "session_hash:bytea!",
+        "link_version:bigint!",
+        "expires_at:timestamptz!",
+        "revoked_at:timestamptz?",
+        "locale:text!",
+        "csrf_hash:bytea!"
+      ],
+      "constraints": "U(session_hash); composite share/collection FK; lookup only restricted function"
+    },
+    {
+      "migration": "004",
+      "scope": "tenant",
+      "name": "upload_sessions",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "project_id:uuid!",
+        "collection_id:uuid?",
+        "principal_type:text!",
+        "principal_id:uuid!",
+        "share_id:uuid?",
+        "policy_version:bigint?",
+        "expected_size:bigint!",
+        "actual_size:bigint?",
+        "filename:text!",
+        "assume_profile:text?",
+        "multipart_id:text?",
+        "object_key:text!",
+        "state:text=initializing",
+        "expires_at:timestamptz!",
+        "staging_artifact_id:uuid?",
+        "verified_version_id:uuid?",
+        "reservation_id:uuid!",
+        "revision:bigint=1"
+      ],
+      "constraints": "FK project_id projects; collection_id collections; share_id share_links; artifacts/versions; index(state,expires_at); principal=user or share_session"
+    },
+    {
+      "migration": "004",
+      "scope": "tenant",
+      "name": "upload_parts",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "upload_session_id:uuid!",
+        "part_no:int!",
+        "etag:text?",
+        "bytes:bigint?",
+        "state:text=issued"
+      ],
+      "constraints": "U(tenant_id,upload_session_id,part_no); FK upload_session_id upload_sessions; part_no 1..10000"
+    },
+    {
+      "migration": "004",
+      "scope": "tenant",
+      "name": "quota_reservations",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "principal_type:text!",
+        "principal_id:uuid!",
+        "share_id:uuid?",
+        "holder_type:text!",
+        "holder_id:uuid!",
+        "bytes:bigint!",
+        "files:int!",
+        "state:text=reserved",
+        "expires_at:timestamptz!"
+      ],
+      "constraints": "U(tenant_id,holder_type,holder_id); FK share_id share_links; nonnegative; release once state CAS"
+    },
+    {
+      "migration": "005",
+      "scope": "tenant",
+      "name": "styles",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "project_id:uuid!",
+        "name:text!",
+        "description:text=''",
+        "revision:bigint=1",
+        "created_by:uuid!",
+        "archived_at:timestamptz?"
+      ],
+      "constraints": "FK project_id projects; created_by users; name trim 1..120; description<=2000"
+    },
+    {
+      "migration": "005",
+      "scope": "tenant",
+      "name": "style_versions",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "style_id:uuid!",
+        "version_no:int!",
+        "config_json:jsonb!",
+        "config_hash:text!",
+        "schema_version:text!",
+        "renderer_version:text!",
+        "training_run_id:uuid?",
+        "approval_status:text!",
+        "metrics:jsonb!",
+        "export_artifact_id:uuid?",
+        "source_file_sha256:text?"
+      ],
+      "constraints": "U(tenant_id,style_id,version_no); FK style_id styles; artifact FK; run FK 006; immutable"
+    },
+    {
+      "migration": "005",
+      "scope": "tenant",
+      "name": "style_asset_bindings",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "style_version_id:uuid!",
+        "portable_asset_id:text!",
+        "artifact_id:uuid!",
+        "sha256:text!"
+      ],
+      "constraints": "U(tenant_id,style_version_id,portable_asset_id); FK style_version_id style_versions; artifact_id artifacts"
+    },
+    {
+      "migration": "005",
+      "scope": "tenant",
+      "name": "training_sets",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "style_id:uuid!",
+        "revision:bigint=1",
+        "state:text=draft"
+      ],
+      "constraints": "FK style_id styles"
+    },
+    {
+      "migration": "005",
+      "scope": "tenant",
+      "name": "training_pairs",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "training_set_id:uuid!",
+        "before_asset_version_id:uuid!",
+        "after_asset_version_id:uuid!",
+        "session_id:text!",
+        "confirmed:bool=false",
+        "included:bool=true",
+        "validation_status:text=pending",
+        "ignore_mask_artifact_id:uuid?",
+        "revision:bigint=1"
+      ],
+      "constraints": "FK training_set_id training_sets; before/after asset_versions; ignore_mask artifacts; before<>after"
+    },
+    {
+      "migration": "005",
+      "scope": "tenant",
+      "name": "snapshots",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "kind:text!",
+        "collection_id:uuid?",
+        "source_revision:bigint?",
+        "training_set_id:uuid?",
+        "principal_type:text!",
+        "principal_id:uuid!",
+        "digest:text!",
+        "item_count:bigint!",
+        "artifact_id:uuid?",
+        "expires_at:timestamptz?"
+      ],
+      "constraints": "FK collection_id collections; training_set_id training_sets; artifact_id artifacts; immutable; kind input/training/selection/download"
+    },
+    {
+      "migration": "005",
+      "scope": "tenant",
+      "name": "snapshot_items",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "snapshot_id:uuid!",
+        "ordinal:bigint!",
+        "item_id:uuid?",
+        "asset_version_id:uuid?",
+        "artifact_id:uuid?",
+        "sha256:text!",
+        "payload:jsonb!"
+      ],
+      "constraints": "U(tenant_id,snapshot_id,ordinal); FK snapshot_id snapshots; version/artifact FKs; item_id historical no live FK"
+    },
+    {
+      "migration": "006",
+      "scope": "tenant",
+      "name": "runs",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "kind:text!",
+        "status:text=draft",
+        "input_snapshot_id:uuid!",
+        "output_collection_id:uuid?",
+        "style_version_id:uuid?",
+        "config_snapshot:jsonb!",
+        "config_hash:text!",
+        "cancel_requested:bool=false",
+        "created_by:uuid!",
+        "failure_policy:text=continue_items",
+        "revision:bigint=1",
+        "graph_sealed:bool=false",
+        "graph_cursor:text?"
+      ],
+      "constraints": "U(tenant_id,output_collection_id); FK snapshots/collections/style_versions; created_by users; kinds analyze/apply/cull/preview/export/ingest/download/bulk/maintenance"
+    },
+    {
+      "migration": "006",
+      "scope": "tenant",
+      "name": "tasks",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "run_id:uuid!",
+        "node_key:text!",
+        "operation:text!",
+        "operation_version:text!",
+        "resource_class:text!",
+        "state:text=blocked",
+        "inputs:jsonb!",
+        "params_artifact_id:uuid!",
+        "input_digest:text!",
+        "attempt:int=0",
+        "fencing_token:bigint=0",
+        "lease_until:timestamptz?",
+        "worker_id:uuid?",
+        "next_attempt_at:timestamptz?",
+        "deadline:timestamptz?",
+        "cancel_requested:bool=false",
+        "canonical_result_id:uuid?",
+        "retry_count:int=0",
+        "oom_count:int=0",
+        "execution_profile:jsonb!",
+        "priority:int=0",
+        "terminal_reason:text?"
+      ],
+      "constraints": "U(tenant_id,run_id,node_key); FK run_id runs; params artifacts; partial index(state,next_attempt_at); no cross-run result by node name"
+    },
+    {
+      "migration": "006",
+      "scope": "tenant",
+      "name": "task_edges",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "run_id:uuid!",
+        "prerequisite_id:uuid!",
+        "dependent_id:uuid!",
+        "condition:text=success"
+      ],
+      "constraints": "U(tenant_id,prerequisite_id,dependent_id); both tasks same run; no self-edge; DAG checked compiler"
+    },
+    {
+      "migration": "006",
+      "scope": "tenant",
+      "name": "task_attempts",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "task_id:uuid!",
+        "attempt:int!",
+        "fencing_token:bigint!",
+        "worker_id:uuid!",
+        "started_at:timestamptz!",
+        "finished_at:timestamptz?",
+        "backend:text!",
+        "profile:jsonb!",
+        "error:jsonb?"
+      ],
+      "constraints": "U(tenant_id,task_id,attempt); FK task_id tasks"
+    },
+    {
+      "migration": "006",
+      "scope": "tenant",
+      "name": "task_results",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "task_id:uuid!",
+        "attempt:int!",
+        "fencing_token:bigint!",
+        "outputs:jsonb!",
+        "metrics:jsonb!",
+        "review_required:bool=false",
+        "result_digest:text!"
+      ],
+      "constraints": "U(tenant_id,task_id,attempt); FK task attempt; immutable"
+    },
+    {
+      "migration": "006",
+      "scope": "tenant",
+      "name": "outbox",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "event_id:uuid!",
+        "destination:text!",
+        "routing_key:text!",
+        "payload:jsonb!",
+        "sent_at:timestamptz?",
+        "publish_lease_until:timestamptz?",
+        "attempt:int=0"
+      ],
+      "constraints": "U(tenant_id,event_id); partial index(sent_at is null,created_at)"
+    },
+    {
+      "migration": "006",
+      "scope": "tenant",
+      "name": "inbox",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "consumer:text!",
+        "event_id:uuid!",
+        "processed_at:timestamptz!"
+      ],
+      "constraints": "U(tenant_id,consumer,event_id)"
+    },
+    {
+      "migration": "006",
+      "scope": "tenant",
+      "name": "tenant_event_cursors",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "last_cursor:bigint=0"
+      ],
+      "constraints": "U(tenant_id); locked increment within event tx"
+    },
+    {
+      "migration": "006",
+      "scope": "tenant",
+      "name": "run_events",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "cursor:bigint!",
+        "run_id:uuid?",
+        "collection_id:uuid?",
+        "principal_id:uuid?",
+        "audience:text!",
+        "type:text!",
+        "payload:jsonb!"
+      ],
+      "constraints": "U(tenant_id,cursor); indexes collection/cursor and run/cursor; redacted guest projection"
+    },
+    {
+      "migration": "006",
+      "scope": "tenant",
+      "name": "worker_registrations",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "worker_id:uuid!",
+        "resource_classes:jsonb!",
+        "backends:jsonb!",
+        "lock_id:text!",
+        "last_seen:timestamptz!",
+        "capacity:jsonb!"
+      ],
+      "constraints": "U(tenant_id,worker_id); registration through internal function; no user-controlled credentials"
+    },
+    {
+      "migration": "006",
+      "scope": "tenant",
+      "name": "result_cache",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "cache_key:text!",
+        "result_id:uuid!",
+        "valid_until:timestamptz?"
+      ],
+      "constraints": "U(tenant_id,cache_key); FK result_id task_results; accepted artifacts verified before reuse"
+    },
+    {
+      "migration": "007",
+      "scope": "tenant",
+      "name": "reviews",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "run_id:uuid!",
+        "task_id:uuid?",
+        "candidate_artifact_id:uuid!",
+        "base_artifact_id:uuid?",
+        "candidate_hash:text!",
+        "kind:text!",
+        "reasons:jsonb!",
+        "state:text=pending",
+        "revision:bigint=1",
+        "decision:text?",
+        "decided_by:uuid?",
+        "decided_at:timestamptz?",
+        "selection:jsonb?"
+      ],
+      "constraints": "FK run/task/artifacts/users; decision accept/reject/skip; append audit; CAS revision"
+    },
+    {
+      "migration": "007",
+      "scope": "tenant",
+      "name": "overrides",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "asset_version_id:uuid!",
+        "input_sha256:text!",
+        "revision:bigint!",
+        "config:jsonb!",
+        "config_hash:text!",
+        "created_by:uuid!"
+      ],
+      "constraints": "U(tenant_id,asset_version_id,revision); FK asset_versions/users; immutable"
+    },
+    {
+      "migration": "007",
+      "scope": "tenant",
+      "name": "editor_drafts",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "asset_version_id:uuid!",
+        "user_id:uuid!",
+        "revision:bigint=1",
+        "params:jsonb!",
+        "mask_refs:jsonb!",
+        "last_preview_run_id:uuid?"
+      ],
+      "constraints": "U(tenant_id,asset_version_id,user_id); FK asset_versions/users/runs; not final collection"
+    },
+    {
+      "migration": "007",
+      "scope": "tenant",
+      "name": "bulk_operations",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "collection_id:uuid!",
+        "snapshot_id:uuid!",
+        "action:text!",
+        "params:jsonb!",
+        "expected_next_revision:bigint!",
+        "status:text=queued",
+        "cancel_requested:bool=false",
+        "created_by:uuid!",
+        "run_id:uuid!"
+      ],
+      "constraints": "FK collections/snapshots/users/runs; chunks<=500"
+    },
+    {
+      "migration": "007",
+      "scope": "tenant",
+      "name": "bulk_item_results",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "bulk_operation_id:uuid!",
+        "snapshot_ordinal:bigint!",
+        "status:text!",
+        "error_code:text?",
+        "result:jsonb!"
+      ],
+      "constraints": "U(tenant_id,bulk_operation_id,snapshot_ordinal); FK bulk_operation_id bulk_operations"
+    },
+    {
+      "migration": "008",
+      "scope": "tenant",
+      "name": "derivatives",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "asset_version_id:uuid!",
+        "variant:text!",
+        "profile_hash:text!",
+        "artifact_id:uuid?",
+        "status:text=queued",
+        "task_id:uuid?"
+      ],
+      "constraints": "U(tenant_id,asset_version_id,variant,profile_hash); FK asset_versions/artifacts/tasks"
+    },
+    {
+      "migration": "008",
+      "scope": "tenant",
+      "name": "export_presets",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "name:text!",
+        "revision:bigint=1",
+        "config:jsonb!",
+        "config_hash:text!",
+        "archived_at:timestamptz?"
+      ],
+      "constraints": "name user scoped tenant; immutable referenced config snapshots"
+    },
+    {
+      "migration": "008",
+      "scope": "tenant",
+      "name": "exports",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "asset_version_id:uuid!",
+        "preset_hash:text!",
+        "artifact_id:uuid?",
+        "status:text=queued",
+        "task_id:uuid?",
+        "metadata_policy:jsonb!"
+      ],
+      "constraints": "U(tenant_id,asset_version_id,preset_hash); FK asset_versions/artifacts/tasks"
+    },
+    {
+      "migration": "008",
+      "scope": "tenant",
+      "name": "download_jobs",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "collection_id:uuid!",
+        "share_id:uuid?",
+        "principal_type:text!",
+        "principal_id:uuid!",
+        "policy_version:bigint?",
+        "snapshot_id:uuid!",
+        "preset:jsonb!",
+        "status:text=queued",
+        "expires_at:timestamptz?",
+        "run_id:uuid!",
+        "cancel_requested:bool=false"
+      ],
+      "constraints": "FK collections/share_links/snapshots/runs; principal own job; ready all volumes"
+    },
+    {
+      "migration": "008",
+      "scope": "tenant",
+      "name": "download_job_items",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "download_job_id:uuid!",
+        "ordinal:bigint!",
+        "asset_version_id:uuid!",
+        "artifact_id:uuid?",
+        "sha256:text?",
+        "entry_name:text!",
+        "volume_no:int!",
+        "bytes:bigint?",
+        "delivery_kind:text=zip"
+      ],
+      "constraints": "U(tenant_id,download_job_id,ordinal); U(job,volume,entry_name); FK job/version/artifact"
+    },
+    {
+      "migration": "008",
+      "scope": "tenant",
+      "name": "download_volumes",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "download_job_id:uuid!",
+        "volume_no:int!",
+        "artifact_id:uuid?",
+        "manifest_artifact_id:uuid?",
+        "status:text=queued",
+        "files_done:int=0",
+        "bytes_written:bigint=0"
+      ],
+      "constraints": "U(tenant_id,download_job_id,volume_no); FK job/artifacts"
+    },
+    {
+      "migration": "008",
+      "scope": "tenant",
+      "name": "download_intents",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "principal_type:text!",
+        "principal_id:uuid!",
+        "share_id:uuid?",
+        "artifact_id:uuid!",
+        "policy_version:bigint?",
+        "token_hash:bytea!",
+        "expires_at:timestamptz!",
+        "consumed_at:timestamptz?"
+      ],
+      "constraints": "U(token_hash); FK share/artifact; one redemption only"
+    },
+    {
+      "migration": "008",
+      "scope": "tenant",
+      "name": "artifact_leases",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "artifact_id:uuid!",
+        "holder_type:text!",
+        "holder_id:uuid!",
+        "expires_at:timestamptz!"
+      ],
+      "constraints": "U(tenant_id,artifact_id,holder_type,holder_id); FK artifact_id artifacts; index(expires_at)"
+    },
+    {
+      "migration": "009",
+      "scope": "tenant",
+      "name": "idempotency_records",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "principal_type:text!",
+        "principal_id:uuid!",
+        "route:text!",
+        "key:text!",
+        "request_hash:text!",
+        "response_status:int?",
+        "response_body:jsonb?",
+        "resource_id:uuid?",
+        "expires_at:timestamptz!"
+      ],
+      "constraints": "U(tenant_id,principal_type,principal_id,route,key); request mismatch 409"
+    },
+    {
+      "migration": "009",
+      "scope": "global",
+      "name": "auth_idempotency_records",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()"
+      ],
+      "columns": [
+        "scope_hash:bytea!",
+        "key:text!",
+        "request_hash:text!",
+        "response:jsonb!",
+        "expires_at:timestamptz!"
+      ],
+      "constraints": "U(scope_hash,key); no OTP plaintext"
+    },
+    {
+      "migration": "009",
+      "scope": "tenant",
+      "name": "deletion_jobs",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "resource_type:text!",
+        "resource_id:uuid!",
+        "status:text=queued",
+        "cursor:text?",
+        "error:jsonb?",
+        "requested_by:uuid!"
+      ],
+      "constraints": "FK requested_by users; retention/ref checks"
+    },
+    {
+      "migration": "009",
+      "scope": "tenant",
+      "name": "legacy_imports",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "source_manifest_hash:text!",
+        "source_relative:text!",
+        "source_sha256:text!",
+        "asset_version_id:uuid!",
+        "report:jsonb!"
+      ],
+      "constraints": "U(tenant_id,source_manifest_hash,source_relative,source_sha256); FK asset_version_id asset_versions"
+    },
+    {
+      "migration": "001",
+      "scope": "global",
+      "name": "auth_mail_outbox",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()"
+      ],
+      "columns": [
+        "event_id:uuid!",
+        "payload_id:uuid!",
+        "sent_at:timestamptz?",
+        "publish_lease_until:timestamptz?"
+      ],
+      "constraints": "U(event_id); FK payload_id mail_payloads; auth/publisher restricted functions only"
+    },
+    {
+      "migration": "006",
+      "scope": "tenant",
+      "name": "scheduler_tenants",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "virtual_finish:bigint=0",
+        "last_dispatch_at:timestamptz?",
+        "preview_streak:int=0"
+      ],
+      "constraints": "U(tenant_id); scheduler function-only; persistent fairness"
+    },
+    {
+      "migration": "006",
+      "scope": "tenant",
+      "name": "graph_expansions",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "run_id:uuid!",
+        "parent_task_id:uuid!",
+        "kind:text!",
+        "state:text=open",
+        "cursor:text?",
+        "expected_count:bigint!"
+      ],
+      "constraints": "U(tenant_id,run_id,parent_task_id,kind); FK task/run tuple; sealed before run terminal"
+    },
+    {
+      "migration": "006",
+      "scope": "global",
+      "name": "resource_slots",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()"
+      ],
+      "columns": [
+        "node_id:text!",
+        "slot_name:text!",
+        "resource_class:text!",
+        "capacity:jsonb!",
+        "tenant_id:uuid?",
+        "task_id:uuid?",
+        "fencing_token:bigint?",
+        "lease_until:timestamptz?"
+      ],
+      "constraints": "U(node_id,slot_name); system scheduling table; dedicated restricted functions, no photo_api SELECT; nullable tenant/task only when idle"
+    },
+    {
+      "migration": "006",
+      "scope": "tenant",
+      "name": "resource_reservations",
+      "common_columns": [
+        "id uuid primary key",
+        "created_at timestamptz not null default now()",
+        "tenant_id uuid not null",
+        "unique(tenant_id,id)"
+      ],
+      "columns": [
+        "task_id:uuid!",
+        "node_id:text!",
+        "scratch_bytes:bigint!",
+        "ram_bytes:bigint!",
+        "vram_bytes:bigint!",
+        "state:text=reserved",
+        "expires_at:timestamptz!"
+      ],
+      "constraints": "U(tenant_id,task_id); FK task_id tasks; nonnegative; release with task fence once"
+    }
+  ]
+}

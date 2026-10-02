@@ -1,0 +1,47 @@
+{
+  "package_id": "P08",
+  "status": "blocked_external",
+  "source_commit": "fee5be46bca3afff31e953676627b20834bc3084",
+  "changed_files": [
+    "apps/portal/package.json",
+    "apps/portal/package-lock.json",
+    "apps/portal/next.config.ts",
+    "apps/portal/tsconfig.json",
+    "apps/portal/src/app/layout.tsx",
+    "apps/portal/src/app/[locale]/s/[share_id]/page.tsx",
+    "apps/portal/src/components/Portal.tsx",
+    "apps/portal/src/lib/api.ts",
+    "apps/portal/src/lib/i18n.ts",
+    "apps/portal/src/lib/media-cache.ts",
+    "apps/portal/src/lib/virtual-grid.ts",
+    "apps/portal/src/lib/virtual-grid.test.ts",
+    "apps/portal/src/lib/api.test.ts",
+    "apps/portal/src/app/global.css"
+  ],
+  "checks": [
+    "cd apps/portal && npx tsc --noEmit: passed",
+    "cd apps/portal && npm run build: Next.js 16.3.5 production build passed",
+    "npm audit: 0 vulnerabilities",
+    {
+      "id": "portal-bounded-gallery",
+      "command": "cd apps/portal && npm test && npx tsc --noEmit && npm run build",
+      "exit_code": 0,
+      "note": "7 tests pass. Pure virtualization math keeps a 5000-photo collection to <=60 rendered tiles in the tested viewport; media URLs use a 512-entry LRU. TypeScript and Next production build pass."
+    }
+  ],
+  "blocked_gates": [
+    "UI02 five concurrent live guest sessions and browser timing profile require a deployed production-profile API/object-store environment",
+    "Real multipart upload and download-intent browser E2E requires a deployed browser-accessible S3-compatible endpoint and API",
+    "RU/BG copy and accessibility require the specified human review"
+  ],
+  "decisions": [
+    "Protected collection data is fetched client-side with cache:no-store; SSR receives locale and share identifier only",
+    "Share secret is accepted only from location.hash, never logged or persisted, and removed with replaceState only after successful exchange",
+    "Portal CSRF is kept in sessionStorage; the guest session itself remains an HttpOnly cookie",
+    "View, download and upload capabilities are independent; download-only uses an authoritative all-items selection snapshot without listing items",
+    "Media URLs are cached only in memory and are evicted before expiry; gallery item state is capped at 300",
+    "Multipart upload uses server-issued part URLs in batches of at most 100 and completes with ordered ETags",
+    "The lightbox can request and immediately redeem a one-time single-item intent for the first share-allowed preset; the API remains the authority for ready state and current policy.",
+    "Gallery no longer truncates the collection at 300 items. It retains up to the required 5000 paged records while rendering only viewport rows plus three-row overscan; thumbnail requests are restricted to that window. Signed media links are bounded by a 512-entry LRU in both cache and React state. P08 functional code is complete and now blocked only by declared deployment/browser/human gates."
+  ]
+}

@@ -1,0 +1,362 @@
+name: photoeditor
+
+x-service: &service
+  restart: unless-stopped
+  init: true
+  read_only: true
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: ["ALL"]
+  stop_grace_period: 75s
+  networks: [backend]
+
+x-go-env: &go-env
+  APP_ENV: production
+  DATABASE_URL: ${DATABASE_URL:?required}
+  AMQP_URL: ${AMQP_URL:?required}
+  S3_ENDPOINT: ${S3_ENDPOINT:?required}
+  S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:?required}
+  S3_BUCKET: ${S3_BUCKET:?required}
+  S3_ACCESS_KEY: ${S3_ACCESS_KEY:?required}
+  S3_SECRET_KEY: ${S3_SECRET_KEY:?required}
+  S3_REGION: ${S3_REGION:?required}
+  APP_ORIGIN: ${APP_ORIGIN:?required}
+  PORTAL_ORIGIN: ${PORTAL_ORIGIN:?required}
+  PHOTO_ICC_ROOT: /opt/photo/icc
+
+x-worker-env: &worker-env
+  APP_ENV: production
+  DATABASE_URL: ${DATABASE_URL:?required}
+  AMQP_URL: ${AMQP_URL:?required}
+  GATEWAY_ORIGIN: https://object-gateway:8443
+  GATEWAY_CA_FILE: /run/photo/tls/ca.crt
+  WORKER_CERT_FILE: /run/photo/tls/worker.crt
+  WORKER_KEY_FILE: /run/photo/tls/worker.key
+  PHOTO_SCRATCH_ROOT: /scratch
+  PHOTO_ICC_ROOT: /opt/photo/resources/icc
+  PHOTO_CAPACITY_POLICY: /run/photo/capacity/policy.json
+  WORKER_MAX_DOWNLOAD_BYTES: ${WORKER_MAX_DOWNLOAD_BYTES:-21474836480}
+  WORKER_MAX_UPLOAD_BYTES: ${WORKER_MAX_UPLOAD_BYTES:-21474836480}
+
+x-worker: &worker
+  <<: *service
+  image: ${PHOTO_WORKER_IMAGE:?immutable worker image required}
+  depends_on:
+    object-gateway: {condition: service_healthy}
+    rabbitmq: {condition: service_healthy}
+  volumes:
+    - ${PHOTO_SECRETS_DIR:?required}/gateway/ca.crt:/run/photo/tls/ca.crt:ro
+    - ${PHOTO_SECRETS_DIR:?required}/gateway/worker.crt:/run/photo/tls/worker.crt:ro
+    - ${PHOTO_SECRETS_DIR:?required}/gateway/worker.key:/run/photo/tls/worker.key:ro
+  tmpfs: ["/tmp:rw,noexec,nosuid,size=64m"]
+  healthcheck:
+    test: ["CMD", "photo-worker", "doctor"]
+    interval: 60s
+    timeout: 15s
+    retries: 3
+    start_period: 30s
+
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:?immutable postgres image required}
+    restart: unless-stopped
+    networks: [backend]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?required}
+      POSTGRES_USER: ${POSTGRES_USER:?required}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets: [postgres_password]
+    volumes: ["postgres-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  rabbitmq:
+    image: ${RABBITMQ_IMAGE:?immutable rabbitmq image required}
+    restart: unless-stopped
+    networks: [backend]
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:?required}
+      RABBITMQ_DEFAULT_PASS_FILE: /run/secrets/rabbitmq_password
+    secrets: [rabbitmq_password]
+    volumes: ["rabbit-data:/var/lib/rabbitmq"]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+
+  minio:
+    image: ${MINIO_IMAGE:?immutable source-built minio image required}
+    restart: unless-stopped
+    command: ["server", "/data"]
+    networks: [backend]
+    environment:
+      MINIO_ROOT_USER_FILE: /run/secrets/minio_access
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_secret
+    secrets: [minio_access, minio_secret]
+    volumes: ["minio-data:/data"]
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  migrate:
+    <<: *service
+    image: ${PHOTO_API_IMAGE:?immutable api image required}
+    restart: "no"
+    environment:
+      <<: *go-env
+      PHOTO_ROLE: migrate
+    depends_on:
+      postgres: {condition: service_healthy}
+
+  bootstrap-storage:
+    <<: *service
+    image: ${PHOTO_API_IMAGE:?immutable api image required}
+    restart: "no"
+    environment:
+      <<: *go-env
+      PHOTO_ROLE: bootstrap-storage
+    depends_on:
+      minio: {condition: service_healthy}
+
+  bootstrap-queue:
+    <<: *service
+    image: ${PHOTO_API_IMAGE:?immutable api image required}
+    restart: "no"
+    environment:
+      <<: *go-env
+      PHOTO_ROLE: bootstrap-queue
+    depends_on:
+      rabbitmq: {condition: service_healthy}
+
+  api:
+    <<: *service
+    image: ${PHOTO_API_IMAGE:?immutable api image required}
+    environment:
+      <<: *go-env
+      PHOTO_ROLE: api
+      HTTP_LISTEN: 0.0.0.0:8080
+      AUTH_DATABASE_URL: ${AUTH_DATABASE_URL:?required}
+      AUTH_KEYS_FILE: /run/photo/auth/keys.json
+      JWT_ISSUER: ${JWT_ISSUER:?required}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:?required}
+      REGISTRATION_ENABLED: ${REGISTRATION_ENABLED:-false}
+    volumes:
+      - ${PHOTO_SECRETS_DIR:?required}/auth/keys.json:/run/photo/auth/keys.json:ro
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=64m"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      bootstrap-storage: {condition: service_completed_successfully}
+      bootstrap-queue: {condition: service_completed_successfully}
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/photo-healthcheck", "http://127.0.0.1:8080/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  object-gateway:
+    <<: *service
+    image: ${PHOTO_API_IMAGE:?immutable api image required}
+    environment:
+      <<: *go-env
+      PHOTO_ROLE: object-gateway
+      HTTP_LISTEN: 0.0.0.0:8443
+      GATEWAY_CLIENT_CA_FILE: /run/photo/gateway/ca.crt
+      GATEWAY_CERT_FILE: /run/photo/gateway/server.crt
+      GATEWAY_KEY_FILE: /run/photo/gateway/server.key
+      GATEWAY_SIGNING_KEYS_FILE: /run/photo/gateway/signing.json
+      GATEWAY_MAX_DOWNLOAD_BYTES: ${GATEWAY_MAX_DOWNLOAD_BYTES:-21474836480}
+      GATEWAY_MAX_UPLOAD_BYTES: ${GATEWAY_MAX_UPLOAD_BYTES:-21474836480}
+    volumes:
+      - ${PHOTO_SECRETS_DIR:?required}/gateway/ca.crt:/run/photo/gateway/ca.crt:ro
+      - ${PHOTO_SECRETS_DIR:?required}/gateway/server.crt:/run/photo/gateway/server.crt:ro
+      - ${PHOTO_SECRETS_DIR:?required}/gateway/server.key:/run/photo/gateway/server.key:ro
+      - ${PHOTO_SECRETS_DIR:?required}/gateway/signing.json:/run/photo/gateway/signing.json:ro
+      - ${PHOTO_SECRETS_DIR:?required}/gateway/worker.crt:/run/photo/gateway/worker.crt:ro
+      - ${PHOTO_SECRETS_DIR:?required}/gateway/worker.key:/run/photo/gateway/worker.key:ro
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      bootstrap-storage: {condition: service_completed_successfully}
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/photo-healthcheck", "--client-ca", "/run/photo/gateway/ca.crt", "--client-cert", "/run/photo/gateway/worker.crt", "--client-key", "/run/photo/gateway/worker.key", "--server-name", "object-gateway", "https://127.0.0.1:8443/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  scheduler:
+    <<: *service
+    image: ${PHOTO_API_IMAGE:?immutable api image required}
+    environment:
+      <<: *go-env
+      PHOTO_ROLE: scheduler
+      RENDER_SOURCE_DATABASE_URL: ${RENDER_SOURCE_DATABASE_URL:-}
+      HTTP_LISTEN: "0.0.0.0:8081"
+      PHOTO_CAPTURE_ENABLED: ${PHOTO_CAPTURE_ENABLED:-false}
+      PHOTO_CAPTURE_BACKEND: ${PHOTO_CAPTURE_BACKEND:-cuda}
+      PHOTO_CAPTURE_MODEL_LOCK_SHA: ${PHOTO_CAPTURE_MODEL_LOCK_SHA:-}
+      PHOTO_CAPTURE_RAM_BYTES: ${PHOTO_CAPTURE_RAM_BYTES:-17179869184}
+      PHOTO_CAPTURE_VRAM_BYTES: ${PHOTO_CAPTURE_VRAM_BYTES:-10737418240}
+      PHOTO_CAPTURE_SCRATCH_BYTES: ${PHOTO_CAPTURE_SCRATCH_BYTES:-68719476736}
+      PHOTO_CAPTURE_RESERVED_BYTES: ${PHOTO_CAPTURE_RESERVED_BYTES:-1073741824}
+    depends_on: {migrate: {condition: service_completed_successfully}}
+    healthcheck: {test: ["CMD", "/usr/local/bin/photo-healthcheck", "http://127.0.0.1:8081/health/ready"], interval: 10s, timeout: 5s, retries: 12}
+  v2-adopter:
+    <<: *service
+    image: ${PHOTO_WORKER_IMAGE:?immutable worker image required}
+    profiles: [v2]
+    command: ["v2-adopter"]
+    environment:
+      APP_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?required}
+      S3_ENDPOINT: ${S3_ENDPOINT:?required}
+      S3_BUCKET: ${S3_BUCKET:?required}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?required}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?required}
+    depends_on: {migrate: {condition: service_completed_successfully}, bootstrap-storage: {condition: service_completed_successfully}}
+  publisher:
+    <<: *service
+    image: ${PHOTO_API_IMAGE:?immutable api image required}
+    environment: {<<: *go-env, PHOTO_ROLE: publisher, HTTP_LISTEN: "0.0.0.0:8082"}
+    depends_on: {bootstrap-queue: {condition: service_completed_successfully}, migrate: {condition: service_completed_successfully}}
+    healthcheck: {test: ["CMD", "/usr/local/bin/photo-healthcheck", "http://127.0.0.1:8082/health/ready"], interval: 10s, timeout: 5s, retries: 12}
+  dead-letter-worker:
+    <<: *service
+    image: ${PHOTO_API_IMAGE:?immutable api image required}
+    environment: {<<: *go-env, PHOTO_ROLE: dead-letter-worker, HTTP_LISTEN: "0.0.0.0:8083"}
+    depends_on: {bootstrap-queue: {condition: service_completed_successfully}, migrate: {condition: service_completed_successfully}}
+    healthcheck: {test: ["CMD", "/usr/local/bin/photo-healthcheck", "http://127.0.0.1:8083/health/ready"], interval: 10s, timeout: 5s, retries: 12}
+  collection-worker:
+    <<: *service
+    image: ${PHOTO_API_IMAGE:?immutable api image required}
+    environment: {<<: *go-env, PHOTO_ROLE: collection-worker, HTTP_LISTEN: "0.0.0.0:8084"}
+    depends_on: {bootstrap-queue: {condition: service_completed_successfully}, migrate: {condition: service_completed_successfully}}
+    healthcheck: {test: ["CMD", "/usr/local/bin/photo-healthcheck", "http://127.0.0.1:8084/health/ready"], interval: 10s, timeout: 5s, retries: 12}
+  maintenance:
+    <<: *service
+    image: ${PHOTO_API_IMAGE:?immutable api image required}
+    environment: {<<: *go-env, PHOTO_ROLE: maintenance, HTTP_LISTEN: "0.0.0.0:8085"}
+    depends_on: {migrate: {condition: service_completed_successfully}, bootstrap-storage: {condition: service_completed_successfully}}
+    healthcheck: {test: ["CMD", "/usr/local/bin/photo-healthcheck", "http://127.0.0.1:8085/health/ready"], interval: 10s, timeout: 5s, retries: 12}
+
+  mail-worker:
+    <<: *service
+    image: ${PHOTO_API_IMAGE:?immutable api image required}
+    profiles: [mail]
+    environment:
+      <<: *go-env
+      PHOTO_ROLE: mail-worker
+      HTTP_LISTEN: 0.0.0.0:8086
+      MAIL_KEYS_FILE: /run/photo/mail/keys.json
+      SMTP_HOST: ${SMTP_HOST:?required}
+      SMTP_PORT: ${SMTP_PORT:?required}
+      SMTP_FROM: ${SMTP_FROM:?required}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD_FILE: /run/photo/mail/smtp-password
+      SMTP_TLS_MODE: ${SMTP_TLS_MODE:-starttls}
+    volumes:
+      - ${PHOTO_SECRETS_DIR:?required}/mail/keys.json:/run/photo/mail/keys.json:ro
+      - ${PHOTO_SECRETS_DIR:?required}/mail/smtp-password:/run/photo/mail/smtp-password:ro
+    healthcheck: {test: ["CMD", "/usr/local/bin/photo-healthcheck", "http://127.0.0.1:8086/health/ready"], interval: 10s, timeout: 5s, retries: 12}
+
+  worker-media:
+    <<: *worker
+    environment: {<<: *worker-env, PHOTO_WORKER_ID: "00000000-0000-4000-8000-000000000001", PHOTO_WORKER_CLASS: media, WORKER_MAX_SCRATCH_BYTES: 2147483648}
+    volumes:
+      - ../configs/capacity-rtx3060.json:/run/photo/capacity/policy.json:ro
+      - ${PHOTO_SECRETS_DIR:?required}/gateway/ca.crt:/run/photo/tls/ca.crt:ro
+      - ${PHOTO_SECRETS_DIR:?required}/gateway/worker.crt:/run/photo/tls/worker.crt:ro
+      - ${PHOTO_SECRETS_DIR:?required}/gateway/worker.key:/run/photo/tls/worker.key:ro
+      - worker-media-scratch:/scratch
+  worker-cpu:
+    <<: *worker
+    environment: {<<: *worker-env, PHOTO_WORKER_ID: "00000000-0000-4000-8000-000000000002", PHOTO_WORKER_CLASS: cpu, WORKER_MAX_SCRATCH_BYTES: 12884901888}
+    volumes:
+      - ../configs/capacity-rtx3060.json:/run/photo/capacity/policy.json:ro
+      - ${PHOTO_SECRETS_DIR:?required}/gateway/ca.crt:/run/photo/tls/ca.crt:ro
+      - ${PHOTO_SECRETS_DIR:?required}/gateway/worker.crt:/run/photo/tls/worker.crt:ro
+      - ${PHOTO_SECRETS_DIR:?required}/gateway/worker.key:/run/photo/tls/worker.key:ro
+      - worker-cpu-scratch:/scratch
+  worker-archive:
+    <<: *worker
+    environment: {<<: *worker-env, PHOTO_WORKER_ID: "00000000-0000-4000-8000-000000000003", PHOTO_WORKER_CLASS: archive, WORKER_MAX_SCRATCH_BYTES: 21474836480}
+    volumes:
+      - ../configs/capacity-rtx3060.json:/run/photo/capacity/policy.json:ro
+      - ${PHOTO_SECRETS_DIR:?required}/gateway/ca.crt:/run/photo/tls/ca.crt:ro
+      - ${PHOTO_SECRETS_DIR:?required}/gateway/worker.crt:/run/photo/tls/worker.crt:ro
+      - ${PHOTO_SECRETS_DIR:?required}/gateway/worker.key:/run/photo/tls/worker.key:ro
+      - worker-archive-scratch:/scratch
+  worker-gpu:
+    <<: *worker
+    profiles: [cuda]
+    environment:
+      <<: *worker-env
+      PHOTO_WORKER_ID: "00000000-0000-4000-8000-000000000004"
+      PHOTO_WORKER_CLASS: gpu
+      PHOTO_WORKER_BACKEND: cuda
+      PHOTO_MODEL_ROOT: /models
+      PHOTO_MODEL_LOCK: /models/model-lock.json
+      WORKER_MAX_SCRATCH_BYTES: 12884901888
+    volumes:
+      - ../configs/capacity-rtx3060.json:/run/photo/capacity/policy.json:ro
+      - ${PHOTO_SECRETS_DIR:?required}/gateway/ca.crt:/run/photo/tls/ca.crt:ro
+      - ${PHOTO_SECRETS_DIR:?required}/gateway/worker.crt:/run/photo/tls/worker.crt:ro
+      - ${PHOTO_SECRETS_DIR:?required}/gateway/worker.key:/run/photo/tls/worker.key:ro
+      - ${PHOTO_MODELS_DIR:?required}:/models:ro
+      - worker-gpu-scratch:/scratch
+    deploy:
+      resources:
+        reservations:
+          devices: [{driver: nvidia, count: 1, capabilities: [gpu]}]
+
+  photographer:
+    <<: *service
+    image: ${PHOTO_PHOTOGRAPHER_IMAGE:?immutable photographer image required}
+  portal:
+    <<: *service
+    image: ${PHOTO_PORTAL_IMAGE:?immutable portal image required}
+    environment: {HOSTNAME: 0.0.0.0, PORT: "3000", NODE_ENV: production}
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=64m"]
+  caddy:
+    <<: *service
+    image: ${CADDY_IMAGE:?immutable caddy image required}
+    read_only: false
+    cap_drop: []
+    cap_add: ["NET_BIND_SERVICE"]
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?required}
+      PORTAL_DOMAIN: ${PORTAL_DOMAIN:?required}
+      STORAGE_DOMAIN: ${STORAGE_DOMAIN:?required}
+    ports: ["80:80", "443:443"]
+    networks: [edge, backend]
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      api: {condition: service_healthy}
+
+networks:
+  edge: {}
+  backend:
+    internal: true
+
+volumes:
+  postgres-data: {}
+  rabbit-data: {}
+  minio-data: {}
+  caddy-data: {}
+  caddy-config: {}
+  worker-media-scratch: {}
+  worker-cpu-scratch: {}
+  worker-archive-scratch: {}
+  worker-gpu-scratch: {}
+
+secrets:
+  postgres_password: {file: "${PHOTO_SECRETS_DIR:?required}/postgres/password"}
+  rabbitmq_password: {file: "${PHOTO_SECRETS_DIR:?required}/rabbitmq/password"}
+  minio_access: {file: "${PHOTO_SECRETS_DIR:?required}/minio/access"}
+  minio_secret: {file: "${PHOTO_SECRETS_DIR:?required}/minio/secret"}

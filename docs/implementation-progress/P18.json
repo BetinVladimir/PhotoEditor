@@ -1,0 +1,59 @@
+{
+  "package_id": "P18",
+  "status": "in_progress",
+  "source_commit": "fee5be46bca3afff31e953676627b20834bc3084",
+  "changed_files": [
+    "scripts/release_manifest.py",
+    "release/manifest.json",
+    "release/sbom.cdx.json",
+    "tests/platform/test_release_manifest.py",
+    "docs/ops/release-evidence.md",
+    "Makefile",
+    "scripts/verification-gate.py",
+    "docs/implementation/12-verification.md",
+    "tests/platform/test_verification_gate.py"
+  ],
+  "checks": [
+    {
+      "id": "release-evidence",
+      "command": "make release-evidence && make release-check",
+      "exit_code": 0,
+      "note": "Deterministic offline CycloneDX 1.5 SBOM contains 875 unique direct/locked PURL components and manifest hashes all five repository lockfiles."
+    },
+    {
+      "id": "release-manifest-test",
+      "command": "pytest tests/platform/test_release_manifest.py -q -p no:cacheprovider",
+      "exit_code": 0,
+      "note": "Determinism, unique ordering, lockfile hashes, Python/Go/npm ecosystem coverage and no-command Go inventory pass."
+    },
+    {
+      "id": "current-regression-2026-09-21",
+      "command": "make test && make test-db && make release-check; cd apps/photographer && npm test -- --run && npm run typecheck && npx expo export --platform web",
+      "exit_code": 0,
+      "note": "22 legacy, 462 platform, all Go packages, 57 PostgreSQL integration tests, 13 photographer tests, TypeScript, Expo web export and 875-component release manifest pass. External release gates remain blocked_external rather than reported as PASS."
+    },
+    {
+      "id": "deployment-and-doctor-regression-2026-09-21",
+      "command": "make test && make deploy-check && make release-check",
+      "exit_code": 0,
+      "note": "22 legacy, 471 platform and all Go package tests pass; six deployment topology checks, Compose resolution, model-doctor contract tests and the 875-component release manifest pass. Production weights/hardware/visual/restore gates remain explicitly blocked_external."
+    },
+    {
+      "id": "verification-entrypoints",
+      "command": "make -n test-unit test-integration test-fault test-security test-web test-native benchmark PROFILE=cpu45mp test-restore test-visual test-hardware; pytest tests/platform/test_verification_gate.py; make test-security; make test-web",
+      "exit_code": 0,
+      "note": "All documented entrypoints resolve. Three evidence-validator tests, 14 local security tests, 24 live PostgreSQL security tests, five Go packages, portal 3 tests/build and photographer 24 tests/typecheck/web export pass. External gates remain blocked_external without real evidence."
+    }
+  ],
+  "blocked_gates": [
+    "blocked_external: macOS MPS and Linux CUDA model doctor/benchmark require target hardware and approved immutable model weights",
+    "blocked_external: photographic N01-N08 visual acceptance requires the specified licensed real-photo corpora and human review panels",
+    "blocked_external: native iOS/Android release builds require configured signing identities and target SDK toolchains",
+    "blocked_external: restore/RPO/RTO drill requires an isolated deployment target and encrypted backup destination"
+  ],
+  "decisions": [
+    "Release evidence is generated only from repository-local immutable lockfiles. The manifest records source commit, dirty state, exact lockfile bytes/SHA-256 and canonical SBOM digest; release-check rejects drift.",
+    "P18 remains in progress because its P08/P15/P16 dependencies and native, restore, performance, visual, hardware, model-lock, signing and full security gates are not complete.",
+    "External gates are machine-verifiable and fail closed. Their runner writes blocked_external evidence when no external report is supplied; a stale, incomplete, wrong-profile or non-PASS report is rejected."
+  ]
+}

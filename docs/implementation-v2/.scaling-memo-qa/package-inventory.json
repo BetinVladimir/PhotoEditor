@@ -1,0 +1,92 @@
+{
+  "word/header1.xml": {
+    "bytes": 3241,
+    "sha256": "5ab96d6da13fc0c93f91a4816674f2fba1b770bbff1d83395b6a2c0bd93a9cba",
+    "policy": "editable"
+  },
+  "word/footer1.xml": {
+    "bytes": 4172,
+    "sha256": "e87d0446233b15a342d369a16a75967b0ca4a1b5a77246bcd99d47bc3312640c",
+    "policy": "preserve-only"
+  },
+  "word/numbering.xml": {
+    "bytes": 3462,
+    "sha256": "b9cd5c4d69a7d349d72b51c6d1aa772535fc0f79b59bfc151de934f5d3f04e97",
+    "policy": "preserve-only"
+  },
+  "word/settings.xml": {
+    "bytes": 2152,
+    "sha256": "fb088d0a3dbf7f5e5a5a399b898acf16aa2a6fc3b2984bc3eb0d4946f73ac005",
+    "policy": "editable"
+  },
+  "word/fontTable.xml": {
+    "bytes": 2381,
+    "sha256": "e25b194948cea4e2415ef72c3794fb553228a89f4bdac1dcf69477854ca8d6a8",
+    "policy": "preserve-only"
+  },
+  "word/_rels/fontTable.xml.rels": {
+    "bytes": 990,
+    "sha256": "8fcc2b8df2c6d091f6bdd5abae90b1a81bff6baa0d000231516c77d655b5e95a",
+    "policy": "preserve-only"
+  },
+  "word/styles.xml": {
+    "bytes": 5052,
+    "sha256": "07e6c88d3cf405f46abb8121b0b5783862591145331ecb67e87aa1c489b3a9a6",
+    "policy": "preserve-only"
+  },
+  "word/document.xml": {
+    "bytes": 27096,
+    "sha256": "9e798cb202f499764744baca39ae0f7a61a216719afb88b7b7c14e8fe6e6cea6",
+    "policy": "editable"
+  },
+  "word/_rels/document.xml.rels": {
+    "bytes": 1068,
+    "sha256": "afd4dd44a3aeafb973d1b9f52b1ec386e420b6a44e07904d1515126b145420c9",
+    "policy": "preserve-only"
+  },
+  "_rels/.rels": {
+    "bytes": 298,
+    "sha256": "77494e8e16bbf29213e494792349e3d49d2397a4007b2816a058337d804e79a1",
+    "policy": "preserve-only"
+  },
+  "word/fonts/Play-bold.ttf": {
+    "bytes": 146600,
+    "sha256": "b0270d79073f111f528ee9c25503ab9ec92dc19517198dcf7528b00f89fbd4b7",
+    "policy": "preserve-only"
+  },
+  "word/theme/theme1.xml": {
+    "bytes": 7642,
+    "sha256": "742bf86bb312d06389e21644f7e861273fe4f124f422c57cce0c28360b06f32d",
+    "policy": "preserve-only"
+  },
+  "word/fonts/Garamond-italic.ttf": {
+    "bytes": 170712,
+    "sha256": "51dc05f9531b0e72a787de4e3ab12ec5da73713a9022eebe0edfda975d67c4e9",
+    "policy": "preserve-only"
+  },
+  "word/fonts/Garamond-boldItalic.ttf": {
+    "bytes": 154532,
+    "sha256": "5a2790500ab0c624a5921b82493689e902aa099bff84870deb1d067618885ab9",
+    "policy": "preserve-only"
+  },
+  "word/fonts/Play-regular.ttf": {
+    "bytes": 139616,
+    "sha256": "e1e9c9a87d56ac9897b41de72db27e5b5c7f97e1583690e338be7d4dd6c68deb",
+    "policy": "preserve-only"
+  },
+  "word/fonts/Garamond-regular.ttf": {
+    "bytes": 174884,
+    "sha256": "4de8e1a0dcbedce028a76fc9150775411954a8227ee229d750774fcf684e7dc8",
+    "policy": "preserve-only"
+  },
+  "word/fonts/Garamond-bold.ttf": {
+    "bytes": 173308,
+    "sha256": "bb30b2c43e41f898bce0be760ca5b0ecf6b46ad6d9233558dc7369d462666c3e",
+    "policy": "preserve-only"
+  },
+  "[Content_Types].xml": {
+    "bytes": 1491,
+    "sha256": "33cf23c14df8a903cb5e34102d4e69a8867b2b47903f70afc6ba3faa8ca5c23c",
+    "policy": "preserve-only"
+  }
+}

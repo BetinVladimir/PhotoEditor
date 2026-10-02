@@ -1,0 +1,124 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "GroupedItem": {
+      "additionalProperties": false,
+      "properties": {
+        "burst_group_id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Burst Group Id",
+          "type": "string"
+        },
+        "exact_group_id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Exact Group Id",
+          "type": "string"
+        },
+        "feature": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "item_id": {
+          "format": "uuid",
+          "title": "Item Id",
+          "type": "string"
+        },
+        "scene_id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Scene Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "item_id",
+        "feature",
+        "exact_group_id",
+        "burst_group_id",
+        "scene_id"
+      ],
+      "title": "GroupedItem",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/scene-groups.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "algorithm": {
+      "const": "scene_group_v1",
+      "default": "scene_group_v1",
+      "title": "Algorithm",
+      "type": "string"
+    },
+    "burst_group_count": {
+      "maximum": 2000,
+      "minimum": 1,
+      "title": "Burst Group Count",
+      "type": "integer"
+    },
+    "exact_group_count": {
+      "maximum": 2000,
+      "minimum": 1,
+      "title": "Exact Group Count",
+      "type": "integer"
+    },
+    "items": {
+      "items": {
+        "$ref": "#/$defs/GroupedItem"
+      },
+      "maxItems": 2000,
+      "minItems": 1,
+      "title": "Items",
+      "type": "array"
+    },
+    "scene_count": {
+      "maximum": 2000,
+      "minimum": 1,
+      "title": "Scene Count",
+      "type": "integer"
+    },
+    "warnings": {
+      "items": {
+        "enum": [
+          "missing_capture_time",
+          "manual_override"
+        ],
+        "type": "string"
+      },
+      "maxItems": 2,
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "items",
+    "exact_group_count",
+    "burst_group_count",
+    "scene_count",
+    "warnings"
+  ],
+  "title": "SceneGroups",
+  "type": "object"
+}

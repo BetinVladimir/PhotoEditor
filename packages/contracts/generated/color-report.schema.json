@@ -1,0 +1,99 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "ClippingStage": {
+      "additionalProperties": false,
+      "properties": {
+        "above_one": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Above One",
+          "type": "number"
+        },
+        "below_zero": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Below Zero",
+          "type": "number"
+        },
+        "stage": {
+          "enum": [
+            "gains",
+            "saturation",
+            "residual_lut",
+            "absolute_lut"
+          ],
+          "title": "Stage",
+          "type": "string"
+        }
+      },
+      "required": [
+        "stage",
+        "below_zero",
+        "above_one"
+      ],
+      "title": "ClippingStage",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/color-report.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "clipping": {
+      "items": {
+        "$ref": "#/$defs/ClippingStage"
+      },
+      "maxItems": 3,
+      "minItems": 1,
+      "title": "Clipping",
+      "type": "array"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "pixel_count": {
+      "maximum": 200000000,
+      "minimum": 1,
+      "title": "Pixel Count",
+      "type": "integer"
+    },
+    "resolved": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "strength_applied": {
+      "const": false,
+      "default": false,
+      "title": "Strength Applied",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "image",
+    "resolved",
+    "pixel_count",
+    "clipping"
+  ],
+  "title": "ColorReport",
+  "type": "object"
+}

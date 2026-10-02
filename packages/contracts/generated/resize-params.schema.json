@@ -1,0 +1,91 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/resize-params.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "allow_upscale": {
+      "default": false,
+      "title": "Allow Upscale",
+      "type": "boolean"
+    },
+    "fit": {
+      "const": "contain",
+      "default": "contain",
+      "title": "Fit",
+      "type": "string"
+    },
+    "height": {
+      "anyOf": [
+        {
+          "maximum": 100000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Height"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "long_edge": {
+      "anyOf": [
+        {
+          "maximum": 100000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Long Edge"
+    },
+    "width": {
+      "anyOf": [
+        {
+          "maximum": 100000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Width"
+    }
+  },
+  "required": [
+    "image"
+  ],
+  "title": "ResizeParams",
+  "type": "object"
+}

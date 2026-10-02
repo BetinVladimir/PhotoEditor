@@ -1,0 +1,154 @@
+{
+  "package_id": "P15",
+  "status": "in_progress",
+  "source_commit": "fee5be46bca3afff31e953676627b20834bc3084",
+  "changed_files": [
+    "packages/api-client",
+    "apps/photographer",
+    "locales",
+    "apps/photographer/app/editor/[version].tsx",
+    "apps/photographer/src/owner-api.ts",
+    "apps/photographer/src/catalog-types.ts",
+    "apps/photographer/src/owner-api.test.ts",
+    "apps/photographer/src/editor-mask.ts",
+    "apps/photographer/src/editor-mask.test.ts",
+    "apps/photographer/app/reviews/[id].tsx",
+    "apps/photographer/src/editor-store.ts",
+    "apps/photographer/src/editor-store.test.ts",
+    "apps/photographer/src/editor-params.ts",
+    "apps/photographer/src/editor-params.test.ts",
+    "apps/photographer/src/editor-panels.tsx",
+    "apps/photographer/src/mask-canvas.tsx",
+    "apps/photographer/src/compare-canvas.tsx",
+    "backend/internal/run/apply.go",
+    "backend/internal/workflow/apply_v4_plan.go"
+  ],
+  "checks": [
+    {
+      "id": "api-client-state-machines",
+      "command": "apps/portal/node_modules/.bin/vitest run packages/api-client/src/index.test.ts",
+      "exit_code": 0,
+      "note": "7 tests pass: refresh single-flight, keyed POST retry, native bootstrap headers, monotonic editor preview revision, frozen selection clearing, bounded multipart upload and exact-file resume refusal."
+    },
+    {
+      "id": "photographer-contracts",
+      "command": "cd apps/photographer && npm run typecheck && npm test -- --run",
+      "exit_code": 0,
+      "note": "TypeScript passes; 9 auth restore, route/endpoint/platform, localization, owner mutation integrity and derivative-only media contract tests pass."
+    },
+    {
+      "id": "photographer-web-export",
+      "command": "cd apps/photographer && npx expo export --platform web",
+      "exit_code": 0,
+      "note": "Expo Router web bundle exports successfully through Metro with monorepo API-client resolution."
+    },
+    {
+      "id": "photographer-production-audit",
+      "command": "cd apps/photographer && npm audit --omit=dev --json",
+      "exit_code": 1,
+      "note": "Expo SDK 57 upgrade removed all high and critical advisories. npm still reports 13 moderate transitive advisories in Expo CLI/config/router; its proposed forced fix incorrectly downgrades Expo to 46."
+    },
+    {
+      "id": "legacy-quality-guard",
+      "command": "./scripts/run-platform.sh .venv-platform/bin/python scripts/check-legacy.py",
+      "exit_code": 0,
+      "note": "Legacy quality source and presets unchanged."
+    },
+    {
+      "id": "apply-result-review-ui",
+      "command": "cd apps/photographer && npm test && npm run typecheck && npx expo export --platform web",
+      "exit_code": 0,
+      "note": "Ten tests, TypeScript and the production Expo web bundle pass. Apply output collections expose accessible Accept/Reject actions, serialize against the current collection revision and continue to use derivative-only previews."
+    },
+    {
+      "id": "editor-preview-mask-generation-save-edits",
+      "command": "cd apps/photographer && npm test -- --run && npm run typecheck && npx expo export --platform web",
+      "exit_code": 0,
+      "note": "13 tests, TypeScript and Expo web export pass. The editor persists strict drafts, renders signed previews, creates source-bound prompt masks, persists MaskRef revisions, explicitly confirms seeded generation, displays fenced candidate previews and starts identity SaveEdits."
+    },
+    {
+      "id": "editor-multipoint-mask-picker",
+      "command": "cd apps/photographer && npm run typecheck && npm test && npx expo export --platform web",
+      "exit_code": 0,
+      "note": "15 tests, TypeScript and Expo web export pass. The editor maps image taps to bounded normalized coordinates, supports up to 128 positive/negative points, renders point overlays and provides undo/clear before immutable prompt-mask creation."
+    },
+    {
+      "id": "editor-freehand-raster-mask",
+      "command": "cd apps/photographer && npm run typecheck && npm test && npx expo export --platform web",
+      "exit_code": 0,
+      "note": "18 tests, TypeScript and Expo web export pass. Bounded add/subtract/protect strokes are captured on the rendered canvas, submitted to mask.rasterize, and both target and protected MaskRefs are persisted; generation forwards protected refs."
+    },
+    {
+      "id": "review-candidate-artifacts",
+      "command": "cd apps/photographer && npm run typecheck && npm test",
+      "exit_code": 0,
+      "note": "18 tests and TypeScript pass. Review detail loads only canonical run outputs through short-lived owner-signed URLs, renders image candidates, exposes artifact role/media/bytes/SHA evidence and keeps decisions bound to candidate hash and revision."
+    },
+    {
+      "id": "typed-editor-store-preview-fence",
+      "command": "cd apps/photographer && npm run typecheck && npm test && npx expo export --platform web",
+      "exit_code": 0,
+      "note": "20 tests, TypeScript and Expo web export pass. EditorStore keeps immutable history, undo/redo and monotonic request revisions; preview acceptance requires the exact latest request, source SHA and server draft revision."
+    },
+    {
+      "id": "typed-editor-panels-fail-closed",
+      "command": "cd apps/photographer && npm run typecheck && npm test",
+      "exit_code": 0,
+      "note": "22 tests and TypeScript pass. Typed panels emit exact OverrideV1 module shapes; global strength is active, while effects awaiting Apply v4 are visibly disabled so edits cannot be silently ignored."
+    },
+    {
+      "id": "viewport-source-and-full-preview",
+      "command": "cd apps/photographer && npm run typecheck && npm test && npx expo export --platform web",
+      "exit_code": 0,
+      "note": "23 tests, TypeScript and Expo web export pass. Viewport inversion maps display samples into bounded oriented source coordinates; proxy and explicit full-resolution preview are separate actions and both retain exact preview fencing."
+    },
+    {
+      "id": "transformed-mask-canvas",
+      "command": "cd apps/photographer && npm run typecheck && npm test && npx expo export --platform web",
+      "exit_code": 0,
+      "note": "23 tests, TypeScript and Expo web export pass. MaskCanvas captures gestures in the stable outer viewport, transforms image and overlays together, and uses the inverse viewport for source-space prompt/stroke coordinates; accessible zoom, pan and reset controls are present."
+    },
+    {
+      "id": "manual-mask-polygons",
+      "command": "cd apps/photographer && npm run typecheck && npm test && npx expo export --platform web",
+      "exit_code": 0,
+      "note": "24 tests, TypeScript and Expo web export pass. Polygon vertices use inverse viewport source coordinates, require 3..4096 points, preserve global shape sequence across strokes/polygons, support add/subtract/protect and are rasterized with the same immutable manual-mask workflow."
+    },
+    {
+      "id": "derivative-only-compare-canvas",
+      "command": "cd apps/photographer && npm run typecheck && npm test && npx expo export --platform web",
+      "exit_code": 0,
+      "note": "24 tests, TypeScript and Expo web export pass. Editor source uses only the approved preview1600 media-link endpoint, never a master URL; before/candidate comparison is accessible and the source derivative enables mask editing before the first render."
+    },
+    {
+      "id": "complete-typed-effect-panels",
+      "command": "cd apps/photographer && npm run typecheck && npm test -- --run && npx expo export --platform web",
+      "exit_code": 0,
+      "note": "27 tests, TypeScript and Expo web export pass. Panels cover every Beauty, Defects, Geometry and Restoration field/range, preserve sibling extensions immutably, and remain fail-closed while Apply v4 is unavailable."
+    },
+    {
+      "id": "identity-override-apply-v4",
+      "command": "npm -C apps/photographer run typecheck && npm -C apps/photographer test -- --run; go -C backend test ./internal/run ./internal/workflow",
+      "exit_code": 0,
+      "note": "27 client tests and TypeScript pass; backend tests prove OverrideV1 modules are overlaid onto identity StyleV2 for Apply v4 stage discovery. Beauty, reviewed defects, geometry, restoration and composition controls are enabled; unsupported automatic defects and sensor dust remain read-only."
+    }
+  ],
+  "blocked_gates": [],
+  "decisions": [
+    "The shared API client owns bearer/cookie transport, CSRF, request IDs, bounded safe retries and owner refresh single-flight. Tenant and guest cache keys include principal scope. Selection and editor state machines preserve frozen snapshot semantics and reject stale preview revisions.",
+    "The Expo app now has real OTP login, workspace picker/create, project list/create, project collections, derivative-only thumb640 grid, web/native multipart import, style/version/training flows, apply wizard, integrity-bound review decisions, draft JSON editing, export presets/jobs, profile/member/quota/retention settings and run progress/cancel/retry vertical slices backed by exact server DTOs. UploadQueue persists only nonsecret metadata, hashes files incrementally, limits concurrency to two files and two parts, refreshes signed URLs per batch, resumes only an exact name/size/mtime/SHA match and completes with ordered ETags. Media loading is bounded and never falls back to a master. Run polling stops on an authoritative terminal state and links an output collection when present. Web/native auth sends the correct challenge_id/client_type, X-Photo-Client and session CSRF/refresh envelope. Native refresh/CSRF secrets persist only in Expo SecureStore; access tokens remain memory-only. Web restores through the HttpOnly refresh cookie after CSRF bootstrap.",
+    "Expo was upgraded to SDK 57.0.24 with React Native 0.86.3, React types 19.2 and expo-router 57.0.22. TypeScript, tests and web export pass with a consistent dependency tree; production audit has zero high/critical advisories. The pinned Darwin ARM64 Rolldown dev binding is retained because npm fails to install that optional dependency and Vitest otherwise cannot start; it is not a production dependency.",
+    "The photographer editor now has real preview, prompt-mask, explicit seeded generation and identity SaveEdits owner flows. It consumes only canonical fenced outputs through short-lived signed URLs; mask references are source-bound and persisted in the draft revision. Rich canvas strokes, multi-point visual picking and defect proposal artifact presentation remain UI work, so P15 stays in_progress.",
+    "The photographer editor now provides visual multi-point MobileSAM prompting on the rendered image, including positive/negative modes, bounded normalization, overlay feedback, undo and clear. Freehand raster strokes and defect proposal artifact presentation remain UI work, so P15 stays in_progress.",
+    "The photographer editor now supports bounded freehand add/subtract/protect strokes through the existing immutable mask.rasterize workflow. Target and protected masks are persisted in the draft and protected masks are supplied to generation. Defect proposal artifact presentation remains UI work, so P15 stays in_progress.",
+    "Review detail no longer claims candidate artifacts are unavailable: it presents canonical signed run outputs, including image candidates and defect/report artifacts, while decision submission remains revision/hash bound. P15 remains in_progress because the complete typed tool-panel and EditorStore behavior specified in document 10 still requires implementation.",
+    "The editor now uses a typed immutable EditorStore for recipe history and exact preview fencing. Older preview results cannot replace the current source/draft state. Full typed tool panels, pan/zoom viewport and native device E2E remain P15 work.",
+    "Typed editor panels now construct bounded OverrideV1 module data and use operation capability reasons. Extended modules remain fail-closed until the corresponding Apply v4 state-machine migration is approved and installed; only the currently executed strength control is active.",
+    "Mask coordinates now pass through a tested inverse viewport transform and are stored in normalized oriented source space. The editor exposes distinct approximate proxy and explicit 100% preview requests; completed previews still require exact source SHA, draft revision and request revision.",
+    "MaskCanvas now applies the tested viewport transform visually. Gesture coordinates are collected by the untransformed outer canvas, then inverted into oriented source space, keeping prompt and freehand masks stable under 1x-16x zoom and pan.",
+    "MaskCanvas now supports prompt points, freehand strokes and explicit polygons on web/native code paths. Polygon completion is explicit, invalid contours remain local, and only bounded finalized shapes reach mask.rasterize.",
+    "CompareCanvas presents the source preview1600 derivative beside the current rendered candidate. The master remains inaccessible to the client; masks can be authored against the source derivative before any preview task completes.",
+    "Editor effect panels now expose the complete typed Beauty, Defects, Geometry and Restoration contracts, including ordered defect diameter bounds, all body warp controls, denoise strength, 2x/4x upscale and dust policy. Extended mutations remain disabled until Apply v4 so the UI cannot persist controls that the current Apply graph ignores.",
+    "SaveEdits no longer plans only from the identity style. Admission and workflow independently derive the same canonical effective style from the persisted source-bound override; qualified runtime locks are selected before run creation. The UI enables only branches now present in Apply v4 and keeps unsupported branches read-only."
+  ]
+}

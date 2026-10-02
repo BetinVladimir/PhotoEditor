@@ -216,3 +216,22 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# PhotoEditor local runtime and generated artifacts
+*.tsbuildinfo
+.models/
+.cache/
+e2e/output/
+*.egg-info/
+
+# Platform development caches and isolated runtimes
+.venv-codeformer/
+.venv-platform/
+.runtime/
+work/
+node_modules/
+.next/
+.expo/
+dist/
+backend/bin/
+.go-build-cache/

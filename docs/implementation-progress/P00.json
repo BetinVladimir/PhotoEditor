@@ -1,0 +1,47 @@
+{
+  "package_id": "P00",
+  "status": "complete",
+  "source_commit": "fee5be46bca3afff31e953676627b20834bc3084",
+  "changed_files": [
+    "Makefile",
+    "scripts/platform-env.sh",
+    "scripts/run-platform.sh",
+    "scripts/generate-contracts.py",
+    "scripts/check-legacy.py",
+    "backend/go.mod",
+    "backend/go.sum",
+    "workers/pyproject.toml",
+    "workers/uv.lock",
+    "packages/contracts",
+    "workers/photo_worker/contracts/images.py",
+    "apps/portal",
+    "apps/photographer",
+    "packages/api-client",
+    "deploy/compose.yaml",
+    "tests/platform/test_deploy_topology.py"
+  ],
+  "checks": [
+    {
+      "id": "implemented-subset-tests",
+      "command": "make test test-db",
+      "exit_code": 0,
+      "evidence": "work/evidence/platform-tests.log"
+    },
+    {
+      "id": "image-geometry-contracts",
+      "command": "pytest tests/platform/test_image_contracts.py",
+      "exit_code": 0,
+      "evidence": "work/evidence/image-contract-tests.log"
+    },
+    {
+      "id": "p00-completion-audit",
+      "command": "make contracts-check && make test && make deploy-check && git diff --check",
+      "exit_code": 0,
+      "note": "Generated schemas/registries/DB inventories are drift-free; 22 unchanged legacy and 468 platform tests plus all Go packages pass. Backend, Python workers, both frontend applications, shared API client, repository-local tooling and executable deployment skeleton are present. Production source scan found no TODO/NotImplemented implementation in P00-owned infrastructure."
+    }
+  ],
+  "blocked_gates": [],
+  "decisions": [
+    "P00 acceptance is complete: monorepo packages, contract generation/checking, legacy guard and non-placeholder application/deployment skeletons are implemented. Later work-package and external release gates remain independently tracked and do not reopen the P00 foundation."
+  ]
+}

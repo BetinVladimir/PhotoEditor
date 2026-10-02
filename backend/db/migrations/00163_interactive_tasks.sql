@@ -1,0 +1,66 @@
+-- Durable one-operation editor jobs (manual/prompt masks and generation candidates).
+-- +goose Up
+CREATE TABLE photo.interactive_tasks(
+ tenant_id uuid NOT NULL,run_id uuid NOT NULL,task_id uuid NOT NULL PRIMARY KEY,kind text NOT NULL,ordinal int NOT NULL DEFAULT 0,
+ operation text NOT NULL,source_artifact_id uuid NOT NULL,declared_inputs jsonb NOT NULL,params jsonb NOT NULL,params_sha256 text NOT NULL,
+ backend text NOT NULL,runtime_lock_id text,state text NOT NULL DEFAULT 'queued',lease_token uuid,lease_until timestamptz,last_error text,
+ UNIQUE(tenant_id,run_id,ordinal),FOREIGN KEY(tenant_id,run_id) REFERENCES photo.runs(tenant_id,id),FOREIGN KEY(tenant_id,source_artifact_id) REFERENCES photo.artifacts(tenant_id,id),
+ CHECK(kind IN('mask_manual','mask_prompt','generation')),CHECK(operation=CASE kind WHEN 'mask_manual' THEN 'mask.rasterize' WHEN 'mask_prompt' THEN 'mask.prompt' ELSE 'image.generate' END),
+ CHECK(ordinal BETWEEN 0 AND 3),CHECK(jsonb_typeof(declared_inputs)='array'),CHECK(jsonb_typeof(params)='object'),CHECK(params_sha256~'^[0-9a-f]{64}$'),CHECK(backend IN('cpu','cuda','mps')),CHECK(runtime_lock_id IS NULL OR runtime_lock_id~'^[0-9a-f]{64}$'),CHECK(state IN('queued','building','complete','failed'))
+);
+ALTER TABLE photo.interactive_tasks ENABLE ROW LEVEL SECURITY;ALTER TABLE photo.interactive_tasks FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_scope ON photo.interactive_tasks TO photo_api USING(tenant_id=nullif(current_setting('app.tenant_id',true),'')::uuid) WITH CHECK(tenant_id=nullif(current_setting('app.tenant_id',true),'')::uuid);CREATE POLICY trusted_functions ON photo.interactive_tasks TO photo_fn_owner USING(true) WITH CHECK(true);
+GRANT SELECT,INSERT,UPDATE ON photo.interactive_tasks TO photo_api;GRANT SELECT,INSERT,UPDATE ON photo.interactive_tasks TO photo_fn_owner;
+
+-- +goose StatementBegin
+CREATE FUNCTION photo.claim_interactive_task() RETURNS TABLE(tenant_id uuid,run_id uuid,task_id uuid,kind text,operation text,source_artifact_id uuid,declared_inputs jsonb,params jsonb,params_sha256 text,backend text,runtime_lock_id text,token uuid)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,photo AS $$
+DECLARE j photo.interactive_tasks%ROWTYPE;
+BEGIN SELECT x.* INTO j FROM photo.interactive_tasks x JOIN photo.runs r ON r.tenant_id=x.tenant_id AND r.id=x.run_id WHERE x.state IN('queued','building') AND (x.state='queued' OR x.lease_until<=clock_timestamp()) AND r.status IN('queued','running') AND NOT r.cancel_requested ORDER BY x.run_id,x.ordinal LIMIT 1 FOR UPDATE OF x SKIP LOCKED;IF NOT FOUND THEN RETURN;END IF;
+ UPDATE photo.interactive_tasks SET state='building',lease_token=gen_random_uuid(),lease_until=clock_timestamp()+interval '60 seconds' WHERE interactive_tasks.task_id=j.task_id RETURNING * INTO j;
+ RETURN QUERY SELECT j.tenant_id,j.run_id,j.task_id,j.kind,j.operation,j.source_artifact_id,j.declared_inputs,j.params,j.params_sha256,j.backend,j.runtime_lock_id,j.lease_token;END $$;
+-- +goose StatementEnd
+ALTER FUNCTION photo.claim_interactive_task() OWNER TO photo_fn_owner;REVOKE ALL ON FUNCTION photo.claim_interactive_task() FROM PUBLIC;GRANT EXECUTE ON FUNCTION photo.claim_interactive_task() TO photo_scheduler;
+
+-- +goose StatementBegin
+CREATE FUNCTION photo.plan_interactive_params(p_task uuid,p_token uuid,p_params jsonb,p_sha text) RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,photo AS $$
+DECLARE n int;BEGIN IF jsonb_typeof(p_params)<>'object' OR octet_length(p_params::text)>1048576 OR p_sha!~'^[0-9a-f]{64}$' THEN RETURN false;END IF;UPDATE photo.interactive_tasks SET params=p_params,params_sha256=p_sha WHERE task_id=p_task AND lease_token=p_token AND lease_until>=clock_timestamp() AND state='building' AND kind='mask_manual';GET DIAGNOSTICS n=ROW_COUNT;RETURN n=1;END $$;
+-- +goose StatementEnd
+ALTER FUNCTION photo.plan_interactive_params(uuid,uuid,jsonb,text) OWNER TO photo_fn_owner;REVOKE ALL ON FUNCTION photo.plan_interactive_params(uuid,uuid,jsonb,text) FROM PUBLIC;GRANT EXECUTE ON FUNCTION photo.plan_interactive_params(uuid,uuid,jsonb,text) TO photo_scheduler;
+
+-- +goose StatementBegin
+CREATE FUNCTION photo.reserve_interactive_document(p_tenant uuid,p_run uuid,p_owner uuid,p_sha text,p_bytes bigint,p_bucket text) RETURNS TABLE(outcome text,artifact_id uuid,token uuid,ready boolean)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,photo AS $$
+DECLARE d photo.backend_documents%ROWTYPE;j photo.interactive_tasks%ROWTYPE;capacity numeric;used numeric;aid uuid:=gen_random_uuid();fence uuid:=gen_random_uuid();BEGIN
+ IF p_sha!~'^[0-9a-f]{64}$' OR p_bytes NOT BETWEEN 2 AND 1048576 OR length(p_bucket) NOT BETWEEN 3 AND 63 THEN RAISE EXCEPTION 'INVALID_DOCUMENT' USING ERRCODE='22023';END IF;
+ SELECT * INTO j FROM photo.interactive_tasks WHERE tenant_id=p_tenant AND run_id=p_run AND task_id=p_owner AND state='building' AND lease_until>=clock_timestamp();IF NOT FOUND OR j.params_sha256<>p_sha THEN RETURN QUERY SELECT 'forbidden',NULL::uuid,NULL::uuid,false;RETURN;END IF;
+ PERFORM id FROM photo.tenant_usage WHERE tenant_id=p_tenant FOR UPDATE;SELECT * INTO d FROM photo.backend_documents WHERE tenant_id=p_tenant AND run_id=p_run AND owner_id=p_owner AND purpose='task_params' FOR UPDATE;
+ IF FOUND THEN IF d.sha256<>p_sha OR d.bytes<>p_bytes OR d.bucket<>p_bucket THEN RETURN QUERY SELECT 'conflict',NULL::uuid,NULL::uuid,false;RETURN;END IF;IF d.state='ready' THEN RETURN QUERY SELECT 'replayed',d.artifact_id,d.token,true;RETURN;END IF;UPDATE photo.backend_documents SET token=fence WHERE id=d.id;RETURN QUERY SELECT 'resumed',d.artifact_id,fence,false;RETURN;END IF;
+ SELECT (quotas->>'storage_bytes')::numeric INTO capacity FROM photo.tenants WHERE id=p_tenant;SELECT storage_bytes::numeric+reserved_bytes INTO used FROM photo.tenant_usage WHERE tenant_id=p_tenant;IF capacity IS NULL OR used IS NULL OR used+p_bytes>capacity THEN RETURN QUERY SELECT 'quota',NULL::uuid,NULL::uuid,false;RETURN;END IF;
+ INSERT INTO photo.backend_documents(tenant_id,run_id,owner_id,purpose,artifact_id,token,sha256,bytes,bucket) VALUES(p_tenant,p_run,p_owner,'task_params',aid,fence,p_sha,p_bytes,p_bucket);UPDATE photo.tenant_usage SET reserved_bytes=reserved_bytes+p_bytes WHERE tenant_id=p_tenant;RETURN QUERY SELECT 'created',aid,fence,false;END $$;
+-- +goose StatementEnd
+ALTER FUNCTION photo.reserve_interactive_document(uuid,uuid,uuid,text,bigint,text) OWNER TO photo_fn_owner;REVOKE ALL ON FUNCTION photo.reserve_interactive_document(uuid,uuid,uuid,text,bigint,text) FROM PUBLIC;GRANT EXECUTE ON FUNCTION photo.reserve_interactive_document(uuid,uuid,uuid,text,bigint,text) TO photo_scheduler;
+
+-- +goose StatementBegin
+CREATE FUNCTION photo.complete_interactive_document(p_tenant uuid,p_run uuid,p_owner uuid,p_artifact uuid,p_token uuid,p_sha text,p_bytes bigint,p_bucket text,p_version text) RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,photo AS $$
+DECLARE d photo.backend_documents%ROWTYPE;j photo.interactive_tasks%ROWTYPE;target text;BEGIN IF p_version IS NULL OR p_version IN('','null') THEN RETURN false;END IF;PERFORM id FROM photo.tenant_usage WHERE tenant_id=p_tenant FOR UPDATE;SELECT * INTO j FROM photo.interactive_tasks WHERE tenant_id=p_tenant AND run_id=p_run AND task_id=p_owner AND state='building' AND lease_until>=clock_timestamp();SELECT * INTO d FROM photo.backend_documents WHERE tenant_id=p_tenant AND run_id=p_run AND owner_id=p_owner AND purpose='task_params' FOR UPDATE;IF j.task_id IS NULL OR d.id IS NULL OR d.artifact_id<>p_artifact OR d.token<>p_token OR d.sha256<>p_sha OR d.bytes<>p_bytes OR d.bucket<>p_bucket OR j.params_sha256<>p_sha THEN RETURN false;END IF;IF d.state='ready' THEN RETURN d.object_version=p_version;END IF;target:='tenants/'||p_tenant||'/runs/'||p_run||'/documents/'||p_artifact;INSERT INTO photo.artifacts(id,tenant_id,bucket,object_key,object_version,sha256,bytes,media_type,state,verified_at,output_role) VALUES(p_artifact,p_tenant,p_bucket,target,p_version,p_sha,p_bytes,'application/json','ready',clock_timestamp(),'task_params');UPDATE photo.tenant_usage SET reserved_bytes=reserved_bytes-p_bytes,storage_bytes=storage_bytes+p_bytes WHERE tenant_id=p_tenant AND reserved_bytes>=p_bytes;IF NOT FOUND THEN RAISE EXCEPTION 'DOCUMENT_QUOTA_ACCOUNTING' USING ERRCODE='23514';END IF;UPDATE photo.backend_documents SET state='ready',object_version=p_version,completed_at=clock_timestamp() WHERE id=d.id;RETURN true;END $$;
+-- +goose StatementEnd
+ALTER FUNCTION photo.complete_interactive_document(uuid,uuid,uuid,uuid,uuid,text,bigint,text,text) OWNER TO photo_fn_owner;REVOKE ALL ON FUNCTION photo.complete_interactive_document(uuid,uuid,uuid,uuid,uuid,text,bigint,text,text) FROM PUBLIC;GRANT EXECUTE ON FUNCTION photo.complete_interactive_document(uuid,uuid,uuid,uuid,uuid,text,bigint,text,text) TO photo_scheduler;
+
+-- +goose StatementBegin
+CREATE FUNCTION photo.materialize_interactive_task(p_tenant uuid,p_run uuid,p_task uuid,p_token uuid,p_params uuid,p_sha text,p_inputs jsonb,p_digest text,p_profile jsonb) RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,photo AS $$
+DECLARE j photo.interactive_tasks%ROWTYPE;entry jsonb;old photo.tasks%ROWTYPE;n int;BEGIN SELECT * INTO j FROM photo.interactive_tasks WHERE tenant_id=p_tenant AND run_id=p_run AND task_id=p_task FOR UPDATE;IF NOT FOUND OR j.state<>'building' OR j.lease_token<>p_token OR j.lease_until<clock_timestamp() OR j.params_sha256<>p_sha OR jsonb_typeof(p_inputs)<>'array' OR p_digest!~'^[0-9a-f]{64}$' THEN RETURN false;END IF;IF NOT EXISTS(SELECT FROM photo.backend_documents d JOIN photo.artifacts a ON a.tenant_id=d.tenant_id AND a.id=d.artifact_id WHERE d.tenant_id=p_tenant AND d.run_id=p_run AND d.owner_id=p_task AND d.state='ready' AND a.id=p_params AND a.sha256=p_sha AND a.state='ready') THEN RETURN false;END IF;FOR entry IN SELECT value FROM jsonb_array_elements(p_inputs) LOOP IF (entry-'artifact_id'-'sha256')<>'{}' OR NOT EXISTS(SELECT FROM photo.artifacts a WHERE a.tenant_id=p_tenant AND a.id=(entry->>'artifact_id')::uuid AND a.sha256=entry->>'sha256' AND a.state='ready' AND a.object_version IS NOT NULL AND (a.expires_at IS NULL OR a.expires_at>clock_timestamp())) THEN RETURN false;END IF;END LOOP;
+ SELECT * INTO old FROM photo.tasks WHERE tenant_id=p_tenant AND id=p_task;IF FOUND THEN RETURN old.run_id=p_run AND old.input_digest=p_digest;END IF;INSERT INTO photo.tasks(id,tenant_id,run_id,node_key,operation,operation_version,resource_class,state,inputs,params_artifact_id,input_digest,execution_profile,timeout_seconds,next_attempt_at,priority) SELECT p_task,p_tenant,p_run,j.kind||'/'||lpad(j.ordinal::text,2,'0'),j.operation,'1',o.resource_class,'ready',p_inputs,p_params,p_digest,p_profile,o.timeout_seconds,clock_timestamp(),10 FROM photo.operation_registry o WHERE o.operation=j.operation AND o.version='1';GET DIAGNOSTICS n=ROW_COUNT;IF n<>1 THEN RETURN false;END IF;UPDATE photo.interactive_tasks SET state='complete',lease_until=clock_timestamp() WHERE task_id=p_task;IF NOT EXISTS(SELECT FROM photo.interactive_tasks WHERE tenant_id=p_tenant AND run_id=p_run AND state<>'complete') THEN UPDATE photo.runs SET graph_sealed=true,status='running',revision=revision+1 WHERE tenant_id=p_tenant AND id=p_run AND NOT graph_sealed;END IF;RETURN true;EXCEPTION WHEN invalid_text_representation THEN RETURN false;END $$;
+-- +goose StatementEnd
+ALTER FUNCTION photo.materialize_interactive_task(uuid,uuid,uuid,uuid,uuid,text,jsonb,text,jsonb) OWNER TO photo_fn_owner;REVOKE ALL ON FUNCTION photo.materialize_interactive_task(uuid,uuid,uuid,uuid,uuid,text,jsonb,text,jsonb) FROM PUBLIC;GRANT EXECUTE ON FUNCTION photo.materialize_interactive_task(uuid,uuid,uuid,uuid,uuid,text,jsonb,text,jsonb) TO photo_scheduler;
+
+-- +goose StatementBegin
+CREATE FUNCTION photo.finalize_interactive_run() RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,photo AS $$
+DECLARE picked record;target text;BEGIN SELECT r.tenant_id,r.id,bool_or(t.state<>'succeeded') failed,bool_or(coalesce(z.review_required,false)) review INTO picked FROM photo.runs r JOIN photo.interactive_tasks j ON j.tenant_id=r.tenant_id AND j.run_id=r.id JOIN photo.tasks t ON t.tenant_id=j.tenant_id AND t.id=j.task_id LEFT JOIN photo.task_results z ON z.tenant_id=t.tenant_id AND z.id=t.canonical_result_id WHERE r.graph_sealed AND r.status='running' GROUP BY r.tenant_id,r.id HAVING bool_and(t.state IN('succeeded','failed','cancelled','skipped')) ORDER BY r.id LIMIT 1 FOR UPDATE OF r SKIP LOCKED;IF NOT FOUND THEN RETURN false;END IF;target:=CASE WHEN picked.failed THEN 'failed' WHEN picked.review THEN 'waiting_review' ELSE 'completed' END;UPDATE photo.runs SET status=target,revision=revision+1 WHERE tenant_id=picked.tenant_id AND id=picked.id AND status='running';RETURN true;END $$;
+-- +goose StatementEnd
+ALTER FUNCTION photo.finalize_interactive_run() OWNER TO photo_fn_owner;REVOKE ALL ON FUNCTION photo.finalize_interactive_run() FROM PUBLIC;GRANT EXECUTE ON FUNCTION photo.finalize_interactive_run() TO photo_scheduler;
+
+-- +goose Down
+-- +goose StatementBegin
+DO $$ BEGIN RAISE EXCEPTION 'Forward-only migration'; END $$;
+-- +goose StatementEnd

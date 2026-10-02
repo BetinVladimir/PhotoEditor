@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "gpu_concurrency": 1,
+  "cpu_concurrency": 2,
+  "cpu_threads_per_task": 2,
+  "heavy_admission_inflight": 8,
+  "tenant_heavy_queued": 2,
+  "gpu_budget_bytes": 10200547328,
+  "photo_ram_budget_bytes": 17179869184,
+  "control_ram_budget_bytes": 8589934592,
+  "scratch_free_floor_fraction": 0.15,
+  "scratch_multiplier": 1.2,
+  "tile_edge": 512,
+  "heartbeat_seconds": 10,
+  "offline_seconds": 30,
+  "lease_seconds": 60,
+  "renew_seconds": 10,
+  "queue_weights": {"interactive": 4, "capture": 3, "batch": 2, "training": 1},
+  "unknown_cost_seconds": 1800,
+  "max_retries_after_oom": 1
+}

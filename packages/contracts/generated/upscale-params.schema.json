@@ -1,0 +1,80 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/upscale-params.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "color_adapter_id": {
+      "const": "work_srgb_delta_v1",
+      "default": "work_srgb_delta_v1",
+      "title": "Color Adapter Id",
+      "type": "string"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "model_id": {
+      "enum": [
+        "realesrgan_x2",
+        "realesrgan_x4"
+      ],
+      "title": "Model Id",
+      "type": "string"
+    },
+    "model_lock_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Model Lock Id",
+      "type": "string"
+    },
+    "overlap": {
+      "const": 32,
+      "default": 32,
+      "title": "Overlap",
+      "type": "integer"
+    },
+    "scale": {
+      "enum": [
+        2,
+        4
+      ],
+      "title": "Scale",
+      "type": "integer"
+    },
+    "tile": {
+      "const": 256,
+      "default": 256,
+      "title": "Tile",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "image",
+    "scale",
+    "model_id",
+    "model_lock_id"
+  ],
+  "title": "UpscaleParams",
+  "type": "object"
+}

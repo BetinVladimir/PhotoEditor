@@ -1,0 +1,57 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/hdr-merge-params.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "mode": {
+      "enum": [
+        "debevec",
+        "mertens"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "registration": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "tile": {
+      "default": 512,
+      "enum": [
+        256,
+        512,
+        1024
+      ],
+      "title": "Tile",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "registration",
+    "mode"
+  ],
+  "title": "HDRMergeParams",
+  "type": "object"
+}

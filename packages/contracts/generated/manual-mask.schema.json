@@ -1,0 +1,214 @@
+{
+  "$defs": {
+    "Canvas": {
+      "additionalProperties": false,
+      "properties": {
+        "height": {
+          "maximum": 2147483647,
+          "minimum": 1,
+          "title": "Height",
+          "type": "integer"
+        },
+        "orientation": {
+          "const": 1,
+          "title": "Orientation",
+          "type": "integer"
+        },
+        "source_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Sha256",
+          "type": "string"
+        },
+        "space_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$",
+          "title": "Space Id",
+          "type": "string"
+        },
+        "width": {
+          "maximum": 2147483647,
+          "minimum": 1,
+          "title": "Width",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "width",
+        "height",
+        "orientation",
+        "space_id",
+        "source_sha256"
+      ],
+      "title": "Canvas",
+      "type": "object"
+    },
+    "MaskPoint": {
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "title": "MaskPoint",
+      "type": "object"
+    },
+    "Polygon": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "polygon",
+          "title": "Kind",
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "add",
+            "subtract",
+            "protect"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "points": {
+          "items": {
+            "$ref": "#/$defs/MaskPoint"
+          },
+          "maxItems": 4096,
+          "minItems": 3,
+          "title": "Points",
+          "type": "array"
+        },
+        "sequence": {
+          "maximum": 2147483647,
+          "minimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "sequence",
+        "mode",
+        "points"
+      ],
+      "title": "Polygon",
+      "type": "object"
+    },
+    "Stroke": {
+      "additionalProperties": false,
+      "properties": {
+        "hardness": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Hardness",
+          "type": "number"
+        },
+        "kind": {
+          "const": "stroke",
+          "title": "Kind",
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "add",
+            "subtract",
+            "protect"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "points": {
+          "items": {
+            "$ref": "#/$defs/MaskPoint"
+          },
+          "maxItems": 4096,
+          "minItems": 1,
+          "title": "Points",
+          "type": "array"
+        },
+        "radius": {
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Radius",
+          "type": "number"
+        },
+        "sequence": {
+          "maximum": 2147483647,
+          "minimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "sequence",
+        "mode",
+        "points",
+        "radius",
+        "hardness"
+      ],
+      "title": "Stroke",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/manual-mask.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "canvas": {
+      "$ref": "#/$defs/Canvas"
+    },
+    "shapes": {
+      "items": {
+        "discriminator": {
+          "mapping": {
+            "polygon": "#/$defs/Polygon",
+            "stroke": "#/$defs/Stroke"
+          },
+          "propertyName": "kind"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/Stroke"
+          },
+          {
+            "$ref": "#/$defs/Polygon"
+          }
+        ]
+      },
+      "maxItems": 1024,
+      "title": "Shapes",
+      "type": "array"
+    },
+    "source_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Sha256",
+      "type": "string"
+    },
+    "version": {
+      "const": "manual_mask_v1",
+      "default": "manual_mask_v1",
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "source_sha256",
+    "canvas",
+    "shapes"
+  ],
+  "title": "ManualMask",
+  "type": "object"
+}

@@ -1,0 +1,54 @@
+{
+  "package_id": "P01",
+  "status": "blocked_external",
+  "source_commit": "fee5be46bca3afff31e953676627b20834bc3084",
+  "changed_files": [
+    "workers/pyproject.toml",
+    "workers/uv.lock",
+    "resources/icc",
+    "workers/photo_worker/color/icc.py",
+    "scripts/generate-icc.py",
+    "workers/photo_worker/models",
+    "tests/platform/test_models.py",
+    "workers/photo_worker/models/doctor.py",
+    "workers/photo_worker/cli.py",
+    "tests/platform/test_model_doctor.py",
+    "deploy/images/worker/Dockerfile"
+  ],
+  "checks": [
+    {
+      "id": "icc-rgb16",
+      "command": "pytest tests/platform/test_icc.py",
+      "exit_code": 0,
+      "evidence": "work/evidence/icc-tests.log"
+    },
+    {
+      "id": "cpu-mps-color-autograd",
+      "command": "pytest tests/platform/test_torch_color.py",
+      "exit_code": 0,
+      "evidence": "work/evidence/torch-color-tests.log"
+    },
+    {
+      "id": "model-offline-installer",
+      "command": "pytest tests/platform/test_models.py",
+      "exit_code": 0,
+      "evidence": "work/evidence/model-installer-tests.log"
+    },
+    {
+      "id": "offline-model-doctor-contract",
+      "command": "pytest tests/platform/test_model_doctor.py tests/platform/test_models.py -q -p no:cacheprovider; python -m photo_worker.cli doctor",
+      "exit_code": 0,
+      "note": "10 tests pass. Doctor now hash-verifies the immutable lock/files through ModelPool, constructs each exact offline adapter, runs its real synthetic inference API, enforces finite/bounded/shape evidence and emits an atomic canonical report hash. Package-only mode accurately reports model_compatibility=not_measured."
+    }
+  ],
+  "blocked_gates": [
+    "blocked_external: approved production weight files and their redistribution/license decisions are not present",
+    "blocked_external: all required CPU model smoke reports require the approved installed weight bundle",
+    "blocked_external: MPS smoke/parity/peak-memory reports require the target Apple GPU host and approved weights",
+    "blocked_external: CUDA smoke/parity/peak-VRAM reports require the target 12GB NVIDIA host and approved weights"
+  ],
+  "decisions": [
+    "Python base/dev/ML/media dependencies and Go modules locked. Three real ICC profiles generated and hash-locked with LittleCMS 2.19; RGB16 accuracy tested with NOOPTIMIZE. Torch 2.14, torchvision 0.29, libvips 8.18.6 and rawpy 0.27.1 import together. CPU and MPS color autograd tests pass. Required model weights/licenses and all-model inference qualification remain.",
+    "Hash-locked model manifest, offline bundle/network installer, single-model pool and operation-specific offline doctor are implemented. Runtime rejects unapproved/unqualified weights. P01 is blocked_external because no approved production weight bundle or target CUDA qualification environment is available; package presence is never reported as model compatibility."
+  ]
+}

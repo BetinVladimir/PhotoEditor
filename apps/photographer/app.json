@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "PhotoEditor",
+    "slug": "photoeditor",
+    "scheme": "photoeditor",
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

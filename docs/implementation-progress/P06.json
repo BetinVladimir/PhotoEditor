@@ -1,0 +1,135 @@
+{
+  "package_id": "P06",
+  "status": "complete",
+  "source_commit": "fee5be46bca3afff31e953676627b20834bc3084",
+  "changed_files": [
+    "workers/photo_worker/operations/asset",
+    "tests/platform/test_asset_decode.py",
+    "workers/photo_worker/contracts/assets.py",
+    "workers/photo_worker/operations/asset/adapters.py",
+    "backend/db/migrations/00023_asset_output_policies.sql",
+    "tests/platform/test_asset_adapters.py",
+    "packages/contracts/generated/verify-params.schema.json",
+    "packages/contracts/generated/inspect-params.schema.json",
+    "packages/contracts/generated/verified-asset.schema.json",
+    "packages/contracts/generated/asset-metadata.schema.json",
+    "workers/photo_worker/runtime/scratch.py",
+    "workers/photo_worker/runtime/service.py",
+    "backend/db/migrations/00027_decode_output_policies.sql",
+    "packages/contracts/generated/decode-params.schema.json",
+    "workers/photo_worker/contracts/media.py",
+    "workers/photo_worker/operations/media",
+    "backend/db/migrations/00096_media_output_policies.sql",
+    "packages/contracts/generated/media-params.schema.json",
+    "packages/contracts/generated/derivative-manifest.schema.json",
+    "tests/platform/test_media_derivative.py",
+    "backend/db/migrations/00149_media_retry_intake.sql",
+    "backend/db/migrations/00150_media_retry_claim.sql",
+    "backend/db/migrations/00151_media_retry_plan.sql",
+    "backend/db/migrations/00152_media_retry_finalize.sql",
+    "backend/internal/workflow/media_retry.go",
+    "backend/internal/workflow/media_retry_store.go",
+    "backend/db/migrations/00153_ingest_media_derivatives.sql",
+    "tests/integration/test_ingest_media_derivatives.py",
+    "tests/platform/test_ingest_media_migration.py",
+    "backend/db/migrations/00156_apply_result_media.sql",
+    "tests/platform/test_apply_result_media_migration.py",
+    "backend/internal/upload/service_integration_test.go",
+    "backend/internal/upload/service_test.go",
+    "tests/integration/test_go_services.py",
+    "backend/internal/upload/completion_integration_test.go",
+    "backend/db/migrations/00169_upload_completion_qualification.sql",
+    "tests/platform/test_upload_completion_qualification_migration.py",
+    "tests/integration/test_objectstore.py",
+    "workers/photo_worker/operations/asset/verify.py"
+  ],
+  "checks": [
+    {
+      "id": "raster-ingest",
+      "command": "pytest tests/platform/test_asset_decode.py",
+      "exit_code": 0,
+      "evidence": "work/evidence/decode-tests.log"
+    },
+    {
+      "id": "asset-executable-adapters",
+      "command": "pytest tests/platform -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/asset-adapter-platform-tests.log",
+      "note": "73 tests passed, including real JPEG/EXIF verification and inspection adapters. Artifact transport/storage replaced by controlled ports in adapter tests; complete broker/DB/MinIO flow pending."
+    },
+    {
+      "id": "decode-runtime-adapter",
+      "command": "pytest tests/platform -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/decode-adapter-platform-tests.log",
+      "note": "86 passed; real PNG16/LCMS through adapter, alpha precision, cancellation and scratch quotas. Full service integration not run."
+    },
+    {
+      "id": "media-derivative-adapters",
+      "command": "python -m pytest tests/platform/test_media_derivative.py -q -p no:cacheprovider",
+      "exit_code": 0,
+      "note": "6 focused tests pass, including actual ICC-bearing JPEG, alpha WebP and cross-language profile hash. Full platform regression: 287 passed."
+    },
+    {
+      "id": "media-retry-durable-lifecycle",
+      "command": "make test && make test-db",
+      "exit_code": 0,
+      "note": "Unit/platform suite and live PostgreSQL integration cover exact outbox intake, leased planning, four-variant task materialization, fenced canonical result adoption and derivative cache publication."
+    },
+    {
+      "id": "initial-ingest-media-lifecycle",
+      "command": "pytest tests/integration/test_ingest_media_derivatives.py tests/integration/test_media_retry_intake.py -q -p no:cacheprovider",
+      "exit_code": 0,
+      "note": "3 live PostgreSQL tests pass: accepted owner ingest auto-enqueues and adopts all four derivatives through canonical attempt/fence results; pending-review ingest remains gated; bulk repair remains replay-safe."
+    },
+    {
+      "id": "accepted-apply-media-lifecycle",
+      "command": "pytest tests/platform/test_apply_result_media_migration.py tests/integration/test_ingest_media_derivatives.py -q -p no:cacheprovider",
+      "exit_code": 0,
+      "note": "Migration00156 extends the exact-origin queue to Apply without weakening ingest/bulk provenance. A live pending→accepted Apply version enqueues, claims and begins a version-bound preview run; pending versions remain absent."
+    },
+    {
+      "id": "up01-concurrent-quota-boundary",
+      "command": ".venv-platform/bin/python -m pytest -q tests/integration/test_go_services.py::test_go_auth -p no:cacheprovider",
+      "exit_code": 0,
+      "note": "Live PostgreSQL starts two owner uploads concurrently at a 1500-byte/one-file quota. Exactly one 1000-byte reservation and one multipart begin succeed; counters remain 1000/1 and return to 0/0 after abort. Upload integration tests are now part of make test-db."
+    },
+    {
+      "id": "up02-unknown-multipart-outcome",
+      "command": ".venv-platform/bin/python -m pytest -q tests/integration/test_objectstore.py::test_go_upload_completion -p no:cacheprovider",
+      "exit_code": 0,
+      "note": "Live versioned MinIO plus disposable PostgreSQL cover failure before CompleteMultipart and loss of the response after successful completion. Retry/recovery produces exactly one artifact, snapshot, and ingest run, preserves the exact reservation, and terminal replay is a no-op. Migration00169 repairs an ambiguous tenant_usage reference discovered by this test."
+    },
+    {
+      "id": "up03-adversarial-ingest",
+      "command": ".venv-platform/bin/python -m pytest -q tests/platform/test_asset_decode.py tests/platform/test_asset_adapters.py -p no:cacheprovider",
+      "exit_code": 0,
+      "note": "14 focused tests reject forged magic/suffix MIME, SVG/spoof bytes, CMYK, multipage images, >200M-pixel dimensions/decompression-bomb declarations, missing ICC without an explicit assumption, bad hashes/sizes and malformed images before any output is staged."
+    }
+  ],
+  "blocked_gates": [],
+  "decisions": [
+    "Asset signature/size/hash/header and tiled raster decode verification implemented. Working decode preserves RGB16, alpha, performs orientation once, rejects CMYK/multipage and requires ICC or explicit assumption. RAW uses rawpy camera WB/AHD/linear sRGB; real camera corpus verification remains. Multipart/object gateway/upload services remain.",
+    "asset_operations now supplies asset.verify/media and asset.inspect/cpu executable adapters using TaskArtifacts. Strict VerifyParams/InspectParams contain declared source ref, expected bytes and allowed suffix. Outputs are VerifiedAsset or AssetMetadata JSON manifests with pinned source and ICC hash. Migration23 enables only verified/metadata output roles, max1MiB/count1. libvips alpha converted to bool; size/hash/decode loops support cancellation. Worker CLI, graph integration, SQL20–23 verification and other operations remain incomplete.",
+    "asset.decode CPU adapter now executable with explicit validated PHOTO_ICC_ROOT. Strict DecodeParams, task-scoped declared source, planned scratch names and private atomic publication, cancellation between tiles, immutable RGB float32/alpha uint16 NPY and WorkingImage manifest. Migration27 enables exact output roles; all binary refs returned for task attestation. SQL20–27, graph integration, RAW corpus/peak RAM and full E2E remain unverified/incomplete. Legacy source/preset SHA baseline unchanged.",
+    "media.thumbnail and media.preview are executable media-class adapters with fixed 320/640 and 1600/2560 profiles, no upscale, LittleCMS sRGB conversion, JPEG/WebP alpha behavior, embedded ICC, strict input binding and verified staged output. Migration96 limits output roles and sizes. Owner media-link API enforces tenant/project ACL, asset/version binding, current cross-language profile hash, ready exact-version artifacts and all-or-nothing signing.",
+    "Durable retry_media is complete in migrations00149–00152 and scheduler code: exact bulk command intake, recovery-safe lease, deterministic four-variant plan, immutable params, fenced task materialization and canonical attempt/fence adoption into photo.derivatives. Live PostgreSQL integration covers replay and forged-event refusal.",
+    "Migrations00153/00156 add explicit ingest and apply origins without weakening bulk snapshot provenance. Accepted first-party ingest versions and owner-accepted Apply versions atomically enqueue thumbnail and preview families; claim revalidates exact origin run kind, accepted version and live verified asset. The origin-aware finalizer publishes all four exact canonical/fenced artifacts without touching bulk accounting. Pending-review versions remain gated. Broker/MinIO crash-boundary execution and RAW camera corpus remain to verify; P06 remains in progress.",
+    "UP01 is live-verified with concurrent Service.Begin calls against the same locked tenant_usage row at a one-file quota boundary. The losing transaction creates no multipart side effect; the winning reservation is released exactly once on abort.",
+    "UP02 is live-verified across PostgreSQL and versioned MinIO. A pre-complete failure releases the lease and retries the multipart completion; a lost successful response recovers the pinned latest version, verifies every byte, and performs one SQL adoption. Migration00169 qualifies tenant_usage in claim_upload_completion so its OUT tenant_id cannot shadow the table column.",
+    "UP03 now binds detected magic to the frozen safe suffix: JPEG/PNG/TIFF/RAW bytes cannot be accepted under another declared format. Adversarial tests cover spoof/SVG, CMYK, multipage, pixel bombs and missing ICC before staging. Together with live UP01/UP02, media profiles and live GC fencing, P06 meets its package completion criteria."
+  ],
+  "completion_basis": {
+    "criteria": "P06: UP01; UP02; UP03; thumbnail profiles; GC leases",
+    "evidence": [
+      "UP01 concurrent quota-boundary Service.Begin test on live PostgreSQL.",
+      "UP02 before/after CompleteMultipart unknown-outcome test on live versioned MinIO and PostgreSQL.",
+      "UP03 focused adversarial asset verification/decode tests, including mandatory magic-to-suffix binding.",
+      "Fixed 320/640 thumbnail and 1600/2560 preview profiles with no-upscale and profile-hash tests.",
+      "Live PostgreSQL output cleanup lease/fence/replay accounting plus maintenance exact-version cleaner tests."
+    ],
+    "external_nonblocking_for_package": [
+      "Real RAW camera corpus and target-hardware visual acceptance remain P01/P18 external gates and are not claimed by P06."
+    ]
+  }
+}

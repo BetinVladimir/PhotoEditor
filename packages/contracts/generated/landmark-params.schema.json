@@ -1,0 +1,72 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/landmark-params.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "crop_size": {
+      "const": 256,
+      "default": 256,
+      "title": "Crop Size",
+      "type": "integer"
+    },
+    "expansion": {
+      "const": 1.25,
+      "default": 1.25,
+      "title": "Expansion",
+      "type": "number"
+    },
+    "faces": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "model_id": {
+      "const": "fan2d",
+      "default": "fan2d",
+      "title": "Model Id",
+      "type": "string"
+    },
+    "model_lock_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Model Lock Id",
+      "type": "string"
+    },
+    "preprocessing_id": {
+      "const": "fan2d_crop256_v1",
+      "default": "fan2d_crop256_v1",
+      "title": "Preprocessing Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "image",
+    "faces",
+    "model_lock_id"
+  ],
+  "title": "LandmarkParams",
+  "type": "object"
+}

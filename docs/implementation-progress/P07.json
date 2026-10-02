@@ -1,0 +1,89 @@
+{
+  "package_id": "P07",
+  "status": "in_progress",
+  "source_commit": "fee5be46bca3afff31e953676627b20834bc3084",
+  "changed_files": [
+    "backend/internal/download",
+    "backend/internal/exportpreset",
+    "backend/internal/httpapi/catalog.go",
+    "backend/internal/portal/service.go",
+    "backend/db/migrations/00099_owner_downloads.sql",
+    "tests/platform/test_owner_download_migration.py",
+    "workers/photo_worker/operations/archive",
+    "backend/internal/workflow",
+    "backend/db/migrations/00090_download_export_build.sql",
+    "backend/db/migrations/00091_download_packaging_barrier.sql",
+    "backend/db/migrations/00092_download_archive_build.sql",
+    "backend/db/migrations/00093_finalize_download_archives.sql",
+    "backend/db/migrations/00094_portal_download_intents.sql",
+    "docs/implementation/09-media-delivery.md",
+    "backend/db/migrations/00157_portal_item_download_intents.sql",
+    "tests/platform/test_portal_item_download_migration.py",
+    "tests/integration/test_portal_item_download.py",
+    "backend/internal/download/service_integration_test.go",
+    "tests/integration/test_go_services.py",
+    "backend/internal/workflow/download_plan_test.go",
+    "tests/platform/test_archive_build.py",
+    "backend/db/migrations/00170_atomic_download_archive_finalize.sql",
+    "tests/platform/test_atomic_download_finalize_migration.py",
+    "tests/integration/test_download_finalizer_atomicity.py"
+  ],
+  "checks": [
+    {
+      "id": "owner-download-targeted",
+      "command": "cd backend && go test ./internal/download ./internal/portal ./internal/httpapi",
+      "exit_code": 0,
+      "note": "Owner routes compile and security regression tests pass."
+    },
+    {
+      "id": "download-worker-contracts",
+      "command": "python -m pytest tests/platform/test_owner_download_migration.py tests/platform/test_archive_build.py tests/platform/test_download_build_migration.py -q -p no:cacheprovider",
+      "exit_code": 0,
+      "note": "8 focused tests pass; live PostgreSQL/MinIO/RabbitMQ unavailable."
+    },
+    {
+      "id": "export-preset-service",
+      "command": "cd backend && go test ./internal/exportpreset ./internal/httpapi && go test ./...",
+      "exit_code": 0,
+      "note": "Strict preset validation, tenant-scoped cursor listing, idempotent creation and full Go regression pass."
+    },
+    {
+      "id": "portal-item-download-intent",
+      "command": "cd backend && go test ./internal/portal ./internal/httpapi; pytest tests/platform/test_portal_item_download_migration.py; pytest tests/integration/test_portal_item_download.py",
+      "exit_code": 0,
+      "note": "Go packages pass; 2 static checks and 2 live PostgreSQL scenarios pass, including exact export redemption, one-time consumption and policy revocation."
+    },
+    {
+      "id": "dl01-owner-snapshot-policy",
+      "command": ".venv-platform/bin/python -m pytest -q tests/integration/test_go_services.py::test_go_auth -p no:cacheprovider",
+      "exit_code": 0,
+      "note": "Live owner service freezes exact snapshot ID/digest. Later additions do not enter it; removal leaves snapshot immutable but denies new intent; an already issued bearer is revoked by current project download policy."
+    },
+    {
+      "id": "dl02-max-plan-zip64-structure",
+      "command": "go -C backend test ./internal/workflow -run TestPlanDownloadVolumes; pytest tests/platform/test_archive_build.py",
+      "exit_code": 0,
+      "note": "Synthetic maximum-cardinality plan covers 5000 ordered items, multi-volume packing, explicit oversized singles, no omissions/duplicates, and rejection at 5001. Archive test verifies streamed bytes and the actual ZIP64 local-header extra field. Physical >4GiB/>10GiB corpus remains unverified."
+    },
+    {
+      "id": "dl03-worker-failure-and-expiry",
+      "command": "pytest tests/platform/test_archive_build.py; pytest tests/integration/test_go_services.py::test_go_auth",
+      "exit_code": 0,
+      "note": "Archive missing/extra/hash mismatch and insufficient scratch budget fail before staging any artifact. Live owner service accepts a new idempotency key as a distinct queued job after expiry. Live finalizer crash/failure atomicity remains to be added before DL03 is complete."
+    },
+    {
+      "id": "dl03-live-finalizer-atomicity",
+      "command": ".venv-platform/bin/python -m pytest -q tests/platform/test_atomic_download_finalize_migration.py tests/integration/test_download_finalizer_atomicity.py -p no:cacheprovider",
+      "exit_code": 0,
+      "note": "Migration00170 changes archive finalization to read-only validation of every canonical archive/manifest before any volume UPDATE. Live PostgreSQL proves a valid first result plus malformed second result leaves both volumes queued and the parent job building."
+    }
+  ],
+  "blocked_gates": [],
+  "decisions": [
+    "Owner and guest download paths now share exact-version one-time intent redemption. Owner start/status/cancel/intent enforce current membership, restricted-project ACL, download_allowed, immutable user snapshot/preset binding and no bearer persistence. Export preset list/create is connected with strict typed format, ICC, size, alpha, metadata, watermark and sharpen validation, canonical config hashing, tenant roles, signed cursors and idempotency. Existing SQL90-94 scheduler barriers and archive.build provide deterministic ZIP64/single-volume materialization and all-volumes atomic ready publication. Export job API, live database concurrency, broker redelivery, MinIO crash boundaries, >4GiB ZIP64 and >10GiB disk-backed corpus remain unverified, so P07 is in_progress.",
+    "SQL157 and Portal.Download.Single issue a 60-second item intent only for a ready export matching an active allowlisted preset and the exact visible, accepted, published version. Redeem rechecks current share policy, publication, preset hash and object version, consumes once, and never falls back to master.",
+    "DL01 owner behavior is live-verified: collection additions cannot alter the frozen snapshot, removals revoke new intents without rewriting historical input, and redemption rechecks current project policy. DL02 structural coverage now exercises 5000 items, volume boundaries, explicit oversized delivery and ZIP64 local headers; physical multi-gigabyte IO remains an explicit verification gap.",
+    "DL03 now has worker-side no-partial-publication evidence for content mismatch and disk-budget failure, plus live replacement job creation after expiry. P07 remains in progress until the archive finalizer failure/crash path is executed on live PostgreSQL and physical multi-gigabyte DL02 evidence is available.",
+    "Live DL03 exposed and fixed a partial-publication bug in the original finalizer. Migration00170 performs a complete validation pass under volume locks before a separate publication pass, so returning false cannot leave an earlier volume ready."
+  ]
+}

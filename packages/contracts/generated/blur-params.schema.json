@@ -1,0 +1,478 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "Canvas": {
+      "additionalProperties": false,
+      "properties": {
+        "height": {
+          "maximum": 2147483647,
+          "minimum": 1,
+          "title": "Height",
+          "type": "integer"
+        },
+        "orientation": {
+          "const": 1,
+          "title": "Orientation",
+          "type": "integer"
+        },
+        "source_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Sha256",
+          "type": "string"
+        },
+        "space_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$",
+          "title": "Space Id",
+          "type": "string"
+        },
+        "width": {
+          "maximum": 2147483647,
+          "minimum": 1,
+          "title": "Width",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "width",
+        "height",
+        "orientation",
+        "space_id",
+        "source_sha256"
+      ],
+      "title": "Canvas",
+      "type": "object"
+    },
+    "CropTransform": {
+      "additionalProperties": false,
+      "properties": {
+        "crop_rect": {
+          "$ref": "#/$defs/Rect"
+        },
+        "from_canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "invertibility": {
+          "enum": [
+            "invertible",
+            "partial",
+            "noninvertible"
+          ],
+          "title": "Invertibility",
+          "type": "string"
+        },
+        "kind": {
+          "const": "crop",
+          "title": "Kind",
+          "type": "string"
+        },
+        "to_canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "valid_region": {
+          "$ref": "#/$defs/Rect"
+        }
+      },
+      "required": [
+        "from_canvas",
+        "to_canvas",
+        "invertibility",
+        "valid_region",
+        "kind",
+        "crop_rect"
+      ],
+      "title": "CropTransform",
+      "type": "object"
+    },
+    "DenseWarpTransform": {
+      "additionalProperties": false,
+      "properties": {
+        "from_canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "inverse_field": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "invertibility": {
+          "enum": [
+            "invertible",
+            "partial",
+            "noninvertible"
+          ],
+          "title": "Invertibility",
+          "type": "string"
+        },
+        "kind": {
+          "const": "dense_warp",
+          "title": "Kind",
+          "type": "string"
+        },
+        "pixel_centers": {
+          "const": "half_pixel",
+          "type": "string"
+        },
+        "to_canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "valid_region": {
+          "$ref": "#/$defs/Rect"
+        }
+      },
+      "required": [
+        "from_canvas",
+        "to_canvas",
+        "invertibility",
+        "valid_region",
+        "kind",
+        "inverse_field"
+      ],
+      "title": "DenseWarpTransform",
+      "type": "object"
+    },
+    "MaskRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "model_lock_id": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Model Lock Id"
+        },
+        "object_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Object Id"
+        },
+        "protected": {
+          "title": "Protected",
+          "type": "boolean"
+        },
+        "selector": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$",
+          "title": "Selector",
+          "type": "string"
+        },
+        "transform_chain": {
+          "$ref": "#/$defs/TransformChain"
+        }
+      },
+      "required": [
+        "artifact",
+        "canvas",
+        "transform_chain",
+        "selector",
+        "confidence",
+        "model_lock_id",
+        "protected"
+      ],
+      "title": "MaskRef",
+      "type": "object"
+    },
+    "MatrixTransform": {
+      "additionalProperties": false,
+      "properties": {
+        "forward_matrix": {
+          "items": {
+            "maximum": 1000000000000.0,
+            "minimum": -1000000000000.0,
+            "type": "number"
+          },
+          "maxItems": 9,
+          "minItems": 9,
+          "title": "Forward Matrix",
+          "type": "array"
+        },
+        "from_canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "invertibility": {
+          "enum": [
+            "invertible",
+            "partial",
+            "noninvertible"
+          ],
+          "title": "Invertibility",
+          "type": "string"
+        },
+        "kind": {
+          "const": "matrix",
+          "title": "Kind",
+          "type": "string"
+        },
+        "to_canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "valid_region": {
+          "$ref": "#/$defs/Rect"
+        }
+      },
+      "required": [
+        "from_canvas",
+        "to_canvas",
+        "invertibility",
+        "valid_region",
+        "kind",
+        "forward_matrix"
+      ],
+      "title": "MatrixTransform",
+      "type": "object"
+    },
+    "Rect": {
+      "additionalProperties": false,
+      "properties": {
+        "height": {
+          "maximum": 2147483647,
+          "minimum": 1,
+          "title": "Height",
+          "type": "integer"
+        },
+        "width": {
+          "maximum": 2147483647,
+          "minimum": 1,
+          "title": "Width",
+          "type": "integer"
+        },
+        "x": {
+          "minimum": 0,
+          "title": "X",
+          "type": "integer"
+        },
+        "y": {
+          "minimum": 0,
+          "title": "Y",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "title": "Rect",
+      "type": "object"
+    },
+    "RelativeDepth": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "float32_shape": {
+          "items": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Float32 Shape",
+          "type": "array"
+        },
+        "invalid_mask": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "normalization": {
+          "const": "minmax_valid",
+          "title": "Normalization",
+          "type": "string"
+        },
+        "transform_chain": {
+          "$ref": "#/$defs/TransformChain"
+        }
+      },
+      "required": [
+        "artifact",
+        "float32_shape",
+        "invalid_mask",
+        "canvas",
+        "transform_chain",
+        "normalization"
+      ],
+      "title": "RelativeDepth",
+      "type": "object"
+    },
+    "ResizeTransform": {
+      "additionalProperties": false,
+      "properties": {
+        "from_canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "invertibility": {
+          "enum": [
+            "invertible",
+            "partial",
+            "noninvertible"
+          ],
+          "title": "Invertibility",
+          "type": "string"
+        },
+        "kind": {
+          "const": "resize",
+          "title": "Kind",
+          "type": "string"
+        },
+        "pixel_centers": {
+          "const": "half_pixel",
+          "title": "Pixel Centers",
+          "type": "string"
+        },
+        "to_canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "valid_region": {
+          "$ref": "#/$defs/Rect"
+        }
+      },
+      "required": [
+        "from_canvas",
+        "to_canvas",
+        "invertibility",
+        "valid_region",
+        "kind",
+        "pixel_centers"
+      ],
+      "title": "ResizeTransform",
+      "type": "object"
+    },
+    "TransformChain": {
+      "additionalProperties": false,
+      "properties": {
+        "hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Hash",
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "crop": "#/$defs/CropTransform",
+                "dense_warp": "#/$defs/DenseWarpTransform",
+                "matrix": "#/$defs/MatrixTransform",
+                "resize": "#/$defs/ResizeTransform"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/MatrixTransform"
+              },
+              {
+                "$ref": "#/$defs/DenseWarpTransform"
+              },
+              {
+                "$ref": "#/$defs/CropTransform"
+              },
+              {
+                "$ref": "#/$defs/ResizeTransform"
+              }
+            ]
+          },
+          "maxItems": 128,
+          "title": "Steps",
+          "type": "array"
+        }
+      },
+      "required": [
+        "steps",
+        "hash"
+      ],
+      "title": "TransformChain",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/blur-params.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "depth": {
+      "$ref": "#/$defs/RelativeDepth"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "strength": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Strength",
+      "type": "number"
+    },
+    "subject": {
+      "$ref": "#/$defs/MaskRef"
+    },
+    "tile": {
+      "default": 512,
+      "enum": [
+        256,
+        512,
+        1024
+      ],
+      "title": "Tile",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "image",
+    "subject",
+    "depth",
+    "strength"
+  ],
+  "title": "BlurParams",
+  "type": "object"
+}

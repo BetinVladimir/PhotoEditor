@@ -1,0 +1,623 @@
+{
+  "format_version": 1,
+  "scope": "HTTP handlers present; this does not certify acceptance or completeness",
+  "implemented_routes": 123,
+  "required_routes": 123,
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/dead-letters",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/dead-letters/{id}/replay",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/csrf",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/logout",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/otp/request",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/otp/verify",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/refresh",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/config",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/downloads/redeem",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/invites/accept",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me",
+      "handler_present": true
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/me",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/sessions",
+      "handler_present": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/me/sessions/{session}",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/portal/collection",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/portal/download-jobs",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/portal/download-jobs/{id}",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/portal/download-jobs/{id}/cancel",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/portal/download-jobs/{id}/download-intent",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/portal/events",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/portal/items",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/portal/items/{id}/download-intent",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/portal/media-links",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/portal/selection-snapshots",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/portal/sessions",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/portal/uploads",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/portal/uploads/{id}",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/portal/uploads/{id}/abort",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/portal/uploads/{id}/complete",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/portal/uploads/{id}/parts",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants",
+      "handler_present": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/tenants/{t}",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}",
+      "handler_present": true
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/tenants/{t}",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/assets",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/assets/search-similar",
+      "handler_present": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/tenants/{t}/assets/{id}",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/assets/{id}",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/assets/{id}/editor-draft",
+      "handler_present": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/tenants/{t}/assets/{id}/editor-draft",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/assets/{id}/media-links",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/bulk-operations/{id}",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/bulk-operations/{id}/cancel",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/capabilities",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/collections",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/collections",
+      "handler_present": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/tenants/{t}/collections/{id}",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/collections/{id}",
+      "handler_present": true
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/tenants/{t}/collections/{id}",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/collections/{id}/apply-profile",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/collections/{id}/bulk-operations",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/collections/{id}/feedback-pairs",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/collections/{id}/items",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/collections/{id}/items",
+      "handler_present": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/tenants/{t}/collections/{id}/items/{item}",
+      "handler_present": true
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/tenants/{t}/collections/{id}/items/{item}",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/collections/{id}/items/{item}/moderation",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/collections/{id}/publication",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/collections/{id}/save-edits",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/collections/{id}/sections",
+      "handler_present": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/tenants/{t}/collections/{id}/sections/{section}",
+      "handler_present": true
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/tenants/{t}/collections/{id}/sections/{section}",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/collections/{id}/selection-snapshots",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/collections/{id}/shares",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/collections/{id}/shares",
+      "handler_present": true
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/tenants/{t}/collections/{id}/shares/{share}",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/collections/{id}/shares/{share}/revoke",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/contact-sheets",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/download-jobs",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/download-jobs/{id}",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/download-jobs/{id}/cancel",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/download-jobs/{id}/download-intent",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/events",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/export-presets",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/export-presets",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/exports",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/exports/{id}",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/generations",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/invites",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/legacy-imports/reconcile",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/masks",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/members",
+      "handler_present": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/tenants/{t}/members/{user}",
+      "handler_present": true
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/tenants/{t}/members/{user}",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/overrides",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/previews",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/projects",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects",
+      "handler_present": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/tenants/{t}/projects/{id}",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/projects/{id}",
+      "handler_present": true
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/tenants/{t}/projects/{id}",
+      "handler_present": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/tenants/{t}/projects/{id}/acl/{user}",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/reviews",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/reviews/{id}",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/reviews/{id}/decision",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/runs",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/runs",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/runs/{id}",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/runs/{id}/cancel",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/runs/{id}/outputs",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/runs/{id}/retry",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/styles",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/styles",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/styles/import",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/styles/{id}",
+      "handler_present": true
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/tenants/{t}/styles/{id}",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/styles/{id}/analyses",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/styles/{id}/training-sets",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/styles/{id}/versions",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/styles/{id}/versions",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/styles/{id}/versions/{version}/export",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/training-sets/{id}",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/training-sets/{id}/holdout-snapshots",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/training-sets/{id}/pairs",
+      "handler_present": true
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/tenants/{t}/training-sets/{id}/pairs/{pair}",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/transfer-owner",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/uploads",
+      "handler_present": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/uploads/{id}",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/uploads/{id}/abort",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/uploads/{id}/complete",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/uploads/{id}/moderation",
+      "handler_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/uploads/{id}/parts",
+      "handler_present": true
+    }
+  ]
+}

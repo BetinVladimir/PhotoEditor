@@ -1,0 +1,87 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/metadata-report.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "copied_fields": {
+      "items": {
+        "enum": [
+          "author",
+          "copyright",
+          "camera_make",
+          "camera_model",
+          "lens",
+          "datetime_original",
+          "gps"
+        ],
+        "type": "string"
+      },
+      "maxItems": 7,
+      "title": "Copied Fields",
+      "type": "array"
+    },
+    "document": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "encoded": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "icc_preserved": {
+      "const": true,
+      "title": "Icc Preserved",
+      "type": "boolean"
+    },
+    "orientation": {
+      "const": 1,
+      "title": "Orientation",
+      "type": "integer"
+    },
+    "policy": {
+      "enum": [
+        "copyright_only",
+        "safe_camera"
+      ],
+      "title": "Policy",
+      "type": "string"
+    },
+    "stale_previews_removed": {
+      "const": true,
+      "title": "Stale Previews Removed",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "encoded",
+    "document",
+    "policy",
+    "copied_fields",
+    "orientation",
+    "stale_previews_removed",
+    "icc_preserved"
+  ],
+  "title": "MetadataReport",
+  "type": "object"
+}

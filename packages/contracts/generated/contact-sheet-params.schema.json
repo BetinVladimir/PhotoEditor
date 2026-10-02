@@ -1,0 +1,126 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "PreviewEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "maxLength": 160,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "media_type": {
+          "enum": [
+            "image/jpeg",
+            "image/png",
+            "image/webp"
+          ],
+          "title": "Media Type",
+          "type": "string"
+        },
+        "preview": {
+          "$ref": "#/$defs/ArtifactRef"
+        }
+      },
+      "required": [
+        "preview",
+        "media_type",
+        "label"
+      ],
+      "title": "PreviewEntry",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/contact-sheet-params.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "cell_height": {
+      "const": 260,
+      "default": 260,
+      "title": "Cell Height",
+      "type": "integer"
+    },
+    "cell_width": {
+      "const": 320,
+      "default": 320,
+      "title": "Cell Width",
+      "type": "integer"
+    },
+    "columns": {
+      "default": 4,
+      "maximum": 8,
+      "minimum": 1,
+      "title": "Columns",
+      "type": "integer"
+    },
+    "entries": {
+      "items": {
+        "$ref": "#/$defs/PreviewEntry"
+      },
+      "maxItems": 10000,
+      "minItems": 1,
+      "title": "Entries",
+      "type": "array"
+    },
+    "font": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "font_lock_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Font Lock Id",
+      "type": "string"
+    },
+    "locale": {
+      "enum": [
+        "ru",
+        "bg",
+        "en"
+      ],
+      "title": "Locale",
+      "type": "string"
+    },
+    "page_background": {
+      "const": "white",
+      "default": "white",
+      "title": "Page Background",
+      "type": "string"
+    },
+    "rows": {
+      "default": 5,
+      "maximum": 10,
+      "minimum": 1,
+      "title": "Rows",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "entries",
+    "locale",
+    "font",
+    "font_lock_id"
+  ],
+  "title": "ContactSheetParams",
+  "type": "object"
+}

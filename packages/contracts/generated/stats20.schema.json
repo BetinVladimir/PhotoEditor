@@ -1,0 +1,88 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/stats20.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "coverage_bins": {
+      "items": {
+        "type": "boolean"
+      },
+      "maxItems": 512,
+      "minItems": 512,
+      "title": "Coverage Bins",
+      "type": "array"
+    },
+    "feature_version": {
+      "const": "stats20_v1",
+      "title": "Feature Version",
+      "type": "string"
+    },
+    "mask_confidence": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Mask Confidence",
+      "type": "number"
+    },
+    "source_image": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "values": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 20,
+      "minItems": 20,
+      "title": "Values",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$",
+        "type": "string"
+      },
+      "maxItems": 64,
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "feature_version",
+    "values",
+    "coverage_bins",
+    "mask_confidence",
+    "warnings"
+  ],
+  "title": "Stats20",
+  "type": "object"
+}

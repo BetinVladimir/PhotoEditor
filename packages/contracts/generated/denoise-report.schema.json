@@ -1,0 +1,134 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/denoise-report.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "alpha_preserved": {
+      "title": "Alpha Preserved",
+      "type": "boolean"
+    },
+    "backend": {
+      "enum": [
+        "cpu",
+        "cuda",
+        "mps"
+      ],
+      "title": "Backend",
+      "type": "string"
+    },
+    "color_adapter_id": {
+      "const": "work_srgb_delta_v1",
+      "title": "Color Adapter Id",
+      "type": "string"
+    },
+    "disabled_delta_fraction": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Disabled Delta Fraction",
+      "type": "number"
+    },
+    "gamut_excess_fraction": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Gamut Excess Fraction",
+      "type": "number"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "model_id": {
+      "const": "scunet_color_real_psnr",
+      "title": "Model Id",
+      "type": "string"
+    },
+    "model_lock_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Model Lock Id",
+      "type": "string"
+    },
+    "overlap": {
+      "const": 64,
+      "title": "Overlap",
+      "type": "integer"
+    },
+    "pixel_count": {
+      "maximum": 200000000,
+      "minimum": 1,
+      "title": "Pixel Count",
+      "type": "integer"
+    },
+    "source_clip_fraction": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Source Clip Fraction",
+      "type": "number"
+    },
+    "strength": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Strength",
+      "type": "number"
+    },
+    "tile": {
+      "enum": [
+        256,
+        512
+      ],
+      "title": "Tile",
+      "type": "integer"
+    },
+    "warnings": {
+      "items": {
+        "enum": [
+          "source_srgb_clipped",
+          "delta_gamut_excess"
+        ],
+        "type": "string"
+      },
+      "maxItems": 2,
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "image",
+    "model_id",
+    "model_lock_id",
+    "backend",
+    "color_adapter_id",
+    "strength",
+    "tile",
+    "overlap",
+    "pixel_count",
+    "disabled_delta_fraction",
+    "source_clip_fraction",
+    "gamut_excess_fraction",
+    "alpha_preserved",
+    "warnings"
+  ],
+  "title": "DenoiseReport",
+  "type": "object"
+}

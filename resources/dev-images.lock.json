@@ -1,0 +1,7 @@
+{
+  "format_version": 1,
+  "scope": "local integration tests; production release qualification remains separate",
+  "postgres": "postgres@sha256:00bc86618629af00d2937fdc5a5d63db3ff8450acf52f0636ec813c7f4902929",
+  "rabbitmq": "rabbitmq@sha256:e002010fddc214d38f7c8acf058a2fb62350daa10316431cd2cf959f42761e34",
+  "minio": "sha256:950a7d104952195f034bf97664e72eeab4a2f98bfcc1a43147d02d01d276871a"
+}

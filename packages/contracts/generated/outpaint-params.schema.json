@@ -1,0 +1,108 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/outpaint-params.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "feather_pixels": {
+      "default": 16,
+      "maximum": 64,
+      "minimum": 1,
+      "title": "Feather Pixels",
+      "type": "integer"
+    },
+    "guidance_scale": {
+      "default": 7.5,
+      "maximum": 20,
+      "minimum": 1,
+      "title": "Guidance Scale",
+      "type": "number"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "model_id": {
+      "const": "sd15_inpaint",
+      "default": "sd15_inpaint",
+      "title": "Model Id",
+      "type": "string"
+    },
+    "model_lock_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Model Lock Id",
+      "type": "string"
+    },
+    "negative_prompt": {
+      "default": "",
+      "maxLength": 1000,
+      "title": "Negative Prompt",
+      "type": "string"
+    },
+    "pixels": {
+      "maximum": 8192,
+      "minimum": 8,
+      "title": "Pixels",
+      "type": "integer"
+    },
+    "prompt": {
+      "maxLength": 1000,
+      "minLength": 1,
+      "title": "Prompt",
+      "type": "string"
+    },
+    "seed": {
+      "maximum": 4294967295,
+      "minimum": 0,
+      "title": "Seed",
+      "type": "integer"
+    },
+    "side": {
+      "enum": [
+        "left",
+        "right",
+        "top",
+        "bottom"
+      ],
+      "title": "Side",
+      "type": "string"
+    },
+    "steps": {
+      "const": 25,
+      "default": 25,
+      "title": "Steps",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "image",
+    "side",
+    "pixels",
+    "prompt",
+    "seed",
+    "model_lock_id"
+  ],
+  "title": "OutpaintParams",
+  "type": "object"
+}

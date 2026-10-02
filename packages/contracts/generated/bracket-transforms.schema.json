@@ -1,0 +1,230 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "BracketFrame": {
+      "additionalProperties": false,
+      "properties": {
+        "exposure_seconds": {
+          "exclusiveMinimum": 0,
+          "maximum": 3600,
+          "title": "Exposure Seconds",
+          "type": "number"
+        },
+        "image": {
+          "$ref": "#/$defs/ArtifactRef"
+        }
+      },
+      "required": [
+        "image",
+        "exposure_seconds"
+      ],
+      "title": "BracketFrame",
+      "type": "object"
+    },
+    "BracketTransform": {
+      "additionalProperties": false,
+      "properties": {
+        "frame_index": {
+          "maximum": 8,
+          "minimum": 0,
+          "title": "Frame Index",
+          "type": "integer"
+        },
+        "image": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "inlier_count": {
+          "maximum": 4000,
+          "minimum": 0,
+          "title": "Inlier Count",
+          "type": "integer"
+        },
+        "median_reprojection": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Median Reprojection"
+        },
+        "motion_fraction": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Motion Fraction",
+          "type": "number"
+        },
+        "overlap": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Overlap",
+          "type": "number"
+        },
+        "reference": {
+          "title": "Reference",
+          "type": "boolean"
+        },
+        "to_reference": {
+          "items": {
+            "maximum": 1000000000000.0,
+            "minimum": -1000000000000.0,
+            "type": "number"
+          },
+          "maxItems": 9,
+          "minItems": 9,
+          "title": "To Reference",
+          "type": "array"
+        }
+      },
+      "required": [
+        "frame_index",
+        "image",
+        "to_reference",
+        "overlap",
+        "median_reprojection",
+        "inlier_count",
+        "motion_fraction",
+        "reference"
+      ],
+      "title": "BracketTransform",
+      "type": "object"
+    },
+    "Canvas": {
+      "additionalProperties": false,
+      "properties": {
+        "height": {
+          "maximum": 2147483647,
+          "minimum": 1,
+          "title": "Height",
+          "type": "integer"
+        },
+        "orientation": {
+          "const": 1,
+          "title": "Orientation",
+          "type": "integer"
+        },
+        "source_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Sha256",
+          "type": "string"
+        },
+        "space_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$",
+          "title": "Space Id",
+          "type": "string"
+        },
+        "width": {
+          "maximum": 2147483647,
+          "minimum": 1,
+          "title": "Width",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "width",
+        "height",
+        "orientation",
+        "space_id",
+        "source_sha256"
+      ],
+      "title": "Canvas",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/bracket-transforms.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "frames": {
+      "items": {
+        "$ref": "#/$defs/BracketFrame"
+      },
+      "maxItems": 9,
+      "minItems": 3,
+      "title": "Frames",
+      "type": "array"
+    },
+    "motion_review_fraction": {
+      "const": 0.01,
+      "default": 0.01,
+      "title": "Motion Review Fraction",
+      "type": "number"
+    },
+    "motion_threshold": {
+      "const": 0.05,
+      "default": 0.05,
+      "title": "Motion Threshold",
+      "type": "number"
+    },
+    "reference_canvas": {
+      "$ref": "#/$defs/Canvas"
+    },
+    "reference_index": {
+      "maximum": 8,
+      "minimum": 0,
+      "title": "Reference Index",
+      "type": "integer"
+    },
+    "transforms": {
+      "items": {
+        "$ref": "#/$defs/BracketTransform"
+      },
+      "maxItems": 9,
+      "minItems": 3,
+      "title": "Transforms",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "enum": [
+          "motion_detected",
+          "ecc_not_improved",
+          "ecc_not_converged",
+          "mtb_fallback"
+        ],
+        "type": "string"
+      },
+      "maxItems": 4,
+      "title": "Warnings",
+      "type": "array"
+    },
+    "wb_recipe": {
+      "title": "Wb Recipe",
+      "type": "string"
+    }
+  },
+  "required": [
+    "frames",
+    "reference_index",
+    "reference_canvas",
+    "wb_recipe",
+    "transforms",
+    "warnings"
+  ],
+  "title": "BracketTransforms",
+  "type": "object"
+}

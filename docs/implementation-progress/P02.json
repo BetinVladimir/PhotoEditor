@@ -1,0 +1,71 @@
+{
+  "package_id": "P02",
+  "status": "complete",
+  "source_commit": "fee5be46bca3afff31e953676627b20834bc3084",
+  "changed_files": [
+    "backend/db/migrations",
+    "scripts/generate-db.py",
+    "scripts/generate-db-constraints.py",
+    "tests/integration/test_database.py",
+    "backend/db/migrations/00015_task_leases.sql",
+    "backend/db/migrations/00016_task_recovery.sql",
+    "backend/db/migrations/00017_resource_admission.sql",
+    "backend/db/migrations/00018_dispatch_fairness.sql",
+    "backend/db/migrations/00167_default_export_presets.sql",
+    "tests/platform/test_default_export_presets_migration.py",
+    "tests/integration/test_default_export_presets.py",
+    "sqlc.yaml",
+    "backend/db/sqlc-schema.sql",
+    "backend/db/queries/export_presets.sql",
+    "backend/internal/db/generated",
+    "scripts/generate-sqlc.sh",
+    "tests/platform/test_sqlc_generation.py",
+    "tests/integration/test_goose_migrations.py",
+    "tests/platform/test_goose_markers.py",
+    "backend/internal/exportpreset/service.go",
+    "backend/db/migrations/00118_style_analysis_builds.sql",
+    "backend/db/migrations/00119_style_analysis_nodes.sql",
+    "backend/db/migrations/00120_apply_builds.sql",
+    "backend/db/migrations/00122_apply_nodes.sql",
+    "backend/db/migrations/00123_adopt_apply_results.sql",
+    "backend/db/migrations/00146_remove_duplicate_cleanup_operation.sql",
+    "backend/db/migrations/00148_full_style_geometry_dag.sql",
+    "backend/db/migrations/00165_identity_save_edits.sql"
+  ],
+  "checks": [
+    {
+      "id": "implemented-subset-tests",
+      "command": "make test test-db",
+      "exit_code": 0,
+      "evidence": "work/evidence/platform-tests.log"
+    },
+    {
+      "id": "task-resource-functions",
+      "command": "pytest tests/integration -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/scheduler-integration-tests.log"
+    },
+    {
+      "id": "goose-empty-and-repeat",
+      "command": "pytest tests/integration/test_goose_migrations.py -q -p no:cacheprovider",
+      "exit_code": 0,
+      "note": "Real embedded-goose path applies migrations 00001–00167 to an empty isolated PostgreSQL database and a second run is a no-op; table count and PUBLIC/photo_api grants are verified."
+    },
+    {
+      "id": "default-export-presets",
+      "command": "pytest tests/platform/test_default_export_presets_migration.py tests/integration/test_default_export_presets.py",
+      "exit_code": 0,
+      "note": "Two static contracts and one live test prove atomic canonical Master/Web defaults for every new tenant and migration backfill."
+    },
+    {
+      "id": "sqlc-generation",
+      "command": "scripts/generate-sqlc.sh --check; pytest tests/platform/test_sqlc_generation.py; go test ./internal/exportpreset ./internal/httpapi",
+      "exit_code": 0,
+      "note": "Pinned sqlc v1.31.1 pgx/v5 generation is drift-checked and generated queries are used by ExportPreset service."
+    }
+  ],
+  "blocked_gates": [],
+  "decisions": [
+    "P02 acceptance is complete: empty/repeated goose migration, tenant RLS/cross-tenant FK/immutable data tests, real-role denial and generated sqlc query use are executable. Default Master/Web export contracts are seeded atomically without model weights, credentials or demo tenants."
+  ]
+}

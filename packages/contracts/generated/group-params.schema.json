@@ -1,0 +1,139 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "ManualGroup": {
+      "additionalProperties": false,
+      "properties": {
+        "group_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$",
+          "title": "Group Id",
+          "type": "string"
+        },
+        "item_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 2000,
+          "minItems": 2,
+          "title": "Item Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "group_id",
+        "item_ids"
+      ],
+      "title": "ManualGroup",
+      "type": "object"
+    },
+    "SeparatePair": {
+      "additionalProperties": false,
+      "properties": {
+        "left": {
+          "format": "uuid",
+          "title": "Left",
+          "type": "string"
+        },
+        "right": {
+          "format": "uuid",
+          "title": "Right",
+          "type": "string"
+        }
+      },
+      "required": [
+        "left",
+        "right"
+      ],
+      "title": "SeparatePair",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/group-params.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "algorithm": {
+      "const": "scene_group_v1",
+      "default": "scene_group_v1",
+      "title": "Algorithm",
+      "type": "string"
+    },
+    "burst_seconds": {
+      "const": 3,
+      "default": 3,
+      "title": "Burst Seconds",
+      "type": "integer"
+    },
+    "dino_cosine": {
+      "const": 0.94,
+      "default": 0.94,
+      "title": "Dino Cosine",
+      "type": "number"
+    },
+    "features": {
+      "items": {
+        "$ref": "#/$defs/ArtifactRef"
+      },
+      "maxItems": 2000,
+      "minItems": 1,
+      "title": "Features",
+      "type": "array"
+    },
+    "forced_separate": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/SeparatePair"
+      },
+      "maxItems": 10000,
+      "title": "Forced Separate",
+      "type": "array"
+    },
+    "manual_groups": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ManualGroup"
+      },
+      "maxItems": 1000,
+      "title": "Manual Groups",
+      "type": "array"
+    },
+    "phash_distance": {
+      "const": 6,
+      "default": 6,
+      "title": "Phash Distance",
+      "type": "integer"
+    },
+    "scene_distance": {
+      "const": 0.25,
+      "default": 0.25,
+      "title": "Scene Distance",
+      "type": "number"
+    }
+  },
+  "required": [
+    "features"
+  ],
+  "title": "GroupParams",
+  "type": "object"
+}

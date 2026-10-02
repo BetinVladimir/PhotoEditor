@@ -1,0 +1,515 @@
+{
+  "schema_version": 1,
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/shoot-sessions",
+      "request_schema": "SessionCreate",
+      "response_schema": "Resource",
+      "package": "V22",
+      "handler": "CreateSession",
+      "role": "editor",
+      "success_status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/shoot-sessions/{id}",
+      "request_schema": null,
+      "response_schema": "Resource",
+      "package": "V22",
+      "handler": "GetSession",
+      "role": "viewer",
+      "success_status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/shoot-sessions",
+      "request_schema": null,
+      "response_schema": "ResourcePage",
+      "package": "V22",
+      "handler": "ListSessions",
+      "role": "viewer",
+      "success_status": 200
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/tenants/{t}/shoot-sessions/{id}",
+      "request_schema": "SessionUpdate",
+      "response_schema": "Resource",
+      "package": "V22",
+      "handler": "UpdateSession",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/shoot-sessions/{id}/analyses",
+      "request_schema": "AnalysisCreate",
+      "response_schema": "JobTicket",
+      "package": "V22",
+      "handler": "AnalyzeSession",
+      "role": "editor",
+      "success_status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/session-analyses/{id}",
+      "request_schema": null,
+      "response_schema": "Resource",
+      "package": "V22",
+      "handler": "GetAnalysis",
+      "role": "viewer",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/session-analyses/{id}/apply",
+      "request_schema": "AnalysisApply",
+      "response_schema": "JobTicket",
+      "package": "V22",
+      "handler": "ApplyAnalysis",
+      "role": "editor",
+      "success_status": 202
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/corrections",
+      "request_schema": "CorrectionCreate",
+      "response_schema": "CorrectionEvent",
+      "package": "V23",
+      "handler": "RecordCorrection",
+      "role": "editor",
+      "success_status": 201
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/learning-profiles",
+      "request_schema": "ProfileCreate",
+      "response_schema": "ProfileGet",
+      "package": "V23",
+      "handler": "CreateProfile",
+      "role": "editor",
+      "success_status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/learning-profiles/{id}",
+      "request_schema": null,
+      "response_schema": "ProfileGet",
+      "package": "V23",
+      "handler": "GetProfile",
+      "role": "viewer",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/learning-profiles/{id}/train",
+      "request_schema": "TrainCreate",
+      "response_schema": "JobTicket",
+      "package": "V23",
+      "handler": "TrainProfile",
+      "role": "editor",
+      "success_status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/learning-profiles/{id}/versions",
+      "request_schema": null,
+      "response_schema": "LearningVersionPage",
+      "package": "V23",
+      "handler": "ListVersions",
+      "role": "viewer",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/learning-profiles/{id}/activate",
+      "request_schema": "Activate",
+      "response_schema": "ProfileGet",
+      "package": "V23",
+      "handler": "ActivateProfile",
+      "role": "profile_owner",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/consents",
+      "request_schema": "ConsentChange",
+      "response_schema": "Resource",
+      "package": "V22",
+      "handler": "ChangeConsent",
+      "role": "owner",
+      "success_status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/projects/{id}/consents",
+      "request_schema": null,
+      "response_schema": "ResourcePage",
+      "package": "V22",
+      "handler": "ListConsents",
+      "role": "owner",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/project-persons",
+      "request_schema": "PersonCreate",
+      "response_schema": "Resource",
+      "package": "V22",
+      "handler": "CreatePerson",
+      "role": "editor",
+      "success_status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/projects/{id}/persons",
+      "request_schema": null,
+      "response_schema": "ResourcePage",
+      "package": "V22",
+      "handler": "ListPersons",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/project-persons/{id}/observations",
+      "request_schema": "ObservationConfirm",
+      "response_schema": "Resource",
+      "package": "V22",
+      "handler": "ConfirmObservation",
+      "role": "editor",
+      "success_status": 201
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/project-persons/{id}/revoke",
+      "request_schema": "CAS",
+      "response_schema": "Resource",
+      "package": "V22",
+      "handler": "RevokePerson",
+      "role": "owner",
+      "success_status": 200
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/tenants/{t}/shoot-sessions/{id}/shot-list",
+      "request_schema": "ShotListReplace",
+      "response_schema": "ShotListView",
+      "package": "V24",
+      "handler": "ReplaceShotList",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/shoot-sessions/{id}/shot-list",
+      "request_schema": null,
+      "response_schema": "ShotListView",
+      "package": "V24",
+      "handler": "GetShotList",
+      "role": "viewer",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/capture-devices",
+      "request_schema": "DeviceCreate",
+      "response_schema": "Resource",
+      "package": "V24",
+      "handler": "RegisterDevice",
+      "role": "admin",
+      "success_status": 201
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/capture-devices/{id}/revoke",
+      "request_schema": "CAS",
+      "response_schema": "Resource",
+      "package": "V24",
+      "handler": "RevokeDevice",
+      "role": "admin",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/capture-devices/{id}/challenges",
+      "request_schema": "ChallengeCreate",
+      "response_schema": "Challenge",
+      "package": "V24",
+      "handler": "CreateChallenge",
+      "role": "device_public",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/capture-devices/{id}/token",
+      "request_schema": "TokenCreate",
+      "response_schema": "Token",
+      "package": "V24",
+      "handler": "ExchangeChallenge",
+      "role": "device_public",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/shoot-sessions/{id}/capture-receipts",
+      "request_schema": "CaptureReceipt",
+      "response_schema": "Resource",
+      "package": "V24",
+      "handler": "AcceptReceipt",
+      "role": "device",
+      "success_status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/shoot-sessions/{id}/alerts",
+      "request_schema": null,
+      "response_schema": "CaptureAlertPage",
+      "package": "V24",
+      "handler": "ListAlerts",
+      "role": "viewer",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/capture-receipts/{id}/confirm",
+      "request_schema": "CaptureFrameConfirm",
+      "response_schema": "CaptureFrameConfirmation",
+      "package": "V24",
+      "handler": "ConfirmFrame",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/capture-alerts/{id}/ack",
+      "request_schema": "CAS",
+      "response_schema": "Resource",
+      "package": "V24",
+      "handler": "Acknowledge",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/tenants/{t}/assets/{id}/v2-draft",
+      "request_schema": "DraftReplace",
+      "response_schema": "Resource",
+      "package": "V21",
+      "handler": "ReplaceDraft",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/assets/{id}/v2-draft",
+      "request_schema": null,
+      "response_schema": "Resource",
+      "package": "V21",
+      "handler": "GetDraft",
+      "role": "viewer",
+      "success_status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/assets/{id}/v2-binding",
+      "request_schema": null,
+      "response_schema": "VersionBinding",
+      "package": "V21",
+      "handler": "GetDraftBinding",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/assets/{id}/v2-draft/history",
+      "request_schema": null,
+      "response_schema": "ResourcePage",
+      "package": "V21",
+      "handler": "ListDraftHistory",
+      "role": "viewer",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/assets/{id}/v2-draft/approve",
+      "request_schema": "DraftApproval",
+      "response_schema": "DraftApprovalResult",
+      "package": "V21",
+      "handler": "ApproveDraft",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/assets/{id}/region-previews",
+      "request_schema": "RegionPreview",
+      "response_schema": "JobTicket",
+      "package": "V26",
+      "handler": "PreviewRegion",
+      "role": "editor",
+      "success_status": 202
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/semantic-intents",
+      "request_schema": "EditIntent",
+      "response_schema": "JobTicket",
+      "package": "V27",
+      "handler": "Propose",
+      "role": "editor",
+      "success_status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/semantic-intents/{id}/targets",
+      "request_schema": null,
+      "response_schema": "ResourcePage",
+      "package": "V27",
+      "handler": "ListTargets",
+      "role": "viewer",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/semantic-intents/{id}/apply",
+      "request_schema": "SemanticApply",
+      "response_schema": "ReviewBatchResult",
+      "package": "V27",
+      "handler": "ApplyApproved",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/delivery-packages",
+      "request_schema": "DeliveryCreate",
+      "response_schema": "JobTicket",
+      "package": "V30",
+      "handler": "CreateDelivery",
+      "role": "editor",
+      "success_status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/delivery-packages/{id}",
+      "request_schema": null,
+      "response_schema": "Resource",
+      "package": "V30",
+      "handler": "GetDelivery",
+      "role": "viewer",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/delivery-packages/{id}/publish",
+      "request_schema": "CAS",
+      "response_schema": "Resource",
+      "package": "V30",
+      "handler": "PublishDelivery",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/interchange-jobs",
+      "request_schema": "InterchangeRequest",
+      "response_schema": "JobTicket",
+      "package": "V30",
+      "handler": "CreateInterchange",
+      "role": "editor",
+      "success_status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/interchange-jobs/{id}",
+      "request_schema": null,
+      "response_schema": "Resource",
+      "package": "V30",
+      "handler": "GetInterchange",
+      "role": "viewer",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/exports/{id}/provenance",
+      "request_schema": "SignCreate",
+      "response_schema": "JobTicket",
+      "package": "V31",
+      "handler": "SignExport",
+      "role": "editor",
+      "success_status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/v2-documents/{id}",
+      "request_schema": null,
+      "response_schema": "DocumentBody",
+      "package": "V21",
+      "handler": "GetDocument",
+      "role": "viewer",
+      "success_status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/v2-workflows/{id}",
+      "request_schema": null,
+      "response_schema": "JobStatus",
+      "package": "V21",
+      "handler": "GetWorkflow",
+      "role": "viewer",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/v2-workflows/{id}/cancel",
+      "request_schema": "CAS",
+      "response_schema": "JobStatus",
+      "package": "V21",
+      "handler": "CancelWorkflow",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/semantic-intents/{id}/close-review",
+      "request_schema": "ReviewClose",
+      "response_schema": "JobStatus",
+      "package": "V27",
+      "handler": "CloseSemanticReview",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/interchange-jobs/{id}/decisions",
+      "request_schema": "ImportReview",
+      "response_schema": "ReviewBatchResult",
+      "package": "V30",
+      "handler": "DecideImport",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/interchange-jobs/{id}/close-review",
+      "request_schema": "ImportReviewClose",
+      "response_schema": "JobStatus",
+      "package": "V30",
+      "handler": "CloseImportReview",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/learning-versions/{id}/safety-review",
+      "request_schema": "LearningSafetyReview",
+      "response_schema": "LearningVersionView",
+      "package": "V23",
+      "handler": "ReviewLearningSafety",
+      "role": "profile_owner",
+      "success_status": 200
+    }
+  ]
+}

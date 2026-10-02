@@ -1,0 +1,1608 @@
+{
+  "$defs": {
+    "Adaptation": {
+      "additionalProperties": false,
+      "properties": {
+        "coverage_bins": {
+          "items": {
+            "type": "boolean"
+          },
+          "maxItems": 512,
+          "minItems": 512,
+          "title": "Coverage Bins",
+          "type": "array"
+        },
+        "feature_version": {
+          "const": "stats20_v1",
+          "title": "Feature Version",
+          "type": "string"
+        },
+        "k": {
+          "maximum": 4,
+          "minimum": 1,
+          "title": "K",
+          "type": "integer"
+        },
+        "mean": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 20,
+          "minItems": 20,
+          "title": "Mean",
+          "type": "array"
+        },
+        "ood_threshold": {
+          "minimum": 1,
+          "title": "Ood Threshold",
+          "type": "number"
+        },
+        "prototypes": {
+          "items": {
+            "$ref": "#/$defs/Prototype"
+          },
+          "maxItems": 32,
+          "minItems": 1,
+          "title": "Prototypes",
+          "type": "array"
+        },
+        "scale": {
+          "items": {
+            "minimum": 0.05,
+            "type": "number"
+          },
+          "maxItems": 20,
+          "minItems": 20,
+          "title": "Scale",
+          "type": "array"
+        },
+        "temperature": {
+          "const": 1,
+          "title": "Temperature",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "feature_version",
+        "mean",
+        "scale",
+        "k",
+        "temperature",
+        "ood_threshold",
+        "prototypes",
+        "coverage_bins"
+      ],
+      "title": "Adaptation",
+      "type": "object"
+    },
+    "Background": {
+      "additionalProperties": false,
+      "properties": {
+        "asset_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Asset Id"
+        },
+        "blur_strength": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Blur Strength",
+          "type": "number"
+        },
+        "mode": {
+          "enum": [
+            "keep",
+            "transparent",
+            "solid",
+            "asset",
+            "blur",
+            "generate"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "protect_subject": {
+          "const": true,
+          "title": "Protect Subject",
+          "type": "boolean"
+        },
+        "solid_rgb": {
+          "anyOf": [
+            {
+              "items": {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              "maxItems": 3,
+              "minItems": 3,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Solid Rgb"
+        }
+      },
+      "required": [
+        "mode",
+        "asset_id",
+        "blur_strength",
+        "protect_subject"
+      ],
+      "title": "Background",
+      "type": "object"
+    },
+    "Beauty": {
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": {
+          "const": "beautyfilter_v1",
+          "title": "Algorithm",
+          "type": "string"
+        },
+        "enabled": {
+          "const": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "protect_features": {
+          "const": true,
+          "title": "Protect Features",
+          "type": "boolean"
+        },
+        "skin_mask": {
+          "const": "face68_conservative_v1",
+          "title": "Skin Mask",
+          "type": "string"
+        },
+        "smoothing": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Smoothing",
+          "type": "number"
+        },
+        "texture_keep": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Texture Keep",
+          "type": "number"
+        },
+        "tone_evenness": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Tone Evenness",
+          "type": "number"
+        }
+      },
+      "required": [
+        "enabled",
+        "algorithm",
+        "smoothing",
+        "tone_evenness",
+        "texture_keep",
+        "skin_mask",
+        "protect_features"
+      ],
+      "title": "Beauty",
+      "type": "object"
+    },
+    "ColorSpace": {
+      "additionalProperties": false,
+      "properties": {
+        "bpc": {
+          "const": false,
+          "title": "Bpc",
+          "type": "boolean"
+        },
+        "intent": {
+          "const": "relative",
+          "title": "Intent",
+          "type": "string"
+        },
+        "profile_id": {
+          "const": "work_rec2020_gamma24_v1",
+          "title": "Profile Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "profile_id",
+        "intent",
+        "bpc"
+      ],
+      "title": "ColorSpace",
+      "type": "object"
+    },
+    "Composition": {
+      "additionalProperties": false,
+      "properties": {
+        "aspect": {
+          "items": {
+            "exclusiveMinimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Aspect",
+          "type": "array"
+        },
+        "enabled": {
+          "const": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "headroom": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Headroom",
+          "type": "number"
+        },
+        "outpaint_guidance_scale": {
+          "default": 7.5,
+          "maximum": 20,
+          "minimum": 1,
+          "title": "Outpaint Guidance Scale",
+          "type": "number"
+        },
+        "outpaint_negative_prompt": {
+          "default": "",
+          "maxLength": 1000,
+          "title": "Outpaint Negative Prompt",
+          "type": "string"
+        },
+        "outpaint_policy": {
+          "default": "off",
+          "enum": [
+            "off",
+            "review"
+          ],
+          "title": "Outpaint Policy",
+          "type": "string"
+        },
+        "outpaint_prompt": {
+          "default": "",
+          "maxLength": 1000,
+          "title": "Outpaint Prompt",
+          "type": "string"
+        },
+        "outpaint_seed": {
+          "default": 0,
+          "maximum": 4294967295,
+          "minimum": 0,
+          "title": "Outpaint Seed",
+          "type": "integer"
+        },
+        "rotate_limit_deg": {
+          "maximum": 5,
+          "minimum": 0,
+          "title": "Rotate Limit Deg",
+          "type": "number"
+        }
+      },
+      "required": [
+        "enabled",
+        "aspect",
+        "headroom",
+        "rotate_limit_deg"
+      ],
+      "title": "Composition",
+      "type": "object"
+    },
+    "Culling": {
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": {
+          "const": "cullrank_v1",
+          "title": "Algorithm",
+          "type": "string"
+        },
+        "enabled": {
+          "const": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "eye_policy": {
+          "const": "review",
+          "title": "Eye Policy",
+          "type": "string"
+        },
+        "never_delete": {
+          "const": true,
+          "title": "Never Delete",
+          "type": "boolean"
+        },
+        "target_count": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Count"
+        },
+        "target_fraction": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Fraction"
+        }
+      },
+      "required": [
+        "enabled",
+        "algorithm",
+        "never_delete",
+        "eye_policy"
+      ],
+      "title": "Culling",
+      "type": "object"
+    },
+    "Defects": {
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": {
+          "const": "defectrepair_telea_v1",
+          "title": "Algorithm",
+          "type": "string"
+        },
+        "diameter_face_fraction": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Diameter Face Fraction",
+          "type": "array"
+        },
+        "enabled": {
+          "const": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "policy": {
+          "enum": [
+            "review",
+            "conservative_auto"
+          ],
+          "title": "Policy",
+          "type": "string"
+        },
+        "preserve_permanent_marks": {
+          "const": true,
+          "title": "Preserve Permanent Marks",
+          "type": "boolean"
+        },
+        "strength": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Strength",
+          "type": "number"
+        }
+      },
+      "required": [
+        "enabled",
+        "algorithm",
+        "policy",
+        "strength",
+        "diameter_face_fraction",
+        "preserve_permanent_marks"
+      ],
+      "title": "Defects",
+      "type": "object"
+    },
+    "Disabled": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "const": false,
+          "default": false,
+          "title": "Enabled",
+          "type": "boolean"
+        }
+      },
+      "title": "Disabled",
+      "type": "object"
+    },
+    "Extensions": {
+      "additionalProperties": false,
+      "properties": {
+        "background": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Background"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "composition": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "False": "#/$defs/Disabled",
+                  "True": "#/$defs/Composition"
+                },
+                "propertyName": "enabled"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/Disabled"
+                },
+                {
+                  "$ref": "#/$defs/Composition"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Composition"
+        },
+        "culling": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "False": "#/$defs/Disabled",
+                  "True": "#/$defs/Culling"
+                },
+                "propertyName": "enabled"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/Disabled"
+                },
+                {
+                  "$ref": "#/$defs/Culling"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Culling"
+        },
+        "generation": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "False": "#/$defs/Disabled",
+                  "True": "#/$defs/Generation"
+                },
+                "propertyName": "enabled"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/Disabled"
+                },
+                {
+                  "$ref": "#/$defs/Generation"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Generation"
+        },
+        "inpainting": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "False": "#/$defs/Disabled",
+                  "True": "#/$defs/Inpainting"
+                },
+                "propertyName": "enabled"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/Disabled"
+                },
+                {
+                  "$ref": "#/$defs/Inpainting"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Inpainting"
+        },
+        "masking": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Masking"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "portrait_detail": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "False": "#/$defs/Disabled",
+                  "True": "#/$defs/PortraitDetail"
+                },
+                "propertyName": "enabled"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/Disabled"
+                },
+                {
+                  "$ref": "#/$defs/PortraitDetail"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Portrait Detail"
+        },
+        "region_adjustments": {
+          "items": {
+            "$ref": "#/$defs/RegionAdjustment"
+          },
+          "maxItems": 128,
+          "title": "Region Adjustments",
+          "type": "array"
+        },
+        "restoration": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Restoration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "series": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "False": "#/$defs/Disabled",
+                  "True": "#/$defs/Series"
+                },
+                "propertyName": "enabled"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/Disabled"
+                },
+                {
+                  "$ref": "#/$defs/Series"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Series"
+        }
+      },
+      "title": "Extensions",
+      "type": "object"
+    },
+    "Generation": {
+      "additionalProperties": false,
+      "properties": {
+        "canvas": {
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Canvas",
+          "type": "array"
+        },
+        "enabled": {
+          "const": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "guidance_scale": {
+          "maximum": 20,
+          "minimum": 0,
+          "title": "Guidance Scale",
+          "type": "number"
+        },
+        "model": {
+          "const": "sd15_inpaint",
+          "title": "Model",
+          "type": "string"
+        },
+        "negative_prompt": {
+          "maxLength": 2000,
+          "title": "Negative Prompt",
+          "type": "string"
+        },
+        "prompt": {
+          "maxLength": 2000,
+          "title": "Prompt",
+          "type": "string"
+        },
+        "require_acceptance": {
+          "const": true,
+          "title": "Require Acceptance",
+          "type": "boolean"
+        },
+        "seed": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "title": "Seed",
+          "type": "integer"
+        },
+        "steps": {
+          "maximum": 50,
+          "minimum": 1,
+          "title": "Steps",
+          "type": "integer"
+        },
+        "strength": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Strength",
+          "type": "number"
+        }
+      },
+      "required": [
+        "enabled",
+        "model",
+        "prompt",
+        "negative_prompt",
+        "seed",
+        "steps",
+        "guidance_scale",
+        "strength",
+        "canvas",
+        "require_acceptance"
+      ],
+      "title": "Generation",
+      "type": "object"
+    },
+    "Geometry": {
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": {
+          "const": "bodywarp_v1",
+          "title": "Algorithm",
+          "type": "string"
+        },
+        "body_strength": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Body Strength",
+          "type": "number"
+        },
+        "enabled": {
+          "const": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "face_slim": {
+          "maximum": 0.05,
+          "minimum": 0,
+          "title": "Face Slim",
+          "type": "number"
+        },
+        "hip_slim": {
+          "maximum": 0.08,
+          "minimum": 0,
+          "title": "Hip Slim",
+          "type": "number"
+        },
+        "leg_length": {
+          "maximum": 0.03,
+          "minimum": 0,
+          "title": "Leg Length",
+          "type": "number"
+        },
+        "max_displacement_image_fraction": {
+          "exclusiveMinimum": 0,
+          "maximum": 0.02,
+          "title": "Max Displacement Image Fraction",
+          "type": "number"
+        },
+        "on_unsafe": {
+          "const": "skip_module",
+          "title": "On Unsafe",
+          "type": "string"
+        },
+        "protect_background": {
+          "const": true,
+          "title": "Protect Background",
+          "type": "boolean"
+        },
+        "torso_slim": {
+          "maximum": 0.08,
+          "minimum": 0,
+          "title": "Torso Slim",
+          "type": "number"
+        },
+        "waist_slim": {
+          "maximum": 0.08,
+          "minimum": 0,
+          "title": "Waist Slim",
+          "type": "number"
+        }
+      },
+      "required": [
+        "enabled",
+        "algorithm",
+        "body_strength",
+        "face_slim",
+        "waist_slim",
+        "hip_slim",
+        "torso_slim",
+        "leg_length",
+        "protect_background",
+        "max_displacement_image_fraction",
+        "on_unsafe"
+      ],
+      "title": "Geometry",
+      "type": "object"
+    },
+    "GlobalColor": {
+      "additionalProperties": false,
+      "properties": {
+        "gains_rgb": {
+          "items": {
+            "maximum": 4,
+            "minimum": 0.25,
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Gains Rgb",
+          "type": "array"
+        },
+        "master_curve": {
+          "items": {
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "maxItems": 7,
+          "minItems": 7,
+          "title": "Master Curve",
+          "type": "array"
+        },
+        "residual_lut": {
+          "$ref": "#/$defs/LUT"
+        },
+        "rgb_curves": {
+          "items": {
+            "items": {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            "maxItems": 7,
+            "minItems": 7,
+            "type": "array"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Rgb Curves",
+          "type": "array"
+        },
+        "saturation": {
+          "maximum": 2,
+          "minimum": 0,
+          "title": "Saturation",
+          "type": "number"
+        }
+      },
+      "required": [
+        "gains_rgb",
+        "master_curve",
+        "rgb_curves",
+        "saturation",
+        "residual_lut"
+      ],
+      "title": "GlobalColor",
+      "type": "object"
+    },
+    "Inpainting": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "const": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "mask_source": {
+          "const": "per_image",
+          "title": "Mask Source",
+          "type": "string"
+        },
+        "model": {
+          "const": "big_lama",
+          "title": "Model",
+          "type": "string"
+        },
+        "policy": {
+          "const": "review",
+          "title": "Policy",
+          "type": "string"
+        }
+      },
+      "required": [
+        "enabled",
+        "model",
+        "policy",
+        "mask_source"
+      ],
+      "title": "Inpainting",
+      "type": "object"
+    },
+    "LUT": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Domain",
+          "type": "array"
+        },
+        "encoding": {
+          "enum": [
+            "dense",
+            "constant"
+          ],
+          "title": "Encoding",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "residual",
+            "absolute"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "order": {
+          "const": "RGB_C",
+          "default": "RGB_C",
+          "title": "Order",
+          "type": "string"
+        },
+        "size": {
+          "enum": [
+            17,
+            33,
+            65
+          ],
+          "title": "Size",
+          "type": "integer"
+        },
+        "values": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Values",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "size",
+        "encoding",
+        "values"
+      ],
+      "title": "LUT",
+      "type": "object"
+    },
+    "LocalColor": {
+      "additionalProperties": false,
+      "properties": {
+        "background_ev": {
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Background Ev",
+          "type": "number"
+        },
+        "background_saturation": {
+          "maximum": 1.3,
+          "minimum": 0.7,
+          "title": "Background Saturation",
+          "type": "number"
+        },
+        "enabled": {
+          "const": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "mask_policy_id": {
+          "const": "person_guided_v1",
+          "title": "Mask Policy Id",
+          "type": "string"
+        },
+        "person_ev": {
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Person Ev",
+          "type": "number"
+        },
+        "person_saturation": {
+          "maximum": 1.3,
+          "minimum": 0.7,
+          "title": "Person Saturation",
+          "type": "number"
+        }
+      },
+      "required": [
+        "enabled",
+        "person_ev",
+        "background_ev",
+        "person_saturation",
+        "background_saturation",
+        "mask_policy_id"
+      ],
+      "title": "LocalColor",
+      "type": "object"
+    },
+    "Masking": {
+      "additionalProperties": false,
+      "properties": {
+        "face": {
+          "const": "bisenet_face19",
+          "title": "Face",
+          "type": "string"
+        },
+        "interactive": {
+          "const": "mobilesam",
+          "title": "Interactive",
+          "type": "string"
+        },
+        "scene": {
+          "const": "segformer_b0_ade",
+          "title": "Scene",
+          "type": "string"
+        }
+      },
+      "required": [
+        "scene",
+        "face",
+        "interactive"
+      ],
+      "title": "Masking",
+      "type": "object"
+    },
+    "MetricBlock": {
+      "additionalProperties": false,
+      "properties": {
+        "median_delta_e": {
+          "minimum": 0,
+          "title": "Median Delta E",
+          "type": "number"
+        },
+        "p95_delta_e": {
+          "minimum": 0,
+          "title": "P95 Delta E",
+          "type": "number"
+        },
+        "sample_count": {
+          "minimum": 1,
+          "title": "Sample Count",
+          "type": "integer"
+        },
+        "ssim": {
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Ssim",
+          "type": "number"
+        }
+      },
+      "required": [
+        "median_delta_e",
+        "p95_delta_e",
+        "ssim",
+        "sample_count"
+      ],
+      "title": "MetricBlock",
+      "type": "object"
+    },
+    "ModelReference": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "weight_id": {
+          "title": "Weight Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "weight_id"
+      ],
+      "title": "ModelReference",
+      "type": "object"
+    },
+    "PortraitDetail": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "const": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "glasses_policy": {
+          "const": "review",
+          "title": "Glasses Policy",
+          "type": "string"
+        },
+        "shine_strength": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Shine Strength",
+          "type": "number"
+        },
+        "teeth_strength": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Teeth Strength",
+          "type": "number"
+        },
+        "under_eye_strength": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Under Eye Strength",
+          "type": "number"
+        }
+      },
+      "required": [
+        "enabled",
+        "teeth_strength",
+        "shine_strength",
+        "under_eye_strength",
+        "glasses_policy"
+      ],
+      "title": "PortraitDetail",
+      "type": "object"
+    },
+    "Prototype": {
+      "additionalProperties": false,
+      "properties": {
+        "absolute_lut": {
+          "$ref": "#/$defs/LUT"
+        },
+        "features": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 20,
+          "minItems": 20,
+          "title": "Features",
+          "type": "array"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "local": {
+          "discriminator": {
+            "mapping": {
+              "False": "#/$defs/Disabled",
+              "True": "#/$defs/LocalColor"
+            },
+            "propertyName": "enabled"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Disabled"
+            },
+            {
+              "$ref": "#/$defs/LocalColor"
+            }
+          ],
+          "title": "Local"
+        }
+      },
+      "required": [
+        "id",
+        "features",
+        "absolute_lut",
+        "local"
+      ],
+      "title": "Prototype",
+      "type": "object"
+    },
+    "Provenance": {
+      "additionalProperties": false,
+      "properties": {
+        "manifest_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Manifest Sha256"
+        },
+        "pair_count": {
+          "minimum": 0,
+          "title": "Pair Count",
+          "type": "integer"
+        },
+        "runtime_lock_id": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Runtime Lock Id"
+        },
+        "seed": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "title": "Seed",
+          "type": "integer"
+        },
+        "session_count": {
+          "minimum": 0,
+          "title": "Session Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "pair_count",
+        "session_count",
+        "seed",
+        "manifest_sha256",
+        "runtime_lock_id"
+      ],
+      "title": "Provenance",
+      "type": "object"
+    },
+    "Quality": {
+      "additionalProperties": false,
+      "properties": {
+        "beauty_validation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MetricBlock"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "geometry_validation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MetricBlock"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reconstruction": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MetricBlock"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "enum": [
+            "example",
+            "measured",
+            "needs_review"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "transfer_confidence": {
+          "enum": [
+            "unvalidated",
+            "experimental",
+            "validated"
+          ],
+          "title": "Transfer Confidence",
+          "type": "string"
+        },
+        "validation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MetricBlock"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status",
+        "reconstruction",
+        "validation",
+        "transfer_confidence",
+        "warnings"
+      ],
+      "title": "Quality",
+      "type": "object"
+    },
+    "RegionAdjustment": {
+      "additionalProperties": false,
+      "properties": {
+        "ev": {
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Ev",
+          "type": "number"
+        },
+        "hue_deg": {
+          "maximum": 15,
+          "minimum": -15,
+          "title": "Hue Deg",
+          "type": "number"
+        },
+        "priority": {
+          "title": "Priority",
+          "type": "integer"
+        },
+        "region_id": {
+          "title": "Region Id",
+          "type": "string"
+        },
+        "saturation": {
+          "maximum": 1.3,
+          "minimum": 0.7,
+          "title": "Saturation",
+          "type": "number"
+        },
+        "selector": {
+          "enum": [
+            "person",
+            "background",
+            "skin",
+            "sky",
+            "clothing",
+            "manual"
+          ],
+          "title": "Selector",
+          "type": "string"
+        },
+        "strength": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Strength",
+          "type": "number"
+        }
+      },
+      "required": [
+        "region_id",
+        "selector",
+        "ev",
+        "saturation",
+        "hue_deg",
+        "strength",
+        "priority"
+      ],
+      "title": "RegionAdjustment",
+      "type": "object"
+    },
+    "Restoration": {
+      "additionalProperties": false,
+      "properties": {
+        "denoise": {
+          "enum": [
+            "off",
+            "scunet_color_real_psnr"
+          ],
+          "title": "Denoise",
+          "type": "string"
+        },
+        "denoise_strength": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Denoise Strength",
+          "type": "number"
+        },
+        "sensor_dust": {
+          "enum": [
+            "off",
+            "review",
+            "conservative_auto"
+          ],
+          "title": "Sensor Dust",
+          "type": "string"
+        },
+        "upscale": {
+          "enum": [
+            "off",
+            "2x",
+            "4x"
+          ],
+          "title": "Upscale",
+          "type": "string"
+        }
+      },
+      "required": [
+        "denoise",
+        "denoise_strength",
+        "upscale",
+        "sensor_dust"
+      ],
+      "title": "Restoration",
+      "type": "object"
+    },
+    "Series": {
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": {
+          "const": "seriesmatch_v1",
+          "title": "Algorithm",
+          "type": "string"
+        },
+        "enabled": {
+          "const": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "ev_limit": {
+          "maximum": 0.35,
+          "minimum": 0,
+          "title": "Ev Limit",
+          "type": "number"
+        },
+        "reference": {
+          "title": "Reference",
+          "type": "string"
+        },
+        "rgb_gain_limits": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Rgb Gain Limits",
+          "type": "array"
+        }
+      },
+      "required": [
+        "enabled",
+        "algorithm",
+        "reference",
+        "ev_limit",
+        "rgb_gain_limits"
+      ],
+      "title": "Series",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/photo-style.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "adaptation": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Adaptation"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "beauty": {
+      "discriminator": {
+        "mapping": {
+          "False": "#/$defs/Disabled",
+          "True": "#/$defs/Beauty"
+        },
+        "propertyName": "enabled"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Disabled"
+        },
+        {
+          "$ref": "#/$defs/Beauty"
+        }
+      ],
+      "title": "Beauty"
+    },
+    "color": {
+      "$ref": "#/$defs/ColorSpace"
+    },
+    "defects": {
+      "discriminator": {
+        "mapping": {
+          "False": "#/$defs/Disabled",
+          "True": "#/$defs/Defects"
+        },
+        "propertyName": "enabled"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Disabled"
+        },
+        {
+          "$ref": "#/$defs/Defects"
+        }
+      ],
+      "title": "Defects"
+    },
+    "extensions": {
+      "$ref": "#/$defs/Extensions"
+    },
+    "geometry": {
+      "discriminator": {
+        "mapping": {
+          "False": "#/$defs/Disabled",
+          "True": "#/$defs/Geometry"
+        },
+        "propertyName": "enabled"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Disabled"
+        },
+        {
+          "$ref": "#/$defs/Geometry"
+        }
+      ],
+      "title": "Geometry"
+    },
+    "global": {
+      "$ref": "#/$defs/GlobalColor"
+    },
+    "local": {
+      "discriminator": {
+        "mapping": {
+          "False": "#/$defs/Disabled",
+          "True": "#/$defs/LocalColor"
+        },
+        "propertyName": "enabled"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Disabled"
+        },
+        {
+          "$ref": "#/$defs/LocalColor"
+        }
+      ],
+      "title": "Local"
+    },
+    "mode": {
+      "enum": [
+        "fixed",
+        "adaptive"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "models": {
+      "items": {
+        "$ref": "#/$defs/ModelReference"
+      },
+      "title": "Models",
+      "type": "array"
+    },
+    "provenance": {
+      "$ref": "#/$defs/Provenance"
+    },
+    "quality": {
+      "$ref": "#/$defs/Quality"
+    },
+    "raw_recipe": {
+      "const": "raw_camera_wb_linear_srgb_ahd_v1",
+      "title": "Raw Recipe",
+      "type": "string"
+    },
+    "renderer_version": {
+      "const": "photo_renderer_v2",
+      "title": "Renderer Version",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "2.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "strength": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Strength",
+      "type": "number"
+    },
+    "style_id": {
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Style Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "renderer_version",
+    "style_id",
+    "mode",
+    "strength",
+    "color",
+    "raw_recipe",
+    "models",
+    "global",
+    "local",
+    "adaptation",
+    "beauty",
+    "defects",
+    "geometry",
+    "extensions",
+    "provenance",
+    "quality"
+  ],
+  "title": "StyleV2",
+  "type": "object"
+}

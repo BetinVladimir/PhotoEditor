@@ -1,0 +1,123 @@
+{
+  "package_id": "P09",
+  "status": "complete",
+  "source_commit": "fee5be46bca3afff31e953676627b20834bc3084",
+  "changed_files": [
+    "workers/photo_worker/contracts/style.py",
+    "workers/photo_worker/algorithms/color.py",
+    "workers/photo_worker/algorithms/adaptation.py",
+    "workers/photo_worker/algorithms/torch_color.py",
+    "workers/photo_worker/algorithms/tiles.py",
+    "workers/photo_worker/algorithms/style.py",
+    "workers/photo_worker/algorithms/statistics.py",
+    "workers/photo_worker/operations/color/stats.py",
+    "workers/photo_worker/contracts/statistics.py",
+    "workers/photo_worker/runtime/service.py",
+    "backend/db/migrations/00031_statistics_output_policy.sql",
+    "packages/contracts/generated/stats-params.schema.json",
+    "tests/platform/test_statistics.py",
+    "tests/platform/test_stats_adapter.py",
+    "workers/photo_worker/runtime/parameters.py",
+    "workers/photo_worker/runtime/artifacts.py",
+    "tests/platform/test_parameters.py",
+    "workers/photo_worker/contracts/resolved.py",
+    "workers/photo_worker/contracts/images.py",
+    "workers/photo_worker/operations/style/resolve.py",
+    "workers/photo_worker/operations/color/stats.py",
+    "workers/photo_worker/runtime/service.py",
+    "backend/db/migrations/00032_resolved_style_output_policies.sql",
+    "packages/contracts/generated/resolved-style.schema.json",
+    "packages/contracts/generated/resolve-params.schema.json",
+    "tests/platform/test_resolve_adapter.py",
+    "packages/api-client/src/canonical.ts",
+    "packages/api-client/src/canonical.test.ts",
+    "packages/api-client/src/index.ts",
+    "packages/api-client/src/index.test.ts",
+    "packages/api-client/tsconfig.json",
+    "packages/api-client/package-lock.json"
+  ],
+  "checks": [
+    {
+      "id": "implemented-subset-tests",
+      "command": "make test test-db",
+      "exit_code": 0,
+      "evidence": "work/evidence/platform-tests.log"
+    },
+    {
+      "id": "cpu-mps-color-autograd",
+      "command": "pytest tests/platform/test_torch_color.py",
+      "exit_code": 0,
+      "evidence": "work/evidence/torch-color-tests.log"
+    },
+    {
+      "id": "go-python-jcs",
+      "command": "make contracts-check test-go",
+      "exit_code": 0,
+      "evidence": "work/evidence/cross-language-tests.log"
+    },
+    {
+      "id": "lut-100000-ood",
+      "command": "pytest tests/platform/test_style_resolve.py",
+      "exit_code": 0,
+      "evidence": "work/evidence/style-resolve-tests.log"
+    },
+    {
+      "id": "stats20-task-adapter",
+      "command": "pytest tests/platform -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/stats-platform-tests.log",
+      "note": "153 passed; exact reference parity, gamma conversion, alpha exclusion, canvas binding, owned workspace and low-confidence review."
+    },
+    {
+      "id": "stats20-workspace-memory",
+      "command": "pytest tests/platform/test_statistics.py::test_exact_quantiles_do_not_copy_the_full_disk_workspace -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/stats-memory-tests.log",
+      "note": "4MP exact partition, traced temporary allocations below16MiB excluding existing inputs/workspace."
+    },
+    {
+      "id": "stats20-boundary-hardening",
+      "command": "pytest tests/platform/test_statistics.py tests/platform/test_stats_adapter.py -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/stats-boundaries-tests.log",
+      "note": "12 passed: alpha workspace alias rejected, contiguous cross-row blocks preserve quadrants, noncontiguous parity, tall/narrow input and 4MP memory bound."
+    },
+    {
+      "id": "large-style-artifact-reader",
+      "command": "pytest tests/platform/test_parameters.py -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/style-artifact-reader-tests.log",
+      "note": "6 passed: StyleV2 above1MiB, unchanged normal control limit, strict duplicate/hash validation, cap/stream closure, declared input and RAM preflight."
+    },
+    {
+      "id": "counted-color-ood",
+      "command": "pytest tests/platform/test_style_resolve.py tests/platform/test_statistics.py -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/counted-ood-tests.log",
+      "note": "15 passed; exact frequency-based OOD matches per-pixel result, transparent pixels excluded, group-fixed review retained, invalid counts rejected."
+    },
+    {
+      "id": "style-resolve-task",
+      "command": "pytest tests/platform -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/resolve-adapter-platform-tests.log",
+      "note": "167 passed. Fixed/adaptive output, binary LUT staging, strict skip/group policy, Stats20 source binding and resolved hash validation; controlled artifact ports."
+    },
+    {
+      "id": "typescript-jcs-and-api-boundary",
+      "command": "cd packages/api-client && npm test && npm run typecheck",
+      "exit_code": 0,
+      "note": "14 tests passed; shared Go/Python/TypeScript golden vectors agree, API mutation bodies use JCS, invalid Unicode/non-finite/cycles/sparse/non-plain values fail closed."
+    }
+  ],
+  "blocked_gates": [],
+  "decisions": [
+    "StyleV2, numpy ColorProgram, Stats20/KNN/OOD, guided tile maps and PyTorch autograd ColorProgram implemented. Go/Python JCS golden vectors agree. CPU and MPS results meet numeric tolerance; full renderer orchestration and TS canonical vectors remain.",
+    "color.stats installed in CPU runtime with strict StatsParams, required person mask, optional alpha exclusion and exact disk-backed quantiles. Streaming float64 moments preserve Stats20 within1e-11 reference tolerance. SQL31 output policy added, SQL20–31 unverified live; dev Docker remains unavailable. Legacy quality baseline unchanged. Person inference/graph and production photo acceptance remain incomplete.",
+    "Stats20 workspace alias guard now includes alpha. Contiguous inputs scan fixed-size flat blocks across rows; noncontiguous sources preserve bounded slices. No statistical-definition change; reference tolerance and memory checks still pass.",
+    "Dedicated read_style supports specified100000000-byte StyleV2 artifact limit. TaskArtifacts.style requires declared ref and admitted3GiB RAM before IO; ordinary read_contract stays1MiB. Worst-case100MB/RSS stress and style.resolve task adapter remain pending.",
+    "Bounded 512-cell coverage counts now feed numerical resolve_style without retaining a linear frame. Exact pixel-frequency weighting preserves20% threshold; simultaneous pixels/counts rejected. Runtime resolver artifact contracts/output lifecycle remain incomplete.",
+    "CPU style.resolve installed. ResolvedStyle has strict mode/color/evidence invariants and JCS body hash; adaptive LUT is separate float32 NPY, typed remaining modules preserved. Stats20.source_image emitted by color.stats and required to match resolver input. Strict OOD produces explicit skip manifest; downstream graph must honor it. Migration32 added but SQL20–32/live orchestration unverified; complete apply renderer and effect operations remain unfinished.",
+    "TypeScript API boundary now uses strict RFC8785 serialization. Shared canonical vectors pass in Go, Python and TypeScript; request bodies are canonical and invalid Unicode, non-finite values, cycles, sparse arrays and non-plain objects fail before network IO. P09 completion covers N01/N04/N05/N06 and fixed/adaptive schemas; full Apply orchestration belongs to P11 and real-photo acceptance to P18."
+  ]
+}

@@ -1,0 +1,159 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "ModelRef": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "lock_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Lock Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "lock_id"
+      ],
+      "title": "ModelRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/task-command.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "attempt": {
+      "minimum": 1,
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "correlation_id": {
+      "format": "uuid",
+      "title": "Correlation Id",
+      "type": "string"
+    },
+    "event_id": {
+      "format": "uuid",
+      "title": "Event Id",
+      "type": "string"
+    },
+    "inputs": {
+      "items": {
+        "$ref": "#/$defs/ArtifactRef"
+      },
+      "maxItems": 512,
+      "title": "Inputs",
+      "type": "array"
+    },
+    "model": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ModelRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "operation": {
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Operation",
+      "type": "string"
+    },
+    "operation_version": {
+      "const": "1",
+      "title": "Operation Version",
+      "type": "string"
+    },
+    "params": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "resource_class": {
+      "enum": [
+        "cpu",
+        "gpu",
+        "media",
+        "archive",
+        "collection",
+        "mail"
+      ],
+      "title": "Resource Class",
+      "type": "string"
+    },
+    "run_id": {
+      "format": "uuid",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "task_id": {
+      "format": "uuid",
+      "title": "Task Id",
+      "type": "string"
+    },
+    "tenant_id": {
+      "format": "uuid",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "timeout_seconds": {
+      "maximum": 7200,
+      "minimum": 1,
+      "title": "Timeout Seconds",
+      "type": "integer"
+    },
+    "traceparent": {
+      "maxLength": 128,
+      "title": "Traceparent",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "event_id",
+    "tenant_id",
+    "run_id",
+    "task_id",
+    "attempt",
+    "operation",
+    "operation_version",
+    "resource_class",
+    "correlation_id",
+    "inputs",
+    "params",
+    "model",
+    "timeout_seconds",
+    "traceparent"
+  ],
+  "title": "TaskCommand",
+  "type": "object"
+}

@@ -1,0 +1,99 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/derivative-manifest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "alpha": {
+      "title": "Alpha",
+      "type": "boolean"
+    },
+    "color_profile": {
+      "const": "srgb",
+      "title": "Color Profile",
+      "type": "string"
+    },
+    "derivative": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "height": {
+      "maximum": 200000,
+      "minimum": 1,
+      "title": "Height",
+      "type": "integer"
+    },
+    "media_type": {
+      "enum": [
+        "image/jpeg",
+        "image/webp"
+      ],
+      "title": "Media Type",
+      "type": "string"
+    },
+    "metadata_policy": {
+      "const": "stripped",
+      "title": "Metadata Policy",
+      "type": "string"
+    },
+    "profile_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Profile Hash",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "variant": {
+      "enum": [
+        "thumb320",
+        "thumb640",
+        "preview1600",
+        "preview2560"
+      ],
+      "title": "Variant",
+      "type": "string"
+    },
+    "width": {
+      "maximum": 200000,
+      "minimum": 1,
+      "title": "Width",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "source",
+    "derivative",
+    "variant",
+    "profile_hash",
+    "width",
+    "height",
+    "media_type",
+    "color_profile",
+    "metadata_policy",
+    "alpha"
+  ],
+  "title": "DerivativeManifest",
+  "type": "object"
+}

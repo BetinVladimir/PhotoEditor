@@ -1,0 +1,13 @@
+# Optional operator-qualified calibration mount; combine with compose.yaml.
+services:
+  api:
+    environment:
+      PHOTO_RENDER_CALIBRATION_FILE: /run/photo/render/calibration.json
+      PHOTO_RENDER_CALIBRATION_SHA256: ${PHOTO_RENDER_CALIBRATION_SHA256:?operator-pinned calibration SHA256 required}
+    volumes:
+      - type: bind
+        source: ${PHOTO_RENDER_CALIBRATION_HOST_FILE:?absolute measured calibration manifest required}
+        target: /run/photo/render/calibration.json
+        read_only: true
+        bind:
+          create_host_path: false

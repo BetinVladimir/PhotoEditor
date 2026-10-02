@@ -1,0 +1,145 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/generation-report.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "backend": {
+      "enum": [
+        "cpu",
+        "cuda",
+        "mps"
+      ],
+      "title": "Backend",
+      "type": "string"
+    },
+    "candidate_requires_review": {
+      "const": true,
+      "default": true,
+      "title": "Candidate Requires Review",
+      "type": "boolean"
+    },
+    "generated_pixels": {
+      "maximum": 200000000,
+      "minimum": 1,
+      "title": "Generated Pixels",
+      "type": "integer"
+    },
+    "guidance_scale": {
+      "maximum": 20,
+      "minimum": 1,
+      "title": "Guidance Scale",
+      "type": "number"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "mask": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "model_id": {
+      "const": "sd15_inpaint",
+      "title": "Model Id",
+      "type": "string"
+    },
+    "model_lock_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Model Lock Id",
+      "type": "string"
+    },
+    "protected_pixels": {
+      "maximum": 200000000,
+      "minimum": 0,
+      "title": "Protected Pixels",
+      "type": "integer"
+    },
+    "scheduler": {
+      "const": "ddim_v1",
+      "default": "ddim_v1",
+      "title": "Scheduler",
+      "type": "string"
+    },
+    "seed": {
+      "maximum": 4294967295,
+      "minimum": 0,
+      "title": "Seed",
+      "type": "integer"
+    },
+    "side": {
+      "anyOf": [
+        {
+          "enum": [
+            "left",
+            "right",
+            "top",
+            "bottom"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Side"
+    },
+    "source_rect": {
+      "items": {
+        "type": "integer"
+      },
+      "maxItems": 4,
+      "minItems": 4,
+      "title": "Source Rect",
+      "type": "array"
+    },
+    "steps": {
+      "const": 25,
+      "default": 25,
+      "title": "Steps",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "image",
+    "mask",
+    "model_id",
+    "model_lock_id",
+    "backend",
+    "seed",
+    "guidance_scale",
+    "generated_pixels",
+    "protected_pixels",
+    "side",
+    "source_rect"
+  ],
+  "title": "GenerationReport",
+  "type": "object"
+}

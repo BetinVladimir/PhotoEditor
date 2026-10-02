@@ -1,0 +1,101 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/compose-report.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "asset_scale": {
+      "anyOf": [
+        {
+          "maximum": 10,
+          "minimum": 1,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Asset Scale"
+    },
+    "contact_shadow": {
+      "title": "Contact Shadow",
+      "type": "boolean"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "linear_light": {
+      "const": true,
+      "default": true,
+      "title": "Linear Light",
+      "type": "boolean"
+    },
+    "mode": {
+      "enum": [
+        "transparent",
+        "solid",
+        "asset"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "pixel_count": {
+      "maximum": 200000000,
+      "minimum": 1,
+      "title": "Pixel Count",
+      "type": "integer"
+    },
+    "source_alpha_combined": {
+      "title": "Source Alpha Combined",
+      "type": "boolean"
+    },
+    "subject": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "subject_confidence": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Subject Confidence",
+      "type": "number"
+    },
+    "transparent_rgb_zeroed": {
+      "title": "Transparent Rgb Zeroed",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "image",
+    "subject",
+    "mode",
+    "pixel_count",
+    "subject_confidence",
+    "source_alpha_combined",
+    "transparent_rgb_zeroed",
+    "contact_shadow"
+  ],
+  "title": "ComposeReport",
+  "type": "object"
+}

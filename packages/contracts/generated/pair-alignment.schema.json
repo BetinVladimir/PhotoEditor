@@ -1,0 +1,158 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "Canvas": {
+      "additionalProperties": false,
+      "properties": {
+        "height": {
+          "maximum": 2147483647,
+          "minimum": 1,
+          "title": "Height",
+          "type": "integer"
+        },
+        "orientation": {
+          "const": 1,
+          "title": "Orientation",
+          "type": "integer"
+        },
+        "source_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Sha256",
+          "type": "string"
+        },
+        "space_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$",
+          "title": "Space Id",
+          "type": "string"
+        },
+        "width": {
+          "maximum": 2147483647,
+          "minimum": 1,
+          "title": "Width",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "width",
+        "height",
+        "orientation",
+        "space_id",
+        "source_sha256"
+      ],
+      "title": "Canvas",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/pair-alignment.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "after": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "after_canvas": {
+      "$ref": "#/$defs/Canvas"
+    },
+    "before": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "before_canvas": {
+      "$ref": "#/$defs/Canvas"
+    },
+    "before_to_after": {
+      "items": {
+        "maximum": 1000000000000.0,
+        "minimum": -1000000000000.0,
+        "type": "number"
+      },
+      "maxItems": 9,
+      "minItems": 9,
+      "title": "Before To After",
+      "type": "array"
+    },
+    "confidence": {
+      "enum": [
+        "measured",
+        "user_confirmed"
+      ],
+      "title": "Confidence",
+      "type": "string"
+    },
+    "crop_aware": {
+      "title": "Crop Aware",
+      "type": "boolean"
+    },
+    "inlier_count": {
+      "maximum": 4000,
+      "minimum": 0,
+      "title": "Inlier Count",
+      "type": "integer"
+    },
+    "median_reprojection": {
+      "anyOf": [
+        {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Median Reprojection"
+    },
+    "overlap": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Overlap",
+      "type": "number"
+    },
+    "warnings": {
+      "items": {
+        "enum": [
+          "ecc_not_improved",
+          "ecc_not_converged",
+          "background_mask_not_provided"
+        ],
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "before",
+    "after",
+    "before_canvas",
+    "after_canvas",
+    "before_to_after",
+    "overlap",
+    "median_reprojection",
+    "inlier_count",
+    "confidence",
+    "crop_aware",
+    "warnings"
+  ],
+  "title": "PairAlignment",
+  "type": "object"
+}

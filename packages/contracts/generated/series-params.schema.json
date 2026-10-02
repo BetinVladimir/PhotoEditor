@@ -1,0 +1,94 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/series-params.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "algorithm": {
+      "const": "seriesmatch_v1",
+      "default": "seriesmatch_v1",
+      "title": "Algorithm",
+      "type": "string"
+    },
+    "ev_limit": {
+      "const": 0.35,
+      "default": 0.35,
+      "title": "Ev Limit",
+      "type": "number"
+    },
+    "gain_max": {
+      "const": 1.05,
+      "default": 1.05,
+      "title": "Gain Max",
+      "type": "number"
+    },
+    "gain_min": {
+      "const": 0.95,
+      "default": 0.95,
+      "title": "Gain Min",
+      "type": "number"
+    },
+    "min_confidence": {
+      "const": 0.75,
+      "default": 0.75,
+      "title": "Min Confidence",
+      "type": "number"
+    },
+    "reference_item_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reference Item Id"
+    },
+    "scene_id": {
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Scene Id",
+      "type": "string"
+    },
+    "stats": {
+      "items": {
+        "$ref": "#/$defs/ArtifactRef"
+      },
+      "maxItems": 2000,
+      "minItems": 2,
+      "title": "Stats",
+      "type": "array"
+    }
+  },
+  "required": [
+    "scene_id",
+    "stats"
+  ],
+  "title": "SeriesParams",
+  "type": "object"
+}

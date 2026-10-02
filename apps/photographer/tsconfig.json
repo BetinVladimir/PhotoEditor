@@ -1,0 +1,1 @@
+{"extends":"expo/tsconfig.base","compilerOptions":{"strict":true,"noEmit":true,"resolveJsonModule":true,"skipLibCheck":true,"baseUrl":".","paths":{"@photoeditor/api-client":["../../packages/api-client/src/index.ts"]}},"include":["app/**/*.tsx","src/**/*.ts","src/**/*.tsx"]}

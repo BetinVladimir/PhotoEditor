@@ -1,0 +1,125 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "RegionStats": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "coverage": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Coverage",
+          "type": "number"
+        },
+        "mean_rgb": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Mean Rgb",
+          "type": "array"
+        },
+        "mean_y": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Mean Y",
+          "type": "number"
+        },
+        "region_id": {
+          "title": "Region Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "region_id",
+        "mean_rgb",
+        "mean_y",
+        "coverage",
+        "confidence"
+      ],
+      "title": "RegionStats",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/series-stats.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "algorithm": {
+      "const": "seriesmatch_v1",
+      "default": "seriesmatch_v1",
+      "title": "Algorithm",
+      "type": "string"
+    },
+    "clipping_fraction": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Clipping Fraction",
+      "type": "number"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "item_id": {
+      "format": "uuid",
+      "title": "Item Id",
+      "type": "string"
+    },
+    "regions": {
+      "items": {
+        "$ref": "#/$defs/RegionStats"
+      },
+      "maxItems": 32,
+      "minItems": 1,
+      "title": "Regions",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "enum": [
+          "low_region_coverage",
+          "low_mask_confidence"
+        ],
+        "type": "string"
+      },
+      "maxItems": 2,
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "item_id",
+    "image",
+    "regions",
+    "clipping_fraction",
+    "warnings"
+  ],
+  "title": "SeriesStats",
+  "type": "object"
+}

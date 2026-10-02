@@ -1,0 +1,62 @@
+[
+  {
+    "seed": 0,
+    "count": 1,
+    "digest": "6b06af1b3cf84fedc7194671839b24a789d2c5efc582b49ca708bc148d4a071c"
+  },
+  {
+    "seed": 0,
+    "count": 17,
+    "digest": "d7f19761352b0097567e39690d8f8d5bfd80c3109e9808ed15c50e64edb789b6"
+  },
+  {
+    "seed": 0,
+    "count": 2000,
+    "digest": "81ef12beea29261c963fa162546e90b219150503fd2b1a7fb28e075c6da4e6a9"
+  },
+  {
+    "seed": 0,
+    "count": 65536,
+    "digest": "4572d39dc63840bf8232e0365c014626e342b71a2f83af3265c32b438d7b2810"
+  },
+  {
+    "seed": 19,
+    "count": 1,
+    "digest": "90ca6ff6e9e56b470275342577abd3175f081d822ec79e28b11674d8c06bda55"
+  },
+  {
+    "seed": 19,
+    "count": 17,
+    "digest": "09f00745f2f1ccc8e5e32c3da7d3a3a9ab187e59e1aed57a41e0dc66c1bc4b91"
+  },
+  {
+    "seed": 19,
+    "count": 2000,
+    "digest": "68ef23187cf87c4d3aaaa896b84d54af1b2b2bf6ba53b4121909e4173b8981e0"
+  },
+  {
+    "seed": 19,
+    "count": 65536,
+    "digest": "b9a24f7e5fad98d77874895cfe0c7e9734528253392bfb8c299183ddac7c5e40"
+  },
+  {
+    "seed": 42,
+    "count": 1,
+    "digest": "3201c1c28c39a1a9ff12b6d9ec0f6eeda66f2afc4620c1e5256dae8205832e61"
+  },
+  {
+    "seed": 42,
+    "count": 17,
+    "digest": "f654d904940814ba53fd44b4287776df2c2efec970fe1493844831acf68da4e9"
+  },
+  {
+    "seed": 42,
+    "count": 2000,
+    "digest": "d9aa4f0d26cd4c55ff8cc41aad07573d0e1108a0ceabb5075ff4d5513f72c065"
+  },
+  {
+    "seed": 42,
+    "count": 65536,
+    "digest": "b2072c60fb1d8d2095adc320e033473f07b2b35d9046dfcc904c09e03544d2fc"
+  }
+]

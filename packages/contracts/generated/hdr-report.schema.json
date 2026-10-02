@@ -1,0 +1,102 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/hdr-report.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "deghost_fraction": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Deghost Fraction",
+      "type": "number"
+    },
+    "mode": {
+      "enum": [
+        "debevec",
+        "mertens"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "pixel_count": {
+      "maximum": 200000000,
+      "minimum": 1,
+      "title": "Pixel Count",
+      "type": "integer"
+    },
+    "radiometric": {
+      "title": "Radiometric",
+      "type": "boolean"
+    },
+    "registration": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "response_calibrated": {
+      "title": "Response Calibrated",
+      "type": "boolean"
+    },
+    "tonemap": {
+      "enum": [
+        "reinhard_intensity0_light1_color0_gamma1",
+        "mertens_default_v1"
+      ],
+      "title": "Tonemap",
+      "type": "string"
+    },
+    "unrecoverable_fraction": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Unrecoverable Fraction",
+      "type": "number"
+    },
+    "warnings": {
+      "items": {
+        "enum": [
+          "motion_deghosted",
+          "all_exposures_clipped",
+          "non_radiometric_mertens",
+          "registration_review"
+        ],
+        "type": "string"
+      },
+      "maxItems": 4,
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "registration",
+    "mode",
+    "pixel_count",
+    "response_calibrated",
+    "radiometric",
+    "deghost_fraction",
+    "unrecoverable_fraction",
+    "tonemap",
+    "warnings"
+  ],
+  "title": "HDRReport",
+  "type": "object"
+}

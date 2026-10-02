@@ -1,0 +1,1506 @@
+{
+  "schema_version": 1,
+  "notes": "Backends are required doctor targets, not claims of measured compatibility. CPU fallback routes cpu.<operation> when GPU unavailable; persist selected class before dispatch. One operation per task.",
+  "operations": [
+    {
+      "name": "asset.verify",
+      "version": "1",
+      "module": "workers/photo_worker/operations/asset/verify.py",
+      "resource_class": "media",
+      "routing_key": "io.verify",
+      "model": null,
+      "timeout_seconds": 300,
+      "input_type": "StagingRef",
+      "params_type": "VerifyParams",
+      "output_type": "VerifiedAsset",
+      "methods": [
+        "verify_magic",
+        "verify_size",
+        "verify_decode"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "asset.inspect",
+      "version": "1",
+      "module": "workers/photo_worker/operations/asset/inspect.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.inspect",
+      "model": null,
+      "timeout_seconds": 180,
+      "input_type": "SourceRef",
+      "params_type": "InspectParams",
+      "output_type": "ImageMetadata",
+      "methods": [
+        "read_metadata",
+        "validate_icc",
+        "detect_orientation"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "asset.decode",
+      "version": "1",
+      "module": "workers/photo_worker/operations/asset/decode.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.decode",
+      "model": null,
+      "timeout_seconds": 600,
+      "input_type": "SourceRef",
+      "params_type": "DecodeParams",
+      "output_type": "WorkingImage",
+      "methods": [
+        "decode_raw",
+        "orient_once",
+        "icc_to_work"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "pair.register",
+      "version": "1",
+      "module": "workers/photo_worker/operations/pair/register.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.register",
+      "model": null,
+      "timeout_seconds": 300,
+      "input_type": "PairImages",
+      "params_type": "RegistrationParams",
+      "output_type": "PairAlignment",
+      "methods": [
+        "sift_similarity",
+        "ecc_refine",
+        "measure_overlap"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "features.scene",
+      "version": "1",
+      "module": "workers/photo_worker/operations/features/scene.py",
+      "resource_class": "gpu",
+      "routing_key": "gpu.scene",
+      "model": "dinov2_vits14",
+      "timeout_seconds": 180,
+      "input_type": "SRGBPreview",
+      "params_type": "SceneParams",
+      "output_type": "Embedding384",
+      "methods": [
+        "pad_preview",
+        "embed",
+        "l2_normalize"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu",
+        "cuda",
+        "mps"
+      ]
+    },
+    {
+      "name": "color.stats",
+      "version": "1",
+      "module": "workers/photo_worker/operations/color/stats.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.stats",
+      "model": null,
+      "timeout_seconds": 60,
+      "input_type": "ImageAndMask",
+      "params_type": "StatsParams",
+      "output_type": "Stats20",
+      "methods": [
+        "linear_stats",
+        "quantiles",
+        "coverage_bins"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "mask.person",
+      "version": "1",
+      "module": "workers/photo_worker/operations/mask/person.py",
+      "resource_class": "gpu",
+      "routing_key": "gpu.person",
+      "model": "lraspp_mobilenet_v3_large",
+      "timeout_seconds": 180,
+      "input_type": "SRGBPreview",
+      "params_type": "PersonParams",
+      "output_type": "ProbabilityMask",
+      "methods": [
+        "preprocess_person",
+        "infer",
+        "refine_guided"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu",
+        "cuda",
+        "mps"
+      ]
+    },
+    {
+      "name": "mask.face_skin",
+      "version": "1",
+      "module": "workers/photo_worker/operations/mask/face_skin.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.mask",
+      "model": null,
+      "timeout_seconds": 180,
+      "input_type": "FaceLabels19",
+      "params_type": "FaceSkinParams",
+      "output_type": "ProbabilityMask",
+      "methods": [
+        "select_face19_skin",
+        "protect_face_features",
+        "encode_png16"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "face.detect",
+      "version": "1",
+      "module": "workers/photo_worker/operations/face/detect.py",
+      "resource_class": "gpu",
+      "routing_key": "gpu.face_detect",
+      "model": "sfd",
+      "timeout_seconds": 180,
+      "input_type": "SRGBPreview",
+      "params_type": "FaceDetectParams",
+      "output_type": "FaceBoxes",
+      "methods": [
+        "detect_faces",
+        "nms",
+        "assign_object_ids"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu",
+        "cuda",
+        "mps"
+      ]
+    },
+    {
+      "name": "face.landmarks",
+      "version": "1",
+      "module": "workers/photo_worker/operations/face/landmarks.py",
+      "resource_class": "gpu",
+      "routing_key": "gpu.landmarks",
+      "model": "fan2d",
+      "timeout_seconds": 180,
+      "input_type": "ImageFaceBoxes",
+      "params_type": "LandmarkParams",
+      "output_type": "Face68",
+      "methods": [
+        "crop_faces",
+        "infer",
+        "map_to_source"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu",
+        "cuda",
+        "mps"
+      ]
+    },
+    {
+      "name": "pose.detect",
+      "version": "1",
+      "module": "workers/photo_worker/operations/pose/detect.py",
+      "resource_class": "gpu",
+      "routing_key": "gpu.pose",
+      "model": "keypointrcnn_resnet50_fpn",
+      "timeout_seconds": 300,
+      "input_type": "SRGBPreview",
+      "params_type": "PoseParams",
+      "output_type": "Pose17",
+      "methods": [
+        "preprocess",
+        "infer",
+        "associate_person"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu",
+        "cuda",
+        "mps"
+      ]
+    },
+    {
+      "name": "face.parse",
+      "version": "1",
+      "module": "workers/photo_worker/operations/face/parse.py",
+      "resource_class": "gpu",
+      "routing_key": "gpu.face_parse",
+      "model": "bisenet_face19",
+      "timeout_seconds": 180,
+      "input_type": "ImageFaceBoxes",
+      "params_type": "FaceParseParams",
+      "output_type": "FaceLabels19",
+      "methods": [
+        "crop512",
+        "infer",
+        "restore_labels"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu",
+        "cuda",
+        "mps"
+      ]
+    },
+    {
+      "name": "scene.parse",
+      "version": "1",
+      "module": "workers/photo_worker/operations/scene/parse.py",
+      "resource_class": "gpu",
+      "routing_key": "gpu.scene_parse",
+      "model": "segformer_b0_ade",
+      "timeout_seconds": 180,
+      "input_type": "SRGBPreview",
+      "params_type": "SceneParseParams",
+      "output_type": "SceneLabels",
+      "methods": [
+        "official_processor",
+        "infer",
+        "restore_labels"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu",
+        "cuda",
+        "mps"
+      ]
+    },
+    {
+      "name": "alpha.predict",
+      "version": "1",
+      "module": "workers/photo_worker/operations/alpha/predict.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.alpha",
+      "model": "u2net",
+      "timeout_seconds": 300,
+      "input_type": "SRGBPreview",
+      "params_type": "AlphaParams",
+      "output_type": "AlphaMask",
+      "methods": [
+        "infer320",
+        "restore_alpha"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "mask.prompt",
+      "version": "1",
+      "module": "workers/photo_worker/operations/mask/prompt.py",
+      "resource_class": "gpu",
+      "routing_key": "gpu.prompt",
+      "model": "mobilesam",
+      "timeout_seconds": 180,
+      "input_type": "ImagePrompts",
+      "params_type": "PromptMaskParams",
+      "output_type": "ProbabilityMask",
+      "methods": [
+        "validate_prompts",
+        "predict",
+        "select_candidate"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu",
+        "cuda",
+        "mps"
+      ]
+    },
+    {
+      "name": "mask.rasterize",
+      "version": "1",
+      "module": "workers/photo_worker/operations/mask/rasterize.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.mask_raster",
+      "model": null,
+      "timeout_seconds": 60,
+      "input_type": "ManualMask",
+      "params_type": "MaskRasterParams",
+      "output_type": "ProbabilityMask",
+      "methods": [
+        "rasterize_brush",
+        "apply_exclusions",
+        "protect"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "mask.transform",
+      "version": "1",
+      "module": "workers/photo_worker/operations/mask/transform.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.mask_transform",
+      "model": null,
+      "timeout_seconds": 180,
+      "input_type": "MaskAndTransform",
+      "params_type": "MaskTransformParams",
+      "output_type": "TransformedMask",
+      "methods": [
+        "inverse_map",
+        "resample",
+        "update_chain"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "alpha.refine",
+      "version": "1",
+      "module": "workers/photo_worker/operations/alpha/refine.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.matting",
+      "model": null,
+      "timeout_seconds": 600,
+      "input_type": "ImageAlpha",
+      "params_type": "MattingParams",
+      "output_type": "AlphaMask",
+      "methods": [
+        "build_trimap",
+        "solve_boundary_roi"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "depth.predict",
+      "version": "1",
+      "module": "workers/photo_worker/operations/depth/predict.py",
+      "resource_class": "gpu",
+      "routing_key": "gpu.depth",
+      "model": "depth_anything_v2_small",
+      "timeout_seconds": 300,
+      "input_type": "SRGBPreview",
+      "params_type": "DepthParams",
+      "output_type": "RelativeDepth",
+      "methods": [
+        "infer518",
+        "normalize_valid",
+        "store_invalid"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu",
+        "cuda",
+        "mps"
+      ]
+    },
+    {
+      "name": "pair.fit.body",
+      "version": "1",
+      "module": "workers/photo_worker/operations/pair/fit/body.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.fit_body",
+      "model": null,
+      "timeout_seconds": 600,
+      "input_type": "RegisteredPairFeatures",
+      "params_type": "BodyFitParams",
+      "output_type": "BodyFit",
+      "methods": [
+        "match_people",
+        "fit_rbf",
+        "check_confidence"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "pair.fit.color",
+      "version": "1",
+      "module": "workers/photo_worker/operations/pair/fit/color.py",
+      "resource_class": "gpu",
+      "routing_key": "gpu.fit_color",
+      "model": null,
+      "timeout_seconds": 1200,
+      "input_type": "AlignedPairPixels",
+      "params_type": "ColorFitParams",
+      "output_type": "ColorFit",
+      "methods": [
+        "sample_pixels",
+        "optimize_stages",
+        "select_checkpoint"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu",
+        "cuda",
+        "mps"
+      ]
+    },
+    {
+      "name": "pair.fit.beauty",
+      "version": "1",
+      "module": "workers/photo_worker/operations/pair/fit/beauty.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.fit_beauty",
+      "model": null,
+      "timeout_seconds": 600,
+      "input_type": "ColorAlignedPair",
+      "params_type": "BeautyFitParams",
+      "output_type": "BeautyFit",
+      "methods": [
+        "build_face_rois",
+        "search_bounded",
+        "texture_loss"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "pair.fit.defects",
+      "version": "1",
+      "module": "workers/photo_worker/operations/pair/fit/defects.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.fit_defects",
+      "model": null,
+      "timeout_seconds": 300,
+      "input_type": "ResidualPair",
+      "params_type": "DefectFitParams",
+      "output_type": "DefectEvidence",
+      "methods": [
+        "find_residuals",
+        "estimate_policy",
+        "evidence"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "style.aggregate",
+      "version": "1",
+      "module": "workers/photo_worker/operations/style/aggregate.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.aggregate",
+      "model": null,
+      "timeout_seconds": 1200,
+      "input_type": "PairFits",
+      "params_type": "AggregateParams",
+      "output_type": "StyleCandidate",
+      "methods": [
+        "equal_pair_fit",
+        "select_prototypes",
+        "calibrate_ood"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "style.validate",
+      "version": "1",
+      "module": "workers/photo_worker/operations/style/validate.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.style_validate",
+      "model": null,
+      "timeout_seconds": 1200,
+      "input_type": "StyleAndHoldout",
+      "params_type": "StyleValidateParams",
+      "output_type": "QualityReport",
+      "methods": [
+        "render_reference",
+        "compute_metrics",
+        "compare_baselines"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "style.import",
+      "version": "1",
+      "module": "workers/photo_worker/operations/style/import_style.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.style_import",
+      "model": null,
+      "timeout_seconds": 300,
+      "input_type": "PortableStylePackage",
+      "params_type": "StyleImportParams",
+      "output_type": "StyleCandidate",
+      "methods": [
+        "safe_archive_parse",
+        "validate_style",
+        "verify_assets",
+        "canonicalize"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "always",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "style.package",
+      "version": "1",
+      "module": "workers/photo_worker/operations/style/package.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.package",
+      "model": null,
+      "timeout_seconds": 300,
+      "input_type": "StyleAndReport",
+      "params_type": "PackageParams",
+      "output_type": "StylePackage",
+      "methods": [
+        "validate_style",
+        "canonicalize",
+        "write_report"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "collection.group",
+      "version": "1",
+      "module": "workers/photo_worker/operations/collection/group.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.group",
+      "model": null,
+      "timeout_seconds": 300,
+      "input_type": "CollectionFeatures",
+      "params_type": "GroupParams",
+      "output_type": "SceneGroups",
+      "methods": [
+        "group_exact",
+        "group_burst",
+        "stable_clusters"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "collection.cull",
+      "version": "1",
+      "module": "workers/photo_worker/operations/collection/cull.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.cull",
+      "model": null,
+      "timeout_seconds": 300,
+      "input_type": "GroupedFeatures",
+      "params_type": "CullParams",
+      "output_type": "CullRecommendations",
+      "methods": [
+        "rank",
+        "allocate_quotas",
+        "preserve_picks"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "editor.preview",
+      "version": "1",
+      "module": "workers/photo_worker/operations/editor/preview.py",
+      "resource_class": "media",
+      "routing_key": "io.preview",
+      "model": null,
+      "timeout_seconds": 300,
+      "input_type": "WorkingImage",
+      "params_type": "EditorPreviewParams",
+      "output_type": "DerivativeManifest",
+      "methods": [
+        "apply_global",
+        "apply_strength",
+        "color_convert",
+        "encode"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "explicit-editor-revision",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "style.resolve",
+      "version": "1",
+      "module": "workers/photo_worker/operations/style/resolve.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.resolve",
+      "model": null,
+      "timeout_seconds": 60,
+      "input_type": "StyleAndStats",
+      "params_type": "ResolveParams",
+      "output_type": "ResolvedStyle",
+      "methods": [
+        "choose_neighbors",
+        "ood_gate",
+        "blend_luts"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "series.measure",
+      "version": "1",
+      "module": "workers/photo_worker/operations/series/measure.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.series_measure",
+      "model": null,
+      "timeout_seconds": 180,
+      "input_type": "ColoredImageMasks",
+      "params_type": "SeriesMeasureParams",
+      "output_type": "SeriesStats",
+      "methods": [
+        "measure_comparable_regions",
+        "clipping"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "series.balance",
+      "version": "1",
+      "module": "workers/photo_worker/operations/series/balance.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.series_balance",
+      "model": null,
+      "timeout_seconds": 180,
+      "input_type": "SeriesStatsCollection",
+      "params_type": "SeriesParams",
+      "output_type": "SeriesCorrections",
+      "methods": [
+        "select_reference",
+        "robust_fit",
+        "clamp_and_validate"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "image.denoise",
+      "version": "1",
+      "module": "workers/photo_worker/operations/image/denoise.py",
+      "resource_class": "gpu",
+      "routing_key": "gpu.denoise",
+      "model": "scunet_color_real_psnr",
+      "timeout_seconds": 1800,
+      "input_type": "WorkingImage",
+      "params_type": "DenoiseParams",
+      "output_type": "WorkingImage",
+      "methods": [
+        "to_model_space",
+        "infer_tiles",
+        "transfer_delta"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu",
+        "cuda",
+        "mps"
+      ]
+    },
+    {
+      "name": "geometry.body",
+      "version": "1",
+      "module": "workers/photo_worker/operations/geometry/body.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.body",
+      "model": null,
+      "timeout_seconds": 600,
+      "input_type": "ImageBodyFeatures",
+      "params_type": "BodyParams",
+      "output_type": "ImageAndWarp",
+      "methods": [
+        "build_rbf",
+        "limit_jacobian",
+        "remap_once"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "image.color",
+      "version": "1",
+      "module": "workers/photo_worker/operations/image/color.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.color",
+      "model": null,
+      "timeout_seconds": 600,
+      "input_type": "ImageResolvedStyle",
+      "params_type": "ColorParams",
+      "output_type": "WorkingImage",
+      "methods": [
+        "gains",
+        "curves",
+        "saturation",
+        "lut"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "image.local",
+      "version": "1",
+      "module": "workers/photo_worker/operations/image/local.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.local",
+      "model": null,
+      "timeout_seconds": 600,
+      "input_type": "ImageMasksCorrections",
+      "params_type": "LocalParams",
+      "output_type": "WorkingImage",
+      "methods": [
+        "apply_series",
+        "semantic_local",
+        "region_adjustments"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "portrait.beauty",
+      "version": "1",
+      "module": "workers/photo_worker/operations/portrait/beauty.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.beauty",
+      "model": null,
+      "timeout_seconds": 600,
+      "input_type": "ImageFaceMasks",
+      "params_type": "BeautyParams",
+      "output_type": "WorkingImage",
+      "methods": [
+        "frequency_split",
+        "protected_blend"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "portrait.detail",
+      "version": "1",
+      "module": "workers/photo_worker/operations/portrait/detail.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.portrait_detail",
+      "model": null,
+      "timeout_seconds": 600,
+      "input_type": "ImageFaceMasks",
+      "params_type": "PortraitParams",
+      "output_type": "WorkingImage",
+      "methods": [
+        "teeth_sclera",
+        "shine",
+        "under_eye",
+        "cloth"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "defects.propose",
+      "version": "1",
+      "module": "workers/photo_worker/operations/defects/propose.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.defects_propose",
+      "model": null,
+      "timeout_seconds": 300,
+      "input_type": "ImageFaceMasks",
+      "params_type": "DefectParams",
+      "output_type": "DefectCandidates",
+      "methods": [
+        "dog_candidates",
+        "exclude_protected",
+        "label"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "defects.repair",
+      "version": "1",
+      "module": "workers/photo_worker/operations/defects/repair.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.defects_repair",
+      "model": null,
+      "timeout_seconds": 300,
+      "input_type": "ImageAcceptedMasks",
+      "params_type": "RepairParams",
+      "output_type": "WorkingImage",
+      "methods": [
+        "validate_acceptance",
+        "telea_float_channels",
+        "blend"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "sensor.dust",
+      "version": "1",
+      "module": "workers/photo_worker/operations/sensor/dust.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.dust",
+      "model": null,
+      "timeout_seconds": 300,
+      "input_type": "SensorAlignedSeries",
+      "params_type": "DustParams",
+      "output_type": "DustCandidates",
+      "methods": [
+        "map_sensor",
+        "find_repeated",
+        "emit_candidates"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "sensor.dust_repair",
+      "version": "1",
+      "module": "workers/photo_worker/operations/sensor/repair.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.dust_repair",
+      "model": null,
+      "timeout_seconds": 300,
+      "input_type": "SensorAlignedImageDustReview",
+      "params_type": "DustRepairParams",
+      "output_type": "SensorDustRepairBundle",
+      "methods": [
+        "validate_review",
+        "map_sensor",
+        "telea_float_channels"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "authorized-selection-only",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "composition.structure",
+      "version": "1",
+      "module": "workers/photo_worker/operations/composition/structure.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.composition",
+      "model": null,
+      "timeout_seconds": 180,
+      "input_type": "WorkingImageSubject",
+      "params_type": "StructureParams",
+      "output_type": "ImageStructure",
+      "methods": [
+        "canny_hough_lines",
+        "subject_bounds",
+        "protect_subject_head"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "composition.plan",
+      "version": "1",
+      "module": "workers/photo_worker/operations/composition/plan.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.composition",
+      "model": null,
+      "timeout_seconds": 180,
+      "input_type": "ImageStructure",
+      "params_type": "CompositionParams",
+      "output_type": "CompositionPlan",
+      "methods": [
+        "estimate_lines",
+        "protect_landmarks",
+        "choose_crop"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "geometry.crop",
+      "version": "1",
+      "module": "workers/photo_worker/operations/geometry/crop.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.crop",
+      "model": null,
+      "timeout_seconds": 600,
+      "input_type": "ImageComposition",
+      "params_type": "CropParams",
+      "output_type": "ImageAndTransform",
+      "methods": [
+        "homography_crop",
+        "update_canvas"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "image.inpaint",
+      "version": "1",
+      "module": "workers/photo_worker/operations/image/inpaint.py",
+      "resource_class": "gpu",
+      "routing_key": "gpu.inpaint",
+      "model": "big_lama",
+      "timeout_seconds": 1800,
+      "input_type": "ImageConfirmedMask",
+      "params_type": "InpaintParams",
+      "output_type": "ImageCandidate",
+      "methods": [
+        "roi_context",
+        "infer",
+        "restore_protected"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "always",
+      "backends": [
+        "cpu",
+        "cuda",
+        "mps"
+      ]
+    },
+    {
+      "name": "image.generate",
+      "version": "1",
+      "module": "workers/photo_worker/operations/image/generate.py",
+      "resource_class": "gpu",
+      "routing_key": "gpu.generate",
+      "model": "sd15_inpaint",
+      "timeout_seconds": 7200,
+      "input_type": "ImageConfirmedMask",
+      "params_type": "GenerationParams",
+      "output_type": "GenerationCandidate",
+      "methods": [
+        "seed_ddim",
+        "infer512",
+        "restore_protected"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "always",
+      "backends": [
+        "cpu",
+        "cuda",
+        "mps"
+      ]
+    },
+    {
+      "name": "image.outpaint",
+      "version": "1",
+      "module": "workers/photo_worker/operations/image/outpaint.py",
+      "resource_class": "gpu",
+      "routing_key": "gpu.outpaint",
+      "model": "sd15_inpaint",
+      "timeout_seconds": 7200,
+      "input_type": "ImageExtendedCanvas",
+      "params_type": "OutpaintParams",
+      "output_type": "GenerationCandidate",
+      "methods": [
+        "one_side_canvas",
+        "infer512",
+        "restore_original"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "always",
+      "backends": [
+        "cpu",
+        "cuda",
+        "mps"
+      ]
+    },
+    {
+      "name": "background.compose",
+      "version": "1",
+      "module": "workers/photo_worker/operations/background/compose.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.compose",
+      "model": null,
+      "timeout_seconds": 600,
+      "input_type": "ImageAlphaBackground",
+      "params_type": "ComposeParams",
+      "output_type": "WorkingImage",
+      "methods": [
+        "linear_premultiply",
+        "shadow",
+        "composite"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "background.blur",
+      "version": "1",
+      "module": "workers/photo_worker/operations/background/blur.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.blur",
+      "model": null,
+      "timeout_seconds": 600,
+      "input_type": "ImageAlphaDepth",
+      "params_type": "BlurParams",
+      "output_type": "WorkingImage",
+      "methods": [
+        "layer_depth",
+        "fill_boundary",
+        "blur_composite"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "background.sky",
+      "version": "1",
+      "module": "workers/photo_worker/operations/background/sky.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.sky",
+      "model": null,
+      "timeout_seconds": 600,
+      "input_type": "ImageSkyMaskAsset",
+      "params_type": "SkyParams",
+      "output_type": "WorkingImage",
+      "methods": [
+        "align_sky",
+        "limited_match",
+        "protect_edges"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "image.upscale",
+      "version": "1",
+      "module": "workers/photo_worker/operations/image/upscale.py",
+      "resource_class": "gpu",
+      "routing_key": "gpu.upscale",
+      "model": "realesrgan",
+      "timeout_seconds": 3600,
+      "input_type": "WorkingImage",
+      "params_type": "UpscaleParams",
+      "output_type": "WorkingImage",
+      "methods": [
+        "pixel_preflight",
+        "infer_tiles",
+        "transfer_model_space"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu",
+        "cuda",
+        "mps"
+      ]
+    },
+    {
+      "name": "hdr.register",
+      "version": "1",
+      "module": "workers/photo_worker/operations/hdr/register.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.hdr_register",
+      "model": null,
+      "timeout_seconds": 600,
+      "input_type": "BracketImages",
+      "params_type": "HDRRegisterParams",
+      "output_type": "BracketTransforms",
+      "methods": [
+        "mtb_sift",
+        "align",
+        "detect_motion"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "hdr.merge",
+      "version": "1",
+      "module": "workers/photo_worker/operations/hdr/merge.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.hdr_merge",
+      "model": null,
+      "timeout_seconds": 1800,
+      "input_type": "RegisteredBracket",
+      "params_type": "HDRParams",
+      "output_type": "WorkingImage",
+      "methods": [
+        "response_debevec_or_mertens",
+        "deghost",
+        "tonemap"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "hdr.window_pull",
+      "version": "1",
+      "module": "workers/photo_worker/operations/hdr/window_pull.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.window",
+      "model": null,
+      "timeout_seconds": 600,
+      "input_type": "ImageDarkExposureMask",
+      "params_type": "WindowParams",
+      "output_type": "WorkingImage",
+      "methods": [
+        "exposure_match",
+        "mask_blend"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "quality.check",
+      "version": "1",
+      "module": "workers/photo_worker/operations/quality/check.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.quality",
+      "model": null,
+      "timeout_seconds": 600,
+      "input_type": "ImageAndBaseline",
+      "params_type": "QualityParams",
+      "output_type": "QualityReport",
+      "methods": [
+        "clipping",
+        "protected_pixels",
+        "seams",
+        "metrics"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "media.thumbnail",
+      "version": "1",
+      "module": "workers/photo_worker/operations/media/thumbnail.py",
+      "resource_class": "media",
+      "routing_key": "io.thumbnail",
+      "model": null,
+      "timeout_seconds": 180,
+      "input_type": "VersionMaster",
+      "params_type": "MediaParams",
+      "output_type": "DerivativeManifest",
+      "methods": [
+        "icc_resize",
+        "strip_metadata",
+        "encode"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "media.preview",
+      "version": "1",
+      "module": "workers/photo_worker/operations/media/preview.py",
+      "resource_class": "media",
+      "routing_key": "io.preview",
+      "model": null,
+      "timeout_seconds": 300,
+      "input_type": "VersionOrCandidate",
+      "params_type": "MediaParams",
+      "output_type": "DerivativeManifest",
+      "methods": [
+        "icc_resize",
+        "strip_metadata",
+        "encode"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "derivative.resize",
+      "version": "1",
+      "module": "workers/photo_worker/operations/derivative/resize.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.resize",
+      "model": null,
+      "timeout_seconds": 600,
+      "input_type": "WorkingImage",
+      "params_type": "ResizeParams",
+      "output_type": "WorkingImage",
+      "methods": [
+        "validate_output_pixels",
+        "resize_no_stretch"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "derivative.sharpen",
+      "version": "1",
+      "module": "workers/photo_worker/operations/derivative/sharpen.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.sharpen",
+      "model": null,
+      "timeout_seconds": 600,
+      "input_type": "WorkingImage",
+      "params_type": "SharpenParams",
+      "output_type": "WorkingImage",
+      "methods": [
+        "luma_unsharp",
+        "threshold",
+        "limit_halo"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "derivative.watermark",
+      "version": "1",
+      "module": "workers/photo_worker/operations/derivative/watermark.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.watermark",
+      "model": null,
+      "timeout_seconds": 600,
+      "input_type": "ImageWatermarkAsset",
+      "params_type": "WatermarkParams",
+      "output_type": "WorkingImage",
+      "methods": [
+        "position",
+        "linear_alpha_blend"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "export.encode",
+      "version": "1",
+      "module": "workers/photo_worker/operations/export/encode.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.encode",
+      "model": null,
+      "timeout_seconds": 600,
+      "input_type": "WorkingImage",
+      "params_type": "EncodeParams",
+      "output_type": "EncodedImage",
+      "methods": [
+        "icc_convert",
+        "encode",
+        "verify"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "metadata.write",
+      "version": "1",
+      "module": "workers/photo_worker/operations/metadata/write.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.metadata",
+      "model": null,
+      "timeout_seconds": 180,
+      "input_type": "EncodedImage",
+      "params_type": "MetadataParams",
+      "output_type": "EncodedImage",
+      "methods": [
+        "copy_allowlist",
+        "reset_orientation",
+        "verify_icc"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "archive.build",
+      "version": "1",
+      "module": "workers/photo_worker/operations/archive/build.py",
+      "resource_class": "archive",
+      "routing_key": "io.archive",
+      "model": null,
+      "timeout_seconds": 7200,
+      "input_type": "DownloadSnapshot",
+      "params_type": "ArchiveParams",
+      "output_type": "ArchiveManifest",
+      "methods": [
+        "reserve_disk",
+        "stream_zip64",
+        "verify_upload"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "collection.mutate",
+      "version": "1",
+      "module": "backend/internal/collection/worker.go",
+      "resource_class": "collection",
+      "routing_key": "collection.mutate",
+      "model": null,
+      "timeout_seconds": 120,
+      "input_type": "BulkChunk",
+      "params_type": "CollectionMutateParams",
+      "output_type": "BulkChunkResult",
+      "methods": [
+        "authorize_revision",
+        "mutate_savepoints",
+        "report"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "report.contact_sheet",
+      "version": "1",
+      "module": "workers/photo_worker/operations/report/contact_sheet.py",
+      "resource_class": "media",
+      "routing_key": "io.preview",
+      "model": null,
+      "timeout_seconds": 300,
+      "input_type": "PreviewList",
+      "params_type": "ContactSheetParams",
+      "output_type": "ContactSheet",
+      "methods": [
+        "paginate_thumbnails",
+        "render_labels"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    }
+  ]
+}

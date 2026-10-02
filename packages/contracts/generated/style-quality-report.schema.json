@@ -1,0 +1,219 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "MetricBlock": {
+      "additionalProperties": false,
+      "properties": {
+        "median_delta_e": {
+          "minimum": 0,
+          "title": "Median Delta E",
+          "type": "number"
+        },
+        "p95_delta_e": {
+          "minimum": 0,
+          "title": "P95 Delta E",
+          "type": "number"
+        },
+        "sample_count": {
+          "minimum": 1,
+          "title": "Sample Count",
+          "type": "integer"
+        },
+        "ssim": {
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Ssim",
+          "type": "number"
+        }
+      },
+      "required": [
+        "median_delta_e",
+        "p95_delta_e",
+        "ssim",
+        "sample_count"
+      ],
+      "title": "MetricBlock",
+      "type": "object"
+    },
+    "Quality": {
+      "additionalProperties": false,
+      "properties": {
+        "beauty_validation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MetricBlock"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "geometry_validation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MetricBlock"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reconstruction": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MetricBlock"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "enum": [
+            "example",
+            "measured",
+            "needs_review"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "transfer_confidence": {
+          "enum": [
+            "unvalidated",
+            "experimental",
+            "validated"
+          ],
+          "title": "Transfer Confidence",
+          "type": "string"
+        },
+        "validation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MetricBlock"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status",
+        "reconstruction",
+        "validation",
+        "transfer_confidence",
+        "warnings"
+      ],
+      "title": "Quality",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/style-quality-report.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "accepted_by_metrics": {
+      "title": "Accepted By Metrics",
+      "type": "boolean"
+    },
+    "baseline": {
+      "$ref": "#/$defs/MetricBlock"
+    },
+    "candidate": {
+      "$ref": "#/$defs/MetricBlock"
+    },
+    "config_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Config Hash",
+      "type": "string"
+    },
+    "median_improvement_fraction": {
+      "maximum": 1,
+      "minimum": -1000,
+      "title": "Median Improvement Fraction",
+      "type": "number"
+    },
+    "pair_count": {
+      "maximum": 64,
+      "minimum": 1,
+      "title": "Pair Count",
+      "type": "integer"
+    },
+    "reasons": {
+      "items": {
+        "enum": [
+          "insufficient_pairs",
+          "insufficient_sessions",
+          "median_improvement_below_10_percent",
+          "p95_regression",
+          "local_mask_unavailable"
+        ],
+        "type": "string"
+      },
+      "maxItems": 5,
+      "title": "Reasons",
+      "type": "array"
+    },
+    "resulting_quality": {
+      "$ref": "#/$defs/Quality"
+    },
+    "session_count": {
+      "maximum": 64,
+      "minimum": 1,
+      "title": "Session Count",
+      "type": "integer"
+    },
+    "style": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "threshold_profile_id": {
+      "const": "style_validation_v1",
+      "title": "Threshold Profile Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "style",
+    "config_hash",
+    "threshold_profile_id",
+    "pair_count",
+    "session_count",
+    "baseline",
+    "candidate",
+    "median_improvement_fraction",
+    "accepted_by_metrics",
+    "resulting_quality",
+    "reasons"
+  ],
+  "title": "StyleQualityReport",
+  "type": "object"
+}

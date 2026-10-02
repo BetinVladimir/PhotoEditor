@@ -1,0 +1,207 @@
+{
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "event_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "run_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "task_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "attempt": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "operation": {
+      "enum": [
+        "asset.verify",
+        "asset.inspect",
+        "asset.decode",
+        "pair.register",
+        "features.scene",
+        "color.stats",
+        "mask.person",
+        "face.detect",
+        "face.landmarks",
+        "pose.detect",
+        "face.parse",
+        "scene.parse",
+        "alpha.predict",
+        "mask.prompt",
+        "mask.rasterize",
+        "mask.transform",
+        "alpha.refine",
+        "depth.predict",
+        "pair.fit.body",
+        "pair.fit.color",
+        "pair.fit.beauty",
+        "pair.fit.defects",
+        "style.aggregate",
+        "style.validate",
+        "style.package",
+        "collection.group",
+        "collection.cull",
+        "style.resolve",
+        "series.measure",
+        "series.balance",
+        "image.denoise",
+        "geometry.body",
+        "image.color",
+        "image.local",
+        "portrait.beauty",
+        "portrait.detail",
+        "defects.propose",
+        "defects.repair",
+        "sensor.dust",
+        "composition.plan",
+        "geometry.crop",
+        "image.inpaint",
+        "image.generate",
+        "image.outpaint",
+        "background.compose",
+        "background.blur",
+        "background.sky",
+        "image.upscale",
+        "hdr.register",
+        "hdr.merge",
+        "hdr.window_pull",
+        "quality.check",
+        "media.thumbnail",
+        "media.preview",
+        "derivative.resize",
+        "derivative.sharpen",
+        "derivative.watermark",
+        "export.encode",
+        "metadata.write",
+        "archive.build",
+        "collection.mutate",
+        "storage.cleanup",
+        "report.contact_sheet"
+      ]
+    },
+    "operation_version": {
+      "const": "1"
+    },
+    "resource_class": {
+      "enum": [
+        "cpu",
+        "gpu",
+        "media",
+        "archive",
+        "collection",
+        "mail"
+      ]
+    },
+    "correlation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "artifact_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "artifact_id",
+          "sha256"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 128
+    },
+    "params": {
+      "type": "object",
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "additionalProperties": false
+    },
+    "model": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "lock_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "id",
+            "lock_id"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "timeout_seconds": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 7200
+    },
+    "traceparent": {
+      "type": "string",
+      "maxLength": 128
+    }
+  },
+  "required": [
+    "schema_version",
+    "event_id",
+    "tenant_id",
+    "run_id",
+    "task_id",
+    "attempt",
+    "operation",
+    "operation_version",
+    "resource_class",
+    "correlation_id",
+    "inputs",
+    "params",
+    "model",
+    "timeout_seconds",
+    "traceparent"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://photoeditor.local/contracts/task-command-v1.schema.json",
+  "title": "TaskCommandV1"
+}

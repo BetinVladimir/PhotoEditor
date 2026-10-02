@@ -1,0 +1,79 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/style-package.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "bytes": {
+      "maximum": 104857600,
+      "minimum": 2,
+      "title": "Bytes",
+      "type": "integer"
+    },
+    "config_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Config Hash",
+      "type": "string"
+    },
+    "media_type": {
+      "const": "application/json",
+      "default": "application/json",
+      "title": "Media Type",
+      "type": "string"
+    },
+    "package_version": {
+      "const": "style_package_v1",
+      "default": "style_package_v1",
+      "title": "Package Version",
+      "type": "string"
+    },
+    "quality_report": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "renderer_version": {
+      "const": "photo_renderer_v2",
+      "default": "photo_renderer_v2",
+      "title": "Renderer Version",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "2.0.0",
+      "default": "2.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "style": {
+      "$ref": "#/$defs/ArtifactRef"
+    }
+  },
+  "required": [
+    "style",
+    "quality_report",
+    "config_hash",
+    "bytes"
+  ],
+  "title": "StylePackage",
+  "type": "object"
+}

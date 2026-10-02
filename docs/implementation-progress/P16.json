@@ -1,0 +1,95 @@
+{
+  "package_id": "P16",
+  "status": "in_progress",
+  "source_commit": "fee5be46bca3afff31e953676627b20834bc3084",
+  "changed_files": [
+    "backend/internal/maintenance",
+    "backend/db/migrations/00100_artifact_gc.sql",
+    "tests/platform/test_artifact_gc_migration.py",
+    "docs/implementation/09-media-delivery.md",
+    "backend/db/migrations/00101_artifact_gc_detach.sql",
+    "tests/platform/test_artifact_gc_detach_migration.py",
+    "backend/db/migrations/00154_tenant_deletion_cleanup.sql",
+    "backend/internal/maintenance/tenants.go",
+    "backend/internal/maintenance/service.go",
+    "tests/platform/test_tenant_cleanup_migration.py",
+    "tests/integration/test_tenant_cleanup.py",
+    "deploy/compose.yaml",
+    "deploy/README.md",
+    "deploy/env/production.env.example",
+    "deploy/images/api/Dockerfile",
+    "deploy/images/worker/Dockerfile",
+    "deploy/images/photographer/Dockerfile",
+    "deploy/images/portal/Dockerfile",
+    "deploy/caddy/Caddyfile",
+    "backend/cmd/photo-healthcheck/main.go",
+    "backend/cmd/photo-healthcheck/main_test.go",
+    "tests/platform/test_deploy_topology.py"
+  ],
+  "checks": [
+    {
+      "id": "artifact-gc-unit",
+      "command": "cd backend && go test ./internal/maintenance",
+      "exit_code": 0,
+      "note": "Exact-version deletion, invalid ticket, recovery and finish-boundary unit tests pass."
+    },
+    {
+      "id": "artifact-gc-sql-contract",
+      "command": "python -m pytest tests/platform/test_artifact_gc_migration.py -q -p no:cacheprovider",
+      "exit_code": 0,
+      "note": "2 static fencing/reference graph checks pass; live PostgreSQL/MinIO unavailable."
+    },
+    {
+      "id": "artifact-gc-detach",
+      "command": "python -m pytest tests/platform/test_artifact_gc_migration.py tests/platform/test_artifact_gc_detach_migration.py -q -p no:cacheprovider",
+      "exit_code": 0,
+      "note": "4 static checks pass. Expired derivative/export/download references detach atomically; permanent and active references remain blockers."
+    },
+    {
+      "id": "full-regression",
+      "command": "cd backend && go test ./... && python -m pytest tests/migration tests/platform -q -p no:cacheprovider",
+      "exit_code": 0,
+      "note": "All Go packages and 302 migration/platform tests pass."
+    },
+    {
+      "id": "legacy-regression",
+      "command": ".venv/bin/python -m pytest tests/test_*.py -q -p no:cacheprovider",
+      "exit_code": 0,
+      "note": "22 legacy quality-pipeline tests pass."
+    },
+    {
+      "id": "contracts-and-legacy",
+      "command": "make contracts-check && git diff --check",
+      "exit_code": 0,
+      "note": "Generated contracts are clean; Legacy quality source and presets unchanged."
+    },
+    {
+      "id": "tenant-deletion-lifecycle",
+      "command": "pytest tests/platform/test_tenant_cleanup_migration.py tests/integration/test_tenant_cleanup.py -q -p no:cacheprovider && go test ./internal/maintenance",
+      "exit_code": 0,
+      "note": "4 SQL/live PostgreSQL tests and Go maintenance tests pass: lease recovery, stale-token rejection, bounded checkpoint, active-run barrier, final tombstone, membership suspension, and rejection by authorize_tenant/list_user_tenants."
+    },
+    {
+      "id": "post-tenant-cleanup-full-regression",
+      "command": "make test-db && make test && make release-check && ./scripts/run-platform.sh .venv-platform/bin/python docs/implementation/validate-docs.py && git diff --check",
+      "exit_code": 0,
+      "note": "49 live PostgreSQL integration tests, 22 legacy tests, 437 platform tests, all Go packages, 875-component release evidence and 489 documentation checks pass."
+    },
+    {
+      "id": "production-compose-contract",
+      "command": "make deploy-check && docker compose --env-file work/deploy-validation/compose.env -f deploy/compose.yaml config --quiet",
+      "exit_code": 0,
+      "note": "Six topology tests, Go loopback/mTLS healthcheck tests and Docker Compose resolution pass. All runtime/base images are mandatory immutable inputs; no usable credentials are committed. Core roles are internal, nonroot/read-only, health checked, and gated by successful one-shot bootstrap."
+    }
+  ],
+  "blocked_gates": [
+    "blocked_external: production image/base-image digest selection and registry publication require the deployment registry and operator review",
+    "blocked_external: TLS CA/client certificates and SMTP credentials require deployment authority",
+    "blocked_external: restore/RPO/RTO drill and peak-budget evidence require an isolated deployment target and backup destination"
+  ],
+  "decisions": [
+    "Maintenance runs independent cleanup loops with separate readiness and counters. Migration 00100 claims only expired, exact-version, fully unreferenced artifacts without active leases; claim and finish are token/lease fenced, finish repeats the complete reference graph, and expired claims recover safely. Migration 00101 atomically detaches only expired derivative/export/download lifecycle references and leaves permanent creative references protected.",
+    "Migration00154 and SQLTenantDeletion connect the existing bounded MinIO tenant-prefix purge to a leased durable job. Claim waits for every run to become terminal, checkpoint rotates the fence after each bounded object batch, and finish rechecks lease/run/tenant state before suspending memberships and recording an inaccessible deleted tombstone. Live PostgreSQL proves the tombstone disappears from both authorize_tenant and list_user_tenants. The maintenance runtime exposes independent tenant cleanup readiness and counters. FK-ordered physical metadata deletion, restore drill, deployment profiles and peak-budget evidence remain incomplete; P16 remains in progress.",
+    "The repository now has a concrete single-node production Compose topology with separate API/background/worker/frontend roles, internal service network, public Caddy boundary, mandatory digest images, mounted secret files, mTLS object gateway and opt-in mail/CUDA profiles. Production image builds, certificate issuance, restore drill and measured resource budgets remain environment-dependent release evidence."
+  ]
+}

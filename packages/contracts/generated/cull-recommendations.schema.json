@@ -1,0 +1,132 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "CullItem": {
+      "additionalProperties": false,
+      "properties": {
+        "eye_review": {
+          "title": "Eye Review",
+          "type": "boolean"
+        },
+        "item_id": {
+          "format": "uuid",
+          "title": "Item Id",
+          "type": "string"
+        },
+        "manual": {
+          "title": "Manual",
+          "type": "boolean"
+        },
+        "rank": {
+          "maximum": 2000,
+          "minimum": 1,
+          "title": "Rank",
+          "type": "integer"
+        },
+        "scene_id": {
+          "title": "Scene Id",
+          "type": "string"
+        },
+        "score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Score",
+          "type": "number"
+        },
+        "selected": {
+          "title": "Selected",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "item_id",
+        "scene_id",
+        "score",
+        "rank",
+        "selected",
+        "manual",
+        "eye_review"
+      ],
+      "title": "CullItem",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/cull-recommendations.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "groups": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "items": {
+      "items": {
+        "$ref": "#/$defs/CullItem"
+      },
+      "maxItems": 2000,
+      "minItems": 1,
+      "title": "Items",
+      "type": "array"
+    },
+    "never_delete": {
+      "const": true,
+      "default": true,
+      "title": "Never Delete",
+      "type": "boolean"
+    },
+    "selected_count": {
+      "maximum": 2000,
+      "minimum": 1,
+      "title": "Selected Count",
+      "type": "integer"
+    },
+    "target_count": {
+      "maximum": 2000,
+      "minimum": 1,
+      "title": "Target Count",
+      "type": "integer"
+    },
+    "warnings": {
+      "items": {
+        "enum": [
+          "target_below_manual_picks",
+          "selection_shortage",
+          "unknown_eye_state",
+          "closed_eye_review"
+        ],
+        "type": "string"
+      },
+      "maxItems": 4,
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "groups",
+    "target_count",
+    "selected_count",
+    "items",
+    "warnings"
+  ],
+  "title": "CullRecommendations",
+  "type": "object"
+}

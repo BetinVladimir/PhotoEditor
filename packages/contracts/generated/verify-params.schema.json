@@ -1,0 +1,50 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/verify-params.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "expected_bytes": {
+      "maximum": 536870912,
+      "minimum": 1,
+      "title": "Expected Bytes",
+      "type": "integer"
+    },
+    "source": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "suffix": {
+      "title": "Suffix",
+      "type": "string"
+    }
+  },
+  "required": [
+    "source",
+    "expected_bytes",
+    "suffix"
+  ],
+  "title": "VerifyParams",
+  "type": "object"
+}

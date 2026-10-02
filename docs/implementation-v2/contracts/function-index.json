@@ -1,0 +1,1044 @@
+{
+  "notice": "Entry point index; helper formulas and SQL functions in referenced normative documents. Not proof of implementation.",
+  "functions": [
+    {
+      "name": "CreateSession",
+      "layer": "http_service",
+      "package": "V22",
+      "input": "SessionCreate",
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/shoot-sessions"
+    },
+    {
+      "name": "GetSession",
+      "layer": "http_service",
+      "package": "V22",
+      "input": null,
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/shoot-sessions/{id}"
+    },
+    {
+      "name": "ListSessions",
+      "layer": "http_service",
+      "package": "V22",
+      "input": null,
+      "output": "ResourcePage",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/shoot-sessions"
+    },
+    {
+      "name": "UpdateSession",
+      "layer": "http_service",
+      "package": "V22",
+      "input": "SessionUpdate",
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "PATCH /api/v1/tenants/{t}/shoot-sessions/{id}"
+    },
+    {
+      "name": "AnalyzeSession",
+      "layer": "http_service",
+      "package": "V22",
+      "input": "AnalysisCreate",
+      "output": "JobTicket",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/shoot-sessions/{id}/analyses"
+    },
+    {
+      "name": "GetAnalysis",
+      "layer": "http_service",
+      "package": "V22",
+      "input": null,
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/session-analyses/{id}"
+    },
+    {
+      "name": "ApplyAnalysis",
+      "layer": "http_service",
+      "package": "V22",
+      "input": "AnalysisApply",
+      "output": "JobTicket",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/session-analyses/{id}/apply"
+    },
+    {
+      "name": "RecordCorrection",
+      "layer": "http_service",
+      "package": "V23",
+      "input": "CorrectionCreate",
+      "output": "CorrectionEvent",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/corrections"
+    },
+    {
+      "name": "CreateProfile",
+      "layer": "http_service",
+      "package": "V23",
+      "input": "ProfileCreate",
+      "output": "ProfileGet",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/learning-profiles"
+    },
+    {
+      "name": "GetProfile",
+      "layer": "http_service",
+      "package": "V23",
+      "input": null,
+      "output": "ProfileGet",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/learning-profiles/{id}"
+    },
+    {
+      "name": "TrainProfile",
+      "layer": "http_service",
+      "package": "V23",
+      "input": "TrainCreate",
+      "output": "JobTicket",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/learning-profiles/{id}/train"
+    },
+    {
+      "name": "ListVersions",
+      "layer": "http_service",
+      "package": "V23",
+      "input": null,
+      "output": "LearningVersionPage",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/learning-profiles/{id}/versions"
+    },
+    {
+      "name": "ActivateProfile",
+      "layer": "http_service",
+      "package": "V23",
+      "input": "Activate",
+      "output": "ProfileGet",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/learning-profiles/{id}/activate"
+    },
+    {
+      "name": "ChangeConsent",
+      "layer": "http_service",
+      "package": "V22",
+      "input": "ConsentChange",
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/projects/{id}/consents"
+    },
+    {
+      "name": "ListConsents",
+      "layer": "http_service",
+      "package": "V22",
+      "input": null,
+      "output": "ResourcePage",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/projects/{id}/consents"
+    },
+    {
+      "name": "CreatePerson",
+      "layer": "http_service",
+      "package": "V22",
+      "input": "PersonCreate",
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/project-persons"
+    },
+    {
+      "name": "ListPersons",
+      "layer": "http_service",
+      "package": "V22",
+      "input": null,
+      "output": "ResourcePage",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/projects/{id}/persons"
+    },
+    {
+      "name": "ConfirmObservation",
+      "layer": "http_service",
+      "package": "V22",
+      "input": "ObservationConfirm",
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/project-persons/{id}/observations"
+    },
+    {
+      "name": "RevokePerson",
+      "layer": "http_service",
+      "package": "V22",
+      "input": "CAS",
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/project-persons/{id}/revoke"
+    },
+    {
+      "name": "ReplaceShotList",
+      "layer": "http_service",
+      "package": "V24",
+      "input": "ShotListReplace",
+      "output": "ShotListView",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "PUT /api/v1/tenants/{t}/shoot-sessions/{id}/shot-list"
+    },
+    {
+      "name": "GetShotList",
+      "layer": "http_service",
+      "package": "V24",
+      "input": null,
+      "output": "ShotListView",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/shoot-sessions/{id}/shot-list"
+    },
+    {
+      "name": "RegisterDevice",
+      "layer": "http_service",
+      "package": "V24",
+      "input": "DeviceCreate",
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/capture-devices"
+    },
+    {
+      "name": "RevokeDevice",
+      "layer": "http_service",
+      "package": "V24",
+      "input": "CAS",
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/capture-devices/{id}/revoke"
+    },
+    {
+      "name": "CreateChallenge",
+      "layer": "http_service",
+      "package": "V24",
+      "input": "ChallengeCreate",
+      "output": "Challenge",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/capture-devices/{id}/challenges"
+    },
+    {
+      "name": "ExchangeChallenge",
+      "layer": "http_service",
+      "package": "V24",
+      "input": "TokenCreate",
+      "output": "Token",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/capture-devices/{id}/token"
+    },
+    {
+      "name": "AcceptReceipt",
+      "layer": "http_service",
+      "package": "V24",
+      "input": "CaptureReceipt",
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/shoot-sessions/{id}/capture-receipts"
+    },
+    {
+      "name": "ListAlerts",
+      "layer": "http_service",
+      "package": "V24",
+      "input": null,
+      "output": "CaptureAlertPage",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/shoot-sessions/{id}/alerts"
+    },
+    {
+      "name": "ConfirmFrame",
+      "layer": "http_service",
+      "package": "V24",
+      "input": "CaptureFrameConfirm",
+      "output": "CaptureFrameConfirmation",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/capture-receipts/{id}/confirm"
+    },
+    {
+      "name": "Acknowledge",
+      "layer": "http_service",
+      "package": "V24",
+      "input": "CAS",
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/capture-alerts/{id}/ack"
+    },
+    {
+      "name": "ReplaceDraft",
+      "layer": "http_service",
+      "package": "V21",
+      "input": "DraftReplace",
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "PUT /api/v1/tenants/{t}/assets/{id}/v2-draft"
+    },
+    {
+      "name": "GetDraft",
+      "layer": "http_service",
+      "package": "V21",
+      "input": null,
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/assets/{id}/v2-draft"
+    },
+    {
+      "name": "GetDraftBinding",
+      "layer": "http_service",
+      "package": "V21",
+      "input": null,
+      "output": "VersionBinding",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/assets/{id}/v2-binding"
+    },
+    {
+      "name": "ListDraftHistory",
+      "layer": "http_service",
+      "package": "V21",
+      "input": null,
+      "output": "ResourcePage",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/assets/{id}/v2-draft/history"
+    },
+    {
+      "name": "ApproveDraft",
+      "layer": "http_service",
+      "package": "V21",
+      "input": "DraftApproval",
+      "output": "DraftApprovalResult",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/assets/{id}/v2-draft/approve"
+    },
+    {
+      "name": "PreviewRegion",
+      "layer": "http_service",
+      "package": "V26",
+      "input": "RegionPreview",
+      "output": "JobTicket",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/assets/{id}/region-previews"
+    },
+    {
+      "name": "Propose",
+      "layer": "http_service",
+      "package": "V27",
+      "input": "EditIntent",
+      "output": "JobTicket",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/semantic-intents"
+    },
+    {
+      "name": "ListTargets",
+      "layer": "http_service",
+      "package": "V27",
+      "input": null,
+      "output": "ResourcePage",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/semantic-intents/{id}/targets"
+    },
+    {
+      "name": "ApplyApproved",
+      "layer": "http_service",
+      "package": "V27",
+      "input": "SemanticApply",
+      "output": "ReviewBatchResult",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/semantic-intents/{id}/apply"
+    },
+    {
+      "name": "CreateDelivery",
+      "layer": "http_service",
+      "package": "V30",
+      "input": "DeliveryCreate",
+      "output": "JobTicket",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/delivery-packages"
+    },
+    {
+      "name": "GetDelivery",
+      "layer": "http_service",
+      "package": "V30",
+      "input": null,
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/delivery-packages/{id}"
+    },
+    {
+      "name": "PublishDelivery",
+      "layer": "http_service",
+      "package": "V30",
+      "input": "CAS",
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/delivery-packages/{id}/publish"
+    },
+    {
+      "name": "CreateInterchange",
+      "layer": "http_service",
+      "package": "V30",
+      "input": "InterchangeRequest",
+      "output": "JobTicket",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/interchange-jobs"
+    },
+    {
+      "name": "GetInterchange",
+      "layer": "http_service",
+      "package": "V30",
+      "input": null,
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/interchange-jobs/{id}"
+    },
+    {
+      "name": "SignExport",
+      "layer": "http_service",
+      "package": "V31",
+      "input": "SignCreate",
+      "output": "JobTicket",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/exports/{id}/provenance"
+    },
+    {
+      "name": "GetDocument",
+      "layer": "http_service",
+      "package": "V21",
+      "input": null,
+      "output": "DocumentBody",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/v2-documents/{id}"
+    },
+    {
+      "name": "GetWorkflow",
+      "layer": "http_service",
+      "package": "V21",
+      "input": null,
+      "output": "JobStatus",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/v2-workflows/{id}"
+    },
+    {
+      "name": "CancelWorkflow",
+      "layer": "http_service",
+      "package": "V21",
+      "input": "CAS",
+      "output": "JobStatus",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/v2-workflows/{id}/cancel"
+    },
+    {
+      "name": "GetRegionPreviewDescriptor",
+      "layer": "http_service",
+      "package": "V26",
+      "input": null,
+      "output": "RegionPreviewDescriptor",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/assets/{id}/region-previews/{run}/descriptor"
+    },
+    {
+      "name": "GetLayerStack",
+      "layer": "http_service",
+      "package": "V26",
+      "input": null,
+      "output": "LayerStack",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/assets/{id}/v2-layers/{artifact}"
+    },
+    {
+      "name": "ListSessionAnalyses",
+      "layer": "http_service",
+      "package": "V26",
+      "input": null,
+      "output": "ResourcePage",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/shoot-sessions/{id}/analyses"
+    },
+    {
+      "name": "GetSceneBoard",
+      "layer": "http_service",
+      "package": "V26",
+      "input": null,
+      "output": "SceneBoardDocument",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/session-analyses/{id}/scene-board"
+    },
+    {
+      "name": "CloseSemanticReview",
+      "layer": "http_service",
+      "package": "V27",
+      "input": "ReviewClose",
+      "output": "JobStatus",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/semantic-intents/{id}/close-review"
+    },
+    {
+      "name": "DecideImport",
+      "layer": "http_service",
+      "package": "V30",
+      "input": "ImportReview",
+      "output": "ReviewBatchResult",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/interchange-jobs/{id}/decisions"
+    },
+    {
+      "name": "CloseImportReview",
+      "layer": "http_service",
+      "package": "V30",
+      "input": "ImportReviewClose",
+      "output": "JobStatus",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/interchange-jobs/{id}/close-review"
+    },
+    {
+      "name": "ReviewLearningSafety",
+      "layer": "http_service",
+      "package": "V23",
+      "input": "LearningSafetyReview",
+      "output": "LearningVersionView",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/learning-versions/{id}/safety-review"
+    },
+    {
+      "name": "layer.compose.execute",
+      "layer": "worker",
+      "package": "V25",
+      "input": "LayerComposeParams",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu"
+    },
+    {
+      "name": "session.describe.execute",
+      "layer": "worker",
+      "package": "V22",
+      "input": "SessionDescribeParams",
+      "output": "DescriptorShard",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "gpu"
+    },
+    {
+      "name": "session.plan.execute",
+      "layer": "worker",
+      "package": "V22",
+      "input": "SessionPlanParams",
+      "output": "ScenePlan",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu"
+    },
+    {
+      "name": "learning.fit.execute",
+      "layer": "worker",
+      "package": "V23",
+      "input": "LearningFitParams",
+      "output": "CandidateProfile",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu"
+    },
+    {
+      "name": "learning.evaluate.execute",
+      "layer": "worker",
+      "package": "V23",
+      "input": "LearningEvaluateParams",
+      "output": "Evaluation",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "gpu"
+    },
+    {
+      "name": "capture.assess.execute",
+      "layer": "worker",
+      "package": "V24",
+      "input": "CaptureAssessParams",
+      "output": "QAReport",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "gpu"
+    },
+    {
+      "name": "identity.compare.execute",
+      "layer": "worker",
+      "package": "V23",
+      "input": "IdentityCompareParams",
+      "output": "IdentityReport",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "gpu"
+    },
+    {
+      "name": "semantic.transfer.execute",
+      "layer": "worker",
+      "package": "V27",
+      "input": "SemanticTransferParams",
+      "output": "TransferCandidate",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "gpu"
+    },
+    {
+      "name": "portrait.open_eyes.execute",
+      "layer": "worker",
+      "package": "V28",
+      "input": "PortraitOpen_EyesParams",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu"
+    },
+    {
+      "name": "portrait.glare.execute",
+      "layer": "worker",
+      "package": "V28",
+      "input": "PortraitGlareParams",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "gpu"
+    },
+    {
+      "name": "image.reflection.execute",
+      "layer": "worker",
+      "package": "V28",
+      "input": "ImageReflectionParams",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "gpu"
+    },
+    {
+      "name": "portrait.hair.execute",
+      "layer": "worker",
+      "package": "V28",
+      "input": "PortraitHairParams",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu"
+    },
+    {
+      "name": "portrait.clothing.execute",
+      "layer": "worker",
+      "package": "V28",
+      "input": "PortraitClothingParams",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu"
+    },
+    {
+      "name": "image.relight.execute",
+      "layer": "worker",
+      "package": "V28",
+      "input": "ImageRelightParams",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu"
+    },
+    {
+      "name": "optical.lens.execute",
+      "layer": "worker",
+      "package": "V25",
+      "input": "OpticalLensParams",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu"
+    },
+    {
+      "name": "optical.perspective.execute",
+      "layer": "worker",
+      "package": "V29",
+      "input": "OpticalPerspectiveParams",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu"
+    },
+    {
+      "name": "optical.negative.execute",
+      "layer": "worker",
+      "package": "V29",
+      "input": "OpticalNegativeParams",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu"
+    },
+    {
+      "name": "optical.panorama.execute",
+      "layer": "worker",
+      "package": "V29",
+      "input": "OpticalPanoramaParams",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu"
+    },
+    {
+      "name": "optical.focus_stack.execute",
+      "layer": "worker",
+      "package": "V29",
+      "input": "OpticalFocus_StackParams",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu"
+    },
+    {
+      "name": "provenance.sign.execute",
+      "layer": "worker",
+      "package": "V31",
+      "input": "ProvenanceSignParams",
+      "output": "SignedResult",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "signer"
+    },
+    {
+      "name": "v2.delivery.assemble.execute",
+      "layer": "worker",
+      "package": "V30",
+      "input": "V2DeliveryAssembleParams",
+      "output": "DeliveryManifest",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu"
+    },
+    {
+      "name": "v2.interchange.import.execute",
+      "layer": "worker",
+      "package": "V30",
+      "input": "V2InterchangeImportParams",
+      "output": "InterchangeResult",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu"
+    },
+    {
+      "name": "v2.interchange.export.execute",
+      "layer": "worker",
+      "package": "V30",
+      "input": "V2InterchangeExportParams",
+      "output": "InterchangeResult",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu"
+    },
+    {
+      "name": "v2.semantic.assemble.execute",
+      "layer": "worker",
+      "package": "V27",
+      "input": "V2SemanticAssembleParams",
+      "output": "SemanticPlan",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu"
+    },
+    {
+      "name": "v2.interchange.parse.execute",
+      "layer": "worker",
+      "package": "V30",
+      "input": "V2InterchangeParseParams",
+      "output": "ParsedInterchange",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu"
+    },
+    {
+      "name": "v2.delivery.prepare.execute",
+      "layer": "worker",
+      "package": "V30",
+      "input": "V2DeliveryPrepareParams",
+      "output": "DeliveryPreparation",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu"
+    },
+    {
+      "name": "region.preview.execute",
+      "layer": "worker",
+      "package": "V26",
+      "input": "RegionPreviewParams",
+      "output": "RegionDerivativeManifest",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "gpu"
+    }
+  ]
+}

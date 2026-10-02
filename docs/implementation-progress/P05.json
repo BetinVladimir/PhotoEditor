@@ -1,0 +1,311 @@
+{
+  "package_id": "P05",
+  "status": "complete",
+  "source_commit": "fee5be46bca3afff31e953676627b20834bc3084",
+  "changed_files": [
+    "backend/internal/run/service.go",
+    "backend/internal/run/service_test.go",
+    "backend/internal/httpapi/catalog.go",
+    "backend/internal/queue",
+    "backend/internal/workflow",
+    "backend/db/migrations/00013_outbox_functions.sql",
+    "backend/db/migrations/00014_mail_delivery.sql",
+    "backend/db/migrations/00015_task_leases.sql",
+    "backend/db/migrations/00016_task_recovery.sql",
+    "workers/photo_worker/runtime",
+    "tests/integration/test_task_leases.py",
+    "backend/db/migrations/00017_resource_admission.sql",
+    "backend/db/migrations/00018_dispatch_fairness.sql",
+    "backend/internal/workflow/dispatch.go",
+    "backend/internal/workflow/service.go",
+    "tests/integration/test_admission.py",
+    "workers/photo_worker/runtime/scratch.py",
+    "workers/photo_worker/runtime/materialize.py",
+    "tests/platform/test_scratch.py",
+    "workers/photo_worker/runtime/gateway.py",
+    "tests/platform/test_gateway.py",
+    "backend/internal/gateway/capability.go",
+    "backend/internal/gateway/authorization.go",
+    "backend/db/migrations/00019_gateway_authorization.sql",
+    "backend/internal/objectstore",
+    "backend/internal/gateway/http.go",
+    "backend/internal/gateway/http_test.go",
+    "scripts/build-minio.py",
+    "scripts/dev-minio-volume.py",
+    "resources/minio-source.lock.json",
+    "deploy/images/minio/Dockerfile",
+    "tests/integration/test_objectstore.py",
+    "workers/photo_worker/runtime/credentials.py",
+    "backend/db/migrations/00020_gateway_inputs.sql",
+    "backend/internal/gateway/inputs.go",
+    "backend/internal/gateway/request.go",
+    "backend/internal/gateway/request_test.go",
+    "tests/integration/test_gateway_inputs.py",
+    "backend/internal/gateway/download.go",
+    "backend/internal/gateway/download_test.go",
+    "backend/internal/objectstore/minio.go",
+    "backend/internal/objectstore/minio_test.go",
+    "backend/internal/gateway/upload.go",
+    "backend/internal/gateway/upload_test.go",
+    "backend/db/migrations/00021_gateway_outputs.sql",
+    "backend/internal/gateway/output_repository.go",
+    "tests/integration/test_gateway_outputs.py",
+    "backend/internal/gateway/service.go",
+    "backend/internal/gateway/service_test.go",
+    "backend/cmd/photo/main.go",
+    "backend/db/migrations/00022_output_cleanup.sql",
+    "backend/internal/maintenance/outputs.go",
+    "backend/internal/maintenance/outputs_test.go",
+    "backend/internal/maintenance/service.go",
+    "backend/internal/maintenance/service_test.go",
+    "backend/internal/objectstore/config.go",
+    "backend/internal/config/config_test.go",
+    "workers/photo_worker/runtime/parameters.py",
+    "workers/photo_worker/runtime/artifacts.py",
+    "tests/platform/test_parameters.py",
+    "backend/db/migrations/00024_targeted_dispatch.sql",
+    "backend/internal/queue/worker.go",
+    "backend/internal/queue/worker_test.go",
+    "tests/platform/test_targeted_transport.py",
+    "workers/photo_worker/runtime/service.py",
+    "workers/photo_worker/cli.py",
+    "backend/db/migrations/00025_worker_runtime_operations.sql",
+    "tests/platform/test_worker_service.py",
+    "tests/integration/test_worker_preflight.py",
+    "backend/db/migrations/00026_cpu_worker_heartbeat.sql",
+    "workers/photo_worker/runtime/capacity.py",
+    "tests/platform/test_capacity.py",
+    "workers/photo_worker/runtime/capacity.py",
+    "workers/photo_worker/runtime/service.py",
+    "workers/photo_worker/runtime/database.py",
+    "backend/db/migrations/00030_accelerator_worker_heartbeat.sql",
+    "tests/platform/test_capacity.py",
+    "tests/platform/test_worker_service.py",
+    "tests/integration/test_worker_preflight.py",
+    "tests/integration/test_admission.py",
+    "backend/internal/admin",
+    "backend/internal/queue/deadletter.go",
+    "backend/db/migrations/00159_dead_letters.sql",
+    "tests/integration/test_dead_letters.py",
+    "tests/platform/test_dead_letter_migration.py",
+    "tests/integration/test_database.py"
+  ],
+  "checks": [
+    {
+      "id": "rabbit-mandatory-outbox",
+      "command": "make test-go test-db",
+      "exit_code": 0,
+      "evidence": "work/evidence/publisher-tests.log"
+    },
+    {
+      "id": "fenced-task-runtime",
+      "command": "make test test-db",
+      "exit_code": 0,
+      "evidence": "work/evidence/runtime-suite.log"
+    },
+    {
+      "id": "resource-admission-fairness",
+      "command": "pytest tests/integration -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/scheduler-integration-tests.log"
+    },
+    {
+      "id": "scheduler-and-worker-transaction-retries",
+      "command": "pytest tests/integration/test_go_services.py tests/integration/test_task_leases.py -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/scheduler-retry-tests.log"
+    },
+    {
+      "id": "scratch-and-artifact-transfer",
+      "command": "pytest tests/platform/test_scratch.py -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/scratch-tests.log"
+    },
+    {
+      "id": "gateway-mtls-transport",
+      "command": "pytest tests/platform -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/gateway-platform-tests.log"
+    },
+    {
+      "id": "artifact-failure-policy",
+      "command": "pytest tests/integration/test_task_leases.py -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/gateway-failure-integration-tests.log"
+    },
+    {
+      "id": "gateway-capability-binding",
+      "command": "go test ./internal/gateway; go vet ./internal/gateway",
+      "exit_code": 0,
+      "evidence": "work/evidence/gateway-capability-tests.log"
+    },
+    {
+      "id": "gateway-live-authorization",
+      "command": "pytest tests/integration/test_task_leases.py -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/gateway-authorization-tests.log"
+    },
+    {
+      "id": "minio-versioned-storage",
+      "command": "pytest tests/integration/test_objectstore.py -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/objectstore-integration-tests.log"
+    },
+    {
+      "id": "gateway-credentials-http",
+      "command": "go test ./internal/gateway",
+      "exit_code": 0,
+      "evidence": "work/evidence/gateway-http-tests.log"
+    },
+    {
+      "id": "gateway-credentials-client",
+      "command": "pytest tests/platform/test_gateway.py -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/gateway-credentials-client-tests.log"
+    },
+    {
+      "id": "gateway-request-authorization",
+      "command": "go test ./internal/gateway",
+      "exit_code": 0,
+      "evidence": "work/evidence/gateway-request-tests.log"
+    },
+    {
+      "id": "gateway-input-sql",
+      "command": "pytest tests/integration/test_gateway_inputs.py -q --tb=short",
+      "exit_code": 1,
+      "evidence": "work/evidence/gateway-inputs-tests.log",
+      "note": "Not executed against SQL: development PostgreSQL connection refused; Docker daemon unavailable. Must rerun after daemon recovery."
+    },
+    {
+      "id": "gateway-download",
+      "command": "go test ./internal/gateway ./internal/objectstore; go vet ./internal/gateway ./internal/objectstore",
+      "exit_code": 0,
+      "evidence": "work/evidence/gateway-download-tests.log",
+      "note": "Unit tests only; external MinIO tests skip without isolated environment. New Range integration case awaits Docker."
+    },
+    {
+      "id": "gateway-upload-boundaries",
+      "command": "go test ./internal/gateway",
+      "exit_code": 0,
+      "evidence": "work/evidence/gateway-upload-tests.log",
+      "note": "Service and HTTP boundaries tested with controlled repository/storage ports. SQL output repository is not implemented; no end-to-end upload claim."
+    },
+    {
+      "id": "gateway-output-repository-build",
+      "command": "go test ./internal/gateway; go vet ./internal/gateway",
+      "exit_code": 0,
+      "evidence": "work/evidence/gateway-output-repository-build.log"
+    },
+    {
+      "id": "gateway-output-sql",
+      "command": "pytest tests/integration/test_gateway_inputs.py tests/integration/test_gateway_outputs.py -q --tb=short",
+      "exit_code": 1,
+      "evidence": "work/evidence/gateway-output-sql-tests.log",
+      "note": "Five setup errors: PostgreSQL refused connection. No SQL execution evidence; rerun required."
+    },
+    {
+      "id": "gateway-service-build",
+      "command": "go test ./internal/gateway ./internal/objectstore ./cmd/photo; go vet ./internal/gateway ./internal/objectstore ./cmd/photo",
+      "exit_code": 0,
+      "evidence": "work/evidence/gateway-service-tests.log",
+      "note": "Startup config/key tests and compilation pass; real-service startup and SQL migration tests await PostgreSQL/MinIO availability."
+    },
+    {
+      "id": "output-cleanup-boundaries",
+      "command": "go test ./internal/maintenance ./internal/objectstore",
+      "exit_code": 0,
+      "evidence": "work/evidence/output-cleanup-tests.log",
+      "note": "Unit boundaries pass; new PostgreSQL cleanup test and real MinIO purge test remain unexecuted while Docker unavailable."
+    },
+    {
+      "id": "maintenance-loop-race",
+      "command": "go test -race ./internal/maintenance",
+      "exit_code": 0,
+      "evidence": "work/evidence/maintenance-service-tests.log"
+    },
+    {
+      "id": "maintenance-bootstrap",
+      "command": "go test ./internal/config ./internal/gateway ./internal/objectstore ./internal/maintenance ./cmd/photo; go vet on same packages",
+      "exit_code": 0,
+      "evidence": "work/evidence/maintenance-bootstrap-tests.log"
+    },
+    {
+      "id": "worker-artifact-context",
+      "command": "pytest tests/platform/test_parameters.py tests/platform/test_gateway.py tests/platform/test_scratch.py -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/worker-artifact-context-tests.log",
+      "note": "18 tests; real local mTLS transport, strict metadata, scratch budget/ownership/cleanup. Full Go/PostgreSQL/MinIO operation execution still unverified."
+    },
+    {
+      "id": "targeted-queue-names",
+      "command": "go test ./internal/queue ./internal/workflow ./cmd/photo; pytest tests/platform/test_targeted_transport.py",
+      "exit_code": 0,
+      "evidence": "work/evidence/targeted-dispatch-tests.log",
+      "note": "Queue identity and builds pass. SQL dispatch/claim and updated broker integration require live PostgreSQL/RabbitMQ, currently unavailable."
+    },
+    {
+      "id": "worker-cli-lifecycle",
+      "command": "pytest tests/platform/test_worker_service.py tests/platform/test_targeted_transport.py",
+      "exit_code": 0,
+      "evidence": "work/evidence/worker-service-tests.log",
+      "note": "Configuration, redaction, registration mismatch and signal lifecycle tested through controlled ports. Live worker startup and SQL25 remain unverified."
+    },
+    {
+      "id": "worker-heartbeat-platform",
+      "command": "pytest tests/platform -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/worker-heartbeat-platform-tests.log",
+      "note": "80 platform tests pass. SQL26 and live heartbeat/admission integration remain unverified while PostgreSQL unavailable."
+    },
+    {
+      "id": "gpu-runtime-startup",
+      "command": "pytest tests/platform -q --tb=short",
+      "exit_code": 0,
+      "evidence": "work/evidence/gpu-runtime-platform-tests.log",
+      "note": "145 passed. Explicit backend wrapper/startup, capacity reporting wiring, CUDA port tests and MPS shared memory accounting. Actual MPS availability measured in work/evidence/mps-capacity-measurement.json; no CUDA hardware/full live integration."
+    },
+    {
+      "id": "dead-letter-lifecycle",
+      "command": "go test ./internal/queue ./internal/admin ./internal/httpapi; pytest tests/platform/test_dead_letter_migration.py; pytest tests/integration/test_dead_letters.py",
+      "exit_code": 0,
+      "note": "DLQ projection/parser and sysadmin APIs pass focused tests; live PostgreSQL proves RLS, digest-only intake, exact-task replay and idempotent response."
+    },
+    {
+      "id": "live-runtime-fault-boundaries",
+      "command": "pytest task/outbox/DLQ/gateway/objectstore integration; go test queue/workflow/gateway/objectstore",
+      "exit_code": 0,
+      "note": "24 live PostgreSQL/RabbitMQ/MinIO integration tests passed; 162 Go runtime tests/files include canonical commit, fencing, cancellation, retry, redelivery, poison DLQ, exact gateway scope and versioned object IO."
+    },
+    {
+      "id": "scheduler-preflight-schema-parity",
+      "command": "pytest tests/integration/test_database.py::test_scheduler_preflight_references_only_installed_procedures",
+      "exit_code": 0,
+      "note": "Every literal to_regprocedure signature required by scheduler startup resolves in a freshly migrated PostgreSQL database."
+    }
+  ],
+  "blocked_gates": [],
+  "decisions": [
+    "DAG validation, retry policy, bounded OOM reductions and explicitly qualified CPU fallback, review dependency resolution and run aggregation implemented. Outbox publisher and mail transport tested against PostgreSQL/RabbitMQ. Worker claim/heartbeat/commit now bind session_user to enabled worker registration, require a reserved slot, enforce attempt/fence/lease/deadline, and atomically save canonical output + durable event + release resources. Python executor keeps heartbeat on a separate SQL connection and AMQP pumping on the transport thread; prefetch=1, ACK after durable commit, poison dead-letter. PostgreSQL reaper invalidates expired attempts; Go recovery plans bounded retries by CAS. Admission, graph compilation/persistence/advance, event-consumer service, worker registration/object gateway and production operation wiring remain.",
+    "Scheduler role is executable: weighted tenant dispatch with preview starvation protection, resource admission and lease recovery. Physical node budgets and fresh measured capacity, tenant GPU quota, operation/backend qualification matrix and model lock checked in SQL. Command, reservation and outbox commit together. Go retries a different node after rolling back its candidate savepoint. Graph compilation/persistence/advance and event-consumer remain; scheduler only dispatches already sealed ready graphs.",
+    "Attempt-owned scratch and bounded streamed artifact materialization implemented with disk reservation, exact size/SHA verification and cleanup on cancellation/failure. Object gateway network adapter remains unimplemented.",
+    "mTLS gateway client supports bounded GET and streamed PUT with task/attempt/fence/worker headers, output role allowlist, SHA256 and no redirects. Tested with real local TLS sockets and certificate rejection. Executor persists classified transient/hash/quota failures in PostgreSQL. Go gateway, task capability issuance and MinIO transport remain unimplemented; no full object-store integration claim.",
+    "Server capability signer binds tenant/run/task/worker/attempt/fence and verified TLS certificate SHA256, fixed photo-internal audience, exact scope allowlist and TTL bounded by 60s/lease/deadline/certificate. Migration 00019 introduces function-only gateway role and live task/certificate authorization. Context tenant/run is derived from DB. HTTP handlers, service credential issuance and MinIO adapter are not yet connected.",
+    "MinIO adapter tested against pinned source-built local MinIO: conditional immutable single/multipart uploads, exact version GET/delete, full SHA/size validation and concurrent create-only race. HTTP credentials handler added; object GET/PUT, SQL output attestation, complete service startup and worker credential refresh remain to be connected. Development APFS sparse volume bounded at 2 GB; no production qualification claim.",
+    "Credentials HTTP handler and Python TaskCredentials provider implemented and tested with real mTLS sockets. Provider validates canonical task identity and bounded expiry, caches using monotonic time, renews 5s early and drops cache on failure. Server live DB resolver is covered separately; combined Go/Python/PostgreSQL object flow and production gateway listener are not yet wired.",
+    "Migration 00020 gateway_input limits access to canonical dispatch inputs/params with matching SHA, ready state, nonexpired exact object version and live worker authorization. Go Authorizer.Input also checks tenant/run and configured bucket. SQL test exists but remains unverified while Docker daemon is unavailable. Request authorization verifies exact headers, mTLS, token scope and live task context; its Go tests pass. GET/PUT streaming handlers remain to implement.",
+    "GET artifact handler now resolves live task capability and exact allowed input, streams versioned object with size limit, rechecks lease every 5s and aborts failed streams. Explicit single ranges capped at 16 MiB; full object SHA supplied, partial response is not full digest verification. SQL migration 00020 and new MinIO Range case remain pending real-service tests because Docker daemon remains unavailable. PUT attestation/service startup remain incomplete.",
+    "PUT handler and UploadService implemented: exact typed metadata, declared byte cap, generated attempt key verification, immutable version verification, bounded Begin/Complete contexts, idempotent replay without storage write, no speculative deletion on unknown commit outcome. OutputRepository remains a required unimplemented SQL dependency; startup/production usage cannot be considered complete. Go boundary tests pass.",
+    "Migration 00021 and SQLOutputs implement begin/complete reservations: task lock order, operation output policy, task output budget, tenant storage_bytes quota, single pending idempotency owner, exact metadata/version replay, fenced verified artifact and reserved-to-stored accounting. Repository checks canonical tenant/run before mutation. SQL remains unverified due unavailable PostgreSQL. Policy seeds, abandoned-upload cleanup/reconciliation and executable gateway service remain unfinished.",
+    "PHOTO_ROLE=object-gateway wired to dedicated mTLS listener, bounded explicit upload/download limits, independent Ed25519 key file, gateway SQL role and MinIO adapter. Startup checks required SQL functions and versioned bucket, no implicit bootstrap or key regeneration. Health routes share mTLS; shutdown cancels active streams. Key tests reject insecure permissions, symlinks, duplicate JSON keys and malformed seeds. Production service/E2E qualification remains pending; output policy seed and orphan cleanup incomplete.",
+    "Output cleanup protocol added: 3h initial grace, current live attempt/verified artifact exclusion, 60s token lease, exact generated key and bucket validation, 40s bounded S3 removal, quota decrement only once after successful purge. Cleaned tombstones revisit every24h for late uploads. SQL migration22, concurrent cleanup and real MinIO purge await integration verification. Cleanup worker loop still needs service wiring; this is not complete artifact lifecycle GC.",
+    "maintenance role now runs serialized output cleanup with health/metrics, 50s cycle context and cancellation on shutdown. Race test verifies transitions/readiness/cancellation. bootstrap-storage role explicitly creates/enables versioned bucket without DB; shared S3 config loader used by gateway/maintenance. Neither full artifact lifecycle GC nor real-service startup verification is complete; Docker remains unavailable.",
+    "TaskArtifacts combines credential refresh, gateway, admitted scratch budget, declared input restriction, verified strict parameter documents and staging of owned files/manifests. Control documents capped at1MiB with SHA and duplicate/JCS checks. materialize_gateway reserves authenticated Content-Length before reading body. Factory rejects missing/oversized admission budgets. Operation adapters/worker CLI wiring remain to implement.",
+    "Resolved shared-class routing vs node reservation mismatch: migration24 selects a qualified worker on reserved node and atomically prefixes outbox routing worker.UUID; claim enforces dispatch_worker_id. Privileged bootstrap provisions q.worker.UUID.class; Python transport targets own identity by default. Legacy null-target tasks remain claim-compatible until drained/reaped. Worker-specific queues must be provisioned before enabling dispatch. SQL24 and real broker routing still need integration verification.",
+    "photo-worker run now builds CPU/media asset adapters, TaskDatabase, executor and worker-specific transport. Strict env limits/TLS origin, SQL operation-set preflight, SIGTERM abort and signal restoration, credential-safe error output. Only asset.verify/media and asset.inspect/cpu are executable; remaining classes fail startup. Ongoing idle capacity reporting/worker registration provisioning and live E2E still remain.",
+    "CPU/media runtime sends startup and 10s registration heartbeat via own SQL connection. RAM uses psutil.available; scratch uses measured free disk minus64MiB. SQL bounds by node budgets, binds session_user and installed operation set, requires one resource class and one node per worker identity. GPU nodes retain their GPU capacity timestamp/data; CPU heartbeat does not pretend to refresh them. On any reporting failure consumption stops and active contexts abort. GPU capacity agent/provisioning and live SQL integration remain.",
+    "GPU class CLI now installs pair.fit.color only, requires explicit PHOTO_WORKER_BACKEND and exact registration backend. SQL30 qualified-node preflight/heartbeat clamps capacity and revokes legacy unrestricted report_worker_capacity from photo_worker. CUDA requires one visible device; MPS splits available unified memory conservatively without double counting. SQL20–30 not live-tested; registration/certificate provisioning, model/hardware qualification and whole pipeline E2E remain. Legacy baseline unchanged.",
+    "Explicit run retry now locks the run revision, accepts only failed tasks whose latest classified error is retryable and whose retry budget remains, preserves succeeded canonical results and immutable params/snapshot, resets affected descendants to blocked, and records audit evidence. Live concurrent retry/dispatch PostgreSQL verification remains unavailable.",
+    "A dedicated dead-letter-worker consumes every q.dead class and persists only a SHA-256 plus allowlisted metadata. Explicit system_admins gates signed listing and replay; replay accepts no command body and returns only the exact failed task to ordinary scheduler admission.",
+    "P05 is complete against its package criterion: all runtime fault boundaries are exercised live, canonical output is single/fenced, and queue topology including poison DLQ is verified. Earlier unavailable-service notes are retained as historical evidence and superseded by the live-runtime-fault-boundaries check."
+  ]
+}

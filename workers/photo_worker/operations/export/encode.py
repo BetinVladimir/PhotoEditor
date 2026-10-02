@@ -1,0 +1,174 @@
+"""Color-managed deterministic raster encoding from a validated WorkingImage."""
+from __future__ import annotations
+
+from contextlib import ExitStack
+import hashlib
+
+import cv2
+import numpy as np
+import pyvips
+import tifffile
+from PIL import Image
+from pydantic import ValidationError
+
+from photo_worker.color.icc import ICCRegistry, LittleCMS
+from photo_worker.contracts.base import canonical_bytes
+from photo_worker.contracts.export import EncodedImage, EncodeParams
+from photo_worker.contracts.images import WorkingImage
+from photo_worker.runtime.arrays import read_array, read_alpha_array
+from photo_worker.runtime.artifacts import ArtifactConfig, TaskArtifacts
+from photo_worker.runtime.executor import ExecutionContext, Operation, OperationFailure, OperationResult
+
+
+def _dimensions(width: int, height: int, params: EncodeParams) -> tuple[int, int]:
+    if params.size is None:
+        return width, height
+    size = params.size
+    if size.long_edge is not None:
+        scale = size.long_edge / max(width, height)
+    else:
+        scale = min(size.width / width, size.height / height)
+    if not size.allow_upscale:
+        scale = min(1.0, scale)
+    return max(1, round(width * scale)), max(1, round(height * scale))
+
+
+def _resize(array: np.ndarray, width: int, height: int) -> np.ndarray:
+    if (array.shape[1], array.shape[0]) == (width, height):
+        return np.asarray(array)
+    interpolation = cv2.INTER_AREA if width < array.shape[1] or height < array.shape[0] else cv2.INTER_LANCZOS4
+    result = cv2.resize(array, (width, height), interpolation=interpolation)
+    if array.ndim == 3 and result.ndim == 2:
+        result = result[:, :, None]
+    return np.clip(result, 0, 1)
+
+
+def _resize_rgba(rgb,alpha,width,height,*,encoding='gamma24'):
+    """Preserve existing opaque resize; translucent geometry uses linear premult."""
+    if alpha is None:return _resize(rgb,width,height),None
+    if rgb.shape[:2]!=alpha.shape or alpha.dtype!=np.float32 or not np.isfinite(alpha).all() or np.any((alpha<0)|(alpha>1)):
+        raise ValueError('RESIZE_ALPHA_INVALID')
+    if (rgb.shape[1],rgb.shape[0])==(width,height):return np.asarray(rgb),np.asarray(alpha)
+    if np.all(alpha==1):return _resize(rgb,width,height),_resize(alpha,width,height)
+    source=np.clip(rgb,0,1).astype(np.float32,copy=False)
+    if encoding=='linear':linear=source
+    elif encoding=='gamma24':linear=np.copysign(np.abs(source)**2.4,source)
+    elif encoding=='srgb':
+        absolute=np.abs(source)
+        linear=np.copysign(np.where(absolute<=.04045,absolute/12.92,((absolute+.055)/1.055)**2.4),source)
+    else:raise ValueError('RESIZE_COLOR_INVALID')
+    interpolation=cv2.INTER_AREA if width<rgb.shape[1] or height<rgb.shape[0] else cv2.INTER_LANCZOS4
+    premult=cv2.resize(linear*alpha[...,None],(width,height),interpolation=interpolation)
+    opacity=np.clip(cv2.resize(alpha,(width,height),interpolation=interpolation),0,1).astype(np.float32)
+    output=np.zeros_like(premult)
+    np.divide(premult,opacity[...,None],out=output,where=opacity[...,None]>1e-6)
+    absolute=np.abs(output)
+    if encoding=='linear':encoded=output
+    elif encoding=='gamma24':encoded=np.copysign(absolute**(1/2.4),output)
+    else:encoded=np.copysign(np.where(absolute<=.0031308,absolute*12.92,1.055*absolute**(1/2.4)-.055),output)
+    return np.clip(encoded,0,1).astype(np.float32),opacity
+
+
+def _write(path, pixels: np.ndarray, profile: bytes, params: EncodeParams):
+    height, width, bands = pixels.shape
+    rgb16 = np.round(np.clip(pixels[:, :, :3], 0, 1) * 65535).astype('<u2')
+    alpha16 = np.round(np.clip(pixels[:, :, 3], 0, 1) * 65535).astype('<u2') if bands == 4 else None
+    if params.format == 'tiff':
+        value = rgb16 if alpha16 is None else np.dstack((rgb16, alpha16))
+        tifffile.imwrite(path, value, photometric='rgb', compression='deflate', predictor=True, metadata=None,
+            extratags=[(34675, 'B', len(profile), profile, False)])
+    else:
+        value = rgb16 if alpha16 is None else np.dstack((rgb16, alpha16))
+        image = pyvips.Image.new_from_memory(value.data, width, height, value.shape[2], 'ushort').copy(interpretation='rgb16')
+        image.set_type(pyvips.GValue.blob_type, 'icc-profile-data', profile)
+        if params.format == 'png':
+            image.pngsave(str(path), compression=6, bitdepth=16, strip=False)
+        else:
+            image.jpegsave(str(path), Q=params.quality, subsample_mode='off', optimize_coding=True, strip=False)
+
+
+def _verify(path, params: EncodeParams, width: int, height: int, alpha: bool):
+    if params.format == 'tiff':
+        with tifffile.TiffFile(path) as document:
+            page = document.pages[0]
+            if page.shape != (height, width, 4 if alpha else 3) or page.dtype != np.uint16 or 34675 not in page.tags:
+                raise ValueError('TIFF_VERIFY_FAILED')
+    else:
+        with Image.open(path) as image:
+            image.verify()
+        with Image.open(path) as image:
+            if image.size != (width, height) or (image.mode in ('RGBA', 'LA')) != alpha or image.info.get('icc_profile') is None:
+                raise ValueError('ENCODE_VERIFY_FAILED')
+
+
+def execute(ctx: ExecutionContext, artifacts: TaskArtifacts, registry: ICCRegistry) -> OperationResult:
+    if ctx.lease.execution_profile.get('backend') != 'cpu':
+        raise OperationFailure('CONFIG_INVALID')
+    try:
+        params = artifacts.params(EncodeParams)
+        image = artifacts.contract(params.image, WorkingImage)
+        target_profile = registry.resolve(params.icc_id)
+        source_profile = registry.resolve(image.color.profile_id)
+        if target_profile.sha256 != params.icc_sha256 or image.color.icc_sha256 != source_profile.sha256:
+            raise ValueError('ICC_BINDING_MISMATCH')
+        required = [params.image, image.pixels, *([image.alpha] if image.alpha else [])]
+        if list(ctx.lease.command.inputs) != required or image.dtype != 'float32':
+            raise ValueError('ENCODE_INPUT_BINDING')
+        if params.alpha == 'preserve' and params.format == 'jpeg':
+            raise ValueError('JPEG_ALPHA_UNSUPPORTED')
+    except (ValueError, ValidationError) as exc:
+        raise OperationFailure('INPUT_INVALID') from exc
+    width, height = _dimensions(image.canvas.width, image.canvas.height, params)
+    from .memory import admit_presentation
+    admit_presentation(ctx.lease.execution_profile,image.canvas.width,image.canvas.height,width,height,alpha=image.alpha is not None)
+    ctx.progress(0, 5)
+    with ExitStack() as stack:
+        rgb_local = stack.enter_context(artifacts.input(image.pixels, suffix='.npy'))
+        rgb = stack.enter_context(read_array(rgb_local.path, (image.canvas.height, image.canvas.width, 3), 'float32', ctx.check_active, unit_interval=False))
+        alpha = None
+        if image.alpha is not None:
+            alpha_local = stack.enter_context(artifacts.input(image.alpha, suffix='.npy'))
+            alpha16 = stack.enter_context(read_alpha_array(alpha_local.path, (image.canvas.height, image.canvas.width), ctx.check_active))
+            alpha = alpha16.astype(np.float32) / 65535 if alpha16.dtype==np.uint16 else alpha16
+        ctx.progress(1, 5)
+        resized,resized_alpha = _resize_rgba(rgb,alpha,width,height)
+        source16 = np.round(np.clip(resized,0,1) * 65535).astype(np.uint16)
+        converted16 = LittleCMS().convert(source16, source_profile.data, target_profile.data)
+        converted = converted16.astype(np.float32) / 65535
+        if resized_alpha is not None and params.alpha == 'matte':
+            matte = np.asarray(params.matte_rgb, dtype=np.float32)
+            converted = converted * resized_alpha[:, :, None] + matte * (1 - resized_alpha[:, :, None])
+            resized_alpha = None
+        ctx.progress(2, 5)
+        bands = converted if resized_alpha is None else np.dstack((converted, resized_alpha))
+        suffix = {'jpeg': '.jpg', 'png': '.png', 'tiff': '.tiff'}[params.format]
+        estimate = width * height * (8 if bands.shape[2] == 4 else 6) + 2 * 1024 * 1024
+        with artifacts.scratch.reserve(estimate) as reservation:
+            path = reservation.planned_path('encoded', suffix)
+            try:
+                _write(path, bands, target_profile.data, params)
+                reservation.validate_file(path)
+                _verify(path, params, width, height, resized_alpha is not None)
+            except (ValueError, OSError, pyvips.Error, tifffile.TiffFileError) as exc:
+                raise OperationFailure('INPUT_INVALID') from exc
+            ctx.progress(3, 5)
+            output = artifacts.stage(path, reservation, 'encoded_image', {'jpeg': 'image/jpeg', 'png': 'image/png', 'tiff': 'image/tiff'}[params.format])
+            written = path.stat().st_size
+    ctx.progress(4, 5)
+    manifest = EncodedImage(artifact=output, format=params.format, width=width, height=height,
+        icc_id=params.icc_id, icc_sha256=target_profile.sha256, alpha=resized_alpha is not None,
+        metadata_policy=params.metadata_policy)
+    manifest_ref = artifacts.stage_contract(manifest, 'encoded_manifest')
+    ctx.progress(5, 5)
+    return OperationResult(outputs=[output, manifest_ref], bytes_written=written + len(canonical_bytes(manifest)))
+
+
+def export_operations(config: ArtifactConfig, icc_root=None) -> list[Operation]:
+    if icc_root is None:
+        return []
+    registry = ICCRegistry(icc_root)
+
+    def encode(ctx):
+        with TaskArtifacts.create(ctx, config, frozenset({'encoded_image', 'encoded_manifest'})) as artifacts:
+            return execute(ctx, artifacts, registry)
+    return [Operation('export.encode', 'cpu', encode)]

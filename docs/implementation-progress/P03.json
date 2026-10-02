@@ -1,0 +1,55 @@
+{
+  "package_id": "P03",
+  "status": "complete",
+  "source_commit": "fee5be46bca3afff31e953676627b20834bc3084",
+  "changed_files": [
+    "backend/internal/auth",
+    "backend/internal/tenant",
+    "backend/internal/project",
+    "backend/internal/mail",
+    "backend/internal/httpapi",
+    "backend/internal/idempotency",
+    "backend/internal/pagination",
+    "backend/db/migrations/00097_tenant_lifecycle.sql",
+    "backend/db/migrations/00098_invitations.sql",
+    "tests/platform/test_tenant_lifecycle_migration.py",
+    "tests/platform/test_invitation_migration.py"
+  ],
+  "checks": [
+    {
+      "id": "tenant-invitation-contracts",
+      "command": "python -m pytest tests/platform/test_tenant_lifecycle_migration.py tests/platform/test_invitation_migration.py -q -p no:cacheprovider",
+      "exit_code": 0,
+      "note": "6 static security and atomicity checks pass; live PostgreSQL execution remains unverified."
+    },
+    {
+      "id": "go-regression",
+      "command": "cd backend && go test ./...",
+      "exit_code": 0,
+      "note": "All Go packages pass, including mail invitation rendering and tenant validation."
+    },
+    {
+      "id": "platform-regression",
+      "command": "python -m pytest tests/platform -q -p no:cacheprovider",
+      "exit_code": 0,
+      "note": "293 platform tests pass."
+    },
+    {
+      "id": "contracts-and-legacy",
+      "command": "make contracts-check && git diff --check",
+      "exit_code": 0,
+      "note": "Generated contracts and DB sources are clean; Legacy quality source and presets unchanged."
+    },
+    {
+      "id": "p03-completion-audit",
+      "command": "make test-db; go -C backend test ./internal/auth ./internal/tenant ./internal/mail ./internal/project ./internal/httpapi",
+      "exit_code": 0,
+      "note": "Live isolated PostgreSQL integration covers OTP one-time use, five-attempt lockout, refresh-family replay revocation, unknown-email behavior, web/native session contracts, concurrent owner transfer with exactly one owner, hidden deleted tenants, and mail unknown-outcome retry with identical OTP/Message-ID followed by ciphertext erasure. Role-negative and project/tenant authorization tests pass."
+    }
+  ],
+  "blocked_gates": [],
+  "decisions": [
+    "OTP, encrypted mail enqueue, refresh replay revocation, JWT/session validation, Origin/CSRF, preferences, active-session pagination/revocation, tenant create/update/deletion request, access/owner transfer, signed member pagination, member role/status CAS and protected member removal are implemented. Tenant deletion atomically marks deleting, revokes share access, requests run cancellation and queues a replayable deletion job; resumable physical cleanup remains. Invitation create/accept uses CSPRNG bearer tokens stored only as hashes, encrypted invitation mail payloads, durable outbox, exact verified-email binding, TTL, active-tenant fencing and idempotent acceptance. Mail-worker consumes OTP and invitation Rabbit commands with stable Message-ID, dedicated decryption keys, bounded SMTP, fenced SQL commit, retry sweep and ciphertext erasure. Live PostgreSQL/RabbitMQ concurrency and delivery remain unverified.",
+    "P03 acceptance AUTH01/AUTH02, owner transfer race and SMTP unknown-result replay is complete. Invitation and tenant lifecycle services use the same fenced/idempotent database boundary; physical tenant metadata purge remains owned by P16 rather than authentication."
+  ]
+}

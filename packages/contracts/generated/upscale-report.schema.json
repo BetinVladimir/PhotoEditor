@@ -1,0 +1,143 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/upscale-report.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "alpha_resampled": {
+      "title": "Alpha Resampled",
+      "type": "boolean"
+    },
+    "backend": {
+      "enum": [
+        "cpu",
+        "cuda",
+        "mps"
+      ],
+      "title": "Backend",
+      "type": "string"
+    },
+    "color_adapter_id": {
+      "const": "work_srgb_delta_v1",
+      "title": "Color Adapter Id",
+      "type": "string"
+    },
+    "disabled_delta_fraction": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Disabled Delta Fraction",
+      "type": "number"
+    },
+    "gamut_excess_fraction": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Gamut Excess Fraction",
+      "type": "number"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "input_pixel_count": {
+      "maximum": 200000000,
+      "minimum": 1,
+      "title": "Input Pixel Count",
+      "type": "integer"
+    },
+    "model_id": {
+      "enum": [
+        "realesrgan_x2",
+        "realesrgan_x4"
+      ],
+      "title": "Model Id",
+      "type": "string"
+    },
+    "model_lock_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Model Lock Id",
+      "type": "string"
+    },
+    "output_pixel_count": {
+      "maximum": 200000000,
+      "minimum": 1,
+      "title": "Output Pixel Count",
+      "type": "integer"
+    },
+    "overlap": {
+      "const": 32,
+      "title": "Overlap",
+      "type": "integer"
+    },
+    "scale": {
+      "enum": [
+        2,
+        4
+      ],
+      "title": "Scale",
+      "type": "integer"
+    },
+    "source_clip_fraction": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Source Clip Fraction",
+      "type": "number"
+    },
+    "tile": {
+      "const": 256,
+      "title": "Tile",
+      "type": "integer"
+    },
+    "warnings": {
+      "items": {
+        "enum": [
+          "source_srgb_clipped",
+          "delta_gamut_excess"
+        ],
+        "type": "string"
+      },
+      "maxItems": 2,
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "image",
+    "model_id",
+    "model_lock_id",
+    "backend",
+    "scale",
+    "color_adapter_id",
+    "tile",
+    "overlap",
+    "input_pixel_count",
+    "output_pixel_count",
+    "disabled_delta_fraction",
+    "source_clip_fraction",
+    "gamut_excess_fraction",
+    "alpha_resampled",
+    "warnings"
+  ],
+  "title": "UpscaleReport",
+  "type": "object"
+}

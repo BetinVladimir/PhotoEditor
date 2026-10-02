@@ -1,0 +1,345 @@
+{
+  "format_version": 1,
+  "packages": [
+    {
+      "id": "P00",
+      "depends_on": [],
+      "title": "Основа monorepo и contract tooling",
+      "paths": [
+        "backend/,workers/,apps/,packages/,tests/,Makefile"
+      ],
+      "documents": [
+        "00",
+        "01",
+        "15"
+      ],
+      "acceptance": "contracts-check; legacy22 остаются зелёными; no placeholder implementation",
+      "status": "not_started"
+    },
+    {
+      "id": "P01",
+      "depends_on": [
+        "P00"
+      ],
+      "title": "Совместимость, locks, модели и ICC",
+      "paths": [
+        "resources/,deploy/images/,workers/photo_worker/cli/doctor.py"
+      ],
+      "documents": [
+        "06",
+        "07",
+        "11"
+      ],
+      "acceptance": "all required model CPU smoke; MPS/CUDA reports; exact hashes licenses locks; blocked hardware explicit",
+      "status": "not_started"
+    },
+    {
+      "id": "P02",
+      "depends_on": [
+        "P00"
+      ],
+      "title": "PostgreSQL и RLS",
+      "paths": [
+        "backend/db/migrations/00001..00011,backend/db/queries"
+      ],
+      "documents": [
+        "02",
+        "03"
+      ],
+      "acceptance": "DB01 DB02 DB03; real role negative tests; sqlc generation",
+      "status": "not_started"
+    },
+    {
+      "id": "P03",
+      "depends_on": [
+        "P02"
+      ],
+      "title": "Auth, tenants, projects, ACL, SMTP",
+      "paths": [
+        "backend/internal/auth,tenant,project,mail"
+      ],
+      "documents": [
+        "03",
+        "04"
+      ],
+      "acceptance": "AUTH01 AUTH02; owner transfer race; SMTP unknown-result retry same OTP",
+      "status": "not_started"
+    },
+    {
+      "id": "P04",
+      "depends_on": [
+        "P03"
+      ],
+      "title": "Каталог, snapshots, shares и публикации",
+      "paths": [
+        "backend/internal/collection,share,selection"
+      ],
+      "documents": [
+        "02",
+        "04",
+        "09"
+      ],
+      "acceptance": "IMM constraints; SHARE01 SHARE02; revision conflicts",
+      "status": "not_started"
+    },
+    {
+      "id": "P05",
+      "depends_on": [
+        "P02",
+        "P03"
+      ],
+      "title": "Outbox и scheduler runtime",
+      "paths": [
+        "backend/internal/queue,workflow,workers/photo_worker/runtime"
+      ],
+      "documents": [
+        "05",
+        "06"
+      ],
+      "acceptance": "all fault boundaries; single canonical output; queue topology",
+      "status": "not_started"
+    },
+    {
+      "id": "P06",
+      "depends_on": [
+        "P04",
+        "P05",
+        "P01"
+      ],
+      "title": "Multipart ingest и media",
+      "paths": [
+        "backend/internal/upload,storage",
+        "workers/operations/asset,media"
+      ],
+      "documents": [
+        "06",
+        "09"
+      ],
+      "acceptance": "UP01 UP02 UP03; thumb profiles; GC leases",
+      "status": "not_started"
+    },
+    {
+      "id": "P07",
+      "depends_on": [
+        "P04",
+        "P05",
+        "P06"
+      ],
+      "title": "ZIP и download jobs",
+      "paths": [
+        "backend/internal/download",
+        "workers/operations/archive"
+      ],
+      "documents": [
+        "04",
+        "09"
+      ],
+      "acceptance": "DL01 DL02 DL03; no partial ready; intent policy",
+      "status": "not_started"
+    },
+    {
+      "id": "P08",
+      "depends_on": [
+        "P04",
+        "P06",
+        "P07"
+      ],
+      "title": "Гостевой портал",
+      "paths": [
+        "apps/portal,packages/locales,design-tokens"
+      ],
+      "documents": [
+        "10"
+      ],
+      "acceptance": "SHARE flows; UI02 UI03 portal matrix; real uploads/downloads",
+      "status": "not_started"
+    },
+    {
+      "id": "P09",
+      "depends_on": [
+        "P01",
+        "P05",
+        "P06"
+      ],
+      "title": "Цветовое ядро и StyleV2",
+      "paths": [
+        "workers/algorithms/color,workers/contracts/style"
+      ],
+      "documents": [
+        "07",
+        "15"
+      ],
+      "acceptance": "N01 N04 N05 N06; fixed/adaptive schemas, canonical bytes cross-language",
+      "status": "not_started"
+    },
+    {
+      "id": "P10",
+      "depends_on": [
+        "P09"
+      ],
+      "title": "Analyze пар и версии профиля",
+      "paths": [
+        "workers/operations/pair,style",
+        "backend/internal/style"
+      ],
+      "documents": [
+        "04",
+        "07"
+      ],
+      "acceptance": "STYLE01 STYLE02; one and multi pairs; aggregate equal weights; provenance",
+      "status": "not_started"
+    },
+    {
+      "id": "P11",
+      "depends_on": [
+        "P09",
+        "P10",
+        "P04"
+      ],
+      "title": "Apply DAG и результат новой коллекции",
+      "paths": [
+        "backend/internal/run,workflow",
+        "workers/operations/image"
+      ],
+      "documents": [
+        "04",
+        "05",
+        "07"
+      ],
+      "acceptance": "IMM01 IMM02 IMM03; partial/retry/cancel; fixed no hidden WB",
+      "status": "not_started"
+    },
+    {
+      "id": "P12",
+      "depends_on": [
+        "P01",
+        "P09",
+        "P05"
+      ],
+      "title": "Маски, отбор, серия, композиция",
+      "paths": [
+        "workers/operations/mask,face,pose,collection,series,composition"
+      ],
+      "documents": [
+        "06",
+        "08"
+      ],
+      "acceptance": "cull/group stable permutation; mask transforms; N08 corresponding metrics",
+      "status": "not_started"
+    },
+    {
+      "id": "P13",
+      "depends_on": [
+        "P11",
+        "P12"
+      ],
+      "title": "Beauty, defects, body, review",
+      "paths": [
+        "workers/operations/portrait,defects,geometry",
+        "backend/internal/review"
+      ],
+      "documents": [
+        "04",
+        "08"
+      ],
+      "acceptance": "N07 REVIEW01; protected marks; strength0; no duplicate color fit",
+      "status": "not_started"
+    },
+    {
+      "id": "P14",
+      "depends_on": [
+        "P11",
+        "P12",
+        "P13"
+      ],
+      "title": "Restoration, background, generation, HDR",
+      "paths": [
+        "workers/operations/background,hdr,image/{denoise,generate,inpaint,outpaint,upscale}"
+      ],
+      "documents": [
+        "06",
+        "08"
+      ],
+      "acceptance": "N08 heavy modules; all generation acceptance; budgets/fallbacks",
+      "status": "not_started"
+    },
+    {
+      "id": "P15",
+      "depends_on": [
+        "P03",
+        "P04",
+        "P10",
+        "P11",
+        "P13",
+        "P14"
+      ],
+      "title": "Полное приложение фотографа",
+      "paths": [
+        "apps/photographer,packages/api-client,locales"
+      ],
+      "documents": [
+        "10"
+      ],
+      "acceptance": "all routes/panels web/iOS/Android; UI01 UI03; no mock-only paths",
+      "status": "not_started"
+    },
+    {
+      "id": "P16",
+      "depends_on": [
+        "P05",
+        "P07",
+        "P14"
+      ],
+      "title": "Эксплуатация и deploy",
+      "paths": [
+        "deploy/,backend/internal/maintenance,telemetry"
+      ],
+      "documents": [
+        "09",
+        "11"
+      ],
+      "acceptance": "all profiles health checks; RESTORE01 GC01; secrets/ports; peak budgets",
+      "status": "not_started"
+    },
+    {
+      "id": "P17",
+      "depends_on": [
+        "P06",
+        "P10",
+        "P11",
+        "P16"
+      ],
+      "title": "Legacy importer и обновления",
+      "paths": [
+        "workers/cli/migrate",
+        "backend/internal/importer",
+        "tests/migration"
+      ],
+      "documents": [
+        "00",
+        "02"
+      ],
+      "acceptance": "dry-run then resume import; original bytes unchanged; unsupported config fails explicitly",
+      "status": "not_started"
+    },
+    {
+      "id": "P18",
+      "depends_on": [
+        "P08",
+        "P15",
+        "P16",
+        "P17"
+      ],
+      "title": "Итоговая приёмка и выпуск",
+      "paths": [
+        "tests/,release/,docs/user/,docs/ops/"
+      ],
+      "documents": [
+        "12",
+        "14"
+      ],
+      "acceptance": "all functional/fault/security/numerical/visual/performance/native gates; SBOM/locks/full delivery",
+      "status": "not_started"
+    }
+  ]
+}

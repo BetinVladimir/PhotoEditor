@@ -1,0 +1,48 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/package-params.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "package_version": {
+      "const": "style_package_v1",
+      "default": "style_package_v1",
+      "title": "Package Version",
+      "type": "string"
+    },
+    "quality_report": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "style": {
+      "$ref": "#/$defs/ArtifactRef"
+    }
+  },
+  "required": [
+    "style",
+    "quality_report"
+  ],
+  "title": "PackageParams",
+  "type": "object"
+}

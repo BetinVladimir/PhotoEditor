@@ -1,0 +1,125 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "ModelReference": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "weight_id": {
+          "title": "Weight Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "weight_id"
+      ],
+      "title": "ModelReference",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/style-aggregate-params.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "beauty_fits": {
+      "items": {
+        "$ref": "#/$defs/ArtifactRef"
+      },
+      "maxItems": 32,
+      "title": "Beauty Fits",
+      "type": "array"
+    },
+    "color_fits": {
+      "items": {
+        "$ref": "#/$defs/ArtifactRef"
+      },
+      "maxItems": 32,
+      "minItems": 1,
+      "title": "Color Fits",
+      "type": "array"
+    },
+    "defect_evidence": {
+      "items": {
+        "$ref": "#/$defs/ArtifactRef"
+      },
+      "maxItems": 32,
+      "title": "Defect Evidence",
+      "type": "array"
+    },
+    "models": {
+      "items": {
+        "$ref": "#/$defs/ModelReference"
+      },
+      "maxItems": 32,
+      "title": "Models",
+      "type": "array"
+    },
+    "pair_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Pair Manifest Sha256",
+      "type": "string"
+    },
+    "runtime_lock_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Runtime Lock Id",
+      "type": "string"
+    },
+    "seed": {
+      "default": 42,
+      "maximum": 4294967295,
+      "minimum": 0,
+      "title": "Seed",
+      "type": "integer"
+    },
+    "session_ids": {
+      "items": {
+        "maxLength": 120,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 32,
+      "minItems": 1,
+      "title": "Session Ids",
+      "type": "array"
+    },
+    "style_id": {
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Style Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "style_id",
+    "color_fits",
+    "session_ids",
+    "pair_manifest_sha256",
+    "runtime_lock_id"
+  ],
+  "title": "StyleAggregateParams",
+  "type": "object"
+}

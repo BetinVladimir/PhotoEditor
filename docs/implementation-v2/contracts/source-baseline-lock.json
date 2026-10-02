@@ -1,0 +1,68 @@
+{
+  "review_date": "2026-10-02",
+  "notice": "Read-only baseline evidence. On drift re-review affected contracts; do not blindly update hashes.",
+  "files": [
+    {
+      "path": "backend/db/migrations/00195_contact_sheet_resources.sql",
+      "sha256": "17cdcf0e5ae5fc75de63c22e9df46a4f3374016192487e98224260819d93d9b7"
+    },
+    {
+      "path": "backend/db/migrations/00005_styles_snapshots.sql",
+      "sha256": "8d40171efd728406407c4f08c5aaa1a9d4ee337e37b0c49431b6f61614cff701"
+    },
+    {
+      "path": "backend/db/migrations/00006_workflow.sql",
+      "sha256": "cc86ea9a017f782a4569dec81aa983b177cb84013a2a717540bb5724b590d32b"
+    },
+    {
+      "path": "backend/db/migrations/00020_gateway_inputs.sql",
+      "sha256": "c6885b4a0954c84bdedca8de37a2a906f182b5d29555d0811e8a35be76feaad4"
+    },
+    {
+      "path": "backend/db/migrations/00021_gateway_outputs.sql",
+      "sha256": "f873b4f378f393490d0acd2ec7f841768e63a41025f770cd84ae5976a4efb5a5"
+    },
+    {
+      "path": "backend/db/migrations/00047_activate_bound_task.sql",
+      "sha256": "a72fa6bfc565a25e7f3328e9178df48f35a13e264a8462e04d8c29876acdf306"
+    },
+    {
+      "path": "backend/internal/gateway/service.go",
+      "sha256": "e9352608a2b11b292dfdabad710b3922ff8c2fb09baa74ce7ce70ee1b50a0ce7"
+    },
+    {
+      "path": "backend/internal/workflow/apply_v4_plan.go",
+      "sha256": "c492e1c1b62988b9ef08a55e854a9f8ce92eff68e108ab8954a80a18e2bf0c4b"
+    },
+    {
+      "path": "workers/photo_worker/contracts/images.py",
+      "sha256": "ef4102a776bc3dec21546992acedc71c25c58f4653039a6488dfd7c238cf52a5",
+      "review_note": "Reviewed V25 DenseWarpTransform marker: omitted legacy pixel_centers preserves chain hashes; explicit null/unknown rejected; half_pixel mask/correspondence verified against lens sampler."
+    },
+    {
+      "path": "workers/photo_worker/contracts/style.py",
+      "sha256": "1fe970514194da03df1c5be9c6f8168b82a2037e38616bd40b29a75b26f642f1"
+    },
+    {
+      "path": "workers/photo_worker/contracts/wire.py",
+      "sha256": "4a54e03b432baebf4bc6b0b577058301dfe6f1523207f6ec0abd9ae054ce657d"
+    },
+    {
+      "path": "workers/photo_worker/contracts/override.py",
+      "sha256": "3c05a8c981622545ae02b29fafc4e7ec475e5e57a54b09a50ab01e6e519660d4"
+    },
+    {
+      "path": "workers/photo_worker/models/lock.py",
+      "sha256": "6a2c669f75d29d897f45dc4d2070ec5a400760f8ab8d2e9daf8bb8e3c426bb65"
+    },
+    {
+      "path": "workers/photo_worker/runtime/artifacts.py",
+      "sha256": "4052c0dffb31d55c81b3d875dc302002a4b887a5c505dd64c77701102d514faa",
+      "review_note": "Reviewed declared typed input discovery, bounded 8MiB V2 contracts and declared-only streaming. Gateway checks lease on bounded reads; context closes stream on success/consumer error; archive independently validates body hash."
+    },
+    {
+      "path": "workers/photo_worker/runtime/gateway.py",
+      "sha256": "cc1aef36a590e4d0124bf10634eb970b840d7a5661a720577c34a7d26a8b3502"
+    }
+  ]
+}

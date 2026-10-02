@@ -1,0 +1,132 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/person-report.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "alpha_excluded_fraction": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Alpha Excluded Fraction",
+      "type": "number"
+    },
+    "backend": {
+      "enum": [
+        "cpu",
+        "cuda",
+        "mps"
+      ],
+      "title": "Backend",
+      "type": "string"
+    },
+    "confidence": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Confidence",
+      "type": "number"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "mask": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "model_id": {
+      "const": "lraspp_mobilenet_v3_large",
+      "title": "Model Id",
+      "type": "string"
+    },
+    "model_lock_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Model Lock Id",
+      "type": "string"
+    },
+    "person_class": {
+      "const": 15,
+      "default": 15,
+      "title": "Person Class",
+      "type": "integer"
+    },
+    "person_fraction": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Person Fraction",
+      "type": "number"
+    },
+    "preprocessing_id": {
+      "const": "person_guided_v1",
+      "title": "Preprocessing Id",
+      "type": "string"
+    },
+    "preview_height": {
+      "maximum": 768,
+      "minimum": 1,
+      "title": "Preview Height",
+      "type": "integer"
+    },
+    "preview_width": {
+      "maximum": 768,
+      "minimum": 1,
+      "title": "Preview Width",
+      "type": "integer"
+    },
+    "source_clip_fraction": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Source Clip Fraction",
+      "type": "number"
+    },
+    "warnings": {
+      "items": {
+        "enum": [
+          "low_confidence",
+          "empty_person",
+          "source_srgb_clipped"
+        ],
+        "type": "string"
+      },
+      "maxItems": 3,
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "image",
+    "mask",
+    "preview_width",
+    "preview_height",
+    "model_id",
+    "model_lock_id",
+    "backend",
+    "preprocessing_id",
+    "confidence",
+    "person_fraction",
+    "source_clip_fraction",
+    "alpha_excluded_fraction",
+    "warnings"
+  ],
+  "title": "PersonReport",
+  "type": "object"
+}

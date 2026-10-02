@@ -1,0 +1,126 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "ContactPage": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "first_index": {
+          "minimum": 0,
+          "title": "First Index",
+          "type": "integer"
+        },
+        "height": {
+          "maximum": 2600,
+          "minimum": 1,
+          "title": "Height",
+          "type": "integer"
+        },
+        "item_count": {
+          "maximum": 80,
+          "minimum": 1,
+          "title": "Item Count",
+          "type": "integer"
+        },
+        "page": {
+          "maximum": 128,
+          "minimum": 1,
+          "title": "Page",
+          "type": "integer"
+        },
+        "width": {
+          "maximum": 2560,
+          "minimum": 1,
+          "title": "Width",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact",
+        "page",
+        "first_index",
+        "item_count",
+        "width",
+        "height"
+      ],
+      "title": "ContactPage",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/contact-sheet.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "font_lock_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Font Lock Id",
+      "type": "string"
+    },
+    "format": {
+      "const": "png_pages",
+      "default": "png_pages",
+      "title": "Format",
+      "type": "string"
+    },
+    "labels_embedded": {
+      "const": true,
+      "default": true,
+      "title": "Labels Embedded",
+      "type": "boolean"
+    },
+    "locale": {
+      "enum": [
+        "ru",
+        "bg",
+        "en"
+      ],
+      "title": "Locale",
+      "type": "string"
+    },
+    "pages": {
+      "items": {
+        "$ref": "#/$defs/ContactPage"
+      },
+      "maxItems": 128,
+      "minItems": 1,
+      "title": "Pages",
+      "type": "array"
+    },
+    "total_items": {
+      "maximum": 10000,
+      "minimum": 1,
+      "title": "Total Items",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "locale",
+    "font_lock_id",
+    "total_items",
+    "pages"
+  ],
+  "title": "ContactSheet",
+  "type": "object"
+}

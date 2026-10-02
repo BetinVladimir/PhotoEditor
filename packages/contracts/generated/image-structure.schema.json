@@ -1,0 +1,185 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "LineSegment": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "default": 1,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "x0": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "X0",
+          "type": "number"
+        },
+        "x1": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "X1",
+          "type": "number"
+        },
+        "y0": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Y0",
+          "type": "number"
+        },
+        "y1": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Y1",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x0",
+        "y0",
+        "x1",
+        "y1"
+      ],
+      "title": "LineSegment",
+      "type": "object"
+    },
+    "NormalizedRect": {
+      "additionalProperties": false,
+      "properties": {
+        "x0": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "X0",
+          "type": "number"
+        },
+        "x1": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "X1",
+          "type": "number"
+        },
+        "y0": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Y0",
+          "type": "number"
+        },
+        "y1": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Y1",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x0",
+        "y0",
+        "x1",
+        "y1"
+      ],
+      "title": "NormalizedRect",
+      "type": "object"
+    },
+    "ProtectedPoint": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "default": 1,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "kind": {
+          "enum": [
+            "face",
+            "eye",
+            "head",
+            "person",
+            "manual"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "x": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "kind"
+      ],
+      "title": "ProtectedPoint",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/image-structure.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "lines": {
+      "items": {
+        "$ref": "#/$defs/LineSegment"
+      },
+      "maxItems": 4096,
+      "title": "Lines",
+      "type": "array"
+    },
+    "protected_points": {
+      "items": {
+        "$ref": "#/$defs/ProtectedPoint"
+      },
+      "maxItems": 1024,
+      "title": "Protected Points",
+      "type": "array"
+    },
+    "subjects": {
+      "items": {
+        "$ref": "#/$defs/NormalizedRect"
+      },
+      "maxItems": 128,
+      "title": "Subjects",
+      "type": "array"
+    }
+  },
+  "required": [
+    "image"
+  ],
+  "title": "ImageStructure",
+  "type": "object"
+}

@@ -1,0 +1,463 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "Canvas": {
+      "additionalProperties": false,
+      "properties": {
+        "height": {
+          "maximum": 2147483647,
+          "minimum": 1,
+          "title": "Height",
+          "type": "integer"
+        },
+        "orientation": {
+          "const": 1,
+          "title": "Orientation",
+          "type": "integer"
+        },
+        "source_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Sha256",
+          "type": "string"
+        },
+        "space_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$",
+          "title": "Space Id",
+          "type": "string"
+        },
+        "width": {
+          "maximum": 2147483647,
+          "minimum": 1,
+          "title": "Width",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "width",
+        "height",
+        "orientation",
+        "space_id",
+        "source_sha256"
+      ],
+      "title": "Canvas",
+      "type": "object"
+    },
+    "CropTransform": {
+      "additionalProperties": false,
+      "properties": {
+        "crop_rect": {
+          "$ref": "#/$defs/Rect"
+        },
+        "from_canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "invertibility": {
+          "enum": [
+            "invertible",
+            "partial",
+            "noninvertible"
+          ],
+          "title": "Invertibility",
+          "type": "string"
+        },
+        "kind": {
+          "const": "crop",
+          "title": "Kind",
+          "type": "string"
+        },
+        "to_canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "valid_region": {
+          "$ref": "#/$defs/Rect"
+        }
+      },
+      "required": [
+        "from_canvas",
+        "to_canvas",
+        "invertibility",
+        "valid_region",
+        "kind",
+        "crop_rect"
+      ],
+      "title": "CropTransform",
+      "type": "object"
+    },
+    "DenseWarpTransform": {
+      "additionalProperties": false,
+      "properties": {
+        "from_canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "inverse_field": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "invertibility": {
+          "enum": [
+            "invertible",
+            "partial",
+            "noninvertible"
+          ],
+          "title": "Invertibility",
+          "type": "string"
+        },
+        "kind": {
+          "const": "dense_warp",
+          "title": "Kind",
+          "type": "string"
+        },
+        "pixel_centers": {
+          "const": "half_pixel",
+          "type": "string"
+        },
+        "to_canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "valid_region": {
+          "$ref": "#/$defs/Rect"
+        }
+      },
+      "required": [
+        "from_canvas",
+        "to_canvas",
+        "invertibility",
+        "valid_region",
+        "kind",
+        "inverse_field"
+      ],
+      "title": "DenseWarpTransform",
+      "type": "object"
+    },
+    "Face68": {
+      "additionalProperties": false,
+      "properties": {
+        "canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "object_id": {
+          "format": "uuid",
+          "title": "Object Id",
+          "type": "string"
+        },
+        "points": {
+          "items": {
+            "$ref": "#/$defs/Landmark"
+          },
+          "maxItems": 68,
+          "minItems": 68,
+          "title": "Points",
+          "type": "array"
+        },
+        "transform_chain": {
+          "$ref": "#/$defs/TransformChain"
+        }
+      },
+      "required": [
+        "object_id",
+        "points",
+        "canvas",
+        "transform_chain"
+      ],
+      "title": "Face68",
+      "type": "object"
+    },
+    "Landmark": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "x": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "confidence"
+      ],
+      "title": "Landmark",
+      "type": "object"
+    },
+    "MatrixTransform": {
+      "additionalProperties": false,
+      "properties": {
+        "forward_matrix": {
+          "items": {
+            "maximum": 1000000000000.0,
+            "minimum": -1000000000000.0,
+            "type": "number"
+          },
+          "maxItems": 9,
+          "minItems": 9,
+          "title": "Forward Matrix",
+          "type": "array"
+        },
+        "from_canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "invertibility": {
+          "enum": [
+            "invertible",
+            "partial",
+            "noninvertible"
+          ],
+          "title": "Invertibility",
+          "type": "string"
+        },
+        "kind": {
+          "const": "matrix",
+          "title": "Kind",
+          "type": "string"
+        },
+        "to_canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "valid_region": {
+          "$ref": "#/$defs/Rect"
+        }
+      },
+      "required": [
+        "from_canvas",
+        "to_canvas",
+        "invertibility",
+        "valid_region",
+        "kind",
+        "forward_matrix"
+      ],
+      "title": "MatrixTransform",
+      "type": "object"
+    },
+    "Rect": {
+      "additionalProperties": false,
+      "properties": {
+        "height": {
+          "maximum": 2147483647,
+          "minimum": 1,
+          "title": "Height",
+          "type": "integer"
+        },
+        "width": {
+          "maximum": 2147483647,
+          "minimum": 1,
+          "title": "Width",
+          "type": "integer"
+        },
+        "x": {
+          "minimum": 0,
+          "title": "X",
+          "type": "integer"
+        },
+        "y": {
+          "minimum": 0,
+          "title": "Y",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "title": "Rect",
+      "type": "object"
+    },
+    "ResizeTransform": {
+      "additionalProperties": false,
+      "properties": {
+        "from_canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "invertibility": {
+          "enum": [
+            "invertible",
+            "partial",
+            "noninvertible"
+          ],
+          "title": "Invertibility",
+          "type": "string"
+        },
+        "kind": {
+          "const": "resize",
+          "title": "Kind",
+          "type": "string"
+        },
+        "pixel_centers": {
+          "const": "half_pixel",
+          "title": "Pixel Centers",
+          "type": "string"
+        },
+        "to_canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "valid_region": {
+          "$ref": "#/$defs/Rect"
+        }
+      },
+      "required": [
+        "from_canvas",
+        "to_canvas",
+        "invertibility",
+        "valid_region",
+        "kind",
+        "pixel_centers"
+      ],
+      "title": "ResizeTransform",
+      "type": "object"
+    },
+    "TransformChain": {
+      "additionalProperties": false,
+      "properties": {
+        "hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Hash",
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "crop": "#/$defs/CropTransform",
+                "dense_warp": "#/$defs/DenseWarpTransform",
+                "matrix": "#/$defs/MatrixTransform",
+                "resize": "#/$defs/ResizeTransform"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/MatrixTransform"
+              },
+              {
+                "$ref": "#/$defs/DenseWarpTransform"
+              },
+              {
+                "$ref": "#/$defs/CropTransform"
+              },
+              {
+                "$ref": "#/$defs/ResizeTransform"
+              }
+            ]
+          },
+          "maxItems": 128,
+          "title": "Steps",
+          "type": "array"
+        }
+      },
+      "required": [
+        "steps",
+        "hash"
+      ],
+      "title": "TransformChain",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/face-landmarks.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "backend": {
+      "enum": [
+        "cpu",
+        "cuda",
+        "mps"
+      ],
+      "title": "Backend",
+      "type": "string"
+    },
+    "faces": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "landmarks": {
+      "items": {
+        "$ref": "#/$defs/Face68"
+      },
+      "maxItems": 100,
+      "title": "Landmarks",
+      "type": "array"
+    },
+    "mean_confidence": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Mean Confidence",
+      "type": "number"
+    },
+    "model_id": {
+      "const": "fan2d",
+      "title": "Model Id",
+      "type": "string"
+    },
+    "model_lock_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Model Lock Id",
+      "type": "string"
+    },
+    "preprocessing_id": {
+      "const": "fan2d_crop256_v1",
+      "title": "Preprocessing Id",
+      "type": "string"
+    },
+    "warnings": {
+      "items": {
+        "enum": [
+          "no_faces",
+          "low_confidence",
+          "source_srgb_clipped"
+        ],
+        "type": "string"
+      },
+      "maxItems": 3,
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "image",
+    "faces",
+    "landmarks",
+    "model_id",
+    "model_lock_id",
+    "backend",
+    "preprocessing_id",
+    "mean_confidence",
+    "warnings"
+  ],
+  "title": "FaceLandmarks",
+  "type": "object"
+}

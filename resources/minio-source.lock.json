@@ -1,0 +1,11 @@
+{
+  "module": "github.com/minio/minio",
+  "version": "v0.0.0-20251015172955-9e49d5e7a648",
+  "release": "RELEASE.2025-10-15T17-29-55Z",
+  "commit": "9e49d5e7a648f00e26f2246f4dc28e6b07f8c84a",
+  "sum": "h1:6TdolSCLSs2nwm8i0PpWDqf9iX2Ty9WQK8wmr7dCnUM=",
+  "go_mod_sum": "h1:yCWDkwWO9IWpGsT4mreDDN/B/QVmK2zC666uInRAcqE=",
+  "base_image": "quay.io/minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e",
+  "license": "AGPL-3.0",
+  "scope": "Source-pinned local development build; production qualification remains required"
+}

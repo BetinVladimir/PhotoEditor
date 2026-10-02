@@ -1,0 +1,2056 @@
+{
+  "schema_version": 1,
+  "operations": [
+    {
+      "id": "layer.compose",
+      "version": "1",
+      "package": "V25",
+      "params": "LayerComposeParams",
+      "output": "ImageResult",
+      "resource_class": "cpu",
+      "output_roles": [
+        "document",
+        "working_image",
+        "pixels",
+        "report",
+        "mask",
+        "mask_pixels",
+        "transform",
+        "registration",
+        "alpha",
+        "warp_field"
+      ],
+      "timeout_seconds": 600,
+      "max_output_bytes": 56302137344,
+      "max_output_count": 72,
+      "execution_pool": "cpu",
+      "role_policies": {
+        "document": {
+          "contract": "ImageResult",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "working_image": {
+          "contract": "WorkingImage",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "pixels": {
+          "contract": "PixelArray",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 2400004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "report": {
+          "contract": "ImageReport",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask": {
+          "contract": "MaskRef",
+          "max_count": 2,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask_pixels": {
+          "contract": "MaskArray",
+          "max_count": 2,
+          "required": true,
+          "max_bytes": 800004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "transform": {
+          "contract": "ResolvedTransform",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "registration": {
+          "contract": "RegisteredTransform",
+          "max_count": 30,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "alpha": {
+          "contract": "MaskArray",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 800004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "warp_field": {
+          "contract": "DenseWarpArray",
+          "max_count": 32,
+          "required": false,
+          "max_bytes": 1600004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        }
+      },
+      "envelope_schema": "ImageResult",
+      "nested_outputs": "Every output ref resolves to declared input or a role-declared staged member; validate full transitive closure; reservation is a stricter total cap.",
+      "algorithm_spec": "16-imaging-algorithms.md"
+    },
+    {
+      "id": "session.describe",
+      "version": "1",
+      "package": "V22",
+      "params": "SessionDescribeParams",
+      "output": "DescriptorShard",
+      "resource_class": "gpu",
+      "output_roles": [
+        "document",
+        "faces"
+      ],
+      "timeout_seconds": 1800,
+      "max_output_bytes": 1082130432,
+      "max_output_count": 129,
+      "execution_pool": "gpu",
+      "role_policies": {
+        "document": {
+          "contract": "DescriptorShard",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "faces": {
+          "contract": "FaceObservations",
+          "max_count": 128,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        }
+      },
+      "envelope_schema": "DescriptorShard",
+      "nested_outputs": "Every output ref resolves to declared input or a role-declared staged member; validate full transitive closure; reservation is a stricter total cap.",
+      "algorithm_spec": "15-execution-contracts.md"
+    },
+    {
+      "id": "session.plan",
+      "version": "1",
+      "package": "V22",
+      "params": "SessionPlanParams",
+      "output": "ScenePlan",
+      "resource_class": "cpu",
+      "output_roles": [
+        "document",
+        "correction_plan"
+      ],
+      "timeout_seconds": 600,
+      "max_output_bytes": 41951428608,
+      "max_output_count": 5001,
+      "execution_pool": "cpu",
+      "role_policies": {
+        "document": {
+          "contract": "ScenePlan",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "correction_plan": {
+          "contract": "CorrectionPlan",
+          "max_count": 5000,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        }
+      },
+      "envelope_schema": "ScenePlan",
+      "nested_outputs": "Every output ref resolves to declared input or a role-declared staged member; validate full transitive closure; reservation is a stricter total cap.",
+      "algorithm_spec": "15-execution-contracts.md"
+    },
+    {
+      "id": "learning.fit",
+      "version": "1",
+      "package": "V23",
+      "params": "LearningFitParams",
+      "output": "CandidateProfile",
+      "resource_class": "cpu",
+      "output_roles": [
+        "document"
+      ],
+      "timeout_seconds": 600,
+      "max_output_bytes": 8388608,
+      "max_output_count": 1,
+      "execution_pool": "cpu",
+      "role_policies": {
+        "document": {
+          "contract": "CandidateProfile",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        }
+      },
+      "envelope_schema": "CandidateProfile",
+      "nested_outputs": "Every output ref resolves to declared input or a role-declared staged member; validate full transitive closure; reservation is a stricter total cap.",
+      "algorithm_spec": "15-execution-contracts.md"
+    },
+    {
+      "id": "learning.evaluate",
+      "version": "1",
+      "package": "V23",
+      "params": "LearningEvaluateParams",
+      "output": "Evaluation",
+      "resource_class": "gpu",
+      "output_roles": [
+        "document"
+      ],
+      "timeout_seconds": 1800,
+      "max_output_bytes": 8388608,
+      "max_output_count": 1,
+      "execution_pool": "gpu",
+      "role_policies": {
+        "document": {
+          "contract": "Evaluation",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        }
+      },
+      "envelope_schema": "Evaluation",
+      "nested_outputs": "Every output ref resolves to declared input or a role-declared staged member; validate full transitive closure; reservation is a stricter total cap.",
+      "algorithm_spec": "15-execution-contracts.md"
+    },
+    {
+      "id": "capture.assess",
+      "version": "1",
+      "package": "V24",
+      "params": "CaptureAssessParams",
+      "output": "QAReport",
+      "resource_class": "gpu",
+      "output_roles": [
+        "document"
+      ],
+      "timeout_seconds": 1800,
+      "max_output_bytes": 8388608,
+      "max_output_count": 1,
+      "execution_pool": "gpu",
+      "role_policies": {
+        "document": {
+          "contract": "QAReport",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        }
+      },
+      "envelope_schema": "QAReport",
+      "nested_outputs": "Every output ref resolves to declared input or a role-declared staged member; validate full transitive closure; reservation is a stricter total cap.",
+      "algorithm_spec": "15-execution-contracts.md"
+    },
+    {
+      "id": "identity.compare",
+      "version": "1",
+      "package": "V23",
+      "params": "IdentityCompareParams",
+      "output": "IdentityReport",
+      "resource_class": "gpu",
+      "output_roles": [
+        "document",
+        "mask",
+        "mask_pixels"
+      ],
+      "timeout_seconds": 1800,
+      "max_output_bytes": 816781312,
+      "max_output_count": 3,
+      "execution_pool": "gpu",
+      "role_policies": {
+        "document": {
+          "contract": "IdentityReport",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask": {
+          "contract": "MaskRef",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask_pixels": {
+          "contract": "MaskArray",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 800004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        }
+      },
+      "envelope_schema": "IdentityReport",
+      "nested_outputs": "Every output ref resolves to declared input or a role-declared staged member; validate full transitive closure; reservation is a stricter total cap.",
+      "algorithm_spec": "15-execution-contracts.md"
+    },
+    {
+      "id": "semantic.transfer",
+      "version": "1",
+      "package": "V27",
+      "params": "SemanticTransferParams",
+      "output": "TransferCandidate",
+      "resource_class": "gpu",
+      "output_roles": [
+        "document",
+        "mask",
+        "mask_pixels",
+        "transform"
+      ],
+      "timeout_seconds": 1800,
+      "max_output_bytes": 825169920,
+      "max_output_count": 4,
+      "execution_pool": "gpu",
+      "role_policies": {
+        "document": {
+          "contract": "TransferCandidate",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask": {
+          "contract": "MaskRef",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask_pixels": {
+          "contract": "MaskArray",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 800004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "transform": {
+          "contract": "ResolvedTransform",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        }
+      },
+      "envelope_schema": "TransferCandidate",
+      "nested_outputs": "Every output ref resolves to declared input or a role-declared staged member; validate full transitive closure; reservation is a stricter total cap.",
+      "algorithm_spec": "15-execution-contracts.md"
+    },
+    {
+      "id": "portrait.open_eyes",
+      "version": "1",
+      "package": "V28",
+      "params": "PortraitOpen_EyesParams",
+      "output": "ImageResult",
+      "resource_class": "cpu",
+      "output_roles": [
+        "document",
+        "working_image",
+        "pixels",
+        "report",
+        "mask",
+        "mask_pixels",
+        "transform",
+        "registration",
+        "alpha",
+        "warp_field"
+      ],
+      "timeout_seconds": 600,
+      "max_output_bytes": 56302137344,
+      "max_output_count": 72,
+      "execution_pool": "cpu",
+      "role_policies": {
+        "document": {
+          "contract": "ImageResult",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "working_image": {
+          "contract": "WorkingImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "pixels": {
+          "contract": "PixelArray",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 2400004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "report": {
+          "contract": "ImageReport",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask": {
+          "contract": "MaskRef",
+          "max_count": 2,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask_pixels": {
+          "contract": "MaskArray",
+          "max_count": 2,
+          "required": true,
+          "max_bytes": 800004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "transform": {
+          "contract": "ResolvedTransform",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "registration": {
+          "contract": "RegisteredTransform",
+          "max_count": 30,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "alpha": {
+          "contract": "MaskArray",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 800004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "warp_field": {
+          "contract": "DenseWarpArray",
+          "max_count": 32,
+          "required": false,
+          "max_bytes": 1600004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        }
+      },
+      "envelope_schema": "ImageResult",
+      "nested_outputs": "Every output ref resolves to declared input or a role-declared staged member; validate full transitive closure; reservation is a stricter total cap.",
+      "algorithm_spec": "16-imaging-algorithms.md"
+    },
+    {
+      "id": "portrait.glare",
+      "version": "1",
+      "package": "V28",
+      "params": "PortraitGlareParams",
+      "output": "ImageResult",
+      "resource_class": "gpu",
+      "output_roles": [
+        "document",
+        "working_image",
+        "pixels",
+        "report",
+        "mask",
+        "mask_pixels",
+        "transform",
+        "registration",
+        "alpha",
+        "warp_field"
+      ],
+      "timeout_seconds": 1800,
+      "max_output_bytes": 56302137344,
+      "max_output_count": 72,
+      "execution_pool": "gpu",
+      "role_policies": {
+        "document": {
+          "contract": "ImageResult",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "working_image": {
+          "contract": "WorkingImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "pixels": {
+          "contract": "PixelArray",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 2400004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "report": {
+          "contract": "ImageReport",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask": {
+          "contract": "MaskRef",
+          "max_count": 2,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask_pixels": {
+          "contract": "MaskArray",
+          "max_count": 2,
+          "required": true,
+          "max_bytes": 800004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "transform": {
+          "contract": "ResolvedTransform",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "registration": {
+          "contract": "RegisteredTransform",
+          "max_count": 30,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "alpha": {
+          "contract": "MaskArray",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 800004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "warp_field": {
+          "contract": "DenseWarpArray",
+          "max_count": 32,
+          "required": false,
+          "max_bytes": 1600004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        }
+      },
+      "envelope_schema": "ImageResult",
+      "nested_outputs": "Every output ref resolves to declared input or a role-declared staged member; validate full transitive closure; reservation is a stricter total cap.",
+      "algorithm_spec": "16-imaging-algorithms.md"
+    },
+    {
+      "id": "image.reflection",
+      "version": "1",
+      "package": "V28",
+      "params": "ImageReflectionParams",
+      "output": "ImageResult",
+      "resource_class": "gpu",
+      "output_roles": [
+        "document",
+        "working_image",
+        "pixels",
+        "report",
+        "mask",
+        "mask_pixels",
+        "transform",
+        "registration",
+        "alpha",
+        "warp_field"
+      ],
+      "timeout_seconds": 1800,
+      "max_output_bytes": 56302137344,
+      "max_output_count": 72,
+      "execution_pool": "gpu",
+      "role_policies": {
+        "document": {
+          "contract": "ImageResult",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "working_image": {
+          "contract": "WorkingImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "pixels": {
+          "contract": "PixelArray",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 2400004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "report": {
+          "contract": "ImageReport",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask": {
+          "contract": "MaskRef",
+          "max_count": 2,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask_pixels": {
+          "contract": "MaskArray",
+          "max_count": 2,
+          "required": true,
+          "max_bytes": 800004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "transform": {
+          "contract": "ResolvedTransform",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "registration": {
+          "contract": "RegisteredTransform",
+          "max_count": 30,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "alpha": {
+          "contract": "MaskArray",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 800004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "warp_field": {
+          "contract": "DenseWarpArray",
+          "max_count": 32,
+          "required": false,
+          "max_bytes": 1600004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        }
+      },
+      "envelope_schema": "ImageResult",
+      "nested_outputs": "Every output ref resolves to declared input or a role-declared staged member; validate full transitive closure; reservation is a stricter total cap.",
+      "algorithm_spec": "16-imaging-algorithms.md"
+    },
+    {
+      "id": "portrait.hair",
+      "version": "1",
+      "package": "V28",
+      "params": "PortraitHairParams",
+      "output": "ImageResult",
+      "resource_class": "cpu",
+      "output_roles": [
+        "document",
+        "working_image",
+        "pixels",
+        "report",
+        "mask",
+        "mask_pixels",
+        "transform",
+        "registration",
+        "alpha",
+        "warp_field"
+      ],
+      "timeout_seconds": 600,
+      "max_output_bytes": 56302137344,
+      "max_output_count": 72,
+      "execution_pool": "cpu",
+      "role_policies": {
+        "document": {
+          "contract": "ImageResult",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "working_image": {
+          "contract": "WorkingImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "pixels": {
+          "contract": "PixelArray",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 2400004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "report": {
+          "contract": "ImageReport",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask": {
+          "contract": "MaskRef",
+          "max_count": 2,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask_pixels": {
+          "contract": "MaskArray",
+          "max_count": 2,
+          "required": true,
+          "max_bytes": 800004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "transform": {
+          "contract": "ResolvedTransform",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "registration": {
+          "contract": "RegisteredTransform",
+          "max_count": 30,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "alpha": {
+          "contract": "MaskArray",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 800004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "warp_field": {
+          "contract": "DenseWarpArray",
+          "max_count": 32,
+          "required": false,
+          "max_bytes": 1600004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        }
+      },
+      "envelope_schema": "ImageResult",
+      "nested_outputs": "Every output ref resolves to declared input or a role-declared staged member; validate full transitive closure; reservation is a stricter total cap.",
+      "algorithm_spec": "16-imaging-algorithms.md"
+    },
+    {
+      "id": "portrait.clothing",
+      "version": "1",
+      "package": "V28",
+      "params": "PortraitClothingParams",
+      "output": "ImageResult",
+      "resource_class": "cpu",
+      "output_roles": [
+        "document",
+        "working_image",
+        "pixels",
+        "report",
+        "mask",
+        "mask_pixels",
+        "transform",
+        "registration",
+        "alpha",
+        "warp_field"
+      ],
+      "timeout_seconds": 600,
+      "max_output_bytes": 56302137344,
+      "max_output_count": 72,
+      "execution_pool": "cpu",
+      "role_policies": {
+        "document": {
+          "contract": "ImageResult",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "working_image": {
+          "contract": "WorkingImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "pixels": {
+          "contract": "PixelArray",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 2400004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "report": {
+          "contract": "ImageReport",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask": {
+          "contract": "MaskRef",
+          "max_count": 2,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask_pixels": {
+          "contract": "MaskArray",
+          "max_count": 2,
+          "required": true,
+          "max_bytes": 800004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "transform": {
+          "contract": "ResolvedTransform",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "registration": {
+          "contract": "RegisteredTransform",
+          "max_count": 30,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "alpha": {
+          "contract": "MaskArray",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 800004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "warp_field": {
+          "contract": "DenseWarpArray",
+          "max_count": 32,
+          "required": false,
+          "max_bytes": 1600004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        }
+      },
+      "envelope_schema": "ImageResult",
+      "nested_outputs": "Every output ref resolves to declared input or a role-declared staged member; validate full transitive closure; reservation is a stricter total cap.",
+      "algorithm_spec": "16-imaging-algorithms.md"
+    },
+    {
+      "id": "image.relight",
+      "version": "1",
+      "package": "V28",
+      "params": "ImageRelightParams",
+      "output": "ImageResult",
+      "resource_class": "cpu",
+      "output_roles": [
+        "document",
+        "working_image",
+        "pixels",
+        "report",
+        "mask",
+        "mask_pixels",
+        "transform",
+        "registration",
+        "alpha",
+        "warp_field"
+      ],
+      "timeout_seconds": 600,
+      "max_output_bytes": 56302137344,
+      "max_output_count": 72,
+      "execution_pool": "cpu",
+      "role_policies": {
+        "document": {
+          "contract": "ImageResult",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "working_image": {
+          "contract": "WorkingImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "pixels": {
+          "contract": "PixelArray",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 2400004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "report": {
+          "contract": "ImageReport",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask": {
+          "contract": "MaskRef",
+          "max_count": 2,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask_pixels": {
+          "contract": "MaskArray",
+          "max_count": 2,
+          "required": true,
+          "max_bytes": 800004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "transform": {
+          "contract": "ResolvedTransform",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "registration": {
+          "contract": "RegisteredTransform",
+          "max_count": 30,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "alpha": {
+          "contract": "MaskArray",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 800004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "warp_field": {
+          "contract": "DenseWarpArray",
+          "max_count": 32,
+          "required": false,
+          "max_bytes": 1600004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        }
+      },
+      "envelope_schema": "ImageResult",
+      "nested_outputs": "Every output ref resolves to declared input or a role-declared staged member; validate full transitive closure; reservation is a stricter total cap.",
+      "algorithm_spec": "16-imaging-algorithms.md"
+    },
+    {
+      "id": "optical.lens",
+      "version": "1",
+      "package": "V25",
+      "params": "OpticalLensParams",
+      "output": "ImageResult",
+      "resource_class": "cpu",
+      "output_roles": [
+        "document",
+        "working_image",
+        "pixels",
+        "report",
+        "mask",
+        "mask_pixels",
+        "transform",
+        "registration",
+        "alpha",
+        "warp_field"
+      ],
+      "timeout_seconds": 600,
+      "max_output_bytes": 56302137344,
+      "max_output_count": 72,
+      "execution_pool": "cpu",
+      "role_policies": {
+        "document": {
+          "contract": "ImageResult",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "working_image": {
+          "contract": "WorkingImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "pixels": {
+          "contract": "PixelArray",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 2400004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "report": {
+          "contract": "ImageReport",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask": {
+          "contract": "MaskRef",
+          "max_count": 2,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask_pixels": {
+          "contract": "MaskArray",
+          "max_count": 2,
+          "required": true,
+          "max_bytes": 800004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "transform": {
+          "contract": "ResolvedTransform",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "registration": {
+          "contract": "RegisteredTransform",
+          "max_count": 30,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "alpha": {
+          "contract": "MaskArray",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 800004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "warp_field": {
+          "contract": "DenseWarpArray",
+          "max_count": 32,
+          "required": false,
+          "max_bytes": 1600004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        }
+      },
+      "envelope_schema": "ImageResult",
+      "nested_outputs": "Every output ref resolves to declared input or a role-declared staged member; validate full transitive closure; reservation is a stricter total cap.",
+      "algorithm_spec": "16-imaging-algorithms.md"
+    },
+    {
+      "id": "optical.perspective",
+      "version": "1",
+      "package": "V29",
+      "params": "OpticalPerspectiveParams",
+      "output": "ImageResult",
+      "resource_class": "cpu",
+      "output_roles": [
+        "document",
+        "working_image",
+        "pixels",
+        "report",
+        "mask",
+        "mask_pixels",
+        "transform",
+        "registration",
+        "alpha",
+        "warp_field"
+      ],
+      "timeout_seconds": 600,
+      "max_output_bytes": 56302137344,
+      "max_output_count": 72,
+      "execution_pool": "cpu",
+      "role_policies": {
+        "document": {
+          "contract": "ImageResult",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "working_image": {
+          "contract": "WorkingImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "pixels": {
+          "contract": "PixelArray",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 2400004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "report": {
+          "contract": "ImageReport",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask": {
+          "contract": "MaskRef",
+          "max_count": 2,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask_pixels": {
+          "contract": "MaskArray",
+          "max_count": 2,
+          "required": true,
+          "max_bytes": 800004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "transform": {
+          "contract": "ResolvedTransform",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "registration": {
+          "contract": "RegisteredTransform",
+          "max_count": 30,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "alpha": {
+          "contract": "MaskArray",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 800004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "warp_field": {
+          "contract": "DenseWarpArray",
+          "max_count": 32,
+          "required": false,
+          "max_bytes": 1600004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        }
+      },
+      "envelope_schema": "ImageResult",
+      "nested_outputs": "Every output ref resolves to declared input or a role-declared staged member; validate full transitive closure; reservation is a stricter total cap.",
+      "algorithm_spec": "16-imaging-algorithms.md"
+    },
+    {
+      "id": "optical.negative",
+      "version": "1",
+      "package": "V29",
+      "params": "OpticalNegativeParams",
+      "output": "ImageResult",
+      "resource_class": "cpu",
+      "output_roles": [
+        "document",
+        "working_image",
+        "pixels",
+        "report",
+        "mask",
+        "mask_pixels",
+        "transform",
+        "registration",
+        "alpha",
+        "warp_field"
+      ],
+      "timeout_seconds": 600,
+      "max_output_bytes": 56302137344,
+      "max_output_count": 72,
+      "execution_pool": "cpu",
+      "role_policies": {
+        "document": {
+          "contract": "ImageResult",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "working_image": {
+          "contract": "WorkingImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "pixels": {
+          "contract": "PixelArray",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 2400004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "report": {
+          "contract": "ImageReport",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask": {
+          "contract": "MaskRef",
+          "max_count": 2,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask_pixels": {
+          "contract": "MaskArray",
+          "max_count": 2,
+          "required": true,
+          "max_bytes": 800004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "transform": {
+          "contract": "ResolvedTransform",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "registration": {
+          "contract": "RegisteredTransform",
+          "max_count": 30,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "alpha": {
+          "contract": "MaskArray",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 800004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "warp_field": {
+          "contract": "DenseWarpArray",
+          "max_count": 32,
+          "required": false,
+          "max_bytes": 1600004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        }
+      },
+      "envelope_schema": "ImageResult",
+      "nested_outputs": "Every output ref resolves to declared input or a role-declared staged member; validate full transitive closure; reservation is a stricter total cap.",
+      "algorithm_spec": "16-imaging-algorithms.md"
+    },
+    {
+      "id": "optical.panorama",
+      "version": "1",
+      "package": "V29",
+      "params": "OpticalPanoramaParams",
+      "output": "ImageResult",
+      "resource_class": "cpu",
+      "output_roles": [
+        "document",
+        "working_image",
+        "pixels",
+        "report",
+        "mask",
+        "mask_pixels",
+        "transform",
+        "registration",
+        "alpha",
+        "warp_field"
+      ],
+      "timeout_seconds": 600,
+      "max_output_bytes": 56302137344,
+      "max_output_count": 72,
+      "execution_pool": "cpu",
+      "role_policies": {
+        "document": {
+          "contract": "ImageResult",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "working_image": {
+          "contract": "WorkingImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "pixels": {
+          "contract": "PixelArray",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 2400004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "report": {
+          "contract": "ImageReport",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask": {
+          "contract": "MaskRef",
+          "max_count": 2,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask_pixels": {
+          "contract": "MaskArray",
+          "max_count": 2,
+          "required": true,
+          "max_bytes": 800004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "transform": {
+          "contract": "ResolvedTransform",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "registration": {
+          "contract": "RegisteredTransform",
+          "max_count": 30,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "alpha": {
+          "contract": "MaskArray",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 800004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "warp_field": {
+          "contract": "DenseWarpArray",
+          "max_count": 32,
+          "required": false,
+          "max_bytes": 1600004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        }
+      },
+      "envelope_schema": "ImageResult",
+      "nested_outputs": "Every output ref resolves to declared input or a role-declared staged member; validate full transitive closure; reservation is a stricter total cap.",
+      "algorithm_spec": "16-imaging-algorithms.md"
+    },
+    {
+      "id": "optical.focus_stack",
+      "version": "1",
+      "package": "V29",
+      "params": "OpticalFocus_StackParams",
+      "output": "ImageResult",
+      "resource_class": "cpu",
+      "output_roles": [
+        "document",
+        "working_image",
+        "pixels",
+        "report",
+        "mask",
+        "mask_pixels",
+        "transform",
+        "registration",
+        "alpha",
+        "warp_field"
+      ],
+      "timeout_seconds": 600,
+      "max_output_bytes": 56302137344,
+      "max_output_count": 72,
+      "execution_pool": "cpu",
+      "role_policies": {
+        "document": {
+          "contract": "ImageResult",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "working_image": {
+          "contract": "WorkingImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "pixels": {
+          "contract": "PixelArray",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 2400004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "report": {
+          "contract": "ImageReport",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask": {
+          "contract": "MaskRef",
+          "max_count": 2,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mask_pixels": {
+          "contract": "MaskArray",
+          "max_count": 2,
+          "required": true,
+          "max_bytes": 800004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "transform": {
+          "contract": "ResolvedTransform",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "registration": {
+          "contract": "RegisteredTransform",
+          "max_count": 30,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "alpha": {
+          "contract": "MaskArray",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 800004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "warp_field": {
+          "contract": "DenseWarpArray",
+          "max_count": 32,
+          "required": false,
+          "max_bytes": 1600004096,
+          "media_types": [
+            "application/x-npy"
+          ]
+        }
+      },
+      "envelope_schema": "ImageResult",
+      "nested_outputs": "Every output ref resolves to declared input or a role-declared staged member; validate full transitive closure; reservation is a stricter total cap.",
+      "algorithm_spec": "16-imaging-algorithms.md"
+    },
+    {
+      "id": "provenance.sign",
+      "version": "1",
+      "package": "V31",
+      "params": "ProvenanceSignParams",
+      "output": "SignedResult",
+      "resource_class": "cpu",
+      "output_roles": [
+        "document",
+        "signed_export",
+        "manifest"
+      ],
+      "timeout_seconds": 600,
+      "max_output_bytes": 2416781312,
+      "max_output_count": 3,
+      "execution_pool": "signer",
+      "role_policies": {
+        "document": {
+          "contract": "SignedResult",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "signed_export": {
+          "contract": "QualifiedExport",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 2400004096,
+          "media_types": [
+            "image/jpeg",
+            "image/png"
+          ]
+        },
+        "manifest": {
+          "contract": "C2PAManifest",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/c2pa"
+          ]
+        }
+      },
+      "envelope_schema": "SignedResult",
+      "nested_outputs": "Every output ref resolves to declared input or a role-declared staged member; validate full transitive closure; reservation is a stricter total cap.",
+      "algorithm_spec": "15-execution-contracts.md"
+    },
+    {
+      "id": "v2.delivery.assemble",
+      "version": "1",
+      "package": "V30",
+      "params": "V2DeliveryAssembleParams",
+      "output": "DeliveryManifest",
+      "resource_class": "cpu",
+      "output_roles": [
+        "document"
+      ],
+      "timeout_seconds": 600,
+      "max_output_bytes": 8388608,
+      "max_output_count": 1,
+      "execution_pool": "cpu",
+      "role_policies": {
+        "document": {
+          "contract": "DeliveryManifest",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        }
+      },
+      "envelope_schema": "DeliveryManifest",
+      "nested_outputs": "Every output ref resolves to declared input or a role-declared staged member; validate full transitive closure; reservation is a stricter total cap.",
+      "algorithm_spec": "15-execution-contracts.md"
+    },
+    {
+      "id": "v2.interchange.import",
+      "version": "1",
+      "package": "V30",
+      "params": "V2InterchangeImportParams",
+      "output": "InterchangeResult",
+      "resource_class": "cpu",
+      "output_roles": [
+        "document",
+        "report",
+        "mapping_shard",
+        "draft"
+      ],
+      "timeout_seconds": 600,
+      "max_output_bytes": 42379247616,
+      "max_output_count": 5052,
+      "execution_pool": "cpu",
+      "role_policies": {
+        "document": {
+          "contract": "InterchangeResult",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "report": {
+          "contract": "MappingReport",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mapping_shard": {
+          "contract": "MappingShard",
+          "max_count": 50,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "draft": {
+          "contract": "EditingRecipeV3",
+          "max_count": 5000,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        }
+      },
+      "envelope_schema": "InterchangeResult",
+      "nested_outputs": "Every output ref resolves to declared input or a role-declared staged member; validate full transitive closure; reservation is a stricter total cap.",
+      "algorithm_spec": "15-execution-contracts.md"
+    },
+    {
+      "id": "v2.interchange.export",
+      "version": "1",
+      "package": "V30",
+      "params": "V2InterchangeExportParams",
+      "output": "InterchangeResult",
+      "resource_class": "cpu",
+      "output_roles": [
+        "document",
+        "report",
+        "mapping_shard",
+        "draft",
+        "bundle"
+      ],
+      "timeout_seconds": 600,
+      "max_output_bytes": 111098724352,
+      "max_output_count": 5053,
+      "execution_pool": "cpu",
+      "role_policies": {
+        "document": {
+          "contract": "InterchangeResult",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "report": {
+          "contract": "MappingReport",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "mapping_shard": {
+          "contract": "MappingShard",
+          "max_count": 50,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "draft": {
+          "contract": "EditingRecipeV3",
+          "max_count": 5000,
+          "required": false,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "bundle": {
+          "contract": "InterchangeArchive",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 68719476736,
+          "media_types": [
+            "application/zip"
+          ]
+        }
+      },
+      "envelope_schema": "InterchangeResult",
+      "nested_outputs": "Every output ref resolves to declared input or a role-declared staged member; validate full transitive closure; reservation is a stricter total cap.",
+      "algorithm_spec": "15-execution-contracts.md"
+    },
+    {
+      "id": "v2.semantic.assemble",
+      "version": "1",
+      "package": "V27",
+      "params": "V2SemanticAssembleParams",
+      "output": "SemanticPlan",
+      "resource_class": "cpu",
+      "output_roles": [
+        "document"
+      ],
+      "timeout_seconds": 600,
+      "max_output_bytes": 8388608,
+      "max_output_count": 1,
+      "execution_pool": "cpu",
+      "role_policies": {
+        "document": {
+          "contract": "SemanticPlan",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        }
+      },
+      "envelope_schema": "SemanticPlan",
+      "nested_outputs": "Every output ref resolves to declared input or a role-declared staged member; validate full transitive closure; reservation is a stricter total cap.",
+      "algorithm_spec": "15-execution-contracts.md"
+    },
+    {
+      "id": "v2.interchange.parse",
+      "version": "1",
+      "package": "V30",
+      "params": "V2InterchangeParseParams",
+      "output": "ParsedInterchange",
+      "resource_class": "cpu",
+      "output_roles": [
+        "document",
+        "imported_file"
+      ],
+      "timeout_seconds": 600,
+      "max_output_bytes": 2061584310468608,
+      "max_output_count": 30001,
+      "execution_pool": "cpu",
+      "role_policies": {
+        "document": {
+          "contract": "ParsedInterchange",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "imported_file": {
+          "contract": "ImportedFile",
+          "max_count": 30000,
+          "required": false,
+          "max_bytes": 68719476736,
+          "media_types": [
+            "image/jpeg",
+            "image/png",
+            "image/tiff",
+            "application/octet-stream",
+            "application/json",
+            "application/rdf+xml",
+            "application/x-npy"
+          ]
+        }
+      },
+      "envelope_schema": "ParsedInterchange",
+      "nested_outputs": "Every output ref resolves to declared input or a role-declared staged member; validate full transitive closure; reservation is a stricter total cap.",
+      "algorithm_spec": "15-execution-contracts.md"
+    },
+    {
+      "id": "v2.delivery.prepare",
+      "version": "1",
+      "package": "V30",
+      "params": "V2DeliveryPrepareParams",
+      "output": "DeliveryPreparation",
+      "resource_class": "cpu",
+      "output_roles": [
+        "document"
+      ],
+      "timeout_seconds": 600,
+      "max_output_bytes": 8388608,
+      "max_output_count": 1,
+      "execution_pool": "cpu",
+      "role_policies": {
+        "document": {
+          "contract": "DeliveryPreparation",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        }
+      },
+      "envelope_schema": "DeliveryPreparation",
+      "nested_outputs": "Every output ref resolves to declared input or a role-declared staged member; validate full transitive closure; reservation is a stricter total cap.",
+      "algorithm_spec": "15-execution-contracts.md"
+    },
+    {
+      "id": "region.preview",
+      "version": "1",
+      "package": "V26",
+      "params": "RegionPreviewParams",
+      "output": "RegionDerivativeManifest",
+      "resource_class": "gpu",
+      "output_roles": [
+        "document",
+        "derivative"
+      ],
+      "timeout_seconds": 1800,
+      "max_output_bytes": 25165824,
+      "max_output_count": 2,
+      "execution_pool": "gpu",
+      "role_policies": {
+        "document": {
+          "contract": "RegionDerivativeManifest",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 8388608,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "derivative": {
+          "contract": "RegionEncodedDerivative",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 16777216,
+          "media_types": [
+            "image/jpeg",
+            "image/webp"
+          ]
+        }
+      },
+      "envelope_schema": "RegionDerivativeManifest",
+      "nested_outputs": "Every output ref resolves to declared input or a role-declared staged member; validate full transitive closure; reservation is a stricter total cap.",
+      "algorithm_spec": "15-execution-contracts.md"
+    }
+  ]
+}

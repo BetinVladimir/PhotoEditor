@@ -1,0 +1,126 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/scene-features.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "blur": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Blur",
+      "type": "number"
+    },
+    "captured_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Captured At"
+    },
+    "clipping": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Clipping",
+      "type": "number"
+    },
+    "clock_offset_seconds": {
+      "default": 0,
+      "maximum": 86400,
+      "minimum": -86400,
+      "title": "Clock Offset Seconds",
+      "type": "integer"
+    },
+    "content_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Content Sha256",
+      "type": "string"
+    },
+    "dino": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 384,
+      "minItems": 384,
+      "title": "Dino",
+      "type": "array"
+    },
+    "eyes": {
+      "enum": [
+        "open",
+        "closed",
+        "unknown"
+      ],
+      "title": "Eyes",
+      "type": "string"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "item_id": {
+      "format": "uuid",
+      "title": "Item Id",
+      "type": "string"
+    },
+    "phash64": {
+      "pattern": "^[0-9a-f]{16}$",
+      "title": "Phash64",
+      "type": "string"
+    },
+    "sharpness": {
+      "minimum": 0,
+      "title": "Sharpness",
+      "type": "number"
+    },
+    "stats20": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 20,
+      "minItems": 20,
+      "title": "Stats20",
+      "type": "array"
+    }
+  },
+  "required": [
+    "item_id",
+    "image",
+    "content_sha256",
+    "phash64",
+    "dino",
+    "stats20",
+    "sharpness",
+    "blur",
+    "clipping",
+    "eyes"
+  ],
+  "title": "SceneFeatures",
+  "type": "object"
+}

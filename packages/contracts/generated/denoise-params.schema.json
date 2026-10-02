@@ -1,0 +1,78 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/denoise-params.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "color_adapter_id": {
+      "const": "work_srgb_delta_v1",
+      "default": "work_srgb_delta_v1",
+      "title": "Color Adapter Id",
+      "type": "string"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "model_id": {
+      "const": "scunet_color_real_psnr",
+      "default": "scunet_color_real_psnr",
+      "title": "Model Id",
+      "type": "string"
+    },
+    "model_lock_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Model Lock Id",
+      "type": "string"
+    },
+    "overlap": {
+      "const": 64,
+      "default": 64,
+      "title": "Overlap",
+      "type": "integer"
+    },
+    "strength": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Strength",
+      "type": "number"
+    },
+    "tile": {
+      "default": 512,
+      "enum": [
+        256,
+        512
+      ],
+      "title": "Tile",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "image",
+    "strength",
+    "model_lock_id"
+  ],
+  "title": "DenoiseParams",
+  "type": "object"
+}

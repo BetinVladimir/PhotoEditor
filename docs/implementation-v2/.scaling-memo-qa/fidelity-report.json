@@ -1,0 +1,17 @@
+{
+  "reference_sha256": "d3006f9074e46823d103fe283be19901f55f75c19811558455d7a16c61797355",
+  "preserve_only_parts": "all byte-identical",
+  "changed_parts": [
+    "word/document.xml",
+    "word/header1.xml",
+    "word/settings.xml"
+  ],
+  "section_geometry": "unchanged",
+  "word_fields": "update on open",
+  "output": "/Users/freelancer/Documents/PhotoEditor/docs/implementation-v2/PhotoEditor_scaling_memorandum.docx",
+  "rendered_pages": 13,
+  "visual_review": "All 13 pages reviewed; final pages 2–13 pixel-identical to reviewed first render; page1 metadata alignment reviewed again.",
+  "placeholder_check": "passed",
+  "page_numbers": "1–13",
+  "template_unchanged": true
+}

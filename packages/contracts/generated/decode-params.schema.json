@@ -1,0 +1,82 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/decode-params.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "analyze": {
+      "default": false,
+      "title": "Analyze",
+      "type": "boolean"
+    },
+    "assume_profile": {
+      "anyOf": [
+        {
+          "enum": [
+            "srgb_v1",
+            "linear_srgb_v1",
+            "work_rec2020_gamma24_v1"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Assume Profile"
+    },
+    "expected_bytes": {
+      "maximum": 536870912,
+      "minimum": 1,
+      "title": "Expected Bytes",
+      "type": "integer"
+    },
+    "source": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "suffix": {
+      "title": "Suffix",
+      "type": "string"
+    },
+    "tile": {
+      "default": 512,
+      "enum": [
+        256,
+        512,
+        1024
+      ],
+      "title": "Tile",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "source",
+    "expected_bytes",
+    "suffix"
+  ],
+  "title": "DecodeParams",
+  "type": "object"
+}

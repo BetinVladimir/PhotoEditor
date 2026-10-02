@@ -1,0 +1,109 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "DustRepairEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "applied_pixels": {
+          "minimum": 0,
+          "title": "Applied Pixels",
+          "type": "integer"
+        },
+        "candidate_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "center_x": {
+          "title": "Center X",
+          "type": "number"
+        },
+        "center_y": {
+          "title": "Center Y",
+          "type": "number"
+        },
+        "radius": {
+          "exclusiveMinimum": 0,
+          "title": "Radius",
+          "type": "number"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "center_x",
+        "center_y",
+        "radius",
+        "applied_pixels"
+      ],
+      "title": "DustRepairEvidence",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/dust-repair-report.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "candidates": {
+      "items": {
+        "$ref": "#/$defs/DustRepairEvidence"
+      },
+      "maxItems": 4096,
+      "title": "Candidates",
+      "type": "array"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "proposal": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "review_revision": {
+      "title": "Review Revision",
+      "type": "integer"
+    },
+    "warnings": {
+      "items": {
+        "const": "no_accepted_candidates",
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "image",
+    "proposal",
+    "review_revision",
+    "candidates",
+    "warnings"
+  ],
+  "title": "DustRepairReport",
+  "type": "object"
+}

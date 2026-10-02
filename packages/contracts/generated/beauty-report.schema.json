@@ -1,0 +1,237 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "Beauty": {
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": {
+          "const": "beautyfilter_v1",
+          "title": "Algorithm",
+          "type": "string"
+        },
+        "enabled": {
+          "const": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "protect_features": {
+          "const": true,
+          "title": "Protect Features",
+          "type": "boolean"
+        },
+        "skin_mask": {
+          "const": "face68_conservative_v1",
+          "title": "Skin Mask",
+          "type": "string"
+        },
+        "smoothing": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Smoothing",
+          "type": "number"
+        },
+        "texture_keep": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Texture Keep",
+          "type": "number"
+        },
+        "tone_evenness": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Tone Evenness",
+          "type": "number"
+        }
+      },
+      "required": [
+        "enabled",
+        "algorithm",
+        "smoothing",
+        "tone_evenness",
+        "texture_keep",
+        "skin_mask",
+        "protect_features"
+      ],
+      "title": "Beauty",
+      "type": "object"
+    },
+    "BeautyFaceReport": {
+      "additionalProperties": false,
+      "properties": {
+        "above_one": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Above One",
+          "type": "number"
+        },
+        "applied": {
+          "title": "Applied",
+          "type": "boolean"
+        },
+        "below_zero": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Below Zero",
+          "type": "number"
+        },
+        "object_id": {
+          "format": "uuid",
+          "title": "Object Id",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "low_confidence",
+                "face_too_small",
+                "zero_strength",
+                "empty_skin",
+                "degenerate_landmarks",
+                "incomplete_face_roi"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reason"
+        },
+        "texture_energy_ratio": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Texture Energy Ratio"
+        }
+      },
+      "required": [
+        "object_id",
+        "applied",
+        "reason",
+        "texture_energy_ratio",
+        "below_zero",
+        "above_one"
+      ],
+      "title": "BeautyFaceReport",
+      "type": "object"
+    },
+    "Disabled": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "const": false,
+          "default": false,
+          "title": "Enabled",
+          "type": "boolean"
+        }
+      },
+      "title": "Disabled",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/beauty-report.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "effective": {
+      "discriminator": {
+        "mapping": {
+          "False": "#/$defs/Disabled",
+          "True": "#/$defs/Beauty"
+        },
+        "propertyName": "enabled"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Beauty"
+        },
+        {
+          "$ref": "#/$defs/Disabled"
+        }
+      ],
+      "title": "Effective"
+    },
+    "faces": {
+      "items": {
+        "$ref": "#/$defs/BeautyFaceReport"
+      },
+      "maxItems": 64,
+      "title": "Faces",
+      "type": "array"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "requested": {
+      "discriminator": {
+        "mapping": {
+          "False": "#/$defs/Disabled",
+          "True": "#/$defs/Beauty"
+        },
+        "propertyName": "enabled"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Beauty"
+        },
+        {
+          "$ref": "#/$defs/Disabled"
+        }
+      ],
+      "title": "Requested"
+    },
+    "resolved": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "warnings": {
+      "items": {
+        "enum": [
+          "module_disabled",
+          "no_faces",
+          "face_skipped"
+        ],
+        "type": "string"
+      },
+      "maxItems": 3,
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "image",
+    "resolved",
+    "requested",
+    "effective",
+    "faces",
+    "warnings"
+  ],
+  "title": "BeautyReport",
+  "type": "object"
+}

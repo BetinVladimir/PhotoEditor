@@ -1,0 +1,75 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/dust-review.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "accepted_candidate_ids": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 4096,
+      "title": "Accepted Candidate Ids",
+      "type": "array"
+    },
+    "base": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "proposal": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "rejected_candidate_ids": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 4096,
+      "title": "Rejected Candidate Ids",
+      "type": "array"
+    },
+    "revision": {
+      "maximum": 9007199254740991,
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "version": {
+      "const": "sensor_dust_review_v1",
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "version",
+    "proposal",
+    "base",
+    "revision",
+    "accepted_candidate_ids",
+    "rejected_candidate_ids"
+  ],
+  "title": "DustReview",
+  "type": "object"
+}

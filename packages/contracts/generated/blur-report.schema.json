@@ -1,0 +1,86 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/blur-report.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "depth": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "layers": {
+      "const": 8,
+      "default": 8,
+      "title": "Layers",
+      "type": "integer"
+    },
+    "linear_light": {
+      "const": true,
+      "default": true,
+      "title": "Linear Light",
+      "type": "boolean"
+    },
+    "maximum_radius": {
+      "maximum": 100000,
+      "minimum": 0,
+      "title": "Maximum Radius",
+      "type": "integer"
+    },
+    "pixel_count": {
+      "maximum": 200000000,
+      "minimum": 1,
+      "title": "Pixel Count",
+      "type": "integer"
+    },
+    "strength": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Strength",
+      "type": "number"
+    },
+    "subject": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "subject_depth": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Subject Depth",
+      "type": "number"
+    }
+  },
+  "required": [
+    "image",
+    "subject",
+    "depth",
+    "pixel_count",
+    "strength",
+    "maximum_radius",
+    "subject_depth"
+  ],
+  "title": "BlurReport",
+  "type": "object"
+}

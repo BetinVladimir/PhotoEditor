@@ -1,0 +1,71 @@
+{
+  "$id": "https://photoeditor.local/contracts/style-aggregate-report.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "accepted_local_fits": {
+      "maximum": 32,
+      "minimum": 0,
+      "title": "Accepted Local Fits",
+      "type": "integer"
+    },
+    "median_delta_e": {
+      "minimum": 0,
+      "title": "Median Delta E",
+      "type": "number"
+    },
+    "median_holdout_loss": {
+      "minimum": 0,
+      "title": "Median Holdout Loss",
+      "type": "number"
+    },
+    "p95_delta_e": {
+      "minimum": 0,
+      "title": "P95 Delta E",
+      "type": "number"
+    },
+    "pair_count": {
+      "maximum": 32,
+      "minimum": 1,
+      "title": "Pair Count",
+      "type": "integer"
+    },
+    "pair_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Pair Ids",
+      "type": "array"
+    },
+    "session_count": {
+      "maximum": 32,
+      "minimum": 1,
+      "title": "Session Count",
+      "type": "integer"
+    },
+    "transfer_confidence": {
+      "title": "Transfer Confidence",
+      "type": "string"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "pair_ids",
+    "pair_count",
+    "session_count",
+    "accepted_local_fits",
+    "median_holdout_loss",
+    "median_delta_e",
+    "p95_delta_e",
+    "transfer_confidence",
+    "warnings"
+  ],
+  "title": "StyleAggregateReport",
+  "type": "object"
+}

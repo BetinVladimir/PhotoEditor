@@ -1,0 +1,187 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "FaceBox": {
+      "additionalProperties": false,
+      "properties": {
+        "bbox_normalized": {
+          "$ref": "#/$defs/NormalizedRect"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "object_id": {
+          "format": "uuid",
+          "title": "Object Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "object_id",
+        "bbox_normalized",
+        "confidence"
+      ],
+      "title": "FaceBox",
+      "type": "object"
+    },
+    "NormalizedRect": {
+      "additionalProperties": false,
+      "properties": {
+        "x0": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "X0",
+          "type": "number"
+        },
+        "x1": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "X1",
+          "type": "number"
+        },
+        "y0": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Y0",
+          "type": "number"
+        },
+        "y1": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Y1",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x0",
+        "y0",
+        "x1",
+        "y1"
+      ],
+      "title": "NormalizedRect",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/face-boxes.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "accepted_count": {
+      "maximum": 100,
+      "minimum": 0,
+      "title": "Accepted Count",
+      "type": "integer"
+    },
+    "alpha_excluded_fraction": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Alpha Excluded Fraction",
+      "type": "number"
+    },
+    "backend": {
+      "enum": [
+        "cpu",
+        "cuda",
+        "mps"
+      ],
+      "title": "Backend",
+      "type": "string"
+    },
+    "candidate_count": {
+      "maximum": 100000,
+      "minimum": 0,
+      "title": "Candidate Count",
+      "type": "integer"
+    },
+    "faces": {
+      "items": {
+        "$ref": "#/$defs/FaceBox"
+      },
+      "maxItems": 100,
+      "title": "Faces",
+      "type": "array"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "model_id": {
+      "const": "sfd",
+      "title": "Model Id",
+      "type": "string"
+    },
+    "model_lock_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Model Lock Id",
+      "type": "string"
+    },
+    "preprocessing_id": {
+      "const": "sfd_long1024_bgr_v1",
+      "title": "Preprocessing Id",
+      "type": "string"
+    },
+    "preview_height": {
+      "maximum": 1024,
+      "minimum": 1,
+      "title": "Preview Height",
+      "type": "integer"
+    },
+    "preview_width": {
+      "maximum": 1024,
+      "minimum": 1,
+      "title": "Preview Width",
+      "type": "integer"
+    },
+    "warnings": {
+      "items": {
+        "enum": [
+          "no_faces",
+          "faces_truncated",
+          "source_srgb_clipped"
+        ],
+        "type": "string"
+      },
+      "maxItems": 3,
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "image",
+    "faces",
+    "model_id",
+    "model_lock_id",
+    "backend",
+    "preprocessing_id",
+    "preview_width",
+    "preview_height",
+    "candidate_count",
+    "accepted_count",
+    "alpha_excluded_fraction",
+    "warnings"
+  ],
+  "title": "FaceBoxes",
+  "type": "object"
+}

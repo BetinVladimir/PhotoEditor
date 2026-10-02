@@ -1,0 +1,90 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/window-report.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "changed_pixels": {
+      "maximum": 200000000,
+      "minimum": 0,
+      "title": "Changed Pixels",
+      "type": "integer"
+    },
+    "dark": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "exposure_ratio": {
+      "maximum": 64,
+      "minimum": 1,
+      "title": "Exposure Ratio",
+      "type": "number"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "linear_light": {
+      "const": true,
+      "default": true,
+      "title": "Linear Light",
+      "type": "boolean"
+    },
+    "mask": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "pixel_count": {
+      "maximum": 200000000,
+      "minimum": 1,
+      "title": "Pixel Count",
+      "type": "integer"
+    },
+    "unrecoverable_fraction": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Unrecoverable Fraction",
+      "type": "number"
+    },
+    "warnings": {
+      "items": {
+        "const": "all_exposures_clipped",
+        "type": "string"
+      },
+      "maxItems": 1,
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "image",
+    "dark",
+    "mask",
+    "pixel_count",
+    "changed_pixels",
+    "exposure_ratio",
+    "unrecoverable_fraction",
+    "warnings"
+  ],
+  "title": "WindowReport",
+  "type": "object"
+}

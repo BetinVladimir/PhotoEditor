@@ -1,0 +1,25 @@
+{
+	admin off
+}
+
+{$APP_DOMAIN} {
+	encode zstd gzip
+	@api path /api/* /health/*
+	reverse_proxy @api api:8080
+	reverse_proxy photographer:8080
+}
+
+{$PORTAL_DOMAIN} {
+	encode zstd gzip
+	header {
+		Referrer-Policy "no-referrer"
+		X-Content-Type-Options "nosniff"
+	}
+	@api path /api/* /health/*
+	reverse_proxy @api api:8080
+	reverse_proxy portal:3000
+}
+
+{$STORAGE_DOMAIN} {
+	reverse_proxy minio:9000
+}

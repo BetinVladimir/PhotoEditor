@@ -1,0 +1,202 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "ReferenceMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "mean_absolute_error": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Mean Absolute Error",
+          "type": "number"
+        },
+        "protected_max_delta": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Protected Max Delta"
+        },
+        "psnr_db": {
+          "maximum": 200,
+          "minimum": 0,
+          "title": "Psnr Db",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mean_absolute_error",
+        "psnr_db",
+        "protected_max_delta"
+      ],
+      "title": "ReferenceMetrics",
+      "type": "object"
+    },
+    "TechnicalMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "above_one_fraction": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Above One Fraction",
+          "type": "number"
+        },
+        "below_zero_fraction": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Below Zero Fraction",
+          "type": "number"
+        },
+        "clipped_black_fraction": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Clipped Black Fraction",
+          "type": "number"
+        },
+        "clipped_white_fraction": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Clipped White Fraction",
+          "type": "number"
+        },
+        "finite": {
+          "title": "Finite",
+          "type": "boolean"
+        },
+        "seam_p99_delta": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Seam P99 Delta",
+          "type": "number"
+        },
+        "sharpness_laplacian": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Sharpness Laplacian",
+          "type": "number"
+        }
+      },
+      "required": [
+        "below_zero_fraction",
+        "above_one_fraction",
+        "clipped_black_fraction",
+        "clipped_white_fraction",
+        "sharpness_laplacian",
+        "seam_p99_delta",
+        "finite"
+      ],
+      "title": "TechnicalMetrics",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/quality-report.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "reasons": {
+      "items": {
+        "enum": [
+          "nonfinite",
+          "excessive_black_clipping",
+          "excessive_white_clipping",
+          "protected_pixels_changed",
+          "seam_detected",
+          "low_sharpness",
+          "icc_mismatch",
+          "orientation_mismatch"
+        ],
+        "type": "string"
+      },
+      "maxItems": 8,
+      "title": "Reasons",
+      "type": "array"
+    },
+    "reference": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ReferenceMetrics"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "stage": {
+      "enum": [
+        "master",
+        "export"
+      ],
+      "title": "Stage",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "pass",
+        "review",
+        "fail"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "target": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "target_kind": {
+      "enum": [
+        "working",
+        "encoded"
+      ],
+      "title": "Target Kind",
+      "type": "string"
+    },
+    "technical": {
+      "$ref": "#/$defs/TechnicalMetrics"
+    },
+    "threshold_profile_id": {
+      "enum": [
+        "master_v1",
+        "export_v1"
+      ],
+      "title": "Threshold Profile Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "target",
+    "target_kind",
+    "stage",
+    "threshold_profile_id",
+    "status",
+    "technical",
+    "reference",
+    "reasons"
+  ],
+  "title": "QualityReport",
+  "type": "object"
+}

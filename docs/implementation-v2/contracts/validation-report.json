@@ -1,0 +1,15 @@
+{
+  "static_checks": 2150,
+  "schemas": 174,
+  "endpoints": 55,
+  "operations": 27,
+  "tables": 40,
+  "packages": 13,
+  "result": "passed",
+  "not_run": [
+    "PostgreSQL migrations",
+    "application integration",
+    "RTX3060 benchmark",
+    "model qualification"
+  ]
+}

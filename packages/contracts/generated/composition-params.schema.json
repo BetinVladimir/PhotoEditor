@@ -1,0 +1,77 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/composition-params.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "allow_rotation": {
+      "default": true,
+      "title": "Allow Rotation",
+      "type": "boolean"
+    },
+    "aspect_height": {
+      "maximum": 10000,
+      "minimum": 1,
+      "title": "Aspect Height",
+      "type": "integer"
+    },
+    "aspect_width": {
+      "maximum": 10000,
+      "minimum": 1,
+      "title": "Aspect Width",
+      "type": "integer"
+    },
+    "headroom_target": {
+      "default": 0.12,
+      "maximum": 0.5,
+      "minimum": 0.01,
+      "title": "Headroom Target",
+      "type": "number"
+    },
+    "max_perspective_area_change": {
+      "const": 0.15,
+      "default": 0.15,
+      "title": "Max Perspective Area Change",
+      "type": "number"
+    },
+    "max_rotation_degrees": {
+      "default": 5.0,
+      "maximum": 5,
+      "minimum": 0,
+      "title": "Max Rotation Degrees",
+      "type": "number"
+    },
+    "structure": {
+      "$ref": "#/$defs/ArtifactRef"
+    }
+  },
+  "required": [
+    "structure",
+    "aspect_width",
+    "aspect_height"
+  ],
+  "title": "CompositionParams",
+  "type": "object"
+}

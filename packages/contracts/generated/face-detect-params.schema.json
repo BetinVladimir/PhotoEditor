@@ -1,0 +1,83 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/face-detect-params.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "long_side": {
+      "const": 1024,
+      "default": 1024,
+      "title": "Long Side",
+      "type": "integer"
+    },
+    "max_faces": {
+      "default": 64,
+      "maximum": 100,
+      "minimum": 1,
+      "title": "Max Faces",
+      "type": "integer"
+    },
+    "model_id": {
+      "const": "sfd",
+      "default": "sfd",
+      "title": "Model Id",
+      "type": "string"
+    },
+    "model_lock_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Model Lock Id",
+      "type": "string"
+    },
+    "nms_iou": {
+      "default": 0.3,
+      "exclusiveMinimum": 0,
+      "maximum": 0.5,
+      "title": "Nms Iou",
+      "type": "number"
+    },
+    "preprocessing_id": {
+      "const": "sfd_long1024_bgr_v1",
+      "default": "sfd_long1024_bgr_v1",
+      "title": "Preprocessing Id",
+      "type": "string"
+    },
+    "score_threshold": {
+      "default": 0.8,
+      "maximum": 0.99,
+      "minimum": 0.5,
+      "title": "Score Threshold",
+      "type": "number"
+    }
+  },
+  "required": [
+    "image",
+    "model_lock_id"
+  ],
+  "title": "FaceDetectParams",
+  "type": "object"
+}

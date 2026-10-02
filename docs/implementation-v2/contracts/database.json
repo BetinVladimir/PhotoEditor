@@ -1,0 +1,3286 @@
+{
+  "schema_version": 1,
+  "baseline": 195,
+  "tables": [
+    {
+      "name": "v2_workflows",
+      "migration": 196,
+      "mutable": false,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "run_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "input_snapshot_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "workflow_type",
+          "ddl": "text NOT NULL CHECK (length(workflow_type) BETWEEN 1 AND 256) CHECK (workflow_type IN ('session','learning','capture','semantic','delivery','interchange','provenance','preview'))",
+          "nullable": false,
+          "enum": [
+            "session",
+            "learning",
+            "capture",
+            "semantic",
+            "delivery",
+            "interchange",
+            "provenance",
+            "preview"
+          ]
+        },
+        {
+          "name": "renderer_version",
+          "ddl": "text NOT NULL CHECK (length(renderer_version) BETWEEN 1 AND 256)",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "policy_sha",
+          "ddl": "text NOT NULL CHECK (policy_sha ~ '^[0-9a-f]{64}$')",
+          "nullable": false,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,run_id)"
+      ]
+    },
+    {
+      "name": "v2_documents",
+      "migration": 196,
+      "mutable": false,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "stream_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "version_no",
+          "ddl": "bigint NOT NULL CHECK (version_no > 0)",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "document_type",
+          "ddl": "text NOT NULL CHECK (length(document_type) BETWEEN 1 AND 256) CHECK (document_type IN ('EditingRecipeV3','LayerStack','ShotList'))",
+          "nullable": false,
+          "enum": [
+            "EditingRecipeV3",
+            "LayerStack",
+            "ShotList"
+          ]
+        },
+        {
+          "name": "artifact_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "sha256",
+          "ddl": "text NOT NULL CHECK (sha256 ~ '^[0-9a-f]{64}$')",
+          "nullable": false,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,stream_id,version_no)"
+      ]
+    },
+    {
+      "name": "v2_document_streams",
+      "migration": 196,
+      "mutable": true,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "revision",
+          "ddl": "bigint NOT NULL DEFAULT 1 CHECK (revision > 0)"
+        },
+        {
+          "name": "updated_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "asset_version_id",
+          "ddl": "uuid",
+          "nullable": true,
+          "enum": null
+        },
+        {
+          "name": "stream_type",
+          "ddl": "text NOT NULL CHECK (length(stream_type) BETWEEN 1 AND 256) CHECK (stream_type IN ('draft','shot_list'))",
+          "nullable": false,
+          "enum": [
+            "draft",
+            "shot_list"
+          ]
+        },
+        {
+          "name": "current_document_id",
+          "ddl": "uuid",
+          "nullable": true,
+          "enum": null
+        },
+        {
+          "name": "approved_document_id",
+          "ddl": "uuid",
+          "nullable": true,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "CHECK ((stream_type='draft') = (asset_version_id IS NOT NULL))"
+      ]
+    },
+    {
+      "name": "v2_document_refs",
+      "migration": 196,
+      "mutable": false,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "document_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "artifact_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "sha256",
+          "ddl": "text NOT NULL CHECK (sha256 ~ '^[0-9a-f]{64}$')",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "purpose",
+          "ddl": "text NOT NULL CHECK (length(purpose) BETWEEN 1 AND 256)",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "ordinal",
+          "ddl": "integer NOT NULL CHECK (ordinal >= 0)",
+          "nullable": false,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,document_id,purpose,ordinal)"
+      ]
+    },
+    {
+      "name": "v2_artifact_links",
+      "migration": 196,
+      "mutable": false,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "workflow_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "artifact_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "sha256",
+          "ddl": "text NOT NULL CHECK (sha256 ~ '^[0-9a-f]{64}$')",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "purpose",
+          "ddl": "text NOT NULL CHECK (length(purpose) BETWEEN 1 AND 256)",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "ordinal",
+          "ddl": "integer NOT NULL CHECK (ordinal >= 0)",
+          "nullable": false,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,workflow_id,purpose,ordinal)"
+      ]
+    },
+    {
+      "name": "model_qualifications",
+      "migration": 196,
+      "mutable": false,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "operation",
+          "ddl": "text NOT NULL CHECK (length(operation) BETWEEN 1 AND 256)",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "operation_version",
+          "ddl": "text NOT NULL CHECK (length(operation_version) BETWEEN 1 AND 256)",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "model_lock_sha",
+          "ddl": "text NOT NULL CHECK (model_lock_sha ~ '^[0-9a-f]{64}$')",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "backend",
+          "ddl": "text NOT NULL CHECK (length(backend) BETWEEN 1 AND 256) CHECK (backend IN ('cpu','cuda','mps'))",
+          "nullable": false,
+          "enum": [
+            "cpu",
+            "cuda",
+            "mps"
+          ]
+        },
+        {
+          "name": "device_profile_sha",
+          "ddl": "text NOT NULL CHECK (device_profile_sha ~ '^[0-9a-f]{64}$')",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "report_artifact_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "status",
+          "ddl": "text NOT NULL CHECK (length(status) BETWEEN 1 AND 256) CHECK (status IN ('passed','failed'))",
+          "nullable": false,
+          "enum": [
+            "passed",
+            "failed"
+          ]
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED"
+      ]
+    },
+    {
+      "name": "shoot_sessions",
+      "migration": 197,
+      "mutable": true,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "revision",
+          "ddl": "bigint NOT NULL DEFAULT 1 CHECK (revision > 0)"
+        },
+        {
+          "name": "updated_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "collection_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "name",
+          "ddl": "text NOT NULL CHECK (length(name) BETWEEN 1 AND 200)",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "state",
+          "ddl": "text NOT NULL CHECK (length(state) BETWEEN 1 AND 256) CHECK (state IN ('open','closed','archived'))",
+          "nullable": false,
+          "enum": [
+            "open",
+            "closed",
+            "archived"
+          ]
+        },
+        {
+          "name": "policy",
+          "ddl": "jsonb NOT NULL CHECK (jsonb_typeof(policy) = 'object') CHECK (octet_length(policy::text) <= 1048576)",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "capture_policy",
+          "ddl": "jsonb CHECK (jsonb_typeof(capture_policy) = 'object') CHECK (octet_length(capture_policy::text) <= 1048576)",
+          "nullable": true,
+          "enum": null
+        },
+        {
+          "name": "consent_epoch",
+          "ddl": "bigint NOT NULL CHECK (consent_epoch > 0)",
+          "nullable": false,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED"
+      ]
+    },
+    {
+      "name": "session_analyses",
+      "migration": 197,
+      "mutable": false,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "session_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "workflow_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "snapshot_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "plan_artifact_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "policy_sha",
+          "ddl": "text NOT NULL CHECK (policy_sha ~ '^[0-9a-f]{64}$')",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "model_lock_sha",
+          "ddl": "text NOT NULL CHECK (model_lock_sha ~ '^[0-9a-f]{64}$')",
+          "nullable": false,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,workflow_id)"
+      ]
+    },
+    {
+      "name": "scene_groups",
+      "migration": 197,
+      "mutable": false,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "analysis_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "ordinal",
+          "ddl": "integer NOT NULL CHECK (ordinal >= 0)",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "reference_version_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "confidence",
+          "ddl": "double precision NOT NULL CHECK (confidence BETWEEN 0 AND 1 AND confidence <> 'NaN'::double precision)",
+          "nullable": false,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,analysis_id,ordinal)"
+      ]
+    },
+    {
+      "name": "scene_members",
+      "migration": 197,
+      "mutable": false,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "group_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "asset_version_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "snapshot_ordinal",
+          "ddl": "integer NOT NULL CHECK (snapshot_ordinal >= 0)",
+          "nullable": false,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,group_id,asset_version_id)"
+      ]
+    },
+    {
+      "name": "project_persons",
+      "migration": 197,
+      "mutable": true,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "revision",
+          "ddl": "bigint NOT NULL DEFAULT 1 CHECK (revision > 0)"
+        },
+        {
+          "name": "updated_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "label",
+          "ddl": "text NOT NULL CHECK (length(label) BETWEEN 1 AND 256)",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "state",
+          "ddl": "text NOT NULL CHECK (length(state) BETWEEN 1 AND 256) CHECK (state IN ('active','revoked'))",
+          "nullable": false,
+          "enum": [
+            "active",
+            "revoked"
+          ]
+        },
+        {
+          "name": "consent_epoch",
+          "ddl": "bigint NOT NULL CHECK (consent_epoch > 0)",
+          "nullable": false,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED"
+      ]
+    },
+    {
+      "name": "person_observations",
+      "migration": 197,
+      "mutable": true,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "revision",
+          "ddl": "bigint NOT NULL DEFAULT 1 CHECK (revision > 0)"
+        },
+        {
+          "name": "updated_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "person_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "asset_version_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "face_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "evidence_artifact_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "confirmed_by",
+          "ddl": "uuid",
+          "nullable": true,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,asset_version_id,face_id)"
+      ]
+    },
+    {
+      "name": "consent_grants",
+      "migration": 197,
+      "mutable": true,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "revision",
+          "ddl": "bigint NOT NULL DEFAULT 1 CHECK (revision > 0)"
+        },
+        {
+          "name": "updated_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "purpose",
+          "ddl": "text NOT NULL CHECK (length(purpose) BETWEEN 1 AND 256) CHECK (purpose IN ('identity_matching','learning_photographer','learning_person'))",
+          "nullable": false,
+          "enum": [
+            "identity_matching",
+            "learning_photographer",
+            "learning_person"
+          ]
+        },
+        {
+          "name": "person_id",
+          "ddl": "uuid",
+          "nullable": true,
+          "enum": null
+        },
+        {
+          "name": "status",
+          "ddl": "text NOT NULL CHECK (length(status) BETWEEN 1 AND 256) CHECK (status IN ('granted','revoked'))",
+          "nullable": false,
+          "enum": [
+            "granted",
+            "revoked"
+          ]
+        },
+        {
+          "name": "epoch",
+          "ddl": "bigint NOT NULL CHECK (epoch > 0)",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "policy_version",
+          "ddl": "text NOT NULL CHECK (length(policy_version) BETWEEN 1 AND 256)",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "actor_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "CHECK ((purpose='learning_photographer') = (person_id IS NULL))"
+      ]
+    },
+    {
+      "name": "consent_events",
+      "migration": 197,
+      "mutable": false,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "consent_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "epoch",
+          "ddl": "bigint NOT NULL CHECK (epoch > 0)",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "action",
+          "ddl": "text NOT NULL CHECK (length(action) BETWEEN 1 AND 256) CHECK (action IN ('grant','revoke'))",
+          "nullable": false,
+          "enum": [
+            "grant",
+            "revoke"
+          ]
+        },
+        {
+          "name": "actor_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "policy_version",
+          "ddl": "text NOT NULL CHECK (length(policy_version) BETWEEN 1 AND 256)",
+          "nullable": false,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,consent_id,epoch)"
+      ]
+    },
+    {
+      "name": "workflow_consent_links",
+      "migration": 197,
+      "mutable": false,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "workflow_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "consent_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "consent_epoch",
+          "ddl": "bigint NOT NULL CHECK (consent_epoch > 0)",
+          "nullable": false,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,workflow_id,consent_id)"
+      ]
+    },
+    {
+      "name": "correction_events",
+      "migration": 198,
+      "mutable": false,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "session_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "asset_version_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "base_document_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "approved_document_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "changed_paths",
+          "ddl": "jsonb NOT NULL CHECK (jsonb_typeof(changed_paths) = 'array') CHECK (octet_length(changed_paths::text) <= 1048576)",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "reason",
+          "ddl": "text NOT NULL CHECK (length(reason) BETWEEN 1 AND 256) CHECK (reason IN ('exposure','color','crop','retouch','selection','other'))",
+          "nullable": false,
+          "enum": [
+            "exposure",
+            "color",
+            "crop",
+            "retouch",
+            "selection",
+            "other"
+          ]
+        },
+        {
+          "name": "learn",
+          "ddl": "boolean NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "consent_id",
+          "ddl": "uuid",
+          "nullable": true,
+          "enum": null
+        },
+        {
+          "name": "consent_epoch",
+          "ddl": "bigint CHECK (consent_epoch > 0)",
+          "nullable": true,
+          "enum": null
+        },
+        {
+          "name": "approved_by",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "client_event_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "person_id",
+          "ddl": "uuid",
+          "nullable": true,
+          "enum": null
+        },
+        {
+          "name": "scene_group_id",
+          "ddl": "uuid",
+          "nullable": true,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,client_event_id)",
+        "CHECK ((learn AND consent_id IS NOT NULL AND consent_epoch IS NOT NULL) OR (NOT learn AND consent_id IS NULL AND consent_epoch IS NULL))"
+      ]
+    },
+    {
+      "name": "learning_profiles",
+      "migration": 198,
+      "mutable": true,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "revision",
+          "ddl": "bigint NOT NULL DEFAULT 1 CHECK (revision > 0)"
+        },
+        {
+          "name": "updated_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "name",
+          "ddl": "text NOT NULL CHECK (length(name) BETWEEN 1 AND 200)",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "mode",
+          "ddl": "text NOT NULL CHECK (length(mode) BETWEEN 1 AND 256) CHECK (mode IN ('photographer','person'))",
+          "nullable": false,
+          "enum": [
+            "photographer",
+            "person"
+          ]
+        },
+        {
+          "name": "person_id",
+          "ddl": "uuid",
+          "nullable": true,
+          "enum": null
+        },
+        {
+          "name": "created_by",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "active_version_id",
+          "ddl": "uuid",
+          "nullable": true,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "CHECK ((mode='person') = (person_id IS NOT NULL))"
+      ]
+    },
+    {
+      "name": "learning_versions",
+      "migration": 198,
+      "mutable": false,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "profile_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "version_no",
+          "ddl": "bigint NOT NULL CHECK (version_no > 0)",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "workflow_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "training_artifact_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "model_artifact_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "evaluation_artifact_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "parent_version_id",
+          "ddl": "uuid",
+          "nullable": true,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,profile_id,version_no)",
+        "UNIQUE (tenant_id,workflow_id)"
+      ]
+    },
+    {
+      "name": "version_eligibility",
+      "migration": 198,
+      "mutable": true,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "revision",
+          "ddl": "bigint NOT NULL DEFAULT 1 CHECK (revision > 0)"
+        },
+        {
+          "name": "updated_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "version_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "status",
+          "ddl": "text NOT NULL CHECK (length(status) BETWEEN 1 AND 256) CHECK (status IN ('eligible','rejected','needs_review','disabled'))",
+          "nullable": false,
+          "enum": [
+            "eligible",
+            "rejected",
+            "needs_review",
+            "disabled"
+          ]
+        },
+        {
+          "name": "reason",
+          "ddl": "text CHECK (length(reason) BETWEEN 1 AND 256)",
+          "nullable": true,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,version_id)"
+      ]
+    },
+    {
+      "name": "learning_example_links",
+      "migration": 198,
+      "mutable": false,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "version_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "event_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "consent_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "consent_epoch",
+          "ddl": "bigint NOT NULL CHECK (consent_epoch > 0)",
+          "nullable": false,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,version_id,event_id)"
+      ]
+    },
+    {
+      "name": "model_use_links",
+      "migration": 198,
+      "mutable": false,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "document_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "version_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,document_id,version_id)"
+      ]
+    },
+    {
+      "name": "profile_activations",
+      "migration": 198,
+      "mutable": false,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "profile_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "version_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "actor_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "reason",
+          "ddl": "text NOT NULL CHECK (length(reason) BETWEEN 1 AND 256) CHECK (reason IN ('promote','rollback'))",
+          "nullable": false,
+          "enum": [
+            "promote",
+            "rollback"
+          ]
+        },
+        {
+          "name": "previous_version_id",
+          "ddl": "uuid",
+          "nullable": true,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED"
+      ]
+    },
+    {
+      "name": "consent_cleanup",
+      "migration": 198,
+      "mutable": true,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "revision",
+          "ddl": "bigint NOT NULL DEFAULT 1 CHECK (revision > 0)"
+        },
+        {
+          "name": "updated_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "consent_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "artifact_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "state",
+          "ddl": "text NOT NULL CHECK (length(state) BETWEEN 1 AND 256) CHECK (state IN ('pending','deleting','deleted','blocked_shared'))",
+          "nullable": false,
+          "enum": [
+            "pending",
+            "deleting",
+            "deleted",
+            "blocked_shared"
+          ]
+        },
+        {
+          "name": "attempts",
+          "ddl": "integer NOT NULL CHECK (attempts >= 0)",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "next_attempt_at",
+          "ddl": "timestamptz NOT NULL",
+          "nullable": false,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,consent_id,artifact_id)"
+      ]
+    },
+    {
+      "name": "capture_devices",
+      "migration": 199,
+      "mutable": true,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "revision",
+          "ddl": "bigint NOT NULL DEFAULT 1 CHECK (revision > 0)"
+        },
+        {
+          "name": "updated_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "label",
+          "ddl": "text NOT NULL CHECK (length(label) BETWEEN 1 AND 256)",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "public_key",
+          "ddl": "text NOT NULL CHECK (length(public_key) BETWEEN 1 AND 256)",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "credential_epoch",
+          "ddl": "bigint NOT NULL CHECK (credential_epoch > 0)",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "created_by",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "state",
+          "ddl": "text NOT NULL CHECK (length(state) BETWEEN 1 AND 256) CHECK (state IN ('active','revoked'))",
+          "nullable": false,
+          "enum": [
+            "active",
+            "revoked"
+          ]
+        },
+        {
+          "name": "last_seen_at",
+          "ddl": "timestamptz",
+          "nullable": true,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED"
+      ]
+    },
+    {
+      "name": "capture_challenges",
+      "migration": 199,
+      "mutable": true,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "revision",
+          "ddl": "bigint NOT NULL DEFAULT 1 CHECK (revision > 0)"
+        },
+        {
+          "name": "updated_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "device_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "nonce_ciphertext",
+          "ddl": "bytea NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "key_version",
+          "ddl": "text NOT NULL CHECK (length(key_version) BETWEEN 1 AND 256)",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "nonce_hash",
+          "ddl": "text NOT NULL CHECK (nonce_hash ~ '^[0-9a-f]{64}$')",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "credential_epoch",
+          "ddl": "bigint NOT NULL CHECK (credential_epoch > 0)",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "expires_at",
+          "ddl": "timestamptz NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "consumed_at",
+          "ddl": "timestamptz",
+          "nullable": true,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,nonce_hash)"
+      ]
+    },
+    {
+      "name": "capture_receipts",
+      "migration": 199,
+      "mutable": false,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "device_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "session_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "sequence",
+          "ddl": "bigint NOT NULL CHECK (sequence >= 0)",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "content_sha",
+          "ddl": "text NOT NULL CHECK (content_sha ~ '^[0-9a-f]{64}$')",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "upload_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "captured_at",
+          "ddl": "timestamptz",
+          "nullable": true,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,device_id,sequence)"
+      ]
+    },
+    {
+      "name": "capture_receipt_assets",
+      "migration": 199,
+      "mutable": false,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "receipt_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "asset_version_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,receipt_id)"
+      ]
+    },
+    {
+      "name": "capture_alerts",
+      "migration": 199,
+      "mutable": true,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "revision",
+          "ddl": "bigint NOT NULL DEFAULT 1 CHECK (revision > 0)"
+        },
+        {
+          "name": "updated_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "session_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "asset_version_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "report_artifact_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "severity",
+          "ddl": "text NOT NULL CHECK (length(severity) BETWEEN 1 AND 256) CHECK (severity IN ('info','warning','critical'))",
+          "nullable": false,
+          "enum": [
+            "info",
+            "warning",
+            "critical"
+          ]
+        },
+        {
+          "name": "receipt_id",
+          "ddl": "uuid",
+          "nullable": true,
+          "enum": null
+        },
+        {
+          "name": "qa_stale",
+          "ddl": "boolean NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "acknowledged_by",
+          "ddl": "uuid",
+          "nullable": true,
+          "enum": null
+        },
+        {
+          "name": "acknowledged_at",
+          "ddl": "timestamptz",
+          "nullable": true,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "CHECK ((acknowledged_by IS NULL) = (acknowledged_at IS NULL))"
+      ]
+    },
+    {
+      "name": "shot_lists",
+      "migration": 199,
+      "mutable": true,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "revision",
+          "ddl": "bigint NOT NULL DEFAULT 1 CHECK (revision > 0)"
+        },
+        {
+          "name": "updated_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "session_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "document_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,session_id)"
+      ]
+    },
+    {
+      "name": "semantic_intents",
+      "migration": 202,
+      "mutable": false,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "workflow_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "reference_version_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "snapshot_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "intent_artifact_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "intent_sha",
+          "ddl": "text NOT NULL CHECK (intent_sha ~ '^[0-9a-f]{64}$')",
+          "nullable": false,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,workflow_id)"
+      ]
+    },
+    {
+      "name": "semantic_targets",
+      "migration": 202,
+      "mutable": true,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "revision",
+          "ddl": "bigint NOT NULL DEFAULT 1 CHECK (revision > 0)"
+        },
+        {
+          "name": "updated_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "intent_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "child_run_id",
+          "ddl": "uuid",
+          "nullable": true,
+          "enum": null
+        },
+        {
+          "name": "batch_id",
+          "ddl": "uuid",
+          "nullable": true,
+          "enum": null
+        },
+        {
+          "name": "asset_version_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "candidate_artifact_id",
+          "ddl": "uuid",
+          "nullable": true,
+          "enum": null
+        },
+        {
+          "name": "review_id",
+          "ddl": "uuid",
+          "nullable": true,
+          "enum": null
+        },
+        {
+          "name": "override_id",
+          "ddl": "uuid",
+          "nullable": true,
+          "enum": null
+        },
+        {
+          "name": "state",
+          "ddl": "text NOT NULL CHECK (length(state) BETWEEN 1 AND 256) CHECK (state IN ('proposed','queued','rejected','unsupported','applied','failed','cancelled'))",
+          "nullable": false,
+          "enum": [
+            "proposed",
+            "queued",
+            "rejected",
+            "unsupported",
+            "applied",
+            "failed",
+            "cancelled"
+          ]
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,intent_id,asset_version_id)"
+      ]
+    },
+    {
+      "name": "delivery_packages",
+      "migration": 205,
+      "mutable": true,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "revision",
+          "ddl": "bigint NOT NULL DEFAULT 1 CHECK (revision > 0)"
+        },
+        {
+          "name": "updated_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "workflow_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "snapshot_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "name",
+          "ddl": "text NOT NULL CHECK (length(name) BETWEEN 1 AND 200)",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "policy_artifact_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "manifest_artifact_id",
+          "ddl": "uuid",
+          "nullable": true,
+          "enum": null
+        },
+        {
+          "name": "published_at",
+          "ddl": "timestamptz",
+          "nullable": true,
+          "enum": null
+        },
+        {
+          "name": "state",
+          "ddl": "text NOT NULL CHECK (length(state) BETWEEN 1 AND 256) CHECK (state IN ('building','review','ready','failed','cancelled'))",
+          "nullable": false,
+          "enum": [
+            "building",
+            "review",
+            "ready",
+            "failed",
+            "cancelled"
+          ]
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,workflow_id)",
+        "CHECK (published_at IS NULL OR (state='ready' AND manifest_artifact_id IS NOT NULL))"
+      ]
+    },
+    {
+      "name": "delivery_items",
+      "migration": 205,
+      "mutable": true,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "revision",
+          "ddl": "bigint NOT NULL DEFAULT 1 CHECK (revision > 0)"
+        },
+        {
+          "name": "updated_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "package_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "ordinal",
+          "ddl": "integer NOT NULL CHECK (ordinal >= 0)",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "preset_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "preset_sha",
+          "ddl": "text NOT NULL CHECK (preset_sha ~ '^[0-9a-f]{64}$')",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "required",
+          "ddl": "boolean NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "export_id",
+          "ddl": "uuid",
+          "nullable": true,
+          "enum": null
+        },
+        {
+          "name": "state",
+          "ddl": "text NOT NULL CHECK (length(state) BETWEEN 1 AND 256) CHECK (state IN ('pending','ready','failed','omitted'))",
+          "nullable": false,
+          "enum": [
+            "pending",
+            "ready",
+            "failed",
+            "omitted"
+          ]
+        },
+        {
+          "name": "reason",
+          "ddl": "text CHECK (length(reason) BETWEEN 1 AND 256)",
+          "nullable": true,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,package_id,ordinal,preset_id)",
+        "CHECK (state <> 'ready' OR export_id IS NOT NULL)"
+      ]
+    },
+    {
+      "name": "interchange_jobs",
+      "migration": 205,
+      "mutable": true,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "revision",
+          "ddl": "bigint NOT NULL DEFAULT 1 CHECK (revision > 0)"
+        },
+        {
+          "name": "updated_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "workflow_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "direction",
+          "ddl": "text NOT NULL CHECK (length(direction) BETWEEN 1 AND 256) CHECK (direction IN ('import','export'))",
+          "nullable": false,
+          "enum": [
+            "import",
+            "export"
+          ]
+        },
+        {
+          "name": "format",
+          "ddl": "text NOT NULL CHECK (length(format) BETWEEN 1 AND 256) CHECK (format IN ('xmp','photoeditor_bundle','captureone_sidecar'))",
+          "nullable": false,
+          "enum": [
+            "xmp",
+            "photoeditor_bundle",
+            "captureone_sidecar"
+          ]
+        },
+        {
+          "name": "mapping_artifact_id",
+          "ddl": "uuid",
+          "nullable": true,
+          "enum": null
+        },
+        {
+          "name": "report_artifact_id",
+          "ddl": "uuid",
+          "nullable": true,
+          "enum": null
+        },
+        {
+          "name": "bundle_artifact_id",
+          "ddl": "uuid",
+          "nullable": true,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,workflow_id)"
+      ]
+    },
+    {
+      "name": "provenance_manifests",
+      "migration": 206,
+      "mutable": false,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "export_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "workflow_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "manifest_artifact_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "signed_artifact_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "signer_key_id",
+          "ddl": "text NOT NULL CHECK (length(signer_key_id) BETWEEN 1 AND 256)",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "signing_policy_sha",
+          "ddl": "text NOT NULL CHECK (signing_policy_sha ~ '^[0-9a-f]{64}$')",
+          "nullable": false,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,export_id,signing_policy_sha)"
+      ]
+    },
+    {
+      "name": "v2_document_approvals",
+      "migration": 196,
+      "mutable": false,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "document_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "actor_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "recipe_sha",
+          "ddl": "text NOT NULL CHECK (recipe_sha ~ '^[0-9a-f]{64}$')",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "resolved_artifact_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,document_id)"
+      ]
+    },
+    {
+      "name": "v2_task_inputs",
+      "migration": 196,
+      "mutable": false,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "task_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "artifact_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "sha256",
+          "ddl": "text NOT NULL CHECK (sha256 ~ '^[0-9a-f]{64}$')",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "contract",
+          "ddl": "text NOT NULL CHECK (length(contract) BETWEEN 1 AND 256)",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "ordinal",
+          "ddl": "integer NOT NULL CHECK (ordinal >= 0)",
+          "nullable": false,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,task_id,artifact_id)",
+        "UNIQUE (tenant_id,task_id,ordinal)"
+      ]
+    },
+    {
+      "name": "v2_review_batches",
+      "migration": 196,
+      "mutable": false,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "workflow_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "child_run_id",
+          "ddl": "uuid",
+          "nullable": true,
+          "enum": null
+        },
+        {
+          "name": "decisions_artifact_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "actor_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "action",
+          "ddl": "text NOT NULL CHECK (length(action) BETWEEN 1 AND 256) CHECK (action IN ('apply','decide','close'))",
+          "nullable": false,
+          "enum": [
+            "apply",
+            "decide",
+            "close"
+          ]
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED"
+      ]
+    },
+    {
+      "name": "learning_safety_reviews",
+      "migration": 198,
+      "mutable": false,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "version_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "evaluation_sha",
+          "ddl": "text NOT NULL CHECK (evaluation_sha ~ '^[0-9a-f]{64}$')",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "actor_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "accept",
+          "ddl": "boolean NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "reason",
+          "ddl": "text NOT NULL CHECK (length(reason) BETWEEN 1 AND 256)",
+          "nullable": false,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED"
+      ]
+    },
+    {
+      "name": "interchange_targets",
+      "migration": 205,
+      "mutable": true,
+      "columns": [
+        {
+          "name": "id",
+          "ddl": "uuid PRIMARY KEY DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "tenant_id",
+          "ddl": "uuid NOT NULL REFERENCES photo.tenants(id)"
+        },
+        {
+          "name": "project_id",
+          "ddl": "uuid NOT NULL"
+        },
+        {
+          "name": "created_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "revision",
+          "ddl": "bigint NOT NULL DEFAULT 1 CHECK (revision > 0)"
+        },
+        {
+          "name": "updated_at",
+          "ddl": "timestamptz NOT NULL DEFAULT now()"
+        },
+        {
+          "name": "job_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "entry_id",
+          "ddl": "uuid NOT NULL",
+          "nullable": false,
+          "enum": null
+        },
+        {
+          "name": "proposed_document_id",
+          "ddl": "uuid",
+          "nullable": true,
+          "enum": null
+        },
+        {
+          "name": "state",
+          "ddl": "text NOT NULL CHECK (length(state) BETWEEN 1 AND 256) CHECK (state IN ('proposed','approved','rejected','unsupported'))",
+          "nullable": false,
+          "enum": [
+            "proposed",
+            "approved",
+            "rejected",
+            "unsupported"
+          ]
+        },
+        {
+          "name": "batch_id",
+          "ddl": "uuid",
+          "nullable": true,
+          "enum": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (tenant_id,id)",
+        "UNIQUE (tenant_id,project_id,id)",
+        "FOREIGN KEY (tenant_id,project_id) REFERENCES photo.projects(tenant_id,id) DEFERRABLE INITIALLY DEFERRED",
+        "UNIQUE (tenant_id,job_id,entry_id)"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "table": "v2_workflows",
+      "column": "run_id",
+      "target": "runs"
+    },
+    {
+      "table": "v2_workflows",
+      "column": "input_snapshot_id",
+      "target": "snapshots"
+    },
+    {
+      "table": "v2_documents",
+      "column": "stream_id",
+      "target": "v2_document_streams"
+    },
+    {
+      "table": "v2_documents",
+      "column": "artifact_id",
+      "target": "artifacts"
+    },
+    {
+      "table": "v2_document_streams",
+      "column": "asset_version_id",
+      "target": "asset_versions"
+    },
+    {
+      "table": "v2_document_streams",
+      "column": "current_document_id",
+      "target": "v2_documents"
+    },
+    {
+      "table": "v2_document_streams",
+      "column": "approved_document_id",
+      "target": "v2_documents"
+    },
+    {
+      "table": "v2_document_refs",
+      "column": "document_id",
+      "target": "v2_documents"
+    },
+    {
+      "table": "v2_document_refs",
+      "column": "artifact_id",
+      "target": "artifacts"
+    },
+    {
+      "table": "v2_artifact_links",
+      "column": "workflow_id",
+      "target": "v2_workflows"
+    },
+    {
+      "table": "v2_artifact_links",
+      "column": "artifact_id",
+      "target": "artifacts"
+    },
+    {
+      "table": "model_qualifications",
+      "column": "report_artifact_id",
+      "target": "artifacts"
+    },
+    {
+      "table": "shoot_sessions",
+      "column": "collection_id",
+      "target": "collections"
+    },
+    {
+      "table": "session_analyses",
+      "column": "session_id",
+      "target": "shoot_sessions"
+    },
+    {
+      "table": "session_analyses",
+      "column": "workflow_id",
+      "target": "v2_workflows"
+    },
+    {
+      "table": "session_analyses",
+      "column": "snapshot_id",
+      "target": "snapshots"
+    },
+    {
+      "table": "session_analyses",
+      "column": "plan_artifact_id",
+      "target": "artifacts"
+    },
+    {
+      "table": "scene_groups",
+      "column": "analysis_id",
+      "target": "session_analyses"
+    },
+    {
+      "table": "scene_groups",
+      "column": "reference_version_id",
+      "target": "asset_versions"
+    },
+    {
+      "table": "scene_members",
+      "column": "group_id",
+      "target": "scene_groups"
+    },
+    {
+      "table": "scene_members",
+      "column": "asset_version_id",
+      "target": "asset_versions"
+    },
+    {
+      "table": "person_observations",
+      "column": "person_id",
+      "target": "project_persons"
+    },
+    {
+      "table": "person_observations",
+      "column": "asset_version_id",
+      "target": "asset_versions"
+    },
+    {
+      "table": "person_observations",
+      "column": "evidence_artifact_id",
+      "target": "artifacts"
+    },
+    {
+      "table": "person_observations",
+      "column": "confirmed_by",
+      "target": "users"
+    },
+    {
+      "table": "consent_grants",
+      "column": "person_id",
+      "target": "project_persons"
+    },
+    {
+      "table": "consent_grants",
+      "column": "actor_id",
+      "target": "users"
+    },
+    {
+      "table": "consent_events",
+      "column": "consent_id",
+      "target": "consent_grants"
+    },
+    {
+      "table": "consent_events",
+      "column": "actor_id",
+      "target": "users"
+    },
+    {
+      "table": "workflow_consent_links",
+      "column": "workflow_id",
+      "target": "v2_workflows"
+    },
+    {
+      "table": "workflow_consent_links",
+      "column": "consent_id",
+      "target": "consent_grants"
+    },
+    {
+      "table": "correction_events",
+      "column": "session_id",
+      "target": "shoot_sessions"
+    },
+    {
+      "table": "correction_events",
+      "column": "asset_version_id",
+      "target": "asset_versions"
+    },
+    {
+      "table": "correction_events",
+      "column": "base_document_id",
+      "target": "v2_documents"
+    },
+    {
+      "table": "correction_events",
+      "column": "approved_document_id",
+      "target": "v2_documents"
+    },
+    {
+      "table": "correction_events",
+      "column": "consent_id",
+      "target": "consent_grants"
+    },
+    {
+      "table": "correction_events",
+      "column": "approved_by",
+      "target": "users"
+    },
+    {
+      "table": "correction_events",
+      "column": "person_id",
+      "target": "project_persons"
+    },
+    {
+      "table": "correction_events",
+      "column": "scene_group_id",
+      "target": "scene_groups"
+    },
+    {
+      "table": "learning_profiles",
+      "column": "person_id",
+      "target": "project_persons"
+    },
+    {
+      "table": "learning_profiles",
+      "column": "created_by",
+      "target": "users"
+    },
+    {
+      "table": "learning_profiles",
+      "column": "active_version_id",
+      "target": "learning_versions"
+    },
+    {
+      "table": "learning_versions",
+      "column": "profile_id",
+      "target": "learning_profiles"
+    },
+    {
+      "table": "learning_versions",
+      "column": "workflow_id",
+      "target": "v2_workflows"
+    },
+    {
+      "table": "learning_versions",
+      "column": "training_artifact_id",
+      "target": "artifacts"
+    },
+    {
+      "table": "learning_versions",
+      "column": "model_artifact_id",
+      "target": "artifacts"
+    },
+    {
+      "table": "learning_versions",
+      "column": "evaluation_artifact_id",
+      "target": "artifacts"
+    },
+    {
+      "table": "learning_versions",
+      "column": "parent_version_id",
+      "target": "learning_versions"
+    },
+    {
+      "table": "version_eligibility",
+      "column": "version_id",
+      "target": "learning_versions"
+    },
+    {
+      "table": "learning_example_links",
+      "column": "version_id",
+      "target": "learning_versions"
+    },
+    {
+      "table": "learning_example_links",
+      "column": "event_id",
+      "target": "correction_events"
+    },
+    {
+      "table": "learning_example_links",
+      "column": "consent_id",
+      "target": "consent_grants"
+    },
+    {
+      "table": "model_use_links",
+      "column": "document_id",
+      "target": "v2_documents"
+    },
+    {
+      "table": "model_use_links",
+      "column": "version_id",
+      "target": "learning_versions"
+    },
+    {
+      "table": "profile_activations",
+      "column": "profile_id",
+      "target": "learning_profiles"
+    },
+    {
+      "table": "profile_activations",
+      "column": "version_id",
+      "target": "learning_versions"
+    },
+    {
+      "table": "profile_activations",
+      "column": "actor_id",
+      "target": "users"
+    },
+    {
+      "table": "profile_activations",
+      "column": "previous_version_id",
+      "target": "learning_versions"
+    },
+    {
+      "table": "consent_cleanup",
+      "column": "consent_id",
+      "target": "consent_grants"
+    },
+    {
+      "table": "consent_cleanup",
+      "column": "artifact_id",
+      "target": "artifacts"
+    },
+    {
+      "table": "capture_devices",
+      "column": "created_by",
+      "target": "users"
+    },
+    {
+      "table": "capture_challenges",
+      "column": "device_id",
+      "target": "capture_devices"
+    },
+    {
+      "table": "capture_receipts",
+      "column": "device_id",
+      "target": "capture_devices"
+    },
+    {
+      "table": "capture_receipts",
+      "column": "session_id",
+      "target": "shoot_sessions"
+    },
+    {
+      "table": "capture_receipts",
+      "column": "upload_id",
+      "target": "upload_sessions"
+    },
+    {
+      "table": "capture_receipt_assets",
+      "column": "receipt_id",
+      "target": "capture_receipts"
+    },
+    {
+      "table": "capture_receipt_assets",
+      "column": "asset_version_id",
+      "target": "asset_versions"
+    },
+    {
+      "table": "capture_alerts",
+      "column": "session_id",
+      "target": "shoot_sessions"
+    },
+    {
+      "table": "capture_alerts",
+      "column": "asset_version_id",
+      "target": "asset_versions"
+    },
+    {
+      "table": "capture_alerts",
+      "column": "report_artifact_id",
+      "target": "artifacts"
+    },
+    {
+      "table": "capture_alerts",
+      "column": "receipt_id",
+      "target": "capture_receipts"
+    },
+    {
+      "table": "capture_alerts",
+      "column": "acknowledged_by",
+      "target": "users"
+    },
+    {
+      "table": "shot_lists",
+      "column": "session_id",
+      "target": "shoot_sessions"
+    },
+    {
+      "table": "shot_lists",
+      "column": "document_id",
+      "target": "v2_documents"
+    },
+    {
+      "table": "semantic_intents",
+      "column": "workflow_id",
+      "target": "v2_workflows"
+    },
+    {
+      "table": "semantic_intents",
+      "column": "reference_version_id",
+      "target": "asset_versions"
+    },
+    {
+      "table": "semantic_intents",
+      "column": "snapshot_id",
+      "target": "snapshots"
+    },
+    {
+      "table": "semantic_intents",
+      "column": "intent_artifact_id",
+      "target": "artifacts"
+    },
+    {
+      "table": "semantic_targets",
+      "column": "intent_id",
+      "target": "semantic_intents"
+    },
+    {
+      "table": "semantic_targets",
+      "column": "child_run_id",
+      "target": "runs"
+    },
+    {
+      "table": "semantic_targets",
+      "column": "batch_id",
+      "target": "v2_review_batches"
+    },
+    {
+      "table": "semantic_targets",
+      "column": "asset_version_id",
+      "target": "asset_versions"
+    },
+    {
+      "table": "semantic_targets",
+      "column": "candidate_artifact_id",
+      "target": "artifacts"
+    },
+    {
+      "table": "semantic_targets",
+      "column": "review_id",
+      "target": "reviews"
+    },
+    {
+      "table": "semantic_targets",
+      "column": "override_id",
+      "target": "overrides"
+    },
+    {
+      "table": "delivery_packages",
+      "column": "workflow_id",
+      "target": "v2_workflows"
+    },
+    {
+      "table": "delivery_packages",
+      "column": "snapshot_id",
+      "target": "snapshots"
+    },
+    {
+      "table": "delivery_packages",
+      "column": "policy_artifact_id",
+      "target": "artifacts"
+    },
+    {
+      "table": "delivery_packages",
+      "column": "manifest_artifact_id",
+      "target": "artifacts"
+    },
+    {
+      "table": "delivery_items",
+      "column": "package_id",
+      "target": "delivery_packages"
+    },
+    {
+      "table": "delivery_items",
+      "column": "preset_id",
+      "target": "export_presets"
+    },
+    {
+      "table": "delivery_items",
+      "column": "export_id",
+      "target": "exports"
+    },
+    {
+      "table": "interchange_jobs",
+      "column": "workflow_id",
+      "target": "v2_workflows"
+    },
+    {
+      "table": "interchange_jobs",
+      "column": "mapping_artifact_id",
+      "target": "artifacts"
+    },
+    {
+      "table": "interchange_jobs",
+      "column": "report_artifact_id",
+      "target": "artifacts"
+    },
+    {
+      "table": "interchange_jobs",
+      "column": "bundle_artifact_id",
+      "target": "artifacts"
+    },
+    {
+      "table": "provenance_manifests",
+      "column": "export_id",
+      "target": "exports"
+    },
+    {
+      "table": "provenance_manifests",
+      "column": "workflow_id",
+      "target": "v2_workflows"
+    },
+    {
+      "table": "provenance_manifests",
+      "column": "manifest_artifact_id",
+      "target": "artifacts"
+    },
+    {
+      "table": "provenance_manifests",
+      "column": "signed_artifact_id",
+      "target": "artifacts"
+    },
+    {
+      "table": "v2_document_approvals",
+      "column": "document_id",
+      "target": "v2_documents"
+    },
+    {
+      "table": "v2_document_approvals",
+      "column": "actor_id",
+      "target": "users"
+    },
+    {
+      "table": "v2_document_approvals",
+      "column": "resolved_artifact_id",
+      "target": "artifacts"
+    },
+    {
+      "table": "v2_task_inputs",
+      "column": "task_id",
+      "target": "tasks"
+    },
+    {
+      "table": "v2_task_inputs",
+      "column": "artifact_id",
+      "target": "artifacts"
+    },
+    {
+      "table": "v2_review_batches",
+      "column": "workflow_id",
+      "target": "v2_workflows"
+    },
+    {
+      "table": "v2_review_batches",
+      "column": "child_run_id",
+      "target": "runs"
+    },
+    {
+      "table": "v2_review_batches",
+      "column": "decisions_artifact_id",
+      "target": "artifacts"
+    },
+    {
+      "table": "v2_review_batches",
+      "column": "actor_id",
+      "target": "users"
+    },
+    {
+      "table": "learning_safety_reviews",
+      "column": "version_id",
+      "target": "learning_versions"
+    },
+    {
+      "table": "learning_safety_reviews",
+      "column": "actor_id",
+      "target": "users"
+    },
+    {
+      "table": "interchange_targets",
+      "column": "job_id",
+      "target": "interchange_jobs"
+    },
+    {
+      "table": "interchange_targets",
+      "column": "proposed_document_id",
+      "target": "v2_documents"
+    },
+    {
+      "table": "interchange_targets",
+      "column": "batch_id",
+      "target": "v2_review_batches"
+    }
+  ],
+  "api_write": "SECURITY DEFINER functions only",
+  "purge_allowlist": [
+    "v2_workflows",
+    "v2_documents",
+    "v2_document_streams",
+    "v2_document_refs",
+    "v2_artifact_links",
+    "model_qualifications",
+    "shoot_sessions",
+    "session_analyses",
+    "scene_groups",
+    "scene_members",
+    "project_persons",
+    "person_observations",
+    "consent_grants",
+    "consent_events",
+    "workflow_consent_links",
+    "correction_events",
+    "learning_profiles",
+    "learning_versions",
+    "version_eligibility",
+    "learning_example_links",
+    "model_use_links",
+    "profile_activations",
+    "consent_cleanup",
+    "capture_devices",
+    "capture_challenges",
+    "capture_receipts",
+    "capture_receipt_assets",
+    "capture_alerts",
+    "shot_lists",
+    "semantic_intents",
+    "semantic_targets",
+    "delivery_packages",
+    "delivery_items",
+    "interchange_jobs",
+    "provenance_manifests",
+    "v2_document_approvals",
+    "v2_task_inputs",
+    "v2_review_batches",
+    "learning_safety_reviews",
+    "interchange_targets"
+  ]
+}

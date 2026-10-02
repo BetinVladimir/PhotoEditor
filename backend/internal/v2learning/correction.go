@@ -1,0 +1,200 @@
+package v2learning
+
+import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"strconv"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"photoeditor/backend/internal/auth"
+	"photoeditor/backend/internal/domain"
+	"photoeditor/backend/internal/idempotency"
+	"photoeditor/backend/internal/tenant"
+	"photoeditor/backend/internal/v2draft"
+	"photoeditor/backend/internal/v2input"
+)
+
+// CorrectionCreate contains only client-owned fields. The project, approver,
+// event time and changed paths are derived from immutable server records.
+type CorrectionCreate struct {
+	ClientEventID      uuid.UUID  `json:"client_event_id"`
+	SessionID          uuid.UUID  `json:"session_id"`
+	AssetVersionID     uuid.UUID  `json:"asset_version_id"`
+	BaseDocumentID     uuid.UUID  `json:"base_document_id"`
+	ApprovedDocumentID uuid.UUID  `json:"approved_document_id"`
+	Reason             string     `json:"reason"`
+	Learn              bool       `json:"learn"`
+	PersonID           *uuid.UUID `json:"person_id"`
+	SceneGroupID       *uuid.UUID `json:"scene_group_id"`
+	ConsentID          *uuid.UUID `json:"consent_id"`
+	ConsentEpoch       *string    `json:"consent_epoch"`
+}
+
+func (r *CorrectionCreate) UnmarshalJSON(body []byte) error {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(body, &fields); err != nil {
+		return err
+	}
+	if len(fields) != 11 {
+		return fmt.Errorf("CorrectionCreate requires 11 exact fields")
+	}
+	for _, key := range []string{"client_event_id", "session_id",
+		"asset_version_id", "base_document_id", "approved_document_id",
+		"reason", "learn", "person_id", "scene_group_id", "consent_id",
+		"consent_epoch"} {
+		if _, ok := fields[key]; !ok {
+			return fmt.Errorf("CorrectionCreate missing %s", key)
+		}
+	}
+	if string(fields["learn"]) != "true" && string(fields["learn"]) != "false" {
+		return fmt.Errorf("CorrectionCreate.learn must be boolean")
+	}
+	type wire CorrectionCreate
+	var decoded wire
+	if err := json.Unmarshal(body, &decoded); err != nil {
+		return err
+	}
+	*r = CorrectionCreate(decoded)
+	return nil
+}
+
+type CorrectionService struct {
+	DB     *pgxpool.Pool
+	Drafts v2draft.Service
+}
+
+func validCorrection(req CorrectionCreate) bool {
+	if req.ClientEventID == uuid.Nil || req.SessionID == uuid.Nil ||
+		req.AssetVersionID == uuid.Nil || req.BaseDocumentID == uuid.Nil ||
+		req.ApprovedDocumentID == uuid.Nil ||
+		req.BaseDocumentID == req.ApprovedDocumentID ||
+		(req.PersonID != nil && *req.PersonID == uuid.Nil) ||
+		(req.SceneGroupID != nil && *req.SceneGroupID == uuid.Nil) {
+		return false
+	}
+	switch req.Reason {
+	case "exposure", "color", "crop", "retouch", "selection", "other":
+	default:
+		return false
+	}
+	if req.Learn != (req.ConsentID != nil && req.ConsentEpoch != nil) ||
+		(req.ConsentID == nil) != (req.ConsentEpoch == nil) {
+		return false
+	}
+	if req.ConsentID != nil && *req.ConsentID == uuid.Nil {
+		return false
+	}
+	if req.ConsentEpoch != nil {
+		value := *req.ConsentEpoch
+		if value == "" || len(value) > 19 || value[0] == '0' {
+			return false
+		}
+		for _, digit := range value {
+			if digit < '0' || digit > '9' {
+				return false
+			}
+		}
+		if _, err := strconv.ParseInt(value, 10, 64); err != nil {
+			return false
+		}
+	}
+	return true
+}
+
+func correctionError(err error) error {
+	var pg *pgconn.PgError
+	if !errors.As(err, &pg) {
+		return err
+	}
+	switch pg.Code {
+	case "22023":
+		return domain.NewError("VALIDATION_FAILED", 422)
+	case "23514", "40001", "23505":
+		return domain.NewError("REVISION_CONFLICT", 409)
+	case "42501":
+		return domain.NewError("FORBIDDEN", 403)
+	case "42P01", "42883":
+		return domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
+	}
+	return err
+}
+
+// RecordCorrection verifies both artifact bodies before asking the database
+// to atomically re-check provenance, consent and replay identity.
+func (s CorrectionService) RecordCorrection(ctx context.Context, who auth.Identity,
+	tenantID uuid.UUID, key string, req CorrectionCreate) (idempotency.Response, error) {
+	var out idempotency.Response
+	if s.DB == nil || s.Drafts.Objects == nil || s.Drafts.Bucket == "" {
+		return out, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
+	}
+	if !validCorrection(req) {
+		return out, domain.NewError("VALIDATION_FAILED", 422)
+	}
+	if !idempotency.ValidKey(key) {
+		return out, domain.NewError("IDEMPOTENCY_KEY_REQUIRED", 400)
+	}
+	base, err := s.Drafts.GetDocument(ctx, who, tenantID, req.BaseDocumentID)
+	if err != nil {
+		return out, err
+	}
+	approved, err := s.Drafts.GetDocument(ctx, who, tenantID, req.ApprovedDocumentID)
+	if err != nil {
+		return out, err
+	}
+	var source struct {
+		Binding v2input.SessionVersionBinding `json:"source"`
+	}
+	if json.Unmarshal(approved, &source) != nil ||
+		source.Binding.AssetVersionID != req.AssetVersionID {
+		return out, domain.NewError("DOCUMENT_INVALID", 422)
+	}
+	paths, err := v2input.DiffCorrectionParameters(base, approved, source.Binding)
+	if err != nil {
+		return out, domain.NewError("DOCUMENT_INVALID", 422)
+	}
+	requestBody, err := json.Marshal(req)
+	if err != nil {
+		return out, err
+	}
+	pathsBody, err := json.Marshal(paths)
+	if err != nil {
+		return out, err
+	}
+	baseDigest, approvedDigest := sha256.Sum256(base), sha256.Sum256(approved)
+	err = tenant.WithTenant(ctx, s.DB, who, tenantID, domain.Editor,
+		func(tx pgx.Tx, _ domain.Role) error {
+			var e error
+			out, e = idempotency.Use(ctx, tx, idempotency.Scope{
+				Tenant: tenantID, Principal: who.UserID, PrincipalType: "user",
+				Route: "V23.RecordCorrection", Key: key,
+			}, req, time.Now().Add(24*time.Hour), func() (idempotency.Response, error) {
+				var body json.RawMessage
+				e := tx.QueryRow(ctx, `SELECT photo.record_v2_correction(
+				 $1,$2,$3,$4::jsonb,$5::jsonb,$6,$7)`, tenantID,
+					who.UserID, who.SessionID, requestBody, pathsBody,
+					hex.EncodeToString(baseDigest[:]),
+					hex.EncodeToString(approvedDigest[:])).Scan(&body)
+				if e != nil {
+					return idempotency.Response{}, correctionError(e)
+				}
+				var event struct {
+					ID uuid.UUID `json:"id"`
+				}
+				if e = json.Unmarshal(body, &event); e != nil || event.ID == uuid.Nil {
+					return idempotency.Response{}, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
+				}
+				return idempotency.Response{Status: 201, Body: body,
+					ResourceID: &event.ID}, nil
+			})
+			return e
+		})
+	return out, correctionError(err)
+}

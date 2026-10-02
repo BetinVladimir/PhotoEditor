@@ -1,0 +1,743 @@
+{
+  "$defs": {
+    "Beauty": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "preserve_geometry": {
+          "default": true,
+          "title": "Preserve Geometry",
+          "type": "boolean"
+        },
+        "skin": {
+          "$ref": "#/$defs/Skin"
+        },
+        "even_light": {
+          "$ref": "#/$defs/Light"
+        },
+        "specular": {
+          "$ref": "#/$defs/Effect"
+        },
+        "highlight_cleanup": {
+          "$ref": "#/$defs/HighlightCleanup"
+        },
+        "face_color_finish": {
+          "$ref": "#/$defs/FaceColorFinish"
+        },
+        "post_white_balance": {
+          "$ref": "#/$defs/PostWhiteBalance"
+        },
+        "redness": {
+          "$ref": "#/$defs/Effect"
+        },
+        "contour_light": {
+          "$ref": "#/$defs/Effect"
+        },
+        "blemishes": {
+          "$ref": "#/$defs/Blemishes"
+        }
+      },
+      "title": "Beauty",
+      "type": "object"
+    },
+    "Blemishes": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": false,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "auto_redness": {
+          "default": true,
+          "title": "Auto Redness",
+          "type": "boolean"
+        },
+        "auto_strength": {
+          "default": 0.35,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Auto Strength",
+          "type": "number"
+        },
+        "circles": {
+          "default": [],
+          "items": {
+            "maxItems": 3,
+            "minItems": 3,
+            "prefixItems": [
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "exclusiveMinimum": 0,
+                "maximum": 0.02,
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Circles",
+          "type": "array"
+        }
+      },
+      "title": "Blemishes",
+      "type": "object"
+    },
+    "BlurDetection": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "threshold": {
+          "default": 0.002,
+          "maximum": 0.1,
+          "minimum": 0,
+          "title": "Threshold",
+          "type": "number"
+        },
+        "restoration_model": {
+          "const": "codeformer",
+          "default": "codeformer",
+          "title": "Restoration Model",
+          "type": "string"
+        },
+        "fidelity": {
+          "default": 0.9,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Fidelity",
+          "type": "number"
+        },
+        "min_identity_similarity": {
+          "default": 0.75,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Min Identity Similarity",
+          "type": "number"
+        },
+        "auto_restore": {
+          "default": false,
+          "title": "Auto Restore",
+          "type": "boolean"
+        },
+        "fidelity_candidates": {
+          "default": [
+            0.85,
+            0.92,
+            0.97
+          ],
+          "items": {
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "title": "Fidelity Candidates",
+          "type": "array"
+        },
+        "blend": {
+          "default": 0.65,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Blend",
+          "type": "number"
+        }
+      },
+      "title": "BlurDetection",
+      "type": "object"
+    },
+    "Collection": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "mode": {
+          "default": "median",
+          "enum": [
+            "median",
+            "target"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "target_face_luma": {
+          "default": 0.52,
+          "maximum": 0.7,
+          "minimum": 0.2,
+          "title": "Target Face Luma",
+          "type": "number"
+        },
+        "strength": {
+          "default": 0.75,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Strength",
+          "type": "number"
+        },
+        "max_correction_ev": {
+          "default": 2.2,
+          "maximum": 3,
+          "minimum": 0,
+          "title": "Max Correction Ev",
+          "type": "number"
+        },
+        "expected_faces": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "default": {},
+          "title": "Expected Faces",
+          "type": "object"
+        }
+      },
+      "title": "Collection",
+      "type": "object"
+    },
+    "Color": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "exposure_ev": {
+          "default": 0,
+          "maximum": 3,
+          "minimum": -3,
+          "title": "Exposure Ev",
+          "type": "number"
+        },
+        "wb_gains": {
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "items": {
+            "maximum": 2,
+            "minimum": 0.5,
+            "type": "number"
+          },
+          "title": "Wb Gains",
+          "type": "array"
+        },
+        "contrast": {
+          "default": 0.05,
+          "maximum": 0.5,
+          "minimum": -0.5,
+          "title": "Contrast",
+          "type": "number"
+        },
+        "saturation": {
+          "default": 0.02,
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Saturation",
+          "type": "number"
+        },
+        "gamma": {
+          "default": 1.0,
+          "maximum": 2,
+          "minimum": 0.5,
+          "title": "Gamma",
+          "type": "number"
+        }
+      },
+      "title": "Color",
+      "type": "object"
+    },
+    "Detail": {
+      "additionalProperties": false,
+      "properties": {
+        "sharpening": {
+          "$ref": "#/$defs/Effect"
+        },
+        "blur_detection": {
+          "$ref": "#/$defs/BlurDetection"
+        },
+        "face_recovery": {
+          "$ref": "#/$defs/FaceRecovery"
+        }
+      },
+      "title": "Detail",
+      "type": "object"
+    },
+    "Effect": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "strength": {
+          "default": 0.25,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Strength",
+          "type": "number"
+        }
+      },
+      "title": "Effect",
+      "type": "object"
+    },
+    "Export": {
+      "additionalProperties": false,
+      "properties": {
+        "master": {
+          "default": true,
+          "title": "Master",
+          "type": "boolean"
+        },
+        "delivery": {
+          "default": true,
+          "title": "Delivery",
+          "type": "boolean"
+        },
+        "jpeg_quality": {
+          "default": 95,
+          "maximum": 100,
+          "minimum": 80,
+          "title": "Jpeg Quality",
+          "type": "integer"
+        },
+        "preview_long_edge": {
+          "default": 1600,
+          "maximum": 2400,
+          "minimum": 320,
+          "title": "Preview Long Edge",
+          "type": "integer"
+        }
+      },
+      "title": "Export",
+      "type": "object"
+    },
+    "FaceColorFinish": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "strength": {
+          "default": 0.4,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Strength",
+          "type": "number"
+        },
+        "saturation": {
+          "default": 0.1,
+          "maximum": 0.35,
+          "minimum": 0,
+          "title": "Saturation",
+          "type": "number"
+        },
+        "warmth": {
+          "default": 0.012,
+          "maximum": 0.05,
+          "minimum": -0.03,
+          "title": "Warmth",
+          "type": "number"
+        },
+        "max_chroma_shift": {
+          "default": 0.035,
+          "maximum": 0.08,
+          "minimum": 0,
+          "title": "Max Chroma Shift",
+          "type": "number"
+        }
+      },
+      "title": "FaceColorFinish",
+      "type": "object"
+    },
+    "FaceRecovery": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "strength": {
+          "default": 0.55,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Strength",
+          "type": "number"
+        },
+        "max_detail_gain": {
+          "default": 0.045,
+          "maximum": 0.1,
+          "minimum": 0,
+          "title": "Max Detail Gain",
+          "type": "number"
+        }
+      },
+      "title": "FaceRecovery",
+      "type": "object"
+    },
+    "Geometry": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": false,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "face_strength": {
+          "default": 0.25,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Face Strength",
+          "type": "number"
+        },
+        "body_strength": {
+          "default": 0.2,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Body Strength",
+          "type": "number"
+        },
+        "max_face_displacement": {
+          "default": 0.015,
+          "maximum": 0.02,
+          "minimum": 0,
+          "title": "Max Face Displacement",
+          "type": "number"
+        },
+        "max_body_displacement": {
+          "default": 0.02,
+          "maximum": 0.03,
+          "minimum": 0,
+          "title": "Max Body Displacement",
+          "type": "number"
+        },
+        "body_regions": {
+          "default": [],
+          "items": {
+            "maxItems": 4,
+            "minItems": 4,
+            "prefixItems": [
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Body Regions",
+          "type": "array"
+        }
+      },
+      "title": "Geometry",
+      "type": "object"
+    },
+    "HighlightCleanup": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "strength": {
+          "default": 0.35,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Strength",
+          "type": "number"
+        },
+        "threshold": {
+          "default": 0.66,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Threshold",
+          "type": "number"
+        },
+        "local_contrast": {
+          "default": 0.035,
+          "maximum": 0.15,
+          "minimum": 0.005,
+          "title": "Local Contrast",
+          "type": "number"
+        },
+        "max_reduction": {
+          "default": 0.12,
+          "maximum": 0.25,
+          "minimum": 0,
+          "title": "Max Reduction",
+          "type": "number"
+        }
+      },
+      "title": "HighlightCleanup",
+      "type": "object"
+    },
+    "Input": {
+      "additionalProperties": false,
+      "properties": {
+        "recursive": {
+          "default": true,
+          "title": "Recursive",
+          "type": "boolean"
+        },
+        "formats": {
+          "default": [
+            "jpg",
+            "jpeg",
+            "tif",
+            "tiff"
+          ],
+          "items": {
+            "enum": [
+              "jpg",
+              "jpeg",
+              "png",
+              "tif",
+              "tiff"
+            ],
+            "type": "string"
+          },
+          "title": "Formats",
+          "type": "array"
+        },
+        "missing_icc": {
+          "default": "assume_srgb",
+          "enum": [
+            "assume_srgb",
+            "reject"
+          ],
+          "title": "Missing Icc",
+          "type": "string"
+        }
+      },
+      "title": "Input",
+      "type": "object"
+    },
+    "Light": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "strength": {
+          "default": 0.75,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Strength",
+          "type": "number"
+        },
+        "max_local_ev": {
+          "default": 1.0,
+          "maximum": 1.5,
+          "minimum": 0,
+          "title": "Max Local Ev",
+          "type": "number"
+        }
+      },
+      "title": "Light",
+      "type": "object"
+    },
+    "PostWhiteBalance": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "strength": {
+          "default": 0.45,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Strength",
+          "type": "number"
+        },
+        "max_gain": {
+          "default": 0.12,
+          "maximum": 0.3,
+          "minimum": 0,
+          "title": "Max Gain",
+          "type": "number"
+        },
+        "neutral_saturation": {
+          "default": 0.2,
+          "maximum": 0.45,
+          "minimum": 0.05,
+          "title": "Neutral Saturation",
+          "type": "number"
+        },
+        "highlight_start": {
+          "default": 0.82,
+          "maximum": 0.95,
+          "minimum": 0.65,
+          "title": "Highlight Start",
+          "type": "number"
+        },
+        "highlight_headroom": {
+          "default": 0.975,
+          "maximum": 0.995,
+          "minimum": 0.9,
+          "title": "Highlight Headroom",
+          "type": "number"
+        }
+      },
+      "title": "PostWhiteBalance",
+      "type": "object"
+    },
+    "Runtime": {
+      "additionalProperties": false,
+      "properties": {
+        "analysis_long_edge": {
+          "default": 1600,
+          "maximum": 2400,
+          "minimum": 640,
+          "title": "Analysis Long Edge",
+          "type": "integer"
+        },
+        "tile_size": {
+          "default": 768,
+          "maximum": 2048,
+          "minimum": 128,
+          "title": "Tile Size",
+          "type": "integer"
+        },
+        "threads": {
+          "default": 4,
+          "maximum": 16,
+          "minimum": 1,
+          "title": "Threads",
+          "type": "integer"
+        },
+        "max_megapixels": {
+          "default": 80,
+          "maximum": 200,
+          "minimum": 1,
+          "title": "Max Megapixels",
+          "type": "integer"
+        }
+      },
+      "title": "Runtime",
+      "type": "object"
+    },
+    "Skin": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "face_strength": {
+          "default": 0.4,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Face Strength",
+          "type": "number"
+        },
+        "body_strength": {
+          "default": 0.2,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Body Strength",
+          "type": "number"
+        },
+        "texture_retention": {
+          "default": 0.85,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Texture Retention",
+          "type": "number"
+        }
+      },
+      "title": "Skin",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "profile": {
+      "default": "natural_series",
+      "title": "Profile",
+      "type": "string"
+    },
+    "input": {
+      "$ref": "#/$defs/Input"
+    },
+    "runtime": {
+      "$ref": "#/$defs/Runtime"
+    },
+    "color": {
+      "$ref": "#/$defs/Color"
+    },
+    "collection": {
+      "$ref": "#/$defs/Collection"
+    },
+    "beauty": {
+      "$ref": "#/$defs/Beauty"
+    },
+    "geometry": {
+      "$ref": "#/$defs/Geometry"
+    },
+    "detail": {
+      "$ref": "#/$defs/Detail"
+    },
+    "export": {
+      "$ref": "#/$defs/Export"
+    },
+    "image_overrides": {
+      "additionalProperties": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "default": {},
+      "title": "Image Overrides",
+      "type": "object"
+    }
+  },
+  "title": "Config",
+  "type": "object"
+}
