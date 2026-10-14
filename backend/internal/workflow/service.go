@@ -646,6 +646,7 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 	}
 	deliveryState := new(ExpansionLoopState)
 	var deliveryRuntimeReady atomic.Bool
+	deliveryInstance := uuid.New()
 	signingDeliveryTenants := []uuid.UUID{}
 	signingDeliveryPins := []DeliverySigningLeasePin{}
 	var deliveryProcessor DeliveryExpansionJob
@@ -657,7 +658,7 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 		if registryErr != nil {
 			return registryErr
 		}
-		deliveryProcessor, err = NewDeliveryExpansionJob(pool, storage, storage, storageConfig.Bucket, workSHA, profileSHAs, deliveryRegistry, deliveryConfig)
+		deliveryProcessor, err = NewDeliveryExpansionJob(pool, storage, storage, deliveryInstance, storageConfig.Bucket, workSHA, profileSHAs, deliveryRegistry, deliveryConfig)
 		if err != nil {
 			return err
 		}
@@ -815,10 +816,9 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 		deliveryCtx, stopDelivery := context.WithCancel(ctx)
 		deliveryDone := make(chan error, 1)
 		runtimeDone := make(chan struct{})
-		instance := uuid.New()
 		go func() { deliveryDone <- RunExpansionLoop(deliveryCtx, deliveryProcessor, deliveryState, 5*time.Second) }()
 		go func() {
-			maintainDeliveryRuntime(deliveryCtx, pool, deliveryState, metadataAdoptionState, &deliveryRuntimeReady, instance, storageConfig.Bucket, signingDeliveryTenants, signingDeliveryPins)
+			maintainDeliveryRuntime(deliveryCtx, pool, deliveryState, metadataAdoptionState, &deliveryRuntimeReady, deliveryInstance, storageConfig.Bucket, signingDeliveryTenants, signingDeliveryPins)
 			close(runtimeDone)
 		}()
 		defer func() { stopDelivery(); <-deliveryDone; <-runtimeDone }()

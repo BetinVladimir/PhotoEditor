@@ -16,17 +16,21 @@ type ExpansionLease struct {
 	Cursor, SlotCount                          int
 }
 
-type ExpansionLeaseStore struct{ DB ProofTransaction }
+type ExpansionLeaseStore struct {
+	DB       ProofTransaction
+	Instance uuid.UUID
+	Bucket   string
+}
 
 func (s ExpansionLeaseStore) Claim(ctx context.Context) (*ExpansionLease, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	if s.DB == nil {
+	if s.DB == nil || s.Instance == uuid.Nil || len(s.Bucket) < 3 || len(s.Bucket) > 63 {
 		return nil, domain.NewError("DELIVERY_UNAVAILABLE", 503)
 	}
 	var lease ExpansionLease
-	err := s.DB.QueryRow(ctx, `SELECT * FROM photo.claim_v30_delivery_expansion()`).Scan(
+	err := s.DB.QueryRow(ctx, `SELECT * FROM photo.claim_v30_delivery_expansion_bound($1,$2)`, s.Instance, s.Bucket).Scan(
 		&lease.Expansion, &lease.Token, &lease.Until, &lease.Tenant, &lease.Run, &lease.Workflow, &lease.Package, &lease.ParentTask, &lease.Cursor, &lease.SlotCount)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -39,6 +43,7 @@ func (s ExpansionLeaseStore) Claim(ctx context.Context) (*ExpansionLease, error)
 	}
 	return &lease, nil
 }
+
 // Valid reports whether the lease carries a complete, bounded identity.
 // Current ownership and expiry still require SQL authorization.
 func (l ExpansionLease) Valid() bool { return l.valid() }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"strings"
 	"testing"
 	"time"
 )
@@ -38,10 +39,12 @@ type leaseDB struct {
 	row   leaseRow
 	args  []any
 	calls int
+	query string
 }
 
-func (d *leaseDB) QueryRow(_ context.Context, _ string, args ...any) pgx.Row {
+func (d *leaseDB) QueryRow(_ context.Context, query string, args ...any) pgx.Row {
 	d.calls++
+	d.query = query
 	d.args = args
 	return d.row
 }
@@ -50,10 +53,14 @@ func validExpansionLease() ExpansionLease {
 }
 func TestExpansionLeaseClaimAndEmptyQueue(t *testing.T) {
 	db := &leaseDB{row: leaseRow{lease: validExpansionLease()}}
-	store := ExpansionLeaseStore{DB: db}
+	instance := uuid.New()
+	store := ExpansionLeaseStore{DB: db, Instance: instance, Bucket: "photos"}
 	lease, err := store.Claim(context.Background())
 	if err != nil || lease == nil || *lease != db.row.lease {
 		t.Fatal(lease, err)
+	}
+	if !strings.Contains(db.query, "claim_v30_delivery_expansion_bound") || len(db.args) != 2 || db.args[0] != instance || db.args[1] != "photos" {
+		t.Fatal("delivery claim did not bind scheduler instance and bucket", db.query, db.args)
 	}
 	db.row.err = pgx.ErrNoRows
 	lease, err = store.Claim(context.Background())
@@ -69,8 +76,21 @@ func TestExpansionLeaseClaimAndEmptyQueue(t *testing.T) {
 func TestExpansionLeaseRejectsInvalidDatabaseCursor(t *testing.T) {
 	db := &leaseDB{row: leaseRow{lease: validExpansionLease()}}
 	db.row.lease.Cursor = 11
-	if _, err := (ExpansionLeaseStore{DB: db}).Claim(context.Background()); err == nil {
+	if _, err := (ExpansionLeaseStore{DB: db, Instance: uuid.New(), Bucket: "photos"}).Claim(context.Background()); err == nil {
 		t.Fatal("invalid lease accepted")
+	}
+}
+
+func TestExpansionLeaseClaimRequiresInstanceAndBucket(t *testing.T) {
+	db := &leaseDB{row: leaseRow{lease: validExpansionLease()}}
+	for _, store := range []ExpansionLeaseStore{
+		{DB: db},
+		{DB: db, Instance: uuid.New()},
+		{DB: db, Instance: uuid.New(), Bucket: "x"},
+	} {
+		if _, err := store.Claim(context.Background()); err == nil || db.calls != 0 {
+			t.Fatal("unbound delivery claim reached SQL", err, db.calls)
+		}
 	}
 }
 func TestExpansionLeaseRenewReleaseBindFenceAndRefuseStale(t *testing.T) {

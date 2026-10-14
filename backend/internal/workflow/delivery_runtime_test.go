@@ -3,6 +3,7 @@ package workflow
 import (
 	"context"
 	"errors"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"photoeditor/backend/internal/delivery"
 	"reflect"
@@ -56,7 +57,8 @@ func TestDeliveryRuntimeInstallsAssemblyWithSharedLimits(t *testing.T) {
 	sha := strings.Repeat("a", 64)
 	profiles := map[string]string{"srgb_v1": sha, "work_rec2020_gamma24_v1": sha}
 	config := DeliveryRuntimeConfig{Enabled: true, PageSize: 3, Limits: DeliveryDerivativeLimits{RAMBytes: 8 << 30, ScratchBytes: 8 << 30, OutputBytes: 2 << 30}}
-	job, err := NewDeliveryExpansionJob(db, objects, reader, "photos", sha, profiles, Registry{}, config)
+	instance := uuid.New()
+	job, err := NewDeliveryExpansionJob(db, objects, reader, instance, "photos", sha, profiles, Registry{}, config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +77,7 @@ func TestDeliveryRuntimeInstallsAssemblyWithSharedLimits(t *testing.T) {
 	if _, ok := job.Driver.Observer.(DeliveryChildRouter); !ok {
 		t.Fatal("mixed observer missing")
 	}
-	if store, ok := job.Driver.Store.(DeliveryRuntimePlanStore); !ok || store.Transactions != db {
+	if store, ok := job.Driver.Store.(DeliveryRuntimePlanStore); !ok || store.Transactions != db || store.Instance != instance || store.Bucket != "photos" {
 		t.Fatal("current-authority loader missing")
 	}
 	assembly, ok := job.Driver.Assembly.(DeliveryAssemblyPipeline)
@@ -86,9 +88,12 @@ func TestDeliveryRuntimeInstallsAssemblyWithSharedLimits(t *testing.T) {
 		t.Fatal("assembly pipeline not installed", job)
 	}
 	for _, bad := range []string{strings.Repeat("z", 64), strings.Repeat("A", 64), ""} {
-		if _, err := NewDeliveryExpansionJob(db, objects, reader, "photos", bad, profiles, Registry{}, config); err == nil {
+		if _, err := NewDeliveryExpansionJob(db, objects, reader, instance, "photos", bad, profiles, Registry{}, config); err == nil {
 			t.Fatal("invalid ICC digest accepted")
 		}
+	}
+	if _, err := NewDeliveryExpansionJob(db, objects, reader, uuid.Nil, "photos", sha, profiles, Registry{}, config); err == nil {
+		t.Fatal("unbound delivery scheduler accepted")
 	}
 }
 

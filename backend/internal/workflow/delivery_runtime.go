@@ -3,6 +3,7 @@ package workflow
 import (
 	"context"
 	"errors"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"photoeditor/backend/internal/artifactjson"
 	"photoeditor/backend/internal/delivery"
@@ -88,8 +89,8 @@ func (j DeliveryExpansionJob) ProcessOne(ctx context.Context) (bool, error) {
 	progress, err := j.Driver.ProcessOne(bounded)
 	return metadataProgress || released || progress.Admitted > 0 || progress.Observed > 0 || progress.SigningState == "scanning" || progress.AssemblyState == "activated" || progress.AssemblyState == "finalized_failed", errors.Join(metadataErr, err)
 }
-func NewDeliveryExpansionJob(db *pgxpool.Pool, objects artifactjson.Objects, reader v2input.SessionAnalysisObjectReader, bucket, workSHA string, profiles map[string]string, registry Registry, c DeliveryRuntimeConfig) (DeliveryExpansionJob, error) {
-	if !c.Enabled || db == nil || objects == nil || reader == nil || len(bucket) < 3 || len(bucket) > 63 || c.PageSize < 1 || c.PageSize > 100 || c.Limits.RAMBytes < 1 || c.Limits.ScratchBytes < 1 || c.Limits.OutputBytes < 1 {
+func NewDeliveryExpansionJob(db *pgxpool.Pool, objects artifactjson.Objects, reader v2input.SessionAnalysisObjectReader, instance uuid.UUID, bucket, workSHA string, profiles map[string]string, registry Registry, c DeliveryRuntimeConfig) (DeliveryExpansionJob, error) {
+	if !c.Enabled || db == nil || objects == nil || reader == nil || instance == uuid.Nil || len(bucket) < 3 || len(bucket) > 63 || c.PageSize < 1 || c.PageSize > 100 || c.Limits.RAMBytes < 1 || c.Limits.ScratchBytes < 1 || c.Limits.OutputBytes < 1 {
 		return DeliveryExpansionJob{}, v2input.ErrInvalid
 	}
 	for _, sha := range []string{workSHA, profiles["srgb_v1"], profiles["work_rec2020_gamma24_v1"]} {
@@ -111,5 +112,5 @@ func NewDeliveryExpansionJob(db *pgxpool.Pool, objects artifactjson.Objects, rea
 		assembly.SignedObjects = signedObjects
 	}
 	metadata := DeliveryMetadataJob{Leases: delivery.MetadataNextBarrierStore{DB: db}, Stage: DeliveryMetadataStage{DB: db, Objects: objects, Bucket: bucket, Registry: registry, Limits: c.Limits}}
-	return DeliveryExpansionJob{Metadata: metadata, Cleanup: delivery.ExpansionLeaseStore{DB: db}, Driver: DeliveryExpansionDriver{Store: DeliveryRuntimePlanStore{ExpansionLeaseStore: delivery.ExpansionLeaseStore{DB: db}, Transactions: db}, Children: router, Observer: router, Assembly: assembly, PageSize: c.PageSize}}, nil
+	return DeliveryExpansionJob{Metadata: metadata, Cleanup: delivery.ExpansionLeaseStore{DB: db}, Driver: DeliveryExpansionDriver{Store: DeliveryRuntimePlanStore{ExpansionLeaseStore: delivery.ExpansionLeaseStore{DB: db, Instance: instance, Bucket: bucket}, Transactions: db}, Children: router, Observer: router, Assembly: assembly, PageSize: c.PageSize}}, nil
 }

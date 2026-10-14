@@ -631,7 +631,7 @@ func TestDeliveryPrepareAdoptionPrivileges(t *testing.T) {
 	functions := []string{
 		"photo.adopt_v30_delivery_prepared(uuid,uuid,integer,bigint,uuid,jsonb,text,text,text)",
 		"photo.v30_delivery_prepare_adoption_params(uuid,uuid,integer,bigint,uuid)",
-		"photo.claim_v30_delivery_expansion()",
+		"photo.claim_v30_delivery_expansion_bound(uuid,text)",
 		"photo.v30_delivery_expansion_plan(uuid,uuid)",
 		"photo.commit_v30_delivery_child(uuid,uuid,integer,text,uuid)",
 		"photo.create_v30_delivery_child_draft(uuid,uuid,integer,text,uuid,text,jsonb,text,bigint)",
@@ -690,6 +690,12 @@ func TestDeliveryPrepareAdoptionPrivileges(t *testing.T) {
 	}
 	if allowed {
 		t.Fatal("scheduler can bypass dedicated delivery adoption")
+	}
+	if err := db.QueryRow(ctx, "SELECT has_function_privilege('photo_scheduler','photo.claim_v30_delivery_expansion()','EXECUTE')").Scan(&allowed); err != nil {
+		t.Fatal(err)
+	}
+	if allowed {
+		t.Fatal("scheduler can bypass instance-bound delivery claim")
 	}
 }
 

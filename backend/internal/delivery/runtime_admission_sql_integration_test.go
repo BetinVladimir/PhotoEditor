@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// Requires an isolated database migrated through 02126 and a test owner that
+// Requires an isolated database migrated through 02127 and a test owner that
 // may SET ROLE. The lease is written only inside a rolled-back transaction.
 func TestDeliveryRuntimeBucketLeaseAndRoleBoundary(t *testing.T) {
 	dsn := os.Getenv("PHOTO_TEST_DATABASE_URL")
@@ -32,6 +32,9 @@ func TestDeliveryRuntimeBucketLeaseAndRoleBoundary(t *testing.T) {
   AND NOT has_function_privilege('photo_scheduler','photo.announce_v30_delivery_runtime_bound(uuid,text,uuid[])','EXECUTE')
   AND NOT has_function_privilege('photo_scheduler','photo.announce_v30_delivery_runtime(uuid,text)','EXECUTE')
   AND has_function_privilege('photo_scheduler','photo.withdraw_v30_delivery_runtime(uuid)','EXECUTE')
+  AND has_function_privilege('photo_scheduler','photo.claim_v30_delivery_expansion_bound(uuid,text)','EXECUTE')
+  AND NOT has_function_privilege('photo_scheduler','photo.claim_v30_delivery_expansion()','EXECUTE')
+  AND NOT has_function_privilege('photo_scheduler','photo.v30_delivery_expansion_instance_ready(uuid,text,uuid)','EXECUTE')
   AND NOT has_function_privilege('photo_api','photo.announce_v30_delivery_runtime(uuid,text)','EXECUTE')
   AND NOT has_function_privilege('photo_worker','photo.announce_v30_delivery_runtime(uuid,text)','EXECUTE')
   AND has_function_privilege('photo_api','photo.v30_delivery_runtime_ready(text)','EXECUTE')
