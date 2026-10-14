@@ -85,7 +85,7 @@ func TestTenantPurgeSharedBudgetAllNamespacesAndNeighbor(t *testing.T) {
 
 func TestTenantPurgeNamespacesCoverCurrentKeyGenerators(t *testing.T) {
 	tenant, neighbor := uuid.New(), uuid.New()
-	artifact, upload, generation := uuid.New(), uuid.New(), uuid.New()
+	artifact, upload, generation, task, run := uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New()
 	prefixes, err := tenantNamespaces(tenant)
 	if err != nil || len(prefixes) != 3 {
 		t.Fatal("tenant purge namespace inventory invalid", err)
@@ -93,6 +93,10 @@ func TestTenantPurgeNamespacesCoverCurrentKeyGenerators(t *testing.T) {
 	generated := []func(uuid.UUID) (string, error){
 		func(id uuid.UUID) (string, error) { return OriginalKey(id, artifact) },
 		func(id uuid.UUID) (string, error) { return StagingKey(id, upload) },
+		func(id uuid.UUID) (string, error) { return AttemptKey(id, task, artifact, 1, 1) },
+		func(id uuid.UUID) (string, error) { return DocumentKey(id, run, artifact) },
+		func(id uuid.UUID) (string, error) { return V2DraftKey(id, artifact) },
+		func(id uuid.UUID) (string, error) { return InterchangeUploadKey(id, upload) },
 		func(id uuid.UUID) (string, error) { return InterchangeGenerationKey(id, upload, generation) },
 	}
 	for _, key := range generated {
