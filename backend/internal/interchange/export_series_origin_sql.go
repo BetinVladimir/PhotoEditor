@@ -1,21 +1,48 @@
 package interchange
 
 import (
- "context"
- "github.com/jackc/pgx/v5"
- "photoeditor/backend/internal/domain"
- "photoeditor/backend/internal/objectstore"
- "photoeditor/backend/internal/tenant"
- "photoeditor/backend/internal/v2input"
+	"context"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"photoeditor/backend/internal/auth"
+	"photoeditor/backend/internal/domain"
+	"photoeditor/backend/internal/objectstore"
+	"photoeditor/backend/internal/tenant"
+	"photoeditor/backend/internal/v2input"
 )
 
-func(s SQLExportDocumentCatalog)LookupExportSeriesOrigin(ctx context.Context,entry v2input.Entry,raw []byte)(ExportSeriesOriginEvidence,error){
- var zero,out ExportSeriesOriginEvidence
- if err:=s.QualifyExportSeries(ctx,entry,raw);err!=nil{return zero,err}
- object,err:=s.LookupExportDocument(ctx,entry);if err!=nil{return zero,err}
- err=tenant.WithTenant(ctx,s.DB,s.Who,s.Tenant,domain.Editor,func(tx pgx.Tx,_ domain.Role)error{
-  var bucket string
-  err:=tx.QueryRow(ctx,`SELECT producer.id,producer.attempt,producer.fencing_token,params.id,params.sha256,params.bucket,params.object_key,params.object_version,params.sha256,params.bytes,params.media_type FROM photo.artifacts series
+func (s SQLExportDocumentCatalog) LookupExportSeriesOrigin(ctx context.Context, entry v2input.Entry, raw []byte) (ExportSeriesOriginEvidence, error) {
+	return lookupExportSeriesOrigin(ctx, s, s.DB, s.Tenant, s.Who, s.Request.ProjectID, s.Bucket, entry, raw)
+}
+func (s SQLExportResultInputCatalog) LookupExportSeriesOrigin(ctx context.Context, entry v2input.Entry, raw []byte) (ExportSeriesOriginEvidence, error) {
+	config := s.Export
+	return lookupExportSeriesOrigin(ctx, s, config.DB, config.Tenant, config.Who, config.Request.ProjectID, config.Bucket, entry, raw)
+}
+
+type exportSeriesOriginCatalog interface {
+	ExportSeriesAuthority
+	ExportDocumentCatalog
+}
+
+func lookupExportSeriesOrigin(ctx context.Context, catalog exportSeriesOriginCatalog, db *pgxpool.Pool, tenantID uuid.UUID, who auth.Identity, project uuid.UUID, bucketName string, entry v2input.Entry, raw []byte) (ExportSeriesOriginEvidence, error) {
+	var zero, out ExportSeriesOriginEvidence
+	if err := ctx.Err(); err != nil {
+		return zero, err
+	}
+	if catalog == nil || db == nil || tenantID == uuid.Nil || project == uuid.Nil || len(bucketName) < 3 {
+		return zero, v2input.ErrInvalid
+	}
+	if err := catalog.QualifyExportSeries(ctx, entry, raw); err != nil {
+		return zero, err
+	}
+	object, err := catalog.LookupExportDocument(ctx, entry)
+	if err != nil {
+		return zero, err
+	}
+	err = tenant.WithTenant(ctx, db, who, tenantID, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
+		var bucket string
+		err := tx.QueryRow(ctx, `SELECT producer.id,producer.attempt,producer.fencing_token,params.id,params.sha256,params.bucket,params.object_key,params.object_version,params.sha256,params.bytes,params.media_type FROM photo.artifacts series
    JOIN photo.tasks producer ON producer.tenant_id=series.tenant_id AND producer.id=series.created_by_task_id
    JOIN photo.artifacts params ON params.tenant_id=producer.tenant_id AND params.id=producer.params_artifact_id
    JOIN photo.runs origin ON origin.tenant_id=producer.tenant_id AND origin.id=producer.run_id
@@ -32,23 +59,65 @@ func(s SQLExportDocumentCatalog)LookupExportSeriesOrigin(ctx context.Context,ent
    AND series.bucket=$7 AND series.object_key=$8 AND series.object_version=$9 AND series.bytes=$10 AND series.media_type='application/json'
    AND params.media_type='application/json' AND params.bytes BETWEEN 2 AND 1048576
    AND NOT EXISTS(SELECT 1 FROM (VALUES(series.id),(params.id)) required(id) JOIN photo.artifacts a ON a.tenant_id=$1 AND a.id=required.id
-    WHERE a.state IS DISTINCT FROM 'ready' OR a.verified_at IS NULL OR a.object_version IS NULL OR a.object_version IN('','null') OR (a.expires_at IS NOT NULL AND a.expires_at<=clock_timestamp()))`,s.Tenant,entry.Ref.ArtifactID,entry.Ref.SHA256,s.Request.ProjectID,s.Who.UserID,s.Who.SessionID,s.Bucket,object.Key,object.VersionID,object.Bytes).Scan(&out.Task,&out.Attempt,&out.Fence,&out.Params.ArtifactID,&out.Params.SHA256,&bucket,&out.Object.Key,&out.Object.VersionID,&out.Object.SHA256,&out.Object.Bytes,&out.Object.ContentType)
-  if err!=nil{return err};if bucket!=s.Bucket||!validImportRef(out.Params)||out.Object.SHA256!=out.Params.SHA256||out.Object.Key==""{return v2input.ErrInvalid};return ctx.Err()
- })
- if err!=nil{return zero,err}
- if err:=s.QualifyExportSeries(ctx,entry,raw);err!=nil{return zero,err};return out,ctx.Err()
+    WHERE a.state IS DISTINCT FROM 'ready' OR a.verified_at IS NULL OR a.object_version IS NULL OR a.object_version IN('','null') OR (a.expires_at IS NOT NULL AND a.expires_at<=clock_timestamp()))`, tenantID, entry.Ref.ArtifactID, entry.Ref.SHA256, project, who.UserID, who.SessionID, bucketName, object.Key, object.VersionID, object.Bytes).Scan(&out.Task, &out.Attempt, &out.Fence, &out.Params.ArtifactID, &out.Params.SHA256, &bucket, &out.Object.Key, &out.Object.VersionID, &out.Object.SHA256, &out.Object.Bytes, &out.Object.ContentType)
+		if err != nil {
+			return err
+		}
+		if bucket != bucketName || !validImportRef(out.Params) || out.Object.SHA256 != out.Params.SHA256 || out.Object.Key == "" {
+			return v2input.ErrInvalid
+		}
+		return ctx.Err()
+	})
+	if err != nil {
+		return zero, err
+	}
+	if err := catalog.QualifyExportSeries(ctx, entry, raw); err != nil {
+		return zero, err
+	}
+	return out, ctx.Err()
 }
 
 // Authorizes only an exact original balance input backed by its own completed
 // series.measure producer. Document content and accepted image/mask semantics
 // are independent gates, not inferred from metadata here.
-func(s SQLExportDocumentCatalog)LookupExportSeriesOriginDocument(ctx context.Context,origin ExportSeriesOriginEvidence,entry v2input.Entry)(objectstore.Object,error){
- var zero,out objectstore.Object
- if err:=ctx.Err();err!=nil{return zero,err}
- if s.DB==nil||entry.Contract!="SeriesStats"||!validImportRef(entry.Ref)||!validImportRef(origin.Params)||origin.Attempt<1||origin.Fence<1{return zero,v2input.ErrInvalid}
- err:=tenant.WithTenant(ctx,s.DB,s.Who,s.Tenant,domain.Editor,func(tx pgx.Tx,_ domain.Role)error{
-  var bucket string
-  err:=tx.QueryRow(ctx,`SELECT stats.bucket,stats.object_key,stats.object_version,stats.sha256,stats.bytes,stats.media_type
+func (s SQLExportDocumentCatalog) LookupExportSeriesOriginDocument(ctx context.Context, origin ExportSeriesOriginEvidence, entry v2input.Entry) (objectstore.Object, error) {
+	return lookupExportSeriesOriginDocument(ctx, s.DB, s.Tenant, s.Who, s.Request.ProjectID, s.Bucket, origin, entry)
+}
+func (s SQLExportResultInputCatalog) LookupExportSeriesOriginDocument(ctx context.Context, origin ExportSeriesOriginEvidence, entry v2input.Entry) (objectstore.Object, error) {
+	config := s.Export
+	var zero objectstore.Object
+	if !validImportRef(s.Root) {
+		return zero, v2input.ErrInvalid
+	}
+	root := v2input.Entry{Ref: s.Root, Contract: "InterchangeResult"}
+	before, err := config.LookupExportOutput(ctx, root)
+	if err != nil {
+		return zero, err
+	}
+	object, err := lookupExportSeriesOriginDocument(ctx, config.DB, config.Tenant, config.Who, config.Request.ProjectID, config.Bucket, origin, entry)
+	if err != nil {
+		return zero, err
+	}
+	after, err := config.LookupExportOutput(ctx, root)
+	if err != nil {
+		return zero, err
+	}
+	if after != before {
+		return zero, v2input.ErrInvalid
+	}
+	return object, ctx.Err()
+}
+func lookupExportSeriesOriginDocument(ctx context.Context, db *pgxpool.Pool, tenantID uuid.UUID, who auth.Identity, project uuid.UUID, bucketName string, origin ExportSeriesOriginEvidence, entry v2input.Entry) (objectstore.Object, error) {
+	var zero, out objectstore.Object
+	if err := ctx.Err(); err != nil {
+		return zero, err
+	}
+	if db == nil || tenantID == uuid.Nil || project == uuid.Nil || len(bucketName) < 3 || entry.Contract != "SeriesStats" || !validImportRef(entry.Ref) || !validImportRef(origin.Params) || origin.Attempt < 1 || origin.Fence < 1 {
+		return zero, v2input.ErrInvalid
+	}
+	err := tenant.WithTenant(ctx, db, who, tenantID, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
+		var bucket string
+		err := tx.QueryRow(ctx, `SELECT stats.bucket,stats.object_key,stats.object_version,stats.sha256,stats.bytes,stats.media_type
    FROM photo.tasks balance
    JOIN photo.artifacts params ON params.tenant_id=balance.tenant_id AND params.id=balance.params_artifact_id
    JOIN photo.runs balance_run ON balance_run.tenant_id=balance.tenant_id AND balance_run.id=balance.run_id
@@ -74,9 +143,20 @@ func(s SQLExportDocumentCatalog)LookupExportSeriesOriginDocument(ctx context.Con
    AND (measure_workflow.project_id=$13 OR measure_run.config_snapshot->>'project_id'=$13::text)
    AND photo.v2_editor_authorized($1,$13,$14,$15)
    AND NOT EXISTS(SELECT 1 FROM (VALUES(params.id),(stats.id)) required(id) JOIN photo.artifacts a ON a.tenant_id=$1 AND a.id=required.id
-    WHERE a.state IS DISTINCT FROM 'ready' OR a.verified_at IS NULL OR a.object_version IS NULL OR a.object_version IN('','null') OR (a.expires_at IS NOT NULL AND a.expires_at<=clock_timestamp()))`,s.Tenant,origin.Task,origin.Attempt,origin.Fence,entry.Ref.ArtifactID,entry.Ref.SHA256,origin.Params.ArtifactID,origin.Params.SHA256,s.Bucket,origin.Object.Key,origin.Object.VersionID,origin.Object.Bytes,s.Request.ProjectID,s.Who.UserID,s.Who.SessionID).Scan(&bucket,&out.Key,&out.VersionID,&out.SHA256,&out.Bytes,&out.ContentType)
-  if err!=nil{return err};if bucket!=s.Bucket||out.Key==""||out.SHA256!=entry.Ref.SHA256{return v2input.ErrInvalid};return ctx.Err()
- })
- if err!=nil{return zero,err};return out,ctx.Err()
+    WHERE a.state IS DISTINCT FROM 'ready' OR a.verified_at IS NULL OR a.object_version IS NULL OR a.object_version IN('','null') OR (a.expires_at IS NOT NULL AND a.expires_at<=clock_timestamp()))`, tenantID, origin.Task, origin.Attempt, origin.Fence, entry.Ref.ArtifactID, entry.Ref.SHA256, origin.Params.ArtifactID, origin.Params.SHA256, bucketName, origin.Object.Key, origin.Object.VersionID, origin.Object.Bytes, project, who.UserID, who.SessionID).Scan(&bucket, &out.Key, &out.VersionID, &out.SHA256, &out.Bytes, &out.ContentType)
+		if err != nil {
+			return err
+		}
+		if bucket != bucketName || out.Key == "" || out.SHA256 != entry.Ref.SHA256 {
+			return v2input.ErrInvalid
+		}
+		return ctx.Err()
+	})
+	if err != nil {
+		return zero, err
+	}
+	return out, ctx.Err()
 }
-var _ ExportSeriesOriginSource=SQLExportDocumentCatalog{}
+
+var _ ExportSeriesOriginSource = SQLExportDocumentCatalog{}
+var _ ExportSeriesOriginSource = SQLExportResultInputCatalog{}
