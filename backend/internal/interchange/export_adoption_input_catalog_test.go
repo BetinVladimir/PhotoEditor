@@ -24,7 +24,8 @@ func TestSchedulerExportInputCatalogFailsBeforeIO(t *testing.T) {
 }
 
 func TestSchedulerExportInputContractAllowlist(t *testing.T) {
-	for _, contract := range []string{"MaskRef", "WorkingImage", "EncodedImage", "DenseWarpArray"} {
+	for _, contract := range []string{"MaskRef", "WorkingImage", "EncodedImage", "DenseWarpArray",
+		"ResolvedStyle", "FaceBoxes", "AbsoluteLUTArray", "DefectLabelMap"} {
 		if !validExportInputContract(contract) {
 			t.Fatalf("rejected %s", contract)
 		}

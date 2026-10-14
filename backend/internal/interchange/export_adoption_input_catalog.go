@@ -69,7 +69,11 @@ func validExportInputContract(contract string) bool {
 	switch contract {
 	case "Params", "InterchangePlan", "InputSnapshot", "WorkingImage", "FrozenRenderRecipe",
 		"EditingRecipeV3", "StyleV2", "CorrectionPlan", "Override", "LayerStack",
-		"MaskRef", "CandidateProfile", "DescriptorShard", "StyleBackgroundAsset",
+		"MaskRef", "CandidateProfile", "DescriptorShard", "FaceObservations",
+		"ResolvedStyle", "Stats20", "SeriesCorrections", "PoseSet", "BodyFit",
+		"PairAlignment", "FaceBoxes", "FaceLandmarks", "AbsoluteLUTArray",
+		"DustCandidates", "DefectCandidates", "DefectReview", "DefectLabelMap",
+		"StyleBackgroundAsset",
 		"EncodedImage", "WorkingPixels", "WorkingAlpha", "PixelArray", "MaskPixels",
 		"MaskArray", "DenseWarpField", "DenseWarpArray":
 		return true
