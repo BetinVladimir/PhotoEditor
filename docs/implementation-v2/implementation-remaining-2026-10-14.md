@@ -93,6 +93,9 @@ Scheduler runtime теперь имеет `RunSchedulerWithInterchangeExport` и
 
 ## Граница первого MVP
 
+Миграция `02058_v30_export_adoption_series_mask.sql` и `SQLSchedulerExportInputCatalog.LookupExportSeriesMeasureMask` дают pinned binary MaskPixels для region mask, реально присутствующей в Params и полном `measure.inputs`. SQL требует завершённый canonical mask producer и frozen accepted image, а Go повторяет exact input authority после lookup. Это только metadata/physical mask source: root/report/model/consent proof в `ExportSeriesMaskOriginSource` ещё не перенесён. Startup SQL inventory теперь включает функции `02053–02058`. Миграция и unit-сценарии написаны, не запускались.
+
+
 Миграция `02057_v30_export_adoption_series_measure_inputs.sql` и `SQLSchedulerExportInputCatalog.QualifyExportSeriesMeasureInputs` добавляют exact equality между разобранными native-совместимыми входами `series.measure` (WorkingImage, pixels, alpha и маски регионов) и canonical `measure.inputs`. SQL связывает producer с запечатанным `SeriesCorrections` той же export-задачи; Go повторяет pinned image lookup после запроса. Физическое происхождение масок остаётся в отдельном `ExportSeriesMaskOriginSource`, который ещё требуется перенести. Миграция и unit-сценарии написаны, не запускались.
 
 
