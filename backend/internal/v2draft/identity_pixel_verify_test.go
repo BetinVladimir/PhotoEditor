@@ -39,3 +39,11 @@ func TestIdentityPixelVerifierRejectsUnboundInputs(t *testing.T) {
 		t.Fatal("catalog read before binding")
 	}
 }
+
+func TestIdentityAdoptionPreparationRejectsMissingCatalogs(t *testing.T) {
+	_, err := PrepareIdentityAdoption(context.Background(), IdentityResultScope{},
+		v2input.Ref{}, nil, nil, nil)
+	if err != v2input.ErrInvalid {
+		t.Fatalf("missing authority accepted: %v", err)
+	}
+}
