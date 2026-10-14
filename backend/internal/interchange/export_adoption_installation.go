@@ -13,20 +13,22 @@ type SQLExportResultInstaller struct {
 	Objects             ImportDocumentObjects
 	Scratch             *ExportArchiveScratch
 	Validator           ExportTypedDocumentValidator
+	ValidatorFactory    ExportDocumentValidatorFactory
 	Binaries            ExportBinaryQualifier
 	MaxInputBytes       int64
 	PersonOriginTrusted map[PortablePersonOriginKey]ed25519.PublicKey
 }
 
 func (s SQLExportResultInstaller) InstallExportResultPreparation(ctx context.Context,
-	config SQLExportOutputCatalog,
+	config SQLExportOutputCatalog, root v2input.Ref,
 ) (ExportResultPreparation, error) {
 	var zero ExportResultPreparation
 	if err := ctx.Err(); err != nil {
 		return zero, err
 	}
 	if config.DB == nil || s.Objects == nil || s.Scratch == nil ||
-		s.Validator == nil || s.Binaries == nil || s.MaxInputBytes < 1 ||
+		(s.Validator == nil) == (s.ValidatorFactory == nil) || !validImportRef(root) ||
+		s.Binaries == nil || s.MaxInputBytes < 1 ||
 		s.MaxInputBytes > 128<<30 {
 		return zero, v2input.ErrInvalid
 	}
@@ -34,11 +36,31 @@ func (s SQLExportResultInstaller) InstallExportResultPreparation(ctx context.Con
 	if err != nil {
 		return zero, err
 	}
-	if _, _, err := DecodeFrozenExportDocuments(ctx, intent, config.Frozen.Body()); err != nil {
+	frozen, _, err := DecodeFrozenExportDocuments(ctx, intent, config.Frozen.Body())
+	if err != nil {
 		return zero, err
 	}
+	validator := s.Validator
+	if s.ValidatorFactory != nil {
+		catalog := SQLExportResultInputCatalog{Export: config, Root: root}
+		if scoped, ok := s.ValidatorFactory.(ExportScopedDocumentValidatorFactory); ok {
+			validator, err = scoped.BuildScopedExportDocumentValidator(ctx, intent, frozen, catalog, s.Objects)
+		} else {
+			validator, err = s.ValidatorFactory.BuildExportDocumentValidator(ctx, intent, frozen)
+		}
+		if err != nil {
+			return zero, err
+		}
+		if validator == nil {
+			return zero, v2input.ErrInvalid
+		}
+		validator, err = NewExportScopedDocumentValidator(ctx, intent, frozen, validator)
+		if err != nil {
+			return zero, err
+		}
+	}
 	preparation := ExportResultPreparation{Catalog: config, Objects: s.Objects,
-		Scratch: s.Scratch, Validator: s.Validator, Binaries: s.Binaries,
+		Scratch: s.Scratch, Validator: validator, Binaries: s.Binaries,
 		MaxInputBytes: s.MaxInputBytes}
 	if intent.Request.Format == "photoeditor_bundle" {
 		if len(s.PersonOriginTrusted) == 0 {

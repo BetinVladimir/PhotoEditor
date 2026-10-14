@@ -12,7 +12,7 @@ import (
 // ExportResultPreparationInstaller is process authority for native binary and
 // typed JSON qualification. It must not derive trust from a request or ZIP.
 type ExportResultPreparationInstaller interface {
-	InstallExportResultPreparation(context.Context, SQLExportOutputCatalog) (ExportResultPreparation, error)
+	InstallExportResultPreparation(context.Context, SQLExportOutputCatalog, v2input.Ref) (ExportResultPreparation, error)
 }
 
 type ExportResultAdoptionService struct {
@@ -47,7 +47,7 @@ func (s ExportResultAdoptionService) AdoptCurrentExportResult(ctx context.Contex
 	}
 	config := SQLExportOutputCatalog{DB: s.DB, Tenant: tenantID, Who: who,
 		Request: intent.Request, Key: key, Bucket: s.Bucket, Frozen: candidate.Frozen}
-	preparation, err := s.Installer.InstallExportResultPreparation(ctx, config)
+	preparation, err := s.Installer.InstallExportResultPreparation(ctx, config, candidate.Root)
 	if err != nil {
 		return zero, err
 	}
