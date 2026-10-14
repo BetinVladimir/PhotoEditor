@@ -5,6 +5,7 @@ const id=(n:number)=>`00000000-0000-0000-0000-${String(n).padStart(12,'0')}`;
 const ref=(n:number)=>({artifact_id:id(n),sha256:String(n).padStart(64,'a')});
 const candidate={id:'f'.repeat(64),decision:'pending',bbox:{x:10,y:20,width:5,height:6},score:0.9};
 const item={entry_id:id(1),target_version_id:id(2),kind:'defects',proposal:ref(3),base:ref(4),document:{version:'defect_candidates_v1',image:ref(4),label_map:ref(5),canvas:{width:100,height:100},candidates:[candidate]},decision_epoch:0};
+const dust={entry_id:id(1),target_version_id:id(2),kind:'dust',proposal:ref(30),base:ref(4),document:{algorithm:'sensor_dust_log_v1',camera_id:`raw-${'f'.repeat(64)}`,sensor_width:420,sensor_height:320,raw_crop:{x:10,y:10,width:400,height:300},frames:[ref(4),ref(5),ref(6),ref(7),ref(8)],candidates:[{id:'e'.repeat(64),decision:'pending',sensor_x:12.5,sensor_y:18.5,radius_sensor_px:2,observed_frames:5,eligible_frames:5,recurrence:1}],warnings:[]},decision_epoch:0};
 
 describe('prepared import review contract',()=>{
  it('binds displayed proposal and candidate ids to a CAS grant',()=>{
@@ -24,5 +25,21 @@ describe('prepared import review contract',()=>{
   const [row]=readSavedPreparedReviews({workflow_id:id(9),items:[saved]},id(9));
   expect(freezeSavedPreparedRevoke(row)).toEqual({action:'revoke',kind:'defects',entry_id:id(1),target_version_id:id(2),proposal:ref(3),base:ref(4),label_map:ref(5),expected_epoch:3});
   expect(()=>readSavedPreparedReviews({workflow_id:id(9),items:[{...saved,label_map:ref(8),kind:'dust'}]},id(9))).toThrow();
+ });
+ it('requires the complete bounded dust series before offering candidate decisions',()=>{
+  expect(readPreparedReviews({workflow_id:id(9),items:[dust]},id(9))[0].document.candidates).toHaveLength(1);
+  for(const change of [
+   (d:typeof dust)=>{d.document.camera_id='raw-invalid';},
+   (d:typeof dust)=>{d.document.sensor_width=100;},
+   (d:typeof dust)=>{d.document.frames[1]=d.document.frames[0];},
+   (d:typeof dust)=>{d.document.frames.pop();},
+   (d:typeof dust)=>{d.document.candidates[0].radius_sensor_px=33;},
+   (d:typeof dust)=>{d.document.candidates[0].observed_frames=4;},
+   (d:typeof dust)=>{d.document.warnings=['no_repeated_dust'];},
+  ]){
+   const changed=JSON.parse(JSON.stringify(dust)) as typeof dust;
+   change(changed);
+   expect(()=>readPreparedReviews({workflow_id:id(9),items:[changed]},id(9))).toThrow();
+  }
  });
 });

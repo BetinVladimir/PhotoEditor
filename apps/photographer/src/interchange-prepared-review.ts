@@ -1,5 +1,5 @@
 export type PreparedReviewRef={artifact_id:string;sha256:string};
-export type PreparedReviewCandidate={id:string;decision:'pending';bbox?:{x:number;y:number;width:number;height:number};sensor_x?:number;sensor_y?:number;radius_sensor_px?:number;score?:number;recurrence?:number};
+export type PreparedReviewCandidate={id:string;decision:'pending';bbox?:{x:number;y:number;width:number;height:number};sensor_x?:number;sensor_y?:number;radius_sensor_px?:number;observed_frames?:number;eligible_frames?:number;score?:number;recurrence?:number};
 export type PreparedReviewItem={entry_id:string;target_version_id:string;kind:'defects'|'dust';proposal:PreparedReviewRef;base:PreparedReviewRef;document:Record<string,unknown>&{candidates:PreparedReviewCandidate[]};decision_status?:'granted'|'revoked';decision_epoch:number};
 export type PreparedReviewDecision={action:'grant'|'revoke';kind:'defects'|'dust';entry_id:string;target_version_id:string;proposal:PreparedReviewRef;base:PreparedReviewRef;label_map?:PreparedReviewRef;expected_epoch:number;decision?:'accept'|'reject'|'skip';accepted_candidate_ids?:string[];rejected_candidate_ids?:string[]};
 export type PreparedReviewReceipt={workflow_id:string;entry_id:string;kind:'defects'|'dust';target_version_id:string;proposal_id:string;status:'granted'|'revoked';epoch:number};
@@ -9,6 +9,7 @@ const uuid=(v:unknown):v is string=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{
 const sha=(v:unknown):v is string=>typeof v==='string'&&/^[0-9a-f]{64}$/.test(v);
 const record=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
 const safeEpoch=(v:unknown):v is number=>typeof v==='number'&&Number.isSafeInteger(v)&&v>=0&&v<9007199254740991;
+const safeInt=(v:unknown):v is number=>typeof v==='number'&&Number.isSafeInteger(v);
 const validRef=(v:unknown):v is PreparedReviewRef=>record(v)&&Object.keys(v).length===2&&uuid(v.artifact_id)&&sha(v.sha256);
 const invalid=()=>new Error('INTERCHANGE_PREPARED_REVIEW_INVALID');
 
@@ -26,9 +27,16 @@ export function readPreparedReviews(value:unknown,workflow:string):PreparedRevie
     !Number.isInteger(raw.document.canvas.width)||!Number.isInteger(raw.document.canvas.height)||
     (raw.document.canvas.width as number)<8||(raw.document.canvas.height as number)<8)throw invalid();
   }else{
-   if(raw.document.algorithm!=='sensor_dust_log_v1'||!Array.isArray(raw.document.frames)||!raw.document.frames.some(frame=>validRef(frame)&&frame.artifact_id===raw.base.artifact_id&&frame.sha256===raw.base.sha256)||!record(raw.document.raw_crop)||
-    !Number.isInteger(raw.document.raw_crop.x)||!Number.isInteger(raw.document.raw_crop.y)||!Number.isInteger(raw.document.raw_crop.width)||!Number.isInteger(raw.document.raw_crop.height)||
-    (raw.document.raw_crop.width as number)<8||(raw.document.raw_crop.height as number)<8)throw invalid();
+   const d=raw.document,crop=d.raw_crop;
+   if(d.algorithm!=='sensor_dust_log_v1'||typeof d.camera_id!=='string'||!/^raw-[0-9a-f]{64}$/.test(d.camera_id)||
+    !safeInt(d.sensor_width)||!safeInt(d.sensor_height)||d.sensor_width<8||d.sensor_height<8||!record(crop)||
+    !safeInt(crop.x)||!safeInt(crop.y)||!safeInt(crop.width)||!safeInt(crop.height)||crop.x<0||crop.y<0||crop.width<8||crop.height<8||
+    crop.x+crop.width>d.sensor_width||crop.y+crop.height>d.sensor_height||
+    !Array.isArray(d.frames)||d.frames.length<5||d.frames.length>64||!d.frames.every(validRef)||
+    new Set(d.frames.map(frame=>(frame as PreparedReviewRef).artifact_id)).size!==d.frames.length||
+    !d.frames.some(frame=>validRef(frame)&&frame.artifact_id===raw.base.artifact_id&&frame.sha256===raw.base.sha256)||
+    !Array.isArray(d.warnings)||d.warnings.length>1||!d.warnings.every(w=>typeof w==='string')||
+    (d.candidates.length===0)!==(d.warnings.length===1&&d.warnings[0]==='no_repeated_dust'))throw invalid();
   }
   const candidates:PreparedReviewCandidate[]=[],candidateIDs=new Set<string>();
   for(const candidate of raw.document.candidates){
@@ -41,7 +49,9 @@ export function readPreparedReviews(value:unknown,workflow:string):PreparedRevie
      (candidate.bbox.x as number)+(candidate.bbox.width as number)>(raw.document.canvas as Record<string,number>).width||
      (candidate.bbox.y as number)+(candidate.bbox.height as number)>(raw.document.canvas as Record<string,number>).height||
      typeof candidate.score!=='number'||!Number.isFinite(candidate.score))throw invalid();
-   }else if(typeof candidate.sensor_x!=='number'||!Number.isFinite(candidate.sensor_x)||typeof candidate.sensor_y!=='number'||!Number.isFinite(candidate.sensor_y)||typeof candidate.radius_sensor_px!=='number'||!Number.isFinite(candidate.radius_sensor_px)||candidate.radius_sensor_px<=0||typeof candidate.recurrence!=='number'||!Number.isFinite(candidate.recurrence)||
+   }else if(typeof candidate.sensor_x!=='number'||!Number.isFinite(candidate.sensor_x)||typeof candidate.sensor_y!=='number'||!Number.isFinite(candidate.sensor_y)||typeof candidate.radius_sensor_px!=='number'||!Number.isFinite(candidate.radius_sensor_px)||candidate.radius_sensor_px<=0||candidate.radius_sensor_px>32||
+    !safeInt(candidate.observed_frames)||!safeInt(candidate.eligible_frames)||candidate.eligible_frames!==raw.document.frames.length||candidate.observed_frames<1||candidate.observed_frames>candidate.eligible_frames||
+    typeof candidate.recurrence!=='number'||!Number.isFinite(candidate.recurrence)||candidate.recurrence<0.8||candidate.recurrence>1||Math.abs(candidate.recurrence-candidate.observed_frames/candidate.eligible_frames)>1e-12||
     candidate.sensor_x<(raw.document.raw_crop as Record<string,number>).x||candidate.sensor_x>=(raw.document.raw_crop as Record<string,number>).x+(raw.document.raw_crop as Record<string,number>).width||
     candidate.sensor_y<(raw.document.raw_crop as Record<string,number>).y||candidate.sensor_y>=(raw.document.raw_crop as Record<string,number>).y+(raw.document.raw_crop as Record<string,number>).height)throw invalid();
    candidates.push(candidate as unknown as PreparedReviewCandidate);
