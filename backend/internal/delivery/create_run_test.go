@@ -11,9 +11,10 @@ import (
 )
 
 type signingReadinessTx struct {
-	queries      []string
-	signingReady bool
-	signingArgs  []any
+	queries       []string
+	signingReady  bool
+	signingArgs   []any
+	metadataReady bool
 }
 
 func (t *signingReadinessTx) QueryRow(_ context.Context, query string, args ...any) pgx.Row {
@@ -24,6 +25,9 @@ func (t *signingReadinessTx) QueryRow(_ context.Context, query string, args ...a
 	if strings.Contains(query, "v30_delivery_signing_runtime_ready") {
 		t.signingArgs = append([]any(nil), args...)
 		return proofRow{t.signingReady}
+	}
+	if strings.Contains(query, "v30_delivery_metadata_runtime_ready") {
+		return proofRow{t.metadataReady}
 	}
 	return proofRow{true}
 }
@@ -147,5 +151,29 @@ func TestCreateRunRequiresTenantSigningRuntimeForRequiredPolicy(t *testing.T) {
 	err = intent.BeginRun(context.Background(), tx, who, intent.tenant, pending, "photos")
 	if err == nil || len(tx.queries) != 3 || !strings.Contains(tx.queries[2], "v30_delivery_signing_runtime_ready") || len(tx.signingArgs) != 4 || tx.signingArgs[0] != "photos" || tx.signingArgs[1] != intent.tenant || tx.signingArgs[2] != request.Policy.SigningPolicyID || tx.signingArgs[3] != request.Policy.SigningPolicySHA {
 		t.Fatal("missing signing readiness classification", err, tx.queries)
+	}
+}
+
+func TestCreateRunRequiresMetadataAdopterForPreservedMetadata(t *testing.T) {
+	base, session, catalog, items := createDocumentsFixture(t)
+	request := base.Request()
+	request.Policy.MetadataPolicy = "copyright"
+	who := auth.Identity{UserID: base.actor, SessionID: session}
+	intent, err := FreezeCreateIntent(base.tenant, who, request, base.key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := intent.EncodePending(context.Background(), session, catalog, items)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pending, err := intent.DecodePending(context.Background(), session, raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx := &signingReadinessTx{}
+	err = intent.BeginRun(context.Background(), tx, who, intent.tenant, pending, "photos")
+	if err == nil || len(tx.queries) != 3 || !strings.Contains(tx.queries[2], "v30_delivery_metadata_runtime_ready") {
+		t.Fatal("missing metadata adoption classification", err, tx.queries)
 	}
 }

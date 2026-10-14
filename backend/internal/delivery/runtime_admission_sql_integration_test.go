@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// Requires an isolated database migrated through 02125 and a test owner that
+// Requires an isolated database migrated through 02126 and a test owner that
 // may SET ROLE. The lease is written only inside a rolled-back transaction.
 func TestDeliveryRuntimeBucketLeaseAndRoleBoundary(t *testing.T) {
 	dsn := os.Getenv("PHOTO_TEST_DATABASE_URL")
@@ -26,7 +26,8 @@ func TestDeliveryRuntimeBucketLeaseAndRoleBoundary(t *testing.T) {
 	defer db.Close()
 	var aclOK bool
 	err = db.QueryRow(ctx, `SELECT
-  has_function_privilege('photo_scheduler','photo.announce_v30_delivery_runtime_windowed(uuid,text,uuid[],jsonb)','EXECUTE')
+  has_function_privilege('photo_scheduler','photo.announce_v30_delivery_runtime_complete(uuid,text,uuid[],jsonb,boolean)','EXECUTE')
+  AND NOT has_function_privilege('photo_scheduler','photo.announce_v30_delivery_runtime_windowed(uuid,text,uuid[],jsonb)','EXECUTE')
   AND NOT has_function_privilege('photo_scheduler','photo.announce_v30_delivery_runtime_pinned(uuid,text,uuid[],jsonb)','EXECUTE')
   AND NOT has_function_privilege('photo_scheduler','photo.announce_v30_delivery_runtime_bound(uuid,text,uuid[])','EXECUTE')
   AND NOT has_function_privilege('photo_scheduler','photo.announce_v30_delivery_runtime(uuid,text)','EXECUTE')
@@ -34,6 +35,7 @@ func TestDeliveryRuntimeBucketLeaseAndRoleBoundary(t *testing.T) {
   AND NOT has_function_privilege('photo_api','photo.announce_v30_delivery_runtime(uuid,text)','EXECUTE')
   AND NOT has_function_privilege('photo_worker','photo.announce_v30_delivery_runtime(uuid,text)','EXECUTE')
   AND has_function_privilege('photo_api','photo.v30_delivery_runtime_ready(text)','EXECUTE')
+  AND has_function_privilege('photo_api','photo.v30_delivery_metadata_runtime_ready(text)','EXECUTE')
   AND has_function_privilege('photo_api','photo.v30_delivery_signing_runtime_ready(text,uuid,uuid,text)','EXECUTE')
   AND NOT has_function_privilege('photo_api','photo.v30_delivery_signing_runtime_ready(text,uuid)','EXECUTE')
   AND has_function_privilege('photo_api','photo.begin_v30_delivery_create_run_bound(uuid,uuid,uuid,text,text,text,text)','EXECUTE')
@@ -61,7 +63,7 @@ func TestDeliveryRuntimeBucketLeaseAndRoleBoundary(t *testing.T) {
 	}
 	now := time.Now()
 	pins := window(now.Add(-time.Hour), now.Add(time.Hour))
-	if err = tx.QueryRow(ctx, `SELECT photo.announce_v30_delivery_runtime_windowed($1,$2,$3,$4::jsonb)`, instance, "photos-a", []uuid.UUID{signingTenant}, pins).Scan(&announced); err != nil || !announced {
+	if err = tx.QueryRow(ctx, `SELECT photo.announce_v30_delivery_runtime_complete($1,$2,$3,$4::jsonb,$5)`, instance, "photos-a", []uuid.UUID{signingTenant}, pins, true).Scan(&announced); err != nil || !announced {
 		t.Fatal("scheduler lease refused", err)
 	}
 	if _, err = tx.Exec(ctx, `SET LOCAL ROLE photo_api`); err != nil {
@@ -70,6 +72,9 @@ func TestDeliveryRuntimeBucketLeaseAndRoleBoundary(t *testing.T) {
 	var correct, foreign bool
 	if err = tx.QueryRow(ctx, `SELECT photo.v30_delivery_runtime_ready('photos-a'),photo.v30_delivery_runtime_ready('photos-b')`).Scan(&correct, &foreign); err != nil || !correct || foreign {
 		t.Fatal("bucket-scoped admission changed", correct, foreign, err)
+	}
+	if err = tx.QueryRow(ctx, `SELECT photo.v30_delivery_metadata_runtime_ready('photos-a'),photo.v30_delivery_metadata_runtime_ready('photos-b')`).Scan(&correct, &foreign); err != nil || !correct || foreign {
+		t.Fatal("metadata adopter bucket admission changed", err)
 	}
 	var signedCorrect, signedForeign bool
 	if err = tx.QueryRow(ctx, `SELECT photo.v30_delivery_signing_runtime_ready('photos-a',$1,$2,$3),photo.v30_delivery_signing_runtime_ready('photos-b',$1,$2,$3)`, signingTenant, policy, sha).Scan(&signedCorrect, &signedForeign); err != nil || !signedCorrect || signedForeign {
@@ -87,7 +92,7 @@ func TestDeliveryRuntimeBucketLeaseAndRoleBoundary(t *testing.T) {
 	if _, err = tx.Exec(ctx, `SET LOCAL ROLE photo_scheduler`); err != nil {
 		t.Fatal(err)
 	}
-	if err = tx.QueryRow(ctx, `SELECT photo.announce_v30_delivery_runtime_windowed($1,$2,$3,$4::jsonb)`, instance, "photos-a", []uuid.UUID{signingTenant}, window(now.Add(-2*time.Hour), now.Add(-time.Hour))).Scan(&announced); err != nil || !announced {
+	if err = tx.QueryRow(ctx, `SELECT photo.announce_v30_delivery_runtime_complete($1,$2,$3,$4::jsonb,$5)`, instance, "photos-a", []uuid.UUID{signingTenant}, window(now.Add(-2*time.Hour), now.Add(-time.Hour)), false).Scan(&announced); err != nil || !announced {
 		t.Fatal("expired policy lease refused", err)
 	}
 	if _, err = tx.Exec(ctx, `SET LOCAL ROLE photo_api`); err != nil {
@@ -95,6 +100,9 @@ func TestDeliveryRuntimeBucketLeaseAndRoleBoundary(t *testing.T) {
 	}
 	if err = tx.QueryRow(ctx, `SELECT photo.v30_delivery_signing_runtime_ready('photos-a',$1,$2,$3)`, signingTenant, policy, sha).Scan(&signedCorrect); err != nil || signedCorrect {
 		t.Fatal("expired policy admitted", err)
+	}
+	if err = tx.QueryRow(ctx, `SELECT photo.v30_delivery_metadata_runtime_ready('photos-a')`).Scan(&correct); err != nil || correct {
+		t.Fatal("disabled metadata adopter admitted", err)
 	}
 	if _, err = tx.Exec(ctx, `SET LOCAL ROLE photo_scheduler`); err != nil {
 		t.Fatal(err)

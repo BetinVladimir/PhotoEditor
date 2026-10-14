@@ -71,6 +71,7 @@ func buildDeliveryCreate(ctx context.Context, api *pgxpool.Pool, objects *object
 			"photo.complete_v30_delivery_create_document(uuid,uuid,uuid,text,text,uuid,text,text,text,uuid,text)",
 			"photo.begin_v30_delivery_create_run_bound(uuid,uuid,uuid,text,text,text,text)",
 			"photo.v30_delivery_runtime_ready(text)",
+			"photo.v30_delivery_metadata_runtime_ready(text)",
 			"photo.v30_delivery_signing_runtime_ready(text,uuid,uuid,text)",
 			"photo.materialize_v30_delivery_prepare(uuid,uuid,uuid,text,text,jsonb)",
 			"photo.save_v30_delivery_prepare_proof(uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,jsonb)",

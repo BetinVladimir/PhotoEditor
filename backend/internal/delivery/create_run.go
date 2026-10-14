@@ -67,6 +67,15 @@ func (i CreateIntent) beginRun(ctx context.Context, tx ProofTransaction, who aut
 		if !ready {
 			return domain.NewError("DELIVERY_UNAVAILABLE", 503)
 		}
+		if i.request.Policy.MetadataPolicy != "strip" {
+			var metadataReady bool
+			if err := tx.QueryRow(ctx, `SELECT photo.v30_delivery_metadata_runtime_ready($1)`, bucket).Scan(&metadataReady); err != nil {
+				return err
+			}
+			if !metadataReady {
+				return domain.NewError("DELIVERY_METADATA_UNAVAILABLE", 503)
+			}
+		}
 		if i.request.Policy.Provenance == "required" {
 			var signingReady bool
 			if err := tx.QueryRow(ctx, `SELECT photo.v30_delivery_signing_runtime_ready($1,$2,$3,$4)`, bucket, tid, i.request.Policy.SigningPolicyID, i.request.Policy.SigningPolicySHA).Scan(&signingReady); err != nil {

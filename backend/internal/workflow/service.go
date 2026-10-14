@@ -818,7 +818,7 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 		instance := uuid.New()
 		go func() { deliveryDone <- RunExpansionLoop(deliveryCtx, deliveryProcessor, deliveryState, 5*time.Second) }()
 		go func() {
-			maintainDeliveryRuntime(deliveryCtx, pool, deliveryState, &deliveryRuntimeReady, instance, storageConfig.Bucket, signingDeliveryTenants, signingDeliveryPins)
+			maintainDeliveryRuntime(deliveryCtx, pool, deliveryState, metadataAdoptionState, &deliveryRuntimeReady, instance, storageConfig.Bucket, signingDeliveryTenants, signingDeliveryPins)
 			close(runtimeDone)
 		}()
 		defer func() { stopDelivery(); <-deliveryDone; <-runtimeDone }()
