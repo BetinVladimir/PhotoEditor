@@ -65,11 +65,14 @@ class SupportedImportSemanticPolicy:
             return isinstance(typed, CorrectionPlan)
         if contract == 'LayerStack':
             return (isinstance(typed, RenderLayerStack)
-                    and all(layer.operation_version == '1' and
-                        (layer.operation in self.operations or
-                         layer.operation == 'image.upscale' and any(
-                             isinstance(key, tuple) and key[0] == 'image.upscale'
-                             for key in self.operations)) for layer in typed.layers))
+                    and typed.source == binding
+                    and all(layer.operation_version == '1' and (
+                        layer.operation == 'image.denoise' and
+                        'image.denoise' in self.operations or
+                        layer.operation == 'image.upscale' and any(
+                            isinstance(key, tuple) and len(key) == 2 and
+                            key[0] == 'image.upscale' for key in self.operations))
+                        for layer in typed.layers))
         if contract == 'StyleV2':
             return (isinstance(typed, StyleV2) and typed.mode == 'fixed'
                     and typed.quality.status == 'measured' and not typed.models

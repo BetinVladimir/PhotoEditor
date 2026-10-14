@@ -3,8 +3,10 @@
 from types import SimpleNamespace
 from uuid import uuid4
 
+from photo_worker.contracts.base import ArtifactRef
 from photo_worker.contracts.restoration import DenoiseParams, UpscaleParams
 from photo_worker.contracts.override import OverrideModules, OverrideV1
+from photo_worker.v2.render_layers import RenderLayer, RenderLayerStack
 from photo_worker.v2.interchange_import_adopter_semantics import SupportedImportSemanticPolicy
 from test_interchange_person_mask_confirmation import _mask_and_binding
 
@@ -48,3 +50,27 @@ def test_import_semantics_empty_pin_does_not_approve_model_documents():
     assert policy(scope, context, 'Override', fixed, binding) is True
     assert policy(scope, context, 'Override', fixed.model_copy(update={
         'accepted_candidate_ids': ['foreign']}), binding) is False
+
+
+def test_import_layer_stack_rejects_non_render_qualification_names():
+    _, binding = _mask_and_binding()
+    scope = (uuid4(), uuid4(), 1, 7, uuid4())
+    context = SimpleNamespace(operation='v2.interchange.import', version='1',
+                              attempt=1, fence=7, result_id=scope[4])
+    policy = SupportedImportSemanticPolicy({'image.denoise': object(),
+        ('image.upscale', 2): object(), 'color.stats': object(),
+        'mask.person': object()})
+    reference = ArtifactRef(artifact_id=uuid4(), sha256='a' * 64)
+    layer = RenderLayer(id=uuid4(), enabled=True, opacity=1, blend='normal',
+        operation='image.denoise', operation_version='1', params=reference,
+        mask={'op': 'ref', 'mask': reference.model_dump(mode='json'),
+              'canvas_hash': binding.canvas_hash})
+    def admitted(operation):
+        stack = RenderLayerStack(schema_version=1, source=binding,
+            layers=[layer.model_copy(update={'operation': operation})])
+        return policy(scope, context, 'LayerStack', stack, binding)
+    assert admitted('image.denoise') is True
+    assert admitted('image.upscale') is True
+    assert admitted('color.stats') is False
+    assert admitted('mask.person') is False
+    assert admitted('unknown') is False
