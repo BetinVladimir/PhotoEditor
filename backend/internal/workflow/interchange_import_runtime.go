@@ -55,7 +55,7 @@ func maintainInterchangeImportRuntime(ctx context.Context, db *pgxpool.Pool,
 		return
 	}
 	ready.Store(false)
-	if db == nil || state == nil || instance == uuid.Nil || bucket == "" || len(bucket) > 255 {
+	if db == nil || state == nil || instance == uuid.Nil || len(bucket) < 3 || len(bucket) > 63 {
 		return
 	}
 	withdraw := func(parent context.Context) {

@@ -24,6 +24,12 @@ def test_import_readiness_requires_scheduler_and_adopter_leases():
             try:
                 assert ready() is False
                 assert scheduler.execute('SELECT photo.announce_v30_import_runtime_bound(%s,%s)',
+                    (scheduler_id, 'ab')).fetchone() == (False,)
+                assert scheduler.execute(
+                    'SELECT photo.announce_v30_import_adopter_runtime_bound(%s,%s)',
+                    (adopter_id, 'x' * 64)).fetchone() == (False,)
+                assert ready_for('ab') is False
+                assert scheduler.execute('SELECT photo.announce_v30_import_runtime_bound(%s,%s)',
                     (scheduler_id, 'photo')).fetchone() == (True,)
                 assert ready() is False
                 assert scheduler.execute(

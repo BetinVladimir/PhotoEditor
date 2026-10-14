@@ -42,6 +42,8 @@ class AdopterConfig:
             "DATABASE_URL", "S3_ENDPOINT", "S3_BUCKET", "S3_ACCESS_KEY", "S3_SECRET_KEY")]
         if any(not value for value in values):
             raise ValueError("Missing V2 adopter configuration")
+        if not 3 <= len(values[2]) <= 63:
+            raise ValueError("Invalid V2 adopter bucket")
         development = env.get("APP_ENV") == "development"
         endpoint = urlsplit(values[1])
         try:

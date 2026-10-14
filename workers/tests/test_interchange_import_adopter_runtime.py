@@ -7,6 +7,7 @@ import pytest
 
 from photo_worker.v2.interchange_import_adopter_runtime import (
     ImportAdopterRuntimeLease, require_import_adopter_runtime_schema)
+from photo_worker.v2.service import AdopterConfig
 
 
 class Connection:
@@ -53,3 +54,15 @@ def test_import_adopter_runtime_renew_failure_stops_adopter():
     lease._renew()
     assert calls == 1 and stop.is_set()
     assert str(lease._failure) == 'INTERCHANGE_IMPORT_ADOPTER_RUNTIME_LOST'
+
+
+@pytest.mark.parametrize('bucket', ('', 'ab', 'x' * 64))
+def test_import_adopter_runtime_rejects_invalid_bucket(bucket):
+    with pytest.raises(ValueError, match='INSTALLATION'):
+        ImportAdopterRuntimeLease(Connection(), Event(), bucket)
+    environment = {'DATABASE_URL': 'postgres://example',
+                   'S3_ENDPOINT': 'https://s3.example.test',
+                   'S3_BUCKET': bucket, 'S3_ACCESS_KEY': 'key',
+                   'S3_SECRET_KEY': 'secret'}
+    with pytest.raises(ValueError, match='bucket'):
+        AdopterConfig.from_env(environment)

@@ -65,7 +65,7 @@ class ImportAdopterRuntimeLease:
                 or not callable(getattr(stop, 'set', None))
                 or type(interval_seconds) is not int
                 or not 1 <= interval_seconds <= 10
-                or not isinstance(bucket, str) or not 1 <= len(bucket) <= 255):
+                or not isinstance(bucket, str) or not 3 <= len(bucket) <= 63):
             raise ValueError('INTERCHANGE_IMPORT_ADOPTER_RUNTIME_INSTALLATION')
         self.connection, self.stop = connection, stop
         self.bucket = bucket
