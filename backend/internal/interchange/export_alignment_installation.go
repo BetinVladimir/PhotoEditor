@@ -18,6 +18,46 @@ func (s SQLExportAlignmentInstallation) BuildExportAlignmentQualifier(ctx contex
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	if scheduler, ok := catalog.(SQLSchedulerExportInputCatalog); ok {
+		if objects == nil || images == nil || warps == nil || masks == nil ||
+			s.Scratch == nil || s.StyleProbe == nil || s.MaskProbe == nil ||
+			!validImportRef(s.Policy.Report) ||
+			!validExportAlignmentProfile(s.Policy.Expected) {
+			return nil, v2input.ErrInvalid
+		}
+		for _, sha := range []string{s.RegistrationRuntimeSHA, s.MaskOriginRuntimeSHA, s.MaskArrayRuntimeSHA} {
+			if !validImportRef(v2input.Ref{ArtifactID: s.Policy.Report.ArtifactID, SHA256: sha}) {
+				return nil, v2input.ErrInvalid
+			}
+		}
+		if _, err := schedulerExportPolicyBindings(ctx, intent, frozen, scheduler); err != nil {
+			return nil, err
+		}
+		if err := SchedulerExportAdoptionSQLReady(ctx, scheduler.Claims.DB); err != nil {
+			return nil, err
+		}
+		qualified := QualifiedExportAlignmentBackgroundSource{
+			Reader: ExportAlignmentBackgroundOriginReader{Source: scheduler, Objects: objects},
+			Policy: masks, Scratch: s.Scratch, Probe: s.StyleProbe,
+			RuntimeSHA: s.MaskOriginRuntimeSHA,
+		}
+		background := NativeExportAlignmentBackgroundQualifier{
+			Source: qualified, Objects: objects, Scratch: s.Scratch,
+			Probe: s.MaskProbe, RuntimeSHA: s.MaskArrayRuntimeSHA,
+		}
+		inputs := BoundExportAlignmentOriginalInputs{
+			Source: scheduler, Images: images, Warps: warps, Background: background,
+		}
+		policy, err := NewExportAlignmentPolicy(scheduler, objects, inputs,
+			s.Policy.Report, s.Policy.Expected)
+		if err != nil {
+			return nil, err
+		}
+		return NewNativeExportBodyFitAlignmentQualifier(
+			ExportBodyFitAlignmentParamsReader{Source: scheduler, Objects: objects},
+			policy, s.Scratch, s.StyleProbe, map[string]string{},
+			s.RegistrationRuntimeSHA)
+	}
 	scoped, err := exportPolicyCatalogConfig(catalog)
 	if err != nil || scoped.DB == nil || objects == nil || images == nil || warps == nil || masks == nil || s.Scratch == nil || s.StyleProbe == nil || s.MaskProbe == nil {
 		return nil, v2input.ErrInvalid
