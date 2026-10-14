@@ -93,6 +93,9 @@ Scheduler runtime теперь имеет `RunSchedulerWithInterchangeExport` и
 
 ## Граница первого MVP
 
+Миграция `02061_v30_export_adoption_resolved_origin.sql` и `SQLSchedulerExportInputCatalog.LookupExportResolvedOrigin` добавляют sessionless Params origin для `ResolvedStyle`: точный claimed document, accepted WorkingImage из frozen snapshot, все original child refs в producer.inputs, canonical `style.resolve` result и версии объектов. AbsoluteLUT остаётся output, а не producer input; native schema/Params equivalence и model/consent policy остаются отдельными барьерами. Startup SQL inventory включает `02061`; миграция и unit-сценарии написаны, не запускались.
+
+
 Миграция `02060_v30_export_adoption_stats_origin.sql` и `SQLSchedulerExportInputCatalog.LookupExportStatsOrigin` добавляют claim-scoped Params origin для `Stats20`: завершённый canonical `color.stats`, pinned stats object, исходный accepted WorkingImage из frozen snapshot и project/run authority. Go повторно читает pins обоих запечатанных документов после SQL. Содержимое Params, показатели изображения и person mask по-прежнему проверяет существующий `ExportStatsOriginQualifier` и его policy-слои. Startup SQL inventory включает `02060`; миграция и unit-сценарии написаны, не запускались.
 
 
