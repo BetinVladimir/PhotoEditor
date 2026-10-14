@@ -23,8 +23,8 @@ class SeriesMeasureParams(Contract):
 
 
 class RegionStats(Contract):
-    region_id:str
-    mean_rgb:Annotated[list[float],Field(min_length=3,max_length=3)]
+    region_id:Annotated[str,Field(pattern=r'^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$')]
+    mean_rgb:Annotated[list[Unit],Field(min_length=3,max_length=3)]
     mean_y:Annotated[float,Field(ge=0,le=1)]
     coverage:Unit
     confidence:Unit
@@ -37,6 +37,14 @@ class SeriesStats(Contract):
     clipping_fraction:Unit
     algorithm:Literal['seriesmatch_v1']='seriesmatch_v1'
     warnings:Annotated[list[Literal['low_region_coverage','low_mask_confidence']],Field(max_length=2)]
+
+    @model_validator(mode='after')
+    def unique_regions(self):
+        if len({r.region_id for r in self.regions})!=len(self.regions):
+            raise ValueError('Duplicate series region')
+        if len(set(self.warnings))!=len(self.warnings):
+            raise ValueError('Duplicate series warning')
+        return self
 
 
 class SeriesParams(Contract):

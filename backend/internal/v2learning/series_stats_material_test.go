@@ -98,4 +98,30 @@ func TestFrozenSeriesStatsRequireEveryPinnedItemAndExactCommonRegions(t *testing
 		paramsRaw, wrongSeriesRaw, [][]byte{selectedRaw, otherRaw}); err == nil {
 		t.Fatal("incorrect common regions accepted")
 	}
+	duplicateWarning := selected
+	duplicateWarning.Warnings = []string{"low_mask_confidence", "low_mask_confidence"}
+	badRaw, badSHA = encode(duplicateWarning)
+	badParams = params
+	badParams.Stats = append([]v2input.Ref(nil), params.Stats...)
+	badParams.Stats[0].SHA256 = badSHA
+	badParamsRaw, badParamsSHA = encode(badParams)
+	badEvidence = evidence
+	badEvidence.Params.SHA256 = badParamsSHA
+	if err := ValidateFrozenSeriesStats(context.Background(), badEvidence,
+		badParamsRaw, seriesRaw, [][]byte{badRaw, otherRaw}); err == nil {
+		t.Fatal("duplicate warning accepted")
+	}
+}
+
+func TestSeriesRegionIDMatchesWorkerContract(t *testing.T) {
+	for _, id := range []string{"sky", "R2.side-a", "x:y"} {
+		if !validSeriesRegionID(id) {
+			t.Fatalf("valid region rejected: %q", id)
+		}
+	}
+	for _, id := range []string{"", "_sky", "bad region", "é", "a/child"} {
+		if validSeriesRegionID(id) {
+			t.Fatalf("invalid region accepted: %q", id)
+		}
+	}
 }

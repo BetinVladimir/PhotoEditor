@@ -30,6 +30,21 @@ func unitSeriesValue(value float64) bool {
 	return !math.IsNaN(value) && !math.IsInf(value, 0) && value >= 0 && value <= 1
 }
 
+func validSeriesRegionID(id string) bool {
+	if len(id) < 1 || len(id) > 120 {
+		return false
+	}
+	for i := 0; i < len(id); i++ {
+		c := id[i]
+		alnum := c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' ||
+			c >= '0' && c <= '9'
+		if !alnum && (i == 0 || c != '_' && c != '.' && c != ':' && c != '-') {
+			return false
+		}
+	}
+	return true
+}
+
 // ValidateFrozenSeriesStats checks every body listed by the sealed balance
 // Params, not just the selected event. It does not grant object authority:
 // callers must obtain every body from a version-pinned Apply source.
@@ -74,7 +89,7 @@ func ValidateFrozenSeriesStats(ctx context.Context,
 		seenItems[stat.ItemID] = true
 		regions := make(map[string]bool, len(stat.Regions))
 		for _, region := range stat.Regions {
-			if region.RegionID == "" || len(region.RegionID) > 120 ||
+			if !validSeriesRegionID(region.RegionID) ||
 				regions[region.RegionID] || !unitSeriesValue(region.MeanY) ||
 				!unitSeriesValue(region.Coverage) ||
 				!unitSeriesValue(region.Confidence) {
@@ -87,11 +102,13 @@ func ValidateFrozenSeriesStats(ctx context.Context,
 			}
 			regions[region.RegionID] = true
 		}
+		seenWarnings := make(map[string]bool, len(stat.Warnings))
 		for _, warning := range stat.Warnings {
 			if warning != "low_region_coverage" &&
-				warning != "low_mask_confidence" {
+				warning != "low_mask_confidence" || seenWarnings[warning] {
 				return ErrInvalidTrainingDraft
 			}
+			seenWarnings[warning] = true
 		}
 		if common == nil {
 			common = regions
