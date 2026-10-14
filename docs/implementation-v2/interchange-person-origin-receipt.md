@@ -59,8 +59,14 @@ install this factory. The Go export path remains closed by default. An explicitl
 `ExportPersonOriginArchiveAuthority` now enables the archive reader and export
 adoption preparation to require physical ZIP receipt bytes, trusted Ed25519
 signature, deterministic inventory identity and current frozen source closure.
-The production factory and source-derived authority installer are still absent;
-this optional gate does not itself publish or admit receipts.
+Migration 02032 and `SQLExportPersonOriginArchiveInstallation` now reconstruct
+that authority from the sealed export task's versioned receipt inputs after a
+restart. They verify the signed physical receipt, declared original `MaskRef`,
+frozen entry/recipe/source binding and current producer before reading the ZIP.
+`ExportResultPreparation` accepts this factory and rechecks the producer again
+after archive/source closure, before freezing adoption evidence. Deployment
+still must install the process-owned trusted issuer keys and result-preparation
+factory; a full adoption run remains unverified until the deferred test phase.
 `ExportPersonOriginAttachmentPublisher` now implements signed-byte validation,
 fenced reservation, immutable object write/recovery, physical reread and
 current-producer recheck against an explicit repository interface.

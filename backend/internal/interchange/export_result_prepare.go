@@ -22,13 +22,14 @@ func (p PreparedExportAdoption) Root() v2input.Ref   { return p.root }
 func (p PreparedExportAdoption) Bundle() v2input.Ref { return p.bundle }
 
 type ExportResultPreparation struct {
-	Catalog       SQLExportOutputCatalog
-	Objects       ImportDocumentObjects
-	Scratch       *ExportArchiveScratch
-	Validator     ExportTypedDocumentValidator
-	Binaries      ExportBinaryQualifier
-	MaxInputBytes int64
-	PersonOrigins *ExportPersonOriginArchiveAuthority
+	Catalog             SQLExportOutputCatalog
+	Objects             ImportDocumentObjects
+	Scratch             *ExportArchiveScratch
+	Validator           ExportTypedDocumentValidator
+	Binaries            ExportBinaryQualifier
+	MaxInputBytes       int64
+	PersonOrigins       *ExportPersonOriginArchiveAuthority
+	PersonOriginFactory ExportPersonOriginArchiveFactory
 }
 type exportAdoptionEvidence struct {
 	Format        string                  `json:"format"`
@@ -64,7 +65,7 @@ func (p ExportResultPreparation) Prepare(ctx context.Context, root v2input.Ref) 
 	if err != nil {
 		return zero, err
 	}
-	if p.PersonOrigins != nil && intent.Request.Format != "photoeditor_bundle" {
+	if (p.PersonOrigins != nil || p.PersonOriginFactory != nil) && intent.Request.Format != "photoeditor_bundle" {
 		return zero, v2input.ErrInvalid
 	}
 	config.Request = intent.Request
@@ -78,7 +79,20 @@ func (p ExportResultPreparation) Prepare(ctx context.Context, root v2input.Ref) 
 	if err != nil {
 		return zero, err
 	}
-	archive, err := (ExportArchiveReader{Catalog: config, Objects: p.Objects, Scratch: p.Scratch, PersonOrigins: p.PersonOrigins}).Read(ctx, intent, frozen, result.Bundle())
+	if p.PersonOrigins != nil && p.PersonOriginFactory != nil {
+		return zero, v2input.ErrInvalid
+	}
+	origins := p.PersonOrigins
+	if p.PersonOriginFactory != nil {
+		origins, err = p.PersonOriginFactory.BuildExportPersonOriginArchiveAuthority(ctx, config, root, p.Objects)
+		if err != nil {
+			return zero, err
+		}
+		if origins == nil {
+			return zero, v2input.ErrInvalid
+		}
+	}
+	archive, err := (ExportArchiveReader{Catalog: config, Objects: p.Objects, Scratch: p.Scratch, PersonOrigins: origins}).Read(ctx, intent, frozen, result.Bundle())
 	if err != nil {
 		return zero, err
 	}
@@ -92,10 +106,10 @@ func (p ExportResultPreparation) Prepare(ctx context.Context, root v2input.Ref) 
 		if err != nil {
 			return zero, err
 		}
-		if p.PersonOrigins == nil {
+		if origins == nil {
 			err = ValidateExportBundleSourceInventory(ctx, intent, frozen, archive.Manifest(), inventory)
 		} else {
-			err = ValidateExportBundleSourceInventoryWithPersonOrigins(ctx, intent, frozen, archive.Manifest(), inventory, p.PersonOrigins.expected)
+			err = ValidateExportBundleSourceInventoryWithPersonOrigins(ctx, intent, frozen, archive.Manifest(), inventory, origins.expected)
 		}
 		if err != nil {
 			return zero, err
@@ -120,13 +134,13 @@ func (p ExportResultPreparation) Prepare(ctx context.Context, root v2input.Ref) 
 			return zero, v2input.ErrInvalid
 		}
 	}
-	if p.PersonOrigins != nil {
+	if origins != nil {
 		claims := archive.PersonOrigins()
-		if len(claims) != len(p.PersonOrigins.expected) {
+		if len(claims) != len(origins.expected) {
 			return zero, v2input.ErrInvalid
 		}
 		for _, claim := range claims {
-			if err := p.PersonOrigins.current.RecheckExportPersonOrigin(ctx, claim); err != nil {
+			if err := origins.current.RecheckExportPersonOrigin(ctx, claim); err != nil {
 				return zero, err
 			}
 		}
