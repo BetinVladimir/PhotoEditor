@@ -22,12 +22,13 @@ func TestIntegrationPersonOriginReceiptStorageIsNotUserGrant(t *testing.T) {
 	defer db.Close()
 	const signature = "photo.v30_import_person_origin_receipt_live(uuid,uuid,uuid,uuid,uuid,text,uuid,text,uuid,text,uuid,text,uuid,text,text)"
 	for _, role := range []string{"photo_api", "photo_worker", "photo_scheduler", "photo_gateway", "photo_portal"} {
-		var canRead, canWrite, canCall bool
+		var canRead, canWrite, canCall, canRecord bool
 		if err := db.QueryRow(ctx, `SELECT has_table_privilege($1,'photo.v30_import_person_origin_receipts','SELECT'),
- has_table_privilege($1,'photo.v30_import_person_origin_receipts','INSERT'),has_function_privilege($1,$2,'EXECUTE')`, role, signature).Scan(&canRead, &canWrite, &canCall); err != nil {
+ has_table_privilege($1,'photo.v30_import_person_origin_receipts','INSERT'),has_function_privilege($1,$2,'EXECUTE'),
+ has_function_privilege($1,'photo.record_v30_import_person_origin(uuid,uuid,uuid,text,uuid,text)','EXECUTE')`, role, signature).Scan(&canRead, &canWrite, &canCall, &canRecord); err != nil {
 			t.Fatal(err)
 		}
-		if canRead || canWrite || canCall != (role == "photo_scheduler") {
+		if canRead || canWrite || canCall != (role == "photo_scheduler") || canRecord != (role == "photo_scheduler") {
 			t.Fatal("receipt authority leaked to role", role)
 		}
 	}
@@ -41,5 +42,13 @@ func TestIntegrationPersonOriginReceiptStorageIsNotUserGrant(t *testing.T) {
 	}
 	if live {
 		t.Fatal("absent verified receipt accepted")
+	}
+	var recorded bool
+	if err := db.QueryRow(ctx, `SELECT photo.record_v30_import_person_origin($1,$2,$3,$4,$5,$6)`,
+		uuid.New(), uuid.New(), uuid.New(), `{}`, uuid.New(), `{}`).Scan(&recorded); err != nil {
+		t.Fatal(err)
+	}
+	if recorded {
+		t.Fatal("unverified receipt recorded")
 	}
 }
