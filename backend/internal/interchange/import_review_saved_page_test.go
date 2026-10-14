@@ -28,6 +28,20 @@ func TestImportReviewSavedCursorIsExactAndScoped(t *testing.T) {
 	}
 }
 
+func TestImportReviewPageCursorRequiresStrictCanonicalProgress(t *testing.T) {
+	row := ImportReviewDecisionStatus{EntryID: uuid.New(), TargetVersionID: uuid.New(), Kind: "dust"}
+	row.Proposal.ArtifactID = uuid.New()
+	cursor := importReviewSavedCursor(row)
+	if err := validateImportReviewCursorAdvance("", cursor); err != nil {
+		t.Fatal("first valid row rejected", err)
+	}
+	for _, current := range []string{cursor, "invalid", uuid.Nil.String() + "." + row.TargetVersionID.String() + ".dust." + row.Proposal.ArtifactID.String()} {
+		if err := validateImportReviewCursorAdvance(cursor, current); err == nil {
+			t.Fatal("non-advancing or malformed page row accepted", current)
+		}
+	}
+}
+
 func TestImportReviewSavedListCollectsAllPagesAndRejectsOverlap(t *testing.T) {
 	items := make([]ImportReviewDecisionStatus, 501)
 	for i := range items {

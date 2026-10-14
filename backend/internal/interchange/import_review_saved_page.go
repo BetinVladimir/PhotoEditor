@@ -22,6 +22,13 @@ func importReviewSavedCursor(item ImportReviewDecisionStatus) string {
 	return item.EntryID.String() + "." + item.TargetVersionID.String() + "." + item.Kind + "." + item.Proposal.ArtifactID.String()
 }
 
+func validateImportReviewCursorAdvance(previous, current string) error {
+	if _, _, _, _, err := parseImportReviewSavedCursor(current); err != nil || current <= previous {
+		return domain.NewError("INTERCHANGE_DECISION_INVALID_RECEIPT", 503)
+	}
+	return nil
+}
+
 // The unpaged internal interface must either return the full bounded set or
 // fail explicitly. Callers needing larger catalogues should use ListSavedPage.
 func collectImportReviewSavedPages(ctx context.Context, fetch func(string) (ImportReviewSavedPage, error)) ([]ImportReviewDecisionStatus, error) {
@@ -90,6 +97,7 @@ func (s ImportReviewDecisionService) ListSavedPage(ctx context.Context, who auth
 		return zero, domain.NewError("VALIDATION_FAILED", 422)
 	}
 	page := ImportReviewSavedPage{Items: make([]ImportReviewDecisionStatus, 0, 501)}
+	previous := after
 	err = database.TenantTransaction(ctx, s.DB, tenantID, func(tx pgx.Tx) error {
 		var actual uuid.UUID
 		if err := tx.QueryRow(ctx, `SELECT project_id FROM photo.v2_workflows WHERE tenant_id=$1 AND id=$2 AND workflow_type='interchange'`, tenantID, workflowID).Scan(&actual); err != nil {
@@ -127,6 +135,11 @@ func (s ImportReviewDecisionService) ListSavedPage(ctx context.Context, who auth
 				len(item.Accepted)+len(item.Rejected) > 4096 {
 				return domain.NewError("INTERCHANGE_DECISION_INVALID_RECEIPT", 503)
 			}
+			cursor := importReviewSavedCursor(item)
+			if err := validateImportReviewCursorAdvance(previous, cursor); err != nil {
+				return err
+			}
+			previous = cursor
 			page.Items = append(page.Items, item)
 		}
 		return rows.Err()

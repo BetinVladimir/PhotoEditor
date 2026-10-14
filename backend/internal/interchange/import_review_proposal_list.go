@@ -152,6 +152,7 @@ func (s ImportReviewProposalListService) listMetadata(ctx context.Context, who a
 		return nil, err
 	}
 	items := make([]ImportReviewProposalItem, 0)
+	previous := after
 	err = database.TenantTransaction(ctx, s.DB, tenantID, func(tx pgx.Tx) error {
 		var actual uuid.UUID
 		if err := tx.QueryRow(ctx, `SELECT project_id FROM photo.v2_workflows WHERE tenant_id=$1 AND id=$2 AND workflow_type='interchange'`, tenantID, workflowID).Scan(&actual); err != nil {
@@ -193,6 +194,11 @@ func (s ImportReviewProposalListService) listMetadata(ctx context.Context, who a
 			} else if epoch != nil {
 				return domain.NewError("INTERCHANGE_PROPOSAL_LIST_INVALID", 503)
 			}
+			cursor := importReviewProposalCursor(item)
+			if err := validateImportReviewCursorAdvance(previous, cursor); err != nil {
+				return domain.NewError("INTERCHANGE_PROPOSAL_LIST_INVALID", 503)
+			}
+			previous = cursor
 			items = append(items, item)
 		}
 		return rows.Err()
