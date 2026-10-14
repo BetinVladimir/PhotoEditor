@@ -44,14 +44,21 @@ func purgeTenantBatch(ctx context.Context, tenant uuid.UUID, limit int, io tenan
 			case <-ctx.Done():
 				return false, ctx.Err()
 			case observed, ok := <-rows:
-				if !ok { return false, ctx.Err() }
+				if !ok {
+					return false, ctx.Err()
+				}
 				row = observed
 			}
-			if err := ctx.Err(); err != nil { return false, err }
+			if err := ctx.Err(); err != nil {
+				return false, err
+			}
 			if row.Err != nil {
 				return false, classify(row.Err)
 			}
-			if !strings.HasPrefix(row.Key, prefix) || !validKey(row.Key) || !ValidInterchangeMultipartID(row.UploadID) {
+			// S3 keys are opaque. Legacy objects may not obey the grammar used
+			// for new writes; the exact tenant prefix and upload ID are the
+			// deletion boundary here.
+			if !strings.HasPrefix(row.Key, prefix) || !ValidInterchangeMultipartID(row.UploadID) {
 				return false, ErrInvalid
 			}
 			if !remove {
@@ -82,14 +89,18 @@ func purgeTenantBatch(ctx context.Context, tenant uuid.UUID, limit int, io tenan
 			case <-ctx.Done():
 				return false, ctx.Err()
 			case observed, ok := <-rows:
-				if !ok { return false, ctx.Err() }
+				if !ok {
+					return false, ctx.Err()
+				}
 				row = observed
 			}
-			if err := ctx.Err(); err != nil { return false, err }
+			if err := ctx.Err(); err != nil {
+				return false, err
+			}
 			if row.Err != nil {
 				return false, classify(row.Err)
 			}
-			if !strings.HasPrefix(row.Key, prefix) || !validKey(row.Key) || !ValidInterchangeVersionID(row.VersionID) {
+			if !strings.HasPrefix(row.Key, prefix) || !ValidInterchangeVersionID(row.VersionID) {
 				return false, ErrInvalid
 			}
 			if !remove {

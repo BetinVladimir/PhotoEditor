@@ -83,6 +83,69 @@ func TestTenantPurgeSharedBudgetAllNamespacesAndNeighbor(t *testing.T) {
 	}
 }
 
+func TestTenantPurgeRemovesOpaqueLegacyKeysWithinExactNamespace(t *testing.T) {
+	tenant, neighbor := uuid.New(), uuid.New()
+	prefixes, err := tenantNamespaces(tenant)
+	if err != nil {
+		t.Fatal(err)
+	}
+	objects := map[string]string{
+		prefixes[0] + "old file ☃.jpg":                     "version-1",
+		prefixes[2] + "legacy/../raw image":                "version-2",
+		"tenants/" + neighbor.String() + "/old file ☃.jpg": "foreign",
+	}
+	uploads := map[string]string{prefixes[1] + "stale multipart +": "upload-1"}
+	io := tenantPurgeIO{
+		versions: func(_ context.Context, prefix string) <-chan minio.ObjectInfo {
+			rows := make(chan minio.ObjectInfo, len(objects))
+			for key, version := range objects {
+				if strings.HasPrefix(key, prefix) {
+					rows <- minio.ObjectInfo{Key: key, VersionID: version}
+				}
+			}
+			close(rows)
+			return rows
+		},
+		uploads: func(_ context.Context, prefix string) <-chan minio.ObjectMultipartInfo {
+			rows := make(chan minio.ObjectMultipartInfo, len(uploads))
+			for key, id := range uploads {
+				if strings.HasPrefix(key, prefix) {
+					rows <- minio.ObjectMultipartInfo{Key: key, UploadID: id}
+				}
+			}
+			close(rows)
+			return rows
+		},
+		removeVersion: func(_ context.Context, key, version string) error {
+			if objects[key] != version {
+				t.Fatal("wrong version deleted", key, version)
+			}
+			delete(objects, key)
+			return nil
+		},
+		removeUpload: func(_ context.Context, key, id string) error {
+			if uploads[key] != id {
+				t.Fatal("wrong multipart deleted", key, id)
+			}
+			delete(uploads, key)
+			return nil
+		},
+	}
+	for pass := 0; pass < 4; pass++ {
+		more, err := purgeTenantBatch(context.Background(), tenant, 2, io)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !more {
+			if len(uploads) != 0 || len(objects) != 1 || objects["tenants/"+neighbor.String()+"/old file ☃.jpg"] != "foreign" {
+				t.Fatal("opaque tenant key left or neighbor deleted", objects, uploads)
+			}
+			return
+		}
+	}
+	t.Fatal("opaque tenant purge did not converge")
+}
+
 func TestTenantPurgeNamespacesCoverCurrentKeyGenerators(t *testing.T) {
 	tenant, neighbor := uuid.New(), uuid.New()
 	artifact, upload, generation, task, run := uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New()

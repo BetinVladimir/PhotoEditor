@@ -8,6 +8,15 @@ The manifest path must be absolute. The loader resolves system directory aliases
 
 `TenantPurgeBuckets` divides the configured `TenantCleaner.Batch` across all buckets, checks every bucket on each call, and reports empty only after each store has completed its own two-pass version and multipart absence check. One bucket's error or cancellation prevents metadata `Finish`. The operator must inventory all actual writer destinations before enabling irreversible tenant deletion; the bucket list alone is configuration, not proof that every writer uses it.
 
+Physical purge treats listed S3 object keys as opaque within the exact
+`tenants/<tenant>/`, `staging/tenants/<tenant>/` or
+`originals/tenants/<tenant>/` prefix. A legacy key containing spaces,
+Unicode or noncanonical path segments is deleted by its exact version or
+multipart ID; the grammar used when creating new PhotoEditor keys must not
+leave such tenant-owned bytes behind. A key outside those exact prefixes is
+always refused. The dedicated legacy-key and complete current key-generator
+unit scenarios are authored but have not run.
+
 Before `finish_tenant_deletion`, maintenance records the independent requested-deletion history, renews the live deletion token through migration 01886, performs a first all-bucket purge/absence pass, settles archive generations under that token, renews it again, and performs a second all-bucket purge/absence pass. A remnant in either pass checkpoints the job; a failed or expired renewal refuses the next physical pass and metadata deletion. `TenantCleaner` has a bounded 120-second cycle to accommodate both 40-second scans and the two renewals, while other maintenance jobs retain 50 seconds. Deploy migration 01886 before this maintenance binary: startup checks the function's owner, `SECURITY DEFINER` mode, search path, and maintenance-only execution grant. The migration is authored but not applied; unit and physical acceptance are not run under the implementation-first plan.
 
 Maintenance startup and `/health/ready` call the read-only versioning readiness probe on every configured purge bucket, with at most 32 concurrent probes under the shared request deadline. An unavailable or unversioned secondary bucket blocks readiness even when the primary bucket is healthy. The probe does not create or mutate buckets, and it does not replace the tenant-specific two-pass deletion evidence.
