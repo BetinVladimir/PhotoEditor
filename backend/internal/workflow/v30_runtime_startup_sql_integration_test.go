@@ -34,6 +34,9 @@ func TestV30RuntimeStartupRequiresCurrentAdmissionABI(t *testing.T) {
 	if err := validateInterchangeImportRuntimeSQL(ctx, pool); err != nil {
 		t.Fatal("import admission ABI unavailable", err)
 	}
+	if err := validateInterchangeExportRuntimeSQL(ctx, pool); err != nil {
+		t.Fatal("export admission ABI unavailable", err)
+	}
 	if err := validateDeliveryRuntimeSQL(ctx, pool); err != nil {
 		t.Fatal("delivery admission ABI unavailable", err)
 	}
