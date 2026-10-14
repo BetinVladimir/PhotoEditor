@@ -15,6 +15,7 @@ from photo_worker.contracts.images import WorkingImage
 from photo_worker.runtime.scratch import ScratchSpace
 from .adoption import AdoptionInvalid, ArtifactRef as EvidenceRef
 from .interchange_import_adoption_inputs import read_import_adoption_input_inventory
+from .interchange_import_adoption_mask_confirmation import SchedulerImportPersonMaskConfirmation
 from .interchange_plan import read_executable_import_params, read_interchange_plan
 from .interchange_operator_schemas import build_interchange_operator_schemas
 from .interchange_recipe_semantics import build_prepared_import_recipe_qualifier
@@ -155,13 +156,10 @@ class SchedulerImportRecipeAdoptionInstallation:
             self.active()
             return accepted
 
+        mask_confirmation = SchedulerImportPersonMaskConfirmation(
+            self.connection, scope, self.active, self.confirmation)
         def confirmation(mask, binding):
-            if self.confirmation is None:
-                return False
-            self.active()
-            accepted = self.confirmation(context, mask, binding)
-            self.active()
-            return accepted
+            return mask_confirmation(context, mask, binding)
 
         def occurrence(value):
             if self.occurrence is None:
@@ -187,7 +185,7 @@ class SchedulerImportRecipeAdoptionInstallation:
                 recheck_inputs=inventory.recheck,
                 qualify_occurrence=occurrence if self.occurrence is not None else None,
                 operation_schemas=self.operation_schemas,
-                qualify_confirmation=confirmation if self.confirmation is not None else None,
+                qualify_confirmation=confirmation,
                 background_mappings=background)
             try:
                 yield qualifier
