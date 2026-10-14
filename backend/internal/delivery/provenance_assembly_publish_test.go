@@ -46,4 +46,35 @@ func TestPublishSignedAssemblyBundleOrdersAndBindsDocuments(t *testing.T) {
 		dependencies,[]SignedDependencyReceipt{bad},publish,rootFactory,publish);err==nil||len(order)!=0 {
 		t.Fatal("invalid signer produced objects",err,order)
 	}
+	var assemblyID uuid.UUID
+	rootWithIdentity := func([][]byte) (PublishDocument, error) {
+		return func(_ context.Context, _ string, raw []byte) (v2input.Ref, error) {
+			assemblyID = uuid.New()
+			return v2input.Ref{ArtifactID: assemblyID, SHA256: digest(raw)}, nil
+		}, nil
+	}
+	closureCalls := 0
+	duplicateClosure := func(_ context.Context, _ string, raw []byte) (v2input.Ref, error) {
+		closureCalls++
+		return v2input.Ref{ArtifactID: assemblyID, SHA256: digest(raw)}, nil
+	}
+	if _, err := PublishSignedAssemblyBundle(context.Background(), frozen, snapshot, slots,
+		tenant, actor, parent, dependencies, []SignedDependencyReceipt{receipt}, publish,
+		rootWithIdentity, duplicateClosure); err == nil || closureCalls != 1 {
+		t.Fatal("duplicate assembly/closure artifact identity accepted", err, closureCalls)
+	}
+	sharedID := uuid.New()
+	sharedPublisher := func(_ context.Context, _ string, raw []byte) (v2input.Ref, error) {
+		return v2input.Ref{ArtifactID: sharedID, SHA256: digest(raw)}, nil
+	}
+	signedCalls := 0
+	countSigned := func(ctx context.Context, purpose string, raw []byte) (v2input.Ref, error) {
+		signedCalls++
+		return publish(ctx, purpose, raw)
+	}
+	if _, err := PublishSignedAssemblyBundle(context.Background(), frozen, snapshot, slots,
+		tenant, actor, parent, dependencies, []SignedDependencyReceipt{receipt}, sharedPublisher,
+		func([][]byte) (PublishDocument, error) { return sharedPublisher, nil }, countSigned); err == nil || signedCalls != 0 {
+		t.Fatal("duplicate shard/assembly artifact identity accepted", err, signedCalls)
+	}
 }

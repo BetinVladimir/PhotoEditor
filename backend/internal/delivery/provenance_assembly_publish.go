@@ -36,10 +36,17 @@ func PublishSignedAssemblyBundle(ctx context.Context, frozen FrozenInput, snapsh
 	if err := ctx.Err(); err != nil { return SignedAssemblyPublication{}, err }
 	if shards == nil || rootFactory == nil || signed == nil { return invalid() }
 	var bodies [][]byte
+	artifactIDs := make(map[uuid.UUID]struct{})
+	unique := func(ref v2input.Ref) bool {
+		if ref.ArtifactID == uuid.Nil { return false }
+		if _, exists := artifactIDs[ref.ArtifactID]; exists { return false }
+		artifactIDs[ref.ArtifactID] = struct{}{}
+		return true
+	}
 	capture := func(call context.Context, purpose string, raw []byte) (v2input.Ref, error) {
 		ref, err := shards(call, purpose, raw)
 		if err != nil { return v2input.Ref{}, err }
-		if ref.ArtifactID == uuid.Nil || ref.SHA256 != digest(raw) { return v2input.Ref{}, v2input.ErrInvalid }
+		if !unique(ref) || ref.SHA256 != digest(raw) { return v2input.Ref{}, v2input.ErrInvalid }
 		bodies = append(bodies, append([]byte(nil), raw...))
 		return ref, nil
 	}
@@ -53,11 +60,11 @@ func PublishSignedAssemblyBundle(ctx context.Context, frozen FrozenInput, snapsh
 	if err := ctx.Err(); err != nil { return SignedAssemblyPublication{}, err }
 	assemblyRef, err := root(ctx, "v30_delivery_assembly", documents.AssemblyJCS)
 	if err != nil { return SignedAssemblyPublication{}, err }
-	if assemblyRef.ArtifactID == uuid.Nil || assemblyRef.SHA256 != documents.AssemblySHA { return invalid() }
+	if !unique(assemblyRef) || assemblyRef.SHA256 != documents.AssemblySHA { return invalid() }
 	if err := ctx.Err(); err != nil { return SignedAssemblyPublication{}, err }
 	closureRef, err := signed(ctx, "v30_delivery_signed_closure", documents.ClosureJCS)
 	if err != nil { return SignedAssemblyPublication{}, err }
-	if closureRef.ArtifactID == uuid.Nil || closureRef.SHA256 != documents.ClosureSHA { return invalid() }
+	if !unique(closureRef) || closureRef.SHA256 != documents.ClosureSHA { return invalid() }
 	envelope, envelopeJCS, envelopeSHA, err := CompileSignedAssemblyEnvelope(assemblyRef,
 		documents.AssemblyJCS, bodies, closureRef, documents.ClosureJCS,
 		tenant, actor, parent, slots, dependencies, receipts)
@@ -65,7 +72,6 @@ func PublishSignedAssemblyBundle(ctx context.Context, frozen FrozenInput, snapsh
 	if err := ctx.Err(); err != nil { return SignedAssemblyPublication{}, err }
 	envelopeRef, err := signed(ctx, "v30_delivery_signed_envelope", envelopeJCS)
 	if err != nil { return SignedAssemblyPublication{}, err }
-	if envelopeRef.ArtifactID == uuid.Nil || envelopeRef.SHA256 != envelopeSHA ||
-		envelopeRef.ArtifactID == assemblyRef.ArtifactID || envelopeRef.ArtifactID == closureRef.ArtifactID { return invalid() }
+	if !unique(envelopeRef) || envelopeRef.SHA256 != envelopeSHA { return invalid() }
 	return SignedAssemblyPublication{documents, bodies, assemblyRef, closureRef, envelope, envelopeJCS, envelopeRef}, nil
 }
