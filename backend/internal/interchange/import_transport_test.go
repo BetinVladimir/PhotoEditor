@@ -1,5 +1,6 @@
 package interchange
 import (
+ "bytes"
  "context"
  "encoding/json"
  "testing"
@@ -38,4 +39,16 @@ func TestImportInputInventoryRejectsParamsEvidenceMismatch(t *testing.T){
  if _,err:=importParamsRoots(docs);err==nil{t.Fatal("foreign owned evidence accepted")}
  docs.evidence.Ref=foreign
  if parsed,err:=importParamsRoots(docs);err!=nil||parsed!=params.Parsed{t.Fatal("matching evidence refused",err)}
+}
+
+func TestImportInputInventoryOwnsFrozenDocumentBytes(t *testing.T){
+ docs,resolver:=executableImportClosureFixture(t)
+ inventory,err:=ResolveImportInputInventory(context.Background(),uuid.New(),docs,resolver);if err!=nil{t.Fatal(err)}
+ plan:=append([]byte(nil),inventory.documents.plan.Body...)
+ params:=append([]byte(nil),inventory.documents.params.Body...)
+ evidence:=append([]byte(nil),inventory.documents.evidence.Body...)
+ evidenceRef:=inventory.documents.evidence.Ref
+ docs.plan.Body[0]='x';docs.params.Body[0]='x';docs.evidence.Body[0]='x';docs.evidence.Ref.ArtifactID=uuid.New()
+ if !bytes.Equal(inventory.documents.plan.Body,plan)||!bytes.Equal(inventory.documents.params.Body,params)||!bytes.Equal(inventory.documents.evidence.Body,evidence)||inventory.documents.evidence.Ref!=evidenceRef{t.Fatal("caller mutation changed frozen inventory")}
+ if _,err:=inventory.PublishInputs(context.Background(),&transportPublisher{});err!=nil{t.Fatal("owned inventory no longer publishable",err)}
 }

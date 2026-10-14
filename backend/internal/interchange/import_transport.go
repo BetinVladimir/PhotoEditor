@@ -39,7 +39,7 @@ func FreezeImportInputs(tenant uuid.UUID,documents ImportPreparedDocuments,entri
  if documents.evidence!=nil&&seen[documents.evidence.Ref.ArtifactID]!=(v2input.Entry{Ref:documents.evidence.Ref,Contract:"FrozenInterchangeImportEvidence"}){return ImportInputInventory{},v2input.ErrInvalid}
  sort.Slice(owned,func(i,j int)bool{return bytes.Compare(owned[i].Ref.ArtifactID[:],owned[j].Ref.ArtifactID[:])<0})
  digest,err:=canonical.Hash(owned);if err!=nil{return ImportInputInventory{},err}
- return ImportInputInventory{tenant:tenant,documents:documents,entries:owned,digest:digest},nil
+ return ImportInputInventory{tenant:tenant,documents:cloneImportPreparedDocuments(documents),entries:owned,digest:digest},nil
 }
 func(i ImportInputInventory)InputDigest()string{return i.digest}
 // PublishInputs follows blocked-shell materialization, so scoped publisher
