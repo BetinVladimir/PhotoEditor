@@ -32,25 +32,27 @@ class BundleExportPreparationFactory:
                 or not 1<=authority.max_archive_bytes<=64 << 30
                 or plan.max_archive_bytes>authority.max_archive_bytes):
             raise ValueError('INTERCHANGE_EXPORT_BUNDLE_AUTHORITY')
+        background_sources,background_receipts=qualify_export_background_sources(plan,reader,artifacts.scratch,active=ctx.check_active)
+        background_pins=tuple(decode_frozen_background(raw) for _,raw in background_receipts)
+        background_mappings=tuple((pin.style,pin.portable_asset_id,pin.source) for pin in background_pins)
         if self.occurrences is None:
-            qualifier=self.recipes.build_for_plan(ctx,artifacts,authority,plan,reader)
+            qualifier=self.recipes.build_for_plan(ctx,artifacts,authority,plan,reader,
+                background_mappings=background_mappings)
         else:
             occurrence=self.occurrences(ctx,artifacts,authority,plan.model_copy(deep=True),reader)
             ctx.check_active()
             if not callable(occurrence):
                 raise ValueError('INTERCHANGE_EXPORT_OCCURRENCE_INSTALLATION')
             qualifier=self.recipes.build_for_plan(ctx,artifacts,authority,plan,reader,
-                qualify_occurrence=occurrence)
+                qualify_occurrence=occurrence,background_mappings=background_mappings)
         inventory=compile_qualified_export_inventory(plan,reader,qualifier,active=ctx.check_active)
-        background_sources,background_receipts=qualify_export_background_sources(plan,reader,artifacts.scratch,active=ctx.check_active)
         all_sources={source.reference.artifact_id:source for source in inventory.sources}
         for source in background_sources:
             old=all_sources.get(source.reference.artifact_id)
             if old is not None and old!=source:raise ValueError('INTERCHANGE_EXPORT_BACKGROUND_ALIAS')
             all_sources[source.reference.artifact_id]=source
         backgrounds={}
-        for _,raw in background_receipts:
-            pin=decode_frozen_background(raw)
+        for pin in background_pins:
             value=BundleBackground(style=pin.style,portable_asset_id=pin.portable_asset_id,
                 path=all_sources[pin.source.artifact_id].path,sha256=pin.source.sha256)
             key=(pin.style.artifact_id,pin.portable_asset_id)

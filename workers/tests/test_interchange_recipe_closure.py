@@ -503,6 +503,43 @@ def test_prepared_override_background_is_qualified_and_retained_for_gc(change):
             qualifier.qualified_document_refs(root, recipe.source)
 
 
+@pytest.mark.parametrize('selection', ['style', 'override', 'cleared', 'unmapped'])
+def test_export_background_mapping_uses_effective_override(selection):
+    recipe, root, args = closure_fixture()
+    style_asset = ArtifactRef(artifact_id=uuid4(), sha256=sha256(b'style').hexdigest())
+    override_asset = ArtifactRef(artifact_id=uuid4(), sha256=sha256(b'override').hexdigest())
+    style_body = canonical_bytes({'extensions': {'background': {'mode': 'asset', 'asset_id': 'named-style'}}})
+    override_body = canonical_bytes({'modules': {'extensions': {'background':
+        {'mode': 'asset', 'asset_id': 'named-override'} if selection in ('override', 'unmapped') else None}}})
+    if selection == 'style':
+        override_body = canonical_bytes({'modules': {}})
+    recipe.base_style.sha256 = sha256(style_body).hexdigest()
+    recipe.overrides[0].sha256 = sha256(override_body).hexdigest()
+    root_body = canonical_bytes(recipe)
+    root.sha256 = sha256(root_body).hexdigest()
+    read = args['read_document']
+    args['read_document'] = lambda ref, limit: (
+        root_body if ref.artifact_id == root.artifact_id else
+        style_body if ref.artifact_id == recipe.base_style.artifact_id else
+        override_body if ref.artifact_id == recipe.overrides[0].artifact_id else read(ref, limit))
+    args['entries'].extend(((style_asset, 'StyleBackgroundAsset', 'image/png'),
+                            (override_asset, 'StyleBackgroundAsset', 'image/png')))
+    mappings = [(recipe.base_style, 'named-style', style_asset)]
+    if selection == 'override':
+        mappings.append((recipe.base_style, 'named-override', override_asset))
+    args['background_mappings'] = tuple(mappings)
+    visited = []
+    args['qualify_binary'] = lambda ref, contract, binding: (visited.append(ref), True)[1]
+    qualifier = PreparedRecipeClosureQualifier(**args)
+    if selection == 'unmapped':
+        with pytest.raises(AdoptionInvalid, match='BACKGROUND_MAPPING'):
+            qualifier(root, recipe, recipe.source)
+        return
+    assert qualifier(root, recipe, recipe.source) is True
+    assert visited == ([] if selection == 'cleared' else
+                       [override_asset] if selection == 'override' else [style_asset])
+
+
 def test_stats_params_children_are_typed_from_exact_schema():
     from photo_worker.v2.interchange_recipe_closure import prepared_child_contract
     assert prepared_child_contract('Params', 'StatsParams', ('image',)) == 'WorkingImage'

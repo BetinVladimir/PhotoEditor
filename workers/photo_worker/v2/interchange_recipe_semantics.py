@@ -224,7 +224,8 @@ class PreparedRecipeDocumentQualifier:
 def build_prepared_import_recipe_qualifier(*, canonical_images, work_icc_sha,
         entries, schemas_jcs, schemas_sha, read_document, evidence_reader, scratch,
         max_file_bytes, qualify_runtime, extra_validators=None, check_active=lambda: None, recheck_inputs=None,
-        qualify_occurrence=None, operation_schemas=None, qualify_confirmation=None):
+        qualify_occurrence=None, operation_schemas=None, qualify_confirmation=None,
+        background_mappings=None):
     """Install source semantics and physical arrays into the frozen stage port."""
     from .interchange_recipe_arrays import PreparedImportArrayQualifier
     from .interchange_recipe_closure import PreparedRecipeClosureQualifier
@@ -244,4 +245,4 @@ def build_prepared_import_recipe_qualifier(*, canonical_images, work_icc_sha,
         return arrays(reference, contract, binding)
     return PreparedRecipeClosureQualifier(entries=entries, schemas_jcs=schemas_jcs,
         schemas_sha=schemas_sha, read_document=read_document,
-        qualify_document=documents, qualify_binary=qualify_binary, check_active=check_active, recheck_inputs=recheck_inputs, qualify_occurrence=qualify_occurrence, operation_schemas=operation_schemas)
+        qualify_document=documents, qualify_binary=qualify_binary, check_active=check_active, recheck_inputs=recheck_inputs, qualify_occurrence=qualify_occurrence, operation_schemas=operation_schemas, background_mappings=background_mappings)

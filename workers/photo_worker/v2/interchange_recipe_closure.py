@@ -91,7 +91,7 @@ class PreparedRecipeClosureQualifier:
     """
     def __init__(self, *, entries, schemas_jcs, schemas_sha, read_document,
                  qualify_document, qualify_binary, check_active=lambda: None, recheck_inputs=None,
-                 qualify_occurrence=None, operation_schemas=None):
+                 qualify_occurrence=None, operation_schemas=None, background_mappings=None):
         if (not isinstance(schemas_jcs, bytes) or not 2 <= len(schemas_jcs) <= 16 << 20
                 or sha256(schemas_jcs).hexdigest() != schemas_sha
                 or not all(callable(port) for port in (read_document, qualify_document, qualify_binary, check_active))):
@@ -120,6 +120,19 @@ class PreparedRecipeClosureQualifier:
         if qualify_occurrence is not None and not callable(qualify_occurrence):
             raise ValueError('INTERCHANGE_CLOSURE_INSTALLATION')
         self.qualify_occurrence = qualify_occurrence
+        self.background_mappings = None
+        if background_mappings is not None:
+            self.background_mappings = {}
+            for style, portable, source in background_mappings:
+                style = ArtifactRef.model_validate_json(canonical_bytes(style))
+                source = ArtifactRef.model_validate_json(canonical_bytes(source))
+                if (not isinstance(portable, str) or not portable or portable.strip() != portable
+                        or len(portable.encode('utf-8')) > 120):
+                    raise ValueError('INTERCHANGE_CLOSURE_BACKGROUND_MAPPING')
+                key = (style.artifact_id, style.sha256, portable)
+                if key in self.background_mappings and self.background_mappings[key] != source:
+                    raise ValueError('INTERCHANGE_CLOSURE_BACKGROUND_MAPPING')
+                self.background_mappings[key] = source
         self.recheck_inputs = recheck_inputs
         self.active = check_active
         self._qualified_closures = {}
@@ -141,6 +154,7 @@ class PreparedRecipeClosureQualifier:
         active, visited = set(), set()
         total = 0
         params_schemas = {}
+        background_declarations = {}
 
         def visit(ref, depth, expected=None, parent=None, parent_contract=None, path=(), parent_body=None):
             nonlocal total
@@ -217,7 +231,10 @@ class PreparedRecipeClosureQualifier:
                         extensions = (value.get('extensions') if contract == 'StyleV2'
                                       else value.get('modules', {}).get('extensions'))
                         background = extensions.get('background') if isinstance(extensions, dict) else None
-                        if isinstance(background, dict) and background.get('mode') == 'asset':
+                        if self.background_mappings is not None:
+                            background_declarations[ref.artifact_id] = (ref, contract, value, background,
+                                contract == 'StyleV2' or isinstance(extensions, dict))
+                        elif isinstance(background, dict) and background.get('mode') == 'asset':
                             portable = background.get('asset_id')
                             try:
                                 identifier = UUID(portable)
@@ -252,6 +269,26 @@ class PreparedRecipeClosureQualifier:
                 raise AdoptionInvalid('INTERCHANGE_CLOSURE_UNDECLARED_OR_TYPE')
         for ref, contract in expected:
             visit(ref, 0, contract)
+        if self.background_mappings is not None:
+            selected = background_declarations.get(recipe.base_style.artifact_id)
+            if selected is None:
+                raise AdoptionInvalid('INTERCHANGE_CLOSURE_BACKGROUND_STYLE')
+            for override_ref in recipe.overrides:
+                declaration = background_declarations.get(override_ref.artifact_id)
+                if declaration is None:
+                    raise AdoptionInvalid('INTERCHANGE_CLOSURE_BACKGROUND_OVERRIDE')
+                if declaration[4]:
+                    selected = declaration
+            parent_ref, parent_contract, parent_body, background, _ = selected
+            if isinstance(background, dict) and background.get('mode') == 'asset':
+                portable = background.get('asset_id')
+                mapped = self.background_mappings.get((recipe.base_style.artifact_id,
+                    recipe.base_style.sha256, portable))
+                if mapped is None:
+                    raise AdoptionInvalid('INTERCHANGE_CLOSURE_BACKGROUND_MAPPING')
+                path = (('extensions', 'background', 'asset_id') if parent_contract == 'StyleV2'
+                        else ('modules', 'extensions', 'background', 'asset_id'))
+                visit(mapped, 1, 'StyleBackgroundAsset', parent_ref, parent_contract, path, parent_body)
         self.active()
         if self.recheck_inputs is not None:
             self.recheck_inputs()

@@ -68,7 +68,8 @@ class PreparedImportRecipeFactory:
             direction='import',snapshot_digest=authority.snapshot_digest)
         return self.build_for_plan(ctx, artifacts, authority, plan, reader)
 
-    def build_for_plan(self, ctx, artifacts, authority, plan, reader, *, qualify_occurrence=None):
+    def build_for_plan(self, ctx, artifacts, authority, plan, reader, *, qualify_occurrence=None,
+                       background_mappings=None):
         """Shared physical recipe qualifier for admitted import/export plans.
 
         Reuses the caller's exact input reader and aggregate read budget. The
@@ -145,6 +146,7 @@ class PreparedImportRecipeFactory:
             qualify_runtime=runtime,extra_validators=dict(self.extra),check_active=ctx.check_active,
             recheck_inputs=reader.recheck,qualify_occurrence=qualify_occurrence,
             operation_schemas=None if self.operation_schemas is None else dict(self.operation_schemas),
-            qualify_confirmation=confirmation if self.confirmation is not None else None)
+            qualify_confirmation=confirmation if self.confirmation is not None else None,
+            background_mappings=background_mappings)
         ctx.check_active()
         return result
