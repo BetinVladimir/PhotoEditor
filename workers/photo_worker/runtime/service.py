@@ -86,6 +86,7 @@ class WorkerConfig:
     series_runtime_locks:tuple[str,str,str]|None=None
     delivery_enabled:bool=False
     interchange_enabled:bool=False
+    identity_runtime_locks:tuple[str,str,str]|None=None
 
     @classmethod
     def from_env(cls,env:Mapping[str,str]|None=None):
@@ -178,6 +179,8 @@ class WorkerConfig:
         depth_locks=depth_runtime_locks_from_env(env,resource_class,backend,model_root is not None)
         from .series_config import series_runtime_locks_from_env
         series_locks=series_runtime_locks_from_env(env,resource_class,backend)
+        from .identity_config import identity_runtime_locks_from_env
+        identity_locks=identity_runtime_locks_from_env(env,resource_class,backend,model_root is not None)
         from photo_worker.operations.delivery.installation import delivery_enabled_from_env
         from photo_worker.operations.interchange.installation import interchange_enabled_from_env
         try:
@@ -187,7 +190,7 @@ class WorkerConfig:
             raise WorkerConfigurationError(str(error)) from None
         return cls(dsn,required('AMQP_URL'),worker,resource_class,root,origin,
             Path(required('GATEWAY_CA_FILE')),Path(required('WORKER_CERT_FILE')),Path(required('WORKER_KEY_FILE')),
-            limit('WORKER_MAX_SCRATCH_BYTES'),limit('WORKER_MAX_DOWNLOAD_BYTES'),limit('WORKER_MAX_UPLOAD_BYTES'),environment=='development',icc_root,backend,model_root,model_lock,policy,lens_registry,layer_lock,layer_sha,person_locks,depth_locks,series_locks,delivery_enabled,interchange_enabled)
+            limit('WORKER_MAX_SCRATCH_BYTES'),limit('WORKER_MAX_DOWNLOAD_BYTES'),limit('WORKER_MAX_UPLOAD_BYTES'),environment=='development',icc_root,backend,model_root,model_lock,policy,lens_registry,layer_lock,layer_sha,person_locks,depth_locks,series_locks,delivery_enabled,interchange_enabled,identity_locks)
 
 
 def build_worker(config:WorkerConfig, *, render_renderer=None, region_renderer=None, semantic_installation_factory=None, semantic_artifact_installation_factory=None, semantic_assembly_installation_factory=None, local_exposure_installation_factory=None, glare_admission_factory=None, glare_installation=None, reflection_admission_factory=None, reflection_installation=None, donor_installation=None, negative_installation=None, relight_installation=None, local_portrait_installation=None, perspective_installation=None, perspective_lines_installation=None, multi_installations=(), delivery_installation=None, interchange_installation=None, interchange_import_installation=None, interchange_export_installation=None, learning_evaluation_installation=None)->tuple[TaskDatabase,Transport]:
@@ -241,6 +244,7 @@ def build_worker(config:WorkerConfig, *, render_renderer=None, region_renderer=N
             raise WorkerConfigurationError('V28 installation requires CPU or CUDA GPU-class worker and callable factories')
     if config.depth_runtime_locks is not None and (config.resource_class!='gpu' or config.model_root is None or config.model_lock is None):raise WorkerConfigurationError('Depth runtime requires GPU-class model worker')
     if config.person_runtime_locks is not None and (config.resource_class!='gpu' or config.model_root is None or config.model_lock is None):raise WorkerConfigurationError('Person runtime requires GPU-class model worker')
+    if config.identity_runtime_locks is not None and (config.resource_class!='gpu' or config.model_root is None or config.model_lock is None):raise WorkerConfigurationError('Identity runtime requires GPU-class model worker')
     if donor_installation is not None and (config.resource_class!='cpu' or config.backend!='cpu'):
         raise WorkerConfigurationError('Donor installation requires CPU worker')
     if perspective_lines_installation is not None:
@@ -355,7 +359,10 @@ def build_worker(config:WorkerConfig, *, render_renderer=None, region_renderer=N
             if 'bisenet_face19' in ids:operations+=face_parse_operations(artifacts,pool,config.backend)
             if 'dinov2_vits14' in ids:operations+=scene_operations(artifacts,pool,config.backend)
             if REQUIRED_MODELS<=ids:operations+=session_describe_operations(artifacts,pool,config.backend)
-            if IDENTITY_MODELS<=ids:operations+=identity_compare_operations(artifacts,pool,config.backend)
+            if config.identity_runtime_locks is not None:
+                if not IDENTITY_MODELS<=ids:raise WorkerConfigurationError('Identity runtime requires installed identity models')
+                from .identity_config import configured_identity_runtime
+                operations+=identity_compare_operations(artifacts,pool,config.backend,configured_identity_runtime(config,pool))
             if config.depth_runtime_locks is not None and 'depth_anything_v2_small' not in ids:raise WorkerConfigurationError('Depth runtime requires installed depth model')
             if 'depth_anything_v2_small' in ids:
                 from .depth_config import configured_depth_runtime

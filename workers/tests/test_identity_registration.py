@@ -15,10 +15,12 @@ def _pool(*, missing=None, unapproved=None, unqualified=None):
 
 
 def test_identity_registration_requires_every_qualified_model():
-    assert len(identity_compare_operations(None, _pool(), 'cuda')) == 1
-    assert len(identity_compare_operations(None, _pool(), 'cpu')) == 1
+    verify = lambda ctx: True
+    assert identity_compare_operations(None, _pool(), 'cuda') == []
+    assert len(identity_compare_operations(None, _pool(), 'cuda', verify)) == 1
+    assert len(identity_compare_operations(None, _pool(), 'cpu', verify)) == 1
     for name in ('sfd', 'fan2d', 'identity512'):
-        assert identity_compare_operations(None, _pool(missing=name), 'cuda') == []
-        assert identity_compare_operations(None, _pool(unapproved=name), 'cuda') == []
-        assert identity_compare_operations(None, _pool(unqualified=name), 'cuda') == []
-    assert identity_compare_operations(None, _pool(), 'mps') == []
+        assert identity_compare_operations(None, _pool(missing=name), 'cuda', verify) == []
+        assert identity_compare_operations(None, _pool(unapproved=name), 'cuda', verify) == []
+        assert identity_compare_operations(None, _pool(unqualified=name), 'cuda', verify) == []
+    assert identity_compare_operations(None, _pool(), 'mps', verify) == []

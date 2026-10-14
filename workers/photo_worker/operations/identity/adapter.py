@@ -49,19 +49,27 @@ def _changed_pixels(before: np.ndarray, after: np.ndarray,
 
 
 def execute(ctx: ExecutionContext, artifacts: TaskArtifacts,
-            pool: ModelPool, backend: str) -> OperationResult:
+            pool: ModelPool, backend: str, verify_runtime=None) -> OperationResult:
     profile = ctx.lease.execution_profile
-    if profile.get('renderer_version') != 'v2.2' or profile.get('backend') != backend:
+    if (profile.get('renderer_version') != 'v2.2' or
+            profile.get('backend') != backend or
+            not callable(verify_runtime)):
         raise OperationFailure('CONFIG_INVALID')
+    if verify_runtime(ctx) is not True:
+        raise OperationFailure('IDENTITY_RUNTIME_UNQUALIFIED')
     try:
         params = artifacts.params(IdentityCompareParams)
-        if params.model_lock_sha != pool.lock.lock_id:
+        if (params.model_lock_sha != pool.lock.lock_id or
+                profile.get('model_lock_sha') != params.model_lock_sha):
             raise ModelError('MODEL_LOCK_MISMATCH')
         if not REQUIRED_MODELS <= {item.id for item in pool.lock.models}:
             raise ModelError('MODEL_UNAVAILABLE')
         calibration = artifacts.contract(params.calibration, Calibration)
         consents = artifacts.contract(params.consents, ConsentSnapshot)
-        if not calibration.qualified or calibration.model_lock_sha != params.model_lock_sha:
+        if (not calibration.qualified or
+                calibration.model_lock_sha != params.model_lock_sha or
+                calibration.dataset_sha != profile.get('dataset_sha') or
+                profile.get('calibration') != params.calibration.model_dump(mode='json')):
             raise ModelError('MODEL_UNQUALIFIED')
         before = artifacts.contract(params.before.source, WorkingImage)
         after = artifacts.contract(params.after.source, WorkingImage)
@@ -116,6 +124,8 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts,
                                           after_alpha=after_alpha,
                                           check_active=ctx.check_active)
             ctx.progress(1, 4)
+            if verify_runtime(ctx) is not True:
+                raise OperationFailure('IDENTITY_RUNTIME_UNQUALIFIED')
             before_srgb, _ = work_to_model(_preview(before_rgb, 2048))
             after_srgb, _ = work_to_model(_preview(after_rgb, 2048))
             observations_before = _face_observations(
@@ -133,6 +143,8 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts,
                 outside_mask_max_error=guards.outside_mask_max_error,
                 protected_max_error=guards.protected_max_error)
             ctx.progress(2, 4)
+            if verify_runtime(ctx) is not True:
+                raise OperationFailure('IDENTITY_RUNTIME_UNQUALIFIED')
             with artifacts.scratch.reserve(height * width * 4 + 8192) as reservation:
                 path = reservation.path('identity-changed', '.npy')
                 changed = np.lib.format.open_memmap(
@@ -162,6 +174,8 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts,
             outside_mask_max_error=guards.outside_mask_max_error,
             calibration=params.calibration)
         report_ref = artifacts.stage_contract(report, 'document')
+        if verify_runtime(ctx) is not True:
+            raise OperationFailure('IDENTITY_RUNTIME_UNQUALIFIED')
         ctx.progress(4, 4)
         return OperationResult(outputs=[pixel_ref, mask_ref, report_ref],
                                review_required=report.status != 'pass',
@@ -174,10 +188,10 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts,
 
 
 def identity_compare_operations(config: ArtifactConfig, pool: ModelPool,
-                                backend: str) -> list[Operation]:
+                                backend: str, verify_runtime=None) -> list[Operation]:
     # identity512 has exact CPU/CUDA ONNX providers; MPS has no native
     # provider and must not be advertised through a lock entry alone.
-    if backend not in ('cpu', 'cuda'):
+    if backend not in ('cpu', 'cuda') or not callable(verify_runtime):
         return []
     entries = {entry.id: entry for entry in pool.lock.models}
     for model in REQUIRED_MODELS:
@@ -189,5 +203,5 @@ def identity_compare_operations(config: ArtifactConfig, pool: ModelPool,
     def run(ctx: ExecutionContext) -> OperationResult:
         with TaskArtifacts.create(ctx, config,
                                   frozenset({'document', 'mask', 'mask_pixels'})) as artifacts:
-            return execute(ctx, artifacts, pool, backend)
+            return execute(ctx, artifacts, pool, backend, verify_runtime)
     return [Operation('identity.compare', 'gpu', run)]

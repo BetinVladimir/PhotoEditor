@@ -95,7 +95,13 @@ class Artifacts:
 
 def context():
     return SimpleNamespace(lease=SimpleNamespace(execution_profile={
-        'renderer_version': 'v2.2', 'backend': 'cuda'}),
+        'renderer_version': 'v2.2', 'backend': 'cuda',
+        'model_lock_sha': 'a' * 64, 'runtime_lock_sha': 'c' * 64,
+        'device_profile_sha': 'd' * 64, 'dataset_sha': 'b' * 64,
+        'qualification_policy_id': str(UUID(int=40)),
+        'qualification_id': str(UUID(int=41)),
+        'qualification_report': ref(42).model_dump(mode='json'),
+        'calibration': ref(7).model_dump(mode='json')}),
         check_active=lambda: None, progress=lambda done, total: None)
 
 
@@ -111,7 +117,7 @@ def test_identity_compare_exact_canvas_mask_and_unmeasurable_faces(tmp_path,
                         lambda rgb, binding, *args: FaceObservations(
                             schema_version=1, binding=binding, faces=[]))
     try:
-        result = execute(context(), artifacts, pool(), 'cuda')
+        result = execute(context(), artifacts, pool(), 'cuda', lambda ctx: True)
         assert result.outputs == [ref(30), ref(31), ref(32)]
         assert result.review_required
         assert artifacts.mask_pixels.sum() == 1
@@ -136,7 +142,25 @@ def test_identity_compare_rejects_unaligned_canvas(tmp_path):
     artifacts.documents[ref(2).artifact_id] = after.model_copy(update={'canvas': different})
     try:
         with pytest.raises(OperationFailure, match='INPUT_INVALID'):
+            execute(context(), artifacts, pool(), 'cuda', lambda ctx: True)
+        assert not artifacts.staged
+    finally:
+        artifacts.scratch.cleanup()
+
+
+def test_identity_compare_rejects_missing_or_rotated_runtime(tmp_path):
+    artifacts = Artifacts(tmp_path)
+    try:
+        with pytest.raises(OperationFailure, match='CONFIG_INVALID'):
             execute(context(), artifacts, pool(), 'cuda')
+        ctx = context()
+        ctx.lease.execution_profile['runtime_lock_sha'] = '0' * 64
+        def verify_runtime(current):
+            if current.lease.execution_profile['runtime_lock_sha'] != 'c' * 64:
+                raise OperationFailure('IDENTITY_RUNTIME_UNQUALIFIED')
+            return True
+        with pytest.raises(OperationFailure, match='IDENTITY_RUNTIME_UNQUALIFIED'):
+            execute(ctx, artifacts, pool(), 'cuda', verify_runtime)
         assert not artifacts.staged
     finally:
         artifacts.scratch.cleanup()
