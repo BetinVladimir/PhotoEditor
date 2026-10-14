@@ -21,6 +21,80 @@ func (s SQLExportBodyOriginInstallation) BuildExportBodyOriginValidator(ctx cont
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	if scheduler, ok := catalog.(SQLSchedulerExportInputCatalog); ok {
+		if objects == nil || documents == nil || images == nil || warps == nil ||
+			masks == nil || other == nil || s.Scratch == nil ||
+			s.StyleProbe == nil || s.MaskProbe == nil || s.ArrayProbe == nil ||
+			!validImportRef(s.Fit.Person.Report) {
+			return nil, v2input.ErrInvalid
+		}
+		if _, err := schedulerExportPolicyBindings(ctx, intent, frozen, scheduler); err != nil {
+			return nil, err
+		}
+		if err := SchedulerExportAdoptionSQLReady(ctx, scheduler.Claims.DB); err != nil {
+			return nil, err
+		}
+		models, err := exportBodyDependencyNativeModels(s.Dependencies.Configs)
+		if err != nil {
+			return nil, err
+		}
+		for _, config := range s.Fit.Features.Configs {
+			var name string
+			switch config.Expected.Operation {
+			case "pose.detect":
+				name = "keypointrcnn_resnet50_fpn"
+			case "face.landmarks":
+				name = "fan2d"
+			default:
+				return nil, v2input.ErrInvalid
+			}
+			if models[name] != config.Expected.ModelLockSHA {
+				return nil, v2input.ErrInvalid
+			}
+		}
+		models["lraspp_mobilenet_v3_large"] = s.Fit.Person.Expected.ModelLockSHA
+		for _, sha := range []string{s.BodyRuntimeSHA, s.MaskArrayRuntimeSHA, s.SourceArrayRuntimeSHA} {
+			if !validImportRef(v2input.Ref{ArtifactID: s.Fit.Person.Report.ArtifactID, SHA256: sha}) {
+				return nil, v2input.ErrInvalid
+			}
+		}
+		physicalImages := ExportPhysicalSourceResolver{
+			JSON: images, Catalog: scheduler, Objects: objects, Working: scheduler,
+			Warps: warps, Scratch: s.Scratch, Probe: s.ArrayProbe,
+			RuntimeSHA: s.SourceArrayRuntimeSHA,
+		}
+		personPolicy, err := s.Fit.Person.BuildExportStatsPersonPolicy(ctx, intent,
+			frozen, scheduler, objects)
+		if err != nil {
+			return nil, err
+		}
+		personSource := QualifiedExportBodyPersonSource{
+			Origin:    scheduler,
+			Documents: ExportStatsPersonDocumentReader{Catalog: scheduler, Objects: objects},
+			Policy:    personPolicy,
+		}
+		person := NativeExportBodyPersonQualifier{
+			Source: personSource, Objects: objects, Scratch: s.Scratch,
+			Probe: s.MaskProbe, RuntimeSHA: s.MaskArrayRuntimeSHA,
+		}
+		dependencies, err := s.Dependencies.BuildExportBodyDependencyQualifier(ctx,
+			intent, frozen, scheduler, objects)
+		if err != nil {
+			return nil, err
+		}
+		fit, err := s.Fit.BuildExportBodyFitQualifier(ctx, intent, frozen,
+			scheduler, objects, documents, physicalImages, warps, masks)
+		if err != nil {
+			return nil, err
+		}
+		policy := BoundExportBodyOriginPolicy{
+			Source: scheduler, Images: physicalImages, Warps: warps,
+			Person: person, Dependencies: dependencies, FitInputs: fit,
+		}
+		return NewNativeExportBodyOriginValidator(
+			ExportBodyOriginReader{Source: scheduler, Documents: documents},
+			policy, other, s.Scratch, s.StyleProbe, models, s.BodyRuntimeSHA)
+	}
 	scoped, err := exportPolicyCatalogConfig(catalog)
 	if err != nil || scoped.DB == nil || objects == nil || documents == nil || images == nil || warps == nil || masks == nil || other == nil || s.Scratch == nil || s.StyleProbe == nil || s.MaskProbe == nil || s.ArrayProbe == nil {
 		return nil, v2input.ErrInvalid
