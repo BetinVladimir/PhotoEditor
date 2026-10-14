@@ -773,5 +773,9 @@
   "interchange_prepared_save": "Запис на избраните решения",
   "interchange_prepared_skip": "Пропускане на предложението",
   "interchange_prepared_revoke": "Оттегляне на решението",
+  "interchange_prepared_previous": "Предишни предложения",
+  "interchange_prepared_next": "Следващи предложения",
+  "interchange_prepared_saved_previous": "Предишни запазени решения",
+  "interchange_prepared_saved_next": "Следващи запазени решения",
   "interchange_prepared_saved": "Записано решение"
 }

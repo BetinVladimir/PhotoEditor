@@ -773,5 +773,9 @@
   "interchange_prepared_save": "Сохранить выбранные решения",
   "interchange_prepared_skip": "Пропустить предложение",
   "interchange_prepared_revoke": "Отозвать решение",
+  "interchange_prepared_previous": "Предыдущие предложения",
+  "interchange_prepared_next": "Следующие предложения",
+  "interchange_prepared_saved_previous": "Предыдущие сохранённые решения",
+  "interchange_prepared_saved_next": "Следующие сохранённые решения",
   "interchange_prepared_saved": "Сохранённое решение"
 }

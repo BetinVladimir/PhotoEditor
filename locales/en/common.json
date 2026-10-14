@@ -773,5 +773,9 @@
   "interchange_prepared_save": "Save selected decisions",
   "interchange_prepared_skip": "Skip this proposal",
   "interchange_prepared_revoke": "Revoke this decision",
+  "interchange_prepared_previous": "Previous proposals",
+  "interchange_prepared_next": "Next proposals",
+  "interchange_prepared_saved_previous": "Previous saved decisions",
+  "interchange_prepared_saved_next": "Next saved decisions",
   "interchange_prepared_saved": "Saved decision"
 }

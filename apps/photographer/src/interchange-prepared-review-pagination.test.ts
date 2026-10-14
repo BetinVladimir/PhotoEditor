@@ -29,3 +29,13 @@ it('loads prepared proposals beyond the first 50 using the exact page cursor',as
  expect(result).toHaveLength(51);
  expect(request.mock.calls[1][0]).toContain(`?after=${encodeURIComponent(cursor)}`);
 });
+
+it('exposes one bounded prepared review page to the screen',async()=>{
+ const candidate={id:'f'.repeat(64),decision:'pending',bbox:{x:10,y:20,width:5,height:6},score:0.9};
+ const proposal={entry_id:id(1),target_version_id:id(501),kind:'defects',proposal:ref(601),base:ref(502),document:{version:'defect_candidates_v1',image:ref(502),label_map:ref(503),canvas:{width:100,height:100},candidates:[candidate]},decision_epoch:0};
+ const request=vi.fn().mockResolvedValue({workflow_id:id(9),items:[proposal]});
+ const api=new OwnerAPI({request} as never,id(7));
+ const page=await api.preparedImportReviewPage(id(8),id(9));
+ expect(page.items).toHaveLength(1);
+ expect(request).toHaveBeenCalledTimes(1);
+});
