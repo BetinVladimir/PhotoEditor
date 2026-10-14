@@ -35,7 +35,7 @@ def import_adoption_qualifications_from_environment(getenv=os.environ.get):
                 or type(document['schema_version']) is not int
                 or document['schema_version'] != 1
                 or not isinstance(document['qualifications'], list)
-                or not 1 <= len(document['qualifications']) <= 5):
+                or not 0 <= len(document['qualifications']) <= 5):
             raise ValueError('invalid document')
         result = {}
         for item in document['qualifications']:

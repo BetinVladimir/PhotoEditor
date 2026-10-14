@@ -33,6 +33,7 @@ def test_import_qualification_policy_requires_current_canonical_pin(tmp_path):
     expected, _ = fixture()
     loaded = _load(tmp_path, [_entry(expected)])
     assert loaded['image.denoise'].expected == expected
+    assert _load(tmp_path, []) == {}
     assert import_adoption_qualifications_from_environment(lambda *_: '') is None
     with pytest.raises(ValueError, match='PIN'):
         import_adoption_qualifications_from_environment(lambda key, default='':

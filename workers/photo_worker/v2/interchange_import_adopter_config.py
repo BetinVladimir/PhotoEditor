@@ -121,7 +121,7 @@ def qualified_import_adopter_builder(resources, qualifications, objects,
     This returns a builder for run_adopter's post-connection installation.
     """
     if (type(resources) is not PinnedImportAdopterResources
-            or not isinstance(qualifications, dict) or not qualifications
+            or not isinstance(qualifications, dict)
             or not callable(getattr(objects, 'get_object', None))
             or not isinstance(allowed_bucket, str) or not allowed_bucket
             or not callable(qualify_other)):

@@ -96,6 +96,9 @@ def test_import_adopter_qualified_builder_binds_sql_object_and_person_authority(
     assert installed.runtime.catalog.connection is connection
     assert installed.runtime.objects is objects
     assert installed.runtime.person_current.connection is connection
+    model_free = qualified_import_adopter_builder(resources, {}, objects,
+        'photo', lambda *_args: True)(connection, Event())
+    assert model_free.runtime.policies == {}
     with pytest.raises(ValueError, match='OPERATOR_INSTALLATION'):
         qualified_import_adopter_builder(resources, selected, objects, 'photo', None)
 

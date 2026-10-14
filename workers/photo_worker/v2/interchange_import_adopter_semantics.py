@@ -45,7 +45,7 @@ class SupportedImportSemanticPolicy:
     """Allow the implemented deterministic subset; defer other operators."""
 
     def __init__(self, qualifications):
-        if not isinstance(qualifications, dict) or not qualifications:
+        if not isinstance(qualifications, dict):
             raise ValueError('INTERCHANGE_IMPORT_SEMANTIC_POLICY')
         self.operations = frozenset(qualifications)
 
