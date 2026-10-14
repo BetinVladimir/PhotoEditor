@@ -93,6 +93,9 @@ Scheduler runtime теперь имеет `RunSchedulerWithInterchangeExport` и
 
 ## Граница первого MVP
 
+Миграция `02060_v30_export_adoption_stats_origin.sql` и `SQLSchedulerExportInputCatalog.LookupExportStatsOrigin` добавляют claim-scoped Params origin для `Stats20`: завершённый canonical `color.stats`, pinned stats object, исходный accepted WorkingImage из frozen snapshot и project/run authority. Go повторно читает pins обоих запечатанных документов после SQL. Содержимое Params, показатели изображения и person mask по-прежнему проверяет существующий `ExportStatsOriginQualifier` и его policy-слои. Startup SQL inventory включает `02060`; миграция и unit-сценарии написаны, не запускались.
+
+
 Миграция `02059_v30_export_adoption_series_mask_origin.sql` и `SQLSchedulerExportInputCatalog.LookupExportSeriesMaskOrigin` раскрывают исходные MaskRef, Params и report только для того же canonical `mask.person`/`mask.prompt` producer, чей binary mask уже связан с claimed `series.measure`. Уникальность root/report, output fences, object versions и project/run проверяются в SQL; Go повторяет mask lookup после metadata IO. Native `MaskOrigin` и текущая policy/consent проверка по-прежнему обязательны. Startup SQL inventory включает `02059`. Миграция и unit-сценарии написаны, не запускались.
 
 
