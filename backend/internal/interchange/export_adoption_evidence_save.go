@@ -15,6 +15,20 @@ import (
 func (p PreparedExportAdoption) SaveScheduler(ctx context.Context,
 	claims SQLExportAdoptionClaimStore, claim ExportAdoptionClaim,
 	frozen FrozenExportDocuments, bucket string) error {
+	return p.persistScheduler(ctx, claims, claim, frozen, bucket, false)
+}
+
+// AdoptScheduler atomically publishes the already prepared evidence. The
+// scheduler finalizer owns the later terminal run transition and quota release.
+func (p PreparedExportAdoption) AdoptScheduler(ctx context.Context,
+	claims SQLExportAdoptionClaimStore, claim ExportAdoptionClaim,
+	frozen FrozenExportDocuments, bucket string) error {
+	return p.persistScheduler(ctx, claims, claim, frozen, bucket, true)
+}
+
+func (p PreparedExportAdoption) persistScheduler(ctx context.Context,
+	claims SQLExportAdoptionClaimStore, claim ExportAdoptionClaim,
+	frozen FrozenExportDocuments, bucket string, adopt bool) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -49,8 +63,13 @@ func (p PreparedExportAdoption) SaveScheduler(ctx context.Context,
 		return v2input.ErrInvalid
 	}
 	var saved bool
-	err = claims.DB.QueryRow(ctx, `SELECT photo.save_v30_export_adoption_evidence(
- $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+	query := `SELECT photo.save_v30_export_adoption_evidence(
+ $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`
+	if adopt {
+		query = `SELECT photo.adopt_v30_export_adoption(
+ $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`
+	}
+	err = claims.DB.QueryRow(ctx, query,
 		claim.Tenant, claim.Workflow, claim.Run, claim.Task, claim.Result,
 		claim.Actor, claim.Key, claim.RequestSHA, claim.Token,
 		string(p.body), p.sha).Scan(&saved)

@@ -63,6 +63,8 @@
 
 Миграция `02042_v30_export_adoption_evidence.sql` и `PreparedExportAdoption.SaveScheduler` добавляют служебный pre-commit барьер: исходная frozen identity, lease, canonical outputs, typed source inventory и object pins проверяются снова под блокировками перед сохранением immutable evidence. Это не adoption и не terminal transition; метод должен вызываться только после полной физической проверки archive и portable closure. Миграция и unit-сценарии не выполнялись.
 
+Миграция `02043_v30_export_adoption_commit.sql` и `PreparedExportAdoption.AdoptScheduler` добавляют атомарное сохранение evidence и публикацию links/inbox/event с тем же claim; точный replay возвращает прежний результат без второго события. Это SQL/Go commit primitive, а не установленный processor: подготовка portable closure и финализация run ещё отсутствуют. 02042–02043 и сценарии не выполнялись.
+
 ## Граница первого MVP
 
 Обязательны пункты 1–5 на выбранной и явно опубликованной матрице камер/форматов/операций. V23 learning, V24 on-set, V27 semantic, расширенные V28/V29, interchange и V31 C2PA желательны после первого MVP, если продукт не обещает их пользователю. Любая включённая в интерфейсе или маркетинговом обещании функция сразу получает полный P0-критерий своей сквозной трассы. Такое разделение определяет релизную очередь, но не сокращает цель V20–V32.
