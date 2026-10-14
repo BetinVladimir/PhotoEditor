@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import pytest
 
-from photo_worker.contracts.base import ArtifactRef
+from photo_worker.contracts.base import ArtifactRef, Contract
 from photo_worker.contracts.restoration import DenoiseParams
 from photo_worker.contracts.statistics import StatsParams
 from photo_worker.operations.session.contracts import VersionBinding
@@ -91,9 +91,37 @@ def test_import_runtime_stats_requires_separate_person_model_report():
                               attempt=1, fence=7, result_id=scope[4])
     assert authority(scope, context, 'Params',
                      StatsParams(image=binding.source, person=mask), binding) is True
-    assert calls == ['color.stats', 'mask.person']
+    assert calls == ['mask.person', 'color.stats']
     scoped = mask.model_copy(update={'object_id': uuid4()})
     assert authority(scope, context, 'MaskRef', scoped, binding) is False
     assert authority(scope, context, 'Params',
                      StatsParams(image=binding.source, person=scoped), binding) is False
-    assert calls == ['color.stats', 'mask.person']
+    assert calls == ['mask.person', 'color.stats']
+
+
+def test_import_runtime_checks_person_masks_nested_in_other_documents():
+    expected, _ = report_fixture()
+    person = deepcopy(expected)
+    person['Operation'], person['ModelLockSHA'] = 'mask.person', 'd' * 64
+    calls = []
+    class Catalog:
+        def verified_report(self, _objects, _scope, operation, policy, *_args):
+            calls.append(operation)
+            return {'operation': operation, 'model_lock_sha': policy['ModelLockSHA']}
+    class Nested(Contract):
+        masks: list[MaskRef]
+    authority = SchedulerImportAdoptionRuntimeAuthority(
+        Catalog(), SimpleNamespace(get_object=lambda *_args, **_kwargs: None),
+        {'mask.person': ImportAdoptionQualification(person, uuid4(), 'a' * 64)},
+        lambda *_args: True, lambda: None)
+    mask, binding = _mask_and_binding()
+    scope = (uuid4(), uuid4(), 1, 7, uuid4())
+    context = SimpleNamespace(operation='v2.interchange.import', version='1',
+                              attempt=1, fence=7, result_id=scope[4])
+    assert authority(scope, context, 'Override', Nested(masks=[mask, mask]), binding) is True
+    assert calls == ['mask.person']
+    calls.clear()
+    scoped = mask.model_copy(update={'object_id': uuid4()})
+    assert authority(scope, context, 'Override', Nested(masks=[scoped]), binding) is False
+    assert authority(scope, context, 'Override', Nested(masks=[scoped, mask]), binding) is False
+    assert calls == []

@@ -9,6 +9,8 @@ from dataclasses import dataclass
 from copy import deepcopy
 from uuid import UUID
 
+from pydantic import BaseModel
+
 from photo_worker.contracts.base import canonical_bytes, parse_json
 from photo_worker.contracts.images import MaskRef
 from photo_worker.contracts.restoration import DenoiseParams, UpscaleParams
@@ -83,6 +85,43 @@ class SchedulerImportAdoptionRuntimeAuthority:
             raise AdoptionInvalid('INTERCHANGE_IMPORT_RUNTIME_REPORT_MISMATCH')
         return True
 
+    def _person_masks(self, scope, document):
+        """Require a live report for every nested whole-person mask.
+
+        Document contracts are typed before this walk. The node limit also
+        guards an operator-installed extra validator returning a cyclic graph.
+        """
+        stack, visited, pins = [document], set(), set()
+        nodes = 0
+        while stack:
+            current = stack.pop()
+            if not isinstance(current, (BaseModel, dict, list, tuple)):
+                continue
+            identity = id(current)
+            if identity in visited:
+                continue
+            visited.add(identity)
+            nodes += 1
+            if nodes > 10000:
+                raise AdoptionInvalid('INTERCHANGE_IMPORT_RUNTIME_DOCUMENT_LIMIT')
+            if isinstance(current, MaskRef) and current.selector == 'person':
+                if current.object_id is not None or current.model_lock_id is None:
+                    return False
+                pin = (current.artifact.artifact_id, current.artifact.sha256,
+                       current.model_lock_id)
+                pins.add(pin)
+            if isinstance(current, BaseModel):
+                stack.extend(getattr(current, name)
+                             for name in type(current).model_fields)
+            elif isinstance(current, dict):
+                stack.extend(current.values())
+            else:
+                stack.extend(current)
+        for _, _, model_lock in sorted(pins):
+            if not self._report(scope, 'mask.person', model_lock):
+                return False
+        return True
+
     def __call__(self, scope, context, contract, typed, binding):
         if (not isinstance(scope, tuple) or len(scope) != 5
                 or getattr(context, 'operation', None) != 'v2.interchange.import'
@@ -92,6 +131,8 @@ class SchedulerImportAdoptionRuntimeAuthority:
                 or not isinstance(binding, VersionBinding)):
             raise AdoptionInvalid('INTERCHANGE_IMPORT_RUNTIME_SCOPE')
         self.active()
+        if not self._person_masks(scope, typed):
+            return False
         if contract == 'Params' and isinstance(typed, DenoiseParams):
             if typed.image != binding.source or not self._report(
                     scope, 'image.denoise', typed.model_lock_id):
@@ -102,17 +143,9 @@ class SchedulerImportAdoptionRuntimeAuthority:
                 return False
         elif contract == 'Params' and isinstance(typed, StatsParams):
             if (typed.image != binding.source
-                    or typed.person.object_id is not None
-                    or typed.person.model_lock_id is None
                     or not self._report(scope, 'color.stats',
                                         self.policies.get('color.stats').expected.get('ModelLockSHA')
-                                        if self.policies.get('color.stats') else None)
-                    or not self._report(scope, 'mask.person',
-                                        typed.person.model_lock_id)):
-                return False
-        elif contract == 'MaskRef' and isinstance(typed, MaskRef) and typed.selector == 'person':
-            if (typed.object_id is not None or typed.model_lock_id is None
-                    or not self._report(scope, 'mask.person', typed.model_lock_id)):
+                                        if self.policies.get('color.stats') else None)):
                 return False
         accepted = self.other(scope, context, contract, deepcopy(typed),
                               binding.model_copy(deep=True))
