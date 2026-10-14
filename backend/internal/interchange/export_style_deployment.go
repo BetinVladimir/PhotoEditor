@@ -31,7 +31,7 @@ func (s ExportStyleDeploymentAuthority) BuildNativeExportAuthority(ctx context.C
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	if s.Base.Other == nil || (s.Base.Semantics == nil) == (s.Base.SemanticsFactory == nil) || native.Scratch == nil || native.ImageProbe == nil || native.MaskProbe == nil || native.ArrayProbe == nil || (s.pinnedPolicies == nil && s.PromptFile == "") || !validImportRefForSHA(s.StyleRuntimeSHA) {
+	if s.Base.Other == nil || (s.Base.Semantics == nil) == (s.Base.SemanticsFactory == nil) || native.Scratch == nil || native.ImageProbe == nil || native.MaskProbe == nil || native.ArrayProbe == nil || (s.pinnedPolicies == nil && s.PromptFile == "") || !validImportRefForSHA(s.StyleRuntimeSHA) || !validImportRefForSHA(s.Base.ModelSHA) {
 		return nil, v2input.ErrInvalid
 	}
 	// Derive the style process from the same pinned Python environment, without
@@ -80,7 +80,7 @@ func (s ExportStyleDeploymentAuthority) BuildNativeExportAuthority(ctx context.C
 	}
 	models := map[string]string{}
 	for name, sha := range s.Models {
-		if !exportModelIDs[name] || !validImportRefForSHA(sha) {
+		if !exportModelIDs[name] || sha != s.Base.ModelSHA {
 			return nil, v2input.ErrInvalid
 		}
 		models[name] = sha
@@ -101,7 +101,7 @@ func (s ExportStyleDeploymentAuthority) BuildNativeExportAuthority(ctx context.C
 	required["mobilesam"] = prompt.Expected.ModelLockSHA
 	required["sfd"] = body.Fit.Features.Detector.Policy.Expected.ModelLockSHA
 	for name, sha := range required {
-		if previous, ok := models[name]; ok && previous != sha {
+		if !exportModelIDs[name] || sha != s.Base.ModelSHA {
 			return nil, v2input.ErrInvalid
 		}
 		models[name] = sha

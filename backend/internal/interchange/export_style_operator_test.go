@@ -51,7 +51,7 @@ func TestExportStyleOperatorPinsPoliciesBeforeNativeBuild(t *testing.T) {
 		}
 		return v2qualification.DeploymentLocks{
 			Operation: operation, Version: "1", Backend: backend,
-			ModelLockSHA: sha(operation), RuntimeLockSHA: sha("runtime"),
+			ModelLockSHA: sha("model"), RuntimeLockSHA: sha("runtime"),
 			DeviceProfileSHA: sha("device"), DatasetSHA: sha("dataset"),
 			IssuerID: uuid.NewString(), RequiredChecks: []string{"coverage"},
 			CalibrationSHAs: []string{sha("calibration")},
@@ -103,6 +103,12 @@ func TestExportStyleOperatorPinsPoliciesBeforeNativeBuild(t *testing.T) {
 	if _, err := LoadExportStyleOperatorAuthority(context.Background(), foreignManifest.Path,
 		foreignManifest.SHA, base, exportOperatorBackgroundFactoryStub{}); err == nil {
 		t.Fatal("unknown operation model accepted")
+	}
+	foreignModel.Models = map[string]string{"mobilesam": sha("foreign-lock")}
+	foreignManifest = write("foreign-lock.json", foreignModel)
+	if _, err := LoadExportStyleOperatorAuthority(context.Background(), foreignManifest.Path,
+		foreignManifest.SHA, base, exportOperatorBackgroundFactoryStub{}); err == nil {
+		t.Fatal("operation model escaped the pinned model lock")
 	}
 	foreignWeights := base
 	foreignWeights.ModelWeights = map[string]string{"mobilesam": "different-weight.pt"}
