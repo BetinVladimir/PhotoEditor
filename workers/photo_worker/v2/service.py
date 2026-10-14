@@ -502,6 +502,10 @@ def run_adopter(config: AdopterConfig, stop: Event | None = None, *,
                          options=options) as read_connection:
         with psycopg.connect(config.database_url, autocommit=True, connect_timeout=5,
                              options=options) as write_connection:
+            if interchange_recipe_qualifier_factory is not None:
+                from .interchange_import_adopter_schema import require_interchange_import_adopter_schema
+                require_interchange_import_adopter_schema(read_connection)
+                require_interchange_import_adopter_schema(write_connection)
             if config.delivery_encode_max_pixels is not None:
                 from .delivery_encoded_schema import require_delivery_encode_schema
                 require_delivery_encode_schema(read_connection)
