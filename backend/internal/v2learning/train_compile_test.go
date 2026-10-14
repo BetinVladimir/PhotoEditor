@@ -3,6 +3,7 @@ package v2learning
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -76,6 +77,40 @@ func TestCompileTrainingDraftLinksInventorySplitAndFrozenCases(t *testing.T) {
 		result.Draft.Manifest.ProfileID != profile || len(result.Excluded) != 0 ||
 		len(result.FrozenRecipes) != 60 {
 		t.Fatalf("training compiler failed: %v", err)
+	}
+	seriesTenant, seriesActor, seriesSession := uuid.New(), uuid.New(), uuid.New()
+	seriesCases := append([]TrainingCaseEvidence(nil), evidence...)
+	seriesDocument := seriesHoldoutFixture()
+	seriesDocument.TenantID = seriesTenant
+	seriesDocument.EventID = seriesCases[0].Source.EventID
+	seriesDocument.AssetVersionID = seriesCases[0].Resolved.Candidate.AssetVersionID
+	seriesDocument.SourceImage = seriesCases[0].Resolved.Render.WorkingImage
+	seriesBody, seriesSHA, err := CompileFrozenSeriesHoldoutEvidence(seriesDocument)
+	if err != nil {
+		t.Fatal(err)
+	}
+	seriesCases[0].Series = &PreparedSeriesHoldout{
+		Document: seriesDocument, Body: seriesBody, SHA256: seriesSHA}
+	seriesResult, err := CompileTrainingDraft(seriesTenant, seriesActor,
+		seriesSession, project, profile, "series-key", 4096, request,
+		context, candidates, seriesCases)
+	if err != nil || len(seriesResult.Series) != 1 {
+		t.Fatalf("series evidence dropped during compilation: %v", err)
+	}
+	var seriesExample *ManifestExample
+	for i := range seriesResult.Draft.Manifest.Examples {
+		if seriesResult.Draft.Manifest.Examples[i].EventID == seriesDocument.EventID {
+			seriesExample = &seriesResult.Draft.Manifest.Examples[i]
+		}
+	}
+	if seriesExample == nil || seriesExample.RenderCase.SeriesEvidence == nil ||
+		seriesExample.RenderCase.SeriesEvidence.SHA256 != seriesSHA {
+		t.Fatal("compiled manifest lost frozen series ref")
+	}
+	var seriesRecovery trainingDraftRecovery
+	if json.Unmarshal(seriesResult.Draft.RecoveryBody, &seriesRecovery) != nil ||
+		seriesRecovery.SeriesJCS == "" {
+		t.Fatal("compiled recovery lost frozen series bytes")
 	}
 	missingFrozen := append([]TrainingCaseEvidence(nil), evidence...)
 	missingFrozen[0].Frozen = nil

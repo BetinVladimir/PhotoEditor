@@ -19,6 +19,7 @@ type TrainingCaseEvidence struct {
 	Defect   *PreparedReviewedDefectHoldout
 	Dust     *PreparedReviewedDustHoldout
 	Detail   *PreparedPortraitDetailHoldout
+	Series   *PreparedSeriesHoldout
 }
 
 type TrainingCompilation struct {
@@ -28,6 +29,7 @@ type TrainingCompilation struct {
 	ReviewedDefects map[uuid.UUID]PreparedReviewedDefectHoldout
 	ReviewedDust    map[uuid.UUID]PreparedReviewedDustHoldout
 	PortraitDetail  map[uuid.UUID]PreparedPortraitDetailHoldout
+	Series          map[uuid.UUID]PreparedSeriesHoldout
 }
 
 // CompileTrainingDraft joins the locked candidate inventory with resolved
@@ -131,6 +133,7 @@ func CompileTrainingDraftWithExclusions(tenantID, actorID, authSessionID,
 	reviewedDefects := make(map[uuid.UUID]PreparedReviewedDefectHoldout)
 	reviewedDust := make(map[uuid.UUID]PreparedReviewedDustHoldout)
 	portraitDetail := make(map[uuid.UUID]PreparedPortraitDetailHoldout)
+	seriesHoldout := make(map[uuid.UUID]PreparedSeriesHoldout)
 	runID, err := v2input.RunID(tenantID, actorID, key)
 	if err != nil {
 		return empty, ErrInvalidTrainingDraft
@@ -242,6 +245,35 @@ func CompileTrainingDraftWithExclusions(tenantID, actorID, authSessionID,
 		if entry.Render.DetailEvidence != nil && evidence.Detail == nil {
 			return empty, ErrInvalidTrainingDraft
 		}
+		if evidence.Series != nil {
+			owned := *evidence.Series
+			if evidence.Defect != nil || evidence.Dust != nil || evidence.Detail != nil ||
+				entry.Render.DefectEvidence != nil ||
+				entry.Render.DustEvidence != nil ||
+				entry.Render.DetailEvidence != nil ||
+				entry.Render.SeriesEvidence != nil ||
+				owned.Document.TenantID != tenantID ||
+				owned.Document.EventID != item.Source.EventID ||
+				owned.Document.AssetVersionID != entry.Candidate.AssetVersionID ||
+				owned.Document.SourceImage != entry.Render.WorkingImage {
+				return empty, ErrInvalidTrainingDraft
+			}
+			ref, err := SeriesHoldoutRef(runID,
+				item.Source.EventID, owned.SHA256)
+			if err != nil {
+				return empty, err
+			}
+			if _, err := DecodeFrozenSeriesHoldoutEvidence(
+				owned.Body, ref, owned.Document); err != nil {
+				return empty, err
+			}
+			entry.Render.SeriesEvidence = &ref
+			owned.Body = append([]byte(nil), owned.Body...)
+			seriesHoldout[item.Source.EventID] = owned
+		}
+		if entry.Render.SeriesEvidence != nil && evidence.Series == nil {
+			return empty, ErrInvalidTrainingDraft
+		}
 		entry.Render.BaseDocument = v2input.Ref{ArtifactID: entry.Candidate.BaseArtifactID, SHA256: entry.Candidate.BaseSHA}
 		entry.Render.ApprovedDocument = v2input.Ref{ArtifactID: entry.Candidate.ApprovedArtifactID, SHA256: entry.Candidate.ApprovedSHA}
 		resolved[item.Source.EventID] = entry
@@ -271,6 +303,10 @@ func CompileTrainingDraftWithExclusions(tenantID, actorID, authSessionID,
 	if err != nil {
 		return empty, err
 	}
+	draft, err = AttachSeriesHoldoutRecovery(draft, seriesHoldout)
+	if err != nil {
+		return empty, err
+	}
 	excluded = append(excluded, artifactExcluded...)
 	excluded = append(excluded, split.Excluded...)
 	sort.Slice(excluded, func(i, j int) bool {
@@ -278,5 +314,6 @@ func CompileTrainingDraftWithExclusions(tenantID, actorID, authSessionID,
 	})
 	return TrainingCompilation{Draft: draft, Excluded: excluded,
 		FrozenRecipes: frozenRecipes, ReviewedDefects: reviewedDefects,
-		ReviewedDust: reviewedDust, PortraitDetail: portraitDetail}, nil
+		ReviewedDust: reviewedDust, PortraitDetail: portraitDetail,
+		Series: seriesHoldout}, nil
 }

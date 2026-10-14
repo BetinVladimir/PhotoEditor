@@ -66,6 +66,12 @@ type TrainingPortraitDetailPreparer interface {
 		TrainingMask) (*PreparedPortraitDetailHoldout, error)
 }
 
+type TrainingSeriesPreparer interface {
+	Prepare(context.Context, TrainingStart, TrainingCandidate, uuid.UUID,
+		TrainingRenderCase, CompiledTrainingRecipes, TrainingImage,
+		TrainingMask) (*PreparedSeriesHoldout, error)
+}
+
 type TrainingCaseAssembler struct {
 	Documents       TrainingDocumentReader
 	Recipes         TrainingRecipeReader
@@ -78,6 +84,7 @@ type TrainingCaseAssembler struct {
 	ReviewedDefects TrainingReviewedDefectPreparer
 	ReviewedDust    TrainingReviewedDustPreparer
 	PortraitDetail  TrainingPortraitDetailPreparer
+	Series          TrainingSeriesPreparer
 }
 
 func ownTrainingAssemblyCandidate(candidate TrainingCandidate) TrainingCandidate {
@@ -319,6 +326,22 @@ func (a TrainingCaseAssembler) Assemble(ctx context.Context,
 			owned.Document.MaskArtifacts = append([]v2input.Ref(nil),
 				owned.Document.MaskArtifacts...)
 			result.Detail = &owned
+		}
+	}
+	if a.Series != nil {
+		prepared, err := a.Series.Prepare(ctx, start,
+			ownTrainingAssemblyCandidate(candidate), runID,
+			result.Resolved.Render, compiled, image, protectedMask)
+		if err != nil {
+			return empty, err
+		}
+		if prepared != nil {
+			if result.Defect != nil || result.Dust != nil || result.Detail != nil {
+				return empty, ErrInvalidTrainingDraft
+			}
+			owned := *prepared
+			owned.Body = append([]byte(nil), owned.Body...)
+			result.Series = &owned
 		}
 	}
 	return result, nil

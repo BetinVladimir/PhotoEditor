@@ -47,6 +47,10 @@ func (f SQLTrainingCaseFactory) ForCandidate(start TrainingStart,
 	reader := v2draft.Service{DB: f.API, Objects: f.Objects,
 		Bucket: f.Bucket}
 	return TrainingCaseAssembler{
+		Series: SQLTrainingSeriesPreparer{
+			DB: f.Scheduler, Catalog: catalog, Objects: f.Objects,
+			Series: SQLSeriesObjects{DB: f.Scheduler,
+				Objects: f.Objects, Bucket: f.Bucket}},
 		PortraitDetail: SQLTrainingPortraitDetailPreparer{
 			DB: f.Scheduler, Catalog: catalog, Objects: f.Objects,
 			Producer: SQLPortraitDetailObjects{DB: f.Scheduler,
