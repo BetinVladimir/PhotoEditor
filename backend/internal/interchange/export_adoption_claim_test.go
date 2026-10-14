@@ -83,6 +83,13 @@ func TestExportAdoptionClaimStoreFailsClosedWithoutDatabase(t *testing.T) {
 	if _, _, err := store.FrozenExportAdoption(ctx, ExportAdoptionClaim{}); err != context.Canceled {
 		t.Fatal("cancelled frozen recovery queried", err)
 	}
+	resultReader := SchedulerExportResultReader{Claims: store, Bucket: "photos"}
+	if _, err := resultReader.Read(context.Background(), ExportAdoptionClaim{}); err != v2input.ErrInvalid {
+		t.Fatal("result reader without installation accepted", err)
+	}
+	if _, err := resultReader.Read(ctx, ExportAdoptionClaim{}); err != context.Canceled {
+		t.Fatal("cancelled result reader queried", err)
+	}
 	catalog := SQLSchedulerExportOutputCatalog{Claims: store, Bucket: "photos"}
 	if _, err := catalog.LookupExportOutput(context.Background(), v2input.Entry{}); err != v2input.ErrInvalid {
 		t.Fatal("output catalog without installation accepted", err)
