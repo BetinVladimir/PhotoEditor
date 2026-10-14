@@ -152,3 +152,34 @@ func TestDeliveryJobCleanupWorkAndErrors(t *testing.T) {
 		})
 	}
 }
+
+type deliveryRuntimeMetadata struct {
+	calls *[]string
+	progress bool
+	err error
+}
+
+func (m deliveryRuntimeMetadata) ProcessOne(context.Context) (bool, error) {
+	*m.calls = append(*m.calls, "metadata")
+	return m.progress, m.err
+}
+
+func TestDeliveryMetadataProgressDoesNotStarveOrdinaryWork(t *testing.T) {
+	for _, scenario := range []string{"progress", "empty", "error"} {
+		t.Run(scenario, func(t *testing.T) {
+			calls := []string{}
+			metadata := deliveryRuntimeMetadata{calls: &calls, progress: scenario == "progress"}
+			if scenario == "error" { metadata.err = errors.New("metadata failed") }
+			job := DeliveryExpansionJob{Metadata: metadata,
+				Driver: DeliveryExpansionDriver{Store: &deliveryDriverStore{calls: &calls}, PageSize: 1}}
+			changed, err := job.ProcessOne(context.Background())
+			if scenario == "error" {
+				if err == nil || !reflect.DeepEqual(calls, []string{"metadata"}) { t.Fatal("metadata error reached ordinary claim", changed, err, calls) }
+				return
+			}
+			if err != nil || changed != (scenario == "progress") || !reflect.DeepEqual(calls, []string{"metadata", "claim"}) {
+				t.Fatal("ordinary delivery starved by metadata", changed, err, calls)
+			}
+		})
+	}
+}

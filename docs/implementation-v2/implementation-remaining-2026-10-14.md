@@ -337,6 +337,8 @@ Go `ParsePlan.BeginParseRun` теперь классифицирует отка�
 
 Startup-инвентарь API import creator теперь требует SECURITY DEFINER ABI `v30_import_runtime_ready(text)` с владельцем `photo_fn_owner` и закрытым PUBLIC EXECUTE. Python adopter проверяет этот же bucket-specific gate и его связь с обеими lease-таблицами перед объявлением readiness. Это предотвращает запуск неполностью обновлённой пары процессов после `02118` без `02119`; unit-сценарий написан, но не запускался.
 
+P0 delivery scheduler больше не прекращает проход после каждой успешной metadata-задачи: `DeliveryExpansionJob.ProcessOne` допускает один metadata шаг, затем bounded quota cleanup и обычный child/assembly driver. Так непрерывная metadata-очередь не блокирует публикацию обычных required bundles. Ошибка metadata по-прежнему останавливает проход; unit-сценарии фиксируют progress/empty/error и порядок вызовов. Они не запускались.
+
 Миграция `02109_v23_series_heartbeat_device_fence.sql` прекращает продление lease квалифицированного `series.balance` после отзыва или ротации операторской привязки. Worker остановит текущий расчёт на следующем heartbeat; `02107` независимо отвергает поздний success. Написан интеграционный сценарий `claim → rotation → heartbeat=false → commit=stale`; миграция и сценарий не выполнялись.
 
 `series.balance` теперь оставляет identity-коррекцию с review warning, если численный solver не завершился успешно, вернул нечетырёхмерный, нечисловой либо экстремальный вектор параметров. Успешный алгоритм и его ограничители EV/gain остаются прежними. Unit-сценарии для четырёх отказов написаны, не запускались.

@@ -67,9 +67,12 @@ func (j DeliveryExpansionJob) ProcessOne(ctx context.Context) (bool, error) {
 	if err := ctx.Err(); err != nil {
 		return false, err
 	}
+	metadataProgress := false
 	if j.Metadata != nil {
-	 progress, err := j.Metadata.ProcessOne(ctx)
-	 if err != nil || progress { return progress, err }
+		var err error
+		metadataProgress, err = j.Metadata.ProcessOne(ctx)
+		if err != nil { return metadataProgress, err }
+		if err = ctx.Err(); err != nil { return metadataProgress, err }
 	}
 	bounded, cancel := context.WithTimeout(ctx, 45*time.Second)
 	defer cancel()
@@ -78,11 +81,11 @@ func (j DeliveryExpansionJob) ProcessOne(ctx context.Context) (bool, error) {
 		var cleanupErr error
 		released, cleanupErr = j.Cleanup.ReleaseNextQuota(bounded)
 		if cleanupErr != nil {
-			return false, cleanupErr
+			return metadataProgress, cleanupErr
 		}
 	}
 	progress, err := j.Driver.ProcessOne(bounded)
-	return released || progress.Admitted > 0 || progress.Observed > 0 || progress.SigningState == "scanning" || progress.AssemblyState == "activated" || progress.AssemblyState == "finalized_failed", err
+	return metadataProgress || released || progress.Admitted > 0 || progress.Observed > 0 || progress.SigningState == "scanning" || progress.AssemblyState == "activated" || progress.AssemblyState == "finalized_failed", err
 }
 func NewDeliveryExpansionJob(db *pgxpool.Pool, objects artifactjson.Objects, reader v2input.SessionAnalysisObjectReader, bucket, workSHA string, profiles map[string]string, registry Registry, c DeliveryRuntimeConfig) (DeliveryExpansionJob, error) {
 	if !c.Enabled || db == nil || objects == nil || reader == nil || len(bucket) < 3 || len(bucket) > 63 || c.PageSize < 1 || c.PageSize > 100 || c.Limits.RAMBytes < 1 || c.Limits.ScratchBytes < 1 || c.Limits.OutputBytes < 1 {
