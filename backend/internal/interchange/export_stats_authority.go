@@ -1,25 +1,54 @@
 package interchange
+
 import (
- "context"
- "github.com/jackc/pgx/v5"
- "photoeditor/backend/internal/domain"
- "photoeditor/backend/internal/review"
- "photoeditor/backend/internal/tenant"
- "photoeditor/backend/internal/v2input"
+	"context"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"photoeditor/backend/internal/auth"
+	"photoeditor/backend/internal/domain"
+	"photoeditor/backend/internal/review"
+	"photoeditor/backend/internal/tenant"
+	"photoeditor/backend/internal/v2input"
 )
 
-type ExportStatsAuthority interface {QualifyExportStats(context.Context,v2input.Entry,[]byte)error}
-func(s SQLExportDocumentCatalog)QualifyExportStats(ctx context.Context,entry v2input.Entry,raw []byte)error {
- if err:=ctx.Err();err!=nil{return err}
- if entry.Contract!="Stats20"||!validImportRef(entry.Ref)||rawSHA(raw)!=entry.Ref.SHA256{return v2input.ErrInvalid}
- stats,err:=review.ParseStats20(raw);if err!=nil||stats.SourceImage==nil{return v2input.ErrInvalid}
- object,err:=s.LookupExportDocument(ctx,entry);if err!=nil{return err}
- source:=v2input.Entry{Ref:v2input.Ref{ArtifactID:stats.SourceImage.ID,SHA256:stats.SourceImage.SHA256},Contract:"WorkingImage"}
- if _,err:=s.LookupExportDocument(ctx,source);err!=nil{return err}
- if object.ContentType!="application/json"{return v2input.ErrInvalid}
- return tenant.WithTenant(ctx,s.DB,s.Who,s.Tenant,domain.Editor,func(tx pgx.Tx,_ domain.Role)error {
-  var allowed bool
-  err:=tx.QueryRow(ctx,`SELECT EXISTS(
+type ExportStatsAuthority interface {
+	QualifyExportStats(context.Context, v2input.Entry, []byte) error
+}
+
+func (s SQLExportDocumentCatalog) QualifyExportStats(ctx context.Context, entry v2input.Entry, raw []byte) error {
+	return qualifyExportStats(ctx, s, s.DB, s.Tenant, s.Who, s.Request.ProjectID, s.Bucket, entry, raw)
+}
+func (s SQLExportResultInputCatalog) QualifyExportStats(ctx context.Context, entry v2input.Entry, raw []byte) error {
+	config := s.Export
+	return qualifyExportStats(ctx, s, config.DB, config.Tenant, config.Who, config.Request.ProjectID, config.Bucket, entry, raw)
+}
+func qualifyExportStats(ctx context.Context, catalog ExportDocumentCatalog, db *pgxpool.Pool, tenantID uuid.UUID, who auth.Identity, project uuid.UUID, bucketName string, entry v2input.Entry, raw []byte) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if catalog == nil || db == nil || tenantID == uuid.Nil || project == uuid.Nil || len(bucketName) < 3 || entry.Contract != "Stats20" || !validImportRef(entry.Ref) || rawSHA(raw) != entry.Ref.SHA256 {
+		return v2input.ErrInvalid
+	}
+	stats, err := review.ParseStats20(raw)
+	if err != nil || stats.SourceImage == nil {
+		return v2input.ErrInvalid
+	}
+	object, err := catalog.LookupExportDocument(ctx, entry)
+	if err != nil {
+		return err
+	}
+	source := v2input.Entry{Ref: v2input.Ref{ArtifactID: stats.SourceImage.ID, SHA256: stats.SourceImage.SHA256}, Contract: "WorkingImage"}
+	sourceObject, err := catalog.LookupExportDocument(ctx, source)
+	if err != nil {
+		return err
+	}
+	if object.ContentType != "application/json" {
+		return v2input.ErrInvalid
+	}
+	err = tenant.WithTenant(ctx, db, who, tenantID, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
+		var allowed bool
+		err := tx.QueryRow(ctx, `SELECT EXISTS(
    SELECT 1 FROM photo.asset_versions v JOIN photo.assets asset ON asset.tenant_id=v.tenant_id AND asset.id=v.asset_id
    JOIN photo.artifacts stats ON stats.tenant_id=v.tenant_id AND stats.id=$5 AND stats.sha256=$6
    JOIN photo.tasks producer ON producer.tenant_id=stats.tenant_id AND producer.id=stats.created_by_task_id
@@ -43,9 +72,35 @@ func(s SQLExportDocumentCatalog)QualifyExportStats(ctx context.Context,entry v2i
    AND stats.bucket=$9 AND stats.object_key=$10 AND stats.object_version=$11 AND stats.bytes=$12 AND stats.media_type='application/json'
    AND producer.inputs @> jsonb_build_array(jsonb_build_object('artifact_id',$3::uuid,'sha256',$4::text))
    AND result.outputs @> jsonb_build_array(jsonb_build_object('artifact_id',$5::uuid,'sha256',$6::text))
-  )`,s.Tenant,s.Request.ProjectID,source.Ref.ArtifactID,source.Ref.SHA256,entry.Ref.ArtifactID,entry.Ref.SHA256,s.Who.UserID,s.Who.SessionID,
-   s.Bucket,object.Key,object.VersionID,object.Bytes).Scan(&allowed)
-  if err!=nil{return err};if !allowed{return v2input.ErrInvalid};return ctx.Err()
- })
+  )`, tenantID, project, source.Ref.ArtifactID, source.Ref.SHA256, entry.Ref.ArtifactID, entry.Ref.SHA256, who.UserID, who.SessionID,
+			bucketName, object.Key, object.VersionID, object.Bytes).Scan(&allowed)
+		if err != nil {
+			return err
+		}
+		if !allowed {
+			return v2input.ErrInvalid
+		}
+		return ctx.Err()
+	})
+	if err != nil {
+		return err
+	}
+	current, err := catalog.LookupExportDocument(ctx, entry)
+	if err != nil {
+		return err
+	}
+	if current != object {
+		return v2input.ErrInvalid
+	}
+	currentSource, err := catalog.LookupExportDocument(ctx, source)
+	if err != nil {
+		return err
+	}
+	if currentSource != sourceObject {
+		return v2input.ErrInvalid
+	}
+	return ctx.Err()
 }
-var _ ExportStatsAuthority=SQLExportDocumentCatalog{}
+
+var _ ExportStatsAuthority = SQLExportDocumentCatalog{}
+var _ ExportStatsAuthority = SQLExportResultInputCatalog{}
