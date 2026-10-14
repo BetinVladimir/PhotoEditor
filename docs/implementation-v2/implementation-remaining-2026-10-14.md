@@ -1,0 +1,38 @@
+# Остаток реализации перед глубоким тестированием
+
+Дата среза: 2026-10-14. Цель остаётся V20–V32 целиком. Этот документ задаёт порядок закрытия кода, а не принимает пакеты: последние миграции и написанные unit-сценарии не выполнялись в рамках текущего implementation-first этапа. Нормативные критерии — `07-execution-acceptance.md`; исходные пакеты — `work-packages.json`.
+
+## Правила учёта
+
+- Считать завершённым кодирование операции только при трассе `клиент/публичный API → авторизованный request → frozen plan/Params → долговечный admission и dispatch → worker → канонический result → transactional adoption → доступный review/Apply/download`, включая отказ, отмену, повтор и GC.
+- Код, упомянутый в аудите 2026-10-07 как отсутствующий, повторно искать в текущем дереве. В частности, V30 delivery public create и mixed watermark scheduler constructor уже существуют; это не доказательство полного lifecycle.
+- Для каждой новой миграции сохранить forward-only порядок, владельца/ACL/RLS и свежий/upgrade сценарии. До перехода к тестовой фазе сценарии написать, но не объявлять PASS и не применять миграции.
+- Для каждой операции, зависящей от весов, камеры, ключей или измерений, отсутствие установленной квалификации даёт явное `unavailable`. Не заменять её synthetic fixture или конфигурационным SHA.
+- Отмечать отдельно `coding_closed`, `configured`, `qualified`, `accepted`. Первое не подразумевает остальные три.
+
+## Очередь реализации
+
+### P0: основа первого MVP и всей системы
+
+1. **Реестр трасс V20–V32.** Для каждой операции из `contracts/operations.json` и каждого HTTP route составить current-state строку: request/client, service, SQL, worker, result, adoption, UI, unit-сценарии, объектные роли, cleanup. Обновить старый `completion-audit-2026-10-07.json` только после проверки фактических связей. Блокер считается кодовым, если компонента нет или он не установлен; отсутствие запуска теста учитывать отдельно.
+2. **V20/V21 инварианты.** Сверить capability/qualification и model locks для всех реально включённых операций; довести RLS, ACL, идемпотентность, quota, cancellation, output registry, GC и purge до новых V28–V31 артефактов. Проверить, что `photo_fn_owner` сохраняет DELETE только на разрешённом tenant-scoped allowlist для `finish_tenant_deletion`.
+3. **Базовый маршрут V22/V25/V26/V30.** Замкнуть `import → session → editor/Apply → review → export → delivery/download` на поддерживаемых входах. Клиент должен показывать статус/ошибку/повтор и не обещать неподдерживаемую камеру/модель. Сохранить старые Apply v4, ICC, alpha, RAW и protected-pixel инварианты.
+4. **Обычная V30 delivery.** Проверить установленную цепочку create, selected source, child admission, encoded output, assembly, CAS publish, read/download/revoke и recovery после сбоя. Разделить обычную, metadata и watermark ветки; общая сборка не должна публиковать неполный required bundle. Дописать unit-сценарии каждой ветки и ошибочного/повторного перехода.
+5. **Минимальный V32 runtime.** Установить и связать startup-проверки, scheduler capacity, maintenance/reconciliation, безопасный restore и readiness для включённых функций. Не объявлять готовность по одному сформированному probe report.
+
+### P1: обязательное для полного V20–V32, после P0 по зависимостям
+
+6. **V23/V24.** Довести learning `fit → evaluate → safety review → promote/rollback` и consent epoch до runtime; camera/watch-folder capture — до restart/dedup, rotation и public QA. Эти возможности можно не открывать в первом MVP, но их код обязателен для полного плана.
+7. **V27 semantic.** Подключить реальный downstream FAN/BiSeNet/skin result, долговечную родительскую оркестрацию, per-target review и Apply. Успешный receipt подготовительной задачи не равен успеху пользовательского workflow.
+8. **V28/V29 операции.** Для open-eyes, glare, hair, clothing, reflection, relight, panorama, focus stack, negative и perspective последовательно проверить и дописать точную трассу из правила выше. Сопоставить каждый worker handler с регистрацией, admission, result adoption, GC и UI. Завершить real model/donor authority, а не только локальный compiler или синтетическое принятие.
+9. **V30 interchange.** Подключить `ExportResultAdoptionService.AdoptCurrentExportResult` к долговечному рабочему пути после canonical export result; обеспечить восстановление исходной actor/session/request identity, установленный `BuildResultInstallerWithAuthority`, финальный run transition и replay. Сейчас сервис и builder есть, но production caller не найден. Для импорта закрыть parse → canonical ingest → review → final continuation/adoption; включить `FrozenInterchangeImportEvidence` в Params/closure согласно `15-execution-contracts.md`. Отдельно довести archive multipart, person-origin и metadata/watermark ветки до полного lifecycle.
+10. **V31 provenance.** Установить реальный signer SDK/key/trust/TSA authority и процесс dispatch/adoption/public SignExport. Проверять итоговый подписанный файл после encode/watermark, rotation/revocation и privacy redaction; локальные CBOR/JUMBF и fake SDK тесты не равны production подписи.
+11. **V32 полный lifecycle.** Завершить role matrix, restore, multi-bucket physical purge reconciliation, mixed workload/admission/fairness и acceptance-пробы для V20–V31. Production cutover требует независимо прочитанного физического evidence.
+
+## Граница первого MVP
+
+Обязательны пункты 1–5 на выбранной и явно опубликованной матрице камер/форматов/операций. V23 learning, V24 on-set, V27 semantic, расширенные V28/V29, interchange и V31 C2PA желательны после первого MVP, если продукт не обещает их пользователю. Любая включённая в интерфейсе или маркетинговом обещании функция сразу получает полный P0-критерий своей сквозной трассы. Такое разделение определяет релизную очередь, но не сокращает цель V20–V32.
+
+## Переход к фазе тестирования
+
+Перед переходом: по каждой включённой операции есть трасса и написанные unit-сценарии, все её миграции и installation paths присутствуют в репозитории, ни одна ветка не заканчивается только draft/receipt без результата, доступен явный отказ при отсутствии квалификации. Затем выполнить в порядке: fresh/upgrade PostgreSQL и роли; unit/typecheck; DB+MinIO/gateway integration; браузерные и native клиентские сценарии; фото-корпус и human quality; restore/GC/races; длительную смешанную нагрузку. Текущая аппаратная проверка — Metal с лимитом видеопамяти 10 ГБ. RTX 3060 квалифицировать отдельно; результаты Metal не переносить на него автоматически.
