@@ -93,6 +93,9 @@ Scheduler runtime теперь имеет `RunSchedulerWithInterchangeExport` и
 
 ## Граница первого MVP
 
+Миграция `02053_v30_export_adoption_series_authority.sql` и `SQLSchedulerExportInputCatalog.QualifyExportSeries` добавляют sessionless provenance для `SeriesCorrections`: точный claim/input, pinned object, завершённый canonical `series.balance` producer и его Params. Полная native-схема и семантика исходных статистик остаются отдельными проверками валидатора. Остальные требуемые интерфейсы style validator и executable wiring пока не готовы; миграция и unit-сценарии написаны, но не запускались.
+
+
 Обязательны пункты 1–5 на выбранной и явно опубликованной матрице камер/форматов/операций. V23 learning, V24 on-set, V27 semantic, расширенные V28/V29, interchange и V31 C2PA желательны после первого MVP, если продукт не обещает их пользователю. Любая включённая в интерфейсе или маркетинговом обещании функция сразу получает полный P0-критерий своей сквозной трассы. Такое разделение определяет релизную очередь, но не сокращает цель V20–V32.
 
 ## Переход к фазе тестирования
