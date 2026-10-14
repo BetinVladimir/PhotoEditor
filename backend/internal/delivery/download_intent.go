@@ -33,6 +33,16 @@ type downloadIntentRecord struct {
 	ExpiresAt time.Time `json:"expires_at"`
 }
 
+func validDownloadIntentReceipt(saved idempotency.Response, now time.Time) (downloadIntentRecord, bool) {
+	var record downloadIntentRecord
+	if saved.Status != 201 || saved.ResourceID == nil ||
+		json.Unmarshal(saved.Body, &record) != nil || record.ID == uuid.Nil ||
+		*saved.ResourceID != record.ID || !record.ExpiresAt.After(now) {
+		return downloadIntentRecord{}, false
+	}
+	return record, true
+}
+
 type DownloadIntentService struct {
 	DB *pgxpool.Pool
 	Pepper []byte
@@ -89,9 +99,8 @@ func (s DownloadIntentService) Create(ctx context.Context, who auth.Identity,
 				return idempotency.Response{Status: 201, Body: body, ResourceID: &id}, err
 			})
 			if err != nil { return err }
-			var record downloadIntentRecord
-			if json.Unmarshal(saved.Body, &record) != nil || record.ID == uuid.Nil ||
-				!record.ExpiresAt.After(now) { return domain.NewError("DOWNLOAD_INTENT_INVALID", 404) }
+			record, valid := validDownloadIntentReceipt(saved, now)
+			if !valid { return domain.NewError("DOWNLOAD_INTENT_INVALID", 404) }
 			var artifact uuid.UUID
 			var sha, version string
 			err = tx.QueryRow(ctx, `SELECT artifact_id,sha256,object_version FROM photo.v30_delivery_download_target(
@@ -117,8 +126,8 @@ func (s DownloadIntentService) Create(ctx context.Context, who auth.Identity,
 			return ctx.Err()
 		})
 	if err != nil { return DownloadIntent{}, err }
-	var record downloadIntentRecord
-	if json.Unmarshal(saved.Body, &record) != nil || record.ID == uuid.Nil {
+	record, valid := validDownloadIntentReceipt(saved, now)
+	if !valid {
 		return DownloadIntent{}, domain.NewError("DOWNLOAD_INTENT_INVALID", 404)
 	}
 	token := base64.RawURLEncoding.EncodeToString(
