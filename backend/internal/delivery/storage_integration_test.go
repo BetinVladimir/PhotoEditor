@@ -222,7 +222,8 @@ func TestDeliveryDownloadPostSigningAuthorityRejectsUnknownBearer(t *testing.T) 
 		"photo.publications", "photo.asset_versions", "photo.export_presets",
 		"photo.download_volumes", "photo.download_jobs", "photo.memberships",
 		"photo.project_acl", "photo.snapshot_items",
-		"s.collection_id IS DISTINCT FROM j.collection_id"} {
+		"s.collection_id IS DISTINCT FROM j.collection_id",
+		"jsonb_array_elements(CASE WHEN jsonb_typeof(l.allowed_presets)='array'"} {
 		if !strings.Contains(definition, required) {
 			t.Fatal("legacy download post-signing policy recheck missing", required)
 		}
