@@ -30,6 +30,8 @@ class RenderCase(Contract):
         default=None, exclude_if=lambda value: value is None)
     detail_evidence: ArtifactRef | None = Field(
         default=None, exclude_if=lambda value: value is None)
+    series_evidence: ArtifactRef | None = Field(
+        default=None, exclude_if=lambda value: value is None)
     binding: VersionBinding
     working_image: ArtifactRef
     base_recipe: ArtifactRef
@@ -80,10 +82,18 @@ class RenderCase(Contract):
             raise ValueError('INVALID_HOLDOUT_DUST_EVIDENCE')
         if (self.detail_evidence is not None and
                 (self.defect_evidence is not None or self.dust_evidence is not None or
+                 self.series_evidence is not None or
                  self.detail_evidence.artifact_id.int == 0 or
                  any(self.detail_evidence.artifact_id == ref.artifact_id
                      for ref in roots))):
             raise ValueError('INVALID_HOLDOUT_DETAIL_EVIDENCE')
+        if (self.series_evidence is not None and
+                (self.defect_evidence is not None or self.dust_evidence is not None or
+                 self.detail_evidence is not None or
+                 self.series_evidence.artifact_id.int == 0 or
+                 any(self.series_evidence.artifact_id == ref.artifact_id
+                     for ref in roots))):
+            raise ValueError('INVALID_HOLDOUT_SERIES_EVIDENCE')
         return self
 
 

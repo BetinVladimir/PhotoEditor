@@ -57,12 +57,21 @@ func validateDraftManifest(manifest TrainingManifest) bool {
 			return false
 		}
 		if c.DetailEvidence != nil &&
-			(c.DefectEvidence != nil || c.DustEvidence != nil ||
+			(c.DefectEvidence != nil || c.DustEvidence != nil || c.SeriesEvidence != nil ||
 				!validManifestRef(*c.DetailEvidence) ||
 				c.DetailEvidence.ArtifactID == c.WorkingImage.ArtifactID ||
 				c.DetailEvidence.ArtifactID == c.Protected.ArtifactID ||
 				c.DetailEvidence.ArtifactID == c.BaseRecipe.ArtifactID ||
 				c.DetailEvidence.ArtifactID == c.ApprovedRecipe.ArtifactID) {
+			return false
+		}
+		if c.SeriesEvidence != nil &&
+			(c.DefectEvidence != nil || c.DustEvidence != nil ||
+				c.DetailEvidence != nil || !validManifestRef(*c.SeriesEvidence) ||
+				c.SeriesEvidence.ArtifactID == c.WorkingImage.ArtifactID ||
+				c.SeriesEvidence.ArtifactID == c.Protected.ArtifactID ||
+				c.SeriesEvidence.ArtifactID == c.BaseRecipe.ArtifactID ||
+				c.SeriesEvidence.ArtifactID == c.ApprovedRecipe.ArtifactID) {
 			return false
 		}
 		if item.EventID == uuid.Nil || events[item.EventID] ||

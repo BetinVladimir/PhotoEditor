@@ -32,6 +32,7 @@ type TrainingRenderCase struct {
 	DefectEvidence       *v2input.Ref                   `json:"defect_evidence,omitempty"`
 	DustEvidence         *v2input.Ref                   `json:"dust_evidence,omitempty"`
 	DetailEvidence       *v2input.Ref                   `json:"detail_evidence,omitempty"`
+	SeriesEvidence       *v2input.Ref                   `json:"series_evidence,omitempty"`
 	Binding              v2input.SessionVersionBinding  `json:"binding"`
 	WorkingImage         v2input.Ref                    `json:"working_image"`
 	BaseRecipe           v2input.Ref                    `json:"base_recipe"`
@@ -127,10 +128,17 @@ func validResolvedTrainingCase(source EligibleTrainingExample,
 		return false
 	}
 	if render.DetailEvidence != nil &&
-		(render.DefectEvidence != nil || render.DustEvidence != nil ||
+		(render.DefectEvidence != nil || render.DustEvidence != nil || render.SeriesEvidence != nil ||
 			!validManifestRef(*render.DetailEvidence) ||
 			render.DetailEvidence.ArtifactID == render.WorkingImage.ArtifactID ||
 			render.DetailEvidence.ArtifactID == render.Protected.ArtifactID) {
+		return false
+	}
+	if render.SeriesEvidence != nil &&
+		(render.DefectEvidence != nil || render.DustEvidence != nil ||
+			render.DetailEvidence != nil || !validManifestRef(*render.SeriesEvidence) ||
+			render.SeriesEvidence.ArtifactID == render.WorkingImage.ArtifactID ||
+			render.SeriesEvidence.ArtifactID == render.Protected.ArtifactID) {
 		return false
 	}
 	if candidate.EventID != source.EventID ||
