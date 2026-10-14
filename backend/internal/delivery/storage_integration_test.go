@@ -137,6 +137,30 @@ func TestDeliveryDownloadIntentCannotFreezeFabricatedScope(t *testing.T) {
 	if err != nil || created { t.Fatal("fabricated Delivery intent created", err) }
 }
 
+func TestDeliveryDownloadIntentNullHashFailsClosed(t *testing.T) {
+	dsn := os.Getenv("PHOTO_TEST_DATABASE_URL")
+	if dsn == "" { t.Skip("isolated migrated PostgreSQL required") }
+	ctx := context.Background()
+	db, err := pgxpool.New(ctx, dsn)
+	if err != nil { t.Fatal(err) }
+	defer db.Close()
+	var definition string
+	err = db.QueryRow(ctx, `SELECT pg_get_functiondef('photo.create_v30_delivery_download_intent(uuid,uuid,uuid,uuid,text,integer,uuid,text,uuid,bytea,timestamptz)'::regprocedure)`).Scan(&definition)
+	if err != nil || !strings.Contains(definition, "p_token_hash IS NULL OR octet_length(p_token_hash)<>32") {
+		t.Fatal("download intent NULL hash gate missing", err)
+	}
+	tx, err := db.Begin(ctx)
+	if err != nil { t.Fatal(err) }
+	defer tx.Rollback(ctx)
+	if _, err = tx.Exec(ctx, "SET LOCAL ROLE photo_api"); err != nil { t.Fatal(err) }
+	tenantID := uuid.New()
+	if _, err = tx.Exec(ctx, "SELECT set_config('app.tenant_id',$1,true)", tenantID.String()); err != nil { t.Fatal(err) }
+	var created bool
+	err = tx.QueryRow(ctx, `SELECT photo.create_v30_delivery_download_intent($1,$2,$3,$4,'manifest',NULL,NULL,'photo',$5,NULL,clock_timestamp()+interval '30 seconds')`,
+		tenantID, uuid.New(), uuid.New(), uuid.New(), uuid.New()).Scan(&created)
+	if err != nil || created { t.Fatal("NULL hash did not return normal refusal", err, created) }
+}
+
 func TestDeliveryIntentRedemptionRetainsLiveTargetAndObjectVersion(t *testing.T) {
 	dsn := os.Getenv("PHOTO_TEST_DATABASE_URL")
 	if dsn == "" { t.Skip("isolated migrated PostgreSQL required") }
