@@ -22,9 +22,10 @@ type JobTicket struct {
 }
 
 type TaskSource struct {
-	ID     uuid.UUID
-	Open   CursorFactory
-	Direct []Ref
+	ID              uuid.UUID
+	Open            CursorFactory
+	Direct          []Ref
+	IdentityConsent *IdentityConsentInput
 }
 
 type AdmissionStore interface {
@@ -94,7 +95,8 @@ func (c Coordinator) Admit(ctx context.Context, shell DraftShell, key, requestSH
 		if buildErr != nil {
 			return JobTicket{}, buildErr
 		}
-		graph = append(graph, GraphTask{ID: source.ID, Built: built, Open: source.Open, Direct: source.Direct})
+		graph = append(graph, GraphTask{ID: source.ID, Built: built, Open: source.Open,
+			Direct: source.Direct, IdentityConsent: source.IdentityConsent})
 	}
 	if err := c.Store.Seal(ctx, shell.Tenant, run, graph); err != nil {
 		return JobTicket{}, err

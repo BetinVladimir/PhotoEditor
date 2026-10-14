@@ -25,10 +25,21 @@ type Admission struct{ DB *pgxpool.Pool }
 // GraphTask carries an already-published input closure. Open must reopen the
 // same frozen inventory on each transaction retry and performs no object IO.
 type GraphTask struct {
-	ID     uuid.UUID
-	Built  Built
-	Open   CursorFactory
-	Direct []Ref
+	ID              uuid.UUID
+	Built           Built
+	Open            CursorFactory
+	Direct          []Ref
+	IdentityConsent *IdentityConsentInput
+}
+
+// IdentityConsentInput is the exact immutable snapshot for an identity.compare
+// task. The activation function pins its live epochs in the same transaction
+// that seals the graph.
+type IdentityConsentInput struct {
+	Workflow uuid.UUID
+	Ordinal  int
+	Ref      Ref
+	Body     []byte
 }
 
 // CommitGraph registers every task closure and seals the graph atomically.
@@ -50,6 +61,8 @@ func SealGraphInTransaction(ctx context.Context, tx pgx.Tx, tenant, run uuid.UUI
 		return ErrInvalid
 	}
 	seen := make(map[uuid.UUID]struct{}, len(tasks))
+	var identity *IdentityConsentInput
+	var identityTask uuid.UUID
 	for _, task := range tasks {
 		if task.ID == uuid.Nil || task.Open == nil || !validBuilt(task.Built, task.Direct) {
 			return ErrInvalid
@@ -58,6 +71,27 @@ func SealGraphInTransaction(ctx context.Context, tx pgx.Tx, tenant, run uuid.UUI
 			return ErrInvalid
 		}
 		seen[task.ID] = struct{}{}
+		if task.IdentityConsent != nil {
+			pin := task.IdentityConsent
+			expectedWorkflow, err := WorkflowID(run)
+			if err != nil || pin.Workflow != expectedWorkflow || len(tasks) != 1 ||
+				!identityPinnedDocument(pin.Ref, pin.Body) ||
+				ValidateSessionConsentSnapshot(pin.Body) != nil {
+				return ErrInvalid
+			}
+			expectedTask, err := TaskID(pin.Workflow, "identity.compare", pin.Ordinal)
+			if err != nil || task.ID != expectedTask {
+				return ErrInvalid
+			}
+			found := false
+			for _, ref := range task.Direct {
+				found = found || ref == pin.Ref
+			}
+			if !found {
+				return ErrInvalid
+			}
+			identity, identityTask = pin, task.ID
+		}
 	}
 	for _, task := range tasks {
 		if err := RegisterInTransaction(ctx, tx, tenant, run, task.ID,
@@ -66,7 +100,13 @@ func SealGraphInTransaction(ctx context.Context, tx pgx.Tx, tenant, run uuid.UUI
 		}
 	}
 	var sealed bool
-	if err := tx.QueryRow(ctx, "SELECT photo.seal_v2_graph($1,$2)", tenant, run).Scan(&sealed); err != nil {
+	statement := "SELECT photo.seal_v2_graph($1,$2)"
+	args := []any{tenant, run}
+	if identity != nil {
+		statement = "SELECT photo.activate_v23_identity_compare($1,$2,$3,$4,$5)"
+		args = append(args, identity.Workflow, identityTask, string(identity.Body))
+	}
+	if err := tx.QueryRow(ctx, statement, args...).Scan(&sealed); err != nil {
 		return err
 	}
 	if !sealed {
@@ -120,17 +160,20 @@ func validBuilt(built Built, direct []Ref) bool {
 // the verified transport references. Its caller must roll back on any error;
 // no object IO is allowed while the transaction is open.
 func RegisterInTransaction(ctx context.Context, tx pgx.Tx, tenant, run, task uuid.UUID,
- built Built, open CursorFactory, direct []Ref) error {
- return registerTaskInputs(ctx,tx,tenant,run,task,built,open,direct,nil)
+	built Built, open CursorFactory, direct []Ref) error {
+	return registerTaskInputs(ctx, tx, tenant, run, task, built, open, direct, nil)
 }
+
 // RegisterInterchangeInTransaction uses a fixed dedicated SQL dialect for late
 // import continuations. Caller must roll back the entire registration on error.
-func RegisterInterchangeInTransaction(ctx context.Context,tx pgx.Tx,tenant,run,task uuid.UUID,built Built,open CursorFactory,direct []Ref,parsed []byte)error{
- if len(parsed)<2||len(parsed)>8<<20{return ErrInvalid}
- return registerTaskInputs(ctx,tx,tenant,run,task,built,open,direct,append([]byte(nil),parsed...))
+func RegisterInterchangeInTransaction(ctx context.Context, tx pgx.Tx, tenant, run, task uuid.UUID, built Built, open CursorFactory, direct []Ref, parsed []byte) error {
+	if len(parsed) < 2 || len(parsed) > 8<<20 {
+		return ErrInvalid
+	}
+	return registerTaskInputs(ctx, tx, tenant, run, task, built, open, direct, append([]byte(nil), parsed...))
 }
 func registerTaskInputs(ctx context.Context, tx pgx.Tx, tenant, run, task uuid.UUID,
- built Built, open CursorFactory, direct []Ref, parsed []byte) error {
+	built Built, open CursorFactory, direct []Ref, parsed []byte) error {
 	if tx == nil || tenant == uuid.Nil || run == uuid.Nil || task == uuid.Nil ||
 		open == nil || !validBuilt(built, direct) {
 		return ErrInvalid
@@ -160,10 +203,13 @@ func registerTaskInputs(ctx context.Context, tx pgx.Tx, tenant, run, task uuid.U
 		}
 		first := count - len(batch)
 		var inserted int
-        statement:="SELECT photo.register_v2_task_input_batch($1,$2,$3,$4,$5)"
-        args:=[]any{tenant,run,task,first,json.RawMessage(payload)}
-        if parsed!=nil{statement="SELECT photo.register_v30_interchange_input_batch($1,$2,$3,$4,$5,$6)";args=append(args,string(parsed))}
-        if err := tx.QueryRow(ctx,statement,args...).Scan(&inserted); err != nil {
+		statement := "SELECT photo.register_v2_task_input_batch($1,$2,$3,$4,$5)"
+		args := []any{tenant, run, task, first, json.RawMessage(payload)}
+		if parsed != nil {
+			statement = "SELECT photo.register_v30_interchange_input_batch($1,$2,$3,$4,$5,$6)"
+			args = append(args, string(parsed))
+		}
+		if err := tx.QueryRow(ctx, statement, args...).Scan(&inserted); err != nil {
 			return err
 		}
 		if inserted != len(batch) {
@@ -213,10 +259,13 @@ func registerTaskInputs(ctx context.Context, tx pgx.Tx, tenant, run, task uuid.U
 	chunks, _ := json.Marshal(built.Chunks)
 	roots, _ := json.Marshal(direct)
 	var sealed bool
-    statement:="SELECT photo.seal_v2_task_inputs($1,$2,$3,$4,$5,$6,$7,$8)"
-    args:=[]any{tenant,run,task,json.RawMessage(manifest),json.RawMessage(chunks),built.Count,built.SHA256,json.RawMessage(roots)}
-    if parsed!=nil{statement="SELECT photo.seal_v30_interchange_inputs($1,$2,$3,$4,$5,$6,$7,$8,$9)";args=append(args,string(parsed))}
-    if err:=tx.QueryRow(ctx,statement,args...).Scan(&sealed);err!=nil{
+	statement := "SELECT photo.seal_v2_task_inputs($1,$2,$3,$4,$5,$6,$7,$8)"
+	args := []any{tenant, run, task, json.RawMessage(manifest), json.RawMessage(chunks), built.Count, built.SHA256, json.RawMessage(roots)}
+	if parsed != nil {
+		statement = "SELECT photo.seal_v30_interchange_inputs($1,$2,$3,$4,$5,$6,$7,$8,$9)"
+		args = append(args, string(parsed))
+	}
+	if err := tx.QueryRow(ctx, statement, args...).Scan(&sealed); err != nil {
 		return err
 	}
 	if !sealed {

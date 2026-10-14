@@ -2,6 +2,8 @@ package v2input
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -143,5 +145,44 @@ func TestGraphAdmissionSealsOnlyAfterAllTaskInputs(t *testing.T) {
 	if err := SealGraphInTransaction(ctx, &admissionTx{sealGraph: true}, tenant, run,
 		[]GraphTask{graph[0], graph[0]}); !errors.Is(err, ErrInvalid) {
 		t.Fatalf("duplicate task accepted: %v", err)
+	}
+}
+
+func TestIdentityCompareGraphUsesAtomicConsentActivation(t *testing.T) {
+	ctx := context.Background()
+	tenant, run := uuid.New(), uuid.New()
+	workflow, err := WorkflowID(run)
+	if err != nil {
+		t.Fatal(err)
+	}
+	task, err := TaskID(workflow, "identity.compare", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := []byte(`{"confirmed_faces":[],"grants":[],"schema_version":1}`)
+	sum := sha256.Sum256(body)
+	ref := Ref{ArtifactID: uuid.New(), SHA256: hex.EncodeToString(sum[:])}
+	entries := []Entry{{Ref: ref, Contract: "ConsentSnapshot"}}
+	built, err := BuildInputClosure(ctx, task, &entryCursor{entries: entries},
+		&memoryPublisher{bodies: make(map[uuid.UUID][]byte)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	graph := GraphTask{ID: task, Built: built, Direct: []Ref{ref},
+		Open:            func(context.Context) (Cursor, error) { return &entryCursor{entries: entries}, nil },
+		IdentityConsent: &IdentityConsentInput{Workflow: workflow, Ordinal: 0, Ref: ref, Body: body}}
+	tx := &admissionTx{sealGraph: true}
+	if err := SealGraphInTransaction(ctx, tx, tenant, run, []GraphTask{graph}); err != nil {
+		t.Fatal(err)
+	}
+	last := tx.calls[len(tx.calls)-1]
+	if !strings.Contains(last.query, "activate_v23_identity_compare") || len(last.args) != 5 ||
+		last.args[2] != workflow || last.args[3] != task || last.args[4] != string(body) {
+		t.Fatalf("identity activation not bound to exact task/snapshot: %+v", last)
+	}
+	graph.IdentityConsent.Body = append(append([]byte(nil), body...), ' ')
+	tx = &admissionTx{sealGraph: true}
+	if err := SealGraphInTransaction(ctx, tx, tenant, run, []GraphTask{graph}); !errors.Is(err, ErrInvalid) || len(tx.calls) != 0 {
+		t.Fatal("changed snapshot reached SQL", err)
 	}
 }
