@@ -16,9 +16,10 @@ def verify_semantic_geometry(reader,params_ref,root_ref,*,check_active=lambda:No
     Those must be verified independently before adopting the complete closure.
     """
     def ref(value):return ArtifactRef(value.artifact_id,value.sha256)
-    def document(value,model,source):
+    def document(value,model,source,role=None):
         check_active();evidence=reader.evidence(value)
-        if evidence.ref!=value or evidence.source!=source or evidence.media_type!='application/json':
+        if (evidence.ref!=value or evidence.source!=source or evidence.media_type!='application/json'
+                or (role is not None and evidence.role!=role)):
             raise AdoptionInvalid('SEMANTIC_ADOPTION_EVIDENCE_INVALID')
         raw=reader.read_json(value,MAX_JSON_BYTES);check_active()
         if (not isinstance(raw,bytes) or len(raw)>MAX_JSON_BYTES or len(raw)!=evidence.bytes
@@ -26,7 +27,7 @@ def verify_semantic_geometry(reader,params_ref,root_ref,*,check_active=lambda:No
         try:return model.model_validate_json(raw)
         except ValueError as error:raise AdoptionInvalid('SEMANTIC_ADOPTION_CONTRACT_INVALID') from error
     params=document(params_ref,SemanticTransferParams,'input')
-    candidate=document(root_ref,TransferCandidate,'output')
+    candidate=document(root_ref,TransferCandidate,'output','document')
     if candidate.target!=params.target:raise AdoptionInvalid('SEMANTIC_ADOPTION_TARGET_CHANGED')
     if candidate.state!='proposed':
         if candidate.mask is not None or candidate.transform is not None or candidate.reason is None:
@@ -36,8 +37,8 @@ def verify_semantic_geometry(reader,params_ref,root_ref,*,check_active=lambda:No
         raise AdoptionInvalid('SEMANTIC_ADOPTION_STATE_INVALID')
     reference=document(ref(params.reference.source),WorkingImage,'input')
     target=document(ref(params.target.source),WorkingImage,'input')
-    mask=document(ref(candidate.mask),MaskRef,'output')
-    transform=document(ref(candidate.transform),ResolvedTransform,'output')
+    mask=document(ref(candidate.mask),MaskRef,'output','mask')
+    transform=document(ref(candidate.transform),ResolvedTransform,'output','transform')
     if canonical_hash(reference.canvas)!=params.reference.canvas_hash or canonical_hash(target.canvas)!=params.target.canvas_hash:
         raise AdoptionInvalid('SEMANTIC_ADOPTION_SOURCE_CHANGED')
     if (mask.canvas!=target.canvas or mask.transform_chain!=target.transform_chain or mask.protected

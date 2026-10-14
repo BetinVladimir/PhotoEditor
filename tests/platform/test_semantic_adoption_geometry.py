@@ -10,7 +10,8 @@ from test_image_denoise import Artifacts
 from test_semantic_transfer_contracts import transfer_documents
 
 
-@pytest.mark.parametrize('variant',['valid','canvas','confidence','model','transform','reflection','target'])
+@pytest.mark.parametrize('variant',['valid','canvas','confidence','model','transform','reflection','target',
+                                     'candidate_role','mask_role','transform_role'])
 def test_semantic_adoption_pinned_mask_and_transform(tmp_path,variant):
     a=Artifacts(tmp_path);params,_,_=transfer_documents();reader=Reader()
     def put(value,source='output',role='document'):
@@ -27,11 +28,13 @@ def test_semantic_adoption_pinned_mask_and_transform(tmp_path,variant):
         matrix=[1,0,0,0,1,0,0,0,1],kind='homography')
     if variant=='transform':transform.to_canvas_hash='f'*64
     if variant=='reflection':transform.matrix[0]=-1
-    candidate=TransferCandidate(schema_version=1,target=binding,mask=put(mask,role='mask'),transform=put(transform,role='transform'),
+    candidate=TransferCandidate(schema_version=1,target=binding,
+        mask=put(mask,role='document' if variant=='mask_role' else 'mask'),
+        transform=put(transform,role='document' if variant=='transform_role' else 'transform'),
         confidence=.8,state='proposed',reason=None)
     if variant=='target':candidate.target=candidate.target.model_copy(update={'asset_version_id':uuid4()})
     def typed(value):return ArtifactRef(value['artifact_id'],value['sha256'])
-    params_ref=typed(put(params,'input'));root=typed(put(candidate))
+    params_ref=typed(put(params,'input'));root=typed(put(candidate,role='mask' if variant=='candidate_role' else 'document'))
     if variant=='valid':verify_semantic_geometry(reader,params_ref,root)
     else:
         with pytest.raises(AdoptionInvalid,match='SEMANTIC_ADOPTION_'):verify_semantic_geometry(reader,params_ref,root)
