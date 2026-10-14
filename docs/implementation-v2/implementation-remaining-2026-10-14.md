@@ -69,6 +69,8 @@
 
 Миграция `02045_v30_scheduler_working_array.sql` и `SQLSchedulerExportInputCatalog.QualifyExportWorkingArray` переносят первый native authority: текущая связь `WorkingImage → WorkingPixels/WorkingAlpha` проверяется по frozen snapshot и одному producer task/attempt/fence под claim, с повторным чтением versioned pins. Реальная native closure требует ещё остальных authority (`DenseWarp`, LUT, defect, mask, Params mask, resolved origin) и process-installed probes; 02045 и тесты не выполнялись.
 
+Миграция `02046_v30_scheduler_lut_origin.sql` и `SQLSchedulerExportInputCatalog.QualifyExportLUT` добавляют второй native authority: frozen source snapshot, exact `ResolvedStyle → AbsoluteLUTArray` edge и текущий canonical `style.resolve` producer с attempt/fence/outputs проверяются под claim; object pins повторно читаются после SQL. Остальные native authority и runtime installation открыты; 02046 и тесты не выполнялись.
+
 ## Граница первого MVP
 
 Обязательны пункты 1–5 на выбранной и явно опубликованной матрице камер/форматов/операций. V23 learning, V24 on-set, V27 semantic, расширенные V28/V29, interchange и V31 C2PA желательны после первого MVP, если продукт не обещает их пользователю. Любая включённая в интерфейсе или маркетинговом обещании функция сразу получает полный P0-критерий своей сквозной трассы. Такое разделение определяет релизную очередь, но не сокращает цель V20–V32.
