@@ -22,10 +22,13 @@ func TestExpansionLoopCancelsInflightAndClearsReady(t *testing.T) {
 		done <- RunExpansionLoop(ctx, loopJob(func(c context.Context) (bool, error) { close(entered); <-c.Done(); return false, c.Err() }), state, time.Millisecond)
 	}()
 	<-entered
+	if !state.Started.Load() {
+		t.Fatal("running loop not marked started")
+	}
 	cancel()
 	select {
 	case err := <-done:
-		if err != nil || state.Ready.Load() || state.Failures.Load() != 0 {
+		if err != nil || state.Ready.Load() || state.Started.Load() || state.Failures.Load() != 0 {
 			t.Fatal("shutdown counted as failure", err)
 		}
 	case <-time.After(time.Second):

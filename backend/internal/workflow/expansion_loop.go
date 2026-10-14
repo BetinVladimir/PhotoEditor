@@ -12,6 +12,7 @@ type ExpansionJob interface {
 }
 type ExpansionLoopState struct {
 	Ready                  atomic.Bool
+	Started                atomic.Bool
 	Materialized, Failures atomic.Uint64
 }
 
@@ -22,8 +23,12 @@ func RunExpansionLoop(ctx context.Context, job ExpansionJob, state *ExpansionLoo
 	if job == nil || state == nil || idle <= 0 {
 		return errors.New("invalid expansion loop")
 	}
-	defer state.Ready.Store(false)
+	defer func() {
+		state.Ready.Store(false)
+		state.Started.Store(false)
+	}()
 	for ctx.Err() == nil {
+		state.Started.Store(true)
 		done, err := job.ProcessOne(ctx)
 		if ctx.Err() != nil {
 			return nil

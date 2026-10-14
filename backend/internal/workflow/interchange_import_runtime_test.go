@@ -19,6 +19,10 @@ func TestInterchangeImportRuntimeSQLRequiresSchedulerPool(t *testing.T) {
 
 func TestInterchangeImportLoopEligibilityDuringFirstLongJob(t *testing.T) {
 	state := &ExpansionLoopState{}
+	if interchangeImportLoopEligible(state) {
+		t.Fatal("import advertised before loop starts")
+	}
+	state.Started.Store(true)
 	if !interchangeImportLoopEligible(state) {
 		t.Fatal("installed loop unavailable while first job is active")
 	}
@@ -29,5 +33,9 @@ func TestInterchangeImportLoopEligibilityDuringFirstLongJob(t *testing.T) {
 	state.Ready.Store(true)
 	if !interchangeImportLoopEligible(state) {
 		t.Fatal("recovered import loop unavailable")
+	}
+	state.Started.Store(false)
+	if interchangeImportLoopEligible(state) {
+		t.Fatal("stopped import loop advertised")
 	}
 }
