@@ -38,6 +38,15 @@ the occurrence and locator after evidence IO and again after signing, verifies
 its own signature against the configured public key and emits canonical bytes.
 The occurrence authority and production signer installation are not yet wired;
 the issuer is not reachable from the export API.
+The current `mask.person` worker emits `selector: "person", protected: false`,
+while `editor.ValidateOverride` admits that selector neither as a protected
+binding (which requires `protected: true`) nor for the existing unprotected
+purposes. The SQL override provenance gate also admits only `mask.rasterize`
+and `mask.prompt` producers. Therefore a purported person-mask Override
+occurrence is currently impossible through the editor API. The source contract
+must gain an explicit person-purpose admission and exact `mask.person` producer
+lineage before an occurrence authority can sign any such receipt. An occurrence
+checker that merely finds the mask SHA in a recipe would be unsound.
 Import must verify the receipt against configured issuer trust, archive bytes
 and target source remap; store its exact hash and issuer/key in a new scoped
 forward-only table, and require that live receipt **and** the separate current

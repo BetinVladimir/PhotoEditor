@@ -1,6 +1,7 @@
 package interchange
 
 import (
+	"bytes"
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
@@ -34,13 +35,15 @@ func (s *personOriginLocatorStub) LookupPortablePersonOrigin(_ context.Context,
 }
 
 type personOriginOccurrenceStub struct {
-	calls int
-	deny  bool
+	calls  int
+	deny   bool
+	bodies [][]byte
 }
 
 func (s *personOriginOccurrenceStub) QualifyPortablePersonOriginOccurrence(_ context.Context,
-	_ PortablePersonOriginExpectation, _ []byte) error {
+	_ PortablePersonOriginExpectation, body []byte) error {
 	s.calls++
+	s.bodies = append(s.bodies, append([]byte(nil), body...))
 	if s.deny {
 		return v2input.ErrInvalid
 	}
@@ -159,7 +162,10 @@ func TestPortablePersonOriginIssuerRequiresPhysicalOriginAndStableAuthority(t *t
 			raw, err := issuer.Issue(ctx, scope)
 			if mode == "valid" {
 				if err != nil || len(raw) < 2 || locator.calls != 3 || occurrence.calls != 2 ||
-					reader.calls != 1 || signer.calls != 1 {
+					reader.calls != 1 || signer.calls != 1 ||
+					len(occurrence.bodies) != 2 ||
+					!bytes.Equal(occurrence.bodies[0], reader.mask.Body) ||
+					!bytes.Equal(occurrence.bodies[1], reader.mask.Body) {
 					t.Fatalf("valid issue failed: %v", err)
 				}
 			} else if err == nil || len(raw) != 0 {
