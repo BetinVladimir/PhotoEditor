@@ -40,6 +40,10 @@ func TestIntegrationSigningAdopterRuntimeAdmission(t *testing.T) {
 			t.Fatal("signing admission bypasses adopter", signature)
 		}
 	}
+	var activationDefinition string
+	if err := tx.QueryRow(ctx, `SELECT pg_get_functiondef('photo.activate_v31_signing_pre_session(uuid,uuid,uuid,text,text,jsonb,jsonb)'::regprocedure)`).Scan(&activationDefinition); err != nil || !strings.Contains(activationDefinition, "SIGNING_ADOPTER_UNAVAILABLE") || strings.Index(activationDefinition, "v31_signing_transport_ready") > strings.Index(activationDefinition, "SIGNING_ADOPTER_UNAVAILABLE") {
+		t.Fatal("V31 activation runtime refusal lacks transport proof", err)
+	}
 	instance, policy := uuid.New(), uuid.New()
 	sha := strings.Repeat("a", 64)
 	params := `{"schema_version":1,"signing_policy_id":"` + policy.String() + `","policy":{"sha256":"` + sha + `"}}`

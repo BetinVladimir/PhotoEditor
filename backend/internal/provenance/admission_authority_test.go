@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"photoeditor/backend/internal/artifactjson"
 	"photoeditor/backend/internal/auth"
@@ -227,7 +228,7 @@ func TestSigningAdmissionChecksPrivateReceiptBeforeSQL(t *testing.T) {
 						t.Fatal("cancelled publication reached storage")
 					}
 				}
-				for _, activationMode := range []string{"valid", "scope", "batch", "seal", "activation", "sql_error", "cancelled"} {
+				for _, activationMode := range []string{"valid", "scope", "batch", "seal", "activation", "adopter_unavailable", "sql_error", "cancelled"} {
 					activationTx := &signingActivationTx{}
 					activationCtx := ctx
 					switch activationMode {
@@ -242,6 +243,9 @@ func TestSigningAdmissionChecksPrivateReceiptBeforeSQL(t *testing.T) {
 					case "sql_error":
 						activationTx.failAt = 4
 						activationTx.err = cause
+					case "adopter_unavailable":
+						activationTx.failAt = 4
+						activationTx.err = &pgconn.PgError{Code: "P0001", Message: "SIGNING_ADOPTER_UNAVAILABLE"}
 					case "cancelled":
 						var cancel context.CancelFunc
 						activationCtx, cancel = context.WithCancel(ctx)
@@ -254,6 +258,9 @@ func TestSigningAdmissionChecksPrivateReceiptBeforeSQL(t *testing.T) {
 						}
 					} else if err == nil || ticket.RunID != uuid.Nil {
 						t.Fatal("failed activation exposed ticket")
+					}
+					if activationMode == "adopter_unavailable" && domain.AsError(err).Code != "SIGNING_UNAVAILABLE" {
+						t.Fatal("lost adopter lease not classified", err)
 					}
 					if activationMode == "cancelled" && activationTx.calls != 0 {
 						t.Fatal("cancelled activation reached SQL")

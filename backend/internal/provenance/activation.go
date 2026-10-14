@@ -2,10 +2,13 @@ package provenance
 
 import (
 	"context"
+	"errors"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"photoeditor/backend/internal/artifactjson"
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/canonical"
+	"photoeditor/backend/internal/domain"
 	"photoeditor/backend/internal/v2input"
 )
 
@@ -35,6 +38,10 @@ func ActivateSigningInTransaction(ctx context.Context, tx pgx.Tx, who auth.Ident
 	i := prepared.intent
 	var accepted bool
 	if err := tx.QueryRow(ctx, `SELECT photo.activate_v31_signing($1,$2,$3,$4,$5,$6::jsonb,$7::jsonb)`, i.tenant, who.UserID, who.SessionID, i.key, i.requestSHA, string(task), string(manifest)).Scan(&accepted); err != nil {
+		var refusal *pgconn.PgError
+		if errors.As(err, &refusal) && refusal.Code == "P0001" && refusal.Message == "SIGNING_ADOPTER_UNAVAILABLE" {
+			return zero, domain.NewError("SIGNING_UNAVAILABLE", 503)
+		}
 		return zero, err
 	}
 	if err := ctx.Err(); err != nil {
