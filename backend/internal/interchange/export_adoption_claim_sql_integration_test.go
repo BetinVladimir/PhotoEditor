@@ -14,7 +14,7 @@ import (
 func TestIntegrationExportAdoptionClaimPrivateRoleAndMissingLease(t *testing.T) {
 	dsn := os.Getenv("PHOTO_TEST_DATABASE_URL")
 	if dsn == "" {
-		t.Skip("isolated PostgreSQL through migration02037 required")
+		t.Skip("isolated PostgreSQL through migration02038 required")
 	}
 	ctx := context.Background()
 	db, err := pgxpool.New(ctx, dsn)
@@ -27,6 +27,7 @@ func TestIntegrationExportAdoptionClaimPrivateRoleAndMissingLease(t *testing.T) 
 		"photo.v30_export_adoption_claim_current(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid)",
 		"photo.v30_export_adoption_root_output(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid)",
 		"photo.v30_export_adoption_output(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,text,text)",
+		"photo.v30_export_adoption_frozen(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid)",
 	} {
 		for _, role := range []string{"photo_scheduler", "photo_api", "photo_worker", "photo_gateway", "photo_portal"} {
 			var allowed bool
@@ -64,5 +65,12 @@ func TestIntegrationExportAdoptionClaimPrivateRoleAndMissingLease(t *testing.T) 
 		rawSHA([]byte("request")), uuid.New(), uuid.New(), rawSHA([]byte("output")), "MappingReport").Scan(&output)
 	if !errors.Is(err, pgx.ErrNoRows) {
 		t.Fatal("missing claim exposed output object", output, err)
+	}
+	var frozen []byte
+	err = db.QueryRow(ctx, `SELECT photo.v30_export_adoption_frozen($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+		uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New(), "missing-claim",
+		rawSHA([]byte("request")), uuid.New()).Scan(&frozen)
+	if err != nil || len(frozen) != 0 {
+		t.Fatal("missing claim exposed frozen plan", err)
 	}
 }

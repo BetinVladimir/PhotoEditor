@@ -49,6 +49,8 @@
 
 Миграция `02037_v30_export_adoption_outputs.sql` и `SQLSchedulerExportOutputCatalog` расширяют чтение на позиционные InterchangeResult/MappingReport/MappingShard/InterchangeArchive того же canonical result; каталог повторяет lease до и после lookup. Дальше нужно восстановить frozen документы из ledger, собрать `ExportResultReader`, установить input resolver для portable closure и сделать атомарный adoption. 02037 и сценарии не выполнялись.
 
+Миграция `02038_v30_export_adoption_frozen.sql` и `SQLExportAdoptionClaimStore.FrozenExportAdoption` дают служебное чтение original frozen ledger и детерминированную реконструкцию через существующий `DecodeFrozenExportDocuments`. `exportIntentFromClaim` не создаёт фиктивную user session и не является самостоятельным разрешением. Следующие стадии — result reader, portable input closure, transactional adoption и scheduler installation. 02038 и сценарии не запускались.
+
 ## Граница первого MVP
 
 Обязательны пункты 1–5 на выбранной и явно опубликованной матрице камер/форматов/операций. V23 learning, V24 on-set, V27 semantic, расширенные V28/V29, interchange и V31 C2PA желательны после первого MVP, если продукт не обещает их пользователю. Любая включённая в интерфейсе или маркетинговом обещании функция сразу получает полный P0-критерий своей сквозной трассы. Такое разделение определяет релизную очередь, но не сокращает цель V20–V32.

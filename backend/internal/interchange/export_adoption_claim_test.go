@@ -25,6 +25,16 @@ func TestExportAdoptionClaimRequiresFrozenIdentityAndRequest(t *testing.T) {
 	if err := good.validate(); err != nil {
 		t.Fatal("valid scheduler discovery refused", err)
 	}
+	intent, err := exportIntentFromClaim(good)
+	if err != nil || intent.Identity.Run != good.Run || intent.Identity.Task != good.Task ||
+		intent.Identity.Snapshot != snapshot || intent.RequestSHA != sha ||
+		intent.Identity.Params != uuid.NewSHA1(good.Task, []byte("interchange:params:1")) {
+		t.Fatal("scheduler intent changed frozen identity", err)
+	}
+	*intent.Request.SnapshotID = uuid.New()
+	if *good.Request.SnapshotID != snapshot {
+		t.Fatal("scheduler intent aliased claimed request")
+	}
 	for name, mutate := range map[string]func(*ExportAdoptionClaim){
 		"foreign tenant": func(c *ExportAdoptionClaim) { c.Tenant = uuid.New() },
 		"foreign task":   func(c *ExportAdoptionClaim) { c.Task = uuid.New() },
@@ -66,6 +76,12 @@ func TestExportAdoptionClaimStoreFailsClosedWithoutDatabase(t *testing.T) {
 	}
 	if _, _, err := store.RootExportAdoption(ctx, ExportAdoptionClaim{}, "photos"); err != context.Canceled {
 		t.Fatal("cancelled root read queried", err)
+	}
+	if _, _, err := store.FrozenExportAdoption(context.Background(), ExportAdoptionClaim{}); err != v2input.ErrInvalid {
+		t.Fatal("frozen recovery without installation accepted", err)
+	}
+	if _, _, err := store.FrozenExportAdoption(ctx, ExportAdoptionClaim{}); err != context.Canceled {
+		t.Fatal("cancelled frozen recovery queried", err)
 	}
 	catalog := SQLSchedulerExportOutputCatalog{Claims: store, Bucket: "photos"}
 	if _, err := catalog.LookupExportOutput(context.Background(), v2input.Entry{}); err != v2input.ErrInvalid {
