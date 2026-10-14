@@ -31,7 +31,8 @@ type ImportExecutionPreparation struct {
 // replayable receipts; it never activates the task or returns an accepted job.
 func (p ImportExecutionPreparation) Prepare(ctx context.Context, tenant uuid.UUID, documents ImportPreparedDocuments, task v2input.DraftTask, parsed []byte) error {
  if err:=ctx.Err();err!=nil{return err}
- if tenant==uuid.Nil||p.Documents==nil||p.Resolver==nil||p.Materializer==nil||p.Transport==nil||p.Registrar==nil{return v2input.ErrInvalid}
+ if tenant==uuid.Nil||documents.evidence==nil||p.Documents==nil||p.Resolver==nil||p.Materializer==nil||p.Transport==nil||p.Registrar==nil{return v2input.ErrInvalid}
+ if _,err:=importParamsRoots(documents);err!=nil{return err}
  task.ExecutionProfile=append(json.RawMessage(nil),task.ExecutionProfile...)
  parsed=append([]byte(nil),parsed...)
  if err:=validateImportTask(documents,task);err!=nil{return err}

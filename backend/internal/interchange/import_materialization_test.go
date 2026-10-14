@@ -8,8 +8,8 @@ import (
  "photoeditor/backend/internal/v2input"
 )
 type importMaterializerStub struct{calls int;publisher *importDocumentPublisherStub}
-func(s *importMaterializerStub)MaterializeImport(_ context.Context,_ ImportPreparedDocuments,_ v2input.DraftTask)error{
- s.calls++;if len(s.publisher.calls)!=2{return objectstore.ErrIntegrity};return nil
+func(s *importMaterializerStub)MaterializeImport(_ context.Context,documents ImportPreparedDocuments,_ v2input.DraftTask)error{
+ s.calls++;if len(s.publisher.calls)!=len(documents.Documents()){return objectstore.ErrIntegrity};return nil
 }
 func importMaterializationFixture(t *testing.T)(ImportPreparedDocuments,v2input.DraftTask){
  identity,doc:=importPublicationFixture();documents,err:=FreezeImportDocuments(identity,v2input.Ref{ArtifactID:uuid.New(),SHA256:rawSHA([]byte(`{}`))},doc.Body);if err!=nil{t.Fatal(err)}

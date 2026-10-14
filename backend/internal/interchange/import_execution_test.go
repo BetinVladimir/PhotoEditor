@@ -6,18 +6,36 @@ import (
  "testing"
 
  "github.com/google/uuid"
+ "photoeditor/backend/internal/canonical"
  "photoeditor/backend/internal/v2input"
 )
 
 type importRegistrarStub struct{calls int;materializer *importMaterializerStub;publisher *transportPublisher;fail error}
 func(s *importRegistrarStub)RegisterImportInputs(_ context.Context,t ImportTransport,parsed []byte)error{
  s.calls++
- if s.materializer.calls!=1||s.publisher.calls!=2||t.built.Count!=3||string(parsed)!="{}"{return v2input.ErrInvalid}
+ if s.materializer.calls!=1||s.publisher.calls!=2||t.built.Count!=4||string(parsed)!="{}"{return v2input.ErrInvalid}
  return s.fail
 }
 
+func executableImportClosureFixture(t *testing.T)(ImportPreparedDocuments,*importNodeResolverStub){
+ docs,resolver:=importClosureFixture(t)
+ evidence:=ImportDocument{Purpose:"v30_interchange_import_evidence",Ref:v2input.Ref{ArtifactID:uuid.NewSHA1(docs.TaskID(),[]byte("interchange:evidence:1")),SHA256:rawSHA([]byte(`{}`))},Body:[]byte(`{}`)}
+ docs.evidence=&evidence
+ var params importParamsDocument
+ if err:=decodeImportDocument(docs.params.Body,&params);err!=nil{t.Fatal(err)}
+ params.Evidence=&evidence.Ref
+ raw,err:=canonical.Marshal(params);if err!=nil{t.Fatal(err)}
+ oldID:=docs.params.Ref.ArtifactID
+ docs.params.Body=raw;docs.params.Ref.SHA256=rawSHA(raw)
+ root:=resolver.nodes[oldID];root.Entry.Ref=docs.params.Ref;root.Body=raw
+ root.Children=append(root.Children,v2input.Entry{Ref:evidence.Ref,Contract:"FrozenInterchangeImportEvidence"})
+ resolver.nodes[oldID]=root
+ resolver.nodes[evidence.Ref.ArtifactID]=ImportClosureNode{Entry:v2input.Entry{Ref:evidence.Ref,Contract:"FrozenInterchangeImportEvidence"},Body:evidence.Body}
+ return docs,resolver
+}
+
 func TestImportExecutionPreparesCompleteBlockedInputs(t *testing.T){
- docs,resolver:=importClosureFixture(t);tenant:=uuid.New()
+ docs,resolver:=executableImportClosureFixture(t);tenant:=uuid.New()
  inventory,err:=ResolveImportInputInventory(context.Background(),tenant,docs,resolver);if err!=nil{t.Fatal(err)}
  _,task:=importMaterializationFixture(t)
  task.ID=docs.TaskID();task.ParamsArtifactID=docs.params.Ref.ArtifactID;task.ParamsSHA=docs.params.Ref.SHA256;task.InputDigest=inventory.InputDigest()
@@ -43,9 +61,27 @@ func TestImportExecutionPreparesCompleteBlockedInputs(t *testing.T){
 }
 
 func TestImportExecutionRejectsForeignParsedBeforePublication(t *testing.T){
- docs,task:=importMaterializationFixture(t);publisher:=&importDocumentPublisherStub{}
+ docs,_:=executableImportClosureFixture(t);_,task:=importMaterializationFixture(t)
+ task.ID=docs.TaskID();task.ParamsArtifactID=docs.params.Ref.ArtifactID;task.ParamsSHA=docs.params.Ref.SHA256
+ publisher:=&importDocumentPublisherStub{}
  prep:=ImportExecutionPreparation{Documents:publisher,Resolver:&importNodeResolverStub{},Materializer:&importMaterializerStub{},Transport:&transportPublisher{},Registrar:&importRegistrarStub{}}
  if err:=prep.Prepare(context.Background(),uuid.New(),docs,task,[]byte(`{"foreign":true}`));err==nil||len(publisher.calls)!=0{t.Fatal("foreign parsed reached publication")}
  ctx,cancel:=context.WithCancel(context.Background());cancel()
  if err:=prep.Prepare(ctx,uuid.New(),docs,task,[]byte(`{}`));!errors.Is(err,context.Canceled){t.Fatal("cancellation lost",err)}
+}
+
+func TestImportExecutionRejectsLegacyParamsBeforePublication(t *testing.T){
+ docs,task:=importMaterializationFixture(t)
+ publisher:=&importDocumentPublisherStub{}
+ prep:=ImportExecutionPreparation{Documents:publisher,Resolver:&importNodeResolverStub{},Materializer:&importMaterializerStub{},Transport:&transportPublisher{},Registrar:&importRegistrarStub{}}
+ if err:=prep.Prepare(context.Background(),uuid.New(),docs,task,[]byte(`{}`));err==nil||len(publisher.calls)!=0{t.Fatal("legacy Params reached executable publication",err)}
+}
+
+func TestImportExecutionRejectsForeignEvidenceBeforePublication(t *testing.T){
+ docs,_:=executableImportClosureFixture(t);_,task:=importMaterializationFixture(t)
+ task.ID=docs.TaskID();task.ParamsArtifactID=docs.params.Ref.ArtifactID;task.ParamsSHA=docs.params.Ref.SHA256
+ docs.evidence.Ref.ArtifactID=uuid.New()
+ publisher:=&importDocumentPublisherStub{}
+ prep:=ImportExecutionPreparation{Documents:publisher,Resolver:&importNodeResolverStub{},Materializer:&importMaterializerStub{},Transport:&transportPublisher{},Registrar:&importRegistrarStub{}}
+ if err:=prep.Prepare(context.Background(),uuid.New(),docs,task,[]byte(`{}`));err==nil||len(publisher.calls)!=0{t.Fatal("foreign evidence reached executable publication",err)}
 }
