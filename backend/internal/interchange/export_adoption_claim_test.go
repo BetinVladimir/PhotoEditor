@@ -35,6 +35,20 @@ func TestExportAdoptionClaimRequiresFrozenIdentityAndRequest(t *testing.T) {
 	if *good.Request.SnapshotID != snapshot {
 		t.Fatal("scheduler intent aliased claimed request")
 	}
+	bundleClaim := good
+	bundleClaim.Request.Format = "photoeditor_bundle"
+	bundleClaim.RequestSHA, err = canonical.Hash(bundleClaim.Request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	objects := &exportOutputReaderStub{}
+	archive := SchedulerExportArchiveReader{
+		ResultReader: SchedulerExportResultReader{Objects: objects, Bucket: "photos"},
+		Scratch:      &ExportArchiveScratch{},
+	}
+	if _, _, err := archive.Read(context.Background(), bundleClaim); err != v2input.ErrInvalid || objects.opens != 0 {
+		t.Fatal("bundle without installed person-origin authority reached object IO", err)
+	}
 	for name, mutate := range map[string]func(*ExportAdoptionClaim){
 		"foreign tenant": func(c *ExportAdoptionClaim) { c.Tenant = uuid.New() },
 		"foreign task":   func(c *ExportAdoptionClaim) { c.Task = uuid.New() },
@@ -89,6 +103,13 @@ func TestExportAdoptionClaimStoreFailsClosedWithoutDatabase(t *testing.T) {
 	}
 	if _, err := resultReader.Read(ctx, ExportAdoptionClaim{}); err != context.Canceled {
 		t.Fatal("cancelled result reader queried", err)
+	}
+	archiveReader := SchedulerExportArchiveReader{ResultReader: resultReader}
+	if _, _, err := archiveReader.Read(context.Background(), ExportAdoptionClaim{}); err != v2input.ErrInvalid {
+		t.Fatal("archive reader without installation accepted", err)
+	}
+	if _, _, err := archiveReader.Read(ctx, ExportAdoptionClaim{}); err != context.Canceled {
+		t.Fatal("cancelled archive reader queried", err)
 	}
 	catalog := SQLSchedulerExportOutputCatalog{Claims: store, Bucket: "photos"}
 	if _, err := catalog.LookupExportOutput(context.Background(), v2input.Entry{}); err != v2input.ErrInvalid {
