@@ -26,6 +26,45 @@ func rfc3161NextRaw(rest *[]byte) (asn1.RawValue, error) {
 	return value, nil
 }
 
+func rfc3161AccuracyInteger(raw []byte, maximum int) bool {
+	if len(raw) == 0 || len(raw) > 4 || raw[0]&0x80 != 0 ||
+		(len(raw) > 1 && raw[0] == 0 && raw[1]&0x80 == 0) {
+		return false
+	}
+	value := 0
+	for _, octet := range raw {
+		value = value<<8 | int(octet)
+	}
+	return value >= 1 && value <= maximum
+}
+
+func rfc3161Accuracy(raw asn1.RawValue) bool {
+	if !rfc3161Sequence(raw) || len(raw.FullBytes) > 128 || len(raw.Bytes) == 0 {
+		return false
+	}
+	last := -1
+	for fields := raw.Bytes; len(fields) > 0; {
+		value, err := rfc3161NextRaw(&fields)
+		if err != nil || value.IsCompound {
+			return false
+		}
+		rank, maximum := -1, 999
+		switch {
+		case value.Class == 0 && value.Tag == asn1.TagInteger:
+			rank, maximum = 0, 86400
+		case value.Class == 2 && value.Tag == 0:
+			rank = 1
+		case value.Class == 2 && value.Tag == 1:
+			rank = 2
+		}
+		if rank <= last || !rfc3161AccuracyInteger(value.Bytes, maximum) {
+			return false
+		}
+		last = rank
+	}
+	return true
+}
+
 // parseRFC3161TSTInfo binds an UNTRUSTED CMS eContent to the exact request.
 // The caller must first verify CMS, ESSCertID and TSA trust independently.
 // Unsupported optional TSA name/extensions fail closed until their signer
@@ -105,7 +144,7 @@ func parseRFC3161TSTInfo(raw []byte, request RFC3161Request) (rfc3161TSTInfoBind
 		switch {
 		case value.Class == 0 && value.Tag == asn1.TagSequence:
 			rank = 1
-			if len(value.FullBytes) > 128 {
+			if !rfc3161Accuracy(value) {
 				return zero, ErrInvalid
 			}
 			bound.Accuracy = append([]byte(nil), value.FullBytes...)

@@ -75,3 +75,38 @@ func mustSHABytes(t *testing.T, value string) []byte {
 	}
 	return raw
 }
+
+func TestRFC3161AccuracyStructure(t *testing.T) {
+	cases := []struct {
+		name string
+		der  string
+		ok   bool
+	}{
+		{"seconds-millis-micros", "3009020101800101810101", true},
+		{"millis-only", "3003800101", true},
+		{"empty", "3000", false},
+		{"zero-seconds", "3003020100", false},
+		{"negative-seconds", "30030201ff", false},
+		{"nonminimal-seconds", "300402020001", false},
+		{"millis-overflow", "3004800203e8", false},
+		{"duplicate-millis", "3006800101800102", false},
+		{"reversed", "3006810101800101", false},
+		{"unknown-field", "3003820101", false},
+		{"constructed-field", "3005a003020101", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			der, err := hex.DecodeString(tc.der)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var value asn1.RawValue
+			if rest, err := asn1.Unmarshal(der, &value); err != nil || len(rest) != 0 {
+				t.Fatalf("invalid test DER: %v", err)
+			}
+			if got := rfc3161Accuracy(value); got != tc.ok {
+				t.Fatalf("accuracy accepted=%v, want %v", got, tc.ok)
+			}
+		})
+	}
+}
