@@ -92,3 +92,8 @@ def test_import_runtime_stats_requires_separate_person_model_report():
     assert authority(scope, context, 'Params',
                      StatsParams(image=binding.source, person=mask), binding) is True
     assert calls == ['color.stats', 'mask.person']
+    scoped = mask.model_copy(update={'object_id': uuid4()})
+    assert authority(scope, context, 'MaskRef', scoped, binding) is False
+    assert authority(scope, context, 'Params',
+                     StatsParams(image=binding.source, person=scoped), binding) is False
+    assert calls == ['color.stats', 'mask.person']

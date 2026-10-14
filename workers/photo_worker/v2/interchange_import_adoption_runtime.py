@@ -102,6 +102,8 @@ class SchedulerImportAdoptionRuntimeAuthority:
                 return False
         elif contract == 'Params' and isinstance(typed, StatsParams):
             if (typed.image != binding.source
+                    or typed.person.object_id is not None
+                    or typed.person.model_lock_id is None
                     or not self._report(scope, 'color.stats',
                                         self.policies.get('color.stats').expected.get('ModelLockSHA')
                                         if self.policies.get('color.stats') else None)
@@ -109,7 +111,8 @@ class SchedulerImportAdoptionRuntimeAuthority:
                                         typed.person.model_lock_id)):
                 return False
         elif contract == 'MaskRef' and isinstance(typed, MaskRef) and typed.selector == 'person':
-            if not self._report(scope, 'mask.person', typed.model_lock_id):
+            if (typed.object_id is not None or typed.model_lock_id is None
+                    or not self._report(scope, 'mask.person', typed.model_lock_id)):
                 return False
         accepted = self.other(scope, context, contract, deepcopy(typed),
                               binding.model_copy(deep=True))
