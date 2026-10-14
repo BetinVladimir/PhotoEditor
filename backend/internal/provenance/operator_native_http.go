@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sync/atomic"
 	"time"
 
 	"photoeditor/backend/internal/canonical"
@@ -20,6 +21,9 @@ import (
 type HTTPSigningNativeCheck struct {
 	transport *HTTPSigningChallengeSigner
 	endpoint  string
+	lifetime  context.Context
+	cancel    context.CancelFunc
+	closed    atomic.Bool
 }
 
 func NewHTTPSigningNativeCheck(origin string, roots *x509.CertPool, identity tls.Certificate,
@@ -34,11 +38,19 @@ func NewHTTPSigningNativeCheck(origin string, roots *x509.CertPool, identity tls
 		return nil, ErrInvalid
 	}
 	endpoint.Path = "/internal/v1/operator-native-check"
-	return &HTTPSigningNativeCheck{transport: transport, endpoint: endpoint.String()}, nil
+	lifetime, cancel := context.WithCancel(context.Background())
+	return &HTTPSigningNativeCheck{transport: transport, endpoint: endpoint.String(),
+		lifetime: lifetime, cancel: cancel}, nil
 }
 
 func (s *HTTPSigningNativeCheck) Close() {
-	if s != nil && s.transport != nil {
+	if s == nil || s.closed.Swap(true) {
+		return
+	}
+	if s.cancel != nil {
+		s.cancel()
+	}
+	if s.transport != nil {
 		s.transport.Close()
 	}
 }
@@ -47,8 +59,15 @@ func (s *HTTPSigningNativeCheck) Check(ctx context.Context, policy SigningPolicy
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if s == nil || s.transport == nil || s.transport.client == nil ||
+	if s == nil || s.closed.Load() || s.lifetime == nil || s.transport == nil || s.transport.client == nil ||
 		s.transport.verify == nil || len(chain) < 1 || len(chain) > 1<<20 {
+		return ErrInvalid
+	}
+	scoped, cancel := context.WithCancel(ctx)
+	defer cancel()
+	stop := context.AfterFunc(s.lifetime, cancel)
+	defer stop()
+	if s.closed.Load() {
 		return ErrInvalid
 	}
 	raw, err := canonical.Marshal(policy)
@@ -71,7 +90,7 @@ func (s *HTTPSigningNativeCheck) Check(ctx context.Context, policy SigningPolicy
 	if err != nil {
 		return err
 	}
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, s.endpoint, bytes.NewReader(body))
+	request, err := http.NewRequestWithContext(scoped, http.MethodPost, s.endpoint, bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
@@ -95,7 +114,10 @@ func (s *HTTPSigningNativeCheck) Check(ctx context.Context, policy SigningPolicy
 	if err != nil {
 		return err
 	}
-	if err := ctx.Err(); err != nil {
+	if s.closed.Load() {
+		return ErrInvalid
+	}
+	if err := scoped.Err(); err != nil {
 		return err
 	}
 	if !bytes.Equal(actual, body) {

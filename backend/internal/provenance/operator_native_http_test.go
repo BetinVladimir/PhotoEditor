@@ -17,7 +17,7 @@ import (
 )
 
 func TestNativeCheckRequiresPinnedMTLSAndExactResponse(t *testing.T) {
-	for _, mode := range []string{"valid", "pin", "chain", "status", "response", "cancelled"} {
+	for _, mode := range []string{"valid", "pin", "chain", "status", "response", "cancelled", "closed"} {
 		t.Run(mode, func(t *testing.T) {
 			serverCert, clientCert, roots, pin := operatorMTLSFixture(t)
 			chain := []byte("unit signing chain")
@@ -74,6 +74,9 @@ func TestNativeCheckRequiresPinnedMTLSAndExactResponse(t *testing.T) {
 			if mode == "cancelled" {
 				cancel()
 			}
+			if mode == "closed" {
+				client.Close()
+			}
 			if mode == "chain" {
 				chain = []byte("foreign chain")
 			}
@@ -82,9 +85,48 @@ func TestNativeCheckRequiresPinnedMTLSAndExactResponse(t *testing.T) {
 				if err != nil || calls.Load() != 1 {
 					t.Fatal("native check refused", err)
 				}
-			} else if err == nil || ((mode == "pin" || mode == "chain" || mode == "cancelled") && calls.Load() != 0) {
+			} else if err == nil || ((mode == "pin" || mode == "chain" || mode == "cancelled" || mode == "closed") && calls.Load() != 0) {
 				t.Fatal("invalid native check accepted or reached signer", mode, err)
 			}
 		})
+	}
+}
+
+func TestNativeCheckCloseCancelsInflightRequest(t *testing.T) {
+	serverCert, clientCert, roots, pin := operatorMTLSFixture(t)
+	chain := []byte("unit signing chain")
+	policy := SigningPolicy{Schema: 1, ID: uuid.New(), Revision: "1",
+		SDKLockSHA: bodyDigest([]byte("sdk")), KeyHandle: "key",
+		CertificateChainSHA: bodyDigest(chain), TrustBundleSHA: bodyDigest([]byte("trust")),
+		AllowedMIME: []string{"image/png"}, TimestampMode: "off", RevocationMode: "off"}
+	started := make(chan struct{}, 1)
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		started <- struct{}{}
+		<-r.Context().Done()
+	}))
+	server.TLS = &tls.Config{Certificates: []tls.Certificate{serverCert}, ClientCAs: roots,
+		ClientAuth: tls.RequireAndVerifyClientCert, MinVersion: tls.VersionTLS13}
+	server.StartTLS()
+	defer server.Close()
+	client, err := NewHTTPSigningNativeCheck(server.URL, roots, clientCert, pin, 5*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+	result := make(chan error, 1)
+	go func() { result <- client.Check(context.Background(), policy, chain) }()
+	select {
+	case <-started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("native check never reached signer")
+	}
+	client.Close()
+	select {
+	case err := <-result:
+		if err == nil {
+			t.Fatal("closed native check succeeded")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("close did not cancel native check")
 	}
 }
