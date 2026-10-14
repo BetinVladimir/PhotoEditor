@@ -51,7 +51,11 @@ func TestImportOverrideStyleSourceBindsExactArchivedRecipe(t *testing.T) {
 	if err != nil || actual != style || archive.calls != 2 {
 		t.Fatal("exact override/base-style relation unavailable", actual, err)
 	}
-	if actual, err := source.ReadBaseStyle(context.Background(), v2input.Ref{ArtifactID: uuid.New(), SHA256: override.SHA256}); err == nil || actual != (v2input.Ref{}) || archive.calls != 2 {
+	base, ordered, err := source.ReadComposition(context.Background(), override)
+	if err != nil || base != style || len(ordered) != 1 || ordered[0] != override || archive.calls != 4 {
+		t.Fatal("archived override order unavailable", base, ordered, err)
+	}
+	if actual, err := source.ReadBaseStyle(context.Background(), v2input.Ref{ArtifactID: uuid.New(), SHA256: override.SHA256}); err == nil || actual != (v2input.Ref{}) || archive.calls != 4 {
 		t.Fatal("foreign override reached archive IO", actual, err)
 	}
 	archive.second = []byte(`{}`)
