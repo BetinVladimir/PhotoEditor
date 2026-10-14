@@ -8,6 +8,8 @@ from photo_worker.runtime.series_config import series_runtime_locks_from_env
 from photo_worker.runtime.service import WorkerConfigurationError
 from test_asset_adapters import context_for
 import pytest
+import numpy as np
+from types import SimpleNamespace
 
 
 def stats(rgb,confidence=1):
@@ -59,3 +61,21 @@ def test_series_deployment_pins_are_all_or_nothing():
     with pytest.raises(WorkerConfigurationError):series_runtime_locks_from_env(
         {**env,'PHOTO_SERIES_RUNTIME_ENABLED':'false'},'cpu','cpu')
     assert series_runtime_locks_from_env({},'cpu','cpu') is None
+
+
+@pytest.mark.parametrize('solution', [
+    SimpleNamespace(success=False, x=np.zeros(4)),
+    SimpleNamespace(success=True, x=np.array([float('nan'), 0, 0, 0])),
+    SimpleNamespace(success=True, x=np.zeros(3)),
+    SimpleNamespace(success=True, x=np.array([0, 1000, 0, 0])),
+])
+def test_series_solver_failure_keeps_identity(monkeypatch, solution):
+    monkeypatch.setattr('photo_worker.operations.series.balance.least_squares',
+                        lambda *args, **kwargs: solution)
+    reference=stats([.4,.5,.6]);other=stats([.32,.4,.48]);a=Artifacts([reference,other],reference.item_id)
+    ctx=context_for(a.value.stats[0],'series.balance')
+    result=execute(ctx,a)
+    correction=next(x for x in a.staged[0][1].items if x.item_id==other.item_id)
+    assert correction.reason=='residual_not_improved'
+    assert not correction.accepted and correction.applied_ev==0
+    assert correction.applied_gains==[1,1,1] and result.review_required

@@ -30,7 +30,13 @@ def compute_series_corrections(p:SeriesParams,values:list[SeriesStats])->SeriesC
         left={r.region_id:r for r in value.regions};right={r.region_id:r for r in reference.regions};confidence=min(min(left[i].confidence,right[i].confidence) for i in common)
         src=np.asarray([left[i].mean_rgb for i in common]);dst=np.asarray([right[i].mean_rgb for i in common]);scale=np.maximum(dst,.05)
         def residual(x):return np.r_[((src*(2**x[0])*np.exp(x[1:])-dst)/scale).reshape(-1),x]
-        fit=least_squares(residual,np.zeros(4),loss='soft_l1',max_nfev=200);raw_ev=float(fit.x[0]);raw_g=np.exp(fit.x[1:]);raw_g/=np.exp(np.mean(np.log(raw_g)));applied_ev=float(np.clip(raw_ev,-p.ev_limit,p.ev_limit));applied_g=np.clip(raw_g,p.gain_min,p.gain_max);pred=src*(2**applied_ev)*applied_g;before=float(np.mean(((src-dst)/scale)**2));after=float(np.mean(((pred-dst)/scale)**2));clip_delta=float(np.mean((pred<0)|(pred>1)))-value.clipping_fraction;reason='applied';accepted=True
+        fit=least_squares(residual,np.zeros(4),loss='soft_l1',max_nfev=200)
+        if (not fit.success or np.shape(fit.x)!=(4,) or
+                not np.isfinite(fit.x).all() or np.max(np.abs(fit.x))>20):
+            corrections.append(ItemCorrection(item_id=value.item_id,raw_ev=0,raw_gains=[1.,1.,1.],applied_ev=0,applied_gains=[1.,1.,1.],confidence=confidence,accepted=False,reason='residual_not_improved'))
+            skipped=True
+            continue
+        raw_ev=float(fit.x[0]);raw_g=np.exp(fit.x[1:]);raw_g/=np.exp(np.mean(np.log(raw_g)));applied_ev=float(np.clip(raw_ev,-p.ev_limit,p.ev_limit));applied_g=np.clip(raw_g,p.gain_min,p.gain_max);pred=src*(2**applied_ev)*applied_g;before=float(np.mean(((src-dst)/scale)**2));after=float(np.mean(((pred-dst)/scale)**2));clip_delta=float(np.mean((pred<0)|(pred>1)))-value.clipping_fraction;reason='applied';accepted=True
         if confidence<p.min_confidence:reason='low_confidence';accepted=False
         elif after>=before:reason='residual_not_improved';accepted=False
         elif clip_delta>.005:reason='clipping_regression';accepted=False
