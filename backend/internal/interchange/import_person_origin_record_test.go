@@ -41,12 +41,16 @@ type personOriginRecordWriter struct {
 type personOriginRecordScope struct {
 	calls    int
 	deny     bool
+	omit     bool
 	expected PortablePersonOriginExpectation
 }
 
 func (s *personOriginRecordScope) DiscoverEntry(_ context.Context, _ []byte, entry uuid.UUID, model string) ([]PortablePersonOriginExpectation, error) {
 	if s.expected.EntryID != entry || s.expected.ModelLockSHA != model {
 		return nil, v2input.ErrInvalid
+	}
+	if s.omit {
+		return nil, nil
 	}
 	return []PortablePersonOriginExpectation{s.expected}, nil
 }
@@ -120,5 +124,10 @@ func TestPersonOriginRecorderDiscoversEntryBeforeWriting(t *testing.T) {
 	}
 	if _, err := service.RecordEntry(context.Background(), uuid.New(), expected.ModelLockSHA); err == nil {
 		t.Fatal("foreign entry reached writer")
+	}
+	writer.calls = 0
+	scope.omit = true
+	if _, err := service.RecordEntry(context.Background(), expected.EntryID, expected.ModelLockSHA); err == nil || writer.calls != 0 {
+		t.Fatal("discovery omitted declared origin")
 	}
 }

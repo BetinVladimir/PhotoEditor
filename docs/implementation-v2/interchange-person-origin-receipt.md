@@ -73,6 +73,9 @@ install the model lock and Ed25519 issuer public keys; absent installation
 fails closed for those entries. The recorder rechecks the staged object and
 SQL records only an adopted current target. Full native lifecycle evidence is
 still pending the deferred test phase.
+`RecordEntry` requires one discovered and reverified scope for every origin
+declared for that entry; an empty or incomplete discovery fails before any
+receipt is written.
 `ExportPersonOriginOccurrence` now binds the exact selected entry and portable
 recipe to its frozen source, authored Override, one confirmed `person_subject`
 inline MaskRef, and its MaskPixels child. It checks physical source canvas and

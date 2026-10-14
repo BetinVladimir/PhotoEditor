@@ -98,15 +98,27 @@ func (s ImportPersonOriginRecordService) RecordEntry(ctx context.Context, entryI
 	if err != nil {
 		return nil, err
 	}
+	var document importParsedDocument
+	if err := decodeImportDocument(parsed, &document); err != nil {
+		return nil, err
+	}
+	declared := 0
+	for _, origin := range document.Manifest.PersonOrigins {
+		if origin.EntryID == entryID {
+			declared++
+		}
+	}
+	if declared == 0 {
+		return nil, v2input.ErrInvalid
+	}
 	scopes, err := discoverer.DiscoverEntry(ctx, parsed, entryID, modelLockSHA)
 	if err != nil {
 		return nil, err
 	}
-	if len(scopes) > 5000 {
+	if len(scopes) != declared || len(scopes) > 5000 {
 		return nil, v2input.ErrInvalid
 	}
 	seen := map[[3]uuid.UUID]bool{}
-	results := make([]VerifiedImportPersonOrigin, 0, len(scopes))
 	for _, scope := range scopes {
 		if err := ctx.Err(); err != nil {
 			return nil, err
@@ -116,6 +128,12 @@ func (s ImportPersonOriginRecordService) RecordEntry(ctx context.Context, entryI
 			return nil, v2input.ErrInvalid
 		}
 		seen[key] = true
+		if _, err := selectedPersonOriginReceiptRef(parsed, scope); err != nil {
+			return nil, err
+		}
+	}
+	results := make([]VerifiedImportPersonOrigin, 0, len(scopes))
+	for _, scope := range scopes {
 		verified, err := s.Record(ctx, scope)
 		if err != nil {
 			return nil, err
