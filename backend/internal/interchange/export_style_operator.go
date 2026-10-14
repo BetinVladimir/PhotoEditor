@@ -48,8 +48,8 @@ type exportStyleOperatorConfig struct {
 }
 
 // LoadExportStyleOperatorAuthority binds every policy to manifest SHA before
-// composing the native factory. Base semantics and background factory remain
-// independently installed capabilities; the manifest cannot mint them.
+// composing the native factory. Source/model/consent semantics and background
+// authority remain independent capabilities; the manifest cannot mint them.
 func LoadExportStyleOperatorAuthority(ctx context.Context, path, pin string,
 	base ExportDocumentValidatorInstallation, backgrounds ExportStyleBackgroundAuthorityFactory,
 ) (ExportStyleDeploymentAuthority, error) {
@@ -71,8 +71,11 @@ func LoadExportStyleOperatorAuthority(ctx context.Context, path, pin string,
 	if err := decodeImportDocument(raw, &wire); err != nil {
 		return zero, err
 	}
+	if base.Other == nil {
+		base.Other = ExportOriginalSchemaChildren{}
+	}
 	if wire.Schema != "interchange-export-style-operator/v1" ||
-		base.Other == nil || base.Semantics == nil || backgrounds == nil ||
+		base.Semantics == nil || backgrounds == nil ||
 		base.ICCSHA != wire.ICCSHA || base.ModelSHA != wire.ModelSHA {
 		return zero, v2input.ErrInvalid
 	}

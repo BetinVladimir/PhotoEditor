@@ -92,6 +92,16 @@ func TestExportStyleOperatorPinsPoliciesBeforeNativeBuild(t *testing.T) {
 	if err != nil || authority.pinnedPolicies == nil {
 		t.Fatal("pinned operator unavailable", err)
 	}
+	structural := base
+	structural.Other = nil
+	withOriginal, err := LoadExportStyleOperatorAuthority(context.Background(), manifest.Path,
+		manifest.SHA, structural, exportOperatorBackgroundFactoryStub{})
+	if err != nil {
+		t.Fatal("original export schema projection unavailable", err)
+	}
+	if _, ok := withOriginal.Base.Other.(ExportOriginalSchemaChildren); !ok {
+		t.Fatal("original export schema projection was not installed")
+	}
 	process, err := authority.InstallPersonOriginProcess(private, issuer)
 	if err != nil {
 		t.Fatal("pinned person issuer unavailable", err)
