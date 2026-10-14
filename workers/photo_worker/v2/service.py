@@ -255,6 +255,8 @@ class Adopter:
                                 "INTERCHANGE_IMPORT_ADOPTION_INSTALLATION_REQUIRED",
                                 "INTERCHANGE_IMPORT_QUALIFICATION_UNAVAILABLE",
                                 "INTERCHANGE_IMPORT_QUALIFICATION_CHANGED",
+                                "INTERCHANGE_IMPORT_PERSON_AUTHORITY_UNAVAILABLE",
+                                "INTERCHANGE_IMPORT_PERSON_AUTHORITY_CHANGED",
                                 "INTERCHANGE_IMPORT_ADOPTER_SCHEMA_PIN"}:
                         counts["retry"] += 1
                         continue
@@ -359,15 +361,18 @@ class Adopter:
 
 def run_adopter(config: AdopterConfig, stop: Event | None = None, *,
                 render_replay=None, render_max_tile_bytes=None, region_target_icc_sha=None,
-                semantic_scene_verifier=None,semantic_ram_bytes=None,exposure_working_icc_sha=None,donor_installation=None,negative_installation=None,relight_installation=None,perspective_installation=None,perspective_lines_installation=None,multi_installations=(),interchange_recipe_qualifier_factory=None,interchange_recipe_qualifier_builder=None) -> None:
+                semantic_scene_verifier=None,semantic_ram_bytes=None,exposure_working_icc_sha=None,donor_installation=None,negative_installation=None,relight_installation=None,perspective_installation=None,perspective_lines_installation=None,multi_installations=(),interchange_recipe_qualifier_factory=None,interchange_recipe_qualifier_builder=None,interchange_recipe_operator_factory=None) -> None:
     """Run with explicitly installed, trusted Render replay dependencies.
 
     Environment/client data cannot import a provider or manufacture qualification.
     The deployment runtime installer supplies the replay context and tile bound.
     """
     delivery_options={}
-    if interchange_recipe_qualifier_factory is not None and interchange_recipe_qualifier_builder is not None:
+    if sum(value is not None for value in (interchange_recipe_qualifier_factory,
+            interchange_recipe_qualifier_builder, interchange_recipe_operator_factory)) > 1:
         raise ValueError('Conflicting import adopter recipe installations')
+    if interchange_recipe_operator_factory is not None and not callable(interchange_recipe_operator_factory):
+        raise ValueError('Invalid import adopter operator factory')
     if interchange_recipe_qualifier_builder is not None and not callable(interchange_recipe_qualifier_builder):
         raise ValueError('Invalid import adopter recipe builder')
     if interchange_recipe_qualifier_factory is not None:
@@ -504,6 +509,11 @@ def run_adopter(config: AdopterConfig, stop: Event | None = None, *,
             cert_reqs='CERT_REQUIRED',ca_certs=certifi.where())
     objects = Minio(endpoint.netloc, access_key=config.access_key,
                     secret_key=config.secret_key, secure=endpoint.scheme == "https",**object_options)
+    if interchange_recipe_operator_factory is not None:
+        interchange_recipe_qualifier_builder = interchange_recipe_operator_factory(
+            objects, config.bucket)
+        if not callable(interchange_recipe_qualifier_builder):
+            raise ValueError('Invalid import adopter operator builder')
     options = "-c role=photo_scheduler -c statement_timeout=30000 -c lock_timeout=3000"
     with psycopg.connect(config.database_url, autocommit=True, connect_timeout=5,
                          options=options) as read_connection:

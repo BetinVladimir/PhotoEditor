@@ -84,7 +84,7 @@ def test_import_runtime_stats_requires_separate_person_model_report():
         Catalog(), SimpleNamespace(get_object=lambda *_args, **_kwargs: None),
         {'color.stats': ImportAdoptionQualification(stats, uuid4(), 'a' * 64),
          'mask.person': ImportAdoptionQualification(person, uuid4(), 'b' * 64)},
-        lambda *_args: True, lambda: None)
+        lambda *_args: True, lambda: None, lambda *_args: 7)
     mask, binding = _mask_and_binding()
     scope = (uuid4(), uuid4(), 1, 7, uuid4())
     context = SimpleNamespace(operation='v2.interchange.import', version='1',
@@ -113,7 +113,7 @@ def test_import_runtime_checks_person_masks_nested_in_other_documents():
     authority = SchedulerImportAdoptionRuntimeAuthority(
         Catalog(), SimpleNamespace(get_object=lambda *_args, **_kwargs: None),
         {'mask.person': ImportAdoptionQualification(person, uuid4(), 'a' * 64)},
-        lambda *_args: True, lambda: None)
+        lambda *_args: True, lambda: None, lambda *_args: 7)
     mask, binding = _mask_and_binding()
     scope = (uuid4(), uuid4(), 1, 7, uuid4())
     context = SimpleNamespace(operation='v2.interchange.import', version='1',
@@ -125,3 +125,27 @@ def test_import_runtime_checks_person_masks_nested_in_other_documents():
     assert authority(scope, context, 'Override', Nested(masks=[scoped]), binding) is False
     assert authority(scope, context, 'Override', Nested(masks=[scoped, mask]), binding) is False
     assert calls == []
+
+
+def test_import_runtime_rechecks_person_grant_after_report_io():
+    expected, _ = report_fixture()
+    expected['Operation'], expected['ModelLockSHA'] = 'mask.person', 'd' * 64
+    mask, binding = _mask_and_binding()
+    epochs = iter((7, 8))
+    authority = SchedulerImportAdoptionRuntimeAuthority(
+        SimpleNamespace(verified_report=lambda *_args: {
+            'operation': 'mask.person', 'model_lock_sha': 'd' * 64}),
+        SimpleNamespace(get_object=lambda *_args, **_kwargs: None),
+        {'mask.person': ImportAdoptionQualification(expected, uuid4(), 'a' * 64)},
+        lambda *_args: True, lambda: None, lambda *_args: next(epochs))
+    scope = (uuid4(), uuid4(), 1, 7, uuid4())
+    context = SimpleNamespace(operation='v2.interchange.import', version='1',
+                              attempt=1, fence=7, result_id=scope[4])
+    with pytest.raises(AdoptionInvalid, match='PERSON_AUTHORITY_CHANGED'):
+        authority(scope, context, 'MaskRef', mask, binding)
+    with pytest.raises(ValueError, match='PERSON_AUTHORITY'):
+        SchedulerImportAdoptionRuntimeAuthority(
+            SimpleNamespace(verified_report=lambda *_args: None),
+            SimpleNamespace(get_object=lambda *_args, **_kwargs: None),
+            {'mask.person': ImportAdoptionQualification(expected, uuid4(), 'a' * 64)},
+            lambda *_args: True, lambda: None)

@@ -34,7 +34,7 @@ class SchedulerImportAdoptionRuntimeAuthority:
                             'color.stats', 'mask.person'))
 
     def __init__(self, catalog, objects, qualifications, qualify_other,
-                 check_active):
+                 check_active, person_current=None):
         if (not callable(getattr(catalog, 'verified_report', None))
                 or not callable(getattr(objects, 'get_object', None))
                 or not isinstance(qualifications, dict)
@@ -66,8 +66,11 @@ class SchedulerImportAdoptionRuntimeAuthority:
                 raise ValueError('INTERCHANGE_IMPORT_RUNTIME_QUALIFICATION') from error
             owned[key] = ImportAdoptionQualification(expected, value.report_id,
                                                      value.report_sha)
+        if 'mask.person' in owned and not callable(person_current):
+            raise ValueError('INTERCHANGE_IMPORT_RUNTIME_PERSON_AUTHORITY')
         self.catalog, self.objects = catalog, objects
         self.policies, self.other, self.active = owned, qualify_other, check_active
+        self.person_current = person_current
 
     def _report(self, scope, key, model_lock):
         policy = self.policies.get(key)
@@ -85,13 +88,13 @@ class SchedulerImportAdoptionRuntimeAuthority:
             raise AdoptionInvalid('INTERCHANGE_IMPORT_RUNTIME_REPORT_MISMATCH')
         return True
 
-    def _person_masks(self, scope, document):
+    def _person_masks(self, scope, context, document, binding):
         """Require a live report for every nested whole-person mask.
 
         Document contracts are typed before this walk. The node limit also
         guards an operator-installed extra validator returning a cyclic graph.
         """
-        stack, visited, pins = [document], set(), set()
+        stack, visited, pins = [document], set(), {}
         nodes = 0
         while stack:
             current = stack.pop()
@@ -109,7 +112,7 @@ class SchedulerImportAdoptionRuntimeAuthority:
                     return False
                 pin = (current.artifact.artifact_id, current.artifact.sha256,
                        current.model_lock_id)
-                pins.add(pin)
+                pins[pin] = current
             if isinstance(current, BaseModel):
                 stack.extend(getattr(current, name)
                              for name in type(current).model_fields)
@@ -117,9 +120,20 @@ class SchedulerImportAdoptionRuntimeAuthority:
                 stack.extend(current.values())
             else:
                 stack.extend(current)
-        for _, _, model_lock in sorted(pins):
+        for pin, mask in sorted(pins.items()):
+            if self.person_current is None:
+                raise AdoptionInvalid('INTERCHANGE_IMPORT_PERSON_AUTHORITY_UNAVAILABLE')
+            before = self.person_current(scope, context, deepcopy(mask),
+                                         binding.model_copy(deep=True))
+            if type(before) is not int or before < 1:
+                raise AdoptionInvalid('INTERCHANGE_IMPORT_PERSON_AUTHORITY_UNAVAILABLE')
+            model_lock = pin[2]
             if not self._report(scope, 'mask.person', model_lock):
                 return False
+            after = self.person_current(scope, context, deepcopy(mask),
+                                        binding.model_copy(deep=True))
+            if after != before:
+                raise AdoptionInvalid('INTERCHANGE_IMPORT_PERSON_AUTHORITY_CHANGED')
         return True
 
     def __call__(self, scope, context, contract, typed, binding):
@@ -131,7 +145,7 @@ class SchedulerImportAdoptionRuntimeAuthority:
                 or not isinstance(binding, VersionBinding)):
             raise AdoptionInvalid('INTERCHANGE_IMPORT_RUNTIME_SCOPE')
         self.active()
-        if not self._person_masks(scope, typed):
+        if not self._person_masks(scope, context, typed, binding):
             return False
         if contract == 'Params' and isinstance(typed, DenoiseParams):
             if typed.image != binding.source or not self._report(

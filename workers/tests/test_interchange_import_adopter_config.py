@@ -10,6 +10,10 @@ from photo_worker.contracts.base import canonical_bytes
 from photo_worker.operations.semantic.exposure_color import WORKING_PROFILE_SHA
 from photo_worker.v2 import interchange_import_adopter_config as config_module
 from photo_worker.v2.interchange_import_adoption_runtime import SchedulerImportAdoptionRuntimeAuthority
+from photo_worker.v2.interchange_import_adopter_config import qualified_import_adopter_builder
+from test_interchange_import_adoption_qualification_report import fixture as report_fixture
+from photo_worker.v2.interchange_import_adoption_runtime import ImportAdoptionQualification
+from uuid import uuid4
 
 
 def environment(tmp_path):
@@ -73,3 +77,23 @@ def test_import_adopter_resources_reject_pin_drift_partial_and_budget(tmp_path, 
 
 def test_import_adopter_resources_disabled_without_declaration():
     assert config_module.import_adopter_resources_from_environment({}.get) is None
+
+
+def test_import_adopter_qualified_builder_binds_sql_object_and_person_authority(tmp_path, monkeypatch):
+    values, _ = environment(tmp_path)
+    monkeypatch.setattr(config_module, 'ICCRegistry', lambda _root: SimpleNamespace(
+        resolve=lambda _name: SimpleNamespace(sha256=WORKING_PROFILE_SHA)))
+    resources = config_module.import_adopter_resources_from_environment(values.get)
+    expected, _ = report_fixture()
+    expected['Operation'], expected['ModelLockSHA'] = 'mask.person', 'd' * 64
+    selected = {'mask.person': ImportAdoptionQualification(expected, uuid4(), 'a' * 64)}
+    objects = SimpleNamespace(get_object=lambda *_args, **_kwargs: None)
+    connection = SimpleNamespace(autocommit=True)
+    builder = qualified_import_adopter_builder(resources, selected, objects,
+        'photo', lambda *_args: False)
+    installed = builder(connection, Event())
+    assert installed.runtime.catalog.connection is connection
+    assert installed.runtime.objects is objects
+    assert installed.runtime.person_current.connection is connection
+    with pytest.raises(ValueError, match='OPERATOR_INSTALLATION'):
+        qualified_import_adopter_builder(resources, selected, objects, 'photo', None)

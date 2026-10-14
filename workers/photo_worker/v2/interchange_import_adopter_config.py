@@ -111,3 +111,31 @@ def import_adopter_resources_from_environment(getenv=os.environ.get):
         raise ValueError('INTERCHANGE_IMPORT_ADOPTER_ICC')
     return PinnedImportAdopterResources(bytes(raw), digest, work.sha256,
                                         scratch, total, maximum)
+
+
+def qualified_import_adopter_builder(resources, qualifications, objects,
+                                     allowed_bucket, qualify_other, **options):
+    """Compose operator pins with live scheduler SQL and immutable object IO.
+
+    The semantic callback is supplied by trusted code, never by the pin file.
+    This returns a builder for run_adopter's post-connection installation.
+    """
+    if (type(resources) is not PinnedImportAdopterResources
+            or not isinstance(qualifications, dict) or not qualifications
+            or not callable(getattr(objects, 'get_object', None))
+            or not isinstance(allowed_bucket, str) or not allowed_bucket
+            or not callable(qualify_other)):
+        raise ValueError('INTERCHANGE_IMPORT_OPERATOR_INSTALLATION')
+    def runtime_builder(read_connection, stop):
+        from .interchange_import_adoption_person_authority import SQLImportAdoptionPersonAuthority
+        from .interchange_import_adoption_qualification_catalog import SQLImportAdoptionQualificationCatalog
+        from .interchange_import_adoption_runtime import SchedulerImportAdoptionRuntimeAuthority
+        def active():
+            if stop.is_set():
+                raise InterruptedError('Adopter stopped')
+        catalog = SQLImportAdoptionQualificationCatalog(read_connection,
+            allowed_bucket, active)
+        person = SQLImportAdoptionPersonAuthority(read_connection, active)
+        return SchedulerImportAdoptionRuntimeAuthority(catalog, objects,
+            qualifications, qualify_other, active, person)
+    return resources.builder(runtime_builder=runtime_builder, **options)
