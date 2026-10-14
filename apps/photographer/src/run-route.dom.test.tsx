@@ -4,12 +4,12 @@ import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 import {act,cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
 import type {RunStatus} from './catalog-types';
 const mocks=vi.hoisted(()=>({params:{id:'run',tenant:'tenant'} as {id:string;tenant:string;semanticWorkflow?:string},request:vi.fn(),stream:vi.fn(),push:vi.fn(),resolve:vi.fn()}));
-const journals=vi.hoisted(()=>({retryKey:0,retryDiscard:vi.fn(),cancelDiscard:vi.fn()}));
+const journals=vi.hoisted(()=>({retryKey:0,retryPending:null as null|{version:1;key:string;expected_revision:string;created_at:number},cancelPending:null as null|{version:1;key:string;created_at:number},retryDiscard:vi.fn(),cancelDiscard:vi.fn()}));
 vi.mock('react-native',async()=>import('react-native-web'));
 vi.mock('expo-router',()=>({useLocalSearchParams:()=>mocks.params,router:{push:mocks.push}}));
-vi.mock('./run-retry-attempt-store',()=>({RunRetryAttemptStore:class{async begin(expected_revision:string){journals.retryKey++;return {version:1,key:`retry-${journals.retryKey}`,expected_revision,created_at:1}}async acknowledge(_key:string){}async discard(key:string){journals.retryDiscard(key)}}}));
-vi.mock('./run-cancel-attempt-store',()=>({RunCancelAttemptStore:class{async begin(){return {version:1,key:'cancel-1',created_at:1}}async acknowledge(_key:string){}async discard(key:string){journals.cancelDiscard(key)}}}));
-const client={request:mocks.request,eventStream:mocks.stream,semanticRunIntent:mocks.resolve};const auth={client:()=>client};
+vi.mock('./run-retry-attempt-store',()=>({RunRetryAttemptStore:class{async read(){return journals.retryPending}async begin(expected_revision:string){if(journals.retryPending)return journals.retryPending;journals.retryKey++;journals.retryPending={version:1,key:`retry-${journals.retryKey}`,expected_revision,created_at:1};return journals.retryPending}async acknowledge(key:string){if(journals.retryPending?.key===key)journals.retryPending=null}async discard(key:string){journals.retryDiscard(key);if(journals.retryPending?.key===key)journals.retryPending=null}}}));
+vi.mock('./run-cancel-attempt-store',()=>({RunCancelAttemptStore:class{async read(){return journals.cancelPending}async begin(){if(journals.cancelPending)return journals.cancelPending;journals.cancelPending={version:1,key:'cancel-1',created_at:1};return journals.cancelPending}async acknowledge(key:string){if(journals.cancelPending?.key===key)journals.cancelPending=null}async discard(key:string){journals.cancelDiscard(key);if(journals.cancelPending?.key===key)journals.cancelPending=null}}}));
+const client={request:mocks.request,eventStream:mocks.stream,semanticRunIntent:mocks.resolve};const auth={origin:'https://app.test',client:()=>client};
 vi.mock('./auth-context',()=>({useAuth:()=>auth}));
 import {OwnerAPI} from './owner-api';
 import RunScreen from '../app/runs/[id]';
@@ -40,13 +40,14 @@ it('keeps an ordinary V2 run free of semantic review errors',async()=>{
 });
 const value=(revision:string,status:string,id='run'):RunStatus=>({id,kind:'bulk',status,revision,stage:status,progress:status==='completed'?1:0,counts:{total:2,succeeded:status==='completed'?2:0,failed:status==='failed'?2:0,skipped:0,review:0},errors:[]});
 function streaming(){mocks.stream.mockImplementation((_path,_cursor,_receive,signal)=>new Promise<void>(resolve=>signal.addEventListener('abort',()=>resolve(),{once:true})));}
-afterEach(()=>{cleanup();vi.restoreAllMocks();vi.resetAllMocks();mocks.params={id:'run',tenant:'tenant'};journals.retryKey=0;});
+async function clickable(label:string){const target=await screen.findByText(label);await waitFor(()=>{const button=target.closest('[role="button"],button');if(!button||button.getAttribute('aria-disabled')==='true'||button.hasAttribute('disabled'))throw new Error('run action disabled')});return target;}
+afterEach(()=>{cleanup();vi.restoreAllMocks();vi.resetAllMocks();mocks.params={id:'run',tenant:'tenant'};journals.retryKey=0;journals.retryPending=null;journals.cancelPending=null;});
 it('mounts stream refresh and preserves a newer retry response against an older GET',async()=>{
  streaming();mocks.request.mockResolvedValueOnce(value('1','failed'));render(<RunScreen/>);
  await screen.findByText('Retry failed');const receive=mocks.stream.mock.calls[0][2];
  let release!:(run:RunStatus)=>void;mocks.request.mockReturnValueOnce(new Promise(resolve=>release=resolve));
  act(()=>receive({cursor:'2',type:'run.failed',payload:{run_id:'run'}}));
- mocks.request.mockResolvedValueOnce(value('2','running'));fireEvent.click(screen.getByText('Retry failed'));
+ mocks.request.mockResolvedValueOnce(value('2','running'));fireEvent.click(await clickable('Retry failed'));
  await screen.findByText('Cancel');expect(mocks.request.mock.calls[2][1]).toMatchObject({method:'POST',body:{expected_revision:'1'}});
  await act(async()=>release(value('1','failed')));expect(screen.queryByText('Retry failed')).toBeNull();
  mocks.request.mockResolvedValueOnce(value('3','completed'));act(()=>receive({cursor:'3',type:'run.completed',payload:{run_id:'run'}}));
@@ -55,7 +56,7 @@ it('mounts stream refresh and preserves a newer retry response against an older 
 it('sends a full int64 run revision as an exact decimal string on retry',async()=>{
  streaming();const revision='9007199254740993';
  mocks.request.mockResolvedValueOnce(value(revision,'failed')).mockResolvedValueOnce(value('9007199254740994','running'));
- render(<RunScreen/>);fireEvent.click(await screen.findByText('Retry failed'));
+ render(<RunScreen/>);fireEvent.click(await clickable('Retry failed'));
  await waitFor(()=>expect(mocks.request).toHaveBeenCalledTimes(2));
  expect(mocks.request.mock.calls[1][1]).toMatchObject({method:'POST',body:{expected_revision:revision}});
 });
@@ -63,18 +64,39 @@ it('uses a new key after a definite rejected retry',async()=>{
  streaming();mocks.request.mockResolvedValueOnce(value('1','failed'))
   .mockRejectedValueOnce(new APIError(409,'RUN_NOT_RETRYABLE'))
   .mockResolvedValueOnce(value('2','running'));
- render(<RunScreen/>);fireEvent.click(await screen.findByText('Retry failed'));
+ render(<RunScreen/>);fireEvent.click(await clickable('Retry failed'));
  await screen.findByText('Unable to retry run');
  expect(journals.retryDiscard).toHaveBeenCalledWith('retry-1');
- fireEvent.click(screen.getByText('Retry failed'));
+ fireEvent.click(await clickable('Retry failed'));
  await screen.findByText('Cancel');
  expect(mocks.request.mock.calls[1][1]).toMatchObject({idempotencyKey:'retry-1'});
  expect(mocks.request.mock.calls[2][1]).toMatchObject({idempotencyKey:'retry-2'});
 });
+it('replays a saved retry automatically after reopening the run',async()=>{
+ streaming();journals.retryPending={version:1,key:'persisted-retry',expected_revision:'1',created_at:1};
+ mocks.request.mockImplementation(async(_path,options)=>options?.method==='POST'?value('2','running'):value('2','running'));
+ render(<RunScreen/>);
+ await waitFor(()=>expect(mocks.request.mock.calls.some(([,options])=>options?.idempotencyKey==='persisted-retry')).toBe(true));
+ await clickable('Cancel');
+ expect(mocks.request.mock.calls.find(([,options])=>options?.idempotencyKey==='persisted-retry')?.[1]).toMatchObject({method:'POST',body:{expected_revision:'1'}});
+ expect(journals.retryPending).toBeNull();
+});
+it('keeps an ambiguous saved retry for the next explicit attempt',async()=>{
+ streaming();journals.retryPending={version:1,key:'persisted-retry',expected_revision:'1',created_at:1};
+ let posts=0;
+ mocks.request.mockImplementation(async(_path,options)=>{if(options?.method==='POST'){posts++;if(posts===1)throw new Error('response lost');return value('2','running')}return value('1','failed')});
+ render(<RunScreen/>);
+ await screen.findByText('Unable to restore run action');
+ expect(journals.retryPending?.key).toBe('persisted-retry');
+ fireEvent.click(await clickable('Retry failed'));
+ await clickable('Cancel');
+ expect(mocks.request.mock.calls.filter(([,options])=>options?.idempotencyKey==='persisted-retry')).toHaveLength(2);
+ expect(journals.retryPending).toBeNull();
+});
 it('aborts the old stream and ignores a late mutation after changing tenant/run scope',async()=>{
  streaming();mocks.request.mockResolvedValueOnce(value('1','running'));const view=render(<RunScreen/>);
  await screen.findByText('Cancel');const signal=mocks.stream.mock.calls[0][3] as AbortSignal;
- let release!:(run:RunStatus)=>void;mocks.request.mockReturnValueOnce(new Promise(resolve=>release=resolve));fireEvent.click(screen.getByText('Cancel'));
+ let release!:(run:RunStatus)=>void;mocks.request.mockReturnValueOnce(new Promise(resolve=>release=resolve));fireEvent.click(await clickable('Cancel'));
  await waitFor(()=>expect(mocks.request).toHaveBeenCalledTimes(2));
  mocks.params={id:'next',tenant:'other'};mocks.request.mockResolvedValueOnce(value('1','waiting_review','next'));view.rerender(<RunScreen/>);
  await screen.findByText('waiting_review · 0%');expect(signal.aborted).toBe(true);
@@ -94,7 +116,7 @@ it('clears displayed run metadata and stops monitoring when access is revoked',a
 it('clears the run when cancellation reports revoked access',async()=>{
  streaming();mocks.request.mockResolvedValueOnce(value('1','running'));render(<RunScreen/>);
  await screen.findByText('Cancel');const signal=mocks.stream.mock.calls[0][3] as AbortSignal;
- mocks.request.mockRejectedValueOnce(new APIError(403,'FORBIDDEN'));fireEvent.click(screen.getByText('Cancel'));
+ mocks.request.mockRejectedValueOnce(new APIError(403,'FORBIDDEN'));fireEvent.click(await clickable('Cancel'));
  await screen.findByText('Unable to cancel run');expect(screen.queryByText('bulk')).toBeNull();expect(screen.queryByText('Cancel')).toBeNull();expect(signal.aborted).toBe(true);
 });
 
