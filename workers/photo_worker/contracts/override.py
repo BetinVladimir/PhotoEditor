@@ -29,7 +29,7 @@ class OverrideMaskBinding(Contract):
     binding_id: Annotated[str, Field(pattern=r"^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$")]
     purpose: Literal[
         "portrait_teeth", "portrait_sclera", "portrait_shine", "portrait_under_eye",
-        "portrait_cloth", "portrait_glasses", "inpaint_target", "generation_target", "protected",
+        "portrait_cloth", "portrait_glasses", "inpaint_target", "generation_target", "protected", "person_subject",
     ]
     mask: MaskRef
     confirmed: bool = False
@@ -46,6 +46,10 @@ class OverrideMaskBinding(Contract):
         if self.purpose == "protected":
             if not self.mask.protected:
                 raise ValueError("Protected override binding requires a protected mask")
+        elif self.purpose == "person_subject":
+            if (self.mask.selector != "person" or self.mask.protected or self.mask.object_id is not None
+                    or self.mask.model_lock_id is None or not self.confirmed):
+                raise ValueError("Person source evidence requires a confirmed original person mask")
         elif self.mask.protected or self.mask.selector not in selectors[self.purpose]:
             raise ValueError("Override mask selector does not match its purpose")
         if self.purpose in {"portrait_cloth", "portrait_glasses", "inpaint_target", "generation_target"} and not self.confirmed:

@@ -50,3 +50,23 @@ def test_override_mask_binding_ids_are_unique():
             mask_refs=[binding, binding],
             revision=1,
         )
+
+
+def test_person_subject_binding_requires_confirmed_original_person_mask():
+    person = mask("person").model_copy(update={"model_lock_id": "d" * 64})
+    accepted = OverrideMaskBinding(
+        binding_id="person-1", purpose="person_subject", mask=person, confirmed=True
+    )
+    assert accepted.mask.selector == "person" and not accepted.mask.protected
+    for changed in (
+        {"confirmed": False},
+        {"mask": mask("manual")},
+        {"mask": person.model_copy(update={"protected": True})},
+        {"mask": person.model_copy(update={"model_lock_id": None})},
+        {"mask": person.model_copy(update={"object_id": uuid4()})},
+    ):
+        with pytest.raises(ValueError):
+            fields = {"binding_id": "person-1", "purpose": "person_subject",
+                      "mask": person, "confirmed": True}
+            fields.update(changed)
+            OverrideMaskBinding(**fields)

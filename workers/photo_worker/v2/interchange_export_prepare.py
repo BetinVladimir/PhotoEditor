@@ -8,6 +8,7 @@ from .interchange_export import ExportFile, export_bundle
 from .interchange_manifest import (BundleEntry, BundleInventoryEntry, BundleManifest,
                                   BundleMask, verify_bundle_manifest)
 from .interchange_manifest import BundleBackground
+from .interchange_manifest import BundlePersonOrigin
 from .interchange_plan import InterchangePlan
 
 
@@ -29,6 +30,12 @@ def _verify_export_compression_roles(manifest, sources):
         assign(mask.path, False)
     for background in manifest.backgrounds or ():
         assign(background.path, False)
+    for origin in manifest.person_origins or ():
+        assign(origin.path, True)
+        source = next((item for item in sources if item.reference.artifact_id == origin.mask_ref.artifact_id), None)
+        if source is None or source.reference != origin.mask_ref:
+            raise ValueError('INTERCHANGE_EXPORT_PERSON_ORIGIN_SOURCE')
+        assign(source.path, True)
     for source in sources:
         role = roles.get(source.path)
         if role is None and source.path.startswith('dependencies/'):
@@ -86,7 +93,8 @@ class PreparedExportBundle:
 
 
 def prepare_export_bundle(plan, sources, masks, *, qualify_recipe,
-                          qualify_mask, tenant_archive_bytes, active=lambda: None, backgrounds=()):
+                          qualify_mask, tenant_archive_bytes, active=lambda: None, backgrounds=(),
+                          person_origins=(), qualify_person_origin=None):
     """Qualification ports prove frozen source/recipe/portable dependencies.
 
     qualify_recipe(entry) returns its complete verified closure including the
@@ -183,6 +191,44 @@ def prepare_export_bundle(plan, sources, masks, *, qualify_recipe,
         owned_backgrounds.append(background)
     if {by_id[identifier].path for identifier in qualified_backgrounds} != {item.path for item in owned_backgrounds}:
         raise ValueError('INTERCHANGE_EXPORT_BACKGROUND_MAPPING')
+    if (not isinstance(person_origins, tuple) or len(person_origins) > 5000
+            or (person_origins and not callable(qualify_person_origin))):
+        raise ValueError('INTERCHANGE_EXPORT_PERSON_ORIGIN_INSTALLATION')
+    by_entry = {entry.entry_id: entry for entry in plan.entries}
+    owned_origins = []
+    origin_ids = set()
+    for value in person_origins:
+        active()
+        origin = BundlePersonOrigin.model_validate_json(canonical_bytes(value))
+        key = (origin.entry_id, origin.override.artifact_id, origin.mask_ref.artifact_id)
+        entry = by_entry.get(origin.entry_id)
+        receipt = by_path.get(origin.path)
+        recipe_source = by_id.get(origin.recipe.artifact_id)
+        override_source = by_id.get(origin.override.artifact_id)
+        mask_source = by_id.get(origin.mask_ref.artifact_id)
+        pixel_source = by_id.get(origin.mask_pixels.artifact_id)
+        if (key in origin_ids or entry is None or entry.recipe != origin.recipe
+                or receipt is None or receipt.contract != 'PersonOriginReceipt'
+                or receipt.reference.sha256 != origin.sha256 or not receipt.sidecar
+                or receipt.bytes > 16384 or recipe_source is None
+                or recipe_source.reference != origin.recipe or recipe_source.contract != 'EditingRecipeV3'
+                or override_source is None or override_source.reference != origin.override
+                or override_source.contract != 'Override' or override_source.reference.artifact_id not in used
+                or mask_source is None or mask_source.reference != origin.mask_ref
+                or mask_source.contract != 'MaskRef' or not mask_source.sidecar
+                or pixel_source is None or pixel_source.reference != origin.mask_pixels
+                or pixel_source.contract != 'MaskPixels' or pixel_source.reference.artifact_id not in used
+                or qualify_person_origin(origin.model_copy(deep=True),
+                    ExportSource(receipt.reference.model_copy(deep=True), receipt.path,
+                        receipt.contract, receipt.bytes, receipt.sidecar),
+                    ExportSource(mask_source.reference.model_copy(deep=True), mask_source.path,
+                        mask_source.contract, mask_source.bytes, mask_source.sidecar)) is not True):
+            raise ValueError('INTERCHANGE_EXPORT_PERSON_ORIGIN_QUALIFICATION')
+        origin_ids.add(key)
+        owned_origins.append(origin)
+        used.add(receipt.reference.artifact_id)
+        used.add(mask_source.reference.artifact_id)
+        active()
     if used != set(by_id):
         raise ValueError('INTERCHANGE_EXPORT_UNREFERENCED_SOURCE')
     ordered = tuple(sorted(owned, key=lambda item: item.path))
@@ -190,7 +236,8 @@ def prepare_export_bundle(plan, sources, masks, *, qualify_recipe,
         masks=sorted(owned_masks, key=lambda item: item.path), inventory=[BundleInventoryEntry(
             artifact_id=item.reference.artifact_id, path=item.path,
             sha256=item.reference.sha256, contract=item.contract) for item in ordered],
-        backgrounds=sorted(owned_backgrounds, key=lambda item: (str(item.style.artifact_id), item.portable_asset_id)) or None)
+        backgrounds=sorted(owned_backgrounds, key=lambda item: (str(item.style.artifact_id), item.portable_asset_id)) or None,
+        person_origins=sorted(owned_origins, key=lambda item: (str(item.entry_id), str(item.override.artifact_id), str(item.mask_ref.artifact_id))) or None)
     raw = canonical_bytes(manifest)
     records = tuple(VerifiedArchiveFile(item.path, item.bytes, item.reference.sha256) for item in ordered)
     verify_bundle_manifest(raw, (*records, VerifiedArchiveFile('manifest.json', len(raw), sha256(raw).hexdigest())))

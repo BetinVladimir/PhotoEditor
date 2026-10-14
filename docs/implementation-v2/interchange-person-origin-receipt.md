@@ -46,7 +46,12 @@ It returns owned bytes and the exact manifest mapping for a later immutable
 object publisher. This prepared value alone is not an archive source: the
 publisher must write a versioned object, reread and qualify its bytes, then
 add its `PersonOriginReceipt` inventory entry and mapping atomically with ZIP
-generation. The current exporter still rejects nonempty `person_origins`.
+generation. The Python bundle preparer now accepts receipt and MaskRef sources
+through a process-installed `person_origin_factory`, requires a qualifier for
+each exact mapping, preserves their explicit compression roles, and includes
+them in the closed manifest/inventory. No production factory is installed yet,
+and the Go export validators still reject nonempty `person_origins` until
+signed-source publication is wired end to end.
 `ExportPersonOriginOccurrence` now binds the exact selected entry and portable
 recipe to its frozen source, authored Override, one confirmed `person_subject`
 inline MaskRef, and its MaskPixels child. It checks physical source canvas and
