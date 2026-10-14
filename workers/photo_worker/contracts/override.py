@@ -3,7 +3,8 @@ from typing import Annotated, Literal
 from pydantic import Field, model_validator
 
 from .base import Contract, SHA256, Unit
-from .images import MaskRef
+from .images import Face68, MaskRef
+from .manual_mask import Polygon
 from .style import Beauty, Defects, Disabled, Extensions, Geometry, GlobalColor, LocalModule
 
 class OverrideModules(Contract):
@@ -59,8 +60,8 @@ class OverrideV1(Contract):
     accepted_candidate_ids: Annotated[list[str], Field(max_length=128)] = Field(default_factory=list)
     rejected_candidate_ids: Annotated[list[str], Field(max_length=128)] = Field(default_factory=list)
     mask_refs: list[OverrideMaskBinding] = Field(default_factory=list, max_length=128)
-    protected_polygons: list[dict] = Field(default_factory=list, max_length=128)
-    manual_landmarks: dict | None = None
+    protected_polygons: list[Polygon] = Field(default_factory=list, max_length=128)
+    manual_landmarks: Face68 | None = None
     revision: Annotated[int, Field(ge=1)]
 
     @model_validator(mode='after')
@@ -69,6 +70,16 @@ class OverrideV1(Contract):
             raise ValueError("Candidate decision conflict")
         if len({item.binding_id for item in self.mask_refs}) != len(self.mask_refs):
             raise ValueError("Duplicate override mask binding")
+        if any(item.mode != 'protect' for item in self.protected_polygons):
+            raise ValueError("Override polygon must protect")
+        if len({item.sequence for item in self.protected_polygons}) != len(self.protected_polygons):
+            raise ValueError("Duplicate protected polygon sequence")
+        if sum(len(item.points) for item in self.protected_polygons) > 10000:
+            raise ValueError("Too many protected polygon points")
+        if (self.manual_landmarks is not None and
+                (self.manual_landmarks.object_id.int == 0 or
+                 self.manual_landmarks.canvas.source_sha256 != self.input_sha256)):
+            raise ValueError("Manual landmarks source mismatch")
         return self
 
 class JobOverrideV1(Contract):

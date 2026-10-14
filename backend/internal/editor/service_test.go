@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"testing"
+
+	"github.com/google/uuid"
+	"photoeditor/backend/internal/canonical"
 )
 
 func TestValidObjectRequiresObjectAndSchema(t *testing.T) {
@@ -77,6 +80,40 @@ func TestValidateOverrideMaskBindingsAreTypedAndConfirmed(t *testing.T) {
 		}
 		if err := validateOverride(json.RawMessage(candidate), sha); err == nil {
 			t.Fatalf("invalid mask binding accepted: %s", replacement)
+		}
+	}
+}
+
+func TestValidateOverrideManualGeometry(t *testing.T) {
+	sha := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	base := `{"schema_version":1,"input_sha256":"` + sha + `","modules":{"strength":0.7},"revision":1,`
+	valid := base + `"protected_polygons":[{"kind":"polygon","sequence":0,"mode":"protect","points":[{"x":0,"y":0},{"x":1,"y":0},{"x":0,"y":1}]}]}`
+	if err := validateOverride(json.RawMessage(valid), sha); err != nil {
+		t.Fatal("valid protected polygon refused", err)
+	}
+	chainHash, err := canonical.Hash(map[string]any{"steps": []any{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	points := make([]map[string]any, 68)
+	for i := range points {
+		points[i] = map[string]any{"x": 0.5, "y": 0.5, "confidence": 1.0}
+	}
+	face, err := canonical.Marshal(map[string]any{"object_id": uuid.New(), "points": points, "canvas": map[string]any{"width": 32, "height": 24, "orientation": 1, "space_id": "canonical", "source_sha256": sha}, "transform_chain": map[string]any{"steps": []any{}, "hash": chainHash}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := validateOverride(json.RawMessage(base+`"manual_landmarks":`+string(face)+`}`), sha); err != nil {
+		t.Fatal("valid manual landmarks refused", err)
+	}
+	for _, field := range []string{
+		`"protected_polygons":[{"kind":"polygon","sequence":0,"mode":"add","points":[{"x":0,"y":0},{"x":1,"y":0},{"x":0,"y":1}]}]`,
+		`"protected_polygons":[{"kind":"polygon","sequence":0,"mode":"protect","points":[{"x":0,"y":0},{"x":1,"y":0},{"x":0,"y":1}]},{"kind":"polygon","sequence":0,"mode":"protect","points":[{"x":0,"y":0},{"x":1,"y":0},{"x":0,"y":1}]}]`,
+		`"protected_polygons":[{"kind":"polygon","sequence":0,"mode":"protect","points":[{"x":0,"y":0},{"x":1,"y":0},{"x":0,"y":1}],"unknown":1}]`,
+		`"manual_landmarks":{}`,
+	} {
+		if err := validateOverride(json.RawMessage(base+field+`}`), sha); err == nil {
+			t.Fatal("invalid manual geometry accepted", field)
 		}
 	}
 }

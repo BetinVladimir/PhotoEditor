@@ -713,6 +713,39 @@
       "title": "Extensions",
       "type": "object"
     },
+    "Face68": {
+      "additionalProperties": false,
+      "properties": {
+        "canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "object_id": {
+          "format": "uuid",
+          "title": "Object Id",
+          "type": "string"
+        },
+        "points": {
+          "items": {
+            "$ref": "#/$defs/Landmark"
+          },
+          "maxItems": 68,
+          "minItems": 68,
+          "title": "Points",
+          "type": "array"
+        },
+        "transform_chain": {
+          "$ref": "#/$defs/TransformChain"
+        }
+      },
+      "required": [
+        "object_id",
+        "points",
+        "canvas",
+        "transform_chain"
+      ],
+      "title": "Face68",
+      "type": "object"
+    },
     "Generation": {
       "additionalProperties": false,
       "properties": {
@@ -1043,6 +1076,36 @@
       "title": "LUT",
       "type": "object"
     },
+    "Landmark": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "x": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "confidence"
+      ],
+      "title": "Landmark",
+      "type": "object"
+    },
     "LocalColor": {
       "additionalProperties": false,
       "properties": {
@@ -1090,6 +1153,29 @@
         "mask_policy_id"
       ],
       "title": "LocalColor",
+      "type": "object"
+    },
+    "MaskPoint": {
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "title": "MaskPoint",
       "type": "object"
     },
     "MaskRef": {
@@ -1465,15 +1551,13 @@
         "manual_landmarks": {
           "anyOf": [
             {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/$defs/Face68"
             },
             {
               "type": "null"
             }
           ],
-          "default": null,
-          "title": "Manual Landmarks"
+          "default": null
         },
         "mask_refs": {
           "items": {
@@ -1502,8 +1586,7 @@
         },
         "protected_polygons": {
           "items": {
-            "additionalProperties": true,
-            "type": "object"
+            "$ref": "#/$defs/Polygon"
           },
           "maxItems": 128,
           "title": "Protected Polygons",
@@ -1535,6 +1618,48 @@
         "revision"
       ],
       "title": "OverrideV1",
+      "type": "object"
+    },
+    "Polygon": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "polygon",
+          "title": "Kind",
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "add",
+            "subtract",
+            "protect"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "points": {
+          "items": {
+            "$ref": "#/$defs/MaskPoint"
+          },
+          "maxItems": 4096,
+          "minItems": 3,
+          "title": "Points",
+          "type": "array"
+        },
+        "sequence": {
+          "maximum": 2147483647,
+          "minimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "sequence",
+        "mode",
+        "points"
+      ],
+      "title": "Polygon",
       "type": "object"
     },
     "PortraitDetail": {

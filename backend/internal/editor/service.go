@@ -88,6 +88,9 @@ func validateOverride(raw json.RawMessage, inputSHA string) error {
 		len(value.MaskRefs) > 128 || len(value.ProtectedPolygons) > 128 {
 		return domain.NewError("VALIDATION_FAILED", 422)
 	}
+	if review.ValidateOverrideManualGeometry(value.ProtectedPolygons, value.ManualLandmarks, inputSHA) != nil {
+		return domain.NewError("VALIDATION_FAILED", 422)
+	}
 	allowed := map[string]bool{"strength": true, "global": true, "local": true, "beauty": true, "defects": true, "geometry": true, "extensions": true}
 	for name, body := range value.Modules {
 		if !allowed[name] || len(body) == 0 || string(body) == "null" {

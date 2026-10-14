@@ -45,6 +45,31 @@ def test_export_override_preserves_absolute_modules():
     assert canonical_bytes(value) == raw
 
 
+def test_export_override_qualifies_manual_geometry():
+    from uuid import uuid4
+    from photo_worker.contracts.images import Canvas, TransformChain
+    from photo_worker.v2.interchange_export_style import validate_export_override
+    polygon = {'kind': 'polygon', 'sequence': 0, 'mode': 'protect',
+               'points': [{'x': 0.0, 'y': 0.0}, {'x': 1.0, 'y': 0.0}, {'x': 0.0, 'y': 1.0}]}
+    canvas = Canvas(width=32, height=24, orientation=1, space_id='canonical', source_sha256='a' * 64)
+    face = {'object_id': str(uuid4()), 'points': [{'x': 0.5, 'y': 0.5, 'confidence': 1.0}] * 68,
+            'canvas': canvas.model_dump(mode='json'), 'transform_chain': TransformChain.create([]).model_dump(mode='json')}
+    value = {'schema_version': 1, 'input_sha256': 'a' * 64, 'modules': {'strength': 0.7},
+             'protected_polygons': [polygon], 'manual_landmarks': face, 'revision': 1}
+    def qualify():
+        raw = canonical_bytes(value)
+        return validate_export_override(raw, sha256(raw).hexdigest(), {})
+    assert qualify().manual_landmarks is not None
+    for change in ('mode', 'sequence', 'point', 'landmark_source'):
+        altered = parse_json(canonical_bytes(value))
+        if change == 'mode': altered['protected_polygons'][0]['mode'] = 'add'
+        if change == 'sequence': altered['protected_polygons'].append(altered['protected_polygons'][0])
+        if change == 'point': altered['protected_polygons'][0]['points'][0]['x'] = 2
+        if change == 'landmark_source': altered['manual_landmarks']['canvas']['source_sha256'] = 'b' * 64
+        raw = canonical_bytes(altered)
+        with pytest.raises(ValueError): validate_export_override(raw, sha256(raw).hexdigest(), {})
+
+
 @pytest.mark.parametrize('mode', ['hash', 'canonical', 'strength', 'module',
                                  'empty', 'revision', 'unknown', 'policy'])
 def test_export_override_refuses_invalid_replacement_modules(mode):
