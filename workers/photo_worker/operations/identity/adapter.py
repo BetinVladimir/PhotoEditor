@@ -175,6 +175,13 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts,
 
 def identity_compare_operations(config: ArtifactConfig, pool: ModelPool,
                                 backend: str) -> list[Operation]:
+    entries = {entry.id: entry for entry in pool.lock.models}
+    for model in REQUIRED_MODELS:
+        entry = entries.get(model)
+        if (entry is None or not entry.approved_for_install
+                or backend not in entry.backends
+                or entry.backends[backend].status != 'passed'):
+            return []
     def run(ctx: ExecutionContext) -> OperationResult:
         with TaskArtifacts.create(ctx, config,
                                   frozenset({'document', 'mask', 'mask_pixels'})) as artifacts:
