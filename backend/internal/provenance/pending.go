@@ -8,6 +8,7 @@ import (
 	"photoeditor/backend/internal/artifactjson"
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/canonical"
+	"photoeditor/backend/internal/domain"
 	"photoeditor/backend/internal/idempotency"
 	"photoeditor/backend/internal/v2input"
 )
@@ -15,7 +16,7 @@ import (
 // Frozen recovery evidence, not a workflow ticket. SQL pins the complete package
 // on the first call and refuses replacement under the same actor/key/request.
 type signingPendingDocument struct {
- QueueClass string `json:"queue_class,omitempty"`
+	QueueClass string            `json:"queue_class,omitempty"`
 	Schema     int               `json:"schema_version"`
 	Tenant     uuid.UUID         `json:"tenant_id"`
 	Actor      uuid.UUID         `json:"actor_id"`
@@ -60,8 +61,10 @@ func compileSigningPending(who auth.Identity, ready ReadySigningExport, prepared
 		return nil, ErrInvalid
 	}
 	queue := "batch"
- if i.legacyQueueOmitted { queue = "" }
- raw, err := canonical.Marshal(signingPendingDocument{QueueClass: queue, Schema: 1, Tenant: i.tenant, Actor: i.actor, Export: i.export, Workflow: i.workflow, Run: i.run, TaskID: i.task, RequestSHA: i.requestSHA, Request: string(i.request), Params: string(i.params), Lineage: string(i.lineage), Source: pins, Bucket: bucket, Task: task, Inputs: inputs})
+	if i.legacyQueueOmitted {
+		queue = ""
+	}
+	raw, err := canonical.Marshal(signingPendingDocument{QueueClass: queue, Schema: 1, Tenant: i.tenant, Actor: i.actor, Export: i.export, Workflow: i.workflow, Run: i.run, TaskID: i.task, RequestSHA: i.requestSHA, Request: string(i.request), Params: string(i.params), Lineage: string(i.lineage), Source: pins, Bucket: bucket, Task: task, Inputs: inputs})
 	if err != nil {
 		return nil, err
 	}
@@ -98,6 +101,15 @@ func PinSigningPending(ctx context.Context, tx SigningAdmissionTransaction, who 
 		return outcome, nil
 	case "conflict":
 		return "", artifactjson.ErrConflict
+	case "stale":
+		var unavailable bool
+		if err := tx.QueryRow(ctx, `SELECT photo.v31_signing_adopter_unavailable($1,$2,$3,$4)`, i.tenant, who.UserID, who.SessionID, string(raw)).Scan(&unavailable); err != nil {
+			return "", err
+		}
+		if unavailable {
+			return "", domain.NewError("SIGNING_UNAVAILABLE", 503)
+		}
+		return "", artifactjson.ErrStale
 	default:
 		return "", artifactjson.ErrStale
 	}

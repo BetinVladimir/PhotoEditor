@@ -13,6 +13,7 @@ import (
 	"photoeditor/backend/internal/artifactjson"
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/canonical"
+	"photoeditor/backend/internal/domain"
 	"photoeditor/backend/internal/objectstore"
 	"photoeditor/backend/internal/v2input"
 )
@@ -307,8 +308,19 @@ func TestSigningAdmissionChecksPrivateReceiptBeforeSQL(t *testing.T) {
 					} else if err == nil || got != "" {
 						t.Fatal("invalid pending outcome accepted")
 					}
-					if pendingTx.calls != 1 || len(pendingTx.args) != 6 || pendingTx.args[0] != tid || pendingTx.args[3] != "admission" {
+					wantCalls := 1
+					if outcome == "stale" {
+						wantCalls = 2
+					}
+					if pendingTx.calls != wantCalls || (outcome != "stale" && (len(pendingTx.args) != 6 || pendingTx.args[0] != tid || pendingTx.args[3] != "admission")) {
 						t.Fatal("pending scope lost")
+					}
+					if outcome == "stale" {
+						pendingTx = &signingPendingTx{outcome: "stale", unavailable: true}
+						_, err = PinSigningPending(ctx, pendingTx, who, ready, receipt, "test-bucket")
+						if domain.AsError(err).Code != "SIGNING_UNAVAILABLE" || pendingTx.calls != 2 || len(pendingTx.args) != 4 || pendingTx.args[0] != tid {
+							t.Fatal("live adopter outage was not classified", err)
+						}
 					}
 				}
 			}
@@ -340,14 +352,18 @@ type signingPendingRow struct{ outcome string }
 func (r signingPendingRow) Scan(dst ...any) error { *(dst[0].(*string)) = r.outcome; return nil }
 
 type signingPendingTx struct {
-	calls   int
-	outcome string
-	args    []any
+	calls       int
+	outcome     string
+	args        []any
+	unavailable bool
 }
 
 func (s *signingPendingTx) QueryRow(_ context.Context, _ string, args ...any) pgx.Row {
 	s.calls++
 	s.args = args
+	if s.calls == 2 {
+		return signingAdmissionRow{accepted: s.unavailable}
+	}
 	return signingPendingRow{s.outcome}
 }
 

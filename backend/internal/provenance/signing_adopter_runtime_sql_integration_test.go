@@ -46,6 +46,17 @@ func TestIntegrationSigningAdopterRuntimeAdmission(t *testing.T) {
 	if _, err := tx.Exec(ctx, "SET LOCAL ROLE photo_api"); err != nil {
 		t.Fatal(err)
 	}
+	var diagnosticDefined, privateClone bool
+	if err := tx.QueryRow(ctx, `SELECT
+  has_function_privilege('photo_api','photo.v31_signing_adopter_unavailable(uuid,uuid,uuid,text)','EXECUTE'),
+  NOT has_function_privilege('photo_api','photo.v31_signing_admission_without_runtime(uuid,uuid,uuid,uuid,jsonb,text,text)','EXECUTE')`).Scan(&diagnosticDefined, &privateClone); err != nil || !diagnosticDefined || !privateClone {
+		t.Fatal("signing diagnostic ACL incorrect", err)
+	}
+	var unavailable bool
+	if err := tx.QueryRow(ctx, `SELECT photo.v31_signing_adopter_unavailable($1,$2,$3,$4)`,
+		uuid.New(), uuid.New(), uuid.New(), `{}`).Scan(&unavailable); err != nil || unavailable {
+		t.Fatal("unproven signing request classified as outage", err)
+	}
 	var ready bool
 	if err := tx.QueryRow(ctx, "SELECT photo.v31_signing_adopter_runtime_ready($1,$2)", "photo", params).Scan(&ready); err != nil || ready {
 		t.Fatal("missing adopter lease accepted", err)
