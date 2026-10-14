@@ -13,6 +13,19 @@ from photo_worker.operations.semantic.assemble import assemble_semantic_plan
 from .adoption import ArtifactRef, AdoptionInvalid, MAX_JSON_BYTES
 
 
+def _load_validated_snapshot(load_snapshot, reader, intent):
+    snapshot_value = load_snapshot(reader, deepcopy(intent))
+    if not isinstance(snapshot_value, InputSnapshot):
+        raise AdoptionInvalid('SEMANTIC_PLAN_SNAPSHOT_INVALID')
+    snapshot_bytes = canonical_bytes(snapshot_value)
+    if len(snapshot_bytes) > MAX_JSON_BYTES:
+        raise AdoptionInvalid('SEMANTIC_PLAN_SNAPSHOT_LIMIT')
+    try:
+        return InputSnapshot.model_validate_json(snapshot_bytes)
+    except ValueError as error:
+        raise AdoptionInvalid('SEMANTIC_PLAN_SNAPSHOT_INVALID') from error
+
+
 def verify_semantic_plan(reader, params_ref, root_ref, *, load_snapshot, verify_provenance,
                          check_active=lambda: None):
     if not callable(load_snapshot) or not callable(verify_provenance):
@@ -39,7 +52,7 @@ def verify_semantic_plan(reader, params_ref, root_ref, *, load_snapshot, verify_
     actual = document(root_ref, SemanticPlan, 'output')
     intent = document(ref(params.intent), EditIntent, 'input')
     calibration = document(ref(params.calibration), Calibration, 'input')
-    snapshot = InputSnapshot.model_validate_json(canonical_bytes(load_snapshot(reader, deepcopy(intent))))
+    snapshot = _load_validated_snapshot(load_snapshot, reader, intent)
     candidates = [document(ref(value), TransferCandidate, 'input') for value in params.candidates]
     try:
         expected = assemble_semantic_plan(params, intent, snapshot, calibration, candidates,
@@ -49,6 +62,7 @@ def verify_semantic_plan(reader, params_ref, root_ref, *, load_snapshot, verify_
     if canonical_bytes(actual) != canonical_bytes(expected):
         raise AdoptionInvalid('SEMANTIC_PLAN_REASSEMBLY_MISMATCH')
     check_active()
-    verify_provenance(deepcopy(params), deepcopy(intent), deepcopy(snapshot), deepcopy(candidates))
+    if verify_provenance(deepcopy(params), deepcopy(intent), deepcopy(snapshot), deepcopy(candidates)) is False:
+        raise AdoptionInvalid('SEMANTIC_PLAN_PROVENANCE_DENIED')
     check_active()
     return expected
