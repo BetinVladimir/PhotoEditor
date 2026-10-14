@@ -40,7 +40,7 @@ type SchedulerDeliverySigningFactory func(context.Context, string, *pgxpool.Pool
 
 func RunSchedulerWithArchiveCompletion(ctx context.Context, dsn, listen string, storageConfig objectstore.Config, iccDirectory string, nativeFactory SchedulerNativeRecoveryFactory, archiveFactory SchedulerArchiveCompletionFactory, importFactories ...SchedulerInterchangeImportFactory) error {
 	return runSchedulerWithDeliverySigning(ctx, dsn, listen, storageConfig,
-		iccDirectory, nativeFactory, archiveFactory, nil, importFactories...)
+		iccDirectory, nativeFactory, archiveFactory, nil, nil, importFactories...)
 }
 
 func RunSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string,
@@ -50,10 +50,24 @@ func RunSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string,
 	signingFactory SchedulerDeliverySigningFactory,
 	importFactories ...SchedulerInterchangeImportFactory) error {
 	return runSchedulerWithDeliverySigning(ctx, dsn, listen, storageConfig,
-		iccDirectory, nativeFactory, archiveFactory, signingFactory, importFactories...)
+		iccDirectory, nativeFactory, archiveFactory, signingFactory, nil, importFactories...)
 }
 
-func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, storageConfig objectstore.Config, iccDirectory string, nativeFactory SchedulerNativeRecoveryFactory, archiveFactory SchedulerArchiveCompletionFactory, signingFactory SchedulerDeliverySigningFactory, importFactories ...SchedulerInterchangeImportFactory) error {
+// A configured export factory must provide the complete bundle authority.
+// It is installed alongside the other scheduler jobs, never inside an HTTP
+// request or with an expired user session.
+func RunSchedulerWithInterchangeExport(ctx context.Context, dsn, listen string,
+	storageConfig objectstore.Config, iccDirectory string,
+	nativeFactory SchedulerNativeRecoveryFactory,
+	archiveFactory SchedulerArchiveCompletionFactory,
+	signingFactory SchedulerDeliverySigningFactory,
+	exportFactory SchedulerInterchangeExportFactory,
+	importFactories ...SchedulerInterchangeImportFactory) error {
+	return runSchedulerWithDeliverySigning(ctx, dsn, listen, storageConfig,
+		iccDirectory, nativeFactory, archiveFactory, signingFactory, exportFactory, importFactories...)
+}
+
+func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, storageConfig objectstore.Config, iccDirectory string, nativeFactory SchedulerNativeRecoveryFactory, archiveFactory SchedulerArchiveCompletionFactory, signingFactory SchedulerDeliverySigningFactory, exportFactory SchedulerInterchangeExportFactory, importFactories ...SchedulerInterchangeImportFactory) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -384,6 +398,7 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 	ingestState := new(ExpansionLoopState)
 	interchangeCollectionState := new(ExpansionLoopState)
 	interchangeImportState := new(ExpansionLoopState)
+	interchangeExportState := new(ExpansionLoopState)
 	archiveCompletionState := new(ExpansionLoopState)
 	archiveExpiryState := new(ExpansionLoopState)
 	archiveCleanupState := new(ExpansionLoopState)
@@ -487,6 +502,14 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 	}
 	interchangeCollectionProcessor := InterchangeCollectionProcessor{Store: SQLInterchangeCollectionStore{DB: pool}, Objects: storage, Bucket: storageConfig.Bucket}
 	var interchangeImportProcessor *InterchangeImportProcessor
+	var interchangeExportProcessor ExpansionJob
+	if exportFactory != nil {
+		interchangeExportProcessor, err = installSchedulerInterchangeExport(ctx,
+			exportFactory, pool, storage, storageConfig.Bucket)
+		if err != nil {
+			return err
+		}
+	}
 	if len(importFactories) == 1 {
 		continuation, buildErr := importFactories[0].BuildSchedulerInterchangeImport(ctx, pool, storage, storageConfig.Bucket)
 		if buildErr != nil {
@@ -709,7 +732,7 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 		w.Header().Set("Content-Type", "application/json")
 		ping, cancel := context.WithTimeout(r.Context(), time.Second)
 		defer cancel()
-		if (learningEvaluateInstalled && !learningEvaluateState.Ready.Load()) || (restorationEnabled && !restorationAdoptionState.Ready.Load()) || (restorationPreviewEnabled && !restorationPreviewState.Ready.Load()) || (metadataAdoptionEnabled && !metadataAdoptionState.Ready.Load()) || (replacementAdoptionEnabled && !replacementAdoptionState.Ready.Load()) || !ready.Load() || (deliveryConfig.Enabled && !deliveryState.Ready.Load()) || (captureEnabled && !captureState.Ready.Load()) || (sessionPlanInstalled && !sessionPlanState.Ready.Load()) || (semanticAssemblyInstalled && !semanticAssemblyState.Ready.Load()) || (sceneMaterializationInstalled && !sceneMaterializationState.Ready.Load()) || !expansionState.Ready.Load() || !ingestState.Ready.Load() || !interchangeCollectionState.Ready.Load() || (interchangeImportProcessor != nil && !interchangeImportState.Ready.Load()) || (archiveInvalidationProcessor != nil && !archiveInvalidationState.Ready.Load()) || (archiveRevocationProcessor != nil && !archiveRevocationState.Ready.Load()) || (archiveRecoveryProcessor != nil && !archiveRecoveryState.Ready.Load()) || (archiveCleanupProcessor != nil && !archiveCleanupState.Ready.Load()) || (archiveExpiryProcessor != nil && !archiveExpiryState.Ready.Load()) || (archiveCompletionProcessor != nil && !archiveCompletionState.Ready.Load()) || !uploadState.Ready.Load() || !downloadState.Ready.Load() || !bulkState.Ready.Load() || !styleState.Ready.Load() || !styleAnalysisState.Ready.Load() || !styleImportState.Ready.Load() || !embeddingState.Ready.Load() || !exportBatchState.Ready.Load() || !renderBatchState.Ready.Load() || !renderDerivativeCleanupState.Ready.Load() || !renderDerivativeState.Ready.Load() || !perspectivePreviewState.Ready.Load() || !multiQualityState.Ready.Load() || !multiPreviewState.Ready.Load() || !perspectiveQualityState.Ready.Load() || !renderRecoveryState.Ready.Load() || (nativeRecoveryProcessor != nil && !nativeRecoveryState.Ready.Load()) || (linesEnabled && (!perspectiveLinesRecoveryState.Ready.Load() || !perspectiveLinesLifecycleState.Ready.Load())) || !interactiveState.Ready.Load() || !interactiveFinalizeState.Ready.Load() || !applyState.Ready.Load() || !mediaRetryState.Ready.Load() || !mediaFinalizeState.Ready.Load() || pool.Ping(ping) != nil || storage.Ready(ping) != nil {
+		if (learningEvaluateInstalled && !learningEvaluateState.Ready.Load()) || (restorationEnabled && !restorationAdoptionState.Ready.Load()) || (restorationPreviewEnabled && !restorationPreviewState.Ready.Load()) || (metadataAdoptionEnabled && !metadataAdoptionState.Ready.Load()) || (replacementAdoptionEnabled && !replacementAdoptionState.Ready.Load()) || !ready.Load() || (deliveryConfig.Enabled && !deliveryState.Ready.Load()) || (captureEnabled && !captureState.Ready.Load()) || (sessionPlanInstalled && !sessionPlanState.Ready.Load()) || (semanticAssemblyInstalled && !semanticAssemblyState.Ready.Load()) || (sceneMaterializationInstalled && !sceneMaterializationState.Ready.Load()) || !expansionState.Ready.Load() || !ingestState.Ready.Load() || !interchangeCollectionState.Ready.Load() || (interchangeImportProcessor != nil && !interchangeImportState.Ready.Load()) || (interchangeExportProcessor != nil && !interchangeExportState.Ready.Load()) || (archiveInvalidationProcessor != nil && !archiveInvalidationState.Ready.Load()) || (archiveRevocationProcessor != nil && !archiveRevocationState.Ready.Load()) || (archiveRecoveryProcessor != nil && !archiveRecoveryState.Ready.Load()) || (archiveCleanupProcessor != nil && !archiveCleanupState.Ready.Load()) || (archiveExpiryProcessor != nil && !archiveExpiryState.Ready.Load()) || (archiveCompletionProcessor != nil && !archiveCompletionState.Ready.Load()) || !uploadState.Ready.Load() || !downloadState.Ready.Load() || !bulkState.Ready.Load() || !styleState.Ready.Load() || !styleAnalysisState.Ready.Load() || !styleImportState.Ready.Load() || !embeddingState.Ready.Load() || !exportBatchState.Ready.Load() || !renderBatchState.Ready.Load() || !renderDerivativeCleanupState.Ready.Load() || !renderDerivativeState.Ready.Load() || !perspectivePreviewState.Ready.Load() || !multiQualityState.Ready.Load() || !multiPreviewState.Ready.Load() || !perspectiveQualityState.Ready.Load() || !renderRecoveryState.Ready.Load() || (nativeRecoveryProcessor != nil && !nativeRecoveryState.Ready.Load()) || (linesEnabled && (!perspectiveLinesRecoveryState.Ready.Load() || !perspectiveLinesLifecycleState.Ready.Load())) || !interactiveState.Ready.Load() || !interactiveFinalizeState.Ready.Load() || !applyState.Ready.Load() || !mediaRetryState.Ready.Load() || !mediaFinalizeState.Ready.Load() || pool.Ping(ping) != nil || storage.Ready(ping) != nil {
 			w.WriteHeader(http.StatusServiceUnavailable)
 			w.Write([]byte(`{"status":"unavailable"}`))
 			return
@@ -748,6 +771,7 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 		fmt.Fprintf(w, "# TYPE photo_scheduler_v27_assemblies_total counter\nphoto_scheduler_v27_assemblies_total %d\n# TYPE photo_scheduler_v27_assembly_failures_total counter\nphoto_scheduler_v27_assembly_failures_total %d\n", semanticAssemblyState.Materialized.Load(), semanticAssemblyState.Failures.Load())
 		fmt.Fprintf(w, "# TYPE photo_scheduler_v23_evaluations_total counter\nphoto_scheduler_v23_evaluations_total %d\n# TYPE photo_scheduler_v23_evaluation_failures_total counter\nphoto_scheduler_v23_evaluation_failures_total %d\n", learningEvaluateState.Materialized.Load(), learningEvaluateState.Failures.Load())
 		fmt.Fprintf(w, "# TYPE photo_scheduler_v30_delivery_pages_total counter\nphoto_scheduler_v30_delivery_pages_total %d\n# TYPE photo_scheduler_v30_delivery_failures_total counter\nphoto_scheduler_v30_delivery_failures_total %d\n", deliveryState.Materialized.Load(), deliveryState.Failures.Load())
+		fmt.Fprintf(w, "# TYPE photo_scheduler_v30_export_adoptions_total counter\nphoto_scheduler_v30_export_adoptions_total %d\n# TYPE photo_scheduler_v30_export_adoption_failures_total counter\nphoto_scheduler_v30_export_adoption_failures_total %d\n", interchangeExportState.Materialized.Load(), interchangeExportState.Failures.Load())
 		fmt.Fprintf(w, "# TYPE photo_scheduler_v30_metadata_adoptions_total counter\nphoto_scheduler_v30_metadata_adoptions_total %d\n# TYPE photo_scheduler_v30_metadata_adoption_failures_total counter\nphoto_scheduler_v30_metadata_adoption_failures_total %d\n", metadataAdoptionState.Materialized.Load(), metadataAdoptionState.Failures.Load())
 		fmt.Fprintf(w, "# TYPE photo_scheduler_dispatched_total counter\nphoto_scheduler_dispatched_total %d\n# TYPE photo_scheduler_recovered_transitions_total counter\nphoto_scheduler_recovered_transitions_total %d\n", dispatched.Load(), recovered.Load())
 	})
@@ -834,6 +858,14 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 			importDone <- RunExpansionLoop(importCtx, interchangeImportProcessor, interchangeImportState, 5*time.Second)
 		}()
 		defer func() { stopImport(); <-importDone }()
+	}
+	if interchangeExportProcessor != nil {
+		exportCtx, stopExport := context.WithCancel(ctx)
+		exportDone := make(chan error, 1)
+		go func() {
+			exportDone <- RunExpansionLoop(exportCtx, interchangeExportProcessor, interchangeExportState, 5*time.Second)
+		}()
+		defer func() { stopExport(); <-exportDone }()
 	}
 
 	if archiveInvalidationProcessor != nil {
