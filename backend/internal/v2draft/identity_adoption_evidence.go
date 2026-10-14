@@ -20,6 +20,7 @@ type PreparedIdentityAdoption struct {
 	Result       VerifiedIdentityResult
 	Measurements masknpy.IdentityPixelMeasurements
 	PixelObjects map[string]objectstore.Object
+	verified     bool
 }
 
 // PrepareIdentityAdoption runs the entire physical input/output verification
@@ -116,7 +117,7 @@ func PrepareIdentityAdoption(ctx context.Context, scope IdentityResultScope,
 	}
 	return PreparedIdentityAdoption{Scope: scope, Inputs: inputs,
 		Documents: documents, Consents: consents, Calibration: calibration,
-		Result: result, Measurements: measurements, PixelObjects: pixelObjects}, nil
+		Result: result, Measurements: measurements, PixelObjects: pixelObjects, verified: true}, nil
 }
 
 func identityPixelPinRef(documents IdentityPixelDocuments, role string) (v2input.Ref, bool) {
