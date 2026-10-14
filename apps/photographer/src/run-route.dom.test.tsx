@@ -1,14 +1,19 @@
 import {APIError} from '@photoeditor/api-client';
 // @vitest-environment jsdom
-import {afterEach,expect,it,vi} from 'vitest';
+import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 import {act,cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
 import type {RunStatus} from './catalog-types';
 const mocks=vi.hoisted(()=>({params:{id:'run',tenant:'tenant'} as {id:string;tenant:string;semanticWorkflow?:string},request:vi.fn(),stream:vi.fn(),push:vi.fn(),resolve:vi.fn()}));
+const journals=vi.hoisted(()=>({retryKey:0,retryDiscard:vi.fn(),cancelDiscard:vi.fn()}));
 vi.mock('react-native',async()=>import('react-native-web'));
 vi.mock('expo-router',()=>({useLocalSearchParams:()=>mocks.params,router:{push:mocks.push}}));
+vi.mock('./run-retry-attempt-store',()=>({RunRetryAttemptStore:class{async begin(expected_revision:string){journals.retryKey++;return {version:1,key:`retry-${journals.retryKey}`,expected_revision,created_at:1}}async acknowledge(_key:string){}async discard(key:string){journals.retryDiscard(key)}}}));
+vi.mock('./run-cancel-attempt-store',()=>({RunCancelAttemptStore:class{async begin(){return {version:1,key:'cancel-1',created_at:1}}async acknowledge(_key:string){}async discard(key:string){journals.cancelDiscard(key)}}}));
 const client={request:mocks.request,eventStream:mocks.stream,semanticRunIntent:mocks.resolve};const auth={client:()=>client};
 vi.mock('./auth-context',()=>({useAuth:()=>auth}));
+import {OwnerAPI} from './owner-api';
 import RunScreen from '../app/runs/[id]';
+beforeEach(()=>{vi.spyOn(OwnerAPI.prototype,'me').mockResolvedValue({id:'00000000-0000-0000-0000-000000000001',email:'test@example.com',locale:'en',theme:'light',timezone:'UTC',revision:'1'});});
 it('opens semantic review using resolved intent instead of workflow route ID',async()=>{
  const workflow='22222222-2222-4222-8222-222222222222',intent='33333333-3333-4333-8333-333333333333';
  mocks.params={id:'run',tenant:'tenant',semanticWorkflow:workflow};streaming();
@@ -35,7 +40,7 @@ it('keeps an ordinary V2 run free of semantic review errors',async()=>{
 });
 const value=(revision:string,status:string,id='run'):RunStatus=>({id,kind:'bulk',status,revision,stage:status,progress:status==='completed'?1:0,counts:{total:2,succeeded:status==='completed'?2:0,failed:status==='failed'?2:0,skipped:0,review:0},errors:[]});
 function streaming(){mocks.stream.mockImplementation((_path,_cursor,_receive,signal)=>new Promise<void>(resolve=>signal.addEventListener('abort',()=>resolve(),{once:true})));}
-afterEach(()=>{cleanup();vi.resetAllMocks();mocks.params={id:'run',tenant:'tenant'};});
+afterEach(()=>{cleanup();vi.restoreAllMocks();vi.resetAllMocks();mocks.params={id:'run',tenant:'tenant'};journals.retryKey=0;});
 it('mounts stream refresh and preserves a newer retry response against an older GET',async()=>{
  streaming();mocks.request.mockResolvedValueOnce(value('1','failed'));render(<RunScreen/>);
  await screen.findByText('Retry failed');const receive=mocks.stream.mock.calls[0][2];
@@ -53,6 +58,18 @@ it('sends a full int64 run revision as an exact decimal string on retry',async()
  render(<RunScreen/>);fireEvent.click(await screen.findByText('Retry failed'));
  await waitFor(()=>expect(mocks.request).toHaveBeenCalledTimes(2));
  expect(mocks.request.mock.calls[1][1]).toMatchObject({method:'POST',body:{expected_revision:revision}});
+});
+it('uses a new key after a definite rejected retry',async()=>{
+ streaming();mocks.request.mockResolvedValueOnce(value('1','failed'))
+  .mockRejectedValueOnce(new APIError(409,'RUN_NOT_RETRYABLE'))
+  .mockResolvedValueOnce(value('2','running'));
+ render(<RunScreen/>);fireEvent.click(await screen.findByText('Retry failed'));
+ await screen.findByText('Unable to retry run');
+ expect(journals.retryDiscard).toHaveBeenCalledWith('retry-1');
+ fireEvent.click(screen.getByText('Retry failed'));
+ await screen.findByText('Cancel');
+ expect(mocks.request.mock.calls[1][1]).toMatchObject({idempotencyKey:'retry-1'});
+ expect(mocks.request.mock.calls[2][1]).toMatchObject({idempotencyKey:'retry-2'});
 });
 it('aborts the old stream and ignores a late mutation after changing tenant/run scope',async()=>{
  streaming();mocks.request.mockResolvedValueOnce(value('1','running'));const view=render(<RunScreen/>);

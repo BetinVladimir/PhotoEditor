@@ -14,6 +14,9 @@ describe('run cancel attempt journal',()=>{
   expect(await mounted.read()).toEqual(first);
   await mounted.acknowledge(first.key);
   expect(await one.read()).toBeNull();
+  const rejected=await one.begin();
+  await one.discard(rejected.key);
+  expect(await mounted.read()).toBeNull();
  });
  it('isolates user scope and clears all attempts at logout',async()=>{
   const data=storage(),one=new RunCancelAttemptStore(data,'cancel-logout',id(1),id(2),id(3));

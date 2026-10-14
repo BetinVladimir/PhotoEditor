@@ -14,6 +14,9 @@ describe('run retry attempt journal',()=>{
   expect(await mounted.read()).toEqual(first);
   await mounted.acknowledge(first.key);
   expect(await one.read()).toBeNull();
+  const rejected=await one.begin('9007199254740994');
+  await one.discard(rejected.key);
+  expect(await mounted.read()).toBeNull();
  });
  it('isolates users and invalidates attempts on logout',async()=>{
   const data=storage(),first=new RunRetryAttemptStore(data,'logout-origin',id(1),id(2),id(3));

@@ -32,7 +32,9 @@ export class RunRetryAttemptStore {
    await this.storage.setItem(this.storageKey,JSON.stringify(record));this.current();return record;
   });
  }
- acknowledge(key:string){return queue(async()=>{this.current();const raw=await this.storage.getItem(this.storageKey);this.current();if(raw===null)return;const record=this.decode(raw);if(record.key!==key)throw new Error('RUN_RETRY_ATTEMPT_CONFLICT');await this.storage.removeItem(this.storageKey);this.current();});}
+ private remove(key:string){return queue(async()=>{this.current();const raw=await this.storage.getItem(this.storageKey);this.current();if(raw===null)return;const record=this.decode(raw);if(record.key!==key)throw new Error('RUN_RETRY_ATTEMPT_CONFLICT');await this.storage.removeItem(this.storageKey);this.current();});}
+ acknowledge(key:string){return this.remove(key);}
+ discard(key:string){return this.remove(key);}
 }
 
 export function clearRunRetryAttempts(storage:DraftStorage&{getAllKeys():Promise<readonly string[]>},origin:string){
