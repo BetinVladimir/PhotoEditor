@@ -57,3 +57,34 @@ func TestImportPersonMaskConsentChainRechecksCurrentDecision(t *testing.T) {
 		})
 	}
 }
+
+func TestImportedPersonMaskContextBindsOnePreparedArtifact(t *testing.T) {
+	workflow, entry := uuid.New(), uuid.New()
+	override := v2input.Ref{ArtifactID: uuid.New(), SHA256: rawSHA([]byte("override"))}
+	recipe := v2input.Ref{ArtifactID: uuid.New(), SHA256: rawSHA([]byte("recipe"))}
+	archived := review.MaskRef{Artifact: review.ArtifactRef{ID: uuid.New(), SHA256: rawSHA([]byte("mask"))}, Selector: "person"}
+	ctx := withImportRecipeConfirmationScope(context.Background(), workflow, entry, recipe, []v2input.Ref{override})
+	ctx = withImportConfirmationScope(ctx, workflow, entry, override, "Override")
+	scope, ok := ctx.Value(importConfirmationScopeKey{}).(ImportMaskConfirmationScope)
+	if !ok {
+		t.Fatal("verified override scope missing")
+	}
+	prepared := archived
+	prepared.Artifact.ID = uuid.NewSHA1(workflow, []byte("interchange:dependency:"+entry.String()+":MaskPixels:"+archived.Artifact.ID.String()))
+	if hasImportedPersonMaskContext(ctx, prepared) {
+		t.Fatal("broad override context accepted person mask")
+	}
+	exact := withImportConfirmedMaskScope(ctx, scope, archived)
+	if !hasImportedPersonMaskContext(exact, prepared) {
+		t.Fatal("exact remapped mask context rejected")
+	}
+	other := prepared
+	other.Artifact.ID = uuid.New()
+	if hasImportedPersonMaskContext(exact, other) {
+		t.Fatal("foreign person mask inherited context")
+	}
+	wrong := withImportConfirmedMaskScope(ctx, ImportMaskConfirmationScope{Workflow: workflow, Entry: uuid.New(), Recipe: recipe, Override: override}, archived)
+	if hasImportedPersonMaskContext(wrong, prepared) {
+		t.Fatal("fabricated parent scope accepted")
+	}
+}

@@ -21,6 +21,12 @@ type ImportMaskConfirmationScope struct {
 type importConfirmationScopeKey struct{}
 type importRecipeConfirmationKey struct{}
 type importPreparedOverrideMaskKey struct{}
+type importConfirmedMaskKey struct{}
+type importConfirmedMaskScope struct {
+	parent   ImportMaskConfirmationScope
+	prepared v2input.Ref
+}
+type importPreparedOverrideMaskScope struct{ parent, mask v2input.Ref }
 type importRecipeConfirmationScope struct {
 	workflow  uuid.UUID
 	entry     uuid.UUID
@@ -59,16 +65,25 @@ func withPreparedOverrideMaskScope(ctx context.Context, parent v2input.Ref, mask
 	if !validImportRef(parent) || !validImportRef(mask) {
 		return ctx
 	}
-	return context.WithValue(ctx, importPreparedOverrideMaskKey{}, mask)
+	return context.WithValue(ctx, importPreparedOverrideMaskKey{}, importPreparedOverrideMaskScope{parent: parent, mask: mask})
+}
+
+func withImportConfirmedMaskScope(ctx context.Context, scope ImportMaskConfirmationScope, archived review.MaskRef) context.Context {
+	parent, ok := ctx.Value(importConfirmationScopeKey{}).(ImportMaskConfirmationScope)
+	if !ok || parent != scope || scope.Workflow == uuid.Nil || scope.Entry == uuid.Nil || !validImportRef(scope.Recipe) || !validImportRef(scope.Override) || archived.Selector != "person" || archived.ObjectID != nil || !validImportRef(v2input.Ref{ArtifactID: archived.Artifact.ID, SHA256: archived.Artifact.SHA256}) {
+		return ctx
+	}
+	prepared := v2input.Ref{ArtifactID: uuid.NewSHA1(scope.Workflow, []byte("interchange:dependency:"+scope.Entry.String()+":MaskPixels:"+archived.Artifact.ID.String())), SHA256: archived.Artifact.SHA256}
+	return context.WithValue(ctx, importConfirmedMaskKey{}, importConfirmedMaskScope{parent: scope, prepared: prepared})
 }
 
 func hasImportedPersonMaskContext(ctx context.Context, mask review.MaskRef) bool {
-	if scope, ok := ctx.Value(importConfirmationScopeKey{}).(ImportMaskConfirmationScope); ok &&
-		scope.Workflow != uuid.Nil && scope.Entry != uuid.Nil && validImportRef(scope.Recipe) && validImportRef(scope.Override) {
+	if exact, ok := ctx.Value(importConfirmedMaskKey{}).(importConfirmedMaskScope); ok && exact.prepared.ArtifactID == mask.Artifact.ID && exact.prepared.SHA256 == mask.Artifact.SHA256 &&
+		exact.parent.Workflow != uuid.Nil && exact.parent.Entry != uuid.Nil && validImportRef(exact.parent.Recipe) && validImportRef(exact.parent.Override) {
 		return true
 	}
-	if ref, ok := ctx.Value(importPreparedOverrideMaskKey{}).(v2input.Ref); ok &&
-		ref.ArtifactID == mask.Artifact.ID && ref.SHA256 == mask.Artifact.SHA256 {
+	if scope, ok := ctx.Value(importPreparedOverrideMaskKey{}).(importPreparedOverrideMaskScope); ok && validImportRef(scope.parent) &&
+		scope.mask.ArtifactID == mask.Artifact.ID && scope.mask.SHA256 == mask.Artifact.SHA256 {
 		return true
 	}
 	return false

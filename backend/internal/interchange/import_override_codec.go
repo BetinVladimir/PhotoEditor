@@ -229,7 +229,11 @@ func (c ImportOverrideCodec) RemapImportDocument(ctx context.Context, contract s
 					return nil, v2input.ErrInvalid
 				}
 			}
-			mapped, err := c.Masks.RemapImportDocument(ctx, "MaskRef", mask["mask"], old, target, resolve)
+			maskCtx := ctx
+			if confirmed {
+				maskCtx = withImportConfirmedMaskScope(ctx, confirmationScope, archived)
+			}
+			mapped, err := c.Masks.RemapImportDocument(maskCtx, "MaskRef", mask["mask"], old, target, resolve)
 			if err != nil {
 				return nil, err
 			}
