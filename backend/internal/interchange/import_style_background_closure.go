@@ -15,30 +15,10 @@ func importClosureDocumentRefs(body []byte, contract string, children []v2input.
 	if err != nil {
 		return nil, err
 	}
-	if contract == "Override" {
-		// Portable IDs are strings, not ArtifactRefs. Until a separate physical
-		// publisher and typed SQL closure exist, activation must refuse this edge.
-		var override struct {
-			Modules struct {
-				Extensions struct {
-					Background *struct {
-						Mode string `json:"mode"`
-					} `json:"background"`
-				} `json:"extensions"`
-			} `json:"modules"`
-		}
-		if err := json.Unmarshal(body, &override); err != nil {
-			return nil, err
-		}
-		if override.Modules.Extensions.Background != nil && override.Modules.Extensions.Background.Mode == "asset" {
-			return nil, v2input.ErrInvalid
-		}
+	if contract != "StyleV2" && contract != "Override" {
 		return refs, nil
 	}
-	if contract != "StyleV2" {
-		return refs, nil
-	}
-	id, present, err := importStyleBackgroundID(body)
+	id, present, err := importPortableBackgroundID(body, contract)
 	if err != nil {
 		return nil, err
 	}
@@ -62,6 +42,26 @@ func importClosureDocumentRefs(body []byte, contract string, children []v2input.
 		return nil, v2input.ErrInvalid
 	}
 	return refs, nil
+}
+func importPortableBackgroundID(raw []byte, contract string) (uuid.UUID, bool, error) {
+	if contract == "StyleV2" {
+		return importStyleBackgroundID(raw)
+	}
+	if contract != "Override" {
+		return uuid.Nil, false, v2input.ErrInvalid
+	}
+	var override struct {
+		Modules struct {
+			Extensions json.RawMessage `json:"extensions"`
+		} `json:"modules"`
+	}
+	if err := json.Unmarshal(raw, &override); err != nil {
+		return uuid.Nil, false, err
+	}
+	if len(override.Modules.Extensions) == 0 || string(override.Modules.Extensions) == "null" {
+		return uuid.Nil, false, nil
+	}
+	return importStyleBackgroundID([]byte(`{"extensions":` + string(override.Modules.Extensions) + `}`))
 }
 func importStyleBackgroundID(raw []byte) (uuid.UUID, bool, error) {
 	var style struct {
@@ -150,10 +150,10 @@ func (v importStyleBackgroundChildren) ImportDocumentChildren(ctx context.Contex
 		return nil, err
 	}
 	children = append([]v2input.Entry(nil), children...)
-	if entry.Contract != "StyleV2" {
+	if entry.Contract != "StyleV2" && entry.Contract != "Override" {
 		return children, ctx.Err()
 	}
-	id, present, err := importStyleBackgroundID(raw)
+	id, present, err := importPortableBackgroundID(raw, entry.Contract)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,7 @@
 package interchange
 
 import (
+	"context"
 	"github.com/google/uuid"
 	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/v2input"
@@ -56,7 +57,8 @@ func TestImportedStylePortableBackgroundClosureRequiresExactTypedChild(t *testin
 }
 func TestImportedOverridePortableBackgroundCannotBypassClosure(t *testing.T) {
 	for _, mode := range []string{"asset", "keep"} {
-		raw, err := canonical.Marshal(map[string]any{"modules": map[string]any{"extensions": map[string]any{"background": map[string]any{"mode": mode, "asset_id": uuid.New().String()}}}})
+		id := uuid.New()
+		raw, err := canonical.Marshal(map[string]any{"modules": map[string]any{"extensions": map[string]any{"background": map[string]any{"mode": mode, "asset_id": id.String()}}}})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -65,8 +67,33 @@ func TestImportedOverridePortableBackgroundCannotBypassClosure(t *testing.T) {
 			if err == nil || refs != nil {
 				t.Fatal("unregistered Override portable asset escaped closure")
 			}
+			child := v2input.Entry{Contract: "StyleBackgroundAsset", Ref: v2input.Ref{ArtifactID: id, SHA256: rawSHA([]byte("background"))}}
+			refs, err = importClosureDocumentRefs(raw, "Override", []v2input.Entry{child})
+			if err != nil || len(refs) != 1 || refs[id] != child.Ref {
+				t.Fatal("registered Override background missing from closure", err)
+			}
 		} else if err != nil || len(refs) != 0 {
 			t.Fatal("non-asset Override was rejected", err)
 		}
+	}
+}
+
+type emptyBackgroundChildren struct{}
+
+func (emptyBackgroundChildren) ImportDocumentChildren(context.Context, v2input.Entry, []byte) ([]v2input.Entry, error) {
+	return nil, nil
+}
+
+func TestImportedOverrideBackgroundWitnessCreatesTypedChild(t *testing.T) {
+	id := uuid.New()
+	ref := v2input.Ref{ArtifactID: id, SHA256: rawSHA([]byte("background"))}
+	raw, err := canonical.Marshal(map[string]any{"modules": map[string]any{"extensions": map[string]any{"background": map[string]any{"mode": "asset", "asset_id": id.String()}}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	validator := importStyleBackgroundChildren{Other: emptyBackgroundChildren{}, Witnesses: &importBackgroundClosureWitnesses{refs: map[uuid.UUID]v2input.Ref{id: ref}}}
+	children, err := validator.ImportDocumentChildren(context.Background(), v2input.Entry{Contract: "Override", Ref: v2input.Ref{ArtifactID: uuid.New(), SHA256: rawSHA(raw)}}, raw)
+	if err != nil || len(children) != 1 || children[0] != (v2input.Entry{Contract: "StyleBackgroundAsset", Ref: ref}) {
+		t.Fatal("Override background child missing", err)
 	}
 }

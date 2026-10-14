@@ -212,6 +212,22 @@ func (f SQLImportEntryRecipeAuthorityFactory) BuildImportEntryRecipeAuthority(ct
 		if !ok {
 			return nil, nil, v2input.ErrInvalid
 		}
+		var matched *ImportCorrectionBinding
+		for i := range codecs.Bindings {
+			if codecs.Bindings[i].Entry == scope.Entry {
+				if matched != nil || codecs.Bindings[i].New != scope.Binding {
+					return nil, nil, v2input.ErrInvalid
+				}
+				matched = &codecs.Bindings[i]
+			}
+		}
+		if matched == nil {
+			return nil, nil, v2input.ErrInvalid
+		}
+		codecs.OverrideBackgrounds = BoundImportOverrideBackgroundRemapper{
+			Source:     ImportOverrideStyleSource{Parsed: append([]byte(nil), parsed...), Entry: scope.Entry, Old: matched.Old, Reader: archive},
+			OldVersion: matched.Old.AssetVersionID, Target: scope.Binding, Style: backgrounds,
+		}
 		f.Documents = importStyleBackgroundChildren{Other: f.Documents, Witnesses: witnessed.Witnesses}
 	}
 	assets := f.Assets

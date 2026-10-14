@@ -66,9 +66,21 @@ portable ID)` и физический publisher. Новый
 `EditingRecipeV3` текущего entry через parsed inventory, проверяет старый
 source binding, участие данного Override и наличие BaseStyle в инвентаре,
 затем перечитывает recipe для защиты от изменения во время IO. Unit-сценарий
-написан, не запускался. Следующая связка — адаптер к StyleV2 publisher с
-повторной проверкой recipe после публикации и typed child в closure; отказ
-activation пока сохраняется.
+написан, не запускался. На этой промежуточной стадии activation отказывал
+для любого Override asset background; следующий абзац описывает последующее
+подключение publisher и typed child.
+
+Эта связка теперь записана: `BoundImportOverrideBackgroundRemapper` требует
+точный current entry/target, читает BaseStyle через архивный recipe до и после
+вызова уже существующего `witnessedImportBackgroundRemapper`; последний
+публикует физический asset и сохраняет typed SHA witness. При сборке entry
+factory устанавливает адаптер только из текущего binding. `Override` closure
+теперь требует тот же `StyleBackgroundAsset` child из witness и возвращает
+portable ID вместе с SHA как проверяемую зависимость; без child отказ
+сохраняется. Unit-сценарии адаптера и closure написаны, не запускались.
+Эта source-цепочка не доказывает production import: миграции, SQL/объектное
+E2E, текущая Override content authority и независимый person acceptance
+остаются открытыми.
 
 Это трассировка исходников для выбора следующей разработки. Она не является
 процентом реализации, результатом тестирования или приёмкой модулей. Текущий
