@@ -19,6 +19,7 @@ type PreparedIdentityAdoption struct {
 	Calibration  IdentityCalibrationInput
 	Result       VerifiedIdentityResult
 	Measurements masknpy.IdentityPixelMeasurements
+	PixelObjects map[string]objectstore.Object
 }
 
 // PrepareIdentityAdoption runs the entire physical input/output verification
@@ -55,8 +56,9 @@ func PrepareIdentityAdoption(ctx context.Context, scope IdentityResultScope,
 	if err != nil {
 		return zero, err
 	}
-	measurements, err := VerifyIdentityPublishedPixels(ctx, scope, inputs, documents,
-		result, inputCatalog, outputCatalog, objects)
+	var pixelObjects map[string]objectstore.Object
+	measurements, err := verifyIdentityPublishedPixels(ctx, scope, inputs, documents,
+		result, inputCatalog, outputCatalog, objects, &pixelObjects)
 	if err != nil {
 		return zero, err
 	}
@@ -93,10 +95,55 @@ func PrepareIdentityAdoption(ctx context.Context, scope IdentityResultScope,
 			return zero, v2input.ErrExpired
 		}
 	}
+	for role, pin := range pixelObjects {
+		ref, ok := identityPixelPinRef(documents, role)
+		if !ok {
+			return zero, v2input.ErrInvalid
+		}
+		current, err := inputCatalog.ResolveIdentityResultInput(ctx, scope, role, ref)
+		if err != nil {
+			return zero, err
+		}
+		if current != pin {
+			return zero, v2input.ErrExpired
+		}
+	}
+	if len(pixelObjects) != 4+boolToInt(documents.BeforeAlpha != nil)+boolToInt(documents.AfterAlpha != nil) {
+		return zero, v2input.ErrInvalid
+	}
 	if err := ctx.Err(); err != nil {
 		return zero, err
 	}
 	return PreparedIdentityAdoption{Scope: scope, Inputs: inputs,
 		Documents: documents, Consents: consents, Calibration: calibration,
-		Result: result, Measurements: measurements}, nil
+		Result: result, Measurements: measurements, PixelObjects: pixelObjects}, nil
+}
+
+func identityPixelPinRef(documents IdentityPixelDocuments, role string) (v2input.Ref, bool) {
+	switch role {
+	case "before_pixels":
+		return documents.BeforePixels, true
+	case "after_pixels":
+		return documents.AfterPixels, true
+	case "effective_pixels":
+		return documents.EffectivePixels, true
+	case "protected_pixels":
+		return documents.ProtectedPixels, true
+	case "before_alpha":
+		if documents.BeforeAlpha != nil {
+			return *documents.BeforeAlpha, true
+		}
+	case "after_alpha":
+		if documents.AfterAlpha != nil {
+			return *documents.AfterAlpha, true
+		}
+	}
+	return v2input.Ref{}, false
+}
+
+func boolToInt(value bool) int {
+	if value {
+		return 1
+	}
+	return 0
 }

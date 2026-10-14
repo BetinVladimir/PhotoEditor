@@ -23,6 +23,15 @@ func VerifyIdentityPublishedPixels(ctx context.Context, scope IdentityResultScop
 	inputs IdentityResultInputs, documents IdentityPixelDocuments, result VerifiedIdentityResult,
 	inputCatalog IdentityResultInputCatalog, outputCatalog IdentityResultCatalog,
 	objects v2input.SessionAnalysisObjectReader) (masknpy.IdentityPixelMeasurements, error) {
+	return verifyIdentityPublishedPixels(ctx, scope, inputs, documents, result,
+		inputCatalog, outputCatalog, objects, nil)
+}
+
+func verifyIdentityPublishedPixels(ctx context.Context, scope IdentityResultScope,
+	inputs IdentityResultInputs, documents IdentityPixelDocuments, result VerifiedIdentityResult,
+	inputCatalog IdentityResultInputCatalog, outputCatalog IdentityResultCatalog,
+	objects v2input.SessionAnalysisObjectReader,
+	captured *map[string]objectstore.Object) (masknpy.IdentityPixelMeasurements, error) {
 	var zero masknpy.IdentityPixelMeasurements
 	if err := ctx.Err(); err != nil {
 		return zero, err
@@ -170,6 +179,13 @@ func VerifyIdentityPublishedPixels(ctx context.Context, scope IdentityResultScop
 		if current != documents.Objects[i] {
 			return zero, v2input.ErrExpired
 		}
+	}
+	if captured != nil {
+		pins := make(map[string]objectstore.Object, len(items))
+		for _, item := range items {
+			pins[item.role] = item.object
+		}
+		*captured = pins
 	}
 	return measured, ctx.Err()
 }
