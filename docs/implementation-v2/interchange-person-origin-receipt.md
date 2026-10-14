@@ -30,6 +30,14 @@ object versions. It does **not** read or qualify root/Params/report bytes, prove
 model runtime qualification, bind the root to a selected recipe Override or
 sign anything. The issuer must perform those checks and repeat the locator
 after object IO before any signature can be published.
+`PortablePersonOriginIssuer` composes this locator with the existing
+`ReadQualifiedPersonEvidence` physical/model reader, a mandatory exact
+recipe/Override occurrence authority and a process-owned Ed25519 signer. It
+checks pinned object metadata, typed MaskRef/canvas/pixels/model lock, repeats
+the occurrence and locator after evidence IO and again after signing, verifies
+its own signature against the configured public key and emits canonical bytes.
+The occurrence authority and production signer installation are not yet wired;
+the issuer is not reachable from the export API.
 Import must verify the receipt against configured issuer trust, archive bytes
 and target source remap; store its exact hash and issuer/key in a new scoped
 forward-only table, and require that live receipt **and** the separate current
