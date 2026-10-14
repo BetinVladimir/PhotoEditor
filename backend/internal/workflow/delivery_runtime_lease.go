@@ -12,9 +12,11 @@ import (
 )
 
 type DeliverySigningLeasePin struct {
-	Tenant uuid.UUID `json:"tenant_id"`
-	Policy uuid.UUID `json:"policy_id"`
-	SHA    string    `json:"policy_sha"`
+	Tenant    uuid.UUID `json:"tenant_id"`
+	Policy    uuid.UUID `json:"policy_id"`
+	SHA       string    `json:"policy_sha"`
+	NotBefore time.Time `json:"not_before"`
+	NotAfter  time.Time `json:"not_after"`
 }
 
 func validateDeliveryRuntimeSQL(ctx context.Context, db *pgxpool.Pool) error {
@@ -29,7 +31,7 @@ func validateDeliveryRuntimeSQL(ctx context.Context, db *pgxpool.Pool) error {
  AND NOT has_function_privilege('photo_api',p.oid,'EXECUTE')
  AND NOT EXISTS(SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
   WHERE acl.privilege_type='EXECUTE' AND acl.grantee NOT IN(p.proowner,'photo_scheduler'::regrole::oid))),false)
- FROM (VALUES ('photo.announce_v30_delivery_runtime_pinned(uuid,text,uuid[],jsonb)'::regprocedure),
+ FROM (VALUES ('photo.announce_v30_delivery_runtime_windowed(uuid,text,uuid[],jsonb)'::regprocedure),
  ('photo.withdraw_v30_delivery_runtime(uuid)'::regprocedure)) signatures(oid)
  JOIN pg_proc p ON p.oid=signatures.oid JOIN pg_roles owner ON owner.oid=p.proowner`).Scan(&installed)
 	if err != nil || !installed {
@@ -66,7 +68,7 @@ func maintainDeliveryRuntime(ctx context.Context, db *pgxpool.Pool, state *Expan
 		bounded, cancel := context.WithTimeout(ctx, 3*time.Second)
 		if state.Started.Load() && (state.Ready.Load() || (state.Failures.Load() == 0 && state.Materialized.Load() == 0)) {
 			var accepted bool
-			err := db.QueryRow(bounded, `SELECT photo.announce_v30_delivery_runtime_pinned($1,$2,$3,$4::jsonb)`, instance, bucket, signingTenants, string(pinsJSON)).Scan(&accepted)
+			err := db.QueryRow(bounded, `SELECT photo.announce_v30_delivery_runtime_windowed($1,$2,$3,$4::jsonb)`, instance, bucket, signingTenants, string(pinsJSON)).Scan(&accepted)
 			ready.Store(err == nil && accepted)
 		} else {
 			ready.Store(false)

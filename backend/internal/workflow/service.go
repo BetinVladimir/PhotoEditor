@@ -688,7 +688,7 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 				return pinErr
 			}
 			for _, pin := range pins {
-				signingDeliveryPins = append(signingDeliveryPins, DeliverySigningLeasePin{Tenant: id, Policy: pin.PolicyID, SHA: pin.PolicySHA})
+				signingDeliveryPins = append(signingDeliveryPins, DeliverySigningLeasePin{Tenant: id, Policy: pin.PolicyID, SHA: pin.PolicySHA, NotBefore: pin.NotBefore, NotAfter: pin.NotAfter})
 			}
 		}
 		if len(signingDeliveryPins) > 4096 {

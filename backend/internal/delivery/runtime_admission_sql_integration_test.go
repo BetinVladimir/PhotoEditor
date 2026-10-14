@@ -2,14 +2,16 @@ package delivery
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// Requires an isolated database migrated through 02124 and a test owner that
+// Requires an isolated database migrated through 02125 and a test owner that
 // may SET ROLE. The lease is written only inside a rolled-back transaction.
 func TestDeliveryRuntimeBucketLeaseAndRoleBoundary(t *testing.T) {
 	dsn := os.Getenv("PHOTO_TEST_DATABASE_URL")
@@ -24,7 +26,8 @@ func TestDeliveryRuntimeBucketLeaseAndRoleBoundary(t *testing.T) {
 	defer db.Close()
 	var aclOK bool
 	err = db.QueryRow(ctx, `SELECT
-  has_function_privilege('photo_scheduler','photo.announce_v30_delivery_runtime_pinned(uuid,text,uuid[],jsonb)','EXECUTE')
+  has_function_privilege('photo_scheduler','photo.announce_v30_delivery_runtime_windowed(uuid,text,uuid[],jsonb)','EXECUTE')
+  AND NOT has_function_privilege('photo_scheduler','photo.announce_v30_delivery_runtime_pinned(uuid,text,uuid[],jsonb)','EXECUTE')
   AND NOT has_function_privilege('photo_scheduler','photo.announce_v30_delivery_runtime_bound(uuid,text,uuid[])','EXECUTE')
   AND NOT has_function_privilege('photo_scheduler','photo.announce_v30_delivery_runtime(uuid,text)','EXECUTE')
   AND has_function_privilege('photo_scheduler','photo.withdraw_v30_delivery_runtime(uuid)','EXECUTE')
@@ -53,8 +56,12 @@ func TestDeliveryRuntimeBucketLeaseAndRoleBoundary(t *testing.T) {
 		t.Fatal(err)
 	}
 	var announced bool
-	pins := `[{"tenant_id":"` + signingTenant.String() + `","policy_id":"` + policy.String() + `","policy_sha":"` + sha + `"}]`
-	if err = tx.QueryRow(ctx, `SELECT photo.announce_v30_delivery_runtime_pinned($1,$2,$3,$4::jsonb)`, instance, "photos-a", []uuid.UUID{signingTenant}, pins).Scan(&announced); err != nil || !announced {
+	window := func(before, after time.Time) string {
+		return fmt.Sprintf(`[{"tenant_id":"%s","policy_id":"%s","policy_sha":"%s","not_before":"%s","not_after":"%s"}]`, signingTenant, policy, sha, before.UTC().Format(time.RFC3339Nano), after.UTC().Format(time.RFC3339Nano))
+	}
+	now := time.Now()
+	pins := window(now.Add(-time.Hour), now.Add(time.Hour))
+	if err = tx.QueryRow(ctx, `SELECT photo.announce_v30_delivery_runtime_windowed($1,$2,$3,$4::jsonb)`, instance, "photos-a", []uuid.UUID{signingTenant}, pins).Scan(&announced); err != nil || !announced {
 		t.Fatal("scheduler lease refused", err)
 	}
 	if _, err = tx.Exec(ctx, `SET LOCAL ROLE photo_api`); err != nil {
@@ -76,6 +83,18 @@ func TestDeliveryRuntimeBucketLeaseAndRoleBoundary(t *testing.T) {
 	}
 	if err = tx.QueryRow(ctx, `SELECT photo.v30_delivery_signing_runtime_ready('photos-a',$1,$2,$3)`, signingTenant, uuid.New(), sha).Scan(&signedForeign); err != nil || signedForeign {
 		t.Fatal("foreign policy ID admitted", err)
+	}
+	if _, err = tx.Exec(ctx, `SET LOCAL ROLE photo_scheduler`); err != nil {
+		t.Fatal(err)
+	}
+	if err = tx.QueryRow(ctx, `SELECT photo.announce_v30_delivery_runtime_windowed($1,$2,$3,$4::jsonb)`, instance, "photos-a", []uuid.UUID{signingTenant}, window(now.Add(-2*time.Hour), now.Add(-time.Hour))).Scan(&announced); err != nil || !announced {
+		t.Fatal("expired policy lease refused", err)
+	}
+	if _, err = tx.Exec(ctx, `SET LOCAL ROLE photo_api`); err != nil {
+		t.Fatal(err)
+	}
+	if err = tx.QueryRow(ctx, `SELECT photo.v30_delivery_signing_runtime_ready('photos-a',$1,$2,$3)`, signingTenant, policy, sha).Scan(&signedCorrect); err != nil || signedCorrect {
+		t.Fatal("expired policy admitted", err)
 	}
 	if _, err = tx.Exec(ctx, `SET LOCAL ROLE photo_scheduler`); err != nil {
 		t.Fatal(err)

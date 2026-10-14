@@ -9,7 +9,7 @@ func TestInstalledPolicyPinsOwnExactVersion(t *testing.T) {
 		t.Fatal(err)
 	}
 	pins, err := registry.InstalledPolicyPins()
-	if err != nil || len(pins) != 1 || pins[0].PolicyID != params.PolicyID || pins[0].PolicySHA != params.Policy.SHA256 {
+	if err != nil || len(pins) != 1 || pins[0].PolicyID != params.PolicyID || pins[0].PolicySHA != params.Policy.SHA256 || !pins[0].NotBefore.Equal(config.Policies[0].NotBefore) || !pins[0].NotAfter.Equal(config.Policies[0].NotAfter) {
 		t.Fatal("installed policy pin drift", pins, err)
 	}
 	config.Policies[0].Ref.SHA256 = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"

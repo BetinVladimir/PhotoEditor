@@ -3,6 +3,7 @@ package provenance
 import (
 	"github.com/google/uuid"
 	"sort"
+	"time"
 )
 
 // InstalledPolicyPins is a deployment snapshot for scheduler readiness. It
@@ -10,6 +11,8 @@ import (
 type InstalledPolicyPin struct {
 	PolicyID  uuid.UUID `json:"policy_id"`
 	PolicySHA string    `json:"policy_sha"`
+	NotBefore time.Time `json:"not_before"`
+	NotAfter  time.Time `json:"not_after"`
 }
 
 func (r *SigningPolicyRegistry) InstalledPolicyPins() ([]InstalledPolicyPin, error) {
@@ -21,7 +24,7 @@ func (r *SigningPolicyRegistry) InstalledPolicyPins() ([]InstalledPolicyPin, err
 		if id == uuid.Nil || !digest(installed.ref.SHA256) {
 			return nil, ErrInvalid
 		}
-		pins = append(pins, InstalledPolicyPin{PolicyID: id, PolicySHA: installed.ref.SHA256})
+		pins = append(pins, InstalledPolicyPin{PolicyID: id, PolicySHA: installed.ref.SHA256, NotBefore: installed.from, NotAfter: installed.until})
 	}
 	sort.Slice(pins, func(i, j int) bool { return pins[i].PolicyID.String() < pins[j].PolicyID.String() })
 	return pins, nil
