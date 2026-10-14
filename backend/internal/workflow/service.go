@@ -866,7 +866,7 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 		}()
 		go func() {
 			maintainInterchangeImportRuntime(importCtx, pool, interchangeImportState,
-				&interchangeImportRuntimeReady, instance)
+				&interchangeImportRuntimeReady, instance, storageConfig.Bucket)
 			close(runtimeDone)
 		}()
 		defer func() { stopImport(); <-importDone; <-runtimeDone }()

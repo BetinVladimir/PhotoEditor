@@ -34,8 +34,9 @@ def test_adopter_operator_factory_uses_live_store_and_scheduler_connection(tmp_p
     lease_connections = []
     sweeps = []
     class Lease:
-        def __init__(self, connection, signal):
+        def __init__(self, connection, signal, bucket):
             assert signal is stop
+            assert bucket == 'photo'
             lease_connections.append(connection)
         def __enter__(self):
             assert len(sweeps) == 1

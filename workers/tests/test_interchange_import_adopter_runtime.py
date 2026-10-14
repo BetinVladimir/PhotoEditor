@@ -31,16 +31,16 @@ def test_import_adopter_runtime_schema_requires_scheduler_and_closed_acl():
 
 def test_import_adopter_runtime_announces_and_withdraws_on_stop():
     connection, stop = Connection(), Event()
-    with ImportAdopterRuntimeLease(connection, stop) as lease:
+    with ImportAdopterRuntimeLease(connection, stop, 'photo') as lease:
         assert lease.instance.int != 0
     assert 'announce_v30_import_adopter_runtime' in connection.calls[0][0]
     assert 'withdraw_v30_import_adopter_runtime' in connection.calls[-1][0]
-    assert connection.calls[0][1] == connection.calls[-1][1]
+    assert connection.calls[0][1] == (connection.calls[-1][1][0], 'photo')
 
 
 def test_import_adopter_runtime_renew_failure_stops_adopter():
     connection, stop = Connection(), Event()
-    lease = ImportAdopterRuntimeLease(connection, stop)
+    lease = ImportAdopterRuntimeLease(connection, stop, 'photo')
     calls = 0
     def broken():
         nonlocal calls

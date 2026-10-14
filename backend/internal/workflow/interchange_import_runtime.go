@@ -32,7 +32,7 @@ func validateInterchangeImportRuntimeSQL(ctx context.Context, db *pgxpool.Pool) 
       WHERE acl.privilege_type='EXECUTE'
         AND acl.grantee NOT IN (p.proowner,'photo_scheduler'::regrole::oid))),false)
   AND count(*)=2 FROM (VALUES
-    ('photo.announce_v30_import_runtime(uuid)'::regprocedure),
+	    ('photo.announce_v30_import_runtime_bound(uuid,text)'::regprocedure),
     ('photo.withdraw_v30_import_runtime(uuid)'::regprocedure)) signatures(oid)
   JOIN pg_proc p ON p.oid=signatures.oid
   JOIN pg_roles owner ON owner.oid=p.proowner`).Scan(&ready)
@@ -50,12 +50,12 @@ func interchangeImportLoopEligible(state *ExpansionLoopState) bool {
 }
 
 func maintainInterchangeImportRuntime(ctx context.Context, db *pgxpool.Pool,
-	state *ExpansionLoopState, ready *atomic.Bool, instance uuid.UUID) {
+	state *ExpansionLoopState, ready *atomic.Bool, instance uuid.UUID, bucket string) {
 	if ready == nil {
 		return
 	}
 	ready.Store(false)
-	if db == nil || state == nil || instance == uuid.Nil {
+	if db == nil || state == nil || instance == uuid.Nil || bucket == "" || len(bucket) > 255 {
 		return
 	}
 	withdraw := func(parent context.Context) {
@@ -77,7 +77,7 @@ func maintainInterchangeImportRuntime(ctx context.Context, db *pgxpool.Pool,
 		if interchangeImportLoopEligible(state) {
 			var accepted bool
 			err := db.QueryRow(bounded,
-				"SELECT photo.announce_v30_import_runtime($1)", instance).Scan(&accepted)
+				"SELECT photo.announce_v30_import_runtime_bound($1,$2)", instance, bucket).Scan(&accepted)
 			ready.Store(err == nil && accepted)
 		} else {
 			ready.Store(false)

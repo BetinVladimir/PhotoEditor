@@ -5,7 +5,7 @@ from uuid import uuid4
 
 
 REQUIRED_FUNCTIONS = (
-    'photo.announce_v30_import_adopter_runtime(uuid)',
+    'photo.announce_v30_import_adopter_runtime_bound(uuid,text)',
     'photo.withdraw_v30_import_adopter_runtime(uuid)',
 )
 
@@ -55,14 +55,16 @@ def require_import_adopter_runtime_schema(connection):
 class ImportAdopterRuntimeLease:
     """Use a dedicated SQL connection so long object IO cannot starve renewals."""
 
-    def __init__(self, connection, stop, *, interval_seconds=10):
+    def __init__(self, connection, stop, bucket, *, interval_seconds=10):
         if (connection.autocommit is not True
                 or not callable(getattr(stop, 'is_set', None))
                 or not callable(getattr(stop, 'set', None))
                 or type(interval_seconds) is not int
-                or not 1 <= interval_seconds <= 10):
+                or not 1 <= interval_seconds <= 10
+                or not isinstance(bucket, str) or not 1 <= len(bucket) <= 255):
             raise ValueError('INTERCHANGE_IMPORT_ADOPTER_RUNTIME_INSTALLATION')
         self.connection, self.stop = connection, stop
+        self.bucket = bucket
         self.interval = interval_seconds
         self.instance = uuid4()
         self._halt = Event()
@@ -71,8 +73,8 @@ class ImportAdopterRuntimeLease:
 
     def _announce(self):
         row = self.connection.execute(
-            'SELECT photo.announce_v30_import_adopter_runtime(%s)',
-            (self.instance,)).fetchone()
+            'SELECT photo.announce_v30_import_adopter_runtime_bound(%s,%s)',
+            (self.instance, self.bucket)).fetchone()
         if row != (True,):
             raise RuntimeError('INTERCHANGE_IMPORT_ADOPTER_RUNTIME_ANNOUNCE')
 

@@ -20,19 +20,23 @@ def test_import_readiness_requires_scheduler_and_adopter_leases():
                 return api.execute('SELECT photo.v30_import_runtime_ready()').fetchone()[0]
             try:
                 assert ready() is False
-                assert scheduler.execute('SELECT photo.announce_v30_import_runtime(%s)',
-                    (scheduler_id,)).fetchone() == (True,)
+                assert scheduler.execute('SELECT photo.announce_v30_import_runtime_bound(%s,%s)',
+                    (scheduler_id, 'photo')).fetchone() == (True,)
                 assert ready() is False
                 assert scheduler.execute(
-                    'SELECT photo.announce_v30_import_adopter_runtime(%s)',
-                    (adopter_id,)).fetchone() == (True,)
+                    'SELECT photo.announce_v30_import_adopter_runtime_bound(%s,%s)',
+                    (adopter_id, 'different-photo')).fetchone() == (True,)
+                assert ready() is False
+                assert scheduler.execute(
+                    'SELECT photo.announce_v30_import_adopter_runtime_bound(%s,%s)',
+                    (adopter_id, 'photo')).fetchone() == (True,)
                 assert ready() is True
                 scheduler.execute('SELECT photo.withdraw_v30_import_adopter_runtime(%s)',
                                   (adopter_id,))
                 assert ready() is False
                 assert api.execute('''
                     SELECT has_function_privilege('photo_api',
-                        'photo.announce_v30_import_adopter_runtime(uuid)','EXECUTE')
+                        'photo.announce_v30_import_adopter_runtime_bound(uuid,text)','EXECUTE')
                 ''').fetchone() == (False,)
             finally:
                 scheduler.execute('SELECT photo.withdraw_v30_import_adopter_runtime(%s)',

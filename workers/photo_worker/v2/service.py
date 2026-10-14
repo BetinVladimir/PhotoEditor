@@ -583,7 +583,7 @@ def run_adopter(config: AdopterConfig, stop: Event | None = None, *,
                 if lease_connection is not None and not stop.is_set():
                     adopter.run_once()
                 if lease_connection is not None and not stop.is_set():
-                    runtime_scope.enter_context(ImportAdopterRuntimeLease(lease_connection, stop))
+                    runtime_scope.enter_context(ImportAdopterRuntimeLease(lease_connection, stop, config.bucket))
                 while not stop.is_set():
                     adopter.run_once()
                     stop.wait(1.0)
