@@ -44,9 +44,13 @@ def require_import_adopter_runtime_schema(connection):
                  OR 'search_path=pg_catalog, photo'=ANY(p.proconfig))
                AND position('v30_import_adopter_runtime_leases' in
                     pg_get_functiondef(p.oid))>0
+               AND position('v30_import_runtime_leases' in
+                    pg_get_functiondef(p.oid))>0
+               AND position('p_bucket' in pg_get_functiondef(p.oid))>0
                AND has_function_privilege('photo_api',p.oid,'EXECUTE')
+               AND NOT has_function_privilege(current_user,p.oid,'EXECUTE')
         FROM pg_catalog.pg_proc p
-        WHERE p.oid=to_regprocedure('photo.v30_import_runtime_ready()')
+        WHERE p.oid=to_regprocedure('photo.v30_import_runtime_ready(text)')
     ''').fetchone()
     if row != (True,):
         raise ValueError('INTERCHANGE_IMPORT_ADOPTER_RUNTIME_READY_GATE')

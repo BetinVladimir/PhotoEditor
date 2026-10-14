@@ -24,6 +24,8 @@ def test_import_adopter_runtime_schema_requires_scheduler_and_closed_acl():
     connection = Connection()
     require_import_adopter_runtime_schema(connection)
     assert len(connection.calls) == 4
+    assert 'photo.v30_import_runtime_ready(text)' in connection.calls[-1][0]
+    assert 'p_bucket' in connection.calls[-1][0]
     connection.autocommit = False
     with pytest.raises(ValueError, match='SCHEMA'):
         require_import_adopter_runtime_schema(connection)

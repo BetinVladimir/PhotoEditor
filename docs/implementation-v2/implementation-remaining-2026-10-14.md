@@ -335,6 +335,8 @@ Worker `series.balance` теперь требует точного совпад�
 
 Go `ParsePlan.BeginParseRun` теперь классифицирует отказ admission через параметризованный readiness того же tenant/source artifact, а не через глобальный `v30_import_runtime_ready()`. Истёкший либо отсутствующий artifact остаётся `INTERCHANGE_CREATE_STALE`; готовый artifact без живой пары процессов своего bucket даёт `INTERCHANGE_UNAVAILABLE`. Unit-сценарий фиксирует точный tenant/artifact/SHA в диагностическом запросе; он не запускался.
 
+Startup-инвентарь API import creator теперь требует SECURITY DEFINER ABI `v30_import_runtime_ready(text)` с владельцем `photo_fn_owner` и закрытым PUBLIC EXECUTE. Python adopter проверяет этот же bucket-specific gate и его связь с обеими lease-таблицами перед объявлением readiness. Это предотвращает запуск неполностью обновлённой пары процессов после `02118` без `02119`; unit-сценарий написан, но не запускался.
+
 Миграция `02109_v23_series_heartbeat_device_fence.sql` прекращает продление lease квалифицированного `series.balance` после отзыва или ротации операторской привязки. Worker остановит текущий расчёт на следующем heartbeat; `02107` независимо отвергает поздний success. Написан интеграционный сценарий `claim → rotation → heartbeat=false → commit=stale`; миграция и сценарий не выполнялись.
 
 `series.balance` теперь оставляет identity-коррекцию с review warning, если численный solver не завершился успешно, вернул нечетырёхмерный, нечисловой либо экстремальный вектор параметров. Успешный алгоритм и его ограничители EV/gain остаются прежними. Unit-сценарии для четырёх отказов написаны, не запускались.

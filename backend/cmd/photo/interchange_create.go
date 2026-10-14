@@ -72,6 +72,7 @@ func buildInterchangeCreateWithFactory(ctx context.Context, api *pgxpool.Pool, o
 	}{
 		{api, "photo_api", []string{
 			"photo.begin_v30_interchange_parse_run(uuid,uuid,uuid,text,text,text,text,text)",
+			"photo.v30_import_runtime_ready(text)",
 			"photo.reserve_v30_interchange_document(uuid,uuid,uuid,text,text,uuid,text,text,text)",
 			"photo.complete_v30_interchange_document(uuid,uuid,uuid,text,text,uuid,text,text,text,uuid,text)",
 			"photo.attach_v30_interchange_snapshot(uuid,uuid,uuid,text,text,uuid,text)",
