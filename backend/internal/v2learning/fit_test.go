@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"photoeditor/backend/internal/artifactjson"
+	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/v2draft"
 	"photoeditor/backend/internal/v2input"
 )
@@ -158,6 +159,7 @@ func TestFitClosureDeclaresExactSeriesRecoveryInputs(t *testing.T) {
 		t.Fatal(err)
 	}
 	manifest.Examples[0].RenderCase.SeriesEvidence = &ref
+	stats := seriesStatsRefsFixture()
 	draft, err := PrepareTrainingDraft(tenant, actor, uuid.New(), project,
 		profile, key, 4096, request, manifest)
 	if err != nil {
@@ -165,7 +167,7 @@ func TestFitClosureDeclaresExactSeriesRecoveryInputs(t *testing.T) {
 	}
 	draft, err = AttachSeriesHoldoutRecovery(draft,
 		map[uuid.UUID]PreparedSeriesHoldout{example.EventID: {
-			Document: document, Body: value, SHA256: sha}})
+			Document: document, Body: value, SHA256: sha, Stats: stats}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -199,6 +201,8 @@ func TestFitClosureDeclaresExactSeriesRecoveryInputs(t *testing.T) {
 		{Ref: document.StageImage, Contract: "WorkingImage"},
 		{Ref: document.Params, Contract: "SeriesParams"},
 		{Ref: document.Series, Contract: "SeriesCorrections"},
+		{Ref: stats[0], Contract: "SeriesStats"},
+		{Ref: stats[1], Contract: "SeriesStats"},
 	} {
 		if seen[want.Ref.ArtifactID] != want.Contract {
 			t.Fatalf("missing series input %s", want.Contract)
@@ -208,6 +212,18 @@ func TestFitClosureDeclaresExactSeriesRecoveryInputs(t *testing.T) {
 	missing.RecoveryBody = nil
 	if _, err := CompileFitClosure(missing, request.Policy, params); err == nil {
 		t.Fatal("series evidence admitted without recovery bytes")
+	}
+	var recovery trainingDraftRecovery
+	if err := json.Unmarshal(draft.RecoveryBody, &recovery); err != nil {
+		t.Fatal(err)
+	}
+	recovery.SeriesStatsJCS = ""
+	missing.RecoveryBody, err = canonical.Marshal(recovery)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := CompileFitClosure(missing, request.Policy, params); err == nil {
+		t.Fatal("series evidence admitted without frozen Stats refs")
 	}
 }
 

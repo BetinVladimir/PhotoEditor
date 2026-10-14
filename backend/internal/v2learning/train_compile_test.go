@@ -90,7 +90,8 @@ func TestCompileTrainingDraftLinksInventorySplitAndFrozenCases(t *testing.T) {
 		t.Fatal(err)
 	}
 	seriesCases[0].Series = &PreparedSeriesHoldout{
-		Document: seriesDocument, Body: seriesBody, SHA256: seriesSHA}
+		Document: seriesDocument, Body: seriesBody, SHA256: seriesSHA,
+		Stats: seriesStatsRefsFixture()}
 	seriesResult, err := CompileTrainingDraft(seriesTenant, seriesActor,
 		seriesSession, project, profile, "series-key", 4096, request,
 		context, candidates, seriesCases)
@@ -109,7 +110,7 @@ func TestCompileTrainingDraftLinksInventorySplitAndFrozenCases(t *testing.T) {
 	}
 	var seriesRecovery trainingDraftRecovery
 	if json.Unmarshal(seriesResult.Draft.RecoveryBody, &seriesRecovery) != nil ||
-		seriesRecovery.SeriesJCS == "" {
+		seriesRecovery.SeriesJCS == "" || seriesRecovery.SeriesStatsJCS == "" {
 		t.Fatal("compiled recovery lost frozen series bytes")
 	}
 	missingFrozen := append([]TrainingCaseEvidence(nil), evidence...)

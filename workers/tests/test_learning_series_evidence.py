@@ -92,6 +92,8 @@ def test_fit_series_inputs_require_exact_manifest_binding_and_contracts():
     reference_item = uuid4()
     params = SeriesParams(scene_id='studio', stats=[ref('6'), ref('7')],
                           reference_item_id=reference_item)
+    for stat in params.stats:
+        declared[stat.artifact_id] = 'SeriesStats'
     def correction(item_id):
         return ItemCorrection(item_id=item_id, raw_ev=0, raw_gains=[1, 1, 1],
             applied_ev=0, applied_gains=[1, 1, 1], confidence=1,
@@ -133,5 +135,11 @@ def test_fit_series_inputs_require_exact_manifest_binding_and_contracts():
     series = series.model_copy(update={'items': [
         correction(reference_item), correction(uuid4())]})
     with pytest.raises(ValueError, match='INVALID_HOLDOUT_SERIES_MATERIAL'):
+        validate_fit_series_inputs(Artifacts(), case, evidence.event_id,
+                                   training_run, evidence.tenant_id)
+    series = series.model_copy(update={'items': [
+        correction(reference_item), correction(evidence.item_id)]})
+    declared[params.stats[0].artifact_id] = 'WorkingImage'
+    with pytest.raises(ValueError, match='TASK_INPUT_CONTRACT_MISMATCH'):
         validate_fit_series_inputs(Artifacts(), case, evidence.event_id,
                                    training_run, evidence.tenant_id)

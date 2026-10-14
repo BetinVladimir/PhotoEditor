@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"photoeditor/backend/internal/v2input"
 )
 
 // PreparedSeriesHoldout contains checked value bytes. It has no publication
@@ -13,6 +14,7 @@ type PreparedSeriesHoldout struct {
 	Document   FrozenSeriesHoldoutEvidence
 	Body       []byte
 	SHA256     string
+	Stats      []v2input.Ref
 	Correction FrozenSeriesItemCorrection
 }
 
@@ -101,5 +103,6 @@ func PrepareSeriesHoldoutForCandidate(ctx context.Context, tx pgx.Tx,
 		return PreparedSeriesHoldout{}, err
 	}
 	return PreparedSeriesHoldout{Document: document, Body: body,
-		SHA256: sha, Correction: selected}, nil
+		SHA256: sha, Stats: append([]v2input.Ref(nil), params.Stats...),
+		Correction: selected}, nil
 }

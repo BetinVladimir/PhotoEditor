@@ -6,11 +6,17 @@ import (
 
 	"github.com/google/uuid"
 	"photoeditor/backend/internal/canonical"
+	"photoeditor/backend/internal/v2input"
 )
 
 type seriesHoldoutRecoveryItem struct {
 	EventID uuid.UUID `json:"event_id"`
 	BodyJCS string    `json:"body_jcs"`
+}
+
+type seriesStatsRecoveryItem struct {
+	EventID uuid.UUID     `json:"event_id"`
+	Stats   []v2input.Ref `json:"stats"`
 }
 
 // AttachSeriesHoldoutRecovery pins the exact publication bytes before the
@@ -22,6 +28,7 @@ func AttachSeriesHoldoutRecovery(draft TrainingDraftPrepared,
 		return TrainingDraftPrepared{}, ErrInvalidTrainingDraft
 	}
 	items := make([]seriesHoldoutRecoveryItem, 0, len(prepared))
+	statsItems := make([]seriesStatsRecoveryItem, 0, len(prepared))
 	for _, example := range draft.Manifest.Examples {
 		item, exists := prepared[example.EventID]
 		caseRef := example.RenderCase
@@ -46,8 +53,13 @@ func AttachSeriesHoldoutRecovery(draft TrainingDraftPrepared,
 			item.Document); err != nil {
 			return TrainingDraftPrepared{}, err
 		}
+		if !validSeriesStatsRefs(item.Stats) {
+			return TrainingDraftPrepared{}, ErrInvalidTrainingDraft
+		}
 		items = append(items, seriesHoldoutRecoveryItem{
 			EventID: example.EventID, BodyJCS: string(item.Body)})
+		statsItems = append(statsItems, seriesStatsRecoveryItem{
+			EventID: example.EventID, Stats: item.Stats})
 	}
 	if len(items) != len(prepared) {
 		return TrainingDraftPrepared{}, ErrInvalidTrainingDraft
@@ -59,17 +71,85 @@ func AttachSeriesHoldoutRecovery(draft TrainingDraftPrepared,
 	if err != nil || len(itemsBody) > 16777216 {
 		return TrainingDraftPrepared{}, ErrInvalidTrainingDraft
 	}
+	statsBody, err := canonical.Marshal(statsItems)
+	if err != nil || len(statsBody) > 16777216 {
+		return TrainingDraftPrepared{}, ErrInvalidTrainingDraft
+	}
 	var recovery trainingDraftRecovery
 	if json.Unmarshal(draft.RecoveryBody, &recovery) != nil ||
-		recovery.SeriesJCS != "" {
+		recovery.SeriesJCS != "" || recovery.SeriesStatsJCS != "" {
 		return TrainingDraftPrepared{}, ErrInvalidTrainingDraft
 	}
 	recovery.SeriesJCS = string(itemsBody)
+	recovery.SeriesStatsJCS = string(statsBody)
 	draft.RecoveryBody, err = canonical.Marshal(recovery)
 	if err != nil || len(draft.RecoveryBody) > 33554432 {
 		return TrainingDraftPrepared{}, ErrInvalidTrainingDraft
 	}
 	return draft, nil
+}
+
+func validSeriesStatsRefs(refs []v2input.Ref) bool {
+	if len(refs) < 2 || len(refs) > 2000 {
+		return false
+	}
+	seen := make(map[uuid.UUID]bool, len(refs))
+	for _, ref := range refs {
+		if !validManifestRef(ref) || seen[ref.ArtifactID] {
+			return false
+		}
+		seen[ref.ArtifactID] = true
+	}
+	return true
+}
+
+func seriesStatsFromRecovery(draft TrainingDraftPrepared,
+	raw []byte) (map[uuid.UUID][]v2input.Ref, error) {
+	result := make(map[uuid.UUID][]v2input.Ref)
+	if len(raw) == 0 || len(raw) > 16777216 {
+		for _, example := range draft.Manifest.Examples {
+			if example.RenderCase.SeriesEvidence != nil {
+				return nil, ErrInvalidTrainingDraft
+			}
+		}
+		if len(raw) != 0 {
+			return nil, ErrInvalidTrainingDraft
+		}
+		return result, nil
+	}
+	canonicalBody, err := canonical.Bytes(raw)
+	if err != nil || !bytes.Equal(canonicalBody, raw) {
+		return nil, ErrInvalidTrainingDraft
+	}
+	var items []seriesStatsRecoveryItem
+	if json.Unmarshal(raw, &items) != nil || len(items) > 5000 {
+		return nil, ErrInvalidTrainingDraft
+	}
+	reencoded, err := canonical.Marshal(items)
+	if err != nil || !bytes.Equal(reencoded, raw) {
+		return nil, ErrInvalidTrainingDraft
+	}
+	for _, item := range items {
+		if item.EventID == uuid.Nil || result[item.EventID] != nil ||
+			!validSeriesStatsRefs(item.Stats) {
+			return nil, ErrInvalidTrainingDraft
+		}
+		result[item.EventID] = item.Stats
+	}
+	count := 0
+	for _, example := range draft.Manifest.Examples {
+		_, found := result[example.EventID]
+		if found != (example.RenderCase.SeriesEvidence != nil) {
+			return nil, ErrInvalidTrainingDraft
+		}
+		if found {
+			count++
+		}
+	}
+	if count != len(result) {
+		return nil, ErrInvalidTrainingDraft
+	}
+	return result, nil
 }
 
 func seriesHoldoutFromRecovery(draft TrainingDraftPrepared,

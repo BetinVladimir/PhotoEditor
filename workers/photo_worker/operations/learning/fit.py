@@ -64,6 +64,8 @@ def validate_fit_series_inputs(artifacts: TaskArtifacts, case,
             (params.reference_item_id is not None and
              params.reference_item_id != series.reference_item_id)):
         raise ValueError('INVALID_HOLDOUT_SERIES_MATERIAL')
+    for stat in params.stats:
+        artifacts.require_declared_contract(stat, 'SeriesStats')
 
 
 def validate_fit_detail_inputs(artifacts: TaskArtifacts, case,

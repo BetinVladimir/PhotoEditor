@@ -100,6 +100,7 @@ func CompileFitClosure(draft TrainingDraftPrepared, policy LearningPolicy,
 	}
 	var detailRecovery map[uuid.UUID]PreparedPortraitDetailHoldout
 	var seriesRecovery map[uuid.UUID]PreparedSeriesHoldout
+	var seriesStats map[uuid.UUID][]v2input.Ref
 	var savedRecovery trainingDraftRecovery
 	for _, example := range draft.Manifest.Examples {
 		if example.RenderCase.DetailEvidence != nil || example.RenderCase.SeriesEvidence != nil {
@@ -123,6 +124,11 @@ func CompileFitClosure(draft TrainingDraftPrepared, policy LearningPolicy,
 		if example.RenderCase.SeriesEvidence != nil {
 			seriesRecovery, err = seriesHoldoutFromRecovery(draft,
 				[]byte(savedRecovery.SeriesJCS))
+			if err != nil {
+				return FitClosure{}, err
+			}
+			seriesStats, err = seriesStatsFromRecovery(draft,
+				[]byte(savedRecovery.SeriesStatsJCS))
 			if err != nil {
 				return FitClosure{}, err
 			}
@@ -192,6 +198,10 @@ func CompileFitClosure(draft TrainingDraftPrepared, policy LearningPolicy,
 				v2input.Entry{Ref: origin.Document.StageImage, Contract: "WorkingImage"},
 				v2input.Entry{Ref: origin.Document.Params, Contract: "SeriesParams"},
 				v2input.Entry{Ref: origin.Document.Series, Contract: "SeriesCorrections"})
+			for _, ref := range seriesStats[example.EventID] {
+				entries = append(entries, v2input.Entry{Ref: ref,
+					Contract: "SeriesStats"})
+			}
 		}
 		entries = append(entries,
 			v2input.Entry{Ref: c.WorkingImage, Contract: "WorkingImage"},
