@@ -765,6 +765,8 @@
   "interchange_prepared_dust": "Кандидати за прах по сензора",
   "interchange_prepared_candidates": "кандидата",
   "interchange_prepared_photo": "Импортирана снимка",
+  "interchange_prepared_sensor_map": "Карта на областта на RAW сензора",
+  "interchange_prepared_sensor_map_note": "Маркерите използват координати на RAW сензора. Картата не е подравнена с обработената снимка.",
   "interchange_prepared_accept": "Приемане",
   "interchange_prepared_reject": "Отхвърляне",
   "interchange_prepared_explain": "Прегледайте снимката и всеки кандидат преди запис. Неизбраните остават без решение. Координатите за прах са в сензорната област.",

@@ -4,6 +4,8 @@ export type PreparedReviewItem={entry_id:string;target_version_id:string;kind:'d
 export type PreparedReviewDecision={action:'grant'|'revoke';kind:'defects'|'dust';entry_id:string;target_version_id:string;proposal:PreparedReviewRef;base:PreparedReviewRef;label_map?:PreparedReviewRef;expected_epoch:number;decision?:'accept'|'reject'|'skip';accepted_candidate_ids?:string[];rejected_candidate_ids?:string[]};
 export type PreparedReviewReceipt={workflow_id:string;entry_id:string;kind:'defects'|'dust';target_version_id:string;proposal_id:string;status:'granted'|'revoked';epoch:number};
 export type SavedPreparedReview={entry_id:string;target_version_id:string;kind:'defects'|'dust';proposal:PreparedReviewRef;base:PreparedReviewRef;label_map:PreparedReviewRef|null;decision:'accept'|'reject'|'skip';accepted_candidate_ids:string[];rejected_candidate_ids:string[];status:'granted'|'revoked';epoch:number};
+export type DustCrop={x:number;y:number;width:number;height:number};
+export type DustCropMarker={left:number;top:number;width:number;height:number};
 
 const uuid=(v:unknown):v is string=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(v)&&v!=='00000000-0000-0000-0000-000000000000';
 const sha=(v:unknown):v is string=>typeof v==='string'&&/^[0-9a-f]{64}$/.test(v);
@@ -12,6 +14,18 @@ const safeEpoch=(v:unknown):v is number=>typeof v==='number'&&Number.isSafeInteg
 const safeInt=(v:unknown):v is number=>typeof v==='number'&&Number.isSafeInteger(v);
 const validRef=(v:unknown):v is PreparedReviewRef=>record(v)&&Object.keys(v).length===2&&uuid(v.artifact_id)&&sha(v.sha256);
 const invalid=()=>new Error('INTERCHANGE_PREPARED_REVIEW_INVALID');
+
+// This projects sensor coordinates only onto the RAW crop schematic. It does
+// not claim alignment with a processed photo or its orientation/transform.
+export function projectDustCandidateToCrop(crop:DustCrop,candidate:PreparedReviewCandidate):DustCropMarker{
+ const x=candidate.sensor_x,y=candidate.sensor_y,r=candidate.radius_sensor_px;
+ if(!safeInt(crop.x)||!safeInt(crop.y)||!safeInt(crop.width)||!safeInt(crop.height)||crop.x<0||crop.y<0||crop.width<8||crop.height<8||
+  typeof x!=='number'||!Number.isFinite(x)||typeof y!=='number'||!Number.isFinite(y)||typeof r!=='number'||!Number.isFinite(r)||r<=0||r>32||
+  x<crop.x||x>=crop.x+crop.width||y<crop.y||y>=crop.y+crop.height)throw invalid();
+ const left=Math.max(0,x-r-crop.x),top=Math.max(0,y-r-crop.y);
+ const right=Math.min(crop.width,x+r-crop.x),bottom=Math.min(crop.height,y+r-crop.y);
+ return {left:100*left/crop.width,top:100*top/crop.height,width:100*(right-left)/crop.width,height:100*(bottom-top)/crop.height};
+}
 
 export function readPreparedReviews(value:unknown,workflow:string):PreparedReviewItem[]{
  if(!uuid(workflow)||!record(value)||value.workflow_id!==workflow||!Array.isArray(value.items)||value.items.length>50)throw invalid();

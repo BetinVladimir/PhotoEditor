@@ -765,6 +765,8 @@
   "interchange_prepared_dust": "Кандидаты пыли на сенсоре",
   "interchange_prepared_candidates": "кандидатов",
   "interchange_prepared_photo": "Импортированная фотография",
+  "interchange_prepared_sensor_map": "Карта области RAW-сенсора",
+  "interchange_prepared_sensor_map_note": "Маркеры расположены в координатах RAW-сенсора. Эта карта не совмещена с обработанной фотографией.",
   "interchange_prepared_accept": "Принять",
   "interchange_prepared_reject": "Отклонить",
   "interchange_prepared_explain": "Проверьте фото и каждого кандидата перед сохранением. Невыбранные останутся без решения. Координаты пыли относятся к области сенсора.",

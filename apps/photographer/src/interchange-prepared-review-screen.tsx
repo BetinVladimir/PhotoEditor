@@ -2,7 +2,7 @@ import {useEffect,useMemo,useRef,useState} from 'react';
 import {ActivityIndicator,Image,Pressable,SafeAreaView,ScrollView,Text,View} from 'react-native';
 import type {ApiClient} from '@photoeditor/api-client';
 import {OwnerAPI} from './owner-api';
-import {freezePreparedReviewDecision,freezeSavedPreparedRevoke,type PreparedReviewDecision,type PreparedReviewItem,type SavedPreparedReview} from './interchange-prepared-review';
+import {freezePreparedReviewDecision,freezeSavedPreparedRevoke,projectDustCandidateToCrop,type DustCrop,type PreparedReviewDecision,type PreparedReviewItem,type SavedPreparedReview} from './interchange-prepared-review';
 import type {ImportPersonMaskEntry} from './interchange-person-mask-candidates';
 import {useLocale} from './locale-context';
 import {catalogStyle as s} from './catalog-style';
@@ -86,6 +86,7 @@ function ScopedScreen({client,tenant,project,workflow}:Props){
  }
 
  const canvas=item?.kind==='defects'?item.document.canvas as {width:number;height:number}:null;
+ const dustCrop=item?.kind==='dust'?item.document.raw_crop as DustCrop:null;
  return <SafeAreaView style={s.root}><ScrollView contentContainerStyle={{padding:20,gap:12}}>
   <Text style={s.title}>{t('interchange_prepared_title')}</Text>
   {loading?<ActivityIndicator accessibilityLabel={t('interchange_prepared_loading')}/>:null}
@@ -99,6 +100,11 @@ function ScopedScreen({client,tenant,project,workflow}:Props){
     {photoReady&&item.document.candidates.map(candidate=>candidate.bbox?<View key={candidate.id} pointerEvents="none" style={{position:'absolute',left:`${candidate.bbox.x/canvas.width*100}%` as `${number}%`,top:`${candidate.bbox.y/canvas.height*100}%` as `${number}%`,width:`${candidate.bbox.width/canvas.width*100}%` as `${number}%`,height:`${candidate.bbox.height/canvas.height*100}%` as `${number}%`,borderWidth:2,borderColor:choices[candidate.id]==='accepted'?'#3ddc84':choices[candidate.id]==='rejected'?'#ff5b5b':'#ffcc33'}}/>:null)}
    </View>:null}
    {photo&&!canvas?<Image accessibilityLabel={t('interchange_prepared_photo')} source={{uri:photo}} resizeMode="contain" style={{width:'100%',height:320}} onLoad={()=>setPhotoReady(true)} onError={()=>{setPhotoReady(false);setError(true);}}/>:null}
+   {dustCrop?<View style={{gap:6}}><Text style={s.subtitle}>{t('interchange_prepared_sensor_map')}</Text>
+    <View accessibilityLabel={t('interchange_prepared_sensor_map')} style={{width:'100%',aspectRatio:dustCrop.width/dustCrop.height,backgroundColor:'#172330',borderWidth:1,borderColor:'#8293a6',overflow:'hidden'}}>
+     {item.document.candidates.map(candidate=>{const marker=projectDustCandidateToCrop(dustCrop,candidate);return <View key={candidate.id} pointerEvents="none" style={{position:'absolute',left:`${marker.left}%` as `${number}%`,top:`${marker.top}%` as `${number}%`,width:`${marker.width}%` as `${number}%`,height:`${marker.height}%` as `${number}%`,borderWidth:2,borderRadius:999,borderColor:choices[candidate.id]==='accepted'?'#3ddc84':choices[candidate.id]==='rejected'?'#ff5b5b':'#ffcc33'}}/>;})}
+    </View><Text>{t('interchange_prepared_sensor_map_note')}</Text>
+   </View>:null}
    {!photo?<ActivityIndicator accessibilityLabel={t('interchange_prepared_loading')}/>:null}
    {item.document.candidates.map(candidate=><View key={candidate.id} style={{gap:6}}>
     <Text>{candidate.id.slice(0,12)} · {item.kind==='defects'?`${candidate.bbox?.x}, ${candidate.bbox?.y} · ${candidate.bbox?.width}×${candidate.bbox?.height}`:`${candidate.sensor_x}, ${candidate.sensor_y} · r=${candidate.radius_sensor_px}`}</Text>

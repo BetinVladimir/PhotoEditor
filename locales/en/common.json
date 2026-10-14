@@ -765,6 +765,8 @@
   "interchange_prepared_dust": "Sensor dust candidates",
   "interchange_prepared_candidates": "candidates",
   "interchange_prepared_photo": "Imported photo",
+  "interchange_prepared_sensor_map": "RAW sensor crop map",
+  "interchange_prepared_sensor_map_note": "Markers use RAW sensor coordinates. This map is separate from the processed photo.",
   "interchange_prepared_accept": "Accept",
   "interchange_prepared_reject": "Reject",
   "interchange_prepared_explain": "Review the photo and each candidate before saving. Unselected candidates remain pending. Dust coordinates refer to the sensor crop.",

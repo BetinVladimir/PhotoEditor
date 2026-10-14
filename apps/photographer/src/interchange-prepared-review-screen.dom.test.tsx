@@ -34,3 +34,13 @@ it('allows saved decision revoke after the live proposal catalogue stops',async(
  fireEvent.click(await screen.findByRole('button',{name:'interchange_prepared_revoke'}));
  await waitFor(()=>expect(mocks.decide).toHaveBeenCalledWith(id(8),id(9),expect.objectContaining({action:'revoke',proposal:ref(3),expected_epoch:4}),expect.any(String),expect.any(AbortSignal)));
 });
+it('shows dust on a separate RAW sensor map rather than over the processed photo',async()=>{
+ const dust={...prepared,kind:'dust' as const,document:{algorithm:'sensor_dust_log_v1',camera_id:`raw-${'f'.repeat(64)}`,sensor_width:420,sensor_height:320,raw_crop:{x:10,y:10,width:400,height:300},frames:[ref(4),ref(5),ref(6),ref(7),ref(8)],candidates:[{id:'e'.repeat(64),decision:'pending' as const,sensor_x:20,sensor_y:30,radius_sensor_px:2,observed_frames:5,eligible_frames:5,recurrence:1}],warnings:[]}};
+ mocks.reviews.mockResolvedValue([dust]);mocks.saved.mockResolvedValue([]);mocks.entries.mockResolvedValue({entries:[{entry_id:id(1),target_version_id:id(2),asset_id:id(6),external_id:'frame-1'}]});
+ mocks.media.mockResolvedValue({items:[{asset_version_id:id(2),variant:'preview1600',media_type:'image/jpeg',url:'https://example.test/photo.jpg',expires_at:new Date(Date.now()+60000).toISOString(),width:100,height:100}]});
+ render(<InterchangePreparedReviewScreen client={{origin:'https://example.test'} as never} tenant={id(7)} project={id(8)} workflow={id(9)}/>);
+ fireEvent.click(await screen.findByRole('button',{name:/interchange_prepared_dust/}));
+ expect(await screen.findByText('interchange_prepared_sensor_map_note')).toBeTruthy();
+ expect(screen.getByLabelText('interchange_prepared_sensor_map')).toBeTruthy();
+ expect(screen.getByLabelText('interchange_prepared_photo')).toBeTruthy();
+});

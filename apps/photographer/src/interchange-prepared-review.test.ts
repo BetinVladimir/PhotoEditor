@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {freezePreparedReviewDecision,freezeSavedPreparedRevoke,readPreparedReviewReceipt,readPreparedReviews,readSavedPreparedReviews} from './interchange-prepared-review';
+import {freezePreparedReviewDecision,freezeSavedPreparedRevoke,projectDustCandidateToCrop,readPreparedReviewReceipt,readPreparedReviews,readSavedPreparedReviews} from './interchange-prepared-review';
 
 const id=(n:number)=>`00000000-0000-0000-0000-${String(n).padStart(12,'0')}`;
 const ref=(n:number)=>({artifact_id:id(n),sha256:String(n).padStart(64,'a')});
@@ -41,5 +41,13 @@ describe('prepared import review contract',()=>{
    change(changed);
    expect(()=>readPreparedReviews({workflow_id:id(9),items:[changed]},id(9))).toThrow();
   }
+ });
+ it('projects sensor circles only into their own RAW crop and clips edges',()=>{
+  const crop={x:10,y:20,width:400,height:300};
+  const middle=projectDustCandidateToCrop(crop,{id:'f'.repeat(64),decision:'pending',sensor_x:210,sensor_y:170,radius_sensor_px:10});
+  expect(middle.left).toBe(47.5);expect(middle.top).toBeCloseTo(140/3);expect(middle.width).toBe(5);expect(middle.height).toBeCloseTo(20/3);
+  const edge=projectDustCandidateToCrop(crop,{id:'f'.repeat(64),decision:'pending',sensor_x:11,sensor_y:21,radius_sensor_px:10});
+  expect(edge.left).toBe(0);expect(edge.top).toBe(0);expect(edge.width).toBe(2.75);expect(edge.height).toBeCloseTo(11/3);
+  expect(()=>projectDustCandidateToCrop(crop,{id:'f'.repeat(64),decision:'pending',sensor_x:411,sensor_y:21,radius_sensor_px:1})).toThrow();
  });
 });
