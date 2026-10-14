@@ -25,6 +25,7 @@ var schedulerExportSQLFunctions = []string{
 	"photo.v30_export_adoption_working_warp(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,text,uuid,text)",
 	"photo.v30_export_adoption_mask_array(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,text,uuid,text)",
 	"photo.v30_export_adoption_mask_warp(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,text,uuid,text,uuid,text)",
+	"photo.v30_export_adoption_defect_label(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,text,uuid,text,uuid,text)",
 	"photo.v30_export_adoption_lut_origin(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,text,uuid,text,uuid,text)",
 	"photo.v30_export_adoption_params_mask(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,text,text,uuid,text,uuid,text)",
 	"photo.save_v30_export_adoption_evidence(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,text,text)",

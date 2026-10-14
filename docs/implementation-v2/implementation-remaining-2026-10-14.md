@@ -85,6 +85,8 @@ Scheduler runtime теперь имеет `RunSchedulerWithInterchangeExport` и
 
 Миграция `02051_v30_scheduler_mask_warp.sql` расширяет DenseWarp authority на MaskRef с уже доказанным MaskRef → MaskPixels edge. Поле может иметь другого canonical producer, но он обязан ссылаться на тот же единственный исходный WorkingImage из frozen snapshot; Go перепроверяет edge и object pins после SQL. Формы MaskRef, не покрытые контрактом 02050, остаются закрытыми. Миграция и role-сценарии не выполнялись.
 
+Миграция `02052_v30_scheduler_defect_label.sql` и `SQLSchedulerExportInputCatalog.QualifyExportDefectLabel` дают scheduler authority для обычного `defects.propose`: точный DefectCandidates → DefectLabelMap edge, frozen source, завершённый canonical producer, report/protection/Params и output fences. Ветки V27 native/target handoff требуют отдельного result-catalog proof и пока явно отклоняются. Миграция и unit/role-сценарии не выполнялись.
+
 `SchedulerExportClosureReader` соединяет проверку канонического result/ZIP с существующим полным обходом portable source inventory и manifest validation; он требует process-installed `SchedulerExportNativeResolverFactory`, возвращающий graph-bound native resolver, и после физического IO повторяет result, bundle object и person-origin проверки. Он формирует sessionless immutable evidence для `AdoptScheduler`. Поскольку native factory и оставшиеся SQL authority ещё не установлены, bundle путь по-прежнему fail-closed. Unit-сценарии написаны, не выполнялись.
 
 ## Граница первого MVP
