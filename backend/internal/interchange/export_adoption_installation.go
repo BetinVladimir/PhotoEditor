@@ -55,6 +55,9 @@ func (s SQLExportResultInstaller) InstallExportResultPreparation(ctx context.Con
 		if err != nil {
 			return zero, err
 		}
+		if err := ctx.Err(); err != nil {
+			return zero, err
+		}
 		if validator == nil {
 			return zero, v2input.ErrInvalid
 		}
@@ -62,6 +65,9 @@ func (s SQLExportResultInstaller) InstallExportResultPreparation(ctx context.Con
 		if err != nil {
 			return zero, err
 		}
+	}
+	if err := ctx.Err(); err != nil {
+		return zero, err
 	}
 	var native *ExportNativeResolverInstallation
 	if s.Native != nil {

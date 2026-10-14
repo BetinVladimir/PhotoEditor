@@ -45,10 +45,16 @@ func (s ExportResultAdoptionService) AdoptCurrentExportResult(ctx context.Contex
 	if err != nil {
 		return zero, err
 	}
+	if err := ctx.Err(); err != nil {
+		return zero, err
+	}
 	config := SQLExportOutputCatalog{DB: s.DB, Tenant: tenantID, Who: who,
 		Request: intent.Request, Key: key, Bucket: s.Bucket, Frozen: candidate.Frozen}
 	preparation, err := s.Installer.InstallExportResultPreparation(ctx, config, candidate.Root)
 	if err != nil {
+		return zero, err
+	}
+	if err := ctx.Err(); err != nil {
 		return zero, err
 	}
 	// Never let an installer swap the tenant, request, pool or frozen evidence.
