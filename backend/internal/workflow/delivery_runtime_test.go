@@ -27,6 +27,7 @@ func TestDeliveryRuntimeEnvironmentRequiresExplicitEnablementAndBoundedResources
 		{name: "zero_output", env: map[string]string{"PHOTO_DELIVERY_SCHEDULER_ENABLED": "true", "PHOTO_DELIVERY_OUTPUT_BYTES": "0"}, bad: true},
 		{name: "overflow_scratch", env: map[string]string{"PHOTO_DELIVERY_SCHEDULER_ENABLED": "true", "PHOTO_DELIVERY_SCRATCH_BYTES": "9007199254740992"}, bad: true},
 		{name: "unbounded_page", env: map[string]string{"PHOTO_DELIVERY_SCHEDULER_ENABLED": "true", "PHOTO_DELIVERY_PAGE_SIZE": "101"}, bad: true},
+		{name: "unbounded_work", env: map[string]string{"PHOTO_DELIVERY_SCHEDULER_ENABLED": "true", "PHOTO_DELIVERY_WORK_SECONDS": "7201"}, bad: true},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
 			c, err := DeliveryRuntimeFromEnvironment(func(key string) string { return scenario.env[key] })
@@ -39,9 +40,9 @@ func TestDeliveryRuntimeEnvironmentRequiresExplicitEnablementAndBoundedResources
 		})
 	}
 	c, err := DeliveryRuntimeFromEnvironment(func(key string) string {
-		return map[string]string{"PHOTO_DELIVERY_SCHEDULER_ENABLED": "true", "PHOTO_DELIVERY_RAM_BYTES": "123456", "PHOTO_DELIVERY_PAGE_SIZE": "1"}[key]
+		return map[string]string{"PHOTO_DELIVERY_SCHEDULER_ENABLED": "true", "PHOTO_DELIVERY_RAM_BYTES": "123456", "PHOTO_DELIVERY_PAGE_SIZE": "1", "PHOTO_DELIVERY_WORK_SECONDS": "600"}[key]
 	})
-	if err != nil || c.Limits.RAMBytes != 123456 || c.PageSize != 1 {
+	if err != nil || c.Limits.RAMBytes != 123456 || c.PageSize != 1 || c.WorkTimeout != 10*time.Minute {
 		t.Fatal(c, err)
 	}
 	if _, err := DeliveryRuntimeFromEnvironment(nil); err == nil {
@@ -95,6 +96,10 @@ func TestDeliveryRuntimeInstallsAssemblyWithSharedLimits(t *testing.T) {
 	if _, err := NewDeliveryExpansionJob(db, objects, reader, uuid.Nil, "photos", sha, profiles, Registry{}, config); err == nil {
 		t.Fatal("unbound delivery scheduler accepted")
 	}
+	config.WorkTimeout = 2*time.Hour + time.Second
+	if _, err := NewDeliveryExpansionJob(db, objects, reader, instance, "photos", sha, profiles, Registry{}, config); err == nil {
+		t.Fatal("unbounded delivery work accepted")
+	}
 }
 
 func TestDeliveryJobCountsActivationWithoutNewChildAdmissions(t *testing.T) {
@@ -122,7 +127,7 @@ type deliveryRuntimeCleanup struct {
 func (c *deliveryRuntimeCleanup) ReleaseNextQuota(ctx context.Context) (bool, error) {
 	*c.calls = append(*c.calls, "cleanup")
 	deadline, ok := ctx.Deadline()
-	c.bounded = ok && time.Until(deadline) <= 45*time.Second
+	c.bounded = ok && time.Until(deadline) <= 5*time.Minute
 	return c.released, c.err
 }
 

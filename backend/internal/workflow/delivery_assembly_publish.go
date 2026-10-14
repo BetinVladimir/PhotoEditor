@@ -6,6 +6,7 @@ import (
 	"photoeditor/backend/internal/artifactjson"
 	"photoeditor/backend/internal/delivery"
 	"photoeditor/backend/internal/v2input"
+	"time"
 )
 
 // PublishDeliveryAssemblyInput writes and retains the exact complete matrix and its root.
@@ -30,16 +31,33 @@ func PublishDeliveryAssemblyInput(ctx context.Context, db artifactjson.RowQuerie
 		shards = append(shards, owned)
 		return ref, nil
 	}
-	_, body, _, state, err := plan.PrepareObservedAssembly(ctx, store, lease, capture)
+	physical, err := withDeliveryAssemblyLease(ctx, store, lease, 10*time.Second,
+		func(work context.Context) (deliveryAssemblyIOResult, error) {
+			_, body, _, state, err := plan.PrepareObservedAssembly(work, store, lease, capture)
+			if err != nil {
+				return deliveryAssemblyIOResult{}, err
+			}
+			if state != "assemble" {
+				return deliveryAssemblyIOResult{state: state}, nil
+			}
+			publishRoot, err := NewDeliveryAssemblyPublisher(db, objects, bucket, lease, plan, shards)
+			if err != nil {
+				return deliveryAssemblyIOResult{}, err
+			}
+			if err := store.Renew(work, lease); err != nil {
+				return deliveryAssemblyIOResult{}, err
+			}
+			ref, err := publishRoot(work, "v30_delivery_assembly", body)
+			if err != nil {
+				return deliveryAssemblyIOResult{}, err
+			}
+			return deliveryAssemblyIOResult{ref: ref, state: state}, nil
+		})
 	if err != nil {
 		return v2input.Ref{}, "", err
 	}
-	if state != "assemble" {
-		return v2input.Ref{}, state, nil
-	}
-	publishRoot, err := NewDeliveryAssemblyPublisher(db, objects, bucket, lease, plan, shards)
-	if err != nil {
-		return v2input.Ref{}, "", err
+	if physical.state != "assemble" {
+		return v2input.Ref{}, physical.state, nil
 	}
 	if err := ctx.Err(); err != nil {
 		return v2input.Ref{}, "", err
@@ -47,18 +65,8 @@ func PublishDeliveryAssemblyInput(ctx context.Context, db artifactjson.RowQuerie
 	if err := store.Renew(ctx, lease); err != nil {
 		return v2input.Ref{}, "", err
 	}
-	ref, err := publishRoot(ctx, "v30_delivery_assembly", body)
-	if err != nil {
+	if err := (delivery.ExpansionLeaseStore{DB: db}).RetainPublishedAssembly(ctx, lease, plan, physical.ref); err != nil {
 		return v2input.Ref{}, "", err
 	}
-	if err := ctx.Err(); err != nil {
-		return v2input.Ref{}, "", err
-	}
-	if err := store.Renew(ctx, lease); err != nil {
-		return v2input.Ref{}, "", err
-	}
-	if err := (delivery.ExpansionLeaseStore{DB: db}).RetainPublishedAssembly(ctx, lease, plan, ref); err != nil {
-		return v2input.Ref{}, "", err
-	}
-	return ref, state, nil
+	return physical.ref, physical.state, nil
 }
