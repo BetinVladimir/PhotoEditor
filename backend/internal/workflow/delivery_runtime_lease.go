@@ -58,6 +58,21 @@ func validateDeliveryRuntimeSQL(ctx context.Context, db *pgxpool.Pool) error {
 	if err != nil || !installed {
 		return errors.New("delivery admission SQL unavailable")
 	}
+	err = db.QueryRow(ctx, `SELECT current_user='photo_scheduler'
+ AND count(*)=1 AND coalesce(bool_and(p.prosecdef AND owner.rolname='photo_fn_owner'
+  AND ('search_path=pg_catalog,photo'=ANY(p.proconfig)
+   OR 'search_path=pg_catalog, photo'=ANY(p.proconfig))
+  AND NOT has_function_privilege('photo_scheduler',p.oid,'EXECUTE')
+  AND NOT has_function_privilege('photo_api',p.oid,'EXECUTE')),false)
+ AND position('photo.v30_delivery_expansion_bucket_ready(' IN
+  pg_get_functiondef('photo.v30_delivery_expansion_instance_ready(uuid,text,uuid)'::regprocedure))>0
+ AND position('photo.v30_delivery_expansion_bucket_ready(' IN
+  pg_get_functiondef('photo.fail_v31_delivery_expired_policy(uuid,uuid,uuid)'::regprocedure))>0
+ FROM pg_proc p JOIN pg_roles owner ON owner.oid=p.proowner
+ WHERE p.oid=to_regprocedure('photo.v30_delivery_expansion_bucket_ready(text,uuid)')`).Scan(&installed)
+	if err != nil || !installed {
+		return errors.New("delivery source bucket SQL unavailable")
+	}
 	return ctx.Err()
 }
 
