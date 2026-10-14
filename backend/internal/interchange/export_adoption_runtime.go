@@ -33,6 +33,7 @@ var schedulerExportSQLFunctions = []string{
 	"photo.v30_export_adoption_series_measure_origin(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,integer,bigint,uuid,text,text,text,text,bigint,uuid,text,text,text,bigint)",
 	"photo.v30_export_adoption_series_measure_inputs(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,integer,bigint,uuid,text,uuid,text,text,text,text,bigint,jsonb)",
 	"photo.v30_export_adoption_series_mask(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,integer,bigint,uuid,text,uuid,text,text,text,text,bigint,jsonb,uuid,text,uuid,text)",
+	"photo.v30_export_adoption_series_mask_origin(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,integer,bigint,uuid,text,uuid,text,text,text,text,bigint,jsonb,uuid,text,uuid,text)",
 	"photo.v30_export_adoption_lut_origin(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,text,uuid,text,uuid,text)",
 	"photo.v30_export_adoption_params_mask(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,text,text,uuid,text,uuid,text)",
 	"photo.save_v30_export_adoption_evidence(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,text,text)",
