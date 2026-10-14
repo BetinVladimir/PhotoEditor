@@ -63,6 +63,8 @@ func (r TrainingFitRuntime) EvaluateOrchestrator() (
 					Objects: r.Objects, Bucket: r.Bucket},
 				Detail: SQLFrozenEvaluateDetailReader{DB: r.DB,
 					Objects: r.Objects, Bucket: r.Bucket},
+				Series: SQLFrozenEvaluateSeriesReader{DB: r.DB,
+					Objects: r.Objects, Bucket: r.Bucket},
 			},
 		},
 		Stager: TrainingInputStager{DB: r.DB, Publisher: documents},

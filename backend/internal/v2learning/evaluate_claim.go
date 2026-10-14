@@ -166,6 +166,8 @@ type LearningRenderInputs struct {
 	DustProof          *FrozenEvaluateDustInputs
 	DetailEvidence     *v2input.Ref
 	DetailProof        *FrozenEvaluateDetailInputs
+	SeriesEvidence     *v2input.Ref
+	SeriesProof        *FrozenEvaluateSeriesInputs
 	WorkingImage       v2input.Ref
 	PixelCount         int64
 	Pixels             v2input.Ref
@@ -349,6 +351,21 @@ func CompileEvaluateClosure(lease LearningEvaluateLease,
 				if maskBytes > largestDetailMaskBytes {
 					largestDetailMaskBytes = maskBytes
 				}
+			}
+			if (c.SeriesEvidence == nil) != (item.SeriesEvidence == nil) ||
+				(c.SeriesEvidence == nil) != (item.SeriesProof == nil) ||
+				(c.SeriesEvidence != nil &&
+					(c.DefectEvidence != nil || c.DustEvidence != nil ||
+						c.DetailEvidence != nil)) {
+				return FitClosure{}, ErrInvalidTrainingDraft
+			}
+			if c.SeriesEvidence != nil {
+				if *c.SeriesEvidence != *item.SeriesEvidence ||
+					validateFrozenSeriesEvaluateInputs(lease, example.EventID,
+						c, *item.SeriesProof) != nil {
+					return FitClosure{}, ErrInvalidTrainingDraft
+				}
+				entries = append(entries, item.SeriesProof.Entries...)
 			}
 			baseSum := sha256.Sum256(item.BaseRecipeBody)
 			approvedSum := sha256.Sum256(item.ApprovedRecipeBody)

@@ -66,3 +66,25 @@ func TestHoldoutAdmissionRequiresPortraitDetailEvidence(t *testing.T) {
 		t.Fatal("conflicting reviewed effects admitted")
 	}
 }
+
+func TestHoldoutAdmissionRequiresExactApplySeriesAndProof(t *testing.T) {
+	raw := []byte(`{"extensions":{"series":{"enabled":true,"algorithm":"seriesmatch_v1","reference":"median","ev_limit":0.35,"rgb_gain_limits":[0.95,1.05]}}}`)
+	if validateFrozenHoldoutPipeline(raw) == nil {
+		t.Fatal("series admitted without evidence")
+	}
+	if err := validateFrozenHoldoutPipeline(raw, false, false, false, true); err != nil {
+		t.Fatal("exact Apply series refused", err)
+	}
+	if validateFrozenHoldoutPipeline(raw, true, false, false, true) == nil ||
+		validateFrozenHoldoutPipeline([]byte(`{}`), false, false, false, true) == nil {
+		t.Fatal("conflicting or missing series effect admitted")
+	}
+	for _, changed := range []string{
+		`{"extensions":{"series":{"enabled":true,"algorithm":"seriesmatch_v1","reference":"first","ev_limit":0.35,"rgb_gain_limits":[0.95,1.05]}}}`,
+		`{"extensions":{"series":{"enabled":true,"algorithm":"seriesmatch_v1","reference":"median","ev_limit":0.2,"rgb_gain_limits":[0.95,1.05]}}}`,
+	} {
+		if validateFrozenHoldoutPipeline([]byte(changed), false, false, false, true) == nil {
+			t.Fatal("different series effect admitted")
+		}
+	}
+}

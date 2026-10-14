@@ -44,6 +44,10 @@ type FrozenEvaluateDetailReader interface {
 	Load(context.Context, LearningEvaluateLease, uuid.UUID,
 		TrainingRenderCase) (FrozenEvaluateDetailInputs, error)
 }
+type FrozenEvaluateSeriesReader interface {
+	Load(context.Context, LearningEvaluateLease, uuid.UUID,
+		TrainingRenderCase) (FrozenEvaluateSeriesInputs, error)
+}
 
 type FrozenLearningRenderResolver struct {
 	Roots    FrozenEvaluateRootReader
@@ -54,6 +58,7 @@ type FrozenLearningRenderResolver struct {
 	Defects  FrozenEvaluateDefectReader
 	Dust     FrozenEvaluateDustReader
 	Detail   FrozenEvaluateDetailReader
+	Series   FrozenEvaluateSeriesReader
 }
 
 // Resolve reconstructs only the pinned holdout closure. Every returned ref
@@ -185,9 +190,21 @@ func (r FrozenLearningRenderResolver) Resolve(ctx context.Context,
 			}
 			detailProof = &detail
 		}
+		var seriesProof *FrozenEvaluateSeriesInputs
+		if caseRef.SeriesEvidence != nil {
+			if r.Series == nil || defectProof != nil || dustProof != nil ||
+				detailProof != nil {
+				return nil, ErrInvalidTrainingDraft
+			}
+			series, err := r.Series.Load(ctx, lease, item.EventID, caseRef)
+			if err != nil {
+				return nil, err
+			}
+			seriesProof = &series
+		}
 		if err := validateFrozenHoldoutPipeline(styleRaw,
 			defectProof != nil, dustProof != nil,
-			detailProof != nil); err != nil {
+			detailProof != nil, seriesProof != nil); err != nil {
 			return nil, err
 		}
 		if err := validateFrozenBackgroundBinding(styleRaw, caseRef.BackgroundAsset); err != nil {
@@ -344,6 +361,8 @@ func (r FrozenLearningRenderResolver) Resolve(ctx context.Context,
 			DustProof:      dustProof,
 			DetailEvidence: caseRef.DetailEvidence,
 			DetailProof:    detailProof,
+			SeriesEvidence: caseRef.SeriesEvidence,
+			SeriesProof:    seriesProof,
 			PixelCount:     imageInputs.PixelCount, Pixels: imageInputs.Pixels,
 			Alpha: imageInputs.Alpha, Protected: caseRef.Protected,
 			ProtectedPixels: protected, BaseStyle: style,
