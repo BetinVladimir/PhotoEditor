@@ -1,10 +1,12 @@
 package v2learning
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"strconv"
 	"time"
 	"unicode/utf8"
@@ -32,9 +34,36 @@ type LearningSafetyReviewRequest struct {
 }
 
 func exactFields(body []byte, names ...string) error {
-	var fields map[string]json.RawMessage
-	if err := json.Unmarshal(body, &fields); err != nil {
-		return err
+	decoder := json.NewDecoder(bytes.NewReader(body))
+	start, err := decoder.Token()
+	if err != nil || start != json.Delim('{') {
+		return fmt.Errorf("expected object")
+	}
+	fields := make(map[string]json.RawMessage, len(names))
+	for decoder.More() {
+		keyToken, err := decoder.Token()
+		if err != nil {
+			return err
+		}
+		key, ok := keyToken.(string)
+		if !ok {
+			return fmt.Errorf("expected field name")
+		}
+		if _, exists := fields[key]; exists {
+			return fmt.Errorf("duplicate %s", key)
+		}
+		var value json.RawMessage
+		if err := decoder.Decode(&value); err != nil {
+			return err
+		}
+		fields[key] = value
+	}
+	end, err := decoder.Token()
+	if err != nil || end != json.Delim('}') {
+		return fmt.Errorf("expected object end")
+	}
+	if _, err := decoder.Token(); err != io.EOF {
+		return fmt.Errorf("unexpected trailing input")
 	}
 	if len(fields) != len(names) {
 		return fmt.Errorf("expected %d fields", len(names))

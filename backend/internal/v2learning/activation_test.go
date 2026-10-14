@@ -18,6 +18,9 @@ func TestActivationRevisionAndReviewRequest(t *testing.T) {
 		`{"expected_revision":"1","evaluation_sha":"a","reason":"checked"}`,
 		`{"expected_revision":"1","evaluation_sha":"a","accept":null,"reason":"checked"}`,
 		`{"expected_revision":"1","evaluation_sha":"a","accept":true,"reason":"checked","extra":1}`,
+		`{"expected_revision":"1","evaluation_sha":"a","accept":true,"accept":false,"reason":"checked"}`,
+		`[{"expected_revision":"1","evaluation_sha":"a","accept":true,"reason":"checked"}]`,
+		`{"expected_revision":"1","evaluation_sha":"a","accept":true,"reason":"checked"} {}`,
 	} {
 		var request LearningSafetyReviewRequest
 		if err := json.Unmarshal([]byte(body), &request); err == nil {
@@ -27,5 +30,9 @@ func TestActivationRevisionAndReviewRequest(t *testing.T) {
 	var request LearningSafetyReviewRequest
 	if err := json.Unmarshal([]byte(`{"expected_revision":"1","evaluation_sha":"a","accept":false,"reason":"checked"}`), &request); err != nil || request.Accept {
 		t.Fatalf("rejected explicit false review: %v", err)
+	}
+	var activation ActivateProfileRequest
+	if err := json.Unmarshal([]byte(`{"expected_revision":"1","version_id":"00000000-0000-0000-0000-000000000001","reason":"promote","reason":"rollback"}`), &activation); err == nil {
+		t.Fatal("accepted ambiguous activation reason")
 	}
 }
