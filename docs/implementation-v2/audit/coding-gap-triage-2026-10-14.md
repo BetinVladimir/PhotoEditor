@@ -23,6 +23,9 @@ Export теперь вычисляет итоговый фон по порядк
 цепочку. Контекст подтверждённого person-mask при remap привязан к одному
 вычисленному target MaskPixels UUID/SHA, а не ко всему Override.
 
+Контракт переносимого подписанного origin receipt теперь добавлен в
+`interchange-person-origin-receipt.md` и pure worker verifier; issuer,
+bundle mapping, SQL authority и process bootstrap ещё не реализованы.
 Главный текущий разрыв запуска V30 — независимый `ImportPersonAcceptance`
 и его provision в обычном `backend/cmd/photo`. SQL grant/revoke с epoch уже
 существует, но второй вызов того же live-grant SQL не был бы независимым
