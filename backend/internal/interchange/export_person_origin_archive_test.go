@@ -42,6 +42,15 @@ func TestExportPersonOriginArchiveRequiresPhysicalSignedReceipt(t *testing.T) {
 	}
 	files := []VerifiedExportZIPFile{{Path: path, Bytes: int64(len(receipt)), SHA256: rawSHA(receipt)}}
 	expected := map[string]PortablePersonOriginExpectation{path: scope}
+	authority, err := NewExportPersonOriginArchiveAuthority(expected, keys)
+	if err != nil {
+		t.Fatal(err)
+	}
+	delete(expected, path)
+	if len(authority.expected) != 1 {
+		t.Fatal("caller mutated owned expectations")
+	}
+	expected[path] = scope
 	if err := VerifyExportPersonOriginArchive(context.Background(), archive, raw, files, expected, keys); err != nil {
 		t.Fatalf("signed physical receipt refused: %v", err)
 	}

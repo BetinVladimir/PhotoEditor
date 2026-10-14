@@ -98,6 +98,9 @@ func TestExportPersonOriginRequiresFrozenEntryAndQualifiedSourceClosure(t *testi
 	recipePath := "recipes/" + scope.Recipe.ArtifactID.String() + ".json"
 	recipeSHA := scope.Recipe.SHA256
 	manifest.Entries[0].RecipePath, manifest.Entries[0].RecipeSHA = &recipePath, &recipeSHA
+	manifest.Schema, manifest.Renderer = 1, "v2.2"
+	manifest.Masks = []exportBundleMask{{Path: "dependencies/" + scope.MaskPixels.ArtifactID.String() + ".bin",
+		SHA: scope.MaskPixels.SHA256, Canvas: scope.Source.CanvasHash}}
 	full, err := canonical.Marshal(manifest)
 	if err != nil {
 		t.Fatal(err)
@@ -107,5 +110,15 @@ func TestExportPersonOriginRequiresFrozenEntryAndQualifiedSourceClosure(t *testi
 	}
 	if err := ValidateExportBundleSourceInventory(context.Background(), intent, frozen, full, complete); err == nil {
 		t.Fatal("legacy validator admitted unverified origins")
+	}
+	files := []VerifiedExportZIPFile{{Path: "manifest.json", Bytes: int64(len(full)), SHA256: rawSHA(full)}}
+	for _, item := range manifest.Inventory {
+		files = append(files, VerifiedExportZIPFile{Path: item.Path, Bytes: 2, SHA256: item.SHA})
+	}
+	if err := ValidateExportManifest(context.Background(), intent, frozen, full, files); err == nil {
+		t.Fatal("default manifest validator admitted origins")
+	}
+	if err := validateExportManifest(context.Background(), intent, frozen, full, files, true); err != nil {
+		t.Fatalf("explicit origin manifest gate refused structural bundle: %v", err)
 	}
 }

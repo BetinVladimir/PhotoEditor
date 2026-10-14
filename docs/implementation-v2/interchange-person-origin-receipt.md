@@ -50,8 +50,12 @@ generation. The Python bundle preparer now accepts receipt and MaskRef sources
 through a process-installed `person_origin_factory`, requires a qualifier for
 each exact mapping, preserves their explicit compression roles, and includes
 them in the closed manifest/inventory. No production factory is installed yet,
-and the Go export validators still reject nonempty `person_origins` until
-signed-source publication is wired end to end.
+and the Go export path remains closed by default. An explicitly installed
+`ExportPersonOriginArchiveAuthority` now enables the archive reader and export
+adoption preparation to require physical ZIP receipt bytes, trusted Ed25519
+signature, deterministic inventory identity and current frozen source closure.
+The production factory and source-derived authority installer are still absent;
+this optional gate does not itself publish or admit receipts.
 `ExportPersonOriginOccurrence` now binds the exact selected entry and portable
 recipe to its frozen source, authored Override, one confirmed `person_subject`
 inline MaskRef, and its MaskPixels child. It checks physical source canvas and

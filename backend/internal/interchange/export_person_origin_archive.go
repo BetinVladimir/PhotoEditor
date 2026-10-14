@@ -10,6 +10,43 @@ import (
 	"photoeditor/backend/internal/v2input"
 )
 
+// ExportPersonOriginArchiveAuthority owns process-provisioned trust and
+// source-derived expectations for one frozen export. The constructor copies
+// all caller buffers so callbacks cannot mutate a running archive check.
+type ExportPersonOriginArchiveAuthority struct {
+	expected map[string]PortablePersonOriginExpectation
+	trusted  map[PortablePersonOriginKey]ed25519.PublicKey
+}
+
+func NewExportPersonOriginArchiveAuthority(expected map[string]PortablePersonOriginExpectation,
+	trusted map[PortablePersonOriginKey]ed25519.PublicKey,
+) (*ExportPersonOriginArchiveAuthority, error) {
+	if expected == nil || trusted == nil || len(expected) > 5000 {
+		return nil, v2input.ErrInvalid
+	}
+	owned := &ExportPersonOriginArchiveAuthority{
+		expected: make(map[string]PortablePersonOriginExpectation, len(expected)),
+		trusted:  make(map[PortablePersonOriginKey]ed25519.PublicKey, len(trusted)),
+	}
+	for path, scope := range expected {
+		if !validImportPlanPath(path) || scope.EntryID == uuid.Nil ||
+			!validImportRef(scope.Recipe) || !validImportRef(scope.Override) ||
+			!validImportRef(scope.MaskRef) || !validImportRef(scope.MaskPixels) ||
+			!portablePersonOriginSHA.MatchString(scope.ModelLockSHA) {
+			return nil, v2input.ErrInvalid
+		}
+		owned.expected[path] = scope
+	}
+	for key, public := range trusted {
+		if key.IssuerID == uuid.Nil || !portablePersonOriginSHA.MatchString(key.KeyID) ||
+			len(public) != ed25519.PublicKeySize {
+			return nil, v2input.ErrInvalid
+		}
+		owned.trusted[key] = append(ed25519.PublicKey(nil), public...)
+	}
+	return owned, nil
+}
+
 // VerifyExportPersonOriginArchive reads the actual receipt members after the
 // complete ZIP inventory has been physically hashed. The caller supplies
 // source-derived expectations and process-provisioned issuer keys; neither is
