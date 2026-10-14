@@ -18,8 +18,8 @@ type ImportClosureNodeResolver interface{ResolveImportNode(context.Context,v2inp
 func ResolveImportInputInventory(ctx context.Context,tenant uuid.UUID,documents ImportPreparedDocuments,resolver ImportClosureNodeResolver)(ImportInputInventory,error){
  if resolver==nil||tenant==uuid.Nil{return ImportInputInventory{},v2input.ErrInvalid}
  for _,doc:=range documents.Documents(){if err:=validateImportStorageDocument(documents.identity,doc);err!=nil{return ImportInputInventory{},err}}
- var params struct{Parsed v2input.Ref `json:"parsed"`};if err:=json.Unmarshal(documents.params.Body,&params);err!=nil{return ImportInputInventory{},err}
- roots:=[]v2input.Entry{{Ref:documents.params.Ref,Contract:"Params"},{Ref:documents.plan.Ref,Contract:"InterchangePlan"},{Ref:params.Parsed,Contract:"ParsedInterchange"}}
+ parsed,err:=importParamsRoots(documents);if err!=nil{return ImportInputInventory{},err}
+ roots:=[]v2input.Entry{{Ref:documents.params.Ref,Contract:"Params"},{Ref:documents.plan.Ref,Contract:"InterchangePlan"},{Ref:parsed,Contract:"ParsedInterchange"}}
  if documents.evidence!=nil{roots=append(roots,v2input.Entry{Ref:documents.evidence.Ref,Contract:"FrozenInterchangeImportEvidence"})}
  states:=map[uuid.UUID]int{};seen:=map[uuid.UUID]v2input.Entry{};entries:=[]v2input.Entry{}
  var visit func(v2input.Entry,int)error

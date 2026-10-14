@@ -4,6 +4,7 @@ import (
  "encoding/json"
  "testing"
  "github.com/google/uuid"
+ "photoeditor/backend/internal/canonical"
  "photoeditor/backend/internal/v2input"
 )
 func importInputFixture(t *testing.T)(ImportPreparedDocuments,[]v2input.Entry){
@@ -23,4 +24,18 @@ func TestImportInputInventoryRejectsMissingOrSubstitutedRoots(t *testing.T){
   switch change{case "missing":entries=entries[:2];case "contract":entries[0].Contract="StyleV2";case "sha":entries[0].Ref.SHA256=rawSHA([]byte("foreign"));case "duplicate":entries=append(entries,entries[0])}
   if _,err:=FreezeImportInputs(uuid.New(),docs,entries);err==nil{t.Fatal("invalid inventory accepted",change)}
  }
+}
+func TestImportInputInventoryRejectsParamsEvidenceMismatch(t *testing.T){
+ docs,entries:=importInputFixture(t)
+ var params importParamsDocument
+ if err:=decodeImportDocument(docs.params.Body,&params);err!=nil{t.Fatal(err)}
+ foreign:=v2input.Ref{ArtifactID:uuid.New(),SHA256:rawSHA([]byte("foreign evidence"))}
+ params.Evidence=&foreign
+ raw,err:=canonical.Marshal(params);if err!=nil{t.Fatal(err)}
+ docs.params.Body=raw;docs.params.Ref.SHA256=rawSHA(raw);entries[2].Ref=docs.params.Ref
+ if _,err:=FreezeImportInputs(uuid.New(),docs,entries);err==nil{t.Fatal("Params evidence without owned document accepted")}
+ docs.evidence=&ImportDocument{Purpose:"v30_interchange_import_evidence",Ref:v2input.Ref{ArtifactID:uuid.New(),SHA256:foreign.SHA256},Body:[]byte(`{}`)}
+ if _,err:=importParamsRoots(docs);err==nil{t.Fatal("foreign owned evidence accepted")}
+ docs.evidence.Ref=foreign
+ if parsed,err:=importParamsRoots(docs);err!=nil||parsed!=params.Parsed{t.Fatal("matching evidence refused",err)}
 }
