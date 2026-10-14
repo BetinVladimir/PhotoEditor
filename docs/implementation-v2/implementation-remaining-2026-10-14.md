@@ -93,6 +93,9 @@ Scheduler runtime теперь имеет `RunSchedulerWithInterchangeExport` и
 
 ## Граница первого MVP
 
+Миграция `02055_v30_export_adoption_series_stat_image.sql` и `SQLSchedulerExportInputCatalog.QualifyExportSeriesStatImage` привязывают каждый `SeriesStats` к исходному `WorkingImage`, который реально входил в завершённый `series.measure`, присутствует в frozen snapshot и остаётся принятой версией ассета. Проверка сначала подтверждает точную цепочку `SeriesCorrections`→Params→Stats, после SQL повторяет объектные pins статистики и изображения. Семантика измерения и масок остаётся отдельной native-проверкой. Миграция и unit-сценарии написаны, не запускались.
+
+
 Миграция `02054_v30_export_adoption_series_origin.sql` и `SQLSchedulerExportInputCatalog.LookupExportSeriesOrigin/LookupExportSeriesOriginDocument` добавляют pinned чтение оригинального `series.balance` Params и точных входных `SeriesStats` от завершённых `series.measure` producers. Внутренняя статистика доступна только через уже запечатанный `SeriesCorrections` input того же claimed export task; после чтения повторяются claim и object pins. Native схема и семантика WorkingImage/Measure остаются отдельными обязательными слоями. Миграция и unit-сценарии написаны, не запускались.
 
 
