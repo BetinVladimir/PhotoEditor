@@ -145,6 +145,7 @@ func TestDecodeCompletionPartsRejectsTrailingOrMalformedJSON(t *testing.T) {
 		`[{"part_no":1,"etag":"etag","unknown":true}]`,
 		`null`,
 		`[]`,
+		`[{"part_no":1,"etag":"bad\u0000etag"}]`,
 	} {
 		var parts []objectstore.UploadedPart
 		if err := decodeCompletionParts([]byte(raw), &parts); err == nil {

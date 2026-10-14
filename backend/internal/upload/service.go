@@ -379,11 +379,15 @@ func validCompletion(request CompleteRequest, session Session) bool {
 		return false
 	}
 	for i, part := range request.Parts {
-		if part.PartNumber != i+1 || len(part.ETag) < 1 || len(part.ETag) > 256 || strings.ContainsAny(part.ETag, "\r\n") {
+		if part.PartNumber != i+1 || !validCompletionETag(part.ETag) {
 			return false
 		}
 	}
 	return true
+}
+
+func validCompletionETag(value string) bool {
+	return len(value) >= 1 && len(value) <= 256 && !strings.ContainsAny(value, "\r\n\x00")
 }
 
 func (s Service) Complete(ctx context.Context, who auth.Identity, tenantID, id uuid.UUID, key string, request CompleteRequest) (Accepted, error) {

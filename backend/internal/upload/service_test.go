@@ -80,6 +80,20 @@ func TestBeginValidationAndSessionRedaction(t *testing.T) {
 	}
 }
 
+func TestUploadCompletionETagMatchesStorageAdmission(t *testing.T) {
+	session := Session{ExpectedSize: 4, PartsTotal: 1}
+	request := CompleteRequest{ExpectedSize: 4, Parts: []objectstore.UploadedPart{{PartNumber: 1, ETag: "etag"}}}
+	if !validCompletion(request, session) {
+		t.Fatal("valid multipart receipt rejected")
+	}
+	for _, invalid := range []string{"", "bad\x00etag", "bad\retag", "bad\netag", strings.Repeat("x", 257)} {
+		request.Parts[0].ETag = invalid
+		if validCompletion(request, session) {
+			t.Fatal("invalid ETag admitted to completion queue", invalid)
+		}
+	}
+}
+
 func TestModerationValidation(t *testing.T) {
 	request, err := normalizeModeration(ModerationRequest{Decision: " ACCEPT ", ExpectedRevision: 7})
 	if err != nil || request.Decision != "accept" {

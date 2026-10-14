@@ -77,7 +77,7 @@ func (s SQLCompletionLeases) Claim(ctx context.Context) (*CompletionLease, error
 		return nil, errors.New("invalid persisted upload parts")
 	}
 	for i, part := range lease.Parts {
-		if part.PartNumber != i+1 || len(part.ETag) < 1 || len(part.ETag) > 256 || strings.ContainsAny(part.ETag, "\r\n") {
+		if part.PartNumber != i+1 || !validCompletionETag(part.ETag) {
 			return nil, errors.New("invalid persisted upload parts")
 		}
 	}
