@@ -47,6 +47,8 @@
 
 Миграция `02036_v30_export_adoption_source_root.sql` добавляет отдельную проверку текущих actor/project прав и V25-эквивалентного snapshot/source inventory без зависимости от истёкшей HTTP-сессии, а также выдачу только точного первого canonical output с versioned object pin. Go reader повторяет claim до и после SQL lookup. Это пока root-only стадия: остальные outputs, transitive closure и финальный commit не установлены; 02036 и сценарии не запускались.
 
+Миграция `02037_v30_export_adoption_outputs.sql` и `SQLSchedulerExportOutputCatalog` расширяют чтение на позиционные InterchangeResult/MappingReport/MappingShard/InterchangeArchive того же canonical result; каталог повторяет lease до и после lookup. Дальше нужно восстановить frozen документы из ledger, собрать `ExportResultReader`, установить input resolver для portable closure и сделать атомарный adoption. 02037 и сценарии не выполнялись.
+
 ## Граница первого MVP
 
 Обязательны пункты 1–5 на выбранной и явно опубликованной матрице камер/форматов/операций. V23 learning, V24 on-set, V27 semantic, расширенные V28/V29, interchange и V31 C2PA желательны после первого MVP, если продукт не обещает их пользователю. Любая включённая в интерфейсе или маркетинговом обещании функция сразу получает полный P0-критерий своей сквозной трассы. Такое разделение определяет релизную очередь, но не сокращает цель V20–V32.

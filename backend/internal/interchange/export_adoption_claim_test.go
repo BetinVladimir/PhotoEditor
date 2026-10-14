@@ -67,4 +67,11 @@ func TestExportAdoptionClaimStoreFailsClosedWithoutDatabase(t *testing.T) {
 	if _, _, err := store.RootExportAdoption(ctx, ExportAdoptionClaim{}, "photos"); err != context.Canceled {
 		t.Fatal("cancelled root read queried", err)
 	}
+	catalog := SQLSchedulerExportOutputCatalog{Claims: store, Bucket: "photos"}
+	if _, err := catalog.LookupExportOutput(context.Background(), v2input.Entry{}); err != v2input.ErrInvalid {
+		t.Fatal("output catalog without installation accepted", err)
+	}
+	if _, err := catalog.LookupExportOutput(ctx, v2input.Entry{}); err != context.Canceled {
+		t.Fatal("cancelled output lookup queried", err)
+	}
 }

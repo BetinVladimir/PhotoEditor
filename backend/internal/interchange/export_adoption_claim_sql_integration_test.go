@@ -14,7 +14,7 @@ import (
 func TestIntegrationExportAdoptionClaimPrivateRoleAndMissingLease(t *testing.T) {
 	dsn := os.Getenv("PHOTO_TEST_DATABASE_URL")
 	if dsn == "" {
-		t.Skip("isolated PostgreSQL through migration02035 required")
+		t.Skip("isolated PostgreSQL through migration02037 required")
 	}
 	ctx := context.Background()
 	db, err := pgxpool.New(ctx, dsn)
@@ -26,6 +26,7 @@ func TestIntegrationExportAdoptionClaimPrivateRoleAndMissingLease(t *testing.T) 
 		"photo.v30_claim_next_export_adoption()",
 		"photo.v30_export_adoption_claim_current(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid)",
 		"photo.v30_export_adoption_root_output(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid)",
+		"photo.v30_export_adoption_output(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,text,text)",
 	} {
 		for _, role := range []string{"photo_scheduler", "photo_api", "photo_worker", "photo_gateway", "photo_portal"} {
 			var allowed bool
@@ -56,5 +57,12 @@ func TestIntegrationExportAdoptionClaimPrivateRoleAndMissingLease(t *testing.T) 
 		rawSHA([]byte("request")), uuid.New()).Scan(&root)
 	if !errors.Is(err, pgx.ErrNoRows) {
 		t.Fatal("missing claim did not refuse cleanly", root, err)
+	}
+	var output string
+	err = db.QueryRow(ctx, `SELECT object_key FROM photo.v30_export_adoption_output($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+		uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New(), "missing-claim",
+		rawSHA([]byte("request")), uuid.New(), uuid.New(), rawSHA([]byte("output")), "MappingReport").Scan(&output)
+	if !errors.Is(err, pgx.ErrNoRows) {
+		t.Fatal("missing claim exposed output object", output, err)
 	}
 }
