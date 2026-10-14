@@ -232,6 +232,7 @@ class AdoptionCoordinator:
         prepared_multi = None
         prepared_relight = None
         prepared_parse = None
+        prepared_import = None
         prepared_signing = None
         delivery_commit_signed = False
         if context.operation == 'render.compose':
@@ -573,6 +574,10 @@ class AdoptionCoordinator:
         if prepared_parse is not None:
             from .interchange_parse_adoption_commit import interchange_parse_commit_statement
             statement, params = interchange_parse_commit_statement(tenant_id, task_id, context, prepared_parse)
+        if prepared_import is not None:
+            from .interchange_import_adoption_commit import interchange_import_commit_statement
+            statement, params = interchange_import_commit_statement(
+                tenant_id, task_id, context, prepared_import, prepared)
         if prepared_signing is not None:
             from .provenance_adoption_commit import signing_commit_statement
             statement, params = signing_commit_statement(tenant_id, task_id, context, prepared_signing)
