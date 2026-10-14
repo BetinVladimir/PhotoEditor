@@ -29,6 +29,11 @@ type ImportPersonOriginScope interface {
 	QualifyImportedPersonOriginScope(context.Context, []byte, PortablePersonOriginExpectation) error
 }
 
+type ImportPersonOriginScopeDiscoverer interface {
+	ImportPersonOriginScope
+	DiscoverEntry(context.Context, []byte, uuid.UUID, string) ([]PortablePersonOriginExpectation, error)
+}
+
 type SQLImportPersonOriginReceiptSource struct {
 	DB               *pgxpool.Pool
 	Tenant, Workflow uuid.UUID
@@ -75,6 +80,49 @@ type ImportPersonOriginRecordService struct {
 	Writer  ImportPersonOriginReceiptWriter
 	Scope   ImportPersonOriginScope
 	Trusted map[PortablePersonOriginKey]ed25519.PublicKey
+}
+
+// RecordEntry is the scheduler entry boundary. Its scopes come from physical
+// staged recipes through DiscoverEntry and are rechecked again by Record.
+func (s ImportPersonOriginRecordService) RecordEntry(ctx context.Context, entryID uuid.UUID,
+	modelLockSHA string) ([]VerifiedImportPersonOrigin, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	discoverer, ok := s.Scope.(ImportPersonOriginScopeDiscoverer)
+	if !ok || entryID == uuid.Nil || s.Parsed == nil || s.Objects == nil ||
+		!portablePersonOriginSHA.MatchString(modelLockSHA) {
+		return nil, v2input.ErrInvalid
+	}
+	parsed, err := ReadImportReviewParsed(ctx, s.Parsed, s.Objects)
+	if err != nil {
+		return nil, err
+	}
+	scopes, err := discoverer.DiscoverEntry(ctx, parsed, entryID, modelLockSHA)
+	if err != nil {
+		return nil, err
+	}
+	if len(scopes) > 5000 {
+		return nil, v2input.ErrInvalid
+	}
+	seen := map[[3]uuid.UUID]bool{}
+	results := make([]VerifiedImportPersonOrigin, 0, len(scopes))
+	for _, scope := range scopes {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		key := [3]uuid.UUID{scope.EntryID, scope.Override.ArtifactID, scope.MaskRef.ArtifactID}
+		if scope.EntryID != entryID || scope.ModelLockSHA != modelLockSHA || seen[key] {
+			return nil, v2input.ErrInvalid
+		}
+		seen[key] = true
+		verified, err := s.Record(ctx, scope)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, verified)
+	}
+	return results, ctx.Err()
 }
 
 func selectedPersonOriginReceiptRef(parsed []byte, expected PortablePersonOriginExpectation) (v2input.Ref, error) {

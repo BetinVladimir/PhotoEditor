@@ -86,6 +86,12 @@ func TestStagedPersonOriginScopeRequiresPhysicalRecipeChain(t *testing.T) {
 	add(overrideRef, "Override", overrideRaw)
 	add(maskRef, "MaskRef", maskRaw)
 	add(pixels, "MaskPixels", []byte("pixels"))
+	receiptRaw := []byte(`{}`)
+	receiptRef := v2input.Ref{ArtifactID: uuid.New(), SHA256: rawSHA(receiptRaw)}
+	receiptPath := add(receiptRef, "PersonOriginReceipt", receiptRaw)
+	document.Manifest.PersonOrigins = []importBundlePersonOrigin{{EntryID: expected.EntryID,
+		Recipe: recipeRef, Override: overrideRef, MaskRef: maskRef, MaskPixels: pixels,
+		Path: receiptPath, SHA: receiptRef.SHA256}}
 	parsed, err := canonical.Marshal(document)
 	if err != nil {
 		t.Fatal(err)
@@ -93,6 +99,13 @@ func TestStagedPersonOriginScopeRequiresPhysicalRecipeChain(t *testing.T) {
 	authority := StagedImportPersonOriginScope{Source: locator, Objects: objects}
 	if err := authority.QualifyImportedPersonOriginScope(context.Background(), parsed, expected); err != nil {
 		t.Fatal("exact staged person occurrence rejected", err)
+	}
+	discovered, err := authority.DiscoverEntry(context.Background(), parsed, expected.EntryID, model)
+	if err != nil || len(discovered) != 1 || discovered[0] != expected {
+		t.Fatal("physical staged recipe did not derive exact origin scope", err)
+	}
+	if _, err := authority.DiscoverEntry(context.Background(), parsed, expected.EntryID, rawSHA([]byte("foreign model"))); err == nil {
+		t.Fatal("uninstalled model lock accepted")
 	}
 	changed := expected
 	changed.Override.ArtifactID = uuid.New()

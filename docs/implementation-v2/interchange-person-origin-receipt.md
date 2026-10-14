@@ -61,6 +61,12 @@ operator-supplied `person_origin_factory` through `ExportPreparationFactory`
 to bundle preparation. This is an installation port, not a default factory:
 the operator must supply signed-source publication and independent qualification
 before any `person_origins` can be emitted.
+On import, `StagedImportPersonOriginScope.DiscoverEntry` now derives the original
+source binding by physically reading each selected staged recipe, then
+requalifies its exact `person_subject` Override/MaskRef/MaskPixels chain.
+`ImportPersonOriginRecordService.RecordEntry` uses that discovery and repeats
+the physical receipt, signature, and current staged scope checks per selected
+entry. Scheduler installation of this entry boundary remains outstanding.
 `ExportPersonOriginOccurrence` now binds the exact selected entry and portable
 recipe to its frozen source, authored Override, one confirmed `person_subject`
 inline MaskRef, and its MaskPixels child. It checks physical source canvas and

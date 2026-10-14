@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 
+	"github.com/google/uuid"
 	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/editor"
 	"photoeditor/backend/internal/review"
@@ -17,6 +18,61 @@ import (
 type StagedImportPersonOriginScope struct {
 	Source  ImportPersonOriginReceiptSource
 	Objects ImportDocumentObjects
+}
+
+// DiscoverEntry reads the staged authored recipe before constructing any
+// expectation. Manifest refs select candidates; physical recipe/source/mask
+// checks below decide whether each selected occurrence is admissible.
+func (s StagedImportPersonOriginScope) DiscoverEntry(ctx context.Context, parsed []byte,
+	entryID uuid.UUID, modelLockSHA string) ([]PortablePersonOriginExpectation, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if entryID == uuid.Nil || !portablePersonOriginSHA.MatchString(modelLockSHA) ||
+		s.Source == nil || s.Objects == nil {
+		return nil, v2input.ErrInvalid
+	}
+	if _, err := validateParsedImportDocument(ctx, parsed); err != nil {
+		return nil, err
+	}
+	var document importParsedDocument
+	if err := decodeImportDocument(parsed, &document); err != nil {
+		return nil, err
+	}
+	selected := false
+	for _, entry := range document.Manifest.Entries {
+		if entry.ID == entryID {
+			selected = true
+			break
+		}
+	}
+	if !selected {
+		return nil, v2input.ErrInvalid
+	}
+	result := make([]PortablePersonOriginExpectation, 0)
+	for _, origin := range document.Manifest.PersonOrigins {
+		if origin.EntryID != entryID {
+			continue
+		}
+		recipeRaw, err := s.read(ctx, parsed, document, origin.Recipe, "EditingRecipeV3", 1<<20)
+		if err != nil {
+			return nil, err
+		}
+		var recipe struct {
+			Source v2input.SessionVersionBinding `json:"source"`
+		}
+		if err := json.Unmarshal(recipeRaw, &recipe); err != nil {
+			return nil, v2input.ErrInvalid
+		}
+		scope := PortablePersonOriginExpectation{EntryID: entryID, Source: recipe.Source,
+			Recipe: origin.Recipe, Override: origin.Override, MaskRef: origin.MaskRef,
+			MaskPixels: origin.MaskPixels, ModelLockSHA: modelLockSHA}
+		if err := s.QualifyImportedPersonOriginScope(ctx, parsed, scope); err != nil {
+			return nil, err
+		}
+		result = append(result, scope)
+	}
+	return result, ctx.Err()
 }
 
 func (s StagedImportPersonOriginScope) read(ctx context.Context, parsed []byte, document importParsedDocument, original v2input.Ref, contract string, limit int64) ([]byte, error) {

@@ -6,6 +6,7 @@ import (
 	"io"
 	"testing"
 
+	"github.com/google/uuid"
 	"photoeditor/backend/internal/objectstore"
 	"photoeditor/backend/internal/v2input"
 )
@@ -38,8 +39,16 @@ type personOriginRecordWriter struct {
 }
 
 type personOriginRecordScope struct {
-	calls int
-	deny  bool
+	calls    int
+	deny     bool
+	expected PortablePersonOriginExpectation
+}
+
+func (s *personOriginRecordScope) DiscoverEntry(_ context.Context, _ []byte, entry uuid.UUID, model string) ([]PortablePersonOriginExpectation, error) {
+	if s.expected.EntryID != entry || s.expected.ModelLockSHA != model {
+		return nil, v2input.ErrInvalid
+	}
+	return []PortablePersonOriginExpectation{s.expected}, nil
 }
 
 func (s *personOriginRecordScope) QualifyImportedPersonOriginScope(_ context.Context, _ []byte, _ PortablePersonOriginExpectation) error {
@@ -88,5 +97,28 @@ func TestPersonOriginRecorderVerifiesPhysicalReceiptBeforeSQL(t *testing.T) {
 				t.Fatal("unqualified receipt reached SQL", mode)
 			}
 		})
+	}
+}
+
+func TestPersonOriginRecorderDiscoversEntryBeforeWriting(t *testing.T) {
+	parsed, raw, expected, keys, staged := importedPersonOriginSelectionFixture(t)
+	parsedRef := v2input.Ref{ArtifactID: expected.EntryID, SHA256: rawSHA(parsed)}
+	parsedSource := &reviewParsedSourceStub{ref: parsedRef, object: objectstore.Object{
+		Key: "parsed", VersionID: "v1", SHA256: parsedRef.SHA256,
+		Bytes: int64(len(parsed)), ContentType: "application/json"}}
+	receiptSource := &personOriginRecordSource{object: objectstore.Object{
+		Key: "receipt", VersionID: "v1", SHA256: staged.SHA256,
+		Bytes: int64(len(raw)), ContentType: "application/octet-stream"}}
+	writer := &personOriginRecordWriter{}
+	scope := &personOriginRecordScope{expected: expected}
+	service := ImportPersonOriginRecordService{Parsed: parsedSource, Source: receiptSource,
+		Objects: personOriginRecordObjects{"parsed": parsed, "receipt": raw}, Writer: writer,
+		Trusted: keys, Scope: scope}
+	verified, err := service.RecordEntry(context.Background(), expected.EntryID, expected.ModelLockSHA)
+	if err != nil || len(verified) != 1 || verified[0].ReceiptFile != staged || writer.calls != 1 {
+		t.Fatal("discovered entry not recorded", err)
+	}
+	if _, err := service.RecordEntry(context.Background(), uuid.New(), expected.ModelLockSHA); err == nil {
+		t.Fatal("foreign entry reached writer")
 	}
 }
