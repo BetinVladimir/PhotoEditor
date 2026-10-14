@@ -60,11 +60,15 @@ the issuer is not reachable from the export API.
 mask as a protected area or a retouch target. The current worker emits
 `selector: "person", protected: false`, which is the exact accepted shape.
 Import must verify the receipt against configured issuer trust, archive bytes
-and target source remap; store its exact hash and issuer/key in a new scoped
+and target source remap; store its exact hash and issuer/key in a scoped
 forward-only table, and require that live receipt **and** the separate current
 user grant/epoch before and after IO and at activation. Revocation of either
 authority must fail closed. The existing SQL grant remains only the consent
-half; it cannot be reused as producer evidence.
+half; it cannot be reused as producer evidence. Migration 02028 adds the
+tenant-scoped receipt table and a scheduler-only live read that checks current
+import-source adoption plus the exact staged file object. No service role can
+insert a receipt yet; the trusted recorder and its cryptographic verification
+must be implemented before this read can authorize import.
 
 The bundle schema now has an optional `person_origins` mapping. Its entry ID,
 recipe, Override, MaskRef, MaskPixels and receipt path/SHA must all resolve to
