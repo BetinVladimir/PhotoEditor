@@ -93,6 +93,12 @@ Scheduler runtime теперь имеет `RunSchedulerWithInterchangeExport` и
 
 ## Граница первого MVP
 
+Миграция `02057_v30_export_adoption_series_measure_inputs.sql` и `SQLSchedulerExportInputCatalog.QualifyExportSeriesMeasureInputs` добавляют exact equality между разобранными native-совместимыми входами `series.measure` (WorkingImage, pixels, alpha и маски регионов) и canonical `measure.inputs`. SQL связывает producer с запечатанным `SeriesCorrections` той же export-задачи; Go повторяет pinned image lookup после запроса. Физическое происхождение масок остаётся в отдельном `ExportSeriesMaskOriginSource`, который ещё требуется перенести. Миграция и unit-сценарии написаны, не запускались.
+
+
+Миграция `02056_v30_export_adoption_series_measure_origin.sql` и `SQLSchedulerExportInputCatalog.LookupExportSeriesMeasureOrigin` добавляют чтение точного Params завершённого `series.measure` producer для уже подтверждённой `SeriesStats`. Код проверяет image provenance и pinned stat до/после SQL lookup; physical Params reader повторяет lookup после чтения bytes. Отдельная проверка полного input inventory (pixels, alpha, region masks) ещё не перенесена. Миграция и unit-сценарии написаны, не запускались.
+
+
 Миграция `02055_v30_export_adoption_series_stat_image.sql` и `SQLSchedulerExportInputCatalog.QualifyExportSeriesStatImage` привязывают каждый `SeriesStats` к исходному `WorkingImage`, который реально входил в завершённый `series.measure`, присутствует в frozen snapshot и остаётся принятой версией ассета. Проверка сначала подтверждает точную цепочку `SeriesCorrections`→Params→Stats, после SQL повторяет объектные pins статистики и изображения. Семантика измерения и масок остаётся отдельной native-проверкой. Миграция и unit-сценарии написаны, не запускались.
 
 
