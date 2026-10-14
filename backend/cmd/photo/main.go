@@ -126,10 +126,16 @@ func runWithAPIDependencies(dependencies apiProcessDependencies) error {
 		if err != nil {
 			return err
 		}
-		return workflow.RunSchedulerWithDeliverySigning(ctx, cfg.DatabaseURL, cfg.Listen,
+		exportFactory, err := prepareSchedulerInterchangeExport(ctx,
+			os.Getenv("V30_INTERCHANGE_EXPORT_DEPLOYMENT_FILE"),
+			os.Getenv("V30_INTERCHANGE_EXPORT_DEPLOYMENT_SHA"), dependencies)
+		if err != nil {
+			return err
+		}
+		return workflow.RunSchedulerWithInterchangeExport(ctx, cfg.DatabaseURL, cfg.Listen,
 			objectstore.ConfigFromEnv(cfg.Environment == "development"),
 			os.Getenv("PHOTO_ICC_ROOT"), nativeFactory,
-			archiveCompletionFactory{}, signingFactory, importFactories...)
+			archiveCompletionFactory{}, signingFactory, exportFactory, importFactories...)
 	}
 	if cfg.Role == "restore-replay" {
 		if dependencies.RestoreReplay == nil || dependencies.RestoreReplayReceipt == nil {
