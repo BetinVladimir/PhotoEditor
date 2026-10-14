@@ -250,5 +250,14 @@ func TestIntegrationCancelRunIsAuthorizedAuditedAndIdempotent(t *testing.T) {
 	if !foundRunningBatch {
 		t.Fatal("status-filtered API list omitted active batch")
 	}
+	if _, err := admin.Exec(ctx, "UPDATE photo.projects SET archived_at=now() WHERE id=$1", project); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Cancel(ctx, who, tenantID, batch, batchCancelKey); domain.AsError(err).Code != "NOT_FOUND" {
+		t.Fatal("batch replay after project archive", err)
+	}
+	if _, err := service.Retry(ctx, who, tenantID, child, retryKey, RetryRequest{ExpectedRevision: "2", TaskIDs: []uuid.UUID{task}}); domain.AsError(err).Code != "NOT_FOUND" {
+		t.Fatal("retry replay after project archive", err)
+	}
 
 }

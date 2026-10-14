@@ -378,6 +378,47 @@ func (s Service) Outputs(ctx context.Context, who auth.Identity, tenantID, id uu
 	return result, nil
 }
 
+// authorizeRunProject repeats current project ACL before an idempotent mutation
+// can replay a saved response. Some legacy tenant-wide runs have no project.
+func authorizeRunProject(ctx context.Context, tx pgx.Tx, who auth.Identity,
+	tenantID, id uuid.UUID, role domain.Role) error {
+	var projectID *uuid.UUID
+	var configProject *string
+	err := tx.QueryRow(ctx, `SELECT COALESCE(st.project_id,w.project_id,c.project_id,a.project_id,sc.project_id),
+	 r.config_snapshot->>'project_id' FROM photo.runs r
+	 LEFT JOIN photo.semantic_targets st ON st.tenant_id=r.tenant_id AND st.child_run_id=r.id AND r.kind='apply'
+	 LEFT JOIN photo.v2_workflows w ON w.tenant_id=r.tenant_id AND w.run_id=r.id AND r.kind='v2'
+	 LEFT JOIN photo.collections c ON c.tenant_id=r.tenant_id AND c.id=r.output_collection_id
+	 LEFT JOIN photo.asset_versions v ON v.tenant_id=r.tenant_id AND v.id=NULLIF(r.config_snapshot->>'asset_version_id','')::uuid
+	 LEFT JOIN photo.assets a ON a.tenant_id=v.tenant_id AND a.id=v.asset_id
+	 LEFT JOIN photo.snapshots s ON s.tenant_id=r.tenant_id AND s.id=r.input_snapshot_id
+	 LEFT JOIN photo.collections sc ON sc.tenant_id=s.tenant_id AND sc.id=s.collection_id
+	 WHERE r.tenant_id=$1 AND r.id=$2`, tenantID, id).Scan(&projectID, &configProject)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.NewError("NOT_FOUND", 404)
+	}
+	if err != nil {
+		return err
+	}
+	if projectID != nil {
+		if _, err = project.Authorize(ctx, tx, tenantID, *projectID,
+			who.UserID, role, domain.Editor, false); err != nil {
+			return err
+		}
+	}
+	if configProject != nil {
+		parsed, err := uuid.Parse(*configProject)
+		if err != nil || parsed == uuid.Nil {
+			return domain.NewError("NOT_FOUND", 404)
+		}
+		if projectID == nil || *projectID != parsed {
+			_, err = project.Authorize(ctx, tx, tenantID, parsed,
+				who.UserID, role, domain.Editor, false)
+		}
+	}
+	return err
+}
+
 func (s Service) Cancel(ctx context.Context, who auth.Identity, tenantID, id uuid.UUID, key string) (Status, error) {
 	var out Status
 	if !idempotency.ValidKey(key) {
@@ -408,6 +449,9 @@ func (s Service) Cancel(ctx context.Context, who auth.Identity, tenantID, id uui
 			if _, e = project.Authorize(ctx, tx, tenantID, projectID, who.UserID, role, domain.Editor, false); e != nil {
 				return e
 			}
+		}
+		if err := authorizeRunProject(ctx, tx, who, tenantID, id, role); err != nil {
+			return err
 		}
 		response, err := idempotency.Use(ctx, tx, idempotency.Scope{Tenant: tenantID, Principal: who.UserID, PrincipalType: "user", Route: "POST /runs/" + id.String() + "/cancel", Key: key}, map[string]string{"run_id": id.String()}, time.Now().Add(30*24*time.Hour), func() (idempotency.Response, error) {
 			status, e := cancelRun(ctx, tx, who, tenantID, id, renderBatch)
@@ -489,7 +533,10 @@ func (s Service) Retry(ctx context.Context, who auth.Identity, tenantID, id uuid
 	if !idempotency.ValidKey(key) {
 		return out, domain.NewError("IDEMPOTENCY_KEY_REQUIRED", 400)
 	}
-	err := tenant.WithTenant(ctx, s.DB, who, tenantID, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
+	err := tenant.WithTenant(ctx, s.DB, who, tenantID, domain.Editor, func(tx pgx.Tx, role domain.Role) error {
+		if err := authorizeRunProject(ctx, tx, who, tenantID, id, role); err != nil {
+			return err
+		}
 		response, e := idempotency.Use(ctx, tx, idempotency.Scope{Tenant: tenantID, Principal: who.UserID, PrincipalType: "user", Route: "POST /runs/" + id.String() + "/retry", Key: key}, req, time.Now().Add(30*24*time.Hour), func() (idempotency.Response, error) {
 			status, err := retryRun(ctx, tx, who, tenantID, id, expected, req)
 			if err != nil {
