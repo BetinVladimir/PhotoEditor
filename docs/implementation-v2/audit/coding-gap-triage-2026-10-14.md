@@ -14,10 +14,12 @@ defect и dust; `SQLImportEntryRecipeAuthorityFactory` подключает
 `runWithAPIDependencies(apiProcessDependencies{})`. При наличии
 `PHOTO_V30_IMPORT_OPERATOR_CONFIG` scheduler loader ожидает одновременно
 `ImportEntryBase` и `ImportPersonAcceptance`, которых обычный процесс не
-создаёт. `ImportSchedulerOperatorFiles.Install` дополнительно требует
-доверенные `Codecs.Params` и `Codecs.OverrideContent`; архив и HTTP payload
-не могут поставлять эти authorities. Следующая реализация должна создать
-process-owned bootstrap для этих semantic ports и независимой person
+создаёт. `ImportSchedulerOperatorFiles.Install` требует доверенный
+`Codecs.OverrideContent`; отсутствующий `Codecs.Params` он заполняет
+process-owned terminal codec, который отказывает неизвестным контрактам
+после типизированных Params-ветвей. Архив и HTTP payload не могут поставлять
+эти authorities. Следующая реализация должна создать process-owned bootstrap
+для Override semantic port и независимой person
 acceptance, установить его до `schedulerImportFactories` и покрыть
 положительный запуск настоящей pinned deployment. Терминальный
 `RejectUnsupportedImportDependency` допустим только для неизвестных Params,

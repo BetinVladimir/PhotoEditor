@@ -49,6 +49,16 @@ func TestImportSchedulerOperatorFilesComposeCompletePinnedFactory(t *testing.T) 
 	if base.StyleInstallation != nil || base.PersonMaskQualification != nil {
 		t.Fatal("input factory mutated")
 	}
+	withoutFallback := base
+	withoutFallback.Codecs.Params = nil
+	withTerminal, err := files.Install(context.Background(), withoutFallback, &importMaskQualifierStub{})
+	if err != nil {
+		t.Fatal("process-owned unknown Params fallback unavailable", err)
+	}
+	authority := withTerminal.Recipes.(SQLImportSchedulerRecipeFactory).Authority.(SQLImportEntryRecipeAuthorityFactory)
+	if _, ok := authority.Codecs.Params.(RejectUnsupportedImportDependency); !ok || withoutFallback.Codecs.Params != nil {
+		t.Fatal("unknown Params fallback was not isolated to installed factory")
+	}
 	files.StyleSHA = sha("foreign")
 	if broken, err := files.Install(context.Background(), base, &importMaskQualifierStub{}); err == nil || broken.Recipes != nil {
 		t.Fatal("foreign style pin produced a partial factory", err)

@@ -43,8 +43,14 @@ func (f ImportSchedulerOperatorFiles) Install(ctx context.Context, base SQLImpor
 		return zero, err
 	}
 	if personAcceptance == nil || base.StyleInstallation != nil || base.PersonMaskQualification != nil ||
-		base.Codecs.Params == nil || base.Codecs.OverrideContent == nil {
+		base.Codecs.OverrideContent == nil {
 		return zero, v2input.ErrInvalid
+	}
+	// Known Params contracts are handled by typed branches of the recipe graph.
+	// The process owns the terminal behavior for an unknown contract; an archive
+	// must never supply its own executable fallback or make one publish bytes.
+	if base.Codecs.Params == nil {
+		base.Codecs.Params = RejectUnsupportedImportDependency{}
 	}
 	if err := f.ValidateDeclaration(); err != nil {
 		return zero, err
