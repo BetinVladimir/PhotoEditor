@@ -183,6 +183,7 @@ func (f SQLImportEntryRecipeAuthorityFactory) BuildImportEntryRecipeAuthority(ct
 	if codecs.DustSeries != nil {
 		codecs.DustReview = SQLImportDustReviewIssuer{Entry: scope.Entry, Target: scope.Binding, Decisions: currentReviews, Additional: codecs.DustReview}
 	}
+	var backgroundWitnesses *importBackgroundClosureWitnesses
 	if f.StyleInstallation != nil {
 		installation := f.StyleInstallation.owned()
 		style, backgrounds, err := installation.Build(ctx, parsed, codecs.Bindings, sources, masters, publisher, f.Native)
@@ -203,15 +204,11 @@ func (f SQLImportEntryRecipeAuthorityFactory) BuildImportEntryRecipeAuthority(ct
 			return nil, nil, err
 		}
 		codecs.OverrideArchive = archiveOverride
-		override, err := NewNativeImportOverrideContent(f.Native.WarpScratch, f.Native.WarpProbe, installation.Models, installation.StyleRuntimeSHA, codecs.OverrideContent)
-		if err != nil {
-			return nil, nil, err
-		}
-		codecs.OverrideContent = override
 		witnessed, ok := backgrounds.(witnessedImportBackgroundRemapper)
 		if !ok {
 			return nil, nil, v2input.ErrInvalid
 		}
+		backgroundWitnesses = witnessed.Witnesses
 		var matched *ImportCorrectionBinding
 		for i := range codecs.Bindings {
 			if codecs.Bindings[i].Entry == scope.Entry {
@@ -236,6 +233,15 @@ func (f SQLImportEntryRecipeAuthorityFactory) BuildImportEntryRecipeAuthority(ct
 			return nil, nil, v2input.ErrInvalid
 		}
 		assets = ImportPreparedBackgroundNodeResolver{Catalog: SQLPreparedImportBackgroundCatalog{Catalog: SQLPreparedImportCatalog{Store: store, Scope: scope}}, Native: NativeExportImageQualifier{Objects: objects, Scratch: f.Native.WarpScratch, Probe: f.Native.WarpProbe, RuntimeSHA: f.ImageRuntimeSHA}}
+	}
+	if f.StyleInstallation != nil {
+		installation := f.StyleInstallation.owned()
+		current := ImportOverrideCurrentAssetPolicy{Other: codecs.OverrideContent, Binding: scope.Binding, Witnesses: backgroundWitnesses, Assets: assets}
+		override, err := NewNativeImportOverrideContent(f.Native.WarpScratch, f.Native.WarpProbe, installation.Models, installation.StyleRuntimeSHA, current)
+		if err != nil {
+			return nil, nil, err
+		}
+		codecs.OverrideContent = override
 	}
 	deps := PreparedImportResolverDependencies{Registry: f.Registry, Catalog: SQLPreparedImportCatalog{Store: store, Scope: scope, BackgroundMedia: f.BackgroundMedia}, Objects: objects, Masters: masters, Working: working, Assets: assets, Canonical: witnesses, Documents: f.Documents, MaskSemantics: maskSemantics, ModelLocks: append([]string(nil), f.ModelLocks...), Scratch: f.Native.WarpScratch, Probe: f.Native.WarpProbe, ArrayRuntimeSHA: f.Native.WarpRuntimeSHA, MaxBytes: f.Native.MaxFileBytes}
 	if f.StyleInstallation != nil {
