@@ -17,6 +17,17 @@ leave such tenant-owned bytes behind. A key outside those exact prefixes is
 always refused. The dedicated legacy-key and complete current key-generator
 unit scenarios are authored but have not run.
 
+For restore acceptance, `ObservePurgedTenantBuckets` composes the read-only
+two-pass `Store.ObservePurgedTenant` across an explicit complete bucket
+inventory. It probes at most 32 targets concurrently with a process-wide
+slot limit and returns no partial proof. Every receipt must name the exact
+tenant and configured bucket, all three ordered tenant prefixes, two passes,
+and an observation time from the current call. The caller still has to supply
+the authoritative writer-destination inventory and an independent fixture /
+paused-writer guard; this helper does not infer either. Unit scenarios are
+authored but not run, and no production restore-acceptance caller is installed
+by this change.
+
 Before `finish_tenant_deletion`, maintenance records the independent requested-deletion history, renews the live deletion token through migration 01886, performs a first all-bucket purge/absence pass, settles archive generations under that token, renews it again, and performs a second all-bucket purge/absence pass. A remnant in either pass checkpoints the job; a failed or expired renewal refuses the next physical pass and metadata deletion. `TenantCleaner` has a bounded 120-second cycle to accommodate both 40-second scans and the two renewals, while other maintenance jobs retain 50 seconds. Deploy migration 01886 before this maintenance binary: startup checks the function's owner, `SECURITY DEFINER` mode, search path, and maintenance-only execution grant. The migration is authored but not applied; unit and physical acceptance are not run under the implementation-first plan.
 
 Maintenance startup and `/health/ready` call the read-only versioning readiness probe on every configured purge bucket, with at most 32 concurrent probes under the shared request deadline. An unavailable or unversioned secondary bucket blocks readiness even when the primary bucket is healthy. The probe does not create or mutate buckets, and it does not replace the tenant-specific two-pass deletion evidence.
