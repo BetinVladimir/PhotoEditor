@@ -73,7 +73,7 @@ func buildDeliveryCreate(ctx context.Context, api *pgxpool.Pool, objects *object
 			"photo.v30_delivery_runtime_ready(text)",
 			"photo.materialize_v30_delivery_prepare(uuid,uuid,uuid,text,text,jsonb)",
 			"photo.save_v30_delivery_prepare_proof(uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,jsonb)",
-			"photo.activate_v30_delivery_create(uuid,uuid,uuid,text,text)",
+			"photo.activate_v30_delivery_create_bound(uuid,uuid,uuid,text,text,text)",
 		}},
 		{scheduler, "photo_scheduler", []string{
 			"photo.v30_delivery_prepare_transport_ready(uuid,uuid,jsonb,jsonb)",

@@ -18,18 +18,21 @@ import (
 	"photoeditor/backend/internal/v2input"
 )
 
-func (i CreateIntent) ActivateCreate(ctx context.Context, tx ProofTransaction, who auth.Identity, tid uuid.UUID) (idempotency.Response, error) {
+func (i CreateIntent) ActivateCreate(ctx context.Context, tx ProofTransaction, who auth.Identity, tid uuid.UUID, bucket string) (idempotency.Response, error) {
 	if err := ctx.Err(); err != nil {
 		return idempotency.Response{}, err
 	}
-	if tx == nil || tid != i.tenant || who.UserID != i.actor || who.SessionID == uuid.Nil || i.identity.Run == uuid.Nil {
+	if tx == nil || tid != i.tenant || who.UserID != i.actor || who.SessionID == uuid.Nil || i.identity.Run == uuid.Nil || len(bucket) < 3 || len(bucket) > 63 {
 		return idempotency.Response{}, v2input.ErrInvalid
 	}
 	var raw []byte
-	if err := tx.QueryRow(ctx, `SELECT photo.activate_v30_delivery_create($1,$2,$3,$4,$5)`, tid, who.UserID, who.SessionID, i.key, i.requestSHA).Scan(&raw); err != nil {
+	if err := tx.QueryRow(ctx, `SELECT photo.activate_v30_delivery_create_bound($1,$2,$3,$4,$5,$6)`, tid, who.UserID, who.SessionID, i.key, i.requestSHA, bucket).Scan(&raw); err != nil {
 		// Only this explicit atomic seal refusal is a business conflict.
 		// Unrelated integrity/database errors must retain their original cause.
 		var refusal *pgconn.PgError
+		if errors.As(err, &refusal) && refusal.Code == "P0001" && refusal.Message == "DELIVERY_RUNTIME_UNAVAILABLE" {
+			return idempotency.Response{}, domain.NewError("DELIVERY_UNAVAILABLE", 503)
+		}
 		if errors.As(err, &refusal) && refusal.Code == "23514" && refusal.Message == "DELIVERY_INITIAL_ACTIVATION_REFUSED" {
 			return idempotency.Response{}, domain.NewError("DELIVERY_CREATE_STALE", 409)
 		}
@@ -79,7 +82,7 @@ func (s Service) CreateDelivery(ctx context.Context, who auth.Identity, tid uuid
 			var out idempotency.Response
 			err := tenant.WithTenant(ctx, s.DB, who, tid, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
 				var err error
-				out, err = intent.ActivateCreate(ctx, tx, who, tid)
+				out, err = intent.ActivateCreate(ctx, tx, who, tid, deps.Bucket)
 				return err
 			})
 			if err != nil {
