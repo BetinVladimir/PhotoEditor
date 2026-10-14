@@ -73,8 +73,13 @@ still needed before this publication path is reachable in production.
 digest from the original qualified inventory plus each published receipt and
 its exact `MaskRef`. It checks the frozen entry and source, signed claim,
 current producer, typed recipe/override/pixels membership and publication
-result. The execution installer and SQL materializer still need to consume
-this enriched inventory consistently before task sealing.
+result. `ExportPersonOriginInputSet` now owns candidate bytes and replays this
+physical publication during export execution, SQL materialization and
+activation preparation, so each phase recompiles the same enriched digest
+while the run remains draft. `SQLExportExecutionInstaller` binds its SQL
+repository, object store, process trust and current-producer checker when an
+operator-installed candidate factory supplies signed source-derived entries.
+The concrete production candidate factory remains to be installed.
 Installed export archive authority now requires a current producer checker.
 The SQL checker repeats the original `mask.person` locator and compares task,
 attempt, fence, root, report and MaskPixels with the signed claim during ZIP

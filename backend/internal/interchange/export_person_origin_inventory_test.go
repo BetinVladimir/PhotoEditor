@@ -115,4 +115,20 @@ func TestPublishedPersonOriginEntersExportInputDigestBeforeMaterialization(t *te
 		[]ExportPersonOriginPublished{{Scope: scope, Attachment: attachment}}, publisher, keys, current); err == nil {
 		t.Fatal("unpublished receipt admitted")
 	}
+	publisher.wrong = false
+	set, err := NewExportPersonOriginInputSet([]ExportPersonOriginPublished{{Scope: scope, Attachment: attachment}},
+		publisher, keys, current)
+	if err != nil {
+		t.Fatal(err)
+	}
+	attachment.Body[0] = '!'
+	for key := range keys {
+		delete(keys, key)
+	}
+	for i := 0; i < 3; i++ {
+		replayed, err := set.Enrich(context.Background(), intent, frozen, base)
+		if err != nil || replayed.digest != newInventory.digest {
+			t.Fatal("owned receipt did not replay across export phases", err)
+		}
+	}
 }
