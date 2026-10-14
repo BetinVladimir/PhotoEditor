@@ -1,6 +1,6 @@
 """Import adoption must reach its dedicated atomic SQL commit."""
 
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 from hashlib import sha256
 from types import SimpleNamespace
 from uuid import uuid4
@@ -44,11 +44,24 @@ def test_coordinator_routes_import_to_dedicated_atomic_commit(monkeypatch):
 
     monkeypatch.setattr(adoption_service, 'PostgresObjectEvidenceReader',
                         lambda *_args, **_kwargs: object())
+    @contextmanager
+    def qualifier_scope(*_args):
+        events.append('qualifier_enter')
+        try:
+            yield object()
+        finally:
+            events.append('qualifier_exit')
+
+    def prepare(*_args, **kwargs):
+        assert kwargs['qualify_recipe'] is not None
+        assert events[-1] == 'qualifier_enter'
+        return proof
+
     monkeypatch.setattr(interchange_import_adoption_prepare,
-                        'prepare_current_interchange_import',
-                        lambda *_args, **_kwargs: proof)
+                        'prepare_current_interchange_import', prepare)
     monkeypatch.setattr(adoption_service, 'prepare_v2_adoption',
                         lambda **_kwargs: prepared)
-    coordinator = adoption_service.AdoptionCoordinator(Read(), Write(), object(), 'photos')
+    coordinator = adoption_service.AdoptionCoordinator(Read(), Write(), object(), 'photos',
+        interchange_recipe_qualifier_factory=qualifier_scope)
     assert coordinator.adopt(tenant, task) is True
-    assert events == ['dedicated_commit']
+    assert events == ['qualifier_enter', 'qualifier_exit', 'dedicated_commit']

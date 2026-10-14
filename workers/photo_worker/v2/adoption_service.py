@@ -324,16 +324,19 @@ class AdoptionCoordinator:
             prepared=prepare_v2_adoption(task_id=task_id,operation=context.operation,version=context.version,
                 root=context.root,reader=reader,params_ref=prepared_negative.params_ref,check_active=self.check_active)
         elif context.operation == 'v2.interchange.import':
+            from contextlib import nullcontext
             from .interchange_import_adoption_prepare import prepare_current_interchange_import
-            qualifier = (self.interchange_recipe_qualifier_factory(reader, tenant_id, task_id, context)
-                         if self.interchange_recipe_qualifier_factory is not None else None)
-            try:
-                prepared_import = prepare_current_interchange_import(self.read_connection, reader,
-                    tenant_id, task_id, context, qualify_recipe=qualifier, check_active=self.check_active)
-            except AdoptionInvalid as error:
-                if qualifier is None and str(error) == 'INTERCHANGE_IMPORT_ADOPTION_CLOSURE_RECEIPT_REQUIRED':
-                    raise AdoptionInvalid('INTERCHANGE_IMPORT_ADOPTION_INSTALLATION_REQUIRED') from error
-                raise
+            installation = (self.interchange_recipe_qualifier_factory(reader, tenant_id, task_id, context)
+                            if self.interchange_recipe_qualifier_factory is not None else None)
+            scope = installation if callable(getattr(installation, '__enter__', None)) else nullcontext(installation)
+            with scope as qualifier:
+                try:
+                    prepared_import = prepare_current_interchange_import(self.read_connection, reader,
+                        tenant_id, task_id, context, qualify_recipe=qualifier, check_active=self.check_active)
+                except AdoptionInvalid as error:
+                    if qualifier is None and str(error) == 'INTERCHANGE_IMPORT_ADOPTION_CLOSURE_RECEIPT_REQUIRED':
+                        raise AdoptionInvalid('INTERCHANGE_IMPORT_ADOPTION_INSTALLATION_REQUIRED') from error
+                    raise
             prepared = prepare_v2_adoption(task_id=task_id, operation=context.operation, version=context.version,
                 root=context.root, reader=reader,
                 params_ref=ArtifactRef(prepared_import.params_id, prepared_import.params_sha256),
