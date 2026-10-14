@@ -2,6 +2,9 @@ package interchange
 
 import (
 	"context"
+	"crypto/ed25519"
+
+	"github.com/google/uuid"
 	"photoeditor/backend/internal/v2input"
 )
 
@@ -18,7 +21,9 @@ type ExportStyleDeploymentAuthority struct {
 	BackgroundFactory ExportStyleBackgroundAuthorityFactory
 	// pinnedPolicies owns already decoded operator policy bytes. When present,
 	// Build never reopens their source paths after manifest verification.
-	pinnedPolicies *exportStylePinnedPolicies
+	pinnedPolicies     *exportStylePinnedPolicies
+	personOriginIssuer uuid.UUID
+	personOriginPublic ed25519.PublicKey
 }
 
 func (s ExportStyleDeploymentAuthority) BuildNativeExportAuthority(ctx context.Context, native ExportNativeResolverInstallation) (ExportDocumentValidatorFactory, error) {

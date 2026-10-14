@@ -14,6 +14,14 @@ import (
 // files before decoding an operator-owned qualification policy. The policy
 // itself still has to pass its operation-specific schema and lock checks.
 func readExportPolicyFile(ctx context.Context, path string, limit int64) ([]byte, error) {
+	return readExportOperatorFile(ctx, path, limit, false)
+}
+
+func readExportSecretFile(ctx context.Context, path string, limit int64) ([]byte, error) {
+	return readExportOperatorFile(ctx, path, limit, true)
+}
+
+func readExportOperatorFile(ctx context.Context, path string, limit int64, secret bool) ([]byte, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -22,6 +30,7 @@ func readExportPolicyFile(ctx context.Context, path string, limit int64) ([]byte
 	}
 	acceptable := func(info os.FileInfo) bool {
 		if !info.Mode().IsRegular() || info.Mode().Perm()&0022 != 0 ||
+			(secret && info.Mode().Perm()&0077 != 0) ||
 			info.Size() < 2 || info.Size() > limit {
 			return false
 		}

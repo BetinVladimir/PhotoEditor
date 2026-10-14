@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/ed25519"
 	"crypto/sha256"
@@ -22,13 +23,29 @@ func prepareAPIInterchangeExport(ctx context.Context, path, pin string, dependen
 	}
 	authority := dependencies.InterchangeExportAuthority
 	origins := dependencies.InterchangePersonOrigins
+	process := dependencies.InterchangePersonProcess
+	if dependencies.InterchangePersonOriginKey != nil || dependencies.InterchangePersonIssuerID != uuid.Nil ||
+		(process != nil && origins != nil) {
+		return nil, errors.New("interchange person-origin signer is not installed from pinned operator policy")
+	}
 	trusted := make(map[interchange.PortablePersonOriginKey]ed25519.PublicKey,
 		len(dependencies.InterchangePersonOriginTrust))
 	for key, public := range dependencies.InterchangePersonOriginTrust {
 		trusted[key] = append(ed25519.PublicKey(nil), public...)
 	}
-	if (origins == nil) != (len(trusted) == 0) {
+	if (origins == nil && process == nil) != (len(trusted) == 0) {
 		return nil, errors.New("interchange person-origin issuer and trust must be installed together")
+	}
+	if process != nil {
+		derived := process.Trust()
+		if len(derived) != len(trusted) {
+			return nil, errors.New("interchange person-origin process trust mismatch")
+		}
+		for key, public := range derived {
+			if !bytes.Equal(trusted[key], public) {
+				return nil, errors.New("interchange person-origin process trust mismatch")
+			}
+		}
 	}
 	for key, public := range trusted {
 		digest := sha256.Sum256(public)
@@ -38,7 +55,7 @@ func prepareAPIInterchangeExport(ctx context.Context, path, pin string, dependen
 		}
 	}
 	if path == "" && pin == "" {
-		if authority != nil || origins != nil {
+		if authority != nil || origins != nil || process != nil {
 			return nil, errors.New("interchange export authority requires pinned deployment")
 		}
 		return dependencies.InterchangeExport, nil
@@ -47,7 +64,7 @@ func prepareAPIInterchangeExport(ctx context.Context, path, pin string, dependen
 	if !filepath.IsAbs(path) || filepath.Clean(path) != path || err != nil || len(hash) != 32 || hex.EncodeToString(hash) != pin {
 		return nil, errors.New("interchange export requires absolute deployment file and lowercase SHA256")
 	}
-	if authority == nil || origins == nil || len(trusted) == 0 || dependencies.InterchangeExport != nil {
+	if authority == nil || (origins == nil && process == nil) || len(trusted) == 0 || dependencies.InterchangeExport != nil {
 		return nil, errors.New("interchange export requires native authority and person-origin issuer/trust")
 	}
 	deployment, err := interchange.LoadNativeExportDeployment(ctx, path, pin)
@@ -58,9 +75,17 @@ func prepareAPIInterchangeExport(ctx context.Context, path, pin string, dependen
 		return nil, errors.New("interchange export deployment unavailable")
 	}
 	return func(ctx context.Context, api, scheduler *pgxpool.Pool, objects *objectstore.Store, bucket string) (interchange.ExportCreatePreparer, func(), error) {
+		candidates := origins
+		if process != nil {
+			installed, err := process.CandidateFactory(ctx, objects)
+			if err != nil {
+				return nil, nil, err
+			}
+			candidates = installed
+		}
 		prepared, err := deployment.BuildWithAuthority(ctx, interchange.SQLExportExecutionInstaller{
 			API: api, Scheduler: scheduler, Objects: objects, Bucket: bucket,
-			PersonOriginCandidates: origins, PersonOriginTrust: trusted,
+			PersonOriginCandidates: candidates, PersonOriginTrust: trusted,
 		}, authority)
 		if err != nil {
 			return nil, nil, err

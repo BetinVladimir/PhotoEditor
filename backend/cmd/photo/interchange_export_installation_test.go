@@ -23,7 +23,7 @@ type apiExportAuthority struct {
 }
 
 func TestAPIInterchangeExportDeclaration(t *testing.T) {
-	for _, mode := range []string{"disabled", "authority_only", "relative", "pin_only", "uppercase", "missing_authority", "conflict", "missing_file", "cancelled"} {
+	for _, mode := range []string{"disabled", "authority_only", "relative", "pin_only", "uppercase", "missing_authority", "conflict", "missing_file", "uninstalled_signer", "cancelled"} {
 		t.Run(mode, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
@@ -52,6 +52,13 @@ func TestAPIInterchangeExportDeclaration(t *testing.T) {
 				}
 			case "cancelled":
 				cancel()
+			case "uninstalled_signer":
+				_, private, e := ed25519.GenerateKey(nil)
+				if e != nil {
+					t.Fatal(e)
+				}
+				deps.InterchangePersonOriginKey = private
+				deps.InterchangePersonIssuerID = uuid.New()
 			}
 			factory, err := prepareAPIInterchangeExport(ctx, path, pin, deps)
 			if mode == "disabled" {

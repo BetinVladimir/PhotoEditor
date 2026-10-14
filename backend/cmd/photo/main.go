@@ -68,6 +68,15 @@ func runWithAPIDependencies(dependencies apiProcessDependencies) error {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	if cfg.Role == "api" {
+		dependencies, err = installLocalInterchangePersonKey(ctx,
+			os.Getenv("V30_PERSON_ORIGIN_SIGNER_FILE"),
+			os.Getenv("V30_PERSON_ORIGIN_PUBLIC_SHA"),
+			os.Getenv("V30_PERSON_ORIGIN_ISSUER_ID"), dependencies)
+		if err != nil {
+			return err
+		}
+	}
 	if cfg.Role == "api" || cfg.Role == "scheduler" {
 		dependencies, err = installInterchangeExportOperator(ctx,
 			os.Getenv("V30_INTERCHANGE_EXPORT_OPERATOR_FILE"),

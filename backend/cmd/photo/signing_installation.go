@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto"
 	"crypto/ed25519"
 	"encoding/hex"
 	"errors"
@@ -28,6 +29,9 @@ type apiProcessDependencies struct {
 	InterchangeBackgroundFactory interchange.ExportStyleBackgroundAuthorityFactory
 	InterchangePersonOrigins     interchange.ExportPersonOriginCandidateFactory
 	InterchangePersonOriginTrust map[interchange.PortablePersonOriginKey]ed25519.PublicKey
+	InterchangePersonOriginKey   crypto.Signer
+	InterchangePersonIssuerID    uuid.UUID
+	InterchangePersonProcess     *interchange.ExportPersonOriginProcessInstallation
 	InterchangeImport            workflow.SchedulerInterchangeImportFactory
 	ImportOperatorFiles          *interchange.ImportSchedulerOperatorFiles
 	ImportEntryBase              *interchange.SQLImportEntryRecipeAuthorityFactory

@@ -2,6 +2,8 @@ package interchange
 
 import (
 	"context"
+	"crypto/ed25519"
+	"encoding/hex"
 	"os"
 	"path/filepath"
 	"strings"
@@ -25,6 +27,11 @@ func (exportOperatorBackgroundFactoryStub) BuildExportStyleBackgroundAuthority(c
 
 func TestExportStyleOperatorPinsPoliciesBeforeNativeBuild(t *testing.T) {
 	root := t.TempDir()
+	public, private, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	issuer := uuid.New()
 	sha := func(value string) string { return rawSHA([]byte(value)) }
 	write := func(name string, value any) exportOperatorPinnedFile {
 		raw, err := canonical.Marshal(value)
@@ -72,7 +79,8 @@ func TestExportStyleOperatorPinsPoliciesBeforeNativeBuild(t *testing.T) {
 		BodySHA: sha("body"), FitSHA: sha("fit"), DependencySHA: sha("deps"),
 		RegistrationSHA: sha("registration"), MaskOriginSHA: sha("mask origin"),
 		MaskArraySHA: sha("mask array"), DetectorSHA: sha("detector runtime"),
-		Models: map[string]string{},
+		Models:             map[string]string{},
+		PersonOriginIssuer: issuer, PersonOriginPublic: hex.EncodeToString(public),
 	}
 	base := ExportDocumentValidatorInstallation{
 		ICCSHA: wire.ICCSHA, ModelSHA: wire.ModelSHA,
@@ -83,6 +91,41 @@ func TestExportStyleOperatorPinsPoliciesBeforeNativeBuild(t *testing.T) {
 		manifest.SHA, base, exportOperatorBackgroundFactoryStub{})
 	if err != nil || authority.pinnedPolicies == nil {
 		t.Fatal("pinned operator unavailable", err)
+	}
+	process, err := authority.InstallPersonOriginProcess(private, issuer)
+	if err != nil {
+		t.Fatal("pinned person issuer unavailable", err)
+	}
+	_, foreignKey, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if installed, err := authority.InstallPersonOriginProcess(foreignKey, issuer); err == nil || installed != nil {
+		t.Fatal("foreign private key accepted")
+	}
+	if installed, err := authority.InstallPersonOriginProcess(private, uuid.New()); err == nil || installed != nil {
+		t.Fatal("foreign issuer identity accepted")
+	}
+	if len(authority.PersonOriginTrust()) != 1 {
+		t.Fatal("operator public trust missing")
+	}
+	trusted := process.Trust()
+	if len(trusted) != 1 {
+		t.Fatal("person trust missing")
+	}
+	for key, value := range trusted {
+		if key.IssuerID != issuer || string(value) != string(public) {
+			t.Fatal("wrong person issuer key")
+		}
+		value[0] ^= 0xff
+	}
+	for _, value := range process.Trust() {
+		if string(value) != string(public) {
+			t.Fatal("caller mutated person trust")
+		}
+	}
+	if candidates, err := process.CandidateFactory(context.Background(), &exportCompositionObjects{}); err != nil || candidates == nil {
+		t.Fatal("candidate factory unavailable", err)
 	}
 	if _, err := LoadExportStyleOperatorAuthority(context.Background(), manifest.Path,
 		sha("wrong"), base, exportOperatorBackgroundFactoryStub{}); err == nil {

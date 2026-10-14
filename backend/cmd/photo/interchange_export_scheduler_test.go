@@ -24,6 +24,7 @@ func TestSchedulerInterchangeExportRequiresPinnedAuthority(t *testing.T) {
 	for _, deps := range []apiProcessDependencies{
 		{InterchangeExportAuthority: &apiExportAuthority{}},
 		{InterchangePersonOriginTrust: map[interchange.PortablePersonOriginKey]ed25519.PublicKey{}},
+		{InterchangePersonIssuerID: uuid.New()},
 	} {
 		if factory, err := prepareSchedulerInterchangeExport(context.Background(), "x",
 			strings.Repeat("a", 64), deps); err == nil || factory != nil {
@@ -80,7 +81,6 @@ func TestSchedulerInterchangeExportPinnedFactory(t *testing.T) {
 	key := interchange.PortablePersonOriginKey{IssuerID: uuid.New(), KeyID: hash(public)}
 	deps := apiProcessDependencies{
 		InterchangeExportAuthority: &apiExportAuthority{},
-		InterchangePersonOrigins:   personOriginFactoryStub{},
 		InterchangePersonOriginTrust: map[interchange.PortablePersonOriginKey]ed25519.PublicKey{
 			key: public,
 		},

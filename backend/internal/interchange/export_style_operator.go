@@ -2,8 +2,11 @@ package interchange
 
 import (
 	"context"
+	"crypto/ed25519"
+	"encoding/hex"
 	"path/filepath"
 
+	"github.com/google/uuid"
 	"photoeditor/backend/internal/v2input"
 )
 
@@ -23,23 +26,25 @@ type exportOperatorPinnedFile struct {
 }
 
 type exportStyleOperatorConfig struct {
-	Schema          string                   `json:"schema_version"`
-	Person          exportOperatorPinnedFile `json:"person"`
-	Prompt          exportOperatorPinnedFile `json:"prompt"`
-	Dependencies    exportOperatorPinnedFile `json:"dependencies"`
-	Alignment       exportOperatorPinnedFile `json:"alignment"`
-	Detector        exportOperatorPinnedFile `json:"detector"`
-	ICCSHA          string                   `json:"icc_sha256"`
-	ModelSHA        string                   `json:"model_sha256"`
-	StyleSHA        string                   `json:"style_runtime_sha256"`
-	BodySHA         string                   `json:"body_runtime_sha256"`
-	FitSHA          string                   `json:"fit_runtime_sha256"`
-	DependencySHA   string                   `json:"dependency_runtime_sha256"`
-	RegistrationSHA string                   `json:"registration_runtime_sha256"`
-	MaskOriginSHA   string                   `json:"mask_origin_runtime_sha256"`
-	MaskArraySHA    string                   `json:"mask_array_runtime_sha256"`
-	DetectorSHA     string                   `json:"detector_runtime_sha256"`
-	Models          map[string]string        `json:"models"`
+	Schema             string                   `json:"schema_version"`
+	Person             exportOperatorPinnedFile `json:"person"`
+	Prompt             exportOperatorPinnedFile `json:"prompt"`
+	Dependencies       exportOperatorPinnedFile `json:"dependencies"`
+	Alignment          exportOperatorPinnedFile `json:"alignment"`
+	Detector           exportOperatorPinnedFile `json:"detector"`
+	ICCSHA             string                   `json:"icc_sha256"`
+	ModelSHA           string                   `json:"model_sha256"`
+	StyleSHA           string                   `json:"style_runtime_sha256"`
+	BodySHA            string                   `json:"body_runtime_sha256"`
+	FitSHA             string                   `json:"fit_runtime_sha256"`
+	DependencySHA      string                   `json:"dependency_runtime_sha256"`
+	RegistrationSHA    string                   `json:"registration_runtime_sha256"`
+	MaskOriginSHA      string                   `json:"mask_origin_runtime_sha256"`
+	MaskArraySHA       string                   `json:"mask_array_runtime_sha256"`
+	DetectorSHA        string                   `json:"detector_runtime_sha256"`
+	Models             map[string]string        `json:"models"`
+	PersonOriginIssuer uuid.UUID                `json:"person_origin_issuer_id"`
+	PersonOriginPublic string                   `json:"person_origin_public_key_hex"`
 }
 
 // LoadExportStyleOperatorAuthority binds every policy to manifest SHA before
@@ -69,6 +74,12 @@ func LoadExportStyleOperatorAuthority(ctx context.Context, path, pin string,
 	if wire.Schema != "interchange-export-style-operator/v1" ||
 		base.Other == nil || base.Semantics == nil || backgrounds == nil ||
 		base.ICCSHA != wire.ICCSHA || base.ModelSHA != wire.ModelSHA {
+		return zero, v2input.ErrInvalid
+	}
+	public, err := hex.DecodeString(wire.PersonOriginPublic)
+	if err != nil || len(public) != ed25519.PublicKeySize ||
+		hex.EncodeToString(public) != wire.PersonOriginPublic ||
+		wire.PersonOriginIssuer == uuid.Nil {
 		return zero, v2input.ErrInvalid
 	}
 	for _, sha := range []string{wire.ICCSHA, wire.ModelSHA, wire.StyleSHA,
@@ -158,5 +169,7 @@ func LoadExportStyleOperatorAuthority(ctx context.Context, path, pin string,
 			Person: person, Prompt: prompt, Dependencies: append([]ExportBodyDependencyPolicyConfig(nil), dependencies...),
 			Alignment: alignment, Detector: detector,
 		},
+		personOriginIssuer: wire.PersonOriginIssuer,
+		personOriginPublic: append(ed25519.PublicKey(nil), public...),
 	}, nil
 }

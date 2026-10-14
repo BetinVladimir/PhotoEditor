@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/ed25519"
 	"crypto/sha256"
@@ -39,9 +40,13 @@ func prepareSchedulerInterchangeExport(ctx context.Context, path, pin string,
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	if dependencies.InterchangePersonOriginKey != nil || dependencies.InterchangePersonIssuerID != uuid.Nil {
+		return nil, errors.New("scheduler person-origin signer must be installed from pinned operator policy")
+	}
 	if path == "" && pin == "" {
 		if dependencies.InterchangeExportAuthority != nil ||
 			dependencies.InterchangePersonOrigins != nil ||
+			dependencies.InterchangePersonProcess != nil ||
 			len(dependencies.InterchangePersonOriginTrust) != 0 {
 			return nil, errors.New("scheduler export authority requires pinned deployment")
 		}
@@ -51,7 +56,6 @@ func prepareSchedulerInterchangeExport(ctx context.Context, path, pin string,
 	if !filepath.IsAbs(path) || filepath.Clean(path) != path || err != nil ||
 		len(hash) != sha256.Size || hex.EncodeToString(hash) != pin ||
 		dependencies.InterchangeExportAuthority == nil ||
-		dependencies.InterchangePersonOrigins == nil ||
 		len(dependencies.InterchangePersonOriginTrust) == 0 {
 		return nil, errors.New("scheduler export requires pinned deployment, native authority and person-origin trust")
 	}
@@ -64,6 +68,17 @@ func prepareSchedulerInterchangeExport(ctx context.Context, path, pin string,
 			return nil, errors.New("scheduler export person-origin trust invalid")
 		}
 		trusted[key] = append(ed25519.PublicKey(nil), public...)
+	}
+	if dependencies.InterchangePersonProcess != nil {
+		derived := dependencies.InterchangePersonProcess.Trust()
+		if len(derived) != len(trusted) {
+			return nil, errors.New("scheduler person-origin process trust mismatch")
+		}
+		for key, public := range derived {
+			if !bytes.Equal(trusted[key], public) {
+				return nil, errors.New("scheduler person-origin process trust mismatch")
+			}
+		}
 	}
 	deployment, err := interchange.LoadNativeExportDeployment(ctx, path, pin)
 	if err != nil {
