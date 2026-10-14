@@ -93,6 +93,9 @@ Scheduler runtime теперь имеет `RunSchedulerWithInterchangeExport` и
 
 ## Граница первого MVP
 
+Миграция `02064_v30_export_adoption_stats_person_origin.sql` и `SQLSchedulerExportInputCatalog.LookupExportStatsPersonOrigin` находят точные MaskRef, PersonParams и PersonReport от `mask.person`, использованного canonical `color.stats` producer. Проверка связана с frozen image и тем же claim, а текущий mask producer повторно квалифицируется через `v30_export_adoption_person_origin_current`; Go сверяет запечатанные Stats20/Params/WorkingImage pins до/после lookup. Чтение оригинальных документов и model/consent policy остаются следующими обязательными слоями. Startup SQL inventory включает `02064`; миграция и unit-сценарии написаны, не запускались.
+
+
 Миграция `02063_v30_export_adoption_correction_member.sql` и `SQLSchedulerExportInputCatalog.QualifyExportCorrectionMember` привязывают WorkingImage член CorrectionPlan к exact accepted asset version из frozen snapshot и к обоим sealed export inputs. Go проверяет исходные bytes и canvas binding, SQL — текущие project/version/object pins; caller по-прежнему обязан доказать JSON edge в самом CorrectionPlan. Startup SQL inventory включает `02063`; миграция и unit-сценарии написаны, не запускались.
 
 
