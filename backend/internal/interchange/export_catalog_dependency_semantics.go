@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/google/uuid"
 	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/objectstore"
 	"photoeditor/backend/internal/v2draft"
@@ -86,21 +87,16 @@ func (s ExportCatalogDependencySemantics) QualifyExportDependency(ctx context.Co
 	if err != nil || parent.Bytes != int64(len(body)) || parent.ContentType != "application/json" {
 		return v2input.ErrInvalid
 	}
-	children := make([]v2input.Entry, 0, len(hints))
-	objects := make([]objectstore.Object, 0, len(hints))
-	seen := map[string]bool{}
-	for _, hint := range hints {
-		child := v2input.Entry{Ref: hint.Ref, Contract: hint.Contract}
-		if !validImportRef(child.Ref) || child.Contract == "" || child.Ref.ArtifactID == entry.Ref.ArtifactID ||
-			seen[child.Ref.ArtifactID.String()] {
-			return v2input.ErrInvalid
-		}
-		seen[child.Ref.ArtifactID.String()] = true
+	children, err := uniqueExportDependencyChildren(entry, hints)
+	if err != nil {
+		return err
+	}
+	objects := make([]objectstore.Object, 0, len(children))
+	for _, child := range children {
 		object, err := check(child)
 		if err != nil {
 			return err
 		}
-		children = append(children, child)
 		objects = append(objects, object)
 	}
 	current, err := check(entry)
@@ -114,6 +110,26 @@ func (s ExportCatalogDependencySemantics) QualifyExportDependency(ctx context.Co
 		}
 	}
 	return ctx.Err()
+}
+
+func uniqueExportDependencyChildren(parent v2input.Entry, hints []v2draft.LayerRef) ([]v2input.Entry, error) {
+	children := make([]v2input.Entry, 0, len(hints))
+	seen := map[uuid.UUID]v2input.Entry{}
+	for _, hint := range hints {
+		child := v2input.Entry{Ref: hint.Ref, Contract: hint.Contract}
+		if !validImportRef(child.Ref) || child.Contract == "" || child.Ref.ArtifactID == parent.Ref.ArtifactID {
+			return nil, v2input.ErrInvalid
+		}
+		if prior, exists := seen[child.Ref.ArtifactID]; exists {
+			if prior != child {
+				return nil, v2input.ErrInvalid
+			}
+			continue
+		}
+		seen[child.Ref.ArtifactID] = child
+		children = append(children, child)
+	}
+	return children, nil
 }
 
 var _ ExportDependencySemanticsFactory = ExportCatalogDependencySemanticsFactory{}

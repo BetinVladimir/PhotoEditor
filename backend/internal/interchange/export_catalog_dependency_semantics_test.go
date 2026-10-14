@@ -87,3 +87,26 @@ func TestExportCatalogDependencySemanticsRechecksOriginals(t *testing.T) {
 		t.Fatal("modified original accepted")
 	}
 }
+
+func TestExportCatalogDependencyChildrenAllowExactRepeatedEdge(t *testing.T) {
+	parent := v2input.Entry{Contract: "Params", Ref: v2input.Ref{
+		ArtifactID: uuid.New(), SHA256: rawSHA([]byte("parent")),
+	}}
+	ref := v2input.Ref{ArtifactID: uuid.New(), SHA256: rawSHA([]byte("child"))}
+	hints := []v2draft.LayerRef{
+		{Path: "Document.first", Contract: "WorkingImage", Ref: ref},
+		{Path: "Document.second", Contract: "WorkingImage", Ref: ref},
+	}
+	children, err := uniqueExportDependencyChildren(parent, hints)
+	if err != nil || len(children) != 1 {
+		t.Fatal("exact repeated edge rejected", err)
+	}
+	hints[1].Contract = "MaskPixels"
+	if children, err := uniqueExportDependencyChildren(parent, hints); err == nil || children != nil {
+		t.Fatal("conflicting repeated edge accepted")
+	}
+	hints[1].Ref = parent.Ref
+	if children, err := uniqueExportDependencyChildren(parent, hints); err == nil || children != nil {
+		t.Fatal("self edge accepted")
+	}
+}

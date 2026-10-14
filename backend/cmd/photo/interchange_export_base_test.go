@@ -33,6 +33,18 @@ func TestLocalInterchangeExportBaseRequiresIndependentLocks(t *testing.T) {
 			t.Fatal("partial export base accepted")
 		}
 	}
+	for _, declaration := range []struct{ operator, operatorPin, model, modelPin string }{
+		{"relative-operator.json", operatorSHA, path, pin},
+		{"/operator.json", "INVALID", path, pin},
+		{"/operator.json", operatorSHA, "relative-model.json", pin},
+		{"/operator.json", operatorSHA, path, "INVALID"},
+	} {
+		if installed, err := installLocalInterchangeExportBase(context.Background(),
+			declaration.operator, declaration.operatorPin, "../../../resources/icc",
+			declaration.model, declaration.modelPin, base); err == nil || installed.InterchangeExportBase != nil {
+			t.Fatal("invalid export base path or pin accepted")
+		}
+	}
 	installed, err := installLocalInterchangeExportBase(context.Background(),
 		"/operator.json", operatorSHA, "../../../resources/icc", path, pin, base)
 	if err != nil || installed.InterchangeExportBase == nil || installed.InterchangeBackgroundFactory == nil ||

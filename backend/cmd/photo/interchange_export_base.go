@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
+	"path/filepath"
 
 	"photoeditor/backend/internal/colorprofile"
 	"photoeditor/backend/internal/interchange"
@@ -30,6 +32,14 @@ func installLocalInterchangeExportBase(ctx context.Context, operatorPath, operat
 	}
 	if operatorPath == "" || operatorSHA == "" || iccRoot == "" || modelPath == "" || modelSHA == "" {
 		return dependencies, errors.New("export base requires ICC registry and pinned model lock")
+	}
+	validPinnedFile := func(path, pin string) bool {
+		decoded, err := hex.DecodeString(pin)
+		return filepath.IsAbs(path) && filepath.Clean(path) == path && err == nil &&
+			len(decoded) == 32 && hex.EncodeToString(decoded) == pin
+	}
+	if !validPinnedFile(operatorPath, operatorSHA) || !validPinnedFile(modelPath, modelSHA) {
+		return dependencies, errors.New("export base requires absolute files and lowercase SHA256 pins")
 	}
 	iccSHA, err := colorprofile.LoadWorkSHA(iccRoot)
 	if err != nil {
