@@ -83,6 +83,7 @@ class WorkerConfig:
     layer_runtime_sha:str|None=None
     person_runtime_locks:tuple[str,str,str]|None=None
     depth_runtime_locks:tuple[str,str,str]|None=None
+    series_runtime_locks:tuple[str,str,str]|None=None
     delivery_enabled:bool=False
     interchange_enabled:bool=False
 
@@ -175,6 +176,8 @@ class WorkerConfig:
         person_locks=person_runtime_locks_from_env(env,resource_class,backend,model_root is not None)
         from .depth_config import depth_runtime_locks_from_env
         depth_locks=depth_runtime_locks_from_env(env,resource_class,backend,model_root is not None)
+        from .series_config import series_runtime_locks_from_env
+        series_locks=series_runtime_locks_from_env(env,resource_class,backend)
         from photo_worker.operations.delivery.installation import delivery_enabled_from_env
         from photo_worker.operations.interchange.installation import interchange_enabled_from_env
         try:
@@ -184,7 +187,7 @@ class WorkerConfig:
             raise WorkerConfigurationError(str(error)) from None
         return cls(dsn,required('AMQP_URL'),worker,resource_class,root,origin,
             Path(required('GATEWAY_CA_FILE')),Path(required('WORKER_CERT_FILE')),Path(required('WORKER_KEY_FILE')),
-            limit('WORKER_MAX_SCRATCH_BYTES'),limit('WORKER_MAX_DOWNLOAD_BYTES'),limit('WORKER_MAX_UPLOAD_BYTES'),environment=='development',icc_root,backend,model_root,model_lock,policy,lens_registry,layer_lock,layer_sha,person_locks,depth_locks,delivery_enabled,interchange_enabled)
+            limit('WORKER_MAX_SCRATCH_BYTES'),limit('WORKER_MAX_DOWNLOAD_BYTES'),limit('WORKER_MAX_UPLOAD_BYTES'),environment=='development',icc_root,backend,model_root,model_lock,policy,lens_registry,layer_lock,layer_sha,person_locks,depth_locks,series_locks,delivery_enabled,interchange_enabled)
 
 
 def build_worker(config:WorkerConfig, *, render_renderer=None, region_renderer=None, semantic_installation_factory=None, semantic_artifact_installation_factory=None, semantic_assembly_installation_factory=None, local_exposure_installation_factory=None, glare_admission_factory=None, glare_installation=None, reflection_admission_factory=None, reflection_installation=None, donor_installation=None, negative_installation=None, relight_installation=None, local_portrait_installation=None, perspective_installation=None, perspective_lines_installation=None, multi_installations=(), delivery_installation=None, interchange_installation=None, interchange_import_installation=None, interchange_export_installation=None, learning_evaluation_installation=None)->tuple[TaskDatabase,Transport]:
@@ -376,7 +379,7 @@ def build_worker(config:WorkerConfig, *, render_renderer=None, region_renderer=N
     elif config.resource_class=='archive':
         operations=archive_operations(artifacts)
     else:
-        operations=[op for op in [*preview_operations(artifacts,config.icc_root),*asset_operations(artifacts,config.icc_root),*pair_operations(artifacts),*body_fit_operations(artifacts),*beauty_fit_operations(artifacts),*defect_fit_operations(artifacts),*body_operations(artifacts),*structure_operations(artifacts),*composition_operations(artifacts),*crop_operations(artifacts),*stats_operations(artifacts),*resolve_operations(artifacts),*aggregate_operations(artifacts),*validate_operations(artifacts),*package_operations(artifacts),*import_operations(artifacts),*group_operations(artifacts),*session_plan_operations(artifacts),*learning_fit_operations(artifacts),*cull_operations(artifacts),*measure_operations(artifacts),*balance_operations(artifacts),*image_color_operations(artifacts),*image_local_operations(artifacts),*resize_operations(artifacts),*sharpen_operations(artifacts),*watermark_operations(artifacts),*metadata_operations(artifacts),*contact_sheet_operations(artifacts),*quality_operations(artifacts),*background_operations(artifacts),*blur_operations(artifacts),*sky_operations(artifacts),*hdr_operations(artifacts),*register_operations(artifacts),*merge_operations(artifacts),*sensor_operations(artifacts),*dust_repair_operations(artifacts),*mask_operations(artifacts),*face_skin_operations(artifacts),*mask_transform_operations(artifacts),*beauty_operations(artifacts),*detail_operations(artifacts),*refine_operations(artifacts),*defect_repair_operations(artifacts),*defect_propose_operations(artifacts),*export_operations(artifacts,config.icc_root),*media_operations(artifacts,config.icc_root)] if op.resource_class==config.resource_class]
+        operations=[op for op in [*preview_operations(artifacts,config.icc_root),*asset_operations(artifacts,config.icc_root),*pair_operations(artifacts),*body_fit_operations(artifacts),*beauty_fit_operations(artifacts),*defect_fit_operations(artifacts),*body_operations(artifacts),*structure_operations(artifacts),*composition_operations(artifacts),*crop_operations(artifacts),*stats_operations(artifacts),*resolve_operations(artifacts),*aggregate_operations(artifacts),*validate_operations(artifacts),*package_operations(artifacts),*import_operations(artifacts),*group_operations(artifacts),*session_plan_operations(artifacts),*learning_fit_operations(artifacts),*cull_operations(artifacts),*measure_operations(artifacts),*balance_operations(artifacts,config.series_runtime_locks),*image_color_operations(artifacts),*image_local_operations(artifacts),*resize_operations(artifacts),*sharpen_operations(artifacts),*watermark_operations(artifacts),*metadata_operations(artifacts),*contact_sheet_operations(artifacts),*quality_operations(artifacts),*background_operations(artifacts),*blur_operations(artifacts),*sky_operations(artifacts),*hdr_operations(artifacts),*register_operations(artifacts),*merge_operations(artifacts),*sensor_operations(artifacts),*dust_repair_operations(artifacts),*mask_operations(artifacts),*face_skin_operations(artifacts),*mask_transform_operations(artifacts),*beauty_operations(artifacts),*detail_operations(artifacts),*refine_operations(artifacts),*defect_repair_operations(artifacts),*defect_propose_operations(artifacts),*export_operations(artifacts,config.icc_root),*media_operations(artifacts,config.icc_root)] if op.resource_class==config.resource_class]
         if config.resource_class=='cpu' and config.model_root is not None and config.model_lock is not None:
             from photo_worker.models.adapters import factories
             from photo_worker.models.lock import ModelLock
@@ -390,6 +393,9 @@ def build_worker(config:WorkerConfig, *, render_renderer=None, region_renderer=N
         operations+=lens_operations(artifacts,config.lens_registry)
     if not operations:raise WorkerConfigurationError('No executable operations for resource class')
     database=TaskDatabase(config.database_url)
+    if (config.series_runtime_locks is not None and
+            database.series_runtime_ready(config.worker_id,*config.series_runtime_locks[1:]) is not True):
+        raise WorkerConfigurationError('Series runtime does not match worker registration')
     if glare_installation is not None:
         from photo_worker.models.install import ModelError, verify_model
         from photo_worker.operations.portrait.glare_donor_admission import GlareDonorAdmission

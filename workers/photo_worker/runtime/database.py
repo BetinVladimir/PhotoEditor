@@ -129,6 +129,20 @@ class TaskDatabase:
                           (worker_id, sdk_sha, certificate_sha, trust_sha, qualification_sha))
         return row is not None and row[0] is True
 
+    def series_runtime_ready(self, worker_id: UUID, runtime_sha: str,
+                             device_sha: str) -> bool:
+        """Read the provisioned worker binding before serving pinned Apply."""
+        import re
+        if (not isinstance(worker_id, UUID) or worker_id.int == 0 or
+                any(not isinstance(value, str) or
+                    re.fullmatch(r'[0-9a-f]{64}', value) is None
+                    for value in (runtime_sha, device_sha))):
+            raise ValueError('SERIES_RUNTIME_PINS')
+        row = self._query(
+            'SELECT photo.v23_series_worker_runtime_ready(%s,%s,%s)',
+            (worker_id, runtime_sha, device_sha))
+        return row is not None and row[0] is True
+
     def heartbeat_accelerator_worker(self,worker_id:UUID,backend:str,operations:frozenset[str],ram_bytes:int,vram_bytes:int,scratch_bytes:int)->bool:
         row=self._query('SELECT photo.heartbeat_accelerator_worker(%s,%s,%s,%s,%s,%s)',(worker_id,backend,sorted(operations),ram_bytes,vram_bytes,scratch_bytes))
         return row is not None and row[0] is True

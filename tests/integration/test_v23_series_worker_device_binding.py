@@ -63,3 +63,16 @@ def test_series_commit_guard_is_worker_only(db):
     for role in ('photo_api', 'photo_gateway', 'photo_portal'):
         assert not db.execute('SELECT has_function_privilege(%s,%s,%s)',
                               (role, signature, 'EXECUTE')).fetchone()[0]
+
+
+def test_series_runtime_probe_is_worker_only(db):
+    signature = 'photo.v23_series_worker_runtime_ready(uuid,text,text)'
+    assert db.execute('SELECT to_regprocedure(%s) IS NOT NULL',
+                      (signature,)).fetchone()[0]
+    assert db.execute('SELECT has_function_privilege(%s,%s,%s)',
+                      ('photo_worker', signature, 'EXECUTE')).fetchone()[0]
+    for role in ('photo_api', 'photo_gateway', 'photo_portal', 'photo_scheduler'):
+        assert not db.execute('SELECT has_function_privilege(%s,%s,%s)',
+                              (role, signature, 'EXECUTE')).fetchone()[0]
+    assert not db.execute('SELECT photo.v23_series_worker_runtime_ready(%s,%s,%s)',
+                          (uuid4(), 'a' * 64, 'b' * 64)).fetchone()[0]

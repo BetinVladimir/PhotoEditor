@@ -41,8 +41,19 @@ def compute_series_corrections(p:SeriesParams,values:list[SeriesStats])->SeriesC
     if skipped:warnings.append('items_skipped')
     return SeriesCorrections(scene_id=p.scene_id,reference_item_id=reference.item_id,common_region_ids=common,items=corrections,warnings=warnings)
 
-def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
+def require_series_runtime(ctx:ExecutionContext,runtime_locks:tuple[str,str,str]|None)->None:
     if ctx.lease.execution_profile.get('backend')!='cpu':raise OperationFailure('CONFIG_INVALID')
+    profile=ctx.lease.execution_profile
+    pin_names=('model_lock_sha','runtime_lock_sha','device_profile_sha','model_lock_id')
+    if any(profile.get(name) is not None for name in pin_names):
+        if (runtime_locks is None or
+            tuple(profile.get(name) for name in pin_names[:3])!=runtime_locks or
+            profile.get('model_lock_id')!=runtime_locks[1]):
+            raise OperationFailure('SERIES_RUNTIME_UNQUALIFIED')
+
+
+def execute(ctx:ExecutionContext,artifacts:TaskArtifacts,runtime_locks:tuple[str,str,str]|None=None)->OperationResult:
+    require_series_runtime(ctx,runtime_locks)
     try:
         p=artifacts.params(SeriesParams);values=[artifacts.contract(r,SeriesStats) for r in p.stats]
         result=compute_series_corrections(p,values)
@@ -50,7 +61,8 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
     ref=artifacts.stage_contract(result,'series_corrections');return OperationResult(outputs=[ref],review_required=bool(result.warnings),bytes_written=len(canonical_bytes(result)))
 
 
-def balance_operations(config:ArtifactConfig):
+def balance_operations(config:ArtifactConfig,runtime_locks:tuple[str,str,str]|None=None):
     def run(ctx):
-        with TaskArtifacts.create(ctx,config,frozenset({'series_corrections'})) as a:return execute(ctx,a)
+        require_series_runtime(ctx,runtime_locks)
+        with TaskArtifacts.create(ctx,config,frozenset({'series_corrections'})) as a:return execute(ctx,a,runtime_locks)
     return [Operation('series.balance','cpu',run)]
