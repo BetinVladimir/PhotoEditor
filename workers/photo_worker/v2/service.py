@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from contextlib import ExitStack
 from ipaddress import ip_address
 from threading import Event
 from typing import Mapping
@@ -566,10 +567,21 @@ def run_adopter(config: AdopterConfig, stop: Event | None = None, *,
                 require_restoration_preview_schema(read_connection)
                 require_restoration_preview_schema(write_connection)
                 derivative_options['restoration_preview_enabled'] = True
-            adopter = Adopter(read_connection, write_connection, objects, config.bucket,
-                layer_scratch_root=config.layer_scratch_root,layer_scratch_bytes=config.layer_scratch_bytes,
-                render_replay=render_replay,render_max_tile_bytes=render_max_tile_bytes,
-                region_target_icc_sha=region_target_icc_sha,stop=stop,**delivery_options,**derivative_options,**semantic_options,**exposure_options,**donor_options)
-            while not stop.is_set():
-                adopter.run_once()
-                stop.wait(1.0)
+            with ExitStack() as runtime_scope:
+                lease_connection = None
+                if interchange_recipe_operator_factory is not None:
+                    lease_connection = runtime_scope.enter_context(psycopg.connect(
+                        config.database_url, autocommit=True, connect_timeout=5,
+                        options='-c role=photo_scheduler -c statement_timeout=3000 -c lock_timeout=1000'))
+                    from .interchange_import_adopter_runtime import (
+                        require_import_adopter_runtime_schema, ImportAdopterRuntimeLease)
+                    require_import_adopter_runtime_schema(lease_connection)
+                adopter = Adopter(read_connection, write_connection, objects, config.bucket,
+                    layer_scratch_root=config.layer_scratch_root,layer_scratch_bytes=config.layer_scratch_bytes,
+                    render_replay=render_replay,render_max_tile_bytes=render_max_tile_bytes,
+                    region_target_icc_sha=region_target_icc_sha,stop=stop,**delivery_options,**derivative_options,**semantic_options,**exposure_options,**donor_options)
+                if lease_connection is not None:
+                    runtime_scope.enter_context(ImportAdopterRuntimeLease(lease_connection, stop))
+                while not stop.is_set():
+                    adopter.run_once()
+                    stop.wait(1.0)

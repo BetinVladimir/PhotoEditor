@@ -11,6 +11,7 @@ from photo_worker.v2 import service
 from photo_worker.v2.interchange_import_adopter_installation import (
     SchedulerImportRecipeAdoptionInstallation)
 from photo_worker.v2 import interchange_import_adopter_schema as schema_module
+from photo_worker.v2 import interchange_import_adopter_runtime as runtime_module
 
 
 def test_adopter_operator_factory_uses_live_store_and_scheduler_connection(tmp_path, monkeypatch):
@@ -27,6 +28,18 @@ def test_adopter_operator_factory_uses_live_store_and_scheduler_connection(tmp_p
     monkeypatch.setattr(service.psycopg, 'connect', lambda *_args, **_kwargs: Connection())
     monkeypatch.setattr(schema_module, 'require_interchange_import_adopter_schema',
                         lambda connection: None)
+    monkeypatch.setattr(runtime_module, 'require_import_adopter_runtime_schema',
+                        lambda connection: None)
+    lease_connections = []
+    class Lease:
+        def __init__(self, connection, signal):
+            assert signal is stop
+            lease_connections.append(connection)
+        def __enter__(self):
+            return self
+        def __exit__(self, *_args):
+            return False
+    monkeypatch.setattr(runtime_module, 'ImportAdopterRuntimeLease', Lease)
     stop = Event()
     captured = []
     class Adopter:
@@ -50,9 +63,10 @@ def test_adopter_operator_factory_uses_live_store_and_scheduler_connection(tmp_p
     config = service.AdopterConfig('postgres://unused', 'https://example.test',
                                    'photo', 'key', 'secret')
     service.run_adopter(config, stop, interchange_recipe_operator_factory=operator_factory)
-    assert len(captured) == 1 and len(connections) == 2
+    assert len(captured) == 1 and len(connections) == 3
     assert captured[0][:4] == (connections[0], connections[1], objects, 'photo')
     assert captured[0][4]['interchange_recipe_qualifier_factory'].connection is connections[0]
+    assert lease_connections == [connections[2]]
 
 
 def test_adopter_operator_factory_rejects_conflict_before_store_creation():

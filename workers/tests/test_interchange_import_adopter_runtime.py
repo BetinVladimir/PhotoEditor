@@ -1,0 +1,53 @@
+"""An installed importer advertises readiness only while its loop is live."""
+
+from threading import Event
+from types import SimpleNamespace
+
+import pytest
+
+from photo_worker.v2.interchange_import_adopter_runtime import (
+    ImportAdopterRuntimeLease, require_import_adopter_runtime_schema)
+
+
+class Connection:
+    autocommit = True
+    def __init__(self):
+        self.calls = []
+    def execute(self, sql, params=()):
+        self.calls.append((sql, params))
+        if sql == 'SELECT current_user':
+            return SimpleNamespace(fetchone=lambda: ('photo_scheduler',))
+        return SimpleNamespace(fetchone=lambda: (True,))
+
+
+def test_import_adopter_runtime_schema_requires_scheduler_and_closed_acl():
+    connection = Connection()
+    require_import_adopter_runtime_schema(connection)
+    assert len(connection.calls) == 4
+    connection.autocommit = False
+    with pytest.raises(ValueError, match='SCHEMA'):
+        require_import_adopter_runtime_schema(connection)
+
+
+def test_import_adopter_runtime_announces_and_withdraws_on_stop():
+    connection, stop = Connection(), Event()
+    with ImportAdopterRuntimeLease(connection, stop) as lease:
+        assert lease.instance.int != 0
+    assert 'announce_v30_import_adopter_runtime' in connection.calls[0][0]
+    assert 'withdraw_v30_import_adopter_runtime' in connection.calls[-1][0]
+    assert connection.calls[0][1] == connection.calls[-1][1]
+
+
+def test_import_adopter_runtime_renew_failure_stops_adopter():
+    connection, stop = Connection(), Event()
+    lease = ImportAdopterRuntimeLease(connection, stop)
+    calls = 0
+    def broken():
+        nonlocal calls
+        calls += 1
+        raise RuntimeError('lost')
+    lease._announce = broken
+    lease._halt = SimpleNamespace(wait=lambda _seconds: False)
+    lease._renew()
+    assert calls == 1 and stop.is_set()
+    assert str(lease._failure) == 'INTERCHANGE_IMPORT_ADOPTER_RUNTIME_LOST'
