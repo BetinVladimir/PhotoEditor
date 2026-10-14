@@ -103,6 +103,7 @@ func (s SQLExportPersonOriginArchiveInstallation) BuildExportPersonOriginArchive
 		Key: config.Key, Bucket: config.Bucket, Frozen: config.Frozen}}
 	inputs := SQLExportResultInputCatalog{Export: config, Root: root}
 	expected := make(map[string]PortablePersonOriginExpectation, len(stored))
+	receiptSHA := make(map[string]string, len(stored))
 	for _, input := range stored {
 		if err := ctx.Err(); err != nil {
 			return nil, err
@@ -159,8 +160,16 @@ func (s SQLExportPersonOriginArchiveInstallation) BuildExportPersonOriginArchive
 			return nil, v2input.ErrInvalid
 		}
 		expected[path] = scope
+		receiptSHA[path] = input.ref.SHA256
 	}
-	return NewExportPersonOriginArchiveAuthority(expected, s.Trusted, current)
+	authority, err := NewExportPersonOriginArchiveAuthority(expected, s.Trusted, current)
+	if err != nil {
+		return nil, err
+	}
+	if err := authority.pinReceiptSHA(receiptSHA); err != nil {
+		return nil, err
+	}
+	return authority, nil
 }
 
 func readExportPersonOriginObject(ctx context.Context, objects ImportDocumentObjects,

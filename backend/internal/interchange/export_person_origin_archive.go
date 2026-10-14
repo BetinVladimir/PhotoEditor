@@ -16,9 +16,45 @@ import (
 // source-derived expectations for one frozen export. The constructor copies
 // all caller buffers so callbacks cannot mutate a running archive check.
 type ExportPersonOriginArchiveAuthority struct {
-	expected map[string]PortablePersonOriginExpectation
-	trusted  map[PortablePersonOriginKey]ed25519.PublicKey
-	current  ExportPersonOriginCurrentChecker
+	expected   map[string]PortablePersonOriginExpectation
+	receiptSHA map[string]string
+	trusted    map[PortablePersonOriginKey]ed25519.PublicKey
+	current    ExportPersonOriginCurrentChecker
+}
+
+// pinReceiptSHA binds physical ZIP members to the exact task-sealed inputs.
+func (a *ExportPersonOriginArchiveAuthority) pinReceiptSHA(receipts map[string]string) error {
+	if a == nil || len(receipts) != len(a.expected) {
+		return v2input.ErrInvalid
+	}
+	owned := make(map[string]string, len(receipts))
+	for path, sha := range receipts {
+		if _, ok := a.expected[path]; !ok || !portablePersonOriginSHA.MatchString(sha) {
+			return v2input.ErrInvalid
+		}
+		owned[path] = sha
+	}
+	a.receiptSHA = owned
+	return nil
+}
+
+func (a *ExportPersonOriginArchiveAuthority) verifyPinnedReceipts(files []VerifiedExportZIPFile) error {
+	if a == nil || a.receiptSHA == nil {
+		return nil
+	}
+	seen := make(map[string]bool, len(a.receiptSHA))
+	for _, item := range files {
+		if expected, ok := a.receiptSHA[item.Path]; ok {
+			if expected != item.SHA256 || seen[item.Path] {
+				return v2input.ErrInvalid
+			}
+			seen[item.Path] = true
+		}
+	}
+	if len(seen) != len(a.receiptSHA) {
+		return v2input.ErrInvalid
+	}
+	return nil
 }
 
 func NewExportPersonOriginArchiveAuthority(expected map[string]PortablePersonOriginExpectation,

@@ -62,6 +62,21 @@ func TestExportPersonOriginArchiveRequiresPhysicalSignedReceipt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := authority.pinReceiptSHA(map[string]string{path: rawSHA(receipt)}); err != nil {
+		t.Fatal(err)
+	}
+	if err := authority.verifyPinnedReceipts(files); err != nil {
+		t.Fatal(err)
+	}
+	if err := authority.verifyPinnedReceipts([]VerifiedExportZIPFile{{Path: path, SHA256: rawSHA([]byte("other"))}}); err == nil {
+		t.Fatal("ZIP receipt detached from task-sealed input")
+	}
+	if err := authority.verifyPinnedReceipts(nil); err == nil {
+		t.Fatal("sealed receipt missing from ZIP")
+	}
+	if err := authority.pinReceiptSHA(map[string]string{path: "invalid"}); err == nil {
+		t.Fatal("invalid sealed receipt SHA accepted")
+	}
 	if _, err := NewExportPersonOriginArchiveAuthority(
 		map[string]PortablePersonOriginExpectation{"origins/other.json": scope}, keys, current); err == nil {
 		t.Fatal("non-deterministic receipt path accepted")

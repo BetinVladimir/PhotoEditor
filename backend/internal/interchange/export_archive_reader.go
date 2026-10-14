@@ -194,6 +194,9 @@ func (r ExportArchiveReader) Read(ctx context.Context, intent CreateIntent, froz
 	} else {
 		err = validateExportManifest(ctx, intent, frozen, manifest, files, true)
 		if err == nil {
+			err = r.PersonOrigins.verifyPinnedReceipts(files)
+		}
+		if err == nil {
 			originClaims, err = verifyExportPersonOriginArchiveClaims(ctx, archive, manifest, files,
 				r.PersonOrigins.expected, r.PersonOrigins.trusted, r.PersonOrigins.current)
 		}
