@@ -231,6 +231,8 @@ Worker `series_replay.py` теперь проверяет evidence/run/item, sta
 
 Миграция `02100_v23_evaluate_series_commit_gate.sql` повторяет проверку каждого holdout series evidence в атомарной транзакции закрытия Evaluate. Она сопоставляет текущий источник и полный список Stats из запечатанного `series.balance` Params с typed входами Evaluate и повторно вызывает nested locator; новый guard включён после существующих defect/dust/detail/protection guard. При неполном наборе Evaluate не открывается. Код написан, миграция и интеграционные проверки ещё не выполнялись. Freeze gate для series manifest остаётся в силе.
 
+`CompileEvaluateClosure` теперь учитывает самый большой набор `SeriesStats` среди последовательных holdout cases в RAM и scratch estimate: 32 KiB pinned body, дополнительный буфер доставки и decoded-object headroom на каждый элемент (до 2000). Границы и арифметика покрыты unit-сценарием. Это статический reserve, а не измеренный peak; freeze gate остаётся до общей проверки на Metal и квалификации качества.
+
 Операторские `models` и `style_weights` теперь принимают только ID из закрытого model lock registry. Это статическая защита установки, а не доказательство физической доступности файлов весов; последнее остаётся отдельным acceptance gate.
 
 Все операторские и обязательные V30 export operation model locks теперь должны совпасть с единым `Base.ModelSHA` — внутренним `lock_id` проверенного model lock. Так же worker `ModelPool` идентифицирует модель при выполнении. Несовпадение любого report/policy приводит к отказу при установке export; отдельные unit-сценарии для чужого lock написаны, но не запускались.

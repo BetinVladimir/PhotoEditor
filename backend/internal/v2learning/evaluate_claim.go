@@ -204,6 +204,16 @@ type evaluateProfile struct {
 	ResourceEstimate evaluateResourceEstimate `json:"resource_estimate"`
 }
 
+// Evaluate retains the complete series aggregate while resolving one case.
+// Each pinned SeriesStats document is at most 32 KiB; reserve transport and
+// decoded-object headroom for the largest sequential holdout case.
+func evaluateSeriesStatsBudget(count int) (ram, scratch int64, err error) {
+	if count < 2 || count > 2000 {
+		return 0, 0, ErrInvalidTrainingDraft
+	}
+	return int64(count) * 4 * 32768, int64(count) * (32768 + 8192), nil
+}
+
 // StageEvaluateTask admits the canonical fitted candidate only while its
 // expansion lease is live. SQL repeats the fence and artifact checks under
 // locks, so a stale coordinator cannot stage a different candidate.
@@ -280,7 +290,7 @@ func CompileEvaluateClosure(lease LearningEvaluateLease,
 	}
 	holdout := 0
 	var totalPixels, largestPixels, largestRegionPixels, largestDustPixels, largestDetailPixels, largestDetailMaskBytes int64
-	var backgroundRAM, backgroundScratch int64
+	var backgroundRAM, backgroundScratch, seriesRAM, seriesScratch int64
 	byEvent := make(map[uuid.UUID]LearningRenderInputs, len(resolved))
 	for _, item := range resolved {
 		if item.EventID == uuid.Nil {
@@ -366,6 +376,17 @@ func CompileEvaluateClosure(lease LearningEvaluateLease,
 					return FitClosure{}, ErrInvalidTrainingDraft
 				}
 				entries = append(entries, item.SeriesProof.Entries...)
+				caseRAM, caseScratch, budgetErr := evaluateSeriesStatsBudget(
+					len(item.SeriesProof.StatsBodies))
+				if budgetErr != nil {
+					return FitClosure{}, budgetErr
+				}
+				if caseRAM > seriesRAM {
+					seriesRAM = caseRAM
+				}
+				if caseScratch > seriesScratch {
+					seriesScratch = caseScratch
+				}
 			}
 			baseSum := sha256.Sum256(item.BaseRecipeBody)
 			approvedSum := sha256.Sum256(item.ApprovedRecipeBody)
@@ -513,7 +534,8 @@ func CompileEvaluateClosure(lease LearningEvaluateLease,
 	// One native denoise or depth model runs at a time in the shared ModelPool.
 	// Its signed peak is capped at 1 GiB RAM and scratch by the worker.
 	scratch := int64(144)*largestPixels + int64(64*16)*beautyROIPixels +
-		4*largestRegionPixels + 536870912 + 2097152 + backgroundScratch + 1073741824
+		4*largestRegionPixels + 536870912 + 2097152 + backgroundScratch +
+		1073741824 + seriesScratch
 	if largestDustPixels > 0 {
 		scratch += 40*largestDustPixels + 32768
 	}
@@ -526,7 +548,8 @@ func CompileEvaluateClosure(lease LearningEvaluateLease,
 	if scratch > 16*1024*1024*1024 {
 		return FitClosure{}, ErrInvalidTrainingDraft
 	}
-	ram := int64(128)*largestPixels + 2147483648 + backgroundRAM + 1073741824
+	ram := int64(128)*largestPixels + 2147483648 + backgroundRAM +
+		1073741824 + seriesRAM
 	if largestDustPixels > 0 {
 		ram += 128*largestDustPixels + 512*1048576
 	}

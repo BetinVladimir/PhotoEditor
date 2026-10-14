@@ -15,6 +15,22 @@ import (
 	"photoeditor/backend/internal/v2input"
 )
 
+func TestEvaluateSeriesStatsBudget(t *testing.T) {
+	for _, count := range []int{2, 2000} {
+		ram, scratch, err := evaluateSeriesStatsBudget(count)
+		if err != nil || ram != int64(count)*4*32768 ||
+			scratch != int64(count)*(32768+8192) {
+			t.Fatalf("incorrect series budget for %d: %d, %d, %v",
+				count, ram, scratch, err)
+		}
+	}
+	for _, count := range []int{0, 1, 2001} {
+		if _, _, err := evaluateSeriesStatsBudget(count); err == nil {
+			t.Fatalf("accepted unsupported series size %d", count)
+		}
+	}
+}
+
 func TestEvaluateParamsPinCanonicalCandidateAndFrozenLocks(t *testing.T) {
 	project, profile, request, manifest := compiledTrainingDraftFixture(t)
 	draft, err := PrepareTrainingDraft(uuid.New(), uuid.New(), uuid.New(),
