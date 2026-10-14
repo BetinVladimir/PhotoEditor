@@ -1,0 +1,5414 @@
+{
+  "schema_version": 1,
+  "scope": "current source candidates for all V20–V32 operations and endpoint contracts",
+  "contract_sha256": {
+    "docs/implementation-v2/contracts/operations.json": "35ca9a8987d30076269617ef92d466933e316dd9bdb805fe2eba5bc374349075",
+    "docs/implementation-v2/contracts/endpoints.json": "50ab17a66d971440e6d183e73aae8040727502d99891e6befe3b3be54c3439bd"
+  },
+  "limitations": [
+    "Literal/symbol matches are discovery hints, not runtime installation or acceptance evidence.",
+    "Nested API route prefixes and client navigation are not resolved by this scan.",
+    "SQL/worker matches do not prove authorization, qualification, result adoption, GC or purge.",
+    "Historical tests are not evidence for the current build; all rows remain not_verified."
+  ],
+  "operations": [
+    {
+      "id": "layer.compose",
+      "package": "V25",
+      "version": "1",
+      "api_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 6,
+        "files": [
+          "backend/internal/v2render/compose_admission.go",
+          "backend/internal/v2render/compose_draft.go",
+          "backend/internal/v2render/compose_inputs.go",
+          "backend/internal/v2render/compose_inventory.go",
+          "backend/internal/v2render/compose_scoped_transport.go",
+          "backend/internal/v2render/compose_stage.go"
+        ],
+        "truncated": false
+      },
+      "sql_candidates": {
+        "count": 9,
+        "files": [
+          "backend/db/migrations/00342_v25_original_composition_task_stage.sql",
+          "backend/db/migrations/00343_v25_composition_transport_scope.sql",
+          "backend/db/migrations/00355_v25_composition_input_state.sql",
+          "backend/db/migrations/00356_v25_layer_worker_admission.sql",
+          "backend/db/migrations/00358_v25_layer_adoption_params.sql",
+          "backend/db/migrations/00359_v25_layer_adoption_authority.sql",
+          "backend/db/migrations/00360_v25_layer_operation_catalog.sql",
+          "backend/db/migrations/00361_v25_layer_authority_row_locks.sql",
+          "backend/db/migrations/00400_v26_render_transport_scope.sql"
+        ],
+        "truncated": false
+      },
+      "worker_candidates": {
+        "count": 6,
+        "files": [
+          "workers/photo_worker/operations/layers/adapter.py",
+          "workers/photo_worker/operations/layers/admission.py",
+          "workers/photo_worker/operations/layers/output_validation.py",
+          "workers/photo_worker/operations/layers/result.py",
+          "workers/photo_worker/v2/adoption.py",
+          "workers/photo_worker/v2/adoption_service.py"
+        ],
+        "truncated": false
+      },
+      "client_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 10,
+        "files": [
+          "tests/integration/test_v25_layer_publish_go.py",
+          "tests/integration/test_v25_layer_worker_admission.py",
+          "tests/integration/test_v25_lens_typed_adoption.py",
+          "tests/integration/test_v25_mask_pixels_go.py",
+          "tests/platform/test_v2_adoption.py",
+          "tests/unit/test_layer_adapter.py",
+          "tests/unit/test_layer_admission.py",
+          "tests/unit/test_layer_adoption_bytes.py",
+          "tests/unit/test_layer_result.py",
+          "tests/unit/test_v26_render_adoption_inputs.py"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 9,
+        "files": [
+          "backend/internal/provenance/render_report_evidence_test.go",
+          "backend/internal/v2draft/image_report_test.go",
+          "backend/internal/v2render/adopted_lens_integration_test.go",
+          "backend/internal/v2render/compose_config_test.go",
+          "backend/internal/v2render/compose_draft_test.go",
+          "backend/internal/v2render/compose_publish_integration_test.go",
+          "backend/internal/v2render/compose_wire_test.go",
+          "backend/internal/v2render/render_admission_test.go",
+          "backend/internal/v2render/user_mask_pixels_publish_integration_test.go"
+        ],
+        "truncated": false
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "session.describe",
+      "package": "V22",
+      "version": "1",
+      "api_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 9,
+        "files": [
+          "backend/internal/interchange/review_approval.go",
+          "backend/internal/provenance/render_closure_catalog.go",
+          "backend/internal/v2draft/approve.go",
+          "backend/internal/v2draft/learning_descriptor.go",
+          "backend/internal/v2input/session_analysis_stage.go",
+          "backend/internal/v2input/session_describe_source.go",
+          "backend/internal/v2input/session_plan.go",
+          "backend/internal/v2input/session_plan_store.go",
+          "backend/internal/v2sessions/service.go"
+        ],
+        "truncated": false
+      },
+      "sql_candidates": {
+        "count": 7,
+        "files": [
+          "backend/db/migrations/00198_v22_session_foundation.sql",
+          "backend/db/migrations/00232_v23_approval_resolution_refs.sql",
+          "backend/db/migrations/00253_v23_training_calibration_source.sql",
+          "backend/db/migrations/00257_v23_training_model_lock.sql",
+          "backend/db/migrations/00388_v26_render_descriptor_scope.sql",
+          "backend/db/migrations/01857_v31_delivery_render_descriptor_live.sql",
+          "backend/db/migrations/02067_v30_export_adoption_learning_occurrence.sql"
+        ],
+        "truncated": false
+      },
+      "worker_candidates": {
+        "count": 1,
+        "files": [
+          "workers/photo_worker/operations/session/describe.py"
+        ],
+        "truncated": false
+      },
+      "client_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 4,
+        "files": [
+          "tests/integration/render_descriptor_scope_fixture.py",
+          "tests/integration/test_v22_schema_scaffold.py",
+          "tests/integration/test_v23_training_freeze.py",
+          "tests/platform/test_v2_adoption.py"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 4,
+        "files": [
+          "backend/internal/v2draft/approval_read_integration_test.go",
+          "backend/internal/v2input/ids_test.go",
+          "backend/internal/v2input/session_plan_test.go",
+          "backend/internal/v2sessions/service_integration_test.go"
+        ],
+        "truncated": false
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "session.plan",
+      "package": "V22",
+      "version": "1",
+      "api_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 3,
+        "files": [
+          "backend/internal/v2input/session_plan_orchestrator.go",
+          "backend/internal/v2input/session_plan_source.go",
+          "backend/internal/v2input/session_plan_store.go"
+        ],
+        "truncated": false
+      },
+      "sql_candidates": {
+        "count": 5,
+        "files": [
+          "backend/db/migrations/00197_v21_foundation.sql",
+          "backend/db/migrations/00198_v22_session_foundation.sql",
+          "backend/db/migrations/00199_v22_scene_plan_materialization.sql",
+          "backend/db/migrations/01555_v30_export_correction_producer.sql",
+          "backend/db/migrations/02066_v30_export_adoption_correction_evidence.sql"
+        ],
+        "truncated": false
+      },
+      "worker_candidates": {
+        "count": 1,
+        "files": [
+          "workers/photo_worker/operations/session/adapter.py"
+        ],
+        "truncated": false
+      },
+      "client_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 4,
+        "files": [
+          "tests/integration/test_v22_scene_materialization.py",
+          "tests/integration/test_v22_schema_scaffold.py",
+          "tests/integration/test_v2_capability_scaffold.py",
+          "tests/platform/test_v2_adoption.py"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/v2input/session_plan_orchestrator_test.go"
+        ],
+        "truncated": false
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "learning.fit",
+      "package": "V23",
+      "version": "1",
+      "api_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 4,
+        "files": [
+          "backend/internal/provenance/render_closure_catalog.go",
+          "backend/internal/v2learning/fit.go",
+          "backend/internal/v2learning/fit_orchestrator.go",
+          "backend/internal/v2learning/stage.go"
+        ],
+        "truncated": false
+      },
+      "sql_candidates": {
+        "count": 20,
+        "files": [
+          "backend/db/migrations/00214_v23_fit_operation_catalog.sql",
+          "backend/db/migrations/00215_v23_fit_stage.sql",
+          "backend/db/migrations/00216_v23_fit_evaluate_barrier.sql",
+          "backend/db/migrations/00217_v23_evaluate_claim.sql",
+          "backend/db/migrations/00224_v23_learning_version_adoption.sql",
+          "backend/db/migrations/00237_v23_evaluate_frozen_roots.sql",
+          "backend/db/migrations/00238_v23_evaluate_image_children.sql",
+          "backend/db/migrations/00239_v23_evaluate_protected_mask_child.sql",
+          "backend/db/migrations/00241_v23_evaluate_consent_snapshot_root.sql",
+          "backend/db/migrations/00242_v23_evaluate_effective_mask_child.sql",
+          "backend/db/migrations/00243_v23_evaluate_identity_consent_pin.sql",
+          "backend/db/migrations/01773_v23_evaluate_background_source.sql"
+        ],
+        "truncated": true
+      },
+      "worker_candidates": {
+        "count": 1,
+        "files": [
+          "workers/photo_worker/operations/learning/fit.py"
+        ],
+        "truncated": false
+      },
+      "client_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 3,
+        "files": [
+          "tests/integration/test_v23_fit_catalog.py",
+          "tests/integration/test_v23_training_freeze.py",
+          "tests/platform/test_worker_service.py"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/provenance/render_learning_binding_sql_test.go",
+          "backend/internal/v2learning/fit_orchestrator_test.go"
+        ],
+        "truncated": false
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "learning.evaluate",
+      "package": "V23",
+      "version": "1",
+      "api_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 3,
+        "files": [
+          "backend/internal/provenance/render_closure_catalog.go",
+          "backend/internal/v2learning/evaluate_claim.go",
+          "backend/internal/v2learning/evaluate_orchestrator.go"
+        ],
+        "truncated": false
+      },
+      "sql_candidates": {
+        "count": 9,
+        "files": [
+          "backend/db/migrations/00220_v23_evaluate_operation_catalog.sql",
+          "backend/db/migrations/00221_v23_evaluate_stage.sql",
+          "backend/db/migrations/00222_v23_evaluate_close.sql",
+          "backend/db/migrations/00224_v23_learning_version_adoption.sql",
+          "backend/db/migrations/00235_v23_evaluate_frozen_recipe_contract.sql",
+          "backend/db/migrations/01973_v23_evaluate_defect_commit_gate.sql",
+          "backend/db/migrations/01987_v23_evaluate_dust_commit_gate.sql",
+          "backend/db/migrations/01997_v23_evaluate_detail_commit_gate.sql",
+          "backend/db/migrations/02100_v23_evaluate_series_commit_gate.sql"
+        ],
+        "truncated": false
+      },
+      "worker_candidates": {
+        "count": 2,
+        "files": [
+          "workers/photo_worker/operations/learning/evaluate_adapter.py",
+          "workers/photo_worker/operations/learning/qualification.py"
+        ],
+        "truncated": false
+      },
+      "client_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 4,
+        "files": [
+          "tests/integration/test_v23_fit_catalog.py",
+          "tests/integration/test_v23_training_freeze.py",
+          "tests/platform/test_v23_learning_worker_installation.py",
+          "tests/unit/test_v23_learning_installation.py"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 4,
+        "files": [
+          "backend/internal/provenance/render_learning_binding_sql_test.go",
+          "backend/internal/v2learning/evaluate_orchestrator_test.go",
+          "workers/tests/test_learning_qualification.py",
+          "workers/tests/test_learning_qualified_installation.py"
+        ],
+        "truncated": false
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "capture.assess",
+      "package": "V24",
+      "version": "1",
+      "api_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 5,
+        "files": [
+          "backend/internal/v2input/capture_admission.go",
+          "backend/internal/v2input/capture_closure.go",
+          "backend/internal/v2input/capture_commit.go",
+          "backend/internal/v2input/capture_graph_preparer.go",
+          "backend/internal/v2sessions/service.go"
+        ],
+        "truncated": false
+      },
+      "sql_candidates": {
+        "count": 12,
+        "files": [
+          "backend/db/migrations/00268_v24_capture_adoption.sql",
+          "backend/db/migrations/00271_v24_capture_graph_commit.sql",
+          "backend/db/migrations/00278_v24_capture_expansion_commit.sql",
+          "backend/db/migrations/00295_v24_capture_quality.sql",
+          "backend/db/migrations/00299_v24_assessment_stage.sql",
+          "backend/db/migrations/00301_v24_commit_live_consent.sql",
+          "backend/db/migrations/00302_v24_qa_stale.sql",
+          "backend/db/migrations/00303_v24_adoption_binding.sql",
+          "backend/db/migrations/00304_v24_alert_receipt_binding.sql",
+          "backend/db/migrations/00306_v24_operation_startup_gate.sql",
+          "backend/db/migrations/00307_v24_adoption_live_consent.sql",
+          "backend/db/migrations/00308_v24_rejected_admission.sql"
+        ],
+        "truncated": false
+      },
+      "worker_candidates": {
+        "count": 2,
+        "files": [
+          "workers/photo_worker/operations/capture/adapter.py",
+          "workers/photo_worker/v2/adoption_service.py"
+        ],
+        "truncated": false
+      },
+      "client_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 3,
+        "files": [
+          "backend/internal/v2capture/live_evidence_integration_test.go",
+          "backend/internal/v2sessions/service_integration_test.go",
+          "backend/internal/workflow/capture_scheduler_integration_test.go"
+        ],
+        "truncated": false
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "identity.compare",
+      "package": "V23",
+      "version": "1",
+      "api_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "sql_candidates": {
+        "count": 1,
+        "files": [
+          "backend/db/migrations/00223_v23_identity_operation_catalog.sql"
+        ],
+        "truncated": false
+      },
+      "worker_candidates": {
+        "count": 1,
+        "files": [
+          "workers/photo_worker/operations/identity/adapter.py"
+        ],
+        "truncated": false
+      },
+      "client_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 2,
+        "files": [
+          "tests/integration/test_v23_fit_catalog.py",
+          "tests/integration/test_v23_qualification_import.py"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/v2qualification/locks_test.go",
+          "backend/internal/v2qualification/report_test.go"
+        ],
+        "truncated": false
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "semantic.transfer",
+      "package": "V27",
+      "version": "1",
+      "api_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 26,
+        "files": [
+          "backend/internal/semanticproposal/configuration.go",
+          "backend/internal/semanticproposal/face_and_parse_inventory_locks.go",
+          "backend/internal/semanticproposal/native_all_target_transfer_config.go",
+          "backend/internal/semanticproposal/native_initial_pipeline_recovery_job.go",
+          "backend/internal/semanticproposal/native_input_manual_transfer_validation.go",
+          "backend/internal/semanticproposal/native_input_transfer_saved_config.go",
+          "backend/internal/semanticproposal/native_input_transfer_validation.go",
+          "backend/internal/semanticproposal/native_target_checkpoint_recovery.go",
+          "backend/internal/semanticproposal/native_target_defect_advance.go",
+          "backend/internal/semanticproposal/native_target_detector_advance.go",
+          "backend/internal/semanticproposal/native_target_face_advance.go",
+          "backend/internal/semanticproposal/native_target_person_advance.go"
+        ],
+        "truncated": true
+      },
+      "sql_candidates": {
+        "count": 42,
+        "files": [
+          "backend/db/migrations/00492_v27_semantic_candidate_scope.sql",
+          "backend/db/migrations/00493_v27_semantic_adoption_params.sql",
+          "backend/db/migrations/00496_v27_semantic_producer_evidence.sql",
+          "backend/db/migrations/00500_v27_semantic_assembly_inputs.sql",
+          "backend/db/migrations/00502_v27_semantic_assembly_lease.sql",
+          "backend/db/migrations/00503_v27_semantic_adoption_barrier.sql",
+          "backend/db/migrations/00506_v27_semantic_assembly_stage.sql",
+          "backend/db/migrations/00510_v27_semantic_assembly_qualification.sql",
+          "backend/db/migrations/00511_v27_semantic_policy_fingerprint.sql",
+          "backend/db/migrations/00512_v27_semantic_frozen_qualification.sql",
+          "backend/db/migrations/00513_v27_semantic_frozen_assembly_qualification.sql",
+          "backend/db/migrations/00515_v27_semantic_qualification_pin_types.sql"
+        ],
+        "truncated": true
+      },
+      "worker_candidates": {
+        "count": 5,
+        "files": [
+          "workers/photo_worker/operations/semantic/adapter.py",
+          "workers/photo_worker/operations/semantic/provenance.py",
+          "workers/photo_worker/v2/adoption.py",
+          "workers/photo_worker/v2/adoption_service.py",
+          "workers/photo_worker/v2/semantic_qualification_report.py"
+        ],
+        "truncated": false
+      },
+      "client_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 24,
+        "files": [
+          "tests/integration/semantic_qualification_fixture.py",
+          "tests/integration/test_v27_approved_exposure_nodes.py",
+          "tests/integration/test_v27_downstream_qualification_pins.py",
+          "tests/integration/test_v27_exposure_inventory_digest.py",
+          "tests/integration/test_v27_native_source_authority.py",
+          "tests/integration/test_v27_semantic_assembly_qualification.py",
+          "tests/integration/test_v27_semantic_candidate_scope.py",
+          "tests/integration/test_v27_semantic_final_producer_gate.py",
+          "tests/integration/test_v27_semantic_intent_publication.py",
+          "tests/integration/test_v27_semantic_plan_objectstore.py",
+          "tests/integration/test_v27_semantic_policy_fingerprint.py",
+          "tests/integration/test_v27_semantic_qualification_objectstore.py"
+        ],
+        "truncated": true
+      },
+      "unit_candidates": {
+        "count": 24,
+        "files": [
+          "backend/internal/gateway/v27_wire_integration_test.go",
+          "backend/internal/semanticproposal/defect_native_result_integration_test.go",
+          "backend/internal/semanticproposal/defect_qualification_preparation_test.go",
+          "backend/internal/semanticproposal/face_parse_preparation_locks_test.go",
+          "backend/internal/semanticproposal/native_all_target_handoff_policy_probe_test.go",
+          "backend/internal/semanticproposal/native_all_target_transfer_probe_test.go",
+          "backend/internal/semanticproposal/native_initial_pipeline_recovery_job_test.go",
+          "backend/internal/semanticproposal/native_input_transfer_saved_config_test.go",
+          "backend/internal/semanticproposal/native_person_policy_selection_test.go",
+          "backend/internal/semanticproposal/native_target_defect_advance_probe_test.go",
+          "backend/internal/semanticproposal/native_target_detector_wire_probe_test.go",
+          "backend/internal/semanticproposal/native_target_face_wire_probe_test.go"
+        ],
+        "truncated": true
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "portrait.open_eyes",
+      "package": "V28",
+      "version": "1",
+      "api_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 17,
+        "files": [
+          "backend/internal/review/negative_selection.go",
+          "backend/internal/review/persist.go",
+          "backend/internal/review/preview_source.go",
+          "backend/internal/review/restoration_selection_reader.go",
+          "backend/internal/review/service.go",
+          "backend/internal/v2draft/donor_loaded_session.go",
+          "backend/internal/v2draft/donor_params_intent.go",
+          "backend/internal/v2draft/donor_params_publish.go",
+          "backend/internal/v2draft/donor_queued_ticket.go",
+          "backend/internal/v2draft/open_eyes_client_intent.go",
+          "backend/internal/v2draft/open_eyes_client_preparation.go",
+          "backend/internal/v2draft/open_eyes_draft_begin.go"
+        ],
+        "truncated": true
+      },
+      "sql_candidates": {
+        "count": 21,
+        "files": [
+          "backend/db/migrations/00853_v28_donor_qualification.sql",
+          "backend/db/migrations/00856_v28_donor_portrait_lease.sql",
+          "backend/db/migrations/00860_v28_donor_inventory_digest.sql",
+          "backend/db/migrations/00861_v28_donor_descriptor_store.sql",
+          "backend/db/migrations/00862_v28_donor_task_stage.sql",
+          "backend/db/migrations/00863_v28_donor_transport_scope.sql",
+          "backend/db/migrations/00864_v28_donor_input_registration.sql",
+          "backend/db/migrations/00870_v28_donor_original_params_inventory.sql",
+          "backend/db/migrations/00873_v28_donor_graph_admission.sql",
+          "backend/db/migrations/00876_v28_donor_queued_receipt_read.sql",
+          "backend/db/migrations/00878_v28_donor_adoption_evidence.sql",
+          "backend/db/migrations/00880_v28_donor_adoption_commit.sql"
+        ],
+        "truncated": true
+      },
+      "worker_candidates": {
+        "count": 11,
+        "files": [
+          "workers/photo_worker/operations/portrait/donor_adapter.py",
+          "workers/photo_worker/operations/portrait/donor_result.py",
+          "workers/photo_worker/v2/adoption_service.py",
+          "workers/photo_worker/v2/portrait_donor_adopter_config.py",
+          "workers/photo_worker/v2/portrait_donor_adoption.py",
+          "workers/photo_worker/v2/portrait_donor_attempt.py",
+          "workers/photo_worker/v2/portrait_donor_manual_authority.py",
+          "workers/photo_worker/v2/portrait_donor_qualification.py",
+          "workers/photo_worker/v2/portrait_donor_qualification_loader.py",
+          "workers/photo_worker/v2/portrait_donor_source.py",
+          "workers/photo_worker/v2/portrait_open_eyes_manual_stage.py"
+        ],
+        "truncated": false
+      },
+      "client_candidates": {
+        "count": 3,
+        "files": [
+          "apps/photographer/src/negative-result-selection.ts",
+          "apps/photographer/src/owner-api.ts",
+          "apps/photographer/src/review-binding.ts"
+        ],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 14,
+        "files": [
+          "tests/platform/test_portrait_donor_adapter.py",
+          "tests/platform/test_portrait_donor_adopter_config.py",
+          "tests/platform/test_portrait_donor_adoption.py",
+          "tests/platform/test_portrait_donor_adoption_arrays.py",
+          "tests/platform/test_portrait_donor_attempt.py",
+          "tests/platform/test_portrait_donor_coordinator.py",
+          "tests/platform/test_portrait_donor_leased_stage.py",
+          "tests/platform/test_portrait_donor_manual_authority.py",
+          "tests/platform/test_portrait_donor_qualification.py",
+          "tests/platform/test_portrait_donor_qualification_loader.py",
+          "tests/platform/test_portrait_donor_reconstruction.py",
+          "tests/platform/test_portrait_donor_source.py"
+        ],
+        "truncated": true
+      },
+      "unit_candidates": {
+        "count": 20,
+        "files": [
+          "backend/internal/review/open_eyes_decision_test.go",
+          "backend/internal/review/restoration_candidate_pair_test.go",
+          "backend/internal/review/restoration_preview_scope_test.go",
+          "backend/internal/review/restoration_selection_test.go",
+          "backend/internal/v2draft/donor_image_objects_test.go",
+          "backend/internal/v2draft/donor_params_intent_test.go",
+          "backend/internal/v2draft/donor_qualified_inputs_test.go",
+          "backend/internal/v2draft/donor_queued_receipt_test.go",
+          "backend/internal/v2draft/open_eyes_client_intent_test.go",
+          "backend/internal/v2draft/open_eyes_draft_begin_test.go",
+          "backend/internal/v2portrait/donor_profile_test.go",
+          "backend/internal/v2portrait/donor_qualification_evidence_test.go"
+        ],
+        "truncated": true
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "portrait.glare",
+      "package": "V28",
+      "version": "1",
+      "api_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 22,
+        "files": [
+          "backend/internal/review/negative_selection.go",
+          "backend/internal/review/preview_catalog.go",
+          "backend/internal/review/preview_source.go",
+          "backend/internal/review/restoration_selection_reader.go",
+          "backend/internal/review/service.go",
+          "backend/internal/v2draft/glare_donor_coordinator.go",
+          "backend/internal/v2draft/glare_donor_preparation.go",
+          "backend/internal/v2draft/glare_donor_submission_service.go",
+          "backend/internal/v2draft/glare_donor_submitter.go",
+          "backend/internal/v2draft/restoration_admission_ticket.go",
+          "backend/internal/v2draft/restoration_adoption_queue.go",
+          "backend/internal/v2draft/restoration_bootstrap.go"
+        ],
+        "truncated": true
+      },
+      "sql_candidates": {
+        "count": 25,
+        "files": [
+          "backend/db/migrations/01895_v28_restoration_lease.sql",
+          "backend/db/migrations/01896_v28_restoration_qualification.sql",
+          "backend/db/migrations/01897_v28_restoration_scheduler_lock.sql",
+          "backend/db/migrations/01898_v28_restoration_descriptor_store.sql",
+          "backend/db/migrations/01899_v28_restoration_task_stage.sql",
+          "backend/db/migrations/01900_v28_restoration_transport_scope.sql",
+          "backend/db/migrations/01901_v28_restoration_graph_admission.sql",
+          "backend/db/migrations/01902_v28_restoration_result_array.sql",
+          "backend/db/migrations/01903_v28_restoration_result_document.sql",
+          "backend/db/migrations/01904_v28_restoration_review_barrier.sql",
+          "backend/db/migrations/01905_v28_restoration_adoption_receipt.sql",
+          "backend/db/migrations/01906_v28_restoration_adoption_queue.sql"
+        ],
+        "truncated": true
+      },
+      "worker_candidates": {
+        "count": 5,
+        "files": [
+          "workers/photo_worker/operations/portrait/glare.py",
+          "workers/photo_worker/operations/portrait/glare_donor_admission.py",
+          "workers/photo_worker/operations/portrait/glare_generative_result.py",
+          "workers/photo_worker/operations/portrait/glare_result.py",
+          "workers/photo_worker/runtime/v28_installation.py"
+        ],
+        "truncated": false
+      },
+      "client_candidates": {
+        "count": 3,
+        "files": [
+          "apps/photographer/src/negative-result-selection.ts",
+          "apps/photographer/src/owner-api.ts",
+          "apps/photographer/src/review-binding.ts"
+        ],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 21,
+        "files": [
+          "backend/internal/review/open_eyes_decision_test.go",
+          "backend/internal/review/restoration_candidate_pair_test.go",
+          "backend/internal/review/restoration_preview_scope_test.go",
+          "backend/internal/review/restoration_selection_test.go",
+          "backend/internal/v2draft/glare_donor_coordinator_test.go",
+          "backend/internal/v2draft/glare_donor_submitter_test.go",
+          "backend/internal/v2draft/restoration_adoption_queue_test.go",
+          "backend/internal/v2draft/restoration_descriptor_store_test.go",
+          "backend/internal/v2draft/restoration_draft_begin_test.go",
+          "backend/internal/v2draft/restoration_result_pixels_test.go",
+          "backend/internal/v2draft/restoration_result_test.go",
+          "backend/internal/v2portrait/restoration_draft_test.go"
+        ],
+        "truncated": true
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "image.reflection",
+      "package": "V28",
+      "version": "1",
+      "api_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 21,
+        "files": [
+          "backend/internal/review/negative_selection.go",
+          "backend/internal/review/preview_catalog.go",
+          "backend/internal/review/preview_source.go",
+          "backend/internal/review/restoration_selection_reader.go",
+          "backend/internal/review/service.go",
+          "backend/internal/v2draft/reflection_admission_ticket.go",
+          "backend/internal/v2draft/reflection_coordinator.go",
+          "backend/internal/v2draft/reflection_draft_begin.go",
+          "backend/internal/v2draft/reflection_preparation.go",
+          "backend/internal/v2draft/reflection_submission_service.go",
+          "backend/internal/v2draft/reflection_submitter.go",
+          "backend/internal/v2draft/restoration_adoption_queue.go"
+        ],
+        "truncated": true
+      },
+      "sql_candidates": {
+        "count": 24,
+        "files": [
+          "backend/db/migrations/01895_v28_restoration_lease.sql",
+          "backend/db/migrations/01896_v28_restoration_qualification.sql",
+          "backend/db/migrations/01897_v28_restoration_scheduler_lock.sql",
+          "backend/db/migrations/01898_v28_restoration_descriptor_store.sql",
+          "backend/db/migrations/01899_v28_restoration_task_stage.sql",
+          "backend/db/migrations/01900_v28_restoration_transport_scope.sql",
+          "backend/db/migrations/01901_v28_restoration_graph_admission.sql",
+          "backend/db/migrations/01902_v28_restoration_result_array.sql",
+          "backend/db/migrations/01903_v28_restoration_result_document.sql",
+          "backend/db/migrations/01904_v28_restoration_review_barrier.sql",
+          "backend/db/migrations/01905_v28_restoration_adoption_receipt.sql",
+          "backend/db/migrations/01906_v28_restoration_adoption_queue.sql"
+        ],
+        "truncated": true
+      },
+      "worker_candidates": {
+        "count": 4,
+        "files": [
+          "workers/photo_worker/operations/image/reflection.py",
+          "workers/photo_worker/operations/image/reflection_admission.py",
+          "workers/photo_worker/operations/image/reflection_result.py",
+          "workers/photo_worker/runtime/v28_installation.py"
+        ],
+        "truncated": false
+      },
+      "client_candidates": {
+        "count": 3,
+        "files": [
+          "apps/photographer/src/negative-result-selection.ts",
+          "apps/photographer/src/owner-api.ts",
+          "apps/photographer/src/review-binding.ts"
+        ],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 29,
+        "files": [
+          "backend/internal/review/open_eyes_decision_test.go",
+          "backend/internal/review/restoration_candidate_pair_test.go",
+          "backend/internal/review/restoration_preview_scope_test.go",
+          "backend/internal/review/restoration_selection_test.go",
+          "backend/internal/v2draft/reflection_admission_ticket_test.go",
+          "backend/internal/v2draft/reflection_coordinator_test.go",
+          "backend/internal/v2draft/reflection_draft_begin_test.go",
+          "backend/internal/v2draft/reflection_submission_service_test.go",
+          "backend/internal/v2draft/reflection_submitter_test.go",
+          "backend/internal/v2draft/restoration_adoption_material_test.go",
+          "backend/internal/v2draft/restoration_adoption_queue_test.go",
+          "backend/internal/v2draft/restoration_adoption_service_test.go"
+        ],
+        "truncated": true
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "portrait.hair",
+      "package": "V28",
+      "version": "1",
+      "api_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 13,
+        "files": [
+          "backend/internal/interchange/export_adoption_operation_params.go",
+          "backend/internal/interchange/export_operation_params_source.go",
+          "backend/internal/interchange/export_operation_params_validator.go",
+          "backend/internal/interchange/import_local_installation.go",
+          "backend/internal/interchange/import_local_params_codec.go",
+          "backend/internal/interchange/import_local_qualification.go",
+          "backend/internal/interchange/import_operation_native.go",
+          "backend/internal/interchange/import_recipe_installation_validation.go",
+          "backend/internal/v2draft/local_portrait_client_selection.go",
+          "backend/internal/v2draft/local_portrait_restore_scope.go",
+          "backend/internal/v2portrait/local_plan.go",
+          "backend/internal/v2portrait/local_policy.go"
+        ],
+        "truncated": true
+      },
+      "sql_candidates": {
+        "count": 11,
+        "files": [
+          "backend/db/migrations/00828_v28_local_portrait_lease_ready.sql",
+          "backend/db/migrations/00829_v28_local_portrait_registry.sql",
+          "backend/db/migrations/00832_v28_owner_request_scope.sql",
+          "backend/db/migrations/00835_v28_local_task_stage.sql",
+          "backend/db/migrations/00836_v28_local_transport_scope.sql",
+          "backend/db/migrations/00837_v28_local_input_registration.sql",
+          "backend/db/migrations/00838_v28_local_runtime_qualification.sql",
+          "backend/db/migrations/00839_v28_local_graph_admission.sql",
+          "backend/db/migrations/00841_v28_output_result_qualification.sql",
+          "backend/db/migrations/00978_v28_owner_binary_inventory_contract.sql",
+          "backend/db/migrations/02062_v30_export_adoption_operation_params.sql"
+        ],
+        "truncated": false
+      },
+      "worker_candidates": {
+        "count": 4,
+        "files": [
+          "workers/photo_worker/operations/portrait/local_adapter.py",
+          "workers/photo_worker/operations/portrait/local_result.py",
+          "workers/photo_worker/v2/interchange_export_style.py",
+          "workers/photo_worker/v2/interchange_operator_schemas.py"
+        ],
+        "truncated": false
+      },
+      "client_candidates": {
+        "count": 2,
+        "files": [
+          "apps/photographer/src/editor-local-portrait.tsx",
+          "apps/photographer/src/local-portrait-intent.ts"
+        ],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 4,
+        "files": [
+          "tests/platform/test_portrait_lease_gated_authority.py",
+          "tests/platform/test_portrait_local_adapter.py",
+          "tests/platform/test_relight_admission.py",
+          "tests/platform/test_v28_local_benchmark.py"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 22,
+        "files": [
+          "backend/internal/interchange/export_operation_params_validator_test.go",
+          "backend/internal/interchange/import_local_installation_test.go",
+          "backend/internal/interchange/import_local_params_codec_test.go",
+          "backend/internal/interchange/import_local_qualification_test.go",
+          "backend/internal/interchange/import_native_style_deployment_test.go",
+          "backend/internal/interchange/import_operation_native_test.go",
+          "backend/internal/v2draft/local_portrait_client_selection_test.go",
+          "backend/internal/v2draft/local_portrait_digest_integration_test.go",
+          "backend/internal/v2draft/local_portrait_material_physical_integration_test.go",
+          "backend/internal/v2draft/manual_raster_context_test.go",
+          "backend/internal/v2portrait/donor_qualification_evidence_test.go",
+          "backend/internal/v2portrait/local_plan_test.go"
+        ],
+        "truncated": true
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "portrait.clothing",
+      "package": "V28",
+      "version": "1",
+      "api_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 13,
+        "files": [
+          "backend/internal/interchange/export_adoption_operation_params.go",
+          "backend/internal/interchange/export_operation_params_source.go",
+          "backend/internal/interchange/export_operation_params_validator.go",
+          "backend/internal/interchange/import_local_installation.go",
+          "backend/internal/interchange/import_local_params_codec.go",
+          "backend/internal/interchange/import_local_qualification.go",
+          "backend/internal/interchange/import_operation_native.go",
+          "backend/internal/interchange/import_recipe_installation_validation.go",
+          "backend/internal/v2draft/local_portrait_client_selection.go",
+          "backend/internal/v2draft/local_portrait_restore_scope.go",
+          "backend/internal/v2portrait/local_plan.go",
+          "backend/internal/v2portrait/local_policy.go"
+        ],
+        "truncated": true
+      },
+      "sql_candidates": {
+        "count": 11,
+        "files": [
+          "backend/db/migrations/00828_v28_local_portrait_lease_ready.sql",
+          "backend/db/migrations/00829_v28_local_portrait_registry.sql",
+          "backend/db/migrations/00832_v28_owner_request_scope.sql",
+          "backend/db/migrations/00835_v28_local_task_stage.sql",
+          "backend/db/migrations/00836_v28_local_transport_scope.sql",
+          "backend/db/migrations/00837_v28_local_input_registration.sql",
+          "backend/db/migrations/00838_v28_local_runtime_qualification.sql",
+          "backend/db/migrations/00839_v28_local_graph_admission.sql",
+          "backend/db/migrations/00841_v28_output_result_qualification.sql",
+          "backend/db/migrations/00978_v28_owner_binary_inventory_contract.sql",
+          "backend/db/migrations/02062_v30_export_adoption_operation_params.sql"
+        ],
+        "truncated": false
+      },
+      "worker_candidates": {
+        "count": 4,
+        "files": [
+          "workers/photo_worker/operations/portrait/local_adapter.py",
+          "workers/photo_worker/operations/portrait/local_result.py",
+          "workers/photo_worker/v2/interchange_export_style.py",
+          "workers/photo_worker/v2/interchange_operator_schemas.py"
+        ],
+        "truncated": false
+      },
+      "client_candidates": {
+        "count": 2,
+        "files": [
+          "apps/photographer/src/editor-local-portrait.tsx",
+          "apps/photographer/src/local-portrait-intent.ts"
+        ],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 4,
+        "files": [
+          "tests/platform/test_portrait_lease_gated_authority.py",
+          "tests/platform/test_portrait_local_adapter.py",
+          "tests/platform/test_portrait_local_result.py",
+          "tests/platform/test_v28_local_benchmark.py"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 13,
+        "files": [
+          "backend/internal/interchange/export_operation_params_validator_test.go",
+          "backend/internal/interchange/import_local_installation_test.go",
+          "backend/internal/interchange/import_local_params_codec_test.go",
+          "backend/internal/interchange/import_local_qualification_test.go",
+          "backend/internal/v2draft/local_portrait_client_selection_test.go",
+          "backend/internal/v2draft/local_portrait_digest_integration_test.go",
+          "backend/internal/v2draft/local_portrait_material_physical_integration_test.go",
+          "backend/internal/v2draft/manual_raster_context_test.go",
+          "backend/internal/v2portrait/local_plan_test.go",
+          "workers/tests/test_interchange_export_style_probe.py",
+          "workers/tests/test_interchange_recipe_closure.py",
+          "workers/tests/test_local_portrait_installation.py"
+        ],
+        "truncated": true
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "image.relight",
+      "package": "V28",
+      "version": "1",
+      "api_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 5,
+        "files": [
+          "backend/internal/v2portrait/relight_deployment.go",
+          "backend/internal/v2portrait/relight_evidence.go",
+          "backend/internal/v2portrait/relight_frozen.go",
+          "backend/internal/v2portrait/relight_plan.go",
+          "backend/internal/v2portrait/relight_submission_service.go"
+        ],
+        "truncated": false
+      },
+      "sql_candidates": {
+        "count": 9,
+        "files": [
+          "backend/db/migrations/00980_v28_relight_lease_ready.sql",
+          "backend/db/migrations/00981_v28_relight_qualification.sql",
+          "backend/db/migrations/00987_v28_relight_adoption_source.sql",
+          "backend/db/migrations/00993_v28_relight_adoption_commit.sql",
+          "backend/db/migrations/00994_v28_relight_adoption_params.sql",
+          "backend/db/migrations/01004_v28_relight_task_stage.sql",
+          "backend/db/migrations/01006_v28_relight_transport_registration.sql",
+          "backend/db/migrations/01008_v28_relight_graph_admission.sql",
+          "backend/db/migrations/01009_v28_relight_queued_receipt.sql"
+        ],
+        "truncated": false
+      },
+      "worker_candidates": {
+        "count": 9,
+        "files": [
+          "workers/photo_worker/operations/portrait/relight_adapter.py",
+          "workers/photo_worker/operations/portrait/relight_admission.py",
+          "workers/photo_worker/operations/portrait/relight_result.py",
+          "workers/photo_worker/v2/adoption.py",
+          "workers/photo_worker/v2/adoption_service.py",
+          "workers/photo_worker/v2/relight_adoption.py",
+          "workers/photo_worker/v2/relight_adoption_prepare.py",
+          "workers/photo_worker/v2/relight_qualification.py",
+          "workers/photo_worker/v2/relight_qualification_loader.py"
+        ],
+        "truncated": false
+      },
+      "client_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 17,
+        "files": [
+          "tests/integration/test_v28_relight_bootstrap.py",
+          "tests/integration/test_v28_relight_draft_intent.py",
+          "tests/integration/test_v28_relight_lease.py",
+          "tests/integration/test_v28_relight_loader_physical.py",
+          "tests/integration/test_v28_relight_qualification.py",
+          "tests/integration/test_v28_relight_resolver_physical.py",
+          "tests/platform/test_relight_adapter.py",
+          "tests/platform/test_relight_admission.py",
+          "tests/platform/test_relight_adoption.py",
+          "tests/platform/test_relight_adoption_authority.py",
+          "tests/platform/test_relight_qualification.py",
+          "tests/platform/test_relight_qualification_loader.py"
+        ],
+        "truncated": true
+      },
+      "unit_candidates": {
+        "count": 11,
+        "files": [
+          "backend/internal/v2input/delivery_child_closure_test.go",
+          "backend/internal/v2portrait/relight_analysis_coordinator_test.go",
+          "backend/internal/v2portrait/relight_analysis_deployment_test.go",
+          "backend/internal/v2portrait/relight_analysis_descriptor_test.go",
+          "backend/internal/v2portrait/relight_analysis_qualification_catalog_test.go",
+          "backend/internal/v2portrait/relight_analysis_service_test.go",
+          "backend/internal/v2portrait/relight_bootstrap_integration_test.go",
+          "backend/internal/v2portrait/relight_evidence_test.go",
+          "backend/internal/v2portrait/relight_frozen_test.go",
+          "backend/internal/v2portrait/relight_profile_test.go",
+          "apps/photographer/src/relight-analysis.test.ts"
+        ],
+        "truncated": false
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "optical.lens",
+      "package": "V25",
+      "version": "1",
+      "api_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 5,
+        "files": [
+          "backend/internal/v2draft/layers.go",
+          "backend/internal/v2input/lens_closure.go",
+          "backend/internal/v2input/lens_selection_compile.go",
+          "backend/internal/v2input/lens_stage.go",
+          "backend/internal/v2input/lens_task.go"
+        ],
+        "truncated": false
+      },
+      "sql_candidates": {
+        "count": 13,
+        "files": [
+          "backend/db/migrations/00311_v25_lens_adoption_params.sql",
+          "backend/db/migrations/00314_v25_lens_operation_catalog.sql",
+          "backend/db/migrations/00318_v25_lens_task_stage.sql",
+          "backend/db/migrations/00319_v25_lens_stage_transport_replay.sql",
+          "backend/db/migrations/00320_v25_lens_registered_inputs.sql",
+          "backend/db/migrations/00324_v25_lens_graph_authority.sql",
+          "backend/db/migrations/00325_v25_lens_adoption_authority.sql",
+          "backend/db/migrations/00326_v25_lens_adoption_rejection.sql",
+          "backend/db/migrations/00329_v25_adopted_lens_binding.sql",
+          "backend/db/migrations/00344_v25_layer_lens_proposal_scope.sql",
+          "backend/db/migrations/00405_v26_render_graph_authority.sql",
+          "backend/db/migrations/00435_v26_render_activation_qualification.sql"
+        ],
+        "truncated": true
+      },
+      "worker_candidates": {
+        "count": 9,
+        "files": [
+          "workers/photo_worker/operations/optical/adapter.py",
+          "workers/photo_worker/operations/optical/result.py",
+          "workers/photo_worker/v2/adoption.py",
+          "workers/photo_worker/v2/adoption_service.py",
+          "workers/photo_worker/v2/lens_adoption.py",
+          "workers/photo_worker/v2/lens_bypass.py",
+          "workers/photo_worker/v2/render_adjustments.py",
+          "workers/photo_worker/v2/render_layers.py",
+          "workers/photo_worker/v2/render_prepare.py"
+        ],
+        "truncated": false
+      },
+      "client_candidates": {
+        "count": 1,
+        "files": [
+          "apps/photographer/src/editor-layers.ts"
+        ],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 14,
+        "files": [
+          "tests/integration/test_v25_lens_catalog.py",
+          "tests/integration/test_v25_lens_documents.py",
+          "tests/integration/test_v25_lens_objectstore.py",
+          "tests/integration/test_v25_lens_original.py",
+          "tests/integration/test_v25_lens_typed_adoption.py",
+          "tests/test_v26_render_layers.py",
+          "tests/unit/test_layer_admission.py",
+          "tests/unit/test_layer_adoption_bytes.py",
+          "tests/unit/test_v25_lens_bypass.py",
+          "tests/unit/test_v25_lens_operation.py",
+          "tests/unit/test_v25_lens_result.py",
+          "tests/unit/test_v25_optical_contracts.py"
+        ],
+        "truncated": true
+      },
+      "unit_candidates": {
+        "count": 11,
+        "files": [
+          "backend/internal/httpapi/multi_submit_test.go",
+          "backend/internal/httpapi/negative_submit_test.go",
+          "backend/internal/httpapi/perspective_submit_test.go",
+          "backend/internal/v2draft/layers_test.go",
+          "backend/internal/v2input/lens_task_test.go",
+          "backend/internal/v2optical/perspective_qualification_test.go",
+          "backend/internal/v2render/compose_stage_test.go",
+          "backend/internal/v2render/plan_test.go",
+          "apps/photographer/src/editor-layer-panel.dom.test.tsx",
+          "apps/photographer/src/editor-layers.test.ts",
+          "apps/photographer/src/multi-proposal.test.ts"
+        ],
+        "truncated": false
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "optical.perspective",
+      "package": "V29",
+      "version": "1",
+      "api_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/perspective_submit.go"
+        ],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 30,
+        "files": [
+          "backend/internal/httpapi/perspective_submit.go",
+          "backend/internal/v2draft/layers.go",
+          "backend/internal/v2optical/negative_adopted_parent.go",
+          "backend/internal/v2optical/negative_affected_sources.go",
+          "backend/internal/v2optical/negative_draft.go",
+          "backend/internal/v2optical/negative_frozen_intent.go",
+          "backend/internal/v2optical/negative_replacement_compile.go",
+          "backend/internal/v2optical/negative_replacement_inputs.go",
+          "backend/internal/v2optical/negative_replacement_intent.go",
+          "backend/internal/v2optical/negative_replacement_mapped_rebind.go",
+          "backend/internal/v2optical/perspective_deployment.go",
+          "backend/internal/v2optical/perspective_descriptor.go"
+        ],
+        "truncated": true
+      },
+      "sql_candidates": {
+        "count": 39,
+        "files": [
+          "backend/db/migrations/01026_v29_perspective_policy_sha.sql",
+          "backend/db/migrations/01027_v29_perspective_qualification_lock.sql",
+          "backend/db/migrations/01028_v29_perspective_lease.sql",
+          "backend/db/migrations/01032_v29_perspective_adoption_evidence.sql",
+          "backend/db/migrations/01033_v29_perspective_adoption_params.sql",
+          "backend/db/migrations/01034_v29_perspective_adoption_commit.sql",
+          "backend/db/migrations/01040_v29_perspective_task_stage.sql",
+          "backend/db/migrations/01043_v29_perspective_input_registration.sql",
+          "backend/db/migrations/01045_v29_perspective_graph_admission.sql",
+          "backend/db/migrations/01046_v29_perspective_queued_receipt.sql",
+          "backend/db/migrations/01052_v29_perspective_auto_inputs.sql",
+          "backend/db/migrations/01053_v29_adopted_perspective_read.sql"
+        ],
+        "truncated": true
+      },
+      "worker_candidates": {
+        "count": 13,
+        "files": [
+          "workers/photo_worker/operations/optical/perspective_adapter.py",
+          "workers/photo_worker/operations/optical/perspective_admission.py",
+          "workers/photo_worker/operations/optical/perspective_evidence.py",
+          "workers/photo_worker/operations/optical/perspective_installation.py",
+          "workers/photo_worker/operations/optical/perspective_result.py",
+          "workers/photo_worker/runtime/perspective_config.py",
+          "workers/photo_worker/v2/adoption.py",
+          "workers/photo_worker/v2/adoption_service.py",
+          "workers/photo_worker/v2/perspective_adoption.py",
+          "workers/photo_worker/v2/perspective_derivative.py",
+          "workers/photo_worker/v2/render_adjustments.py",
+          "workers/photo_worker/v2/render_layers.py"
+        ],
+        "truncated": true
+      },
+      "client_candidates": {
+        "count": 2,
+        "files": [
+          "apps/photographer/src/editor-layers.ts",
+          "apps/photographer/src/perspective-result.ts"
+        ],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 7,
+        "files": [
+          "tests/integration/test_v32_perspective_primary_queue.py",
+          "tests/platform/test_optical_installation_result_gate.py",
+          "tests/platform/test_perspective_admission.py",
+          "tests/platform/test_perspective_adoption.py",
+          "tests/platform/test_perspective_derivative.py",
+          "tests/platform/test_perspective_evidence.py",
+          "tests/platform/test_perspective_line_producer.py"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 26,
+        "files": [
+          "backend/internal/httpapi/multi_replacement_review_test.go",
+          "backend/internal/httpapi/perspective_submit_test.go",
+          "backend/internal/v2draft/layers_test.go",
+          "backend/internal/v2optical/multi_accepted_parent_sql_integration_test.go",
+          "backend/internal/v2optical/multi_coordinator_test.go",
+          "backend/internal/v2optical/multi_deployment_test.go",
+          "backend/internal/v2optical/multi_receipt_test.go",
+          "backend/internal/v2optical/negative_affected_sources_test.go",
+          "backend/internal/v2optical/negative_frozen_intent_test.go",
+          "backend/internal/v2optical/negative_ready_sources_loader_test.go",
+          "backend/internal/v2optical/negative_receipt_test.go",
+          "backend/internal/v2optical/negative_replacement_inputs_test.go"
+        ],
+        "truncated": true
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "optical.negative",
+      "package": "V29",
+      "version": "1",
+      "api_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/negative_submit.go"
+        ],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 69,
+        "files": [
+          "backend/internal/delivery/provenance_delegated_adopted_producer.go",
+          "backend/internal/delivery/provenance_delegated_adopted_result.go",
+          "backend/internal/delivery/provenance_delegated_candidate_review.go",
+          "backend/internal/delivery/provenance_delegated_negative_mask.go",
+          "backend/internal/delivery/provenance_delegated_negative_pixels.go",
+          "backend/internal/delivery/provenance_delegated_negative_qualification.go",
+          "backend/internal/delivery/provenance_delegated_negative_source_array.go",
+          "backend/internal/delivery/provenance_delegated_review_adapters.go",
+          "backend/internal/httpapi/negative_submit.go",
+          "backend/internal/provenance/delegated_negative_evidence.go",
+          "backend/internal/provenance/delegated_negative_graph_claims.go",
+          "backend/internal/provenance/delegated_negative_mask.go"
+        ],
+        "truncated": true
+      },
+      "sql_candidates": {
+        "count": 50,
+        "files": [
+          "backend/db/migrations/00881_v29_negative_policy_sha.sql",
+          "backend/db/migrations/00882_v29_negative_qualification_lock.sql",
+          "backend/db/migrations/00884_v29_negative_lease.sql",
+          "backend/db/migrations/00890_v29_negative_adoption_evidence.sql",
+          "backend/db/migrations/00891_v29_negative_adoption_commit.sql",
+          "backend/db/migrations/00892_v29_negative_adoption_params.sql",
+          "backend/db/migrations/00893_v29_negative_registry.sql",
+          "backend/db/migrations/01411_v29_adopted_negative_review.sql",
+          "backend/db/migrations/01412_v29_negative_review_candidates.sql",
+          "backend/db/migrations/01413_v29_negative_review_finalization.sql",
+          "backend/db/migrations/01414_v29_negative_review_before_media.sql",
+          "backend/db/migrations/01415_v29_negative_after_preview.sql"
+        ],
+        "truncated": true
+      },
+      "worker_candidates": {
+        "count": 9,
+        "files": [
+          "workers/photo_worker/operations/optical/negative_adapter.py",
+          "workers/photo_worker/operations/optical/negative_result.py",
+          "workers/photo_worker/v2/adoption_service.py",
+          "workers/photo_worker/v2/negative_adopter_config.py",
+          "workers/photo_worker/v2/negative_attempt.py",
+          "workers/photo_worker/v2/negative_execute.py",
+          "workers/photo_worker/v2/negative_qualification.py",
+          "workers/photo_worker/v2/negative_qualification_loader.py",
+          "workers/photo_worker/v2/negative_source.py"
+        ],
+        "truncated": false
+      },
+      "client_candidates": {
+        "count": 2,
+        "files": [
+          "apps/photographer/src/negative-result-selection.ts",
+          "apps/photographer/src/review-binding.ts"
+        ],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 18,
+        "files": [
+          "tests/integration/test_v29_negative_preview_authority.py",
+          "tests/integration/test_v29_negative_registry.py",
+          "tests/integration/test_v29_negative_review_authority.py",
+          "tests/integration/test_v32_perspective_primary_queue.py",
+          "tests/platform/test_negative_adapter.py",
+          "tests/platform/test_negative_adopter_config.py",
+          "tests/platform/test_negative_adoption_coordinator.py",
+          "tests/platform/test_negative_attempt.py",
+          "tests/platform/test_negative_color.py",
+          "tests/platform/test_negative_execute.py",
+          "tests/platform/test_negative_leased_prepare.py",
+          "tests/platform/test_negative_qualification.py"
+        ],
+        "truncated": true
+      },
+      "unit_candidates": {
+        "count": 51,
+        "files": [
+          "backend/internal/delivery/provenance_delegated_candidate_review_test.go",
+          "backend/internal/httpapi/negative_submit_test.go",
+          "backend/internal/provenance/delegated_complex_claims_test.go",
+          "backend/internal/provenance/delegated_negative_mask_counter_test.go",
+          "backend/internal/provenance/delegated_negative_mask_test.go",
+          "backend/internal/provenance/delegated_negative_pixel_ancestry_test.go",
+          "backend/internal/provenance/delegated_negative_pixel_evidence_test.go",
+          "backend/internal/provenance/delegated_negative_pixels_test.go",
+          "backend/internal/provenance/delegated_negative_policy_content_test.go",
+          "backend/internal/provenance/delegated_negative_qualification_test.go",
+          "backend/internal/provenance/delegated_negative_report_test.go",
+          "backend/internal/provenance/delegated_negative_source_arrays_test.go"
+        ],
+        "truncated": true
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "optical.panorama",
+      "package": "V29",
+      "version": "1",
+      "api_candidates": {
+        "count": 3,
+        "files": [
+          "backend/internal/httpapi/multi_proposal.go",
+          "backend/internal/httpapi/multi_replacement_review.go",
+          "backend/internal/httpapi/multi_submit.go"
+        ],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 42,
+        "files": [
+          "backend/internal/httpapi/multi_proposal.go",
+          "backend/internal/httpapi/multi_replacement_review.go",
+          "backend/internal/httpapi/multi_submit.go",
+          "backend/internal/v2draft/layers.go",
+          "backend/internal/v2optical/multi_coordinator.go",
+          "backend/internal/v2optical/multi_deployment.go",
+          "backend/internal/v2optical/multi_image_inputs.go",
+          "backend/internal/v2optical/multi_plan.go",
+          "backend/internal/v2optical/multi_policy.go",
+          "backend/internal/v2optical/multi_qualification.go",
+          "backend/internal/v2optical/multi_qualification_catalog.go",
+          "backend/internal/v2optical/multi_qualification_lock.go"
+        ],
+        "truncated": true
+      },
+      "sql_candidates": {
+        "count": 34,
+        "files": [
+          "backend/db/migrations/01139_v29_multi_qualification_authority.sql",
+          "backend/db/migrations/01140_v29_multi_adoption_evidence.sql",
+          "backend/db/migrations/01141_v29_multi_adoption_commit.sql",
+          "backend/db/migrations/01142_v29_multi_array_source.sql",
+          "backend/db/migrations/01143_v29_multi_draft.sql",
+          "backend/db/migrations/01144_v29_multi_resource_estimate.sql",
+          "backend/db/migrations/01146_v29_multi_task_stage.sql",
+          "backend/db/migrations/01149_v29_multi_stage_replay.sql",
+          "backend/db/migrations/01151_v29_multi_graph_admission.sql",
+          "backend/db/migrations/01152_v29_multi_queued_receipt.sql",
+          "backend/db/migrations/01153_v29_multi_registry.sql",
+          "backend/db/migrations/01156_v29_multi_intent_claim.sql"
+        ],
+        "truncated": true
+      },
+      "worker_candidates": {
+        "count": 17,
+        "files": [
+          "workers/photo_worker/cli.py",
+          "workers/photo_worker/operations/optical/multi_adapter.py",
+          "workers/photo_worker/operations/optical/multi_admission.py",
+          "workers/photo_worker/operations/optical/multi_admitted_prepare.py",
+          "workers/photo_worker/operations/optical/multi_evidence.py",
+          "workers/photo_worker/operations/optical/multi_lineage.py",
+          "workers/photo_worker/operations/optical/multi_request.py",
+          "workers/photo_worker/runtime/multi_config.py",
+          "workers/photo_worker/runtime/service.py",
+          "workers/photo_worker/v2/adoption_service.py",
+          "workers/photo_worker/v2/multi_adopter_config.py",
+          "workers/photo_worker/v2/multi_adoption.py"
+        ],
+        "truncated": true
+      },
+      "client_candidates": {
+        "count": 8,
+        "files": [
+          "apps/photographer/src/editor-layers.ts",
+          "apps/photographer/src/multi-apply-inbox.tsx",
+          "apps/photographer/src/multi-attempt-store.ts",
+          "apps/photographer/src/multi-intent.ts",
+          "apps/photographer/src/multi-replacement-page.ts",
+          "apps/photographer/src/multi-result.ts",
+          "apps/photographer/src/multi-selection.ts",
+          "apps/photographer/src/owner-api.ts"
+        ],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 12,
+        "files": [
+          "tests/integration/test_v32_perspective_primary_queue.py",
+          "tests/platform/test_multi_adapter.py",
+          "tests/platform/test_multi_admission.py",
+          "tests/platform/test_multi_adopter_config.py",
+          "tests/platform/test_multi_adoption_evidence.py",
+          "tests/platform/test_multi_config.py",
+          "tests/platform/test_multi_evidence.py",
+          "tests/platform/test_multi_lineage.py",
+          "tests/platform/test_multi_replay.py",
+          "tests/platform/test_multi_request.py",
+          "tests/platform/test_optical_installation_result_gate.py",
+          "tests/unit/test_v25_lens_bypass.py"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 82,
+        "files": [
+          "backend/internal/httpapi/multi_replacement_review_test.go",
+          "backend/internal/httpapi/multi_submit_test.go",
+          "backend/internal/v2draft/layers_test.go",
+          "backend/internal/v2optical/multi_accepted_parent_sql_integration_test.go",
+          "backend/internal/v2optical/multi_admission_test.go",
+          "backend/internal/v2optical/multi_capabilities_test.go",
+          "backend/internal/v2optical/multi_coordinator_test.go",
+          "backend/internal/v2optical/multi_deployment_test.go",
+          "backend/internal/v2optical/multi_draft_test.go",
+          "backend/internal/v2optical/multi_intent_claim_test.go",
+          "backend/internal/v2optical/multi_intent_identity_integration_test.go",
+          "backend/internal/v2optical/multi_intent_identity_test.go"
+        ],
+        "truncated": true
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "optical.focus_stack",
+      "package": "V29",
+      "version": "1",
+      "api_candidates": {
+        "count": 3,
+        "files": [
+          "backend/internal/httpapi/multi_proposal.go",
+          "backend/internal/httpapi/multi_replacement_review.go",
+          "backend/internal/httpapi/multi_submit.go"
+        ],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 38,
+        "files": [
+          "backend/internal/httpapi/multi_proposal.go",
+          "backend/internal/httpapi/multi_replacement_review.go",
+          "backend/internal/httpapi/multi_submit.go",
+          "backend/internal/v2draft/layers.go",
+          "backend/internal/v2optical/multi_capabilities.go",
+          "backend/internal/v2optical/multi_coordinator.go",
+          "backend/internal/v2optical/multi_deployment.go",
+          "backend/internal/v2optical/multi_policy.go",
+          "backend/internal/v2optical/multi_qualification.go",
+          "backend/internal/v2optical/multi_qualification_catalog.go",
+          "backend/internal/v2optical/multi_qualification_lock.go",
+          "backend/internal/v2optical/multi_replacement_draft.go"
+        ],
+        "truncated": true
+      },
+      "sql_candidates": {
+        "count": 34,
+        "files": [
+          "backend/db/migrations/01139_v29_multi_qualification_authority.sql",
+          "backend/db/migrations/01140_v29_multi_adoption_evidence.sql",
+          "backend/db/migrations/01141_v29_multi_adoption_commit.sql",
+          "backend/db/migrations/01142_v29_multi_array_source.sql",
+          "backend/db/migrations/01143_v29_multi_draft.sql",
+          "backend/db/migrations/01144_v29_multi_resource_estimate.sql",
+          "backend/db/migrations/01146_v29_multi_task_stage.sql",
+          "backend/db/migrations/01149_v29_multi_stage_replay.sql",
+          "backend/db/migrations/01151_v29_multi_graph_admission.sql",
+          "backend/db/migrations/01152_v29_multi_queued_receipt.sql",
+          "backend/db/migrations/01153_v29_multi_registry.sql",
+          "backend/db/migrations/01156_v29_multi_intent_claim.sql"
+        ],
+        "truncated": true
+      },
+      "worker_candidates": {
+        "count": 15,
+        "files": [
+          "workers/photo_worker/cli.py",
+          "workers/photo_worker/operations/optical/multi_adapter.py",
+          "workers/photo_worker/operations/optical/multi_admission.py",
+          "workers/photo_worker/operations/optical/multi_evidence.py",
+          "workers/photo_worker/operations/optical/multi_lineage.py",
+          "workers/photo_worker/operations/optical/multi_request.py",
+          "workers/photo_worker/runtime/multi_config.py",
+          "workers/photo_worker/runtime/service.py",
+          "workers/photo_worker/v2/adoption_service.py",
+          "workers/photo_worker/v2/multi_adopter_config.py",
+          "workers/photo_worker/v2/multi_adoption.py",
+          "workers/photo_worker/v2/multi_adoption_evidence.py"
+        ],
+        "truncated": true
+      },
+      "client_candidates": {
+        "count": 7,
+        "files": [
+          "apps/photographer/src/editor-layers.ts",
+          "apps/photographer/src/multi-attempt-store.ts",
+          "apps/photographer/src/multi-intent.ts",
+          "apps/photographer/src/multi-replacement-page.ts",
+          "apps/photographer/src/multi-result.ts",
+          "apps/photographer/src/multi-selection.ts",
+          "apps/photographer/src/owner-api.ts"
+        ],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 6,
+        "files": [
+          "tests/integration/test_v32_perspective_primary_queue.py",
+          "tests/platform/test_multi_adapter.py",
+          "tests/platform/test_multi_admission.py",
+          "tests/platform/test_multi_adoption_evidence.py",
+          "tests/platform/test_multi_lineage.py",
+          "tests/platform/test_optical_installation_result_gate.py"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 62,
+        "files": [
+          "backend/internal/httpapi/multi_replacement_review_test.go",
+          "backend/internal/v2draft/layers_test.go",
+          "backend/internal/v2optical/multi_accepted_parent_sql_integration_test.go",
+          "backend/internal/v2optical/multi_capabilities_test.go",
+          "backend/internal/v2optical/multi_deployment_test.go",
+          "backend/internal/v2optical/multi_draft_test.go",
+          "backend/internal/v2optical/multi_intent_claim_test.go",
+          "backend/internal/v2optical/multi_intent_identity_integration_test.go",
+          "backend/internal/v2optical/multi_intent_identity_test.go",
+          "backend/internal/v2optical/multi_params_repository_test.go",
+          "backend/internal/v2optical/multi_plan_test.go",
+          "backend/internal/v2optical/multi_qualification_loader_test.go"
+        ],
+        "truncated": true
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "provenance.sign",
+      "package": "V31",
+      "version": "1",
+      "api_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 4,
+        "files": [
+          "backend/internal/delivery/provenance_delegated_draft_documents.go",
+          "backend/internal/provenance/admission_authority.go",
+          "backend/internal/provenance/pending.go",
+          "backend/internal/provenance/task_plan.go"
+        ],
+        "truncated": false
+      },
+      "sql_candidates": {
+        "count": 21,
+        "files": [
+          "backend/db/migrations/01392_v31_signing_pending.sql",
+          "backend/db/migrations/01395_v31_signing_materialization.sql",
+          "backend/db/migrations/01396_v31_signing_transport_authority.sql",
+          "backend/db/migrations/01397_v31_signing_activation.sql",
+          "backend/db/migrations/01398_v31_signing_ticket_recovery.sql",
+          "backend/db/migrations/01399_v31_signer_worker_qualification.sql",
+          "backend/db/migrations/01400_v31_signing_adoption_authority.sql",
+          "backend/db/migrations/01402_v31_signing_completion_recovery.sql",
+          "backend/db/migrations/01585_v31_api_signer_registration.sql",
+          "backend/db/migrations/01623_v32_capacity_policy_task_authority.sql",
+          "backend/db/migrations/01626_v32_capacity_policy_timing_consumers.sql",
+          "backend/db/migrations/01812_v30_delivery_signed_receipt_read.sql"
+        ],
+        "truncated": true
+      },
+      "worker_candidates": {
+        "count": 6,
+        "files": [
+          "workers/photo_worker/operations/provenance/execute.py",
+          "workers/photo_worker/runtime/signer_installation.py",
+          "workers/photo_worker/runtime/signer_service.py",
+          "workers/photo_worker/v2/adoption_service.py",
+          "workers/photo_worker/v2/provenance_adoption_commit.py",
+          "workers/photo_worker/v2/provenance_adoption_prepare.py"
+        ],
+        "truncated": false
+      },
+      "client_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 9,
+        "files": [
+          "backend/internal/provenance/operator_registration_sql_integration_test.go",
+          "backend/internal/provenance/signer_worker_sql_integration_test.go",
+          "backend/internal/provenance/task_plan_test.go",
+          "backend/internal/v2optical/optical_draft_input_digest_test.go",
+          "workers/tests/test_provenance_adoption_commit.py",
+          "workers/tests/test_provenance_adoption_prepare.py",
+          "workers/tests/test_signer_installation.py",
+          "workers/tests/test_signer_service.py",
+          "workers/tests/test_signing_adoption_coordinator.py"
+        ],
+        "truncated": false
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "v2.delivery.assemble",
+      "package": "V30",
+      "version": "1",
+      "api_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 12,
+        "files": [
+          "backend/internal/delivery/assembly_task.go",
+          "backend/internal/v2input/delivery_assembly_closure.go",
+          "backend/internal/v2input/delivery_signed_assembly_closure.go",
+          "backend/internal/workflow/delivery_assembly_params_publish.go",
+          "backend/internal/workflow/delivery_assembly_pipeline.go",
+          "backend/internal/workflow/delivery_assembly_task.go",
+          "backend/internal/workflow/delivery_assembly_transport_queries.go",
+          "backend/internal/workflow/delivery_shard_publish.go",
+          "backend/internal/workflow/delivery_signed_assembly_activation.go",
+          "backend/internal/workflow/delivery_signed_assembly_registration.go",
+          "backend/internal/workflow/delivery_signed_assembly_task.go",
+          "backend/internal/workflow/delivery_signed_document_publish.go"
+        ],
+        "truncated": false
+      },
+      "sql_candidates": {
+        "count": 15,
+        "files": [
+          "backend/db/migrations/01216_v30_delivery_lease.sql",
+          "backend/db/migrations/01261_v30_delivery_assembly_task.sql",
+          "backend/db/migrations/01262_v30_delivery_assembly_transport.sql",
+          "backend/db/migrations/01263_v30_delivery_sealed_profile_receipts.sql",
+          "backend/db/migrations/01265_v30_delivery_assembly_resource_gate.sql",
+          "backend/db/migrations/01267_v30_delivery_assembly_exact_inventory.sql",
+          "backend/db/migrations/01268_v30_delivery_assembly_source_context.sql",
+          "backend/db/migrations/01271_v30_delivery_worker_assembly_source.sql",
+          "backend/db/migrations/01279_v30_delivery_assembly_adoption_inputs.sql",
+          "backend/db/migrations/01280_v30_delivery_assembly_adoption_params.sql",
+          "backend/db/migrations/01283_v30_delivery_assembly_adoption_receipt.sql",
+          "backend/db/migrations/01285_v30_delivery_publication_source.sql"
+        ],
+        "truncated": true
+      },
+      "worker_candidates": {
+        "count": 5,
+        "files": [
+          "workers/photo_worker/operations/delivery/adapter.py",
+          "workers/photo_worker/operations/delivery/admission.py",
+          "workers/photo_worker/operations/delivery/signed_adapter.py",
+          "workers/photo_worker/v2/adoption.py",
+          "workers/photo_worker/v2/adoption_service.py"
+        ],
+        "truncated": false
+      },
+      "client_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 2,
+        "files": [
+          "tests/platform/test_delivery_adapter.py",
+          "tests/platform/test_delivery_assembly_adoption.py"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 6,
+        "files": [
+          "backend/internal/delivery/assembly_task_test.go",
+          "backend/internal/workflow/delivery_assembly_queries_lifecycle_test.go",
+          "backend/internal/workflow/delivery_assembly_transport_queries_test.go",
+          "workers/tests/test_delivery_adapter_cancellation.py",
+          "workers/tests/test_delivery_signed_adapter.py",
+          "workers/tests/test_delivery_signed_assembly_adoption.py"
+        ],
+        "truncated": false
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "v2.interchange.import",
+      "package": "V30",
+      "version": "1",
+      "api_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/interchange/import_materialization.go",
+          "backend/internal/interchange/import_measured_resources.go"
+        ],
+        "truncated": false
+      },
+      "sql_candidates": {
+        "count": 11,
+        "files": [
+          "backend/db/migrations/00197_v21_foundation.sql",
+          "backend/db/migrations/01330_v30_interchange_import_task.sql",
+          "backend/db/migrations/01334_v30_interchange_input_registration.sql",
+          "backend/db/migrations/01339_v30_interchange_import_worker_admission.sql",
+          "backend/db/migrations/01340_v30_interchange_import_adoption_context.sql",
+          "backend/db/migrations/01341_v30_interchange_import_commit.sql",
+          "backend/db/migrations/01342_v30_interchange_import_recovery.sql",
+          "backend/db/migrations/01378_v30_interchange_prepared_review_reads.sql",
+          "backend/db/migrations/01573_v30_import_warp_scratch_admission.sql",
+          "backend/db/migrations/01575_v30_import_activation_receipt.sql",
+          "backend/db/migrations/02111_v30_import_adoption_claim.sql"
+        ],
+        "truncated": false
+      },
+      "worker_candidates": {
+        "count": 8,
+        "files": [
+          "workers/photo_worker/operations/interchange/import_adapter.py",
+          "workers/photo_worker/operations/interchange/import_admission.py",
+          "workers/photo_worker/v2/adoption_service.py",
+          "workers/photo_worker/v2/interchange_import_adopter_installation.py",
+          "workers/photo_worker/v2/interchange_import_adopter_semantics.py",
+          "workers/photo_worker/v2/interchange_import_adoption_commit.py",
+          "workers/photo_worker/v2/interchange_import_adoption_prepare.py",
+          "workers/photo_worker/v2/interchange_import_adoption_runtime.py"
+        ],
+        "truncated": false
+      },
+      "client_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 11,
+        "files": [
+          "backend/internal/interchange/import_materialization_test.go",
+          "workers/tests/test_interchange_export_adapter.py",
+          "workers/tests/test_interchange_export_admission.py",
+          "workers/tests/test_interchange_import_adapter.py",
+          "workers/tests/test_interchange_import_adopter_installation.py",
+          "workers/tests/test_interchange_import_adopter_semantics.py",
+          "workers/tests/test_interchange_import_adoption_commit.py",
+          "workers/tests/test_interchange_import_adoption_prepare.py",
+          "workers/tests/test_interchange_import_adoption_routing.py",
+          "workers/tests/test_interchange_import_adoption_runtime.py",
+          "workers/tests/test_interchange_installation.py"
+        ],
+        "truncated": false
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "v2.interchange.export",
+      "package": "V30",
+      "version": "1",
+      "api_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/interchange/export_task.go",
+          "backend/internal/interchange/export_ticket_recovery.go"
+        ],
+        "truncated": false
+      },
+      "sql_candidates": {
+        "count": 13,
+        "files": [
+          "backend/db/migrations/00197_v21_foundation.sql",
+          "backend/db/migrations/01359_v30_interchange_export_materialization.sql",
+          "backend/db/migrations/01361_v30_interchange_export_worker_admission.sql",
+          "backend/db/migrations/01362_v30_interchange_export_output_catalog.sql",
+          "backend/db/migrations/01365_v30_interchange_export_adoption_guard.sql",
+          "backend/db/migrations/01368_v30_interchange_export_finalization.sql",
+          "backend/db/migrations/01370_v30_interchange_export_projection.sql",
+          "backend/db/migrations/01372_v30_interchange_export_draft_admission.sql",
+          "backend/db/migrations/01373_v30_interchange_export_seal_guard.sql",
+          "backend/db/migrations/01374_v30_interchange_export_activation.sql",
+          "backend/db/migrations/02033_v30_export_adoption_root.sql",
+          "backend/db/migrations/02034_v30_export_adoption_claim.sql"
+        ],
+        "truncated": true
+      },
+      "worker_candidates": {
+        "count": 3,
+        "files": [
+          "workers/photo_worker/operations/interchange/export_adapter.py",
+          "workers/photo_worker/operations/interchange/export_admission.py",
+          "workers/photo_worker/v2/interchange_descriptor_occurrences.py"
+        ],
+        "truncated": false
+      },
+      "client_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 9,
+        "files": [
+          "backend/internal/interchange/export_seal_guard_sql_integration_test.go",
+          "backend/internal/interchange/export_task_test.go",
+          "workers/tests/test_interchange_descriptor_installation.py",
+          "workers/tests/test_interchange_descriptor_sql_authority.py",
+          "workers/tests/test_interchange_export_adapter.py",
+          "workers/tests/test_interchange_export_admission.py",
+          "workers/tests/test_interchange_import_adopter_installation.py",
+          "workers/tests/test_interchange_installation.py",
+          "workers/tests/test_interchange_parse_adoption_commit.py"
+        ],
+        "truncated": false
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "v2.semantic.assemble",
+      "package": "V27",
+      "version": "1",
+      "api_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 3,
+        "files": [
+          "backend/internal/v2input/semantic_assembly.go",
+          "backend/internal/v2input/semantic_assembly_commit.go",
+          "backend/internal/v2input/semantic_assembly_store.go"
+        ],
+        "truncated": false
+      },
+      "sql_candidates": {
+        "count": 15,
+        "files": [
+          "backend/db/migrations/00495_v27_semantic_assembly_adoption_params.sql",
+          "backend/db/migrations/00497_v27_semantic_final_producer_gate.sql",
+          "backend/db/migrations/00499_v27_semantic_final_snapshot_authority.sql",
+          "backend/db/migrations/00501_v27_semantic_finalization_guard.sql",
+          "backend/db/migrations/00502_v27_semantic_assembly_lease.sql",
+          "backend/db/migrations/00506_v27_semantic_assembly_stage.sql",
+          "backend/db/migrations/00507_v27_semantic_transport_documents.sql",
+          "backend/db/migrations/00518_v27_semantic_adoption_qualification.sql",
+          "backend/db/migrations/00519_v27_semantic_adoption_qualification_fence.sql",
+          "backend/db/migrations/00520_v27_semantic_adoption_calibration_pin.sql",
+          "backend/db/migrations/00526_v27_semantic_assembly_worker_qualification.sql",
+          "backend/db/migrations/00530_v27_semantic_assembly_scratch_budget.sql"
+        ],
+        "truncated": true
+      },
+      "worker_candidates": {
+        "count": 3,
+        "files": [
+          "workers/photo_worker/operations/semantic/assemble_adapter.py",
+          "workers/photo_worker/v2/adoption.py",
+          "workers/photo_worker/v2/adoption_service.py"
+        ],
+        "truncated": false
+      },
+      "client_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 8,
+        "files": [
+          "tests/integration/test_v27_semantic_assembly_stage.py",
+          "tests/integration/test_v27_semantic_final_producer_gate.py",
+          "tests/integration/test_v27_semantic_plan_objectstore.py",
+          "tests/integration/test_v27_semantic_qualification_objectstore.py",
+          "tests/integration/v27_cpu_wire_probe.py",
+          "tests/platform/test_semantic_adoption_coordinator.py",
+          "tests/platform/test_semantic_plan_adoption.py",
+          "tests/platform/test_worker_service.py"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 3,
+        "files": [
+          "backend/internal/gateway/v27_wire_integration_test.go",
+          "backend/internal/v2input/semantic_assembly_orchestrator_test.go",
+          "backend/internal/v2input/semantic_assembly_test.go"
+        ],
+        "truncated": false
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "v2.interchange.parse",
+      "package": "V30",
+      "version": "1",
+      "api_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/interchange/parse_plan.go",
+          "backend/internal/interchange/parse_recovery.go"
+        ],
+        "truncated": false
+      },
+      "sql_candidates": {
+        "count": 21,
+        "files": [
+          "backend/db/migrations/00197_v21_foundation.sql",
+          "backend/db/migrations/01302_v30_interchange_parse_admission.sql",
+          "backend/db/migrations/01303_v30_interchange_parse_proof.sql",
+          "backend/db/migrations/01308_v30_interchange_parse_materialization.sql",
+          "backend/db/migrations/01309_v30_interchange_parse_activation.sql",
+          "backend/db/migrations/01310_v30_interchange_parse_adoption_params.sql",
+          "backend/db/migrations/01311_v30_interchange_ingest_bindings.sql",
+          "backend/db/migrations/01313_v30_interchange_ingest_run.sql",
+          "backend/db/migrations/01317_v30_interchange_ingest_principal.sql",
+          "backend/db/migrations/01318_v30_interchange_parse_commit.sql",
+          "backend/db/migrations/01319_v30_interchange_parse_recovery.sql",
+          "backend/db/migrations/01322_v30_interchange_import_sources.sql"
+        ],
+        "truncated": true
+      },
+      "worker_candidates": {
+        "count": 4,
+        "files": [
+          "workers/photo_worker/operations/interchange/parse.py",
+          "workers/photo_worker/v2/adoption_service.py",
+          "workers/photo_worker/v2/interchange_parse_adoption_commit.py",
+          "workers/photo_worker/v2/interchange_parse_adoption_prepare.py"
+        ],
+        "truncated": false
+      },
+      "client_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 6,
+        "files": [
+          "backend/internal/interchange/parse_plan_test.go",
+          "workers/tests/test_interchange_import_adoption_commit.py",
+          "workers/tests/test_interchange_parse_adapter.py",
+          "workers/tests/test_interchange_parse_adoption.py",
+          "workers/tests/test_interchange_parse_adoption_commit.py",
+          "workers/tests/test_interchange_parse_adoption_prepare.py"
+        ],
+        "truncated": false
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "v2.delivery.prepare",
+      "package": "V30",
+      "version": "1",
+      "api_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 6,
+        "files": [
+          "backend/internal/delivery/create_intent.go",
+          "backend/internal/delivery/frozen_prepare_task.go",
+          "backend/internal/delivery/prepare_plan.go",
+          "backend/internal/delivery/prepare_transport_registration.go",
+          "backend/internal/delivery/watermark_proof_repository.go",
+          "backend/internal/v2input/delivery_closure.go"
+        ],
+        "truncated": false
+      },
+      "sql_candidates": {
+        "count": 23,
+        "files": [
+          "backend/db/migrations/01216_v30_delivery_lease.sql",
+          "backend/db/migrations/01217_v30_delivery_source.sql",
+          "backend/db/migrations/01218_v30_delivery_prepare_proof.sql",
+          "backend/db/migrations/01223_v30_delivery_package_admission.sql",
+          "backend/db/migrations/01224_v30_delivery_prepare_adoption.sql",
+          "backend/db/migrations/01225_v30_delivery_expansion_lease.sql",
+          "backend/db/migrations/01261_v30_delivery_assembly_task.sql",
+          "backend/db/migrations/01268_v30_delivery_assembly_source_context.sql",
+          "backend/db/migrations/01271_v30_delivery_worker_assembly_source.sql",
+          "backend/db/migrations/01285_v30_delivery_publication_source.sql",
+          "backend/db/migrations/01295_v30_delivery_prepare_materialization.sql",
+          "backend/db/migrations/01296_v30_delivery_prepare_inventory_resources.sql"
+        ],
+        "truncated": true
+      },
+      "worker_candidates": {
+        "count": 4,
+        "files": [
+          "workers/photo_worker/operations/delivery/adapter.py",
+          "workers/photo_worker/operations/delivery/admission.py",
+          "workers/photo_worker/v2/adoption.py",
+          "workers/photo_worker/v2/adoption_service.py"
+        ],
+        "truncated": false
+      },
+      "client_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 2,
+        "files": [
+          "tests/platform/test_delivery_adapter.py",
+          "tests/platform/test_delivery_admission.py"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 4,
+        "files": [
+          "backend/internal/delivery/expansion_plan_test.go",
+          "backend/internal/delivery/prepare_plan_test.go",
+          "backend/internal/delivery/prepare_resources_test.go",
+          "workers/tests/test_delivery_preparation_lifecycle.py"
+        ],
+        "truncated": false
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "region.preview",
+      "package": "V26",
+      "version": "1",
+      "api_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 3,
+        "files": [
+          "backend/internal/v2region/region_queue.go",
+          "backend/internal/v2region/region_shell.go",
+          "backend/internal/v2region/region_transport.go"
+        ],
+        "truncated": false
+      },
+      "sql_candidates": {
+        "count": 16,
+        "files": [
+          "backend/db/migrations/00367_v26_region_operation_catalog.sql",
+          "backend/db/migrations/00368_v26_region_adoption_params.sql",
+          "backend/db/migrations/00370_v26_region_adoption_authority.sql",
+          "backend/db/migrations/00372_v26_region_snapshot_authority.sql",
+          "backend/db/migrations/00373_v26_region_admission_scope.sql",
+          "backend/db/migrations/00374_v26_region_seal_scope.sql",
+          "backend/db/migrations/00375_v26_region_seal_runtime_pins.sql",
+          "backend/db/migrations/00376_v26_region_worker_admission.sql",
+          "backend/db/migrations/00377_v26_region_worker_registration_lock.sql",
+          "backend/db/migrations/00378_v26_region_params_readiness.sql",
+          "backend/db/migrations/00380_v26_region_availability.sql",
+          "backend/db/migrations/00381_v26_region_descriptor_scope.sql"
+        ],
+        "truncated": true
+      },
+      "worker_candidates": {
+        "count": 4,
+        "files": [
+          "workers/photo_worker/operations/region/adapter.py",
+          "workers/photo_worker/operations/region/admission.py",
+          "workers/photo_worker/v2/adoption.py",
+          "workers/photo_worker/v2/adoption_service.py"
+        ],
+        "truncated": false
+      },
+      "client_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 10,
+        "files": [
+          "tests/integration/test_v26_region_descriptor_scope.py",
+          "tests/integration/test_v26_region_publish_go.py",
+          "tests/integration/test_v26_region_qualification.py",
+          "tests/integration/test_v26_region_registry.py",
+          "tests/integration/test_v26_region_seal_scope.py",
+          "tests/integration/test_v26_region_source.py",
+          "tests/platform/test_region_preview_adoption.py",
+          "tests/platform/test_region_preview_sql_admission.py",
+          "tests/platform/test_v2_adopter_service.py",
+          "tests/platform/test_worker_service.py"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 4,
+        "files": [
+          "backend/internal/v2region/region_node_test.go",
+          "backend/internal/v2region/region_publish_integration_test.go",
+          "backend/internal/v2region/region_qualification_integration_test.go",
+          "backend/internal/v2region/region_seal_test.go"
+        ],
+        "truncated": false
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "render.compose",
+      "package": "V26",
+      "version": "1",
+      "api_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 49,
+        "files": [
+          "backend/internal/delivery/provenance_delegated_adopted_producer.go",
+          "backend/internal/delivery/provenance_delegated_adopted_result.go",
+          "backend/internal/delivery/provenance_delegated_candidate_review.go",
+          "backend/internal/delivery/provenance_delegated_render_inputs.go",
+          "backend/internal/delivery/provenance_delegated_render_mask.go",
+          "backend/internal/delivery/provenance_delegated_render_parents.go",
+          "backend/internal/delivery/provenance_delegated_render_pixels.go",
+          "backend/internal/delivery/provenance_delegated_render_qualification.go",
+          "backend/internal/delivery/provenance_delegated_review_adapters.go",
+          "backend/internal/provenance/delegated_presentation_claims.go",
+          "backend/internal/provenance/delegated_render_evidence.go",
+          "backend/internal/provenance/delegated_render_mask.go"
+        ],
+        "truncated": true
+      },
+      "sql_candidates": {
+        "count": 75,
+        "files": [
+          "backend/db/migrations/00392_v26_render_recipe_task_stage.sql",
+          "backend/db/migrations/00393_v26_render_profile_shape.sql",
+          "backend/db/migrations/00394_v26_render_task_identity.sql",
+          "backend/db/migrations/00395_v26_render_source_resource_floor.sql",
+          "backend/db/migrations/00396_v26_render_run_output_quota.sql",
+          "backend/db/migrations/00397_v26_render_workflow_identity.sql",
+          "backend/db/migrations/00398_v26_render_snapshot_binding.sql",
+          "backend/db/migrations/00400_v26_render_transport_scope.sql",
+          "backend/db/migrations/00401_v26_render_input_state.sql",
+          "backend/db/migrations/00402_v26_render_input_seal_guard.sql",
+          "backend/db/migrations/00403_v26_render_input_contract_lock.sql",
+          "backend/db/migrations/00404_v26_render_closure_readiness.sql"
+        ],
+        "truncated": true
+      },
+      "worker_candidates": {
+        "count": 20,
+        "files": [
+          "workers/photo_worker/runtime/restore_batch_adoption.py",
+          "workers/photo_worker/runtime/restore_parent_reports.py",
+          "workers/photo_worker/runtime/restore_render_array_catalogue.py",
+          "workers/photo_worker/runtime/restore_render_input_array.py",
+          "workers/photo_worker/runtime/restore_render_preview_catalogue.py",
+          "workers/photo_worker/runtime/restore_render_review.py",
+          "workers/photo_worker/runtime/restore_render_review_decide.py",
+          "workers/photo_worker/runtime/restore_render_review_pending.py",
+          "workers/photo_worker/runtime/restore_render_semantics.py",
+          "workers/photo_worker/runtime/restore_render_terminal.py",
+          "workers/photo_worker/runtime/restore_revoke_running.py",
+          "workers/photo_worker/v2/adoption.py"
+        ],
+        "truncated": true
+      },
+      "client_candidates": {
+        "count": 3,
+        "files": [
+          "apps/photographer/src/negative-result-selection.ts",
+          "apps/photographer/src/owner-api.ts",
+          "apps/photographer/src/review-binding.ts"
+        ],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 23,
+        "files": [
+          "tests/integration/render_adoption_inputs_fixture.py",
+          "tests/integration/render_worker_admission_fixture.py",
+          "tests/integration/test_v26_render_batch_part_counts.py",
+          "tests/integration/test_v26_render_cache_objectstore.py",
+          "tests/integration/test_v26_render_finalizer_tenant_scope.py",
+          "tests/integration/test_v26_render_protection_scope.py",
+          "tests/integration/test_v26_render_qualification.py",
+          "tests/integration/test_v26_render_registration.py",
+          "tests/integration/test_v26_render_task_stage.py",
+          "tests/integration/test_v29_negative_selection_completion.py",
+          "tests/platform/test_restore_parent_inheritance.py",
+          "tests/platform/test_restore_render_review_decide.py"
+        ],
+        "truncated": true
+      },
+      "unit_candidates": {
+        "count": 49,
+        "files": [
+          "backend/internal/delivery/provenance_delegated_adopted_result_test.go",
+          "backend/internal/delivery/provenance_delegated_candidate_review_test.go",
+          "backend/internal/delivery/provenance_delegated_render_inputs_test.go",
+          "backend/internal/provenance/child_outputs_test.go",
+          "backend/internal/provenance/delegated_complex_claims_test.go",
+          "backend/internal/provenance/delegated_presentation_claims_test.go",
+          "backend/internal/provenance/delegated_render_mask_counter_test.go",
+          "backend/internal/provenance/delegated_render_pixel_ancestry_test.go",
+          "backend/internal/provenance/delegated_render_pixels_test.go",
+          "backend/internal/provenance/delegated_render_recipe_test.go",
+          "backend/internal/provenance/lineage_graph_test.go",
+          "backend/internal/provenance/negative_execution_installation_test.go"
+        ],
+        "truncated": true
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "semantic.local_exposure",
+      "package": "V27",
+      "version": "1",
+      "api_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 3,
+        "files": [
+          "backend/internal/semanticreview/exposure_report.go",
+          "backend/internal/semanticreview/exposure_task.go",
+          "backend/internal/v2input/exposure_closure.go"
+        ],
+        "truncated": false
+      },
+      "sql_candidates": {
+        "count": 20,
+        "files": [
+          "backend/db/migrations/00552_v27_local_exposure_worker_admission.sql",
+          "backend/db/migrations/00553_v27_local_exposure_geometry_pins.sql",
+          "backend/db/migrations/00563_v27_local_exposure_registry.sql",
+          "backend/db/migrations/00564_v27_exposure_adoption_params.sql",
+          "backend/db/migrations/00571_v27_exposure_adoption_commit.sql",
+          "backend/db/migrations/00572_v27_apply_child_adoption_inventory.sql",
+          "backend/db/migrations/00573_v27_exposure_adoption_source_locks.sql",
+          "backend/db/migrations/00574_v27_approved_exposure_nodes.sql",
+          "backend/db/migrations/00575_v27_exposure_batch_qualification_locks.sql",
+          "backend/db/migrations/00580_v27_exposure_inventory_digest.sql",
+          "backend/db/migrations/00581_v27_exposure_inventory_batch.sql",
+          "backend/db/migrations/00582_v27_apply_input_relational_scope.sql"
+        ],
+        "truncated": true
+      },
+      "worker_candidates": {
+        "count": 11,
+        "files": [
+          "workers/photo_worker/operations/semantic/exposure_adapter.py",
+          "workers/photo_worker/operations/semantic/exposure_admission.py",
+          "workers/photo_worker/operations/semantic/exposure_installation.py",
+          "workers/photo_worker/operations/semantic/exposure_protection.py",
+          "workers/photo_worker/operations/semantic/exposure_quality.py",
+          "workers/photo_worker/operations/semantic/exposure_result.py",
+          "workers/photo_worker/v2/adoption.py",
+          "workers/photo_worker/v2/adoption_service.py",
+          "workers/photo_worker/v2/exposure_adoption.py",
+          "workers/photo_worker/v2/exposure_params.py",
+          "workers/photo_worker/v2/semantic_qualification_report.py"
+        ],
+        "truncated": false
+      },
+      "client_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 22,
+        "files": [
+          "tests/integration/test_v27_approved_exposure_nodes.py",
+          "tests/integration/test_v27_approved_params_publication_scope.py",
+          "tests/integration/test_v27_downstream_qualification_pins.py",
+          "tests/integration/test_v27_exposure_adoption_params.py",
+          "tests/integration/test_v27_exposure_inventory_digest.py",
+          "tests/integration/test_v27_exposure_qualified_admission.py",
+          "tests/integration/test_v27_local_exposure_admission.py",
+          "tests/integration/test_v27_local_exposure_registry.py",
+          "tests/integration/test_v27_semantic_qualification_objectstore.py",
+          "tests/integration/v27_exposure_inputs_probe.py",
+          "tests/platform/test_exposure_installed_execution.py",
+          "tests/platform/test_exposure_qualification_loader.py"
+        ],
+        "truncated": true
+      },
+      "unit_candidates": {
+        "count": 4,
+        "files": [
+          "backend/internal/gateway/v27_wire_integration_test.go",
+          "backend/internal/semanticreview/exposure_report_test.go",
+          "backend/internal/semanticreview/exposure_task_test.go",
+          "backend/internal/semanticreview/read_integration_test.go"
+        ],
+        "truncated": false
+      },
+      "trace_status": "not_verified"
+    },
+    {
+      "id": "optical.perspective_lines",
+      "package": "V29",
+      "version": "1",
+      "api_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "service_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/workflow/perspective_lines_execution_policy.go",
+          "backend/internal/workflow/perspective_lines_plan.go"
+        ],
+        "truncated": false
+      },
+      "sql_candidates": {
+        "count": 20,
+        "files": [
+          "backend/db/migrations/01109_v29_perspective_line_detection_registry.sql",
+          "backend/db/migrations/01110_v29_perspective_line_detection_materialize.sql",
+          "backend/db/migrations/01117_v29_perspective_lines_workflow.sql",
+          "backend/db/migrations/01121_v29_perspective_lines_activate.sql",
+          "backend/db/migrations/01122_v29_perspective_lines_adoption_evidence.sql",
+          "backend/db/migrations/01123_v29_perspective_lines_adoption_commit.sql",
+          "backend/db/migrations/01124_v29_perspective_lines_adoption_params.sql",
+          "backend/db/migrations/01125_v29_perspective_lines_adoption_recovery.sql",
+          "backend/db/migrations/01126_v29_adopted_perspective_lines_read.sql",
+          "backend/db/migrations/01128_v29_perspective_lines_pending_recovery.sql",
+          "backend/db/migrations/01129_v29_perspective_lines_lifecycle.sql",
+          "backend/db/migrations/01130_v29_perspective_lines_failure_finalization.sql"
+        ],
+        "truncated": true
+      },
+      "worker_candidates": {
+        "count": 5,
+        "files": [
+          "workers/photo_worker/operations/optical/perspective_line_detection.py",
+          "workers/photo_worker/operations/optical/perspective_lines_installation.py",
+          "workers/photo_worker/v2/adoption_service.py",
+          "workers/photo_worker/v2/perspective_replacement_detection_bridge.py",
+          "workers/photo_worker/v2/perspective_replacement_detection_job.py"
+        ],
+        "truncated": false
+      },
+      "client_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "platform_tests_candidates": {
+        "count": 2,
+        "files": [
+          "tests/integration/test_v32_perspective_primary_queue.py",
+          "tests/platform/test_perspective_lines_installation.py"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/workflow/perspective_lines_plan_test.go",
+          "backend/internal/workflow/perspective_replacement_detection_publication_test.go"
+        ],
+        "truncated": false
+      },
+      "trace_status": "not_verified"
+    }
+  ],
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/shoot-sessions",
+      "package": "V22",
+      "handler": "CreateSession",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/v2sessions/service.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/shoot-sessions/{id}",
+      "package": "V22",
+      "handler": "GetSession",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/capture_routes_test.go"
+        ],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/shoot-sessions",
+      "package": "V22",
+      "handler": "ListSessions",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/auth/service.go",
+          "backend/internal/httpapi/catalog.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/capture_routes_test.go"
+        ],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/tenants/{t}/shoot-sessions/{id}",
+      "package": "V22",
+      "handler": "UpdateSession",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/v2sessions/service.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/capture_routes_test.go"
+        ],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/shoot-sessions/{id}/analyses",
+      "package": "V22",
+      "handler": "AnalyzeSession",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/session-analyses/{id}",
+      "package": "V22",
+      "handler": "GetAnalysis",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/httpapi/catalog.go",
+          "backend/internal/v2sessions/analysis.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/session-analyses/{id}/apply",
+      "package": "V22",
+      "handler": "ApplyAnalysis",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/httpapi/catalog.go",
+          "backend/internal/v2sessions/apply_analysis.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/v2sessions/apply_new_integration_test.go",
+          "backend/internal/v2sessions/apply_replay_integration_test.go"
+        ],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/corrections",
+      "package": "V23",
+      "handler": "RecordCorrection",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/httpapi/catalog.go",
+          "backend/internal/v2learning/correction.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/learning-profiles",
+      "package": "V23",
+      "handler": "CreateProfile",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/httpapi/catalog.go",
+          "backend/internal/v2learning/profile.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/v2learning/profile_integration_test.go"
+        ],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/learning-profiles/{id}",
+      "package": "V23",
+      "handler": "GetProfile",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/httpapi/catalog.go",
+          "backend/internal/v2learning/profile.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/v2learning/profile_integration_test.go"
+        ],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/learning-profiles/{id}/train",
+      "package": "V23",
+      "handler": "TrainProfile",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 4,
+        "files": [
+          "backend/internal/httpapi/catalog.go",
+          "backend/internal/v2learning/fit_factory.go",
+          "backend/internal/v2learning/stage.go",
+          "backend/internal/v2learning/train_service.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/learning-profiles/{id}/versions",
+      "package": "V23",
+      "handler": "ListVersions",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 3,
+        "files": [
+          "backend/internal/httpapi/catalog.go",
+          "backend/internal/style/service.go",
+          "backend/internal/v2learning/versions.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/style/service_test.go",
+          "backend/internal/v2learning/profile_integration_test.go"
+        ],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/learning-profiles/{id}/activate",
+      "package": "V23",
+      "handler": "ActivateProfile",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/httpapi/catalog.go",
+          "backend/internal/v2learning/activation.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/consents",
+      "package": "V22",
+      "handler": "ChangeConsent",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/httpapi/catalog.go",
+          "backend/internal/v2people/service.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/projects/{id}/consents",
+      "package": "V22",
+      "handler": "ListConsents",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "dynamic_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_dynamic_table_candidate",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/project-persons",
+      "package": "V22",
+      "handler": "CreatePerson",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/v2people/service.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/semanticproposal/publication_integration_test.go"
+        ],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/projects/{id}/persons",
+      "package": "V22",
+      "handler": "ListPersons",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "dynamic_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/capture_routes_test.go"
+        ],
+        "truncated": false
+      },
+      "route_mount_status": "static_dynamic_table_candidate",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/project-persons/{id}/observations",
+      "package": "V22",
+      "handler": "ConfirmObservation",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/v2observation/service.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/project-persons/{id}/revoke",
+      "package": "V22",
+      "handler": "RevokePerson",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/v2people/service.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/tenants/{t}/shoot-sessions/{id}/shot-list",
+      "package": "V24",
+      "handler": "ReplaceShotList",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/httpapi/catalog.go",
+          "backend/internal/v2draft/shot_list.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/httpapi/capture_routes_test.go",
+          "backend/internal/v2draft/shot_list_integration_test.go"
+        ],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/shoot-sessions/{id}/shot-list",
+      "package": "V24",
+      "handler": "GetShotList",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/httpapi/catalog.go",
+          "backend/internal/v2draft/shot_list.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/httpapi/capture_routes_test.go",
+          "backend/internal/v2draft/shot_list_integration_test.go"
+        ],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/capture-devices",
+      "package": "V24",
+      "handler": "RegisterDevice",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/v2capture/service.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/capture-devices/{id}/revoke",
+      "package": "V24",
+      "handler": "RevokeDevice",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/v2capture/service.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/capture-devices/{id}/challenges",
+      "package": "V24",
+      "handler": "CreateChallenge",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/httpapi/catalog.go",
+          "backend/internal/v2capture/challenge.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/capture-devices/{id}/token",
+      "package": "V24",
+      "handler": "ExchangeChallenge",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/httpapi/catalog.go",
+          "backend/internal/v2capture/challenge.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/shoot-sessions/{id}/capture-receipts",
+      "package": "V24",
+      "handler": "AcceptReceipt",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/httpapi/catalog.go",
+          "backend/internal/v2capture/receipt.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/shoot-sessions/{id}/alerts",
+      "package": "V24",
+      "handler": "ListAlerts",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/httpapi/catalog.go",
+          "backend/internal/v2capture/list_alerts.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/capture_routes_test.go"
+        ],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/capture-receipts/{id}/confirm",
+      "package": "V24",
+      "handler": "ConfirmFrame",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/httpapi/catalog.go",
+          "backend/internal/v2capture/confirm.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/capture_routes_test.go"
+        ],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/capture-alerts/{id}/ack",
+      "package": "V24",
+      "handler": "Acknowledge",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/httpapi/catalog.go",
+          "backend/internal/v2capture/alerts.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/capture_routes_test.go"
+        ],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/tenants/{t}/assets/{id}/v2-draft",
+      "package": "V21",
+      "handler": "ReplaceDraft",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/assets/{id}/v2-draft",
+      "package": "V21",
+      "handler": "GetDraft",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/editor/service.go",
+          "backend/internal/httpapi/catalog.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/assets/{id}/v2-binding",
+      "package": "V21",
+      "handler": "GetDraftBinding",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/assets/{id}/v2-draft/history",
+      "package": "V21",
+      "handler": "ListDraftHistory",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/assets/{id}/v2-draft/approve",
+      "package": "V21",
+      "handler": "ApproveDraft",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/assets/{id}/v2-draft/freeze",
+      "package": "V26",
+      "handler": "FreezeRenderDraft",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/render_freeze.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/render-input-snapshots",
+      "package": "V26",
+      "handler": "CreateRenderInputSnapshot",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/render_input_snapshot.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/projects/{id}/render-policy",
+      "package": "V26",
+      "handler": "GetRenderPolicy",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/render_policy.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/assets/{id}/region-previews",
+      "package": "V26",
+      "handler": "PreviewRegion",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/region.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/render-batches",
+      "package": "V26",
+      "handler": "QueueRenderBatch",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/render.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/relight-analyses",
+      "package": "V28",
+      "handler": "SubmitRelightAnalysis",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/relight_analysis.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/relight-preparation",
+      "package": "V28",
+      "handler": "PrepareRelightIntent",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/relight_preparation.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/relight-candidates",
+      "package": "V28",
+      "handler": "ListRelightCandidates",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/relight_candidates.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/relight-intents",
+      "package": "V28",
+      "handler": "SubmitRelight",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/relight_submit.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/v2portrait/relight_resolved_submit.go",
+          "backend/internal/v2portrait/relight_submit.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/semantic-intents",
+      "package": "V27",
+      "handler": "Propose",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/semantic_propose.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/semantic_propose.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 5,
+        "files": [
+          "backend/internal/httpapi/semantic_propose.go",
+          "backend/internal/semanticproposal/create_service.go",
+          "backend/internal/semanticproposal/defect_origin_first_stage.go",
+          "backend/internal/semanticproposal/manual_recovery_service.go",
+          "backend/internal/semanticproposal/project_create_service.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 3,
+        "files": [
+          "backend/internal/semanticproposal/create_integration_probe_test.go",
+          "backend/internal/semanticproposal/manual_recovery_service_test.go",
+          "backend/internal/semanticproposal/publication_integration_test.go"
+        ],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/semantic-intents/{id}/targets",
+      "package": "V27",
+      "handler": "ListTargets",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/semantic_review.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/semantic-intents/{id}/apply",
+      "package": "V27",
+      "handler": "ApplyApproved",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/semantic_review.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/delivery-packages",
+      "package": "V30",
+      "handler": "CreateDelivery",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/delivery_create.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/delivery.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 7,
+        "files": [
+          "backend/internal/delivery/create_activate.go",
+          "backend/internal/delivery/create_admit_service.go",
+          "backend/internal/delivery/create_stage.go",
+          "backend/internal/delivery/metadata_source_api.go",
+          "backend/internal/delivery/watermark_create_stage.go",
+          "backend/internal/httpapi/delivery_create.go",
+          "backend/internal/provenance/policy_choices.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/delivery_create_test.go"
+        ],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/delivery-packages/{id}",
+      "package": "V30",
+      "handler": "GetDelivery",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/delivery.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/delivery-packages/{id}/publish",
+      "package": "V30",
+      "handler": "PublishDelivery",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/delivery.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/interchange-jobs",
+      "package": "V30",
+      "handler": "CreateInterchange",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/interchange_create.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/interchange.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/interchange_create.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/interchange_create_test.go"
+        ],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/interchange-jobs/{id}",
+      "package": "V30",
+      "handler": "GetInterchange",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/interchange.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/exports/{id}/provenance",
+      "package": "V31",
+      "handler": "SignExport",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/provenance.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/provenance.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 6,
+        "files": [
+          "backend/internal/delivery/provenance_signing_start.go",
+          "backend/internal/httpapi/provenance.go",
+          "backend/internal/provenance/operator_installation.go",
+          "backend/internal/provenance/presentation_installation.go",
+          "backend/internal/provenance/sign_service.go",
+          "backend/internal/provenance/signing_tenant_router.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 5,
+        "files": [
+          "backend/internal/delivery/provenance_signing_start_test.go",
+          "backend/internal/httpapi/provenance_test.go",
+          "backend/internal/provenance/operator_installation_test.go",
+          "backend/internal/provenance/sign_service_test.go",
+          "backend/internal/provenance/signing_tenant_router_test.go"
+        ],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/v2-documents/{id}",
+      "package": "V21",
+      "handler": "GetDocument",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 4,
+        "files": [
+          "backend/internal/httpapi/catalog.go",
+          "backend/internal/v2draft/document.go",
+          "backend/internal/v2draft/layer_read.go",
+          "backend/internal/v2learning/correction.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/v2draft/shot_list_integration_test.go"
+        ],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/v2-workflows/{id}",
+      "package": "V21",
+      "handler": "GetWorkflow",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/v2-workflows/{id}/cancel",
+      "package": "V21",
+      "handler": "CancelWorkflow",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/runs/{id}/semantic-intent",
+      "package": "V27",
+      "handler": "ReadRunIntent",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/semantic_review.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/semantic_review.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/httpapi/semantic_review.go",
+          "backend/internal/semanticreview/run_intent.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/semanticreview/run_intent_integration_probe_test.go",
+          "backend/internal/semanticreview/run_intent_test.go"
+        ],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/assets/{id}/region-previews/{run}/descriptor",
+      "package": "V26",
+      "handler": "GetRegionPreviewDescriptor",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/region.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/assets/{id}/v2-layers/{artifact}",
+      "package": "V26",
+      "handler": "GetLayerStack",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/httpapi/catalog.go",
+          "backend/internal/v2draft/layer_read.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/v2draft/approval_read_integration_test.go"
+        ],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/shoot-sessions/{id}/analyses",
+      "package": "V26",
+      "handler": "ListSessionAnalyses",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/session-analyses/{id}/scene-board",
+      "package": "V26",
+      "handler": "GetSceneBoard",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/httpapi/catalog.go",
+          "backend/internal/v2sessions/scene_board.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/v2sessions/apply_new_integration_test.go",
+          "backend/internal/v2sessions/scene_board_test.go"
+        ],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/semantic-intents/{id}/close-review",
+      "package": "V27",
+      "handler": "CloseSemanticReview",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/semantic_review.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/interchange-jobs/{id}/decisions",
+      "package": "V30",
+      "handler": "DecideImport",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/interchange_decide.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/interchange.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 5,
+        "files": [
+          "backend/internal/httpapi/interchange_decide.go",
+          "backend/internal/interchange/import_approval_catalog.go",
+          "backend/internal/interchange/import_style_registration.go",
+          "backend/internal/interchange/review_approval.go",
+          "backend/internal/interchange/review_decide_service.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/interchange-jobs/{id}/close-review",
+      "package": "V30",
+      "handler": "CloseImportReview",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/interchange_close.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/interchange.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/httpapi/interchange_close.go",
+          "backend/internal/interchange/review_close_service.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/learning-versions/{id}/safety-review",
+      "package": "V23",
+      "handler": "ReviewLearningSafety",
+      "api_handler_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 2,
+        "files": [
+          "backend/internal/httpapi/catalog.go",
+          "backend/internal/v2learning/activation.go"
+        ],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/projects/{id}/reviews/{review}/perspective-replacements/{original}",
+      "package": "V29",
+      "handler": "GetPerspectiveReplacementReviewScope",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/perspective_replacement_review.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/reviews/{review}/perspective-replacements",
+      "package": "V29",
+      "handler": "ListPerspectiveReplacementReviews",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/perspective_replacement_review.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/projects/{id}/reviews/{review}/multi-replacements/{original}",
+      "package": "V29",
+      "handler": "GetMultiReplacementReviewScope",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/multi_replacement_review.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/reviews/{review}/multi-replacements",
+      "package": "V29",
+      "handler": "ListMultiReplacementReviews",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/multi_replacement_review.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads",
+      "package": "V30",
+      "handler": "BeginInterchangeArchiveUpload",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/interchange.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/{upload}/parts",
+      "package": "V30",
+      "handler": "SignInterchangeArchiveParts",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/interchange.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/{upload}/complete",
+      "package": "V30",
+      "handler": "CompleteInterchangeArchiveUpload",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/interchange.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/{upload}/abort",
+      "package": "V30",
+      "handler": "AbortInterchangeArchiveUpload",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/interchange.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/attempt-status",
+      "package": "V30",
+      "handler": "ReadInterchangeArchiveAttemptStatus",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/interchange.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/{upload}",
+      "package": "V30",
+      "handler": "GetInterchangeArchiveUpload",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/interchange.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/projects/{id}/raw-capabilities",
+      "package": "V25",
+      "handler": "GetRAWCapabilities",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/media/review-pending",
+      "package": "V26",
+      "handler": "GetPendingReviewMedia",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/media/render-selected",
+      "package": "V26",
+      "handler": "GetSelectedRenderMedia",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/media/restoration-selected",
+      "package": "V28",
+      "handler": "GetSelectedRestorationMedia",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/media/run-output",
+      "package": "V26",
+      "handler": "GetReviewableRunOutputMedia",
+      "api_handler_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "mounted_route_candidates": {
+        "count": 1,
+        "files": [
+          "backend/internal/httpapi/catalog.go"
+        ]
+      },
+      "dynamic_route_candidates": {
+        "count": 0,
+        "files": []
+      },
+      "service_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "unit_candidates": {
+        "count": 0,
+        "files": [],
+        "truncated": false
+      },
+      "route_mount_status": "static_declaration_only",
+      "trace_status": "not_verified"
+    }
+  ]
+}
