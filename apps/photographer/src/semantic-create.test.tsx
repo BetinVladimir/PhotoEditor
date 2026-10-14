@@ -84,6 +84,15 @@ it('blocks a new semantic attempt when the expired journal cannot be cleared',as
  await waitFor(()=>expect(screen.getByRole('button',{name:'Prepare batch review'}).hasAttribute('disabled')).toBe(true));
  expect(api.selectionSnapshot).toHaveBeenCalledTimes(1);
 });
+it('does not treat an unrelated 410 as an expired semantic snapshot',async()=>{
+ const api=fixture(),store={write:vi.fn().mockResolvedValue(undefined),clear:vi.fn().mockResolvedValue(undefined)} as unknown as SemanticAttemptStore;
+ api.proposeSemanticIntent.mockRejectedValueOnce(new APIError(410,'RESOURCE_REVOKED'));
+ render(<SemanticCreate api={api} store={store} tenant={id} asset={id} version={id} mask={mask} collection={collection} onSubmitted={vi.fn()}/>);
+ fireEvent.click(screen.getByText('Prepare batch review'));
+ await waitFor(()=>expect(store.clear).toHaveBeenCalledTimes(1));
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Prepare batch review'}).hasAttribute('disabled')).toBe(true));
+ expect(api.proposeSemanticIntent).toHaveBeenCalledTimes(1);
+});
 it('refuses a changed asset version before freezing target collection',async()=>{
  const api=fixture();api.v2Binding.mockResolvedValue({...binding,asset_version_id:other});
  render(<SemanticCreate api={api} tenant={id} asset={id} version={id} mask={mask} collection={collection} onSubmitted={vi.fn()}/>);

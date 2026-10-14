@@ -62,7 +62,7 @@ function SemanticCreateScope({api,asset,version,mask,collection,disabled,onSubmi
     let cleared=true;
     if(store)cleared=await store.clear(current.proposalKey).then(()=>true,()=>false);
     if(cleared)attempt.current=null;
-    setRetry(false);setRejected(!(cause instanceof APIError&&cause.status===410&&cleared));setError('semantic_create_rejected');
+    setRetry(false);setRejected(!(cause instanceof APIError&&cause.status===410&&cause.code==='SNAPSHOT_EXPIRED'&&cleared));setError('semantic_create_rejected');
    }else{setRetry(true);setError('semantic_create_unknown')}
   }finally{if(flight.current===controller){flight.current=null;if(!controller.signal.aborted)setBusy(false)}}
  }
