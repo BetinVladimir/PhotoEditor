@@ -37,7 +37,8 @@ func identityPinnedDocument(ref Ref, body json.RawMessage) bool {
 // adapter can read. SQL lineage, consent epochs, model qualification, resource
 // admission and task registration remain independent live gates.
 func CompileIdentityCompareClosure(ctx context.Context, workflow uuid.UUID, ordinal int,
-	params IdentityCompareParams, paramsRef Ref, documents IdentityCompareDocuments) (CaptureClosure, error) {
+	params IdentityCompareParams, paramsRef Ref, documents IdentityCompareDocuments,
+	expectedDatasetSHA string) (CaptureClosure, error) {
 	if err := ctx.Err(); err != nil {
 		return CaptureClosure{}, err
 	}
@@ -49,6 +50,11 @@ func CompileIdentityCompareClosure(ctx context.Context, workflow uuid.UUID, ordi
 		!identityPinnedDocument(params.Protected, documents.Protected) ||
 		!identityPinnedDocument(params.Calibration, documents.Calibration) ||
 		!identityPinnedDocument(params.Consents, documents.Consents) {
+		return CaptureClosure{}, ErrInvalid
+	}
+	if VerifySemanticCalibration(params.Calibration, documents.Calibration,
+		params.ModelLockSHA, expectedDatasetSHA) != nil ||
+		ValidateSessionConsentSnapshot(documents.Consents) != nil {
 		return CaptureClosure{}, ErrInvalid
 	}
 	before, err := review.ParseWorkingImage(documents.Before)

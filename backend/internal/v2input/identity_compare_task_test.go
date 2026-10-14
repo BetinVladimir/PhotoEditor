@@ -38,9 +38,9 @@ func TestIdentityCompareProfileCapacityBounds(t *testing.T) {
 }
 
 func TestIdentityCompareFrozenTaskMatchesClosure(t *testing.T) {
-	p, paramsRef, docs := identityClosureFixture(t)
+	p, paramsRef, docs, dataset := identityClosureFixture(t)
 	workflow := uuid.New()
-	closure, err := CompileIdentityCompareClosure(context.Background(), workflow, 0, p, paramsRef, docs)
+	closure, err := CompileIdentityCompareClosure(context.Background(), workflow, 0, p, paramsRef, docs, dataset)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +50,7 @@ func TestIdentityCompareFrozenTaskMatchesClosure(t *testing.T) {
 	}
 	costs := SemanticQualifiedCosts{RAMBytes: 256 << 20, VRAMBytes: 6 << 30, ScratchBytes: 64 << 20}
 	frozen, err := CompileIdentityCompareTask(context.Background(), workflow, 0, p, paramsRef, docs,
-		sizes, costs, 32<<30, 10<<30, 12<<30, 1<<30)
+		dataset, sizes, costs, 32<<30, 10<<30, 12<<30, 1<<30)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +69,7 @@ func TestIdentityCompareFrozenTaskMatchesClosure(t *testing.T) {
 	} {
 		invalid := change(append([]SemanticInputSize(nil), sizes...))
 		if _, err := CompileIdentityCompareTask(context.Background(), workflow, 0, p, paramsRef, docs,
-			invalid, costs, 32<<30, 10<<30, 12<<30, 1<<30); err == nil {
+			dataset, invalid, costs, 32<<30, 10<<30, 12<<30, 1<<30); err == nil {
 			t.Fatal("invalid inventory accepted")
 		}
 	}

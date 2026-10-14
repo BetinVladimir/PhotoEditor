@@ -14,7 +14,7 @@ import (
 	"photoeditor/backend/internal/review"
 )
 
-func identityClosureFixture(t *testing.T) (IdentityCompareParams, Ref, IdentityCompareDocuments) {
+func identityClosureFixture(t *testing.T) (IdentityCompareParams, Ref, IdentityCompareDocuments, string) {
 	t.Helper()
 	data, err := os.ReadFile("../review/testdata/working-images-python.json")
 	if err != nil {
@@ -53,7 +53,25 @@ func identityClosureFixture(t *testing.T) (IdentityCompareParams, Ref, IdentityC
 	protected.Artifact.SHA256 = strings.Repeat("1", 64)
 	protected.Protected = true
 	effectiveBody, protectedBody := encode(effective), encode(protected)
-	calibration := encode(map[string]any{"schema_version": 1, "model_lock_sha": strings.Repeat("d", 64), "qualified": true})
+	calibrationFile, err := os.ReadFile("../../../docs/implementation-v2/contracts/structural-fixtures.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var structural struct {
+		Fixtures map[string]json.RawMessage `json:"fixtures"`
+	}
+	if err := json.Unmarshal(calibrationFile, &structural); err != nil {
+		t.Fatal(err)
+	}
+	var calibrationFields map[string]any
+	if err := json.Unmarshal(structural.Fixtures["Calibration"], &calibrationFields); err != nil {
+		t.Fatal(err)
+	}
+	dataset := strings.Repeat("c", 64)
+	calibrationFields["model_lock_sha"] = strings.Repeat("d", 64)
+	calibrationFields["dataset_sha"] = dataset
+	calibrationFields["loss_weights"] = []float64{1. / 6, 1. / 6, 1. / 6, 1. / 6, 1. / 6, 1. / 6}
+	calibration := encode(calibrationFields)
 	consents := encode(map[string]any{"schema_version": 1, "grants": []any{}, "confirmed_faces": []any{}})
 	p := IdentityCompareParams{SchemaVersion: 1,
 		Before:        SessionVersionBinding{AssetVersionID: uuid.New(), Source: ref(beforeBody), CanvasHash: canvasHash},
@@ -63,13 +81,13 @@ func identityClosureFixture(t *testing.T) (IdentityCompareParams, Ref, IdentityC
 	if err != nil {
 		t.Fatal(err)
 	}
-	return p, ref(paramsBody), IdentityCompareDocuments{Before: beforeBody, After: afterBody, EffectiveMask: effectiveBody, Protected: protectedBody, Calibration: calibration, Consents: consents}
+	return p, ref(paramsBody), IdentityCompareDocuments{Before: beforeBody, After: afterBody, EffectiveMask: effectiveBody, Protected: protectedBody, Calibration: calibration, Consents: consents}, dataset
 }
 
 func TestIdentityCompareClosureDeclaresExactChildren(t *testing.T) {
-	p, paramsRef, docs := identityClosureFixture(t)
+	p, paramsRef, docs, dataset := identityClosureFixture(t)
 	ctx := context.Background()
-	closure, err := CompileIdentityCompareClosure(ctx, uuid.New(), 0, p, paramsRef, docs)
+	closure, err := CompileIdentityCompareClosure(ctx, uuid.New(), 0, p, paramsRef, docs, dataset)
 	if err != nil || closure.Open == nil || len(closure.Direct) < 11 || closure.InputDigest == "" {
 		t.Fatal("closure", err)
 	}
@@ -117,7 +135,7 @@ func TestIdentityCompareClosureDeclaresExactChildren(t *testing.T) {
 }
 
 func TestIdentityCompareClosureRefusesSubstitution(t *testing.T) {
-	p, paramsRef, docs := identityClosureFixture(t)
+	p, paramsRef, docs, dataset := identityClosureFixture(t)
 	for name, mutate := range map[string]func(*IdentityCompareDocuments){
 		"after bytes":   func(d *IdentityCompareDocuments) { d.After = append(append([]byte(nil), d.After...), ' ') },
 		"consent bytes": func(d *IdentityCompareDocuments) { d.Consents = append(append([]byte(nil), d.Consents...), ' ') },
@@ -125,12 +143,53 @@ func TestIdentityCompareClosureRefusesSubstitution(t *testing.T) {
 	} {
 		changed := docs
 		mutate(&changed)
-		if _, err := CompileIdentityCompareClosure(context.Background(), uuid.New(), 0, p, paramsRef, changed); err == nil {
+		if _, err := CompileIdentityCompareClosure(context.Background(), uuid.New(), 0, p, paramsRef, changed, dataset); err == nil {
 			t.Fatal(name)
 		}
 	}
 	paramsRef.SHA256 = strings.Repeat("0", 64)
-	if _, err := CompileIdentityCompareClosure(context.Background(), uuid.New(), 0, p, paramsRef, docs); err == nil {
+	if _, err := CompileIdentityCompareClosure(context.Background(), uuid.New(), 0, p, paramsRef, docs, dataset); err == nil {
 		t.Fatal("foreign Params accepted")
+	}
+}
+
+func TestIdentityCompareClosureRequiresQualifiedCalibrationAndValidConsents(t *testing.T) {
+	p, paramsRef, docs, dataset := identityClosureFixture(t)
+	if _, err := CompileIdentityCompareClosure(context.Background(), uuid.New(), 0, p, paramsRef, docs, strings.Repeat("9", 64)); err == nil {
+		t.Fatal("foreign dataset accepted")
+	}
+	for name, mutate := range map[string]func(*IdentityCompareDocuments){
+		"unqualified calibration": func(d *IdentityCompareDocuments) {
+			var value map[string]any
+			if json.Unmarshal(d.Calibration, &value) != nil {
+				t.Fatal("fixture")
+			}
+			value["qualified"] = false
+			body, err := canonical.Marshal(value)
+			if err != nil {
+				t.Fatal(err)
+			}
+			d.Calibration = body
+		},
+		"invalid consent grant": func(d *IdentityCompareDocuments) {
+			d.Consents = []byte(`{"schema_version":1,"grants":[{"purpose":"identity_matching"}],"confirmed_faces":[]}`)
+		},
+	} {
+		changed := docs
+		mutate(&changed)
+		candidate := p
+		sum := sha256.Sum256(changed.Calibration)
+		candidate.Calibration.SHA256 = hex.EncodeToString(sum[:])
+		sum = sha256.Sum256(changed.Consents)
+		candidate.Consents.SHA256 = hex.EncodeToString(sum[:])
+		body, _, err := CompileIdentityCompareParams(candidate)
+		if err != nil {
+			t.Fatal(err)
+		}
+		sum = sha256.Sum256(body)
+		paramsRef.SHA256 = hex.EncodeToString(sum[:])
+		if _, err := CompileIdentityCompareClosure(context.Background(), uuid.New(), 0, candidate, paramsRef, changed, dataset); err == nil {
+			t.Fatal(name)
+		}
 	}
 }

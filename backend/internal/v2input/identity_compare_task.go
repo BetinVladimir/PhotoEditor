@@ -20,10 +20,10 @@ type FrozenIdentityCompareTask struct {
 
 func CompileIdentityCompareTask(ctx context.Context, workflow uuid.UUID, ordinal int,
 	params IdentityCompareParams, paramsRef Ref, documents IdentityCompareDocuments,
-	sizes []SemanticInputSize, qualified SemanticQualifiedCosts,
+	expectedDatasetSHA string, sizes []SemanticInputSize, qualified SemanticQualifiedCosts,
 	ramLimit, vramLimit, scratchLimit, outputLimit int64) (FrozenIdentityCompareTask, error) {
 	var zero FrozenIdentityCompareTask
-	closure, err := CompileIdentityCompareClosure(ctx, workflow, ordinal, params, paramsRef, documents)
+	closure, err := CompileIdentityCompareClosure(ctx, workflow, ordinal, params, paramsRef, documents, expectedDatasetSHA)
 	if err != nil {
 		return zero, err
 	}
