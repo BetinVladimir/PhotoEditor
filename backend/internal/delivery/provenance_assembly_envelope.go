@@ -4,6 +4,8 @@ import (
  "bytes"
  "encoding/json"
  "sort"
+ "strings"
+ "unicode/utf8"
 
  "github.com/google/uuid"
  "photoeditor/backend/internal/canonical"
@@ -69,6 +71,7 @@ func signedAssemblyShardsMatch(assembly AssemblyInput,slots []Slot,shardRaw [][]
  sort.Slice(ordered,func(i,j int)bool{if ordered[i].Ordinal!=ordered[j].Ordinal{return ordered[i].Ordinal<ordered[j].Ordinal};return ordered[i].PresetID.String()<ordered[j].PresetID.String()})
  var binding v2input.SessionVersionBinding
  versions:=make(map[uuid.UUID]bool,assembly.ItemCount)
+ exportIDs:=make(map[uuid.UUID]bool,len(ordered))
  for i,slot:=range ordered{
   ordinal,presetIndex:=i/len(presets),i%len(presets)
   preset:=presets[presetIndex]
@@ -80,9 +83,11 @@ func signedAssemblyShardsMatch(assembly AssemblyInput,slots []Slot,shardRaw [][]
   }else if slot.Binding!=binding{return false}
   if slot.State=="ready"{
    if slot.ExportID==nil||*slot.ExportID==uuid.Nil||slot.Export==nil||slot.Export.ArtifactID==uuid.Nil||
-    !shaPattern.MatchString(slot.Export.SHA256)||slot.Reason!=nil{return false}
+    !shaPattern.MatchString(slot.Export.SHA256)||slot.Reason!=nil||exportIDs[*slot.ExportID]{return false}
+   exportIDs[*slot.ExportID]=true
   }else if slot.State=="omitted"{
-   if slot.Required||!assembly.Policy.AllowOmitted||slot.ExportID!=nil||slot.Export!=nil||slot.Reason==nil||*slot.Reason==""{return false}
+   if slot.Required||!assembly.Policy.AllowOmitted||slot.ExportID!=nil||slot.Export!=nil||slot.Reason==nil||
+    !utf8.ValidString(*slot.Reason)||strings.TrimSpace(*slot.Reason)==""||utf8.RuneCountInString(*slot.Reason)>200{return false}
   }else{return false}
  }
  for index,ref:=range assembly.Shards{

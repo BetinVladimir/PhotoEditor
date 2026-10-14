@@ -60,3 +60,34 @@ func TestSignedAssemblyEnvelopeBindsRequiredMatrixAndClosure(t *testing.T){
  changed:=slot;other:=uuid.New();changed.ExportID=&other
  if _,_,_,err:=CompileSignedAssemblyEnvelope(assemblyRef,assemblyRaw,shards,closureRef,closureRaw,tenant,actor,parent,[]Slot{changed},[]SigningDependency{dependency},[]SignedDependencyReceipt{receipt});err==nil{t.Fatal("changed export accepted")}
 }
+
+func TestSignedAssemblyShardReplayRepeatsSlotIntegrity(t *testing.T) {
+ sha:=strings.Repeat("a",64)
+ preset:=uuid.New()
+ exportID:=uuid.New()
+ export:=v2input.Ref{ArtifactID:uuid.New(),SHA256:sha}
+ slots:=[]Slot{
+  {Ordinal:0,Binding:v2input.SessionVersionBinding{AssetVersionID:uuid.New(),Source:v2input.Ref{ArtifactID:uuid.New(),SHA256:sha},CanvasHash:sha},PresetID:preset,PresetSHA:sha,Required:false,State:"ready",ExportID:&exportID,Export:&export},
+  {Ordinal:1,Binding:v2input.SessionVersionBinding{AssetVersionID:uuid.New(),Source:v2input.Ref{ArtifactID:uuid.New(),SHA256:sha},CanvasHash:sha},PresetID:preset,PresetSHA:sha,Required:false,State:"ready",ExportID:&exportID,Export:&export},
+ }
+ omission:="valid omission"
+ assembly:=AssemblyInput{SchemaVersion:1,SnapshotDigest:sha,ItemCount:2,SlotCount:2,
+  Policy:Policy{OptionalPresets:[]uuid.UUID{preset},AllowOmitted:true},
+  Presets:[]FrozenPreset{{PresetID:preset,PresetSHA:sha,Config:v2input.Ref{ArtifactID:uuid.New(),SHA256:sha}}},
+  Shards:[]v2input.Ref{{ArtifactID:uuid.New()}}}
+ check:=func(current []Slot)bool{
+  raw,err:=canonical.Marshal(SlotShard{1,sha,current});if err!=nil{t.Fatal(err)}
+  assembly.Shards[0].SHA256=digest(raw)
+  return signedAssemblyShardsMatch(assembly,current,[][]byte{raw})
+ }
+ if check(slots){t.Fatal("duplicate export ID accepted on replay")}
+ secondID:=uuid.New();secondExport:=v2input.Ref{ArtifactID:uuid.New(),SHA256:sha}
+ slots[1].ExportID=&secondID;slots[1].Export=&secondExport
+ if !check(slots){t.Fatal("valid distinct exports rejected")}
+ slots[1].State="omitted";slots[1].ExportID=nil;slots[1].Export=nil;slots[1].Reason=&omission
+ if !check(slots){t.Fatal("valid omission rejected")}
+ for _,reason:=range []string{"  ",strings.Repeat("x",201),string([]byte{0xff})}{
+  slots[1].Reason=&reason
+  if check(slots){t.Fatal("invalid omission accepted",reason)}
+ }
+}
