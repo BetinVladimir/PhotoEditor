@@ -121,20 +121,28 @@ func TestRetryRejectsInvalidSelectionBeforeDatabase(t *testing.T) {
 	who := auth.Identity{UserID: uuid.New()}
 	cases := []RetryRequest{{ExpectedRevision: "0"}, {ExpectedRevision: "1", TaskIDs: []uuid.UUID{uuid.Nil}}, {ExpectedRevision: "1", TaskIDs: []uuid.UUID{uuid.New(), uuid.Nil}}}
 	for i, req := range cases {
-		_, err := s.Retry(context.Background(), who, uuid.New(), uuid.New(), req)
+		_, err := s.Retry(context.Background(), who, uuid.New(), uuid.New(), "retry-test", req)
 		if domain.AsError(err).Code != "VALIDATION_FAILED" {
 			t.Fatalf("case %d: %v", i, err)
 		}
 	}
 	id := uuid.New()
 	req := RetryRequest{ExpectedRevision: "1", TaskIDs: []uuid.UUID{id, id}}
-	if _, err := s.Retry(context.Background(), who, uuid.New(), uuid.New(), req); domain.AsError(err).Code != "VALIDATION_FAILED" {
+	if _, err := s.Retry(context.Background(), who, uuid.New(), uuid.New(), "retry-test", req); domain.AsError(err).Code != "VALIDATION_FAILED" {
 		t.Fatalf("duplicate: %v", err)
 	}
 	for _, revision := range []string{"", "01", "+1", "-1", "9223372036854775808"} {
-		if _, err := s.Retry(context.Background(), who, uuid.New(), uuid.New(), RetryRequest{ExpectedRevision: revision}); domain.AsError(err).Code != "VALIDATION_FAILED" {
+		if _, err := s.Retry(context.Background(), who, uuid.New(), uuid.New(), "retry-test", RetryRequest{ExpectedRevision: revision}); domain.AsError(err).Code != "VALIDATION_FAILED" {
 			t.Fatalf("invalid revision %q: %v", revision, err)
 		}
+	}
+}
+
+func TestRetryRequiresIdempotencyKeyBeforeDatabase(t *testing.T) {
+	s := Service{}
+	_, err := s.Retry(context.Background(), auth.Identity{UserID: uuid.New()}, uuid.New(), uuid.New(), "", RetryRequest{ExpectedRevision: "1"})
+	if domain.AsError(err).Code != "IDEMPOTENCY_KEY_REQUIRED" {
+		t.Fatal(err)
 	}
 }
 

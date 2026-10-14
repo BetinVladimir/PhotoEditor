@@ -2,6 +2,7 @@ package run
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/url"
 	"strconv"
@@ -14,6 +15,7 @@ import (
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/domain"
+	"photoeditor/backend/internal/idempotency"
 	"photoeditor/backend/internal/objectstore"
 	"photoeditor/backend/internal/pagination"
 	"photoeditor/backend/internal/project"
@@ -427,7 +429,7 @@ func (s Service) Cancel(ctx context.Context, who auth.Identity, tenantID, id uui
 	return out, err
 }
 
-func (s Service) Retry(ctx context.Context, who auth.Identity, tenantID, id uuid.UUID, req RetryRequest) (Status, error) {
+func (s Service) Retry(ctx context.Context, who auth.Identity, tenantID, id uuid.UUID, key string, req RetryRequest) (Status, error) {
 	var out Status
 	expected, parseErr := parseRetryRevision(req.ExpectedRevision)
 	if parseErr != nil || len(req.TaskIDs) > 500 {
@@ -440,7 +442,32 @@ func (s Service) Retry(ctx context.Context, who auth.Identity, tenantID, id uuid
 		}
 		seen[task] = true
 	}
+	if !idempotency.ValidKey(key) {
+		return out, domain.NewError("IDEMPOTENCY_KEY_REQUIRED", 400)
+	}
 	err := tenant.WithTenant(ctx, s.DB, who, tenantID, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
+		response, e := idempotency.Use(ctx, tx, idempotency.Scope{Tenant: tenantID, Principal: who.UserID, PrincipalType: "user", Route: "POST /runs/" + id.String() + "/retry", Key: key}, req, time.Now().Add(30*24*time.Hour), func() (idempotency.Response, error) {
+			status, err := retryRun(ctx, tx, who, tenantID, id, expected, req)
+			if err != nil {
+				return idempotency.Response{}, err
+			}
+			body, err := canonical.Marshal(status)
+			return idempotency.Response{Status: 200, Body: body, ResourceID: &id}, err
+		})
+		if e != nil {
+			return e
+		}
+		if response.Status != 200 || response.ResourceID == nil || *response.ResourceID != id {
+			return domain.NewError("IDEMPOTENCY_CONFLICT", 409)
+		}
+		return json.Unmarshal(response.Body, &out)
+	})
+	return out, err
+}
+
+func retryRun(ctx context.Context, tx pgx.Tx, who auth.Identity, tenantID, id uuid.UUID, expected int64, req RetryRequest) (Status, error) {
+	var out Status
+	err := func() error {
 		current, e := readStatus(ctx, tx, tenantID, id, true)
 		if e != nil {
 			return e
@@ -490,7 +517,7 @@ func (s Service) Retry(ctx context.Context, who auth.Identity, tenantID, id uuid
 		}
 		out, e = readStatus(ctx, tx, tenantID, id, false)
 		return e
-	})
+	}()
 	return out, err
 }
 
