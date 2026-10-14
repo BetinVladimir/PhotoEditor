@@ -25,7 +25,7 @@ type PortablePersonOriginLocator interface {
 // Occurrence authority must traverse the selected immutable recipe and its
 // exact Override/MaskRef edge. A catalog hash match is not such a proof.
 type PortablePersonOriginOccurrence interface {
-	QualifyPortablePersonOriginOccurrence(context.Context, PortablePersonOriginExpectation) error
+	QualifyPortablePersonOriginOccurrence(context.Context, PortablePersonOriginExpectation, []byte) error
 }
 
 type PortablePersonOriginSigner interface {
@@ -121,9 +121,6 @@ func (i *PortablePersonOriginIssuer) Issue(ctx context.Context,
 	if err != nil || scope.ModelLockSHA != expected.ModelLockSHA {
 		return nil, v2input.ErrInvalid
 	}
-	if err := i.occurrence.QualifyPortablePersonOriginOccurrence(ctx, scope); err != nil {
-		return nil, err
-	}
 	before, err := i.locator.LookupPortablePersonOrigin(ctx, scope.Source, scope.MaskRef, scope.MaskPixels)
 	if err != nil {
 		return nil, err
@@ -155,7 +152,7 @@ func (i *PortablePersonOriginIssuer) Issue(ctx context.Context,
 	if err != nil || canvas != scope.Source.CanvasHash {
 		return nil, v2input.ErrInvalid
 	}
-	if err := i.occurrence.QualifyPortablePersonOriginOccurrence(ctx, scope); err != nil {
+	if err := i.occurrence.QualifyPortablePersonOriginOccurrence(ctx, scope, append([]byte(nil), mask.Body...)); err != nil {
 		return nil, err
 	}
 	after, err := i.locator.LookupPortablePersonOrigin(ctx, scope.Source, scope.MaskRef, scope.MaskPixels)
@@ -177,7 +174,7 @@ func (i *PortablePersonOriginIssuer) Issue(ctx context.Context,
 	if err != nil || len(signature) != ed25519.SignatureSize || !ed25519.Verify(i.public, signed, signature) {
 		return nil, errPortablePersonOrigin
 	}
-	if err := i.occurrence.QualifyPortablePersonOriginOccurrence(ctx, scope); err != nil {
+	if err := i.occurrence.QualifyPortablePersonOriginOccurrence(ctx, scope, append([]byte(nil), mask.Body...)); err != nil {
 		return nil, err
 	}
 	current, err := i.locator.LookupPortablePersonOrigin(ctx, scope.Source, scope.MaskRef, scope.MaskPixels)

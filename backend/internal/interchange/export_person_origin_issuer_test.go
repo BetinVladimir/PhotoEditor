@@ -39,7 +39,7 @@ type personOriginOccurrenceStub struct {
 }
 
 func (s *personOriginOccurrenceStub) QualifyPortablePersonOriginOccurrence(_ context.Context,
-	_ PortablePersonOriginExpectation) error {
+	_ PortablePersonOriginExpectation, _ []byte) error {
 	s.calls++
 	if s.deny {
 		return v2input.ErrInvalid
@@ -158,7 +158,7 @@ func TestPortablePersonOriginIssuerRequiresPhysicalOriginAndStableAuthority(t *t
 			}
 			raw, err := issuer.Issue(ctx, scope)
 			if mode == "valid" {
-				if err != nil || len(raw) < 2 || locator.calls != 3 || occurrence.calls != 3 ||
+				if err != nil || len(raw) < 2 || locator.calls != 3 || occurrence.calls != 2 ||
 					reader.calls != 1 || signer.calls != 1 {
 					t.Fatalf("valid issue failed: %v", err)
 				}
