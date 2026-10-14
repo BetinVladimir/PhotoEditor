@@ -61,3 +61,17 @@ func TestQualifiedIdentityTaskPinsRuntimeAndPolicy(t *testing.T) {
 		t.Fatal("foreign calibration pin accepted")
 	}
 }
+
+func TestResolvedIdentityTaskRejectsForeignQueryBeforeCatalog(t *testing.T) {
+	params, paramsRef, documents, _ := identityClosureFixture(t)
+	query := IdentityQualificationQuery{Tenant: uuid.New(), Project: uuid.New(),
+		Backend: "cpu", ModelLockSHA: strings.Repeat("f", 64),
+		Calibration: params.Calibration}
+	catalog := &identityQualificationCatalogFixture{}
+	_, err := CompileResolvedIdentityCompareTask(context.Background(), uuid.New(),
+		0, query, params, paramsRef, documents, nil, SemanticQualifiedCosts{},
+		32<<30, 0, 12<<30, 1<<30, catalog, sessionImageBytes(nil))
+	if err != ErrInvalid || catalog.reads != 0 {
+		t.Fatalf("foreign model query reached catalog: %v", err)
+	}
+}
