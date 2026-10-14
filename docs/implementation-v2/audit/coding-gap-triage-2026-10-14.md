@@ -619,3 +619,10 @@ ACL/absent-scope сценарий. Миграция, тесты и сборка 
 явно задано разрешение совпадающих имён PL/pgSQL-переменных и столбцов.
 Физическую полноту input closure и атомарный отзыв grant всё ещё нужно
 подтвердить current-build интеграционным тестом после кодового этапа.
+
+При отзыве или замене grant после последнего codec-read SQL activation fence
+откатывает ready transition с точным `V30_IMPORT_REVIEW_ACTIVATION_GRANT`.
+`SQLImportActivator` теперь переводит только этот `P0001` в
+`ErrImportReviewAwaitingDecision`, который scheduler оставляет на cooldown и
+повторяет после нового решения. Остальные SQL ошибки сохраняются без
+маскировки. Unit-сценарий гонки и отрицательные случаи написаны, не запускались.

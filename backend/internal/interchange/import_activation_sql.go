@@ -2,8 +2,10 @@ package interchange
 
 import (
 	"context"
+	"errors"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"photoeditor/backend/internal/artifactjson"
 	"photoeditor/backend/internal/canonical"
@@ -49,7 +51,7 @@ func (s SQLImportActivator) ActivateImport(ctx context.Context, qualified Qualif
 	if err != nil {
 		return err
 	}
-	return database.TenantTransaction(ctx, s.DB, s.Tenant, func(tx pgx.Tx) error {
+	err = database.TenantTransaction(ctx, s.DB, s.Tenant, func(tx pgx.Tx) error {
 		var run uuid.UUID
 		if err := tx.QueryRow(ctx, `SELECT run_id FROM photo.v2_workflows WHERE tenant_id=$1 AND id=$2 AND workflow_type='interchange'`, s.Tenant, qualified.documents.identity.Workflow).Scan(&run); err != nil {
 			return err
@@ -66,6 +68,17 @@ func (s SQLImportActivator) ActivateImport(ctx context.Context, qualified Qualif
 		}
 		return nil
 	})
+	return classifyImportReviewActivationError(err)
+}
+
+// A grant revoked between the last codec read and activation is a normal
+// editor-controlled wait. Other SQL errors still require operator attention.
+func classifyImportReviewActivationError(err error) error {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "P0001" && pgErr.Message == "V30_IMPORT_REVIEW_ACTIVATION_GRANT" {
+		return ErrImportReviewAwaitingDecision
+	}
+	return err
 }
 
 // Reads historical admission only; it does not publish objects, requalify a
