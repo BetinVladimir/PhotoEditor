@@ -109,6 +109,39 @@ def test_capture_proxy_publishes_children_before_manifest(tmp_path):
     assert len(published.outputs) == 3 and published.bytes_written > rgb.nbytes + alpha.nbytes
 
 
+def test_capture_proxy_revalidates_mutated_pixels_and_alpha_before_upload(tmp_path):
+    from dataclasses import replace
+    import numpy as np
+    from photo_worker.operations.capture.prepare import prepare_proxy_pixels, publish_proxy
+    ref = ArtifactRef(artifact_id=UUID(int=1), sha256='a' * 64)
+    source = WorkingImage(pixels=ref, canvas=Canvas(width=2, height=2, orientation=1,
+        space_id='work', source_sha256='b' * 64), color=ColorSpace(
+        profile_id='work_rec2020_gamma24_v1', icc_sha256='c' * 64, encoding='gamma24'),
+        dtype='float32', alpha=None, transform_chain=TransformChain.create([]))
+    prepared = prepare_proxy_pixels(source, np.zeros((2, 2, 3), dtype=np.float32))
+
+    class Artifacts:
+        def __init__(self):
+            self.writes = 0
+        def stage(self, *args):
+            self.writes += 1
+            raise AssertionError('invalid proxy uploaded')
+        def stage_contract(self, *args):
+            self.writes += 1
+            raise AssertionError('invalid proxy uploaded')
+
+    artifacts = Artifacts()
+    prepared.rgb[0, 0, 0] = np.nan
+    with pytest.raises(ValueError, match='CAPTURE_PROXY_NONFINITE'):
+        publish_proxy(artifacts, source, prepared, lambda: None)
+    assert artifacts.writes == 0
+    prepared.rgb[0, 0, 0] = 0
+    forged_alpha = replace(prepared, alpha=np.zeros((2, 2), dtype=np.uint16))
+    with pytest.raises(ValueError, match='CAPTURE_PROXY_INVALID'):
+        publish_proxy(artifacts, source, forged_alpha, lambda: None)
+    assert artifacts.writes == 0
+
+
 def test_capture_model_preview_does_not_destroy_clipping_evidence():
     import numpy as np
     from photo_worker.operations.capture.prepare import capture_model_preview

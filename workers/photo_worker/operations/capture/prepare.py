@@ -59,12 +59,18 @@ def prepare_proxy_pixels(source: WorkingImage, rgb: np.ndarray,
 
 def bind_proxy(source: WorkingImage, prepared: CaptureProxyPixels,
                pixels: ArtifactRef, alpha: ArtifactRef | None) -> WorkingImage:
-    if ((prepared.alpha is None) != (alpha is None)
+    if ((source.alpha is None) != (prepared.alpha is None)
+            or (prepared.alpha is None) != (alpha is None)
             or prepared.rgb.dtype != np.float32
             or prepared.rgb.shape != (prepared.height, prepared.width, 3)
             or min(prepared.width, prepared.height) < 1
-            or max(prepared.width, prepared.height) > 2048):
+            or max(prepared.width, prepared.height) > 2048
+            or not prepared.rgb.flags.c_contiguous):
         raise ValueError('CAPTURE_PROXY_INVALID')
+    flat = prepared.rgb.reshape(-1)
+    for start in range(0, flat.size, 262144):
+        if not np.isfinite(flat[start:start + 262144]).all():
+            raise ValueError('CAPTURE_PROXY_NONFINITE')
     if prepared.alpha is not None:
         opacity=prepared.alpha
         if (opacity.shape!=(prepared.height,prepared.width) or
