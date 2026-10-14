@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/ed25519"
 	"encoding/hex"
 	"errors"
 	"path/filepath"
@@ -19,15 +20,17 @@ import (
 // Trusted process bootstrap supplies actual native/root/TSA and mTLS handles.
 // No environment-selected module/plugin or synthetic readiness fallback exists.
 type apiProcessDependencies struct {
-	RestoreReplayReceipt       *queue.RestoreReplayReceiptInstallation
-	RestoreReplay              *queue.RestoreReplayInstallation
-	InterchangeExport          interchangeExportFactory
-	InterchangeExportAuthority interchange.ExportNativeAuthorityFactory
-	InterchangeImport          workflow.SchedulerInterchangeImportFactory
-	ImportOperatorFiles        *interchange.ImportSchedulerOperatorFiles
-	ImportEntryBase            *interchange.SQLImportEntryRecipeAuthorityFactory
-	ImportPersonAcceptance     interchange.ImportMaskQualifier
-	SigningTenants             map[uuid.UUID]provenance.SigningAPITenantRuntime
+	RestoreReplayReceipt         *queue.RestoreReplayReceiptInstallation
+	RestoreReplay                *queue.RestoreReplayInstallation
+	InterchangeExport            interchangeExportFactory
+	InterchangeExportAuthority   interchange.ExportNativeAuthorityFactory
+	InterchangePersonOrigins     interchange.ExportPersonOriginCandidateFactory
+	InterchangePersonOriginTrust map[interchange.PortablePersonOriginKey]ed25519.PublicKey
+	InterchangeImport            workflow.SchedulerInterchangeImportFactory
+	ImportOperatorFiles          *interchange.ImportSchedulerOperatorFiles
+	ImportEntryBase              *interchange.SQLImportEntryRecipeAuthorityFactory
+	ImportPersonAcceptance       interchange.ImportMaskQualifier
+	SigningTenants               map[uuid.UUID]provenance.SigningAPITenantRuntime
 }
 
 func verifySigningReplaySQL(ctx context.Context, api *pgxpool.Pool) error {

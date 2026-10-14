@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"os"
 	"path/filepath"
@@ -66,6 +68,31 @@ func TestAPIInterchangeExportDeclaration(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAPIInterchangePersonOriginTrustMustMatchIssuer(t *testing.T) {
+	_, private, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	public := private.Public().(ed25519.PublicKey)
+	keyID := sha256.Sum256(public)
+	key := interchange.PortablePersonOriginKey{IssuerID: uuid.New(), KeyID: hex.EncodeToString(keyID[:])}
+	trust := map[interchange.PortablePersonOriginKey]ed25519.PublicKey{key: public}
+	for _, deps := range []apiProcessDependencies{
+		{InterchangePersonOriginTrust: trust},
+		{InterchangePersonOrigins: personOriginFactoryStub{}},
+		{InterchangePersonOrigins: personOriginFactoryStub{}, InterchangePersonOriginTrust: map[interchange.PortablePersonOriginKey]ed25519.PublicKey{key: make([]byte, ed25519.PublicKeySize)}},
+		{InterchangePersonOrigins: personOriginFactoryStub{}, InterchangePersonOriginTrust: trust},
+	} {
+		if factory, err := prepareAPIInterchangeExport(context.Background(), "", "", deps); err == nil || factory != nil {
+			t.Fatal("person-origin process authority accepted without pinned deployment")
+		}
+	}
+}
+
+type personOriginFactoryStub struct {
+	interchange.ExportPersonOriginCandidateFactory
 }
 
 func TestAPIInterchangeExportPinnedNativeFactory(t *testing.T) {

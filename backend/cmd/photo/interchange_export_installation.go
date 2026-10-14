@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
+	"crypto/ed25519"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"path/filepath"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"photoeditor/backend/internal/interchange"
 	"photoeditor/backend/internal/objectstore"
@@ -18,8 +21,24 @@ func prepareAPIInterchangeExport(ctx context.Context, path, pin string, dependen
 		return nil, err
 	}
 	authority := dependencies.InterchangeExportAuthority
+	origins := dependencies.InterchangePersonOrigins
+	trusted := make(map[interchange.PortablePersonOriginKey]ed25519.PublicKey,
+		len(dependencies.InterchangePersonOriginTrust))
+	for key, public := range dependencies.InterchangePersonOriginTrust {
+		trusted[key] = append(ed25519.PublicKey(nil), public...)
+	}
+	if (origins == nil) != (len(trusted) == 0) {
+		return nil, errors.New("interchange person-origin issuer and trust must be installed together")
+	}
+	for key, public := range trusted {
+		digest := sha256.Sum256(public)
+		if len(public) != ed25519.PublicKeySize || key.IssuerID == uuid.Nil ||
+			hex.EncodeToString(digest[:]) != key.KeyID {
+			return nil, errors.New("interchange person-origin trust invalid")
+		}
+	}
 	if path == "" && pin == "" {
-		if authority != nil {
+		if authority != nil || origins != nil {
 			return nil, errors.New("interchange export authority requires pinned deployment")
 		}
 		return dependencies.InterchangeExport, nil
@@ -39,7 +58,10 @@ func prepareAPIInterchangeExport(ctx context.Context, path, pin string, dependen
 		return nil, errors.New("interchange export deployment unavailable")
 	}
 	return func(ctx context.Context, api, scheduler *pgxpool.Pool, objects *objectstore.Store, bucket string) (interchange.ExportCreatePreparer, func(), error) {
-		prepared, err := deployment.BuildWithAuthority(ctx, interchange.SQLExportExecutionInstaller{API: api, Scheduler: scheduler, Objects: objects, Bucket: bucket}, authority)
+		prepared, err := deployment.BuildWithAuthority(ctx, interchange.SQLExportExecutionInstaller{
+			API: api, Scheduler: scheduler, Objects: objects, Bucket: bucket,
+			PersonOriginCandidates: origins, PersonOriginTrust: trusted,
+		}, authority)
 		if err != nil {
 			return nil, nil, err
 		}
