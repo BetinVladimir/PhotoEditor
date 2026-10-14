@@ -4,11 +4,11 @@ import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 import {act,cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
 import type {RunStatus} from './catalog-types';
 const mocks=vi.hoisted(()=>({params:{id:'run',tenant:'tenant'} as {id:string;tenant:string;semanticWorkflow?:string},request:vi.fn(),stream:vi.fn(),push:vi.fn(),resolve:vi.fn()}));
-const journals=vi.hoisted(()=>({retryKey:0,retryPending:null as null|{version:1;key:string;expected_revision:string;created_at:number},cancelPending:null as null|{version:1;key:string;created_at:number},retryDiscard:vi.fn(),cancelDiscard:vi.fn()}));
+const journals=vi.hoisted(()=>({retryKey:0,retryScope:'tenant:run',cancelScope:'tenant:run',retryPending:null as null|{version:1;key:string;expected_revision:string;created_at:number},cancelPending:null as null|{version:1;key:string;created_at:number},retryDiscard:vi.fn(),cancelDiscard:vi.fn()}));
 vi.mock('react-native',async()=>import('react-native-web'));
 vi.mock('expo-router',()=>({useLocalSearchParams:()=>mocks.params,router:{push:mocks.push}}));
-vi.mock('./run-retry-attempt-store',()=>({RunRetryAttemptStore:class{async read(){return journals.retryPending}async begin(expected_revision:string){if(journals.retryPending)return journals.retryPending;journals.retryKey++;journals.retryPending={version:1,key:`retry-${journals.retryKey}`,expected_revision,created_at:1};return journals.retryPending}async acknowledge(key:string){if(journals.retryPending?.key===key)journals.retryPending=null}async discard(key:string){journals.retryDiscard(key);if(journals.retryPending?.key===key)journals.retryPending=null}}}));
-vi.mock('./run-cancel-attempt-store',()=>({RunCancelAttemptStore:class{async read(){return journals.cancelPending}async begin(){if(journals.cancelPending)return journals.cancelPending;journals.cancelPending={version:1,key:'cancel-1',created_at:1};return journals.cancelPending}async acknowledge(key:string){if(journals.cancelPending?.key===key)journals.cancelPending=null}async discard(key:string){journals.cancelDiscard(key);if(journals.cancelPending?.key===key)journals.cancelPending=null}}}));
+vi.mock('./run-retry-attempt-store',()=>({RunRetryAttemptStore:class{private scope:string;constructor(_storage:unknown,_origin:string,_user:string,tenant:string,run:string){this.scope=tenant+':'+run}async read(){return journals.retryScope===this.scope?journals.retryPending:null}async begin(expected_revision:string){if(journals.retryScope===this.scope&&journals.retryPending)return journals.retryPending;journals.retryKey++;journals.retryScope=this.scope;journals.retryPending={version:1,key:`retry-${journals.retryKey}`,expected_revision,created_at:1};return journals.retryPending}async acknowledge(key:string){if(journals.retryScope===this.scope&&journals.retryPending?.key===key)journals.retryPending=null}async discard(key:string){journals.retryDiscard(key);if(journals.retryScope===this.scope&&journals.retryPending?.key===key)journals.retryPending=null}}}));
+vi.mock('./run-cancel-attempt-store',()=>({RunCancelAttemptStore:class{private scope:string;constructor(_storage:unknown,_origin:string,_user:string,tenant:string,run:string){this.scope=tenant+':'+run}async read(){return journals.cancelScope===this.scope?journals.cancelPending:null}async begin(){if(journals.cancelScope===this.scope&&journals.cancelPending)return journals.cancelPending;journals.cancelScope=this.scope;journals.cancelPending={version:1,key:'cancel-1',created_at:1};return journals.cancelPending}async acknowledge(key:string){if(journals.cancelScope===this.scope&&journals.cancelPending?.key===key)journals.cancelPending=null}async discard(key:string){journals.cancelDiscard(key);if(journals.cancelScope===this.scope&&journals.cancelPending?.key===key)journals.cancelPending=null}}}));
 const client={request:mocks.request,eventStream:mocks.stream,semanticRunIntent:mocks.resolve};const auth={origin:'https://app.test',client:()=>client};
 vi.mock('./auth-context',()=>({useAuth:()=>auth}));
 import {OwnerAPI} from './owner-api';
@@ -41,7 +41,7 @@ it('keeps an ordinary V2 run free of semantic review errors',async()=>{
 const value=(revision:string,status:string,id='run'):RunStatus=>({id,kind:'bulk',status,revision,stage:status,progress:status==='completed'?1:0,counts:{total:2,succeeded:status==='completed'?2:0,failed:status==='failed'?2:0,skipped:0,review:0},errors:[]});
 function streaming(){mocks.stream.mockImplementation((_path,_cursor,_receive,signal)=>new Promise<void>(resolve=>signal.addEventListener('abort',()=>resolve(),{once:true})));}
 async function clickable(label:string){const target=await screen.findByText(label);await waitFor(()=>{const button=target.closest('[role="button"],button');if(!button||button.getAttribute('aria-disabled')==='true'||button.hasAttribute('disabled'))throw new Error('run action disabled')});return target;}
-afterEach(()=>{cleanup();vi.restoreAllMocks();vi.resetAllMocks();mocks.params={id:'run',tenant:'tenant'};journals.retryKey=0;journals.retryPending=null;journals.cancelPending=null;});
+afterEach(()=>{cleanup();vi.restoreAllMocks();vi.resetAllMocks();mocks.params={id:'run',tenant:'tenant'};journals.retryKey=0;journals.retryScope='tenant:run';journals.cancelScope='tenant:run';journals.retryPending=null;journals.cancelPending=null;});
 it('mounts stream refresh and preserves a newer retry response against an older GET',async()=>{
  streaming();mocks.request.mockResolvedValueOnce(value('1','failed'));render(<RunScreen/>);
  await screen.findByText('Retry failed');const receive=mocks.stream.mock.calls[0][2];
@@ -98,9 +98,11 @@ it('aborts the old stream and ignores a late mutation after changing tenant/run 
  await screen.findByText('Cancel');const signal=mocks.stream.mock.calls[0][3] as AbortSignal;
  let release!:(run:RunStatus)=>void;mocks.request.mockReturnValueOnce(new Promise(resolve=>release=resolve));fireEvent.click(await clickable('Cancel'));
  await waitFor(()=>expect(mocks.request).toHaveBeenCalledTimes(2));
+ const mutationSignal=mocks.request.mock.calls[1][1].signal as AbortSignal;
  mocks.params={id:'next',tenant:'other'};mocks.request.mockResolvedValueOnce(value('1','waiting_review','next'));view.rerender(<RunScreen/>);
- await screen.findByText('waiting_review · 0%');expect(signal.aborted).toBe(true);
+ await screen.findByText('waiting_review · 0%');expect(signal.aborted).toBe(true);expect(mutationSignal.aborted).toBe(true);
  await act(async()=>release(value('2','cancelled')));expect(screen.queryByText('cancelled · 0%')).toBeNull();
+ expect(journals.cancelPending?.key).toBe('cancel-1');
  expect(mocks.stream.mock.calls[1][0]).toBe('/api/v1/tenants/other/events');
  view.unmount();expect((mocks.stream.mock.calls[1][3] as AbortSignal).aborted).toBe(true);
 });
