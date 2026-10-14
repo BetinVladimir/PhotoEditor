@@ -88,7 +88,7 @@ class SchedulerImportAdoptionRuntimeAuthority:
             raise AdoptionInvalid('INTERCHANGE_IMPORT_RUNTIME_REPORT_MISMATCH')
         return True
 
-    def _person_masks(self, scope, context, document, binding):
+    def _person_masks(self, scope, context, document, binding, observed=None):
         """Require a live report for every nested whole-person mask.
 
         Document contracts are typed before this walk. The node limit also
@@ -134,9 +134,33 @@ class SchedulerImportAdoptionRuntimeAuthority:
                                         binding.model_copy(deep=True))
             if after != before:
                 raise AdoptionInvalid('INTERCHANGE_IMPORT_PERSON_AUTHORITY_CHANGED')
+            if observed is not None:
+                key = (binding.asset_version_id,) + pin
+                previous = observed.get(key)
+                if previous is not None and previous[2] != after:
+                    raise AdoptionInvalid('INTERCHANGE_IMPORT_PERSON_AUTHORITY_CHANGED')
+                observed[key] = (deepcopy(mask), binding.model_copy(deep=True), after)
         return True
 
+    def bound_scope(self, scope, context):
+        """Return the task-local qualifier and final live person recheck."""
+        observed = {}
+        def qualify(contract, typed, binding):
+            return self._qualify(scope, context, contract, typed, binding, observed)
+        def recheck():
+            for mask, binding, epoch in observed.values():
+                self.active()
+                current = self.person_current(scope, context, deepcopy(mask),
+                                              binding.model_copy(deep=True))
+                self.active()
+                if current != epoch:
+                    raise AdoptionInvalid('INTERCHANGE_IMPORT_PERSON_AUTHORITY_CHANGED')
+        return qualify, recheck
+
     def __call__(self, scope, context, contract, typed, binding):
+        return self._qualify(scope, context, contract, typed, binding, None)
+
+    def _qualify(self, scope, context, contract, typed, binding, observed):
         if (not isinstance(scope, tuple) or len(scope) != 5
                 or getattr(context, 'operation', None) != 'v2.interchange.import'
                 or getattr(context, 'version', None) != '1'
@@ -145,7 +169,7 @@ class SchedulerImportAdoptionRuntimeAuthority:
                 or not isinstance(binding, VersionBinding)):
             raise AdoptionInvalid('INTERCHANGE_IMPORT_RUNTIME_SCOPE')
         self.active()
-        if not self._person_masks(scope, context, typed, binding):
+        if not self._person_masks(scope, context, typed, binding, observed):
             return False
         if contract == 'Params' and isinstance(typed, DenoiseParams):
             if typed.image != binding.source or not self._report(

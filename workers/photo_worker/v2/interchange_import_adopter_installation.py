@@ -156,9 +156,16 @@ class SchedulerImportRecipeAdoptionInstallation:
                 raise AdoptionInvalid('INTERCHANGE_IMPORT_ADOPTER_IMAGE_CANONICAL')
             images.append((binding, image))
 
+        from .interchange_import_adoption_runtime import SchedulerImportAdoptionRuntimeAuthority
+        bound_runtime, runtime_recheck = (self.runtime.bound_scope(scope, context)
+            if type(self.runtime) is SchedulerImportAdoptionRuntimeAuthority
+            else (None, None))
+
         def runtime(contract, typed, binding):
             self.active()
-            accepted = self.runtime(scope, context, contract, typed, binding)
+            accepted = (bound_runtime(contract, typed, binding)
+                        if bound_runtime is not None else
+                        self.runtime(scope, context, contract, typed, binding))
             self.active()
             return accepted
 
@@ -196,6 +203,8 @@ class SchedulerImportRecipeAdoptionInstallation:
             try:
                 yield qualifier
             finally:
+                if runtime_recheck is not None:
+                    runtime_recheck()
                 inventory.recheck()
                 if current() != authority:
                     raise AdoptionInvalid('INTERCHANGE_IMPORT_ADOPTER_AUTHORITY_CHANGED')

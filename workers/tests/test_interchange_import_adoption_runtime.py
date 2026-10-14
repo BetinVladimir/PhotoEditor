@@ -149,3 +149,23 @@ def test_import_runtime_rechecks_person_grant_after_report_io():
             SimpleNamespace(get_object=lambda *_args, **_kwargs: None),
             {'mask.person': ImportAdoptionQualification(expected, uuid4(), 'a' * 64)},
             lambda *_args: True, lambda: None)
+
+
+def test_import_runtime_scope_rechecks_every_used_person_mask_at_exit():
+    expected, _ = report_fixture()
+    expected['Operation'], expected['ModelLockSHA'] = 'mask.person', 'd' * 64
+    mask, binding = _mask_and_binding()
+    epochs = iter((7, 7, 8))
+    authority = SchedulerImportAdoptionRuntimeAuthority(
+        SimpleNamespace(verified_report=lambda *_args: {
+            'operation': 'mask.person', 'model_lock_sha': 'd' * 64}),
+        SimpleNamespace(get_object=lambda *_args, **_kwargs: None),
+        {'mask.person': ImportAdoptionQualification(expected, uuid4(), 'a' * 64)},
+        lambda *_args: True, lambda: None, lambda *_args: next(epochs))
+    scope = (uuid4(), uuid4(), 1, 7, uuid4())
+    context = SimpleNamespace(operation='v2.interchange.import', version='1',
+                              attempt=1, fence=7, result_id=scope[4])
+    qualify, recheck = authority.bound_scope(scope, context)
+    assert qualify('MaskRef', mask, binding) is True
+    with pytest.raises(AdoptionInvalid, match='PERSON_AUTHORITY_CHANGED'):
+        recheck()
