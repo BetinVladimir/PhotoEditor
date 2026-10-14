@@ -183,3 +183,36 @@ func TestIntegrationIdentityLiveConsentGateRoleScope(t *testing.T) {
 		t.Fatal("live consent gate role exposure")
 	}
 }
+
+func TestIntegrationIdentityLiveSourceGateRoleScope(t *testing.T) {
+	dsn := os.Getenv("PHOTO_TEST_DATABASE_URL")
+	if dsn == "" {
+		t.Skip("isolated migrated PostgreSQL required")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	pool, err := pgxpool.New(ctx, dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+	var definition string
+	var scheduler, api, worker bool
+	err = pool.QueryRow(ctx, `SELECT pg_get_functiondef('photo.v23_identity_live_sources(uuid,uuid,uuid,uuid,uuid,text,text,text,uuid,uuid,text,text,text)'::regprocedure),
+ has_function_privilege('photo_scheduler','photo.v23_identity_live_sources(uuid,uuid,uuid,uuid,uuid,text,text,text,uuid,uuid,text,text,text)','EXECUTE'),
+ has_function_privilege('photo_api','photo.v23_identity_live_sources(uuid,uuid,uuid,uuid,uuid,text,text,text,uuid,uuid,text,text,text)','EXECUTE'),
+ has_function_privilege('photo_worker','photo.v23_identity_live_sources(uuid,uuid,uuid,uuid,uuid,text,text,text,uuid,uuid,text,text,text)','EXECUTE')`).Scan(&definition, &scheduler, &api, &worker)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{"FOR UPDATE", "FOR SHARE OF version,asset,original,image",
+		"i.contract='WorkingImage'", "version.master_artifact_id", "asset.project_id=project",
+		"image.object_version=source.object_version", "canonical_result_id=p_result"} {
+		if !strings.Contains(definition, required) {
+			t.Fatal("missing source lineage gate", required)
+		}
+	}
+	if !scheduler || api || worker {
+		t.Fatal("source gate role exposure")
+	}
+}
