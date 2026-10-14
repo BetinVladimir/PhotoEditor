@@ -31,6 +31,15 @@ func TestExportRuntimeAdmissionUsesCurrentBucketAndHealthyLease(t *testing.T) {
 		!strings.Contains(definition, "v30_export_runtime_ready(bucket)") {
 		t.Fatal("export runtime diagnostic lacks current pending authority", err)
 	}
+	var ownerDelete, apiRead, schedulerWrite bool
+	err = db.QueryRow(ctx, `SELECT
+  has_table_privilege('photo_fn_owner','photo.v30_export_runtime_leases','DELETE'),
+  has_table_privilege('photo_api','photo.v30_export_runtime_leases','SELECT'),
+  has_table_privilege('photo_scheduler','photo.v30_export_runtime_leases','UPDATE')`).Scan(
+		&ownerDelete, &apiRead, &schedulerWrite)
+	if err != nil || ownerDelete || apiRead || schedulerWrite {
+		t.Fatal("export runtime lease table ACL drift", err)
+	}
 	tx, err := db.Begin(ctx)
 	if err != nil {
 		t.Fatal(err)
