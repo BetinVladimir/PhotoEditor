@@ -1,6 +1,7 @@
 package v2input
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"testing"
@@ -100,5 +101,103 @@ func TestIdentityCompareFrozenTaskMatchesClosure(t *testing.T) {
 			dataset, invalid, costs, 32<<30, 10<<30, 12<<30, 1<<30); err == nil {
 			t.Fatal("invalid inventory accepted")
 		}
+	}
+}
+
+func TestIdentityComparePublishedGraphCarriesExactConsentPin(t *testing.T) {
+	p, paramsRef, docs, dataset := identityClosureFixture(t)
+	workflow := uuid.New()
+	closure, err := CompileIdentityCompareClosure(context.Background(), workflow, 0,
+		p, paramsRef, docs, dataset)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sizes := make([]SemanticInputSize, len(closure.Direct))
+	for i, ref := range closure.Direct {
+		sizes[i] = SemanticInputSize{Ref: ref, Bytes: 4096}
+	}
+	frozen, err := CompileIdentityCompareTask(context.Background(), workflow, 0, "cpu",
+		p, paramsRef, docs, dataset, sizes,
+		SemanticQualifiedCosts{RAMBytes: 256 << 20, ScratchBytes: 64 << 20},
+		32<<30, 0, 12<<30, 1<<30)
+	if err != nil {
+		t.Fatal(err)
+	}
+	prepared, err := PublishIdentityCompareTask(context.Background(), frozen,
+		&memoryPublisher{bodies: make(map[uuid.UUID][]byte)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	pin := prepared.Graph.IdentityConsent
+	if pin == nil || pin.Workflow != workflow || pin.Ordinal != 0 ||
+		pin.Ref != p.Consents || !bytes.Equal(pin.Body, docs.Consents) {
+		t.Fatal("identity consent omitted from graph")
+	}
+	pin.Body[0] ^= 1
+	if bytes.Equal(pin.Body, frozen.consentBody) {
+		t.Fatal("graph mutated frozen consent")
+	}
+}
+
+type identityCoordinatorStore struct {
+	run, workflow uuid.UUID
+	consent       Ref
+	sealed        bool
+}
+
+func (s *identityCoordinatorStore) Begin(_ context.Context, _ DraftShell, _, _ string) (string, uuid.UUID, error) {
+	return "created", s.run, nil
+}
+func (s *identityCoordinatorStore) Seal(_ context.Context, _, _ uuid.UUID, graph []GraphTask) error {
+	if len(graph) != 1 || graph[0].IdentityConsent == nil ||
+		graph[0].IdentityConsent.Ref != s.consent ||
+		graph[0].IdentityConsent.Workflow != s.workflow {
+		return ErrInvalid
+	}
+	s.sealed = true
+	return nil
+}
+func (s *identityCoordinatorStore) Ticket(_ context.Context, _, _ uuid.UUID, _, _ string) (JobTicket, error) {
+	return JobTicket{RunID: s.run, WorkflowID: s.workflow, State: "queued"}, nil
+}
+
+func TestAdmitIdentityCompareCarriesConsentToSeal(t *testing.T) {
+	p, paramsRef, docs, dataset := identityClosureFixture(t)
+	tenant, actor := uuid.New(), uuid.New()
+	run, err := RunID(tenant, actor, "identity-key")
+	if err != nil {
+		t.Fatal(err)
+	}
+	workflow, err := WorkflowID(run)
+	if err != nil {
+		t.Fatal(err)
+	}
+	closure, err := CompileIdentityCompareClosure(context.Background(), workflow, 0, p, paramsRef, docs, dataset)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sizes := make([]SemanticInputSize, len(closure.Direct))
+	for i, ref := range closure.Direct {
+		sizes[i] = SemanticInputSize{Ref: ref, Bytes: 4096}
+	}
+	frozen, err := CompileIdentityCompareTask(context.Background(), workflow, 0, "cpu", p, paramsRef, docs,
+		dataset, sizes, SemanticQualifiedCosts{RAMBytes: 256 << 20, ScratchBytes: 64 << 20}, 32<<30, 0, 12<<30, 1<<30)
+	if err != nil {
+		t.Fatal(err)
+	}
+	draft, err := frozen.DraftTask()
+	if err != nil {
+		t.Fatal(err)
+	}
+	store := &identityCoordinatorStore{run: run, workflow: workflow, consent: p.Consents}
+	shell := DraftShell{Tenant: tenant, Run: run, WorkflowID: workflow, Actor: actor, Tasks: []DraftTask{draft}}
+	coordinator := Coordinator{Store: store, Publisher: &memoryPublisher{bodies: make(map[uuid.UUID][]byte)}}
+	if _, err = AdmitIdentityCompare(context.Background(), coordinator, shell, "identity-key", "request-sha", frozen); err != nil || !store.sealed {
+		t.Fatal("identity graph not sealed with consent", err)
+	}
+	store.sealed = false
+	shell.Tasks[0].InputDigest = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+	if _, err = AdmitIdentityCompare(context.Background(), coordinator, shell, "identity-key", "request-sha", frozen); err == nil || store.sealed {
+		t.Fatal("mutated identity task admitted")
 	}
 }
