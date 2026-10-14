@@ -7,6 +7,7 @@ Unknown models, review decisions, generators and non-person masks fail closed.
 """
 
 from photo_worker.contracts.images import WorkingImage, MaskRef
+from photo_worker.contracts.base import canonical_hash
 from photo_worker.contracts.override import OverrideV1
 from photo_worker.contracts.resolved import ResolvedStyle
 from photo_worker.contracts.restoration import DenoiseParams, UpscaleParams
@@ -58,12 +59,14 @@ class SupportedImportSemanticPolicy:
                 or not isinstance(binding, VersionBinding)):
             return False
         if contract == 'WorkingImage':
-            return isinstance(typed, WorkingImage)
+            return (isinstance(typed, WorkingImage) and
+                    canonical_hash(typed.canvas) == binding.canvas_hash)
         if contract == 'EditingRecipeV3':
             return (isinstance(typed, EditingRecipeV3) and typed.source == binding
                     and typed.learning_version_id is None)
         if contract == 'CorrectionPlan':
-            return isinstance(typed, CorrectionPlan)
+            return (isinstance(typed, CorrectionPlan) and
+                    sum(item.binding == binding for item in typed.items) == 1)
         if contract == 'LayerStack':
             return (isinstance(typed, RenderLayerStack)
                     and typed.source == binding
@@ -94,13 +97,19 @@ class SupportedImportSemanticPolicy:
                          _safe_override(typed.params.override)))
         if contract == 'MaskRef':
             return (isinstance(typed, MaskRef) and typed.selector == 'person'
-                    and typed.object_id is None and 'mask.person' in self.operations)
+                    and typed.object_id is None
+                    and canonical_hash(typed.canvas) == binding.canvas_hash
+                    and 'mask.person' in self.operations)
         if contract == 'Params':
             if isinstance(typed, DenoiseParams):
-                return 'image.denoise' in self.operations
+                return (typed.image == binding.source and
+                        'image.denoise' in self.operations)
             if isinstance(typed, UpscaleParams):
-                return ('image.upscale', typed.scale) in self.operations
+                return (typed.image == binding.source and
+                        ('image.upscale', typed.scale) in self.operations)
             if isinstance(typed, StatsParams):
-                return ('color.stats' in self.operations
+                return (typed.image == binding.source and
+                        canonical_hash(typed.person.canvas) == binding.canvas_hash
+                        and 'color.stats' in self.operations
                         and 'mask.person' in self.operations)
         return False
