@@ -29,6 +29,9 @@ def test_import_adopter_builder_binds_live_connection_and_stop(tmp_path):
     installed = build_interchange_import_adopter(builder, read, stop)
     assert installed.connection is read
     assert calls == [(read, stop)]
+    stop.set()
+    with pytest.raises(InterruptedError, match='stopped'):
+        installed.active()
 
 
 def test_import_adopter_builder_rejects_foreign_connection_or_missing_installation(tmp_path):
@@ -48,3 +51,5 @@ def test_import_adopter_builder_rejects_foreign_connection_or_missing_installati
             build_interchange_import_adopter(builder, read, Event())
     with pytest.raises(ValueError, match='BUILDER'):
         build_interchange_import_adopter(None, read, Event())
+    with pytest.raises(ValueError, match='BUILDER'):
+        build_interchange_import_adopter(lambda *_args: None, read, object())
