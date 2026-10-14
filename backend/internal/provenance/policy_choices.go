@@ -28,6 +28,43 @@ type DeliverySigningPolicyChoice struct {
 	Revision string    `json:"revision"`
 }
 
+type signingRuntimePolicyReader interface {
+	QueryRow(context.Context, string, ...any) pgx.Row
+}
+
+// Advisory listing follows the same exact policy ID/SHA lease as admission.
+// The final SignExport transaction still repeats the live SQL gate.
+func filterSigningChoicesByAdopter(ctx context.Context, db signingRuntimePolicyReader, bucket string, registry *SigningPolicyRegistry, choices []SigningPolicyChoice) ([]SigningPolicyChoice, error) {
+	if db == nil || registry == nil || len(bucket) < 3 || len(bucket) > 63 {
+		return nil, ErrInvalid
+	}
+	visible := make([]SigningPolicyChoice, 0, len(choices))
+	for _, choice := range choices {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		installed, ok := registry.policies[choice.ID]
+		if !ok || installed.ref.SHA256 == "" {
+			return nil, ErrInvalid
+		}
+		params, err := canonical.Marshal(map[string]any{
+			"signing_policy_id": choice.ID.String(),
+			"policy":            map[string]string{"sha256": installed.ref.SHA256},
+		})
+		if err != nil {
+			return nil, err
+		}
+		var ready bool
+		if err := db.QueryRow(ctx, `SELECT photo.v31_signing_adopter_runtime_ready($1,$2)`, bucket, string(params)).Scan(&ready); err != nil {
+			return nil, err
+		}
+		if ready {
+			visible = append(visible, choice)
+		}
+	}
+	return visible, ctx.Err()
+}
+
 func (r *SigningPolicyRegistry) availableDelivery(ctx context.Context, mimes []string, now time.Time) ([]DeliverySigningPolicyChoice, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -128,7 +165,7 @@ func (s SQLSignExportService) AvailableSigningPolicies(ctx context.Context, who 
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	if s.Catalog == nil || s.Preparation.Registry == nil || !s.Preparation.Registry.matchesTenant(tid) || s.Clock == nil {
+	if s.API == nil || s.Catalog == nil || s.Preparation.Registry == nil || !s.Preparation.Registry.matchesTenant(tid) || s.Clock == nil {
 		return nil, ErrInvalid
 	}
 	ready, err := s.Catalog.LookupSigningExport(ctx, who, tid, export)
@@ -140,6 +177,10 @@ func (s SQLSignExportService) AvailableSigningPolicies(ctx context.Context, who 
 		return nil, err
 	}
 	choices, err := registry.available(ctx, ready.Object.ContentType, s.Clock())
+	if err != nil {
+		return nil, err
+	}
+	choices, err = filterSigningChoicesByAdopter(ctx, s.API, s.Bucket, registry, choices)
 	if err != nil {
 		return nil, err
 	}

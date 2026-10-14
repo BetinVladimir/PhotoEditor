@@ -7,7 +7,61 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
+
+type signingAdopterChoiceRow struct{ ready bool }
+
+func (r signingAdopterChoiceRow) Scan(dst ...any) error {
+	*(dst[0].(*bool)) = r.ready
+	return nil
+}
+
+type signingAdopterChoiceProbe struct {
+	ready  bool
+	calls  int
+	bucket string
+	params string
+}
+
+func (p *signingAdopterChoiceProbe) QueryRow(_ context.Context, _ string, args ...any) pgx.Row {
+	p.calls++
+	p.bucket, _ = args[0].(string)
+	p.params, _ = args[1].(string)
+	return signingAdopterChoiceRow{ready: p.ready}
+}
+
+func TestSigningChoicesRequireExactLiveAdopterPolicy(t *testing.T) {
+	config, params, now := signingRegistryFixture(t)
+	registry, err := NewSigningPolicyRegistry(config, &signingAuthorityStub{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	choices, err := registry.available(context.Background(), "image/jpeg", now)
+	if err != nil || len(choices) != 1 {
+		t.Fatal("operator policy unavailable", err)
+	}
+	probe := &signingAdopterChoiceProbe{}
+	filtered, err := filterSigningChoicesByAdopter(context.Background(), probe, "photo", registry, choices)
+	if err != nil || len(filtered) != 0 || probe.calls != 1 {
+		t.Fatal("unleased policy offered", err)
+	}
+	var bound struct {
+		ID     string `json:"signing_policy_id"`
+		Policy struct {
+			SHA string `json:"sha256"`
+		} `json:"policy"`
+	}
+	if err := json.Unmarshal([]byte(probe.params), &bound); err != nil || probe.bucket != "photo" || bound.ID != params.PolicyID.String() || bound.Policy.SHA != params.Policy.SHA256 {
+		t.Fatal("adopter probe lost exact policy scope", err)
+	}
+	probe.ready = true
+	filtered, err = filterSigningChoicesByAdopter(context.Background(), probe, "photo", registry, choices)
+	if err != nil || len(filtered) != 1 || filtered[0] != choices[0] {
+		t.Fatal("live policy omitted", err)
+	}
+}
 
 func TestSigningPolicyChoicesAreRedactedAndLive(t *testing.T) {
 	for _, mode := range []string{"available", "expired", "not_yet_valid", "denied", "cancelled", "mutation"} {
