@@ -78,6 +78,8 @@ class ChildBinding:
 # Output refs without a binding are rejected. Input refs are trusted only when
 # EvidenceReader proves an exact v2_task_inputs row for the current task.
 OUTPUT_BINDINGS: dict[tuple[str, str], ChildBinding] = {
+    ("IdentityReport", "/changed_mask"): ChildBinding("MaskRef", "mask", frozenset({"application/json"})),
+    ("IdentityReport", "/generated_mask"): ChildBinding("MaskRef", "mask", frozenset({"application/json"})),
     ("ImageReport", "/registrations/*"): ChildBinding("RegisteredTransform", "registration", frozenset({"application/json"})),
     ("RegisteredTransform", "/inverse_field"): ChildBinding("DenseWarpArray", "warp_field", frozenset({"application/x-npy"})),
     ("TransferCandidate", "/mask"): ChildBinding("MaskRef", "mask", frozenset({"application/json"})),
