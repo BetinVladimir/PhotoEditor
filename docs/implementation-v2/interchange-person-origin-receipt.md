@@ -61,6 +61,11 @@ operator-supplied `person_origin_factory` through `ExportPreparationFactory`
 to bundle preparation. This is an installation port, not a default factory:
 the operator must supply signed-source publication and independent qualification
 before any `person_origins` can be emitted.
+Bundle mask compilation now reads canonical `Override` documents and uses
+their inline mask bindings to witness `MaskPixels` canvas hashes. This covers
+confirmed `person_subject` masks, whose `MaskRef` is intentionally inline
+rather than a separate recipe-closure node. The existing standalone `MaskRef`
+witness path remains supported.
 On import, `StagedImportPersonOriginScope.DiscoverEntry` now derives the original
 source binding by physically reading each selected staged recipe, then
 requalifies its exact `person_subject` Override/MaskRef/MaskPixels chain.
