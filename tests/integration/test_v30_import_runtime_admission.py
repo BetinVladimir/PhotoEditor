@@ -10,7 +10,8 @@ def test_import_runtime_lease_roles_and_rotation(db):
     for signature in (announce, withdraw, ready):
         assert db.execute('SELECT to_regprocedure(%s) IS NOT NULL',
                           (signature,)).fetchone()[0]
-    for role in ('photo_api', 'photo_worker', 'photo_gateway', 'photo_portal'):
+    for role in ('photo_api', 'photo_worker', 'photo_gateway', 'photo_portal',
+                 'photo_maintenance'):
         for signature in (announce, withdraw):
             assert not db.execute('SELECT has_function_privilege(%s,%s,%s)',
                                   (role, signature, 'EXECUTE')).fetchone()[0]

@@ -23,8 +23,14 @@ func validateInterchangeImportRuntimeSQL(ctx context.Context, db *pgxpool.Pool) 
     AND ('search_path=pg_catalog,photo'=ANY(p.proconfig)
       OR 'search_path=pg_catalog, photo'=ANY(p.proconfig))
     AND has_function_privilege(current_user,p.oid,'EXECUTE')
+    AND NOT has_function_privilege('photo_api',p.oid,'EXECUTE')
+    AND NOT has_function_privilege('photo_worker',p.oid,'EXECUTE')
+    AND NOT has_function_privilege('photo_gateway',p.oid,'EXECUTE')
+    AND NOT has_function_privilege('photo_portal',p.oid,'EXECUTE')
+    AND NOT has_function_privilege('photo_maintenance',p.oid,'EXECUTE')
     AND NOT EXISTS(SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
-      WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE')),false)
+      WHERE acl.privilege_type='EXECUTE'
+        AND acl.grantee NOT IN (p.proowner,'photo_scheduler'::regrole::oid))),false)
   AND count(*)=2 FROM (VALUES
     ('photo.announce_v30_import_runtime(uuid)'::regprocedure),
     ('photo.withdraw_v30_import_runtime(uuid)'::regprocedure)) signatures(oid)
