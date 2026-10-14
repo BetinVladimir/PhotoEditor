@@ -118,3 +118,35 @@ func TestIntegrationIdentityResultInputRoleScope(t *testing.T) {
 		t.Fatal("input locator role exposure")
 	}
 }
+
+func TestIntegrationIdentityConsentInputRoleScope(t *testing.T) {
+	dsn := os.Getenv("PHOTO_TEST_DATABASE_URL")
+	if dsn == "" {
+		t.Skip("isolated migrated PostgreSQL required")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	pool, err := pgxpool.New(ctx, dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+	var definition string
+	var scheduler, api, worker bool
+	err = pool.QueryRow(ctx, `SELECT pg_get_functiondef('photo.v23_identity_consent_result_input(uuid,uuid,uuid,uuid,text,uuid,text,text)'::regprocedure),
+ has_function_privilege('photo_scheduler','photo.v23_identity_consent_result_input(uuid,uuid,uuid,uuid,text,uuid,text,text)','EXECUTE'),
+ has_function_privilege('photo_api','photo.v23_identity_consent_result_input(uuid,uuid,uuid,uuid,text,uuid,text,text)','EXECUTE'),
+ has_function_privilege('photo_worker','photo.v23_identity_consent_result_input(uuid,uuid,uuid,uuid,text,uuid,text,text)','EXECUTE')`).Scan(&definition, &scheduler, &api, &worker)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{"canonical_result_id=p_result", "i.contract='ConsentSnapshot'",
+		"i.project_id=project", "a.object_version NOT IN('','null')"} {
+		if !strings.Contains(definition, required) {
+			t.Fatal("missing consent source gate", required)
+		}
+	}
+	if !scheduler || api || worker {
+		t.Fatal("consent locator role exposure")
+	}
+}

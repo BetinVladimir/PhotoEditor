@@ -15,6 +15,7 @@ type PreparedIdentityAdoption struct {
 	Scope        IdentityResultScope
 	Inputs       IdentityResultInputs
 	Documents    IdentityPixelDocuments
+	Consents     IdentityConsentInput
 	Result       VerifiedIdentityResult
 	Measurements masknpy.IdentityPixelMeasurements
 }
@@ -40,6 +41,10 @@ func PrepareIdentityAdoption(ctx context.Context, scope IdentityResultScope,
 	if err != nil {
 		return zero, err
 	}
+	consents, err := LoadIdentityConsentInput(ctx, scope, inputCatalog, objects, inputs)
+	if err != nil {
+		return zero, err
+	}
 	result, err := VerifyIdentityPublishedResult(ctx, scope, outputCatalog, objects,
 		inputs.ParamsRaw, inputs.AfterRaw)
 	if err != nil {
@@ -59,7 +64,8 @@ func PrepareIdentityAdoption(ctx context.Context, scope IdentityResultScope,
 		{"after", inputs.AfterRef, inputs.Objects[1]},
 		{"before", documents.BeforeRef, documents.Objects[0]},
 		{"effective", documents.EffectiveRef, documents.Objects[2]},
-		{"protected", documents.ProtectedRef, documents.Objects[3]}} {
+		{"protected", documents.ProtectedRef, documents.Objects[3]},
+		{"consents", consents.Ref, consents.Object}} {
 		current, err := inputCatalog.ResolveIdentityResultInput(ctx, scope, item.role, item.ref)
 		if err != nil {
 			return zero, err
@@ -85,5 +91,5 @@ func PrepareIdentityAdoption(ctx context.Context, scope IdentityResultScope,
 		return zero, err
 	}
 	return PreparedIdentityAdoption{Scope: scope, Inputs: inputs,
-		Documents: documents, Result: result, Measurements: measurements}, nil
+		Documents: documents, Consents: consents, Result: result, Measurements: measurements}, nil
 }

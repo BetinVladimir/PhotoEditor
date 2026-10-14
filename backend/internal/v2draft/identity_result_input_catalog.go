@@ -43,9 +43,16 @@ func (c SQLIdentityResultCatalog) ResolveIdentityResultInput(ctx context.Context
 		return zero, v2input.ErrInvalid
 	}
 	var raw []byte
-	if err = tx.QueryRow(bounded, `SELECT photo.v23_identity_result_input($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-		scope.Tenant, scope.Task, scope.Result, scope.Root.ArtifactID, scope.Root.SHA256,
-		role, ref.ArtifactID, ref.SHA256, c.Bucket).Scan(&raw); err != nil {
+	if role == "consents" {
+		err = tx.QueryRow(bounded, `SELECT photo.v23_identity_consent_result_input($1,$2,$3,$4,$5,$6,$7,$8)`,
+			scope.Tenant, scope.Task, scope.Result, scope.Root.ArtifactID, scope.Root.SHA256,
+			ref.ArtifactID, ref.SHA256, c.Bucket).Scan(&raw)
+	} else {
+		err = tx.QueryRow(bounded, `SELECT photo.v23_identity_result_input($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+			scope.Tenant, scope.Task, scope.Result, scope.Root.ArtifactID, scope.Root.SHA256,
+			role, ref.ArtifactID, ref.SHA256, c.Bucket).Scan(&raw)
+	}
+	if err != nil {
 		return zero, err
 	}
 	object, err := parseRestorationLocator(raw)
@@ -54,6 +61,9 @@ func (c SQLIdentityResultCatalog) ResolveIdentityResultInput(ctx context.Context
 	}
 	array := identityArrayRole(role)
 	maxBytes := int64(1048576)
+	if role == "consents" {
+		maxBytes = 8388608
+	}
 	media := "application/json"
 	minBytes := int64(2)
 	if array {
@@ -76,7 +86,7 @@ func (c SQLIdentityResultCatalog) ResolveIdentityResultInput(ctx context.Context
 
 func identityInputRole(role string) bool {
 	switch role {
-	case "params", "before", "after", "effective", "protected",
+	case "params", "before", "after", "effective", "protected", "consents",
 		"before_pixels", "after_pixels", "before_alpha", "after_alpha",
 		"effective_pixels", "protected_pixels":
 		return true
