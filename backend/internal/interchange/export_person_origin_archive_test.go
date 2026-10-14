@@ -6,6 +6,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/google/uuid"
 	"photoeditor/backend/internal/canonical"
 )
 
@@ -15,6 +16,9 @@ func TestExportPersonOriginArchiveRequiresPhysicalSignedReceipt(t *testing.T) {
 	manifest := exportBundleManifest{PersonOrigins: []importBundlePersonOrigin{{
 		EntryID: scope.EntryID, Recipe: scope.Recipe, Override: scope.Override,
 		MaskRef: scope.MaskRef, MaskPixels: scope.MaskPixels, Path: path, SHA: rawSHA(receipt),
+	}}, Inventory: []exportBundleInventoryEntry{{
+		ID:   uuid.NewSHA1(scope.EntryID, []byte("v30:person-origin:"+scope.MaskRef.ArtifactID.String())),
+		Path: path, SHA: rawSHA(receipt), Contract: "PersonOriginReceipt",
 	}}}
 	raw, err := canonical.Marshal(manifest)
 	if err != nil {
@@ -45,6 +49,16 @@ func TestExportPersonOriginArchiveRequiresPhysicalSignedReceipt(t *testing.T) {
 	tampered[0].SHA256 = rawSHA([]byte("different"))
 	if err := VerifyExportPersonOriginArchive(context.Background(), archive, raw, tampered, expected, keys); err == nil {
 		t.Fatal("receipt detached from physical inventory")
+	}
+	wrongManifest := manifest
+	wrongManifest.Inventory = append([]exportBundleInventoryEntry(nil), manifest.Inventory...)
+	wrongManifest.Inventory[0].Contract = "Artifact"
+	wrongRaw, err := canonical.Marshal(wrongManifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := VerifyExportPersonOriginArchive(context.Background(), archive, wrongRaw, files, expected, keys); err == nil {
+		t.Fatal("receipt without exact inventory contract accepted")
 	}
 	wrong := scope
 	wrong.Source.AssetVersionID = scope.EntryID

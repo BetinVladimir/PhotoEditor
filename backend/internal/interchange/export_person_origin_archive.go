@@ -6,6 +6,7 @@ import (
 	"crypto/ed25519"
 	"io"
 
+	"github.com/google/uuid"
 	"photoeditor/backend/internal/v2input"
 )
 
@@ -30,6 +31,13 @@ func VerifyExportPersonOriginArchive(ctx context.Context, archive *zip.Reader, r
 	if len(manifest.PersonOrigins) != len(expected) || len(expected) > 5000 {
 		return v2input.ErrInvalid
 	}
+	inventory := make(map[string]exportBundleInventoryEntry, len(manifest.Inventory))
+	for _, item := range manifest.Inventory {
+		if _, duplicate := inventory[item.Path]; duplicate {
+			return v2input.ErrInvalid
+		}
+		inventory[item.Path] = item
+	}
 	physical := make(map[string]VerifiedExportZIPFile, len(verified))
 	for _, file := range verified {
 		if _, duplicate := physical[file.Path]; duplicate {
@@ -52,7 +60,12 @@ func VerifyExportPersonOriginArchive(ctx context.Context, archive *zip.Reader, r
 		scope, ok := expected[origin.Path]
 		file := members[origin.Path]
 		actual, present := physical[origin.Path]
+		entry, inventoried := inventory[origin.Path]
+		path := "origins/" + scope.EntryID.String() + "/" + scope.MaskRef.ArtifactID.String() + ".json"
+		identity := uuid.NewSHA1(scope.EntryID, []byte("v30:person-origin:"+scope.MaskRef.ArtifactID.String()))
 		if !ok || seen[origin.Path] || file == nil || !present ||
+			!inventoried || origin.Path != path || entry.Contract != "PersonOriginReceipt" ||
+			entry.ID != identity || entry.SHA != origin.SHA ||
 			file.UncompressedSize64 > 16384 || actual.Bytes != int64(file.UncompressedSize64) ||
 			actual.SHA256 != origin.SHA || scope.EntryID != origin.EntryID ||
 			scope.Recipe != origin.Recipe || scope.Override != origin.Override ||
