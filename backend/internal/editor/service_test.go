@@ -84,6 +84,26 @@ func TestValidateOverrideMaskBindingsAreTypedAndConfirmed(t *testing.T) {
 	}
 }
 
+func TestValidateOverridePersonSubjectRequiresOriginalConfirmedPersonMask(t *testing.T) {
+	sha := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	mask := `{"artifact":{"artifact_id":"11111111-1111-4111-8111-111111111111","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"canvas":{"width":32,"height":24,"orientation":1,"space_id":"source","source_sha256":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},"transform_chain":{"steps":[],"hash":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"},"object_id":null,"selector":"person","confidence":1,"model_lock_id":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","protected":false}`
+	valid := json.RawMessage(`{"schema_version":1,"input_sha256":"` + sha + `","modules":{"strength":0.7},"mask_refs":[{"binding_id":"person-1","purpose":"person_subject","mask":` + mask + `,"confirmed":true,"strength":1}],"revision":1}`)
+	if err := validateOverride(valid, sha); err != nil {
+		t.Fatal("confirmed person source rejected", err)
+	}
+	for _, replacement := range [][2]string{
+		{`"confirmed":true`, `"confirmed":false`},
+		{`"selector":"person"`, `"selector":"manual"`},
+		{`"protected":false`, `"protected":true`},
+		{`"model_lock_id":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"`, `"model_lock_id":null`},
+	} {
+		candidate := bytes.Replace(valid, []byte(replacement[0]), []byte(replacement[1]), 1)
+		if err := validateOverride(candidate, sha); err == nil {
+			t.Fatal("invalid person source admitted", replacement[1])
+		}
+	}
+}
+
 func TestValidateOverrideManualGeometry(t *testing.T) {
 	sha := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	base := `{"schema_version":1,"input_sha256":"` + sha + `","modules":{"strength":0.7},"revision":1,`

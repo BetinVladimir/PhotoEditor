@@ -40,17 +40,18 @@ its own signature against the configured public key and emits canonical bytes.
 `crypto.Signer` whose public key matches the issuer configuration. It signs
 owned, bounded bytes and verifies the returned signature against that pinned
 public key. Provisioning and startup installation remain outstanding.
-The occurrence authority and production signer installation are not yet wired;
+`ExportPersonOriginOccurrence` now binds the exact selected entry and portable
+recipe to its frozen source, authored Override, one confirmed `person_subject`
+inline MaskRef, and its MaskPixels child. It checks physical source canvas and
+transform chain and repeats graph reads after inspection. The editor now
+admits this explicit nonprotected person binding only with confirmation and
+an exact current `mask.person` producer check; existing protected/manual mask
+purposes keep their prior rules. The export/API installation of this authority
+and production signer is still outstanding;
 the issuer is not reachable from the export API.
-The current `mask.person` worker emits `selector: "person", protected: false`,
-while `editor.ValidateOverride` admits that selector neither as a protected
-binding (which requires `protected: true`) nor for the existing unprotected
-purposes. The SQL override provenance gate also admits only `mask.rasterize`
-and `mask.prompt` producers. Therefore a purported person-mask Override
-occurrence is currently impossible through the editor API. The source contract
-must gain an explicit person-purpose admission and exact `mask.person` producer
-lineage before an occurrence authority can sign any such receipt. An occurrence
-checker that merely finds the mask SHA in a recipe would be unsound.
+`person_subject` carries source evidence; it does not silently repurpose that
+mask as a protected area or a retouch target. The current worker emits
+`selector: "person", protected: false`, which is the exact accepted shape.
 Import must verify the receipt against configured issuer trust, archive bytes
 and target source remap; store its exact hash and issuer/key in a new scoped
 forward-only table, and require that live receipt **and** the separate current

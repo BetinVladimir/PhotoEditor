@@ -129,6 +129,13 @@ func validateOverride(raw json.RawMessage, inputSHA string) error {
 			if !binding.Mask.Protected {
 				return domain.NewError("VALIDATION_FAILED", 422)
 			}
+		} else if binding.Purpose == "person_subject" {
+			// Portable person-mask evidence is an explicit, confirmed source
+			// binding. It is not a protection or a retouch target.
+			if binding.Mask.Selector != "person" || binding.Mask.Protected ||
+				binding.Mask.ObjectID != nil || binding.Mask.ModelLockID == nil || !binding.Confirmed {
+				return domain.NewError("VALIDATION_FAILED", 422)
+			}
 		} else if allowedSelectors, ok := selectors[binding.Purpose]; !ok || binding.Mask.Protected || !allowedSelectors[binding.Mask.Selector] {
 			return domain.NewError("VALIDATION_FAILED", 422)
 		}
@@ -161,8 +168,32 @@ func overrideMaskBindings(raw json.RawMessage) ([]overrideMaskBinding, error) {
 	return bindings, nil
 }
 
-func validateOverrideMaskProvenance(ctx context.Context, tx pgx.Tx, tenantID, versionID uuid.UUID, bindings []overrideMaskBinding) error {
+func validateOverrideMaskProvenance(ctx context.Context, tx pgx.Tx, who auth.Identity, tenantID, versionID uuid.UUID, bindings []overrideMaskBinding) error {
 	for _, binding := range bindings {
+		if binding.Purpose == "person_subject" {
+			rootSHA, err := canonical.Hash(binding.Mask)
+			if err != nil {
+				return err
+			}
+			var count int64
+			err = tx.QueryRow(ctx, `SELECT count(*) FROM photo.artifacts root
+			 JOIN photo.artifacts pixels ON pixels.tenant_id=root.tenant_id
+			  AND pixels.created_by_task_id=root.created_by_task_id AND pixels.id=$3 AND pixels.sha256=$4
+			 JOIN photo.asset_versions version ON version.tenant_id=root.tenant_id AND version.id=$5
+			 JOIN photo.assets asset ON asset.tenant_id=version.tenant_id AND asset.id=version.asset_id
+			 WHERE root.tenant_id=$1 AND root.sha256=$2 AND root.output_role='person_mask_ref'
+			  AND photo.semantic_proposal_person_mask_origin($1,asset.project_id,$6,$7,$5,
+			   version.master_artifact_id,version.content_hash,root.id,root.sha256,pixels.id,pixels.sha256)`,
+				tenantID, rootSHA, binding.Mask.Artifact.ID, binding.Mask.Artifact.SHA256,
+				versionID, who.UserID, who.SessionID).Scan(&count)
+			if err != nil {
+				return err
+			}
+			if count != 1 {
+				return domain.NewError("OVERRIDE_MASK_INVALID", 409)
+			}
+			continue
+		}
 		var valid bool
 		err := tx.QueryRow(ctx, `
 			SELECT EXISTS(
@@ -340,7 +371,7 @@ func (s Service) CreateOverride(ctx context.Context, who auth.Identity, tid uuid
 			if bindingErr != nil {
 				return idempotency.Response{}, bindingErr
 			}
-			if bindingErr = validateOverrideMaskProvenance(ctx, tx, tid, req.AssetVersionID, bindings); bindingErr != nil {
+			if bindingErr = validateOverrideMaskProvenance(ctx, tx, who, tid, req.AssetVersionID, bindings); bindingErr != nil {
 				return idempotency.Response{}, bindingErr
 			}
 			var last int64
