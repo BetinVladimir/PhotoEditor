@@ -356,13 +356,17 @@ class Adopter:
 
 def run_adopter(config: AdopterConfig, stop: Event | None = None, *,
                 render_replay=None, render_max_tile_bytes=None, region_target_icc_sha=None,
-                semantic_scene_verifier=None,semantic_ram_bytes=None,exposure_working_icc_sha=None,donor_installation=None,negative_installation=None,relight_installation=None,perspective_installation=None,perspective_lines_installation=None,multi_installations=(),interchange_recipe_qualifier_factory=None) -> None:
+                semantic_scene_verifier=None,semantic_ram_bytes=None,exposure_working_icc_sha=None,donor_installation=None,negative_installation=None,relight_installation=None,perspective_installation=None,perspective_lines_installation=None,multi_installations=(),interchange_recipe_qualifier_factory=None,interchange_recipe_qualifier_builder=None) -> None:
     """Run with explicitly installed, trusted Render replay dependencies.
 
     Environment/client data cannot import a provider or manufacture qualification.
     The deployment runtime installer supplies the replay context and tile bound.
     """
     delivery_options={}
+    if interchange_recipe_qualifier_factory is not None and interchange_recipe_qualifier_builder is not None:
+        raise ValueError('Conflicting import adopter recipe installations')
+    if interchange_recipe_qualifier_builder is not None and not callable(interchange_recipe_qualifier_builder):
+        raise ValueError('Invalid import adopter recipe builder')
     if interchange_recipe_qualifier_factory is not None:
         if not callable(interchange_recipe_qualifier_factory):
             raise ValueError('Invalid import adopter recipe qualifier installation')
@@ -502,10 +506,15 @@ def run_adopter(config: AdopterConfig, stop: Event | None = None, *,
                          options=options) as read_connection:
         with psycopg.connect(config.database_url, autocommit=True, connect_timeout=5,
                              options=options) as write_connection:
-            if interchange_recipe_qualifier_factory is not None:
+            if (interchange_recipe_qualifier_factory is not None
+                    or interchange_recipe_qualifier_builder is not None):
                 from .interchange_import_adopter_schema import require_interchange_import_adopter_schema
                 require_interchange_import_adopter_schema(read_connection)
                 require_interchange_import_adopter_schema(write_connection)
+            if interchange_recipe_qualifier_builder is not None:
+                from .interchange_import_adopter_builder import build_interchange_import_adopter
+                delivery_options['interchange_recipe_qualifier_factory'] = build_interchange_import_adopter(
+                    interchange_recipe_qualifier_builder, read_connection, stop)
             if config.delivery_encode_max_pixels is not None:
                 from .delivery_encoded_schema import require_delivery_encode_schema
                 require_delivery_encode_schema(read_connection)
