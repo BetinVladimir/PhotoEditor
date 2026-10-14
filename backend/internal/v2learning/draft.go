@@ -127,6 +127,13 @@ func prepareTrainingDraftForQueue(tenantID, actorID, authSessionID, projectID, p
 				return empty, ErrInvalidTrainingDraft
 			}
 		}
+		if example.RenderCase.SeriesEvidence != nil {
+			ref, err := SeriesHoldoutRef(runID, example.EventID,
+				example.RenderCase.SeriesEvidence.SHA256)
+			if err != nil || ref != *example.RenderCase.SeriesEvidence {
+				return empty, ErrInvalidTrainingDraft
+			}
+		}
 	}
 	workflowID, err := v2input.WorkflowID(runID)
 	if err != nil {

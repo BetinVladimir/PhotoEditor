@@ -39,6 +39,36 @@ func TestTrainingDraftPinsOptionalReviewedEvidenceToRunAndEvent(t *testing.T) {
 	}
 }
 
+func TestTrainingDraftPinsOptionalSeriesEvidenceToRunAndEvent(t *testing.T) {
+	project, profile, request, manifest := compiledTrainingDraftFixture(t)
+	tenant, actor, session := uuid.New(), uuid.New(), uuid.New()
+	key := "series-evidence"
+	runID, err := v2input.RunID(tenant, actor, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	eventID := manifest.Examples[0].EventID
+	ref, err := SeriesHoldoutRef(runID, eventID, strings.Repeat("a", 64))
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest.Examples[0].RenderCase.SeriesEvidence = &ref
+	if _, err := PrepareTrainingDraft(tenant, actor, session, project,
+		profile, key, 4096, request, manifest); err != nil {
+		t.Fatal("exact series evidence ref rejected", err)
+	}
+	for _, changed := range []v2input.Ref{
+		{ArtifactID: uuid.New(), SHA256: ref.SHA256},
+		{ArtifactID: ref.ArtifactID, SHA256: strings.Repeat("b", 64)},
+	} {
+		manifest.Examples[0].RenderCase.SeriesEvidence = &changed
+		if _, err := PrepareTrainingDraft(tenant, actor, session, project,
+			profile, key, 4096, request, manifest); err == nil {
+			t.Fatal("foreign series evidence ref accepted")
+		}
+	}
+}
+
 func TestTrainingDraftRejectsForgedFrozenManifest(t *testing.T) {
 	project, profile, request, manifest := compiledTrainingDraftFixture(t)
 	prepare := func(value TrainingManifest) error {
