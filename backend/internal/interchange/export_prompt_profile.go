@@ -1,13 +1,13 @@
 package interchange
 
 import (
- "context"
- "github.com/jackc/pgx/v5"
- "photoeditor/backend/internal/canonical"
- "photoeditor/backend/internal/domain"
- "photoeditor/backend/internal/tenant"
- "photoeditor/backend/internal/v2input"
- "photoeditor/backend/internal/v2qualification"
+	"context"
+	"github.com/jackc/pgx/v5"
+	"photoeditor/backend/internal/canonical"
+	"photoeditor/backend/internal/domain"
+	"photoeditor/backend/internal/tenant"
+	"photoeditor/backend/internal/v2input"
+	"photoeditor/backend/internal/v2qualification"
 )
 
 // Segmentation does not itself require identity/learning consent. If its
@@ -25,13 +25,20 @@ const exportPromptWorkflowConsentSQL = `NOT EXISTS(
 
 // Locks stored at task admission and execution must match current verified
 // qualification. Dataset/check evidence is verified in the qualification report.
-func(s SQLExportDocumentCatalog)QualifyExportPromptProfile(ctx context.Context,origin ExportSeriesMaskOrigin,binding v2input.SessionVersionBinding,expected v2qualification.Expected)error{
- if err:=ctx.Err();err!=nil{return err}
- if s.DB==nil||origin.Operation!="mask.prompt"||origin.Version!="1"||expected.Operation!="mask.prompt"||expected.Version!="1"||!validImportRef(origin.Root.Ref)||!validImportRef(origin.Params.Ref)||!validImportRef(origin.Report.Ref)||!validImportRef(binding.Source)||origin.Attempt<1||origin.Fence<1{return v2input.ErrInvalid}
- policy,err:=canonical.Marshal(expected);if err!=nil{return err}
- return tenant.WithTenant(ctx,s.DB,s.Who,s.Tenant,domain.Editor,func(tx pgx.Tx,_ domain.Role)error{
-  var allowed bool
-  err:=tx.QueryRow(ctx,`SELECT EXISTS(SELECT 1 FROM photo.tasks producer
+func (s SQLExportDocumentCatalog) QualifyExportPromptProfile(ctx context.Context, origin ExportSeriesMaskOrigin, binding v2input.SessionVersionBinding, expected v2qualification.Expected) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if s.DB == nil || origin.Operation != "mask.prompt" || origin.Version != "1" || expected.Operation != "mask.prompt" || expected.Version != "1" || !validImportRef(origin.Root.Ref) || !validImportRef(origin.Params.Ref) || !validImportRef(origin.Report.Ref) || !validImportRef(binding.Source) || origin.Attempt < 1 || origin.Fence < 1 {
+		return v2input.ErrInvalid
+	}
+	policy, err := canonical.Marshal(expected)
+	if err != nil {
+		return err
+	}
+	return tenant.WithTenant(ctx, s.DB, s.Who, s.Tenant, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
+		var allowed bool
+		err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM photo.tasks producer
    JOIN photo.artifacts root ON root.tenant_id=producer.tenant_id AND root.created_by_task_id=producer.id AND root.id=$5 AND root.sha256=$6
    JOIN photo.artifacts report ON report.tenant_id=producer.tenant_id AND report.created_by_task_id=producer.id AND report.id=$7 AND report.sha256=$8
    JOIN photo.artifacts params ON params.tenant_id=producer.tenant_id AND params.id=producer.params_artifact_id
@@ -53,7 +60,20 @@ func(s SQLExportDocumentCatalog)QualifyExportPromptProfile(ctx context.Context,o
    AND photo.v2_editor_authorized($1,$18,$19,$20)
    AND `+exportPromptWorkflowConsentSQL+`
    AND EXISTS(SELECT 1 FROM photo.asset_versions v JOIN photo.assets a ON a.tenant_id=v.tenant_id AND a.id=v.asset_id
-    WHERE v.tenant_id=$1 AND v.id=$21 AND a.project_id=$18 AND v.master_artifact_id=$15 AND v.content_hash=$16 AND v.review_state='accepted' AND a.deleted_at IS NULL AND a.upload_state='verified'))`,s.Tenant,origin.Task,origin.Attempt,origin.Fence,origin.Root.Ref.ArtifactID,origin.Root.Ref.SHA256,origin.Report.Ref.ArtifactID,origin.Report.Ref.SHA256,origin.Params.Ref.ArtifactID,origin.Params.Ref.SHA256,s.Bucket,origin.Params.Object.Key,origin.Params.Object.VersionID,origin.Params.Object.Bytes,binding.Source.ArtifactID,binding.Source.SHA256,policy,s.Request.ProjectID,s.Who.UserID,s.Who.SessionID,binding.AssetVersionID).Scan(&allowed)
-  if err!=nil{return err};if !allowed{return v2qualification.ErrUnqualified};return ctx.Err()
- })
+    WHERE v.tenant_id=$1 AND v.id=$21 AND a.project_id=$18 AND v.master_artifact_id=$15 AND v.content_hash=$16 AND v.review_state='accepted' AND a.deleted_at IS NULL AND a.upload_state='verified'))`, s.Tenant, origin.Task, origin.Attempt, origin.Fence, origin.Root.Ref.ArtifactID, origin.Root.Ref.SHA256, origin.Report.Ref.ArtifactID, origin.Report.Ref.SHA256, origin.Params.Ref.ArtifactID, origin.Params.Ref.SHA256, s.Bucket, origin.Params.Object.Key, origin.Params.Object.VersionID, origin.Params.Object.Bytes, binding.Source.ArtifactID, binding.Source.SHA256, policy, s.Request.ProjectID, s.Who.UserID, s.Who.SessionID, binding.AssetVersionID).Scan(&allowed)
+		if err != nil {
+			return err
+		}
+		if !allowed {
+			return v2qualification.ErrUnqualified
+		}
+		return ctx.Err()
+	})
+}
+func (s SQLExportResultInputCatalog) QualifyExportPromptProfile(ctx context.Context, origin ExportSeriesMaskOrigin, binding v2input.SessionVersionBinding, expected v2qualification.Expected) error {
+	config, err := exportPolicyCatalogConfig(s)
+	if err != nil {
+		return err
+	}
+	return config.QualifyExportPromptProfile(ctx, origin, binding, expected)
 }
