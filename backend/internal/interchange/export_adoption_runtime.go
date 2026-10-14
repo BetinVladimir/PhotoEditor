@@ -46,6 +46,8 @@ var schedulerExportSQLFunctions = []string{
 	"photo.v30_export_adoption_render_frame_array(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,text,uuid,text,uuid,jsonb,text,integer,uuid,uuid,text,text,uuid,text,text,text,text,bigint)",
 	"photo.v30_export_adoption_prompt_qualification_object(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,jsonb,uuid,text)",
 	"photo.v30_export_adoption_prompt_profile(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,integer,bigint,uuid,text,uuid,text,uuid,text,text,text,bigint,text,text,bigint,text,uuid,text,uuid,jsonb,text)",
+	"photo.v30_export_adoption_person_qualification_object(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,jsonb,uuid,text)",
+	"photo.v30_export_adoption_person_profile(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,text,uuid,text,uuid,text,text,text,bigint,text,uuid,text,uuid,jsonb,text)",
 	"photo.v30_export_adoption_lut_origin(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,text,uuid,text,uuid,text)",
 	"photo.v30_export_adoption_params_mask(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,text,text,uuid,text,uuid,text)",
 	"photo.save_v30_export_adoption_evidence(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,text,text)",

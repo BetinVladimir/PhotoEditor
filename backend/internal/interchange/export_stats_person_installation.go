@@ -23,6 +23,19 @@ func (s SQLExportStatsPersonPolicyInstallation) BuildExportStatsPersonPolicy(ctx
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	if scheduler, ok := catalog.(SQLSchedulerExportInputCatalog); ok {
+		if objects == nil {
+			return nil, v2input.ErrInvalid
+		}
+		bindings, err := schedulerExportPolicyBindings(ctx, intent, frozen, scheduler)
+		if err != nil {
+			return nil, err
+		}
+		if err := SchedulerExportAdoptionSQLReady(ctx, scheduler.Claims.DB); err != nil {
+			return nil, err
+		}
+		return NewSchedulerExportStatsPersonPolicy(scheduler, objects, bindings, s.Report, s.Expected)
+	}
 	scoped, err := exportPolicyCatalogConfig(catalog)
 	if err != nil || scoped.DB == nil || objects == nil {
 		return nil, v2input.ErrInvalid
