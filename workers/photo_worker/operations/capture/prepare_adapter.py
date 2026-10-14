@@ -34,6 +34,14 @@ def execute(ctx, artifacts, pool, backend):
 
 
 def capture_prepare_operations(config, pool, backend):
+    entries = {entry.id: entry for entry in pool.lock.models}
+    for model in ('sfd', 'fan2d'):
+        entry = entries.get(model)
+        if (entry is None or not entry.approved_for_install
+                or backend not in entry.backends
+                or entry.backends[backend].status != 'passed'):
+            return []
+
     def run(ctx):
         with TaskArtifacts.create(ctx, config, frozenset({'document', 'faces',
                 'working_rgb', 'working_alpha', 'working_image'})) as artifacts:

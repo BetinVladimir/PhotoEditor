@@ -59,3 +59,20 @@ def test_prepare_adapter_accepts_mps_only_with_matching_profile(monkeypatch):
     assert result.outputs[0] == ref
     with pytest.raises(OperationFailure, match='CONFIG_INVALID'):
         prepare_adapter.execute(ctx, Artifacts(), NS(lock=NS(lock_id='c' * 64)), 'cuda')
+
+
+def test_prepare_operation_registration_requires_qualified_geometry_models():
+    def entry(model, *, approved=True, status='passed'):
+        return NS(id=model, approved_for_install=approved,
+                  backends={'mps': NS(status=status)})
+
+    def registered(models):
+        pool = NS(lock=NS(models=models))
+        return prepare_adapter.capture_prepare_operations(None, pool, 'mps')
+
+    assert registered([entry('sfd'), entry('fan2d')])[0].name == 'capture.prepare'
+    assert registered([entry('sfd')]) == []
+    assert registered([entry('sfd'), entry('fan2d', status='failed')]) == []
+    assert registered([entry('sfd', approved=False), entry('fan2d')]) == []
+    assert prepare_adapter.capture_prepare_operations(None,
+        NS(lock=NS(models=[entry('sfd'), entry('fan2d')])), 'cuda') == []
