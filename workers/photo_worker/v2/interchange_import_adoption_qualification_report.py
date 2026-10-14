@@ -48,35 +48,45 @@ def _list(value, maximum, *, hashes=False, minimum=1):
     return set(value)
 
 
+def validate_import_adoption_expected(expected):
+    """Validate process-selected Go Expected and return owned lookup sets."""
+    if not isinstance(expected, dict) or set(expected) != EXPECTED_KEYS:
+        _invalid()
+    if (expected['Operation'] not in ('image.denoise', 'image.upscale',
+            'color.stats', 'mask.person') or expected['Version'] != '1'
+            or expected['Backend'] not in ('cpu', 'cuda', 'mps')
+            or expected['LicenseCleared'] is not True
+            or any(not _digest(expected[key]) for key in ('ModelLockSHA',
+                'RuntimeLockSHA', 'DeviceProfileSHA', 'DatasetSHA'))):
+        _invalid()
+    try:
+        issuer = UUID(expected['IssuerID'])
+    except (TypeError, ValueError, AttributeError) as error:
+        raise AdoptionInvalid('INTERCHANGE_IMPORT_QUALIFICATION_REPORT_INVALID') from error
+    if issuer.int == 0 or str(issuer) != expected['IssuerID']:
+        _invalid()
+    required = _list(expected['RequiredChecks'], 1000)
+    trusted = {}
+    for key, minimum in (('CalibrationSHAs', 0), ('TestFixtureSHAs', 1),
+                         ('EvidenceSHAs', 1)):
+        values = expected[key]
+        if (not isinstance(values, dict) or not minimum <= len(values) <= 10000
+                or any(not _digest(item) or value != {}
+                       for item, value in values.items())):
+            _invalid()
+        trusted[key] = set(values)
+    if trusted['CalibrationSHAs'] & trusted['TestFixtureSHAs']:
+        _invalid()
+    return required, trusted
+
+
 def verify_import_adoption_qualification_report(raw, expected_sha, expected):
     """Match Go v2qualification.Verify without granting SQL or issuer authority."""
     if (not isinstance(raw, bytes) or not 2 <= len(raw) <= 8 << 20
-            or not _digest(expected_sha) or sha256(raw).hexdigest() != expected_sha
-            or not isinstance(expected, dict) or set(expected) != EXPECTED_KEYS):
+            or not _digest(expected_sha) or sha256(raw).hexdigest() != expected_sha):
         _invalid()
     try:
-        if (expected['Operation'] not in ('image.denoise', 'image.upscale',
-                'color.stats', 'mask.person') or expected['Version'] != '1'
-                or expected['Backend'] not in ('cpu', 'cuda', 'mps')
-                or expected['LicenseCleared'] is not True
-                or any(not _digest(expected[key]) for key in ('ModelLockSHA',
-                    'RuntimeLockSHA', 'DeviceProfileSHA', 'DatasetSHA'))):
-            _invalid()
-        issuer = UUID(expected['IssuerID'])
-        if issuer.int == 0 or str(issuer) != expected['IssuerID']:
-            _invalid()
-        required = _list(expected['RequiredChecks'], 1000)
-        trusted = {}
-        for key, minimum in (('CalibrationSHAs', 0), ('TestFixtureSHAs', 1),
-                             ('EvidenceSHAs', 1)):
-            values = expected[key]
-            if (not isinstance(values, dict) or not minimum <= len(values) <= 10000
-                    or any(not _digest(item) or value != {}
-                           for item, value in values.items())):
-                _invalid()
-            trusted[key] = set(values)
-        if trusted['CalibrationSHAs'] & trusted['TestFixtureSHAs']:
-            _invalid()
+        required, trusted = validate_import_adoption_expected(expected)
         report = parse_json(raw, max_bytes=8 << 20)
         if (not isinstance(report, dict) or set(report) != REPORT_KEYS
                 or canonical_bytes(report) != raw

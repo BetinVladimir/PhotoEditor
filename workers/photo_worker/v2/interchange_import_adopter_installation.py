@@ -158,7 +158,7 @@ class SchedulerImportRecipeAdoptionInstallation:
 
         def runtime(contract, typed, binding):
             self.active()
-            accepted = self.runtime(context, contract, typed, binding)
+            accepted = self.runtime(scope, context, contract, typed, binding)
             self.active()
             return accepted
 

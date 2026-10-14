@@ -252,7 +252,10 @@ class Adopter:
                                 "SEMANTIC_ADOPTION_SCRATCH_REQUIRED", "SEMANTIC_REPLAY_RAM_EXCEEDED",
                                 "DONOR_ADOPTION_SCRATCH_REQUIRED", "DONOR_ADOPTION_RAM_REQUIRED", "DONOR_ADOPTION_INSTALLATION_REQUIRED", "DONOR_ADOPTION_RUNTIME_CHANGED",
                                 "DONOR_ADOPTION_CONTEXT_STALE", "DONOR_ADOPTION_CONTEXT_CHANGED",
-                                "INTERCHANGE_IMPORT_ADOPTION_INSTALLATION_REQUIRED"}:
+                                "INTERCHANGE_IMPORT_ADOPTION_INSTALLATION_REQUIRED",
+                                "INTERCHANGE_IMPORT_QUALIFICATION_UNAVAILABLE",
+                                "INTERCHANGE_IMPORT_QUALIFICATION_CHANGED",
+                                "INTERCHANGE_IMPORT_ADOPTER_SCHEMA_PIN"}:
                         counts["retry"] += 1
                         continue
                     try:

@@ -9,6 +9,7 @@ import pytest
 from photo_worker.contracts.base import canonical_bytes
 from photo_worker.operations.semantic.exposure_color import WORKING_PROFILE_SHA
 from photo_worker.v2 import interchange_import_adopter_config as config_module
+from photo_worker.v2.interchange_import_adoption_runtime import SchedulerImportAdoptionRuntimeAuthority
 
 
 def environment(tmp_path):
@@ -43,6 +44,14 @@ def test_import_adopter_resources_pin_schemas_and_require_runtime(tmp_path, monk
     installed = resources.builder(qualify_runtime=lambda *_args: False)(connection, Event())
     assert installed.connection is connection
     assert installed.work_icc_sha == WORKING_PROFILE_SHA
+    def runtime_builder(current, _stop):
+        assert current is connection
+        return SchedulerImportAdoptionRuntimeAuthority(
+            SimpleNamespace(verified_report=lambda *_args: None),
+            SimpleNamespace(get_object=lambda *_args, **_kwargs: None),
+            {}, lambda *_args: False, lambda: None)
+    installed = resources.builder(runtime_builder=runtime_builder)(connection, Event())
+    assert type(installed.runtime) is SchedulerImportAdoptionRuntimeAuthority
 
 
 def test_import_adopter_resources_reject_pin_drift_partial_and_budget(tmp_path, monkeypatch):

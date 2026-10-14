@@ -27,10 +27,14 @@ class PinnedImportAdopterResources:
     scratch_bytes: int
     max_file_bytes: int
 
-    def builder(self, *, qualify_runtime, extra_validators=None,
+    def builder(self, *, qualify_runtime=None, runtime_builder=None, extra_validators=None,
                 qualify_confirmation=None, qualify_occurrence=None,
                 operation_schemas=None, background_mappings=None):
-        if not callable(qualify_runtime):
+        if (qualify_runtime is None) == (runtime_builder is None):
+            raise ValueError('INTERCHANGE_IMPORT_ADOPTER_RUNTIME_REQUIRED')
+        if qualify_runtime is not None and not callable(qualify_runtime):
+            raise ValueError('INTERCHANGE_IMPORT_ADOPTER_RUNTIME_REQUIRED')
+        if runtime_builder is not None and not callable(runtime_builder):
             raise ValueError('INTERCHANGE_IMPORT_ADOPTER_RUNTIME_REQUIRED')
         resources = self
         def install(read_connection, stop):
@@ -39,11 +43,17 @@ class PinnedImportAdopterResources:
             def active():
                 if stop.is_set():
                     raise InterruptedError('Adopter stopped')
+            runtime = qualify_runtime
+            if runtime_builder is not None:
+                from .interchange_import_adoption_runtime import SchedulerImportAdoptionRuntimeAuthority
+                runtime = runtime_builder(read_connection, stop)
+                if type(runtime) is not SchedulerImportAdoptionRuntimeAuthority:
+                    raise ValueError('INTERCHANGE_IMPORT_ADOPTER_RUNTIME_REQUIRED')
             return SchedulerImportRecipeAdoptionInstallation(
                 read_connection, schemas_jcs=resources.schemas_jcs,
                 schemas_sha=resources.schemas_sha, work_icc_sha=resources.work_icc_sha,
                 scratch_root=resources.scratch_root, scratch_bytes=resources.scratch_bytes,
-                max_file_bytes=resources.max_file_bytes, qualify_runtime=qualify_runtime,
+                max_file_bytes=resources.max_file_bytes, qualify_runtime=runtime,
                 check_active=active, extra_validators=extra_validators,
                 qualify_confirmation=qualify_confirmation,
                 qualify_occurrence=qualify_occurrence,
