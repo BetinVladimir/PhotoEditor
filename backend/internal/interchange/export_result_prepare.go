@@ -27,6 +27,7 @@ type ExportResultPreparation struct {
 	Scratch             *ExportArchiveScratch
 	Validator           ExportTypedDocumentValidator
 	Binaries            ExportBinaryQualifier
+	Native              *ExportNativeResolverInstallation
 	MaxInputBytes       int64
 	PersonOrigins       *ExportPersonOriginArchiveAuthority
 	PersonOriginFactory ExportPersonOriginArchiveFactory
@@ -56,7 +57,10 @@ func (p ExportResultPreparation) Prepare(ctx context.Context, root v2input.Ref) 
 	if err := ctx.Err(); err != nil {
 		return zero, err
 	}
-	if p.Catalog.DB == nil || p.Objects == nil || p.Scratch == nil || p.Validator == nil || p.Binaries == nil || p.MaxInputBytes < 1 || p.MaxInputBytes > 128<<30 {
+	if p.Catalog.DB == nil || p.Objects == nil || p.Scratch == nil || p.Validator == nil || (p.Binaries == nil) == (p.Native == nil) || p.MaxInputBytes < 1 || p.MaxInputBytes > 128<<30 {
+		return zero, v2input.ErrInvalid
+	}
+	if p.Native != nil && (p.Native.Scratch != p.Scratch || p.Native.ImageProbe == nil || p.Native.MaskProbe == nil || p.Native.ArrayProbe == nil || !validImportRef(v2input.Ref{ArtifactID: root.ArtifactID, SHA256: p.Native.ImageRuntimeSHA}) || !validImportRef(v2input.Ref{ArtifactID: root.ArtifactID, SHA256: p.Native.ArrayRuntimeSHA})) {
 		return zero, v2input.ErrInvalid
 	}
 	// Own request/frozen bytes before callbacks and derive the original identity.
@@ -98,7 +102,8 @@ func (p ExportResultPreparation) Prepare(ctx context.Context, root v2input.Ref) 
 	}
 	sources := []v2input.Entry{}
 	if intent.Request.Format == "photoeditor_bundle" {
-		resolver, err := NewSQLExportResultResolver(ctx, SQLExportResultInputCatalog{Export: config, Root: root}, p.Objects, p.Validator, p.Binaries, p.MaxInputBytes)
+		resultCatalog := SQLExportResultInputCatalog{Export: config, Root: root}
+		resolver, err := p.resultInventoryResolver(ctx, resultCatalog)
 		if err != nil {
 			return zero, err
 		}
@@ -146,6 +151,24 @@ func (p ExportResultPreparation) Prepare(ctx context.Context, root v2input.Ref) 
 		}
 	}
 	return freezeExportAdoptionEvidence(ctx, config, intent, frozen, current, archive, sources)
+}
+
+func (p ExportResultPreparation) resultInventoryResolver(ctx context.Context, catalog SQLExportResultInputCatalog) (ExportClosureNodeResolver, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if p.Native != nil {
+		if p.Binaries != nil || p.Objects == nil || p.Validator == nil || p.MaxInputBytes < 1 {
+			return nil, v2input.ErrInvalid
+		}
+		native := *p.Native
+		native.Catalog = catalog
+		native.Objects = p.Objects
+		native.JSON = ExportJSONNodeResolver{Catalog: catalog, Objects: p.Objects, Validator: p.Validator}
+		native.MaxBytes = p.MaxInputBytes
+		return native, nil
+	}
+	return NewSQLExportResultResolver(ctx, catalog, p.Objects, p.Validator, p.Binaries, p.MaxInputBytes)
 }
 func freezeExportAdoptionEvidence(ctx context.Context, config SQLExportOutputCatalog, intent CreateIntent, frozen FrozenExportDocuments, result ValidatedExportResult, archive VerifiedExportArchive, sources []v2input.Entry) (PreparedExportAdoption, error) {
 	var zero PreparedExportAdoption

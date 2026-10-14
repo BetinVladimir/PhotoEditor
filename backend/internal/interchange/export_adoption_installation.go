@@ -15,6 +15,7 @@ type SQLExportResultInstaller struct {
 	Validator           ExportTypedDocumentValidator
 	ValidatorFactory    ExportDocumentValidatorFactory
 	Binaries            ExportBinaryQualifier
+	Native              *ExportNativeResolverInstallation
 	MaxInputBytes       int64
 	PersonOriginTrusted map[PortablePersonOriginKey]ed25519.PublicKey
 }
@@ -28,8 +29,11 @@ func (s SQLExportResultInstaller) InstallExportResultPreparation(ctx context.Con
 	}
 	if config.DB == nil || s.Objects == nil || s.Scratch == nil ||
 		(s.Validator == nil) == (s.ValidatorFactory == nil) || !validImportRef(root) ||
-		s.Binaries == nil || s.MaxInputBytes < 1 ||
+		(s.Binaries == nil) == (s.Native == nil) || s.MaxInputBytes < 1 ||
 		s.MaxInputBytes > 128<<30 {
+		return zero, v2input.ErrInvalid
+	}
+	if s.Native != nil && (s.Native.Scratch != s.Scratch || s.Native.Catalog != nil || s.Native.Objects != nil || s.Native.JSON != nil || s.Native.MaxBytes != 0 || s.Native.ImageProbe == nil || s.Native.MaskProbe == nil || s.Native.ArrayProbe == nil || !validImportRef(v2input.Ref{ArtifactID: root.ArtifactID, SHA256: s.Native.ImageRuntimeSHA}) || !validImportRef(v2input.Ref{ArtifactID: root.ArtifactID, SHA256: s.Native.ArrayRuntimeSHA})) {
 		return zero, v2input.ErrInvalid
 	}
 	intent, err := FreezeCreateIntent(config.Tenant, config.Who, config.Request, config.Key)
@@ -59,8 +63,13 @@ func (s SQLExportResultInstaller) InstallExportResultPreparation(ctx context.Con
 			return zero, err
 		}
 	}
+	var native *ExportNativeResolverInstallation
+	if s.Native != nil {
+		owned := *s.Native
+		native = &owned
+	}
 	preparation := ExportResultPreparation{Catalog: config, Objects: s.Objects,
-		Scratch: s.Scratch, Validator: validator, Binaries: s.Binaries,
+		Scratch: s.Scratch, Validator: validator, Binaries: s.Binaries, Native: native,
 		MaxInputBytes: s.MaxInputBytes}
 	if intent.Request.Format == "photoeditor_bundle" {
 		if len(s.PersonOriginTrusted) == 0 {
