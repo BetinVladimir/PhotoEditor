@@ -11,7 +11,7 @@ import (
 func TestExportOperatorBootstrapRejectsPartialProcessAuthority(t *testing.T) {
 	base := &interchange.ExportDocumentValidatorInstallation{}
 	background := interchange.SQLExportStyleBackgroundFactory{}
-	for _, mode := range []string{"disabled", "base_only", "background_only", "path_only", "pin_only", "missing_base", "missing_background", "conflict", "missing_file", "cancelled"} {
+	for _, mode := range []string{"disabled", "base_only", "background_only", "path_only", "pin_only", "missing_base", "missing_background", "conflict", "direct_origin", "missing_file", "cancelled"} {
 		t.Run(mode, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
@@ -40,6 +40,8 @@ func TestExportOperatorBootstrapRejectsPartialProcessAuthority(t *testing.T) {
 				deps.InterchangeBackgroundFactory = nil
 			case "conflict":
 				deps.InterchangeExportAuthority = &apiExportAuthority{}
+			case "direct_origin":
+				deps.InterchangePersonOrigins = &interchange.SQLExportPersonOriginCandidates{}
 			case "cancelled":
 				cancel()
 			}

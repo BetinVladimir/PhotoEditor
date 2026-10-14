@@ -28,7 +28,7 @@ func installInterchangeExportOperator(ctx context.Context, path, pin string,
 	}
 	if path == "" || pin == "" || base == nil || background == nil ||
 		dependencies.InterchangeExportAuthority != nil || dependencies.InterchangeExport != nil ||
-		dependencies.InterchangePersonProcess != nil ||
+		dependencies.InterchangePersonProcess != nil || dependencies.InterchangePersonOrigins != nil ||
 		(dependencies.InterchangePersonOriginKey == nil) != (dependencies.InterchangePersonIssuerID == uuid.Nil) {
 		return dependencies, errors.New("export operator requires one pinned declaration and independent process semantics")
 	}
