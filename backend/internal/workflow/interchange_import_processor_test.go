@@ -18,6 +18,24 @@ type interchangeImportPorts struct {
 	body              string
 	opened, continued bool
 	failure           error
+	cancelOnOpen      context.CancelFunc
+	reader            *importObservedReader
+}
+
+type importObservedReader struct {
+	io.Reader
+	reads  int
+	closed bool
+}
+
+func (r *importObservedReader) Read(b []byte) (int, error) {
+	r.reads++
+	return r.Reader.Read(b)
+}
+
+func (r *importObservedReader) Close() error {
+	r.closed = true
+	return nil
 }
 
 func (p *interchangeImportPorts) NextImport(context.Context) (*InterchangeImportCandidate, error) {
@@ -25,6 +43,11 @@ func (p *interchangeImportPorts) NextImport(context.Context) (*InterchangeImport
 }
 func (p *interchangeImportPorts) Open(context.Context, objectstore.Object) (io.ReadCloser, error) {
 	p.opened = true
+	if p.cancelOnOpen != nil {
+		p.reader = &importObservedReader{Reader: strings.NewReader(p.body)}
+		p.cancelOnOpen()
+		return p.reader, nil
+	}
 	return io.NopCloser(strings.NewReader(p.body)), nil
 }
 func (p *interchangeImportPorts) ContinueInterchangeImport(_ context.Context, c InterchangeImportCandidate, raw []byte) error {
@@ -127,5 +150,21 @@ func TestInterchangeImportProcessorContinuesAfterRefusedCandidate(t *testing.T) 
 	}
 	if done, err := processor.ProcessOne(context.Background()); !done || err != nil || !ports.continued {
 		t.Fatal("later candidate blocked", done, err)
+	}
+}
+
+func TestInterchangeImportProcessorClosesReaderWhenOpenCancels(t *testing.T) {
+	body := `{"schema_version":1}`
+	sum := sha256.Sum256([]byte(body))
+	digest := hex.EncodeToString(sum[:])
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ports := &interchangeImportPorts{
+		candidate: &InterchangeImportCandidate{Tenant: uuid.New(), Workflow: uuid.New(), Run: uuid.New(), Project: uuid.New(), Artifact: uuid.New(), Snapshot: digest, SHA: digest, Bytes: int64(len(body)), Bucket: "photos", Key: "authorized", Version: "version"},
+		body:      body, cancelOnOpen: cancel,
+	}
+	done, err := (InterchangeImportProcessor{Store: ports, Objects: ports, Continuation: ports, Bucket: "photos", Timeout: time.Minute}).ProcessOne(ctx)
+	if done || !errors.Is(err, context.Canceled) || ports.reader == nil || !ports.reader.closed || ports.reader.reads != 0 || ports.continued {
+		t.Fatal("cancelled open reached object read or continuation", done, err, ports.reader)
 	}
 }

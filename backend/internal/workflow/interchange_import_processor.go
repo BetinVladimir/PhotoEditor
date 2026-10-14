@@ -84,6 +84,10 @@ func (p InterchangeImportProcessor) ProcessOne(ctx context.Context) (bool, error
 	if reader == nil {
 		return false, errors.New("missing interchange import reader")
 	}
+	if err := work.Err(); err != nil {
+		_ = reader.Close()
+		return false, err
+	}
 	raw, readErr := io.ReadAll(io.LimitReader(reader, c.Bytes+1))
 	closeErr := reader.Close()
 	if err := work.Err(); err != nil {
@@ -102,6 +106,9 @@ func (p InterchangeImportProcessor) ProcessOne(ctx context.Context) (bool, error
 	normalized, err := canonical.Bytes(raw)
 	if err != nil || !bytes.Equal(raw, normalized) {
 		return false, errors.New("noncanonical interchange import")
+	}
+	if err := work.Err(); err != nil {
+		return false, err
 	}
 	if err := p.Continuation.ContinueInterchangeImport(work, c, append([]byte(nil), raw...)); err != nil {
 		if errors.Is(err, ErrInterchangeImportAwaitingDecision) {
