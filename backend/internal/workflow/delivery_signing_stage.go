@@ -42,13 +42,20 @@ func (s DeliverySigningStage) ProcessSigning(ctx context.Context,
 	if expired {
 		return "finalized_failed", nil
 	}
-	_, pageFailure, sweepComplete, err := delivery.ProcessCurrentSigningPageWithFailure(ctx, s.Store,
-		s.Observations, plan, lease, s.PageSize,
-		s.Dispatcher.Dispatch)
+	type pageResult struct {
+		failed        *delivery.Slot
+		sweepComplete bool
+	}
+	page, err := withDeliveryPhysicalLease(ctx, s.Observations, lease, 10*time.Second,
+		func(work context.Context) (pageResult, error) {
+			_, failed, complete, err := delivery.ProcessCurrentSigningPageWithFailure(work, s.Store,
+				s.Observations, plan, lease, s.PageSize, s.Dispatcher.Dispatch)
+			return pageResult{failed: failed, sweepComplete: complete}, err
+		})
 	if err != nil {
 		return "", err
 	}
-	if pageFailure != nil {
+	if page.failed != nil {
 		if s.SignedFailure == nil {
 			return "", v2input.ErrInvalid
 		}
@@ -56,12 +63,12 @@ func (s DeliverySigningStage) ProcessSigning(ctx context.Context,
 			return "", err
 		}
 		if err := s.SignedFailure.FailSignedPackage(ctx, lease, plan,
-			*pageFailure); err != nil {
+			*page.failed); err != nil {
 			return "", err
 		}
 		return "finalized_failed", nil
 	}
-	if !sweepComplete {
+	if !page.sweepComplete {
 		return "scanning", nil
 	}
 	type closureResult struct {
