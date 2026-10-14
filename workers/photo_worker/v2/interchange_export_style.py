@@ -49,7 +49,15 @@ def validate_export_override(raw, expected_sha, installed_models):
     parsed = parse_json(raw, max_bytes=8 << 20)
     if canonical_bytes(parsed) != raw:
         raise ValueError('INTERCHANGE_EXPORT_OVERRIDE_CANONICAL')
-    return OverrideV1.model_validate_json(raw)
+    override = OverrideV1.model_validate_json(raw)
+    extensions = override.modules.extensions
+    if extensions is not None:
+        for module in (extensions.inpainting, extensions.generation):
+            if module is not None and module.enabled:
+                lock = installed_models.get(module.model)
+                if not isinstance(lock, str) or re.fullmatch('[0-9a-f]{64}', lock) is None:
+                    raise ValueError('INTERCHANGE_EXPORT_OVERRIDE_MODEL_NOT_INSTALLED')
+    return override
 
 
 def validate_export_composition(raw, expected_sha, installed_models):
