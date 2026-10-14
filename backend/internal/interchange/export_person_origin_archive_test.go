@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"crypto/ed25519"
 	"testing"
 
 	"github.com/google/uuid"
@@ -60,6 +61,18 @@ func TestExportPersonOriginArchiveRequiresPhysicalSignedReceipt(t *testing.T) {
 	authority, err := NewExportPersonOriginArchiveAuthority(expected, keys, current)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if _, err := NewExportPersonOriginArchiveAuthority(
+		map[string]PortablePersonOriginExpectation{"origins/other.json": scope}, keys, current); err == nil {
+		t.Fatal("non-deterministic receipt path accepted")
+	}
+	for key, public := range keys {
+		wrongKeys := map[PortablePersonOriginKey]ed25519.PublicKey{
+			{IssuerID: key.IssuerID, KeyID: rawSHA([]byte("foreign key"))}: public,
+		}
+		if _, err := NewExportPersonOriginArchiveAuthority(expected, wrongKeys, current); err == nil {
+			t.Fatal("issuer key ID detached from public key")
+		}
 	}
 	delete(expected, path)
 	if len(authority.expected) != 1 {

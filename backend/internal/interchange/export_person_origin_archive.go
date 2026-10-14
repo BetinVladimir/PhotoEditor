@@ -4,6 +4,8 @@ import (
 	"archive/zip"
 	"context"
 	"crypto/ed25519"
+	"crypto/sha256"
+	"encoding/hex"
 	"io"
 
 	"github.com/google/uuid"
@@ -34,14 +36,16 @@ func NewExportPersonOriginArchiveAuthority(expected map[string]PortablePersonOri
 		if !validImportPlanPath(path) || scope.EntryID == uuid.Nil ||
 			!validImportRef(scope.Recipe) || !validImportRef(scope.Override) ||
 			!validImportRef(scope.MaskRef) || !validImportRef(scope.MaskPixels) ||
-			!portablePersonOriginSHA.MatchString(scope.ModelLockSHA) {
+			!portablePersonOriginSHA.MatchString(scope.ModelLockSHA) ||
+			path != "origins/"+scope.EntryID.String()+"/"+scope.MaskRef.ArtifactID.String()+".json" {
 			return nil, v2input.ErrInvalid
 		}
 		owned.expected[path] = scope
 	}
 	for key, public := range trusted {
+		digest := sha256.Sum256(public)
 		if key.IssuerID == uuid.Nil || !portablePersonOriginSHA.MatchString(key.KeyID) ||
-			len(public) != ed25519.PublicKeySize {
+			len(public) != ed25519.PublicKeySize || hex.EncodeToString(digest[:]) != key.KeyID {
 			return nil, v2input.ErrInvalid
 		}
 		owned.trusted[key] = append(ed25519.PublicKey(nil), public...)
