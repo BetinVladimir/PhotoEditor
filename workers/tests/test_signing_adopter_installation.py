@@ -49,7 +49,9 @@ def test_signing_adopter_builds_pinned_verification_only_operator(tmp_path, monk
     monkeypatch.setattr(installation, 'NativeSigningDelegate', Delegate)
     monkeypatch.setattr(installation, 'CertificateBoundInstallationInspector',
                         lambda callback, **_kwargs: callback)
-    reader_sdk = SimpleNamespace(Context=object(), Reader=object())
+    reader_sdk = SimpleNamespace(
+        Context=SimpleNamespace(from_dict=lambda *_args: nullcontext(object())),
+        Reader=lambda *_args, **_kwargs: object())
     operator = installation.build_signing_adopter_operator(deployment, sdk=reader_sdk,
         runtime_files=files, native_authority=lambda *_args: True,
         native_inspector=lambda *_args: True, verify_binding=lambda *_args: True,
@@ -66,7 +68,7 @@ def test_signing_adopter_builds_pinned_verification_only_operator(tmp_path, monk
 
 def test_deployed_signing_adopter_passes_verified_operator_and_sdk(tmp_path, monkeypatch):
     deployment, files = pinned_fixture(tmp_path)
-    sdk = object()
+    sdk = SimpleNamespace(Reader=lambda *_args: object())
     operator = object()
     seen = []
     monkeypatch.setattr(installation, 'load_signer_deployment', lambda *_args: deployment)
@@ -91,7 +93,7 @@ def test_deployed_signing_adopter_passes_verified_operator_and_sdk(tmp_path, mon
 def test_adopter_runtime_transports_signing_operator_and_pinned_sdk(tmp_path, monkeypatch):
     deployment, _ = pinned_fixture(tmp_path)
     operator = InstalledSigningOperator(deployment.policies, lambda *_args: True, object())
-    sdk = object()
+    sdk = SimpleNamespace(Reader=lambda *_args: object())
     stop = Event()
     captured = []
     class Connection:

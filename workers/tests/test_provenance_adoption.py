@@ -1,5 +1,6 @@
 """Physical closure coordination with explicit native-verifier double."""
 from hashlib import sha256
+from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
@@ -17,6 +18,14 @@ def test_signing_result_false_activity_refuses_before_object_read():
     with pytest.raises(AdoptionInvalid, match='SIGNING_ADOPTION_INACTIVE'):
         module.verify_signing_result(Reader(), object(), object(), object(), object(),
                                      check_active=lambda: False)
+
+
+def test_signing_result_requires_process_sdk_before_object_read():
+    class Reader:
+        def evidence(self, _ref):
+            raise AssertionError('uninstalled SDK reached object reader')
+    with pytest.raises(AdoptionInvalid, match='SIGNING_ADOPTION_SDK_REQUIRED'):
+        module.verify_signing_result(Reader(), object(), object(), object(), object())
 
 
 @pytest.mark.parametrize('mode', ['valid', 'extra_output', 'binary_corruption', 'wrong_role',
@@ -51,7 +60,7 @@ def test_signing_adoption_requires_exact_physical_closure(tmp_path, monkeypatch,
     if mode == 'extra_output':
         outputs.add(store(b'extra', 'application/octet-stream', 'output', 'extra'))
     native_calls = []
-    sdk = object()
+    sdk = SimpleNamespace(Reader=lambda *_args: object())
     def verify(source_path, signed_path, mime, source_sha, signed_sha, manifest_bytes,
                manifest_sha, lineage_bytes, policy_bytes, operator, **kwargs):
         native_calls.append(True)

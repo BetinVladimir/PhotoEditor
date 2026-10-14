@@ -68,6 +68,8 @@ def verify_signing_result(reader, params_ref, root, scratch, operator, *, sdk=No
             raise AdoptionInvalid('SIGNING_FILE_HASH')
     try:
         require_signing_adoption_active(check_active)
+        if not callable(getattr(sdk, 'Reader', None)):
+            raise AdoptionInvalid('SIGNING_ADOPTION_SDK_REQUIRED')
         params_raw, params = document(params_ref, 'input', ProvenanceSignParams, 65536)
         policy_raw, policy = document(params.policy, 'input', SigningPolicy, 1 << 20)
         lineage_raw, _ = document(params.lineage, 'input', SigningLineage, 8 << 20)

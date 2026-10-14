@@ -17,7 +17,7 @@ from .container_manifest import verify_container_manifest
 @with_signing_task
 def verify_signed_files(source_path, signed_path, mime, source_sha, signed_sha,
                         manifest, manifest_sha, lineage_raw, policy_raw, operator,
-                        *, sdk=None, check_active=lambda: None):
+                        *, sdk, check_active=lambda: None):
     """Verify staged bytes; caller still owns fenced metadata/SQL authority.
 
     operator.verify_reader must additionally prove the exact binary manifest
@@ -25,6 +25,7 @@ def verify_signed_files(source_path, signed_path, mime, source_sha, signed_sha,
     trust status alone cannot establish those two bindings.
     """
     if (mime not in ('image/jpeg', 'image/png') or not callable(check_active)
+            or sdk is None or not callable(getattr(sdk, 'Reader', None))
             or any(not isinstance(value, str) or re.fullmatch(r'[0-9a-f]{64}', value) is None
                    for value in (source_sha, signed_sha, manifest_sha))
             or not isinstance(manifest, bytes) or not 1 <= len(manifest) <= 8 << 20
@@ -39,8 +40,6 @@ def verify_signed_files(source_path, signed_path, mime, source_sha, signed_sha,
     bound_active = bind_current_signing_task(check_active)
     check_signing_active()
     operator.check_installation(policy)
-    if sdk is None:
-        import c2pa as sdk
     with ExitStack() as stack:
         streams = []
         for path, expected in ((source_path, source_sha), (signed_path, signed_sha)):

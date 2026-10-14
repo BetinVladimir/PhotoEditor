@@ -373,7 +373,8 @@ def run_adopter(config: AdopterConfig, stop: Event | None = None, *,
     delivery_options={}
     if signing_operator is not None or signing_sdk is not None:
         from photo_worker.operations.provenance.installation import InstalledSigningOperator
-        if not isinstance(signing_operator, InstalledSigningOperator) or signing_sdk is None:
+        if (not isinstance(signing_operator, InstalledSigningOperator)
+                or not callable(getattr(signing_sdk, 'Reader', None))):
             raise ValueError('Signing adopter requires installed operator and SDK')
         if config.layer_scratch_root is None or type(config.layer_scratch_bytes) is not int or config.layer_scratch_bytes < 1 << 30:
             raise ValueError('Signing adopter requires bounded scratch')

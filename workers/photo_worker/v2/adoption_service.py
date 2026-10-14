@@ -66,7 +66,8 @@ class AdoptionCoordinator:
             from photo_worker.operations.provenance.installation import InstalledSigningOperator
             if not isinstance(signing_operator, InstalledSigningOperator):
                 raise ValueError('Signing adoption requires installed operator')
-        if (signing_operator is None) != (signing_sdk is None):
+        if ((signing_operator is None) != (signing_sdk is None)
+                or signing_sdk is not None and not callable(getattr(signing_sdk, 'Reader', None))):
             raise ValueError('Signing adoption requires paired operator and SDK')
         self.signing_operator = signing_operator
         self.signing_sdk = signing_sdk

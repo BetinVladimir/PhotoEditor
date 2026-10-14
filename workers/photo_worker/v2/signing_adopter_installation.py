@@ -19,7 +19,8 @@ def build_signing_adopter_operator(deployment, *, sdk, runtime_files,
             or not isinstance(runtime_files, PinnedRuntimeFiles)
             or not all(callable(item) for item in
                        (native_authority, native_inspector, verify_binding, check_active))
-            or not hasattr(sdk, 'Context') or not hasattr(sdk, 'Reader')):
+            or not callable(getattr(getattr(sdk, 'Context', None), 'from_dict', None))
+            or not callable(getattr(sdk, 'Reader', None))):
         raise ValueError('SIGNING_ADOPTER_INSTALLATION')
     def active():
         if check_active() is False:

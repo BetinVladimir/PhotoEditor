@@ -14,6 +14,19 @@ from photo_worker.contracts.provenance import SigningPolicy, SigningLineage
 from photo_worker.operations.provenance.verify_files import verify_signed_files
 
 
+def test_verifier_refuses_uninstalled_sdk_before_file_or_operator_io(tmp_path):
+    class Operator:
+        def check_installation(self, _policy):
+            pytest.fail('uninstalled SDK reached native operator')
+    source, signed = tmp_path / 'missing-source.png', tmp_path / 'missing-signed.png'
+    args = (source, signed, 'image/png', 'a' * 64, 'b' * 64,
+        b'manifest', sha256(b'manifest').hexdigest(), b'{}', b'{}', Operator())
+    with pytest.raises(ValueError, match='SIGNER_VERIFICATION_INPUT'):
+        verify_signed_files(*args, sdk=None)
+    with pytest.raises(ValueError, match='SIGNER_VERIFICATION_INPUT'):
+        verify_signed_files(*args, sdk=SimpleNamespace(Reader=object()))
+
+
 @pytest.mark.parametrize('mode', ['valid', 'hash', 'pixels', 'manifest', 'trust', 'mutation',
                                   'symlink', 'missing_store', 'source_swap', 'signed_swap', 'inactive_false'])
 def test_independent_file_verification(tmp_path, mode):

@@ -50,7 +50,7 @@ def test_signer_coordinator_uses_dedicated_atomic_commit(monkeypatch, tmp_path, 
         timestamp_mode='off', timestamp_service_id=None, allowed_mime=['image/png'],
         trust_bundle_sha='c'*64, revocation_mode='off'))
     operator = InstalledSigningOperator([raw], lambda *args: True, object())
-    sdk = object()
+    sdk = SimpleNamespace(Reader=lambda *_args: object())
     def prepare(*args, **kwargs):
         assert args[6] is operator
         assert kwargs['sdk'] is sdk
