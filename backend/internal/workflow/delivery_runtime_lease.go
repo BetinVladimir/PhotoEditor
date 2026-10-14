@@ -66,7 +66,7 @@ func maintainDeliveryRuntime(ctx context.Context, db *pgxpool.Pool, state *Expan
 			return
 		}
 		bounded, cancel := context.WithTimeout(ctx, 3*time.Second)
-		if state.Started.Load() && (state.Ready.Load() || (state.Failures.Load() == 0 && state.Materialized.Load() == 0)) {
+		if deliveryLoopReady(state) {
 			var accepted bool
 			metadataReady := metadataState != nil && metadataState.Ready.Load()
 			err := db.QueryRow(bounded, `SELECT photo.announce_v30_delivery_runtime_complete($1,$2,$3,$4::jsonb,$5)`, instance, bucket, signingTenants, string(pinsJSON), metadataReady).Scan(&accepted)
@@ -82,4 +82,10 @@ func maintainDeliveryRuntime(ctx context.Context, db *pgxpool.Pool, state *Expan
 		case <-ticker.C:
 		}
 	}
+}
+
+// A started loop has not necessarily completed its first pass. Advertise
+// admission only after ProcessOne has returned successfully.
+func deliveryLoopReady(state *ExpansionLoopState) bool {
+	return state != nil && state.Started.Load() && state.Ready.Load()
 }
