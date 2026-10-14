@@ -40,7 +40,12 @@ def compute_series_corrections(p:SeriesParams,values:list[SeriesStats],check_act
             corrections.append(ItemCorrection(item_id=value.item_id,raw_ev=0,raw_gains=[1.,1.,1.],applied_ev=0,applied_gains=[1.,1.,1.],confidence=0,accepted=False,reason='no_common_regions'));skipped=True;continue
         left={r.region_id:r for r in value.regions};right={r.region_id:r for r in reference.regions};confidence=min(min(left[i].confidence,right[i].confidence) for i in common)
         src=np.asarray([left[i].mean_rgb for i in common]);dst=np.asarray([right[i].mean_rgb for i in common]);scale=np.maximum(dst,.05)
-        def residual(x):return np.r_[((src*(2**x[0])*np.exp(x[1:])-dst)/scale).reshape(-1),x]
+        evaluations=0
+        def residual(x):
+            nonlocal evaluations
+            if evaluations%16==0:check_active()
+            evaluations+=1
+            return np.r_[((src*(2**x[0])*np.exp(x[1:])-dst)/scale).reshape(-1),x]
         fit=least_squares(residual,np.zeros(4),loss='soft_l1',max_nfev=200)
         check_active()
         if (not fit.success or np.shape(fit.x)!=(4,) or
