@@ -61,6 +61,8 @@
 
 Миграция `02041_v30_export_adoption_person_origin_current.sql`, `SchedulerExportPersonOriginCurrentChecker` и `SQLSchedulerExportPersonOriginInstallation` связывают подписанные receipts с текущим canonical mask.person producer под тем же claim. Фабрика сверяет frozen plan, запечатанный receipt inventory, подписи, MaskRef, Canvas SHA и повторно читает object pins после IO; архивный reader может принять её как `Origins`. Это не финальный adoption: portable closure, транзакционный commit и scheduler runtime ещё отсутствуют. Новая миграция и unit-сценарии написаны, но не выполнялись.
 
+Миграция `02042_v30_export_adoption_evidence.sql` и `PreparedExportAdoption.SaveScheduler` добавляют служебный pre-commit барьер: исходная frozen identity, lease, canonical outputs, typed source inventory и object pins проверяются снова под блокировками перед сохранением immutable evidence. Это не adoption и не terminal transition; метод должен вызываться только после полной физической проверки archive и portable closure. Миграция и unit-сценарии не выполнялись.
+
 ## Граница первого MVP
 
 Обязательны пункты 1–5 на выбранной и явно опубликованной матрице камер/форматов/операций. V23 learning, V24 on-set, V27 semantic, расширенные V28/V29, interchange и V31 C2PA желательны после первого MVP, если продукт не обещает их пользователю. Любая включённая в интерфейсе или маркетинговом обещании функция сразу получает полный P0-критерий своей сквозной трассы. Такое разделение определяет релизную очередь, но не сокращает цель V20–V32.
