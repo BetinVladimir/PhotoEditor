@@ -35,6 +35,12 @@ class InstalledSigningOperator:
                      for (policy_id, _revision), raw in sorted(
                          self._policies.items(), key=lambda entry: (str(entry[0][0]), entry[0][1])))
 
+    def check_policy_pins(self):
+        """Requalify every advertised policy against live native trust."""
+        for raw in tuple(self._policies.values()):
+            self.check_installation(decode_provenance(raw, SigningPolicy, 1 << 20))
+        return True
+
     def _owned(self, policy):
         if not isinstance(policy, SigningPolicy):
             raise ValueError('SIGNER_INSTALLATION_POLICY')

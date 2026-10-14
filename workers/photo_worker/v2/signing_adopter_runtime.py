@@ -102,15 +102,17 @@ def _validate_pins(pins):
 class SigningAdopterRuntimeLease:
     """Keep the lease on a dedicated connection across long object reads."""
 
-    def __init__(self, connection, stop, bucket, pins, *, interval_seconds=10):
+    def __init__(self, connection, stop, bucket, pins, qualify_pins, *, interval_seconds=10):
         if (connection.autocommit is not True
                 or not callable(getattr(stop, 'is_set', None))
                 or not callable(getattr(stop, 'set', None))
                 or type(interval_seconds) is not int or not 1 <= interval_seconds <= 10
+                or not callable(qualify_pins)
                 or not isinstance(bucket, str) or not 3 <= len(bucket) <= 63):
             raise ValueError('SIGNING_ADOPTER_RUNTIME_INSTALLATION')
         self.connection, self.stop = connection, stop
         self.bucket, self.pins = bucket, _validate_pins(pins)
+        self.qualify_pins = qualify_pins
         self.instance = uuid4()
         self.interval = interval_seconds
         self._halt, self._lock = Event(), Lock()
@@ -119,6 +121,8 @@ class SigningAdopterRuntimeLease:
         self._failure = None
 
     def _announce(self):
+        if self.qualify_pins() is not True:
+            raise RuntimeError('SIGNING_ADOPTER_RUNTIME_QUALIFICATION')
         row = self.connection.execute(
             'SELECT photo.announce_v31_signing_adopter_runtime(%s,%s,%s)',
             (self.instance, self.bucket, Jsonb(list(self.pins)))).fetchone()
@@ -136,6 +140,12 @@ class SigningAdopterRuntimeLease:
                     if self._ready:
                         self._announce()
             except Exception:
+                with self._lock:
+                    self._ready = False
+                    try:
+                        self._withdraw()
+                    except Exception:
+                        pass
                 self._failure = RuntimeError('SIGNING_ADOPTER_RUNTIME_LOST')
                 self.stop.set()
                 return
@@ -172,6 +182,10 @@ class SigningAdopterRuntimeLease:
                 self._ready = ready
             except Exception:
                 self._ready = False
+                try:
+                    self._withdraw()
+                except Exception:
+                    pass
                 self.stop.set()
                 raise RuntimeError('SIGNING_ADOPTER_RUNTIME_LOST') from None
 

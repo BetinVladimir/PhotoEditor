@@ -24,7 +24,7 @@ def test_signing_adopter_lease_announces_only_exact_pins_and_withdraws():
     connection, stop = RuntimeConnection(), Event()
     policy = str(uuid4())
     pins = ({'id': policy, 'sha': 'a' * 64},)
-    with SigningAdopterRuntimeLease(connection, stop, 'photo', pins) as lease:
+    with SigningAdopterRuntimeLease(connection, stop, 'photo', pins, lambda: True) as lease:
         lease.set_ready(False)
         lease.set_ready(True)
     queries = [query for query, _ in connection.calls]
@@ -38,7 +38,32 @@ def test_signing_adopter_lease_announces_only_exact_pins_and_withdraws():
     ({'id': '00000000-0000-0000-0000-000000000000', 'sha': 'a' * 64},)])
 def test_signing_adopter_lease_rejects_unqualified_pins(pins):
     with pytest.raises(ValueError, match='PINS'):
-        SigningAdopterRuntimeLease(RuntimeConnection(), Event(), 'photo', pins)
+        SigningAdopterRuntimeLease(RuntimeConnection(), Event(), 'photo', pins, lambda: True)
+
+
+def test_signing_adopter_lease_requalifies_before_renewal_and_withdraws_on_revoke():
+    connection, stop = RuntimeConnection(), Event()
+    qualified = [True]
+    pins = ({'id': str(uuid4()), 'sha': 'a' * 64},)
+    with SigningAdopterRuntimeLease(connection, stop, 'photo', pins,
+                                   lambda: qualified[0]) as lease:
+        qualified[0] = False
+        with pytest.raises(RuntimeError, match='LOST'):
+            lease.set_ready(True)
+    assert stop.is_set()
+    queries = [query for query, _ in connection.calls]
+    assert sum('announce_v31_signing_adopter_runtime' in query for query in queries) == 1
+    assert any('withdraw_v31_signing_adopter_runtime' in query for query in queries)
+
+
+def test_signing_adopter_lease_cannot_announce_unqualified_pins():
+    connection = RuntimeConnection()
+    with pytest.raises(RuntimeError, match='QUALIFICATION'):
+        with SigningAdopterRuntimeLease(connection, Event(), 'photo',
+                                       ({'id': str(uuid4()), 'sha': 'a' * 64},),
+                                       lambda: False):
+            pass
+    assert connection.calls == []
 
 
 def test_signing_adopter_runtime_requires_scheduler_role():

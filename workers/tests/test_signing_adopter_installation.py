@@ -60,6 +60,7 @@ def test_signing_adopter_builds_pinned_verification_only_operator(tmp_path, monk
     policy = decode_provenance(deployment.policies[0], SigningPolicy, 1 << 20)
     assert operator.policy_pins() == ({'id': str(policy.id),
         'sha': sha256(deployment.policies[0]).hexdigest()},)
+    assert operator.check_policy_pins() is True
     assert calls == ['delegate', 'context']
     with pytest.raises(RuntimeError, match='CANNOT_SIGN'):
         operator._delegate.sign(None)
@@ -67,6 +68,8 @@ def test_signing_adopter_builds_pinned_verification_only_operator(tmp_path, monk
     native.write_bytes(b'changed')
     with pytest.raises(ValueError):
         operator.check_installation(decode_provenance(deployment.policies[0], SigningPolicy, 1 << 20))
+    with pytest.raises(ValueError):
+        operator.check_policy_pins()
 
 
 def test_deployed_signing_adopter_passes_verified_operator_and_sdk(tmp_path, monkeypatch):
@@ -153,8 +156,9 @@ def test_signing_adopter_lease_follows_signer_health_independent_of_other_retrie
             if self.calls == 4: stop.set()
             return {'retry': 1 if self.calls in (1, 3) else 0}
     class Lease:
-        def __init__(self, _connection, _stop, _bucket, pins):
+        def __init__(self, _connection, _stop, _bucket, pins, qualify_pins):
             assert pins == operator.policy_pins()
+            assert qualify_pins == operator.check_policy_pins
         def __enter__(self): events.append('announce');return self
         def set_ready(self, ready): events.append('ready' + str(ready))
         def __exit__(self, *_args): events.append('withdraw');return False

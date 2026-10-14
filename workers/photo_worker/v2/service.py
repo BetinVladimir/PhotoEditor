@@ -630,7 +630,8 @@ def run_adopter(config: AdopterConfig, stop: Event | None = None, *,
                 signing_lease = None
                 if signing_connection is not None and not stop.is_set():
                     signing_lease = runtime_scope.enter_context(SigningAdopterRuntimeLease(
-                        signing_connection, stop, config.bucket, signing_pins))
+                        signing_connection, stop, config.bucket, signing_pins,
+                        signing_operator.check_policy_pins))
                 while not stop.is_set():
                     counts = adopter.run_once()
                     if signing_lease is not None and not stop.is_set():
