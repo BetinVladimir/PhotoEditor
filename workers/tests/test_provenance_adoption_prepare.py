@@ -28,13 +28,15 @@ def test_fenced_prepare_rechecks_after_object_io(monkeypatch, mode):
     tenant, task, ctx = uuid4(), uuid4(), context()
     observed = []
     expected = object()
+    sdk = object()
     def prepare(**kwargs):
         observed.append(kwargs)
         assert len(db.calls) == 1
         assert kwargs['params_ref'] == ArtifactRef(*params)
+        assert kwargs['sdk'] is sdk
         return expected
     monkeypatch.setattr(module, 'prepare_signing_adoption', prepare)
-    call = lambda: module.prepare_current_signing(db, object(), tenant, task, ctx, object(), object())
+    call = lambda: module.prepare_current_signing(db, object(), tenant, task, ctx, object(), object(), sdk=sdk)
     if mode == 'valid':
         assert call() is expected
         assert db.calls == [(tenant, task, 2, 9, ctx.result_id)] * 2

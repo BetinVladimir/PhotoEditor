@@ -51,6 +51,7 @@ def test_signing_adoption_requires_exact_physical_closure(tmp_path, monkeypatch,
     if mode == 'extra_output':
         outputs.add(store(b'extra', 'application/octet-stream', 'output', 'extra'))
     native_calls = []
+    sdk = object()
     def verify(source_path, signed_path, mime, source_sha, signed_sha, manifest_bytes,
                manifest_sha, lineage_bytes, policy_bytes, operator, **kwargs):
         native_calls.append(True)
@@ -58,6 +59,7 @@ def test_signing_adoption_requires_exact_physical_closure(tmp_path, monkeypatch,
         assert signed_path.read_bytes() == bodies[signed]
         assert manifest_bytes == bodies[manifest]
         assert lineage_bytes == bodies[lineage] and policy_bytes == bodies[policy]
+        assert kwargs['sdk'] is sdk
         if mode == 'native_rejected':
             raise ValueError('untrusted')
         if mode == 'evidence_changed':
@@ -73,11 +75,11 @@ def test_signing_adoption_requires_exact_physical_closure(tmp_path, monkeypatch,
             yield b'corrupted' if mode == 'binary_corruption' and value == signed else bodies[value]
     with ScratchSpace(tmp_path, uuid4(), uuid4(), 1, 2 << 20, min_free_bytes=0) as scratch:
         if mode == 'valid':
-            result = module.verify_signing_result(Reader(), params, root, scratch, object())
+            result = module.verify_signing_result(Reader(), params, root, scratch, object(), sdk=sdk)
             assert result.validation_sha == 'f'*64
             assert result.bytes_written == sum(len(bodies[value]) for value in outputs)
             assert result.params_jcs == bodies[params] and result.result_jcs == bodies[root]
         else:
             with pytest.raises(AdoptionInvalid):
-                module.verify_signing_result(Reader(), params, root, scratch, object())
+                module.verify_signing_result(Reader(), params, root, scratch, object(), sdk=sdk)
     assert len(native_calls) == (1 if mode in ('valid', 'evidence_changed', 'native_rejected') else 0)

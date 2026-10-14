@@ -120,7 +120,7 @@ class Adopter:
     def __init__(self, read_connection, write_connection, objects, bucket: str, *, layer_scratch_root=None, layer_scratch_bytes=None,
                  render_replay=None,render_max_tile_bytes=None,region_target_icc_sha=None,derivative_work_icc_sha=None,derivative_linear_icc_sha=None,
                  semantic_authority=None,semantic_ram_bytes=None,semantic_scene_verifier=None,
-                 semantic_working_icc_sha=None,exposure_working_icc_sha=None,donor_installation=None,negative_installation=None,relight_installation=None,perspective_installation=None,perspective_lines_installation=None,multi_installations=(),interchange_recipe_qualifier_factory=None,delivery_encode_max_pixels=None,restoration_preview_enabled=False,stop: Event | None = None):
+                 semantic_working_icc_sha=None,exposure_working_icc_sha=None,donor_installation=None,negative_installation=None,relight_installation=None,perspective_installation=None,perspective_lines_installation=None,multi_installations=(),interchange_recipe_qualifier_factory=None,signing_operator=None,signing_sdk=None,delivery_encode_max_pixels=None,restoration_preview_enabled=False,stop: Event | None = None):
         self.stop = Event() if stop is None else stop
         self.read = read_connection
         self.write = write_connection
@@ -161,7 +161,7 @@ class Adopter:
             render_replay=render_replay,render_max_tile_bytes=render_max_tile_bytes,
             region_target_icc_sha=region_target_icc_sha,semantic_authority=semantic_authority,
             semantic_ram_bytes=semantic_ram_bytes,semantic_plan_snapshot=snapshot,
-            semantic_plan_provenance=provenance,exposure_installation=exposure_installation,donor_installation=donor_installation,negative_installation=negative_installation,relight_installation=relight_installation,perspective_installation=perspective_installation,perspective_lines_installation=perspective_lines_installation,multi_installations=multi_installations,interchange_recipe_qualifier_factory=interchange_recipe_qualifier_factory,check_active=self.check_active)
+            semantic_plan_provenance=provenance,exposure_installation=exposure_installation,donor_installation=donor_installation,negative_installation=negative_installation,relight_installation=relight_installation,perspective_installation=perspective_installation,perspective_lines_installation=perspective_lines_installation,multi_installations=multi_installations,interchange_recipe_qualifier_factory=interchange_recipe_qualifier_factory,signing_operator=signing_operator,signing_sdk=signing_sdk,check_active=self.check_active)
 
         self.multi_preview_runner = None
         self.multi_quality_runner = None
@@ -364,13 +364,21 @@ class Adopter:
 
 def run_adopter(config: AdopterConfig, stop: Event | None = None, *,
                 render_replay=None, render_max_tile_bytes=None, region_target_icc_sha=None,
-                semantic_scene_verifier=None,semantic_ram_bytes=None,exposure_working_icc_sha=None,donor_installation=None,negative_installation=None,relight_installation=None,perspective_installation=None,perspective_lines_installation=None,multi_installations=(),interchange_recipe_qualifier_factory=None,interchange_recipe_qualifier_builder=None,interchange_recipe_operator_factory=None) -> None:
+                semantic_scene_verifier=None,semantic_ram_bytes=None,exposure_working_icc_sha=None,donor_installation=None,negative_installation=None,relight_installation=None,perspective_installation=None,perspective_lines_installation=None,multi_installations=(),interchange_recipe_qualifier_factory=None,interchange_recipe_qualifier_builder=None,interchange_recipe_operator_factory=None,signing_operator=None,signing_sdk=None) -> None:
     """Run with explicitly installed, trusted Render replay dependencies.
 
     Environment/client data cannot import a provider or manufacture qualification.
     The deployment runtime installer supplies the replay context and tile bound.
     """
     delivery_options={}
+    if signing_operator is not None or signing_sdk is not None:
+        from photo_worker.operations.provenance.installation import InstalledSigningOperator
+        if not isinstance(signing_operator, InstalledSigningOperator) or signing_sdk is None:
+            raise ValueError('Signing adopter requires installed operator and SDK')
+        if config.layer_scratch_root is None or type(config.layer_scratch_bytes) is not int or config.layer_scratch_bytes < 1 << 30:
+            raise ValueError('Signing adopter requires bounded scratch')
+        delivery_options['signing_operator']=signing_operator
+        delivery_options['signing_sdk']=signing_sdk
     if sum(value is not None for value in (interchange_recipe_qualifier_factory,
             interchange_recipe_qualifier_builder, interchange_recipe_operator_factory)) > 1:
         raise ValueError('Conflicting import adopter recipe installations')

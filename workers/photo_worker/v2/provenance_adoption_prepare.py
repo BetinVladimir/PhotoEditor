@@ -7,7 +7,7 @@ from .provenance_adoption import prepare_signing_adoption, require_signing_adopt
 
 
 def prepare_current_signing(connection, reader, tenant_id, task_id,
-                                      context, scratch, operator, *, check_active=lambda: None):
+                                      context, scratch, operator, *, sdk=None, check_active=lambda: None):
     """Authorize both sides of reconstruction using current SQL authority.
 
     This does not adopt outputs. The eventual commit must independently recheck
@@ -43,7 +43,8 @@ def prepare_current_signing(connection, reader, tenant_id, task_id,
 
     params = current_params()
     prepared = prepare_signing_adoption(task_id=task_id, reader=reader,
-        params_ref=params, root=ctx.root, scratch=scratch, operator=operator, check_active=check_active)
+        params_ref=params, root=ctx.root, scratch=scratch, operator=operator,
+        sdk=sdk, check_active=check_active)
     if current_params() != params:
         raise AdoptionInvalid('SIGNING_ADOPTION_PARAMS_CHANGED')
     require_signing_adoption_active(check_active)

@@ -50,8 +50,10 @@ def test_signer_coordinator_uses_dedicated_atomic_commit(monkeypatch, tmp_path, 
         timestamp_mode='off', timestamp_service_id=None, allowed_mime=['image/png'],
         trust_bundle_sha='c'*64, revocation_mode='off'))
     operator = InstalledSigningOperator([raw], lambda *args: True, object())
+    sdk = object()
     def prepare(*args, **kwargs):
         assert args[6] is operator
+        assert kwargs['sdk'] is sdk
         events.append('verify')
         if mode == 'rejected':
             raise AdoptionInvalid('SIGNING_PHYSICAL_VERIFICATION_FAILED')
@@ -61,6 +63,7 @@ def test_signer_coordinator_uses_dedicated_atomic_commit(monkeypatch, tmp_path, 
     coordinator = adoption_service.AdoptionCoordinator(Read(), Write(), object(), 'bucket',
         layer_scratch_root=tmp_path, layer_scratch_bytes=2 << 20,
         signing_operator=None if mode == 'unconfigured' else operator,
+        signing_sdk=None if mode == 'unconfigured' else sdk,
         check_active=lambda: live['value'])
     if mode in ('valid', 'recovered'):
         assert coordinator.adopt(tenant, task) is True

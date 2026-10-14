@@ -25,7 +25,7 @@ class VerifiedSigningResult:
     bytes_written: int
 
 
-def verify_signing_result(reader, params_ref, root, scratch, operator, *, check_active=lambda: None):
+def verify_signing_result(reader, params_ref, root, scratch, operator, *, sdk=None, check_active=lambda: None):
     """Reader must be scoped to exact canonical result/attempt/fence by caller.
 
     No object reads occur in a final SQL transaction. This result is physical
@@ -99,7 +99,8 @@ def verify_signing_result(reader, params_ref, root, scratch, operator, *, check_
             binary_manifest = paths[2].read_bytes()
             validation_sha = verify_signed_files(paths[0], paths[1], original.media_type,
                 params.export.sha256, result.signed_export.sha256, binary_manifest,
-                result.manifest.sha256, lineage_raw, policy_raw, operator, check_active=check_active)
+                result.manifest.sha256, lineage_raw, policy_raw, operator,
+                sdk=sdk, check_active=check_active)
         for value, expected in observed.items():
             require_signing_adoption_active(check_active)
             if reader.evidence(value) != expected:
@@ -122,12 +123,12 @@ class PreparedSigningAdoption:
 
 
 def prepare_signing_adoption(*, task_id, reader, params_ref, root, scratch,
-                             operator, check_active=lambda: None):
+                             operator, sdk=None, check_active=lambda: None):
     from uuid import UUID
     if not isinstance(task_id, UUID) or task_id.int == 0:
         raise AdoptionInvalid('SIGNING_ADOPTION_TASK')
     verified = verify_signing_result(reader, params_ref, root, scratch, operator,
-                                     check_active=check_active)
+                                     sdk=sdk, check_active=check_active)
     result = decode_provenance(verified.result_jcs, SignedResult, 8 << 20)
     inventory = []
     for ordinal, (reference, location) in enumerate(((root, '$'),

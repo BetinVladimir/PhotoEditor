@@ -54,7 +54,7 @@ class AdoptionCoordinator:
                  render_max_tile_bytes=None, semantic_authority=None, semantic_ram_bytes=None,
                  semantic_plan_snapshot=None, semantic_plan_provenance=None,
                  exposure_installation=None, donor_installation=None, negative_installation=None, relight_installation=None, perspective_installation=None, perspective_lines_installation=None, multi_installations=(),
-                 interchange_recipe_qualifier_factory=None, signing_operator=None, check_active=lambda: None):
+                 interchange_recipe_qualifier_factory=None, signing_operator=None, signing_sdk=None, check_active=lambda: None):
         if not read_connection.autocommit or read_connection is write_connection:
             raise ValueError("Use distinct autocommit read and transactional write connections")
         if not callable(check_active):
@@ -66,7 +66,10 @@ class AdoptionCoordinator:
             from photo_worker.operations.provenance.installation import InstalledSigningOperator
             if not isinstance(signing_operator, InstalledSigningOperator):
                 raise ValueError('Signing adoption requires installed operator')
+        if (signing_operator is None) != (signing_sdk is None):
+            raise ValueError('Signing adoption requires paired operator and SDK')
         self.signing_operator = signing_operator
+        self.signing_sdk = signing_sdk
         def require_active():
             if check_active() is False:
                 raise AdoptionInvalid('ADOPTION_INACTIVE')
@@ -350,7 +353,8 @@ class AdoptionCoordinator:
             from .provenance_adoption_prepare import prepare_current_signing
             with ScratchSpace(self.layer_scratch_root, tenant_id, task_id, context.attempt, self.layer_scratch_bytes) as scratch:
                 prepared_signing = prepare_current_signing(self.read_connection, reader,
-                    tenant_id, task_id, context, scratch, self.signing_operator, check_active=self.check_active)
+                    tenant_id, task_id, context, scratch, self.signing_operator,
+                    sdk=self.signing_sdk, check_active=self.check_active)
             prepared = prepared_signing.adoption
         elif context.operation == 'v2.interchange.parse':
             if self.layer_scratch_root is None or self.layer_scratch_bytes is None:
