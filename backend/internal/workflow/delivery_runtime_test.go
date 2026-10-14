@@ -60,15 +60,25 @@ func TestDeliveryRuntimeInstallsAssemblyWithSharedLimits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	router, routed:=job.Driver.Children.(DeliveryChildRouter)
- if !routed{t.Fatal("mixed child router missing")}
- wm,ok:=router.Watermark.(DeliveryWatermarkChildPipeline)
- if !ok||wm.DB!=db||wm.Reader!=reader||wm.Bucket!="photos"||wm.Limits!=config.Limits{t.Fatal("watermark pipeline missing")}
- resolver,ok:=wm.Resolver.(SQLDeliveryWatermarkChildResolver)
- if !ok||resolver.DB!=db||resolver.WorkingICCSHA!=sha||resolver.TargetICCs["srgb_v1"]!=sha{t.Fatal("watermark resolver missing")}
- if _,ok:=job.Driver.Observer.(DeliveryChildRouter);!ok{t.Fatal("mixed observer missing")}
- if store,ok:=job.Driver.Store.(DeliveryRuntimePlanStore);!ok||store.Transactions!=db{t.Fatal("current-authority loader missing")}
- assembly, ok := job.Driver.Assembly.(DeliveryAssemblyPipeline)
+	router, routed := job.Driver.Children.(DeliveryChildRouter)
+	if !routed {
+		t.Fatal("mixed child router missing")
+	}
+	wm, ok := router.Watermark.(DeliveryWatermarkChildPipeline)
+	if !ok || wm.DB != db || wm.Reader != reader || wm.Bucket != "photos" || wm.Limits != config.Limits {
+		t.Fatal("watermark pipeline missing")
+	}
+	resolver, ok := wm.Resolver.(SQLDeliveryWatermarkChildResolver)
+	if !ok || resolver.DB != db || resolver.WorkingICCSHA != sha || resolver.TargetICCs["srgb_v1"] != sha {
+		t.Fatal("watermark resolver missing")
+	}
+	if _, ok := job.Driver.Observer.(DeliveryChildRouter); !ok {
+		t.Fatal("mixed observer missing")
+	}
+	if store, ok := job.Driver.Store.(DeliveryRuntimePlanStore); !ok || store.Transactions != db {
+		t.Fatal("current-authority loader missing")
+	}
+	assembly, ok := job.Driver.Assembly.(DeliveryAssemblyPipeline)
 	if job.Cleanup == nil {
 		t.Fatal("quota cleanup not installed")
 	}
@@ -154,9 +164,9 @@ func TestDeliveryJobCleanupWorkAndErrors(t *testing.T) {
 }
 
 type deliveryRuntimeMetadata struct {
-	calls *[]string
+	calls    *[]string
 	progress bool
-	err error
+	err      error
 }
 
 func (m deliveryRuntimeMetadata) ProcessOne(context.Context) (bool, error) {
@@ -169,17 +179,32 @@ func TestDeliveryMetadataProgressDoesNotStarveOrdinaryWork(t *testing.T) {
 		t.Run(scenario, func(t *testing.T) {
 			calls := []string{}
 			metadata := deliveryRuntimeMetadata{calls: &calls, progress: scenario == "progress"}
-			if scenario == "error" { metadata.err = errors.New("metadata failed") }
+			if scenario == "error" {
+				metadata.err = errors.New("metadata failed")
+			}
 			job := DeliveryExpansionJob{Metadata: metadata,
 				Driver: DeliveryExpansionDriver{Store: &deliveryDriverStore{calls: &calls}, PageSize: 1}}
 			changed, err := job.ProcessOne(context.Background())
 			if scenario == "error" {
-				if err == nil || !reflect.DeepEqual(calls, []string{"metadata"}) { t.Fatal("metadata error reached ordinary claim", changed, err, calls) }
+				if err == nil || !reflect.DeepEqual(calls, []string{"metadata", "claim"}) {
+					t.Fatal("metadata error starved ordinary claim", changed, err, calls)
+				}
 				return
 			}
 			if err != nil || changed != (scenario == "progress") || !reflect.DeepEqual(calls, []string{"metadata", "claim"}) {
 				t.Fatal("ordinary delivery starved by metadata", changed, err, calls)
 			}
 		})
+	}
+}
+
+func TestDeliveryMetadataAndOrdinaryFailuresAreBothReported(t *testing.T) {
+	calls := []string{}
+	metadataFailure := errors.New("metadata failed")
+	store := &deliveryDriverStore{calls: &calls, fail: "claim"}
+	job := DeliveryExpansionJob{Metadata: deliveryRuntimeMetadata{calls: &calls, err: metadataFailure}, Driver: DeliveryExpansionDriver{Store: store, PageSize: 1}}
+	_, err := job.ProcessOne(context.Background())
+	if !errors.Is(err, metadataFailure) || len(calls) != 2 || calls[0] != "metadata" || calls[1] != "claim" {
+		t.Fatal("independent failure masked", calls, err)
 	}
 }

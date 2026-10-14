@@ -57,6 +57,9 @@ func TestCreateActivationValidatesExactTicketAndReplayReceipt(t *testing.T) {
 		})
 	}
 	tx := &deliveryReadTx{}
+	if _, err := i.ActivateCreate(context.Background(), tx, who, i.tenant, "ab"); err == nil || tx.calls != 0 {
+		t.Fatal("invalid bucket queried activation")
+	}
 	if _, err := i.ActivateCreate(context.Background(), tx, who, uuid.New(), "photos"); err == nil || tx.calls != 0 {
 		t.Fatal("foreign scope queried")
 	}

@@ -58,9 +58,9 @@ type DeliveryQuotaCleanup interface {
 	ReleaseNextQuota(context.Context) (bool, error)
 }
 type DeliveryExpansionJob struct {
-	Driver  DeliveryExpansionDriver
-	Cleanup DeliveryQuotaCleanup
- Metadata ExpansionJob
+	Driver   DeliveryExpansionDriver
+	Cleanup  DeliveryQuotaCleanup
+	Metadata ExpansionJob
 }
 
 func (j DeliveryExpansionJob) ProcessOne(ctx context.Context) (bool, error) {
@@ -68,11 +68,12 @@ func (j DeliveryExpansionJob) ProcessOne(ctx context.Context) (bool, error) {
 		return false, err
 	}
 	metadataProgress := false
+	var metadataErr error
 	if j.Metadata != nil {
-		var err error
-		metadataProgress, err = j.Metadata.ProcessOne(ctx)
-		if err != nil { return metadataProgress, err }
-		if err = ctx.Err(); err != nil { return metadataProgress, err }
+		metadataProgress, metadataErr = j.Metadata.ProcessOne(ctx)
+		if err := ctx.Err(); err != nil {
+			return metadataProgress, err
+		}
 	}
 	bounded, cancel := context.WithTimeout(ctx, 45*time.Second)
 	defer cancel()
@@ -81,11 +82,11 @@ func (j DeliveryExpansionJob) ProcessOne(ctx context.Context) (bool, error) {
 		var cleanupErr error
 		released, cleanupErr = j.Cleanup.ReleaseNextQuota(bounded)
 		if cleanupErr != nil {
-			return metadataProgress, cleanupErr
+			return metadataProgress, errors.Join(metadataErr, cleanupErr)
 		}
 	}
 	progress, err := j.Driver.ProcessOne(bounded)
-	return metadataProgress || released || progress.Admitted > 0 || progress.Observed > 0 || progress.SigningState == "scanning" || progress.AssemblyState == "activated" || progress.AssemblyState == "finalized_failed", err
+	return metadataProgress || released || progress.Admitted > 0 || progress.Observed > 0 || progress.SigningState == "scanning" || progress.AssemblyState == "activated" || progress.AssemblyState == "finalized_failed", errors.Join(metadataErr, err)
 }
 func NewDeliveryExpansionJob(db *pgxpool.Pool, objects artifactjson.Objects, reader v2input.SessionAnalysisObjectReader, bucket, workSHA string, profiles map[string]string, registry Registry, c DeliveryRuntimeConfig) (DeliveryExpansionJob, error) {
 	if !c.Enabled || db == nil || objects == nil || reader == nil || len(bucket) < 3 || len(bucket) > 63 || c.PageSize < 1 || c.PageSize > 100 || c.Limits.RAMBytes < 1 || c.Limits.ScratchBytes < 1 || c.Limits.OutputBytes < 1 {
@@ -102,11 +103,13 @@ func NewDeliveryExpansionJob(db *pgxpool.Pool, objects artifactjson.Objects, rea
 	}
 	resolver := SQLDeliveryChildResolver{DB: db, Objects: reader, Bucket: bucket, WorkingICCSHA: workSHA, TargetICCs: pinned}
 	pipeline := DeliveryChildPipeline{DB: db, Objects: objects, Reader: reader, Bucket: bucket, Resolver: resolver, Registry: registry, Limits: c.Limits}
-	watermarkResolver:=SQLDeliveryWatermarkChildResolver{DB:db,Objects:reader,Bucket:bucket,WorkingICCSHA:workSHA,TargetICCs:pinned}
- watermarkPipeline:=DeliveryWatermarkChildPipeline{DB:db,Objects:objects,Reader:reader,Bucket:bucket,Resolver:watermarkResolver,Registry:registry,Limits:c.Limits}
- router:=DeliveryChildRouter{Ordinary:pipeline,Watermark:watermarkPipeline,OrdinaryObserver:pipeline,WatermarkObserver:watermarkPipeline}
- assembly := DeliveryAssemblyPipeline{DB: db, Objects: objects, Bucket: bucket, Limits: c.Limits}
- if signedObjects,ok:=objects.(delivery.SignedDependencyObjectReader);ok{assembly.SignedObjects=signedObjects}
-	metadata := DeliveryMetadataJob{Leases: delivery.MetadataNextBarrierStore{DB:db}, Stage: DeliveryMetadataStage{DB:db,Objects:objects,Bucket:bucket,Registry:registry,Limits:c.Limits}}
-	return DeliveryExpansionJob{Metadata:metadata,Cleanup: delivery.ExpansionLeaseStore{DB: db}, Driver: DeliveryExpansionDriver{Store: DeliveryRuntimePlanStore{ExpansionLeaseStore:delivery.ExpansionLeaseStore{DB:db},Transactions:db}, Children: router, Observer: router, Assembly: assembly, PageSize: c.PageSize}}, nil
+	watermarkResolver := SQLDeliveryWatermarkChildResolver{DB: db, Objects: reader, Bucket: bucket, WorkingICCSHA: workSHA, TargetICCs: pinned}
+	watermarkPipeline := DeliveryWatermarkChildPipeline{DB: db, Objects: objects, Reader: reader, Bucket: bucket, Resolver: watermarkResolver, Registry: registry, Limits: c.Limits}
+	router := DeliveryChildRouter{Ordinary: pipeline, Watermark: watermarkPipeline, OrdinaryObserver: pipeline, WatermarkObserver: watermarkPipeline}
+	assembly := DeliveryAssemblyPipeline{DB: db, Objects: objects, Bucket: bucket, Limits: c.Limits}
+	if signedObjects, ok := objects.(delivery.SignedDependencyObjectReader); ok {
+		assembly.SignedObjects = signedObjects
+	}
+	metadata := DeliveryMetadataJob{Leases: delivery.MetadataNextBarrierStore{DB: db}, Stage: DeliveryMetadataStage{DB: db, Objects: objects, Bucket: bucket, Registry: registry, Limits: c.Limits}}
+	return DeliveryExpansionJob{Metadata: metadata, Cleanup: delivery.ExpansionLeaseStore{DB: db}, Driver: DeliveryExpansionDriver{Store: DeliveryRuntimePlanStore{ExpansionLeaseStore: delivery.ExpansionLeaseStore{DB: db}, Transactions: db}, Children: router, Observer: router, Assembly: assembly, PageSize: c.PageSize}}, nil
 }
