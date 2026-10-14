@@ -41,6 +41,8 @@
 4. В одной транзакции сохранить evidence, links/inbox/events и финализировать run либо передать его existing finalizer по явно зафиксированному барьеру. Повтор того же claim возвращает прежний результат; заменённый canonical result, отзыв доступа, отмена, истёкшая lease или mismatch SHA отказывают без частичной публикации.
 5. Подключить processor к scheduler readiness/shutdown и написать unit-сценарии для каждого перехода, stale lease, logout до worker completion, unknown commit, replay и конфликтующей версии объекта. На тестовой фазе проверить real-role ACL и физические PostgreSQL/MinIO сценарии.
 
+Начат кодовый путь: миграция `02034_v30_export_adoption_claim.sql` и `SQLExportAdoptionClaimStore` дают только приватный lease/discovery с исходным request и deterministic identity; они не читают объекты и не принимают результат. Пока нет scheduler-scoped reader, adoption transaction, processor и runtime installation, V30 export adoption остаётся незавершённым. Миграция и unit-сценарии написаны, но не выполнялись.
+
 ## Граница первого MVP
 
 Обязательны пункты 1–5 на выбранной и явно опубликованной матрице камер/форматов/операций. V23 learning, V24 on-set, V27 semantic, расширенные V28/V29, interchange и V31 C2PA желательны после первого MVP, если продукт не обещает их пользователю. Любая включённая в интерфейсе или маркетинговом обещании функция сразу получает полный P0-критерий своей сквозной трассы. Такое разделение определяет релизную очередь, но не сокращает цель V20–V32.
