@@ -17,6 +17,44 @@ func (s SQLExportBodyFitFeatureInstallation) BuildExportBodyFitFeatureQualifier(
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	if scheduler, ok := catalog.(SQLSchedulerExportInputCatalog); ok {
+		if objects == nil || documents == nil || images == nil || warps == nil ||
+			s.Scratch == nil || s.Probe == nil {
+			return nil, v2input.ErrInvalid
+		}
+		if _, err := schedulerExportPolicyBindings(ctx, intent, frozen, scheduler); err != nil {
+			return nil, err
+		}
+		if err := SchedulerExportAdoptionSQLReady(ctx, scheduler.Claims.DB); err != nil {
+			return nil, err
+		}
+		detector, err := s.Detector.BuildExportDetectorQualifier(ctx, intent, frozen,
+			scheduler, objects, documents, images, warps)
+		if err != nil {
+			return nil, err
+		}
+		inputs := BoundExportBodyFitFeatureOriginal{
+			Source: scheduler, Images: images, Warps: warps, Faces: detector,
+		}
+		policy, err := NewExportBodyFitFeaturePolicy(scheduler, objects, inputs, s.Configs)
+		if err != nil {
+			return nil, err
+		}
+		models := map[string]string{}
+		for _, config := range s.Configs {
+			switch config.Expected.Operation {
+			case "pose.detect":
+				models["keypointrcnn_resnet50_fpn"] = config.Expected.ModelLockSHA
+			case "face.landmarks":
+				models["fan2d"] = config.Expected.ModelLockSHA
+			default:
+				return nil, v2input.ErrInvalid
+			}
+		}
+		return NewNativeExportBodyFitFeatureQualifier(
+			ExportBodyFitFeatureParamsReader{Source: scheduler, Objects: objects},
+			policy, s.Scratch, s.Probe, models, s.RuntimeSHA)
+	}
 	scoped, err := exportPolicyCatalogConfig(catalog)
 	if err != nil || scoped.DB == nil || objects == nil || documents == nil || images == nil || warps == nil || s.Scratch == nil || s.Probe == nil {
 		return nil, v2input.ErrInvalid
