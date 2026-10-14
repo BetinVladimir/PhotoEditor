@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// Requires an isolated database migrated through 02023.
+// Requires an isolated database migrated through 02026.
 func TestImportReviewSavedListSQLPrivilegesAndAbsentScope(t *testing.T) {
 	dsn := os.Getenv("PHOTO_TEST_DATABASE_URL")
 	if dsn == "" {
@@ -24,7 +24,7 @@ func TestImportReviewSavedListSQLPrivilegesAndAbsentScope(t *testing.T) {
 	for _, role := range []string{"photo_api", "photo_scheduler", "photo_worker", "photo_gateway", "photo_portal"} {
 		var allowed bool
 		err := db.QueryRow(ctx, `SELECT has_function_privilege($1,$2,'EXECUTE')`, role,
-			"photo.v30_import_review_saved_list(uuid,uuid,uuid,uuid,uuid)").Scan(&allowed)
+			"photo.v30_import_review_saved_page(uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,uuid)").Scan(&allowed)
 		if err != nil || allowed != (role == "photo_api") {
 			t.Fatal("saved review list privilege drift", role, err)
 		}
@@ -42,7 +42,7 @@ func TestImportReviewSavedListSQLPrivilegesAndAbsentScope(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, requested := range []uuid.UUID{tenantID, uuid.New()} {
-		rows, err := tx.Query(ctx, `SELECT photo.v30_import_review_saved_list($1,$2,$3,$4,$5)`, requested, uuid.New(), uuid.New(), uuid.New(), uuid.New())
+		rows, err := tx.Query(ctx, `SELECT photo.v30_import_review_saved_page($1,$2,$3,$4,$5,NULL,NULL,NULL,NULL)`, requested, uuid.New(), uuid.New(), uuid.New(), uuid.New())
 		if err != nil {
 			t.Fatal(err)
 		}

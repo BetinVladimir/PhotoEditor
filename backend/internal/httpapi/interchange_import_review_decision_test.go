@@ -19,6 +19,11 @@ func (s *importReviewDecisionStub) ListSaved(context.Context, auth.Identity, uui
 	return nil, nil
 }
 
+func (s *importReviewDecisionStub) ListSavedPage(context.Context, auth.Identity, uuid.UUID, uuid.UUID, uuid.UUID, string) (interchange.ImportReviewSavedPage, error) {
+	s.called = true
+	return interchange.ImportReviewSavedPage{Items: []interchange.ImportReviewDecisionStatus{}}, nil
+}
+
 func (s *importReviewDecisionStub) Decide(_ context.Context, _ auth.Identity, _, _, workflow, requestID uuid.UUID, req interchange.ImportReviewDecisionRequest) (interchange.ImportReviewDecisionReceipt, error) {
 	s.called = true
 	return interchange.ImportReviewDecisionReceipt{WorkflowID: workflow, EntryID: req.EntryID, Kind: req.Kind, TargetVersionID: req.TargetVersionID, ProposalID: req.Proposal.ArtifactID, Status: "revoked", Epoch: req.ExpectedEpoch + 1}, nil

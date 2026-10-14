@@ -14,6 +14,7 @@ type InterchangeImportReviewDecider interface {
 	Decide(context.Context, auth.Identity, uuid.UUID, uuid.UUID, uuid.UUID, uuid.UUID, interchange.ImportReviewDecisionRequest) (interchange.ImportReviewDecisionReceipt, error)
 	ReadStatus(context.Context, auth.Identity, uuid.UUID, uuid.UUID, uuid.UUID, uuid.UUID, uuid.UUID, string, uuid.UUID) (interchange.ImportReviewDecisionStatus, error)
 	ListSaved(context.Context, auth.Identity, uuid.UUID, uuid.UUID, uuid.UUID) ([]interchange.ImportReviewDecisionStatus, error)
+	ListSavedPage(context.Context, auth.Identity, uuid.UUID, uuid.UUID, uuid.UUID, string) (interchange.ImportReviewSavedPage, error)
 }
 
 func serveImportReviewDecision(w http.ResponseWriter, r *http.Request, who auth.Identity, tenantID, projectID, workflowID uuid.UUID, decider InterchangeImportReviewDecider) {

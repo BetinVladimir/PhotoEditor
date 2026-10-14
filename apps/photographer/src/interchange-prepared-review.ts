@@ -6,6 +6,7 @@ export type PreparedReviewReceipt={workflow_id:string;entry_id:string;kind:'defe
 export type SavedPreparedReview={entry_id:string;target_version_id:string;kind:'defects'|'dust';proposal:PreparedReviewRef;base:PreparedReviewRef;label_map:PreparedReviewRef|null;decision:'accept'|'reject'|'skip';accepted_candidate_ids:string[];rejected_candidate_ids:string[];status:'granted'|'revoked';epoch:number};
 export type DustCrop={x:number;y:number;width:number;height:number};
 export type DustCropMarker={left:number;top:number;width:number;height:number};
+export type SavedPreparedReviewPage={items:SavedPreparedReview[];next_after?:string};
 
 const uuid=(v:unknown):v is string=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(v)&&v!=='00000000-0000-0000-0000-000000000000';
 const sha=(v:unknown):v is string=>typeof v==='string'&&/^[0-9a-f]{64}$/.test(v);
@@ -106,6 +107,18 @@ export function readSavedPreparedReviews(value:unknown,workflow:string):SavedPre
   if(seen.has(key))throw invalid();seen.add(key);rows.push(raw as unknown as SavedPreparedReview);
  }
  return rows;
+}
+
+export function savedPreparedReviewCursor(row:SavedPreparedReview):string{
+ return `${row.entry_id}.${row.target_version_id}.${row.kind}.${row.proposal.artifact_id}`;
+}
+
+export function readSavedPreparedReviewPage(value:unknown,workflow:string):SavedPreparedReviewPage{
+ const items=readSavedPreparedReviews(value,workflow);
+ if(!record(value)||(value.next_after!==undefined&&(typeof value.next_after!=='string'||items.length!==500||
+  value.next_after!==savedPreparedReviewCursor(items[items.length-1]))))throw invalid();
+ for(let i=1;i<items.length;i++)if(savedPreparedReviewCursor(items[i-1])>=savedPreparedReviewCursor(items[i]))throw invalid();
+ return {items,...(value.next_after===undefined?{}:{next_after:value.next_after as string})};
 }
 
 export function freezeSavedPreparedRevoke(saved:SavedPreparedReview):PreparedReviewDecision{

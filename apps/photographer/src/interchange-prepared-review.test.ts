@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {freezePreparedReviewDecision,freezeSavedPreparedRevoke,projectDustCandidateToCrop,readPreparedReviewReceipt,readPreparedReviews,readSavedPreparedReviews} from './interchange-prepared-review';
+import {freezePreparedReviewDecision,freezeSavedPreparedRevoke,projectDustCandidateToCrop,readPreparedReviewReceipt,readPreparedReviews,readSavedPreparedReviewPage,readSavedPreparedReviews,savedPreparedReviewCursor} from './interchange-prepared-review';
 
 const id=(n:number)=>`00000000-0000-0000-0000-${String(n).padStart(12,'0')}`;
 const ref=(n:number)=>({artifact_id:id(n),sha256:String(n).padStart(64,'a')});
@@ -49,5 +49,12 @@ describe('prepared import review contract',()=>{
   const edge=projectDustCandidateToCrop(crop,{id:'f'.repeat(64),decision:'pending',sensor_x:11,sensor_y:21,radius_sensor_px:10});
   expect(edge.left).toBe(0);expect(edge.top).toBe(0);expect(edge.width).toBe(2.75);expect(edge.height).toBeCloseTo(11/3);
   expect(()=>projectDustCandidateToCrop(crop,{id:'f'.repeat(64),decision:'pending',sensor_x:411,sensor_y:21,radius_sensor_px:1})).toThrow();
+ });
+ it('requires an exact progressing cursor for a full saved-decision page',()=>{
+  const items=Array.from({length:500},(_,i)=>({entry_id:id(i+1),target_version_id:id(501),kind:'dust',proposal:ref(600+i),base:ref(502),label_map:null,decision:'skip',accepted_candidate_ids:[],rejected_candidate_ids:[],status:'granted',epoch:1}));
+  const next_after=savedPreparedReviewCursor(items[499] as never);
+  expect(readSavedPreparedReviewPage({workflow_id:id(9),items,next_after},id(9)).next_after).toBe(next_after);
+  expect(()=>readSavedPreparedReviewPage({workflow_id:id(9),items,next_after:'foreign'},id(9))).toThrow();
+  expect(()=>readSavedPreparedReviewPage({workflow_id:id(9),items:items.slice(0,1),next_after},id(9))).toThrow();
  });
 });
