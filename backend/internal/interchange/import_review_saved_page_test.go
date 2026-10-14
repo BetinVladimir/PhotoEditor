@@ -2,6 +2,7 @@ package interchange
 
 import (
 	"context"
+	"sort"
 	"testing"
 
 	"github.com/google/uuid"
@@ -24,5 +25,38 @@ func TestImportReviewSavedCursorIsExactAndScoped(t *testing.T) {
 	}
 	if _, err := (ImportReviewDecisionService{}).ListSavedPage(context.Background(), auth.Identity{}, uuid.New(), uuid.New(), uuid.New(), "invalid"); err == nil {
 		t.Fatal("malformed cursor reached database dependency")
+	}
+}
+
+func TestImportReviewSavedListCollectsAllPagesAndRejectsOverlap(t *testing.T) {
+	items := make([]ImportReviewDecisionStatus, 501)
+	for i := range items {
+		items[i] = ImportReviewDecisionStatus{EntryID: uuid.New(), TargetVersionID: uuid.New(), Kind: "dust"}
+		items[i].Proposal.ArtifactID = uuid.New()
+	}
+	sort.Slice(items, func(i, j int) bool { return importReviewSavedCursor(items[i]) < importReviewSavedCursor(items[j]) })
+	firstCursor := importReviewSavedCursor(items[499])
+	calls := 0
+	got, err := collectImportReviewSavedPages(context.Background(), func(after string) (ImportReviewSavedPage, error) {
+		calls++
+		if after == "" {
+			return ImportReviewSavedPage{Items: items[:500], NextAfter: firstCursor}, nil
+		}
+		if after != firstCursor {
+			t.Fatal("unexpected saved cursor", after)
+		}
+		return ImportReviewSavedPage{Items: items[500:]}, nil
+	})
+	if err != nil || calls != 2 || len(got) != 501 {
+		t.Fatal("saved decisions were truncated", calls, len(got), err)
+	}
+	_, err = collectImportReviewSavedPages(context.Background(), func(after string) (ImportReviewSavedPage, error) {
+		if after == "" {
+			return ImportReviewSavedPage{Items: items[:500], NextAfter: firstCursor}, nil
+		}
+		return ImportReviewSavedPage{Items: items[499:]}, nil
+	})
+	if err == nil {
+		t.Fatal("overlapping saved page accepted")
 	}
 }

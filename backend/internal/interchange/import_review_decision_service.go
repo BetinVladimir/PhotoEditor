@@ -48,51 +48,9 @@ type ImportReviewDecisionStatus struct {
 }
 
 func (s ImportReviewDecisionService) ListSaved(ctx context.Context, who auth.Identity, tenantID, projectID, workflowID uuid.UUID) ([]ImportReviewDecisionStatus, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-	if s.DB == nil {
-		return nil, domain.NewError("INTERCHANGE_UNAVAILABLE", 503)
-	}
-	if tenantID == uuid.Nil || projectID == uuid.Nil || workflowID == uuid.Nil || who.UserID == uuid.Nil || who.SessionID == uuid.Nil {
-		return nil, domain.NewError("VALIDATION_FAILED", 422)
-	}
-	items := make([]ImportReviewDecisionStatus, 0)
-	err := database.TenantTransaction(ctx, s.DB, tenantID, func(tx pgx.Tx) error {
-		var actual uuid.UUID
-		if err := tx.QueryRow(ctx, `SELECT project_id FROM photo.v2_workflows WHERE tenant_id=$1 AND id=$2 AND workflow_type='interchange'`, tenantID, workflowID).Scan(&actual); err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				return domain.NewError("NOT_FOUND", 404)
-			}
-			return err
-		}
-		if actual != projectID {
-			return domain.NewError("NOT_FOUND", 404)
-		}
-		rows, err := tx.Query(ctx, `SELECT photo.v30_import_review_saved_list($1,$2,$3,$4,$5)`, tenantID, who.UserID, who.SessionID, projectID, workflowID)
-		if err != nil {
-			return err
-		}
-		defer rows.Close()
-		for rows.Next() {
-			var raw []byte
-			if err := rows.Scan(&raw); err != nil {
-				return err
-			}
-			var item ImportReviewDecisionStatus
-			if len(items) >= 500 || json.Unmarshal(raw, &item) != nil || item.EntryID == uuid.Nil || item.TargetVersionID == uuid.Nil ||
-				(item.Kind != "defects" && item.Kind != "dust") || !validImportRef(item.Proposal) || !validImportRef(item.Base) ||
-				(item.Kind == "defects" && (item.LabelMap == nil || !validImportRef(*item.LabelMap))) ||
-				(item.Kind == "dust" && item.LabelMap != nil) ||
-				(item.Decision != "accept" && item.Decision != "reject" && item.Decision != "skip") ||
-				(item.Status != "granted" && item.Status != "revoked") || item.Epoch < 1 || len(item.Accepted)+len(item.Rejected) > 4096 {
-				return domain.NewError("INTERCHANGE_DECISION_INVALID_RECEIPT", 503)
-			}
-			items = append(items, item)
-		}
-		return rows.Err()
+	return collectImportReviewSavedPages(ctx, func(after string) (ImportReviewSavedPage, error) {
+		return s.ListSavedPage(ctx, who, tenantID, projectID, workflowID, after)
 	})
-	return items, err
 }
 
 func (s ImportReviewDecisionService) ReadStatus(ctx context.Context, who auth.Identity, tenantID, projectID, workflowID, entryID, targetID uuid.UUID, kind string, proposalID uuid.UUID) (ImportReviewDecisionStatus, error) {

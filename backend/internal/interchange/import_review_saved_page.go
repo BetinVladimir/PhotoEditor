@@ -22,6 +22,40 @@ func importReviewSavedCursor(item ImportReviewDecisionStatus) string {
 	return item.EntryID.String() + "." + item.TargetVersionID.String() + "." + item.Kind + "." + item.Proposal.ArtifactID.String()
 }
 
+// The unpaged internal interface must either return the full bounded set or
+// fail explicitly. Callers needing larger catalogues should use ListSavedPage.
+func collectImportReviewSavedPages(ctx context.Context, fetch func(string) (ImportReviewSavedPage, error)) ([]ImportReviewDecisionStatus, error) {
+	items := make([]ImportReviewDecisionStatus, 0)
+	after := ""
+	for pageNumber := 0; pageNumber < 50; pageNumber++ {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		page, err := fetch(after)
+		if err != nil {
+			return nil, err
+		}
+		if len(page.Items) > 500 || (page.NextAfter != "" && len(page.Items) != 500) {
+			return nil, domain.NewError("INTERCHANGE_DECISION_INVALID_RECEIPT", 503)
+		}
+		for _, item := range page.Items {
+			cursor := importReviewSavedCursor(item)
+			if cursor <= after {
+				return nil, domain.NewError("INTERCHANGE_DECISION_INVALID_RECEIPT", 503)
+			}
+			after = cursor
+			items = append(items, item)
+		}
+		if page.NextAfter == "" {
+			return items, nil
+		}
+		if page.NextAfter != after {
+			return nil, domain.NewError("INTERCHANGE_DECISION_INVALID_RECEIPT", 503)
+		}
+	}
+	return nil, domain.NewError("INTERCHANGE_DECISION_LIST_TOO_LARGE", 503)
+}
+
 func parseImportReviewSavedCursor(raw string) (uuid.UUID, uuid.UUID, string, uuid.UUID, error) {
 	if raw == "" {
 		return uuid.Nil, uuid.Nil, "", uuid.Nil, nil
