@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"path/filepath"
 	"strings"
 	"time"
@@ -72,9 +73,7 @@ func (s SQLCompletionLeases) Claim(ctx context.Context) (*CompletionLease, error
 	if lease.UploadID == uuid.Nil || lease.Token == uuid.Nil || lease.TenantID == uuid.Nil || lease.ArtifactID == uuid.Nil || lease.SnapshotID == uuid.Nil || lease.RunID == uuid.Nil || lease.ArtifactID == lease.SnapshotID || lease.ArtifactID == lease.RunID || lease.SnapshotID == lease.RunID || lease.ExpectedBytes < 1 || lease.ExpectedBytes > objectstore.MaxUploadBytes || !validCompletionSource(*lease) {
 		return nil, errors.New("invalid upload completion lease")
 	}
-	decoder := json.NewDecoder(bytes.NewReader(raw))
-	decoder.DisallowUnknownFields()
-	if decoder.Decode(&lease.Parts) != nil || len(lease.Parts) < 1 || len(lease.Parts) > objectstore.MaxUploadParts {
+	if err := decodeCompletionParts(raw, &lease.Parts); err != nil {
 		return nil, errors.New("invalid persisted upload parts")
 	}
 	for i, part := range lease.Parts {
@@ -83,6 +82,22 @@ func (s SQLCompletionLeases) Claim(ctx context.Context) (*CompletionLease, error
 		}
 	}
 	return lease, nil
+}
+
+func decodeCompletionParts(raw []byte, parts *[]objectstore.UploadedPart) error {
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(parts); err != nil {
+		return err
+	}
+	if len(*parts) < 1 || len(*parts) > objectstore.MaxUploadParts {
+		return errors.New("invalid part count")
+	}
+	var trailing any
+	if err := decoder.Decode(&trailing); err != io.EOF {
+		return errors.New("trailing upload parts JSON")
+	}
+	return nil
 }
 
 func (s SQLCompletionLeases) Renew(ctx context.Context, lease CompletionLease) (bool, error) {
@@ -242,6 +257,11 @@ func (p CompletionProcessor) ProcessOne(ctx context.Context) (bool, error) {
 	<-joined
 	if cause := context.Cause(work); cause != nil {
 		return false, cause
+	}
+	if completeErr == nil || errors.Is(completeErr, objectstore.ErrIntegrity) {
+		if err := renew(); err != nil {
+			return false, err
+		}
 	}
 	if completeErr != nil && errors.Is(completeErr, objectstore.ErrIntegrity) && lease.ExpectedSHA != nil && object.Key == lease.ObjectKey && object.VersionID != "" && object.VersionID != "null" && object.SHA256 != "" && object.SHA256 != *lease.ExpectedSHA {
 		payload, digest, config, configHash, documentErr := completionDocuments(*lease, object.SHA256)

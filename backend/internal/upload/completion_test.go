@@ -16,6 +16,7 @@ type completionLeaseFake struct {
 	renew                         bool
 	claimErr, renewErr, finishErr error
 	renews, releases, finishes    int
+	loseOnRenew                   int
 	payload, config               json.RawMessage
 	fails                         int
 }
@@ -25,6 +26,9 @@ func (f *completionLeaseFake) Claim(context.Context) (*CompletionLease, error) {
 }
 func (f *completionLeaseFake) Renew(context.Context, CompletionLease) (bool, error) {
 	f.renews++
+	if f.loseOnRenew > 0 && f.renews == f.loseOnRenew {
+		return false, nil
+	}
 	return f.renew, f.renewErr
 }
 func (f *completionLeaseFake) Release(context.Context, CompletionLease) (bool, error) {
@@ -121,5 +125,30 @@ func TestCompletionProcessorStopsBeforeStorageAfterLeaseLoss(t *testing.T) {
 	changed, err := (CompletionProcessor{Leases: leasing, Objects: objects, HeartbeatInterval: 10 * time.Millisecond, RenewTimeout: 10 * time.Millisecond, WorkTimeout: time.Second}).ProcessOne(context.Background())
 	if changed || !errors.Is(err, ErrCompletionLeaseLost) || objects.completes != 0 || leasing.finishes != 0 || leasing.releases != 1 {
 		t.Fatal("lease loss crossed side-effect boundary", changed, err, objects.completes, leasing.finishes, leasing.releases)
+	}
+}
+
+func TestCompletionProcessorDoesNotCommitAfterFinalLeaseLoss(t *testing.T) {
+	lease, pending, object := completionFixture()
+	leasing := &completionLeaseFake{lease: &lease, renew: true, loseOnRenew: 2}
+	objects := &completionObjectFake{pending: pending, object: object}
+	changed, err := (CompletionProcessor{Leases: leasing, Objects: objects,
+		HeartbeatInterval: time.Second, RenewTimeout: time.Second, WorkTimeout: time.Minute}).ProcessOne(context.Background())
+	if changed || !errors.Is(err, ErrCompletionLeaseLost) || objects.verifies != 1 || leasing.finishes != 0 || leasing.fails != 0 || leasing.releases != 1 {
+		t.Fatal("final lease loss reached commit", changed, err, leasing, objects)
+	}
+}
+
+func TestDecodeCompletionPartsRejectsTrailingOrMalformedJSON(t *testing.T) {
+	for _, raw := range []string{
+		`[{"part_no":1,"etag":"etag"}] {}`,
+		`[{"part_no":1,"etag":"etag","unknown":true}]`,
+		`null`,
+		`[]`,
+	} {
+		var parts []objectstore.UploadedPart
+		if err := decodeCompletionParts([]byte(raw), &parts); err == nil {
+			t.Fatal("invalid persisted parts accepted", raw)
+		}
 	}
 }
