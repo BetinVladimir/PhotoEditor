@@ -79,7 +79,14 @@ activation preparation, so each phase recompiles the same enriched digest
 while the run remains draft. `SQLExportExecutionInstaller` binds its SQL
 repository, object store, process trust and current-producer checker when an
 operator-installed candidate factory supplies signed source-derived entries.
-The concrete production candidate factory remains to be installed.
+`SQLExportPersonOriginCandidates` now supplies that factory: it scans only
+confirmed `person_subject` MaskRefs in the frozen recipe graph, discovers the
+unique current original producer root through the tenant/project/source
+catalogue, invokes the physical issuer for each exact occurrence, and returns
+owned signed attachments. The installer binds a request-scoped SQL current
+producer checker before publication. Deployment still has to provision the
+signing key, trusted public keys and qualified model policy; the full V30
+end-to-end path remains unverified until the deferred test phase.
 Installed export archive authority now requires a current producer checker.
 The SQL checker repeats the original `mask.person` locator and compares task,
 attempt, fence, root, report and MaskPixels with the signed claim during ZIP

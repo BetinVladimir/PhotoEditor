@@ -12,7 +12,7 @@ import (
 // process-installed authority, never a request or archive callback.
 type ExportPersonOriginCandidateFactory interface {
 	PrepareExportPersonOriginCandidates(context.Context, CreateIntent, FrozenExportDocuments,
-		ExportClosureNodeResolver) ([]ExportPersonOriginPublished, error)
+		ExportClosureNodeResolver, SQLExportDocumentCatalog) ([]ExportPersonOriginPublished, error)
 }
 
 // ExportPersonOriginInputSet pins prepared claims for the private draft's

@@ -27,7 +27,6 @@ type SQLExportExecutionInstaller struct {
 	MaxInputBytes          int64
 	PersonOriginCandidates ExportPersonOriginCandidateFactory
 	PersonOriginTrust      map[PortablePersonOriginKey]ed25519.PublicKey
-	PersonOriginCurrent    ExportPersonOriginCurrentChecker
 }
 
 // A candidate envelope is selected from trusted evidence; full qualification
@@ -104,23 +103,24 @@ func (s SQLExportExecutionInstaller) InstallExportExecution(ctx context.Context,
 	store := SQLExportDocumentStore{DB: s.API, Tenant: tid, Who: who, Intent: copyExportIntent(intent), Key: key, Bucket: s.Bucket, Frozen: FrozenExportDocuments{body: checked.Body(), identity: checked.identity}}
 	var personOrigins *ExportPersonOriginInputSet
 	if s.PersonOriginCandidates != nil {
-		if intent.Request.Format != "photoeditor_bundle" || len(s.PersonOriginTrust) == 0 || s.PersonOriginCurrent == nil {
+		if intent.Request.Format != "photoeditor_bundle" || len(s.PersonOriginTrust) == 0 {
 			return zero, v2input.ErrInvalid
 		}
-		candidates, err := s.PersonOriginCandidates.PrepareExportPersonOriginCandidates(ctx, copyExportIntent(intent), checked, resolver)
+		candidates, err := s.PersonOriginCandidates.PrepareExportPersonOriginCandidates(ctx, copyExportIntent(intent), checked, resolver, catalog)
 		if err != nil {
 			return zero, err
 		}
 		if len(candidates) > 0 {
+			current := SQLExportPersonOriginCurrentChecker{Locator: catalog}
 			publisher := ExportPersonOriginAttachmentPublisher{Tenant: tid, Run: intent.Identity.Run,
 				Repository: SQLExportPersonOriginRepository{Export: store}, Objects: s.Objects, Reader: s.Objects,
-				Current: s.PersonOriginCurrent, Trusted: s.PersonOriginTrust}
-			personOrigins, err = NewExportPersonOriginInputSet(candidates, publisher, s.PersonOriginTrust, s.PersonOriginCurrent)
+				Current: current, Trusted: s.PersonOriginTrust}
+			personOrigins, err = NewExportPersonOriginInputSet(candidates, publisher, s.PersonOriginTrust, current)
 			if err != nil {
 				return zero, err
 			}
 		}
-	} else if len(s.PersonOriginTrust) > 0 || s.PersonOriginCurrent != nil {
+	} else if len(s.PersonOriginTrust) > 0 {
 		return zero, v2input.ErrInvalid
 	}
 	materializer := SQLResolvedExportTaskMaterializer{SQL: SQLExportTaskMaterializer{DB: s.API, Tenant: tid, Who: who, Request: copyExportIntent(intent).Request, Key: key, Resources: resources}, Resolver: resolver, PersonOrigins: personOrigins}
