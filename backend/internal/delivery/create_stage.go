@@ -36,10 +36,16 @@ func (s Service) StageCreatePrepare(ctx context.Context, who auth.Identity, tid 
 	if s.DB == nil || len(bucket) < 3 || len(bucket) > 63 || objects == nil {
 		return FrozenPrepareTask{}, domain.NewError("DELIVERY_UNAVAILABLE", 503)
 	}
-	if len(metadata)>1 { return FrozenPrepareTask{}, domain.NewError("DELIVERY_METADATA_UNAVAILABLE", 503) }
+	if len(metadata) > 1 {
+		return FrozenPrepareTask{}, domain.NewError("DELIVERY_METADATA_UNAVAILABLE", 503)
+	}
 	if request.Policy.MetadataPolicy != "strip" {
-		if len(metadata)!=1 || metadata[0]==nil { return FrozenPrepareTask{}, domain.NewError("DELIVERY_METADATA_UNAVAILABLE", 503) }
-		if _, err := metadata[0].environment(); err != nil { return FrozenPrepareTask{}, domain.NewError("DELIVERY_METADATA_UNAVAILABLE", 503) }
+		if len(metadata) != 1 || metadata[0] == nil {
+			return FrozenPrepareTask{}, domain.NewError("DELIVERY_METADATA_UNAVAILABLE", 503)
+		}
+		if _, err := metadata[0].environment(); err != nil {
+			return FrozenPrepareTask{}, domain.NewError("DELIVERY_METADATA_UNAVAILABLE", 503)
+		}
 	}
 	// Use the owned request throughout; public slice fields may otherwise be
 	// mutated by a caller while asynchronous IO is running.
@@ -64,7 +70,7 @@ func (s Service) StageCreatePrepare(ctx context.Context, who auth.Identity, tid 
 		return FrozenPrepareTask{}, err
 	}
 	err = tenant.WithTenant(ctx, s.DB, who, tid, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
-		return intent.BeginRun(ctx, tx, who, tid, recovery.Pending)
+		return intent.BeginRun(ctx, tx, who, tid, recovery.Pending, bucket)
 	})
 	if err != nil {
 		return FrozenPrepareTask{}, err
@@ -77,7 +83,9 @@ func (s Service) StageCreatePrepare(ctx context.Context, who auth.Identity, tid 
 		return FrozenPrepareTask{}, err
 	}
 	if request.Policy.MetadataPolicy != "strip" {
-		if err := s.prepareAndPinCreateMetadata(ctx, who, tid, intent, docs, recovery.Pending.Items, bucket, objects, *metadata[0]); err != nil { return FrozenPrepareTask{}, err }
+		if err := s.prepareAndPinCreateMetadata(ctx, who, tid, intent, docs, recovery.Pending.Items, bucket, objects, *metadata[0]); err != nil {
+			return FrozenPrepareTask{}, err
+		}
 	}
 	err = tenant.WithTenant(ctx, s.DB, who, tid, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
 		return intent.MaterializePrepare(ctx, tx, who, tid, frozen)

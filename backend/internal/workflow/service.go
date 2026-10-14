@@ -645,8 +645,12 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 		return err
 	}
 	deliveryState := new(ExpansionLoopState)
+	var deliveryRuntimeReady atomic.Bool
 	var deliveryProcessor DeliveryExpansionJob
 	if deliveryConfig.Enabled {
+		if err := validateDeliveryRuntimeSQL(ctx, pool); err != nil {
+			return err
+		}
 		deliveryRegistry, registryErr := LoadRegistry()
 		if registryErr != nil {
 			return registryErr
@@ -737,7 +741,7 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 		w.Header().Set("Content-Type", "application/json")
 		ping, cancel := context.WithTimeout(r.Context(), time.Second)
 		defer cancel()
-		if (learningEvaluateInstalled && !learningEvaluateState.Ready.Load()) || (restorationEnabled && !restorationAdoptionState.Ready.Load()) || (restorationPreviewEnabled && !restorationPreviewState.Ready.Load()) || (metadataAdoptionEnabled && !metadataAdoptionState.Ready.Load()) || (replacementAdoptionEnabled && !replacementAdoptionState.Ready.Load()) || !ready.Load() || (deliveryConfig.Enabled && !deliveryState.Ready.Load()) || (captureEnabled && !captureState.Ready.Load()) || (sessionPlanInstalled && !sessionPlanState.Ready.Load()) || (semanticAssemblyInstalled && !semanticAssemblyState.Ready.Load()) || (sceneMaterializationInstalled && !sceneMaterializationState.Ready.Load()) || !expansionState.Ready.Load() || !ingestState.Ready.Load() || !interchangeCollectionState.Ready.Load() || (interchangeImportProcessor != nil && (!interchangeImportState.Ready.Load() || !interchangeImportRuntimeReady.Load())) || (interchangeExportProcessor != nil && !interchangeExportState.Ready.Load()) || (archiveInvalidationProcessor != nil && !archiveInvalidationState.Ready.Load()) || (archiveRevocationProcessor != nil && !archiveRevocationState.Ready.Load()) || (archiveRecoveryProcessor != nil && !archiveRecoveryState.Ready.Load()) || (archiveCleanupProcessor != nil && !archiveCleanupState.Ready.Load()) || (archiveExpiryProcessor != nil && !archiveExpiryState.Ready.Load()) || (archiveCompletionProcessor != nil && !archiveCompletionState.Ready.Load()) || !uploadState.Ready.Load() || !downloadState.Ready.Load() || !bulkState.Ready.Load() || !styleState.Ready.Load() || !styleAnalysisState.Ready.Load() || !styleImportState.Ready.Load() || !embeddingState.Ready.Load() || !exportBatchState.Ready.Load() || !renderBatchState.Ready.Load() || !renderDerivativeCleanupState.Ready.Load() || !renderDerivativeState.Ready.Load() || !perspectivePreviewState.Ready.Load() || !multiQualityState.Ready.Load() || !multiPreviewState.Ready.Load() || !perspectiveQualityState.Ready.Load() || !renderRecoveryState.Ready.Load() || (nativeRecoveryProcessor != nil && !nativeRecoveryState.Ready.Load()) || (linesEnabled && (!perspectiveLinesRecoveryState.Ready.Load() || !perspectiveLinesLifecycleState.Ready.Load())) || !interactiveState.Ready.Load() || !interactiveFinalizeState.Ready.Load() || !applyState.Ready.Load() || !mediaRetryState.Ready.Load() || !mediaFinalizeState.Ready.Load() || pool.Ping(ping) != nil || storage.Ready(ping) != nil {
+		if (learningEvaluateInstalled && !learningEvaluateState.Ready.Load()) || (restorationEnabled && !restorationAdoptionState.Ready.Load()) || (restorationPreviewEnabled && !restorationPreviewState.Ready.Load()) || (metadataAdoptionEnabled && !metadataAdoptionState.Ready.Load()) || (replacementAdoptionEnabled && !replacementAdoptionState.Ready.Load()) || !ready.Load() || (deliveryConfig.Enabled && (!deliveryState.Ready.Load() || !deliveryRuntimeReady.Load())) || (captureEnabled && !captureState.Ready.Load()) || (sessionPlanInstalled && !sessionPlanState.Ready.Load()) || (semanticAssemblyInstalled && !semanticAssemblyState.Ready.Load()) || (sceneMaterializationInstalled && !sceneMaterializationState.Ready.Load()) || !expansionState.Ready.Load() || !ingestState.Ready.Load() || !interchangeCollectionState.Ready.Load() || (interchangeImportProcessor != nil && (!interchangeImportState.Ready.Load() || !interchangeImportRuntimeReady.Load())) || (interchangeExportProcessor != nil && !interchangeExportState.Ready.Load()) || (archiveInvalidationProcessor != nil && !archiveInvalidationState.Ready.Load()) || (archiveRevocationProcessor != nil && !archiveRevocationState.Ready.Load()) || (archiveRecoveryProcessor != nil && !archiveRecoveryState.Ready.Load()) || (archiveCleanupProcessor != nil && !archiveCleanupState.Ready.Load()) || (archiveExpiryProcessor != nil && !archiveExpiryState.Ready.Load()) || (archiveCompletionProcessor != nil && !archiveCompletionState.Ready.Load()) || !uploadState.Ready.Load() || !downloadState.Ready.Load() || !bulkState.Ready.Load() || !styleState.Ready.Load() || !styleAnalysisState.Ready.Load() || !styleImportState.Ready.Load() || !embeddingState.Ready.Load() || !exportBatchState.Ready.Load() || !renderBatchState.Ready.Load() || !renderDerivativeCleanupState.Ready.Load() || !renderDerivativeState.Ready.Load() || !perspectivePreviewState.Ready.Load() || !multiQualityState.Ready.Load() || !multiPreviewState.Ready.Load() || !perspectiveQualityState.Ready.Load() || !renderRecoveryState.Ready.Load() || (nativeRecoveryProcessor != nil && !nativeRecoveryState.Ready.Load()) || (linesEnabled && (!perspectiveLinesRecoveryState.Ready.Load() || !perspectiveLinesLifecycleState.Ready.Load())) || !interactiveState.Ready.Load() || !interactiveFinalizeState.Ready.Load() || !applyState.Ready.Load() || !mediaRetryState.Ready.Load() || !mediaFinalizeState.Ready.Load() || pool.Ping(ping) != nil || storage.Ready(ping) != nil {
 			w.WriteHeader(http.StatusServiceUnavailable)
 			w.Write([]byte(`{"status":"unavailable"}`))
 			return
@@ -795,8 +799,14 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 	if deliveryConfig.Enabled {
 		deliveryCtx, stopDelivery := context.WithCancel(ctx)
 		deliveryDone := make(chan error, 1)
+		runtimeDone := make(chan struct{})
+		instance := uuid.New()
 		go func() { deliveryDone <- RunExpansionLoop(deliveryCtx, deliveryProcessor, deliveryState, 5*time.Second) }()
-		defer func() { stopDelivery(); <-deliveryDone }()
+		go func() {
+			maintainDeliveryRuntime(deliveryCtx, pool, deliveryState, &deliveryRuntimeReady, instance, storageConfig.Bucket)
+			close(runtimeDone)
+		}()
+		defer func() { stopDelivery(); <-deliveryDone; <-runtimeDone }()
 	}
 	if metadataAdoptionEnabled {
 		metadataCtx, stopMetadata := context.WithCancel(ctx)
