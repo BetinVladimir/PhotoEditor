@@ -820,7 +820,12 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 		deliveryCtx, stopDelivery := context.WithCancel(ctx)
 		deliveryDone := make(chan error, 1)
 		runtimeDone := make(chan struct{})
-		go func() { deliveryDone <- RunExpansionLoop(deliveryCtx, deliveryProcessor, deliveryState, 5*time.Second) }()
+		deliveryJob := runtimeFailureWithdrawal{Job: deliveryProcessor, State: deliveryState,
+			Withdraw: func(ctx context.Context) error {
+				_, err := pool.Exec(ctx, "SELECT photo.withdraw_v30_delivery_runtime($1)", deliveryInstance)
+				return err
+			}}
+		go func() { deliveryDone <- RunExpansionLoop(deliveryCtx, deliveryJob, deliveryState, 5*time.Second) }()
 		go func() {
 			maintainDeliveryRuntime(deliveryCtx, pool, deliveryState, metadataAdoptionState, &deliveryRuntimeReady, deliveryInstance, storageConfig.Bucket, signingDeliveryTenants, signingDeliveryPins)
 			close(runtimeDone)
@@ -890,8 +895,13 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 		importDone := make(chan error, 1)
 		runtimeDone := make(chan struct{})
 		instance := uuid.New()
+		importJob := runtimeFailureWithdrawal{Job: interchangeImportProcessor, State: interchangeImportState,
+			Withdraw: func(ctx context.Context) error {
+				_, err := pool.Exec(ctx, "SELECT photo.withdraw_v30_import_runtime($1)", instance)
+				return err
+			}}
 		go func() {
-			importDone <- RunExpansionLoop(importCtx, interchangeImportProcessor, interchangeImportState, 5*time.Second)
+			importDone <- RunExpansionLoop(importCtx, importJob, interchangeImportState, 5*time.Second)
 		}()
 		go func() {
 			maintainInterchangeImportRuntime(importCtx, pool, interchangeImportState,
@@ -905,8 +915,13 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 		exportDone := make(chan error, 1)
 		runtimeDone := make(chan struct{})
 		instance := uuid.New()
+		exportJob := runtimeFailureWithdrawal{Job: interchangeExportProcessor, State: interchangeExportState,
+			Withdraw: func(ctx context.Context) error {
+				_, err := pool.Exec(ctx, "SELECT photo.withdraw_v30_export_runtime($1)", instance)
+				return err
+			}}
 		go func() {
-			exportDone <- RunExpansionLoop(exportCtx, interchangeExportProcessor, interchangeExportState, 5*time.Second)
+			exportDone <- RunExpansionLoop(exportCtx, exportJob, interchangeExportState, 5*time.Second)
 		}()
 		go func() {
 			maintainInterchangeExportRuntime(exportCtx, pool, interchangeExportState,

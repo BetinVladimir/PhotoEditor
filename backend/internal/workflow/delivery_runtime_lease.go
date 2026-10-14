@@ -106,7 +106,11 @@ func maintainDeliveryRuntime(ctx context.Context, db *pgxpool.Pool, state *Expan
 			var accepted bool
 			metadataReady := metadataState != nil && metadataState.Ready.Load()
 			err := db.QueryRow(bounded, `SELECT photo.announce_v30_delivery_runtime_complete($1,$2,$3,$4::jsonb,$5)`, instance, bucket, signingTenants, string(pinsJSON), metadataReady).Scan(&accepted)
-			ready.Store(err == nil && accepted)
+			healthy := err == nil && accepted && deliveryLoopReady(state)
+			ready.Store(healthy)
+			if !healthy {
+				withdraw(context.WithoutCancel(ctx))
+			}
 		} else {
 			ready.Store(false)
 			withdraw(bounded)

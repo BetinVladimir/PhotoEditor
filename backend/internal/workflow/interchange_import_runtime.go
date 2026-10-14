@@ -90,7 +90,11 @@ func maintainInterchangeImportRuntime(ctx context.Context, db *pgxpool.Pool,
 			var accepted bool
 			err := db.QueryRow(bounded,
 				"SELECT photo.announce_v30_import_runtime_bound($1,$2)", instance, bucket).Scan(&accepted)
-			ready.Store(err == nil && accepted)
+			healthy := err == nil && accepted && interchangeImportLoopEligible(state)
+			ready.Store(healthy)
+			if !healthy {
+				withdraw(context.WithoutCancel(ctx))
+			}
 		} else {
 			ready.Store(false)
 			withdraw(bounded)
