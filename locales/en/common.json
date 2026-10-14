@@ -656,6 +656,8 @@
   "import_checking": "Checking",
   "import_parts": "parts",
   "import_add_failed": "Unable to add files",
+  "import_raw_policy_changed": "The selected RAW settings differ from the saved upload. Resume or cancel the existing upload from its row.",
+  "import_resume_ambiguous": "Several saved uploads match this file. Resume or cancel one from its row.",
   "import_refresh_failed": "Unable to refresh upload",
   "import_restore_failed": "Unable to restore uploads",
   "import_scope_required": "Workspace and project are required",

@@ -14,3 +14,9 @@ export function findResumableUpload(records:readonly UploadRecord[], source:Uplo
  if(sameFile.length)throw new Error('UPLOAD_RAW_POLICY_CHANGED');
  return undefined;
 }
+
+export function uploadPickerErrorKey(error:unknown):'import_raw_policy_changed'|'import_resume_ambiguous'|'import_add_failed' {
+ if(error instanceof Error&&error.message==='UPLOAD_RAW_POLICY_CHANGED')return 'import_raw_policy_changed';
+ if(error instanceof Error&&error.message==='UPLOAD_RESUME_AMBIGUOUS')return 'import_resume_ambiguous';
+ return 'import_add_failed';
+}
