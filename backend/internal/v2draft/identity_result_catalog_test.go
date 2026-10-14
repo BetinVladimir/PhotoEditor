@@ -107,7 +107,9 @@ func TestIntegrationIdentityResultInputRoleScope(t *testing.T) {
 	}
 	for _, required := range []string{"operation='identity.compare'", "canonical_result_id=p_result",
 		"p_artifact IS DISTINCT FROM task_row.params_artifact_id", "i.contract=expected_contract",
-		"i.project_id=project", "a.object_version NOT IN('','null')"} {
+		"i.project_id=project", "a.object_version NOT IN('','null')",
+		"'before_pixels'", "'after_pixels'", "'effective_pixels'", "'protected_pixels'",
+		"'before_alpha'", "'after_alpha'", "'application/x-npy'"} {
 		if !strings.Contains(definition, required) {
 			t.Fatal("input source gate missing", required)
 		}

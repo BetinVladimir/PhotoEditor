@@ -22,7 +22,7 @@ func (c SQLIdentityResultCatalog) ResolveIdentityResultInput(ctx context.Context
 	if c.DB == nil || len(c.Bucket) < 3 || len(c.Bucket) > 63 ||
 		scope.Tenant == uuid.Nil || scope.Task == uuid.Nil || scope.Result == uuid.Nil ||
 		!isDocumentRef(scope.Root) || !isDocumentRef(ref) ||
-		(role != "params" && role != "after") {
+		!identityInputRole(role) {
 		return zero, v2input.ErrInvalid
 	}
 	bounded, cancel := context.WithTimeout(ctx, 15*time.Second)
@@ -52,14 +52,43 @@ func (c SQLIdentityResultCatalog) ResolveIdentityResultInput(ctx context.Context
 	if err != nil {
 		return zero, err
 	}
+	array := identityArrayRole(role)
+	maxBytes := int64(1048576)
+	media := "application/json"
+	minBytes := int64(2)
+	if array {
+		media, minBytes, maxBytes = "application/x-npy", 14, 800004096
+		if role == "before_pixels" || role == "after_pixels" {
+			maxBytes = 2400065536
+		}
+	}
 	if object.Key == "" || len(object.Key) > 1024 || object.VersionID == "" ||
 		object.VersionID == "null" || len(object.VersionID) > 1024 ||
-		object.SHA256 != ref.SHA256 || object.ContentType != "application/json" ||
-		object.Bytes < 2 || object.Bytes > 1048576 {
+		object.SHA256 != ref.SHA256 || object.ContentType != media ||
+		object.Bytes < minBytes || object.Bytes > maxBytes {
 		return zero, v2input.ErrInvalid
 	}
 	if err = tx.Commit(bounded); err != nil {
 		return zero, err
 	}
 	return object, nil
+}
+
+func identityInputRole(role string) bool {
+	switch role {
+	case "params", "before", "after", "effective", "protected",
+		"before_pixels", "after_pixels", "before_alpha", "after_alpha",
+		"effective_pixels", "protected_pixels":
+		return true
+	}
+	return false
+}
+
+func identityArrayRole(role string) bool {
+	switch role {
+	case "before_pixels", "after_pixels", "before_alpha", "after_alpha",
+		"effective_pixels", "protected_pixels":
+		return true
+	}
+	return false
 }

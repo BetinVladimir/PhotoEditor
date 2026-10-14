@@ -29,11 +29,12 @@ type IdentityResultCatalog interface {
 }
 
 type VerifiedIdentityResult struct {
-	Report  v2input.Ref
-	Mask    v2input.Ref
-	Pixels  v2input.Ref
-	Status  string
-	Objects [3]objectstore.Object
+	Report              v2input.Ref
+	Mask                v2input.Ref
+	Pixels              v2input.Ref
+	Status              string
+	OutsideMaskMaxError float64
+	Objects             [3]objectstore.Object
 }
 
 // VerifyIdentityPublishedResult checks the physical output trio against exact
@@ -89,10 +90,11 @@ func VerifyIdentityPublishedResult(ctx context.Context, scope IdentityResultScop
 		return zero, err
 	}
 	var report struct {
-		Status        string       `json:"status"`
-		ChangedMask   v2input.Ref  `json:"changed_mask"`
-		GeneratedMask *v2input.Ref `json:"generated_mask"`
-		Calibration   v2input.Ref  `json:"calibration"`
+		Status              string       `json:"status"`
+		OutsideMaskMaxError float64      `json:"outside_mask_max_error"`
+		ChangedMask         v2input.Ref  `json:"changed_mask"`
+		GeneratedMask       *v2input.Ref `json:"generated_mask"`
+		Calibration         v2input.Ref  `json:"calibration"`
 	}
 	if json.Unmarshal(reportRaw, &report) != nil || report.Calibration != params.Calibration ||
 		report.GeneratedMask != nil || !isDocumentRef(report.ChangedMask) {
@@ -161,7 +163,7 @@ func VerifyIdentityPublishedResult(ctx context.Context, scope IdentityResultScop
 		return zero, err
 	}
 	return VerifiedIdentityResult{Report: refs[0], Mask: refs[1], Pixels: refs[2],
-		Status: report.Status, Objects: pinned}, nil
+		Status: report.Status, OutsideMaskMaxError: report.OutsideMaskMaxError, Objects: pinned}, nil
 }
 
 func identityPinnedAfter(ref v2input.Ref, raw []byte) bool {
