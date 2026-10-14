@@ -1,27 +1,48 @@
 package interchange
+
 import (
- "context"
- "github.com/google/uuid"
- "github.com/jackc/pgx/v5"
- "photoeditor/backend/internal/domain"
- "photoeditor/backend/internal/objectstore"
- "photoeditor/backend/internal/tenant"
- "photoeditor/backend/internal/v2input"
+	"context"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"photoeditor/backend/internal/domain"
+	"photoeditor/backend/internal/objectstore"
+	"photoeditor/backend/internal/tenant"
+	"photoeditor/backend/internal/v2input"
 )
 
 // Metadata only. Original mask documents/current producer policy and native
 // physical content remain independent mandatory gates.
-func(s SQLExportDocumentCatalog)LookupExportAlignmentBackgroundOrigin(ctx context.Context,origin ExportBodyDependencyOrigin,parent v2input.Entry,raw []byte,fit ExportClosureNode,alignment v2input.Entry,params []byte,image ExportClosureNode)(ExportSeriesMaskOrigin,error){
- var zero,out ExportSeriesMaskOrigin
- if err:=ctx.Err();err!=nil{return zero,err}
- if s.DB==nil{return zero,v2input.ErrInvalid}
- projected,err:=exportAlignmentBackgroundProjection(origin,parent,raw,fit,alignment,params,image);if err!=nil{return zero,err}
- ref:=v2input.Ref{ArtifactID:projected.Artifact.ID,SHA256:projected.Artifact.SHA256}
- mask,err:=s.lookupExportAlignmentBackgroundObject(ctx,origin,parent,raw,fit,alignment,params,image);if err!=nil{return zero,err}
- out.Mask=mask
- err=tenant.WithTenant(ctx,s.DB,s.Who,s.Tenant,domain.Editor,func(tx pgx.Tx,_ domain.Role)error{
-  var rootBucket,paramsBucket,reportBucket string
-  err:=tx.QueryRow(ctx,`SELECT producer.id,producer.operation,producer.operation_version,producer.attempt,producer.fencing_token,
+func (s SQLExportDocumentCatalog) LookupExportAlignmentBackgroundOrigin(ctx context.Context, origin ExportBodyDependencyOrigin, parent v2input.Entry, raw []byte, fit ExportClosureNode, alignment v2input.Entry, params []byte, image ExportClosureNode) (ExportSeriesMaskOrigin, error) {
+	return lookupExportAlignmentBackgroundOrigin(ctx, s, s, origin, parent, raw, fit, alignment, params, image)
+}
+func (s SQLExportResultInputCatalog) LookupExportAlignmentBackgroundOrigin(ctx context.Context, origin ExportBodyDependencyOrigin, parent v2input.Entry, raw []byte, fit ExportClosureNode, alignment v2input.Entry, params []byte, image ExportClosureNode) (ExportSeriesMaskOrigin, error) {
+	config, err := exportPolicyCatalogConfig(s)
+	if err != nil {
+		return ExportSeriesMaskOrigin{}, err
+	}
+	return lookupExportAlignmentBackgroundOrigin(ctx, s, config, origin, parent, raw, fit, alignment, params, image)
+}
+func lookupExportAlignmentBackgroundOrigin(ctx context.Context, source ExportBodyFitAlignmentOriginSource, s SQLExportDocumentCatalog, origin ExportBodyDependencyOrigin, parent v2input.Entry, raw []byte, fit ExportClosureNode, alignment v2input.Entry, params []byte, image ExportClosureNode) (ExportSeriesMaskOrigin, error) {
+	var zero, out ExportSeriesMaskOrigin
+	if err := ctx.Err(); err != nil {
+		return zero, err
+	}
+	if source == nil || s.DB == nil {
+		return zero, v2input.ErrInvalid
+	}
+	projected, err := exportAlignmentBackgroundProjection(origin, parent, raw, fit, alignment, params, image)
+	if err != nil {
+		return zero, err
+	}
+	ref := v2input.Ref{ArtifactID: projected.Artifact.ID, SHA256: projected.Artifact.SHA256}
+	mask, err := lookupExportAlignmentBackgroundObject(ctx, source, s, origin, parent, raw, fit, alignment, params, image)
+	if err != nil {
+		return zero, err
+	}
+	out.Mask = mask
+	err = tenant.WithTenant(ctx, s.DB, s.Who, s.Tenant, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
+		var rootBucket, paramsBucket, reportBucket string
+		err := tx.QueryRow(ctx, `SELECT producer.id,producer.operation,producer.operation_version,producer.attempt,producer.fencing_token,
    root.id,root.sha256,root.bucket,root.object_key,root.object_version,root.sha256,root.bytes,root.media_type,
    params.id,params.sha256,params.bucket,params.object_key,params.object_version,params.sha256,params.bytes,params.media_type,
    report.id,report.sha256,report.bucket,report.object_key,report.object_version,report.sha256,report.bytes,report.media_type
@@ -51,28 +72,63 @@ func(s SQLExportDocumentCatalog)LookupExportAlignmentBackgroundOrigin(ctx contex
    AND `+exportPromptWorkflowConsentSQL+`
    AND NOT EXISTS(SELECT 1 FROM (VALUES(root.id),(params.id),(report.id)) required(id) JOIN photo.artifacts a ON a.tenant_id=$1 AND a.id=required.id
     WHERE a.state IS DISTINCT FROM 'ready' OR a.verified_at IS NULL OR a.media_type IS DISTINCT FROM 'application/json' OR a.bytes NOT BETWEEN 2 AND 1048576
-    OR a.bucket IS DISTINCT FROM $4 OR a.object_version IS NULL OR a.object_version IN('','null') OR (a.expires_at IS NOT NULL AND a.expires_at<=clock_timestamp()))`,s.Tenant,ref.ArtifactID,ref.SHA256,s.Bucket,mask.Key,mask.VersionID,mask.Bytes,s.Request.ProjectID,s.Who.UserID,s.Who.SessionID).Scan(
-   &out.Task,&out.Operation,&out.Version,&out.Attempt,&out.Fence,
-   &out.Root.Ref.ArtifactID,&out.Root.Ref.SHA256,&rootBucket,&out.Root.Object.Key,&out.Root.Object.VersionID,&out.Root.Object.SHA256,&out.Root.Object.Bytes,&out.Root.Object.ContentType,
-   &out.Params.Ref.ArtifactID,&out.Params.Ref.SHA256,&paramsBucket,&out.Params.Object.Key,&out.Params.Object.VersionID,&out.Params.Object.SHA256,&out.Params.Object.Bytes,&out.Params.Object.ContentType,
-   &out.Report.Ref.ArtifactID,&out.Report.Ref.SHA256,&reportBucket,&out.Report.Object.Key,&out.Report.Object.VersionID,&out.Report.Object.SHA256,&out.Report.Object.Bytes,&out.Report.Object.ContentType)
-  if err!=nil{return err}
-  if rootBucket!=s.Bucket||paramsBucket!=s.Bucket||reportBucket!=s.Bucket{return v2input.ErrInvalid}
-  seen:=map[uuid.UUID]bool{ref.ArtifactID:true}
-  for _,document:=range []ExportSeriesMaskDocument{out.Root,out.Params,out.Report}{if !validImportRef(document.Ref)||seen[document.Ref.ArtifactID]||document.Object.Key==""||document.Object.SHA256!=document.Ref.SHA256{return v2input.ErrInvalid};seen[document.Ref.ArtifactID]=true}
-  return ctx.Err()
- })
- if err!=nil{return zero,err}
- current,err:=s.lookupExportAlignmentBackgroundObject(ctx,origin,parent,raw,fit,alignment,params,image);if err!=nil{return zero,err};if current!=mask{return zero,v2input.ErrInvalid};return out,ctx.Err()
+    OR a.bucket IS DISTINCT FROM $4 OR a.object_version IS NULL OR a.object_version IN('','null') OR (a.expires_at IS NOT NULL AND a.expires_at<=clock_timestamp()))`, s.Tenant, ref.ArtifactID, ref.SHA256, s.Bucket, mask.Key, mask.VersionID, mask.Bytes, s.Request.ProjectID, s.Who.UserID, s.Who.SessionID).Scan(
+			&out.Task, &out.Operation, &out.Version, &out.Attempt, &out.Fence,
+			&out.Root.Ref.ArtifactID, &out.Root.Ref.SHA256, &rootBucket, &out.Root.Object.Key, &out.Root.Object.VersionID, &out.Root.Object.SHA256, &out.Root.Object.Bytes, &out.Root.Object.ContentType,
+			&out.Params.Ref.ArtifactID, &out.Params.Ref.SHA256, &paramsBucket, &out.Params.Object.Key, &out.Params.Object.VersionID, &out.Params.Object.SHA256, &out.Params.Object.Bytes, &out.Params.Object.ContentType,
+			&out.Report.Ref.ArtifactID, &out.Report.Ref.SHA256, &reportBucket, &out.Report.Object.Key, &out.Report.Object.VersionID, &out.Report.Object.SHA256, &out.Report.Object.Bytes, &out.Report.Object.ContentType)
+		if err != nil {
+			return err
+		}
+		if rootBucket != s.Bucket || paramsBucket != s.Bucket || reportBucket != s.Bucket {
+			return v2input.ErrInvalid
+		}
+		seen := map[uuid.UUID]bool{ref.ArtifactID: true}
+		for _, document := range []ExportSeriesMaskDocument{out.Root, out.Params, out.Report} {
+			if !validImportRef(document.Ref) || seen[document.Ref.ArtifactID] || document.Object.Key == "" || document.Object.SHA256 != document.Ref.SHA256 {
+				return v2input.ErrInvalid
+			}
+			seen[document.Ref.ArtifactID] = true
+		}
+		return ctx.Err()
+	})
+	if err != nil {
+		return zero, err
+	}
+	current, err := lookupExportAlignmentBackgroundObject(ctx, source, s, origin, parent, raw, fit, alignment, params, image)
+	if err != nil {
+		return zero, err
+	}
+	if current != mask {
+		return zero, v2input.ErrInvalid
+	}
+	return out, ctx.Err()
 }
-func(s SQLExportDocumentCatalog)lookupExportAlignmentBackgroundObject(ctx context.Context,origin ExportBodyDependencyOrigin,parent v2input.Entry,raw []byte,fit ExportClosureNode,alignment v2input.Entry,params []byte,image ExportClosureNode)(objectstore.Object,error){
- var zero,out objectstore.Object
- if err:=ctx.Err();err!=nil{return zero,err};if s.DB==nil{return zero,v2input.ErrInvalid}
- projected,err:=exportAlignmentBackgroundProjection(origin,parent,raw,fit,alignment,params,image);if err!=nil{return zero,err}
- current,err:=s.LookupExportBodyFitAlignmentOrigin(ctx,parent,raw,fit,alignment);if err!=nil{return zero,err};if current!=origin{return zero,v2input.ErrInvalid}
- err=tenant.WithTenant(ctx,s.DB,s.Who,s.Tenant,domain.Editor,func(tx pgx.Tx,_ domain.Role)error{
-  var bucket string
-  err:=tx.QueryRow(ctx,`SELECT a.bucket,a.object_key,a.object_version,a.sha256,a.bytes,a.media_type
+func (s SQLExportDocumentCatalog) lookupExportAlignmentBackgroundObject(ctx context.Context, origin ExportBodyDependencyOrigin, parent v2input.Entry, raw []byte, fit ExportClosureNode, alignment v2input.Entry, params []byte, image ExportClosureNode) (objectstore.Object, error) {
+	return lookupExportAlignmentBackgroundObject(ctx, s, s, origin, parent, raw, fit, alignment, params, image)
+}
+func lookupExportAlignmentBackgroundObject(ctx context.Context, source ExportBodyFitAlignmentOriginSource, s SQLExportDocumentCatalog, origin ExportBodyDependencyOrigin, parent v2input.Entry, raw []byte, fit ExportClosureNode, alignment v2input.Entry, params []byte, image ExportClosureNode) (objectstore.Object, error) {
+	var zero, out objectstore.Object
+	if err := ctx.Err(); err != nil {
+		return zero, err
+	}
+	if source == nil || s.DB == nil {
+		return zero, v2input.ErrInvalid
+	}
+	projected, err := exportAlignmentBackgroundProjection(origin, parent, raw, fit, alignment, params, image)
+	if err != nil {
+		return zero, err
+	}
+	current, err := source.LookupExportBodyFitAlignmentOrigin(ctx, parent, raw, fit, alignment)
+	if err != nil {
+		return zero, err
+	}
+	if current != origin {
+		return zero, v2input.ErrInvalid
+	}
+	err = tenant.WithTenant(ctx, s.DB, s.Who, s.Tenant, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
+		var bucket string
+		err := tx.QueryRow(ctx, `SELECT a.bucket,a.object_key,a.object_version,a.sha256,a.bytes,a.media_type
    FROM photo.artifacts a JOIN photo.tasks consumer ON consumer.tenant_id=a.tenant_id AND consumer.id=$4
    WHERE a.tenant_id=$1 AND a.id=$2 AND a.sha256=$3 AND a.state='ready' AND a.verified_at IS NOT NULL
    AND a.media_type IN('application/octet-stream','application/x-npy') AND a.bytes BETWEEN 1 AND 800065536
@@ -80,8 +136,24 @@ func(s SQLExportDocumentCatalog)lookupExportAlignmentBackgroundObject(ctx contex
    AND consumer.operation='pair.register' AND consumer.operation_version='1' AND consumer.state='succeeded'
    AND consumer.attempt=$5 AND consumer.fencing_token=$6 AND consumer.params_artifact_id=$7
    AND consumer.inputs @> jsonb_build_array(jsonb_build_object('artifact_id',$2::uuid,'sha256',$3::text))
-   AND photo.v2_editor_authorized($1,$8,$9,$10)`,s.Tenant,projected.Artifact.ID,projected.Artifact.SHA256,origin.Producer.Task,origin.Producer.Attempt,origin.Producer.Fence,origin.Params.ArtifactID,s.Request.ProjectID,s.Who.UserID,s.Who.SessionID).Scan(&bucket,&out.Key,&out.VersionID,&out.SHA256,&out.Bytes,&out.ContentType)
-  if err!=nil{return err};if bucket!=s.Bucket||out.Key==""{return v2input.ErrInvalid};return ctx.Err()
- });if err!=nil{return zero,err}
- final,err:=s.LookupExportBodyFitAlignmentOrigin(ctx,parent,raw,fit,alignment);if err!=nil{return zero,err};if final!=origin{return zero,v2input.ErrInvalid};return out,ctx.Err()
+   AND photo.v2_editor_authorized($1,$8,$9,$10)`, s.Tenant, projected.Artifact.ID, projected.Artifact.SHA256, origin.Producer.Task, origin.Producer.Attempt, origin.Producer.Fence, origin.Params.ArtifactID, s.Request.ProjectID, s.Who.UserID, s.Who.SessionID).Scan(&bucket, &out.Key, &out.VersionID, &out.SHA256, &out.Bytes, &out.ContentType)
+		if err != nil {
+			return err
+		}
+		if bucket != s.Bucket || out.Key == "" {
+			return v2input.ErrInvalid
+		}
+		return ctx.Err()
+	})
+	if err != nil {
+		return zero, err
+	}
+	final, err := source.LookupExportBodyFitAlignmentOrigin(ctx, parent, raw, fit, alignment)
+	if err != nil {
+		return zero, err
+	}
+	if final != origin {
+		return zero, v2input.ErrInvalid
+	}
+	return out, ctx.Err()
 }
