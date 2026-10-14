@@ -103,6 +103,10 @@ func (s TrainingInputStager) Stage(ctx context.Context,
 	if err != nil {
 		return result, err
 	}
+	if _, err := seriesHoldoutFromRecovery(draft,
+		[]byte(recovery.SeriesJCS)); err != nil {
+		return result, err
+	}
 	for _, example := range draft.Manifest.Examples {
 		pair, okay := s.FrozenRecipes[example.EventID]
 		if !okay || seen[example.EventID] {

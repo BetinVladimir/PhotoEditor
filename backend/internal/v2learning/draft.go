@@ -44,6 +44,7 @@ type trainingDraftRecovery struct {
 	DefectJCS        string    `json:"defect_jcs,omitempty"`
 	DustJCS          string    `json:"dust_jcs,omitempty"`
 	DetailJCS        string    `json:"detail_jcs,omitempty"`
+	SeriesJCS        string    `json:"series_jcs,omitempty"`
 	ReservedBytes    string    `json:"reserved_bytes"`
 	ExpectedRevision string    `json:"expected_revision"`
 	ProfileID        uuid.UUID `json:"profile_id"`
@@ -357,6 +358,10 @@ func ResumeTrainingDraft(tenantID, actorID, authSessionID, projectID,
 		[]byte(saved.DetailJCS)); err != nil {
 		return empty, err
 	}
+	if _, err = seriesHoldoutFromRecovery(prepared,
+		[]byte(saved.SeriesJCS)); err != nil {
+		return empty, err
+	}
 	var expected trainingDraftRecovery
 	if json.Unmarshal(prepared.RecoveryBody, &expected) != nil {
 		return empty, ErrInvalidTrainingDraft
@@ -365,6 +370,7 @@ func ResumeTrainingDraft(tenantID, actorID, authSessionID, projectID,
 	expected.DefectJCS = saved.DefectJCS
 	expected.DustJCS = saved.DustJCS
 	expected.DetailJCS = saved.DetailJCS
+	expected.SeriesJCS = saved.SeriesJCS
 	prepared.RecoveryBody, err = canonical.Marshal(expected)
 	if err != nil || len(prepared.RecoveryBody) > 33554432 {
 		return empty, ErrInvalidTrainingDraft
