@@ -1,5 +1,34 @@
 # Текущий triage кодирования V20–V32 — 2026-10-14
 
+## Повторная сверка V30 production import — 2026-10-14
+
+Ранние абзацы ниже являются историей инкрементальной реализации и не
+описывают текущий остаток дословно. `NewImportRecipeCodecGraph` уже включает
+typed remappers для local portrait, denoise, upscale, stats, `PortraitParams`,
+defect и dust; `SQLImportEntryRecipeAuthorityFactory` подключает
+`SQLImportLiveReviewReader` и текущие defect/dust issuers. Для defect label
+есть `ImportDefectLabelBinaryRemapper` и occurrence publisher. Повторно писать
+эти ветви не требуется.
+
+Реальный кодовый разрыв запуска: `backend/cmd/photo/main.go:run()` вызывает
+`runWithAPIDependencies(apiProcessDependencies{})`. При наличии
+`PHOTO_V30_IMPORT_OPERATOR_CONFIG` scheduler loader ожидает одновременно
+`ImportEntryBase` и `ImportPersonAcceptance`, которых обычный процесс не
+создаёт. `ImportSchedulerOperatorFiles.Install` дополнительно требует
+доверенные `Codecs.Params` и `Codecs.OverrideContent`; архив и HTTP payload
+не могут поставлять эти authorities. Следующая реализация должна создать
+process-owned bootstrap для этих semantic ports и независимой person
+acceptance, установить его до `schedulerImportFactories` и покрыть
+положительный запуск настоящей pinned deployment. Терминальный
+`RejectUnsupportedImportDependency` допустим только для неизвестных Params,
+но не заменяет override/model/asset admission. До этого production import
+невозможно объявить включённым.
+
+После bootstrap обязательны применение forward-only миграций и current-build
+сквозной тест на БД/object storage/worker, включая отзыв review grant до
+activation. Они отложены в соответствии с текущим code-first порядком и не
+считаются выполненными по историческим PASS.
+
 Это трассировка исходников для выбора следующей разработки. Она не является
 процентом реализации, результатом тестирования или приёмкой модулей. Текущий
 этап по согласованному порядку — дописать код и unit-тесты; запуск тестов,
