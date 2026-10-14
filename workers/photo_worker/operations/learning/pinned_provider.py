@@ -79,9 +79,11 @@ class PinnedColorHoldoutProvider:
         reviewed_defect = item.render_case.defect_evidence is not None
         reviewed_dust = item.render_case.dust_evidence is not None
         reviewed_detail = item.render_case.detail_evidence is not None
+        reviewed_series = item.render_case.series_evidence is not None
         validate_holdout_pipeline(styles, reviewed_defect=reviewed_defect,
                                   reviewed_dust=reviewed_dust,
-                                  reviewed_detail=reviewed_detail)
+                                  reviewed_detail=reviewed_detail,
+                                  reviewed_series=reviewed_series)
         before = artifacts.contract(item.render_case.faces, FaceObservations).model_copy(deep=True)
         ctx.check_active()
         if before.binding != item.render_case.binding:
@@ -135,6 +137,14 @@ class PinnedColorHoldoutProvider:
                             tenant_id=ctx.lease.command.tenant_id,
                             execution_profile=ctx.lease.execution_profile,
                             check_active=ctx.check_active))
+                series_correction = None
+                if reviewed_series:
+                    from .series_replay import open_holdout_series
+                    series_correction = inputs.enter_context(open_holdout_series(
+                        artifacts, item, workspace, styles,
+                        training_run_id=ctx.lease.command.run_id,
+                        tenant_id=ctx.lease.command.tenant_id,
+                        check_active=ctx.check_active))
                 person = (inputs.enter_context(open_holdout_person_stats(
                     workspace.source.rgb, workspace.source.alpha,
                     self.pool, self.backend, self.model_lock_sha,
@@ -224,6 +234,9 @@ class PinnedColorHoldoutProvider:
                     reviewed_source_rgb=reviewed_source_rgb,
                     reviewed_dust=reviewed_dust_replay,
                     reviewed_detail=reviewed_detail_replay,
+                    series_correction=series_correction,
+                    series_item_id=(item.render_case.series_evidence and
+                        series_correction.item_id),
                     check_active=ctx.check_active)
             source_opacity = (_preview(workspace.source.alpha, 2048)
                               if workspace.source.alpha is not None else None)

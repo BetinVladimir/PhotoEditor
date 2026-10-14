@@ -56,11 +56,11 @@ func trainingSeriesStyleEnabled(raw []byte) (bool, error) {
 		RGBGainLimits []float64 `json:"rgb_gain_limits"`
 	}
 	if json.Unmarshal(seriesRaw, &series) != nil ||
-		series.Algorithm != "seriesmatch_v1" || series.Reference == "" ||
-		series.EVLimit < 0 || series.EVLimit > .35 ||
+		series.Algorithm != "seriesmatch_v1" || series.Reference != "median" ||
+		series.EVLimit != .35 ||
 		len(series.RGBGainLimits) != 2 ||
-		series.RGBGainLimits[0] < .95 || series.RGBGainLimits[0] > 1 ||
-		series.RGBGainLimits[1] < 1 || series.RGBGainLimits[1] > 1.05 {
+		series.RGBGainLimits[0] != .95 ||
+		series.RGBGainLimits[1] != 1.05 {
 		return false, ErrInvalidTrainingDraft
 	}
 	return true, nil

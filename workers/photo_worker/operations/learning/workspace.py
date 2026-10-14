@@ -8,6 +8,8 @@ from typing import Callable, Iterator
 
 import numpy as np
 
+from photo_worker.contracts.base import canonical_bytes
+from photo_worker.contracts.series import ItemCorrection
 from photo_worker.runtime.artifacts import TaskArtifacts
 
 from .contracts import RenderCase
@@ -123,6 +125,8 @@ def render_holdout_triplet(workspace: HoldoutWorkspace,
                            reviewed_source_rgb: np.ndarray | None = None,
                            reviewed_dust=None,
                            reviewed_detail=None,
+                           series_correction=None,
+                           series_item_id=None,
                            check_active: Callable[[], None] = lambda: None,
                            ) -> None:
     """Render baseline, candidate and approved through the same V2 source."""
@@ -142,7 +146,14 @@ def render_holdout_triplet(workspace: HoldoutWorkspace,
     validate_holdout_pipeline(styles,
         reviewed_defect=reviewed_source_rgb is not None,
         reviewed_dust=reviewed_dust is not None,
-        reviewed_detail=reviewed_detail is not None)
+        reviewed_detail=reviewed_detail is not None,
+        reviewed_series=series_correction is not None)
+    if (series_correction is None) != (series_item_id is None):
+        raise ValueError('HOLDOUT_SERIES_EVIDENCE_REQUIRED')
+    if series_correction is not None:
+        series_correction = ItemCorrection.model_validate_json(
+            canonical_bytes(series_correction))
+        series_fingerprint = canonical_bytes(series_correction)
     if reviewed_dust is not None and not callable(reviewed_dust):
         raise ValueError('HOLDOUT_DUST_REPLAY_BINDING_MISMATCH')
     if reviewed_detail is not None and not callable(reviewed_detail):
@@ -188,6 +199,12 @@ def render_holdout_triplet(workspace: HoldoutWorkspace,
                                           workspace.source.rgb.shape[:2],
                                           mask_fingerprints, check_active)
 
+    def require_same_series() -> None:
+        if series_correction is not None and (
+                canonical_bytes(series_correction) != series_fingerprint or
+                series_correction.item_id != series_item_id):
+            raise ValueError('HOLDOUT_SERIES_CORRECTION_CHANGED')
+
     backgrounds = [style.extensions.background for style in
                    (styles.baseline, styles.candidate, styles.approved)]
     if any(background != backgrounds[0] for background in backgrounds[1:]):
@@ -222,6 +239,7 @@ def render_holdout_triplet(workspace: HoldoutWorkspace,
         check_active()
         require_same_masks()
         require_same_repair()
+        require_same_series()
         from contextlib import nullcontext
         restoration = style.extensions.restoration
         data = style.model_dump(mode='python', by_alias=True)
@@ -248,7 +266,9 @@ def render_holdout_triplet(workspace: HoldoutWorkspace,
                 color_source, target, color_style,
                 person_reliable=person_reliable, features=features,
                 coverage_counts=coverage_counts, person_mask=person_mask,
-                region_masks=region_masks, check_active=check_active)
+                region_masks=region_masks,
+                series_correction=series_correction,
+                series_item_id=series_item_id, check_active=check_active)
         if reviewed_dust is not None:
             reviewed_dust(target)
         check_active()
@@ -278,6 +298,7 @@ def render_holdout_triplet(workspace: HoldoutWorkspace,
         check_active()
         require_same_masks()
         require_same_repair()
+        require_same_series()
 
 
 @contextmanager

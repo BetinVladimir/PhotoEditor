@@ -2,9 +2,10 @@
 
 
 def validate_holdout_pipeline(styles, *, reviewed_defect=False,
-                              reviewed_dust=False, reviewed_detail=False):
+                              reviewed_dust=False, reviewed_detail=False,
+                              reviewed_series=False):
     if sum((bool(reviewed_defect), bool(reviewed_dust),
-            bool(reviewed_detail))) > 1:
+            bool(reviewed_detail), bool(reviewed_series))) > 1:
         raise ValueError('HOLDOUT_EFFECT_EVIDENCE_CONFLICT')
     defects = tuple(style.defects for style in
                     (styles.baseline, styles.candidate, styles.approved))
@@ -18,14 +19,20 @@ def validate_holdout_pipeline(styles, *, reviewed_defect=False,
             raise ValueError('HOLDOUT_DEFECT_REPLAY_BINDING_MISMATCH')
     elif any(module.enabled for module in defects):
         raise ValueError('HOLDOUT_DEFECT_EVIDENCE_REQUIRED')
+    if reviewed_series:
+        from .series_replay import _same_series_styles
+        _same_series_styles(styles)
     for style in (styles.baseline, styles.candidate, styles.approved):
         extension = style.extensions
         if (style.geometry.enabled or
                 any(value is not None and getattr(value, 'enabled', False)
-                    for value in (extension.culling, extension.series,
+                    for value in (extension.culling,
                                   extension.composition,
                                   extension.inpainting, extension.generation))):
             raise ValueError('HOLDOUT_RENDER_REQUIRES_EFFECT_PIPELINE')
+        if (extension.series is not None and extension.series.enabled and
+                not reviewed_series):
+            raise ValueError('HOLDOUT_SERIES_EVIDENCE_REQUIRED')
         if (extension.portrait_detail is not None and
                 extension.portrait_detail.enabled and not reviewed_detail):
             raise ValueError('HOLDOUT_DETAIL_EVIDENCE_REQUIRED')
