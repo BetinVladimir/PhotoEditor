@@ -57,6 +57,9 @@ def test_signing_adopter_builds_pinned_verification_only_operator(tmp_path, monk
         native_inspector=lambda *_args: True, verify_binding=lambda *_args: True,
         check_active=lambda: True)
     assert isinstance(operator, InstalledSigningOperator)
+    policy = decode_provenance(deployment.policies[0], SigningPolicy, 1 << 20)
+    assert operator.policy_pins() == ({'id': str(policy.id),
+        'sha': sha256(deployment.policies[0]).hexdigest()},)
     assert calls == ['delegate', 'context']
     with pytest.raises(RuntimeError, match='CANNOT_SIGN'):
         operator._delegate.sign(None)
@@ -110,6 +113,9 @@ def test_adopter_runtime_transports_signing_operator_and_pinned_sdk(tmp_path, mo
     monkeypatch.setattr(service.psycopg, 'connect', lambda *_args, **_kwargs: Connection())
     monkeypatch.setattr(service, 'Minio', lambda *_args, **_kwargs: object())
     monkeypatch.setattr(service, 'Adopter', Adopter)
+    from photo_worker.v2 import signing_adopter_runtime
+    monkeypatch.setattr(signing_adopter_runtime, 'require_signing_adopter_runtime_schema',
+                        lambda _connection: None)
     config = service.AdopterConfig('postgres://unused', 'https://example.test',
         'photo', 'key', 'secret', layer_scratch_root=tmp_path,
         layer_scratch_bytes=1 << 30)
@@ -119,3 +125,47 @@ def test_adopter_runtime_transports_signing_operator_and_pinned_sdk(tmp_path, mo
     assert captured[0]['signing_sdk'] is sdk
     with pytest.raises(ValueError, match='operator and SDK'):
         service.run_adopter(config, Event(), signing_operator=operator)
+
+
+def test_signing_adopter_lease_waits_for_clean_pass_and_withdraws_on_retry(tmp_path, monkeypatch):
+    deployment, _ = pinned_fixture(tmp_path)
+    operator = InstalledSigningOperator(deployment.policies, lambda *_args: True, object())
+    sdk = SimpleNamespace(Reader=lambda *_args: object())
+    events = []
+    class Stop:
+        stopped = False
+        def is_set(self): return self.stopped
+        def set(self): self.stopped = True
+        def wait(self, _seconds): return self.stopped
+    stop = Stop()
+    class Connection:
+        autocommit = True
+        def __enter__(self): return self
+        def __exit__(self, *_args): return False
+    class Adopter:
+        calls = 0
+        def __init__(self, *_args, **_kwargs): pass
+        def run_once(self):
+            self.calls += 1
+            events.append('pass' + str(self.calls))
+            if self.calls == 4: stop.set()
+            return {'retry': 1 if self.calls in (1, 3) else 0}
+    class Lease:
+        def __init__(self, _connection, _stop, _bucket, pins):
+            assert pins == operator.policy_pins()
+        def __enter__(self): events.append('announce');return self
+        def set_ready(self, ready): events.append('ready' + str(ready))
+        def __exit__(self, *_args): events.append('withdraw');return False
+    from photo_worker.v2 import signing_adopter_runtime
+    monkeypatch.setattr(service.psycopg, 'connect', lambda *_args, **_kwargs: Connection())
+    monkeypatch.setattr(service, 'Minio', lambda *_args, **_kwargs: object())
+    monkeypatch.setattr(service, 'Adopter', Adopter)
+    monkeypatch.setattr(signing_adopter_runtime, 'require_signing_adopter_runtime_schema',
+                        lambda _connection: None)
+    monkeypatch.setattr(signing_adopter_runtime, 'SigningAdopterRuntimeLease', Lease)
+    config = service.AdopterConfig('postgres://unused', 'https://example.test',
+        'photo', 'key', 'secret', layer_scratch_root=tmp_path,
+        layer_scratch_bytes=1 << 30)
+    service.run_adopter(config, stop, signing_operator=operator, signing_sdk=sdk)
+    assert events == ['pass1', 'pass2', 'announce', 'pass3', 'readyFalse',
+                      'pass4', 'withdraw']

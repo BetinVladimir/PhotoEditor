@@ -29,6 +29,12 @@ class InstalledSigningOperator:
             self._policies[key] = bytes(raw)
         self._authority, self._delegate = authority, delegate
 
+    def policy_pins(self):
+        """Expose only exact installed policy identities for scheduler readiness."""
+        return tuple({'id': str(policy_id), 'sha': sha256(raw).hexdigest()}
+                     for (policy_id, _revision), raw in sorted(
+                         self._policies.items(), key=lambda entry: (str(entry[0][0]), entry[0][1])))
+
     def _owned(self, policy):
         if not isinstance(policy, SigningPolicy):
             raise ValueError('SIGNER_INSTALLATION_POLICY')

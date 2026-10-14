@@ -4,11 +4,16 @@ from threading import Event
 from types import SimpleNamespace
 from uuid import uuid4
 
+import pytest
+
 from photo_worker.v2.adoption import AdoptionInvalid
 from photo_worker.v2.service import Adopter
 
 
-def test_uninstalled_import_qualifier_is_retryable_without_rejection():
+@pytest.mark.parametrize('code', ['INTERCHANGE_IMPORT_ADOPTION_INSTALLATION_REQUIRED',
+    'SIGNING_ADOPTION_OPERATOR_REQUIRED', 'SIGNING_ADOPTION_SCRATCH_REQUIRED',
+    'SIGNING_ADOPTION_SDK_REQUIRED'])
+def test_uninstalled_adoption_authority_is_retryable_without_rejection(code):
     tenant, run, task = uuid4(), uuid4(), uuid4()
     queries = []
 
@@ -26,7 +31,7 @@ def test_uninstalled_import_qualifier_is_retryable_without_rejection():
 
     class Coordinator:
         def adopt(self, *_args):
-            raise AdoptionInvalid('INTERCHANGE_IMPORT_ADOPTION_INSTALLATION_REQUIRED')
+            raise AdoptionInvalid(code)
 
         def context(self, *_args):
             raise AssertionError('retryable installation error reached terminal rejection')

@@ -263,6 +263,11 @@ class Adopter:
                                 "INTERCHANGE_IMPORT_ADOPTER_SCHEMA_PIN"}:
                         counts["retry"] += 1
                         continue
+                    if code in {"SIGNING_ADOPTION_OPERATOR_REQUIRED",
+                                "SIGNING_ADOPTION_SCRATCH_REQUIRED",
+                                "SIGNING_ADOPTION_SDK_REQUIRED"}:
+                        counts["retry"] += 1
+                        continue
                     try:
                         context = self.coordinator.context(tenant_id, task_id)
                     except AdoptionInvalid:
@@ -371,6 +376,7 @@ def run_adopter(config: AdopterConfig, stop: Event | None = None, *,
     The deployment runtime installer supplies the replay context and tile bound.
     """
     delivery_options={}
+    signing_pins=None
     if signing_operator is not None or signing_sdk is not None:
         from photo_worker.operations.provenance.installation import InstalledSigningOperator
         if (not isinstance(signing_operator, InstalledSigningOperator)
@@ -380,6 +386,7 @@ def run_adopter(config: AdopterConfig, stop: Event | None = None, *,
             raise ValueError('Signing adopter requires bounded scratch')
         delivery_options['signing_operator']=signing_operator
         delivery_options['signing_sdk']=signing_sdk
+        signing_pins=signing_operator.policy_pins()
     if sum(value is not None for value in (interchange_recipe_qualifier_factory,
             interchange_recipe_qualifier_builder, interchange_recipe_operator_factory)) > 1:
         raise ValueError('Conflicting import adopter recipe installations')
@@ -513,7 +520,7 @@ def run_adopter(config: AdopterConfig, stop: Event | None = None, *,
     stop = Event() if stop is None else stop
     endpoint = urlsplit(config.endpoint)
     object_options={}
-    if config.delivery_encode_max_pixels is not None or donor_installation is not None or negative_installation is not None or relight_installation is not None or perspective_installation is not None or perspective_lines_installation is not None or multi_installations or config.restoration_preview_enabled or interchange_recipe_operator_factory is not None:
+    if config.delivery_encode_max_pixels is not None or donor_installation is not None or negative_installation is not None or relight_installation is not None or perspective_installation is not None or perspective_lines_installation is not None or multi_installations or config.restoration_preview_enabled or interchange_recipe_operator_factory is not None or signing_pins is not None:
         import certifi
         import urllib3
         object_options['http_client']=urllib3.PoolManager(
@@ -580,6 +587,7 @@ def run_adopter(config: AdopterConfig, stop: Event | None = None, *,
                 derivative_options['restoration_preview_enabled'] = True
             with ExitStack() as runtime_scope:
                 lease_connection = None
+                signing_connection = None
                 if interchange_recipe_operator_factory is not None:
                     lease_connection = runtime_scope.enter_context(psycopg.connect(
                         config.database_url, autocommit=True, connect_timeout=5,
@@ -587,14 +595,39 @@ def run_adopter(config: AdopterConfig, stop: Event | None = None, *,
                     from .interchange_import_adopter_runtime import (
                         require_import_adopter_runtime_schema, ImportAdopterRuntimeLease)
                     require_import_adopter_runtime_schema(lease_connection)
+                if signing_pins is not None:
+                    signing_connection = runtime_scope.enter_context(psycopg.connect(
+                        config.database_url, autocommit=True, connect_timeout=5,
+                        options='-c role=photo_scheduler -c statement_timeout=3000 -c lock_timeout=1000'))
+                    from .signing_adopter_runtime import (
+                        require_signing_adopter_runtime_schema, SigningAdopterRuntimeLease)
+                    require_signing_adopter_runtime_schema(signing_connection)
                 adopter = Adopter(read_connection, write_connection, objects, config.bucket,
                     layer_scratch_root=config.layer_scratch_root,layer_scratch_bytes=config.layer_scratch_bytes,
                     render_replay=render_replay,render_max_tile_bytes=render_max_tile_bytes,
                     region_target_icc_sha=region_target_icc_sha,stop=stop,**delivery_options,**derivative_options,**semantic_options,**exposure_options,**donor_options)
-                if lease_connection is not None and not stop.is_set():
+                if signing_connection is not None:
+                    while not stop.is_set():
+                        first = adopter.run_once()
+                        if stop.is_set():
+                            break
+                        if not isinstance(first,dict) or type(first.get('retry')) is not int:
+                            raise ValueError('Signing adopter first pass invalid')
+                        if first['retry'] == 0:
+                            break
+                        stop.wait(1.0)
+                elif lease_connection is not None and not stop.is_set():
                     adopter.run_once()
                 if lease_connection is not None and not stop.is_set():
                     runtime_scope.enter_context(ImportAdopterRuntimeLease(lease_connection, stop, config.bucket))
+                signing_lease = None
+                if signing_connection is not None and not stop.is_set():
+                    signing_lease = runtime_scope.enter_context(SigningAdopterRuntimeLease(
+                        signing_connection, stop, config.bucket, signing_pins))
                 while not stop.is_set():
-                    adopter.run_once()
+                    counts = adopter.run_once()
+                    if signing_lease is not None and not stop.is_set():
+                        if not isinstance(counts,dict) or type(counts.get('retry')) is not int:
+                            raise ValueError('Signing adopter pass invalid')
+                        signing_lease.set_ready(counts['retry'] == 0)
                     stop.wait(1.0)
