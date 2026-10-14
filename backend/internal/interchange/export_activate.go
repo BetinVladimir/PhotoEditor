@@ -1,6 +1,7 @@
 package interchange
 
 import (
+ "bytes"
  "context"
  "errors"
  "github.com/google/uuid"
@@ -31,6 +32,12 @@ func(p PreparedExportActivation)Activate(ctx context.Context,tx ProofTransaction
   return idempotency.Response{},err
  }
  if err:=ctx.Err();err!=nil{return idempotency.Response{},err}
+ if len(raw)==0||bytes.Equal(bytes.TrimSpace(raw),[]byte("null")){
+  var runtime *bool
+  if diagnosisErr:=tx.QueryRow(ctx,`SELECT photo.v30_export_pending_runtime_ready($1,$2,$3,$4,$5)`,
+   tid,who.UserID,who.SessionID,key,intent.RequestSHA).Scan(&runtime);diagnosisErr!=nil{return idempotency.Response{},diagnosisErr}
+  if runtime!=nil&&!*runtime{return idempotency.Response{},domain.NewError("INTERCHANGE_UNAVAILABLE",503)}
+ }
  return decodeParseTicket(raw,intent.Identity)
 }
 func(s Service)ActivateExport(ctx context.Context,who auth.Identity,tid uuid.UUID,request CreateRequest,key string,prepared PreparedExportActivation)(idempotency.Response,error){

@@ -26,6 +26,11 @@ func TestExportRuntimeAdmissionUsesCurrentBucketAndHealthyLease(t *testing.T) {
 	if err != nil || !strings.Contains(definition, "v30_export_runtime_ready((SELECT a.bucket FROM photo.artifacts") {
 		t.Fatal("export draft admission lacks bucket-bound runtime", err)
 	}
+	err = db.QueryRow(ctx, `SELECT pg_get_functiondef('photo.v30_export_pending_runtime_ready(uuid,uuid,uuid,text,text)'::regprocedure)`).Scan(&definition)
+	if err != nil || !strings.Contains(definition, "v30_interchange_export_document_scope") ||
+		!strings.Contains(definition, "v30_export_runtime_ready(bucket)") {
+		t.Fatal("export runtime diagnostic lacks current pending authority", err)
+	}
 	tx, err := db.Begin(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -38,6 +43,11 @@ func TestExportRuntimeAdmissionUsesCurrentBucketAndHealthyLease(t *testing.T) {
 	}
 	if err = tx.QueryRow(ctx, `SELECT photo.v30_export_runtime_ready('export-bucket')`).Scan(&ready); err != nil || ready {
 		t.Fatal("absent export scheduler admitted", err, ready)
+	}
+	var unknown *bool
+	if err = tx.QueryRow(ctx, `SELECT photo.v30_export_pending_runtime_ready($1,$2,$3,'missing', $4)`,
+		uuid.New(), uuid.New(), uuid.New(), strings.Repeat("a", 64)).Scan(&unknown); err != nil || unknown != nil {
+		t.Fatal("fabricated export pending scope disclosed runtime", err, unknown)
 	}
 	if _, err = tx.Exec(ctx, "SET LOCAL ROLE photo_scheduler"); err != nil {
 		t.Fatal(err)
