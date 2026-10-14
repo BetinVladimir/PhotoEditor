@@ -75,6 +75,8 @@
 
 Миграция `02048_v30_export_adoption_renew.sql` и `SQLExportAdoptionClaimStore.RenewExportAdoptionClaim` добавляют продление только живого exact-token claim после повторной проверки canonical result. `SchedulerExportAdoptionProcessor.ProcessOne` теперь связывает claim, физическую подготовку и атомарный adoption с heartbeat и отменой при потере lease; `SQLSchedulerExportAdoptionHandler` передаёт подготовленную closure в commit. Это пока не установленный runtime loop: отсутствуют bootstrap/ready/shutdown и полная native bundle authority. Сценарии написаны, но не запускались.
 
+`BuildSchedulerExportAdoptionProcessor` собирает claim/reader/archive/origin/native/commit и проверяет в startup точный `photo_scheduler` SQL surface, owner, SECURITY DEFINER и отсутствие PUBLIC EXECUTE. Фабрика требует process-installed native resolver и trust даже для sidecar, так как один queue claim покрывает также bundle. Подключение фабрики к scheduler loop и реализация недостающих native source authority ещё открыты. Unit-сценарии написаны, не запускались.
+
 `SchedulerExportClosureReader` соединяет проверку канонического result/ZIP с существующим полным обходом portable source inventory и manifest validation; он требует process-installed `SchedulerExportNativeResolverFactory`, возвращающий graph-bound native resolver, и после физического IO повторяет result, bundle object и person-origin проверки. Он формирует sessionless immutable evidence для `AdoptScheduler`. Поскольку native factory и оставшиеся SQL authority ещё не установлены, bundle путь по-прежнему fail-closed. Unit-сценарии написаны, не выполнялись.
 
 ## Граница первого MVP
