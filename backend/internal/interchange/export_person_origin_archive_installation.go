@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/domain"
 	"photoeditor/backend/internal/objectstore"
 	"photoeditor/backend/internal/review"
@@ -150,6 +151,10 @@ func (s SQLExportPersonOriginArchiveInstallation) BuildExportPersonOriginArchive
 		if err != nil || mask.Selector != "person" || mask.Protected || mask.ObjectID != nil ||
 			mask.Artifact.ID != scope.MaskPixels.ArtifactID || mask.Artifact.SHA256 != scope.MaskPixels.SHA256 ||
 			mask.ModelLockID == nil || *mask.ModelLockID != scope.ModelLockSHA {
+			return nil, v2input.ErrInvalid
+		}
+		canvasSHA, err := canonical.Hash(mask.Canvas)
+		if err != nil || canvasSHA != scope.Source.CanvasHash {
 			return nil, v2input.ErrInvalid
 		}
 		if err := current.RecheckExportPersonOrigin(ctx, claim); err != nil {
