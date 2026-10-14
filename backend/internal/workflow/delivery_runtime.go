@@ -79,15 +79,15 @@ func (j DeliveryExpansionJob) ProcessOne(ctx context.Context) (bool, error) {
 	bounded, cancel := context.WithTimeout(ctx, 45*time.Second)
 	defer cancel()
 	released := false
+	var cleanupErr error
 	if j.Cleanup != nil {
-		var cleanupErr error
 		released, cleanupErr = j.Cleanup.ReleaseNextQuota(bounded)
-		if cleanupErr != nil {
-			return metadataProgress, errors.Join(metadataErr, cleanupErr)
-		}
+	}
+	if err := bounded.Err(); err != nil {
+		return metadataProgress || released, errors.Join(metadataErr, cleanupErr, err)
 	}
 	progress, err := j.Driver.ProcessOne(bounded)
-	return metadataProgress || released || progress.Admitted > 0 || progress.Observed > 0 || progress.SigningState == "scanning" || progress.AssemblyState == "activated" || progress.AssemblyState == "finalized_failed", errors.Join(metadataErr, err)
+	return metadataProgress || released || progress.Admitted > 0 || progress.Observed > 0 || progress.SigningState == "scanning" || progress.AssemblyState == "activated" || progress.AssemblyState == "finalized_failed", errors.Join(metadataErr, cleanupErr, err)
 }
 func NewDeliveryExpansionJob(db *pgxpool.Pool, objects artifactjson.Objects, reader v2input.SessionAnalysisObjectReader, instance uuid.UUID, bucket, workSHA string, profiles map[string]string, registry Registry, c DeliveryRuntimeConfig) (DeliveryExpansionJob, error) {
 	if !c.Enabled || db == nil || objects == nil || reader == nil || instance == uuid.Nil || len(bucket) < 3 || len(bucket) > 63 || c.PageSize < 1 || c.PageSize > 100 || c.Limits.RAMBytes < 1 || c.Limits.ScratchBytes < 1 || c.Limits.OutputBytes < 1 {

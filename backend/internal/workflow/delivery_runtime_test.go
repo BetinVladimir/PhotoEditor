@@ -146,9 +146,6 @@ func TestDeliveryJobCleanupWorkAndErrors(t *testing.T) {
 			}
 			changed, err := job.ProcessOne(ctx)
 			expected := []string{"cleanup", "claim"}
-			if scenario == "cleanup_error" {
-				expected = []string{"cleanup"}
-			}
 			if scenario == "cancel" {
 				expected = []string{}
 			}
@@ -165,6 +162,25 @@ func TestDeliveryJobCleanupWorkAndErrors(t *testing.T) {
 				t.Fatal("cleanup lacks job deadline")
 			}
 		})
+	}
+}
+
+func TestDeliveryCleanupFailureDoesNotStarveAcceptedAssembly(t *testing.T) {
+	plan, parent, _, _, _ := deliveryExportPlanFixture(t, nil)
+	calls := []string{}
+	cleanupFailure := errors.New("cleanup unavailable")
+	job := DeliveryExpansionJob{
+		Cleanup: &deliveryRuntimeCleanup{calls: &calls, err: cleanupFailure},
+		Driver: DeliveryExpansionDriver{
+			Store: &deliveryDriverStore{calls: &calls, plan: plan,
+				lease: &delivery.ExpansionLease{Run: parent, ParentTask: plan.TaskID(), SlotCount: 1, Cursor: 1}},
+			Children: deliveryDriverChild{calls: &calls},
+			Assembly: &deliveryDriverAssembly{state: "activated"}, PageSize: 1,
+		},
+	}
+	changed, err := job.ProcessOne(context.Background())
+	if !changed || !errors.Is(err, cleanupFailure) || len(calls) < 2 || calls[0] != "cleanup" || calls[1] != "claim" {
+		t.Fatal("cleanup error starved accepted assembly", changed, err, calls)
 	}
 }
 
