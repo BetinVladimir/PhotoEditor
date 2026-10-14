@@ -22,6 +22,14 @@ fence, model qualification, recipe/Override occurrence, MaskRef and NPY pixel
 ref/SHA. It must repeat live authority after physical object reads, then sign
 the exact claim through a provisioned key handle. The receipt must be included
 in the bundle inventory and mapped explicitly to the same recipe occurrence.
+`SQLExportDocumentCatalog.LookupPortablePersonOrigin` now provides a narrow
+source-side metadata locator for the exact source version, person MaskRef root
+and MaskPixels. It requires the current editor/project/source gate, canonical
+mask.person task result, attempt/fence, unique root/report roles and immutable
+object versions. It does **not** read or qualify root/Params/report bytes, prove
+model runtime qualification, bind the root to a selected recipe Override or
+sign anything. The issuer must perform those checks and repeat the locator
+after object IO before any signature can be published.
 Import must verify the receipt against configured issuer trust, archive bytes
 and target source remap; store its exact hash and issuer/key in a new scoped
 forward-only table, and require that live receipt **and** the separate current
