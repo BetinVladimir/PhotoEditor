@@ -261,7 +261,7 @@ func TestDeliveryExpansionDriverAssemblyTransition(t *testing.T) {
 			if assembly.calls != 1 || result.Admitted != 0 || result.Cursor != 1 {
 				t.Fatal(result, assembly.calls)
 			}
-			invalid := state == "invalid" || state == "error"
+			invalid := state == "invalid" || state == "failed" || state == "error"
 			if (err != nil) != invalid {
 				t.Fatal("wrong assembly outcome", err)
 			}

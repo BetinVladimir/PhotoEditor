@@ -161,7 +161,7 @@ func (d DeliveryExpansionDriver) ProcessOne(ctx context.Context) (progress Deliv
 			}
 			state, signingErr := d.Signing.ProcessSigning(ctx, *lease, plan)
 			if signingErr != nil { return progress, signingErr }
-			if state != "scanning" && state != "pending" && state != "failed" && state != "adopted" && state != "finalized_failed" {
+			if state != "scanning" && state != "pending" && state != "adopted" && state != "finalized_failed" {
 				return progress, v2input.ErrInvalid
 			}
 			progress.SigningState = state
@@ -178,7 +178,7 @@ func (d DeliveryExpansionDriver) ProcessOne(ctx context.Context) (progress Deliv
 		if assemblyErr != nil {
 			return progress, assemblyErr
 		}
-		if state != "pending" && state != "failed" && state != "finalized_failed" && state != "activated" {
+		if state != "pending" && state != "finalized_failed" && state != "activated" {
 			return progress, v2input.ErrInvalid
 		}
 		progress.AssemblyState = state
