@@ -45,8 +45,7 @@ func validateInterchangeImportRuntimeSQL(ctx context.Context, db *pgxpool.Pool) 
 // The lease is advertised only while an installed import loop is healthy.
 // Its independent ticker keeps availability visible during bounded object IO.
 func interchangeImportLoopEligible(state *ExpansionLoopState) bool {
-	return state != nil && state.Started.Load() && (state.Ready.Load() ||
-		(state.Failures.Load() == 0 && state.Materialized.Load() == 0))
+	return state != nil && state.Started.Load() && state.Ready.Load()
 }
 
 func maintainInterchangeImportRuntime(ctx context.Context, db *pgxpool.Pool,

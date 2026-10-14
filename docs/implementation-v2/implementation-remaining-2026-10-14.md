@@ -343,6 +343,8 @@ Worker `series.balance` теперь требует точного совпад�
 
 Go `ParsePlan.BeginParseRun` теперь классифицирует отказ admission через параметризованный readiness того же tenant/source artifact, а не через глобальный `v30_import_runtime_ready()`. Истёкший либо отсутствующий artifact остаётся `INTERCHANGE_CREATE_STALE`; готовый artifact без живой пары процессов своего bucket даёт `INTERCHANGE_UNAVAILABLE`. Unit-сценарий фиксирует точный tenant/artifact/SHA в диагностическом запросе; он не запускался.
 
+Go import continuation lease теперь, как и Python adopter lease, требует завершённого успешного первого прохода scheduler. Ранее `Started && Failures==0 && Materialized==0` допускал новый import run во время ещё не завершённого первого прохода. Unit-сценарий для start/success/failure/stop написан, но не запускался.
+
 Startup-инвентарь API import creator теперь требует SECURITY DEFINER ABI `v30_import_runtime_ready(text)` с владельцем `photo_fn_owner` и закрытым PUBLIC EXECUTE. Python adopter проверяет этот же bucket-specific gate и его связь с обеими lease-таблицами перед объявлением readiness. Это предотвращает запуск неполностью обновлённой пары процессов после `02118` без `02119`; unit-сценарий написан, но не запускался.
 
 P0 delivery scheduler больше не прекращает проход после каждой metadata-задачи: `DeliveryExpansionJob.ProcessOne` допускает один metadata шаг, затем bounded quota cleanup и обычный child/assembly driver. Даже ошибка metadata не блокирует обычный проход; она остаётся в объединённой ошибке и отзывает health/lease. Так непрерывная либо неисправная metadata-очередь не останавливает уже принятые обычные пакеты. Unit-сценарии фиксируют progress/empty/error и порядок вызовов. Они не запускались.
