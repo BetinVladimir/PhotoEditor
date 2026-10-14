@@ -93,6 +93,9 @@ Scheduler runtime теперь имеет `RunSchedulerWithInterchangeExport` и
 
 ## Граница первого MVP
 
+Миграция `02063_v30_export_adoption_correction_member.sql` и `SQLSchedulerExportInputCatalog.QualifyExportCorrectionMember` привязывают WorkingImage член CorrectionPlan к exact accepted asset version из frozen snapshot и к обоим sealed export inputs. Go проверяет исходные bytes и canvas binding, SQL — текущие project/version/object pins; caller по-прежнему обязан доказать JSON edge в самом CorrectionPlan. Startup SQL inventory включает `02063`; миграция и unit-сценарии написаны, не запускались.
+
+
 Миграция `02062_v30_export_adoption_operation_params.sql` и `SQLSchedulerExportInputCatalog.LookupExportParamsOperation` дают точный task/attempt/fence для поддерживаемых Params-операций из sealed export input inventory. SQL требует accepted frozen source, completed producer, текущие consent grants всех workflow dependencies и дополнительный body input inventory; два producer для общего Params отвергаются. Go проверяет canonical bytes и object pins, затем повторяет SQL authority. Native `OperationParams` остаётся обязательным для семантики. Startup inventory включает `02062`; миграция и unit-сценарии написаны, не запускались.
 
 
