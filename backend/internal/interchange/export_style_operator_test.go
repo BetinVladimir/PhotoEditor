@@ -14,6 +14,15 @@ import (
 	"photoeditor/backend/internal/v2qualification"
 )
 
+type exportOperatorBackgroundFactoryStub struct{}
+
+func (exportOperatorBackgroundFactoryStub) BuildExportStyleBackgroundAuthority(context.Context,
+	CreateIntent, FrozenExportDocuments, ExportDocumentCatalog, ImportDocumentObjects,
+	NativeExportImageQualifier,
+) (ExportStyleBackgroundAuthority, error) {
+	return &exportBackgroundAuthorityStub{}, nil
+}
+
 func TestExportStyleOperatorPinsPoliciesBeforeNativeBuild(t *testing.T) {
 	root := t.TempDir()
 	sha := func(value string) string { return rawSHA([]byte(value)) }
@@ -71,12 +80,12 @@ func TestExportStyleOperatorPinsPoliciesBeforeNativeBuild(t *testing.T) {
 	}
 	manifest := write("operator.json", wire)
 	authority, err := LoadExportStyleOperatorAuthority(context.Background(), manifest.Path,
-		manifest.SHA, base, &exportBackgroundAuthorityStub{})
+		manifest.SHA, base, exportOperatorBackgroundFactoryStub{})
 	if err != nil || authority.pinnedPolicies == nil {
 		t.Fatal("pinned operator unavailable", err)
 	}
 	if _, err := LoadExportStyleOperatorAuthority(context.Background(), manifest.Path,
-		sha("wrong"), base, &exportBackgroundAuthorityStub{}); err == nil {
+		sha("wrong"), base, exportOperatorBackgroundFactoryStub{}); err == nil {
 		t.Fatal("foreign manifest pin accepted")
 	}
 	if _, err := LoadExportStyleOperatorAuthority(context.Background(), manifest.Path,
@@ -87,7 +96,7 @@ func TestExportStyleOperatorPinsPoliciesBeforeNativeBuild(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := LoadExportStyleOperatorAuthority(context.Background(), manifest.Path,
-		manifest.SHA, base, &exportBackgroundAuthorityStub{}); err == nil {
+		manifest.SHA, base, exportOperatorBackgroundFactoryStub{}); err == nil {
 		t.Fatal("changed subordinate policy accepted")
 	}
 	scratch, err := NewExportArchiveScratch(root, 1<<20)

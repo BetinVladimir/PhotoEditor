@@ -52,6 +52,16 @@ func (s SchedulerExportNativeInstallation) BuildSchedulerExportNativeResolver(ct
 	if _, _, err := DecodeFrozenExportDocuments(ctx, wanted, result.Frozen.Body()); err != nil {
 		return nil, err
 	}
+	var background ExportStyleBackgroundAuthority
+	if style, ok := validatorFactory.(ExportStyleValidatorInstallation); ok {
+		background, err = style.BuildScopedExportBackground(ctx, wanted, result.Frozen, catalog, objects)
+		if err != nil {
+			return nil, err
+		}
+		style.Backgrounds = background
+		style.BackgroundFactory = nil
+		validatorFactory = style
+	}
 	validator, err := validatorFactory.BuildScopedExportDocumentValidator(ctx,
 		wanted, result.Frozen, catalog, objects)
 	if err != nil {
@@ -65,8 +75,11 @@ func (s SchedulerExportNativeInstallation) BuildSchedulerExportNativeResolver(ct
 		return nil, err
 	}
 	native := *s.Installer.Native
-	if style, ok := s.Installer.ValidatorFactory.(ExportStyleValidatorInstallation); ok {
-		native.Backgrounds = style.Backgrounds
+	if background != nil {
+		if native.Backgrounds != nil {
+			return nil, v2input.ErrInvalid
+		}
+		native.Backgrounds = background
 	}
 	native.Catalog = catalog
 	native.Objects = objects

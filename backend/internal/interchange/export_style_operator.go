@@ -43,10 +43,10 @@ type exportStyleOperatorConfig struct {
 }
 
 // LoadExportStyleOperatorAuthority binds every policy to manifest SHA before
-// composing the native factory. Base semantics and background authority remain
+// composing the native factory. Base semantics and background factory remain
 // independently installed capabilities; the manifest cannot mint them.
 func LoadExportStyleOperatorAuthority(ctx context.Context, path, pin string,
-	base ExportDocumentValidatorInstallation, backgrounds ExportStyleBackgroundAuthority,
+	base ExportDocumentValidatorInstallation, backgrounds ExportStyleBackgroundAuthorityFactory,
 ) (ExportStyleDeploymentAuthority, error) {
 	var zero ExportStyleDeploymentAuthority
 	if err := ctx.Err(); err != nil {
@@ -146,7 +146,7 @@ func LoadExportStyleOperatorAuthority(ctx context.Context, path, pin string,
 		return zero, err
 	}
 	return ExportStyleDeploymentAuthority{
-		Base: base, Backgrounds: backgrounds, Models: models,
+		Base: base, BackgroundFactory: backgrounds, Models: models,
 		StyleRuntimeSHA: wire.StyleSHA,
 		BodyRuntime: ExportBodyDeploymentRuntime{
 			BodySHA: wire.BodySHA, FitSHA: wire.FitSHA,

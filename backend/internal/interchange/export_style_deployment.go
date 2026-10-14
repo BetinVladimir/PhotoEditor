@@ -8,13 +8,14 @@ import (
 // Base installs the remaining independently qualified document semantics.
 // Policy files and runtime fingerprints are selected by deployment operators.
 type ExportStyleDeploymentAuthority struct {
-	Base            ExportDocumentValidatorInstallation
-	Models          map[string]string
-	StyleRuntimeSHA string
-	PromptFile      string
-	BodyFiles       ExportBodyDeploymentFiles
-	BodyRuntime     ExportBodyDeploymentRuntime
-	Backgrounds     ExportStyleBackgroundAuthority
+	Base              ExportDocumentValidatorInstallation
+	Models            map[string]string
+	StyleRuntimeSHA   string
+	PromptFile        string
+	BodyFiles         ExportBodyDeploymentFiles
+	BodyRuntime       ExportBodyDeploymentRuntime
+	Backgrounds       ExportStyleBackgroundAuthority
+	BackgroundFactory ExportStyleBackgroundAuthorityFactory
 	// pinnedPolicies owns already decoded operator policy bytes. When present,
 	// Build never reopens their source paths after manifest verification.
 	pinnedPolicies *exportStylePinnedPolicies
@@ -106,7 +107,10 @@ func (s ExportStyleDeploymentAuthority) BuildNativeExportAuthority(ctx context.C
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	return ExportStyleValidatorInstallation{Base: base, Scratch: native.Scratch, Probe: style, Models: models, RuntimeSHA: s.StyleRuntimeSHA, PersonPolicy: body.Fit.Person, PromptPolicy: prompt, Body: body, Backgrounds: s.Backgrounds}, nil
+	if s.Backgrounds != nil && s.BackgroundFactory != nil {
+		return nil, v2input.ErrInvalid
+	}
+	return ExportStyleValidatorInstallation{Base: base, Scratch: native.Scratch, Probe: style, Models: models, RuntimeSHA: s.StyleRuntimeSHA, PersonPolicy: body.Fit.Person, PromptPolicy: prompt, Body: body, Backgrounds: s.Backgrounds, BackgroundFactory: s.BackgroundFactory, ImageProbe: native.ImageProbe, ImageRuntimeSHA: native.ImageRuntimeSHA}, nil
 }
 
 var _ ExportNativeAuthorityFactory = ExportStyleDeploymentAuthority{}

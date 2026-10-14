@@ -61,12 +61,23 @@ func (s SQLExportExecutionInstaller) InstallExportExecution(ctx context.Context,
 	}
 	catalog := SQLExportDocumentCatalog{DB: s.API, Tenant: tid, Who: who, Request: copyExportIntent(intent).Request, Key: key, Bucket: s.Bucket, Frozen: FrozenExportDocuments{body: checked.Body(), identity: checked.identity}}
 	dependencies := s.Dependencies
+	var background ExportStyleBackgroundAuthority
 	if s.DependencyFactory != nil {
 		owned := FrozenExportDocuments{body: checked.Body(), identity: checked.identity}
-		if scoped, ok := s.DependencyFactory.(ExportScopedDocumentValidatorFactory); ok {
+		factory := s.DependencyFactory
+		if style, ok := factory.(ExportStyleValidatorInstallation); ok {
+			background, err = style.BuildScopedExportBackground(ctx, copyExportIntent(intent), owned, catalog, s.Objects)
+			if err != nil {
+				return zero, err
+			}
+			style.Backgrounds = background
+			style.BackgroundFactory = nil
+			factory = style
+		}
+		if scoped, ok := factory.(ExportScopedDocumentValidatorFactory); ok {
 			dependencies, err = scoped.BuildScopedExportDocumentValidator(ctx, copyExportIntent(intent), owned, catalog, s.Objects)
 		} else {
-			dependencies, err = s.DependencyFactory.BuildExportDocumentValidator(ctx, copyExportIntent(intent), owned)
+			dependencies, err = factory.BuildExportDocumentValidator(ctx, copyExportIntent(intent), owned)
 		}
 		if err != nil {
 			return zero, err
@@ -85,6 +96,12 @@ func (s SQLExportExecutionInstaller) InstallExportExecution(ctx context.Context,
 			return zero, err
 		}
 		native := *s.Native
+		if background != nil {
+			if native.Backgrounds != nil {
+				return zero, v2input.ErrInvalid
+			}
+			native.Backgrounds = background
+		}
 		native.Catalog = catalog
 		native.Objects = s.Objects
 		native.MaxBytes = s.MaxInputBytes
