@@ -110,6 +110,27 @@ def test_pixel_guards_cover_soft_protection_and_outside_mask_exactly():
                              np.full((3, 4), np.nan), tile=128)
 
 
+def test_pixel_guards_include_alpha_outside_mask_and_under_protection():
+    rgb = np.zeros((2, 2, 3), np.float32)
+    effective = np.ones((2, 2), np.float32)
+    effective[0, 0] = 0
+    protected = np.zeros((2, 2), np.float32)
+    protected[1, 1] = .001
+    before = np.full((2, 2), 65535, np.uint16)
+    after = np.ones((2, 2), np.float32)
+    assert measure_pixel_guards(rgb, rgb, effective, protected,
+                                before_alpha=before, after_alpha=after).outside_mask_max_error == 0
+    after[0, 0] = .25
+    after[1, 1] = .5
+    guards = measure_pixel_guards(rgb, rgb, effective, protected,
+                                  before_alpha=before, after_alpha=after)
+    assert guards.outside_mask_max_error == .75
+    assert guards.protected_max_error == .5
+    with pytest.raises(ValueError, match='INVALID_IDENTITY_PIXELS'):
+        measure_pixel_guards(rgb, rgb, effective, protected,
+                             after_alpha=np.full((2, 2), np.nan, np.float32))
+
+
 def test_invalid_canvas_and_duplicate_identity_rejected():
     face = _face()
     with pytest.raises(ValueError, match='DUPLICATE_FACE_ID'):

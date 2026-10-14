@@ -83,6 +83,8 @@ def measure_holdout_identity(*, before: FaceObservations,
                              detector_succeeded: bool,
                              consent_valid: bool,
                              aligned_canvas: bool,
+                             source_alpha: np.ndarray | None = None,
+                             candidate_alpha: np.ndarray | None = None,
                              check_active: Callable[[], None] = lambda: None) -> str:
     """Return pass/fail/not_measurable/no_person from measured evidence.
 
@@ -101,6 +103,8 @@ def measure_holdout_identity(*, before: FaceObservations,
         raise ValueError('INVALID_HOLDOUT_IDENTITY_BINDING')
     guards = measure_pixel_guards(source_rgb, candidate_rgb,
                                   effective_mask, protected,
+                                  before_alpha=source_alpha,
+                                  after_alpha=candidate_alpha,
                                   check_active=check_active)
     if guards.outside_mask_max_error > 0 or guards.protected_max_error > 0:
         return 'fail'

@@ -111,7 +111,10 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts,
             effective_pixels = mapped(effective.artifact, (height, width))
             protected_pixels = mapped(protected.artifact, (height, width))
             guards = measure_pixel_guards(before_rgb, after_rgb,
-                                          effective_pixels, protected_pixels)
+                                          effective_pixels, protected_pixels,
+                                          before_alpha=before_alpha,
+                                          after_alpha=after_alpha,
+                                          check_active=ctx.check_active)
             ctx.progress(1, 4)
             before_srgb, _ = work_to_model(_preview(before_rgb, 2048))
             after_srgb, _ = work_to_model(_preview(after_rgb, 2048))

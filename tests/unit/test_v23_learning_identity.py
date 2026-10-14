@@ -60,6 +60,15 @@ def test_empty_successful_detection_is_no_person_only_with_zero_guards():
     assert measure_holdout_identity(**_evidence(protected=True)) == 'fail'
 
 
+def test_holdout_identity_fails_on_alpha_only_protected_change():
+    evidence = _evidence()
+    evidence['source_alpha'] = np.ones((256, 256), np.float32)
+    evidence['candidate_alpha'] = evidence['source_alpha'].copy()
+    evidence['candidate_alpha'][0, 0] = .5
+    evidence['protected'][0, 0] = .001
+    assert measure_holdout_identity(**evidence) == 'fail'
+
+
 def test_face_verdict_requires_consent_and_matching_observations():
     face = _face()
     assert measure_holdout_identity(**_evidence([face])) == 'pass'

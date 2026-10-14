@@ -261,6 +261,8 @@ class PinnedColorHoldoutProvider:
                 guards = measure_pixel_guards(
                     workspace.source.rgb, workspace.candidate,
                     workspace.source.effective_mask, workspace.source.protected,
+                    before_alpha=workspace.source.alpha,
+                    after_alpha=workspace.alpha,
                     check_active=ctx.check_active)
                 if guards.outside_mask_max_error > 0 or guards.protected_max_error > 0:
                     status = 'fail'
@@ -292,6 +294,8 @@ class PinnedColorHoldoutProvider:
                                 candidate_binding=item.render_case.binding,
                                 source_rgb=workspace.source.rgb,
                                 candidate_rgb=workspace.candidate,
+                                source_alpha=workspace.source.alpha,
+                                candidate_alpha=workspace.alpha,
                                 effective_mask=workspace.source.effective_mask,
                                 protected=workspace.source.protected,
                                 calibration=calibration, detector_qualified=True,

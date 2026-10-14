@@ -41,8 +41,10 @@ class PixelGuards:
 def measure_pixel_guards(before: np.ndarray, after: np.ndarray,
                          effective_mask: np.ndarray,
                          protected: np.ndarray, *, tile: int = 512,
+                         before_alpha: np.ndarray | None = None,
+                         after_alpha: np.ndarray | None = None,
                          check_active: Callable[[], None] = lambda: None) -> PixelGuards:
-    """Measure every aligned pixel; any positive protected weight is strict."""
+    """Measure RGB and opacity; any positive protected weight is strict."""
     check_active()
     shape = before.shape
     if (len(shape) != 3 or shape[2] not in (3, 4) or
@@ -50,6 +52,10 @@ def measure_pixel_guards(before: np.ndarray, after: np.ndarray,
             after.shape != shape or effective_mask.shape != shape[:2] or
             protected.shape != shape[:2] or tile not in (128, 256, 512, 1024)):
         raise ValueError('INVALID_IDENTITY_PIXELS')
+    for alpha in (before_alpha, after_alpha):
+        if alpha is not None and (alpha.shape != shape[:2] or
+                                  alpha.dtype not in (np.dtype('uint16'), np.dtype('float32'))):
+            raise ValueError('INVALID_IDENTITY_PIXELS')
     outside_error = protected_error = 0.0
     for y in range(0, shape[0], tile):
         for x in range(0, shape[1], tile):
@@ -66,6 +72,19 @@ def measure_pixel_guards(before: np.ndarray, after: np.ndarray,
                 raise ValueError('INVALID_IDENTITY_PIXELS')
             difference = np.max(np.abs(source.astype(np.float64) -
                                        result.astype(np.float64)), axis=2)
+            def opacity(alpha):
+                if alpha is None:
+                    return np.ones(difference.shape, dtype=np.float32)
+                values = np.asarray(alpha[sl])
+                if values.dtype == np.dtype('uint16'):
+                    values = values.astype(np.float32) / np.float32(65535)
+                if not np.isfinite(values).all() or np.any(values < 0) or np.any(values > 1):
+                    raise ValueError('INVALID_IDENTITY_PIXELS')
+                return values
+            if before_alpha is not None or after_alpha is not None:
+                difference = np.maximum(difference, np.abs(
+                    opacity(before_alpha).astype(np.float64) -
+                    opacity(after_alpha).astype(np.float64)))
             outside = effective == 0
             protected_pixels = guard > 0
             if np.any(outside):
