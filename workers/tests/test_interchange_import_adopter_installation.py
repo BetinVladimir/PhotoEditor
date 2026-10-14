@@ -3,7 +3,7 @@
 from hashlib import sha256
 from pathlib import Path
 from types import SimpleNamespace
-from uuid import uuid4
+from uuid import uuid4, uuid5
 
 import pytest
 
@@ -60,10 +60,13 @@ def test_import_adopter_rejects_authority_for_another_task_before_inventory(tmp_
     class Read:
         autocommit = True
         def execute(self, query, _scope):
-            assert 'v30_interchange_import_adoption_context' in query
+            self.query = query
             return self
         def fetchone(self):
-            return (authority,)
+            if 'adoption_context' in self.query:
+                return (authority,)
+            assert 'adoption_schema_pin' in self.query
+            return (sha256(schemas).hexdigest(),)
     schemas = canonical_bytes({'$defs': {}})
     factory = SchedulerImportRecipeAdoptionInstallation(
         Read(), schemas_jcs=schemas, schemas_sha=sha256(schemas).hexdigest(),
@@ -77,3 +80,34 @@ def test_import_adopter_rejects_authority_for_another_task_before_inventory(tmp_
     with pytest.raises(AdoptionInvalid, match='PLAN'):
         with factory(reader, uuid4(), uuid4(), context):
             pytest.fail('foreign task yielded a qualifier')
+
+
+def test_import_adopter_rejects_frozen_schema_drift_before_input_io(tmp_path):
+    workflow = uuid4()
+    task = uuid5(workflow, 'v2.interchange.import:0')
+    authority = {'params': {'artifact_id': str(uuid4()), 'sha256': 'b' * 64},
+                 'workflow_id': str(workflow), 'project_id': str(uuid4()),
+                 'snapshot_digest': 'c' * 64, 'max_output_bytes': 1024}
+    class Read:
+        autocommit = True
+        def execute(self, query, _scope):
+            self.query = query
+            return self
+        def fetchone(self):
+            if 'adoption_context' in self.query:
+                return (authority,)
+            assert 'adoption_schema_pin' in self.query
+            return ('d' * 64,)
+    schemas = canonical_bytes({'$defs': {}})
+    factory = SchedulerImportRecipeAdoptionInstallation(
+        Read(), schemas_jcs=schemas, schemas_sha=sha256(schemas).hexdigest(),
+        work_icc_sha='a' * 64, scratch_root=Path(tmp_path),
+        scratch_bytes=1 << 20, max_file_bytes=1 << 20,
+        qualify_runtime=lambda *_args: True, check_active=lambda: None)
+    reader = SimpleNamespace(read_json=lambda *_args: pytest.fail('input read'),
+                             iter_bytes=lambda *_args: pytest.fail('input read'))
+    context = SimpleNamespace(operation='v2.interchange.import', version='1',
+                              attempt=1, fence=1, result_id=uuid4())
+    with pytest.raises(AdoptionInvalid, match='SCHEMA_PIN'):
+        with factory(reader, uuid4(), task, context):
+            pytest.fail('schema drift yielded a qualifier')

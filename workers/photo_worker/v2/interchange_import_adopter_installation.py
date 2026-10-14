@@ -81,6 +81,12 @@ class SchedulerImportRecipeAdoptionInstallation:
                     'params', 'workflow_id', 'project_id', 'snapshot_digest',
                     'max_output_bytes'}:
                 raise AdoptionInvalid('INTERCHANGE_IMPORT_ADOPTER_AUTHORITY')
+            pin = self.connection.execute(
+                'SELECT photo.v30_import_adoption_schema_pin(%s,%s,%s,%s,%s)',
+                scope).fetchone()
+            self.active()
+            if pin != (self.schemas_sha,):
+                raise AdoptionInvalid('INTERCHANGE_IMPORT_ADOPTER_SCHEMA_PIN')
             return deepcopy(row[0])
 
         authority = current()
