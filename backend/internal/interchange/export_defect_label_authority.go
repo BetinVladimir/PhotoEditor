@@ -1,25 +1,55 @@
 package interchange
 
 import (
- "context"
- "encoding/json"
- "github.com/jackc/pgx/v5"
- "photoeditor/backend/internal/domain"
- "photoeditor/backend/internal/tenant"
- "photoeditor/backend/internal/v2input"
+	"context"
+	"encoding/json"
+	"github.com/jackc/pgx/v5"
+	"photoeditor/backend/internal/domain"
+	"photoeditor/backend/internal/tenant"
+	"photoeditor/backend/internal/v2input"
 )
 
-func(s SQLExportDocumentCatalog)QualifyExportDefectLabel(ctx context.Context,parent v2input.Entry,raw []byte,array v2input.Entry)error {
- if err:=ctx.Err();err!=nil {return err}
- if parent.Contract!="DefectCandidates"||array.Contract!="DefectLabelMap"||!validImportRef(parent.Ref)||!validImportRef(array.Ref)||len(raw)<2||len(raw)>1<<20||rawSHA(raw)!=parent.Ref.SHA256 {return v2input.ErrInvalid}
- var body struct {Image v2input.Ref `json:"image"`;Labels v2input.Ref `json:"label_map"`}
- if json.Unmarshal(raw,&body)!=nil||body.Labels!=array.Ref||!validImportRef(body.Image) {return v2input.ErrInvalid}
- if _,err:=s.LookupExportDocument(ctx,parent);err!=nil {return err}
- object,err:=s.LookupExportDocument(ctx,array);if err!=nil {return err}
- if !exportArrayMediaType(object.ContentType) {return v2input.ErrInvalid}
- return tenant.WithTenant(ctx,s.DB,s.Who,s.Tenant,domain.Editor,func(tx pgx.Tx,_ domain.Role)error {
-  var allowed bool
-  err:=tx.QueryRow(ctx,`SELECT EXISTS(
+func (s SQLExportDocumentCatalog) QualifyExportDefectLabel(ctx context.Context, parent v2input.Entry, raw []byte, array v2input.Entry) error {
+	return qualifyExportDefectLabel(ctx, s, s, parent, raw, array)
+}
+func (s SQLExportResultInputCatalog) QualifyExportDefectLabel(ctx context.Context, parent v2input.Entry, raw []byte, array v2input.Entry) error {
+	config, err := exportPolicyCatalogConfig(s)
+	if err != nil {
+		return err
+	}
+	return qualifyExportDefectLabel(ctx, s, config, parent, raw, array)
+}
+func qualifyExportDefectLabel(ctx context.Context, documents ExportDocumentCatalog, s SQLExportDocumentCatalog, parent v2input.Entry, raw []byte, array v2input.Entry) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if documents == nil || s.DB == nil {
+		return v2input.ErrInvalid
+	}
+	if parent.Contract != "DefectCandidates" || array.Contract != "DefectLabelMap" || !validImportRef(parent.Ref) || !validImportRef(array.Ref) || len(raw) < 2 || len(raw) > 1<<20 || rawSHA(raw) != parent.Ref.SHA256 {
+		return v2input.ErrInvalid
+	}
+	var body struct {
+		Image  v2input.Ref `json:"image"`
+		Labels v2input.Ref `json:"label_map"`
+	}
+	if json.Unmarshal(raw, &body) != nil || body.Labels != array.Ref || !validImportRef(body.Image) {
+		return v2input.ErrInvalid
+	}
+	parentObject, err := documents.LookupExportDocument(ctx, parent)
+	if err != nil {
+		return err
+	}
+	object, err := documents.LookupExportDocument(ctx, array)
+	if err != nil {
+		return err
+	}
+	if !exportArrayMediaType(object.ContentType) {
+		return v2input.ErrInvalid
+	}
+	err = tenant.WithTenant(ctx, s.DB, s.Who, s.Tenant, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
+		var allowed bool
+		err := tx.QueryRow(ctx, `SELECT EXISTS(
    SELECT 1 FROM photo.asset_versions v
    JOIN photo.assets a ON a.tenant_id=v.tenant_id AND a.id=v.asset_id
    JOIN photo.artifacts proposal ON proposal.tenant_id=v.tenant_id AND proposal.id=$5 AND proposal.sha256=$6
@@ -62,9 +92,35 @@ func(s SQLExportDocumentCatalog)QualifyExportDefectLabel(ctx context.Context,par
     AND origin_run.config_snapshot->'v27_target_defect_prepare'->'source'->>'asset_version_id'=v.id::text
     AND origin_run.config_snapshot->'v27_target_defect_prepare'->'source'->'source'=jsonb_build_object('artifact_id',$3::uuid,'sha256',$4::text)
    ) ELSE true END
-  )`,s.Tenant,s.Request.ProjectID,body.Image.ArtifactID,body.Image.SHA256,parent.Ref.ArtifactID,parent.Ref.SHA256,
-   array.Ref.ArtifactID,array.Ref.SHA256,s.Who.UserID,s.Who.SessionID,s.Bucket,object.Key,object.VersionID,object.Bytes,object.ContentType).Scan(&allowed)
-  if err!=nil {return err};if !allowed {return v2input.ErrInvalid};return ctx.Err()
- })
+  )`, s.Tenant, s.Request.ProjectID, body.Image.ArtifactID, body.Image.SHA256, parent.Ref.ArtifactID, parent.Ref.SHA256,
+			array.Ref.ArtifactID, array.Ref.SHA256, s.Who.UserID, s.Who.SessionID, s.Bucket, object.Key, object.VersionID, object.Bytes, object.ContentType).Scan(&allowed)
+		if err != nil {
+			return err
+		}
+		if !allowed {
+			return v2input.ErrInvalid
+		}
+		return ctx.Err()
+	})
+	if err != nil {
+		return err
+	}
+	currentParent, err := documents.LookupExportDocument(ctx, parent)
+	if err != nil {
+		return err
+	}
+	if currentParent != parentObject {
+		return v2input.ErrInvalid
+	}
+	currentArray, err := documents.LookupExportDocument(ctx, array)
+	if err != nil {
+		return err
+	}
+	if currentArray != object {
+		return v2input.ErrInvalid
+	}
+	return ctx.Err()
 }
-var _ ExportDefectLabelOccurrenceAuthority=SQLExportDocumentCatalog{}
+
+var _ ExportDefectLabelOccurrenceAuthority = SQLExportDocumentCatalog{}
+var _ ExportDefectLabelOccurrenceAuthority = SQLExportResultInputCatalog{}

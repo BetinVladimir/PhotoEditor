@@ -1,26 +1,61 @@
 package interchange
+
 import (
- "context"
- "encoding/json"
- "github.com/jackc/pgx/v5"
- "photoeditor/backend/internal/domain"
- "photoeditor/backend/internal/tenant"
- "photoeditor/backend/internal/v2input"
+	"context"
+	"encoding/json"
+	"github.com/jackc/pgx/v5"
+	"photoeditor/backend/internal/domain"
+	"photoeditor/backend/internal/tenant"
+	"photoeditor/backend/internal/v2input"
 )
 
 // This checks completed producer/object scope. Full native resolved schema,
 // model/consent and operation semantics remain mandatory in the JSON policy.
-func(s SQLExportDocumentCatalog)QualifyExportLUT(ctx context.Context,parent v2input.Entry,raw []byte,array v2input.Entry)error {
- if err:=ctx.Err();err!=nil{return err}
- if parent.Contract!="ResolvedStyle"||array.Contract!="AbsoluteLUTArray"||!validImportRef(parent.Ref)||!validImportRef(array.Ref)||len(raw)<2||len(raw)>8<<20||rawSHA(raw)!=parent.Ref.SHA256{return v2input.ErrInvalid}
- var body struct {Params struct {Image v2input.Ref `json:"image"`} `json:"params"`;LUT *struct {Artifact v2input.Ref `json:"artifact"`} `json:"absolute_lut"`}
- if json.Unmarshal(raw,&body)!=nil||body.LUT==nil||body.LUT.Artifact!=array.Ref||!validImportRef(body.Params.Image){return v2input.ErrInvalid}
- resolved,err:=s.LookupExportDocument(ctx,parent);if err!=nil{return err}
- lut,err:=s.LookupExportDocument(ctx,array);if err!=nil{return err}
- if resolved.ContentType!="application/json"||!exportArrayMediaType(lut.ContentType){return v2input.ErrInvalid}
- return tenant.WithTenant(ctx,s.DB,s.Who,s.Tenant,domain.Editor,func(tx pgx.Tx,_ domain.Role)error {
-  var allowed bool
-  err:=tx.QueryRow(ctx,`SELECT EXISTS(
+func (s SQLExportDocumentCatalog) QualifyExportLUT(ctx context.Context, parent v2input.Entry, raw []byte, array v2input.Entry) error {
+	return qualifyExportLUT(ctx, s, s, parent, raw, array)
+}
+func (s SQLExportResultInputCatalog) QualifyExportLUT(ctx context.Context, parent v2input.Entry, raw []byte, array v2input.Entry) error {
+	config, err := exportPolicyCatalogConfig(s)
+	if err != nil {
+		return err
+	}
+	return qualifyExportLUT(ctx, s, config, parent, raw, array)
+}
+func qualifyExportLUT(ctx context.Context, documents ExportDocumentCatalog, s SQLExportDocumentCatalog, parent v2input.Entry, raw []byte, array v2input.Entry) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if documents == nil || s.DB == nil {
+		return v2input.ErrInvalid
+	}
+	if parent.Contract != "ResolvedStyle" || array.Contract != "AbsoluteLUTArray" || !validImportRef(parent.Ref) || !validImportRef(array.Ref) || len(raw) < 2 || len(raw) > 8<<20 || rawSHA(raw) != parent.Ref.SHA256 {
+		return v2input.ErrInvalid
+	}
+	var body struct {
+		Params struct {
+			Image v2input.Ref `json:"image"`
+		} `json:"params"`
+		LUT *struct {
+			Artifact v2input.Ref `json:"artifact"`
+		} `json:"absolute_lut"`
+	}
+	if json.Unmarshal(raw, &body) != nil || body.LUT == nil || body.LUT.Artifact != array.Ref || !validImportRef(body.Params.Image) {
+		return v2input.ErrInvalid
+	}
+	resolved, err := documents.LookupExportDocument(ctx, parent)
+	if err != nil {
+		return err
+	}
+	lut, err := documents.LookupExportDocument(ctx, array)
+	if err != nil {
+		return err
+	}
+	if resolved.ContentType != "application/json" || !exportArrayMediaType(lut.ContentType) {
+		return v2input.ErrInvalid
+	}
+	err = tenant.WithTenant(ctx, s.DB, s.Who, s.Tenant, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
+		var allowed bool
+		err := tx.QueryRow(ctx, `SELECT EXISTS(
    SELECT 1 FROM photo.asset_versions v
    JOIN photo.assets asset ON asset.tenant_id=v.tenant_id AND asset.id=v.asset_id
    JOIN photo.artifacts source ON source.tenant_id=v.tenant_id AND source.id=v.master_artifact_id AND source.sha256=v.content_hash
@@ -51,9 +86,35 @@ func(s SQLExportDocumentCatalog)QualifyExportLUT(ctx context.Context,parent v2in
     (resolved.state,resolved.verified_at,resolved.object_version,resolved.expires_at),(lut.state,lut.verified_at,lut.object_version,lut.expires_at),
     (params.state,params.verified_at,params.object_version,params.expires_at)) o(state,verified,version,expires)
     WHERE state IS DISTINCT FROM 'ready' OR verified IS NULL OR version IS NULL OR version IN('','null') OR expires<=clock_timestamp())
-  )`,s.Tenant,s.Request.ProjectID,body.Params.Image.ArtifactID,body.Params.Image.SHA256,parent.Ref.ArtifactID,parent.Ref.SHA256,array.Ref.ArtifactID,array.Ref.SHA256,
-   s.Who.UserID,s.Who.SessionID,s.Bucket,resolved.Key,resolved.VersionID,resolved.Bytes,lut.Key,lut.VersionID,lut.Bytes,lut.ContentType).Scan(&allowed)
-  if err!=nil{return err};if !allowed{return v2input.ErrInvalid};return ctx.Err()
- })
+  )`, s.Tenant, s.Request.ProjectID, body.Params.Image.ArtifactID, body.Params.Image.SHA256, parent.Ref.ArtifactID, parent.Ref.SHA256, array.Ref.ArtifactID, array.Ref.SHA256,
+			s.Who.UserID, s.Who.SessionID, s.Bucket, resolved.Key, resolved.VersionID, resolved.Bytes, lut.Key, lut.VersionID, lut.Bytes, lut.ContentType).Scan(&allowed)
+		if err != nil {
+			return err
+		}
+		if !allowed {
+			return v2input.ErrInvalid
+		}
+		return ctx.Err()
+	})
+	if err != nil {
+		return err
+	}
+	currentParent, err := documents.LookupExportDocument(ctx, parent)
+	if err != nil {
+		return err
+	}
+	if currentParent != resolved {
+		return v2input.ErrInvalid
+	}
+	currentArray, err := documents.LookupExportDocument(ctx, array)
+	if err != nil {
+		return err
+	}
+	if currentArray != lut {
+		return v2input.ErrInvalid
+	}
+	return ctx.Err()
 }
-var _ ExportLUTOccurrenceAuthority=SQLExportDocumentCatalog{}
+
+var _ ExportLUTOccurrenceAuthority = SQLExportDocumentCatalog{}
+var _ ExportLUTOccurrenceAuthority = SQLExportResultInputCatalog{}
