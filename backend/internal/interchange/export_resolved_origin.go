@@ -1,35 +1,72 @@
 package interchange
 
 import (
- "context"
- "encoding/json"
- "github.com/jackc/pgx/v5"
- "photoeditor/backend/internal/canonical"
- "photoeditor/backend/internal/domain"
- "photoeditor/backend/internal/objectstore"
- "photoeditor/backend/internal/tenant"
- "photoeditor/backend/internal/v2input"
+	"context"
+	"encoding/json"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"photoeditor/backend/internal/auth"
+	"photoeditor/backend/internal/canonical"
+	"photoeditor/backend/internal/domain"
+	"photoeditor/backend/internal/objectstore"
+	"photoeditor/backend/internal/tenant"
+	"photoeditor/backend/internal/v2input"
 )
 
 // Metadata evidence only; full native ResolvedStyle schema, original Params
 // content equivalence and current model/consent authority remain mandatory.
-type ExportResolvedOriginEvidence struct {Params v2input.Ref;Object objectstore.Object}
-func(s SQLExportDocumentCatalog)LookupExportResolvedOrigin(ctx context.Context,entry v2input.Entry,raw []byte)(ExportResolvedOriginEvidence,error){
- var zero,out ExportResolvedOriginEvidence
- if err:=ctx.Err();err!=nil{return zero,err}
- if s.DB==nil||entry.Contract!="ResolvedStyle"||!validImportRef(entry.Ref)||rawSHA(raw)!=entry.Ref.SHA256{return zero,v2input.ErrInvalid}
- children,err:=exportResolvedChildren(entry,raw);if err!=nil{return zero,err}
- var body struct{Params struct{Image v2input.Ref `json:"image"`} `json:"params"`}
- if json.Unmarshal(raw,&body)!=nil||!validImportRef(body.Params.Image){return zero,v2input.ErrInvalid}
- // Require all referenced original inputs, including embedded override masks
- // and warp fields. Absolute LUT is a result, not a producer input.
- inputs:=[]v2input.Ref{}
- for _,child:=range children{if child.Contract!="AbsoluteLUTArray"{inputs=append(inputs,child.Ref)}}
- inputRaw,err:=canonical.Marshal(inputs);if err!=nil{return zero,err}
- resolved,err:=s.LookupExportDocument(ctx,entry);if err!=nil{return zero,err}
- err=tenant.WithTenant(ctx,s.DB,s.Who,s.Tenant,domain.Editor,func(tx pgx.Tx,_ domain.Role)error{
-  var bucket string
-  err:=tx.QueryRow(ctx,`SELECT params.id,params.sha256,params.bucket,params.object_key,params.object_version,params.sha256,params.bytes,params.media_type
+type ExportResolvedOriginEvidence struct {
+	Params v2input.Ref
+	Object objectstore.Object
+}
+
+func (s SQLExportDocumentCatalog) LookupExportResolvedOrigin(ctx context.Context, entry v2input.Entry, raw []byte) (ExportResolvedOriginEvidence, error) {
+	return lookupExportResolvedOrigin(ctx, s, s.DB, s.Tenant, s.Who, s.Request.ProjectID, s.Bucket, entry, raw)
+}
+func (s SQLExportResultInputCatalog) LookupExportResolvedOrigin(ctx context.Context, entry v2input.Entry, raw []byte) (ExportResolvedOriginEvidence, error) {
+	config := s.Export
+	return lookupExportResolvedOrigin(ctx, s, config.DB, config.Tenant, config.Who, config.Request.ProjectID, config.Bucket, entry, raw)
+}
+func lookupExportResolvedOrigin(ctx context.Context, catalog ExportDocumentCatalog, db *pgxpool.Pool, tenantID uuid.UUID, who auth.Identity, project uuid.UUID, bucketName string, entry v2input.Entry, raw []byte) (ExportResolvedOriginEvidence, error) {
+	var zero, out ExportResolvedOriginEvidence
+	if err := ctx.Err(); err != nil {
+		return zero, err
+	}
+	if catalog == nil || db == nil || tenantID == uuid.Nil || project == uuid.Nil || len(bucketName) < 3 || entry.Contract != "ResolvedStyle" || !validImportRef(entry.Ref) || rawSHA(raw) != entry.Ref.SHA256 {
+		return zero, v2input.ErrInvalid
+	}
+	children, err := exportResolvedChildren(entry, raw)
+	if err != nil {
+		return zero, err
+	}
+	var body struct {
+		Params struct {
+			Image v2input.Ref `json:"image"`
+		} `json:"params"`
+	}
+	if json.Unmarshal(raw, &body) != nil || !validImportRef(body.Params.Image) {
+		return zero, v2input.ErrInvalid
+	}
+	// Require all referenced original inputs, including embedded override masks
+	// and warp fields. Absolute LUT is a result, not a producer input.
+	inputs := []v2input.Ref{}
+	for _, child := range children {
+		if child.Contract != "AbsoluteLUTArray" {
+			inputs = append(inputs, child.Ref)
+		}
+	}
+	inputRaw, err := canonical.Marshal(inputs)
+	if err != nil {
+		return zero, err
+	}
+	resolved, err := catalog.LookupExportDocument(ctx, entry)
+	if err != nil {
+		return zero, err
+	}
+	err = tenant.WithTenant(ctx, db, who, tenantID, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
+		var bucket string
+		err := tx.QueryRow(ctx, `SELECT params.id,params.sha256,params.bucket,params.object_key,params.object_version,params.sha256,params.bytes,params.media_type
    FROM photo.artifacts resolved
    JOIN photo.tasks producer ON producer.tenant_id=resolved.tenant_id AND producer.id=resolved.created_by_task_id
    JOIN photo.runs origin ON origin.tenant_id=producer.tenant_id AND origin.id=producer.run_id
@@ -51,11 +88,27 @@ func(s SQLExportDocumentCatalog)LookupExportResolvedOrigin(ctx context.Context,e
    AND params.media_type='application/json' AND params.bytes BETWEEN 2 AND 1048576
    AND NOT EXISTS(SELECT 1 FROM (VALUES(resolved.id),(params.id)) required(id) JOIN photo.artifacts a ON a.tenant_id=$1 AND a.id=required.id
     WHERE a.state IS DISTINCT FROM 'ready' OR a.verified_at IS NULL OR a.object_version IS NULL OR a.object_version IN('','null') OR (a.expires_at IS NOT NULL AND a.expires_at<=clock_timestamp()))`,
-   s.Tenant,entry.Ref.ArtifactID,entry.Ref.SHA256,s.Request.ProjectID,s.Who.UserID,s.Who.SessionID,body.Params.Image.ArtifactID,body.Params.Image.SHA256,inputRaw,s.Bucket,resolved.Key,resolved.VersionID,resolved.Bytes).Scan(
-   &out.Params.ArtifactID,&out.Params.SHA256,&bucket,&out.Object.Key,&out.Object.VersionID,&out.Object.SHA256,&out.Object.Bytes,&out.Object.ContentType)
-  if err!=nil{return err};if bucket!=s.Bucket||!validImportRef(out.Params)||out.Object.Key==""||out.Object.SHA256!=out.Params.SHA256{return v2input.ErrInvalid};return ctx.Err()
- })
- if err!=nil{return zero,err}
- current,err:=s.LookupExportDocument(ctx,entry);if err!=nil{return zero,err};if current!=resolved{return zero,v2input.ErrInvalid}
- return out,ctx.Err()
+			tenantID, entry.Ref.ArtifactID, entry.Ref.SHA256, project, who.UserID, who.SessionID, body.Params.Image.ArtifactID, body.Params.Image.SHA256, inputRaw, bucketName, resolved.Key, resolved.VersionID, resolved.Bytes).Scan(
+			&out.Params.ArtifactID, &out.Params.SHA256, &bucket, &out.Object.Key, &out.Object.VersionID, &out.Object.SHA256, &out.Object.Bytes, &out.Object.ContentType)
+		if err != nil {
+			return err
+		}
+		if bucket != bucketName || !validImportRef(out.Params) || out.Object.Key == "" || out.Object.SHA256 != out.Params.SHA256 {
+			return v2input.ErrInvalid
+		}
+		return ctx.Err()
+	})
+	if err != nil {
+		return zero, err
+	}
+	current, err := catalog.LookupExportDocument(ctx, entry)
+	if err != nil {
+		return zero, err
+	}
+	if current != resolved {
+		return zero, v2input.ErrInvalid
+	}
+	return out, ctx.Err()
 }
+
+var _ ExportResolvedOriginSource = SQLExportResultInputCatalog{}
