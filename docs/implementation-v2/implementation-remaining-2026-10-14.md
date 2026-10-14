@@ -93,6 +93,9 @@ Scheduler runtime теперь имеет `RunSchedulerWithInterchangeExport` и
 
 ## Граница первого MVP
 
+Миграция `02066_v30_export_adoption_correction_evidence.sql` и `SQLSchedulerExportInputCatalog.LookupExportCorrectionEvidence` переносят полный session.plan→CorrectionPlan/ScenePlan producer proof на scheduler claim: уникальная группа, snapshot digest/policy, review/inbox/artifact link и точное соответствие каждого участника группы. Вход CorrectionPlan и его object version запечатаны в claimed task; Go проверяет canonical bytes и повторяет pin после SQL. Caller по-прежнему физически читает ScenePlan и валидирует точный correction edge. Startup SQL inventory включает `02066`; миграция и unit-сценарии написаны, не запускались.
+
+
 Миграция `02065_v30_export_adoption_stats_person_documents.sql` и `SQLSchedulerExportInputCatalog.LookupExportStatsPersonDocument` дают bounded чтение оригинальных MaskRef, PersonParams и PersonReport, каждый раз реконструируя текущую claimed Stats20→mask.person lineage и сверяя mask object pin. Контракты и ограничения размера различаются; два возможных origin отвергаются. Reader уже повторяет все три object pins после physical IO. Model/consent policy installation остаётся отдельной недостающей стадией. Startup SQL inventory включает `02065`; миграция и unit-сценарии написаны, не запускались.
 
 
