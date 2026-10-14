@@ -53,3 +53,11 @@ def test_holdout_asset_composes_in_linear_light_and_restores_protected_pixel():
             source, target, alpha_out, style, style_ref, pin, normalized,
             subject=subject, confidence=.9, work_icc_sha='d' * 64)
     np.testing.assert_array_equal(target, before)
+
+    invalid_alpha = SimpleNamespace(rgb=source.rgb, protected=source.protected,
+                                    alpha=np.ones((2, 2), dtype=np.uint8))
+    with pytest.raises(ValueError, match='HOLDOUT_BACKGROUND_ALPHA_INVALID'):
+        render_holdout_asset_background(
+            invalid_alpha, target, alpha_out, style, style_ref, pin, normalized,
+            subject=subject, confidence=.9, work_icc_sha=work_sha)
+    np.testing.assert_array_equal(target, before)

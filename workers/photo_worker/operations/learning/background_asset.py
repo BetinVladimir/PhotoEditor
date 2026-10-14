@@ -86,6 +86,11 @@ def render_holdout_asset_background(source, target, alpha_out, style, style_ref,
     h, w = target.shape[:2]
     if h*w > 200_000_000 or h < 1 or w < 1:
         raise ValueError('HOLDOUT_BACKGROUND_ASSET_PIXELS_INVALID')
+    if (source.alpha is not None and
+            (not isinstance(source.alpha, np.ndarray) or
+             source.alpha.shape != (h, w) or
+             source.alpha.dtype not in (np.uint16, np.float32))):
+        raise ValueError('HOLDOUT_BACKGROUND_ALPHA_INVALID')
     geometry = asset_geometry(rgb.shape[1], rgb.shape[0], w, h, 1, .5, .5)
     for y in range(0, h, 512):
         for x in range(0, w, 512):

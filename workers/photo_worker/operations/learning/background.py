@@ -13,6 +13,11 @@ def render_holdout_background(source, target, alpha_out, style, *, subject=None,
     if background.mode not in ('solid', 'transparent', 'blur'):
         raise ValueError('HOLDOUT_COMPLETE_BACKGROUND_REQUIRED')
     h, w = target.shape[:2]
+    if (source.alpha is not None and
+            (not isinstance(source.alpha, np.ndarray) or
+             source.alpha.shape != (h, w) or
+             source.alpha.dtype not in (np.uint16, np.float32))):
+        raise ValueError('HOLDOUT_BACKGROUND_ALPHA_INVALID')
     if (not isinstance(subject, np.ndarray) or subject.shape != (h, w)
             or subject.dtype != np.float32 or type(confidence) not in (float, int)
             or not .75 <= confidence <= 1
