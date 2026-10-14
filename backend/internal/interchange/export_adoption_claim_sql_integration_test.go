@@ -24,6 +24,7 @@ func TestIntegrationExportAdoptionClaimPrivateRoleAndMissingLease(t *testing.T) 
 	defer db.Close()
 	for _, signature := range []string{
 		"photo.v30_claim_next_export_adoption()",
+		"photo.v30_renew_export_adoption_claim(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid)",
 		"photo.v30_export_adoption_claim_current(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid)",
 		"photo.v30_export_adoption_root_output(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid)",
 		"photo.v30_export_adoption_output(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,text,text)",
@@ -46,6 +47,13 @@ func TestIntegrationExportAdoptionClaimPrivateRoleAndMissingLease(t *testing.T) 
 		}
 	}
 	var current bool
+	var renewed bool
+	err = db.QueryRow(ctx, `SELECT photo.v30_renew_export_adoption_claim($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+		uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New(), "missing-claim",
+		rawSHA([]byte("request")), uuid.New()).Scan(&renewed)
+	if err != nil || renewed {
+		t.Fatal("missing export lease renewed", err)
+	}
 	err = db.QueryRow(ctx, `SELECT photo.v30_export_adoption_claim_current($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
 		uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New(), "missing-claim",
 		rawSHA([]byte("request")), uuid.New()).Scan(&current)

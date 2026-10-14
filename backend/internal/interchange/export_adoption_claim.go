@@ -26,6 +26,27 @@ type ExportAdoptionClaim struct {
 
 type SQLExportAdoptionClaimStore struct{ DB *pgxpool.Pool }
 
+// RenewExportAdoptionClaim extends only a live, unchanged discovery lease.
+// A false result means archive IO must stop before any adoption attempt.
+func (s SQLExportAdoptionClaimStore) RenewExportAdoptionClaim(ctx context.Context, c ExportAdoptionClaim) (bool, error) {
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
+	if s.DB == nil || c.validate() != nil {
+		return false, v2input.ErrInvalid
+	}
+	var renewed bool
+	err := s.DB.QueryRow(ctx, `SELECT photo.v30_renew_export_adoption_claim($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+		c.Tenant, c.Workflow, c.Run, c.Task, c.Result, c.Actor, c.Key, c.RequestSHA, c.Token).Scan(&renewed)
+	if err != nil {
+		return false, err
+	}
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
+	return renewed, nil
+}
+
 // CurrentExportAdoptionClaim checks the exact lease after scheduler callbacks.
 // A true receipt only permits the next separately authorized preparation step.
 func (s SQLExportAdoptionClaimStore) CurrentExportAdoptionClaim(ctx context.Context, c ExportAdoptionClaim) (bool, error) {

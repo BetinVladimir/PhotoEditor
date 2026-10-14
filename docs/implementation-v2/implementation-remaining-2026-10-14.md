@@ -73,6 +73,8 @@
 
 Миграция `02047_v30_scheduler_params_mask.sql` и `SQLSchedulerExportInputCatalog.QualifyExportParamsMask` связывают inline MaskRef в точных Params с текущим завершённым producer, source frozen snapshot и запечатанным MaskPixels input; Go повторяет typed JSON extraction и object pin reads. Это ещё один native authority, но не полная closure; 02047 и сценарии не выполнялись.
 
+Миграция `02048_v30_export_adoption_renew.sql` и `SQLExportAdoptionClaimStore.RenewExportAdoptionClaim` добавляют продление только живого exact-token claim после повторной проверки canonical result. `SchedulerExportAdoptionProcessor.ProcessOne` теперь связывает claim, физическую подготовку и атомарный adoption с heartbeat и отменой при потере lease; `SQLSchedulerExportAdoptionHandler` передаёт подготовленную closure в commit. Это пока не установленный runtime loop: отсутствуют bootstrap/ready/shutdown и полная native bundle authority. Сценарии написаны, но не запускались.
+
 `SchedulerExportClosureReader` соединяет проверку канонического result/ZIP с существующим полным обходом portable source inventory и manifest validation; он требует process-installed `SchedulerExportNativeResolverFactory`, возвращающий graph-bound native resolver, и после физического IO повторяет result, bundle object и person-origin проверки. Он формирует sessionless immutable evidence для `AdoptScheduler`. Поскольку native factory и оставшиеся SQL authority ещё не установлены, bundle путь по-прежнему fail-closed. Unit-сценарии написаны, не выполнялись.
 
 ## Граница первого MVP

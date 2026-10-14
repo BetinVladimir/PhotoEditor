@@ -71,11 +71,17 @@ func TestExportAdoptionClaimRequiresFrozenIdentityAndRequest(t *testing.T) {
 
 func TestExportAdoptionClaimStoreFailsClosedWithoutDatabase(t *testing.T) {
 	store := SQLExportAdoptionClaimStore{}
-	if _, err := store.NextExportAdoption(context.Background()); err != v2input.ErrInvalid {
-		t.Fatal("missing database accepted", err)
+	if renewed, err := store.RenewExportAdoptionClaim(context.Background(), ExportAdoptionClaim{}); renewed || err != v2input.ErrInvalid {
+		t.Fatal("missing renewal database accepted", renewed, err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
+	if renewed, err := store.RenewExportAdoptionClaim(ctx, ExportAdoptionClaim{}); renewed || err != context.Canceled {
+		t.Fatal("cancelled renewal queried", renewed, err)
+	}
+	if _, err := store.NextExportAdoption(context.Background()); err != v2input.ErrInvalid {
+		t.Fatal("missing database accepted", err)
+	}
 	if _, err := store.NextExportAdoption(ctx); err != context.Canceled {
 		t.Fatal("cancelled claim queried", err)
 	}
