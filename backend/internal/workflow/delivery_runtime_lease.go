@@ -37,6 +37,23 @@ func validateDeliveryRuntimeSQL(ctx context.Context, db *pgxpool.Pool) error {
 	if err != nil || !installed {
 		return errors.New("delivery runtime SQL unavailable")
 	}
+	err = db.QueryRow(ctx, `SELECT count(*)=3 AND coalesce(bool_and(
+  p.prosecdef AND owner.rolname='photo_fn_owner'
+  AND ('search_path=pg_catalog,photo'=ANY(p.proconfig)
+    OR 'search_path=pg_catalog, photo'=ANY(p.proconfig))
+  AND has_function_privilege('photo_api',p.oid,'EXECUTE')
+  AND NOT EXISTS(SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
+    WHERE acl.privilege_type='EXECUTE'
+      AND acl.grantee NOT IN (p.proowner,'photo_api'::regrole::oid))),false)
+ FROM (VALUES
+  (to_regprocedure('photo.v30_delivery_runtime_ready(text)')),
+  (to_regprocedure('photo.v30_delivery_metadata_runtime_ready(text)')),
+  (to_regprocedure('photo.v30_delivery_signing_runtime_ready(text,uuid,uuid,text)'))
+ ) signatures(oid) JOIN pg_proc p ON p.oid=signatures.oid
+ JOIN pg_roles owner ON owner.oid=p.proowner`).Scan(&installed)
+	if err != nil || !installed {
+		return errors.New("delivery admission SQL unavailable")
+	}
 	return ctx.Err()
 }
 

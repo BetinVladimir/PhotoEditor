@@ -39,6 +39,19 @@ func validateInterchangeImportRuntimeSQL(ctx context.Context, db *pgxpool.Pool) 
 	if err != nil || !ready {
 		return errors.New("interchange import runtime SQL unavailable")
 	}
+	err = db.QueryRow(ctx, `SELECT count(*)=1 AND coalesce(bool_and(
+  p.prosecdef AND owner.rolname='photo_fn_owner'
+  AND ('search_path=pg_catalog,photo'=ANY(p.proconfig)
+    OR 'search_path=pg_catalog, photo'=ANY(p.proconfig))
+  AND has_function_privilege('photo_api',p.oid,'EXECUTE')
+  AND NOT EXISTS(SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
+    WHERE acl.privilege_type='EXECUTE'
+      AND acl.grantee NOT IN (p.proowner,'photo_api'::regrole::oid))),false)
+ FROM pg_proc p JOIN pg_roles owner ON owner.oid=p.proowner
+ WHERE p.oid=to_regprocedure('photo.v30_import_runtime_ready(text)')`).Scan(&ready)
+	if err != nil || !ready {
+		return errors.New("interchange import admission SQL unavailable")
+	}
 	return ctx.Err()
 }
 
