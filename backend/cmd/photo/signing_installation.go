@@ -24,6 +24,8 @@ type apiProcessDependencies struct {
 	RestoreReplay                *queue.RestoreReplayInstallation
 	InterchangeExport            interchangeExportFactory
 	InterchangeExportAuthority   interchange.ExportNativeAuthorityFactory
+	InterchangeExportBase        *interchange.ExportDocumentValidatorInstallation
+	InterchangeBackgroundFactory interchange.ExportStyleBackgroundAuthorityFactory
 	InterchangePersonOrigins     interchange.ExportPersonOriginCandidateFactory
 	InterchangePersonOriginTrust map[interchange.PortablePersonOriginKey]ed25519.PublicKey
 	InterchangeImport            workflow.SchedulerInterchangeImportFactory

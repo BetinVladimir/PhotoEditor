@@ -68,6 +68,14 @@ func runWithAPIDependencies(dependencies apiProcessDependencies) error {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	if cfg.Role == "api" || cfg.Role == "scheduler" {
+		dependencies, err = installInterchangeExportOperator(ctx,
+			os.Getenv("V30_INTERCHANGE_EXPORT_OPERATOR_FILE"),
+			os.Getenv("V30_INTERCHANGE_EXPORT_OPERATOR_SHA"), dependencies)
+		if err != nil {
+			return err
+		}
+	}
 	if cfg.Role == "bootstrap-queue" {
 		if cfg.AMQPURL == "" {
 			return errors.New("AMQP_URL required")
