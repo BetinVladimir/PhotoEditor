@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 from math import ceil
+from uuid import uuid5
 
 from photo_worker.contracts.base import canonical_bytes, canonical_hash
+from photo_worker.contracts.series import SeriesCorrections, SeriesParams
 from photo_worker.operations.session.contracts import Calibration, DescriptorShard
 from photo_worker.runtime.artifacts import ArtifactConfig, TaskArtifacts
 from photo_worker.runtime.executor import (ExecutionContext, Operation,
@@ -24,7 +26,7 @@ from .series_evidence import (FrozenSeriesHoldoutEvidence,
 
 
 def validate_fit_series_inputs(artifacts: TaskArtifacts, case,
-                               event_id, tenant_id) -> None:
+                               event_id, training_run_id, tenant_id) -> None:
     """Bind declared series inputs to the frozen manifest row."""
     if case.series_evidence is None:
         return
@@ -35,7 +37,9 @@ def validate_fit_series_inputs(artifacts: TaskArtifacts, case,
     parsed = FrozenSeriesHoldoutEvidence.model_validate_json(raw)
     evidence = decode_frozen_series_holdout_evidence(
         raw, case.series_evidence, parsed)
-    if (evidence.tenant_id != tenant_id or evidence.event_id != event_id or
+    if (case.series_evidence.artifact_id != uuid5(
+            training_run_id, f'v23-series/{event_id}') or
+            evidence.tenant_id != tenant_id or evidence.event_id != event_id or
             evidence.asset_version_id != case.binding.asset_version_id or
             evidence.source_image != case.working_image or
             any(ref is not None for ref in (
@@ -48,6 +52,18 @@ def validate_fit_series_inputs(artifacts: TaskArtifacts, case,
             (evidence.params, 'SeriesParams'),
             (evidence.series, 'SeriesCorrections')):
         artifacts.require_declared_contract(ref, contract)
+    params = artifacts.contract(evidence.params, SeriesParams)
+    series = artifacts.contract(evidence.series, SeriesCorrections)
+    if (params.scene_id != series.scene_id or
+            len(params.stats) != len(series.items) or
+            len({ref.artifact_id for ref in params.stats}) != len(params.stats) or
+            len({item.item_id for item in series.items}) != len(series.items) or
+            evidence.item_id not in {item.item_id for item in series.items} or
+            series.reference_item_id not in {
+                item.item_id for item in series.items} or
+            (params.reference_item_id is not None and
+             params.reference_item_id != series.reference_item_id)):
+        raise ValueError('INVALID_HOLDOUT_SERIES_MATERIAL')
 
 
 def validate_fit_detail_inputs(artifacts: TaskArtifacts, case,
@@ -169,7 +185,7 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts) -> OperationResult:
             validate_fit_detail_inputs(artifacts, case, item.event_id,
                 ctx.lease.command.run_id, ctx.lease.command.tenant_id)
             validate_fit_series_inputs(artifacts, case, item.event_id,
-                                       ctx.lease.command.tenant_id)
+                ctx.lease.command.run_id, ctx.lease.command.tenant_id)
         result = fit_candidate(params, manifest, baseline, calibration,
                                check_active=ctx.check_active)
     except ValueError as exc:

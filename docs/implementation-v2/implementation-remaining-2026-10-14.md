@@ -215,6 +215,12 @@ Foreground API теперь тоже отказывает в pinned export deplo
 
 ## Переход к фазе тестирования
 
+### V23 series learning: текущая граница кода
+
+`learning.fit` теперь объявляет frozen series evidence, исходный stage image, `SeriesParams` и `SeriesCorrections` по точным ссылкам из сохранённого recovery. Go требует совпадение tenant/event/asset/source с manifest и детерминированный ID документа; worker дополнительно сверяет ID с training run и проверяет scene, число и уникальность элементов, reference item и наличие выбранного item в коррекциях. Написаны Go/Python unit-сценарии; согласно принятому порядку они ещё не выполнялись.
+
+Миграция `02093_v23_series_freeze_gate.sql` продолжает запрещать admission manifest с `series_evidence`. До её снятия требуется запечатать и независимо проверить все `SeriesStats` из `SeriesParams`, их исходные `series.measure` и физические входы, затем выполнить одинаковый series replay в baseline/candidate/approved ветвях Evaluate и квалифицировать метрики. Наличие прямых входов Fit не доказывает эти требования.
+
 Операторские `models` и `style_weights` теперь принимают только ID из закрытого model lock registry. Это статическая защита установки, а не доказательство физической доступности файлов весов; последнее остаётся отдельным acceptance gate.
 
 Все операторские и обязательные V30 export operation model locks теперь должны совпасть с единым `Base.ModelSHA` — внутренним `lock_id` проверенного model lock. Так же worker `ModelPool` идентифицирует модель при выполнении. Несовпадение любого report/policy приводит к отказу при установке export; отдельные unit-сценарии для чужого lock написаны, но не запускались.

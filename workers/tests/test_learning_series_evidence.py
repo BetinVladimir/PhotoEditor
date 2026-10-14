@@ -1,9 +1,11 @@
 from hashlib import sha256
-from uuid import uuid4
+from uuid import uuid4, uuid5
 
 import pytest
 
 from photo_worker.contracts.base import ArtifactRef, canonical_bytes
+from photo_worker.contracts.series import (ItemCorrection, SeriesCorrections,
+                                           SeriesParams)
 from photo_worker.operations.learning.series_evidence import (
     FrozenSeriesHoldoutEvidence, decode_frozen_series_holdout_evidence,
 )
@@ -64,8 +66,10 @@ def test_series_render_ref_is_distinct_and_exclusive():
 
 def test_fit_series_inputs_require_exact_manifest_binding_and_contracts():
     evidence = _fixture()
+    training_run = uuid4()
     raw = canonical_bytes(evidence)
-    artifact = ArtifactRef(artifact_id=uuid4(), sha256=sha256(raw).hexdigest())
+    artifact = ArtifactRef(artifact_id=uuid5(training_run,
+        f'v23-series/{evidence.event_id}'), sha256=sha256(raw).hexdigest())
     def ref(char):
         return ArtifactRef(artifact_id=uuid4(), sha256=char * 64)
     case = RenderCase(
@@ -85,6 +89,17 @@ def test_fit_series_inputs_require_exact_manifest_binding_and_contracts():
         evidence.params.artifact_id: 'SeriesParams',
         evidence.series.artifact_id: 'SeriesCorrections',
     }
+    reference_item = uuid4()
+    params = SeriesParams(scene_id='studio', stats=[ref('6'), ref('7')],
+                          reference_item_id=reference_item)
+    def correction(item_id):
+        return ItemCorrection(item_id=item_id, raw_ev=0, raw_gains=[1, 1, 1],
+            applied_ev=0, applied_gains=[1, 1, 1], confidence=1,
+            accepted=True, reason='reference')
+    series = SeriesCorrections(scene_id='studio',
+        reference_item_id=reference_item, common_region_ids=[],
+        items=[correction(reference_item), correction(evidence.item_id)],
+        warnings=[])
 
     class Artifacts:
         def contract_bytes(self, value, model):
@@ -95,11 +110,28 @@ def test_fit_series_inputs_require_exact_manifest_binding_and_contracts():
             if declared.get(value.artifact_id) != contract:
                 raise ValueError('TASK_INPUT_CONTRACT_MISMATCH')
 
+        def contract(self, value, model):
+            if value == evidence.params and model is SeriesParams:
+                return params
+            if value == evidence.series and model is SeriesCorrections:
+                return series
+            raise ValueError('TASK_INPUT_CONTRACT_MISMATCH')
+
     validate_fit_series_inputs(Artifacts(), case, evidence.event_id,
-                               evidence.tenant_id)
+                               training_run, evidence.tenant_id)
     declared[evidence.params.artifact_id] = 'Params'
     with pytest.raises(ValueError, match='TASK_INPUT_CONTRACT_MISMATCH'):
         validate_fit_series_inputs(Artifacts(), case, evidence.event_id,
+                                   training_run, evidence.tenant_id)
+    declared[evidence.params.artifact_id] = 'SeriesParams'
+    with pytest.raises(ValueError, match='INVALID_HOLDOUT_SERIES_EVIDENCE'):
+        validate_fit_series_inputs(Artifacts(), case, uuid4(), training_run,
                                    evidence.tenant_id)
     with pytest.raises(ValueError, match='INVALID_HOLDOUT_SERIES_EVIDENCE'):
-        validate_fit_series_inputs(Artifacts(), case, uuid4(), evidence.tenant_id)
+        validate_fit_series_inputs(Artifacts(), case, evidence.event_id,
+                                   uuid4(), evidence.tenant_id)
+    series = series.model_copy(update={'items': [
+        correction(reference_item), correction(uuid4())]})
+    with pytest.raises(ValueError, match='INVALID_HOLDOUT_SERIES_MATERIAL'):
+        validate_fit_series_inputs(Artifacts(), case, evidence.event_id,
+                                   training_run, evidence.tenant_id)
