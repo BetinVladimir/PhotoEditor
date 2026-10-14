@@ -108,6 +108,16 @@ def run_deployed_signer(config, deployment_root, *, sdk, pkcs11, library,
         result = native_authority(*args)
         active()
         return result
+    def inspector(*args):
+        active()
+        result = native_inspector(*args)
+        active()
+        return result
+    def binding(*args):
+        active()
+        result = verify_binding(*args)
+        active()
+        return result
     def capture(operator):
         from photo_worker.operations.provenance.installation import InstalledSigningOperator
         if not isinstance(operator, InstalledSigningOperator):
@@ -117,8 +127,8 @@ def run_deployed_signer(config, deployment_root, *, sdk, pkcs11, library,
     def executor_factory(database, worker_id, artifacts):
         active()
         options = dict(sdk=sdk, pkcs11=pkcs11, library=library,
-            native_authority=authority, native_inspector=native_inspector,
-            verify_binding=verify_binding, runtime_files=runtime_files, check_active=active)
+            native_authority=authority, native_inspector=inspector,
+            verify_binding=binding, runtime_files=runtime_files, check_active=active)
         if challenge_listener is not None:options['on_operator'] = capture
         return deployment.build_executor(database, worker_id, artifacts, **options)
 

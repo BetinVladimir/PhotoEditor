@@ -118,6 +118,15 @@ def test_deployed_signer_composes_manifest_with_lifecycle(tmp_path, monkeypatch,
         key_handle='key',certificate_chain_sha='b'*64,timestamp_mode='off',timestamp_service_id=None,
         allowed_mime=['image/png'],trust_bundle_sha='c'*64,revocation_mode='off'))
     expected, calls, captured = object(), [], {}
+    allowed, stop_inside = True, False
+    def active():
+        if not allowed:
+            raise RuntimeError('signer stopped during native call')
+    def stopping_native(*args):
+        nonlocal allowed
+        if stop_inside:
+            allowed = False
+        return True
     def build(database, worker, artifacts, **kwargs):
         calls.append((database,worker,artifacts))
         assert kwargs['runtime_files'] is files
@@ -127,13 +136,23 @@ def test_deployed_signer_composes_manifest_with_lifecycle(tmp_path, monkeypatch,
     monkeypatch.setattr(deployment_module,'load_signer_deployment',lambda *a:deployment)
     candidate = config()
     def lifecycle(conf,factory):
+        nonlocal allowed, stop_inside
         assert conf is candidate
         assert factory('database',candidate.worker_id,'artifacts') is expected
+        assert captured['native_inspector'](None) is True
+        assert captured['verify_binding'](None) is True
+        for name in ('native_inspector', 'verify_binding'):
+            # Each process-owned callback must recheck the process fence after
+            # returning from native code, even when it reports success.
+            stop_inside = True
+            with pytest.raises(RuntimeError, match='signer stopped during native call'):
+                captured[name](None)
+            stop_inside, allowed = False, True
         if worker_failure:raise ValueError('worker failed')
     monkeypatch.setattr(signer_service,'run_signer_worker',lifecycle)
     def invoke():return signer_service.run_deployed_signer(candidate,root,sdk=object(),pkcs11=object(),library=object(),
-        native_authority=lambda *a:True,native_inspector=lambda *a:True,
-        verify_binding=lambda *a:True,runtime_files=files)
+        native_authority=lambda *a:True,native_inspector=stopping_native,
+        verify_binding=stopping_native,runtime_files=files,check_active=active)
     if worker_failure:
         with pytest.raises(ValueError,match='worker failed'):invoke()
     else:invoke()
@@ -142,6 +161,10 @@ def test_deployed_signer_composes_manifest_with_lifecycle(tmp_path, monkeypatch,
         captured['check_active']()
     with pytest.raises(RuntimeError,match='SIGNER_TASK_SCOPE_CLOSED'):
         captured['native_authority'](None,None,None)
+    with pytest.raises(RuntimeError,match='SIGNER_TASK_SCOPE_CLOSED'):
+        captured['native_inspector'](None)
+    with pytest.raises(RuntimeError,match='SIGNER_TASK_SCOPE_CLOSED'):
+        captured['verify_binding'](None)
 
 
 @pytest.mark.parametrize('mode', ['valid', 'worker_failure', 'listener_failure', 'missing_operator'])
