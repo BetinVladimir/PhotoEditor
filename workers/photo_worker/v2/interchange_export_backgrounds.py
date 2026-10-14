@@ -1,7 +1,9 @@
 """Resolve portable backgrounds only from authenticated snapshot/frozen parents."""
 from hashlib import sha256
-from photo_worker.contracts.base import canonical_bytes, canonical_hash
+from photo_worker.contracts.base import canonical_bytes, canonical_hash, parse_json
 from photo_worker.contracts.style import StyleV2
+from photo_worker.contracts.override import OverrideV1
+from photo_worker.contracts.images import WorkingImage
 from photo_worker.operations.session.contracts import InputSnapshot
 from .interchange_plan import InterchangePlan
 from .render_recipe import decode_frozen_render_recipe
@@ -52,6 +54,27 @@ def resolve_export_background_pins(plan, reader, *, active=lambda: None):
         if canonical_bytes(style) != style_raw:
             raise ValueError('INTERCHANGE_EXPORT_BACKGROUND_STYLE_CANONICAL')
         background = style.extensions.background
+        if frozen.recipe.overrides:
+            source_raw = reader.read_json(entry.binding.source, 1 << 20)
+            if sha256(source_raw).hexdigest() != entry.binding.source.sha256 or canonical_bytes(parse_json(source_raw)) != source_raw:
+                raise ValueError('INTERCHANGE_EXPORT_BACKGROUND_SOURCE_CHANGED')
+            source = WorkingImage.model_validate_json(source_raw)
+            for override_ref in frozen.recipe.overrides:
+                declared = reader.entries.get((override_ref.artifact_id, override_ref.sha256))
+                if declared is None or declared.contract != 'Override':
+                    raise ValueError('INTERCHANGE_EXPORT_BACKGROUND_OVERRIDE_CONTRACT')
+                override_raw = reader.read_json(override_ref, 8 << 20)
+                if sha256(override_raw).hexdigest() != override_ref.sha256:
+                    raise ValueError('INTERCHANGE_EXPORT_BACKGROUND_OVERRIDE_PIN')
+                override = OverrideV1.model_validate_json(override_raw)
+                if (canonical_bytes(parse_json(override_raw, max_bytes=8 << 20)) != override_raw
+                        or override.input_sha256 != source.canvas.source_sha256):
+                    raise ValueError('INTERCHANGE_EXPORT_BACKGROUND_OVERRIDE_SOURCE')
+                # Each non-null extensions module replaces the whole preceding
+                # module. A replacement with no background clears the old one.
+                if override.modules.extensions is not None:
+                    background = override.modules.extensions.background
+                active()
         pin = frozen.background_asset
         if background is not None and background.mode == 'asset':
             if pin is None or pin.portable_asset_id != background.asset_id:
