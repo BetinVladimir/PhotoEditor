@@ -110,3 +110,13 @@ class SQLImportAdoptionQualificationCatalog:
             raise AdoptionInvalid('INTERCHANGE_IMPORT_QUALIFICATION_CANONICAL') from error
         self.recheck(scope, operation, expected, report_id, report_sha, pinned)
         return raw
+
+    def verified_report(self, objects, scope, operation, expected, report_id, report_sha):
+        from .interchange_import_adoption_qualification_report import verify_import_adoption_qualification_report
+        pinned = self.lookup(scope, operation, expected, report_id, report_sha)
+        raw = self.read_report(objects, scope, operation, expected, report_id, report_sha)
+        self.active()
+        verified = verify_import_adoption_qualification_report(raw, report_sha, expected)
+        self.recheck(scope, operation, expected, report_id, report_sha, pinned)
+        self.active()
+        return verified

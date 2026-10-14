@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import pytest
 
+from photo_worker.contracts.base import canonical_bytes
 from photo_worker.v2.adoption import AdoptionInvalid
 from photo_worker.v2.interchange_import_adoption_qualification_catalog import (
     SQLImportAdoptionQualificationCatalog)
@@ -82,3 +83,15 @@ def test_import_qualification_catalog_rejects_physical_hash_mismatch():
     with pytest.raises(AdoptionInvalid, match='HASH'):
         catalog.read_report(Objects(), scope, 'image.denoise', expected,
                             report, digest)
+
+
+def test_import_qualification_catalog_verifies_report_semantics_under_live_pin():
+    from test_interchange_import_adoption_qualification_report import fixture as report_fixture
+    expected, document = report_fixture()
+    raw = canonical_bytes(document)
+    catalog, scope, _, report, digest, _ = fixture(raw)
+    class Objects:
+        def get_object(self, *_args, **_kwargs):
+            return BytesIO(raw)
+    assert catalog.verified_report(Objects(), scope, 'image.denoise', expected,
+                                   report, digest) == document
