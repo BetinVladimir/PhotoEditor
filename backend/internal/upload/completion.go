@@ -65,11 +65,10 @@ func (s SQLCompletionLeases) Claim(ctx context.Context) (*CompletionLease, error
 	if err != nil {
 		return nil, err
 	}
-    if rawPolicy != nil {
-        var policy rawdevelopment.Policy
-        if json.Unmarshal(rawPolicy,&policy)!=nil {return nil,errors.New("invalid persisted RAW policy")}
-        lease.RAWDevelopment=&policy
-    }
+	lease.RAWDevelopment, err = decodeCompletionRAWPolicy(rawPolicy)
+	if err != nil {
+		return nil, err
+	}
 	if lease.UploadID == uuid.Nil || lease.Token == uuid.Nil || lease.TenantID == uuid.Nil || lease.ArtifactID == uuid.Nil || lease.SnapshotID == uuid.Nil || lease.RunID == uuid.Nil || lease.ArtifactID == lease.SnapshotID || lease.ArtifactID == lease.RunID || lease.SnapshotID == lease.RunID || lease.ExpectedBytes < 1 || lease.ExpectedBytes > objectstore.MaxUploadBytes {
 		return nil, errors.New("invalid upload completion lease")
 	}
@@ -184,6 +183,9 @@ func (p CompletionProcessor) ProcessOne(ctx context.Context) (bool, error) {
 		defer done()
 		_, _ = p.Leases.Release(release, *lease)
 	}()
+	if !rawdevelopment.Valid(lease.RAWDevelopment) {
+		return false, errors.New("invalid persisted RAW policy")
+	}
 	work, stopWork := context.WithTimeout(ctx, workTimeout)
 	defer stopWork()
 	work, loseLease := context.WithCancelCause(work)
