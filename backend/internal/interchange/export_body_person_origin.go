@@ -1,27 +1,50 @@
 package interchange
 
 import (
- "context"
- "encoding/json"
- "github.com/jackc/pgx/v5"
- "photoeditor/backend/internal/domain"
- "photoeditor/backend/internal/review"
- "photoeditor/backend/internal/tenant"
- "photoeditor/backend/internal/v2input"
+	"context"
+	"encoding/json"
+	"github.com/jackc/pgx/v5"
+	"photoeditor/backend/internal/domain"
+	"photoeditor/backend/internal/review"
+	"photoeditor/backend/internal/tenant"
+	"photoeditor/backend/internal/v2input"
 )
 
-type ExportBodyPersonOriginSource interface{
- LookupExportBodyPersonOrigin(context.Context,v2input.Entry,[]byte,ExportClosureNode)(ExportStatsPersonOrigin,error)
+type ExportBodyPersonOriginSource interface {
+	LookupExportBodyPersonOrigin(context.Context, v2input.Entry, []byte, ExportClosureNode) (ExportStatsPersonOrigin, error)
 }
-func(s SQLExportDocumentCatalog)LookupExportBodyPersonOrigin(ctx context.Context,parent v2input.Entry,raw []byte,image ExportClosureNode)(ExportStatsPersonOrigin,error){
- var zero,out ExportStatsPersonOrigin
- if err:=ctx.Err();err!=nil{return zero,err};if s.DB==nil{return zero,v2input.ErrInvalid}
- projected,err:=exportBodyPersonProjection(parent,raw,image);if err!=nil{return zero,err}
- body:=append([]byte(nil),raw...);mask:=projected.Person
- consumer,err:=s.LookupExportParamsOperation(ctx,parent,body);if err!=nil{return zero,err}
- err=tenant.WithTenant(ctx,s.DB,s.Who,s.Tenant,domain.Editor,func(tx pgx.Tx,_ domain.Role)error{
-  var bucket string
-  err:=tx.QueryRow(ctx,`SELECT root.id,root.sha256,original.id,original.sha256,report.id,report.sha256,
+
+func (s SQLExportDocumentCatalog) LookupExportBodyPersonOrigin(ctx context.Context, parent v2input.Entry, raw []byte, image ExportClosureNode) (ExportStatsPersonOrigin, error) {
+	return lookupExportBodyPersonOrigin(ctx, s, s, parent, raw, image)
+}
+func (s SQLExportResultInputCatalog) LookupExportBodyPersonOrigin(ctx context.Context, parent v2input.Entry, raw []byte, image ExportClosureNode) (ExportStatsPersonOrigin, error) {
+	config, err := exportPolicyCatalogConfig(s)
+	if err != nil {
+		return ExportStatsPersonOrigin{}, err
+	}
+	return lookupExportBodyPersonOrigin(ctx, s, config, parent, raw, image)
+}
+func lookupExportBodyPersonOrigin(ctx context.Context, source ExportParamsOperationSource, s SQLExportDocumentCatalog, parent v2input.Entry, raw []byte, image ExportClosureNode) (ExportStatsPersonOrigin, error) {
+	var zero, out ExportStatsPersonOrigin
+	if err := ctx.Err(); err != nil {
+		return zero, err
+	}
+	if source == nil || s.DB == nil {
+		return zero, v2input.ErrInvalid
+	}
+	projected, err := exportBodyPersonProjection(parent, raw, image)
+	if err != nil {
+		return zero, err
+	}
+	body := append([]byte(nil), raw...)
+	mask := projected.Person
+	consumer, err := source.LookupExportParamsOperation(ctx, parent, body)
+	if err != nil {
+		return zero, err
+	}
+	err = tenant.WithTenant(ctx, s.DB, s.Who, s.Tenant, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
+		var bucket string
+		err := tx.QueryRow(ctx, `SELECT root.id,root.sha256,original.id,original.sha256,report.id,report.sha256,
    mask.bucket,mask.object_key,mask.object_version,mask.sha256,mask.bytes,mask.media_type
    FROM photo.artifacts mask
    JOIN photo.tasks producer ON producer.tenant_id=mask.tenant_id AND producer.id=mask.created_by_task_id
@@ -46,26 +69,67 @@ func(s SQLExportDocumentCatalog)LookupExportBodyPersonOrigin(ctx context.Context
    AND mask.bucket=$9 AND root.bucket=$9 AND report.bucket=$9 AND original.bucket=$9
    AND root.media_type='application/json' AND root.bytes BETWEEN 2 AND 1048576
    AND original.media_type='application/json' AND original.bytes BETWEEN 2 AND 65536
-   AND report.media_type='application/json' AND report.bytes BETWEEN 2 AND 8388608`,s.Tenant,mask.Artifact.ID,mask.Artifact.SHA256,s.Request.ProjectID,projected.Image.ID,projected.Image.SHA256,s.Who.UserID,s.Who.SessionID,s.Bucket).Scan(&out.Root.ArtifactID,&out.Root.SHA256,&out.Params.ArtifactID,&out.Params.SHA256,&out.Report.ArtifactID,&out.Report.SHA256,&bucket,&out.Mask.Key,&out.Mask.VersionID,&out.Mask.SHA256,&out.Mask.Bytes,&out.Mask.ContentType)
-  if err!=nil{return err};if bucket!=s.Bucket||!validImportRef(out.Root)||!validImportRef(out.Params)||!validImportRef(out.Report)||out.Mask.Key==""||out.Mask.SHA256!=mask.Artifact.SHA256{return v2input.ErrInvalid};return ctx.Err()
- });if err!=nil{return zero,err}
- final,err:=s.LookupExportParamsOperation(ctx,parent,body);if err!=nil{return zero,err};if consumer!=final{return zero,v2input.ErrInvalid}
- if err:=ctx.Err();err!=nil{return zero,err};return out,nil
+   AND report.media_type='application/json' AND report.bytes BETWEEN 2 AND 8388608`, s.Tenant, mask.Artifact.ID, mask.Artifact.SHA256, s.Request.ProjectID, projected.Image.ID, projected.Image.SHA256, s.Who.UserID, s.Who.SessionID, s.Bucket).Scan(&out.Root.ArtifactID, &out.Root.SHA256, &out.Params.ArtifactID, &out.Params.SHA256, &out.Report.ArtifactID, &out.Report.SHA256, &bucket, &out.Mask.Key, &out.Mask.VersionID, &out.Mask.SHA256, &out.Mask.Bytes, &out.Mask.ContentType)
+		if err != nil {
+			return err
+		}
+		if bucket != s.Bucket || !validImportRef(out.Root) || !validImportRef(out.Params) || !validImportRef(out.Report) || out.Mask.Key == "" || out.Mask.SHA256 != mask.Artifact.SHA256 {
+			return v2input.ErrInvalid
+		}
+		return ctx.Err()
+	})
+	if err != nil {
+		return zero, err
+	}
+	final, err := source.LookupExportParamsOperation(ctx, parent, body)
+	if err != nil {
+		return zero, err
+	}
+	if consumer != final {
+		return zero, v2input.ErrInvalid
+	}
+	if err := ctx.Err(); err != nil {
+		return zero, err
+	}
+	return out, nil
 }
-var _ ExportBodyPersonOriginSource=SQLExportDocumentCatalog{}
 
-func exportBodyPersonProjection(parent v2input.Entry,raw []byte,image ExportClosureNode)(review.StatsParams,error){
- var zero review.StatsParams
- if len(raw)<2||len(raw)>1<<20{return zero,v2input.ErrInvalid}
- operation,err:=exportParamsOperationShape(raw);if err!=nil||operation!="geometry.body"{return zero,v2input.ErrInvalid}
- body:=append([]byte(nil),raw...)
- masks,err:=exportParamsInlineMasks(parent,body);if err!=nil||len(masks)!=1{return zero,v2input.ErrInvalid}
- mask,err:=review.ParseMaskRef(masks[0]);if err!=nil{return zero,err}
- var params struct{Image v2input.Ref `json:"image"`};if json.Unmarshal(body,&params)!=nil||image.Entry!=(v2input.Entry{Ref:params.Image,Contract:"WorkingImage"})||rawSHA(image.Body)!=params.Image.SHA256{return zero,v2input.ErrInvalid}
- working,err:=review.ParseWorkingImage(image.Body);if err!=nil{return zero,err}
- // Use the existing complete StatsParams source geometry contract only as a
- // typed image/person projection; consumer authority remains geometry.body.
- projected:=review.StatsParams{Image:review.ArtifactRef{ID:params.Image.ArtifactID,SHA256:params.Image.SHA256},Person:mask}
- if err:=projected.ValidateSource(working,projected.Image);err!=nil{return zero,err}
- return projected,nil
+var _ ExportBodyPersonOriginSource = SQLExportDocumentCatalog{}
+var _ ExportBodyPersonOriginSource = SQLExportResultInputCatalog{}
+
+func exportBodyPersonProjection(parent v2input.Entry, raw []byte, image ExportClosureNode) (review.StatsParams, error) {
+	var zero review.StatsParams
+	if len(raw) < 2 || len(raw) > 1<<20 {
+		return zero, v2input.ErrInvalid
+	}
+	operation, err := exportParamsOperationShape(raw)
+	if err != nil || operation != "geometry.body" {
+		return zero, v2input.ErrInvalid
+	}
+	body := append([]byte(nil), raw...)
+	masks, err := exportParamsInlineMasks(parent, body)
+	if err != nil || len(masks) != 1 {
+		return zero, v2input.ErrInvalid
+	}
+	mask, err := review.ParseMaskRef(masks[0])
+	if err != nil {
+		return zero, err
+	}
+	var params struct {
+		Image v2input.Ref `json:"image"`
+	}
+	if json.Unmarshal(body, &params) != nil || image.Entry != (v2input.Entry{Ref: params.Image, Contract: "WorkingImage"}) || rawSHA(image.Body) != params.Image.SHA256 {
+		return zero, v2input.ErrInvalid
+	}
+	working, err := review.ParseWorkingImage(image.Body)
+	if err != nil {
+		return zero, err
+	}
+	// Use the existing complete StatsParams source geometry contract only as a
+	// typed image/person projection; consumer authority remains geometry.body.
+	projected := review.StatsParams{Image: review.ArtifactRef{ID: params.Image.ArtifactID, SHA256: params.Image.SHA256}, Person: mask}
+	if err := projected.ValidateSource(working, projected.Image); err != nil {
+		return zero, err
+	}
+	return projected, nil
 }
