@@ -18,6 +18,63 @@ func (s SQLExportBodyFitInstallation) BuildExportBodyFitQualifier(ctx context.Co
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	if scheduler, ok := catalog.(SQLSchedulerExportInputCatalog); ok {
+		if objects == nil || documents == nil || images == nil || warps == nil ||
+			masks == nil || s.Scratch == nil || s.StyleProbe == nil ||
+			s.MaskProbe == nil || !validImportRef(s.Person.Report) {
+			return nil, v2input.ErrInvalid
+		}
+		for _, sha := range []string{s.FitRuntimeSHA, s.MaskArrayRuntimeSHA} {
+			if !validImportRef(v2input.Ref{ArtifactID: s.Person.Report.ArtifactID, SHA256: sha}) {
+				return nil, v2input.ErrInvalid
+			}
+		}
+		if _, err := schedulerExportPolicyBindings(ctx, intent, frozen, scheduler); err != nil {
+			return nil, err
+		}
+		if err := SchedulerExportAdoptionSQLReady(ctx, scheduler.Claims.DB); err != nil {
+			return nil, err
+		}
+		personPolicy, err := s.Person.BuildExportStatsPersonPolicy(ctx, intent,
+			frozen, scheduler, objects)
+		if err != nil {
+			return nil, err
+		}
+		alignment, err := s.Alignment.BuildExportAlignmentQualifier(ctx, intent,
+			frozen, scheduler, objects, images, warps, masks)
+		if err != nil {
+			return nil, err
+		}
+		features, err := s.Features.BuildExportBodyFitFeatureQualifier(ctx, intent,
+			frozen, scheduler, objects, documents, images, warps)
+		if err != nil {
+			return nil, err
+		}
+		persons := NativeExportBodyFitPairedPersons{
+			Inventory: scheduler, Origin: scheduler, Images: images, Warps: warps,
+			Documents: ExportStatsPersonDocumentReader{Catalog: scheduler, Objects: objects},
+			Policy:    personPolicy, Objects: objects, Scratch: s.Scratch,
+			Probe: s.MaskProbe, RuntimeSHA: s.MaskArrayRuntimeSHA,
+		}
+		reader := ExportBodyFitReader{Inventory: scheduler, Documents: documents}
+		causal := BoundExportBodyFitCausal{
+			Reader: reader, Documents: documents, Alignment: alignment,
+			Features: features, Persons: persons,
+		}
+		models := map[string]string{"lraspp_mobilenet_v3_large": s.Person.Expected.ModelLockSHA}
+		for _, config := range s.Features.Configs {
+			switch config.Expected.Operation {
+			case "pose.detect":
+				models["keypointrcnn_resnet50_fpn"] = config.Expected.ModelLockSHA
+			case "face.landmarks":
+				models["fan2d"] = config.Expected.ModelLockSHA
+			default:
+				return nil, v2input.ErrInvalid
+			}
+		}
+		return NewNativeExportBodyFitQualifier(reader, causal, s.Scratch,
+			s.StyleProbe, models, s.FitRuntimeSHA)
+	}
 	scoped, err := exportPolicyCatalogConfig(catalog)
 	if err != nil || scoped.DB == nil || objects == nil || documents == nil || images == nil || warps == nil || masks == nil || s.Scratch == nil || s.StyleProbe == nil || s.MaskProbe == nil {
 		return nil, v2input.ErrInvalid
