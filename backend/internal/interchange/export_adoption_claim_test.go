@@ -55,4 +55,10 @@ func TestExportAdoptionClaimStoreFailsClosedWithoutDatabase(t *testing.T) {
 	if _, err := store.NextExportAdoption(ctx); err != context.Canceled {
 		t.Fatal("cancelled claim queried", err)
 	}
+	if current, err := store.CurrentExportAdoptionClaim(context.Background(), ExportAdoptionClaim{}); current || err != v2input.ErrInvalid {
+		t.Fatal("missing current-claim database accepted", current, err)
+	}
+	if current, err := store.CurrentExportAdoptionClaim(ctx, ExportAdoptionClaim{}); current || err != context.Canceled {
+		t.Fatal("cancelled current-claim queried", current, err)
+	}
 }

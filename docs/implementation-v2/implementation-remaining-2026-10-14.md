@@ -43,6 +43,8 @@
 
 Начат кодовый путь: миграция `02034_v30_export_adoption_claim.sql` и `SQLExportAdoptionClaimStore` дают только приватный lease/discovery с исходным request и deterministic identity; они не читают объекты и не принимают результат. Пока нет scheduler-scoped reader, adoption transaction, processor и runtime installation, V30 export adoption остаётся незавершённым. Миграция и unit-сценарии написаны, но не выполнялись.
 
+Миграция `02035_v30_export_adoption_claim_current.sql` добавляет read-only lease/result fence для повторной проверки перед следующим шагом; Go store и real-role negative fixture написаны. Этот predicate не заменяет snapshot/source, output и object-version authority. Ни 02034, ни 02035 не применялись; fixture не запускался.
+
 ## Граница первого MVP
 
 Обязательны пункты 1–5 на выбранной и явно опубликованной матрице камер/форматов/операций. V23 learning, V24 on-set, V27 semantic, расширенные V28/V29, interchange и V31 C2PA желательны после первого MVP, если продукт не обещает их пользователю. Любая включённая в интерфейсе или маркетинговом обещании функция сразу получает полный P0-критерий своей сквозной трассы. Такое разделение определяет релизную очередь, но не сокращает цель V20–V32.
