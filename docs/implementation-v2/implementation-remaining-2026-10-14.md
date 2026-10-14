@@ -241,6 +241,8 @@ Worker Evaluate повторно вычисляет весь `SeriesCorrections`
 
 Контракт `SeriesStats` у worker теперь требует уникальные region ID, допустимый ASCII-формат ID, компоненты mean RGB в `[0,1]` и уникальные warnings. Backend-валидатор запечатанного агрегата использует тот же формат ID и отказывает повторным warnings; Go/Python unit-сценарии покрывают эти границы. Код написан, тесты не запускались.
 
+Миграция `02101_v23_series_frozen_readiness.sql` добавляет закрытый для service roles предикат `v23_series_frozen_ready`: без пользовательской сессии он повторно проверяет текущий Apply/consent source, опубликованный immutable evidence document и полный ordered inventory `SeriesStats` из recovery против Params исходного `series.balance` и каждого текущего producer. Это подготовка к будущему снятию freeze gate, а не его снятие: `02093` всё ещё запрещает series manifest. Negative real-role fixture написан, но не выполнялся; положительный физический lifecycle и quality qualification обязательны до подключения предиката к admission.
+
 Операторские `models` и `style_weights` теперь принимают только ID из закрытого model lock registry. Это статическая защита установки, а не доказательство физической доступности файлов весов; последнее остаётся отдельным acceptance gate.
 
 Все операторские и обязательные V30 export operation model locks теперь должны совпасть с единым `Base.ModelSHA` — внутренним `lock_id` проверенного model lock. Так же worker `ModelPool` идентифицирует модель при выполнении. Несовпадение любого report/policy приводит к отказу при установке export; отдельные unit-сценарии для чужого lock написаны, но не запускались.
