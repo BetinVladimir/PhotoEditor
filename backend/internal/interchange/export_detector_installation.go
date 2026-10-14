@@ -18,6 +18,25 @@ func (s SQLExportDetectorInstallation) BuildExportDetectorQualifier(ctx context.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	if scheduler, ok := catalog.(SQLSchedulerExportInputCatalog); ok {
+		if objects == nil || documents == nil || images == nil || warps == nil ||
+			s.Scratch == nil || s.Probe == nil || !validImportRef(s.Policy.Report) ||
+			!validExportDetectorProfile(s.Policy.Expected) ||
+			!validImportRef(v2input.Ref{ArtifactID: s.Policy.Report.ArtifactID,
+				SHA256: s.RuntimeSHA}) {
+			return nil, v2input.ErrInvalid
+		}
+		if _, err := schedulerExportPolicyBindings(ctx, intent, frozen, scheduler); err != nil {
+			return nil, err
+		}
+		if err := SchedulerExportAdoptionSQLReady(ctx, scheduler.Claims.DB); err != nil {
+			return nil, err
+		}
+		return NewQualifiedExportBodyFitFaceBoxes(
+			ExportBodyFitDetectorParamsReader{Source: scheduler, Objects: objects},
+			scheduler, documents, images, warps, s.Policy.Report,
+			s.Policy.Expected, s.Scratch, s.Probe, s.RuntimeSHA)
+	}
 	scoped, err := exportPolicyCatalogConfig(catalog)
 	if err != nil || scoped.DB == nil || objects == nil || documents == nil || images == nil || warps == nil || s.Scratch == nil || s.Probe == nil {
 		return nil, v2input.ErrInvalid
