@@ -102,6 +102,16 @@ func TestExportStyleOperatorPinsPoliciesBeforeNativeBuild(t *testing.T) {
 	if _, ok := withOriginal.Base.Other.(ExportOriginalSchemaChildren); !ok {
 		t.Fatal("original export schema projection was not installed")
 	}
+	requestScoped := base
+	requestScoped.Semantics = nil
+	withCatalog, err := LoadExportStyleOperatorAuthority(context.Background(), manifest.Path,
+		manifest.SHA, requestScoped, exportOperatorBackgroundFactoryStub{})
+	if err != nil {
+		t.Fatal("request-scoped export semantics unavailable", err)
+	}
+	if _, ok := withCatalog.Base.SemanticsFactory.(ExportCatalogDependencySemanticsFactory); !ok {
+		t.Fatal("request-scoped export semantics were not installed")
+	}
 	process, err := authority.InstallPersonOriginProcess(private, issuer)
 	if err != nil {
 		t.Fatal("pinned person issuer unavailable", err)

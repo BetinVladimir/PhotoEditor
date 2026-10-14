@@ -75,14 +75,21 @@ func (s ExportStyleValidatorInstallation) BuildScopedExportDocumentValidator(ctx
 		return nil, err
 	}
 	producerSource, ok := catalog.(ExportCorrectionProducerSource)
-	if !ok || s.Base.Semantics == nil {
+	if !ok || (s.Base.Semantics == nil) == (s.Base.SemanticsFactory == nil) {
 		return nil, v2input.ErrInvalid
+	}
+	baseSemantics := s.Base.Semantics
+	if s.Base.SemanticsFactory != nil {
+		baseSemantics, err = s.Base.SemanticsFactory.BuildExportDependencySemantics(ctx, catalog)
+		if err != nil || baseSemantics == nil {
+			return nil, v2input.ErrInvalid
+		}
 	}
 	learningAuthority, ok := catalog.(ExportLearningOccurrenceAuthority)
 	if !ok {
 		return nil, v2input.ErrInvalid
 	}
-	learning, err := NewExportFrozenLearningSemantics(ctx, intent, frozen, parentReader, learningAuthority, s.Base.Semantics)
+	learning, err := NewExportFrozenLearningSemantics(ctx, intent, frozen, parentReader, learningAuthority, baseSemantics)
 	if err != nil {
 		return nil, err
 	}
@@ -144,6 +151,7 @@ func (s ExportStyleValidatorInstallation) BuildScopedExportDocumentValidator(ctx
 	base := s.Base
 	base.Other = overrideSchema
 	base.Semantics = semantics
+	base.SemanticsFactory = nil
 	complete, err := base.BuildExportDocumentValidator(ctx, intent, frozen)
 	if err != nil {
 		return nil, err

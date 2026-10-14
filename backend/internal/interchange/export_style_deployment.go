@@ -30,7 +30,7 @@ func (s ExportStyleDeploymentAuthority) BuildNativeExportAuthority(ctx context.C
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	if s.Base.Other == nil || s.Base.Semantics == nil || native.Scratch == nil || native.ImageProbe == nil || native.MaskProbe == nil || native.ArrayProbe == nil || (s.pinnedPolicies == nil && s.PromptFile == "") || !validImportRefForSHA(s.StyleRuntimeSHA) {
+	if s.Base.Other == nil || (s.Base.Semantics == nil) == (s.Base.SemanticsFactory == nil) || native.Scratch == nil || native.ImageProbe == nil || native.MaskProbe == nil || native.ArrayProbe == nil || (s.pinnedPolicies == nil && s.PromptFile == "") || !validImportRefForSHA(s.StyleRuntimeSHA) {
 		return nil, v2input.ErrInvalid
 	}
 	// Derive the style process from the same pinned Python environment, without

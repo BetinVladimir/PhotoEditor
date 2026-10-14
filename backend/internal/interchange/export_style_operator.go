@@ -74,8 +74,11 @@ func LoadExportStyleOperatorAuthority(ctx context.Context, path, pin string,
 	if base.Other == nil {
 		base.Other = ExportOriginalSchemaChildren{}
 	}
+	if base.Semantics == nil && base.SemanticsFactory == nil {
+		base.SemanticsFactory = ExportCatalogDependencySemanticsFactory{}
+	}
 	if wire.Schema != "interchange-export-style-operator/v1" ||
-		base.Semantics == nil || backgrounds == nil ||
+		(base.Semantics == nil) == (base.SemanticsFactory == nil) || backgrounds == nil ||
 		base.ICCSHA != wire.ICCSHA || base.ModelSHA != wire.ModelSHA {
 		return zero, v2input.ErrInvalid
 	}
