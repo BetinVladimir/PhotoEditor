@@ -47,7 +47,8 @@ def test_background_pins_refuse_unselected_snapshot_or_frozen_parent(mode):
     if mode in ('missing', 'duplicate', 'cancelled'): assert reader.calls == 0
 
 
-@pytest.mark.parametrize('selection', ['style', 'override', 'cleared', 'canvas_changed'])
+@pytest.mark.parametrize('selection', ['style', 'override', 'cleared', 'canvas_changed',
+                                        'stale_pin', 'wrong_pin'])
 def test_background_pins_follow_frozen_override_selection(selection):
     plan, _, _, _ = inventory_fixture()
     def pin(value):
@@ -68,7 +69,7 @@ def test_background_pins_follow_frozen_override_selection(selection):
     binding.canvas_hash = 'f' * 64 if selection == 'canvas_changed' else canonical_hash(source.canvas)
     replacement = dict(mode='asset', asset_id='replacement', blur_strength=0, protect_subject=True)
     override_value = dict(schema_version=1, input_sha256='a' * 64,
-        modules={'extensions': {'background': replacement if selection == 'override' else None}}, revision=1)
+        modules={'extensions': {'background': replacement if selection in ('override', 'wrong_pin') else None}}, revision=1)
     if selection == 'style':
         override_value['modules'] = {'strength': 0.7}
     override, override_raw = pin(override_value)
@@ -119,6 +120,12 @@ def test_background_pins_follow_frozen_override_selection(selection):
     reader = Reader()
     if selection == 'canvas_changed':
         with pytest.raises(ValueError, match='BACKGROUND_CANVAS_CHANGED'):
+            resolve_export_background_pins(plan, reader)
+    elif selection == 'stale_pin':
+        with pytest.raises(ValueError, match='BACKGROUND_STALE_PIN'):
+            resolve_export_background_pins(plan, reader)
+    elif selection == 'wrong_pin':
+        with pytest.raises(ValueError, match='BACKGROUND_PORTABLE_ID'):
             resolve_export_background_pins(plan, reader)
     else:
         pins = resolve_export_background_pins(plan, reader)
