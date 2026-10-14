@@ -35,7 +35,7 @@ func TestDeliveryAssemblyHeartbeatCoversPhysicalIOAndJoinsBeforeCommit(t *testin
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	store := &assemblyHeartbeatStore{}
-	result, err := withDeliveryAssemblyLease(ctx, store, assemblyHeartbeatLease(), time.Millisecond,
+	result, err := withDeliveryPhysicalLease(ctx, store, assemblyHeartbeatLease(), time.Millisecond,
 		func(work context.Context) (deliveryAssemblyIOResult, error) {
 			for store.calls.Load() == 0 {
 				select {
@@ -61,7 +61,7 @@ func TestDeliveryAssemblyHeartbeatLossCancelsStalePhysicalResult(t *testing.T) {
 	defer cancel()
 	lost := errors.New("delivery lease lost")
 	store := &assemblyHeartbeatStore{fail: lost}
-	result, err := withDeliveryAssemblyLease(ctx, store, assemblyHeartbeatLease(), time.Millisecond,
+	result, err := withDeliveryPhysicalLease(ctx, store, assemblyHeartbeatLease(), time.Millisecond,
 		func(work context.Context) (deliveryAssemblyIOResult, error) {
 			<-work.Done()
 			return deliveryAssemblyIOResult{state: "assemble"}, nil

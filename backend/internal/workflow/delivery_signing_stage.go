@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"context"
+	"time"
 
 	"photoeditor/backend/internal/delivery"
 	"photoeditor/backend/internal/v2input"
@@ -63,10 +64,19 @@ func (s DeliverySigningStage) ProcessSigning(ctx context.Context,
 	if !sweepComplete {
 		return "scanning", nil
 	}
-	state, evidence, err := s.Closure.VerifyAndRetainEvidence(ctx, plan, lease)
+	type closureResult struct {
+		state    string
+		evidence delivery.VerifiedDelegatedSigningSet
+	}
+	closure, err := withDeliveryPhysicalLease(ctx, s.Observations, lease, 10*time.Second,
+		func(work context.Context) (closureResult, error) {
+			state, evidence, err := s.Closure.VerifyAndRetainEvidence(work, plan, lease)
+			return closureResult{state: state, evidence: evidence}, err
+		})
 	if err != nil {
 		return "", err
 	}
+	state, evidence := closure.state, closure.evidence
 	if state == "failed" {
 		if evidence.FailedSlot != nil {
 			if s.SignedFailure == nil {

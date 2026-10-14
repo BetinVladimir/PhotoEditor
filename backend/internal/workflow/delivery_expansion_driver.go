@@ -5,6 +5,7 @@ import (
 	"github.com/google/uuid"
 	"photoeditor/backend/internal/delivery"
 	"photoeditor/backend/internal/v2input"
+	"time"
 )
 
 type DeliveryExpansionStore interface {
@@ -50,16 +51,17 @@ type DeliveryExpansionProgress struct {
 // treats admitted exports as completed exports; the assembly processor must prove
 // the complete terminal matrix before authorizing activation.
 // Release is best effort on failure; a lost lease expires without cursor credit.
-// Work exceeding one renewal interval is fenced by publication/admission SQL and
-// must retry after reacquiring authority; there is no concurrent renewal goroutine.
+// Child physical work has a joined heartbeat; terminal assembly phases own
+// their physical renewal and stop it before SQL finalization.
 type DeliveryExpansionDriver struct {
-	Store    DeliveryExpansionStore
-	Children DeliveryChildProcessor
-	Observer DeliveryChildObserver
-	Assembly DeliveryAssemblyProcessor
-	SignedAssembly DeliveryAssemblyProcessor
-	Signing  DeliverySigningProcessor
-	PageSize int
+	Store             DeliveryExpansionStore
+	Children          DeliveryChildProcessor
+	Observer          DeliveryChildObserver
+	Assembly          DeliveryAssemblyProcessor
+	SignedAssembly    DeliveryAssemblyProcessor
+	Signing           DeliverySigningProcessor
+	PageSize          int
+	HeartbeatInterval time.Duration
 }
 
 func (d DeliveryExpansionDriver) ProcessOne(ctx context.Context) (progress DeliveryExpansionProgress, err error) {
@@ -67,6 +69,13 @@ func (d DeliveryExpansionDriver) ProcessOne(ctx context.Context) (progress Deliv
 		return
 	}
 	if d.Store == nil || d.Children == nil || d.PageSize < 1 || d.PageSize > 100 {
+		return progress, v2input.ErrInvalid
+	}
+	interval := d.HeartbeatInterval
+	if interval == 0 {
+		interval = 10 * time.Second
+	}
+	if interval < 0 || interval > 10*time.Second {
 		return progress, v2input.ErrInvalid
 	}
 	lease, err := d.Store.Claim(ctx)
@@ -137,7 +146,10 @@ func (d DeliveryExpansionDriver) ProcessOne(ctx context.Context) (progress Deliv
 		if err = d.Store.Renew(ctx, *lease); err != nil {
 			return progress, err
 		}
-		result, processErr := d.Children.ProcessChild(ctx, *lease, plan, child)
+		result, processErr := withDeliveryPhysicalLease(ctx, d.Store, *lease, interval,
+			func(work context.Context) (DeliveryChildAdmission, error) {
+				return d.Children.ProcessChild(work, *lease, plan, child)
+			})
 		if processErr != nil {
 			return progress, processErr
 		}
@@ -149,18 +161,26 @@ func (d DeliveryExpansionDriver) ProcessOne(ctx context.Context) (progress Deliv
 		progress.Admitted++
 	}
 	if lease.Cursor == lease.SlotCount {
-		if d.Assembly == nil { return progress, v2input.ErrInvalid }
+		if d.Assembly == nil {
+			return progress, v2input.ErrInvalid
+		}
 		mode, modeErr := plan.ProvenanceMode()
-		if modeErr != nil { return progress, modeErr }
+		if modeErr != nil {
+			return progress, modeErr
+		}
 		assembly := d.Assembly
 		if mode == "required" {
-			if d.Signing == nil || d.SignedAssembly == nil { return progress, v2input.ErrInvalid }
+			if d.Signing == nil || d.SignedAssembly == nil {
+				return progress, v2input.ErrInvalid
+			}
 			assembly = d.SignedAssembly
 			if err = d.Store.Renew(ctx, *lease); err != nil {
 				return progress, err
 			}
 			state, signingErr := d.Signing.ProcessSigning(ctx, *lease, plan)
-			if signingErr != nil { return progress, signingErr }
+			if signingErr != nil {
+				return progress, signingErr
+			}
 			if state != "scanning" && state != "pending" && state != "adopted" && state != "finalized_failed" {
 				return progress, v2input.ErrInvalid
 			}
@@ -169,7 +189,9 @@ func (d DeliveryExpansionDriver) ProcessOne(ctx context.Context) (progress Deliv
 				progress.AssemblyState = "finalized_failed"
 				return progress, nil
 			}
-			if state != "adopted" { return progress, nil }
+			if state != "adopted" {
+				return progress, nil
+			}
 		}
 		if err = d.Store.Renew(ctx, *lease); err != nil {
 			return progress, err

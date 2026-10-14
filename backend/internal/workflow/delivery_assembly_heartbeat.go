@@ -13,18 +13,21 @@ type deliveryAssemblyIOResult struct {
 	state string
 }
 
-// Keep the physical publication phase alive. The goroutine is joined before
-// the caller performs the terminal retained-root SQL write, whose success may
-// consume the expansion lease.
-func withDeliveryAssemblyLease(ctx context.Context, store delivery.MatrixObservationStore,
+type deliveryLeaseRenewer interface {
+	Renew(context.Context, delivery.ExpansionLease) error
+}
+
+// Keep bounded physical work alive. The goroutine is joined before callers
+// advance a cursor or perform a terminal SQL write that may consume the lease.
+func withDeliveryPhysicalLease[T any](ctx context.Context, store deliveryLeaseRenewer,
 	lease delivery.ExpansionLease, interval time.Duration,
-	work func(context.Context) (deliveryAssemblyIOResult, error),
-) (deliveryAssemblyIOResult, error) {
-	var zero deliveryAssemblyIOResult
+	work func(context.Context) (T, error),
+) (T, error) {
+	var zero T
 	if err := ctx.Err(); err != nil {
 		return zero, err
 	}
-	if store == nil || !lease.Valid() || interval <= 0 || interval > 10*time.Second || work == nil {
+	if store == nil || interval <= 0 || interval > 10*time.Second || work == nil {
 		return zero, v2input.ErrInvalid
 	}
 	working, cancel := context.WithCancelCause(ctx)
@@ -43,11 +46,11 @@ func withDeliveryAssemblyLease(ctx context.Context, store delivery.MatrixObserva
 				call, finish := context.WithTimeout(heartbeat, 5*time.Second)
 				err := store.Renew(call, lease)
 				finish()
-				if heartbeat.Err() != nil {
-					return
-				}
 				if err != nil {
 					cancel(err)
+					return
+				}
+				if heartbeat.Err() != nil {
 					return
 				}
 			}

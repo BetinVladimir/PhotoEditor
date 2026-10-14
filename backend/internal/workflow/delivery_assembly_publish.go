@@ -31,7 +31,7 @@ func PublishDeliveryAssemblyInput(ctx context.Context, db artifactjson.RowQuerie
 		shards = append(shards, owned)
 		return ref, nil
 	}
-	physical, err := withDeliveryAssemblyLease(ctx, store, lease, 10*time.Second,
+	physical, err := withDeliveryPhysicalLease(ctx, store, lease, 10*time.Second,
 		func(work context.Context) (deliveryAssemblyIOResult, error) {
 			_, body, _, state, err := plan.PrepareObservedAssembly(work, store, lease, capture)
 			if err != nil {

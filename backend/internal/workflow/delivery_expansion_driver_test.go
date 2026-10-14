@@ -6,8 +6,69 @@ import (
 	"github.com/google/uuid"
 	"photoeditor/backend/internal/delivery"
 	"reflect"
+	"sync/atomic"
 	"testing"
+	"time"
 )
+
+type deliveryHeartbeatDriverStore struct {
+	lease    delivery.ExpansionLease
+	plan     delivery.PreparePlan
+	renewals atomic.Int32
+	failAt   int32
+}
+
+func (s *deliveryHeartbeatDriverStore) Claim(context.Context) (*delivery.ExpansionLease, error) {
+	owned := s.lease
+	return &owned, nil
+}
+func (s *deliveryHeartbeatDriverStore) LoadPlan(context.Context, delivery.ExpansionLease) (delivery.PreparePlan, error) {
+	return s.plan, nil
+}
+func (s *deliveryHeartbeatDriverStore) Renew(context.Context, delivery.ExpansionLease) error {
+	if s.renewals.Add(1) == s.failAt {
+		return errors.New("child lease lost")
+	}
+	return nil
+}
+func (s *deliveryHeartbeatDriverStore) Release(context.Context, delivery.ExpansionLease) error {
+	return nil
+}
+
+type deliveryHeartbeatChild struct{ renewals *atomic.Int32 }
+
+func (c deliveryHeartbeatChild) ProcessChild(ctx context.Context, _ delivery.ExpansionLease, _ delivery.PreparePlan, child delivery.ExportChildIntent) (DeliveryChildAdmission, error) {
+	for c.renewals.Load() < 2 {
+		select {
+		case <-ctx.Done():
+			return DeliveryChildAdmission{}, ctx.Err()
+		case <-time.After(time.Millisecond):
+		}
+	}
+	if err := ctx.Err(); err != nil {
+		return DeliveryChildAdmission{}, err
+	}
+	return DeliveryChildAdmission{RunID: child.RunID, ExportID: uuid.New(), NextCursor: child.SlotIndex + 1}, nil
+}
+
+func TestDeliveryChildPhysicalWorkRenewsAndRejectsLostLease(t *testing.T) {
+	plan, parent, _, _, _ := deliveryExportPlanFixture(t, nil)
+	for _, failAt := range []int32{0, 2} {
+		store := &deliveryHeartbeatDriverStore{plan: plan, failAt: failAt,
+			lease: delivery.ExpansionLease{Expansion: uuid.New(), Token: uuid.New(), Until: time.Now().Add(time.Minute),
+				Tenant: uuid.New(), Run: parent, Workflow: uuid.New(), Package: uuid.New(), ParentTask: plan.TaskID(), SlotCount: 1}}
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		progress, err := (DeliveryExpansionDriver{Store: store, Children: deliveryHeartbeatChild{renewals: &store.renewals},
+			Assembly: &deliveryDriverAssembly{state: "pending"}, PageSize: 1, HeartbeatInterval: time.Millisecond}).ProcessOne(ctx)
+		cancel()
+		if failAt == 0 && (err != nil || progress.Admitted != 1 || store.renewals.Load() < 2) {
+			t.Fatal("child IO did not keep lease", progress, err)
+		}
+		if failAt == 2 && (err == nil || progress.Admitted != 0 || progress.Cursor != 0) {
+			t.Fatal("lost lease credited child admission", progress, err)
+		}
+	}
+}
 
 type deliveryDriverStore struct {
 	calls          *[]string
@@ -192,12 +253,14 @@ type deliveryDriverAssembly struct {
 type deliveryDriverSigner struct {
 	calls int
 	state string
-	err error
+	err   error
 }
 
 func (s *deliveryDriverSigner) ProcessSigning(_ context.Context, l delivery.ExpansionLease, _ delivery.PreparePlan) (string, error) {
 	s.calls++
-	if l.Cursor != l.SlotCount { panic("signing before complete admission") }
+	if l.Cursor != l.SlotCount {
+		panic("signing before complete admission")
+	}
 	return s.state, s.err
 }
 
@@ -232,11 +295,15 @@ func TestDeliveryExpansionDriverRequiresAssemblyAtCompleteCursor(t *testing.T) {
 			SlotCount: 1, Cursor: 1}}
 	_, err := (DeliveryExpansionDriver{Store: store,
 		Children: deliveryDriverChild{calls: &calls}, PageSize: 1}).ProcessOne(context.Background())
-	if err == nil { t.Fatal("complete Delivery cursor silently skipped assembly") }
+	if err == nil {
+		t.Fatal("complete Delivery cursor silently skipped assembly")
+	}
 }
 
 func boolToInt(value bool) int {
-	if value { return 1 }
+	if value {
+		return 1
+	}
 	return 0
 }
 

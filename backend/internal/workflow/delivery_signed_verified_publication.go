@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"context"
+	"time"
 
 	"photoeditor/backend/internal/delivery"
 	"photoeditor/backend/internal/v2input"
@@ -25,36 +26,54 @@ func (p DeliveryAssemblyPipeline) VerifyAndPublishSignedAssembly(
 		lease.ParentTask != plan.TaskID() || verify.Store.DB == nil {
 		return "", empty, evidence, v2input.ErrInvalid
 	}
-	state, checked, err := verify.VerifyAndRetainEvidence(ctx, plan, lease)
-	if err != nil || state != "adopted" {
-		return state, empty, evidence, err
+	type physicalResult struct {
+		state       string
+		publication delivery.SignedAssemblyPublication
+		evidence    delivery.VerifiedDelegatedSigningSet
 	}
-	choice, err := delivery.DeliverySigningChoice(checked.Frozen)
+	physical, err := withDeliveryPhysicalLease(ctx, verify.Observations, lease, 10*time.Second,
+		func(work context.Context) (physicalResult, error) {
+			state, checked, err := verify.VerifyAndRetainEvidence(work, plan, lease)
+			if err != nil {
+				return physicalResult{}, err
+			}
+			if state != "adopted" {
+				return physicalResult{state: state}, nil
+			}
+			choice, err := delivery.DeliverySigningChoice(checked.Frozen)
+			if err != nil {
+				return physicalResult{}, err
+			}
+			if _, err := verify.Store.ReadRetainedSigningClosure(work, lease,
+				checked.Actor, choice.PolicyID, choice.PolicySHA,
+				checked.Slots, checked.Dependencies, checked.Receipts); err != nil {
+				return physicalResult{}, err
+			}
+			publication, err := PublishSignedDeliveryAssemblyBundle(work,
+				deliveryAssemblyPublicationQueries{db: p.DB, lease: lease},
+				p.Objects, p.Bucket, lease, plan, checked.Frozen,
+				checked.SnapshotRaw, checked.Slots, checked.Actor,
+				checked.Dependencies, checked.Receipts)
+			if err != nil {
+				return physicalResult{}, err
+			}
+			return physicalResult{state: "published", publication: publication, evidence: checked}, nil
+		})
 	if err != nil {
 		return "", empty, evidence, err
 	}
-	if _, err := verify.Store.ReadRetainedSigningClosure(ctx, lease,
-		checked.Actor, choice.PolicyID, choice.PolicySHA,
-		checked.Slots, checked.Dependencies, checked.Receipts); err != nil {
-		return "", empty, evidence, err
-	}
-	publication, err := PublishSignedDeliveryAssemblyBundle(ctx,
-		deliveryAssemblyPublicationQueries{db: p.DB, lease: lease},
-		p.Objects, p.Bucket, lease, plan, checked.Frozen,
-		checked.SnapshotRaw, checked.Slots, checked.Actor,
-		checked.Dependencies, checked.Receipts)
-	if err != nil {
-		return "", empty, evidence, err
+	if physical.state != "published" {
+		return physical.state, empty, evidence, nil
 	}
 	if err := verify.Observations.Renew(ctx, lease); err != nil {
 		return "", empty, evidence, err
 	}
 	if err := (delivery.ExpansionLeaseStore{DB: deliveryAssemblyPublicationQueries{
 		db: p.DB, lease: lease}}).RetainPublishedAssembly(ctx, lease, plan,
-		publication.AssemblyRef); err != nil {
+		physical.publication.AssemblyRef); err != nil {
 		return "", empty, evidence, err
 	}
-	return "published", publication, checked, nil
+	return "published", physical.publication, physical.evidence, nil
 }
 
 // ProcessVerifiedSignedAssembly carries one verified matrix through signed
@@ -65,14 +84,20 @@ func (p DeliveryAssemblyPipeline) ProcessVerifiedSignedAssembly(
 	verify delivery.DelegatedSigningClosureCoordinator,
 ) (string, error) {
 	state, publication, evidence, err := p.VerifyAndPublishSignedAssembly(ctx, lease, plan, verify)
-	if err != nil || state != "published" { return state, err }
+	if err != nil || state != "published" {
+		return state, err
+	}
 	resolved, err := (delivery.ExpansionLeaseStore{DB: deliveryAssemblyRecoveryQueries{
 		deliveryAssemblyObservationQueries: deliveryAssemblyObservationQueries{db: p.DB, lease: lease},
-		root: publication.AssemblyRef,
+		root:                               publication.AssemblyRef,
 	}}).ResolvePublishedSignedAssemblyInputs(ctx, lease, plan, publication, evidence)
-	if err != nil { return "", err }
+	if err != nil {
+		return "", err
+	}
 	if err := p.RegisterAndActivateSignedAssembly(ctx, lease, plan, publication,
 		evidence.Actor, evidence.Slots, evidence.Dependencies,
-		evidence.Receipts, resolved); err != nil { return "", err }
+		evidence.Receipts, resolved); err != nil {
+		return "", err
+	}
 	return "activated", nil
 }
