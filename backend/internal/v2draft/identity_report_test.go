@@ -72,3 +72,44 @@ func TestIdentityReportRejectsMalformedMetricsAndRefs(t *testing.T) {
 		}
 	}
 }
+
+func TestIdentityReportStatusMatchesMeasuredEvidence(t *testing.T) {
+	fields, parent := identityFixture()
+	faceID := uuid.New()
+	fields["status"] = "pass"
+	fields["faces"] = []any{map[string]any{"face_id": faceID, "similarity": 0.91, "landmark_drift": 0.02}}
+	raw, _ := canonical.Marshal(fields)
+	if _, err := DocumentChildren(raw, "IdentityReport", parent); err != nil {
+		t.Fatal("measured pass rejected", err)
+	}
+	for name, change := range map[string]func(){
+		"empty pass": func() { fields["faces"] = []any{} },
+		"null pass metric": func() {
+			fields["faces"] = []any{map[string]any{"face_id": faceID, "similarity": nil, "landmark_drift": 0.02}}
+		},
+		"outside error pass": func() { fields["outside_mask_max_error"] = 0.001 },
+		"duplicate face": func() {
+			fields["faces"] = []any{map[string]any{"face_id": faceID, "similarity": 0.91, "landmark_drift": 0.02}, map[string]any{"face_id": faceID, "similarity": 0.91, "landmark_drift": 0.02}}
+		},
+		"zero face": func() {
+			fields["faces"] = []any{map[string]any{"face_id": uuid.Nil, "similarity": 0.91, "landmark_drift": 0.02}}
+		},
+	} {
+		fields, parent = identityFixture()
+		fields["status"] = "pass"
+		fields["faces"] = []any{map[string]any{"face_id": faceID, "similarity": 0.91, "landmark_drift": 0.02}}
+		change()
+		raw, _ = canonical.Marshal(fields)
+		if _, err := DocumentChildren(raw, "IdentityReport", parent); err == nil {
+			t.Fatal(name, "accepted")
+		}
+	}
+	fields, parent = identityFixture()
+	fields["status"] = "fail"
+	fields["faces"] = []any{}
+	fields["outside_mask_max_error"] = 0.1
+	raw, _ = canonical.Marshal(fields)
+	if _, err := DocumentChildren(raw, "IdentityReport", parent); err != nil {
+		t.Fatal("numeric guard failure rejected", err)
+	}
+}

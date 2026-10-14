@@ -28,13 +28,26 @@ func identityReportRefs(raw []byte, path string, parent v2input.Ref) ([]LayerRef
 	if !metric(f["outside_mask_max_error"], 0, 1000000) {
 		return invalid()
 	}
+	var outsideError float64
+	if json.Unmarshal(f["outside_mask_max_error"], &outsideError) != nil ||
+		(outsideError > 0 && status != "fail") || (status == "pass" && len(faces) == 0) {
+		return invalid()
+	}
+	seenFaces := make(map[uuid.UUID]struct{}, len(faces))
 	for _, face := range faces {
 		fields, valid := exactFields(face, "face_id", "similarity", "landmark_drift")
 		if !valid {
 			return invalid()
 		}
 		var id uuid.UUID
-		if null(fields["face_id"]) || json.Unmarshal(fields["face_id"], &id) != nil {
+		if null(fields["face_id"]) || json.Unmarshal(fields["face_id"], &id) != nil || id == uuid.Nil {
+			return invalid()
+		}
+		if _, duplicate := seenFaces[id]; duplicate {
+			return invalid()
+		}
+		seenFaces[id] = struct{}{}
+		if status == "pass" && (null(fields["similarity"]) || null(fields["landmark_drift"])) {
 			return invalid()
 		}
 		if !null(fields["similarity"]) && !metric(fields["similarity"], -1, 1) {
