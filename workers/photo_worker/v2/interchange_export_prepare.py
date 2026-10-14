@@ -179,6 +179,9 @@ def prepare_export_bundle(plan, sources, masks, *, qualify_recipe,
             raise ValueError('INTERCHANGE_EXPORT_BACKGROUND_MAPPING')
         used.add(source.reference.artifact_id)
         owned_backgrounds.append(background)
+    if {item.path for item in owned if item.contract == 'StyleBackgroundAsset'
+            and item.reference.artifact_id in used} != {item.path for item in owned_backgrounds}:
+        raise ValueError('INTERCHANGE_EXPORT_BACKGROUND_MAPPING')
     if used != set(by_id):
         raise ValueError('INTERCHANGE_EXPORT_UNREFERENCED_SOURCE')
     ordered = tuple(sorted(owned, key=lambda item: item.path))

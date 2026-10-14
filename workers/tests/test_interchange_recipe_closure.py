@@ -463,6 +463,46 @@ def test_prepared_style_background_is_qualified_and_retained_for_gc(change):
             qualifier.qualified_document_refs(root, recipe.source)
 
 
+@pytest.mark.parametrize('change', ['valid', 'missing', 'role', 'portable', 'binary_refusal'])
+def test_prepared_override_background_is_qualified_and_retained_for_gc(change):
+    recipe, root, args = closure_fixture()
+    background = ArtifactRef(artifact_id=uuid4(), sha256=sha256(b'background').hexdigest())
+    portable = str(background.artifact_id) if change != 'portable' else 'foreign-portable-name'
+    override_body = canonical_bytes({'modules': {'extensions': {'background': {'mode': 'asset', 'asset_id': portable}}}})
+    override_ref = recipe.overrides[0]
+    override_ref.sha256 = sha256(override_body).hexdigest()
+    root_body = canonical_bytes(recipe)
+    root.sha256 = sha256(root_body).hexdigest()
+    read = args['read_document']
+    args['read_document'] = lambda ref, limit: (root_body if ref.artifact_id == root.artifact_id else
+        override_body if ref.artifact_id == override_ref.artifact_id else read(ref, limit))
+    if change != 'missing':
+        args['entries'].append((background, 'EncodedImage' if change == 'role' else 'StyleBackgroundAsset', 'image/png'))
+    binary_calls, occurrences = [], []
+    def binary(ref, contract, binding):
+        binary_calls.append((ref, contract))
+        return change != 'binary_refusal'
+    def occurrence(value):
+        if value['reference'].artifact_id == background.artifact_id:
+            occurrences.append((value['parent_contract'], value['path']))
+        return True
+    args['qualify_binary'] = binary
+    args['qualify_occurrence'] = occurrence
+    qualifier = PreparedRecipeClosureQualifier(**args)
+    if change == 'valid':
+        assert qualifier(root, recipe, recipe.source) is True
+        assert binary_calls == [(background, 'StyleBackgroundAsset')]
+        assert occurrences == [('Override', ('modules', 'extensions', 'background', 'asset_id'))]
+        retained = qualifier.qualified_document_refs(root, recipe.source)
+        assert any(item['artifact_id'] == str(background.artifact_id)
+                   and item['sha256'] == background.sha256 for item in retained)
+    else:
+        with pytest.raises(AdoptionInvalid):
+            qualifier(root, recipe, recipe.source)
+        with pytest.raises(AdoptionInvalid, match='RECEIPT_REQUIRED'):
+            qualifier.qualified_document_refs(root, recipe.source)
+
+
 def test_stats_params_children_are_typed_from_exact_schema():
     from photo_worker.v2.interchange_recipe_closure import prepared_child_contract
     assert prepared_child_contract('Params', 'StatsParams', ('image',)) == 'WorkingImage'
@@ -470,3 +510,12 @@ def test_stats_params_children_are_typed_from_exact_schema():
     assert prepared_child_contract('Params', 'StatsParams', ('person', 'transform_chain', 'steps', '*', 'inverse_field')) == 'DenseWarpField'
     with pytest.raises(AdoptionInvalid):
         prepared_child_contract('Params', 'StatsParams', ('uninstalled',))
+
+
+def test_override_inline_children_have_closed_roles():
+    from photo_worker.v2.interchange_recipe_closure import prepared_child_contract
+    assert prepared_child_contract('Override', 'Override', ('mask_refs', '*', 'mask', 'artifact')) == 'MaskPixels'
+    assert prepared_child_contract('Override', 'Override', ('mask_refs', '*', 'mask', 'transform_chain', 'steps', '*', 'inverse_field')) == 'DenseWarpField'
+    assert prepared_child_contract('Override', 'Override', ('manual_landmarks', 'transform_chain', 'steps', '*', 'inverse_field')) == 'DenseWarpField'
+    with pytest.raises(AdoptionInvalid):
+        prepared_child_contract('Override', 'Override', ('mask_refs', '*', 'unknown'))

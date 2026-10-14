@@ -34,6 +34,11 @@ def prepared_child_contract(contract, schema_name, path):
     }
     typed_roles['ResolvedStyle'] = resolved_roles
     typed_roles['Stats20'] = {('source_image',): 'WorkingImage'}
+    typed_roles['Override'] = {
+        ('mask_refs', '*', 'mask', 'artifact'): 'MaskPixels',
+        ('mask_refs', '*', 'mask', 'transform_chain', 'steps', '*', 'inverse_field'): 'DenseWarpField',
+        ('manual_landmarks', 'transform_chain', 'steps', '*', 'inverse_field'): 'DenseWarpField',
+    }
     if contract in typed_roles:
         expected = typed_roles[contract].get(path)
         if expected is None:
@@ -206,10 +211,12 @@ class PreparedRecipeClosureQualifier:
                         params_schemas[identifier] = (selected, *operation)
                 active.add(ref.artifact_id)
                 try:
-                    # Style background IDs are portable typed dependencies,
+                    # Style and Override background IDs are portable typed dependencies,
                     # not ArtifactRef objects discoverable by schema traversal.
-                    if contract == 'StyleV2':
-                        background = value.get('extensions', {}).get('background')
+                    if contract in ('StyleV2', 'Override'):
+                        extensions = (value.get('extensions') if contract == 'StyleV2'
+                                      else value.get('modules', {}).get('extensions'))
+                        background = extensions.get('background') if isinstance(extensions, dict) else None
                         if isinstance(background, dict) and background.get('mode') == 'asset':
                             portable = background.get('asset_id')
                             try:
@@ -221,9 +228,10 @@ class PreparedRecipeClosureQualifier:
                             background_entry = self.entries.get(identifier)
                             if background_entry is None or background_entry[1] != 'StyleBackgroundAsset':
                                 raise AdoptionInvalid('INTERCHANGE_CLOSURE_BACKGROUND_INPUT')
+                            path = (('extensions', 'background', 'asset_id') if contract == 'StyleV2'
+                                    else ('modules', 'extensions', 'background', 'asset_id'))
                             visit(background_entry[0].model_copy(deep=True), depth + 1,
-                                  'StyleBackgroundAsset', ref, contract,
-                                  ('extensions', 'background', 'asset_id'), value)
+                                  'StyleBackgroundAsset', ref, contract, path, value)
                     for path, child in _schema_refs(self.schemas['$defs'][schema_name], value, self.schemas['$defs'], validator):
                         expected_child = prepared_child_contract(contract, schema_name, path)
                         visit(ArtifactRef(artifact_id=child.artifact_id, sha256=child.sha256), depth + 1, expected_child,
