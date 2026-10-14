@@ -82,3 +82,72 @@ func (s SQLSeriesObjects) LoadJSON(ctx context.Context,
 	}
 	return body, nil
 }
+
+type seriesStatLocator struct {
+	ItemID uuid.UUID
+	Image  v2input.Ref
+	Object objectstore.Object
+}
+
+func (s SQLSeriesObjects) locateStat(ctx context.Context,
+	start TrainingStart, eventID uuid.UUID,
+	ref v2input.Ref) (seriesStatLocator, error) {
+	if s.DB == nil || s.Bucket == "" || start.TenantID == uuid.Nil ||
+		start.ProjectID == uuid.Nil || start.ActorID == uuid.Nil ||
+		start.AuthSessionID == uuid.Nil || eventID == uuid.Nil ||
+		!validManifestRef(ref) {
+		return seriesStatLocator{}, ErrInvalidTrainingDraft
+	}
+	var result seriesStatLocator
+	var bucket, sha string
+	err := s.DB.QueryRow(ctx, `SELECT item_id,image_id,image_sha,bucket,
+ object_key,object_version,sha256,bytes,media_type
+ FROM photo.v23_series_stat_artifact($1,$2,$3,$4,$5,$6,$7)`,
+		start.TenantID, start.ProjectID, start.ActorID,
+		start.AuthSessionID, eventID, ref.ArtifactID, ref.SHA256).Scan(
+		&result.ItemID, &result.Image.ArtifactID, &result.Image.SHA256,
+		&bucket, &result.Object.Key, &result.Object.VersionID,
+		&sha, &result.Object.Bytes, &result.Object.ContentType)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return seriesStatLocator{}, ErrTrainingDraftConflict
+	}
+	if err != nil {
+		return seriesStatLocator{}, err
+	}
+	result.Object.SHA256 = sha
+	if result.ItemID == uuid.Nil || !validManifestRef(result.Image) ||
+		bucket != s.Bucket || sha != ref.SHA256 ||
+		result.Object.Key == "" || result.Object.VersionID == "" ||
+		result.Object.VersionID == "null" ||
+		result.Object.ContentType != "application/json" ||
+		result.Object.Bytes < 2 || result.Object.Bytes > 1<<20 {
+		return seriesStatLocator{}, ErrInvalidTrainingDraft
+	}
+	return result, nil
+}
+
+// LoadStatJSON locates an input of the exact Apply balance and repeats all
+// source checks after reading the pinned object version.
+func (s SQLSeriesObjects) LoadStatJSON(ctx context.Context,
+	start TrainingStart, eventID uuid.UUID,
+	ref v2input.Ref) ([]byte, uuid.UUID, v2input.Ref, error) {
+	if s.Objects == nil {
+		return nil, uuid.Nil, v2input.Ref{}, ErrInvalidTrainingDraft
+	}
+	before, err := s.locateStat(ctx, start, eventID, ref)
+	if err != nil {
+		return nil, uuid.Nil, v2input.Ref{}, err
+	}
+	body, err := ReadFrozenRootDocument(ctx, s.Objects, before.Object, ref)
+	if err != nil {
+		return nil, uuid.Nil, v2input.Ref{}, err
+	}
+	after, err := s.locateStat(ctx, start, eventID, ref)
+	if err != nil {
+		return nil, uuid.Nil, v2input.Ref{}, err
+	}
+	if before != after {
+		return nil, uuid.Nil, v2input.Ref{}, ErrTrainingDraftConflict
+	}
+	return body, before.ItemID, before.Image, nil
+}

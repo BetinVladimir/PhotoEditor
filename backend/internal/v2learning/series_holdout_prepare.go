@@ -49,6 +49,26 @@ func PrepareSeriesHoldoutForCandidate(ctx context.Context, tx pgx.Tx,
 	if err != nil {
 		return PreparedSeriesHoldout{}, err
 	}
+	var params frozenSeriesParams
+	if !decodePinnedSeriesJSON(paramsRaw, before.Params.SHA256, &params) ||
+		len(params.Stats) < 2 || len(params.Stats) > 2000 {
+		return PreparedSeriesHoldout{}, ErrInvalidTrainingDraft
+	}
+	statsRaw := make([][]byte, len(params.Stats))
+	for i, ref := range params.Stats {
+		body, itemID, image, err := objects.LoadStatJSON(ctx, start,
+			candidate.EventID, ref)
+		if err != nil {
+			return PreparedSeriesHoldout{}, err
+		}
+		var stat frozenSeriesStats
+		if len(body) > 32768 ||
+			!decodePinnedSeriesJSON(body, ref.SHA256, &stat) ||
+			stat.ItemID != itemID || stat.Image != image {
+			return PreparedSeriesHoldout{}, ErrInvalidTrainingDraft
+		}
+		statsRaw[i] = body
+	}
 	after, err := LoadSeriesProducerCandidate(ctx, tx, start, candidate, render)
 	if err != nil {
 		return PreparedSeriesHoldout{}, err
@@ -67,6 +87,10 @@ func PrepareSeriesHoldoutForCandidate(ctx context.Context, tx pgx.Tx,
 	selected, err := ValidateFrozenSeriesMaterial(ctx, document,
 		paramsRaw, seriesRaw)
 	if err != nil {
+		return PreparedSeriesHoldout{}, err
+	}
+	if err := ValidateFrozenSeriesStats(ctx, document, paramsRaw,
+		seriesRaw, statsRaw); err != nil {
 		return PreparedSeriesHoldout{}, err
 	}
 	body, sha, err := CompileFrozenSeriesHoldoutEvidence(document)
