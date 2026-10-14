@@ -125,7 +125,7 @@ def prepare_export_bundle(plan, sources, masks, *, qualify_recipe,
             raise ValueError('INTERCHANGE_EXPORT_CLOSURE_INVENTORY')
         return source
 
-    used, entries = set(), []
+    used, qualified_backgrounds, entries = set(), set(), []
     for entry in sorted(plan.entries, key=lambda value: value.path):
         active()
         image, recipe = require(entry.content), require(entry.recipe)
@@ -140,6 +140,8 @@ def prepare_export_bundle(plan, sources, masks, *, qualify_recipe,
                 raise ValueError('INTERCHANGE_EXPORT_RECIPE_QUALIFICATION')
             source = require(ref)
             seen.add(ref.artifact_id);used.add(source.reference.artifact_id)
+            if source.contract == 'StyleBackgroundAsset':
+                qualified_backgrounds.add(source.reference.artifact_id)
         if entry.recipe.artifact_id not in seen:
             raise ValueError('INTERCHANGE_EXPORT_RECIPE_QUALIFICATION')
         used.add(image.reference.artifact_id)
@@ -175,12 +177,11 @@ def prepare_export_bundle(plan, sources, masks, *, qualify_recipe,
         source = by_path.get(background.path)
         if (style.contract != 'StyleV2' or style.reference.artifact_id not in used
                 or source is None or source.contract != 'StyleBackgroundAsset'
-                or source.sidecar or source.reference.sha256 != background.sha256):
+                or source.sidecar or source.reference.sha256 != background.sha256
+                or source.reference.artifact_id not in qualified_backgrounds):
             raise ValueError('INTERCHANGE_EXPORT_BACKGROUND_MAPPING')
-        used.add(source.reference.artifact_id)
         owned_backgrounds.append(background)
-    if {item.path for item in owned if item.contract == 'StyleBackgroundAsset'
-            and item.reference.artifact_id in used} != {item.path for item in owned_backgrounds}:
+    if {by_id[identifier].path for identifier in qualified_backgrounds} != {item.path for item in owned_backgrounds}:
         raise ValueError('INTERCHANGE_EXPORT_BACKGROUND_MAPPING')
     if used != set(by_id):
         raise ValueError('INTERCHANGE_EXPORT_UNREFERENCED_SOURCE')
