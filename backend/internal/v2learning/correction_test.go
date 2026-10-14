@@ -2,6 +2,7 @@ package v2learning
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -66,6 +67,15 @@ func TestCorrectionCreatePortraitDetailRequiresExactProducer(t *testing.T) {
 		"result_id": uuid.New().String(), "attempt_id": uuid.New().String(),
 	}
 	request["portrait_detail_producer"] = producer
+	raw, err := json.Marshal(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ambiguous := strings.Replace(string(raw), `"run_id":"`+producer["run_id"].(string)+`"`, `"run_id":"`+producer["run_id"].(string)+`","run_id":"`+uuid.NewString()+`"`, 1)
+	var duplicated CorrectionCreate
+	if json.Unmarshal([]byte(ambiguous), &duplicated) == nil {
+		t.Fatal("accepted ambiguous portrait detail producer")
+	}
 	decode := func() error {
 		body, err := json.Marshal(request)
 		if err != nil {

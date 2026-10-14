@@ -26,8 +26,8 @@ type TrainCreate struct {
 }
 
 func (r *TrainCreate) UnmarshalJSON(body []byte) error {
-	var fields map[string]json.RawMessage
-	if err := json.Unmarshal(body, &fields); err != nil {
+	fields, err := closedLearningObject(body)
+	if err != nil {
 		return err
 	}
 	if len(fields) != 3 {
@@ -38,8 +38,8 @@ func (r *TrainCreate) UnmarshalJSON(body []byte) error {
 			return fmt.Errorf("TrainCreate missing %s", key)
 		}
 	}
-	var policy map[string]json.RawMessage
-	if json.Unmarshal(fields["policy"], &policy) != nil || len(policy) != 7 {
+	policy, err := closedLearningObject(fields["policy"])
+	if err != nil || len(policy) != 7 {
 		return fmt.Errorf("invalid LearningPolicy")
 	}
 	for _, key := range []string{"schema_version", "mode", "min_examples",
@@ -48,9 +48,8 @@ func (r *TrainCreate) UnmarshalJSON(body []byte) error {
 			return fmt.Errorf("LearningPolicy missing %s", key)
 		}
 	}
-	var calibration map[string]json.RawMessage
-	if json.Unmarshal(policy["calibration"], &calibration) != nil ||
-		len(calibration) != 2 {
+	calibration, err := closedLearningObject(policy["calibration"])
+	if err != nil || len(calibration) != 2 {
 		return fmt.Errorf("invalid calibration ref")
 	}
 	for _, key := range []string{"artifact_id", "sha256"} {

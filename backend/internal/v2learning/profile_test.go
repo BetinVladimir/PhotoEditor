@@ -34,3 +34,10 @@ func TestProfileCreateWireAndModePerson(t *testing.T) {
 		}
 	}
 }
+
+func TestProfileCreateRejectsDuplicateFields(t *testing.T) {
+	var req ProfileCreate
+	if err := json.Unmarshal([]byte(`{"project_id":"00000000-0000-0000-0000-000000000001","name":"first","name":"second","mode":"photographer","person_id":null}`), &req); err == nil {
+		t.Fatal("accepted ambiguous profile name")
+	}
+}

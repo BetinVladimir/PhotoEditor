@@ -39,6 +39,19 @@ func TestTrainCreateRejectsUnboundedOrAmbiguousInput(t *testing.T) {
 	if !check(body) {
 		t.Fatal("valid training request rejected")
 	}
+	raw, err := json.Marshal(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, ambiguous := range []string{
+		strings.Replace(string(raw), `"schema_version":1`, `"schema_version":1,"schema_version":2`, 1),
+		strings.Replace(string(raw), `"sha256":"`+strings.Repeat("a", 64)+`"`, `"sha256":"`+strings.Repeat("a", 64)+`","sha256":"`+strings.Repeat("b", 64)+`"`, 1),
+	} {
+		var req TrainCreate
+		if json.Unmarshal([]byte(ambiguous), &req) == nil {
+			t.Fatal("accepted duplicate nested training field")
+		}
+	}
 	wrong := map[string]any{}
 	for key, value := range body {
 		wrong[key] = value

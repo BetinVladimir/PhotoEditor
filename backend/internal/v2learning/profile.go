@@ -28,8 +28,8 @@ type ProfileCreate struct {
 }
 
 func (r *ProfileCreate) UnmarshalJSON(body []byte) error {
-	var fields map[string]json.RawMessage
-	if err := json.Unmarshal(body, &fields); err != nil {
+	fields, err := closedLearningObject(body)
+	if err != nil {
 		return err
 	}
 	if len(fields) != 4 {

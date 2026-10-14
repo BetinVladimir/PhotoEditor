@@ -49,8 +49,8 @@ type PortraitDetailProducerSelection struct {
 }
 
 func (r *CorrectionCreate) UnmarshalJSON(body []byte) error {
-	var fields map[string]json.RawMessage
-	if err := json.Unmarshal(body, &fields); err != nil {
+	fields, err := closedLearningObject(body)
+	if err != nil {
 		return err
 	}
 	if len(fields) != 11 && len(fields) != 12 {
@@ -72,8 +72,8 @@ func (r *CorrectionCreate) UnmarshalJSON(body []byte) error {
 		return fmt.Errorf("CorrectionCreate has unknown or null producer")
 	}
 	if raw := fields["portrait_detail_producer"]; raw != nil {
-		var producerFields map[string]json.RawMessage
-		if json.Unmarshal(raw, &producerFields) != nil || len(producerFields) != 4 {
+		producerFields, err := closedLearningObject(raw)
+		if err != nil || len(producerFields) != 4 {
 			return fmt.Errorf("CorrectionCreate has invalid producer")
 		}
 		for _, key := range []string{"run_id", "task_id", "result_id", "attempt_id"} {
