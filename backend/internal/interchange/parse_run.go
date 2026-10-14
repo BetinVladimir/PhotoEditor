@@ -27,7 +27,12 @@ func(p ParsePlan)BeginParseRun(ctx context.Context,tx ProofTransaction,who auth.
  err=tx.QueryRow(ctx,`SELECT photo.begin_v30_interchange_parse_run($1,$2,$3,$4,$5,$6,$7,$8)`,tenant,who.UserID,who.SessionID,key,intent.RequestSHA,string(config),string(document.Body),string(unsigned)).Scan(&accepted)
  if err!=nil{return err};if !accepted{
   var runtimeReady bool
-  if err=tx.QueryRow(ctx,`SELECT photo.v30_import_runtime_ready()`).Scan(&runtimeReady);err!=nil{return err}
+  if err=tx.QueryRow(ctx,`SELECT COALESCE((SELECT photo.v30_import_runtime_ready(a.bucket)
+   FROM photo.artifacts a WHERE a.tenant_id=$1 AND a.id=$2 AND a.sha256=$3
+   AND a.state='ready' AND a.verified_at IS NOT NULL AND a.object_version IS NOT NULL
+   AND a.object_version NOT IN('','null') AND a.media_type='application/zip'
+   AND (a.expires_at IS NULL OR a.expires_at>clock_timestamp())),true)`,
+   tenant,request.Bundle.ArtifactID,request.Bundle.SHA256).Scan(&runtimeReady);err!=nil{return err}
   if !runtimeReady{return domain.NewError("INTERCHANGE_UNAVAILABLE",503)}
   return domain.NewError("INTERCHANGE_CREATE_STALE",409)
  };return nil

@@ -333,6 +333,8 @@ Worker `series.balance` теперь требует точного совпад�
 
 Миграция `02119_v30_import_request_bucket_admission.sql` закрывает этот per-request разрыв: `begin_v30_interchange_parse_run` берёт bucket именно из выбранного source artifact и вызывает `v30_import_runtime_ready(text)`. Пара активных Go/Python lease в другом bucket больше не допускает создание draft run. Нулевой readiness ABI сохранён для наблюдения, но admission использует только параметризованный gate. Добавлен SQL-сценарий для совпадающего и чужого bucket; миграция и тесты не выполнялись.
 
+Go `ParsePlan.BeginParseRun` теперь классифицирует отказ admission через параметризованный readiness того же tenant/source artifact, а не через глобальный `v30_import_runtime_ready()`. Истёкший либо отсутствующий artifact остаётся `INTERCHANGE_CREATE_STALE`; готовый artifact без живой пары процессов своего bucket даёт `INTERCHANGE_UNAVAILABLE`. Unit-сценарий фиксирует точный tenant/artifact/SHA в диагностическом запросе; он не запускался.
+
 Миграция `02109_v23_series_heartbeat_device_fence.sql` прекращает продление lease квалифицированного `series.balance` после отзыва или ротации операторской привязки. Worker остановит текущий расчёт на следующем heartbeat; `02107` независимо отвергает поздний success. Написан интеграционный сценарий `claim → rotation → heartbeat=false → commit=stale`; миграция и сценарий не выполнялись.
 
 `series.balance` теперь оставляет identity-коррекцию с review warning, если численный solver не завершился успешно, вернул нечетырёхмерный, нечисловой либо экстремальный вектор параметров. Успешный алгоритм и его ограничители EV/gain остаются прежними. Unit-сценарии для четырёх отказов написаны, не запускались.

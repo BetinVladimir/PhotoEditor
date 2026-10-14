@@ -13,9 +13,9 @@ import (
 )
 type proofRow bool
 func(r proofRow)Scan(dest ...any)error{*dest[0].(*bool)=bool(r);return nil}
-type proofTx struct{args []any;accepted bool;runtimeUnavailable bool}
+type proofTx struct{args []any;runtimeArgs []any;accepted bool;runtimeUnavailable bool}
 func(tx *proofTx)QueryRow(_ context.Context,query string,args ...any)pgx.Row{
- if strings.Contains(query,"v30_import_runtime_ready"){return proofRow(!tx.runtimeUnavailable)}
+ if strings.Contains(query,"v30_import_runtime_ready"){tx.runtimeArgs=args;return proofRow(!tx.runtimeUnavailable)}
  tx.args=args;return proofRow(tx.accepted)
 }
 func TestParseProofExactParamsAndIdentity(t *testing.T){

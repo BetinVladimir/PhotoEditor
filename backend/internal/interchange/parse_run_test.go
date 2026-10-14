@@ -17,9 +17,10 @@ func TestBeginParseRunScopesAndBindsSnapshotConfig(t *testing.T){
  tx.args=nil
  if err:=plan.BeginParseRun(context.Background(),tx,who,uuid.New(),request,"key");err==nil||tx.args!=nil{t.Fatal("foreign run queried")}
  tx.accepted=false
- if err:=plan.BeginParseRun(context.Background(),tx,who,tid,request,"key");err==nil{t.Fatal("SQL refusal ignored")}
+ if err:=plan.BeginParseRun(context.Background(),tx,who,tid,request,"key");domain.AsError(err)==nil||domain.AsError(err).Code!="INTERCHANGE_CREATE_STALE"{t.Fatal("SQL refusal was not classified as stale",err)}
  tx.runtimeUnavailable=true
  if err:=plan.BeginParseRun(context.Background(),tx,who,tid,request,"key");domain.AsError(err)==nil||domain.AsError(err).Code!="INTERCHANGE_UNAVAILABLE"{t.Fatal("missing scheduler runtime was not reported as unavailable",err)}
+ if len(tx.runtimeArgs)!=3||tx.runtimeArgs[0]!=tid||tx.runtimeArgs[1]!=request.Bundle.ArtifactID||tx.runtimeArgs[2]!=request.Bundle.SHA256{t.Fatal("runtime reason was not scoped to source artifact",tx.runtimeArgs)}
 }
 
 func TestParseQueuePendingHistoricalReplay(t *testing.T){
