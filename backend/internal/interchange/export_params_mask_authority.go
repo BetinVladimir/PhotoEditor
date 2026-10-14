@@ -1,27 +1,72 @@
 package interchange
+
 import (
- "context"
- "encoding/json"
- "github.com/jackc/pgx/v5"
- "photoeditor/backend/internal/domain"
- "photoeditor/backend/internal/review"
- "photoeditor/backend/internal/tenant"
- "photoeditor/backend/internal/v2input"
+	"context"
+	"encoding/json"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"photoeditor/backend/internal/auth"
+	"photoeditor/backend/internal/domain"
+	"photoeditor/backend/internal/review"
+	"photoeditor/backend/internal/tenant"
+	"photoeditor/backend/internal/v2input"
 )
-type ExportParamsMaskAuthority interface{QualifyExportParamsMask(context.Context,v2input.Entry,[]byte,v2input.Ref)error}
-func(s SQLExportDocumentCatalog)QualifyExportParamsMask(ctx context.Context,parent v2input.Entry,raw []byte,mask v2input.Ref)error{
- if err:=ctx.Err();err!=nil{return err}
- if s.DB==nil||!validImportRef(mask){return v2input.ErrInvalid}
- masks,err:=exportParamsInlineMasks(parent,raw);if err!=nil{return err}
- found:=false;for _,body:=range masks{parsed,err:=review.ParseMaskRef(body);if err!=nil{return err};if parsed.Artifact.ID==mask.ArtifactID&&parsed.Artifact.SHA256==mask.SHA256{found=true}}
- if !found{return v2input.ErrInvalid}
- var fields map[string]json.RawMessage;if json.Unmarshal(raw,&fields)!=nil{return v2input.ErrInvalid}
- operation,err:=exportParamsOperationShape(raw);if err!=nil||operation==""{return v2input.ErrInvalid}
- var source v2input.Ref;if json.Unmarshal(fields["image"],&source)!=nil||!validImportRef(source){return v2input.ErrInvalid}
- object,err:=s.LookupExportDocument(ctx,parent);if err!=nil{return err}
- return tenant.WithTenant(ctx,s.DB,s.Who,s.Tenant,domain.Editor,func(tx pgx.Tx,_ domain.Role)error{
-  var allowed bool
-  err:=tx.QueryRow(ctx,`SELECT EXISTS(SELECT 1 FROM photo.tasks producer
+
+type ExportParamsMaskAuthority interface {
+	QualifyExportParamsMask(context.Context, v2input.Entry, []byte, v2input.Ref) error
+}
+
+func (s SQLExportDocumentCatalog) QualifyExportParamsMask(ctx context.Context, parent v2input.Entry, raw []byte, mask v2input.Ref) error {
+	return qualifyExportParamsMask(ctx, s, s.DB, s.Tenant, s.Who, s.Request.ProjectID, s.Bucket, parent, raw, mask)
+}
+func (s SQLExportResultInputCatalog) QualifyExportParamsMask(ctx context.Context, parent v2input.Entry, raw []byte, mask v2input.Ref) error {
+	config := s.Export
+	return qualifyExportParamsMask(ctx, s, config.DB, config.Tenant, config.Who, config.Request.ProjectID, config.Bucket, parent, raw, mask)
+}
+func qualifyExportParamsMask(ctx context.Context, catalog ExportDocumentCatalog, db *pgxpool.Pool, tenantID uuid.UUID, who auth.Identity, project uuid.UUID, bucketName string, parent v2input.Entry, raw []byte, mask v2input.Ref) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if catalog == nil || db == nil || tenantID == uuid.Nil || project == uuid.Nil || len(bucketName) < 3 || !validImportRef(mask) {
+		return v2input.ErrInvalid
+	}
+	masks, err := exportParamsInlineMasks(parent, raw)
+	if err != nil {
+		return err
+	}
+	found := false
+	for _, body := range masks {
+		parsed, err := review.ParseMaskRef(body)
+		if err != nil {
+			return err
+		}
+		if parsed.Artifact.ID == mask.ArtifactID && parsed.Artifact.SHA256 == mask.SHA256 {
+			found = true
+		}
+	}
+	if !found {
+		return v2input.ErrInvalid
+	}
+	var fields map[string]json.RawMessage
+	if json.Unmarshal(raw, &fields) != nil {
+		return v2input.ErrInvalid
+	}
+	operation, err := exportParamsOperationShape(raw)
+	if err != nil || operation == "" {
+		return v2input.ErrInvalid
+	}
+	var source v2input.Ref
+	if json.Unmarshal(fields["image"], &source) != nil || !validImportRef(source) {
+		return v2input.ErrInvalid
+	}
+	object, err := catalog.LookupExportDocument(ctx, parent)
+	if err != nil {
+		return err
+	}
+	err = tenant.WithTenant(ctx, db, who, tenantID, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
+		var allowed bool
+		err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM photo.tasks producer
    JOIN photo.artifacts params ON params.tenant_id=producer.tenant_id AND params.id=producer.params_artifact_id
    JOIN photo.task_results result ON result.tenant_id=producer.tenant_id AND result.id=producer.canonical_result_id AND result.task_id=producer.id AND result.attempt=producer.attempt AND result.fencing_token=producer.fencing_token
    JOIN photo.task_attempts attempt ON attempt.tenant_id=producer.tenant_id AND attempt.task_id=producer.id AND attempt.attempt=producer.attempt AND attempt.fencing_token=producer.fencing_token
@@ -36,8 +81,27 @@ func(s SQLExportDocumentCatalog)QualifyExportParamsMask(ctx context.Context,pare
    AND params.state='ready' AND params.verified_at IS NOT NULL AND (params.expires_at IS NULL OR params.expires_at>clock_timestamp())
    AND EXISTS(SELECT 1 FROM photo.asset_versions v JOIN photo.assets a ON a.tenant_id=v.tenant_id AND a.id=v.asset_id
     WHERE v.tenant_id=$1 AND a.project_id=$5 AND v.master_artifact_id=$8 AND v.content_hash=$9 AND v.review_state='accepted' AND a.deleted_at IS NULL AND a.upload_state='verified'))`,
-   s.Tenant,parent.Ref.ArtifactID,parent.Ref.SHA256,operation,s.Request.ProjectID,s.Who.UserID,s.Who.SessionID,source.ArtifactID,source.SHA256,mask.ArtifactID,mask.SHA256,s.Bucket,object.Key,object.VersionID,object.Bytes).Scan(&allowed)
-  if err!=nil{return err};if !allowed{return v2input.ErrInvalid};return ctx.Err()
- })
+			tenantID, parent.Ref.ArtifactID, parent.Ref.SHA256, operation, project, who.UserID, who.SessionID, source.ArtifactID, source.SHA256, mask.ArtifactID, mask.SHA256, bucketName, object.Key, object.VersionID, object.Bytes).Scan(&allowed)
+		if err != nil {
+			return err
+		}
+		if !allowed {
+			return v2input.ErrInvalid
+		}
+		return ctx.Err()
+	})
+	if err != nil {
+		return err
+	}
+	current, err := catalog.LookupExportDocument(ctx, parent)
+	if err != nil {
+		return err
+	}
+	if current != object {
+		return v2input.ErrInvalid
+	}
+	return ctx.Err()
 }
-var _ ExportParamsMaskAuthority=SQLExportDocumentCatalog{}
+
+var _ ExportParamsMaskAuthority = SQLExportDocumentCatalog{}
+var _ ExportParamsMaskAuthority = SQLExportResultInputCatalog{}
