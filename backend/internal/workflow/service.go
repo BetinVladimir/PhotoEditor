@@ -628,6 +628,20 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 		}
 		defer closeRestoration()
 	}
+	identityAdoptionEnabled, err := IdentityAdoptionEnabled(os.Getenv)
+	if err != nil {
+		return err
+	}
+	var identityAdoptionProcessor ExpansionJob
+	identityAdoptionState := new(ExpansionLoopState)
+	if identityAdoptionEnabled {
+		identityStartup, stopIdentityStartup := context.WithTimeout(ctx, 10*time.Second)
+		identityAdoptionProcessor, err = NewIdentityAdoptionProcessor(identityStartup, pool, storage, storageConfig.Bucket)
+		stopIdentityStartup()
+		if err != nil {
+			return err
+		}
+	}
 	restorationPreviewEnabled, err := RestorationPreviewFromEnvironment(os.Getenv)
 	if err != nil {
 		return err
@@ -761,7 +775,7 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 		w.Header().Set("Content-Type", "application/json")
 		ping, cancel := context.WithTimeout(r.Context(), time.Second)
 		defer cancel()
-		if (learningEvaluateInstalled && !learningEvaluateState.Ready.Load()) || (restorationEnabled && !restorationAdoptionState.Ready.Load()) || (restorationPreviewEnabled && !restorationPreviewState.Ready.Load()) || (metadataAdoptionEnabled && !metadataAdoptionState.Ready.Load()) || (replacementAdoptionEnabled && !replacementAdoptionState.Ready.Load()) || !ready.Load() || (deliveryConfig.Enabled && (!deliveryState.Ready.Load() || !deliveryRuntimeReady.Load())) || (captureEnabled && !captureState.Ready.Load()) || (sessionPlanInstalled && !sessionPlanState.Ready.Load()) || (semanticAssemblyInstalled && !semanticAssemblyState.Ready.Load()) || (sceneMaterializationInstalled && !sceneMaterializationState.Ready.Load()) || !expansionState.Ready.Load() || !ingestState.Ready.Load() || !interchangeCollectionState.Ready.Load() || (interchangeImportProcessor != nil && (!interchangeImportState.Ready.Load() || !interchangeImportRuntimeReady.Load())) || (interchangeExportProcessor != nil && (!interchangeExportState.Ready.Load() || !interchangeExportRuntimeReady.Load())) || (archiveInvalidationProcessor != nil && !archiveInvalidationState.Ready.Load()) || (archiveRevocationProcessor != nil && !archiveRevocationState.Ready.Load()) || (archiveRecoveryProcessor != nil && !archiveRecoveryState.Ready.Load()) || (archiveCleanupProcessor != nil && !archiveCleanupState.Ready.Load()) || (archiveExpiryProcessor != nil && !archiveExpiryState.Ready.Load()) || (archiveCompletionProcessor != nil && !archiveCompletionState.Ready.Load()) || !uploadState.Ready.Load() || !downloadState.Ready.Load() || !bulkState.Ready.Load() || !styleState.Ready.Load() || !styleAnalysisState.Ready.Load() || !styleImportState.Ready.Load() || !embeddingState.Ready.Load() || !exportBatchState.Ready.Load() || !renderBatchState.Ready.Load() || !renderDerivativeCleanupState.Ready.Load() || !renderDerivativeState.Ready.Load() || !perspectivePreviewState.Ready.Load() || !multiQualityState.Ready.Load() || !multiPreviewState.Ready.Load() || !perspectiveQualityState.Ready.Load() || !renderRecoveryState.Ready.Load() || (nativeRecoveryProcessor != nil && !nativeRecoveryState.Ready.Load()) || (linesEnabled && (!perspectiveLinesRecoveryState.Ready.Load() || !perspectiveLinesLifecycleState.Ready.Load())) || !interactiveState.Ready.Load() || !interactiveFinalizeState.Ready.Load() || !applyState.Ready.Load() || !mediaRetryState.Ready.Load() || !mediaFinalizeState.Ready.Load() || pool.Ping(ping) != nil || storage.Ready(ping) != nil {
+		if (learningEvaluateInstalled && !learningEvaluateState.Ready.Load()) || (restorationEnabled && !restorationAdoptionState.Ready.Load()) || (identityAdoptionEnabled && !identityAdoptionState.Ready.Load()) || (restorationPreviewEnabled && !restorationPreviewState.Ready.Load()) || (metadataAdoptionEnabled && !metadataAdoptionState.Ready.Load()) || (replacementAdoptionEnabled && !replacementAdoptionState.Ready.Load()) || !ready.Load() || (deliveryConfig.Enabled && (!deliveryState.Ready.Load() || !deliveryRuntimeReady.Load())) || (captureEnabled && !captureState.Ready.Load()) || (sessionPlanInstalled && !sessionPlanState.Ready.Load()) || (semanticAssemblyInstalled && !semanticAssemblyState.Ready.Load()) || (sceneMaterializationInstalled && !sceneMaterializationState.Ready.Load()) || !expansionState.Ready.Load() || !ingestState.Ready.Load() || !interchangeCollectionState.Ready.Load() || (interchangeImportProcessor != nil && (!interchangeImportState.Ready.Load() || !interchangeImportRuntimeReady.Load())) || (interchangeExportProcessor != nil && (!interchangeExportState.Ready.Load() || !interchangeExportRuntimeReady.Load())) || (archiveInvalidationProcessor != nil && !archiveInvalidationState.Ready.Load()) || (archiveRevocationProcessor != nil && !archiveRevocationState.Ready.Load()) || (archiveRecoveryProcessor != nil && !archiveRecoveryState.Ready.Load()) || (archiveCleanupProcessor != nil && !archiveCleanupState.Ready.Load()) || (archiveExpiryProcessor != nil && !archiveExpiryState.Ready.Load()) || (archiveCompletionProcessor != nil && !archiveCompletionState.Ready.Load()) || !uploadState.Ready.Load() || !downloadState.Ready.Load() || !bulkState.Ready.Load() || !styleState.Ready.Load() || !styleAnalysisState.Ready.Load() || !styleImportState.Ready.Load() || !embeddingState.Ready.Load() || !exportBatchState.Ready.Load() || !renderBatchState.Ready.Load() || !renderDerivativeCleanupState.Ready.Load() || !renderDerivativeState.Ready.Load() || !perspectivePreviewState.Ready.Load() || !multiQualityState.Ready.Load() || !multiPreviewState.Ready.Load() || !perspectiveQualityState.Ready.Load() || !renderRecoveryState.Ready.Load() || (nativeRecoveryProcessor != nil && !nativeRecoveryState.Ready.Load()) || (linesEnabled && (!perspectiveLinesRecoveryState.Ready.Load() || !perspectiveLinesLifecycleState.Ready.Load())) || !interactiveState.Ready.Load() || !interactiveFinalizeState.Ready.Load() || !applyState.Ready.Load() || !mediaRetryState.Ready.Load() || !mediaFinalizeState.Ready.Load() || pool.Ping(ping) != nil || storage.Ready(ping) != nil {
 			w.WriteHeader(http.StatusServiceUnavailable)
 			w.Write([]byte(`{"status":"unavailable"}`))
 			return
@@ -1145,6 +1159,15 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 				restorationAdoptionState, 5*time.Second)
 		}()
 		defer func() { stopRestoration(); <-restorationDone }()
+	}
+	if identityAdoptionProcessor != nil {
+		identityCtx, stopIdentity := context.WithCancel(ctx)
+		identityDone := make(chan error, 1)
+		go func() {
+			identityDone <- RunExpansionLoop(identityCtx, identityAdoptionProcessor,
+				identityAdoptionState, 5*time.Second)
+		}()
+		defer func() { stopIdentity(); <-identityDone }()
 	}
 	if restorationPreviewProcessor != nil {
 		previewCtx, stopPreview := context.WithCancel(ctx)

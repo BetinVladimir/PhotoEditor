@@ -216,6 +216,10 @@ class AdoptionCoordinator:
             from .interchange_import_adoption_recovery import interchange_import_adoption_committed
             if interchange_import_adoption_committed(self.read_connection, tenant_id, task_id, check_active=self.check_active):
                 return True
+        # The Go scheduler owns identity.compare physical pixel verification
+        # and its dedicated atomic adoption transaction.
+        if context.operation == 'identity.compare':
+            return False
         if context.operation == 'v2.interchange.parse':
             from .interchange_parse_adoption_recovery import interchange_parse_adoption_committed
             if interchange_parse_adoption_committed(self.read_connection, tenant_id, task_id, check_active=self.check_active):
