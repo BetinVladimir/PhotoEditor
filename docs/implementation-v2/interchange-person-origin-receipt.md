@@ -40,6 +40,13 @@ its own signature against the configured public key and emits canonical bytes.
 `crypto.Signer` whose public key matches the issuer configuration. It signs
 owned, bounded bytes and verifies the returned signature against that pinned
 public key. Provisioning and startup installation remain outstanding.
+`PreparePortablePersonOriginAttachment` derives a deterministic entry-scoped
+receipt path and artifact identity from the issuer's canonical signed bytes.
+It returns owned bytes and the exact manifest mapping for a later immutable
+object publisher. This prepared value alone is not an archive source: the
+publisher must write a versioned object, reread and qualify its bytes, then
+add its `PersonOriginReceipt` inventory entry and mapping atomically with ZIP
+generation. The current exporter still rejects nonempty `person_origins`.
 `ExportPersonOriginOccurrence` now binds the exact selected entry and portable
 recipe to its frozen source, authored Override, one confirmed `person_subject`
 inline MaskRef, and its MaskPixels child. It checks physical source canvas and
