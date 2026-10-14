@@ -102,6 +102,15 @@ def test_holdout_series_uses_pinned_item_and_production_stage_order(tmp_path):
                               apply_local(series_rgb, None, style.local),
                               style.strength)
     np.testing.assert_array_equal(target, expected)
+    borrowed = correction.model_copy(deep=True)
+    altered = np.empty_like(target)
+    def mutate_borrowed():
+        borrowed.applied_ev = 0
+    render_materialized_style(
+        fixture.rgb, altered, style, person_reliable=False,
+        series_correction=borrowed, series_item_id=item_id, tile=256,
+        check_active=mutate_borrowed)
+    np.testing.assert_array_equal(altered, expected)
     with pytest.raises(ValueError, match='HOLDOUT_SERIES_EVIDENCE_REQUIRED'):
         render_materialized_style(
             fixture.rgb, target, style, person_reliable=False,

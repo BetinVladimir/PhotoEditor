@@ -17,6 +17,7 @@ from photo_worker.algorithms.color import (
 from photo_worker.algorithms.regions import apply_regions
 from photo_worker.algorithms.style import ResolvedColor, resolve_style
 from photo_worker.contracts.resolved import ResolvedStyle
+from photo_worker.contracts.base import canonical_bytes
 from photo_worker.contracts.style import StyleV2
 from photo_worker.contracts.series import ItemCorrection
 
@@ -70,6 +71,10 @@ def render_resolved_color(source: np.ndarray, target: np.ndarray,
         if (not isinstance(series_correction, ItemCorrection) or
                 type(series_item_id) is not UUID or series_item_id.int == 0 or
                 series_correction.item_id != series_item_id):
+            raise ValueError('HOLDOUT_SERIES_EVIDENCE_REQUIRED')
+        series_correction = ItemCorrection.model_validate_json(
+            canonical_bytes(series_correction))
+        if series_correction.item_id != series_item_id:
             raise ValueError('HOLDOUT_SERIES_EVIDENCE_REQUIRED')
     elif series_correction is not None or series_item_id is not None:
         raise ValueError('HOLDOUT_SERIES_EVIDENCE_UNEXPECTED')
