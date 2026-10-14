@@ -61,6 +61,10 @@ operator-supplied `person_origin_factory` through `ExportPreparationFactory`
 to bundle preparation. This is an installation port, not a default factory:
 the operator must supply signed-source publication and independent qualification
 before any `person_origins` can be emitted.
+Bundle export now checks every origin factory source against the task's declared
+typed input and current physical metadata, and requires deterministic receipt
+path and UUIDv5 identity before manifest preparation. A callback cannot add an
+undeclared receipt or MaskRef to the portable inventory.
 Bundle mask compilation now reads canonical `Override` documents and uses
 their inline mask bindings to witness `MaskPixels` canvas hashes. This covers
 confirmed `person_subject` masks, whose `MaskRef` is intentionally inline

@@ -1,4 +1,5 @@
 """Prepare the PhotoEditor bundle from typed/physically qualified inputs."""
+from uuid import uuid5
 from photo_worker.contracts.base import canonical_bytes
 from photo_worker.v2.interchange_plan import InterchangePlan
 from photo_worker.v2.interchange_export_inventory import compile_qualified_export_inventory
@@ -11,6 +12,33 @@ from photo_worker.v2.interchange_mapping import MappingEntry, MappingField
 from .export_adapter import ExportAuthority, PreparedExportWork
 from .export_images import qualify_export_image
 from .recipe_factory import PreparedImportRecipeFactory
+
+
+def qualify_declared_person_origin_sources(reader, sources, mappings):
+    if not isinstance(sources,tuple) or not isinstance(mappings,tuple):
+        raise ValueError('INTERCHANGE_EXPORT_PERSON_ORIGIN_INSTALLATION')
+    for source in sources:
+        if not isinstance(source,ExportSource):
+            raise ValueError('INTERCHANGE_EXPORT_PERSON_ORIGIN_SOURCE')
+        declared=reader.entries.get((source.reference.artifact_id,source.reference.sha256))
+        if declared is None or declared.contract!=source.contract or source.contract not in ('MaskRef','PersonOriginReceipt'):
+            raise ValueError('INTERCHANGE_EXPORT_PERSON_ORIGIN_UNDECLARED')
+        evidence=reader.evidence(source.reference.model_copy(deep=True))
+        if (evidence.bytes!=source.bytes or evidence.media_type!='application/json'
+                or source.sidecar is not True or source.bytes<2
+                or source.contract=='PersonOriginReceipt' and source.bytes>16384
+                or source.contract=='MaskRef' and source.path!=f'dependencies/{source.reference.artifact_id}.json'):
+            raise ValueError('INTERCHANGE_EXPORT_PERSON_ORIGIN_EVIDENCE')
+    for origin in mappings:
+        if not isinstance(origin,BundlePersonOrigin):
+            raise ValueError('INTERCHANGE_EXPORT_PERSON_ORIGIN_MAPPING')
+        receipt=next((source for source in sources if source.path==origin.path),None)
+        path=f'origins/{origin.entry_id}/{origin.mask_ref.artifact_id}.json'
+        identity=uuid5(origin.entry_id,f'v30:person-origin:{origin.mask_ref.artifact_id}')
+        if (origin.path!=path or receipt is None or receipt.contract!='PersonOriginReceipt'
+                or receipt.reference.artifact_id!=identity
+                or receipt.reference.sha256!=origin.sha256):
+            raise ValueError('INTERCHANGE_EXPORT_PERSON_ORIGIN_MAPPING')
 
 
 class BundleExportPreparationFactory:
@@ -72,16 +100,12 @@ class BundleExportPreparationFactory:
             if (not isinstance(origin_sources,tuple) or not isinstance(origin_mappings,tuple)
                     or not callable(origin_qualifier)):
                 raise ValueError('INTERCHANGE_EXPORT_PERSON_ORIGIN_INSTALLATION')
+            qualify_declared_person_origin_sources(reader,origin_sources,origin_mappings)
             for source in origin_sources:
-                if not isinstance(source,ExportSource):
-                    raise ValueError('INTERCHANGE_EXPORT_PERSON_ORIGIN_SOURCE')
                 old=all_sources.get(source.reference.artifact_id)
                 if old is not None and old!=source:
                     raise ValueError('INTERCHANGE_EXPORT_PERSON_ORIGIN_ALIAS')
                 all_sources[source.reference.artifact_id]=source
-            for origin in origin_mappings:
-                if not isinstance(origin,BundlePersonOrigin):
-                    raise ValueError('INTERCHANGE_EXPORT_PERSON_ORIGIN_MAPPING')
         mask_pins={mask.path:canonical_bytes(mask) for mask in masks}
         sources={source.path:source for source in inventory.sources}
         def qualify_mask(mask,source):
