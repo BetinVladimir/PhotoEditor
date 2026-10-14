@@ -22,7 +22,10 @@ two-pass `Store.ObservePurgedTenant` across an explicit complete bucket
 inventory. It probes at most 32 targets concurrently with a process-wide
 slot limit and returns no partial proof. Every receipt must name the exact
 tenant and configured bucket, all three ordered tenant prefixes, two passes,
-and an observation time from the current call. The caller still has to supply
+and an observation time from the current call. Targets are identified by the
+canonical installed endpoint plus bucket, and each returned receipt retains
+that endpoint so identically named buckets on different endpoints remain
+distinct. The caller still has to supply
 the authoritative writer-destination inventory and an independent fixture /
 paused-writer guard; this helper does not infer either. Unit scenarios are
 authored but not run. The composer checks that guard before any bucket IO and

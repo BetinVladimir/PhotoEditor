@@ -9,13 +9,24 @@ import (
 	"photoeditor/backend/internal/objectstore"
 )
 
-// Each target is an independently configured physical bucket. The caller is
-// responsible for supplying the complete writer-destination inventory.
+// Each target is an independently configured physical bucket. The endpoint is
+// the canonical identity from the installed storage configuration; the same
+// bucket name may occur on different endpoints. The caller supplies the full
+// writer-destination inventory.
 type TenantPurgeObservationTarget struct {
-	Name     string
+	Endpoint string
+	Bucket   string
 	Observer interface {
 		ObservePurgedTenant(context.Context, uuid.UUID, func(context.Context, uuid.UUID) error) (objectstore.RestorePurgeStorageEvidence, error)
 	}
+}
+
+// Preserve the physical destination alongside the store's bucket-local
+// observation so equal bucket names on different endpoints stay distinct.
+type TenantPurgeBucketEvidence struct {
+	Endpoint    string
+	Bucket      string
+	Observation objectstore.RestorePurgeStorageEvidence
 }
 
 type tenantPurgeObservationResult struct {
@@ -42,7 +53,7 @@ func observeTenantPurgeTarget(ctx context.Context, target TenantPurgeObservation
 func validTenantPurgeObservation(target TenantPurgeObservationTarget, tenant uuid.UUID, started time.Time, evidence objectstore.RestorePurgeStorageEvidence) bool {
 	id := tenant.String()
 	want := [3]string{"tenants/" + id + "/", "staging/tenants/" + id + "/", "originals/tenants/" + id + "/"}
-	if evidence.TenantID != tenant || evidence.Bucket != target.Name || evidence.Passes != 2 || len(evidence.Prefixes) != len(want) || evidence.ObservedAt.Before(started) || evidence.ObservedAt.After(time.Now().Add(time.Minute)) {
+	if evidence.TenantID != tenant || evidence.Bucket != target.Bucket || evidence.Passes != 2 || len(evidence.Prefixes) != len(want) || evidence.ObservedAt.Before(started) || evidence.ObservedAt.After(time.Now().Add(time.Minute)) {
 		return false
 	}
 	for index, prefix := range want {
@@ -55,19 +66,21 @@ func validTenantPurgeObservation(target TenantPurgeObservationTarget, tenant uui
 
 // No partial proof escapes: success includes a fresh two-pass observation for
 // every installed target, under one caller-provided fixture/writer guard.
-func ObservePurgedTenantBuckets(ctx context.Context, tenant uuid.UUID, targets []TenantPurgeObservationTarget, guard func(context.Context, uuid.UUID) error) ([]objectstore.RestorePurgeStorageEvidence, error) {
+func ObservePurgedTenantBuckets(ctx context.Context, tenant uuid.UUID, targets []TenantPurgeObservationTarget, guard func(context.Context, uuid.UUID) error) ([]TenantPurgeBucketEvidence, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 	if tenant == uuid.Nil || guard == nil || len(targets) < 1 || len(targets) > 256 {
 		return nil, errors.New("invalid tenant purge observation")
 	}
-	seen := make(map[string]bool, len(targets))
+	type identity struct{ endpoint, bucket string }
+	seen := make(map[identity]bool, len(targets))
 	for _, target := range targets {
-		if target.Name == "" || target.Observer == nil || seen[target.Name] {
+		key := identity{target.Endpoint, target.Bucket}
+		if target.Endpoint == "" || target.Bucket == "" || target.Observer == nil || seen[key] {
 			return nil, errors.New("invalid tenant purge observation targets")
 		}
-		seen[target.Name] = true
+		seen[key] = true
 	}
 	// Refuse before starting any storage scan when the fixture or writer fence
 	// has already been revoked. Individual stores also recheck during IO.
@@ -107,7 +120,7 @@ func ObservePurgedTenantBuckets(ctx context.Context, tenant uuid.UUID, targets [
 			}
 		}()
 	}
-	evidence := make([]objectstore.RestorePurgeStorageEvidence, len(targets))
+	evidence := make([]TenantPurgeBucketEvidence, len(targets))
 	for range targets {
 		select {
 		case <-ctx.Done():
@@ -120,7 +133,7 @@ func ObservePurgedTenantBuckets(ctx context.Context, tenant uuid.UUID, targets [
 				return nil, errors.New("invalid tenant purge observation evidence")
 			}
 			result.evidence.Prefixes = append([]string(nil), result.evidence.Prefixes...)
-			evidence[result.index] = result.evidence
+			evidence[result.index] = TenantPurgeBucketEvidence{Endpoint: targets[result.index].Endpoint, Bucket: targets[result.index].Bucket, Observation: result.evidence}
 		}
 	}
 	if err := ctx.Err(); err != nil {

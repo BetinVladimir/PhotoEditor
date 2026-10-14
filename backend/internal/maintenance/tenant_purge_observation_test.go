@@ -50,13 +50,13 @@ func TestObservePurgedTenantBucketsRequiresEveryExactBucket(t *testing.T) {
 		}
 		return nil
 	}
-	targets := []TenantPurgeObservationTarget{{"primary", first}, {"archive", second}}
+	targets := []TenantPurgeObservationTarget{{Endpoint: "https://primary.example", Bucket: "primary", Observer: first}, {Endpoint: "https://archive.example", Bucket: "archive", Observer: second}}
 	proof, err := ObservePurgedTenantBuckets(context.Background(), tenant, targets, guard)
 	if err != nil || len(proof) != 2 || proof[0].Bucket != "primary" || proof[1].Bucket != "archive" || first.calls != 1 || second.calls != 1 || guardCalls.Load() != 4 {
 		t.Fatal("incomplete bucket proof", proof, err)
 	}
 	first.evidence.Prefixes[0] = "changed"
-	if proof[0].Prefixes[0] == "changed" {
+	if proof[0].Observation.Prefixes[0] == "changed" {
 		t.Fatal("returned evidence shares mutable adapter slice")
 	}
 	second.evidence.Prefixes[1] = "foreign/"
@@ -85,7 +85,7 @@ func TestObservePurgedTenantBucketsRejectsRevokedFinalGuard(t *testing.T) {
 		}
 		return nil
 	}
-	proof, err := ObservePurgedTenantBuckets(context.Background(), tenant, []TenantPurgeObservationTarget{{"primary", observer}}, guard)
+	proof, err := ObservePurgedTenantBuckets(context.Background(), tenant, []TenantPurgeObservationTarget{{Endpoint: "https://primary.example", Bucket: "primary", Observer: observer}}, guard)
 	if !errors.Is(err, revoked) || proof != nil || observer.calls != 1 || calls.Load() != 3 {
 		t.Fatal("revoked fixture fence published storage proof", proof, err)
 	}
@@ -95,7 +95,7 @@ func TestObservePurgedTenantBucketsRejectsRevokedInitialGuardBeforeIO(t *testing
 	tenant := uuid.New()
 	observer := &tenantObservationStub{evidence: observedTenantBucket(tenant, "primary")}
 	revoked := errors.New("fixture writer fence revoked")
-	proof, err := ObservePurgedTenantBuckets(context.Background(), tenant, []TenantPurgeObservationTarget{{"primary", observer}}, func(_ context.Context, actual uuid.UUID) error {
+	proof, err := ObservePurgedTenantBuckets(context.Background(), tenant, []TenantPurgeObservationTarget{{Endpoint: "https://primary.example", Bucket: "primary", Observer: observer}}, func(_ context.Context, actual uuid.UUID) error {
 		if actual != tenant {
 			return errors.New("foreign tenant")
 		}
@@ -110,14 +110,33 @@ func TestObservePurgedTenantBucketsRejectsIncompleteInstallationBeforeIO(t *test
 	tenant := uuid.New()
 	observer := &tenantObservationStub{evidence: observedTenantBucket(tenant, "primary")}
 	guard := func(context.Context, uuid.UUID) error { return nil }
-	for _, targets := range [][]TenantPurgeObservationTarget{nil, {{"primary", observer}, {"primary", observer}}, {{"missing", nil}}} {
+	for _, targets := range [][]TenantPurgeObservationTarget{nil,
+		{{Endpoint: "https://primary.example", Bucket: "primary", Observer: observer}, {Endpoint: "https://primary.example", Bucket: "primary", Observer: observer}},
+		{{Endpoint: "https://primary.example", Bucket: "missing"}},
+		{{Bucket: "primary", Observer: observer}},
+		{{Endpoint: "https://primary.example", Observer: observer}},
+	} {
 		if proof, err := ObservePurgedTenantBuckets(context.Background(), tenant, targets, guard); err == nil || proof != nil || observer.calls != 0 {
 			t.Fatal("incomplete installation reached IO", proof, err)
 		}
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if _, err := ObservePurgedTenantBuckets(ctx, tenant, []TenantPurgeObservationTarget{{"primary", observer}}, guard); !errors.Is(err, context.Canceled) || observer.calls != 0 {
+	if _, err := ObservePurgedTenantBuckets(ctx, tenant, []TenantPurgeObservationTarget{{Endpoint: "https://primary.example", Bucket: "primary", Observer: observer}}, guard); !errors.Is(err, context.Canceled) || observer.calls != 0 {
 		t.Fatal("cancellation reached storage", err)
+	}
+}
+
+func TestObservePurgedTenantBucketsAcceptsSameNameOnDifferentEndpoints(t *testing.T) {
+	tenant := uuid.New()
+	first := &tenantObservationStub{evidence: observedTenantBucket(tenant, "photos")}
+	second := &tenantObservationStub{evidence: observedTenantBucket(tenant, "photos")}
+	targets := []TenantPurgeObservationTarget{
+		{Endpoint: "https://primary.example", Bucket: "photos", Observer: first},
+		{Endpoint: "https://archive.example", Bucket: "photos", Observer: second},
+	}
+	proof, err := ObservePurgedTenantBuckets(context.Background(), tenant, targets, func(context.Context, uuid.UUID) error { return nil })
+	if err != nil || len(proof) != 2 || proof[0].Endpoint != "https://primary.example" || proof[1].Endpoint != "https://archive.example" || proof[0].Bucket != "photos" || proof[1].Bucket != "photos" || first.calls != 1 || second.calls != 1 {
+		t.Fatal("distinct physical buckets collapsed", proof, err)
 	}
 }
