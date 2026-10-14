@@ -74,7 +74,8 @@ def resolve_interchange_export_installation(supplied=None):
 
 def sql_prepared_export_installation(database, *, schemas_jcs, schemas_sha, work_icc_sha,
         qualify_runtime, extra_validators=None, max_file_bytes=128 << 30,
-        qualify_occurrence_other=None, operation_schemas=None, person_origin_factory=None):
+        qualify_occurrence_other=None, operation_schemas=None, person_origin_factory=None,
+        person_origin_trusted_keys=None, person_origin_model_lock_sha=None):
     """Compose concrete formats and SQL authority without enabling dispatch.
 
     Operator deployment must qualify native dependencies and install the SQL
@@ -91,6 +92,14 @@ def sql_prepared_export_installation(database, *, schemas_jcs, schemas_sha, work
     if qualify_occurrence_other is not None:
         from photo_worker.v2.interchange_descriptor_installation import SQLExportDescriptorOccurrenceFactory
         occurrences=SQLExportDescriptorOccurrenceFactory(database,qualify_other=qualify_occurrence_other)
+    if person_origin_trusted_keys is not None or person_origin_model_lock_sha is not None:
+        if (person_origin_factory is not None or person_origin_trusted_keys is None
+                or person_origin_model_lock_sha is None):
+            raise ValueError('INTERCHANGE_EXPORT_PERSON_ORIGIN_INSTALLATION')
+        from .person_origin_factory import DeclaredPersonOriginFactory
+        person_origin_factory = DeclaredPersonOriginFactory(
+            trusted_keys=person_origin_trusted_keys,
+            model_lock_sha=person_origin_model_lock_sha)
     if person_origin_factory is not None and not callable(person_origin_factory):
         raise ValueError('INTERCHANGE_EXPORT_PERSON_ORIGIN_INSTALLATION')
     return ExportInstallation(SQLExportAdmission(database),

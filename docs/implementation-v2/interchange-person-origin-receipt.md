@@ -49,8 +49,13 @@ add its `PersonOriginReceipt` inventory entry and mapping atomically with ZIP
 generation. The Python bundle preparer now accepts receipt and MaskRef sources
 through a process-installed `person_origin_factory`, requires a qualifier for
 each exact mapping, preserves their explicit compression roles, and includes
-them in the closed manifest/inventory. No production factory is installed yet,
-and the Go export path remains closed by default. An explicitly installed
+them in the closed manifest/inventory. `DeclaredPersonOriginFactory` now
+provides a process-keyed worker implementation: it discovers only declared
+`PersonOriginReceipt` inputs, binds each signed claim to a frozen plan entry,
+checks the original declared `MaskRef` and typed recipe closure, and rereads
+both physical JSON sources before archive creation. The explicit SQL worker
+installer accepts operator-provisioned issuer public keys and model lock to
+install this factory. The Go export path remains closed by default. An explicitly installed
 `ExportPersonOriginArchiveAuthority` now enables the archive reader and export
 adoption preparation to require physical ZIP receipt bytes, trusted Ed25519
 signature, deterministic inventory identity and current frozen source closure.
