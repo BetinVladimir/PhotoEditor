@@ -168,3 +168,56 @@ func TestTenantPurgeRemovesHistoricalDeliverySigningPins(t *testing.T) {
 		t.Fatal("unknown tenant signing runtime accepted", err, accepted)
 	}
 }
+
+func TestGlobalRuntimeTablesDoNotGiveFunctionOwnerImplicitDelete(t *testing.T) {
+	dsn := os.Getenv("PHOTO_TEST_DATABASE_URL")
+	if dsn == "" {
+		t.Skip("isolated fully migrated PostgreSQL required")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	db, err := pgxpool.New(ctx, dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	var login, inherit, bypass, super, member bool
+	if err = db.QueryRow(ctx, `SELECT role.rolcanlogin,role.rolinherit,
+  role.rolbypassrls,role.rolsuper,
+  pg_has_role('photo_fn_owner','photo_runtime_owner','member')
+  FROM pg_roles role WHERE role.rolname='photo_runtime_owner'`).
+		Scan(&login, &inherit, &bypass, &super, &member); err != nil {
+		t.Fatal(err)
+	}
+	if login || inherit || bypass || super || member {
+		t.Fatal("global runtime table owner is not isolated")
+	}
+	for _, table := range []struct {
+		name  string
+		lease bool
+	}{
+		{"v30_import_runtime_leases", true},
+		{"v30_import_adopter_runtime_leases", true},
+		{"v30_export_runtime_leases", true},
+		{"v30_delivery_runtime_leases", true},
+		{"v31_signing_adopter_runtime_leases", true},
+		{"capacity_policy_timings", false},
+		{"restore_quarantine_runs", false},
+		{"restore_quarantine_versions", false},
+	} {
+		var owner string
+		var read, insert, update, deleteGranted bool
+		err = db.QueryRow(ctx, `SELECT pg_get_userbyid(c.relowner),
+  has_table_privilege('photo_fn_owner',c.oid,'SELECT'),
+  has_table_privilege('photo_fn_owner',c.oid,'INSERT'),
+  has_table_privilege('photo_fn_owner',c.oid,'UPDATE'),
+  has_table_privilege('photo_fn_owner',c.oid,'DELETE')
+  FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+  WHERE n.nspname='photo' AND c.relname=$1`, table.name).
+			Scan(&owner, &read, &insert, &update, &deleteGranted)
+		if err != nil || owner != "photo_runtime_owner" || !read ||
+			insert != table.lease || update != table.lease || deleteGranted {
+			t.Fatal("global runtime table ACL drift", table.name, owner, err)
+		}
+	}
+}
