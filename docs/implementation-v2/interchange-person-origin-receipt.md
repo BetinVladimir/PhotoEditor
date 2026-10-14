@@ -6,7 +6,7 @@ producer. The claim binds issuer, original VersionBinding, exact archived
 EditingRecipeV3/Override/MaskRef/MaskPixels refs, producer task/attempt/fence,
 model lock and qualification report. It contains no person identity or consent.
 The verifier takes a process-owned `(issuer_id, SHA256(public key)) → 32-byte
-Ed25519 public key` trust map and independently supplied expected refs. Archive
+Ed25519 public key` trust map and independently supplied expected entry/ref scope. Archive
 inventory, parsed JSON and HTTP payload may not add trusted keys or expected
 values. Signature verification alone never grants import admission.
 `backend/internal/interchange/import_person_origin_receipt.go` provides the
@@ -29,8 +29,19 @@ user grant/epoch before and after IO and at activation. Revocation of either
 authority must fail closed. The existing SQL grant remains only the consent
 half; it cannot be reused as producer evidence.
 
+The bundle schema now has an optional `person_origins` mapping. Its entry ID,
+recipe, Override, MaskRef, MaskPixels and receipt path/SHA must all resolve to
+the declared inventory and selected entry. Python archive verification and Go
+parsed-import validation enforce this structural mapping; the later typed
+recipe/Override traversal must still prove actual parent-child occurrence.
+The claim itself
+also includes the entry ID. The Go export validators currently reject any
+nonempty `person_origins` until a qualified issuer and source-inventory
+receipt path are installed; this prevents an untrusted file from being
+published as provenance by the existing exporter.
+
 The Python and Go pure contracts and negative unit scenarios are authored but
 not executed.
-No exporter signer, archive mapping, SQL receipt authority, process trust
+No exporter signer, qualified receipt publisher, SQL receipt authority, process trust
 bootstrap or end-to-end verification has been installed yet. Production
 person-mask import remains unavailable.

@@ -18,12 +18,12 @@ def fixture():
     def ref():
         return ArtifactRef(artifact_id=uuid4(), sha256='a' * 64)
     source = VersionBinding(asset_version_id=uuid4(), source=ref(), canvas_hash='b' * 64)
-    claim = PortablePersonOriginClaim(schema_version=1, issuer_id=uuid4(), source=source,
+    claim = PortablePersonOriginClaim(schema_version=1, issuer_id=uuid4(), entry_id=uuid4(), source=source,
         recipe=ref(), override=ref(), mask_ref=ref(), mask_pixels=ref(),
         producer_task_id=uuid4(), producer_attempt=2, producer_fence=3,
         operation='mask.person', operation_version='1', model_lock_sha='c' * 64,
         qualification_report=ref())
-    expected = PortablePersonOriginExpectation(source=source, recipe=claim.recipe,
+    expected = PortablePersonOriginExpectation(entry_id=claim.entry_id, source=source, recipe=claim.recipe,
         override=claim.override, mask_ref=claim.mask_ref, mask_pixels=claim.mask_pixels,
         model_lock_sha=claim.model_lock_sha)
     private = Ed25519PrivateKey.generate()

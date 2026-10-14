@@ -23,3 +23,33 @@ func TestParsedImportValidatorRejectsInventorySubstitutionAndGaps(t *testing.T){
   if _,err:=validateParsedImportDocument(context.Background(),raw);err==nil{t.Fatal("invalid parsed accepted",change)}
  }
 }
+func TestParsedImportPersonOriginMappingRequiresExactInventory(t *testing.T){
+ for _,change:=range []string{"valid","receipt","entry","recipe","override","mask","pixels","duplicate"}{
+  document:=importParsedValidatorFixture()
+  add:=func(contract string)v2input.Ref{
+   digest:=rawSHA([]byte(contract));id:=uuid.New();path:="dependencies/"+id.String()+".json"
+   document.Manifest.Inventory=append(document.Manifest.Inventory,importBundleInventory{ID:id,Path:path,SHA:digest,Contract:contract})
+   document.Files=append(document.Files,importParsedFile{Path:path,Content:v2input.Ref{ArtifactID:uuid.New(),SHA256:digest},Contract:contract})
+   return v2input.Ref{ArtifactID:id,SHA256:digest}
+  }
+  recipe:=add("EditingRecipeV3");override:=add("Override");mask:=add("MaskRef");pixels:=add("MaskPixels");receipt:=add("PersonOriginReceipt")
+  recipePath:="dependencies/"+recipe.ArtifactID.String()+".json";recipeSHA:=recipe.SHA256
+  document.Manifest.Entries[0].RecipePath=&recipePath;document.Manifest.Entries[0].RecipeSHA=&recipeSHA
+  origin:=importBundlePersonOrigin{EntryID:document.Manifest.Entries[0].ID,Recipe:recipe,Override:override,
+   MaskRef:mask,MaskPixels:pixels,Path:"dependencies/"+receipt.ArtifactID.String()+".json",SHA:receipt.SHA256}
+  switch change{
+  case "receipt":origin.Path="dependencies/"+override.ArtifactID.String()+".json"
+  case "entry":origin.EntryID=uuid.New()
+  case "recipe":origin.Recipe.SHA256=rawSHA([]byte("other"))
+  case "override":origin.Override.ArtifactID=uuid.New()
+  case "mask":origin.MaskRef.SHA256=rawSHA([]byte("other"))
+  case "pixels":origin.MaskPixels.ArtifactID=uuid.New()
+  }
+  document.Manifest.PersonOrigins=[]importBundlePersonOrigin{origin}
+  if change=="duplicate"{document.Manifest.PersonOrigins=append(document.Manifest.PersonOrigins,origin)}
+  raw,err:=canonical.Marshal(document);if err!=nil{t.Fatal(err)}
+  _,err=validateParsedImportDocument(context.Background(),raw)
+  if change=="valid"&&err!=nil{t.Fatal("valid origin mapping refused",err)}
+  if change!="valid"&&err==nil{t.Fatal("invalid origin mapping admitted",change)}
+ }
+}

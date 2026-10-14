@@ -67,3 +67,42 @@ def test_unlisted_file_and_manifest_byte_substitution():
 def test_duplicate_json_keys_rejected_before_model_validation():
     with pytest.raises(ValueError, match="Duplicate"):
         verify_bundle_manifest(b'{"schema_version":1,"schema_version":1}', ())
+
+
+@pytest.mark.parametrize('change', ['valid', 'receipt', 'entry', 'recipe', 'override',
+                                    'mask_ref', 'pixels', 'duplicate'])
+def test_person_origin_mapping_binds_exact_inventory_and_recipe_occurrence(change):
+    manifest, image = fixture()
+    def add(contract):
+        raw = contract.encode()
+        path = f'dependencies/{uuid4()}.json'
+        digest = sha256(raw).hexdigest()
+        row = dict(artifact_id=str(uuid4()), path=path, sha256=digest, contract=contract)
+        manifest['inventory'].append(row)
+        return row, VerifiedArchiveFile(path, len(raw), digest)
+    recipe, recipe_file = add('EditingRecipeV3')
+    override, override_file = add('Override')
+    mask, mask_file = add('MaskRef')
+    pixels, pixels_file = add('MaskPixels')
+    receipt, receipt_file = add('PersonOriginReceipt')
+    entry = manifest['entries'][0]
+    entry['recipe_path'], entry['recipe_sha256'] = recipe['path'], recipe['sha256']
+    def ref(row):
+        return dict(artifact_id=row['artifact_id'], sha256=row['sha256'])
+    origin = dict(entry_id=entry['entry_id'], recipe=ref(recipe), override=ref(override),
+                  mask_ref=ref(mask), mask_pixels=ref(pixels),
+                  path=receipt['path'], sha256=receipt['sha256'])
+    manifest['person_origins'] = [origin]
+    if change == 'receipt': origin['path'] = override['path']
+    if change == 'entry': origin['entry_id'] = str(uuid4())
+    if change == 'recipe': origin['recipe']['sha256'] = 'f' * 64
+    if change == 'override': origin['override']['artifact_id'] = str(uuid4())
+    if change == 'mask_ref': origin['mask_ref']['sha256'] = 'f' * 64
+    if change == 'pixels': origin['mask_pixels']['artifact_id'] = str(uuid4())
+    if change == 'duplicate': manifest['person_origins'].append(deepcopy(origin))
+    files = (recipe_file, override_file, mask_file, pixels_file, receipt_file)
+    if change == 'valid':
+        assert verify(manifest, image, files).person_origins[0].path == receipt['path']
+    else:
+        with pytest.raises(ValueError):
+            verify(manifest, image, files)

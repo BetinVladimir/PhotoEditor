@@ -18,7 +18,7 @@ func portablePersonOriginFixture(t *testing.T) ([]byte, PortablePersonOriginExpe
 	t.Helper()
 	ref := func() v2input.Ref { return v2input.Ref{ArtifactID: uuid.New(), SHA256: strings.Repeat("a", 64)} }
 	source := v2input.SessionVersionBinding{AssetVersionID: uuid.New(), Source: ref(), CanvasHash: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}
-	claim := PortablePersonOriginClaim{SchemaVersion: 1, IssuerID: uuid.New(), Source: source,
+	claim := PortablePersonOriginClaim{SchemaVersion: 1, IssuerID: uuid.New(), EntryID: uuid.New(), Source: source,
 		Recipe: ref(), Override: ref(), MaskRef: ref(), MaskPixels: ref(),
 		ProducerTaskID: uuid.New(), ProducerAttempt: 2, ProducerFence: 3,
 		Operation: "mask.person", OperationVersion: "1",
@@ -40,7 +40,7 @@ func portablePersonOriginFixture(t *testing.T) ([]byte, PortablePersonOriginExpe
 	if err != nil {
 		t.Fatal(err)
 	}
-	expected := PortablePersonOriginExpectation{Source: source, Recipe: claim.Recipe,
+	expected := PortablePersonOriginExpectation{EntryID: claim.EntryID, Source: source, Recipe: claim.Recipe,
 		Override: claim.Override, MaskRef: claim.MaskRef, MaskPixels: claim.MaskPixels,
 		ModelLockSHA: claim.ModelLockSHA}
 	return raw, expected, map[PortablePersonOriginKey]ed25519.PublicKey{

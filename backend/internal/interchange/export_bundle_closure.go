@@ -56,7 +56,7 @@ func ValidateExportBundleSourceInventory(ctx context.Context,intent CreateIntent
  _,compiled,err:=DecodeFrozenExportDocuments(ctx,intent,frozen.Body());if err!=nil{return err}
  var plan importPlanDocument;if err:=decodeImportDocument(compiled.planBody,&plan);err!=nil{return err}
  var manifest exportBundleManifest;if err:=decodeImportDocument(raw,&manifest);err!=nil{return err}
- if plan.Format!="photoeditor_bundle"||inventory.task!=compiled.task||len(inventory.entries)==0||len(inventory.entries)>30000||len(manifest.Inventory)!=len(inventory.entries){return v2input.ErrInvalid}
+ if plan.Format!="photoeditor_bundle"||len(manifest.PersonOrigins)>0||inventory.task!=compiled.task||len(inventory.entries)==0||len(inventory.entries)>30000||len(manifest.Inventory)!=len(inventory.entries){return v2input.ErrInvalid}
  digest,err:=canonical.Hash(inventory.entries);if err!=nil||digest!=inventory.digest{return v2input.ErrInvalid}
  if len(manifest.Backgrounds)!=len(inventory.backgrounds){return v2input.ErrInvalid}
  if len(inventory.backgrounds)>0{

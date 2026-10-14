@@ -15,7 +15,7 @@ type exportBundleEntry struct{
 }
 type exportBundleInventoryEntry struct{ID uuid.UUID `json:"artifact_id"`;Path string `json:"path"`;SHA string `json:"sha256"`;Contract string `json:"contract"`}
 type exportBundleMask struct{Path string `json:"path"`;SHA string `json:"sha256"`;Canvas string `json:"canvas_hash"`}
-type exportBundleManifest struct{Backgrounds []bundleBackground `json:"backgrounds,omitempty"`;Schema int `json:"schema_version"`;Renderer string `json:"renderer_version"`;Entries []exportBundleEntry `json:"entries"`;Masks []exportBundleMask `json:"masks"`;Inventory []exportBundleInventoryEntry `json:"inventory"`}
+type exportBundleManifest struct{Backgrounds []bundleBackground `json:"backgrounds,omitempty"`;PersonOrigins []importBundlePersonOrigin `json:"person_origins,omitempty"`;Schema int `json:"schema_version"`;Renderer string `json:"renderer_version"`;Entries []exportBundleEntry `json:"entries"`;Masks []exportBundleMask `json:"masks"`;Inventory []exportBundleInventoryEntry `json:"inventory"`}
 
 // ValidateExportManifest binds canonical manifest bytes to a physically verified
 // ZIP inventory and the frozen entries. Dependency contract labels and mask
@@ -25,6 +25,7 @@ func ValidateExportManifest(ctx context.Context,intent CreateIntent,frozen Froze
  _,compiled,err:=DecodeFrozenExportDocuments(ctx,intent,frozen.Body());if err!=nil{return err}
  var plan importPlanDocument;if err:=decodeImportDocument(compiled.planBody,&plan);err!=nil{return err}
  var manifest exportBundleManifest;if err:=decodeImportDocument(raw,&manifest);err!=nil{return err}
+ if len(manifest.PersonOrigins)>0{return v2input.ErrInvalid}
  if err:=validateBundleBackgroundMappings(manifest.Backgrounds,manifest.Inventory);err!=nil{return err}
  if manifest.Schema!=1||manifest.Renderer!="v2.2"||manifest.Masks==nil||len(manifest.Masks)>5000||len(manifest.Entries)!=len(plan.Entries)||len(manifest.Inventory)<1||len(manifest.Inventory)>30000||len(files)>plan.Files{return v2input.ErrInvalid}
  physical:=map[string]VerifiedExportZIPFile{};folded:=map[string]bool{};total:=int64(0)

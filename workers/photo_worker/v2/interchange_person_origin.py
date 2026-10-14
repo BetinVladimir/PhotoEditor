@@ -20,6 +20,7 @@ _DOMAIN = b'PhotoEditor/V30/person-mask-origin/v1\x00'
 class PortablePersonOriginClaim(Contract):
     schema_version: Literal[1]
     issuer_id: UUID
+    entry_id: UUID
     source: VersionBinding
     recipe: ArtifactRef
     override: ArtifactRef
@@ -35,7 +36,7 @@ class PortablePersonOriginClaim(Contract):
 
     @model_validator(mode='after')
     def identities(self):
-        identifiers = (self.issuer_id, self.source.asset_version_id,
+        identifiers = (self.issuer_id, self.entry_id, self.source.asset_version_id,
             self.source.source.artifact_id, self.recipe.artifact_id,
             self.override.artifact_id, self.mask_ref.artifact_id,
             self.mask_pixels.artifact_id, self.producer_task_id,
@@ -53,6 +54,7 @@ class PortablePersonOriginEnvelope(Contract):
 
 
 class PortablePersonOriginExpectation(Contract):
+    entry_id: UUID
     source: VersionBinding
     recipe: ArtifactRef
     override: ArtifactRef
@@ -78,7 +80,7 @@ def verify_portable_person_origin(raw, *, expected, trusted_keys):
         raise ValueError('INTERCHANGE_PERSON_ORIGIN_FIELDS')
     expected = PortablePersonOriginExpectation.model_validate_json(canonical_bytes(expected))
     claim = envelope.claim
-    if (claim.source != expected.source or claim.recipe != expected.recipe
+    if (claim.entry_id != expected.entry_id or claim.source != expected.source or claim.recipe != expected.recipe
             or claim.override != expected.override or claim.mask_ref != expected.mask_ref
             or claim.mask_pixels != expected.mask_pixels
             or claim.model_lock_sha != expected.model_lock_sha):

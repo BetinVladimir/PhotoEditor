@@ -25,6 +25,7 @@ var errPortablePersonOrigin = errors.New("unqualified portable person-mask origi
 type PortablePersonOriginClaim struct {
 	SchemaVersion       int                           `json:"schema_version"`
 	IssuerID            uuid.UUID                     `json:"issuer_id"`
+	EntryID             uuid.UUID                     `json:"entry_id"`
 	Source              v2input.SessionVersionBinding `json:"source"`
 	Recipe              v2input.Ref                   `json:"recipe"`
 	Override            v2input.Ref                   `json:"override"`
@@ -47,6 +48,7 @@ type PortablePersonOriginEnvelope struct {
 }
 
 type PortablePersonOriginExpectation struct {
+	EntryID      uuid.UUID
 	Source       v2input.SessionVersionBinding
 	Recipe       v2input.Ref
 	Override     v2input.Ref
@@ -65,7 +67,7 @@ func validPersonOriginRef(ref v2input.Ref) bool {
 }
 
 func validPersonOriginClaim(claim PortablePersonOriginClaim) bool {
-	return claim.SchemaVersion == 1 && claim.IssuerID != uuid.Nil &&
+	return claim.SchemaVersion == 1 && claim.IssuerID != uuid.Nil && claim.EntryID != uuid.Nil &&
 		claim.Source.AssetVersionID != uuid.Nil && validPersonOriginRef(claim.Source.Source) &&
 		portablePersonOriginSHA.MatchString(claim.Source.CanvasHash) &&
 		validPersonOriginRef(claim.Recipe) && validPersonOriginRef(claim.Override) &&
@@ -99,7 +101,7 @@ func VerifyPortablePersonOrigin(raw []byte, expected PortablePersonOriginExpecta
 	reencoded, err := canonical.Marshal(envelope)
 	if err != nil || !bytes.Equal(reencoded, raw) || envelope.SchemaVersion != 1 ||
 		!validPersonOriginClaim(envelope.Claim) || !portablePersonOriginSHA.MatchString(envelope.KeyID) ||
-		envelope.Claim.Source != expected.Source || envelope.Claim.Recipe != expected.Recipe ||
+		envelope.Claim.EntryID != expected.EntryID || envelope.Claim.Source != expected.Source || envelope.Claim.Recipe != expected.Recipe ||
 		envelope.Claim.Override != expected.Override || envelope.Claim.MaskRef != expected.MaskRef ||
 		envelope.Claim.MaskPixels != expected.MaskPixels || envelope.Claim.ModelLockSHA != expected.ModelLockSHA {
 		return zero, errPortablePersonOrigin

@@ -63,6 +63,24 @@ class BundleBackground(Contract):
         return self
 
 
+class BundlePersonOrigin(Contract):
+    entry_id: UUID
+    recipe: ArtifactRef
+    override: ArtifactRef
+    mask_ref: ArtifactRef
+    mask_pixels: ArtifactRef
+    path: Annotated[str, Field(min_length=1, max_length=240)]
+    sha256: SHA256
+
+    @model_validator(mode='after')
+    def valid_identity(self):
+        if self.entry_id.int == 0 or any(ref.artifact_id.int == 0 for ref in
+                (self.recipe, self.override, self.mask_ref, self.mask_pixels)):
+            raise ValueError('invalid person origin mapping identity')
+        interchange_path(self.path)
+        return self
+
+
 class BundleManifest(Contract):
     schema_version: Literal[1]
     renderer_version: Literal["v2.2"]
@@ -70,6 +88,7 @@ class BundleManifest(Contract):
     masks: Annotated[list[BundleMask], Field(max_length=5000)]
     inventory: Annotated[list[BundleInventoryEntry], Field(min_length=1, max_length=30000)]
     backgrounds: Annotated[list[BundleBackground], Field(min_length=1, max_length=5000)] | None = Field(default=None, exclude_if=lambda value: value is None)
+    person_origins: Annotated[list[BundlePersonOrigin], Field(max_length=5000)] | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 def verify_bundle_manifest(raw: bytes, files: tuple[VerifiedArchiveFile, ...]) -> BundleManifest:
@@ -151,4 +170,23 @@ def verify_bundle_manifest(raw: bytes, files: tuple[VerifiedArchiveFile, ...]) -
                 or source.contract != 'StyleBackgroundAsset' or source.sha256 != background.sha256):
             raise ValueError('invalid portable background mapping')
         background_ids.add(key)
+    origin_ids = set()
+    entries_by_id = {entry.entry_id: entry for entry in manifest.entries}
+    for origin in manifest.person_origins or ():
+        key = (origin.entry_id, origin.override.artifact_id, origin.mask_ref.artifact_id)
+        entry = entries_by_id.get(origin.entry_id)
+        receipt = inventory.get(origin.path)
+        if (key in origin_ids or entry is None or entry.recipe_sha256 != origin.recipe.sha256
+                or entry.recipe_path is None or by_id.get(origin.recipe.artifact_id) is None
+                or by_id[origin.recipe.artifact_id].path != entry.recipe_path
+                or by_id[origin.recipe.artifact_id].contract != 'EditingRecipeV3'
+                or any(by_id.get(ref.artifact_id) is None
+                    or by_id[ref.artifact_id].sha256 != ref.sha256
+                    or by_id[ref.artifact_id].contract != contract
+                    for ref, contract in ((origin.override, 'Override'),
+                        (origin.mask_ref, 'MaskRef'), (origin.mask_pixels, 'MaskPixels')))
+                or receipt is None or receipt.contract != 'PersonOriginReceipt'
+                or receipt.sha256 != origin.sha256):
+            raise ValueError('invalid person origin mapping')
+        origin_ids.add(key)
     return manifest
