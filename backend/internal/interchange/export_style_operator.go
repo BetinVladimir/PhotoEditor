@@ -101,7 +101,7 @@ func LoadExportStyleOperatorAuthority(ctx context.Context, path, pin string,
 	}
 	models := make(map[string]string, len(wire.Models))
 	for name, sha := range wire.Models {
-		if name == "" || !validImportRefForSHA(sha) {
+		if !exportModelIDs[name] || !validImportRefForSHA(sha) {
 			return zero, v2input.ErrInvalid
 		}
 		models[name] = sha

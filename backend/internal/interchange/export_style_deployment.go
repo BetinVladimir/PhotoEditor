@@ -80,7 +80,7 @@ func (s ExportStyleDeploymentAuthority) BuildNativeExportAuthority(ctx context.C
 	}
 	models := map[string]string{}
 	for name, sha := range s.Models {
-		if name == "" || !validImportRefForSHA(sha) {
+		if !exportModelIDs[name] || !validImportRefForSHA(sha) {
 			return nil, v2input.ErrInvalid
 		}
 		models[name] = sha

@@ -60,6 +60,28 @@ func TestExportModelLockRequiresPinnedCanonicalFileAndInternalID(t *testing.T) {
 	if got, err := LoadExportModelLockSHA(context.Background(), link, rawSHA(raw)); err == nil || got != "" {
 		t.Fatal("linked lock accepted")
 	}
+	var unapproved exportModelLock
+	if err := decodeImportDocument(raw, &unapproved); err != nil {
+		t.Fatal(err)
+	}
+	unapproved.Models[0].ApprovedForInstall = false
+	unapproved.LockID, err = canonical.Hash(struct {
+		Schema int                `json:"schema_version"`
+		Models []exportModelEntry `json:"models"`
+	}{unapproved.Schema, unapproved.Models})
+	if err != nil {
+		t.Fatal(err)
+	}
+	unapprovedRaw, err := canonical.Marshal(unapproved)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, unapprovedRaw, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, weights, err := LoadExportModelLockWeights(context.Background(), path, rawSHA(unapprovedRaw)); err != nil || len(weights) != 0 {
+		t.Fatal("unapproved model exposed as installable", err)
+	}
 	invalid := append([]byte(nil), raw...)
 	var changed exportModelLock
 	if err := decodeImportDocument(invalid, &changed); err != nil {

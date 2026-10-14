@@ -97,6 +97,13 @@ func TestExportStyleOperatorPinsPoliciesBeforeNativeBuild(t *testing.T) {
 	if authority.StyleWeights["mobilesam"] != "MobileSAM/mobile_sam.pt.torchscript" {
 		t.Fatal("style weight policy was not pinned separately")
 	}
+	foreignModel := wire
+	foreignModel.Models = map[string]string{"unknown.model": sha("model")}
+	foreignManifest := write("foreign-model.json", foreignModel)
+	if _, err := LoadExportStyleOperatorAuthority(context.Background(), foreignManifest.Path,
+		foreignManifest.SHA, base, exportOperatorBackgroundFactoryStub{}); err == nil {
+		t.Fatal("unknown operation model accepted")
+	}
 	foreignWeights := base
 	foreignWeights.ModelWeights = map[string]string{"mobilesam": "different-weight.pt"}
 	if _, err := LoadExportStyleOperatorAuthority(context.Background(), manifest.Path,
