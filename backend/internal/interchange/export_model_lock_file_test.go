@@ -5,32 +5,72 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"photoeditor/backend/internal/canonical"
 )
 
-func TestExportModelLockRequiresPinnedCanonicalFile(t *testing.T) {
+func exportModelLockFixture(t *testing.T) ([]byte, string) {
+	t.Helper()
+	model := exportModelEntry{
+		ID: "mobilesam", Architecture: "vit", WeightID: "weights", Repository: "release",
+		Revision: "revision1", PreprocessingID: "rgb", PackagesLockHash: rawSHA([]byte("packages")),
+		CodeLicense: "MIT", WeightsLicense: "MIT", Notices: []string{},
+		RedistributionPolicy: "allowed", ApprovedForInstall: true,
+		Files: []exportModelFile{{Path: "model.pt", SHA: rawSHA([]byte("weight")), Bytes: 6, URL: "https://github.com/model.pt"}},
+		Backends: map[string]exportModelBackend{
+			"cpu":  {Status: "untested", Reason: "pending"},
+			"cuda": {Status: "untested", Reason: "pending"},
+			"mps":  {Status: "untested", Reason: "pending"},
+		},
+	}
+	payload := struct {
+		Schema int                `json:"schema_version"`
+		Models []exportModelEntry `json:"models"`
+	}{1, []exportModelEntry{model}}
+	lockID, err := canonical.Hash(payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := canonical.Marshal(exportModelLock{Schema: 1, LockID: lockID, Models: payload.Models})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return raw, lockID
+}
+
+func TestExportModelLockRequiresPinnedCanonicalFileAndInternalID(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "model.lock.json")
-	raw := []byte(`{"model":"renderer","schema_version":1}`)
+	raw, lockID := exportModelLockFixture(t)
 	if err := os.WriteFile(path, raw, 0600); err != nil {
 		t.Fatal(err)
 	}
-	if pin, err := LoadExportModelLockSHA(context.Background(), path, rawSHA(raw)); err != nil || pin != rawSHA(raw) {
-		t.Fatal("pinned model lock unavailable", err)
+	if got, err := LoadExportModelLockSHA(context.Background(), path, rawSHA(raw)); err != nil || got != lockID || got == rawSHA(raw) {
+		t.Fatal("model lock ID unavailable", err)
 	}
-	if pin, err := LoadExportModelLockSHA(context.Background(), path, rawSHA([]byte("foreign"))); err == nil || pin != "" {
-		t.Fatal("foreign model lock pin accepted")
+	if got, err := LoadExportModelLockSHA(context.Background(), path, rawSHA([]byte("foreign"))); err == nil || got != "" {
+		t.Fatal("foreign file pin accepted")
 	}
 	link := filepath.Join(filepath.Dir(path), "linked.lock.json")
 	if err := os.Symlink(path, link); err != nil {
 		t.Fatal(err)
 	}
-	if pin, err := LoadExportModelLockSHA(context.Background(), link, rawSHA(raw)); err == nil || pin != "" {
-		t.Fatal("linked model lock accepted")
+	if got, err := LoadExportModelLockSHA(context.Background(), link, rawSHA(raw)); err == nil || got != "" {
+		t.Fatal("linked lock accepted")
 	}
-	uncanonical := []byte(`{ "schema_version": 1 }`)
-	if err := os.WriteFile(path, uncanonical, 0600); err != nil {
+	invalid := append([]byte(nil), raw...)
+	var changed exportModelLock
+	if err := decodeImportDocument(invalid, &changed); err != nil {
 		t.Fatal(err)
 	}
-	if pin, err := LoadExportModelLockSHA(context.Background(), path, rawSHA(uncanonical)); err == nil || pin != "" {
-		t.Fatal("noncanonical model lock accepted")
+	changed.LockID = rawSHA([]byte("wrong"))
+	invalid, err := canonical.Marshal(changed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, invalid, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := LoadExportModelLockSHA(context.Background(), path, rawSHA(invalid)); err == nil || got != "" {
+		t.Fatal("wrong internal lock ID accepted")
 	}
 }
