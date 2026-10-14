@@ -187,6 +187,14 @@ func TestDeliveryDownloadPostSigningAuthorityRejectsUnknownBearer(t *testing.T) 
 		!strings.Contains(definition, "a.media_type IS NOT DISTINCT FROM p_media_type") {
 		t.Fatal("legacy download post-signing object pin missing", err)
 	}
+	for _, required := range []string{"photo.share_sessions", "photo.share_links",
+		"photo.publications", "photo.asset_versions", "photo.export_presets",
+		"photo.download_volumes", "photo.download_jobs", "photo.memberships",
+		"photo.project_acl", "photo.snapshot_items"} {
+		if !strings.Contains(definition, required) {
+			t.Fatal("legacy download post-signing policy recheck missing", required)
+		}
+	}
 }
 
 func TestDeliverySigningClosurePrivateRetentionAndPurgeACL(t *testing.T) {
