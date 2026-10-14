@@ -74,6 +74,32 @@ func readSigningIdentityFile(ctx context.Context, path string, private bool) ([]
 	return raw, nil
 }
 
+func validateSigningClientIdentity(identity tls.Certificate, now time.Time) error {
+	if identity.PrivateKey == nil || len(identity.Certificate) == 0 || now.IsZero() {
+		return errors.New("signing API mTLS identity incomplete")
+	}
+	for i, der := range identity.Certificate {
+		cert, err := x509.ParseCertificate(der)
+		if err != nil || now.Before(cert.NotBefore) || !now.Before(cert.NotAfter) {
+			return errors.New("signing API mTLS certificate invalid or expired")
+		}
+		if i == 0 {
+			clientAuth := false
+			for _, usage := range cert.ExtKeyUsage {
+				if usage == x509.ExtKeyUsageClientAuth {
+					clientAuth = true
+				}
+			}
+			if cert.IsCA || cert.KeyUsage&x509.KeyUsageDigitalSignature == 0 || !clientAuth {
+				return errors.New("signing API mTLS leaf requires client authentication and digital signature")
+			}
+		} else if !cert.IsCA || !cert.BasicConstraintsValid || cert.KeyUsage&x509.KeyUsageCertSign == 0 {
+			return errors.New("signing API mTLS intermediate certificate invalid")
+		}
+	}
+	return nil
+}
+
 func installProcessSigningRuntime(ctx context.Context, path, pin, certPath, keyPath string, dependencies apiProcessDependencies) (apiProcessDependencies, func(), error) {
 	noop := func() {}
 	if path == "" && pin == "" {
@@ -110,6 +136,9 @@ func installProcessSigningRuntime(ctx context.Context, path, pin, certPath, keyP
 	clear(keyPEM)
 	if err != nil || len(identity.Certificate) == 0 {
 		return dependencies, noop, errors.New("signing API mTLS identity invalid")
+	}
+	if err := validateSigningClientIdentity(identity, time.Now()); err != nil {
+		return dependencies, noop, err
 	}
 	leafSHA := sha256.Sum256(identity.Certificate[0])
 	identityID := hex.EncodeToString(leafSHA[:])

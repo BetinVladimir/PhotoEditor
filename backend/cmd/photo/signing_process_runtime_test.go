@@ -2,10 +2,16 @@ package main
 
 import (
 	"context"
+	"crypto/ed25519"
+	"crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
+	"math/big"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestSigningProcessRuntimeRequiresPinnedIdentity(t *testing.T) {
@@ -27,6 +33,43 @@ func TestSigningProcessRuntimeRequiresPinnedIdentity(t *testing.T) {
 				t.Fatalf("err=%v closeRuntime=%v", err, closeRuntime != nil)
 			}
 			closeRuntime()
+		})
+	}
+}
+
+func TestSigningClientIdentityProfile(t *testing.T) {
+	now := time.Now()
+	_, key, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name    string
+		before  time.Time
+		after   time.Time
+		ca      bool
+		usage   x509.KeyUsage
+		ext     []x509.ExtKeyUsage
+		wantErr bool
+	}{
+		{"valid", now.Add(-time.Hour), now.Add(time.Hour), false, x509.KeyUsageDigitalSignature, []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}, false},
+		{"expired", now.Add(-2 * time.Hour), now.Add(-time.Hour), false, x509.KeyUsageDigitalSignature, []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}, true},
+		{"future", now.Add(time.Hour), now.Add(2 * time.Hour), false, x509.KeyUsageDigitalSignature, []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}, true},
+		{"server only", now.Add(-time.Hour), now.Add(time.Hour), false, x509.KeyUsageDigitalSignature, []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}, true},
+		{"missing digital signature", now.Add(-time.Hour), now.Add(time.Hour), false, x509.KeyUsageKeyEncipherment, []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}, true},
+		{"CA leaf", now.Add(-time.Hour), now.Add(time.Hour), true, x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign, []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cert := &x509.Certificate{SerialNumber: big.NewInt(1), NotBefore: tc.before, NotAfter: tc.after,
+				BasicConstraintsValid: true, IsCA: tc.ca, KeyUsage: tc.usage, ExtKeyUsage: tc.ext}
+			der, err := x509.CreateCertificate(rand.Reader, cert, cert, key.Public(), key)
+			if err != nil {
+				t.Fatal(err)
+			}
+			identity := tls.Certificate{Certificate: [][]byte{der}, PrivateKey: key}
+			if err := validateSigningClientIdentity(identity, now); (err != nil) != tc.wantErr {
+				t.Fatalf("identity profile: %v", err)
+			}
 		})
 	}
 }
