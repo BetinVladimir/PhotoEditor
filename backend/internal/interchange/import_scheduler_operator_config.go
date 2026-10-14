@@ -2,9 +2,13 @@ package interchange
 
 import (
 	"context"
+	"crypto/ed25519"
+	"encoding/hex"
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/google/uuid"
 
 	"photoeditor/backend/internal/v2input"
 )
@@ -35,6 +39,14 @@ type importSchedulerOperatorConfig struct {
 		Path string `json:"path"`
 		SHA  string `json:"sha256"`
 	} `json:"person"`
+	PersonOrigins *struct {
+		ModelLockSHA string `json:"model_lock_sha"`
+		Issuers      []struct {
+			IssuerID     uuid.UUID `json:"issuer_id"`
+			KeyID        string    `json:"key_id"`
+			PublicKeyHex string    `json:"public_key_hex"`
+		} `json:"issuers"`
+	} `json:"person_origins,omitempty"`
 	ArchiveBytes  int64 `json:"max_archive_bytes"`
 	ExpandedBytes int64 `json:"max_expanded_bytes"`
 	Files         int   `json:"max_files"`
@@ -64,6 +76,25 @@ func DecodeImportSchedulerOperatorFiles(raw []byte, pin string) (ImportScheduler
 			Person: ImportPersonMaskDeploymentFile{Path: wire.Person.Path, SHA: wire.Person.SHA},
 		},
 		Limits: ImportPlanLimits{ArchiveBytes: wire.ArchiveBytes, ExpandedBytes: wire.ExpandedBytes, Files: wire.Files},
+	}
+	if wire.PersonOrigins != nil {
+		keys := make(map[PortablePersonOriginKey]ed25519.PublicKey, len(wire.PersonOrigins.Issuers))
+		for _, issuer := range wire.PersonOrigins.Issuers {
+			public, err := hex.DecodeString(issuer.PublicKeyHex)
+			if err != nil || hex.EncodeToString(public) != issuer.PublicKeyHex {
+				return zero, v2input.ErrInvalid
+			}
+			key := PortablePersonOriginKey{IssuerID: issuer.IssuerID, KeyID: issuer.KeyID}
+			if _, duplicate := keys[key]; duplicate {
+				return zero, v2input.ErrInvalid
+			}
+			keys[key] = ed25519.PublicKey(public)
+		}
+		installation, err := NewImportPersonOriginRecorderInstallation(wire.PersonOrigins.ModelLockSHA, keys)
+		if err != nil {
+			return zero, err
+		}
+		files.PersonOrigins = installation
 	}
 	if err := files.ValidateDeclaration(); err != nil {
 		return zero, err

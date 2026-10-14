@@ -20,14 +20,16 @@ type ImportEntryBinaryRemapperFactory interface {
 	BuildImportEntryBinaryRemapper(context.Context, uuid.UUID, []byte, ImportArchiveDocumentReader, ImportRecipeSourceQualifier, ImportMasterReader, ImportDocumentCatalog, ImportDocumentObjects, ImportBinaryPublisher) (ImportBinaryRemapper, error)
 }
 type SQLImportSchedulerRecipeFactory struct {
-	Authority ImportEntryRecipeAuthorityFactory
+	Authority     ImportEntryRecipeAuthorityFactory
+	PersonOrigins *ImportPersonOriginRecorderInstallation
 }
 type scopedSQLImportRecipes struct {
-	candidate workflow.InterchangeImportCandidate
-	parsed    []byte
-	deps      ImportResolverDependencies
-	objects   ExportExecutionObjects
-	authority ImportEntryRecipeAuthorityFactory
+	candidate     workflow.InterchangeImportCandidate
+	parsed        []byte
+	deps          ImportResolverDependencies
+	objects       ExportExecutionObjects
+	authority     ImportEntryRecipeAuthorityFactory
+	personOrigins *ImportPersonOriginRecorderInstallation
 }
 
 func (f SQLImportSchedulerRecipeFactory) BuildImportSchedulerRecipes(ctx context.Context, c workflow.InterchangeImportCandidate, parsedRaw []byte, deps ImportResolverDependencies) (ImportPreparedRecipeResolver, error) {
@@ -53,7 +55,8 @@ func (f SQLImportSchedulerRecipeFactory) BuildImportSchedulerRecipes(ctx context
 			return nil, v2input.ErrInvalid
 		}
 	}
-	return &scopedSQLImportRecipes{candidate: c, parsed: parsed, deps: deps, objects: objects, authority: authority}, ctx.Err()
+	return &scopedSQLImportRecipes{candidate: c, parsed: parsed, deps: deps, objects: objects,
+		authority: authority, personOrigins: f.PersonOrigins}, ctx.Err()
 }
 func (r *scopedSQLImportRecipes) ResolvePreparedImportRecipe(ctx context.Context, entry uuid.UUID, target v2input.SessionVersionBinding) (*v2input.Ref, error) {
 	if err := ctx.Err(); err != nil {
@@ -64,6 +67,31 @@ func (r *scopedSQLImportRecipes) ResolvePreparedImportRecipe(ctx context.Context
 	}
 	c := r.candidate
 	parsed := append([]byte(nil), r.parsed...)
+	var document importParsedDocument
+	if err := decodeImportDocument(parsed, &document); err != nil {
+		return nil, err
+	}
+	hasOrigin := false
+	for _, origin := range document.Manifest.PersonOrigins {
+		if origin.EntryID == entry {
+			hasOrigin = true
+			break
+		}
+	}
+	if hasOrigin {
+		if r.personOrigins == nil {
+			return nil, v2input.ErrInvalid
+		}
+		source := SQLImportPersonOriginReceiptSource{DB: r.deps.DB, Tenant: c.Tenant, Workflow: c.Workflow, Bucket: c.Bucket}
+		scope := StagedImportPersonOriginScope{Source: source, Objects: r.objects}
+		recorder := ImportPersonOriginRecordService{Parsed: importCandidateParsedSource{candidate: c},
+			Source: source, Objects: r.objects, Scope: scope,
+			Writer:  SQLImportPersonOriginReceiptWriter{DB: r.deps.DB, Tenant: c.Tenant, Workflow: c.Workflow, Target: target.AssetVersionID},
+			Trusted: r.personOrigins.trusted}
+		if _, err := recorder.RecordEntry(ctx, entry, r.personOrigins.modelLock); err != nil {
+			return nil, err
+		}
+	}
 	masters, err := NewSQLImportMasterReader(c.Tenant, c.Workflow, parsed, r.deps)
 	if err != nil {
 		return nil, err

@@ -14,6 +14,7 @@ type ImportSchedulerOperatorFiles struct {
 	NativePath, NativeSHA string
 	StylePath, StyleSHA   string
 	Recipes               ImportRecipeDeploymentFiles
+	PersonOrigins         *ImportPersonOriginRecorderInstallation
 	Limits                ImportPlanLimits
 }
 
@@ -72,12 +73,21 @@ func (f ImportSchedulerOperatorFiles) Install(ctx context.Context, base SQLImpor
 	if err := installed.ValidateImportRecipeInstallation(ctx); err != nil {
 		return zero, err
 	}
+	if f.PersonOrigins != nil {
+		if installed.PersonMaskQualification == nil {
+			return zero, v2input.ErrInvalid
+		}
+		expected, err := installed.PersonMaskQualification.Locks.Expected()
+		if err != nil || expected.ModelLockSHA != f.PersonOrigins.modelLock {
+			return zero, v2input.ErrInvalid
+		}
+	}
 	if err := ctx.Err(); err != nil {
 		return zero, err
 	}
 	return NativeImportSchedulerFactory{
 		Deployment: native,
-		Recipes:    SQLImportSchedulerRecipeFactory{Authority: installed},
+		Recipes:    SQLImportSchedulerRecipeFactory{Authority: installed, PersonOrigins: f.PersonOrigins},
 		Limits:     f.Limits,
 	}, nil
 }

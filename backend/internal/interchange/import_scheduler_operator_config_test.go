@@ -2,6 +2,7 @@ package interchange
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"os"
@@ -91,5 +92,37 @@ func TestImportSchedulerOperatorConfigPinnedStrictLoad(t *testing.T) {
 	cancel()
 	if _, err := LoadImportSchedulerOperatorFiles(ctx, path, pin); !errors.Is(err, context.Canceled) {
 		t.Fatal("operator loader lost cancellation", err)
+	}
+}
+
+func TestImportSchedulerOperatorConfigPinsPersonOriginTrust(t *testing.T) {
+	raw, _ := importSchedulerConfigFixture(t)
+	var wire map[string]any
+	if err := json.Unmarshal(raw, &wire); err != nil {
+		t.Fatal(err)
+	}
+	_, scope, keys := portablePersonOriginFixture(t)
+	for key, public := range keys {
+		wire["person_origins"] = map[string]any{"model_lock_sha": scope.ModelLockSHA,
+			"issuers": []any{map[string]any{"issuer_id": key.IssuerID, "key_id": key.KeyID,
+				"public_key_hex": hex.EncodeToString(public)}}}
+	}
+	owned, err := canonical.Marshal(wire)
+	if err != nil {
+		t.Fatal(err)
+	}
+	files, err := DecodeImportSchedulerOperatorFiles(owned, rawSHA(owned))
+	if err != nil || files.PersonOrigins == nil || len(files.PersonOrigins.trusted) != 1 {
+		t.Fatal("pinned issuer trust unavailable", err)
+	}
+	invalid := wire["person_origins"].(map[string]any)
+	issuer := invalid["issuers"].([]any)[0].(map[string]any)
+	issuer["key_id"] = rawSHA([]byte("foreign key"))
+	bad, err := canonical.Marshal(wire)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := DecodeImportSchedulerOperatorFiles(bad, rawSHA(bad)); err == nil {
+		t.Fatal("mismatched issuer key ID accepted")
 	}
 }

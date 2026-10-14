@@ -66,7 +66,13 @@ source binding by physically reading each selected staged recipe, then
 requalifies its exact `person_subject` Override/MaskRef/MaskPixels chain.
 `ImportPersonOriginRecordService.RecordEntry` uses that discovery and repeats
 the physical receipt, signature, and current staged scope checks per selected
-entry. Scheduler installation of this entry boundary remains outstanding.
+entry.
+The scheduler recipe resolver now calls `RecordEntry` for entries declaring a
+portable origin before recipe remapping. A pinned operator configuration may
+install the model lock and Ed25519 issuer public keys; absent installation
+fails closed for those entries. The recorder rechecks the staged object and
+SQL records only an adopted current target. Full native lifecycle evidence is
+still pending the deferred test phase.
 `ExportPersonOriginOccurrence` now binds the exact selected entry and portable
 recipe to its frozen source, authored Override, one confirmed `person_subject`
 inline MaskRef, and its MaskPixels child. It checks physical source canvas and
