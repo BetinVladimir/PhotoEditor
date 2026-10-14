@@ -8,14 +8,15 @@ from contextlib import contextmanager
 from copy import deepcopy
 from hashlib import sha256
 from pathlib import Path
-from uuid import UUID
+from uuid import UUID, uuid5
 
-from photo_worker.contracts.base import ArtifactRef as WireRef, canonical_bytes
+from photo_worker.contracts.base import ArtifactRef as WireRef, canonical_bytes, parse_json
 from photo_worker.contracts.images import WorkingImage
 from photo_worker.runtime.scratch import ScratchSpace
 from .adoption import AdoptionInvalid, ArtifactRef as EvidenceRef
 from .interchange_import_adoption_inputs import read_import_adoption_input_inventory
 from .interchange_plan import read_executable_import_params, read_interchange_plan
+from .interchange_operator_schemas import build_interchange_operator_schemas
 from .interchange_recipe_semantics import build_prepared_import_recipe_qualifier
 
 
@@ -44,10 +45,15 @@ class SchedulerImportRecipeAdoptionInstallation:
         self.work_icc_sha = work_icc_sha
         self.scratch_root, self.scratch_bytes = scratch_root, scratch_bytes
         self.max_file_bytes = max_file_bytes
+        definitions = parse_json(self.schemas_jcs, max_bytes=16 << 20)
+        if not isinstance(definitions, dict):
+            raise ValueError('INTERCHANGE_IMPORT_ADOPTER_SCHEMAS')
+        build_interchange_operator_schemas(definitions.get('$defs'), operation_schemas)
         self.runtime, self.active = qualify_runtime, check_active
         self.extra_validators = dict(extra_validators or {})
         self.confirmation, self.occurrence = qualify_confirmation, qualify_occurrence
-        self.operation_schemas, self.background_mappings = operation_schemas, background_mappings
+        self.operation_schemas = None if operation_schemas is None else dict(operation_schemas)
+        self.background_mappings = background_mappings
         if any(not callable(callback) for callback in self.extra_validators.values()):
             raise ValueError('INTERCHANGE_IMPORT_ADOPTER_VALIDATORS')
 
@@ -77,6 +83,21 @@ class SchedulerImportRecipeAdoptionInstallation:
             return deepcopy(row[0])
 
         authority = current()
+        try:
+            params_ref = WireRef.model_validate(authority['params'])
+            workflow = UUID(str(authority['workflow_id']))
+            project = UUID(str(authority['project_id']))
+            snapshot_digest = authority['snapshot_digest']
+            budget = authority['max_output_bytes']
+            if (workflow.int == 0 or project.int == 0
+                    or task_id != uuid5(workflow, 'v2.interchange.import:0')
+                    or type(budget) is not int or not 1 <= budget <= 2**53-1
+                    or not isinstance(snapshot_digest, str)
+                    or len(snapshot_digest) != 64
+                    or any(c not in '0123456789abcdef' for c in snapshot_digest)):
+                raise ValueError('invalid authority')
+        except (TypeError, ValueError, KeyError) as error:
+            raise AdoptionInvalid('INTERCHANGE_IMPORT_ADOPTER_PLAN') from error
         inventory = read_import_adoption_input_inventory(
             self.connection, reader, *scope)
         indexed = {entry[0].artifact_id: entry for entry in inventory.entries}
@@ -104,14 +125,6 @@ class SchedulerImportRecipeAdoptionInstallation:
             return raw
 
         try:
-            params_ref = WireRef.model_validate(authority['params'])
-            workflow = UUID(str(authority['workflow_id']))
-            project = UUID(str(authority['project_id']))
-            snapshot_digest = authority['snapshot_digest']
-            if (workflow.int == 0 or project.int == 0 or not isinstance(snapshot_digest, str)
-                    or len(snapshot_digest) != 64
-                    or any(c not in '0123456789abcdef' for c in snapshot_digest)):
-                raise ValueError('invalid authority')
             params = read_executable_import_params(params_ref,
                 read_document(params_ref, 65536, 'Params'), task_id=task_id)
             plan = read_interchange_plan(read_document(params.plan, 8 << 20, 'InterchangePlan'),
