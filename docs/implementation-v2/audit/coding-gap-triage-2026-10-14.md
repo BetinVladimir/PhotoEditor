@@ -1,5 +1,25 @@
 # Текущий triage кодирования V20–V32 — 2026-10-14
 
+## Уточнение после process-owned Override и mask-scope работ
+
+Ниже сохранена хронология промежуточного анализа; её прежние формулировки о
+недостающем `OverrideContent`, физическом Override background и проверке
+слияния уже устарели. Entry factory теперь строит process-owned source/canvas,
+строгую ручную геометрию, native Override/model, текущий физический background
+и финальную native композицию. Внешний `OverrideContent` лишь ужесточает эту
+цепочку. Контекст подтверждённого person-mask при remap привязан к одному
+вычисленному target MaskPixels UUID/SHA, а не ко всему Override.
+
+Главный текущий разрыв запуска V30 — независимый `ImportPersonAcceptance`
+и его provision в обычном `backend/cmd/photo`. SQL grant/revoke с epoch уже
+существует, но второй вызов того же live-grant SQL не был бы независимым
+доказательством исходного mask.person producer и текущей переносимой consent.
+Архивный `MaskRef` не несёт доверенного person ID или producer receipt;
+подставлять архивный `confirmed` либо один только model-lock нельзя.
+До появления отдельного provenance/acceptance contract этот путь должен
+оставаться fail-closed. Написанные unit-сценарии текущей фазы не запускались;
+миграции и end-to-end также отложены по согласованному порядку.
+
 ## Повторная сверка V30 production import — 2026-10-14
 
 Ранние абзацы ниже являются историей инкрементальной реализации и не
