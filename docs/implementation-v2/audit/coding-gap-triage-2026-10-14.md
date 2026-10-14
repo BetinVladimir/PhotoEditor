@@ -51,6 +51,14 @@ Override codec больше не переносит архивный
 occurrence. Физический Override-specific publisher/SQL registration и live
 prepared-asset admission остаются кодовым разрывом.
 
+Финальная prepared closure теперь отдельно отказывает для Override с
+`modules.extensions.background.mode=asset`: portable ID не является
+`ArtifactRef`, а готового `OverrideBackgroundAsset` child и SQL authority пока
+нет. Одного remapper callback недостаточно для активации. Unit-сценарий
+отказа написан, не запускался. Для полного включения нужны экспортное
+occurrence в bundle manifest, физическая публикация, typed child, SQL
+регистрация и повторная live-проверка в activation TX.
+
 Это трассировка исходников для выбора следующей разработки. Она не является
 процентом реализации, результатом тестирования или приёмкой модулей. Текущий
 этап по согласованному порядку — дописать код и unit-тесты; запуск тестов,
