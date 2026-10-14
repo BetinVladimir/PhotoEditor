@@ -68,6 +68,13 @@ def validate_export_composition(raw, expected_sha, installed_models):
     """
     from photo_worker.contracts.images import WorkingImage
     from photo_worker.v2.render_overrides import merge_render_override_modules
+    if (not isinstance(installed_models, dict)
+            or set(installed_models) != {'style_weights', 'operation_locks'}
+            or not isinstance(installed_models['style_weights'], dict)
+            or not isinstance(installed_models['operation_locks'], dict)):
+        raise ValueError('INTERCHANGE_EXPORT_COMPOSITION_MODEL_POLICY')
+    style_models = installed_models['style_weights']
+    operation_models = installed_models['operation_locks']
     if (not isinstance(raw, bytes) or not 2 <= len(raw) <= 128 << 20
             or not isinstance(expected_sha, str)
             or re.fullmatch('[0-9a-f]{64}', expected_sha) is None
@@ -97,15 +104,15 @@ def validate_export_composition(raw, expected_sha, installed_models):
             or source.color.encoding != 'gamma24'):
         raise ValueError('INTERCHANGE_EXPORT_COMPOSITION_SOURCE')
     base_raw = document(bundle['base'])
-    base = validate_export_style(base_raw, bundle['base']['sha256'], installed_models)
+    base = validate_export_style(base_raw, bundle['base']['sha256'], style_models)
     if base.color.icc_sha256 != source.color.icc_sha256:
         raise ValueError('INTERCHANGE_EXPORT_COMPOSITION_ICC')
-    overrides = tuple(validate_export_override(document(pin), pin['sha256'], installed_models)
+    overrides = tuple(validate_export_override(document(pin), pin['sha256'], operation_models)
                       for pin in bundle['overrides'])
     merged = merge_render_override_modules(base, overrides, source)
     # Re-run installed-model and full production profile checks on the result.
     result_raw = canonical_bytes(merged)
-    return validate_export_style(result_raw, sha256(result_raw).hexdigest(), installed_models)
+    return validate_export_style(result_raw, sha256(result_raw).hexdigest(), style_models)
 
 
 def validate_export_resolved(raw, expected_sha, installed_models):

@@ -13,6 +13,7 @@ type ExportStyleValidatorInstallation struct {
 	Scratch           *ExportArchiveScratch
 	Probe             ExportNativeProbe
 	Models            map[string]string
+	StyleModels       map[string]string
 	RuntimeSHA        string
 	PersonPolicy      ExportStatsPersonPolicyFactory
 	PromptPolicy      ExportPromptMaskPolicyFactory
@@ -58,6 +59,10 @@ func (s ExportStyleValidatorInstallation) BuildScopedExportDocumentValidator(ctx
 	if catalog == nil || objects == nil || s.Base.Other == nil || s.Body == nil || s.BackgroundFactory != nil && s.Backgrounds == nil {
 		return nil, v2input.ErrInvalid
 	}
+	styleModels := s.StyleModels
+	if styleModels == nil {
+		styleModels = s.Models
+	}
 	// This parent reader validates only FrozenRenderRecipe and returns its typed
 	// edges without visiting them. It cannot recurse through StyleV2 validation.
 	parentValidator, err := NewExportFrozenDocumentValidator(ctx, intent, frozen, s.Base.ICCSHA, s.Base.ModelSHA, nil)
@@ -70,7 +75,7 @@ func (s ExportStyleValidatorInstallation) BuildScopedExportDocumentValidator(ctx
 		return nil, err
 	}
 	authority.backgrounds = s.Backgrounds
-	native, err := NewNativeExportStyleValidator(s.Scratch, s.Probe, s.Models, s.RuntimeSHA, authority)
+	native, err := NewNativeExportStyleValidator(s.Scratch, s.Probe, styleModels, s.RuntimeSHA, authority)
 	if err != nil {
 		return nil, err
 	}
@@ -210,11 +215,11 @@ func (s ExportStyleValidatorInstallation) BuildScopedExportDocumentValidator(ctx
 	}
 	// Auxiliary correction/descriptor reads must use the same full resolved
 	// schema/original Params proof as the outer graph, without recursing into it.
-	planSchema, err := NewNativeExportResolvedValidator(s.Scratch, s.Probe, s.Models, s.RuntimeSHA, ExportDependencyDocumentValidator{Semantics: semantics, Other: resolvedScope})
+	planSchema, err := NewNativeExportResolvedValidator(s.Scratch, s.Probe, styleModels, s.RuntimeSHA, ExportDependencyDocumentValidator{Semantics: semantics, Other: resolvedScope})
 	if err != nil {
 		return nil, err
 	}
-	planOrigin, err := NewExportResolvedOriginValidator(planSchema, resolvedOrigin, objects, s.Scratch, s.Probe, s.Models, s.RuntimeSHA)
+	planOrigin, err := NewExportResolvedOriginValidator(planSchema, resolvedOrigin, objects, s.Scratch, s.Probe, styleModels, s.RuntimeSHA)
 	if err != nil {
 		return nil, err
 	}
@@ -248,11 +253,11 @@ func (s ExportStyleValidatorInstallation) BuildScopedExportDocumentValidator(ctx
 	complete = ExportImageLocalSourceScope{Images: localImages, Resolved: plans, Warps: warpAuthority, Other: complete}
 	// Resolved documents also occur below repair/detail Params, not just the
 	// frozen style root. Probe every occurrence before the scoped policy chain.
-	complete, err = NewNativeExportResolvedValidator(s.Scratch, s.Probe, s.Models, s.RuntimeSHA, complete)
+	complete, err = NewNativeExportResolvedValidator(s.Scratch, s.Probe, styleModels, s.RuntimeSHA, complete)
 	if err != nil {
 		return nil, err
 	}
-	complete, err = NewExportResolvedOriginValidator(complete, resolvedOrigin, objects, s.Scratch, s.Probe, s.Models, s.RuntimeSHA)
+	complete, err = NewExportResolvedOriginValidator(complete, resolvedOrigin, objects, s.Scratch, s.Probe, styleModels, s.RuntimeSHA)
 	if err != nil {
 		return nil, err
 	}
@@ -272,7 +277,7 @@ func (s ExportStyleValidatorInstallation) BuildScopedExportDocumentValidator(ctx
 		return nil, v2input.ErrInvalid
 	}
 	staging := ExportJSONNodeResolver{Catalog: catalog, Objects: objects, Validator: exportCompositionStagingValidator{}}
-	return newExportFrozenCompositionValidator(complete, staging, s.Scratch, s.Probe, s.Models, s.RuntimeSHA)
+	return newExportFrozenCompositionValidatorWithPolicies(complete, staging, s.Scratch, s.Probe, styleModels, s.Models, s.RuntimeSHA)
 }
 
 var _ ExportDocumentValidatorFactory = ExportStyleValidatorInstallation{}

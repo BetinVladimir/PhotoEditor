@@ -43,6 +43,7 @@ type exportStyleOperatorConfig struct {
 	MaskArraySHA       string                   `json:"mask_array_runtime_sha256"`
 	DetectorSHA        string                   `json:"detector_runtime_sha256"`
 	Models             map[string]string        `json:"models"`
+	StyleWeights       map[string]string        `json:"style_weights,omitempty"`
 	PersonOriginIssuer uuid.UUID                `json:"person_origin_issuer_id"`
 	PersonOriginPublic string                   `json:"person_origin_public_key_hex"`
 }
@@ -105,6 +106,16 @@ func LoadExportStyleOperatorAuthority(ctx context.Context, path, pin string,
 		}
 		models[name] = sha
 	}
+	if len(wire.StyleWeights) > 32 {
+		return zero, v2input.ErrInvalid
+	}
+	styleWeights := make(map[string]string, len(wire.StyleWeights))
+	for name, weight := range wire.StyleWeights {
+		if !exportModelIDs[name] || len(weight) < 1 || len(weight) > 240 {
+			return zero, v2input.ErrInvalid
+		}
+		styleWeights[name] = weight
+	}
 	load := func(file exportOperatorPinnedFile) ([]byte, error) {
 		if !filepath.IsAbs(file.Path) || filepath.Clean(file.Path) != file.Path ||
 			!validImportRefForSHA(file.SHA) || file.Path == path {
@@ -163,7 +174,7 @@ func LoadExportStyleOperatorAuthority(ctx context.Context, path, pin string,
 		return zero, err
 	}
 	return ExportStyleDeploymentAuthority{
-		Base: base, BackgroundFactory: backgrounds, Models: models,
+		Base: base, BackgroundFactory: backgrounds, Models: models, StyleWeights: styleWeights,
 		StyleRuntimeSHA: wire.StyleSHA,
 		BodyRuntime: ExportBodyDeploymentRuntime{
 			BodySHA: wire.BodySHA, FitSHA: wire.FitSHA,

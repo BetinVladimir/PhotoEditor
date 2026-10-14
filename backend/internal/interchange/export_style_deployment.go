@@ -13,6 +13,7 @@ import (
 type ExportStyleDeploymentAuthority struct {
 	Base              ExportDocumentValidatorInstallation
 	Models            map[string]string
+	StyleWeights      map[string]string
 	StyleRuntimeSHA   string
 	PromptFile        string
 	BodyFiles         ExportBodyDeploymentFiles
@@ -84,6 +85,13 @@ func (s ExportStyleDeploymentAuthority) BuildNativeExportAuthority(ctx context.C
 		}
 		models[name] = sha
 	}
+	styleModels := map[string]string{}
+	for name, weight := range s.StyleWeights {
+		if !exportModelIDs[name] || len(weight) < 1 || len(weight) > 240 {
+			return nil, v2input.ErrInvalid
+		}
+		styleModels[name] = weight
+	}
 	required, err := exportBodyDependencyNativeModels(body.Dependencies.Configs)
 	if err != nil {
 		return nil, err
@@ -115,7 +123,7 @@ func (s ExportStyleDeploymentAuthority) BuildNativeExportAuthority(ctx context.C
 	if s.Backgrounds != nil && s.BackgroundFactory != nil {
 		return nil, v2input.ErrInvalid
 	}
-	return ExportStyleValidatorInstallation{Base: base, Scratch: native.Scratch, Probe: style, Models: models, RuntimeSHA: s.StyleRuntimeSHA, PersonPolicy: body.Fit.Person, PromptPolicy: prompt, Body: body, Backgrounds: s.Backgrounds, BackgroundFactory: s.BackgroundFactory, ImageProbe: native.ImageProbe, ImageRuntimeSHA: native.ImageRuntimeSHA}, nil
+	return ExportStyleValidatorInstallation{Base: base, Scratch: native.Scratch, Probe: style, Models: models, StyleModels: styleModels, RuntimeSHA: s.StyleRuntimeSHA, PersonPolicy: body.Fit.Person, PromptPolicy: prompt, Body: body, Backgrounds: s.Backgrounds, BackgroundFactory: s.BackgroundFactory, ImageProbe: native.ImageProbe, ImageRuntimeSHA: native.ImageRuntimeSHA}, nil
 }
 
 var _ ExportNativeAuthorityFactory = ExportStyleDeploymentAuthority{}

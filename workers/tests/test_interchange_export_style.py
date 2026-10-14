@@ -111,6 +111,7 @@ def composition_fixture():
 def test_export_composition_preserves_order_and_authored_bytes():
     from photo_worker.v2.interchange_export_style import validate_export_composition
     value, models = composition_fixture()
+    models = {'style_weights': models, 'operation_locks': {'mobilesam': 'a' * 64}}
     raw = canonical_bytes(value)
     merged = validate_export_composition(raw, sha256(raw).hexdigest(), models)
     assert merged.strength == 0.8
@@ -124,6 +125,7 @@ def test_export_composition_preserves_order_and_authored_bytes():
 def test_export_composition_rejects_substituted_or_incoherent_inputs(mode):
     from photo_worker.v2.interchange_export_style import validate_export_composition
     value, models = composition_fixture()
+    models = {'style_weights': models, 'operation_locks': {'mobilesam': 'a' * 64}}
     if mode == 'document_hash': value['base']['sha256'] = 'b' * 64
     if mode in {'source', 'icc', 'override_source'}:
         target = value['overrides'][0] if mode == 'override_source' else value['source']

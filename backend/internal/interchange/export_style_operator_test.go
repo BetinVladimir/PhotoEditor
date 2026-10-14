@@ -80,6 +80,7 @@ func TestExportStyleOperatorPinsPoliciesBeforeNativeBuild(t *testing.T) {
 		RegistrationSHA: sha("registration"), MaskOriginSHA: sha("mask origin"),
 		MaskArraySHA: sha("mask array"), DetectorSHA: sha("detector runtime"),
 		Models:             map[string]string{},
+		StyleWeights:       map[string]string{"mobilesam": "MobileSAM/mobile_sam.pt.torchscript"},
 		PersonOriginIssuer: issuer, PersonOriginPublic: hex.EncodeToString(public),
 	}
 	base := ExportDocumentValidatorInstallation{
@@ -91,6 +92,9 @@ func TestExportStyleOperatorPinsPoliciesBeforeNativeBuild(t *testing.T) {
 		manifest.SHA, base, exportOperatorBackgroundFactoryStub{})
 	if err != nil || authority.pinnedPolicies == nil {
 		t.Fatal("pinned operator unavailable", err)
+	}
+	if authority.StyleWeights["mobilesam"] != "MobileSAM/mobile_sam.pt.torchscript" {
+		t.Fatal("style weight policy was not pinned separately")
 	}
 	structural := base
 	structural.Other = nil
