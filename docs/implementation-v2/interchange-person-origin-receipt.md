@@ -56,6 +56,11 @@ adoption preparation to require physical ZIP receipt bytes, trusted Ed25519
 signature, deterministic inventory identity and current frozen source closure.
 The production factory and source-derived authority installer are still absent;
 this optional gate does not itself publish or admit receipts.
+The worker's explicit `sql_prepared_export_installation` now forwards an
+operator-supplied `person_origin_factory` through `ExportPreparationFactory`
+to bundle preparation. This is an installation port, not a default factory:
+the operator must supply signed-source publication and independent qualification
+before any `person_origins` can be emitted.
 `ExportPersonOriginOccurrence` now binds the exact selected entry and portable
 recipe to its frozen source, authored Override, one confirmed `person_subject`
 inline MaskRef, and its MaskPixels child. It checks physical source canvas and

@@ -73,7 +73,8 @@ def resolve_interchange_export_installation(supplied=None):
 
 
 def sql_prepared_export_installation(database, *, schemas_jcs, schemas_sha, work_icc_sha,
-        qualify_runtime, extra_validators=None, max_file_bytes=128 << 30, qualify_occurrence_other=None, operation_schemas=None):
+        qualify_runtime, extra_validators=None, max_file_bytes=128 << 30,
+        qualify_occurrence_other=None, operation_schemas=None, person_origin_factory=None):
     """Compose concrete formats and SQL authority without enabling dispatch.
 
     Operator deployment must qualify native dependencies and install the SQL
@@ -90,5 +91,8 @@ def sql_prepared_export_installation(database, *, schemas_jcs, schemas_sha, work
     if qualify_occurrence_other is not None:
         from photo_worker.v2.interchange_descriptor_installation import SQLExportDescriptorOccurrenceFactory
         occurrences=SQLExportDescriptorOccurrenceFactory(database,qualify_other=qualify_occurrence_other)
+    if person_origin_factory is not None and not callable(person_origin_factory):
+        raise ValueError('INTERCHANGE_EXPORT_PERSON_ORIGIN_INSTALLATION')
     return ExportInstallation(SQLExportAdmission(database),
-        ExportPreparationFactory(recipes,occurrence_factory=occurrences))
+        ExportPreparationFactory(recipes,occurrence_factory=occurrences,
+            person_origin_factory=person_origin_factory))

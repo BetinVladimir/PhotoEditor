@@ -40,6 +40,15 @@ def test_export_installation_is_explicit_and_requires_complete_ports():
         work_icc_sha='e'*64,qualify_runtime=lambda *args:True)
     assert resolve_interchange_export_installation(installed) is installed
     assert isinstance(installed.prepare,ExportPreparationFactory)
+    origin_factory=lambda *args: ((),(),lambda *args:True)
+    with_origins=sql_prepared_export_installation(database,schemas_jcs=raw,
+        schemas_sha=sha256(raw).hexdigest(),work_icc_sha='e'*64,
+        qualify_runtime=lambda *args:True,person_origin_factory=origin_factory)
+    assert with_origins.prepare.bundle.person_origins is origin_factory
+    with pytest.raises(ValueError,match='PERSON_ORIGIN_INSTALLATION'):
+        sql_prepared_export_installation(database,schemas_jcs=raw,
+            schemas_sha=sha256(raw).hexdigest(),work_icc_sha='e'*64,
+            qualify_runtime=lambda *args:True,person_origin_factory=object())
 
 
 @pytest.mark.parametrize('with_occurrences', [False, True])
