@@ -42,10 +42,17 @@ it('mounts stream refresh and preserves a newer retry response against an older 
  let release!:(run:RunStatus)=>void;mocks.request.mockReturnValueOnce(new Promise(resolve=>release=resolve));
  act(()=>receive({cursor:'2',type:'run.failed',payload:{run_id:'run'}}));
  mocks.request.mockResolvedValueOnce(value('2','running'));fireEvent.click(screen.getByText('Retry failed'));
- await screen.findByText('Cancel');expect(mocks.request.mock.calls[2][1]).toMatchObject({method:'POST',body:{expected_revision:1}});
+ await screen.findByText('Cancel');expect(mocks.request.mock.calls[2][1]).toMatchObject({method:'POST',body:{expected_revision:'1'}});
  await act(async()=>release(value('1','failed')));expect(screen.queryByText('Retry failed')).toBeNull();
  mocks.request.mockResolvedValueOnce(value('3','completed'));act(()=>receive({cursor:'3',type:'run.completed',payload:{run_id:'run'}}));
  await screen.findByText('completed · 100%');expect(screen.queryByText('Cancel')).toBeNull();
+});
+it('sends a full int64 run revision as an exact decimal string on retry',async()=>{
+ streaming();const revision='9007199254740993';
+ mocks.request.mockResolvedValueOnce(value(revision,'failed')).mockResolvedValueOnce(value('9007199254740994','running'));
+ render(<RunScreen/>);fireEvent.click(await screen.findByText('Retry failed'));
+ await waitFor(()=>expect(mocks.request).toHaveBeenCalledTimes(2));
+ expect(mocks.request.mock.calls[1][1]).toMatchObject({method:'POST',body:{expected_revision:revision}});
 });
 it('aborts the old stream and ignores a late mutation after changing tenant/run scope',async()=>{
  streaming();mocks.request.mockResolvedValueOnce(value('1','running'));const view=render(<RunScreen/>);

@@ -41,6 +41,17 @@ it('keeps terminal status against a contradictory response at the same revision'
  expect(receive.mock.lastCall?.[0].status).toBe('running');
  stop.abort();
 });
+it('accepts exact int64 revisions and refuses overflow without precision loss',async()=>{
+ const stop=new AbortController(),receive=vi.fn();
+ const watch=watchRun({load:vi.fn().mockResolvedValue(value('9007199254740993')),
+  stream:(_cursor,_callback,signal)=>new Promise<void>(resolve=>signal.addEventListener('abort',()=>resolve(),{once:true}))},'run',stop.signal,receive,vi.fn());
+ await watch.refresh();
+ watch.accept(value('9223372036854775807','completed'));
+ watch.accept(value('9223372036854775808','running'));
+ watch.accept({...value('2'),revision:9007199254740993 as unknown as string});
+ expect(receive.mock.lastCall?.[0].revision).toBe('9223372036854775807');
+ stop.abort();
+});
 
 it('reduces terminal polling while detecting a retry without streaming',async()=>{
  vi.useFakeTimers();const stop=new AbortController(),receive=vi.fn();

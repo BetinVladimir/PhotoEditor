@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"math"
+	"strconv"
 	"testing"
 
 	"github.com/google/uuid"
@@ -118,17 +119,36 @@ func TestEmbeddedIdentityStyleIsProductionRecipe(t *testing.T) {
 func TestRetryRejectsInvalidSelectionBeforeDatabase(t *testing.T) {
 	s := Service{}
 	who := auth.Identity{UserID: uuid.New()}
-	cases := []RetryRequest{{ExpectedRevision: 0}, {ExpectedRevision: 1, TaskIDs: []uuid.UUID{uuid.Nil}}, {ExpectedRevision: 1, TaskIDs: []uuid.UUID{uuid.New(), uuid.Nil}}}
+	cases := []RetryRequest{{ExpectedRevision: "0"}, {ExpectedRevision: "1", TaskIDs: []uuid.UUID{uuid.Nil}}, {ExpectedRevision: "1", TaskIDs: []uuid.UUID{uuid.New(), uuid.Nil}}}
 	for i, req := range cases {
-		_, err := s.Retry(context.Background(), who, uuid.New(), uuid.New(), req.ExpectedRevision, req)
+		_, err := s.Retry(context.Background(), who, uuid.New(), uuid.New(), req)
 		if domain.AsError(err).Code != "VALIDATION_FAILED" {
 			t.Fatalf("case %d: %v", i, err)
 		}
 	}
 	id := uuid.New()
-	req := RetryRequest{ExpectedRevision: 1, TaskIDs: []uuid.UUID{id, id}}
-	if _, err := s.Retry(context.Background(), who, uuid.New(), uuid.New(), 1, req); domain.AsError(err).Code != "VALIDATION_FAILED" {
+	req := RetryRequest{ExpectedRevision: "1", TaskIDs: []uuid.UUID{id, id}}
+	if _, err := s.Retry(context.Background(), who, uuid.New(), uuid.New(), req); domain.AsError(err).Code != "VALIDATION_FAILED" {
 		t.Fatalf("duplicate: %v", err)
+	}
+	for _, revision := range []string{"", "01", "+1", "-1", "9223372036854775808"} {
+		if _, err := s.Retry(context.Background(), who, uuid.New(), uuid.New(), RetryRequest{ExpectedRevision: revision}); domain.AsError(err).Code != "VALIDATION_FAILED" {
+			t.Fatalf("invalid revision %q: %v", revision, err)
+		}
+	}
+}
+
+func TestRetryRevisionPreservesFullInt64Decimal(t *testing.T) {
+	for _, revision := range []string{"1", "9007199254740993", "9223372036854775807"} {
+		value, err := parseRetryRevision(revision)
+		if err != nil || strconv.FormatInt(value, 10) != revision {
+			t.Fatalf("valid revision %q lost precision: %v", revision, err)
+		}
+	}
+	for _, revision := range []string{"", "0", "01", "+1", "-1", "9223372036854775808"} {
+		if _, err := parseRetryRevision(revision); domain.AsError(err).Code != "VALIDATION_FAILED" {
+			t.Fatalf("invalid revision %q accepted: %v", revision, err)
+		}
 	}
 }
 

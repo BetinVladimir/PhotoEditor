@@ -3438,7 +3438,7 @@ func (s *Server) catalogRoutes(r chi.Router) {
 			writeError(w, r, err)
 			return
 		}
-		out, err := runs.Retry(r.Context(), who, tid, id, request.ExpectedRevision, request)
+		out, err := runs.Retry(r.Context(), who, tid, id, request)
 		if err != nil {
 			writeError(w, r, err)
 			return

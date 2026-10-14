@@ -76,7 +76,7 @@ type Status struct {
 }
 type RetryRequest struct {
 	TaskIDs          []uuid.UUID `json:"task_ids,omitempty"`
-	ExpectedRevision int64       `json:"expected_revision"`
+	ExpectedRevision string      `json:"expected_revision"`
 }
 
 const statusFields = `r.id,r.kind,r.status,r.revision,r.output_collection_id,r.created_at,
@@ -427,9 +427,10 @@ func (s Service) Cancel(ctx context.Context, who auth.Identity, tenantID, id uui
 	return out, err
 }
 
-func (s Service) Retry(ctx context.Context, who auth.Identity, tenantID, id uuid.UUID, expected int64, req RetryRequest) (Status, error) {
+func (s Service) Retry(ctx context.Context, who auth.Identity, tenantID, id uuid.UUID, req RetryRequest) (Status, error) {
 	var out Status
-	if expected < 1 || req.ExpectedRevision != expected || len(req.TaskIDs) > 500 {
+	expected, parseErr := parseRetryRevision(req.ExpectedRevision)
+	if parseErr != nil || len(req.TaskIDs) > 500 {
 		return out, domain.NewError("VALIDATION_FAILED", 422)
 	}
 	seen := map[uuid.UUID]bool{}
@@ -491,4 +492,12 @@ func (s Service) Retry(ctx context.Context, who auth.Identity, tenantID, id uuid
 		return e
 	})
 	return out, err
+}
+
+func parseRetryRevision(raw string) (int64, error) {
+	value, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil || value < 1 || strconv.FormatInt(value, 10) != raw {
+		return 0, domain.NewError("VALIDATION_FAILED", 422)
+	}
+	return value, nil
 }

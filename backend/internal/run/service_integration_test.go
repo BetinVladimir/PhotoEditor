@@ -146,7 +146,7 @@ func TestIntegrationCancelRunIsAuthorizedAuditedAndIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = service.Retry(ctx, who, tenantID, child, 2, RetryRequest{ExpectedRevision: 2, TaskIDs: []uuid.UUID{task}})
+	_, err = service.Retry(ctx, who, tenantID, child, RetryRequest{ExpectedRevision: "2", TaskIDs: []uuid.UUID{task}})
 	if d := domain.AsError(err); d.Code != "RUN_NOT_RETRYABLE" {
 		t.Fatal("terminal batch retry conflict", err)
 	}
@@ -186,7 +186,7 @@ func TestIntegrationCancelRunIsAuthorizedAuditedAndIdempotent(t *testing.T) {
 	if _, err := admin.Exec(ctx, "UPDATE photo.runs SET status='draft',cancel_requested=false WHERE id=$1", batch); err != nil {
 		t.Fatal(err)
 	}
-	retried, err := service.Retry(ctx, who, tenantID, child, 2, RetryRequest{ExpectedRevision: 2, TaskIDs: []uuid.UUID{task}})
+	retried, err := service.Retry(ctx, who, tenantID, child, RetryRequest{ExpectedRevision: "2", TaskIDs: []uuid.UUID{task}})
 	if err != nil || retried.State != "running" || retried.Revision != "3" {
 		t.Fatal("active batch child retry", retried, err)
 	}
