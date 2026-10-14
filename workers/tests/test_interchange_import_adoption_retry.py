@@ -47,4 +47,29 @@ def test_uninstalled_adoption_authority_is_retryable_without_rejection(code):
                  'perspective_preview_runner', 'perspective_quality_runner'):
         setattr(adopter, name, None)
     assert adopter.run_once() == {'adopted': 0, 'rejected': 0, 'finalized': 0, 'retry': 1}
+    assert adopter.signing_runtime_healthy is (not code.startswith('SIGNING_'))
     assert not any('reject_v2_adoption' in query for query in queries)
+
+
+def test_shared_finalization_failure_withdraws_signer_health():
+    tenant, run = uuid4(), uuid4()
+    class Read:
+        def execute(self, query, _args=()):
+            if 'v2_pending_adoptions' in query:
+                return SimpleNamespace(fetchall=lambda: [])
+            if 'v2_pending_finalizations' in query:
+                return SimpleNamespace(fetchall=lambda: [(tenant, run)])
+            raise AssertionError(query)
+    class Write:
+        def transaction(self):
+            raise OSError('database unavailable')
+    adopter = object.__new__(Adopter)
+    adopter.stop = Event()
+    adopter.read, adopter.write = Read(), Write()
+    adopter.exposure_enabled = False
+    for name in ('delivery_encode', 'negative_review_publisher', 'derivative_coordinator',
+                 'multi_quality_runner', 'multi_preview_runner', 'restoration_preview_runner',
+                 'perspective_preview_runner', 'perspective_quality_runner'):
+        setattr(adopter, name, None)
+    assert adopter.run_once()['retry'] == 1
+    assert adopter.signing_runtime_healthy is False

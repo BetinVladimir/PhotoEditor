@@ -127,7 +127,7 @@ def test_adopter_runtime_transports_signing_operator_and_pinned_sdk(tmp_path, mo
         service.run_adopter(config, Event(), signing_operator=operator)
 
 
-def test_signing_adopter_lease_waits_for_clean_pass_and_withdraws_on_retry(tmp_path, monkeypatch):
+def test_signing_adopter_lease_follows_signer_health_independent_of_other_retries(tmp_path, monkeypatch):
     deployment, _ = pinned_fixture(tmp_path)
     operator = InstalledSigningOperator(deployment.policies, lambda *_args: True, object())
     sdk = SimpleNamespace(Reader=lambda *_args: object())
@@ -148,6 +148,8 @@ def test_signing_adopter_lease_waits_for_clean_pass_and_withdraws_on_retry(tmp_p
         def run_once(self):
             self.calls += 1
             events.append('pass' + str(self.calls))
+            # An unrelated import retry must not keep the signer lane dark.
+            self.signing_runtime_healthy = self.calls != 3
             if self.calls == 4: stop.set()
             return {'retry': 1 if self.calls in (1, 3) else 0}
     class Lease:
@@ -167,5 +169,5 @@ def test_signing_adopter_lease_waits_for_clean_pass_and_withdraws_on_retry(tmp_p
         'photo', 'key', 'secret', layer_scratch_root=tmp_path,
         layer_scratch_bytes=1 << 30)
     service.run_adopter(config, stop, signing_operator=operator, signing_sdk=sdk)
-    assert events == ['pass1', 'pass2', 'announce', 'pass3', 'readyFalse',
+    assert events == ['pass1', 'announce', 'pass2', 'readyTrue', 'pass3', 'readyFalse',
                       'pass4', 'withdraw']

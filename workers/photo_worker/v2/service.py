@@ -226,6 +226,9 @@ class Adopter:
 
     def run_once(self) -> dict[str, int]:
         counts = {"adopted": 0, "rejected": 0, "finalized": 0, "retry": 0}
+        # This is process health for the signer lane, not the aggregate retry
+        # count of unrelated optional V2 adopters sharing the process.
+        self.signing_runtime_healthy = True
         if self.stop.is_set():
             return counts
         candidates = self.read.execute("SELECT * FROM photo.v2_pending_adoptions()").fetchall()
@@ -266,6 +269,7 @@ class Adopter:
                     if code in {"SIGNING_ADOPTION_OPERATOR_REQUIRED",
                                 "SIGNING_ADOPTION_SCRATCH_REQUIRED",
                                 "SIGNING_ADOPTION_SDK_REQUIRED"}:
+                        self.signing_runtime_healthy = False
                         counts["retry"] += 1
                         continue
                     try:
@@ -283,10 +287,12 @@ class Adopter:
                             if row and row[0]:
                                 counts["rejected"] += 1
                     except Exception:
+                        self.signing_runtime_healthy = False
                         counts["retry"] += 1
                 except Exception:
                     # DB/object-store availability is not a result-validation
                     # failure. Retry later without publishing exception text.
+                    self.signing_runtime_healthy = False
                     counts["retry"] += 1
             finally:
                 self.read.execute("SELECT pg_advisory_unlock(hashtextextended(%s,0))", (key,))
@@ -327,6 +333,7 @@ class Adopter:
                 if state in {"completed", "waiting_review", "failed", "cancelled"}:
                     counts["finalized"] += 1
             except Exception:
+                self.signing_runtime_healthy = False
                 counts["retry"] += 1
         if self.derivative_coordinator is not None and not self.stop.is_set():
             candidates = self.read.execute('SELECT * FROM photo.pending_v26_render_derivative_receipts(%s)',(self.derivative_after,)).fetchall()
@@ -613,7 +620,7 @@ def run_adopter(config: AdopterConfig, stop: Event | None = None, *,
                             break
                         if not isinstance(first,dict) or type(first.get('retry')) is not int:
                             raise ValueError('Signing adopter first pass invalid')
-                        if first['retry'] == 0:
+                        if adopter.signing_runtime_healthy is True:
                             break
                         stop.wait(1.0)
                 elif lease_connection is not None and not stop.is_set():
@@ -629,5 +636,5 @@ def run_adopter(config: AdopterConfig, stop: Event | None = None, *,
                     if signing_lease is not None and not stop.is_set():
                         if not isinstance(counts,dict) or type(counts.get('retry')) is not int:
                             raise ValueError('Signing adopter pass invalid')
-                        signing_lease.set_ready(counts['retry'] == 0)
+                        signing_lease.set_ready(adopter.signing_runtime_healthy is True)
                     stop.wait(1.0)
