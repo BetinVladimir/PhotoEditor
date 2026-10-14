@@ -580,7 +580,9 @@ def run_adopter(config: AdopterConfig, stop: Event | None = None, *,
                     layer_scratch_root=config.layer_scratch_root,layer_scratch_bytes=config.layer_scratch_bytes,
                     render_replay=render_replay,render_max_tile_bytes=render_max_tile_bytes,
                     region_target_icc_sha=region_target_icc_sha,stop=stop,**delivery_options,**derivative_options,**semantic_options,**exposure_options,**donor_options)
-                if lease_connection is not None:
+                if lease_connection is not None and not stop.is_set():
+                    adopter.run_once()
+                if lease_connection is not None and not stop.is_set():
                     runtime_scope.enter_context(ImportAdopterRuntimeLease(lease_connection, stop))
                 while not stop.is_set():
                     adopter.run_once()
