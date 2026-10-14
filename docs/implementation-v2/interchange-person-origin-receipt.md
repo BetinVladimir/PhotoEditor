@@ -64,6 +64,12 @@ the deterministic receipt as a versioned `backend_documents` artifact in the
 still-draft frozen export, with tenant quota, replay and fence checks. The
 export task-input declaration and production issuer/factory installation are
 still needed before this publication path is reachable in production.
+`PublishExportPersonOriginInputs` now prepares a new pre-materialization input
+digest from the original qualified inventory plus each published receipt and
+its exact `MaskRef`. It checks the frozen entry and source, signed claim,
+current producer, typed recipe/override/pixels membership and publication
+result. The execution installer and SQL materializer still need to consume
+this enriched inventory consistently before task sealing.
 Installed export archive authority now requires a current producer checker.
 The SQL checker repeats the original `mask.person` locator and compares task,
 attempt, fence, root, report and MaskPixels with the signed claim during ZIP
