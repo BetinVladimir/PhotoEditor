@@ -58,9 +58,12 @@ The production factory and source-derived authority installer are still absent;
 this optional gate does not itself publish or admit receipts.
 `ExportPersonOriginAttachmentPublisher` now implements signed-byte validation,
 fenced reservation, immutable object write/recovery, physical reread and
-current-producer recheck against an explicit repository interface. The SQL
-repository and export task-input declaration are still needed before this
-publication path is reachable in production.
+current-producer recheck against an explicit repository interface.
+`SQLExportPersonOriginRepository` and migration 02031 now reserve and complete
+the deterministic receipt as a versioned `backend_documents` artifact in the
+still-draft frozen export, with tenant quota, replay and fence checks. The
+export task-input declaration and production issuer/factory installation are
+still needed before this publication path is reachable in production.
 Installed export archive authority now requires a current producer checker.
 The SQL checker repeats the original `mask.person` locator and compares task,
 attempt, fence, root, report and MaskPixels with the signed claim during ZIP
