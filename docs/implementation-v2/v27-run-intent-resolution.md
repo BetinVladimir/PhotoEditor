@@ -24,4 +24,6 @@ SemanticRunIntent и ReadRunIntent добавлены в существующи�
 
 Дополнительный physical ACL probe использует отдельного editor с собственной session/membership, сохраняя последнего owner tenant. Restricted project без grant и с viewer grant не раскрывает intent; editor grant разрешает чтение; archived project снова закрывает доступ. Fixture удаляет только созданные ею записи и восстанавливает исходную visibility/archived state. Проверка существующего чужого tenant с действующей membership и полного role matrix ещё не закрыта.
 
-Следующий шаг: полная cross-tenant/role матрица и browser/native flow. Прямое открытие общего run URL без semanticWorkflow пока не обнаруживает semantic workflow автоматически. Native producer orchestration и полный acceptance V27 также остаются открытыми.
+Общий V2 run URL теперь монтирует read-only semantic resolver и без `semanticWorkflow`: первая успешная выдача закрепляет workflow ID, последующие выдачи не вправе его менять. Первый 404 означает обычный не-semantic run и не показывает ошибку; потеря доступа после уже увиденного semantic intent скрывает ссылку и показывает отказ. Явный workflow hint по-прежнему сверяется с backend. Component/route unit-сценарии написаны, но не запускались в implementation-first фазе.
+
+Следующий шаг: полная cross-tenant/role матрица и browser/native flow. Native producer orchestration и полный acceptance V27 также остаются открытыми.

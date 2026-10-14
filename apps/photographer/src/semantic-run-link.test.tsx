@@ -17,6 +17,19 @@ it('opens actual independent intent after pending processing',async()=>{
  await act(async()=>{await vi.advanceTimersByTimeAsync(3000)});
  fireEvent.click(screen.getByText('Open batch review'));expect(onOpen).toHaveBeenCalledWith(intent);
 });
+it('pins discovered workflow identity when the run URL has no hint',async()=>{
+ vi.useFakeTimers();const client={semanticRunIntent:vi.fn().mockResolvedValueOnce(initial).mockResolvedValue({...initial,workflow_id:run,intent_id:intent,revision:'9007199254740994',state:'waiting_review'})};
+ render(<SemanticRunLink client={client} tenant={run} run={run} onOpen={vi.fn()}/>);await flush();
+ await act(async()=>{await vi.advanceTimersByTimeAsync(3000)});
+ expect(screen.queryByText('Open batch review')).toBeNull();expect(screen.getByRole('alert')).toBeTruthy();
+});
+it('treats an initial 404 without a workflow hint as a nonsemantic run',async()=>{
+ const client={semanticRunIntent:vi.fn().mockRejectedValue(new APIError(404,'NOT_FOUND'))};
+ render(<SemanticRunLink client={client} tenant={run} run={run} onOpen={vi.fn()}/>);await flush();
+ expect(screen.queryByRole('alert')).toBeNull();expect(screen.queryByText('Open batch review')).toBeNull();
+ expect(screen.queryByText('Preparing batch review…')).toBeNull();
+ expect(client.semanticRunIntent).toHaveBeenCalledTimes(1);
+});
 it.each(['workflow','run','revision','intent'])('rejects changed %s without exposing navigation',async(kind)=>{
  vi.useFakeTimers();const stable={...initial,intent_id:intent};let changed={...stable};
  if(kind==='workflow')changed.workflow_id=run;if(kind==='run')changed.run_id=workflow;if(kind==='revision')changed.revision='9007199254740992';if(kind==='intent')changed.intent_id=workflow;

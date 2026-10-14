@@ -17,6 +17,22 @@ it('opens semantic review using resolved intent instead of workflow route ID',as
  render(<RunScreen/>);fireEvent.click(await screen.findByText('Open batch review'));
  expect(mocks.push).toHaveBeenCalledWith({pathname:'/semantic/[id]',params:{tenant:'tenant',id:intent}});
 });
+it('discovers semantic review from a direct V2 run URL without a workflow hint',async()=>{
+ const workflow='22222222-2222-4222-8222-222222222222',intent='33333333-3333-4333-8333-333333333333';
+ streaming();mocks.request.mockResolvedValue({...value('2','waiting_review'),kind:'v2'});
+ mocks.resolve.mockResolvedValue({run_id:'run',workflow_id:workflow,intent_id:intent,revision:'2',state:'waiting_review'});
+ render(<RunScreen/>);fireEvent.click(await screen.findByText('Open batch review'));
+ expect(mocks.push).toHaveBeenCalledWith({pathname:'/semantic/[id]',params:{tenant:'tenant',id:intent}});
+ expect(mocks.resolve).toHaveBeenCalledWith('tenant','run',expect.any(AbortSignal));
+});
+it('keeps an ordinary V2 run free of semantic review errors',async()=>{
+ streaming();mocks.request.mockResolvedValue({...value('2','running'),kind:'v2'});
+ mocks.resolve.mockRejectedValue(new APIError(404,'NOT_FOUND'));
+ render(<RunScreen/>);await waitFor(()=>expect(mocks.resolve).toHaveBeenCalledTimes(1));
+ expect(screen.queryByText('Open batch review')).toBeNull();
+ expect(screen.queryByText('Preparing batch review…')).toBeNull();
+ expect(screen.queryByText('Unable to read processing status.')).toBeNull();
+});
 const value=(revision:string,status:string,id='run'):RunStatus=>({id,kind:'bulk',status,revision,stage:status,progress:status==='completed'?1:0,counts:{total:2,succeeded:status==='completed'?2:0,failed:status==='failed'?2:0,skipped:0,review:0},errors:[]});
 function streaming(){mocks.stream.mockImplementation((_path,_cursor,_receive,signal)=>new Promise<void>(resolve=>signal.addEventListener('abort',()=>resolve(),{once:true})));}
 afterEach(()=>{cleanup();vi.resetAllMocks();mocks.params={id:'run',tenant:'tenant'};});
