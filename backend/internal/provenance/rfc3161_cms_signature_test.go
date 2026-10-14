@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func signedCMSPartsFixture(t *testing.T, includeESS bool) rfc3161CMSParts {
+func signedCMSPartsFixture(t *testing.T, includeESS bool, issuerSerial ...string) rfc3161CMSParts {
 	t.Helper()
 	encode := func(value any) []byte {
 		t.Helper()
@@ -52,9 +52,29 @@ func signedCMSPartsFixture(t *testing.T, includeESS bool) rfc3161CMSParts {
 	}
 	if includeESS {
 		certSum := sha256.Sum256(certDER)
-		ess := encode(struct{ Certs []struct{ Hash []byte } }{
-			Certs: []struct{ Hash []byte }{{certSum[:]}},
-		})
+		var essCert []byte
+		if len(issuerSerial) > 0 {
+			name := encode(asn1.RawValue{Class: 2, Tag: 4, IsCompound: true, Bytes: cert.RawIssuer})
+			names := encode(asn1.RawValue{Tag: asn1.TagSequence, IsCompound: true, Bytes: name})
+			serial := new(big.Int).Set(cert.SerialNumber)
+			if issuerSerial[0] == "wrong" {
+				serial.Add(serial, big.NewInt(1))
+			}
+			bound := encode(struct {
+				Names  asn1.RawValue
+				Serial *big.Int
+			}{
+				asn1.RawValue{FullBytes: names}, serial})
+			essCert = encode(struct {
+				Hash         []byte
+				IssuerSerial asn1.RawValue
+			}{
+				certSum[:], asn1.RawValue{FullBytes: bound}})
+		} else {
+			essCert = encode(struct{ Hash []byte }{certSum[:]})
+		}
+		certs := encode(asn1.RawValue{Tag: asn1.TagSequence, IsCompound: true, Bytes: essCert})
+		ess := encode(asn1.RawValue{Tag: asn1.TagSequence, IsCompound: true, Bytes: certs})
 		attrs = append(attrs, attribute(essSigningCertificateV2OID, ess))
 	}
 	sort.Slice(attrs, func(i, j int) bool { return bytes.Compare(attrs[i], attrs[j]) < 0 })
@@ -102,5 +122,13 @@ func TestRFC3161CMSSignatureAndESSBinding(t *testing.T) {
 	parts.Certificates[0][len(parts.Certificates[0])-1] ^= 1
 	if _, err := verifyRFC3161CMSSignature(parts); err == nil {
 		t.Fatal("modified certificate accepted")
+	}
+	parts = signedCMSPartsFixture(t, true, "valid")
+	if _, err := verifyRFC3161CMSSignature(parts); err != nil {
+		t.Fatal("valid ESS issuerSerial refused", err)
+	}
+	parts = signedCMSPartsFixture(t, true, "wrong")
+	if _, err := verifyRFC3161CMSSignature(parts); err == nil {
+		t.Fatal("foreign ESS issuerSerial accepted")
 	}
 }

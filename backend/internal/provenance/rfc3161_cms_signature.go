@@ -94,11 +94,36 @@ func rfc3161ESSCertIDv2(value asn1.RawValue, cert *x509.Certificate) bool {
 			return false
 		}
 	}
-	if field.Class != 0 || field.Tag != asn1.TagOctetString || len(field.Bytes) != 32 || len(first.Bytes) != 0 {
+	if field.Class != 0 || field.Tag != asn1.TagOctetString || len(field.Bytes) != 32 {
 		return false
 	}
 	sum := sha256.Sum256(cert.Raw)
-	return subtle.ConstantTimeCompare(field.Bytes, sum[:]) == 1
+	if subtle.ConstantTimeCompare(field.Bytes, sum[:]) != 1 {
+		return false
+	}
+	if len(first.Bytes) == 0 {
+		return true
+	}
+	issuerSerial, err := rfc3161NextRaw(&first.Bytes)
+	if err != nil || len(first.Bytes) != 0 || !rfc3161Sequence(issuerSerial) {
+		return false
+	}
+	names, err := rfc3161NextRaw(&issuerSerial.Bytes)
+	if err != nil || !rfc3161Sequence(names) {
+		return false
+	}
+	name, err := rfc3161NextRaw(&names.Bytes)
+	if err != nil || len(names.Bytes) != 0 || name.Class != 2 || name.Tag != 4 || !name.IsCompound {
+		return false
+	}
+	var directoryName asn1.RawValue
+	nameRest, err := asn1.Unmarshal(name.Bytes, &directoryName)
+	if err != nil || len(nameRest) != 0 || !rfc3161Sequence(directoryName) || !bytes.Equal(directoryName.FullBytes, cert.RawIssuer) {
+		return false
+	}
+	var serial *big.Int
+	serialRest, err := asn1.Unmarshal(issuerSerial.Bytes, &serial)
+	return err == nil && len(serialRest) == 0 && serial != nil && serial.Cmp(cert.SerialNumber) == 0
 }
 
 func rfc3161SignedAttributes(attrs asn1.RawValue, content []byte, cert *x509.Certificate) ([]byte, error) {
