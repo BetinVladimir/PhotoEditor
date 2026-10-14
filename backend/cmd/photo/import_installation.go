@@ -22,6 +22,15 @@ func schedulerImportFactories(ctx context.Context, dependencies apiProcessDepend
 	if configPath != "" && dependencies.ImportOperatorFiles != nil {
 		return nil, errors.New("conflicting V30 scheduler import operator declarations")
 	}
+	// The ordinary executable owns this baseline. The pinned deployment below
+	// supplies native/style/model policies; consent is bound later to each
+	// claimed workflow and can never be supplied by the archive.
+	if configPath != "" && dependencies.ImportEntryBase == nil && dependencies.ImportPersonAcceptance == nil {
+		dependencies.ImportEntryBase = &interchange.SQLImportEntryRecipeAuthorityFactory{
+			MaskInstallation: &interchange.ImportMaskPolicyInstallation{Manual: true},
+		}
+		dependencies.ImportPersonAcceptance = interchange.SQLImportPersonAcceptanceBinder{}
+	}
 	operatorDeclared := configPath != "" || dependencies.ImportOperatorFiles != nil || dependencies.ImportEntryBase != nil || dependencies.ImportPersonAcceptance != nil
 	if !operatorDeclared {
 		if dependencies.InterchangeImport == nil {

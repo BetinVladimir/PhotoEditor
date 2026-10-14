@@ -99,6 +99,9 @@ func TestSchedulerImportOperatorEnvironmentLoadsPinnedDeclaration(t *testing.T) 
 	t.Setenv("PHOTO_V30_IMPORT_OPERATOR_CONFIG_SHA256", hex.EncodeToString(digest[:]))
 	base := &interchange.SQLImportEntryRecipeAuthorityFactory{Codecs: interchange.ImportRecipeCodecDependencies{Params: interchange.RejectUnsupportedImportDependency{}, OverrideContent: importOverrideContentStub{}}}
 	deps := apiProcessDependencies{ImportEntryBase: base, ImportPersonAcceptance: importPersonAcceptanceStub{}}
+	if got, err := schedulerImportFactories(context.Background(), apiProcessDependencies{}); err == nil || len(got) != 0 {
+		t.Fatal("ordinary process bypassed subordinate pinned deployment validation")
+	}
 	if got, err := schedulerImportFactories(context.Background(), deps); err == nil || len(got) != 0 {
 		t.Fatal("missing pinned subordinate deployment produced a factory")
 	}

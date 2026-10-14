@@ -300,6 +300,16 @@ func (f SQLImportEntryRecipeAuthorityFactory) BindImportWorkflowRecipeAuthority(
 	}
 	if f.PersonMaskQualification != nil {
 		owned := f.PersonMaskQualification.owned()
+		if binder, ok := owned.Consent.(ImportPersonAcceptanceBinder); ok {
+			consent, err := binder.BindImportPersonAcceptance(ctx, c, parsed, deps)
+			if err != nil {
+				return nil, err
+			}
+			if consent == nil {
+				return nil, v2input.ErrInvalid
+			}
+			owned.Consent = consent
+		}
 		f.PersonMaskQualification = &owned
 	}
 	if f.MaskInstallation != nil {
