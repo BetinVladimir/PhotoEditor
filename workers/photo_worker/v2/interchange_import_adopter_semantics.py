@@ -60,7 +60,8 @@ class SupportedImportSemanticPolicy:
         if contract == 'WorkingImage':
             return isinstance(typed, WorkingImage)
         if contract == 'EditingRecipeV3':
-            return isinstance(typed, EditingRecipeV3) and typed.learning_version_id is None
+            return (isinstance(typed, EditingRecipeV3) and typed.source == binding
+                    and typed.learning_version_id is None)
         if contract == 'CorrectionPlan':
             return isinstance(typed, CorrectionPlan)
         if contract == 'LayerStack':

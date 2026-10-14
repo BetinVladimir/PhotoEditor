@@ -331,6 +331,8 @@ Task-local `bound_scope` сохраняет все person masks и live epochs, 
 
 V30 import semantic gate теперь дополнительно связывает `LayerStack.source` с текущим `VersionBinding` и допускает только layer-операции `image.denoise`/`image.upscale` при соответствующей квалификации. Выбранные `color.stats` и `mask.person` reports больше не превращаются в разрешение одноимённых render layers. Unit-сценарий с обоими ложными именами написан, не запускался.
 
+Тот же независимый semantic gate требует точный текущий `VersionBinding` у `EditingRecipeV3`; рецепт другого asset version не проходит даже при допустимых полях. Unit-сценарий написан, не запускался.
+
 Pinned qualifications manifest теперь допускает явный пустой список: model-free fixed recipes не требуют фиктивного отчёта. Пустой manifest остаётся обязательным каноническим файлом с SHA при включённом importer; `SupportedImportSemanticPolicy` и builder принимают его, но Params denoise/upscale/stats, person mask и другие model-dependent документы продолжают отказываться. Unit-сценарии добавлены, не запускались.
 
 Миграция `02117_v30_import_adopter_runtime_admission.sql` добавляет независимый 30-секундный lease установленного Python `v2-adopter`; создание нового import run теперь требует одновременно живые Go continuation и result-adopter leases. Existing draft replay не меняется. `ImportAdopterRuntimeLease` проверяет scheduler-only SQL ABI, объявляет readiness только после успешной сборки `Adopter`, обновляет lease по отдельному соединению во время долгого object IO, отзывает на выходе и останавливает процесс при потере renewal. Функции `announce/withdraw` доступны только `photo_scheduler`, таблица остаётся закрытой RLS. Unit-сценарии написаны, миграция и тесты не выполнялись.
