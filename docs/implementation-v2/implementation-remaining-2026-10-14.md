@@ -71,6 +71,8 @@
 
 Миграция `02046_v30_scheduler_lut_origin.sql` и `SQLSchedulerExportInputCatalog.QualifyExportLUT` добавляют второй native authority: frozen source snapshot, exact `ResolvedStyle → AbsoluteLUTArray` edge и текущий canonical `style.resolve` producer с attempt/fence/outputs проверяются под claim; object pins повторно читаются после SQL. Остальные native authority и runtime installation открыты; 02046 и тесты не выполнялись.
 
+Миграция `02047_v30_scheduler_params_mask.sql` и `SQLSchedulerExportInputCatalog.QualifyExportParamsMask` связывают inline MaskRef в точных Params с текущим завершённым producer, source frozen snapshot и запечатанным MaskPixels input; Go повторяет typed JSON extraction и object pin reads. Это ещё один native authority, но не полная closure; 02047 и сценарии не выполнялись.
+
 ## Граница первого MVP
 
 Обязательны пункты 1–5 на выбранной и явно опубликованной матрице камер/форматов/операций. V23 learning, V24 on-set, V27 semantic, расширенные V28/V29, interchange и V31 C2PA желательны после первого MVP, если продукт не обещает их пользователю. Любая включённая в интерфейсе или маркетинговом обещании функция сразу получает полный P0-критерий своей сквозной трассы. Такое разделение определяет релизную очередь, но не сокращает цель V20–V32.
