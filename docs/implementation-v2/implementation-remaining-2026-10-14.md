@@ -73,6 +73,8 @@
 
 Миграция `02047_v30_scheduler_params_mask.sql` и `SQLSchedulerExportInputCatalog.QualifyExportParamsMask` связывают inline MaskRef в точных Params с текущим завершённым producer, source frozen snapshot и запечатанным MaskPixels input; Go повторяет typed JSON extraction и object pin reads. Это ещё один native authority, но не полная closure; 02047 и сценарии не выполнялись.
 
+`SchedulerExportClosureReader` соединяет проверку канонического result/ZIP с существующим полным обходом portable source inventory и manifest validation; он требует process-installed `SchedulerExportNativeResolverFactory`, возвращающий graph-bound native resolver, и после физического IO повторяет result, bundle object и person-origin проверки. Он формирует sessionless immutable evidence для `AdoptScheduler`. Поскольку native factory и оставшиеся SQL authority ещё не установлены, bundle путь по-прежнему fail-closed. Unit-сценарии написаны, не выполнялись.
+
 ## Граница первого MVP
 
 Обязательны пункты 1–5 на выбранной и явно опубликованной матрице камер/форматов/операций. V23 learning, V24 on-set, V27 semantic, расширенные V28/V29, interchange и V31 C2PA желательны после первого MVP, если продукт не обещает их пользователю. Любая включённая в интерфейсе или маркетинговом обещании функция сразу получает полный P0-критерий своей сквозной трассы. Такое разделение определяет релизную очередь, но не сокращает цель V20–V32.
