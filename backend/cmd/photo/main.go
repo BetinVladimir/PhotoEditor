@@ -72,7 +72,7 @@ func runWithAPIDependencies(dependencies apiProcessDependencies) error {
 		var closeSigning func()
 		dependencies, closeSigning, err = installProcessSigningRuntime(ctx,
 			os.Getenv("PHOTO_SIGNING_DEPLOYMENT_FILE"), os.Getenv("PHOTO_SIGNING_DEPLOYMENT_SHA"),
-			os.Getenv("PHOTO_SIGNING_API_CERT_FILE"), os.Getenv("PHOTO_SIGNING_API_KEY_FILE"), dependencies)
+			os.Getenv("PHOTO_SIGNING_API_CERT_FILE"), os.Getenv("PHOTO_SIGNING_API_KEY_FILE"), cfg.DatabaseURL, dependencies)
 		if err != nil {
 			return err
 		}

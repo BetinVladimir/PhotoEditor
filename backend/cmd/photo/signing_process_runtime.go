@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // readSigningIdentityFile rejects symlinks, hardlinks, mutable permissions and
@@ -100,7 +101,7 @@ func validateSigningClientIdentity(identity tls.Certificate, now time.Time) erro
 	return nil
 }
 
-func installProcessSigningRuntime(ctx context.Context, path, pin, certPath, keyPath string, dependencies apiProcessDependencies) (apiProcessDependencies, func(), error) {
+func installProcessSigningRuntime(ctx context.Context, path, pin, certPath, keyPath, databaseURL string, dependencies apiProcessDependencies) (apiProcessDependencies, func(), error) {
 	noop := func() {}
 	if path == "" && pin == "" {
 		if certPath != "" || keyPath != "" {
@@ -143,9 +144,34 @@ func installProcessSigningRuntime(ctx context.Context, path, pin, certPath, keyP
 	leafSHA := sha256.Sum256(identity.Certificate[0])
 	identityID := hex.EncodeToString(leafSHA[:])
 	checks := make([]*provenance.HTTPSigningNativeCheck, 0, len(doc.Tenants))
+	timestampClosers := []func(){}
+	var timestampDB *pgxpool.Pool
 	closeChecks := func() {
 		for _, check := range checks {
 			check.Close()
+		}
+		for _, closeTimestamp := range timestampClosers {
+			closeTimestamp()
+		}
+		if timestampDB != nil {
+			timestampDB.Close()
+		}
+	}
+	for _, entry := range doc.Tenants {
+		if len(entry.TimestampServices) > 0 {
+			if databaseURL == "" {
+				return dependencies, noop, errors.New("TSA checkpoint database unavailable")
+			}
+			config, err := pgxpool.ParseConfig(databaseURL)
+			if err != nil {
+				return dependencies, noop, err
+			}
+			config.ConnConfig.RuntimeParams["role"] = "photo_api"
+			timestampDB, err = pgxpool.NewWithConfig(ctx, config)
+			if err != nil {
+				return dependencies, noop, err
+			}
+			break
 		}
 	}
 	tenants := make(map[uuid.UUID]provenance.SigningAPITenantRuntime, len(doc.Tenants))
@@ -160,7 +186,7 @@ func installProcessSigningRuntime(ctx context.Context, path, pin, certPath, keyP
 		}
 		for _, wire := range entry.Policies {
 			var policy provenance.SigningPolicy
-			if json.Unmarshal(wire.Body, &policy) != nil || policy.TimestampMode == "required" {
+			if json.Unmarshal(wire.Body, &policy) != nil || policy.TimestampMode == "required" && len(entry.TimestampServices) == 0 {
 				closeChecks()
 				return dependencies, noop, errors.New("required TSA verifier is not installed")
 			}
@@ -177,9 +203,20 @@ func installProcessSigningRuntime(ctx context.Context, path, pin, certPath, keyP
 			return dependencies, noop, err
 		}
 		checks = append(checks, check)
+		var timestampServices map[string]provenance.SigningTrustCheck
+		if len(entry.TimestampServices) > 0 {
+			var closeTimestamp func()
+			timestampServices, closeTimestamp, err = provenance.InstallSigningTimestampServices(ctx, entry.TimestampServices, timestampDB)
+			if err != nil {
+				closeChecks()
+				return dependencies, noop, err
+			}
+			timestampClosers = append(timestampClosers, closeTimestamp)
+		}
 		tenants[entry.TenantID] = provenance.SigningAPITenantRuntime{
 			WorkerID: entry.WorkerID, QualificationSHA: entry.QualificationSHA,
 			IdentityID: identityID, Identity: identity, Native: check.Check,
+			TimestampServices: timestampServices,
 		}
 	}
 	dependencies.SigningTenants = tenants

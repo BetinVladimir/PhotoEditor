@@ -28,7 +28,7 @@ func TestSigningProcessRuntimeRequiresPinnedIdentity(t *testing.T) {
 		{name: "invalid pin", path: "/deployment", pin: "BAD", cert: "/cert", key: "/key", wantErr: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			_, closeRuntime, err := installProcessSigningRuntime(ctx, tc.path, tc.pin, tc.cert, tc.key, apiProcessDependencies{})
+			_, closeRuntime, err := installProcessSigningRuntime(ctx, tc.path, tc.pin, tc.cert, tc.key, "", apiProcessDependencies{})
 			if (err != nil) != tc.wantErr || closeRuntime == nil {
 				t.Fatalf("err=%v closeRuntime=%v", err, closeRuntime != nil)
 			}
