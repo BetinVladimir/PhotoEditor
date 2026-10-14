@@ -43,8 +43,43 @@ func importReviewProposalCursor(item ImportReviewProposalItem) string {
 }
 
 func (s ImportReviewProposalListService) List(ctx context.Context, who auth.Identity, tenantID, projectID, workflowID uuid.UUID) ([]ImportReviewProposalItem, error) {
-	page, err := s.ListPage(ctx, who, tenantID, projectID, workflowID, "")
-	return page.Items, err
+	return collectImportReviewProposalPages(ctx, func(after string) (ImportReviewProposalPage, error) {
+		return s.ListPage(ctx, who, tenantID, projectID, workflowID, after)
+	})
+}
+
+// List must never report a truncated catalogue as complete to an internal caller.
+// HTTP clients can use ListPage directly when the bounded complete list is too large.
+func collectImportReviewProposalPages(ctx context.Context, fetch func(string) (ImportReviewProposalPage, error)) ([]ImportReviewProposalItem, error) {
+	items := make([]ImportReviewProposalItem, 0)
+	after := ""
+	for pageNumber := 0; pageNumber < 250; pageNumber++ {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		page, err := fetch(after)
+		if err != nil {
+			return nil, err
+		}
+		if len(page.Items) > 50 || (page.NextAfter != "" && len(page.Items) != 50) {
+			return nil, domain.NewError("INTERCHANGE_PROPOSAL_LIST_INVALID", 503)
+		}
+		for _, item := range page.Items {
+			cursor := importReviewProposalCursor(item)
+			if cursor <= after {
+				return nil, domain.NewError("INTERCHANGE_PROPOSAL_LIST_INVALID", 503)
+			}
+			after = cursor
+			items = append(items, item)
+		}
+		if page.NextAfter == "" {
+			return items, nil
+		}
+		if page.NextAfter != after {
+			return nil, domain.NewError("INTERCHANGE_PROPOSAL_LIST_INVALID", 503)
+		}
+	}
+	return nil, domain.NewError("INTERCHANGE_PROPOSAL_LIST_TOO_LARGE", 503)
 }
 
 func (s ImportReviewProposalListService) ListPage(ctx context.Context, who auth.Identity, tenantID, projectID, workflowID uuid.UUID, after string) (ImportReviewProposalPage, error) {
