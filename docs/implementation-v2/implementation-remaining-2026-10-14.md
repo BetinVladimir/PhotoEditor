@@ -87,6 +87,8 @@ Scheduler runtime теперь имеет `RunSchedulerWithInterchangeExport` и
 
 Миграция `02052_v30_scheduler_defect_label.sql` и `SQLSchedulerExportInputCatalog.QualifyExportDefectLabel` дают scheduler authority для обычного `defects.propose`: точный DefectCandidates → DefectLabelMap edge, frozen source, завершённый canonical producer, report/protection/Params и output fences. Ветки V27 native/target handoff требуют отдельного result-catalog proof и пока явно отклоняются. Миграция и unit/role-сценарии не выполнялись.
 
+`SchedulerExportNativeInstallation` и `NativeExportDeployment.BuildSchedulerExportAdoptionFromDeployment` теперь собирают фоновый native resolver из того же pinned deployment, style validator и физических probes, что foreground export. Для каждого claim валидатор строится заново на точных frozen документах и scheduler input catalog; JSON-only fallback отсутствует. Остальные scheduler authority интерфейсы, нужные стилевому validator, пока не реализованы, поэтому bundle остаётся fail-closed и executable ещё не включает фабрику. Unit-сценарии написаны, не выполнялись.
+
 `SchedulerExportClosureReader` соединяет проверку канонического result/ZIP с существующим полным обходом portable source inventory и manifest validation; он требует process-installed `SchedulerExportNativeResolverFactory`, возвращающий graph-bound native resolver, и после физического IO повторяет result, bundle object и person-origin проверки. Он формирует sessionless immutable evidence для `AdoptScheduler`. Поскольку native factory и оставшиеся SQL authority ещё не установлены, bundle путь по-прежнему fail-closed. Unit-сценарии написаны, не выполнялись.
 
 ## Граница первого MVP
