@@ -158,6 +158,7 @@ class DeliveryEncodeAdoptionService:
         rows = self.read_connection.execute(
             'SELECT tenant_id,task_id FROM photo.v30_delivery_pending_encodes(%s)', (limit,),
         ).fetchall()
+        self.check_active()
         if len(rows) > limit:
             raise AdoptionInvalid('DELIVERY_ENCODE_CANDIDATE_PAGE_INVALID')
         seen = set()
@@ -199,6 +200,7 @@ class DeliveryEncodeAdoptionService:
                     self.check_active()
                 target = terminal if terminal_receipt == (True,) else rejected
                 target.append((tenant_id, task_id, str(error)))
+        self.check_active()
         return DeliveryEncodePageResult(len(rows), adopted, tuple(rejected), tuple(terminal))
 
 

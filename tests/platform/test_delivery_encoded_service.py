@@ -186,3 +186,19 @@ def test_delivery_encode_pending_page_is_bounded_and_validated_before_adoption(s
         assert len(result.rejected)==(1 if scenario=='rejected' else 0)
         assert calls==rows
         assert deferred==([rows[0]] if scenario=='rejected' else [])
+
+
+@pytest.mark.parametrize('cancel_at',[2,3])
+def test_delivery_encode_empty_page_reports_late_cancellation(cancel_at):
+    runtime=object.__new__(service.DeliveryEncodeAdoptionService)
+    runtime.read_connection=SimpleNamespace(execute=lambda sql,args:SimpleNamespace(fetchall=lambda:[]))
+    calls=0
+    def active():
+        nonlocal calls
+        calls+=1
+        if calls==cancel_at:
+            raise RuntimeError('cancelled')
+    runtime.check_active=active
+    with pytest.raises(RuntimeError,match='cancelled'):
+        runtime.process_pending(2)
+    assert calls==cancel_at
