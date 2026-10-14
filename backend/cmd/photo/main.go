@@ -76,6 +76,15 @@ func runWithAPIDependencies(dependencies apiProcessDependencies) error {
 		return err
 	}
 	if cfg.Role == "api" || cfg.Role == "scheduler" {
+		dependencies, err = installLocalInterchangeExportBase(ctx,
+			os.Getenv("V30_INTERCHANGE_EXPORT_OPERATOR_FILE"),
+			os.Getenv("V30_INTERCHANGE_EXPORT_OPERATOR_SHA"),
+			os.Getenv("PHOTO_ICC_ROOT"),
+			os.Getenv("V30_EXPORT_MODEL_LOCK_FILE"),
+			os.Getenv("V30_EXPORT_MODEL_LOCK_SHA"), dependencies)
+		if err != nil {
+			return err
+		}
 		dependencies, err = installInterchangeExportOperator(ctx,
 			os.Getenv("V30_INTERCHANGE_EXPORT_OPERATOR_FILE"),
 			os.Getenv("V30_INTERCHANGE_EXPORT_OPERATOR_SHA"), dependencies)
