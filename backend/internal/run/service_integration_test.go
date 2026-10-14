@@ -60,11 +60,12 @@ func TestIntegrationCancelRunIsAuthorizedAuditedAndIdempotent(t *testing.T) {
 
 	service := Service{DB: api, Cursors: pagination.Codec{Key: []byte(strings.Repeat("k", 32))}}
 	who := auth.Identity{UserID: user, SessionID: session, Epoch: epoch}
-	first, err := service.Cancel(ctx, who, tenantID, runID)
+	cancelKey := uuid.NewString()
+	first, err := service.Cancel(ctx, who, tenantID, runID, cancelKey)
 	if err != nil || first.State != "cancelling" || first.Revision != "2" {
 		t.Fatal("first cancel", first, err)
 	}
-	second, err := service.Cancel(ctx, who, tenantID, runID)
+	second, err := service.Cancel(ctx, who, tenantID, runID, cancelKey)
 	if err != nil || second.Revision != "2" {
 		t.Fatal("idempotent cancel", second, err)
 	}
@@ -90,13 +91,23 @@ func TestIntegrationCancelRunIsAuthorizedAuditedAndIdempotent(t *testing.T) {
 	if _, err := admin.Exec(ctx, "INSERT INTO photo.runs(id,tenant_id,kind,status,input_snapshot_id,config_snapshot,config_hash,created_by,failure_policy) VALUES($1,$2,'v2','draft',$3,$4,$5,$6,'fail_fast')", child, tenantID, snapshot, string(childConfig), hash, user); err != nil {
 		t.Fatal(err)
 	}
-	cancelledBatch, err := service.Cancel(ctx, who, tenantID, batch)
+	batchCancelKey := uuid.NewString()
+	cancelledBatch, err := service.Cancel(ctx, who, tenantID, batch, batchCancelKey)
 	if err != nil || cancelledBatch.State != "cancelling" || cancelledBatch.Revision != "2" || cancelledBatch.Counts.Total != 1 || cancelledBatch.Progress != 0 {
 		t.Fatal("API batch cancel failed", cancelledBatch, err)
 	}
-	againBatch, err := service.Cancel(ctx, who, tenantID, batch)
+	againBatch, err := service.Cancel(ctx, who, tenantID, batch, batchCancelKey)
 	if err != nil || againBatch.Revision != "2" {
 		t.Fatal("API batch replay changed revision", againBatch, err)
+	}
+	otherSession := uuid.New()
+	if _, err := admin.Exec(ctx, "INSERT INTO photo.sessions(id,user_id,refresh_hash,family_id,client_type,expires_at) VALUES($1,$2,$3,$4,'native',now()+interval '1 hour')", otherSession, user, auth.HashSecret(uuid.NewString()), uuid.New()); err != nil {
+		t.Fatal(err)
+	}
+	otherIdentity := who
+	otherIdentity.SessionID = otherSession
+	if _, err := service.Cancel(ctx, otherIdentity, tenantID, batch, batchCancelKey); domain.AsError(err).Code != "RUN_NOT_CANCELLABLE" {
+		t.Fatal("batch replay crossed auth session", err)
 	}
 	batchStatus, err := service.Get(ctx, who, tenantID, batch)
 	if err != nil || batchStatus.Counts.Total != 1 || batchStatus.Progress != 0 || batchStatus.Stage != "cancelling" {

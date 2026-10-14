@@ -3414,7 +3414,7 @@ func (s *Server) catalogRoutes(r chi.Router) {
 			writeError(w, r, err)
 			return
 		}
-		out, err := runs.Cancel(r.Context(), who, tid, id)
+		out, err := runs.Cancel(r.Context(), who, tid, id, r.Header.Get("Idempotency-Key"))
 		if err != nil {
 			writeError(w, r, err)
 			return

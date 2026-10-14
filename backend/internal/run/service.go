@@ -378,17 +378,61 @@ func (s Service) Outputs(ctx context.Context, who auth.Identity, tenantID, id uu
 	return result, nil
 }
 
-func (s Service) Cancel(ctx context.Context, who auth.Identity, tenantID, id uuid.UUID) (Status, error) {
+func (s Service) Cancel(ctx context.Context, who auth.Identity, tenantID, id uuid.UUID, key string) (Status, error) {
 	var out Status
-	err := tenant.WithTenant(ctx, s.DB, who, tenantID, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
-		// Batch cancellation takes the tenant lock before parent/child locks.
-		// Detect it without locking the parent through the generic run path.
-		var renderBatch bool
-		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM photo.runs WHERE tenant_id=$1 AND id=$2 AND kind='bulk'
-		 AND config_snapshot->'schema_version'='1'::jsonb AND jsonb_typeof(config_snapshot->'parts')='array'
-		 AND config_snapshot ?& ARRAY['policy_sha','auth_session_id'])`, tenantID, id).Scan(&renderBatch); err != nil {
+	if !idempotency.ValidKey(key) {
+		return out, domain.NewError("IDEMPOTENCY_KEY_REQUIRED", 400)
+	}
+	err := tenant.WithTenant(ctx, s.DB, who, tenantID, domain.Editor, func(tx pgx.Tx, role domain.Role) error {
+		var renderBatch, batchOwnerSession bool
+		var batchProject *string
+		if err := tx.QueryRow(ctx, `SELECT kind='bulk' AND config_snapshot->'schema_version'='1'::jsonb
+		 AND jsonb_typeof(config_snapshot->'parts')='array'
+		 AND config_snapshot ?& ARRAY['policy_sha','auth_session_id'],
+		 COALESCE(created_by=$3 AND config_snapshot->>'auth_session_id'=$4,false),
+		 config_snapshot->>'project_id'
+		 FROM photo.runs WHERE tenant_id=$1 AND id=$2`, tenantID, id, who.UserID, who.SessionID.String()).Scan(&renderBatch, &batchOwnerSession, &batchProject); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return domain.NewError("NOT_FOUND", 404)
+			}
 			return err
 		}
+		if renderBatch {
+			if !batchOwnerSession || batchProject == nil {
+				return domain.NewError("RUN_NOT_CANCELLABLE", 409)
+			}
+			projectID, e := uuid.Parse(*batchProject)
+			if e != nil {
+				return domain.NewError("RUN_NOT_CANCELLABLE", 409)
+			}
+			if _, e = project.Authorize(ctx, tx, tenantID, projectID, who.UserID, role, domain.Editor, false); e != nil {
+				return e
+			}
+		}
+		response, err := idempotency.Use(ctx, tx, idempotency.Scope{Tenant: tenantID, Principal: who.UserID, PrincipalType: "user", Route: "POST /runs/" + id.String() + "/cancel", Key: key}, map[string]string{"run_id": id.String()}, time.Now().Add(30*24*time.Hour), func() (idempotency.Response, error) {
+			status, e := cancelRun(ctx, tx, who, tenantID, id, renderBatch)
+			if e != nil {
+				return idempotency.Response{}, e
+			}
+			body, e := canonical.Marshal(status)
+			return idempotency.Response{Status: 200, Body: body, ResourceID: &id}, e
+		})
+		if err != nil {
+			return err
+		}
+		if response.Status != 200 || response.ResourceID == nil || *response.ResourceID != id {
+			return domain.NewError("IDEMPOTENCY_CONFLICT", 409)
+		}
+		return json.Unmarshal(response.Body, &out)
+	})
+	return out, err
+}
+
+func cancelRun(ctx context.Context, tx pgx.Tx, who auth.Identity, tenantID, id uuid.UUID, renderBatch bool) (Status, error) {
+	var out Status
+	err := func() error {
+		// Batch cancellation takes the tenant lock before parent/child locks.
+		// Detect it without locking the parent through the generic run path.
 		if renderBatch {
 			var accepted bool
 			if err := tx.QueryRow(ctx, `SELECT photo.cancel_v26_render_batch($1,$2,$3,$4)`, tenantID, id, who.UserID, who.SessionID).Scan(&accepted); err != nil {
@@ -425,7 +469,7 @@ func (s Service) Cancel(ctx context.Context, who auth.Identity, tenantID, id uui
 		}
 		out, err = readStatus(ctx, tx, tenantID, id, false)
 		return err
-	})
+	}()
 	return out, err
 }
 

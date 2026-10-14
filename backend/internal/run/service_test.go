@@ -146,6 +146,14 @@ func TestRetryRequiresIdempotencyKeyBeforeDatabase(t *testing.T) {
 	}
 }
 
+func TestCancelRequiresIdempotencyKeyBeforeDatabase(t *testing.T) {
+	s := Service{}
+	_, err := s.Cancel(context.Background(), auth.Identity{UserID: uuid.New()}, uuid.New(), uuid.New(), "")
+	if domain.AsError(err).Code != "IDEMPOTENCY_KEY_REQUIRED" {
+		t.Fatal(err)
+	}
+}
+
 func TestRetryRevisionPreservesFullInt64Decimal(t *testing.T) {
 	for _, revision := range []string{"1", "9007199254740993", "9223372036854775807"} {
 		value, err := parseRetryRevision(revision)
