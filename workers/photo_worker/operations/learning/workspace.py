@@ -133,13 +133,16 @@ def render_holdout_triplet(workspace: HoldoutWorkspace,
     from .color_render import render_materialized_style
     from .beauty_render import render_holdout_beauty
 
-    _require_independent_holdout_buffers(workspace)
-
     # Freeze every comparison arm before any callback can mutate caller data.
     styles = FrozenHoldoutStyles(
         styles.baseline.model_copy(deep=True),
         styles.candidate.model_copy(deep=True),
         styles.approved.model_copy(deep=True))
+    backgrounds = [style.extensions.background for style in
+                   (styles.baseline, styles.candidate, styles.approved)]
+    if any(background != backgrounds[0] for background in backgrounds[1:]):
+        raise ValueError('HOLDOUT_BACKGROUND_BINDING_MISMATCH')
+    _require_independent_holdout_buffers(workspace)
 
     check_active()
     from .pipeline_admission import validate_holdout_pipeline
@@ -204,11 +207,6 @@ def render_holdout_triplet(workspace: HoldoutWorkspace,
                 canonical_bytes(series_correction) != series_fingerprint or
                 series_correction.item_id != series_item_id):
             raise ValueError('HOLDOUT_SERIES_CORRECTION_CHANGED')
-
-    backgrounds = [style.extensions.background for style in
-                   (styles.baseline, styles.candidate, styles.approved)]
-    if any(background != backgrounds[0] for background in backgrounds[1:]):
-        raise ValueError('HOLDOUT_BACKGROUND_BINDING_MISMATCH')
 
     if any(background is not None and background.mode == 'asset' for background in backgrounds):
         from photo_worker.v2.render_background_binding import FrozenBackgroundAsset

@@ -36,9 +36,10 @@ def test_triplet_rechecks_reviewed_repair_protection_before_render(monkeypatch):
     repaired = source.copy()
     repaired[0, 0, 0] = np.float32(.1)
     workspace = SimpleNamespace(
-        source=SimpleNamespace(rgb=source, protected=protected),
+        source=SimpleNamespace(rgb=source, alpha=None, protected=protected,
+                               effective_mask=None, region_masks={}),
         baseline=np.empty_like(source), candidate=np.empty_like(source),
-        approved=np.empty_like(source))
+        approved=np.empty_like(source), alpha=np.empty((2, 2), np.float32))
     monkeypatch.setattr(
         'photo_worker.operations.learning.color_render.render_materialized_style',
         lambda *args, **kwargs: pytest.fail('render began with changed protected pixels'))
@@ -398,8 +399,10 @@ def test_holdout_triplet_owns_all_styles_before_first_callback(tmp_path, monkeyp
     for name in ('baseline', 'candidate', 'approved'):
         buffers.append(np.lib.format.open_memmap(tmp_path / (name + '.npy'),
             mode='w+', dtype='<f4', shape=(2, 2, 3)))
-    workspace = SimpleNamespace(source=SimpleNamespace(rgb=np.zeros((2, 2, 3), np.float32)),
-        baseline=buffers[0], candidate=buffers[1], approved=buffers[2])
+    workspace = SimpleNamespace(source=SimpleNamespace(rgb=np.zeros((2, 2, 3), np.float32),
+        alpha=None, protected=np.zeros((2, 2), np.float32), effective_mask=None,
+        region_masks={}), baseline=buffers[0], candidate=buffers[1],
+        approved=buffers[2], alpha=np.ones((2, 2), np.float32))
     mutated = False
 
     def active():
@@ -438,8 +441,10 @@ def test_holdout_denoise_source_is_scoped_for_each_comparison_arm(tmp_path, monk
     events = []
     buffers = [np.lib.format.open_memmap(tmp_path / (str(i) + '.npy'), mode='w+',
                dtype='<f4', shape=(2, 2, 3)) for i in range(3)]
-    workspace = SimpleNamespace(source=SimpleNamespace(rgb=np.zeros((2, 2, 3), np.float32)),
-        baseline=buffers[0], candidate=buffers[1], approved=buffers[2])
+    workspace = SimpleNamespace(source=SimpleNamespace(rgb=np.zeros((2, 2, 3), np.float32),
+        alpha=None, protected=np.zeros((2, 2), np.float32), effective_mask=None,
+        region_masks={}), baseline=buffers[0], candidate=buffers[1],
+        approved=buffers[2], alpha=np.ones((2, 2), np.float32))
 
     @contextmanager
     def prepare(style):
@@ -483,8 +488,10 @@ def test_reviewed_dust_renders_each_arm_without_denoise_installation(tmp_path, m
     buffers = [np.lib.format.open_memmap(tmp_path / (str(i) + '.npy'),
                mode='w+', dtype='<f4', shape=(2, 2, 3)) for i in range(3)]
     workspace = SimpleNamespace(
-        source=SimpleNamespace(rgb=np.zeros((2, 2, 3), np.float32)),
-        baseline=buffers[0], candidate=buffers[1], approved=buffers[2])
+        source=SimpleNamespace(rgb=np.zeros((2, 2, 3), np.float32), alpha=None,
+            protected=np.zeros((2, 2), np.float32), effective_mask=None,
+            region_masks={}), baseline=buffers[0], candidate=buffers[1],
+        approved=buffers[2], alpha=np.ones((2, 2), np.float32))
     events = []
 
     def render(source, target, style, **kwargs):
