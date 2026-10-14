@@ -125,7 +125,10 @@ func ResolveQualifiedIdentityPin(ctx context.Context, query IdentityQualificatio
 	if err := ctx.Err(); err != nil {
 		return zero, err
 	}
-	if catalog == nil || objects == nil || !validRef(query.Calibration) {
+	if catalog == nil || objects == nil || query.Tenant == uuid.Nil ||
+		query.Project == uuid.Nil || !validRef(query.Calibration) ||
+		!digestPattern.MatchString(query.ModelLockSHA) ||
+		(query.Backend != "cpu" && query.Backend != "cuda") {
 		return zero, ErrInvalid
 	}
 	first, err := catalog.ResolveIdentityQualification(ctx, query)
@@ -138,7 +141,11 @@ func ResolveQualifiedIdentityPin(ctx context.Context, query IdentityQualificatio
 		first.Pin.Backend != query.Backend ||
 		first.Expected.DatasetSHA != first.Pin.DatasetSHA ||
 		first.Expected.ModelLockSHA != first.Pin.ModelLockSHA ||
+		first.Expected.RuntimeLockSHA != first.Pin.RuntimeLockSHA ||
+		first.Expected.DeviceProfileSHA != first.Pin.DeviceProfileSHA ||
 		first.Expected.Backend != first.Pin.Backend ||
+		first.ReportObject.SHA256 != first.Pin.Report.SHA256 ||
+		first.ReportObject.ContentType != "application/json" ||
 		VerifySemanticCalibration(query.Calibration, calibrationRaw,
 			first.Pin.ModelLockSHA, first.Pin.DatasetSHA) != nil {
 		return zero, ErrInvalid
