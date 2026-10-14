@@ -118,5 +118,14 @@ func ObservePurgedTenantBuckets(ctx context.Context, tenant uuid.UUID, targets [
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	// The fixture and writer fence may have changed while the final bucket was
+	// being observed. A complete set of bucket results is not authority to
+	// publish absence after that fence has been revoked.
+	if err := guard(ctx, tenant); err != nil {
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	return evidence, nil
 }

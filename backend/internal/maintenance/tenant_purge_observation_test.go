@@ -52,7 +52,7 @@ func TestObservePurgedTenantBucketsRequiresEveryExactBucket(t *testing.T) {
 	}
 	targets := []TenantPurgeObservationTarget{{"primary", first}, {"archive", second}}
 	proof, err := ObservePurgedTenantBuckets(context.Background(), tenant, targets, guard)
-	if err != nil || len(proof) != 2 || proof[0].Bucket != "primary" || proof[1].Bucket != "archive" || first.calls != 1 || second.calls != 1 || guardCalls.Load() != 2 {
+	if err != nil || len(proof) != 2 || proof[0].Bucket != "primary" || proof[1].Bucket != "archive" || first.calls != 1 || second.calls != 1 || guardCalls.Load() != 3 {
 		t.Fatal("incomplete bucket proof", proof, err)
 	}
 	first.evidence.Prefixes[0] = "changed"
@@ -68,6 +68,26 @@ func TestObservePurgedTenantBucketsRequiresEveryExactBucket(t *testing.T) {
 	second.evidence.ObservedAt = time.Now().Add(-time.Hour)
 	if partial, err := ObservePurgedTenantBuckets(context.Background(), tenant, targets, guard); err == nil || partial != nil {
 		t.Fatal("stale bucket proof escaped", partial, err)
+	}
+}
+
+func TestObservePurgedTenantBucketsRejectsRevokedFinalGuard(t *testing.T) {
+	tenant := uuid.New()
+	observer := &tenantObservationStub{evidence: observedTenantBucket(tenant, "primary")}
+	revoked := errors.New("fixture writer fence revoked")
+	var calls atomic.Int32
+	guard := func(_ context.Context, actual uuid.UUID) error {
+		if actual != tenant {
+			return errors.New("foreign tenant")
+		}
+		if calls.Add(1) > 1 {
+			return revoked
+		}
+		return nil
+	}
+	proof, err := ObservePurgedTenantBuckets(context.Background(), tenant, []TenantPurgeObservationTarget{{"primary", observer}}, guard)
+	if !errors.Is(err, revoked) || proof != nil || observer.calls != 1 || calls.Load() != 2 {
+		t.Fatal("revoked fixture fence published storage proof", proof, err)
 	}
 }
 
