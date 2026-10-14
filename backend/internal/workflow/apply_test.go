@@ -2,11 +2,46 @@ package workflow
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
 	"photoeditor/backend/internal/review"
 )
+
+func TestApplySeriesBalanceProfilePinsQualifiedWorker(t *testing.T) {
+	model, runtime, device := strings.Repeat("a", 64),
+		strings.Repeat("b", 64), strings.Repeat("c", 64)
+	raw, err := applySeriesBalanceProfile(4096, model, runtime, device)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var profile struct {
+		Backend          string           `json:"backend"`
+		ModelLockID      string           `json:"model_lock_id"`
+		ModelLockSHA     string           `json:"model_lock_sha"`
+		RuntimeLockSHA   string           `json:"runtime_lock_sha"`
+		DeviceProfileSHA string           `json:"device_profile_sha"`
+		Estimate         ResourceEstimate `json:"resource_estimate"`
+	}
+	if json.Unmarshal(raw, &profile) != nil || profile.Backend != "cpu" ||
+		profile.ModelLockID != runtime || profile.ModelLockSHA != model ||
+		profile.RuntimeLockSHA != runtime || profile.DeviceProfileSHA != device ||
+		profile.Estimate.RAMBytes == 0 {
+		t.Fatalf("series profile did not bind qualified worker: %#v", profile)
+	}
+	if _, err := applySeriesBalanceProfile(4096, model, "", device); err == nil {
+		t.Fatal("partial qualification accepted")
+	}
+	legacy, err := applySeriesBalanceProfile(4096, "", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ordinary map[string]json.RawMessage
+	if json.Unmarshal(legacy, &ordinary) != nil || ordinary["model_lock_id"] != nil {
+		t.Fatal("unqualified Apply unexpectedly pinned")
+	}
+}
 
 func TestApplyImageRefsDeclarePixelsAndAlpha(t *testing.T) {
 	manifest := review.ArtifactRef{ID: uuid.New(), SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}

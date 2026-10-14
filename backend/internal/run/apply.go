@@ -46,6 +46,12 @@ type ApplyAccepted struct {
 	Status             string    `json:"status"`
 }
 
+type seriesApplyQualification struct {
+	ModelLockSHA     string
+	RuntimeLockSHA   string
+	DeviceProfileSHA string
+}
+
 // BoundItemOverride is an immutable, source-bound renderer override for one
 // selected collection item. Only the internal analysis Apply path accepts it.
 type BoundItemOverride struct {
@@ -835,6 +841,25 @@ func (s Service) apply(ctx context.Context, who auth.Identity, tid, sourceID uui
 				styleVersion, styleArtifact = &req.StyleVersionID, &styleArtifactID
 			}
 			seriesEnabled := seriesRequested && len(items) >= 2
+			var seriesPins seriesApplyQualification
+			if seriesEnabled {
+				e = tx.QueryRow(ctx, `SELECT model_lock_sha,runtime_lock_sha,
+				 device_profile_sha FROM photo.v23_series_apply_qualification($1,$2)`,
+					tid, projectID).Scan(&seriesPins.ModelLockSHA,
+					&seriesPins.RuntimeLockSHA, &seriesPins.DeviceProfileSHA)
+				if errors.Is(e, pgx.ErrNoRows) {
+					seriesPins = seriesApplyQualification{}
+				} else if e != nil {
+					return idempotency.Response{}, e
+				} else {
+					for _, pin := range []string{seriesPins.ModelLockSHA,
+						seriesPins.RuntimeLockSHA, seriesPins.DeviceProfileSHA} {
+						if _, e = domain.ParseDigest(pin); e != nil {
+							return idempotency.Response{}, e
+						}
+					}
+				}
+			}
 			pipelineVersion, graphVersion := 3, 3
 			if identity || supportsApplyV4WithOverrides(styleNeeds, overrideConfig) {
 				pipelineVersion, graphVersion = 4, 4
@@ -868,6 +893,9 @@ func (s Service) apply(ctx context.Context, who auth.Identity, tid, sourceID uui
 				PersonBackend       string              `json:"person_backend,omitempty"`
 				PersonLock          string              `json:"person_runtime_lock_id,omitempty"`
 				SeriesEnabled       bool                `json:"series_enabled"`
+				SeriesModelLock     string              `json:"series_model_lock_sha,omitempty"`
+				SeriesRuntimeLock   string              `json:"series_runtime_lock_sha,omitempty"`
+				SeriesDeviceProfile string              `json:"series_device_profile_sha,omitempty"`
 				GeometryEnabled     bool                `json:"geometry_enabled"`
 				BeautyEnabled       bool                `json:"beauty_enabled"`
 				PortraitDetail      bool                `json:"portrait_detail_enabled"`
@@ -886,7 +914,7 @@ func (s Service) apply(ctx context.Context, who auth.Identity, tid, sourceID uui
 				ItemOverrides       []BoundItemOverride `json:"item_overrides,omitempty"`
 				FailurePolicy       string              `json:"failure_policy"`
 				Seed                uint32              `json:"seed"`
-			}{"1", "apply", pipelineVersion, "photo_renderer_v2", sourceID, revision, snapshotID, snapshotDigest, styleVersion, styleArtifact, styleHash, styleConfig, graphStyleConfig, identity, personRequired, personBackend, personRuntimeLock, seriesEnabled, styleNeeds.Geometry.Enabled, styleNeeds.Beauty.Enabled, styleNeeds.Extensions.PortraitDetail.Enabled, styleNeeds.Defects.Enabled, restorationBackend, restorationRuntimeLock, creativeBackend, creativeRuntimeLock, strength, req.Scope, req.OverridesID, overrideHash, overrideConfig, req.JobOverrides, decisionSHA, boundOverrides, "continue_items", 42}
+			}{"1", "apply", pipelineVersion, "photo_renderer_v2", sourceID, revision, snapshotID, snapshotDigest, styleVersion, styleArtifact, styleHash, styleConfig, graphStyleConfig, identity, personRequired, personBackend, personRuntimeLock, seriesEnabled, seriesPins.ModelLockSHA, seriesPins.RuntimeLockSHA, seriesPins.DeviceProfileSHA, styleNeeds.Geometry.Enabled, styleNeeds.Beauty.Enabled, styleNeeds.Extensions.PortraitDetail.Enabled, styleNeeds.Defects.Enabled, restorationBackend, restorationRuntimeLock, creativeBackend, creativeRuntimeLock, strength, req.Scope, req.OverridesID, overrideHash, overrideConfig, req.JobOverrides, decisionSHA, boundOverrides, "continue_items", 42}
 			configBytes, e := canonical.Marshal(config)
 			if e != nil {
 				return idempotency.Response{}, e

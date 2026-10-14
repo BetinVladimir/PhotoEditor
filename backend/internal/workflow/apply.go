@@ -417,6 +417,39 @@ func applyProfile(pixels, inputBytes int64) (json.RawMessage, error) {
 	}{"cpu", "float32", 512, ResourceEstimate{RAMBytes: 3 << 30, ScratchBytes: inputBytes + out, OutputBytes: out, PixelCount: pixels}})
 }
 
+func applySeriesBalanceProfile(inputBytes int64,
+	model, runtime, device string) (json.RawMessage, error) {
+	base, err := applyProfile(1, inputBytes)
+	if err != nil || model == "" && runtime == "" && device == "" {
+		return base, err
+	}
+	for _, pin := range []string{model, runtime, device} {
+		if _, err := domain.ParseDigest(pin); err != nil {
+			return nil, errors.New("invalid series qualification pins")
+		}
+	}
+	var ordinary struct {
+		Backend   string           `json:"backend"`
+		Precision string           `json:"precision"`
+		Tile      int              `json:"tile_size"`
+		Estimate  ResourceEstimate `json:"resource_estimate"`
+	}
+	if json.Unmarshal(base, &ordinary) != nil {
+		return nil, errors.New("invalid series resource profile")
+	}
+	return canonical.Marshal(struct {
+		Backend          string           `json:"backend"`
+		Precision        string           `json:"precision"`
+		Tile             int              `json:"tile_size"`
+		Estimate         ResourceEstimate `json:"resource_estimate"`
+		ModelLockID      string           `json:"model_lock_id"`
+		ModelLockSHA     string           `json:"model_lock_sha"`
+		RuntimeLockSHA   string           `json:"runtime_lock_sha"`
+		DeviceProfileSHA string           `json:"device_profile_sha"`
+	}{ordinary.Backend, ordinary.Precision, ordinary.Tile,
+		ordinary.Estimate, runtime, model, runtime, device})
+}
+
 // applyDustDetectionProfile admits one sequential native detector frame at a time.
 func applyDustDetectionProfile(pixels, maxFramePixels, documentBytes int64, frames int) (json.RawMessage, error) {
 	if frames < 5 || frames > 64 || maxFramePixels < 64 || maxFramePixels > 200000000 ||
@@ -724,6 +757,9 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 		ItemOverrides       []applyBoundItemOverride `json:"item_overrides"`
 		Identity            bool                     `json:"identity_style"`
 		SeriesEnabled       bool                     `json:"series_enabled"`
+		SeriesModelLock     string                   `json:"series_model_lock_sha"`
+		SeriesRuntimeLock   string                   `json:"series_runtime_lock_sha"`
+		SeriesDeviceProfile string                   `json:"series_device_profile_sha"`
 		GeometryEnabled     bool                     `json:"geometry_enabled"`
 		BeautyEnabled       bool                     `json:"beauty_enabled"`
 		PortraitDetail      bool                     `json:"portrait_detail_enabled"`
@@ -1228,7 +1264,9 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 		if er != nil {
 			return false, er
 		}
-		profile, er := applyProfile(1, int64(len(params)))
+		profile, er := applySeriesBalanceProfile(int64(len(params)),
+			cfg.SeriesModelLock, cfg.SeriesRuntimeLock,
+			cfg.SeriesDeviceProfile)
 		if er != nil {
 			return false, er
 		}
