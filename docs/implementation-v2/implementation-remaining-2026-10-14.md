@@ -233,6 +233,8 @@ Worker `series_replay.py` теперь проверяет evidence/run/item, sta
 
 `CompileEvaluateClosure` теперь учитывает самый большой набор `SeriesStats` среди последовательных holdout cases в RAM и scratch estimate: 32 KiB pinned body, дополнительный буфер доставки и decoded-object headroom на каждый элемент (до 2000). Границы и арифметика покрыты unit-сценарием. Это статический reserve, а не измеренный peak; freeze gate остаётся до общей проверки на Metal и квалификации качества.
 
+Worker Evaluate повторно вычисляет весь `SeriesCorrections` тем же `series.balance` алгоритмом из запечатанных `SeriesParams` и полного набора `SeriesStats`; сравнение canonical bytes отвергает результат, который не следует из статистик, до выбора коррекции holdout item. Unit-сценарий включает подмену значения коррекции. Рефакторинг и сценарий написаны, но не запускались; для допуска manifest по-прежнему нужны qualification и полный тестовый цикл.
+
 Операторские `models` и `style_weights` теперь принимают только ID из закрытого model lock registry. Это статическая защита установки, а не доказательство физической доступности файлов весов; последнее остаётся отдельным acceptance gate.
 
 Все операторские и обязательные V30 export operation model locks теперь должны совпасть с единым `Base.ModelSHA` — внутренним `lock_id` проверенного model lock. Так же worker `ModelPool` идентифицирует модель при выполнении. Несовпадение любого report/policy приводит к отказу при установке export; отдельные unit-сценарии для чужого lock написаны, но не запускались.

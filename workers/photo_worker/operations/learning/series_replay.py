@@ -8,6 +8,7 @@ from photo_worker.contracts.base import canonical_bytes
 from photo_worker.contracts.images import WorkingImage
 from photo_worker.contracts.series import (ItemCorrection, SeriesCorrections,
                                            SeriesParams, SeriesStats)
+from photo_worker.operations.series.balance import compute_series_corrections
 
 from .series_evidence import FrozenSeriesHoldoutEvidence
 
@@ -89,6 +90,11 @@ def _frozen_series_correction(artifacts, case, item, workspace, styles,
         {region.region_id for region in value.regions} for value in stats)))
     if common != series.common_region_ids:
         raise ValueError('HOLDOUT_SERIES_MATERIAL_MISMATCH')
+    # Source provenance pins the result bytes; replay the exact producer
+    # algorithm so those bytes also have to follow from the sealed Stats.
+    expected = compute_series_corrections(params, stats)
+    if canonical_bytes(expected) != canonical_bytes(series):
+        raise ValueError('HOLDOUT_SERIES_CORRECTION_MISMATCH')
     selected = items[evidence.item_id]
     return ItemCorrection.model_validate_json(canonical_bytes(selected))
 

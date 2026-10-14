@@ -10,14 +10,12 @@ def _vector(stats,ids):
     by={r.region_id:r for r in stats.regions};return np.concatenate([np.log(np.maximum(by[i].mean_rgb,1e-6)) for i in ids])
 
 
-def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
-    if ctx.lease.execution_profile.get('backend')!='cpu':raise OperationFailure('CONFIG_INVALID')
-    try:
-        p=artifacts.params(SeriesParams);values=[artifacts.contract(r,SeriesStats) for r in p.stats]
-        if len({v.item_id for v in values})!=len(values):raise ValueError('Duplicate series item')
-        by={v.item_id:v for v in values}
-        if p.reference_item_id is not None and p.reference_item_id not in by:raise ValueError('Unknown series reference')
-    except ValueError as exc:raise OperationFailure('INPUT_INVALID') from exc
+def compute_series_corrections(p:SeriesParams,values:list[SeriesStats])->SeriesCorrections:
+    if len(values) < 2 or len(values) > 2000:
+        raise ValueError('Invalid series size')
+    by={v.item_id:v for v in values}
+    if len(by)!=len(values) or (p.reference_item_id is not None and p.reference_item_id not in by):
+        raise ValueError('Invalid series item inventory')
     common=sorted(set.intersection(*({r.region_id for r in v.regions} for v in values)))
     if p.reference_item_id is None:
         candidates=[v for v in values if min(r.confidence for r in v.regions)>=p.min_confidence]
@@ -41,7 +39,15 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
     warnings=[]
     if not common:warnings.append('no_common_regions')
     if skipped:warnings.append('items_skipped')
-    result=SeriesCorrections(scene_id=p.scene_id,reference_item_id=reference.item_id,common_region_ids=common,items=corrections,warnings=warnings);ref=artifacts.stage_contract(result,'series_corrections');return OperationResult(outputs=[ref],review_required=bool(warnings),bytes_written=len(canonical_bytes(result)))
+    return SeriesCorrections(scene_id=p.scene_id,reference_item_id=reference.item_id,common_region_ids=common,items=corrections,warnings=warnings)
+
+def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
+    if ctx.lease.execution_profile.get('backend')!='cpu':raise OperationFailure('CONFIG_INVALID')
+    try:
+        p=artifacts.params(SeriesParams);values=[artifacts.contract(r,SeriesStats) for r in p.stats]
+        result=compute_series_corrections(p,values)
+    except ValueError as exc:raise OperationFailure('INPUT_INVALID') from exc
+    ref=artifacts.stage_contract(result,'series_corrections');return OperationResult(outputs=[ref],review_required=bool(result.warnings),bytes_written=len(canonical_bytes(result)))
 
 
 def balance_operations(config:ArtifactConfig):

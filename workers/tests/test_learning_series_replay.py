@@ -1,15 +1,15 @@
 from types import SimpleNamespace
-from uuid import uuid4, uuid5
+from uuid import UUID, uuid4, uuid5
 
 import pytest
 
 from photo_worker.contracts.base import ArtifactRef
-from photo_worker.contracts.series import (ItemCorrection, RegionStats,
-    SeriesCorrections, SeriesParams, SeriesStats)
+from photo_worker.contracts.series import RegionStats, SeriesParams, SeriesStats
 from photo_worker.operations.learning.pipeline_admission import validate_holdout_pipeline
 from photo_worker.operations.learning.series_evidence import FrozenSeriesHoldoutEvidence
 from photo_worker.operations.learning.series_replay import (
     _frozen_series_correction, _same_series_styles)
+from photo_worker.operations.series.balance import compute_series_corrections
 
 
 def _ref(char):
@@ -45,7 +45,7 @@ def test_series_pipeline_requires_one_exact_apply_style_and_evidence():
 
 def test_series_replay_selects_exact_item_from_pinned_aggregate():
     tenant, event, run, version = uuid4(), uuid4(), uuid4(), uuid4()
-    selected_item, reference_item = uuid4(), uuid4()
+    selected_item, reference_item = UUID(int=2), UUID(int=1)
     source, stage, params_ref, series_ref = (
         _ref('a'), _ref('b'), _ref('c'), _ref('d'))
     evidence_ref = ArtifactRef(artifact_id=uuid5(run, f'v23-series/{event}'),
@@ -63,15 +63,7 @@ def test_series_replay_selects_exact_item_from_pinned_aggregate():
         regions=[region], clipping_fraction=.01, warnings=[]),
         SeriesStats(item_id=reference_item, image=_ref('2'),
         regions=[region], clipping_fraction=.01, warnings=[])]
-    identity = [1., 1., 1.]
-    corrections = SeriesCorrections(scene_id='studio',
-        reference_item_id=reference_item, common_region_ids=['sky'],
-        items=[ItemCorrection(item_id=selected_item, raw_ev=.1,
-            raw_gains=identity, applied_ev=.1, applied_gains=identity,
-            confidence=.9, accepted=True, reason='applied'),
-            ItemCorrection(item_id=reference_item, raw_ev=0,
-                raw_gains=identity, applied_ev=0, applied_gains=identity,
-                confidence=1, accepted=True, reason='reference')], warnings=[])
+    corrections = compute_series_corrections(params, stats)
     class Stage:
         canvas = 'same canvas'
         transform_chain = 'same chain'
@@ -108,7 +100,17 @@ def test_series_replay_selects_exact_item_from_pinned_aggregate():
 
     chosen = _frozen_series_correction(Artifacts(), case, item,
         workspace, _styles(), run, tenant)
-    assert chosen.item_id == selected_item and chosen.applied_ev == .1
+    assert chosen == next(value for value in corrections.items
+                          if value.item_id == selected_item)
+    tampered = corrections.model_copy(deep=True)
+    replacement = tampered.items[0].model_copy(update={'confidence': .1})
+    tampered.items[0] = replacement
+    originals = corrections
+    corrections = tampered
+    with pytest.raises(ValueError, match='HOLDOUT_SERIES_CORRECTION_MISMATCH'):
+        _frozen_series_correction(Artifacts(), case, item, workspace,
+                                  _styles(), run, tenant)
+    corrections = originals
     declared[stats_refs[0].artifact_id] = 'WorkingImage'
     with pytest.raises(ValueError, match='TASK_INPUT_CONTRACT_MISMATCH'):
         _frozen_series_correction(Artifacts(), case, item, workspace,
