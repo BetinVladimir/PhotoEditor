@@ -51,6 +51,7 @@ var schedulerExportSQLFunctions = []string{
 	"photo.v30_export_adoption_body_dependency_qualification_object(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,jsonb,uuid,text)",
 	"photo.v30_export_adoption_body_dependency_origin(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,text,uuid,text,text,text,uuid,text,text,text,text,bigint)",
 	"photo.v30_export_adoption_body_dependency_profile(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,text,uuid,integer,bigint,jsonb)",
+	"photo.v30_export_adoption_body_fit_inventory(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,text,uuid,text,uuid,integer,bigint,uuid,jsonb,uuid,text,uuid,text,text,text,text,bigint)",
 	"photo.v30_export_adoption_lut_origin(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,text,uuid,text,uuid,text)",
 	"photo.v30_export_adoption_params_mask(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,text,text,uuid,text,uuid,text)",
 	"photo.save_v30_export_adoption_evidence(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,text,text)",
