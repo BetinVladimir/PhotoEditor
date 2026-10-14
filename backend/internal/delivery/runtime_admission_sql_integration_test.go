@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// Requires an isolated database migrated through 02128 and a test owner that
+// Requires an isolated database migrated through 02129 and a test owner that
 // may SET ROLE. The lease is written only inside a rolled-back transaction.
 func TestDeliveryRuntimeBucketLeaseAndRoleBoundary(t *testing.T) {
 	dsn := os.Getenv("PHOTO_TEST_DATABASE_URL")
