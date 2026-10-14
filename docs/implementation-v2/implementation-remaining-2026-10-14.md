@@ -81,6 +81,8 @@ Scheduler runtime теперь имеет `RunSchedulerWithInterchangeExport` и
 
 Миграция `02049_v30_scheduler_working_warp.sql` и `SQLSchedulerExportInputCatalog.QualifyExportDenseWarpOccurrence` добавляют scheduler authority для `WorkingImage` transform-chain → `DenseWarpField`: sealed inputs, frozen snapshot, собственный текущий canonical producer поля и повторная проверка object pins. Поле может быть переиспользовано последующей операцией, поэтому совпадение producer с WorkingImage не требуется. Ветка `MaskRef` пока явно отклоняется до отдельного provenance-контракта. Миграция и unit/role-сценарии написаны, не выполнялись.
 
+Миграция `02050_v30_scheduler_mask_array.sql` и `SQLSchedulerExportInputCatalog.QualifyExportMaskArray` добавляют scheduler authority для MaskRef → MaskPixels, когда оба объекта опубликованы одним canonical producer с единственным WorkingImage input из frozen snapshot. Go проверяет физический JSON edge и повторно сверяет точные object pins. Другие допустимые foreground provenance формы, в том числе разные producer и MaskRef warp, пока закрыты; 02050 и unit/role-сценарии не выполнялись.
+
 `SchedulerExportClosureReader` соединяет проверку канонического result/ZIP с существующим полным обходом portable source inventory и manifest validation; он требует process-installed `SchedulerExportNativeResolverFactory`, возвращающий graph-bound native resolver, и после физического IO повторяет result, bundle object и person-origin проверки. Он формирует sessionless immutable evidence для `AdoptScheduler`. Поскольку native factory и оставшиеся SQL authority ещё не установлены, bundle путь по-прежнему fail-closed. Unit-сценарии написаны, не выполнялись.
 
 ## Граница первого MVP
