@@ -8,6 +8,8 @@ def test_import_adoption_claim_sql_surface(db):
         'photo.v30_claim_next_import_adoption()',
         'photo.v30_import_adoption_claim_current(uuid,uuid,uuid,uuid,uuid,integer,bigint,uuid)',
         'photo.v30_renew_import_adoption_claim(uuid,uuid,uuid,uuid,uuid,integer,bigint,uuid)',
+        'photo.v30_import_adoption_root_output(uuid,uuid,uuid,uuid,uuid,integer,bigint,uuid)',
+        'photo.v30_import_adoption_output(uuid,uuid,uuid,uuid,uuid,integer,bigint,uuid,uuid,text,text)',
     )
     for signature in signatures:
         assert db.execute('SELECT to_regprocedure(%s) IS NOT NULL',

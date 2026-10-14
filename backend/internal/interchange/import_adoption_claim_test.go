@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"photoeditor/backend/internal/v2input"
 )
 
 func TestImportAdoptionClaimBindsTaskAndFence(t *testing.T) {
@@ -44,5 +45,21 @@ func TestImportAdoptionClaimStoreRejectsAbsentPoolAndCancellation(t *testing.T) 
 	cancel()
 	if _, err := store.NextImportAdoption(ctx); !errors.Is(err, context.Canceled) {
 		t.Fatal("cancelled claim discovery continued", err)
+	}
+}
+
+func TestImportAdoptionOutputLookupRequiresCurrentSchedulerStore(t *testing.T) {
+	store := SQLImportAdoptionClaimStore{}
+	workflow := uuid.New()
+	claim := ImportAdoptionClaim{Tenant: uuid.New(), Workflow: workflow, Run: uuid.New(),
+		Task:   uuid.NewSHA1(workflow, []byte("v2.interchange.import:0")),
+		Result: uuid.New(), Attempt: 1, Fence: 1, Token: uuid.New()}
+	if _, _, err := store.RootImportAdoption(context.Background(), claim, "photos"); err == nil {
+		t.Fatal("root lookup without scheduler pool accepted")
+	}
+	if _, err := store.LookupImportOutput(context.Background(), claim,
+		v2input.Ref{ArtifactID: uuid.New(), SHA256: rawSHA([]byte("{}"))},
+		"MappingShard", "photos"); err == nil {
+		t.Fatal("output lookup without scheduler pool accepted")
 	}
 }
