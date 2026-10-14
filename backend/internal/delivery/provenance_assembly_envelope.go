@@ -37,6 +37,13 @@ func CompileSignedAssemblyEnvelope(assemblyRef v2input.Ref,assemblyRaw []byte,
   assembly.Policy.Provenance!="required"||assembly.ItemCount<1||assembly.ItemCount>5000||
   assembly.SlotCount<1||assembly.SlotCount>80000||assembly.SlotCount!=len(slots)||
   assembly.Policy.SigningPolicyID==uuid.Nil||!shaPattern.MatchString(assembly.Policy.SigningPolicySHA){return invalid()}
+ if !validDeliverySigningPolicyChoice(assembly.Policy)||
+  len(assembly.Policy.RequiredPresets)<1||len(assembly.Policy.RequiredPresets)>16||
+  len(assembly.Policy.OptionalPresets)>16||
+  len(assembly.Policy.RequiredPresets)+len(assembly.Policy.OptionalPresets)>16{return invalid()}
+ fields,err:=normalizeMetadataApproval(assembly.Policy.MetadataPolicy,assembly.Policy.ApprovedFields)
+ if err!=nil||len(fields)!=len(assembly.Policy.ApprovedFields){return invalid()}
+ for i,field:=range fields{if field!=assembly.Policy.ApprovedFields[i]{return invalid()}}
  exactAssembly,err:=canonical.Marshal(assembly)
  if err!=nil||!bytes.Equal(exactAssembly,assemblyRaw){return invalid()}
  if !signedAssemblyShardsMatch(assembly,slots,shardRaw){return invalid()}
@@ -59,8 +66,10 @@ func signedAssemblyShardsMatch(assembly AssemblyInput,slots []Slot,shardRaw [][]
  sort.Slice(presets,func(i,j int)bool{return presets[i].PresetID.String()<presets[j].PresetID.String()})
  required:=make(map[uuid.UUID]bool,len(assembly.Policy.RequiredPresets))
  chosen:=make(map[uuid.UUID]bool,len(presets))
- for _,id:=range assembly.Policy.RequiredPresets{if id==uuid.Nil||chosen[id]{return false};chosen[id]=true;required[id]=true}
- for _,id:=range assembly.Policy.OptionalPresets{if id==uuid.Nil||chosen[id]{return false};chosen[id]=true}
+ for i,id:=range assembly.Policy.RequiredPresets{if id==uuid.Nil||chosen[id]||
+   i>0&&assembly.Policy.RequiredPresets[i-1].String()>=id.String(){return false};chosen[id]=true;required[id]=true}
+ for i,id:=range assembly.Policy.OptionalPresets{if id==uuid.Nil||chosen[id]||
+   i>0&&assembly.Policy.OptionalPresets[i-1].String()>=id.String(){return false};chosen[id]=true}
  if len(chosen)!=len(presets){return false}
  for i,preset:=range presets{
   if preset.PresetID==uuid.Nil||preset.PresetID!=assembly.Presets[i].PresetID||

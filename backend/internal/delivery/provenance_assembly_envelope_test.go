@@ -54,6 +54,18 @@ func TestSignedAssemblyEnvelopeBindsRequiredMatrixAndClosure(t *testing.T){
  wrong:=assembly;wrong.Policy.Provenance="off";wrong.Policy.SigningPolicyID=uuid.Nil;wrong.Policy.SigningPolicySHA=""
  wrongRaw,_:=canonical.Marshal(wrong)
  if _,_,_,err:=CompileSignedAssemblyEnvelope(v2input.Ref{ArtifactID:assemblyRef.ArtifactID,SHA256:digest(wrongRaw)},wrongRaw,shards,closureRef,closureRaw,tenant,actor,parent,[]Slot{slot},[]SigningDependency{dependency},[]SignedDependencyReceipt{receipt});err==nil{t.Fatal("off assembly accepted")}
+ for _,mutation:=range []struct{name string;change func(*AssemblyInput)}{
+  {"missing required preset",func(value *AssemblyInput){value.Policy.RequiredPresets=nil;value.Policy.OptionalPresets=[]uuid.UUID{preset};value.Presets[0].Required=false}},
+  {"invalid metadata mode",func(value *AssemblyInput){value.Policy.MetadataPolicy="unknown"}},
+  {"unapproved metadata fields",func(value *AssemblyInput){value.Policy.ApprovedFields=[]string{"GPSLatitude"}}},
+ }{
+  changedAssembly:=assembly
+  changedAssembly.Policy=assembly.Policy
+  changedAssembly.Presets=append([]FrozenPreset(nil),assembly.Presets...)
+  mutation.change(&changedAssembly)
+  changedRaw,_:=canonical.Marshal(changedAssembly)
+  if _,_,_,err:=CompileSignedAssemblyEnvelope(v2input.Ref{ArtifactID:assemblyRef.ArtifactID,SHA256:digest(changedRaw)},changedRaw,shards,closureRef,closureRaw,tenant,actor,parent,[]Slot{slot},[]SigningDependency{dependency},[]SignedDependencyReceipt{receipt});err==nil{t.Fatal("invalid policy accepted",mutation.name)}
+ }
  if _,_,_,err:=CompileSignedAssemblyEnvelope(assemblyRef,assemblyRaw,shards,assemblyRef,closureRaw,tenant,actor,parent,[]Slot{slot},[]SigningDependency{dependency},[]SignedDependencyReceipt{receipt});err==nil{t.Fatal("aliased documents")}
  corrupt:=append([]byte(nil),shard...);corrupt[len(corrupt)-1]='!'
  if _,_,_,err:=CompileSignedAssemblyEnvelope(assemblyRef,assemblyRaw,[][]byte{corrupt},closureRef,closureRaw,tenant,actor,parent,[]Slot{slot},[]SigningDependency{dependency},[]SignedDependencyReceipt{receipt});err==nil{t.Fatal("substituted shard accepted")}
@@ -90,4 +102,26 @@ func TestSignedAssemblyShardReplayRepeatsSlotIntegrity(t *testing.T) {
   slots[1].Reason=&reason
   if check(slots){t.Fatal("invalid omission accepted",reason)}
  }
+}
+
+func TestSignedAssemblyShardReplayRequiresFrozenPresetOrder(t *testing.T) {
+ sha:=strings.Repeat("a",64)
+ first,second:=uuid.New(),uuid.New()
+ if first.String()>second.String(){first,second=second,first}
+ binding:=v2input.SessionVersionBinding{AssetVersionID:uuid.New(),Source:v2input.Ref{ArtifactID:uuid.New(),SHA256:sha},CanvasHash:sha}
+ makeSlot:=func(preset uuid.UUID)Slot{
+  id:=uuid.New();ref:=v2input.Ref{ArtifactID:uuid.New(),SHA256:sha}
+  return Slot{Ordinal:0,Binding:binding,PresetID:preset,PresetSHA:sha,Required:false,State:"ready",ExportID:&id,Export:&ref}
+ }
+ slots:=[]Slot{makeSlot(first),makeSlot(second)}
+ assembly:=AssemblyInput{SchemaVersion:1,SnapshotDigest:sha,ItemCount:1,SlotCount:2,
+  Policy:Policy{OptionalPresets:[]uuid.UUID{first,second}},
+  Presets:[]FrozenPreset{{PresetID:first,PresetSHA:sha,Config:v2input.Ref{ArtifactID:uuid.New(),SHA256:sha}},
+   {PresetID:second,PresetSHA:sha,Config:v2input.Ref{ArtifactID:uuid.New(),SHA256:sha}}},
+  Shards:[]v2input.Ref{{ArtifactID:uuid.New()}}}
+ raw,err:=canonical.Marshal(SlotShard{1,sha,slots});if err!=nil{t.Fatal(err)}
+ assembly.Shards[0].SHA256=digest(raw)
+ if !signedAssemblyShardsMatch(assembly,slots,[][]byte{raw}){t.Fatal("ordered preset list rejected")}
+ assembly.Policy.OptionalPresets[0],assembly.Policy.OptionalPresets[1]=second,first
+ if signedAssemblyShardsMatch(assembly,slots,[][]byte{raw}){t.Fatal("unsorted frozen preset list accepted")}
 }
