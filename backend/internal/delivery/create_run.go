@@ -67,6 +67,15 @@ func (i CreateIntent) beginRun(ctx context.Context, tx ProofTransaction, who aut
 		if !ready {
 			return domain.NewError("DELIVERY_UNAVAILABLE", 503)
 		}
+		if i.request.Policy.Provenance == "required" {
+			var signingReady bool
+			if err := tx.QueryRow(ctx, `SELECT photo.v30_delivery_signing_runtime_ready($1,$2)`, bucket, tid).Scan(&signingReady); err != nil {
+				return err
+			}
+			if !signingReady {
+				return domain.NewError("DELIVERY_PROVENANCE_UNAVAILABLE", 503)
+			}
+		}
 		return domain.NewError("DELIVERY_CREATE_STALE", 409)
 	}
 	return nil

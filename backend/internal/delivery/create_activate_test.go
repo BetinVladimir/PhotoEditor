@@ -110,3 +110,14 @@ func TestCreateActivationRejectsExpiredRuntimeLease(t *testing.T) {
 		t.Fatal("runtime loss was not classified", err)
 	}
 }
+
+func TestCreateActivationRejectsMissingTenantSigningRuntime(t *testing.T) {
+	i, session, _, _ := createDocumentsFixture(t)
+	who := auth.Identity{UserID: i.actor, SessionID: session}
+	cause := &pgconn.PgError{Code: "P0001", Message: "DELIVERY_SIGNING_RUNTIME_UNAVAILABLE"}
+	_, err := i.ActivateCreate(context.Background(), &deliveryReadTx{err: cause}, who, i.tenant, "photos")
+	var business *domain.Error
+	if !errors.As(err, &business) || business.Code != "DELIVERY_PROVENANCE_UNAVAILABLE" || business.HTTPStatus != 503 {
+		t.Fatal("signing runtime loss was not classified", err)
+	}
+}

@@ -4,9 +4,27 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"photoeditor/backend/internal/auth"
+	"strings"
 	"testing"
 )
+
+type signingReadinessTx struct {
+	queries      []string
+	signingReady bool
+}
+
+func (t *signingReadinessTx) QueryRow(_ context.Context, query string, args ...any) pgx.Row {
+	t.queries = append(t.queries, query)
+	if strings.Contains(query, "begin_v30_delivery_create_run_bound") {
+		return proofRow{false}
+	}
+	if strings.Contains(query, "v30_delivery_signing_runtime_ready") {
+		return proofRow{t.signingReady}
+	}
+	return proofRow{true}
+}
 
 func TestCreateDraftRunBindsPendingAndCurrentScope(t *testing.T) {
 	intent, session, catalog, items := createDocumentsFixture(t)
@@ -101,5 +119,31 @@ func TestCreateRunPreservesHistoricalPendingQueueOmission(t *testing.T) {
 	tx.calls = 0
 	if err := intent.BeginRun(ctx, tx, who, intent.tenant, pending, "photos"); err == nil || tx.calls != 0 {
 		t.Fatal("foreign queue reached SQL")
+	}
+}
+
+func TestCreateRunRequiresTenantSigningRuntimeForRequiredPolicy(t *testing.T) {
+	base, session, catalog, items := createDocumentsFixture(t)
+	request := base.Request()
+	request.Policy.Provenance = "required"
+	request.Policy.SigningPolicyID = uuid.New()
+	request.Policy.SigningPolicySHA = strings.Repeat("a", 64)
+	who := auth.Identity{UserID: base.actor, SessionID: session}
+	intent, err := FreezeCreateIntent(base.tenant, who, request, base.key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := intent.EncodePending(context.Background(), session, catalog, items)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pending, err := intent.DecodePending(context.Background(), session, raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx := &signingReadinessTx{}
+	err = intent.BeginRun(context.Background(), tx, who, intent.tenant, pending, "photos")
+	if err == nil || len(tx.queries) != 3 || !strings.Contains(tx.queries[2], "v30_delivery_signing_runtime_ready") {
+		t.Fatal("missing signing readiness classification", err, tx.queries)
 	}
 }

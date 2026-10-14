@@ -22,7 +22,7 @@ func validateDeliveryRuntimeSQL(ctx context.Context, db *pgxpool.Pool) error {
  AND NOT has_function_privilege('photo_api',p.oid,'EXECUTE')
  AND NOT EXISTS(SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
   WHERE acl.privilege_type='EXECUTE' AND acl.grantee NOT IN(p.proowner,'photo_scheduler'::regrole::oid))),false)
- FROM (VALUES ('photo.announce_v30_delivery_runtime(uuid,text)'::regprocedure),
+ FROM (VALUES ('photo.announce_v30_delivery_runtime_bound(uuid,text,uuid[])'::regprocedure),
  ('photo.withdraw_v30_delivery_runtime(uuid)'::regprocedure)) signatures(oid)
  JOIN pg_proc p ON p.oid=signatures.oid JOIN pg_roles owner ON owner.oid=p.proowner`).Scan(&installed)
 	if err != nil || !installed {
@@ -32,7 +32,7 @@ func validateDeliveryRuntimeSQL(ctx context.Context, db *pgxpool.Pool) error {
 }
 
 func maintainDeliveryRuntime(ctx context.Context, db *pgxpool.Pool, state *ExpansionLoopState,
-	ready *atomic.Bool, instance uuid.UUID, bucket string) {
+	ready *atomic.Bool, instance uuid.UUID, bucket string, signingTenants []uuid.UUID) {
 	if ready == nil {
 		return
 	}
@@ -55,7 +55,7 @@ func maintainDeliveryRuntime(ctx context.Context, db *pgxpool.Pool, state *Expan
 		bounded, cancel := context.WithTimeout(ctx, 3*time.Second)
 		if state.Started.Load() && (state.Ready.Load() || (state.Failures.Load() == 0 && state.Materialized.Load() == 0)) {
 			var accepted bool
-			err := db.QueryRow(bounded, `SELECT photo.announce_v30_delivery_runtime($1,$2)`, instance, bucket).Scan(&accepted)
+			err := db.QueryRow(bounded, `SELECT photo.announce_v30_delivery_runtime_bound($1,$2,$3)`, instance, bucket, signingTenants).Scan(&accepted)
 			ready.Store(err == nil && accepted)
 		} else {
 			ready.Store(false)

@@ -33,6 +33,9 @@ func (i CreateIntent) ActivateCreate(ctx context.Context, tx ProofTransaction, w
 		if errors.As(err, &refusal) && refusal.Code == "P0001" && refusal.Message == "DELIVERY_RUNTIME_UNAVAILABLE" {
 			return idempotency.Response{}, domain.NewError("DELIVERY_UNAVAILABLE", 503)
 		}
+		if errors.As(err, &refusal) && refusal.Code == "P0001" && refusal.Message == "DELIVERY_SIGNING_RUNTIME_UNAVAILABLE" {
+			return idempotency.Response{}, domain.NewError("DELIVERY_PROVENANCE_UNAVAILABLE", 503)
+		}
 		if errors.As(err, &refusal) && refusal.Code == "23514" && refusal.Message == "DELIVERY_INITIAL_ACTIVATION_REFUSED" {
 			return idempotency.Response{}, domain.NewError("DELIVERY_CREATE_STALE", 409)
 		}

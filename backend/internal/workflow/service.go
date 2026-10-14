@@ -646,6 +646,7 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 	}
 	deliveryState := new(ExpansionLoopState)
 	var deliveryRuntimeReady atomic.Bool
+	signingDeliveryTenants := []uuid.UUID{}
 	var deliveryProcessor DeliveryExpansionJob
 	if deliveryConfig.Enabled {
 		if err := validateDeliveryRuntimeSQL(ctx, pool); err != nil {
@@ -678,6 +679,9 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 		deliveryProcessor, err = InstallDeliverySigningStage(deliveryProcessor, signingRuntime)
 		if err != nil {
 			return err
+		}
+		for id := range signingRuntime.Tenants {
+			signingDeliveryTenants = append(signingDeliveryTenants, id)
 		}
 	}
 
@@ -803,7 +807,7 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 		instance := uuid.New()
 		go func() { deliveryDone <- RunExpansionLoop(deliveryCtx, deliveryProcessor, deliveryState, 5*time.Second) }()
 		go func() {
-			maintainDeliveryRuntime(deliveryCtx, pool, deliveryState, &deliveryRuntimeReady, instance, storageConfig.Bucket)
+			maintainDeliveryRuntime(deliveryCtx, pool, deliveryState, &deliveryRuntimeReady, instance, storageConfig.Bucket, signingDeliveryTenants)
 			close(runtimeDone)
 		}()
 		defer func() { stopDelivery(); <-deliveryDone; <-runtimeDone }()
