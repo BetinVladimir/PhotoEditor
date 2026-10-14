@@ -29,6 +29,10 @@
 10. **V31 provenance.** Установить реальный signer SDK/key/trust/TSA authority и процесс dispatch/adoption/public SignExport. Проверять итоговый подписанный файл после encode/watermark, rotation/revocation и privacy redaction; локальные CBOR/JUMBF и fake SDK тесты не равны production подписи.
 11. **V32 полный lifecycle.** Завершить role matrix, restore, multi-bucket physical purge reconciliation, mixed workload/admission/fairness и acceptance-пробы для V20–V31. Production cutover требует независимо прочитанного физического evidence.
 
+### Уточнение текущего кода P0 (2026-10-14)
+
+Формулировки ниже о том, что фоновая V30 export adoption **не подключена к executable**, описывают промежуточные стадии, а не текущее дерево. В `backend/cmd/photo/main.go` scheduler вызывает `prepareSchedulerInterchangeExport`, затем `RunSchedulerWithInterchangeExport`; `backend/cmd/photo/interchange_export_scheduler.go` загружает pinned deployment, проверяет native authority и person-origin trust и строит `BuildSchedulerExportAdoptionFromDeployment`. SQL source/mask origin (`02059`) и `SQLSchedulerExportInputCatalog.LookupExportSeriesMaskOrigin` также уже написаны. Это переводит задачу из «написать bootstrap» в «статически сверить полную closure для каждого разрешённого формата, затем в общей фазе проверить реальные роли, объекты, миграции, lease/replay и terminal adoption». Наличие wiring не доказывает работающий lifecycle; до этих проверок V30 не считать принятым.
+
 ### Решение для фонового V30 export adoption
 
 Текущий `ExportResultAdoptionService` использует `tenant.WithTenant(..., domain.Editor)` и `RecoverExportPending`, которые требуют текущую пользовательскую сессию. Она может истечь до завершения export worker. Поэтому этот сервис годится для авторизованного foreground восстановления, но не должен вызываться scheduler с выдуманным либо произвольно выбранным `session_id`. `photo_scheduler` не имеет права на `v30_export_adoption_root` и `adopt_v30_interchange_export`; простое расширение их EXECUTE также не является решением.
