@@ -39,15 +39,15 @@ type apiProcessDependencies struct {
 	SigningTenants               map[uuid.UUID]provenance.SigningAPITenantRuntime
 }
 
-func verifySigningReplaySQL(ctx context.Context, api *pgxpool.Pool) error {
+func verifySigningRuntimeSQL(ctx context.Context, api *pgxpool.Pool) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 	if api == nil {
-		return errors.New("signing replay database unavailable")
+		return errors.New("signing runtime database unavailable")
 	}
 	var ready bool
-	err := api.QueryRow(ctx, `SELECT current_user='photo_api' AND count(*)=2 AND coalesce(bool_and(
+	err := api.QueryRow(ctx, `SELECT current_user='photo_api' AND count(*)=4 AND coalesce(bool_and(
   p.prosecdef AND owner.rolname='photo_fn_owner'
   AND 'search_path=pg_catalog,photo'=ANY(p.proconfig)
   AND has_function_privilege('photo_api',p.oid,'EXECUTE')
@@ -56,11 +56,24 @@ func verifySigningReplaySQL(ctx context.Context, api *pgxpool.Pool) error {
     WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE')),false)
  FROM (VALUES
   ('photo.v31_ready_signing_policy_version(uuid,uuid,uuid,uuid,jsonb,uuid,uuid,text,bigint,text)'::regprocedure),
-  ('photo.v31_ready_signing_lineage_version(uuid,uuid,uuid,uuid,jsonb,uuid,text,bigint,text)'::regprocedure)
+  ('photo.v31_ready_signing_lineage_version(uuid,uuid,uuid,uuid,jsonb,uuid,text,bigint,text)'::regprocedure),
+  ('photo.v31_signing_adopter_runtime_ready(text,text)'::regprocedure),
+  ('photo.v31_signing_adopter_unavailable(uuid,uuid,uuid,text)'::regprocedure)
  ) required(oid)
  JOIN pg_proc p ON p.oid=required.oid JOIN pg_roles owner ON owner.oid=p.proowner`).Scan(&ready)
 	if err != nil || !ready {
-		return errors.New("signing replay SQL installation unavailable")
+		return errors.New("signing runtime SQL installation unavailable")
+	}
+	var admissionInstalled bool
+	err = api.QueryRow(ctx, `SELECT
+  NOT has_function_privilege('photo_api','photo.v31_signing_admission_without_runtime(uuid,uuid,uuid,uuid,jsonb,text,text)'::regprocedure,'EXECUTE')
+  AND NOT has_function_privilege('photo_scheduler','photo.v31_signing_admission_without_runtime(uuid,uuid,uuid,uuid,jsonb,text,text)'::regprocedure,'EXECUTE')
+  AND position('v31_signing_adopter_runtime_ready' IN pg_get_functiondef('photo.v31_signing_admission_ready(uuid,uuid,uuid,uuid,jsonb,text,text)'::regprocedure))>0
+  AND position('SIGNING_ADOPTER_UNAVAILABLE' IN pg_get_functiondef('photo.activate_v31_signing_pre_session(uuid,uuid,uuid,text,text,jsonb,jsonb)'::regprocedure))
+    >position('v31_signing_transport_ready' IN pg_get_functiondef('photo.activate_v31_signing_pre_session(uuid,uuid,uuid,text,text,jsonb,jsonb)'::regprocedure))
+  AND position('v31_signing_transport_ready' IN pg_get_functiondef('photo.activate_v31_signing_pre_session(uuid,uuid,uuid,text,text,jsonb,jsonb)'::regprocedure))>0`).Scan(&admissionInstalled)
+	if err != nil || !admissionInstalled {
+		return errors.New("signing admission SQL installation unavailable")
 	}
 	return nil
 }
@@ -101,7 +114,7 @@ func schedulerSigningFactory(path, pin string,
 		if err := api.QueryRow(ctx, `SELECT current_user='photo_api' AND NOT rolsuper AND NOT rolbypassrls FROM pg_roles WHERE rolname=current_user`).Scan(&roleOK); err != nil || !roleOK {
 			return zero, nil, errors.New("signing API role unavailable to scheduler")
 		}
-		if err := verifySigningReplaySQL(ctx, api); err != nil {
+		if err := verifySigningRuntimeSQL(ctx, api); err != nil {
 			return zero, nil, err
 		}
 		installed, err = provenance.InstallSigningSchedulerDeploymentFile(ctx,
@@ -185,7 +198,7 @@ func installAPISigning(ctx context.Context, path, pin, databaseURL string, api *
 	if err = scheduler.QueryRow(ctx, `SELECT current_user='photo_scheduler' AND NOT rolsuper AND NOT rolbypassrls FROM pg_roles WHERE rolname=current_user`).Scan(&roleOK); err != nil || !roleOK {
 		return nil, errors.New("signing scheduler role invalid")
 	}
-	if err := verifySigningReplaySQL(ctx, api); err != nil {
+	if err := verifySigningRuntimeSQL(ctx, api); err != nil {
 		return nil, err
 	}
 	installed.Router, err = provenance.InstallSigningAPIDeploymentFile(ctx, path, pin, provenance.SigningAPIDeploymentRuntime{
