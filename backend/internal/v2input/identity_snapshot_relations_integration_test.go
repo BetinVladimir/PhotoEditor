@@ -43,6 +43,10 @@ func TestIntegrationIdentitySnapshotSQLRelations(t *testing.T) {
 		"missing grant":  {strings.Replace(base, `"grants":[{"consent_id":"`+consent.String()+`","epoch":"3","person_id":"`+person.String()+`","purpose":"identity_matching"}]`, `"grants":[]`, 1), false},
 		"duplicate face": {strings.Replace(base, `}],"grants"`, `},{"asset_version_id":"`+asset.String()+`","consent_id":"`+consent.String()+`","epoch":"3","face_id":"`+face.String()+`","person_id":"`+person.String()+`"}],"grants"`, 1), false},
 		"extra key":      {strings.Replace(base, `"schema_version":1}`, `"schema_version":1,"forged":true}`, 1), false},
+		"scalar grants":  {`{"confirmed_faces":[],"grants":{},"schema_version":1}`, false},
+		"scalar faces":   {`{"confirmed_faces":{},"grants":[],"schema_version":1}`, false},
+		"nil face":       {strings.Replace(base, face.String(), uuid.Nil.String(), 1), false},
+		"epoch overflow": {strings.Replace(base, `"epoch":"3"`, `"epoch":"9223372036854775808"`, 1), false},
 	} {
 		t.Run(name, func(t *testing.T) {
 			var got bool

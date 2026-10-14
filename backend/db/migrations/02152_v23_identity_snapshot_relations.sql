@@ -18,8 +18,9 @@ BEGIN
   body->'schema_version' IS DISTINCT FROM '1'::jsonb OR
   body-ARRAY['schema_version','grants','confirmed_faces']<>'{}'::jsonb OR
   jsonb_typeof(body->'grants') IS DISTINCT FROM 'array' OR
-  jsonb_typeof(body->'confirmed_faces') IS DISTINCT FROM 'array' OR
-  jsonb_array_length(body->'grants')>5000 OR
+  jsonb_typeof(body->'confirmed_faces') IS DISTINCT FROM 'array'
+  THEN RETURN false;END IF;
+ IF jsonb_array_length(body->'grants')>5000 OR
   jsonb_array_length(body->'confirmed_faces')>12800 THEN RETURN false;END IF;
  FOR grant_item IN SELECT value FROM jsonb_array_elements(body->'grants') LOOP
   IF jsonb_typeof(grant_item) IS DISTINCT FROM 'object' OR
@@ -27,6 +28,7 @@ BEGIN
    NOT (grant_item ?& ARRAY['consent_id','epoch','person_id','purpose']) OR
    jsonb_typeof(grant_item->'consent_id') IS DISTINCT FROM 'string' OR
    grant_item->>'consent_id' !~ uuid_pattern OR
+   grant_item->>'consent_id'='00000000-0000-0000-0000-000000000000' OR
    jsonb_typeof(grant_item->'epoch') IS DISTINCT FROM 'string' OR
    grant_item->>'epoch' !~ '^[1-9][0-9]{0,18}$' OR
    (length(grant_item->>'epoch')=19 AND
@@ -38,7 +40,8 @@ BEGIN
     grant_item->'person_id' IS DISTINCT FROM 'null'::jsonb) OR
    (grant_item->>'purpose'<>'learning_photographer' AND
     (jsonb_typeof(grant_item->'person_id') IS DISTINCT FROM 'string' OR
-     grant_item->>'person_id' !~ uuid_pattern)) OR
+     grant_item->>'person_id' !~ uuid_pattern OR
+     grant_item->>'person_id'='00000000-0000-0000-0000-000000000000')) OR
    grant_item->>'consent_id'=ANY(seen_grants) THEN RETURN false;END IF;
   seen_grants:=array_append(seen_grants,grant_item->>'consent_id');
   IF grant_item->>'purpose'='identity_matching' THEN
@@ -58,6 +61,10 @@ BEGIN
    face_item->>'face_id' !~ uuid_pattern OR
    face_item->>'person_id' !~ uuid_pattern OR
    face_item->>'consent_id' !~ uuid_pattern OR
+   face_item->>'asset_version_id'='00000000-0000-0000-0000-000000000000' OR
+   face_item->>'face_id'='00000000-0000-0000-0000-000000000000' OR
+   face_item->>'person_id'='00000000-0000-0000-0000-000000000000' OR
+   face_item->>'consent_id'='00000000-0000-0000-0000-000000000000' OR
    face_item->>'epoch' !~ '^[1-9][0-9]{0,18}$' OR
    (length(face_item->>'epoch')=19 AND
     face_item->>'epoch'>'9223372036854775807') THEN RETURN false;END IF;
