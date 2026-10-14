@@ -103,8 +103,9 @@ func (s TrainingInputStager) Stage(ctx context.Context,
 	if err != nil {
 		return result, err
 	}
-	if _, err := seriesHoldoutFromRecovery(draft,
-		[]byte(recovery.SeriesJCS)); err != nil {
+	seriesHoldout, err := seriesHoldoutFromRecovery(draft,
+		[]byte(recovery.SeriesJCS))
+	if err != nil {
 		return result, err
 	}
 	for _, example := range draft.Manifest.Examples {
@@ -169,6 +170,12 @@ func (s TrainingInputStager) Stage(ctx context.Context,
 		}
 		if evidence, present := portraitDetail[example.EventID]; present {
 			if _, err := PublishPortraitDetailHoldout(ctx, s.Publisher,
+				draft, evidence); err != nil {
+				return TrainingStageResult{}, err
+			}
+		}
+		if evidence, present := seriesHoldout[example.EventID]; present {
+			if _, err := PublishSeriesHoldout(ctx, s.Publisher,
 				draft, evidence); err != nil {
 				return TrainingStageResult{}, err
 			}

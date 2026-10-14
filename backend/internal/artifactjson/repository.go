@@ -77,11 +77,15 @@ func (s SQLRepository) Reserve(ctx context.Context, scope Scope, sha string, siz
 		query = "SELECT outcome,artifact_id,token,ready FROM photo.reserve_v23_detail_document($1,$2,$3,$4,$5,$6,$7,$8,$9)"
 		args = []any{scope.Tenant, scope.Run, scope.Owner, scope.Project,
 			scope.Actor, scope.AuthSession, sha, size, s.Bucket}
+	} else if scope.Purpose == "v23_series_holdout" {
+		query = "SELECT outcome,artifact_id,token,ready FROM photo.reserve_v23_series_document($1,$2,$3,$4,$5,$6,$7,$8,$9)"
+		args = []any{scope.Tenant, scope.Run, scope.Owner, scope.Project,
+			scope.Actor, scope.AuthSession, sha, size, s.Bucket}
 	} else if scope.Purpose == "v23_zero_profile" {
 		query = "SELECT outcome,artifact_id,token,ready FROM photo.reserve_v23_training_zero($1,$2,$3,$4,$5,$6)"
 		args = []any{scope.Tenant, scope.Run, scope.Owner, sha, size, s.Bucket}
 	}
-	if scope.Purpose != "v23_zero_profile" && scope.Purpose != "v23_defect_holdout" && scope.Purpose != "v23_dust_holdout" && scope.Purpose != "v23_detail_holdout" {
+	if scope.Purpose != "v23_zero_profile" && scope.Purpose != "v23_defect_holdout" && scope.Purpose != "v23_dust_holdout" && scope.Purpose != "v23_detail_holdout" && scope.Purpose != "v23_series_holdout" {
 		args[3] = purposeArg
 	}
 	if scope.AssemblyLease != uuid.Nil {
@@ -174,13 +178,18 @@ func (s SQLRepository) Complete(ctx context.Context, scope Scope, ticket Reserva
 		args = []any{scope.Tenant, scope.Run, scope.Owner, scope.Project,
 			scope.Actor, scope.AuthSession, ticket.ArtifactID, ticket.Token,
 			object.SHA256, object.Bytes, s.Bucket, object.VersionID}
+	} else if scope.Purpose == "v23_series_holdout" {
+		query = "SELECT photo.complete_v23_series_document($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)"
+		args = []any{scope.Tenant, scope.Run, scope.Owner, scope.Project,
+			scope.Actor, scope.AuthSession, ticket.ArtifactID, ticket.Token,
+			object.SHA256, object.Bytes, s.Bucket, object.VersionID}
 	} else if scope.Purpose == "v23_zero_profile" {
 		query = "SELECT photo.complete_v23_training_zero($1,$2,$3,$4,$5,$6,$7,$8,$9)"
 		args = []any{scope.Tenant, scope.Run, scope.Owner,
 			ticket.ArtifactID, ticket.Token, object.SHA256, object.Bytes,
 			s.Bucket, object.VersionID}
 	}
-	if scope.Purpose != "v23_zero_profile" && scope.Purpose != "v23_defect_holdout" && scope.Purpose != "v23_dust_holdout" && scope.Purpose != "v23_detail_holdout" {
+	if scope.Purpose != "v23_zero_profile" && scope.Purpose != "v23_defect_holdout" && scope.Purpose != "v23_dust_holdout" && scope.Purpose != "v23_detail_holdout" && scope.Purpose != "v23_series_holdout" {
 		args[3] = purposeArg
 	}
 	if scope.AssemblyLease != uuid.Nil {

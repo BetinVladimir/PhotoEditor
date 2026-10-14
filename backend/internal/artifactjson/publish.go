@@ -60,7 +60,7 @@ type Publisher struct {
 }
 
 func DocumentKey(s Scope, id uuid.UUID) (string, error) {
-	if s.Purpose == "v23_detail_holdout" &&
+	if (s.Purpose == "v23_detail_holdout" || s.Purpose == "v23_series_holdout") &&
 		(s.Project == uuid.Nil || s.Actor == uuid.Nil ||
 			s.AuthSession == uuid.Nil) {
 		return "", objectstore.ErrInvalid
@@ -93,6 +93,7 @@ func DocumentKey(s Scope, id uuid.UUID) (string, error) {
 			s.Purpose != "v23_frozen_approved" &&
 			s.Purpose != "v23_defect_holdout" && s.Purpose != "v23_dust_holdout" &&
 			s.Purpose != "v23_detail_holdout" &&
+			s.Purpose != "v23_series_holdout" &&
 			!v2InputPurpose(s.Purpose) && !v22AnalysisPurpose(s.Purpose) && !v30DeliveryPurpose(s.Purpose)) {
 		return "", objectstore.ErrInvalid
 	}
