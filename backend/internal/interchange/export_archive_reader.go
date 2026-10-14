@@ -71,9 +71,10 @@ func (s exportArchiveTeeObjects) Open(ctx context.Context, object objectstore.Ob
 }
 
 type VerifiedExportArchive struct {
-	bundle   VerifiedExportBundleBytes
-	files    []VerifiedExportZIPFile
-	manifest []byte
+	bundle        VerifiedExportBundleBytes
+	files         []VerifiedExportZIPFile
+	manifest      []byte
+	personOrigins []PortablePersonOriginClaim
 }
 
 func (v VerifiedExportArchive) Bundle() v2input.Ref { return v.bundle.Ref() }
@@ -81,6 +82,9 @@ func (v VerifiedExportArchive) Files() []VerifiedExportZIPFile {
 	return append([]VerifiedExportZIPFile(nil), v.files...)
 }
 func (v VerifiedExportArchive) Manifest() []byte { return append([]byte(nil), v.manifest...) }
+func (v VerifiedExportArchive) PersonOrigins() []PortablePersonOriginClaim {
+	return append([]PortablePersonOriginClaim(nil), v.personOrigins...)
+}
 
 type ExportArchiveReader struct {
 	Catalog       ExportOutputCatalog
@@ -184,12 +188,14 @@ func (r ExportArchiveReader) Read(ctx context.Context, intent CreateIntent, froz
 			break
 		}
 	}
+	var originClaims []PortablePersonOriginClaim
 	if r.PersonOrigins == nil {
 		err = ValidateExportManifest(ctx, intent, frozen, manifest, files)
 	} else {
 		err = validateExportManifest(ctx, intent, frozen, manifest, files, true)
 		if err == nil {
-			err = VerifyExportPersonOriginArchive(ctx, archive, manifest, files, r.PersonOrigins.expected, r.PersonOrigins.trusted)
+			originClaims, err = verifyExportPersonOriginArchiveClaims(ctx, archive, manifest, files,
+				r.PersonOrigins.expected, r.PersonOrigins.trusted, r.PersonOrigins.current)
 		}
 	}
 	if err != nil {
@@ -256,7 +262,8 @@ func (r ExportArchiveReader) Read(ctx context.Context, intent CreateIntent, froz
 		err = v2input.ErrInvalid
 		return
 	}
-	result = VerifiedExportArchive{bundle: physical, files: files, manifest: append([]byte(nil), manifest...)}
+	result = VerifiedExportArchive{bundle: physical, files: files, manifest: append([]byte(nil), manifest...),
+		personOrigins: append([]PortablePersonOriginClaim(nil), originClaims...)}
 	err = ctx.Err()
 	return
 }

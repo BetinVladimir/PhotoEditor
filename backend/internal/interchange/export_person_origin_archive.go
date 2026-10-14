@@ -16,17 +16,19 @@ import (
 type ExportPersonOriginArchiveAuthority struct {
 	expected map[string]PortablePersonOriginExpectation
 	trusted  map[PortablePersonOriginKey]ed25519.PublicKey
+	current  ExportPersonOriginCurrentChecker
 }
 
 func NewExportPersonOriginArchiveAuthority(expected map[string]PortablePersonOriginExpectation,
-	trusted map[PortablePersonOriginKey]ed25519.PublicKey,
+	trusted map[PortablePersonOriginKey]ed25519.PublicKey, current ExportPersonOriginCurrentChecker,
 ) (*ExportPersonOriginArchiveAuthority, error) {
-	if expected == nil || trusted == nil || len(expected) > 5000 {
+	if expected == nil || trusted == nil || len(expected) > 5000 || (len(expected) > 0 && current == nil) {
 		return nil, v2input.ErrInvalid
 	}
 	owned := &ExportPersonOriginArchiveAuthority{
 		expected: make(map[string]PortablePersonOriginExpectation, len(expected)),
 		trusted:  make(map[PortablePersonOriginKey]ed25519.PublicKey, len(trusted)),
+		current:  current,
 	}
 	for path, scope := range expected {
 		if !validImportPlanPath(path) || scope.EntryID == uuid.Nil ||
@@ -55,44 +57,53 @@ func VerifyExportPersonOriginArchive(ctx context.Context, archive *zip.Reader, r
 	verified []VerifiedExportZIPFile, expected map[string]PortablePersonOriginExpectation,
 	trusted map[PortablePersonOriginKey]ed25519.PublicKey,
 ) error {
+	_, err := verifyExportPersonOriginArchiveClaims(ctx, archive, raw, verified, expected, trusted, nil)
+	return err
+}
+
+func verifyExportPersonOriginArchiveClaims(ctx context.Context, archive *zip.Reader, raw []byte,
+	verified []VerifiedExportZIPFile, expected map[string]PortablePersonOriginExpectation,
+	trusted map[PortablePersonOriginKey]ed25519.PublicKey, current ExportPersonOriginCurrentChecker,
+) ([]PortablePersonOriginClaim, error) {
 	if err := ctx.Err(); err != nil {
-		return err
+		return nil, err
 	}
 	if archive == nil || expected == nil || trusted == nil {
-		return v2input.ErrInvalid
+		return nil, v2input.ErrInvalid
 	}
 	var manifest exportBundleManifest
 	if err := decodeImportDocument(raw, &manifest); err != nil {
-		return err
+		return nil, err
 	}
 	if len(manifest.PersonOrigins) != len(expected) || len(expected) > 5000 {
-		return v2input.ErrInvalid
+		return nil, v2input.ErrInvalid
 	}
 	inventory := make(map[string]exportBundleInventoryEntry, len(manifest.Inventory))
 	for _, item := range manifest.Inventory {
 		if _, duplicate := inventory[item.Path]; duplicate {
-			return v2input.ErrInvalid
+			return nil, v2input.ErrInvalid
 		}
 		inventory[item.Path] = item
 	}
 	physical := make(map[string]VerifiedExportZIPFile, len(verified))
 	for _, file := range verified {
 		if _, duplicate := physical[file.Path]; duplicate {
-			return v2input.ErrInvalid
+			return nil, v2input.ErrInvalid
 		}
 		physical[file.Path] = file
 	}
 	members := make(map[string]*zip.File, len(archive.File))
 	for _, file := range archive.File {
 		if _, duplicate := members[file.Name]; duplicate {
-			return v2input.ErrInvalid
+			return nil, v2input.ErrInvalid
 		}
 		members[file.Name] = file
 	}
 	seen := map[string]bool{}
+	claims := make([]PortablePersonOriginClaim, 0, len(expected))
 	for _, origin := range manifest.PersonOrigins {
 		if err := ctx.Err(); err != nil {
-			return err
+			return nil, err
 		}
 		scope, ok := expected[origin.Path]
 		file := members[origin.Path]
@@ -107,27 +118,34 @@ func VerifyExportPersonOriginArchive(ctx context.Context, archive *zip.Reader, r
 			actual.SHA256 != origin.SHA || scope.EntryID != origin.EntryID ||
 			scope.Recipe != origin.Recipe || scope.Override != origin.Override ||
 			scope.MaskRef != origin.MaskRef || scope.MaskPixels != origin.MaskPixels {
-			return v2input.ErrInvalid
+			return nil, v2input.ErrInvalid
 		}
 		stream, err := file.Open()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		body, readErr := io.ReadAll(io.LimitReader(exportContextReader{ctx, stream}, 16385))
 		closeErr := stream.Close()
 		if readErr != nil {
-			return readErr
+			return nil, readErr
 		}
 		if closeErr != nil {
-			return closeErr
+			return nil, closeErr
 		}
 		if int64(len(body)) != actual.Bytes || rawSHA(body) != actual.SHA256 {
-			return v2input.ErrInvalid
+			return nil, v2input.ErrInvalid
 		}
-		if _, err := VerifyPortablePersonOrigin(body, scope, trusted); err != nil {
-			return err
+		claim, err := VerifyPortablePersonOrigin(body, scope, trusted)
+		if err != nil {
+			return nil, err
 		}
+		if current != nil {
+			if err := current.RecheckExportPersonOrigin(ctx, claim); err != nil {
+				return nil, err
+			}
+		}
+		claims = append(claims, claim)
 		seen[origin.Path] = true
 	}
-	return ctx.Err()
+	return claims, ctx.Err()
 }

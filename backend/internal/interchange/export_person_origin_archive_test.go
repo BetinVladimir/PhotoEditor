@@ -8,7 +8,21 @@ import (
 
 	"github.com/google/uuid"
 	"photoeditor/backend/internal/canonical"
+	"photoeditor/backend/internal/v2input"
 )
+
+type originCurrentStub struct {
+	calls int
+	deny  bool
+}
+
+func (s *originCurrentStub) RecheckExportPersonOrigin(_ context.Context, _ PortablePersonOriginClaim) error {
+	s.calls++
+	if s.deny {
+		return v2input.ErrInvalid
+	}
+	return nil
+}
 
 func TestExportPersonOriginArchiveRequiresPhysicalSignedReceipt(t *testing.T) {
 	receipt, scope, keys := portablePersonOriginFixture(t)
@@ -42,7 +56,8 @@ func TestExportPersonOriginArchiveRequiresPhysicalSignedReceipt(t *testing.T) {
 	}
 	files := []VerifiedExportZIPFile{{Path: path, Bytes: int64(len(receipt)), SHA256: rawSHA(receipt)}}
 	expected := map[string]PortablePersonOriginExpectation{path: scope}
-	authority, err := NewExportPersonOriginArchiveAuthority(expected, keys)
+	current := &originCurrentStub{}
+	authority, err := NewExportPersonOriginArchiveAuthority(expected, keys, current)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,8 +66,21 @@ func TestExportPersonOriginArchiveRequiresPhysicalSignedReceipt(t *testing.T) {
 		t.Fatal("caller mutated owned expectations")
 	}
 	expected[path] = scope
+	if _, err := NewExportPersonOriginArchiveAuthority(expected, keys, nil); err == nil {
+		t.Fatal("live origin authority omitted")
+	}
 	if err := VerifyExportPersonOriginArchive(context.Background(), archive, raw, files, expected, keys); err != nil {
 		t.Fatalf("signed physical receipt refused: %v", err)
+	}
+	claims, err := verifyExportPersonOriginArchiveClaims(context.Background(), archive, raw, files,
+		authority.expected, authority.trusted, authority.current)
+	if err != nil || len(claims) != 1 || current.calls != 1 {
+		t.Fatal("current producer was not rechecked", err)
+	}
+	current.deny = true
+	if _, err := verifyExportPersonOriginArchiveClaims(context.Background(), archive, raw, files,
+		authority.expected, authority.trusted, authority.current); err == nil {
+		t.Fatal("stale producer accepted")
 	}
 	tampered := append([]VerifiedExportZIPFile(nil), files...)
 	tampered[0].SHA256 = rawSHA([]byte("different"))

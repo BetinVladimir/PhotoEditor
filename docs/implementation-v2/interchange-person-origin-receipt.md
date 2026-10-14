@@ -56,6 +56,11 @@ adoption preparation to require physical ZIP receipt bytes, trusted Ed25519
 signature, deterministic inventory identity and current frozen source closure.
 The production factory and source-derived authority installer are still absent;
 this optional gate does not itself publish or admit receipts.
+Installed export archive authority now requires a current producer checker.
+The SQL checker repeats the original `mask.person` locator and compares task,
+attempt, fence, root, report and MaskPixels with the signed claim during ZIP
+verification and again after source-closure/result rechecks, immediately before
+adoption evidence is frozen. Signature validity alone is insufficient.
 The worker's explicit `sql_prepared_export_installation` now forwards an
 operator-supplied `person_origin_factory` through `ExportPreparationFactory`
 to bundle preparation. This is an installation port, not a default factory:

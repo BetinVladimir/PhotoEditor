@@ -120,6 +120,17 @@ func (p ExportResultPreparation) Prepare(ctx context.Context, root v2input.Ref) 
 			return zero, v2input.ErrInvalid
 		}
 	}
+	if p.PersonOrigins != nil {
+		claims := archive.PersonOrigins()
+		if len(claims) != len(p.PersonOrigins.expected) {
+			return zero, v2input.ErrInvalid
+		}
+		for _, claim := range claims {
+			if err := p.PersonOrigins.current.RecheckExportPersonOrigin(ctx, claim); err != nil {
+				return zero, err
+			}
+		}
+	}
 	return freezeExportAdoptionEvidence(ctx, config, intent, frozen, current, archive, sources)
 }
 func freezeExportAdoptionEvidence(ctx context.Context, config SQLExportOutputCatalog, intent CreateIntent, frozen FrozenExportDocuments, result ValidatedExportResult, archive VerifiedExportArchive, sources []v2input.Entry) (PreparedExportAdoption, error) {
