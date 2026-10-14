@@ -164,7 +164,7 @@ Project design: assert signing algorithm/certificate chain against policy, requi
 
 ### V24 internal capture preparation
 
-`capture.prepare:1` is an internal GPU-resource node (CPU/CUDA backends) preceding `capture.assess`; it is not a public editor operation. `CapturePrepareParams` contains schema_version=1, the original VersionBinding, calibration ArtifactRef and model_lock_sha. Its declared closure includes Params, source WorkingImage, its RGB/optional alpha NPY, and Calibration. Worker requires renderer_version=v2.2 and admitted RAM >=2 GiB. Exact sizing and preparation expansion must be installed before enabling admission.
+`capture.prepare:1` is an internal GPU-resource node (CPU/CUDA/MPS backends) preceding `capture.assess`; it is not a public editor operation. `CapturePrepareParams` contains schema_version=1, the original VersionBinding, calibration ArtifactRef and model_lock_sha. Its declared closure includes Params, source WorkingImage, its RGB/optional alpha NPY, and Calibration. Worker requires renderer_version=v2.2 and admitted RAM >=2 GiB. Exact sizing and preparation expansion must be installed before enabling admission.
 
 Preparation verifies the source canvas digest, calibration/model lock and backend qualifications of SFD/FAN2D. RGB stays float32 Rec.2020 gamma24, with values outside [0,1] retained for clipping. The longest edge becomes at most 2048, with no upscaling; INTER_AREA and a half-pixel matrix preserve normalized face coordinates. Source arrays are read-only. Alpha remains uint16 and follows the same dimensions. Model-only sRGB conversion uses a clipped copy and zeroes fully transparent samples. Face observations reuse session detection/landmarks with no automatic identity assignment or identity embedding.
 

@@ -47,13 +47,14 @@ Registry enablement follows model/hardware qualification; the setting does not
 qualify models or bypass the task admission gate. Provide the exact qualified
 worker lock digest in `PHOTO_CAPTURE_MODEL_LOCK_SHA`.
 
-`PHOTO_CAPTURE_BACKEND` is `cuda` by default, or explicitly `cpu`.
-Resource ceilings are decimal byte values: `PHOTO_CAPTURE_RAM_BYTES` defaults
-to 17179869184, `PHOTO_CAPTURE_VRAM_BYTES` to 10737418240,
-`PHOTO_CAPTURE_SCRATCH_BYTES` to 68719476736 and
+`PHOTO_CAPTURE_BACKEND` is `cuda` by default, or explicitly `cpu` or `mps`.
+Resource ceilings are byte values: `PHOTO_CAPTURE_RAM_BYTES` defaults to
+17179869184, `PHOTO_CAPTURE_VRAM_BYTES` to 10737418240 on CUDA/CPU or
+10000000000 on MPS, `PHOTO_CAPTURE_SCRATCH_BYTES` to 68719476736 and
 `PHOTO_CAPTURE_RESERVED_BYTES` to 1073741824. CPU permits VRAM=0. These are
 admission ceilings; each frozen task profile computes its own requirements.
-The defaults leave headroom on the requested RTX3060 12GB / 32GB host, but
+The MPS default respects the 10 GB Metal verification ceiling. CUDA defaults
+leave headroom on the requested RTX3060 12GB / 32GB host, but
 must still pass the hardware benchmark and concurrent workload qualification.
 Scratch must be backed by actual available storage. No benchmark is implied by
 these defaults. Missing lock, invalid budget or unavailable SQL/operation

@@ -37,3 +37,25 @@ def test_prepare_adapter_requires_admitted_memory_before_inputs():
              'resource_estimate': {'ram_bytes': 0}}))
     with pytest.raises(OperationFailure, match='CONFIG_INVALID'):
         prepare_adapter.execute(ctx, None, None, 'cpu')
+
+
+def test_prepare_adapter_accepts_mps_only_with_matching_profile(monkeypatch):
+    from photo_worker.operations.session.contracts import VersionBinding
+    ref = ArtifactRef(artifact_id=UUID(int=1), sha256='a' * 64)
+    params = NS(model_lock_sha='c' * 64, calibration=ref,
+                binding=VersionBinding(asset_version_id=UUID(int=9), source=ref,
+                                       canvas_hash='b' * 64))
+    ctx = NS(lease=NS(execution_profile={'renderer_version': 'v2.2', 'backend': 'mps',
+             'resource_estimate': {'ram_bytes': 2 * 1024**3}}), check_active=lambda: None)
+    prepared = NS(proxy=NS(image_ref=ref), faces_ref=ref, outputs=(ref,), bytes_written=1)
+    monkeypatch.setattr(prepare_adapter, 'prepare_capture_inputs', lambda *args: prepared)
+
+    class Artifacts:
+        def params(self, kind): return params
+        def contract(self, *args): return NS()
+        def stage_contract(self, *args): return ref
+
+    result = prepare_adapter.execute(ctx, Artifacts(), NS(lock=NS(lock_id='c' * 64)), 'mps')
+    assert result.outputs[0] == ref
+    with pytest.raises(OperationFailure, match='CONFIG_INVALID'):
+        prepare_adapter.execute(ctx, Artifacts(), NS(lock=NS(lock_id='c' * 64)), 'cuda')

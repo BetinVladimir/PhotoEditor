@@ -10,7 +10,7 @@ import (
 // its declared NPY arrays, while RAM accounts for the bounded proxy and models.
 func CompileCapturePrepareProfile(backend string, width, height int64, hasAlpha bool,
 	ramLimit, vramLimit, scratchLimit int64) (json.RawMessage, error) {
-	if (backend != "cpu" && backend != "cuda") || width < 1 || height < 1 || width > 200000000 || height > 200000000 || width*height > 200000000 {
+	if (backend != "cpu" && backend != "cuda" && backend != "mps") || width < 1 || height < 1 || width > 200000000 || height > 200000000 || width*height > 200000000 {
 		return nil, ErrInvalid
 	}
 	w, h := width, height
@@ -39,7 +39,7 @@ func CompileCapturePrepareProfile(backend string, width, height int64, hasAlpha 
 		channels = 16
 	}
 	vram := int64(0)
-	if backend == "cuda" {
+	if backend == "cuda" || backend == "mps" {
 		vram = 6 << 30
 	}
 	proxyPixels := w * h

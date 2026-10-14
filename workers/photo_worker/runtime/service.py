@@ -344,7 +344,7 @@ def build_worker(config:WorkerConfig, *, render_renderer=None, region_renderer=N
             gpu_model_pool=pool
             ids={entry.id for entry in lock.models}
             operations+=capture_assess_operations(artifacts,pool,config.backend)
-            if config.backend in ("cpu", "cuda"): operations+=capture_prepare_operations(artifacts,pool,config.backend)
+            if config.backend in ("cpu", "cuda", "mps"): operations+=capture_prepare_operations(artifacts,pool,config.backend)
             if config.person_runtime_locks is not None and 'lraspp_mobilenet_v3_large' not in ids:raise WorkerConfigurationError('Person runtime requires installed person model')
             if 'lraspp_mobilenet_v3_large' in ids:
                 from .person_config import configured_person_runtime

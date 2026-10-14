@@ -29,3 +29,20 @@ func TestCapturePrepareProfileCoversFloat32Alpha(t *testing.T) {
 		}
 	}
 }
+
+func TestCapturePrepareProfileMPSUsesQualifiedGPUBudget(t *testing.T) {
+	raw, err := CompileCapturePrepareProfile("mps", 2048, 2048, true,
+		32<<30, 10_000_000_000, 32<<30)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var profile sessionDescribeExecutionProfile
+	if err = json.Unmarshal(raw, &profile); err != nil || profile.Backend != "mps" ||
+		profile.ResourceEstimate.VRAMBytes != 6<<30 {
+		t.Fatal("MPS capture reservation invalid", profile, err)
+	}
+	if _, err = CompileCapturePrepareProfile("mps", 2048, 2048, true,
+		32<<30, (6<<30)-1, 32<<30); err == nil {
+		t.Fatal("MPS capture accepted insufficient VRAM")
+	}
+}

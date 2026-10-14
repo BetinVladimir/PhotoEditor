@@ -55,6 +55,11 @@ func TestCaptureSchedulerEnvironmentRequiresQualifiedDeploymentInputs(t *testing
 	if err != nil || !enabled || cfg.Backend != "cuda" || cfg.VRAMLimit != 10<<30 || cfg.RAMLimit != 16<<30 {
 		t.Fatalf("config=%v enabled=%v error=%v", cfg, enabled, err)
 	}
+	env["PHOTO_CAPTURE_BACKEND"] = "mps"
+	cfg, enabled, err = CaptureConfigFromEnvironment(get)
+	if err != nil || !enabled || cfg.Backend != "mps" || cfg.VRAMLimit != 10_000_000_000 {
+		t.Fatalf("Metal config=%v enabled=%v error=%v", cfg, enabled, err)
+	}
 	env["PHOTO_CAPTURE_VRAM_BYTES"] = "1"
 	if _, _, err := CaptureConfigFromEnvironment(get); err == nil {
 		t.Fatal("impossible GPU budget accepted")

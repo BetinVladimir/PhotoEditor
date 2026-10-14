@@ -12,7 +12,7 @@ def execute(ctx, artifacts, pool, backend):
     profile = ctx.lease.execution_profile
     estimate = profile.get('resource_estimate')
     if (profile.get('renderer_version') != 'v2.2' or profile.get('backend') != backend
-            or backend not in ('cpu', 'cuda') or not isinstance(estimate, dict)
+            or backend not in ('cpu', 'cuda', 'mps') or not isinstance(estimate, dict)
             or type(estimate.get('ram_bytes')) is not int or estimate['ram_bytes'] < 2 * 1024**3):
         raise OperationFailure('CONFIG_INVALID')
     try:

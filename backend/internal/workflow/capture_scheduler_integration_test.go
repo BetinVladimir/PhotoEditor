@@ -70,6 +70,10 @@ func TestIntegrationCaptureStartupExactFunctions(t *testing.T) {
 	if err != nil || !ready {
 		t.Fatalf("positive startup ready=%v err=%v", ready, err)
 	}
+	ready, err = captureSQLReady(ctx, tx, "mps")
+	if err != nil || !ready {
+		t.Fatalf("positive Metal startup ready=%v err=%v", ready, err)
+	}
 	if _, err = tx.Exec(ctx, `RESET ROLE`); err != nil {
 		t.Fatal(err)
 	}

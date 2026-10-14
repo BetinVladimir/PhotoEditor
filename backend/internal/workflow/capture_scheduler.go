@@ -27,7 +27,7 @@ type CaptureSchedulerConfig struct {
 // NewCaptureProcessor wires both durable phases to the same storage publisher
 // and admission transaction. Operation qualification remains a SQL seal gate.
 func NewCaptureProcessor(db *pgxpool.Pool, objects CaptureObjects, bucket string, cfg CaptureSchedulerConfig) (v2input.CaptureAssessmentOrchestrator, error) {
-	if db == nil || objects == nil || len(bucket) < 3 || len(bucket) > 63 || (cfg.Backend != "cpu" && cfg.Backend != "cuda") || cfg.RAMLimit <= 0 || cfg.VRAMLimit < 0 || cfg.ScratchLimit <= 0 || cfg.ReservedBytes <= 0 || cfg.ReservedBytes > 9007199254740991 {
+	if db == nil || objects == nil || len(bucket) < 3 || len(bucket) > 63 || (cfg.Backend != "cpu" && cfg.Backend != "cuda" && cfg.Backend != "mps") || cfg.RAMLimit <= 0 || cfg.VRAMLimit < 0 || cfg.ScratchLimit <= 0 || cfg.ReservedBytes <= 0 || cfg.ReservedBytes > 9007199254740991 {
 		return v2input.CaptureAssessmentOrchestrator{}, errors.New("invalid capture scheduler configuration")
 	}
 	if _, err := domain.ParseDigest(cfg.ModelLockSHA); err != nil {
@@ -97,7 +97,7 @@ func CaptureConfigFromEnvironment(getenv func(string) string) (CaptureSchedulerC
 		cfg.Backend = "cuda"
 	}
 	cfg.ModelLockSHA = getenv("PHOTO_CAPTURE_MODEL_LOCK_SHA")
-	if cfg.Backend != "cpu" && cfg.Backend != "cuda" {
+	if cfg.Backend != "cpu" && cfg.Backend != "cuda" && cfg.Backend != "mps" {
 		return cfg, false, errors.New("invalid capture backend")
 	}
 	if _, err := domain.ParseDigest(cfg.ModelLockSHA); err != nil {
@@ -109,7 +109,7 @@ func CaptureConfigFromEnvironment(getenv func(string) string) (CaptureSchedulerC
 		fallback int64
 	}{
 		{"PHOTO_CAPTURE_RAM_BYTES", &cfg.RAMLimit, 16 << 30},
-		{"PHOTO_CAPTURE_VRAM_BYTES", &cfg.VRAMLimit, 10 << 30},
+		{"PHOTO_CAPTURE_VRAM_BYTES", &cfg.VRAMLimit, captureDefaultVRAM(cfg.Backend)},
 		{"PHOTO_CAPTURE_SCRATCH_BYTES", &cfg.ScratchLimit, 64 << 30},
 		{"PHOTO_CAPTURE_RESERVED_BYTES", &cfg.ReservedBytes, 1 << 30},
 	}
@@ -130,6 +130,13 @@ func CaptureConfigFromEnvironment(getenv func(string) string) (CaptureSchedulerC
 		return cfg, false, errors.New("capture resource budget too small")
 	}
 	return cfg, true, nil
+}
+
+func captureDefaultVRAM(backend string) int64 {
+	if backend == "mps" {
+		return 10_000_000_000
+	}
+	return 10 << 30
 }
 
 type captureStartupQuery interface {
