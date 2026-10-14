@@ -177,6 +177,16 @@ func TestDeliveryDownloadPostSigningAuthorityRejectsUnknownBearer(t *testing.T) 
 	err = db.QueryRow(ctx, `SELECT photo.v30_delivery_download_intent_current($1,'photo','missing','v1',$2,1,'image/jpeg')`,
 		[]byte(strings.Repeat("x",32)), strings.Repeat("a",64)).Scan(&current)
 	if err != nil || current { t.Fatal("unknown bearer passed post-signing check", err) }
+	var definition string
+	err = db.QueryRow(ctx, `SELECT pg_get_functiondef($1::regprocedure)`, signature).Scan(&definition)
+	if err != nil || strings.Contains(definition, "IF i.intent_kind IN('item','volume') THEN RETURN true") ||
+		!strings.Contains(definition, "a.object_key IS NOT DISTINCT FROM p_object_key") ||
+		!strings.Contains(definition, "a.object_version IS NOT DISTINCT FROM p_object_version") ||
+		!strings.Contains(definition, "a.sha256 IS NOT DISTINCT FROM p_sha") ||
+		!strings.Contains(definition, "a.bytes IS NOT DISTINCT FROM p_bytes") ||
+		!strings.Contains(definition, "a.media_type IS NOT DISTINCT FROM p_media_type") {
+		t.Fatal("legacy download post-signing object pin missing", err)
+	}
 }
 
 func TestDeliverySigningClosurePrivateRetentionAndPurgeACL(t *testing.T) {
