@@ -36,6 +36,13 @@ func (q SQLIdentityAdoptionQueue) Next(ctx context.Context, after uuid.UUID) (*I
 	if q.DB == nil {
 		return nil, v2input.ErrInvalid
 	}
+	var live bool
+	if err := q.DB.QueryRow(ctx, "SELECT photo.v23_identity_adopter_heartbeat()").Scan(&live); err != nil {
+		return nil, err
+	}
+	if !live {
+		return nil, v2input.ErrExpired
+	}
 	var cursor any
 	if after != uuid.Nil {
 		cursor = after

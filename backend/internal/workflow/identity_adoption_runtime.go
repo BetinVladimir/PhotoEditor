@@ -35,6 +35,7 @@ func NewIdentityAdoptionProcessor(ctx context.Context, db *pgxpool.Pool,
 	bounded, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	required := []string{
+		"photo.v23_identity_adopter_heartbeat()",
 		"photo.next_v23_identity_adoption(uuid)",
 		"photo.v23_identity_result_input(uuid,uuid,uuid,uuid,text,text,uuid,text,text)",
 		"photo.v23_identity_consent_result_input(uuid,uuid,uuid,uuid,text,uuid,text,text)",
@@ -47,6 +48,8 @@ func NewIdentityAdoptionProcessor(ctx context.Context, db *pgxpool.Pool,
 	}
 	var installed bool
 	err := db.QueryRow(bounded, `SELECT current_user='photo_scheduler'
+ AND position('v23_identity_adopter_state' in
+  pg_get_functiondef('photo.activate_v23_identity_compare(uuid,uuid,uuid,uuid,text)'::regprocedure))>0
  AND coalesce(bool_and(coalesce(p.prosecdef AND owner.rolname='photo_fn_owner'
  AND has_function_privilege(current_user,p.oid,'EXECUTE'),false)),false)
  FROM unnest($1::text[]) required(signature)
