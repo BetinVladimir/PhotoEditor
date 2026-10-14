@@ -635,3 +635,10 @@ ACL/absent-scope сценарий. Миграция, тесты и сборка 
 утверждает, что обычный processed preview геометрически совмещён с RAW
 sensor: точная dust-preview проекция остаётся открытой. Написаны позитивный
 и отрицательные unit-сценарии; они не запускались.
+
+Process-owned V30 import operator loader теперь требует единственную ссылку
+на inode верхней декларации, native/style и каждого denoise/upscale/stats/
+person/measurement deployment файла на всех трёх stat-снимках. Добавлены
+hardlink-отказы для верхней декларации, native и style загрузчиков;
+`gofmt` и `git diff --check` выполнены, тесты/сборка не запускались.
+Production semantic ports и целый import workflow по-прежнему не включены.

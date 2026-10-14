@@ -74,6 +74,13 @@ func TestImportSchedulerOperatorConfigPinnedStrictLoad(t *testing.T) {
 	if _, err := LoadImportSchedulerOperatorFiles(context.Background(), link, pin); err == nil {
 		t.Fatal("symlink operator declaration accepted")
 	}
+	hardlink := filepath.Join(t.TempDir(), "operator-hardlink.json")
+	if err := os.Link(path, hardlink); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadImportSchedulerOperatorFiles(context.Background(), path, pin); err == nil {
+		t.Fatal("hardlinked operator declaration accepted")
+	}
 	if err := os.Chmod(path, 0666); err != nil {
 		t.Fatal(err)
 	}

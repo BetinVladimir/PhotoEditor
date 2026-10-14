@@ -33,6 +33,13 @@ func TestLoadNativeImportDeploymentExactPinnedRegularFile(t *testing.T) {
 	if _, err = LoadNativeImportDeployment(context.Background(), link, rawSHA(raw)); err == nil {
 		t.Fatal("symlink manifest accepted")
 	}
+	hardlink := filepath.Join(root, "hardlinked.json")
+	if err = os.Link(path, hardlink); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = LoadNativeImportDeployment(context.Background(), path, rawSHA(raw)); err == nil {
+		t.Fatal("hardlinked native deployment accepted")
+	}
 	if err = os.Chmod(path, 0666); err != nil {
 		t.Fatal(err)
 	}

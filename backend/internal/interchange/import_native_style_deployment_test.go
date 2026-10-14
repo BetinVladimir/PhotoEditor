@@ -35,6 +35,13 @@ func TestImportNativeStyleInstallationPinnedOperatorFile(t *testing.T) {
 	if _, err := LoadImportNativeStyleInstallation(context.Background(), link, rawSHA(raw)); err == nil {
 		t.Fatal("symlink accepted")
 	}
+	hardlink := filepath.Join(root, "hardlink.json")
+	if err := os.Link(path, hardlink); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadImportNativeStyleInstallation(context.Background(), path, rawSHA(raw)); err == nil {
+		t.Fatal("hardlinked style installation accepted")
+	}
 	if err := os.Chmod(path, 0666); err != nil {
 		t.Fatal(err)
 	}

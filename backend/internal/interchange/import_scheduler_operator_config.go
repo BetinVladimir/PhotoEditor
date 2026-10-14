@@ -85,7 +85,7 @@ func LoadImportSchedulerOperatorFiles(ctx context.Context, path, pin string) (Im
 	if err != nil {
 		return zero, err
 	}
-	if !before.Mode().IsRegular() || before.Mode().Perm()&0022 != 0 || before.Size() < 2 || before.Size() > 64<<10 {
+	if !singleLinkImportOperatorFile(before) || !before.Mode().IsRegular() || before.Mode().Perm()&0022 != 0 || before.Size() < 2 || before.Size() > 64<<10 {
 		return zero, v2input.ErrInvalid
 	}
 	file, err := os.Open(path)
@@ -97,7 +97,7 @@ func LoadImportSchedulerOperatorFiles(ctx context.Context, path, pin string) (Im
 	if err != nil {
 		return zero, err
 	}
-	if !os.SameFile(before, opened) || opened.Size() != before.Size() || opened.Mode() != before.Mode() || !opened.ModTime().Equal(before.ModTime()) {
+	if !singleLinkImportOperatorFile(opened) || !os.SameFile(before, opened) || opened.Size() != before.Size() || opened.Mode() != before.Mode() || !opened.ModTime().Equal(before.ModTime()) {
 		return zero, v2input.ErrInvalid
 	}
 	raw, err := io.ReadAll(io.LimitReader(exportContextReader{ctx, file}, (64<<10)+1))
@@ -115,7 +115,7 @@ func LoadImportSchedulerOperatorFiles(ctx context.Context, path, pin string) (Im
 	if err != nil {
 		return zero, err
 	}
-	if !os.SameFile(opened, after) || !os.SameFile(after, current) || after.Size() != opened.Size() || after.Mode() != opened.Mode() || !after.ModTime().Equal(opened.ModTime()) || current.Size() != opened.Size() || current.Mode() != opened.Mode() || !current.ModTime().Equal(opened.ModTime()) || int64(len(raw)) != opened.Size() {
+	if !singleLinkImportOperatorFile(after) || !singleLinkImportOperatorFile(current) || !os.SameFile(opened, after) || !os.SameFile(after, current) || after.Size() != opened.Size() || after.Mode() != opened.Mode() || !after.ModTime().Equal(opened.ModTime()) || current.Size() != opened.Size() || current.Mode() != opened.Mode() || !current.ModTime().Equal(opened.ModTime()) || int64(len(raw)) != opened.Size() {
 		return zero, v2input.ErrInvalid
 	}
 	return DecodeImportSchedulerOperatorFiles(raw, pin)
