@@ -22,3 +22,19 @@ def test_series_frozen_readiness_denies_missing_authority(db):
     assert not db.execute(
         'SELECT photo.v23_series_frozen_ready(%s,%s,%s::jsonb)',
         (uuid4(), uuid4(), '{"examples":[]}')).fetchone()[0]
+
+
+def test_series_freeze_qualification_defaults_closed(db):
+    signature = 'photo.v23_series_holdout_qualified(uuid,uuid)'
+    assert db.execute('SELECT to_regprocedure(%s) IS NOT NULL',
+                      (signature,)).fetchone()[0]
+    for role in ('photo_api', 'photo_scheduler', 'photo_worker',
+                 'photo_gateway', 'photo_portal'):
+        assert not db.execute('SELECT has_function_privilege(%s,%s,%s)',
+                              (role, signature, 'EXECUTE')).fetchone()[0]
+    assert not db.execute('SELECT photo.v23_series_holdout_qualified(%s,%s)',
+                          (uuid4(), uuid4())).fetchone()[0]
+    assert not db.execute(
+        'SELECT photo.v23_training_frozen_complete(%s,%s,%s::jsonb)',
+        (uuid4(), uuid4(), '{"examples":[{"render_case":'
+                           '{"series_evidence":{}}}]}')).fetchone()[0]
