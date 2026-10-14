@@ -1,0 +1,51 @@
+{
+  "date": "2026-10-09",
+  "component": "Production worker upload response ambiguity fix",
+  "whole_module_accepted": false,
+  "production_code_changed": true,
+  "changed_runtime": "workers/photo_worker/runtime/gateway.py",
+  "source_sha256": {
+    "workers/photo_worker/runtime/gateway.py": "5eb20ab47ca32feb6a798f3e9225baa279b445d9e8af1c975d077037308eeac8",
+    "tests/platform/test_gateway.py": "905a419f2b300de5f3e55aab7cc23cb45a5f122fd4fb7bd9b4f92e7174ef60ce"
+  },
+  "behavior": "Incomplete declared Content-Length becomes retryable DEPENDENCY_UNAVAILABLE, no automatic PUT repeat; complete invalid JSON/oversized response becomes typed GATEWAY_RESPONSE_INVALID",
+  "initial_failure": "gateway-upload-ambiguity-initial.xml:1PASS/1FAIL, partial body raised raw JSONDecodeError",
+  "checks": {
+    "mtls_gateway": {
+      "tests": "11",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "6.139",
+      "evidence": "gateway-upload-ambiguity-current.xml"
+    },
+    "sql_output_executor_regression": {
+      "tests": "7",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "10.272",
+      "evidence": "gateway-upload-sql-regression-current.xml"
+    }
+  },
+  "live_bootstrap": {
+    "tests": "3",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "time": "100.357",
+    "status": "passed",
+    "accepted": true,
+    "evidence": "gateway-upload-live-bootstrap-current.xml"
+  },
+  "limitations": [
+    "TLS fault endpoint is a declared HTTP test server; no physical S3 orphan cleanup ambiguity claimed",
+    "Physical native successful bootstrap3PASS uses declared inference/qualification doubles; does not prove actual native ambiguous PUT cleanup.",
+    "Full module acceptance remains open"
+  ],
+  "baseline_review": {
+    "previous_sha256": "cc1aef36a590e4d0124bf10634eb970b840d7a5661a720577c34a7d26a8b3502",
+    "new_sha256": "5eb20ab47ca32feb6a798f3e9225baa279b445d9e8af1c975d077037308eeac8",
+    "note": "Reviewed bounded upload response parsing: partial declared response is retryable dependency failure without PUT replay; complete invalid/oversize response is typed refusal. No change to mTLS, attempt/fence, output SHA or pixel algorithms. Current TLS11PASS, SQL7PASS, physical worker/bootstrap3PASS; see audit/gateway-upload-ambiguity-current.json."
+  }
+}

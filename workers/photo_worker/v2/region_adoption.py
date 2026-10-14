@@ -14,17 +14,22 @@ def verify_region_result(reader, params_ref, root_ref, *, target_icc_sha256,
         raise AdoptionInvalid('REGION_ADOPTION_ICC_REQUIRED')
     check_active()
     params = _document(reader, params_ref, RegionPreviewParams, 'input')
+    check_active()
     manifest = _document(reader, root_ref, RegionDerivativeManifest, 'output')
+    check_active()
     recipe = _document(reader, _ref(params.recipe.ref), FrozenRecipe, 'input')
+    check_active()
     if recipe != params.frozen_recipe:
         raise AdoptionInvalid('REGION_ADOPTION_RECIPE_INVALID')
     source_ref = _ref(params.source.ref)
     source_evidence = reader.evidence(source_ref)
+    check_active()
     if (source_evidence.ref != source_ref or source_evidence.source != 'input'
             or source_evidence.media_type != 'application/json'
             or source_evidence.bytes != params.source.bytes):
         raise AdoptionInvalid('REGION_ADOPTION_SOURCE_INVALID')
     source_body = reader.read_json(source_ref, 1048576)
+    check_active()
     try:
         source = params.validate_source(source_body)
         manifest.validate_for(params, target_icc_sha256, source.alpha is not None)
@@ -32,6 +37,7 @@ def verify_region_result(reader, params_ref, root_ref, *, target_icc_sha256,
         raise AdoptionInvalid('REGION_ADOPTION_BINDING_INVALID') from exc
     derivative_ref = _ref(manifest.derivative)
     evidence = reader.evidence(derivative_ref)
+    check_active()
     if (evidence.ref != derivative_ref or evidence.source != 'output'
             or evidence.role != 'derivative' or evidence.media_type != manifest.media_type
             or evidence.bytes != manifest.bytes):
@@ -39,8 +45,10 @@ def verify_region_result(reader, params_ref, root_ref, *, target_icc_sha256,
     stream = getattr(reader, 'iter_bytes', None)
     if not callable(stream):
         raise AdoptionInvalid('REGION_ADOPTION_STREAM_REQUIRED')
+    check_active()
     iterator = iter(stream(derivative_ref, manifest.bytes))
     body = bytearray()
+    stream_failed = False
     try:
         for block in iterator:
             check_active()
@@ -48,10 +56,17 @@ def verify_region_result(reader, params_ref, root_ref, *, target_icc_sha256,
                     or len(body) + len(block) > manifest.bytes):
                 raise AdoptionInvalid('REGION_ADOPTION_STREAM_INVALID')
             body.extend(block)
+    except BaseException:
+        stream_failed = True
+        raise
     finally:
         close = getattr(iterator, 'close', None)
         if close is not None:
-            close()
+            try:
+                close()
+            except BaseException:
+                if not stream_failed:
+                    raise
     try:
         verify_region_encoded(manifest, params, bytes(body),
             target_sha256=target_icc_sha256, expected_alpha=source.alpha is not None)

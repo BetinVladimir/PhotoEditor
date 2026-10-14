@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 relight contract and deterministic depth-gated field core",
+  "whole_module_accepted": false,
+  "production_operation_installed": false,
+  "registry_changed": false,
+  "existing_imaging_algorithms_changed": false,
+  "requirements_source": [
+    "16-imaging-algorithms.md Relight",
+    "contracts/schemas.json ImageRelightParams"
+  ],
+  "checks": {
+    "tests": 17,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 1.31,
+    "xml": "v28-relight-field-current.xml"
+  },
+  "implemented": [
+    "ImageRelightParams/RelightLight matching documented bounds",
+    "build_light_field with normalized spatial/depth Gaussian EV, bilinear clamped anchor, nearest-valid fallback with row/col ties, invalid output0 and EV clamp",
+    "Bounded blocks with cancellation checks and optional scratch-backed output; input/output alias refused",
+    "HDR linear RGB proposal S*2**F without upper clipping, overflow refused"
+  ],
+  "assertions": [
+    "CenterEV1 produces gain2; zeroEV identity",
+    "Depth discontinuity suppresses field",
+    "Invalid anchor tie picks row before col; all-invalid depth unavailable",
+    "Scratch output/cancellation and alias denial",
+    "Protected composition remains unchanged",
+    "Contract validated against current docs schema and invalid light bounds rejected",
+    "Existing portrait_local tests pass"
+  ],
+  "source_sha256": {
+    "workers/photo_worker/contracts/relight.py": "836e429272f6a0c1de38a7622cc680ba9049d5e2927b6eff3ba10fe78dd773f0",
+    "workers/photo_worker/algorithms/relight.py": "f3c3d9c108db6a9a8c0a0ed39a5bff8eef1d5a7f949ffe779d255eeb93567018",
+    "tests/platform/test_relight_field.py": "cdaab9fe4a3922dcaf97802db415ab9a49fe0c9c327b7d27f129fdd47f1ddbf7"
+  },
+  "limitations": [
+    "No actual depth-model inference/qualification",
+    "No relight worker adapter/runtime lock/SQL ownership/admission/adoption or UI wiring yet",
+    "No physical relighting/normals claim",
+    "No real-photo/human approval or target device acceptance",
+    "Whole V28 and V20-V32 remain open"
+  ]
+}

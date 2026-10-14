@@ -66,3 +66,21 @@ func TestCompileDownloadExportsRejectsUnsafePresetAndBrokenOrder(t *testing.T) {
 		}
 	}
 }
+
+func TestCompileDownloadRejectsOversizedTargetBeforePlanRegistration(t *testing.T) {
+ registry,err:=LoadRegistry()
+ if err!=nil { t.Fatal(err) }
+ for _, mode:=range []string{"upscale","source_overflow","source_limit","valid_no_upscale"} {
+  t.Run(mode,func(t *testing.T){
+   spec:=downloadExportFixture()
+   edge:=int64(100000)
+   spec.Preset.Size=&ExportSize{LongEdge:&edge,Fit:"contain",AllowUpscale:mode!="valid_no_upscale"}
+   if mode=="source_overflow" { spec.Items[0].Image.Canvas.Width=1<<62;spec.Items[0].Image.Canvas.Height=4 }
+   if mode=="source_limit" { spec.Items[0].Image.Canvas.Width=20001;spec.Items[0].Image.Canvas.Height=10000 }
+   nodes,err:=CompileDownloadExports(spec,registry)
+   if mode=="valid_no_upscale" {
+    if err!=nil || len(nodes)!=1 { t.Fatalf("bounded original refused: %v",err) }
+   } else if err==nil || len(nodes)!=0 { t.Fatalf("unsafe target produced nodes: %v",err) }
+  })
+ }
+}

@@ -510,6 +510,46 @@
       "handler": "ReviewLearningSafety",
       "role": "profile_owner",
       "success_status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/reviews/{id}/previews/{side}/{variant}",
+      "request_schema": null,
+      "response_schema": "ReviewPreview",
+      "package": "V26",
+      "handler": "GetReviewPreview",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/reviews/{id}/render-result-selection",
+      "request_schema": null,
+      "response_schema": "RenderResultSelection",
+      "package": "V26",
+      "handler": "GetRenderResultSelection",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/reviews/{id}/selected-preview/{variant}",
+      "request_schema": null,
+      "response_schema": "ReviewPreview",
+      "package": "V26",
+      "handler": "GetSelectedRenderPreview",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/reviews/{id}/result-selection",
+      "request_schema": null,
+      "response_schema": "NegativeResultSelection",
+      "package": "V29",
+      "handler": "GetNegativeResultSelection",
+      "role": "editor",
+      "success_status": 200
     }
   ]
 }

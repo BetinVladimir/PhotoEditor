@@ -6,18 +6,37 @@ from photo_worker.contracts.images import WorkingImage
 from photo_worker.operations.capture.contracts import CapturePrepareParams, CapturePrepared
 from photo_worker.operations.capture.adapter import validate_proxy
 from photo_worker.operations.session.contracts import FaceObservations
-from .adoption import AdoptionInvalid, ArtifactRef, PreparedAdoption, MAX_JSON_BYTES
+from .adoption import (AdoptionInvalid, ArtifactRef, PreparedAdoption,
+                       MAX_JSON_BYTES, require_adoption_active)
 
 
-def prepare_capture_inputs_adoption(task_id, reader, params_ref, root):
+def prepare_capture_inputs_adoption(task_id, reader, params_ref, root,
+                                    check_active=lambda: None):
     inventory, outputs, ids = [], set(), set()
     def add(ref, path, source, role=None, maximum=MAX_JSON_BYTES, media='application/json'):
+        require_adoption_active(check_active)
         ref = ArtifactRef(ref.artifact_id, ref.sha256)
         evidence = reader.evidence(ref)
+        require_adoption_active(check_active)
         if (evidence.ref != ref or evidence.source != source or evidence.media_type != media
                 or evidence.bytes < 1 or evidence.bytes > maximum
                 or source == 'output' and evidence.role != role or ref.artifact_id in ids):
             raise AdoptionInvalid('CAPTURE_PREPARATION_EVIDENCE_INVALID')
+        if media == 'application/octet-stream':
+            digest = sha256()
+            size = 0
+            require_adoption_active(check_active)
+            for block in reader.iter_bytes(ref, maximum):
+                require_adoption_active(check_active)
+                if not isinstance(block, bytes) or not block:
+                    raise AdoptionInvalid('CAPTURE_PREPARATION_BYTES_INVALID')
+                size += len(block)
+                if size > evidence.bytes:
+                    raise AdoptionInvalid('CAPTURE_PREPARATION_BYTES_INVALID')
+                digest.update(block)
+            require_adoption_active(check_active)
+            if size != evidence.bytes or digest.hexdigest() != ref.sha256:
+                raise AdoptionInvalid('CAPTURE_PREPARATION_BYTES_INVALID')
         ids.add(ref.artifact_id)
         inventory.append(dict(artifact_id=str(ref.artifact_id), sha256=ref.sha256,
             purpose=sha256(f'tasks/{task_id}/{path}'.encode()).hexdigest(), ordinal=len(inventory)))
@@ -25,7 +44,9 @@ def prepare_capture_inputs_adoption(task_id, reader, params_ref, root):
         return ref, evidence
     def document(ref, path, source, contract, role=None, maximum=MAX_JSON_BYTES):
         ref, evidence = add(ref, path, source, role, maximum)
+        require_adoption_active(check_active)
         raw = reader.read_json(ref, maximum)
+        require_adoption_active(check_active)
         if not isinstance(raw, bytes) or len(raw) != evidence.bytes or sha256(raw).hexdigest() != ref.sha256:
             raise AdoptionInvalid('CAPTURE_PREPARATION_BYTES_INVALID')
         try:
@@ -56,6 +77,10 @@ def prepare_capture_inputs_adoption(task_id, reader, params_ref, root):
             if ref.artifact_id not in ids:
                 add(ref, f'$/proxy/transform_chain/steps/{index}/inverse_field', 'input',
                     maximum=1600008192, media='application/octet-stream')
-    if outputs != reader.staged_outputs():
+    require_adoption_active(check_active)
+    staged_outputs = reader.staged_outputs()
+    require_adoption_active(check_active)
+    if outputs != staged_outputs:
         raise AdoptionInvalid('CAPTURE_PREPARATION_OUTPUT_CLOSURE_INVALID')
+    require_adoption_active(check_active)
     return PreparedAdoption(tuple(inventory), sha256(canonical_bytes(inventory)).hexdigest())

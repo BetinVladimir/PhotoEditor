@@ -25,16 +25,29 @@ SCAFFOLD_MODULES = {
 
 @pytest.fixture
 def database(request):
-    path=ROOT/'work/postgres.env'
-    if not path.exists():pytest.skip('Start dedicated photoeditor development PostgreSQL first')
-    values=dict(line.split('=',1) for line in path.read_text().splitlines() if '=' in line)
-    kwargs=dict(host='127.0.0.1',port=55432,user=values['POSTGRES_USER'],password=values['POSTGRES_PASSWORD'])
+    head_marker = request.node.get_closest_marker('migration_head')
+    migration_head = head_marker.args[0] if head_marker else None
+    if migration_head is not None and (type(migration_head) is not int or migration_head < 1):
+        pytest.fail('migration_head requires one positive integer', pytrace=False)
+    if os.environ.get('PHOTO_TEST_NATIVE_INFRA')=='1':
+        kwargs=dict(host=str(ROOT/'work'),port=55433,user='photo_test')
+    else:
+        path=ROOT/'work/postgres.env'
+        if not path.exists():pytest.skip('Start dedicated photoeditor development PostgreSQL first')
+        values=dict(line.split('=',1) for line in path.read_text().splitlines() if '=' in line)
+        kwargs=dict(host='127.0.0.1',port=55432,user=values['POSTGRES_USER'],password=values['POSTGRES_PASSWORD'])
     name='photo_test_'+uuid4().hex
-    with psycopg.connect(**kwargs,dbname='postgres',autocommit=True) as admin:
+    try:
+        admin_connection=psycopg.connect(**kwargs,dbname='postgres',autocommit=True)
+    except psycopg.OperationalError:
+        pytest.fail('Dedicated test PostgreSQL unavailable; no migrations executed',pytrace=False)
+    with admin_connection as admin:
         admin.execute(sql.SQL('CREATE DATABASE {}').format(sql.Identifier(name)))
     try:
         with psycopg.connect(**kwargs,dbname=name) as conn:
             for p in sorted((ROOT/'backend/db/migrations').glob('*.sql')):
+                if migration_head is not None and int(p.name.split('_',1)[0]) > migration_head:
+                    continue
                 # Legacy scaffolds stop before V21; later migrations depend on V21.
                 if Path(request.module.__file__).name in SCAFFOLD_MODULES and int(p.name.split('_',1)[0]) >= 197:
                     continue

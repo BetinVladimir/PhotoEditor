@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-09",
+  "component": "Physical pending-output cleanup",
+  "whole_module_accepted": false,
+  "production_code_changed": false,
+  "production_migrations_applied": false,
+  "checks": {
+    "tests": "1",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "time": "5.255",
+    "evidence": "output-orphan-physical-current.xml"
+  },
+  "source_sha256": {
+    "tests/integration/test_output_orphan_physical.py": "d61b3f02aee9b27bf403e33fa131bc7d3bd00ae62b261f3bae4e4172f81823b4",
+    "backend/internal/maintenance/output_orphan_physical_integration_test.go": "466ece80b7a0a1247381f3bae84f8a532b1b592ffaa85f866caa6480e534708c",
+    "backend/internal/maintenance/outputs.go": "bbad9e5f5398044cd5598829b6840514fb3cf5e1bd0a79ff9a427d447feabd56",
+    "backend/internal/objectstore/minio.go": "b2858b44e0a372ce924f6e94d92cb66498a2341d940e756d2e0e17749e2ea7b5"
+  },
+  "assertions": [
+    "Actual photo_gateway begin_output reserves2 bytes without verified artifact",
+    "Two real object versions at exact attempt key",
+    "Production SQLCleanup/OutputCleaner under photo_maintenance removes all exact-key versions",
+    "Neighbor key version remains",
+    "Reserved/storage accounting becomes0/0 only after actual cleaner finish",
+    "No output artifact metadata created"
+  ],
+  "limitations": [
+    "Owner-seeded cancelled task and due cleanup time; not actual cancel API or real expiry wait",
+    "Physical PUT seeded directly, not production HTTP lost-response or inference execution",
+    "No complete native ambiguous-upload retry-to-success acceptance",
+    "Whole V27 and V20-V32 remain unaccepted"
+  ]
+}

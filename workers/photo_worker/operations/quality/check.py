@@ -8,7 +8,9 @@ from photo_worker.contracts.base import canonical_bytes
 from photo_worker.contracts.export import EncodedImage
 from photo_worker.contracts.images import WorkingImage
 from photo_worker.contracts.quality import QualityParams,QualityReport,ReferenceMetrics,TechnicalMetrics
-from photo_worker.runtime.arrays import read_array
+from photo_worker.runtime.arrays import read_array,read_alpha_array
+from .working_metrics import measure_working_metrics
+from .decision import _decision
 from photo_worker.runtime.artifacts import ArtifactConfig,TaskArtifacts
 from photo_worker.runtime.executor import ExecutionContext,Operation,OperationFailure,OperationResult
 
@@ -22,19 +24,6 @@ def _technical(rgb,seams,finite=True,visible=None):
             y=min(max(1,round(seam.position*(h-1))),h-1);values.extend(np.abs(safe[y]-safe[y-1]).reshape(-1).tolist())
     seam=float(np.percentile(values,99)) if values else 0.
     return TechnicalMetrics(below_zero_fraction=below,above_one_fraction=above,clipped_black_fraction=black,clipped_white_fraction=white,sharpness_laplacian=sharp,seam_p99_delta=seam,finite=finite)
-
-
-def _decision(metrics,reference,icc=True,orientation=True):
-    reasons=[];failure=False
-    if not metrics.finite:reasons.append('nonfinite');failure=True
-    if metrics.clipped_black_fraction>.02:reasons.append('excessive_black_clipping');failure|=metrics.clipped_black_fraction>.1
-    if metrics.clipped_white_fraction>.02:reasons.append('excessive_white_clipping');failure|=metrics.clipped_white_fraction>.1
-    if reference is not None and reference.protected_max_delta is not None and reference.protected_max_delta>2/65535:reasons.append('protected_pixels_changed');failure=True
-    if metrics.seam_p99_delta>.03:reasons.append('seam_detected')
-    if metrics.sharpness_laplacian<1e-6:reasons.append('low_sharpness')
-    if not icc:reasons.append('icc_mismatch');failure=True
-    if not orientation:reasons.append('orientation_mismatch');failure=True
-    return ('fail' if failure else 'review' if reasons else 'pass'),reasons
 
 
 def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
@@ -54,10 +43,14 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
             if baseline is not None and (baseline.canvas!=image.canvas or baseline.color!=image.color or baseline.dtype!='float32'):raise ValueError('Baseline mismatch')
             with ExitStack() as stack:
                 def array(ref,shape,unit=True):local=stack.enter_context(artifacts.input(ref,suffix='.npy'));return stack.enter_context(read_array(local.path,shape,'float32',ctx.check_active,unit_interval=unit))
-                rgb=array(image.pixels,(image.canvas.height,image.canvas.width,3));visible=None
+                rgb=array(image.pixels,(image.canvas.height,image.canvas.width,3),unit=False);visible=None;alpha=None
                 if image.alpha is not None:
-                    local=stack.enter_context(artifacts.input(image.alpha,suffix='.npy'));alpha=stack.enter_context(read_array(local.path,(image.canvas.height,image.canvas.width),'uint16',ctx.check_active));visible=np.asarray(alpha)>0
-                metrics=_technical(rgb,p.seams,visible=visible)
+                    local=stack.enter_context(artifacts.input(image.alpha,suffix='.npy'));alpha=stack.enter_context(read_alpha_array(local.path,(image.canvas.height,image.canvas.width),ctx.check_active))
+                if baseline is None and not p.seams:
+                    metrics=measure_working_metrics(rgb,alpha,check_active=ctx.check_active)
+                else:
+                    visible=None if alpha is None else np.asarray(alpha)>0
+                    metrics=_technical(rgb,p.seams,visible=visible)
                 if baseline is not None:
                     base=array(baseline.pixels,rgb.shape);delta=np.abs(np.asarray(rgb)-np.asarray(base));mse=float(np.mean(delta*delta));protected_max=None
                     if p.protected:

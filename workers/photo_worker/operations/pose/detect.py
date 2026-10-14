@@ -19,6 +19,13 @@ class PoseEngine(Protocol):
     def infer(self,rgb:np.ndarray)->dict[str,np.ndarray]:...
 
 
+def _required_pose_ram(height:int,width:int,has_alpha:bool)->int:
+    """Reserve full-frame model input, color conversion and alpha masking."""
+    if (type(height) is not int or type(width) is not int or type(has_alpha) is not bool
+            or height<1 or width<1):raise ValueError('POSE_SIZE_INVALID')
+    return 512*1024**2+height*width*(160+(32 if has_alpha else 0))
+
+
 def _detections(raw:dict[str,np.ndarray],width:int,height:int,threshold:float,maximum:int,source_sha:str,lock_id:str):
     if not isinstance(raw,dict) or not {'boxes','scores','keypoints','keypoint_scores'}<=set(raw):raise ValueError('MODEL_OUTPUT_INVALID')
     boxes=np.asarray(raw['boxes'],np.float32);scores=np.asarray(raw['scores'],np.float32)
@@ -49,9 +56,11 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts,pool:ModelPool,backend:
         params=artifacts.params(PoseParams)
         if params.model_lock_id!=pool.lock.lock_id:raise ModelError('MODEL_LOCK_MISMATCH')
         image=artifacts.contract(params.image,WorkingImage)
-        if image.dtype!='float32' or image.color.profile_id!='work_rec2020_gamma24_v1':raise ValueError('POSE_IMAGE_INVALID')
+        if (image.dtype!='float32' or image.color.profile_id!='work_rec2020_gamma24_v1'
+                or image.color.encoding!='gamma24' or image.canvas.width*image.canvas.height>200000000):raise ValueError('POSE_IMAGE_INVALID')
         if image.pixels not in ctx.lease.command.inputs or image.alpha is not None and image.alpha not in ctx.lease.command.inputs:raise ValueError('POSE_INPUT_UNDECLARED')
         h,w=image.canvas.height,image.canvas.width
+        if ram<_required_pose_ram(h,w,image.alpha is not None):raise OperationFailure('RESOURCE_OOM')
     except ModelError as exc:raise OperationFailure(str(exc)) from exc
     except ValueError as exc:raise OperationFailure('INPUT_INVALID') from exc
     ctx.progress(0,3)
@@ -79,7 +88,7 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts,pool:ModelPool,backend:
     if np.count_nonzero(clipped):warnings.append('source_srgb_clipped')
     result=PoseSet(image=params.image,poses=poses,model_id=params.model_id,model_lock_id=params.model_lock_id,backend=backend,
         preprocessing_id=params.preprocessing_id,detected_count=detected,accepted_count=len(poses),alpha_excluded_fraction=alpha_excluded,warnings=warnings)
-    ref=artifacts.stage_contract(result,'pose_set');ctx.progress(3,3)
+    ctx.check_active();ref=artifacts.stage_contract(result,'pose_set');ctx.progress(3,3)
     return OperationResult(outputs=[ref],review_required=bool(warnings))
 
 

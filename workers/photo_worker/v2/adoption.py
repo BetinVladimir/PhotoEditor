@@ -29,6 +29,11 @@ class AdoptionInvalid(ValueError):
     """The result must not be published."""
 
 
+def require_adoption_active(check_active, code='ADOPTION_INACTIVE'):
+    if check_active() is False:
+        raise AdoptionInvalid(code)
+
+
 @dataclass(frozen=True)
 class ArtifactRef:
     artifact_id: UUID
@@ -73,6 +78,10 @@ class ChildBinding:
 # Output refs without a binding are rejected. Input refs are trusted only when
 # EvidenceReader proves an exact v2_task_inputs row for the current task.
 OUTPUT_BINDINGS: dict[tuple[str, str], ChildBinding] = {
+    ("ImageReport", "/registrations/*"): ChildBinding("RegisteredTransform", "registration", frozenset({"application/json"})),
+    ("RegisteredTransform", "/inverse_field"): ChildBinding("DenseWarpArray", "warp_field", frozenset({"application/x-npy"})),
+    ("TransferCandidate", "/mask"): ChildBinding("MaskRef", "mask", frozenset({"application/json"})),
+    ("TransferCandidate", "/transform"): ChildBinding("ResolvedTransform", "transform", frozenset({"application/json"})),
     ("RegionDerivativeManifest", "/derivative"): ChildBinding(
         "RegionEncodedDerivative", "derivative", frozenset({"image/jpeg", "image/webp"})),
     ("DescriptorShard", "/frames/*/faces"): ChildBinding(
@@ -169,19 +178,126 @@ def prepare_v2_adoption(*, task_id: UUID, operation: str, version: str,
                         layer_scratch_root: Path | None = None,
                         layer_scratch_bytes: int | None = None,
                         layer_alpha_mode: str = "require_float32",
-                        region_target_icc_sha: str | None = None) -> PreparedAdoption:
+                        region_target_icc_sha: str | None = None,
+                        render_inputs=None, render_expected=None,
+                        render_max_tile_bytes=None, semantic_plan_snapshot=None,
+                        semantic_plan_provenance=None, exposure_protection=None,
+                        exposure_admission=None, exposure_origin=None, exposure_color=None,
+                        relight_context=None,
+                        delivery_signed_scope: tuple[UUID, UUID, UUID] | None = None,
+                        check_active=lambda: None) -> PreparedAdoption:
     """Validate exact closure, roles and hashes; return a canonical SQL inventory.
 
     The reader must query primary DB metadata for this task/attempt/fence and
     return only exact declared inputs or ready, verified staged outputs.
     """
+    check_active()
     schemas = schemas or _load_registry(SCHEMA_PATH)
     operations = operations or _load_registry(OPERATIONS_PATH)
     op = next((item for item in operations["operations"]
                if item["id"] == operation and item["version"] == version), None)
     if op is None:
         raise AdoptionInvalid("UNKNOWN_OPERATION")
+    if operation == 'v2.delivery.prepare':
+        if params_ref is None:
+            raise AdoptionInvalid('DELIVERY_PREPARATION_PARAMS_REQUIRED')
+        from .delivery_prepare_adoption import verify_delivery_preparation
+        verify_delivery_preparation(reader, params_ref, root, check_active=check_active)
+    if operation == 'v2.delivery.assemble':
+        if params_ref is None:
+            raise AdoptionInvalid('DELIVERY_ASSEMBLY_PARAMS_REQUIRED')
+        if delivery_signed_scope is None:
+            from .delivery_assembly_adoption import verify_delivery_assembly
+            verify_delivery_assembly(reader, params_ref, root, check_active=check_active)
+        else:
+            if (not isinstance(delivery_signed_scope, tuple)
+                    or len(delivery_signed_scope) != 3
+                    or any(not isinstance(value, UUID) or value.int == 0
+                           for value in delivery_signed_scope)):
+                raise AdoptionInvalid('DELIVERY_SIGNED_ASSEMBLY_SCOPE_INVALID')
+            from .delivery_signed_assembly_adoption import verify_signed_delivery_assembly
+            verify_signed_delivery_assembly(reader, params_ref, root,
+                *delivery_signed_scope, check_active=check_active)
+    if operation == 'image.relight':
+        from .relight_replay import RelightReplayContext,verify_relight_replay
+        if params_ref is None or not isinstance(relight_context,RelightReplayContext):
+            raise AdoptionInvalid('RELIGHT_ADOPTION_CONTEXT_REQUIRED')
+        verify_relight_replay(reader,params_ref,root,
+            scratch_root=relight_context.scratch_root,max_bytes=relight_context.max_bytes,
+            max_scratch_bytes=relight_context.max_scratch_bytes,
+            execution_profile=relight_context.execution_profile,
+            verify_authority=relight_context.verify_authority,check_active=check_active)
+    if operation == 'semantic.local_exposure':
+        if (params_ref is None or exposure_protection is None
+                or not all(callable(value) for value in
+                    (exposure_admission, exposure_origin, exposure_color))
+                or layer_scratch_root is None or layer_scratch_bytes is None):
+            raise AdoptionInvalid('SEMANTIC_EXPOSURE_ADOPTION_CONTEXT_REQUIRED')
+        from .exposure_adoption import verify_exposure_image_result
+        verify_exposure_image_result(reader, params_ref, root,
+            protection_ref=exposure_protection, verify_admission=exposure_admission,
+            verify_origin=exposure_origin, verify_color=exposure_color,
+            scratch_root=layer_scratch_root, max_bytes=layer_scratch_bytes,
+            check_active=check_active)
     identity_bypass = False
+    if operation == 'render.compose':
+        from .render_adoption_inputs import RenderAdoptionInputs
+        from .render_recipe import decode_frozen_render_recipe
+        from .render_adoption import verify_render_changes
+        from .render_recomposition_adoption import verify_render_recomposition
+        from .render_resources import validate_render_execution_profile
+        if (not isinstance(render_inputs, RenderAdoptionInputs) or params_ref != render_inputs.recipe
+                or render_expected is None):
+            raise AdoptionInvalid('RENDER_ADOPTION_CONTEXT_REQUIRED')
+        if layer_scratch_root is None or layer_scratch_bytes is None:
+            raise AdoptionInvalid('RENDER_ADOPTION_SCRATCH_REQUIRED')
+        raw = reader.read_json(params_ref, MAX_JSON_BYTES)
+        if not isinstance(raw, bytes) or sha256(raw).hexdigest() != params_ref.sha256:
+            raise AdoptionInvalid('RENDER_ADOPTION_RECIPE_INVALID')
+        try:
+            frozen = decode_frozen_render_recipe(raw)
+        except ValueError as error:
+            raise AdoptionInvalid('RENDER_ADOPTION_RECIPE_INVALID') from error
+        from .render_qualification_pin import RenderQualificationPin
+        if not isinstance(render_inputs.qualification_pin,RenderQualificationPin):
+            raise AdoptionInvalid('RENDER_ADOPTION_INPUTS_STALE')
+        profile = render_inputs.execution_profile()
+        pin = render_inputs.qualification_pin
+        if (pin.model_lock_sha,pin.runtime_lock_sha,pin.backend)!=(profile.get('model_lock_sha'),profile.get('render_runtime_sha'),profile.get('backend')):
+            raise AdoptionInvalid('RENDER_REPLAY_QUALIFICATION_MISMATCH')
+        validate_render_execution_profile(profile, frozen, backend=profile.get('backend'),
+            runtime_sha=profile.get('render_runtime_sha'), tile_size=profile.get('tile_size'),
+            alpha_mode=profile.get('alpha_mode'))
+        options = dict(scratch_root=layer_scratch_root, max_bytes=layer_scratch_bytes,
+            max_tile_bytes=render_max_tile_bytes, tile_size=profile['tile_size'])
+        verify_render_changes(reader, params_ref, root, frozen.recipe.source, render_inputs.parent_roots,
+            alpha_mode=profile['alpha_mode'], **options)
+        verify_render_recomposition(reader, params_ref, root, frozen.recipe.source,
+            render_inputs.parent_roots, render_expected, **options)
+    if operation == 'v2.semantic.assemble':
+        if params_ref is None:
+            raise AdoptionInvalid('SEMANTIC_PLAN_PARAMS_REQUIRED')
+        from .semantic_plan_adoption import verify_semantic_plan
+        verify_semantic_plan(reader, params_ref, root, load_snapshot=semantic_plan_snapshot,
+            verify_provenance=semantic_plan_provenance, check_active=check_active)
+    if operation == 'semantic.transfer':
+        if params_ref is None:raise AdoptionInvalid('SEMANTIC_ADOPTION_PARAMS_REQUIRED')
+        from .semantic_adoption import verify_semantic_geometry,verify_semantic_mask_pixels
+        mask=verify_semantic_geometry(reader,params_ref,root,check_active=check_active)
+        if mask is not None:
+            if layer_scratch_root is None or layer_scratch_bytes is None:
+                raise AdoptionInvalid('SEMANTIC_ADOPTION_SCRATCH_REQUIRED')
+            verify_semantic_mask_pixels(reader,mask,scratch_root=layer_scratch_root,
+                max_bytes=layer_scratch_bytes,check_active=check_active)
+    if operation == 'optical.perspective':
+        if params_ref is None:raise AdoptionInvalid('PERSPECTIVE_ADOPTION_PARAMS_REQUIRED')
+        from .lens_bypass import _document
+        from .perspective_adoption import verify_perspective_identity
+        from photo_worker.contracts.optical_perspective import OpticalPerspectiveParams
+        perspective_params=_document(reader,params_ref,OpticalPerspectiveParams,'input')
+        if perspective_params.strength==0:
+            verify_perspective_identity(reader,params_ref,root,check_active=check_active)
+            identity_bypass=True
     if operation == 'optical.lens':
         if params_ref is None:
             raise AdoptionInvalid('LENS_ADOPTION_PARAMS_REQUIRED')
@@ -189,16 +305,18 @@ def prepare_v2_adoption(*, task_id: UUID, operation: str, version: str,
         from photo_worker.operations.optical.contracts import OpticalLensParams
         params = _document(reader, params_ref, OpticalLensParams, 'input')
         if params.strength == 0:
-            verify_lens_identity(reader, params_ref, root)
+            verify_lens_identity(reader, params_ref, root,
+                                 check_active=lambda: require_adoption_active(check_active))
             identity_bypass = True
         else:
             from .lens_adoption import verify_lens_correction
-            verify_lens_correction(reader, params_ref, root)
+            verify_lens_correction(reader, params_ref, root, check_active=check_active)
     if operation == 'region.preview':
         if params_ref is None:
             raise AdoptionInvalid('REGION_ADOPTION_PARAMS_REQUIRED')
         from .region_adoption import verify_region_result
-        verify_region_result(reader, params_ref, root, target_icc_sha256=region_target_icc_sha)
+        verify_region_result(reader, params_ref, root, target_icc_sha256=region_target_icc_sha,
+                             check_active=check_active)
     if operation == 'layer.compose':
         if params_ref is None:
             raise AdoptionInvalid('LAYER_ADOPTION_PARAMS_REQUIRED')
@@ -209,7 +327,10 @@ def prepare_v2_adoption(*, task_id: UUID, operation: str, version: str,
         from .layer_adoption import verify_layer_composition
         verify_layer_composition(reader,params_ref,root,scratch_root=layer_scratch_root,max_bytes=layer_scratch_bytes,alpha_mode=layer_alpha_mode)
     defs = schemas["$defs"]
-    root_type = op["output"]
+    # The operation ID is shared, but signed assembly has a distinct v2 root.
+    # The caller may select it only with a trusted SQL-derived scope.
+    root_type = ('SignedDeliveryManifest' if operation == 'v2.delivery.assemble'
+                 and delivery_signed_scope is not None else op["output"])
     if root_type not in defs:
         raise AdoptionInvalid("UNKNOWN_ROOT_CONTRACT")
     policies = op["role_policies"]
@@ -222,9 +343,11 @@ def prepare_v2_adoption(*, task_id: UUID, operation: str, version: str,
 
     def visit(ref: ArtifactRef, contract: str, path: str, depth: int,
               required_role: str | None = None) -> None:
+        check_active()
         if depth > MAX_DEPTH or len(visited) >= MAX_REFS:
             raise AdoptionInvalid("CLOSURE_LIMIT_EXCEEDED")
         evidence = reader.evidence(ref)
+        check_active()
         if evidence.ref != ref or evidence.source not in {"input", "output"}:
             raise AdoptionInvalid("ARTIFACT_EVIDENCE_MISMATCH")
         prior_type = type_by_id.setdefault(ref.artifact_id, contract)
@@ -261,6 +384,7 @@ def prepare_v2_adoption(*, task_id: UUID, operation: str, version: str,
         if contract not in defs:
             raise AdoptionInvalid("UNKNOWN_CONTRACT")
         raw = reader.read_json(ref, MAX_JSON_BYTES)
+        check_active()
         if not isinstance(raw, bytes) or len(raw) > MAX_JSON_BYTES or sha256(raw).hexdigest() != ref.sha256:
             raise AdoptionInvalid("ARTIFACT_BYTES_MISMATCH")
         try:
@@ -281,7 +405,19 @@ def prepare_v2_adoption(*, task_id: UUID, operation: str, version: str,
                     raise AdoptionInvalid("UNBOUND_OUTPUT_REFERENCE")
                 child_type = binding.contract if binding else "declared_input"
                 child_role = binding.role if binding else None
-                if binding and child_evidence.media_type not in binding.media_types:
+                inherited_exposure_alpha = (operation == 'semantic.local_exposure'
+                    and contract == 'WorkingImage' and typed_path == '/alpha'
+                    and child_evidence.source == 'input'
+                    and child_evidence.media_type == 'application/octet-stream')
+                inherited_exposure_field = ((operation == 'semantic.local_exposure'
+                    or operation == 'semantic.transfer' and contract == 'MaskRef')
+                    and contract in ('WorkingImage', 'MaskRef')
+                    and typed_path == '/transform_chain/steps/*/inverse_field'
+                    and child_evidence.source == 'input'
+                    and child_evidence.media_type == 'application/octet-stream')
+                # Legacy input alpha is independently version/SHA/shape/dtype
+                # verified by the exposure pixel proof; outputs stay strict.
+                if binding and child_evidence.media_type not in binding.media_types and not (inherited_exposure_alpha or inherited_exposure_field):
                     raise AdoptionInvalid("OUTPUT_MEDIA_MISMATCH")
                 visit(child_ref, child_type, path + typed_path, depth + 1, child_role)
         finally:
@@ -300,4 +436,5 @@ def prepare_v2_adoption(*, task_id: UUID, operation: str, version: str,
     body = canonical_bytes(inventory)
     if len(body) > 16 * 1024 * 1024:
         raise AdoptionInvalid("SQL_INVENTORY_LIMIT_EXCEEDED")
+    check_active()
     return PreparedAdoption(tuple(inventory), sha256(body).hexdigest())

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="5.186" timestamp="2026-10-09T10:29:54.112569+03:00" hostname="Mac"><testcase classname="tests.integration.test_worker_claim_crash" name="test_worker_claim_crash_reaper_invalidates_late_commit" time="2.653"><failure message="pydantic_core._pydantic_core.ValidationError: 6 validation errors for TaskCommand&#10;event_id&#10;  Input should be an instance of UUID [type=is_instance_of, input_value='a5054a57-25e5-4ed2-a518-8723a265fa3a', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.13/v/is_instance_of&#10;tenant_id&#10;  Input should be an instance of UUID [type=is_instance_of, input_value='003bd0ce-9607-48e6-b2d8-644679660080', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.13/v/is_instance_of&#10;run_id&#10;  Input should be an instance of UUID [type=is_instance_of, input_value='bc47b081-2654-4ff8-b2df-c6ed1ef7376c', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.13/v/is_instance_of&#10;task_id&#10;  Input should be an instance of UUID [type=is_instance_of, input_value='6eec1393-40f6-4e6a-9178-973c67507953', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.13/v/is_instance_of&#10;correlation_id&#10;  Input should be an instance of UUID [type=is_instance_of, input_value='ad463848-ad2d-4991-8ce3-bbbaba611f0d', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.13/v/is_instance_of&#10;params.artifact_id&#10;  Input should be an instance of UUID [type=is_instance_of, input_value='879e3126-d6c5-40ca-84bb-ea631ff293cf', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.13/v/is_instance_of">tests/integration/test_worker_claim_crash.py:40: in test_worker_claim_crash_reaper_invalidates_late_commit
+    old=Lease(TaskCommand.model_validate(case['command']),case['worker'],row[2],row[3],row[4],row[5],row[6])
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   pydantic_core._pydantic_core.ValidationError: 6 validation errors for TaskCommand
+E   event_id
+E     Input should be an instance of UUID [type=is_instance_of, input_value='a5054a57-25e5-4ed2-a518-8723a265fa3a', input_type=str]
+E       For further information visit https://errors.pydantic.dev/2.13/v/is_instance_of
+E   tenant_id
+E     Input should be an instance of UUID [type=is_instance_of, input_value='003bd0ce-9607-48e6-b2d8-644679660080', input_type=str]
+E       For further information visit https://errors.pydantic.dev/2.13/v/is_instance_of
+E   run_id
+E     Input should be an instance of UUID [type=is_instance_of, input_value='bc47b081-2654-4ff8-b2df-c6ed1ef7376c', input_type=str]
+E       For further information visit https://errors.pydantic.dev/2.13/v/is_instance_of
+E   task_id
+E     Input should be an instance of UUID [type=is_instance_of, input_value='6eec1393-40f6-4e6a-9178-973c67507953', input_type=str]
+E       For further information visit https://errors.pydantic.dev/2.13/v/is_instance_of
+E   correlation_id
+E     Input should be an instance of UUID [type=is_instance_of, input_value='ad463848-ad2d-4991-8ce3-bbbaba611f0d', input_type=str]
+E       For further information visit https://errors.pydantic.dev/2.13/v/is_instance_of
+E   params.artifact_id
+E     Input should be an instance of UUID [type=is_instance_of, input_value='879e3126-d6c5-40ca-84bb-ea631ff293cf', input_type=str]
+E       For further information visit https://errors.pydantic.dev/2.13/v/is_instance_of</failure></testcase><testcase classname="tests.integration.test_worker_commit_restart" name="test_worker_death_after_commit_redelivers_without_duplicate_effects" time="2.303" /></testsuite></testsuites>

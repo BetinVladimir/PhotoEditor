@@ -13,7 +13,12 @@ import (
 	"photoeditor/backend/internal/v2input"
 )
 
-type SQLRenderDraftStore struct{ DB *pgxpool.Pool }
+type SQLRenderDraftStore struct {
+	QualificationPin *RenderQualificationPin
+	DB               *pgxpool.Pool
+	SubmissionSHA    string
+	SubmissionKey    string
+}
 
 // Begin reserves quota and atomically stages every blocked render task. It does
 // not perform object I/O, register input manifests or activate the graph.
@@ -42,13 +47,14 @@ func (s SQLRenderDraftStore) Begin(ctx context.Context, tenant, run uuid.UUID, w
 		return v2input.ErrInvalid
 	}
 	var config struct {
+ QueueClass string `json:"queue_class"`
 		Project  uuid.UUID `json:"project_id"`
 		Snapshot uuid.UUID `json:"input_snapshot_id"`
 		Render   struct {
 			Session uuid.UUID `json:"auth_session_id"`
 		} `json:"v26_render"`
 	}
-	if json.Unmarshal(body, &config) != nil || config.Project == uuid.Nil || config.Snapshot == uuid.Nil || config.Render.Session != who.SessionID {
+	if json.Unmarshal(body, &config) != nil || (config.QueueClass!=""&&config.QueueClass!="batch"&&config.QueueClass!="interactive") || config.Project == uuid.Nil || config.Snapshot == uuid.Nil || config.Render.Session != who.SessionID {
 		return v2input.ErrInvalid
 	}
 	return database.InTransaction(ctx, s.DB, func(tx pgx.Tx) error {

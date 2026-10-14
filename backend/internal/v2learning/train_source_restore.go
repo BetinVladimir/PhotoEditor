@@ -63,6 +63,7 @@ func (s SQLTrainingFrozenSource) Load(ctx context.Context,
 func (s TrainingSourceResolver) Restore(ctx context.Context,
 	start TrainingStart, draft TrainingDraftPrepared) (
 	map[uuid.UUID]CompiledTrainingRecipes, error) {
+ if err:=ctx.Err();err!=nil{return nil,err}
 	if start.TenantID != draft.TenantID ||
 		start.ProfileID != draft.ProfileID ||
 		start.ProjectID != draft.ProjectID ||
@@ -77,7 +78,10 @@ func (s TrainingSourceResolver) Restore(ctx context.Context,
 		return nil, ErrInvalidTrainingDraft
 	}
 	if recovery.FrozenJCS != "" {
-		return frozenRecipesFromRecovery(draft, []byte(recovery.FrozenJCS))
+  result,err:=frozenRecipesFromRecovery(draft, []byte(recovery.FrozenJCS))
+  if err!=nil{return nil,err}
+  if err:=ctx.Err();err!=nil{return nil,err}
+  return result,nil
 	}
 	if s.Frozen == nil {
 		return nil, ErrInvalidTrainingDraft
@@ -85,6 +89,7 @@ func (s TrainingSourceResolver) Restore(ctx context.Context,
 	result := make(map[uuid.UUID]CompiledTrainingRecipes,
 		len(draft.Manifest.Examples))
 	for _, example := range draft.Manifest.Examples {
+  if err:=ctx.Err();err!=nil{return nil,err}
 		if example.EventID == uuid.Nil ||
 			result[example.EventID].BaseBody != nil {
 			return nil, ErrInvalidTrainingDraft
@@ -96,11 +101,15 @@ func (s TrainingSourceResolver) Restore(ctx context.Context,
 		if err != nil {
 			return nil, err
 		}
+  if err:=ctx.Err();err!=nil{return nil,err}
+  baseBody=append([]byte(nil),baseBody...)
 		approvedBody, err := s.Frozen.Load(ctx, start, draft,
 			example.EventID, "approved", approvedRef)
 		if err != nil {
 			return nil, err
 		}
+  if err:=ctx.Err();err!=nil{return nil,err}
+  approvedBody=append([]byte(nil),approvedBody...)
 		base, err := DecodeFrozenRecipe(baseBody)
 		if err != nil {
 			return nil, err
@@ -118,6 +127,7 @@ func (s TrainingSourceResolver) Restore(ctx context.Context,
 		}
 		result[example.EventID] = pair
 	}
+ if err:=ctx.Err();err!=nil{return nil,err}
 	return result, nil
 }
 

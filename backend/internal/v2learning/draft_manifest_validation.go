@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/google/uuid"
+	"photoeditor/backend/internal/v2input"
 )
 
 // validateDraftManifest checks the immutable envelope again at the public
@@ -39,6 +40,31 @@ func validateDraftManifest(manifest TrainingManifest) bool {
 	lineages := make(map[string]bool)
 	for _, item := range manifest.Examples {
 		c := item.RenderCase
+		if c.DefectEvidence != nil &&
+			(!validManifestRef(*c.DefectEvidence) ||
+				c.DefectEvidence.ArtifactID == c.WorkingImage.ArtifactID ||
+				c.DefectEvidence.ArtifactID == c.Protected.ArtifactID ||
+				c.DefectEvidence.ArtifactID == c.BaseRecipe.ArtifactID ||
+				c.DefectEvidence.ArtifactID == c.ApprovedRecipe.ArtifactID) {
+			return false
+		}
+		if c.DustEvidence != nil &&
+			(c.DefectEvidence != nil || c.DetailEvidence != nil || !validManifestRef(*c.DustEvidence) ||
+				c.DustEvidence.ArtifactID == c.WorkingImage.ArtifactID ||
+				c.DustEvidence.ArtifactID == c.Protected.ArtifactID ||
+				c.DustEvidence.ArtifactID == c.BaseRecipe.ArtifactID ||
+				c.DustEvidence.ArtifactID == c.ApprovedRecipe.ArtifactID) {
+			return false
+		}
+		if c.DetailEvidence != nil &&
+			(c.DefectEvidence != nil || c.DustEvidence != nil ||
+				!validManifestRef(*c.DetailEvidence) ||
+				c.DetailEvidence.ArtifactID == c.WorkingImage.ArtifactID ||
+				c.DetailEvidence.ArtifactID == c.Protected.ArtifactID ||
+				c.DetailEvidence.ArtifactID == c.BaseRecipe.ArtifactID ||
+				c.DetailEvidence.ArtifactID == c.ApprovedRecipe.ArtifactID) {
+			return false
+		}
 		if item.EventID == uuid.Nil || events[item.EventID] ||
 			item.SessionID == uuid.Nil || item.SubjectGroupID == uuid.Nil ||
 			(item.Split != "train" && item.Split != "holdout") ||
@@ -59,6 +85,9 @@ func validateDraftManifest(manifest TrainingManifest) bool {
 			len(c.RegionMasks) > 128 ||
 			(manifest.PersonID != nil && item.SubjectGroupID != *manifest.PersonID) ||
 			len(item.Features) != 12 {
+			return false
+		}
+		if !validTrainingBackgroundPin(c.BackgroundAsset, manifest.ICCLockSHA, v2input.Ref{}) {
 			return false
 		}
 		for _, value := range item.Features {

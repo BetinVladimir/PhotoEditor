@@ -1,6 +1,8 @@
 package v2draft
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"photoeditor/backend/internal/v2input"
 	"strconv"
@@ -52,5 +54,28 @@ func renderRecipeRefs(raw []byte, path string, parent v2input.Ref) ([]LayerRef, 
 		descriptorBinding := frozen.Scalars.Source
 		children[len(children)-1].ExpectedBinding = &descriptorBinding
 	}
+	if frozen.BackgroundAsset != nil {
+		add(".background_asset.source", "StyleBackgroundAsset", frozen.BackgroundAsset.Source)
+		pin := *frozen.BackgroundAsset
+		if pin.AssumeProfile != nil {
+			value := *pin.AssumeProfile
+			pin.AssumeProfile = &value
+		}
+		children[len(children)-1].ExpectedBackground = &pin
+	}
 	return children, nil
+}
+
+// FrozenRenderRecipeDependencies exposes the same typed direct dependencies as
+// admission. It proves the exact parent bytes; callers must still walk children
+// and independently authorize every producer/original source.
+func FrozenRenderRecipeDependencies(raw []byte, parent v2input.Ref) ([]LayerRef, error) {
+	if len(raw) < 2 || len(raw) > 1048576 || !isDocumentRef(parent) {
+		return nil, v2input.ErrInvalid
+	}
+	sum := sha256.Sum256(raw)
+	if hex.EncodeToString(sum[:]) != parent.SHA256 {
+		return nil, v2input.ErrInvalid
+	}
+	return renderRecipeRefs(raw, "$", parent)
 }

@@ -1,0 +1,60 @@
+{
+  "generated_at": "2026-10-08T16:45:48.939982+00:00",
+  "status": "implementing",
+  "module": "V27",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "sql": {
+      "result": "PASS",
+      "tests": 23,
+      "seconds": 59.475
+    },
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 96.661
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/workflow",
+      "photoeditor/backend/internal/semanticproposal",
+      "photoeditor/backend/internal/v2input"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "qualified worker claim atomically starts both target face runs",
+    "real landmarks/parser adapters through indexed mTLS/S3 transport using explicit ML doubles",
+    "exact native output role/order/artifact-upload producer attempt/fence guard",
+    "wrong attempt/fence/hash/foreign source/duplicate/reordered outputs refuse",
+    "canonical commit and idempotent commit replay",
+    "target runs running with succeeded canonical tasks, sealed receipt replay after canonical commit",
+    "00899 to 00935 upgrade preserving historical metadata/function identity/security"
+  ],
+  "corrected_failures": [
+    "initial target face claim failed because worker claim lacked explicit app.tenant_id; barrier now derives tenant from qualified claimed task and restores previous local tenant setting"
+  ],
+  "limitations": [
+    "No target face physical result reader/consumer lock/finalization or saved automatic recovery yet",
+    "Producer runs intentionally remain running after canonical task success",
+    "No real GPU/model quality qualification: deterministic ML doubles/shared WorkingImage",
+    "No complete V27 browser/scale/failure/cancel/purge/fresh-process acceptance",
+    "No production migration"
+  ],
+  "sha256": {
+    "backend/db/migrations/00934_v27_target_face_claim_start.sql": "ebd8910b74b04af6a7221a6354f4e4b3e680540e01c80b00d0e2a50c1ea86074",
+    "backend/db/migrations/00935_v27_target_face_result_guard.sql": "5907b2bc54ca80b10ad867aefd5c56f7f957b495ab1ea656b43a9c1beedf3be1",
+    "backend/internal/semanticproposal/native_target_face_wire_probe_test.go": "3263e8af0a7dab5ea7188013ab54de769dd8a2a444763a236194fb6172d1bc03",
+    "tests/integration/test_v27_person_migration_upgrade.py": "1d1f80639dd20e2a9cddfeea8b16b544873fb0e61dfee27e84fe3e47e012937f",
+    "tests/integration/test_v27_semantic_intent_publication.py": "6d2c9e282311a738e5a911e32bfa8d597100c70d3fc7ab8651faf0f72d335a60",
+    "tests/integration/v27_face_wire_probe.py": "20f2a9acb17e2f17d3d729867ba12ca5e7384a8a1cc50f5410fa762b7f52aa3a",
+    "backend/internal/gateway/v27_defect_wire_lease_test.go": "d95fcd61bfb7640582f333e3a3744985d85ad91e81647e89562562b439a639f2",
+    "backend/internal/gateway/v27_wire_integration_test.go": "e555cebbf27e8f9ada6eb0f67c705af2c20b24adf930a7bbd425830058bb35db",
+    "docs/implementation-v2/03-database.md": "ac5123ac5efcb369868cea18a4cfdc88aaa5fd132da001ec073130e6c730bc8f",
+    "docs/implementation-v2/15-execution-contracts.md": "7197029838e8fdf3cc499b45794f47458f4d2fc7f630bae247d3d92ec4318245",
+    "docs/implementation-v2/audit/v27-target-face-execution-sql-current.xml": "8af2615469af27f6cb8cd96c4a8c4469dac948b77c8e5f05b61a605483e516d2",
+    "docs/implementation-v2/audit/v27-target-face-execution-wire-current.xml": "5aba1e0a86e284b7cdaf37306353e257e2b307c3e67274d54d3e2149c7645cd8",
+    "docs/implementation-v2/audit/v27-target-face-execution-go-current.jsonl": "1110072d8834ef9b1b9c017fab9f41defe1ad5e15208bbb19f4ad4a313223219"
+  }
+}

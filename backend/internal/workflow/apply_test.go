@@ -103,3 +103,30 @@ func TestApplyQualityStatusIsClosedSet(t *testing.T) {
 		}
 	}
 }
+
+func TestApplyCropProfileAccountsTransformedCanvasAndAlpha(t *testing.T) {
+	for _, alpha := range []bool{false, true} {
+		raw, err := applyCropProfile(12000000, 24000000, 4096, alpha)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var p struct {
+			Estimate ResourceEstimate `json:"resource_estimate"`
+		}
+		if err := json.Unmarshal(raw, &p); err != nil {
+			t.Fatal(err)
+		}
+		bpp, inputRAM, outputRAM := int64(12), int64(64), int64(96)
+		if alpha {
+			bpp, inputRAM, outputRAM = 14, 72, 120
+		}
+		if p.Estimate.PixelCount != 24000000 || p.Estimate.RAMBytes < inputRAM*12000000+outputRAM*24000000+128*1048576 || p.Estimate.ScratchBytes < bpp*(12000000+24000000)+8192+65536 || p.Estimate.OutputBytes < bpp*24000000+2*1048576 {
+			t.Fatalf("underbudgeted crop: %#v", p)
+		}
+	}
+	for _, dimensions := range [][3]int64{{0, 1, 0}, {1, 0, 0}, {200000001, 1, 0}, {1, 200000001, 0}, {1, 1, -1}, {1, 1, 1048577}} {
+		if _, err := applyCropProfile(dimensions[0], dimensions[1], dimensions[2], true); err == nil {
+			t.Fatalf("invalid dimensions accepted: %v", dimensions)
+		}
+	}
+}

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="3.100" timestamp="2026-10-09T14:20:49.412789+03:00" hostname="Mac"><testcase classname="tests.integration.test_v28_relight_source_lock" name="test_relight_prepublication_source_gate_and_revocation" time="1.374" /><testcase classname="tests.integration.test_v28_relight_source_lock" name="test_relight_source_locks_block_competing_revocation" time="1.628"><failure message="psycopg.errors.CheckViolation: new row for relation &quot;memberships&quot; violates check constraint &quot;memberships_domain_1&quot;&#10;DETAIL:  Failing row contains (f77ce21d-fe75-4f2b-9982-3ee1431879bc, 2026-10-09 14:20:52.068295+03, 81b4f338-93a2-47ef-8a5e-2878419cf036, b107981c-eb17-490f-8a63-5b1b4d68e700, owner, revoked, 1).">database = &lt;isolated PostgreSQL configuration&gt;
+
+    def test_relight_source_locks_block_competing_revocation(database):
+        with psycopg.connect(**database) as setup:
+            tenant,*_,scope=fixture(setup,snapshot_authority=True)
+        base=dict(asset_version_id=str(scope['version']),source=dict(artifact_id=str(scope['source']),sha256=scope['source_sha']),canvas_hash='c'*64)
+        with psycopg.connect(**database) as held:
+            held.execute("SELECT set_config('app.tenant_id',%s,true)",(str(tenant),))
+            held.execute('SET LOCAL ROLE photo_scheduler')
+            assert held.execute('SELECT photo.lock_v28_relight_source(%s,%s,%s,%s,%s,%s)',(tenant,scope['project'],scope['snapshot'],scope['actor'],scope['session'],Jsonb(base))).fetchone()[0] is True
+            for query,args in (
+                ('UPDATE photo.sessions SET revoked_at=clock_timestamp() WHERE id=%s',(scope['session'],)),
+                ("UPDATE photo.asset_versions SET review_state='review' WHERE id=%s",(scope['version'],)),
+                ("UPDATE photo.artifacts SET expires_at=clock_timestamp() WHERE id=%s",(scope['original'],)),
+                ("UPDATE photo.memberships SET status='revoked' WHERE tenant_id=%s AND user_id=%s",(tenant,scope['actor'])),
+            ):
+                with psycopg.connect(**database) as competing:
+                    competing.execute("SET LOCAL lock_timeout='100ms'")
+&gt;                   with pytest.raises(psycopg.errors.LockNotAvailable):competing.execute(query,args)
+                                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/integration/test_v28_relight_source_lock.py:51: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;psycopg.Connection [BAD] at 0x103c72f50&gt;
+query = "UPDATE photo.memberships SET status='revoked' WHERE tenant_id=%s AND user_id=%s"
+params = (UUID('81b4f338-93a2-47ef-8a5e-2878419cf036'), UUID('b107981c-eb17-490f-8a63-5b1b4d68e700'))
+prepare = None, binary = False
+
+    def execute(
+        self,
+        query: Query,
+        params: Params | None = None,
+        *,
+        prepare: bool | None = None,
+        binary: bool = False,
+    ) -&gt; Cursor[Row]:
+        """Execute a query and return a cursor to read its results."""
+        try:
+            cur = self.cursor()
+            if binary:
+                cur.format = BINARY
+    
+            if isinstance(query, Template):
+                if params is not None:
+                    raise TypeError(
+                        "'execute()' with string template query doesn't support parameters"
+                    )
+                return cur.execute(query, prepare=prepare)
+            else:
+                return cur.execute(query, params, prepare=prepare)
+        except e._NO_TRACEBACK as ex:
+&gt;           raise ex.with_traceback(None)
+E           psycopg.errors.CheckViolation: new row for relation "memberships" violates check constraint "memberships_domain_1"
+E           DETAIL:  Failing row contains (f77ce21d-fe75-4f2b-9982-3ee1431879bc, 2026-10-09 14:20:52.068295+03, 81b4f338-93a2-47ef-8a5e-2878419cf036, b107981c-eb17-490f-8a63-5b1b4d68e700, owner, revoked, 1).
+
+.venv-platform/lib/python3.11/site-packages/psycopg/connection.py:304: CheckViolation</failure></testcase></testsuite></testsuites>

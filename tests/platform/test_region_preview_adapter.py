@@ -57,7 +57,7 @@ def test_adapter_orchestrates_without_claiming_real_render_qualification(tmp_pat
         artifacts=Artifacts(scratch,params,body)
         result=execute(context(renderer),artifacts,admission,renderer)
         assert len(result.outputs)==2 and admission.calls==1
-        assert renderer.events==['verify','resources','render','release']
+        assert renderer.events==['verify','resources','render','release','verify']
         assert artifacts.reads==['params','recipe','source','style']
 
 
@@ -258,3 +258,120 @@ def test_renderer_context_releases_and_never_stages_after_stop(tmp_path,when,fai
         assert artifacts.outputs=={}
         # Cancellation must leave the attempt scratch capacity usable.
         with scratch.reserve(8*1024*1024):pass
+
+
+def test_runtime_change_after_full_render_prevents_staging(tmp_path):
+    class ChangedRenderer(Renderer):
+        def verify_runtime(self):
+            if 'release' in self.events:
+                self.events.append('verify-changed')
+                raise OperationFailure('CONFIG_INVALID')
+            super().verify_runtime()
+    params,body=fixture();params.source.bytes=len(body)
+    renderer=ChangedRenderer()
+    with ScratchSpace(tmp_path,uuid4(),uuid4(),1,8*1024*1024,min_free_bytes=0) as scratch:
+        artifacts=Artifacts(scratch,params,body)
+        with pytest.raises(OperationFailure,match='CONFIG_INVALID'):
+            execute(context(renderer),artifacts,Admission(),renderer)
+        assert artifacts.outputs=={}
+        assert renderer.events==['verify','resources','render','release','verify-changed']
+
+
+def test_renderer_cannot_replace_admitted_execution_profile(tmp_path):
+    class MutatingRenderer(Renderer):
+        def admit_resources(self,ctx,params):
+            super().admit_resources(ctx,params)
+            ctx.lease.execution_profile['resource_estimate']['ram_bytes']=999999999
+    params,body=fixture();params.source.bytes=len(body)
+    renderer=MutatingRenderer();ctx=context(renderer)
+    with ScratchSpace(tmp_path,uuid4(),uuid4(),1,8*1024*1024,min_free_bytes=0) as scratch:
+        artifacts=Artifacts(scratch,params,body)
+        with pytest.raises(OperationFailure,match='CONFIG_INVALID'):
+            execute(ctx,artifacts,Admission(),renderer)
+        assert artifacts.reads==['params'] and artifacts.outputs=={}
+        assert renderer.events==['verify','resources']
+
+
+@pytest.mark.parametrize('field,value',[
+    ('backend','cuda'),('runtime_sha256','b'*64),('model_lock_sha','f'*64),
+    ('icc_lock_sha','f'*64),('renderer_version','changed'),
+    ('icc_root',ROOT/'other'),('supported_modules',frozenset({'color'})),
+])
+def test_renderer_identity_cannot_change_after_admission(tmp_path,field,value):
+    class MutatingRenderer(Renderer):
+        def admit_resources(self,ctx,params):
+            super().admit_resources(ctx,params)
+            setattr(self,field,value)
+    params,body=fixture();params.source.bytes=len(body)
+    renderer=MutatingRenderer()
+    with ScratchSpace(tmp_path,uuid4(),uuid4(),1,8*1024*1024,min_free_bytes=0) as scratch:
+        artifacts=Artifacts(scratch,params,body)
+        with pytest.raises(OperationFailure,match='CONFIG_INVALID'):
+            execute(context(renderer),artifacts,Admission(),renderer)
+        assert artifacts.reads==['params'] and artifacts.outputs=={}
+
+
+@pytest.mark.parametrize('failure',['lease','profile','renderer'])
+def test_full_canvas_context_released_on_late_scope_failure(tmp_path,failure):
+    active=[True]
+    class LateFailureRenderer(Renderer):
+        @contextmanager
+        def render(self,ctx,artifacts,params,source,style):
+            self.events.append('render')
+            try:
+                if failure=='lease':active[0]=False
+                elif failure=='profile':ctx.lease.execution_profile['resource_estimate']['scratch_bytes']+=1
+                else:self.runtime_sha256='b'*64
+                yield RenderedRegionCanvas(np.full((300,400,3),.5,np.float32),None)
+            finally:
+                self.events.append('release')
+    params,body=fixture();params.source.bytes=len(body)
+    renderer=LateFailureRenderer();ctx=context(renderer)
+    def check_active():
+        if not active[0]:raise OperationFailure('LEASE_LOST')
+    ctx.check_active=check_active
+    with ScratchSpace(tmp_path,uuid4(),uuid4(),1,8*1024*1024,min_free_bytes=0) as scratch:
+        artifacts=Artifacts(scratch,params,body)
+        code='LEASE_LOST' if failure=='lease' else 'CONFIG_INVALID'
+        with pytest.raises(OperationFailure,match=code):
+            execute(ctx,artifacts,Admission(),renderer)
+        assert artifacts.outputs=={}
+        assert renderer.events==['verify','resources','render','release']
+
+
+@pytest.mark.parametrize('field,value',[
+    ('model_lock_sha','invalid'),('icc_lock_sha','A'*64),('icc_root',str(ROOT)),
+    ('supported_modules',{'color'}),('supported_modules',frozenset({''})),
+    ('verify_runtime',None),('admit_resources',None),('render',None),
+])
+def test_invalid_provider_metadata_rejected_before_input_io(field,value):
+    renderer=Renderer();ctx=context(renderer)
+    setattr(renderer,field,value)
+    with pytest.raises(OperationFailure,match='CONFIG_INVALID'):
+        execute(ctx,None,Admission(),renderer)
+    assert renderer.events==[]
+
+
+@pytest.mark.parametrize('result',[None,{'rgb':None,'alpha':None}])
+def test_invalid_full_canvas_result_releases_before_staging(tmp_path,result):
+    class InvalidResultRenderer(Renderer):
+        @contextmanager
+        def render(self,ctx,artifacts,params,source,style):
+            self.events.append('render')
+            try:yield result
+            finally:self.events.append('release')
+    params,body=fixture();params.source.bytes=len(body)
+    renderer=InvalidResultRenderer()
+    with ScratchSpace(tmp_path,uuid4(),uuid4(),1,8*1024*1024,min_free_bytes=0) as scratch:
+        artifacts=Artifacts(scratch,params,body)
+        with pytest.raises(OperationFailure,match='INPUT_INVALID'):
+            execute(context(renderer),artifacts,Admission(),renderer)
+        assert renderer.events==['verify','resources','render','release']
+        assert artifacts.outputs=={}
+
+
+def test_invalid_region_provider_cannot_install_operation():
+    renderer=Renderer();renderer.backend='cuda';renderer.model_lock_sha='invalid'
+    with pytest.raises(ValueError,match='metadata'):
+        region_operations(None,Admission(),renderer)
+    assert renderer.events==[]

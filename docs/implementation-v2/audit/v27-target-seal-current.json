@@ -1,0 +1,102 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "generated_at": "2026-10-08T15:03:09.383231+00:00",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "dirty_tree_hash": "fff45cccc9d524ca7b7adad981a43c0cdbb18d164a935b41658f4cb0185db0a1",
+  "dirty_tree_hash_scope": {
+    "roots": [
+      "backend/",
+      "workers/",
+      "src/",
+      "apps/",
+      "packages/",
+      "tests/",
+      "scripts/",
+      "deploy/",
+      "docs/implementation-v2/contracts/"
+    ],
+    "paths": 4747,
+    "algorithm": "sorted git tracked+untracked nonignored names NUL sha256(bytes) newline; MISSING marker; excludes generated audit evidence"
+  },
+  "contracts_hash": "bedf81fee94e5e75a78db7d8fc942cdc67d7fb580301c33071233e3abf357b38",
+  "source_scope": {
+    "backend/db/migrations/00917_v27_target_person_atomic_seal.sql": "2aecdbc9af6b84dd7a0358e97c334ba2e89e28e7df817900996bb4894d1d6ca0",
+    "backend/internal/semanticproposal/native_target_person_admission.go": "21ef5eb6c1335aab2a943a294b92d4a7b29d926f74d4f425d7e492a4eab816c7",
+    "backend/internal/semanticproposal/native_target_person_wire_probe_test.go": "1ed5e101902eb45edeffaf43ab90fd6010de90ba4f599ecaec3e64bad5cbc54b",
+    "tests/integration/test_v27_person_migration_upgrade.py": "3fd97c4965f911402481da48e377cb8366259ac4278b70d090c11e1c83930597",
+    "tests/integration/test_v27_target_person_registration.py": "4faecbe674dbdc0d299acf9cd3331744b6f8f9ea38d25eba998c586d81afaadc",
+    "tests/integration/test_v27_semantic_intent_publication.py": "1805e0590d09168f09e8159860814776e8c41221f9835d9c9acc0f8c0fd51458",
+    "tests/integration/v27_face_wire_probe.py": "88026f9930df9512320c99e7608382b988e1dd406e06abadd773119b3d4f50d4"
+  },
+  "checks": [
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-seal-sql-current.xml",
+      "evidence_sha": "9f572a41befa2fe412375b43d96d67533dafa50f32df2b8ca9331f26aae797a5",
+      "exit_code": 0,
+      "tests": 19,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 28.022
+    },
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-seal-wire-current.xml",
+      "evidence_sha": "4496c4a02aa617ea7a2b1bf0ed6901c7e692e9a54c0cdf7479eb681d66ac3a91",
+      "exit_code": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 80.321
+    },
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-seal-go-current.jsonl",
+      "evidence_sha": "4c4e1a96b9fd7701bc6ba700b2d00ce54ad0d069b4631d0d1a0ade9823aed6a8",
+      "exit_code": 0,
+      "packages_passed": [
+        "photoeditor/backend/internal/v2input",
+        "photoeditor/backend/internal/review",
+        "photoeditor/backend/internal/semanticproposal"
+      ]
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "requirements": [
+    {
+      "id": "target-person-atomic-seal-bound-activation-event-outbox-receipt",
+      "status": "physical_fixture_verified"
+    },
+    {
+      "id": "target-person-live-authority-sealed-replay",
+      "status": "physical_fixture_verified"
+    },
+    {
+      "id": "target-person-revocation-before-seal-and-after-seal",
+      "status": "physical_fixture_verified"
+    },
+    {
+      "id": "00899-00917-forward-upgrade-preserves-tenant-data-and-existing-functions",
+      "status": "sql_verified"
+    },
+    {
+      "id": "target-person-worker-execution-canonical-adoption",
+      "status": "not_implemented"
+    },
+    {
+      "id": "whole-V27-module",
+      "status": "not_accepted"
+    }
+  ],
+  "limitations": [
+    "Automatic Recover persists target checkpoint and waits; target helpers not wired to automatic orchestration",
+    "Target-specific worker atomic start, execution, canonical adoption, cold restart and remaining five target stages are still required",
+    "Physical fixture uses distinct accepted version/recipe with shared immutable WorkingImage bytes and deterministic ML doubles; not real GPU or image-quality qualification",
+    "Target seal produces queued/sealed run and ready task; no target execution/canonical result or parent completion receipt",
+    "No whole-module/browser/capacity or full parallel/crash-boundary acceptance",
+    "Only isolated test databases migrated; production DB unchanged"
+  ]
+}

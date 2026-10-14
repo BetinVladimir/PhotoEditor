@@ -37,6 +37,17 @@ func (f SQLRenderBatchFactory) prepareSelection(ctx context.Context, tenant uuid
 			return nil, v2input.ErrInvalid
 		}
 	}
+	if f.SubmissionSHA != "" {
+		if _, err := domain.ParseDigest(f.SubmissionSHA); err != nil {
+			return nil, v2input.ErrInvalid
+		}
+	}
+	if f.SubmissionKey != "" {
+		expected, err := v2input.RunID(tenant, who.UserID, f.SubmissionKey)
+		if err != nil || expected != batch || f.SubmissionSHA == "" {
+			return nil, v2input.ErrInvalid
+		}
+	}
 	if calibrations == nil {
 		if err := execution.validate(); err != nil {
 			return nil, err
@@ -81,6 +92,9 @@ func (f SQLRenderBatchFactory) prepareSelection(ctx context.Context, tenant uuid
 		if qualification.Backend != execution.Backend || qualification.RuntimeSHA != execution.RuntimeSHA {
 			return nil, domain.NewError("RENDER_UNAVAILABLE", 503)
 		}
+	}
+	if calibrations != nil {
+		f.QualificationPin = &RenderQualificationPin{RenderQualification: qualification, CalibrationSHA: calibrationSHA}
 	}
 	coordinator, err := f.ForProject(ctx, project)
 	if err != nil {

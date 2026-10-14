@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 pinned corpus input for existing preparation benchmark",
+  "whole_module_accepted": false,
+  "imaging_algorithms_changed": false,
+  "checks": {
+    "tests": 13,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 1.47,
+    "xml": "v28-benchmark-fixture-current.xml"
+  },
+  "assertions": [
+    "Hair/clothing fixture snapshots bind WorkingImage/Params/MaskRef and NPY IDs/SHA/canvas/transform/dtype/shape",
+    "Pins verified on copied snapshot before read-only mmap; paths restricted to repository root",
+    "Changed digest, escaping path, mismatched mask canvas and wrong dtype refused in both modes",
+    "Existing deliberate output-corruption refusal tests retained"
+  ],
+  "source_sha256": {
+    "tools/benchmark_v28_local.py": "150f119f22442ddbe627b594bc3057e9bc410d11b175048cc208e6207b417138",
+    "tests/platform/test_v28_local_benchmark.py": "8deee53ee5dabefc9391bf8260fa2299910579bf76e031cac7cbdb33a0acb31f",
+    "docs/implementation-v2/v28-local-benchmark.md": "ddaf1263c4d5c879875b21e42aa8cb5c2262f8e771662e568d0a1615f6de2fe8"
+  },
+  "limitations": [
+    "New fixture tests synthetic contract cases; no actual real-photo corpus run claimed",
+    "RGB float32 without alpha only",
+    "No visual approval, real hardware qualification or trusted import",
+    "Positive admission/full V28 cycle still open"
+  ]
+}

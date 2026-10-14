@@ -1,5 +1,6 @@
 """Resolve pinned style and complete authored overrides before pixel execution."""
 from dataclasses import dataclass
+from copy import deepcopy
 from photo_worker.contracts.base import canonical_bytes, parse_json
 from photo_worker.contracts.override import OverrideV1
 from photo_worker.contracts.style import StyleV2
@@ -30,6 +31,19 @@ def prepare_render_style(artifacts, inputs, scalar_overrides: tuple[ResolvedRend
     executes pixels nor proves SQL approval/runtime locks.
     """
     check_active()
+    inputs = deepcopy(inputs)
+    scalar_overrides = deepcopy(scalar_overrides)
+    # Full OverrideV1 modules replace absolute style values. Their additive
+    # contribution must be zero, independently of a matching frozen total.
+    # Parameter-only training vectors cannot be reused at this boundary.
+    if (not isinstance(scalar_overrides, tuple)
+            or any(not isinstance(item, ResolvedRenderOverride)
+                   or not isinstance(item.delta, CorrectionVector)
+                   or any(getattr(item.delta, field) != 0 for field in
+                          ('ev', 'log_r', 'log_g', 'log_b',
+                           'saturation_delta', 'retouch_delta'))
+                   for item in scalar_overrides)):
+        raise ValueError('RENDER_OVERRIDE_SCALAR_DOUBLE_APPLICATION')
     raw = read_render_document(artifacts, inputs.recipe.recipe.base_style, check_active)
     if canonical_bytes(parse_json(raw)) != raw:
         raise ValueError('RENDER_STYLE_NONCANONICAL')

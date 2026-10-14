@@ -19,10 +19,12 @@ class CapturePixelTest(unittest.TestCase):
 
     def test_clipping_exact_endpoints_and_threshold_equality(self):
         rgb = np.array([[[0., 1., .5], [-.1, .5, .5], [.5, .5, 1.1], [.5, .5, .5]]])
-        self.assertEqual(clipping_score(rgb), .5)
-        self.assertEqual(assess_clipping(rgb, .25, .5).status, 'warning')
+        self.assertEqual(clipping_score(rgb), .75)
+        self.assertEqual(clipping_score(np.zeros((1, 1, 3))), 0)
+        self.assertEqual(clipping_score(np.ones((1, 1, 3))), 1)
+        self.assertEqual(assess_clipping(rgb, .25, .75).status, 'warning')
         self.assertEqual(assess_clipping(rgb, .1, .4).status, 'critical')
-        self.assertEqual(assess_clipping(rgb, .5, .6).status, 'pass')
+        self.assertEqual(assess_clipping(rgb, .75, .9).status, 'pass')
 
     def test_nonfinite_or_wrong_canvas_is_rejected(self):
         for source in [np.zeros((2, 2)), np.full((2, 2, 3), np.nan), np.zeros((0, 2, 3))]:

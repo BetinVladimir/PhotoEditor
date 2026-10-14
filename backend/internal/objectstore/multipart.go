@@ -141,14 +141,17 @@ func stringInt(value int) string {
 }
 
 func validETag(value string) bool {
-	if len(value) < 1 || len(value) > 256 || strings.ContainsAny(value, "\r\n") {
+	if len(value) < 1 || len(value) > 256 || strings.ContainsAny(value, "\r\n\x00") {
 		return false
 	}
 	return true
 }
 
 func (s *Store) CompleteMultipart(ctx context.Context, key, uploadID, contentType string, expectedBytes int64, parts []UploadedPart) (PendingObject, error) {
-	if s == nil || s.client == nil || !validKey(key) || !validUploadID(uploadID) || !mimePattern.MatchString(contentType) || expectedBytes < 1 || expectedBytes > MaxUploadBytes || len(parts) < 1 || len(parts) > MaxUploadParts {
+ return s.completeMultipartBounded(ctx, key, uploadID, contentType, expectedBytes, parts, MaxUploadBytes)
+}
+func (s *Store) completeMultipartBounded(ctx context.Context, key, uploadID, contentType string, expectedBytes int64, parts []UploadedPart, maxBytes int64) (PendingObject, error) {
+	if s == nil || s.client == nil || !validKey(key) || !validUploadID(uploadID) || !mimePattern.MatchString(contentType) || expectedBytes < 1 || expectedBytes > maxBytes || len(parts) < 1 || len(parts) > MaxUploadParts {
 		return PendingObject{}, ErrInvalid
 	}
 	complete := make([]minio.CompletePart, len(parts))
@@ -181,7 +184,10 @@ func (s *Store) CompleteMultipart(ctx context.Context, key, uploadID, contentTyp
 // single-owner staging key. Versioning is mandatory; an unversioned latest
 // object is never accepted as the completion result.
 func (s *Store) RecoverCompletedMultipart(ctx context.Context, key, contentType string, expectedBytes int64) (PendingObject, error) {
-	if s == nil || s.client == nil || !validKey(key) || !mimePattern.MatchString(contentType) || expectedBytes < 1 || expectedBytes > MaxUploadBytes {
+ return s.recoverCompletedMultipartBounded(ctx, key, contentType, expectedBytes, MaxUploadBytes)
+}
+func (s *Store) recoverCompletedMultipartBounded(ctx context.Context, key, contentType string, expectedBytes int64, maxBytes int64) (PendingObject, error) {
+	if s == nil || s.client == nil || !validKey(key) || !mimePattern.MatchString(contentType) || expectedBytes < 1 || expectedBytes > maxBytes {
 		return PendingObject{}, ErrInvalid
 	}
 	stat, err := s.client.StatObject(ctx, s.bucket, key, minio.StatObjectOptions{})
@@ -205,7 +211,10 @@ func (s *Store) AbortMultipart(ctx context.Context, key, uploadID string) error 
 // canonical SHA-256. expectedSHA may be empty; a supplied value is a check, not
 // trusted metadata. ETag is deliberately ignored.
 func (s *Store) VerifyPending(ctx context.Context, pending PendingObject, expectedSHA string) (Object, error) {
-	if s == nil || s.client == nil || !validKey(pending.Key) || pending.VersionID == "" || pending.VersionID == "null" || pending.Bytes < 1 || pending.Bytes > MaxUploadBytes || !mimePattern.MatchString(pending.ContentType) || (expectedSHA != "" && !hashPattern.MatchString(expectedSHA)) {
+ return s.verifyPendingBounded(ctx, pending, expectedSHA, MaxUploadBytes)
+}
+func (s *Store) verifyPendingBounded(ctx context.Context, pending PendingObject, expectedSHA string, maxBytes int64) (Object, error) {
+	if s == nil || s.client == nil || !validKey(pending.Key) || pending.VersionID == "" || pending.VersionID == "null" || pending.Bytes < 1 || pending.Bytes > maxBytes || !mimePattern.MatchString(pending.ContentType) || (expectedSHA != "" && !hashPattern.MatchString(expectedSHA)) {
 		return Object{}, ErrInvalid
 	}
 	body, err := s.client.GetObject(ctx, s.bucket, pending.Key, minio.GetObjectOptions{VersionID: pending.VersionID, Checksum: true})

@@ -41,20 +41,26 @@ class QualifiedRenderProvider(Protocol):
 def execute(ctx: ExecutionContext, artifacts: TaskArtifacts,
             provider: QualifiedRenderProvider) -> OperationResult:
     profile = ctx.lease.execution_profile
-    if (profile.get('renderer_version') != 'v2.2' or
+    if (not isinstance(profile, dict) or profile.get('renderer_version') != 'v2.2' or
             profile.get('backend') != 'cuda' or
             provider.backend != 'cuda' or
             provider.renderer_version != 'v2.2'):
         raise OperationFailure('CONFIG_INVALID')
     try:
-        params = artifacts.params(LearningEvaluateParams)
+        ctx.check_active()
+        params = artifacts.params(LearningEvaluateParams).model_copy(deep=True)
+        ctx.check_active()
         if (params.model_lock_sha != provider.model_lock_sha or
                 params.icc_lock_sha != provider.icc_lock_sha):
             raise ValueError('EVALUATION_LOCK_MISMATCH')
-        manifest = artifacts.contract(params.manifest, TrainingManifest)
-        baseline = artifacts.contract(params.baseline, CandidateProfile)
-        candidate = artifacts.contract(params.candidate, CandidateProfile)
-        calibration = artifacts.contract(params.calibration, Calibration)
+        manifest = artifacts.contract(params.manifest, TrainingManifest).model_copy(deep=True)
+        ctx.check_active()
+        baseline = artifacts.contract(params.baseline, CandidateProfile).model_copy(deep=True)
+        ctx.check_active()
+        candidate = artifacts.contract(params.candidate, CandidateProfile).model_copy(deep=True)
+        ctx.check_active()
+        calibration = artifacts.contract(params.calibration, Calibration).model_copy(deep=True)
+        ctx.check_active()
         holdout = sum(item.split == 'holdout' for item in manifest.examples)
         if holdout < 10:
             raise ValueError('INVALID_HOLDOUT_SPLIT')
@@ -66,36 +72,48 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts,
             nonlocal completed
             ctx.check_active()
             render_case = item.render_case
-            validate_training_descriptor(item, artifacts.contract(
-                render_case.descriptor_shard, DescriptorShard))
+            descriptor = artifacts.contract(render_case.descriptor_shard, DescriptorShard)
+            ctx.check_active()
+            validate_training_descriptor(item, descriptor)
             base_recipe = artifacts.contract(render_case.base_recipe, FrozenRecipe)
+            ctx.check_active()
             approved_recipe = artifacts.contract(render_case.approved_recipe,
                                                  FrozenRecipe)
+            ctx.check_active()
             validate_frozen_render_case(render_case, base_recipe,
                                         approved_recipe, manifest)
             base_style: StyleV2 = artifacts.style(base_recipe.base_style)
+            ctx.check_active()
             styles = materialize_holdout_styles(
                 item, manifest, base_recipe, approved_recipe, base_style,
                 base, fitted)
-            with provider.render(ctx, artifacts, item, styles,
-                                 calibration) as evidence:
+            with provider.render(ctx, artifacts, item.model_copy(deep=True),
+                                 styles, calibration.model_copy(deep=True)) as evidence:
+                ctx.check_active()
                 yield evidence
+                ctx.check_active()
             completed += 1
             ctx.progress(completed, holdout + 1)
 
         def source_observations(item: TrainingExample) -> FaceObservations:
             ctx.check_active()
-            return artifacts.contract(item.render_case.faces, FaceObservations)
+            observations = artifacts.contract(item.render_case.faces, FaceObservations)
+            ctx.check_active()
+            return observations
 
         ctx.progress(0, holdout + 1)
         result = evaluate_holdout(params, manifest, baseline, candidate,
                                   calibration, render, source_observations,
-                                  artifacts.scratch.directory)
+                                  artifacts.scratch.directory,
+                                  check_active=ctx.check_active,
+                                  scratch_space=artifacts.scratch)
     except ModelError as exc:
         raise OperationFailure(str(exc)) from exc
     except ValueError as exc:
         raise OperationFailure('INPUT_INVALID') from exc
+    ctx.check_active()
     ref = artifacts.stage_contract(result, 'document')
+    ctx.check_active()
     ctx.progress(holdout + 1, holdout + 1)
     return OperationResult(outputs=[ref], bytes_written=len(canonical_bytes(result)))
 

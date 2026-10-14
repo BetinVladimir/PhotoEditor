@@ -1,0 +1,40 @@
+{
+  "generated_at": "2026-10-08T18:40:51.820004+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/v2input",
+      "photoeditor/backend/internal/v2draft",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 83.828
+    },
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "Dedicated target admission packet with full target person/landmarks/completed-skin dependencies",
+    "Complete plan recompilation and dependency/preparation seals; exact Params object pin and CPU qualification/registration binding",
+    "Physical target fixture packet replay, five dependency substitutions and cancelled context refusal",
+    "Existing registered draft remains blocked/unsealed with zero queued outbox"
+  ],
+  "limitations": [
+    "No dedicated SQL target-defect admission/seal or activation yet",
+    "Dependency seals are integrity only; SQL canonical/completed-result locks remain mandatory",
+    "Upstream ML doubles; no GPU/photo-quality/full V27 acceptance",
+    "No production migration"
+  ],
+  "sha256": {
+    "backend/internal/semanticproposal/native_target_defect_admission_evidence.go": "da2d92aea497d330a694116f0bc6b484215063f4df1f42a3937a81d1f7fac4ff",
+    "backend/internal/semanticproposal/native_target_defect_transport_probe_test.go": "0110f7fafe7351e837baa1bd59be2ce4c320c2632342608d71d10b71b9c6bfb2",
+    "docs/implementation-v2/15-execution-contracts.md": "a23d15a168294e0201ca6ffe7b3c59da75b3dafa76175ba5c54c3d15d1fef3fe",
+    "docs/implementation-v2/audit/v27-target-defect-admission-packet-go-current.jsonl": "c80d1b646d7b088d1e73e6c474cd427deed5937487c9320ff293e644d9eb3672",
+    "docs/implementation-v2/audit/v27-target-defect-admission-packet-wire-current.xml": "57978e9f937f63d9dd45d9c3b46a8593a8ec88ba8032742a536dc8b764f849ba"
+  }
+}

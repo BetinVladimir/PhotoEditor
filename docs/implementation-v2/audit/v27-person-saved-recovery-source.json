@@ -1,0 +1,18 @@
+{
+  "recorded_at": "2026-10-08T08:33:55.308108+00:00",
+  "sources": {
+    "backend/internal/semanticproposal/person_source_task.go": "04a9faac094c053f4b6e31a856cfd83fe29f567f0e086c604314d56a7f58b519",
+    "backend/internal/semanticproposal/person_plan_seal.go": "67da50fedc04d681fbf0466fb6661d2dbdc7d2a036f532d36f919e870d43993b",
+    "backend/internal/semanticproposal/person_draft_plan.go": "fb1113c4f0713fcaa1293c5123de0cdc2a4678348e3196cdccb57f824859c558",
+    "backend/internal/semanticproposal/native_plan_recovery_metadata.go": "b53639b3131759f8c7b2fb6ae4daf371342bd4b47e68f45871a010c7f60a78fa",
+    "backend/internal/semanticproposal/native_plan_recovery_metadata_test.go": "9b779a10bb7466fc2b08bac6ffdc75220f5cdf28fc9452270ad033925fab60c5",
+    "backend/internal/semanticproposal/native_input_saved_stage.go": "2e6ff6c5524cd333313c46a8c23fa6d9d08dc3714bb4eba2729ebd702ae5f5cf",
+    "backend/internal/semanticproposal/native_input_saved_stage_test.go": "592a55b2e2c9f492bba2acdc73f4530656b6fa25389466acd38204188c4767b0",
+    "backend/internal/semanticproposal/person_draft_plan_fixture_test.go": "179e951f22a8cd161169a60de9fa1334f60a6a668925632de27026389d4c4516",
+    "backend/internal/semanticproposal/person_plan_seal_test.go": "e839e2da5e7f988324750c46ec96f4242e6189bf9020cacd19ce9fea54dffa4b",
+    "backend/internal/semanticproposal/person_saved_restore.go": "e919baba47d1244c275fa1dfb1306deebbee282cc9daae7698eff0ccce73d168",
+    "backend/internal/semanticproposal/native_bootstrap_integration_test.go": "19c2d79f9174311a99f120a248048ad7d79eee06f4bc35ef02cdf61b46b83e36",
+    "backend/db/migrations/00897_v27_person_saved_recovery.sql": "b6f0484d607cb9eb0e0917049a71fa414d8273559f5ec3bbd9d48a655ad9406d",
+    "tests/integration/test_v27_semantic_intent_publication.py": "99b8e2ec96004464f336e8ba4b10ce7bb1bf63f0f6e8583cfccf97cf4f6f9e03"
+  }
+}

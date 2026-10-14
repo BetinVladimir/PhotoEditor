@@ -119,7 +119,10 @@ func TestIntegrationStageRenderRuntimeBatch(t *testing.T) {
 			inventories = append(inventories, entries)
 		}
 	}
-	batch := uuid.New()
+	batch, err := v2input.RunID(evidence.Tenant, evidence.Actor.UserID, "fixture-render-calibrated")
+	if err != nil {
+		t.Fatal(err)
+	}
 	parts, err := CompileRenderBatchPlans(batch, evidence.Project, evidence.Snapshot, requests, inventories)
 	if err != nil {
 		t.Fatal(err)
@@ -131,6 +134,28 @@ func TestIntegrationStageRenderRuntimeBatch(t *testing.T) {
 	selection := make([]RenderSelectionItem, len(requests))
 	for i, request := range requests {
 		selection[i] = RenderSelectionItem{Binding: request.Binding, Recipe: request.RecipeRef}
+	}
+	expectedBatch, submissionSHA, err := CompileRenderSubmissionIdentity(evidence.Tenant, evidence.Actor.UserID, evidence.Project, "fixture-render-calibrated", RenderBatchSubmissionRequest{SnapshotID: evidence.Snapshot, PolicySHA: policy, Selection: selection})
+	if err != nil || expectedBatch != batch {
+		t.Fatal("submission identity", err)
+	}
+	factory.SubmissionSHA = submissionSHA
+	factory.SubmissionKey = "fixture-render-calibrated"
+	submissionStore := SQLRenderDraftStore{DB: scheduler}
+	if state, err := submissionStore.ProbeSubmission(ctx, evidence.Tenant, batch, evidence.Actor, submissionSHA); err != nil || state.Found {
+		t.Fatal("missing submission probe", err, state)
+	}
+	if state, err := submissionStore.ProbeSubmissionKey(ctx, evidence.Tenant, evidence.Project, batch, evidence.Actor, "fixture-render-calibrated", submissionSHA); err != nil || state.Found {
+		t.Fatal("missing global key probe", err, state)
+	}
+	if _, err := admin.Exec(ctx, `INSERT INTO photo.idempotency_records(tenant_id,principal_type,principal_id,route,key,request_hash,expires_at) VALUES($1,'user',$2,'V2.Admit','fixture-render-calibrated',repeat('0',64),clock_timestamp()+interval '24 hours')`, evidence.Tenant, evidence.Actor.UserID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := submissionStore.ProbeSubmissionKey(ctx, evidence.Tenant, evidence.Project, batch, evidence.Actor, "fixture-render-calibrated", submissionSHA); !errors.Is(err, v2input.ErrConflict) {
+		t.Fatal("cross-workflow shared key conflict", err)
+	}
+	if _, err := admin.Exec(ctx, "DELETE FROM photo.idempotency_records WHERE tenant_id=$1 AND principal_type='user' AND principal_id=$2 AND route='V2.Admit' AND key='fixture-render-calibrated' AND request_hash=repeat('0',64)", evidence.Tenant, evidence.Actor.UserID); err != nil {
+		t.Fatal(err)
 	}
 	first := requests[0]
 	choice := RenderExecutionChoice{Backend: first.Backend, RuntimeSHA: first.RuntimeSHA, TileSize: first.TileSize, AlphaMode: first.AlphaMode, Provider: first.Provider}
@@ -223,10 +248,13 @@ func TestIntegrationStageRenderRuntimeBatch(t *testing.T) {
 	factory.Sources = objects
 	stopped := &stoppedRenderDocuments{Objects: objects}
 	factory.Documents = stopped
-	prepared, prepareErr := factory.PrepareCalibratedSelection(ctx, evidence.Tenant, evidence.Actor, batch, evidence.Project, evidence.Snapshot, policy, selection, catalog)
-	if !errors.Is(prepareErr, io.ErrUnexpectedEOF) || stopped.puts != 1 || len(prepared) != len(parts) {
-		t.Fatal("selection preparation did not retain staged plan before publication", prepareErr, stopped.puts, len(prepared))
+	service := SQLRenderSubmissionService{Factory: factory, Calibrations: catalog, Timeout: 2 * time.Minute}
+	intent := RenderBatchSubmissionRequest{SnapshotID: evidence.Snapshot, PolicySHA: policy, Selection: selection}
+	ticket, prepareErr := service.Queue(ctx, evidence.Actor, evidence.Tenant, evidence.Project, "fixture-render-calibrated", intent)
+	if !errors.Is(prepareErr, io.ErrUnexpectedEOF) || stopped.puts != 1 || ticket.RunID != uuid.Nil {
+		t.Fatal("submission did not retain staged plan before publication", prepareErr, stopped.puts, ticket)
 	}
+	prepared := parts
 	state := func() [4]int64 {
 		var out [4]int64
 		if err := admin.QueryRow(ctx, `SELECT
@@ -238,7 +266,76 @@ func TestIntegrationStageRenderRuntimeBatch(t *testing.T) {
 		}
 		return out
 	}
+	probed, err := submissionStore.ProbeSubmission(ctx, evidence.Tenant, batch, evidence.Actor, submissionSHA)
+	if err != nil || !probed.Found || probed.State != "draft" || probed.CancelRequested {
+		t.Fatal("persisted submission probe", err, probed)
+	}
+	if _, err := submissionStore.ProbeSubmission(ctx, evidence.Tenant, batch, evidence.Actor, strings.Repeat("0", 64)); !errors.Is(err, v2input.ErrConflict) {
+		t.Fatal("changed submission probe", err)
+	}
+	foreign := evidence.Actor
+	foreign.UserID = uuid.New()
+	if result, err := submissionStore.ProbeSubmission(ctx, evidence.Tenant, batch, foreign, submissionSHA); err != nil || result.Found {
+		t.Fatal("foreign actor probe disclosed submission", err, result)
+	}
+	if _, err := admin.Exec(ctx, "UPDATE photo.runs SET v26_submission_request_sha=NULL WHERE tenant_id=$1 AND id=$2", evidence.Tenant, batch); err == nil {
+		t.Fatal("submission identity cleared")
+	}
+	if keyed, err := submissionStore.ProbeSubmissionKey(ctx, evidence.Tenant, evidence.Project, batch, evidence.Actor, "fixture-render-calibrated", submissionSHA); err != nil || keyed != probed {
+		t.Fatal("shared key replay did not match parent", err, keyed, probed)
+	}
+	var savedRequestSHA string
+	var savedResource uuid.UUID
+	var savedResponse *int
+	if err := admin.QueryRow(ctx, "SELECT request_hash,resource_id,response_status FROM photo.idempotency_records WHERE tenant_id=$1 AND principal_id=$2 AND route='V2.Admit' AND key='fixture-render-calibrated'", evidence.Tenant, evidence.Actor.UserID).Scan(&savedRequestSHA, &savedResource, &savedResponse); err != nil || savedRequestSHA != submissionSHA || savedResource != batch || savedResponse != nil {
+		t.Fatal("pending admission key not atomic with shell", err)
+	}
+	profileSHA, err := canonical.Hash(calibration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pin := RenderQualificationPin{RenderQualification: qualification, CalibrationSHA: profileSHA}
+	pinRaw, err := json.Marshal(pin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pinnedIDs := []uuid.UUID{batch}
+	for _, part := range prepared {
+		pinnedIDs = append(pinnedIDs, part.RunID)
+	}
+	var pinCount int
+	if err := admin.QueryRow(ctx, "SELECT count(*) FROM photo.runs WHERE tenant_id=$1 AND id=ANY($2::uuid[]) AND v26_qualification_pin=$3::jsonb", evidence.Tenant, pinnedIDs, string(pinRaw)).Scan(&pinCount); err != nil || pinCount != len(pinnedIDs) {
+		t.Fatal("calibration qualification not atomic across parent/children", err, pinCount)
+	}
+	for _, id := range pinnedIDs {
+		_, err := admin.Exec(ctx, "UPDATE photo.runs SET v26_qualification_pin=NULL WHERE tenant_id=$1 AND id=$2", evidence.Tenant, id)
+		var denied *pgconn.PgError
+		if !errors.As(err, &denied) || denied.Code != "42501" {
+			t.Fatal("frozen qualification pin cleared", err)
+		}
+	}
+	verifyFrozenRenderQualificationPolicy(t, ctx, admin, evidence, prepared[0].RunID, qualificationPolicy, qualification)
 	beforeReplay := state()
+	changedPin := pin
+	changedPin.CalibrationSHA = strings.Repeat("0", 64)
+	pinStore := SQLRenderDraftStore{DB: scheduler, SubmissionKey: "fixture-render-calibrated", SubmissionSHA: submissionSHA, QualificationPin: &changedPin}
+	if err := pinStore.BeginBatch(ctx, evidence.Tenant, batch, evidence.Project, evidence.Snapshot, evidence.Actor, policy, prepared); !errors.Is(err, v2input.ErrConflict) || state() != beforeReplay || stopped.puts != 1 {
+		t.Fatal("changed measured profile replaced frozen pin", err)
+	}
+	owned, lockErr := withRenderBatchLock(ctx, scheduler, evidence.Tenant, batch, func(ctx context.Context) error {
+		contenderTicket, contenderErr := service.Queue(ctx, evidence.Actor, evidence.Tenant, evidence.Project, "fixture-render-calibrated", intent)
+		if contenderErr == nil || domain.AsError(contenderErr).Code != "DEPENDENCY_UNAVAILABLE" || contenderTicket.RunID != uuid.Nil || stopped.puts != 1 || state() != beforeReplay {
+			t.Error("submission entered a batch owned by input recovery", contenderErr, contenderTicket)
+		}
+		return nil
+	})
+	if lockErr != nil || !owned {
+		t.Fatal("submission contention fixture", lockErr, owned)
+	}
+	changedStore := SQLRenderDraftStore{DB: scheduler, SubmissionSHA: strings.Repeat("0", 64), SubmissionKey: "fixture-render-calibrated"}
+	if err := changedStore.BeginBatch(ctx, evidence.Tenant, batch, evidence.Project, evidence.Snapshot, evidence.Actor, policy, prepared); !errors.Is(err, v2input.ErrConflict) || state() != beforeReplay {
+		t.Fatal("changed submission binding mutated batch", err)
+	}
 	replayed, replayErr := factory.PrepareCalibratedSelection(ctx, evidence.Tenant, evidence.Actor, batch, evidence.Project, evidence.Snapshot, policy, selection, catalog)
 	if !errors.Is(replayErr, io.ErrUnexpectedEOF) || stopped.puts != 2 || len(replayed) != len(prepared) || state() != beforeReplay {
 		t.Fatal("interrupted preparation replay duplicated persistence/reservation", replayErr, stopped.puts)
@@ -248,11 +345,23 @@ func TestIntegrationStageRenderRuntimeBatch(t *testing.T) {
 			t.Fatal("interrupted preparation replay changed frozen identity")
 		}
 	}
+	service.Calibrations = nil
+	counted.opens = 0
+	service.Factory.Sources = counted
+	ticket, replayErr = service.Queue(ctx, evidence.Actor, evidence.Tenant, evidence.Project, "fixture-render-calibrated", intent)
+	if !errors.Is(replayErr, io.ErrUnexpectedEOF) || stopped.puts != 3 || state() != beforeReplay || ticket.RunID != uuid.Nil || counted.opens == 0 {
+		t.Fatal("pending submission did not recover frozen inputs without calibration", replayErr, stopped.puts, counted.opens)
+	}
 	changedOrder := append([]RenderSelectionItem(nil), selection...)
 	changedOrder[0], changedOrder[len(changedOrder)-1] = changedOrder[len(changedOrder)-1], changedOrder[0]
 	conflicting, conflictErr := factory.PrepareCalibratedSelection(ctx, evidence.Tenant, evidence.Actor, batch, evidence.Project, evidence.Snapshot, policy, changedOrder, catalog)
-	if !errors.Is(conflictErr, v2input.ErrConflict) || len(conflicting) == 0 || conflicting[0].Plan.ConfigSHA == prepared[0].Plan.ConfigSHA || stopped.puts != 2 || state() != beforeReplay {
+	if !errors.Is(conflictErr, v2input.ErrConflict) || len(conflicting) == 0 || conflicting[0].Plan.ConfigSHA == prepared[0].Plan.ConfigSHA || stopped.puts != 3 || state() != beforeReplay {
 		t.Fatal("changed selection replay replaced or published batch", conflictErr, stopped.puts)
+	}
+	intent.Selection = changedOrder
+	beforeConflictIO := counted.opens
+	if _, err := service.Queue(ctx, evidence.Actor, evidence.Tenant, evidence.Project, "fixture-render-calibrated", intent); !errors.Is(err, v2input.ErrConflict) || stopped.puts != 3 || state() != beforeReplay || counted.opens != beforeConflictIO {
+		t.Fatal("changed submission intent crossed IO or mutated frozen batch", err)
 	}
 	for _, part := range prepared {
 		var savedSHA string
@@ -400,4 +509,62 @@ func (c *fixtureRenderCalibrationCatalog) Resolve(ctx context.Context, q RenderQ
 		result.EvidenceSHA = strings.Repeat("0", 64)
 	}
 	return result, nil
+}
+
+// Report bytes remain controlled qualification fixtures. Import the second exact
+// tuple through the real maintenance helper inside a transaction and roll it all
+// back; no synthetic runnable work or policy switch persists.
+func verifyFrozenRenderQualificationPolicy(t *testing.T, ctx context.Context, db *pgxpool.Pool, evidence renderBatchRestartEvidence, run, policy uuid.UUID, pin RenderQualification) {
+	t.Helper()
+	for _, field := range []string{"device_profile_sha", "dataset_sha"} {
+		tx, err := db.Begin(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		func() {
+			defer tx.Rollback(context.Background())
+			device, dataset := pin.DeviceSHA, pin.DatasetSHA
+			if field == "device_profile_sha" {
+				device = strings.Repeat("0", 64)
+			} else {
+				dataset = strings.Repeat("0", 64)
+			}
+			if _, err := tx.Exec(ctx, "UPDATE photo.v2_qualification_policies SET admission_enabled=false WHERE id=$1", policy); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := tx.Exec(ctx, `INSERT INTO photo.v2_qualification_policies(operation,operation_version,model_lock_sha,runtime_lock_sha,backend,device_profile_sha,dataset_sha,issuer_id,required_checks,test_fixture_shas,evidence_shas,license_cleared,enabled,admission_enabled)
+SELECT operation,operation_version,model_lock_sha,runtime_lock_sha,backend,$2,$3,issuer_id,required_checks,test_fixture_shas,evidence_shas,true,true,true FROM photo.v2_qualification_policies WHERE id=$1`, policy, device, dataset); err != nil {
+				t.Fatal(err)
+			}
+			body, err := canonical.Marshal(map[string]any{"schema_version": 1, "operation": "render.compose", "version": "1", "model_lock_sha": pin.ModelSHA, "runtime_lock_sha": pin.RuntimeSHA, "device_profile_sha": device, "dataset_sha": dataset, "input_fixture_shas": []string{strings.Repeat("e", 64)}, "checks": []any{map[string]any{"id": "quality", "passed": true, "evidence_sha": strings.Repeat("f", 64)}}, "metrics": map[string]any{"p50_ms": 10, "p95_ms": 20, "peak_vram_bytes": 0, "peak_rss_bytes": 0, "scratch_bytes": 0}, "status": "passed", "issuer_id": evidence.Actor.UserID, "created_at": "2026-09-01T00:00:00Z"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			reportSHA, err := canonical.Hash(json.RawMessage(body))
+			if err != nil {
+				t.Fatal(err)
+			}
+			var report uuid.UUID
+			if err := tx.QueryRow(ctx, `INSERT INTO photo.artifacts(tenant_id,bucket,object_key,object_version,sha256,bytes,media_type,state,verified_at) VALUES($1,'qualification-metadata-fixture',$2,'fixture-v1',$3,$4,'application/json','ready',clock_timestamp()) RETURNING id`, evidence.Tenant, uuid.NewString(), reportSHA, len(body)).Scan(&report); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := tx.Exec(ctx, "SET LOCAL ROLE photo_maintenance"); err != nil {
+				t.Fatal(err)
+			}
+			var imported uuid.UUID
+			if err := tx.QueryRow(ctx, "SELECT photo.import_v2_qualification($1,$2,$3,$4,$5,$6,$7)", evidence.Tenant, evidence.Project, report, reportSHA, evidence.Actor.UserID, pin.Backend, string(body)).Scan(&imported); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := tx.Exec(ctx, "RESET ROLE"); err != nil {
+				t.Fatal(err)
+			}
+			var oldReady, newReady bool
+			if err := tx.QueryRow(ctx, "SELECT photo.v26_render_qualification_ready_before_pin($1,$2)", evidence.Tenant, run).Scan(&oldReady); err != nil || !oldReady {
+				t.Fatal("policy switch did not isolate missing tuple pin", field, err, oldReady)
+			}
+			if err := tx.QueryRow(ctx, "SELECT photo.v26_render_qualification_ready($1,$2)", evidence.Tenant, run).Scan(&newReady); err != nil || newReady {
+				t.Fatal("changed qualified device/dataset accepted frozen calibration", field, err, newReady)
+			}
+		}()
+	}
 }

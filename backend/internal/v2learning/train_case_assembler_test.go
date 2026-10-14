@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -65,6 +66,40 @@ func (s caseProtection) SelectProtected(context.Context, auth.Identity,
 	TrainingMask, error) {
 	return s.ref, TrainingMask{}, nil
 }
+
+type cancellingCaseDocuments struct {
+ TrainingDocumentReader
+ cancel context.CancelFunc
+}
+func (s cancellingCaseDocuments) Load(ctx context.Context, start TrainingStart, candidate TrainingCandidate) (TrainingEditingDocuments,error) {
+ value,err := s.TrainingDocumentReader.Load(ctx,start,candidate)
+ s.cancel()
+ return value,err
+}
+type cancellingCaseProtection struct {
+ TrainingProtectedSelector
+ cancel context.CancelFunc
+}
+func (s cancellingCaseProtection) SelectProtected(ctx context.Context, who auth.Identity, start TrainingStart, candidate TrainingCandidate, image TrainingImage) (v2input.Ref,TrainingMask,error) {
+ ref,mask,err := s.TrainingProtectedSelector.SelectProtected(ctx,who,start,candidate,image)
+ s.cancel()
+ return ref,mask,err
+}
+
+type mutatingCaseRecipes struct { TrainingRecipeReader }
+func (s mutatingCaseRecipes) LoadPair(ctx context.Context, who auth.Identity, tenant uuid.UUID, documents TrainingEditingDocuments, icc,model string) (CompiledTrainingRecipes,*v2draft.ResolvedCorrection,error) {
+ result,session,err:=s.TrainingRecipeReader.LoadPair(ctx,who,tenant,documents,icc,model)
+ if len(documents.ApprovedBody)>0 { documents.ApprovedBody[0]='!' }
+ return result,session,err
+}
+type mutatingCaseImage struct { TrainingImageReader; mutate func() }
+func (s mutatingCaseImage) Load(ctx context.Context,who auth.Identity,tenant uuid.UUID,binding v2input.SessionVersionBinding,icc string) (TrainingImage,error) {
+ s.mutate()
+ return s.TrainingImageReader.Load(ctx,who,tenant,binding,icc)
+}
+
+type caseRegionReader struct { load func(context.Context,v2input.Ref)([]TrainingRegionMask,error) }
+func (r caseRegionReader) LoadRegions(ctx context.Context,who auth.Identity,start TrainingStart,candidate TrainingCandidate,image TrainingImage,style v2input.Ref)([]TrainingRegionMask,error){return r.load(ctx,style)}
 
 func TestTrainingCaseAssemblerBindsSourceLineageAndPinnedInputs(t *testing.T) {
 	ref := func(letter string) v2input.Ref {
@@ -132,6 +167,63 @@ func TestTrainingCaseAssemblerBindsSourceLineageAndPinnedInputs(t *testing.T) {
 		got.Resolved.Render.DescriptorShard.ArtifactID == uuid.Nil {
 		t.Fatalf("case not assembled: %v", err)
 	}
+ t.Run("regions_frozen_by_assembler",func(t *testing.T) {
+  retained:=[]TrainingRegionMask{{RegionID:"sky",Mask:ref("6")}}
+  expected:=retained[0]
+  owned:=assembler
+  owned.Regions=caseRegionReader{load:func(ctx context.Context,pinned v2input.Ref)([]TrainingRegionMask,error){
+   if pinned!=style{t.Fatal("region reader received different style")}
+   return retained,nil
+  }}
+  result,err:=owned.Assemble(context.Background(),start,candidate,runID,icc,model)
+  if err!=nil||len(result.Resolved.Render.RegionMasks)!=1||result.Resolved.Render.RegionMasks[0]!=expected{t.Fatalf("region evidence lost: %v",err)}
+  retained[0].RegionID="mutated"
+  if result.Resolved.Render.RegionMasks[0]!=expected{t.Fatal("retained reader changed frozen region")}
+ })
+ t.Run("regions_cancellation_refuses_frozen_case",func(t *testing.T) {
+  ctx,cancel:=context.WithCancel(context.Background());defer cancel()
+  owned:=assembler
+  owned.Regions=caseRegionReader{load:func(context.Context,v2input.Ref)([]TrainingRegionMask,error){cancel();return []TrainingRegionMask{{RegionID:"sky",Mask:ref("6")}},nil}}
+  result,err:=owned.Assemble(ctx,start,candidate,runID,icc,model)
+  if !errors.Is(err,context.Canceled)||result.Frozen!=nil{t.Fatalf("cancelled region evidence escaped: %v",err)}
+ })
+ t.Run("reader_documents_owned",func(t *testing.T) {
+  owned:=assembler
+  owned.Recipes=mutatingCaseRecipes{assembler.Recipes}
+  if _,err:=owned.Assemble(context.Background(),start,candidate,runID,icc,model); err!=nil { t.Fatal(err) }
+  if string(documents.ApprovedBody)!="{}" { t.Fatal("reader mutated retained source document") }
+ })
+ t.Run("compiled_bytes_owned_before_image_callback",func(t *testing.T) {
+  retained:=ownTrainingAssemblyRecipes(compiled)
+  owned:=assembler
+  owned.Recipes=caseRecipes{retained}
+  owned.Images=mutatingCaseImage{assembler.Images,func(){ retained.BaseBody[0]='!'; retained.ApprovedBody[0]='!' }}
+  result,err:=owned.Assemble(context.Background(),start,candidate,runID,icc,model)
+  if err!=nil || result.Frozen==nil || result.Frozen.BaseBody[0]!='{' { t.Fatalf("retained callback changed compiled bytes: %v",err) }
+ })
+ for _,phase := range []string{"before","documents","protection"} {
+  t.Run("cancel_"+phase,func(t *testing.T) {
+   ctx,cancel := context.WithCancel(context.Background())
+   defer cancel()
+   owned := assembler
+   if phase=="before" { cancel() }
+   if phase=="documents" { owned.Documents=cancellingCaseDocuments{assembler.Documents,cancel} }
+   if phase=="protection" { owned.Protection=cancellingCaseProtection{assembler.Protection,cancel} }
+   beforeCalls:=facesCalls
+   result,err:=owned.Assemble(ctx,start,candidate,runID,icc,model)
+   if !errors.Is(err,context.Canceled) || result.Frozen!=nil {
+    t.Fatalf("cancelled assembly returned evidence: %v",err)
+   }
+   if phase!="protection" && facesCalls!=beforeCalls { t.Fatal("cancelled assembly reached face reader") }
+  })
+ }
+ ctx,cancel:=context.WithCancel(context.Background())
+ discovery:=assembler
+ discovery.Documents=cancellingCaseDocuments{assembler.Documents,cancel}
+ if lock,err:=discovery.DiscoverICC(ctx,start,candidate); !errors.Is(err,context.Canceled) || lock!="" {
+  t.Fatalf("cancelled discovery returned ICC: %q %v",lock,err)
+ }
+ cancel()
 	candidate.SourceLineageSHA = strings.Repeat("0", 64)
 	if _, err := assembler.Assemble(context.Background(), start, candidate,
 		runID, icc, model); err == nil {

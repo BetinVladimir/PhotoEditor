@@ -4,6 +4,7 @@ import (
 	"github.com/google/uuid"
 	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/v2input"
+	"reflect"
 	"testing"
 )
 
@@ -19,12 +20,26 @@ func TestIdentityReportTypedMasksCalibrationAndNullableMetrics(t *testing.T) {
 	if err != nil || len(refs) != 2 || refs[0].Contract != "MaskRef" || refs[1].Contract != "Calibration" || refs[0].ParentRef != parent {
 		t.Fatal(refs, err)
 	}
+	checkCommonIdentityChildren(t, raw, parent)
 	fields["generated_mask"] = parent
 	fields["faces"] = []any{map[string]any{"face_id": uuid.New(), "similarity": -.5, "landmark_drift": .2}}
 	raw, _ = canonical.Marshal(fields)
 	refs, err = identityReportRefs(raw, "identity", parent)
 	if err != nil || len(refs) != 3 || refs[1].Path != "identity.generated_mask" {
 		t.Fatal(refs, err)
+	}
+	checkCommonIdentityChildren(t, raw, parent)
+}
+
+func checkCommonIdentityChildren(t *testing.T, raw []byte, parent v2input.Ref) {
+	t.Helper()
+	expected, err := identityReportRefs(raw, "Document", parent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	children, err := DocumentChildren(raw, "IdentityReport", parent)
+	if err != nil || !reflect.DeepEqual(children, expected) {
+		t.Fatal("common reader changed typed identity child order/path/ref/parent", children, expected, err)
 	}
 }
 
@@ -51,6 +66,9 @@ func TestIdentityReportRejectsMalformedMetricsAndRefs(t *testing.T) {
 		raw, _ := canonical.Marshal(fields)
 		if _, err := identityReportRefs(raw, "identity", parent); err == nil {
 			t.Fatalf("accepted %d", i)
+		}
+		if _, err := DocumentChildren(raw, "IdentityReport", parent); err == nil {
+			t.Fatalf("common reader accepted malformed identity report %d", i)
 		}
 	}
 }

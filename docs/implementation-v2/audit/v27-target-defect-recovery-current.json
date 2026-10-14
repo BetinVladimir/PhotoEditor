@@ -1,0 +1,53 @@
+{
+  "generated_at": "2026-10-08T19:15:22.312943+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "sql": {
+      "result": "PASS",
+      "tests": 23,
+      "seconds": 25.269
+    },
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 127.011
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/v2input",
+      "photoeditor/backend/internal/v2draft",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "00958 API-only saved lookup and scheduler-only exact registered transport recovery",
+    "Physical target plan recompilation using saved diameter/report/costs/limits and immutable Params; no publisher/current capacity replacement",
+    "Exact original shell/seal and recovered Built equality",
+    "Five substituted saved fields/profile/report refuse; revoked saved read refuses and restored plan passes",
+    "Artifact/backend-document counts unchanged across restore and transport recovery",
+    "00899→00958 migration metadata/OID/owner/ACL preserved"
+  ],
+  "limitations": [
+    "Recovery tested in current probe process with existing upstream plans; fresh-process recovery still required",
+    "Automatic target advance and downstream graph commit/original transfer handoff still required",
+    "Whole V27 acceptance remains open; upstream ML doubles; no GPU/real-photo qualification",
+    "No production migration"
+  ],
+  "sha256": {
+    "backend/db/migrations/00958_v27_target_defect_saved_recovery.sql": "b16ffe5ab972defbcfe96ae559aa404fbc65f18c9329ce051cec443c7a72ac51",
+    "backend/internal/semanticproposal/native_target_defect_recovery.go": "df10e112d15ff14dc8c2e7a0400fba2c85fefd7c6f8551ab927d8e74847b6f03",
+    "backend/internal/semanticproposal/native_target_defect_recovery_probe_test.go": "0206eb42aaea157bd8398dee35d05b7880c3340ce5ee49d5d3b0b14bd332dd2a",
+    "backend/internal/semanticproposal/native_target_defect_seal_probe_test.go": "a7da6d055cca21d9cac0895802c094815776ccb3eb0f6a1b2b2f6d289d973b0a",
+    "tests/integration/test_v27_person_migration_upgrade.py": "348c3ada19ba2636ae906de19f188e8c91a07240f90da5c23fd19ec635c15513",
+    "tests/integration/test_v27_semantic_intent_publication.py": "a7e73b3285569200a07a3ac907d91823e773ba0b5503db4c7aa0b8b18e36765b",
+    "docs/implementation-v2/03-database.md": "827c2b6ca691a2c7bcacd056f010c337416f02059c0292e9e9666f6bda8b03fa",
+    "docs/implementation-v2/15-execution-contracts.md": "46a3a67bf83b8501a36aface0466c2c58b22b97c8fdc0a2cd814fa925029f9ca",
+    "docs/implementation-v2/audit/v27-target-defect-recovery-go-current.jsonl": "812fcb8cbe7db466b5183ca4801da1f2881651e9fef7f1f2e37062d17ece1666",
+    "docs/implementation-v2/audit/v27-target-defect-recovery-sql-current.xml": "849639fa9f2dd2b8e1af70ceef5a5b4005d6dd2af2450e518726d8b88420861a",
+    "docs/implementation-v2/audit/v27-target-defect-recovery-wire-current.xml": "b7c8cbb39167873dec92a499aefeee03d601e60d42a9cd80b9bf4c396c29e22f"
+  }
+}

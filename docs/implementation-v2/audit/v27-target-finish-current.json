@@ -1,0 +1,101 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "generated_at": "2026-10-08T15:21:00.460192+00:00",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "dirty_tree_hash": "baf4cecca054004b5f526d2907dbed43dd18847e9d1bda7e1137a38d6b5ca2da",
+  "dirty_tree_hash_scope": {
+    "roots": [
+      "backend/",
+      "workers/",
+      "src/",
+      "apps/",
+      "packages/",
+      "tests/",
+      "scripts/",
+      "deploy/",
+      "docs/implementation-v2/contracts/"
+    ],
+    "paths": 4752,
+    "algorithm": "sorted git tracked+untracked nonignored names NUL sha256(bytes) newline; MISSING marker; excludes generated audit evidence"
+  },
+  "contracts_hash": "bedf81fee94e5e75a78db7d8fc942cdc67d7fb580301c33071233e3abf357b38",
+  "source_scope": {
+    "backend/db/migrations/00921_v27_target_person_finalization.sql": "b18454bdeca437de37b2aedc9bf498bad605d53349c4e66817ed05bc2a25b2d1",
+    "backend/internal/semanticproposal/native_target_person_result.go": "a3b8fe22e880dc7d9215b8a1d99af50fc2533c31e789423187ba6de519e0af74",
+    "backend/internal/semanticproposal/native_target_person_wire_probe_test.go": "30830fd1d4d27b6c671fe65519f4cbbc5c231e3ca154cde5a9cf066dec2a18c5",
+    "tests/integration/test_v27_person_migration_upgrade.py": "e4d548ab5c370dbe13b41a3530b14ee8ca3650a1b8ed4fa42855ff2f3bb03fa1",
+    "tests/integration/test_v27_semantic_intent_publication.py": "13340653797175a9f0c4f721ed9b87cf86511432359c827c591b0880f4f65018",
+    "tests/integration/v27_face_wire_probe.py": "d6b78261a2020aa0890aa5074688060c9214b47b397c37441bc107aa02d37b89"
+  },
+  "checks": [
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-finish-sql-current.xml",
+      "evidence_sha": "47bf3fae0e561cd3910f6957368a6c48918c8e35374b8e89e84fc0dd4320c4f8",
+      "exit_code": 0,
+      "tests": 19,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 32.283
+    },
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-finish-wire-current.xml",
+      "evidence_sha": "ae288e22bb97bf8c5f6b02d460b79d67df0a5cee4148a61aa799b62425d9e538",
+      "exit_code": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 62.117
+    },
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-finish-go-current.jsonl",
+      "evidence_sha": "c49ea76a8176b7842a956935b125b51806220665b56d6501eb48a942df8b361a",
+      "exit_code": 0,
+      "packages_passed": [
+        "photoeditor/backend/internal/gateway",
+        "photoeditor/backend/internal/review",
+        "photoeditor/backend/internal/v2input",
+        "photoeditor/backend/internal/semanticproposal"
+      ]
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "requirements": [
+    {
+      "id": "target-person-canonical-finalization-completed-status",
+      "status": "physical_fixture_verified"
+    },
+    {
+      "id": "residual-quota-exact-once-release-and-expired-reservation-refusal",
+      "status": "physical_fixture_verified"
+    },
+    {
+      "id": "completed-producer-reader-consumer-lock-seal-and-finish-replay",
+      "status": "physical_fixture_verified"
+    },
+    {
+      "id": "single-completion-event-outbox-and-revocation-refusal",
+      "status": "physical_fixture_verified"
+    },
+    {
+      "id": "00899-00921-forward-upgrade-data-OID-ACL-preservation",
+      "status": "sql_verified"
+    },
+    {
+      "id": "automatic-target-orchestration-and-whole-V27",
+      "status": "not_accepted"
+    }
+  ],
+  "limitations": [
+    "Standalone target helpers are not yet wired to automatic Recover; remaining five target stages and end-to-end orchestration remain required",
+    "No actual GPU/photo-quality qualification; shared immutable WorkingImage and deterministic ML fixture",
+    "No complete cold-restart/parallel/cancel/purge/browser/capacity or whole-module acceptance",
+    "Only isolated databases migrated; production DB unchanged"
+  ],
+  "corrected_failures": []
+}

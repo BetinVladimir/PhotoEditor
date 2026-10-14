@@ -121,6 +121,18 @@ def test_fit_candidate_rejects_rebound_split_and_duplicate_lineage():
         fit_candidate(params, changed, baseline, calibration)
 
 
+def test_fit_candidate_rejects_duplicate_source_bytes_across_sessions():
+    params, manifest, baseline, calibration = fixture()
+    changed = manifest.model_copy(deep=True)
+    train = next(item for item in changed.examples if item.split == 'train')
+    holdout = next(item for item in changed.examples if item.split == 'holdout')
+    train.render_case.working_image = holdout.render_case.working_image
+    train.render_case.binding.source = holdout.render_case.working_image
+    assert train.render_case.source_lineage_sha != holdout.render_case.source_lineage_sha
+    with pytest.raises(ValueError, match='INVALID_TRAINING_MANIFEST'):
+        fit_candidate(params, changed, baseline, calibration)
+
+
 def test_fit_candidate_rejects_calibration_and_baseline_rebinding():
     params, manifest, baseline, calibration = fixture()
     with pytest.raises(ValueError, match='INVALID_TRAINING_MANIFEST'):
@@ -210,3 +222,84 @@ def test_fit_rejects_invalid_frozen_recipe_in_train_partition(change):
         check_active=lambda: None)
     with pytest.raises(OperationFailure, match='INPUT_INVALID'):
         execute(ctx, Artifacts())
+
+
+@pytest.mark.parametrize('cancel_at', [1, 2, 3, 4, 5, 6, 7, 'stage'])
+def test_fit_stops_after_cancelled_artifact_io(monkeypatch, cancel_at):
+    from photo_worker.operations.learning import fit as adapter
+    from photo_worker.runtime.executor import LeaseLost
+    params, manifest, baseline, calibration = fixture()
+    calls = []
+    cancelled = False
+
+    def active():
+        if cancelled:
+            raise LeaseLost('lost during artifact IO')
+
+    class Artifacts:
+        def record(self, value):
+            nonlocal cancelled
+            calls.append(value)
+            if len(calls) == cancel_at or value == cancel_at:
+                cancelled = True
+
+        def params(self, model):
+            self.record('params')
+            return params
+
+        def contract(self, artifact, model):
+            self.record(model.__name__)
+            if model is DescriptorShard:
+                item = next(row for row in manifest.examples
+                            if row.render_case.descriptor_shard == artifact)
+                return descriptor_shard(item)
+            if model is FrozenRecipe:
+                item = next(row for row in manifest.examples
+                            if artifact in (row.render_case.base_recipe,
+                                            row.render_case.approved_recipe))
+                return frozen_recipe(item, manifest)
+            return {TrainingManifest: manifest, CandidateProfile: baseline,
+                    Calibration: calibration}[model]
+
+        def stage_contract(self, value, role):
+            self.record('stage')
+            return ref(999)
+
+    monkeypatch.setattr(adapter, 'fit_candidate', lambda *args, **kwargs: baseline)
+    ctx = SimpleNamespace(lease=SimpleNamespace(execution_profile={
+        'renderer_version': 'v2.2', 'backend': 'cpu'}), check_active=active)
+    with pytest.raises(LeaseLost, match='lost during artifact IO'):
+        adapter.execute(ctx, Artifacts())
+    if isinstance(cancel_at, int):
+        assert len(calls) == cancel_at
+        assert 'stage' not in calls
+    else:
+        assert calls[-1] == 'stage'
+        assert calls.count('stage') == 1
+
+
+@pytest.mark.parametrize('change', ['profile', 'consent', 'duplicate', 'epoch', 'person'])
+def test_fit_rechecks_manifest_identity_and_consent_shape(change):
+    params, manifest, baseline, calibration = fixture()
+    if change == 'profile':
+        manifest.profile_id = UUID(int=0)
+        baseline.profile_id = UUID(int=0)
+    elif change == 'consent':
+        manifest.consents[0].consent_id = UUID(int=0)
+    elif change == 'duplicate':
+        manifest.consents.append(manifest.consents[0].model_copy(deep=True))
+    elif change == 'epoch':
+        manifest.consents[0].epoch = '9223372036854775808'
+    else:
+        manifest.person_id = UUID(int=1)
+    with pytest.raises(ValueError, match='INVALID_TRAINING_MANIFEST'):
+        fit_candidate(params, manifest, baseline, calibration)
+    with pytest.raises(ValueError, match='INVALID_TRAINING_MANIFEST'):
+        TrainingManifest.model_validate(manifest.model_dump())
+
+
+def test_fit_rejects_zero_subject_group():
+    params, manifest, baseline, calibration = fixture()
+    manifest.examples[0].subject_group_id = UUID(int=0)
+    with pytest.raises(ValueError, match='INVALID_TRAINING_MANIFEST'):
+        fit_candidate(params, manifest, baseline, calibration)

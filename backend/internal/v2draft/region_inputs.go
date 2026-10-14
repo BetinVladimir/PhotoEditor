@@ -21,6 +21,9 @@ func (s ClosureResolver) ResolveRegionInputs(ctx context.Context, who auth.Ident
 	if err != nil {
 		return nil, err
 	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	baseline, err := DecodeStyleBaseline(styleRaw)
 	if err != nil || CheckStyleBounds(baseline, delta) != nil {
 		return nil, v2input.ErrInvalid

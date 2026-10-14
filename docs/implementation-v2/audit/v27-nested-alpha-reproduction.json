@@ -1,0 +1,8 @@
+{
+  "operation": "mask.person",
+  "native_direct_inputs_exclude_alpha": true,
+  "alpha_is_working_image_child": true,
+  "observed_error": "INPUT_INVALID",
+  "cause": "PERSON_INPUT_UNDECLARED",
+  "status": "reproduced"
+}

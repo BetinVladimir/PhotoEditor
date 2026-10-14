@@ -12,6 +12,11 @@ describe('shared command dispatch',()=>{
  });
 });
 
+it('multi submission shortcut is distinct from comparison and ignores editing',()=>{
+ const event={...key,key:'Enter',shiftKey:true};
+ expect(matchCommand(event)).toBe('multi.submit');expect(matchCommand({...event,editing:true})).toBeUndefined();expect(matchCommand({...event,shiftKey:false})).toBe('compare.accept');
+});
+
 it('comparison shortcuts do not intercept editing or repeat/composition',()=>{
  const event={key:'ArrowRight',ctrlKey:true,metaKey:false,altKey:false,shiftKey:false,repeat:false,isComposing:false,defaultPrevented:false};
  expect(matchCommand(event)).toBe('compare.next');expect(matchCommand({...event,key:'ArrowLeft'})).toBe('compare.previous');expect(matchCommand({...event,key:'Enter'})).toBe('compare.accept');expect(matchCommand({...event,key:'Backspace'})).toBe('compare.reject');

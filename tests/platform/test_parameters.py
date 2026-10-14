@@ -106,3 +106,18 @@ def test_task_style_requires_declared_ref_and_admitted_ram(tmp_path):
             assert not calls
             result=artifacts.style(ref)
             assert result.global_.residual_lut.encoding=='dense' and calls==[ref]
+
+
+@pytest.mark.parametrize('mode',['valid','digest','duplicate','schema','limit'])
+def test_contract_bytes_preserves_exact_validated_document(mode):
+    from photo_worker.runtime.parameters import read_contract_bytes
+    data=b'{ "enabled": true, "strength": 0.5 }\n'
+    if mode=='duplicate':data=b'{"enabled":true,"enabled":false,"strength":0.5}'
+    if mode=='schema':data=b'{"enabled":true,"strength":"invalid"}'
+    source=Stream(data)
+    ref=ref_for(b'changed') if mode=='digest' else ref_for(data)
+    if mode=='valid':assert read_contract_bytes(ref,Params,lambda _:source,lambda:None)==data
+    else:
+        with pytest.raises((ArtifactTransferError,ValidationError)):
+            read_contract_bytes(ref,Params,lambda _:source,lambda:None,max_bytes=2 if mode=='limit' else 1048576)
+    assert source.closed

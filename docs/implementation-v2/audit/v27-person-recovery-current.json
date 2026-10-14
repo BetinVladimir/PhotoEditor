@@ -1,0 +1,93 @@
+{
+  "recorded_at": "2026-10-08T11:53:46.771770+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "dirty_tree_hash": "b616b62f9bf13cb61a701966454a99ad995cb673b992ca94062e2191f50b9ced",
+  "contracts_hash": "8aa52def0f263b420c2a654084948cc89955aebf131aa7e1589821464245a25b",
+  "source_manifest": "v27-person-recovery-source.json",
+  "source_pins": 8194,
+  "checks": [
+    {
+      "command": "pytest test_v27_semantic_intent_publication.py plus native files -k native-person-defect-recovery or native-face-wire or native-bootstrap (three selected cases; seven native cases excluded)",
+      "evidence": "v27-person-recovery-final.xml",
+      "evidence_sha": "c7f56437de116ae1fd06758d93f29637430c84c07aa19a0d6b65981b98fbf4e0",
+      "exit_code": 0,
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "command": "pytest test_v27_native_registration_state.py test_v27_native_face_outputs.py test_v27_native_admission.py -q (all seven cases, no -k)",
+      "evidence": "v27-person-recovery-regression.xml",
+      "evidence_sha": "4962d3b5ea23c994b384c3b5aa1f420ea767bddc112f2ab75d822147c89e5b5a",
+      "exit_code": 0,
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "command": "scripts/run-platform.sh go -C backend test ./internal/semanticproposal ./internal/v2input ./internal/review ./internal/masknpy ./internal/gateway ./internal/httpapi -count=1",
+      "evidence": "v27-person-recovery-go.log",
+      "evidence_sha": "ec26aff770a60997bbe41eeb52aa7d2ae746c72874c2d8fac9df1c7582982bb7",
+      "exit_code": 0
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 .venv-platform/bin/python docs/implementation-v2/check-docs.py",
+      "evidence": "v27-person-recovery-contracts.log",
+      "evidence_sha": "3c084516a2003ec5f0f97ac34c8548d41a1dc647ad5cc1eab36211d018afed62",
+      "exit_code": 0
+    }
+  ],
+  "requirements": [
+    {
+      "id": "exact-person-blocked-persistence-registration",
+      "status": "implemented_and_scoped_runtime_passed",
+      "evidence": "v27-person-recovery-final.xml"
+    },
+    {
+      "id": "saved-original-person-recovery-after-transport-interruption",
+      "status": "implemented_and_scoped_runtime_passed",
+      "evidence": "v27-person-recovery-final.xml"
+    },
+    {
+      "id": "strict-recovery-schema-substitution-and-legacy-absence",
+      "status": "implemented_and_scoped_checks_passed",
+      "evidence": "v27-person-recovery-go.log"
+    },
+    {
+      "id": "person-composed-SQL-admission-and-completed-packets",
+      "status": "open"
+    },
+    {
+      "id": "person-probability-output-coverage",
+      "status": "open"
+    },
+    {
+      "id": "automatic-new-person-covering-protection-parent",
+      "status": "open"
+    },
+    {
+      "id": "whole-V27-GPU-corpus-browser-native-acceptance",
+      "status": "open"
+    }
+  ],
+  "limitations": [
+    "Explicit GPU model and qualification doubles; original imported person evidence, not newly inferred person",
+    "Person-bearing graph remains blocked/unsealed; start and composed activation remain gated",
+    "Independent storage verifier proves original Params/objects/registered NPY and no attempts/results/parent, not protected worker output",
+    "Ten scoped integration cases are not full-module acceptance; prior intermediate checks are not substituted for current checks"
+  ],
+  "intermediate_evidence": [
+    "v27-person-recovery-wire.xml"
+  ],
+  "changes": [
+    "Optional exact original person locators and complete authority digest in config; legacy absent config unchanged",
+    "Repeated physical qualified original authority on restore, derived original mask/pins and exact full graph reconstruction",
+    "Blocked persistence composes person SQL locks; injected transport interruption preserves original metadata and supports subsequent registration/replay",
+    "Caller pin and original version substitutions refuse; SQL admission still refuses unsupported person-bearing config"
+  ]
+}

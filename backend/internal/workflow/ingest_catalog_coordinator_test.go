@@ -108,3 +108,27 @@ func TestCatalogCoordinatorAllFailedSkipsOriginals(t *testing.T) {
 		t.Fatal("failed batch attempted original IO", p.calls, err)
 	}
 }
+
+func TestImportedCatalogUsesExistingOriginalAndOrderedSettlement(t *testing.T) {
+ spec, p := catalogCoordinatorFixture(t)
+ done, err := (IngestCatalogCoordinator{Source:p, Catalog:p}).advance(context.Background(), uuid.New(), spec, false)
+ if err != nil || !done || !reflect.DeepEqual(p.calls, []string{"reject/2", "adopt/8", "finish"}) {
+  t.Fatal("imported catalog copied original or changed settlement order", p.calls, err)
+ }
+}
+
+func TestImportedCatalogValidatesWholeBatchBeforeMutation(t *testing.T) {
+ spec, p := catalogCoordinatorFixture(t)
+ p.batch.Failures[0].Source.ID = uuid.New()
+ done, err := (IngestCatalogCoordinator{Source:p, Catalog:p}).advance(context.Background(), uuid.New(), spec, false)
+ if err == nil || done || len(p.calls) != 0 { t.Fatal("invalid imported batch mutated catalog", p.calls, err) }
+}
+
+func TestImportedCatalogFailureDoesNotFinish(t *testing.T) {
+ spec, p := catalogCoordinatorFixture(t)
+ p.failAt = "adopt/8"
+ done, err := (IngestCatalogCoordinator{Source:p, Catalog:p}).advance(context.Background(), uuid.New(), spec, false)
+ if err == nil || done || !reflect.DeepEqual(p.calls, []string{"reject/2", "adopt/8"}) {
+  t.Fatal("imported catalog finished partial settlement", p.calls, err)
+ }
+}

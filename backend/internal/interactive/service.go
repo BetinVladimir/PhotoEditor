@@ -14,7 +14,6 @@ import (
 	"photoeditor/backend/internal/idempotency"
 	"photoeditor/backend/internal/project"
 	"photoeditor/backend/internal/tenant"
-	"strings"
 	"time"
 )
 
@@ -183,10 +182,14 @@ func (s Service) CreateMask(ctx context.Context, who auth.Identity, tid uuid.UUI
 			return e
 		}
 		out, e = idempotency.Use(ctx, tx, idempotency.Scope{Tenant: tid, Principal: who.UserID, PrincipalType: "user", Route: "Mask.Create", Key: key}, req, time.Now().Add(24*time.Hour), func() (idempotency.Response, error) {
-			manual := len(req.Strokes) > 0 || len(req.Polygons) > 0
-			prompt := len(req.Points) > 0
-			if manual == prompt {
+			// Idempotency conflict/replay is decided first. A new invalid binding
+			// rolls back this transaction, including its tentative idempotency row.
+			if req.InputSHA256 != src.SHA {
 				return idempotency.Response{}, domain.NewError("VALIDATION_FAILED", 422)
+			}
+			shapes, points, manual, e := parseMaskInputs(req)
+			if e != nil {
+				return idempotency.Response{}, e
 			}
 			task := uuid.New()
 			cfg := map[string]any{"schema_version": 1, "asset_version_id": req.AssetVersionID, "source_sha256": req.InputSHA256, "operation": map[bool]string{true: "mask.rasterize", false: "mask.prompt"}[manual]}
@@ -195,39 +198,19 @@ func (s Service) CreateMask(ctx context.Context, who auth.Identity, tid uuid.UUI
 				return idempotency.Response{}, e
 			}
 			if manual {
-				strokes, e := array(req.Strokes, 512<<10)
-				if e != nil {
-					return idempotency.Response{}, e
-				}
-				polygons, e := array(req.Polygons, 512<<10)
-				if e != nil {
-					return idempotency.Response{}, e
-				}
-				shapes := append(strokes, polygons...)
-				if len(shapes) < 1 || len(shapes) > 1024 {
-					return idempotency.Response{}, domain.NewError("VALIDATION_FAILED", 422)
-				}
 				template := map[string]any{"source_sha256": req.InputSHA256, "object_id": req.ObjectID, "shapes": shapes}
 				e = insertTask(ctx, tx, tid, run, task, "mask_manual", "mask.rasterize", 0, src, []ArtifactRef{{src.ArtifactID, src.SHA}}, template, "cpu", "")
 			} else {
-				points, e := array(req.Points, 128<<10)
-				if e != nil || len(points) < 1 || len(points) > 128 {
-					return idempotency.Response{}, domain.NewError("VALIDATION_FAILED", 422)
-				}
 				backend, lock, e := runtime(ctx, tx, tid, "mask.prompt")
 				if e != nil {
 					return idempotency.Response{}, e
 				}
-				selector := strings.TrimSpace(req.Selector)
-				if selector == "" {
-					selector = "manual"
+				selector, box, e := parsePromptOptions(req)
+				if e != nil {
+					return idempotency.Response{}, e
 				}
 				params := map[string]any{"image": ArtifactRef{src.ArtifactID, src.SHA}, "source_sha256": req.InputSHA256, "object_id": req.ObjectID, "selector": selector, "points": points, "model_id": "mobilesam", "model_lock_id": lock, "preprocessing_id": "mobilesam_long1024_v1"}
-				if len(req.Box) > 0 {
-					var box any
-					if json.Unmarshal(req.Box, &box) != nil {
-						return idempotency.Response{}, domain.NewError("VALIDATION_FAILED", 422)
-					}
+				if box != nil {
 					params["box"] = box
 				}
 				e = insertTask(ctx, tx, tid, run, task, "mask_prompt", "mask.prompt", 0, src, []ArtifactRef{{src.ArtifactID, src.SHA}}, params, backend, lock)
@@ -406,8 +389,12 @@ func (s Service) Preview(ctx context.Context, who auth.Identity, tid uuid.UUID, 
 			}
 			if req.DraftRevision > 0 {
 				tag, x := tx.Exec(ctx, `UPDATE photo.editor_drafts SET last_preview_run_id=$4 WHERE tenant_id=$1 AND asset_version_id=$2 AND user_id=$3 AND revision=$5`, tid, req.AssetVersionID, who.UserID, run, req.DraftRevision)
-				if x != nil { return idempotency.Response{}, x }
-				if tag.RowsAffected() != 1 { return idempotency.Response{}, domain.NewError("REVISION_CONFLICT", 409) }
+				if x != nil {
+					return idempotency.Response{}, x
+				}
+				if tag.RowsAffected() != 1 {
+					return idempotency.Response{}, domain.NewError("REVISION_CONFLICT", 409)
+				}
 			}
 			body, e := canonical.Marshal(RunAccepted{run, "queued"})
 			return idempotency.Response{Status: 202, Body: body, ResourceID: &run}, e

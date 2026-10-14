@@ -3,6 +3,24 @@ import { ApiClient, EditorStore, SelectionStore, type AuthStore } from "./index"
 
 const response = (status: number, body: unknown = {}) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 describe("ApiClient", () => {
+  it('reads bounded authenticated PNG bytes and refreshes once',async()=>{
+    let token='old',refreshes=0;
+    const auth:AuthStore={principal:()=>({kind:'owner',accessToken:token}),refresh:async()=>{refreshes++;token='new';return token},clear:()=>{}};
+    const fetcher:typeof fetch=async(_url,init)=>{
+      const headers=new Headers(init?.headers);expect(headers.get('Accept')).toBe('image/png');
+      if(headers.get('Authorization')==='Bearer old')return response(401);
+      return new Response(new Uint8Array([137,80,78,71]),{headers:{'Content-Type':'image/png','Content-Length':'4'}});
+    };
+    const bytes=await new ApiClient('https://example.test',auth,fetcher).requestBytes('/api/v1/preview','image/png',8);
+    expect([...bytes]).toEqual([137,80,78,71]);expect(refreshes).toBe(1);
+  });
+  it('rejects oversized and wrong-media binary responses',async()=>{
+    const auth:AuthStore={principal:()=>({kind:'owner',accessToken:'token'}),refresh:async()=>'',clear:()=>{}};
+    for(const contentType of ['text/html','image/png']){
+      const fetcher:typeof fetch=async()=>new Response(new Uint8Array([1,2,3,4]),{headers:{'Content-Type':contentType}});
+      await expect(new ApiClient('',auth,fetcher).requestBytes('/api/v1/preview','image/png',contentType==='image/png'?3:8)).rejects.toThrow('BINARY_RESPONSE_INVALID');
+    }
+  });
   it("single-flights refresh and retries each owner request once", async () => {
     let token="old",refreshes=0,calls=0; const auth:AuthStore={principal:()=>({kind:"owner",accessToken:token}),refresh:async()=>{refreshes++;await Promise.resolve();token="new";return token},clear:()=>{}};
     const fetcher:typeof fetch=async (_url,init)=>{const h=new Headers(init?.headers);if((_url as string).endsWith('/auth/csrf')) return response(200,{csrf_token:'c'});calls++;return h.get('Authorization')==='Bearer new'?response(200,{ok:true}):response(401,{code:'EXPIRED'})};

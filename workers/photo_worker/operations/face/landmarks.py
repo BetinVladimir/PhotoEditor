@@ -10,9 +10,10 @@ from photo_worker.contracts.face import FaceBoxes,FaceLandmarks,LandmarkParams
 from photo_worker.contracts.images import Face68,Landmark,WorkingImage
 from photo_worker.models.install import ModelError
 from photo_worker.models.pool import ModelPool
-from photo_worker.runtime.arrays import read_array
+from photo_worker.runtime.arrays import read_array,read_alpha_array
 from photo_worker.runtime.artifacts import ArtifactConfig,TaskArtifacts
 from photo_worker.runtime.executor import ExecutionContext,Operation,OperationFailure,OperationResult
+from .resources import required_face_analysis_ram
 
 
 class FANEngine(Protocol):
@@ -30,6 +31,8 @@ def _crop(rgb:np.ndarray,box,size:int,expansion:float):
 
 
 def _points(raw,width:int,height:int,geometry):
+    if not isinstance(raw,np.ndarray) or raw.shape!=(68,3):
+        raise ValueError('MODEL_OUTPUT_INVALID')
     value=np.asarray(raw,np.float32)
     if value.shape!=(68,3) or not np.isfinite(value).all() or np.any(value[:,2]<0) or np.any(value[:,2]>1) or np.any(value[:,:2]<0) or np.any(value[:,:2]>255):raise ValueError('MODEL_OUTPUT_INVALID')
     left,top,side=geometry
@@ -47,10 +50,13 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts,pool:ModelPool,backend:
         params=artifacts.params(LandmarkParams)
         if params.model_lock_id!=pool.lock.lock_id:raise ModelError('MODEL_LOCK_MISMATCH')
         image=artifacts.contract(params.image,WorkingImage);faces=artifacts.contract(params.faces,FaceBoxes)
-        if faces.image!=params.image or image.dtype!='float32' or image.color.profile_id!='work_rec2020_gamma24_v1':raise ValueError('LANDMARK_BINDING_INVALID')
+        if (faces.image!=params.image or image.dtype!='float32'
+                or image.color.profile_id!='work_rec2020_gamma24_v1' or image.color.encoding!='gamma24'
+                or image.canvas.width*image.canvas.height>200000000):raise ValueError('LANDMARK_BINDING_INVALID')
         required=(params.image,image.pixels,*(([image.alpha] if image.alpha else [])),params.faces)
-        if any(ref not in ctx.lease.command.inputs for ref in required):raise ValueError('LANDMARK_INPUT_UNDECLARED')
+        for ref in required:artifacts.require_declared_input(ref)
         h,w=image.canvas.height,image.canvas.width
+        if ram<required_face_analysis_ram(h,w,image.alpha is not None):raise OperationFailure('RESOURCE_OOM')
     except ModelError as exc:raise OperationFailure(str(exc)) from exc
     except ValueError as exc:raise OperationFailure('INPUT_INVALID') from exc
     ctx.progress(0,max(1,len(faces.faces)+1))
@@ -61,12 +67,13 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts,pool:ModelPool,backend:
             srgb,clipped=work_to_model(rgb)
             if image.alpha is not None:
                 local=stack.enter_context(artifacts.input(image.alpha,suffix='.npy'))
-                alpha=stack.enter_context(read_array(local.path,(h,w),'uint16',ctx.check_active));srgb=np.where((alpha>0)[...,None],srgb,0).astype(np.float32)
+                alpha=stack.enter_context(read_alpha_array(local.path,(h,w),ctx.check_active));srgb=np.where((alpha>0)[...,None],srgb,0).astype(np.float32)
             landmarks=[]
             with pool.acquire(params.model_id,backend) as engine:
                 for index,face in enumerate(faces.faces):
                     ctx.check_active();crop,geometry=_crop(srgb,face.bbox_normalized,params.crop_size,params.expansion)
-                    points=_points(engine.infer(crop),w,h,geometry)
+                    raw=engine.infer(crop);ctx.check_active()
+                    points=_points(raw,w,h,geometry)
                     landmarks.append(Face68(object_id=face.object_id,points=points,canvas=image.canvas,transform_chain=image.transform_chain));ctx.progress(index+1,len(faces.faces)+1)
     except ModelError as exc:raise OperationFailure(str(exc)) from exc
     except ValueError as exc:raise OperationFailure('MODEL_OUTPUT_INVALID') from exc
@@ -76,7 +83,7 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts,pool:ModelPool,backend:
     if landmarks and mean<.75:warnings.append('low_confidence')
     if np.count_nonzero(clipped):warnings.append('source_srgb_clipped')
     result=FaceLandmarks(image=params.image,faces=params.faces,landmarks=landmarks,model_id=params.model_id,model_lock_id=params.model_lock_id,backend=backend,preprocessing_id=params.preprocessing_id,mean_confidence=mean,warnings=warnings)
-    ref=artifacts.stage_contract(result,'face_landmarks');ctx.progress(len(faces.faces)+1,len(faces.faces)+1)
+    ctx.check_active();ref=artifacts.stage_contract(result,'face_landmarks');ctx.progress(len(faces.faces)+1,len(faces.faces)+1)
     return OperationResult(outputs=[ref],review_required=bool(warnings))
 
 

@@ -1,0 +1,69 @@
+{
+  "recorded_at": "2026-10-08T11:43:50.191129+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "module_accepted": false,
+  "source_manifest": "v27-person-dependencies-source.json",
+  "source_pins": 8192,
+  "checks": [
+    {
+      "evidence": "v27-person-dependencies-final.xml",
+      "sha256": "02c34aadb2bfad46167069087ad7e6514cf7b20a81bf91210d8c55bd17d3d307",
+      "exit_code": 0,
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "evidence": "v27-person-dependencies-go.log",
+      "sha256": "3a814bd39a0b0b46d4a702f013966f769b66079a53c125e76cf8ad3985ed2a79",
+      "exit_code": 0
+    },
+    {
+      "evidence": "v27-person-dependencies-contracts.log",
+      "sha256": "a45d13ea49fe30c3366e10ffdfe35dd240413b3be28e5c44caef72626674d675",
+      "exit_code": 0
+    }
+  ],
+  "changes": [
+    "Exact source/policy/model-bound person permanent protection Params with retained original authority",
+    "Exact original NPY inventory pin; dependency digest binds original object versions and preserves legacy hashes when absent",
+    "Repeated physical original authority before/after dependency preparation and Params publication; original person SQL locks compose with completed FAN/skin locks",
+    "Actual native wire prepares and locks person-bearing dependencies and refuses a substituted original object version, even with recomputed private seals"
+  ],
+  "requirements": [
+    {
+      "id": "original-person-projection",
+      "status": "implemented_and_scoped_runtime_passed"
+    },
+    {
+      "id": "person-bound-defect-params-inventory-dependencies",
+      "status": "implemented_and_scoped_runtime_passed"
+    },
+    {
+      "id": "persisted-person-config-recovery-composed-admission",
+      "status": "open"
+    },
+    {
+      "id": "person-probability-output-coverage",
+      "status": "open"
+    },
+    {
+      "id": "new-person-covering-protection-parent",
+      "status": "open"
+    },
+    {
+      "id": "whole-V27-real-GPU-corpus-browser-native-acceptance",
+      "status": "open"
+    }
+  ],
+  "limitations": [
+    "Inference and qualification use explicit doubles; original imported person fixture is not newly inferred person evidence",
+    "Person-bearing Params are prepared and locked only, not published or admitted; start/begin unsupported-authority gate remains",
+    "Eight scoped integration tests do not establish whole-module acceptance"
+  ],
+  "retained_discovery_evidence": [
+    "v27-person-dependencies-go-sandbox-refused.log"
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 pinned source physical failure boundaries",
+  "whole_module_accepted": false,
+  "production_code_changed": false,
+  "checks": {
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 9.14,
+    "xml": "v28-local-source-faults-current.xml"
+  },
+  "source_sha256": {
+    "backend/internal/v2draft/local_portrait_source_physical_integration_test.go": "a5c4fcdad08986177a06a133d820f8fc8c0b1567804acd4b7cc2a74097520664",
+    "tests/integration/test_v28_local_source_physical.py": "c5193801d7e45d0ef99e009b5e126bbc95629dd2c203bc4c6b98ba89219b0e53",
+    "backend/internal/v2draft/local_portrait_material.go": "2a26ac36a54f116108b1eb56b4b4405ba986950e84425d3aca8010fba249da38"
+  },
+  "assertions": [
+    "Original DB-pinned version read despite newer invalid bytes at same key",
+    "Corrupt original bytes with matching advertised metadata refused with no source returned",
+    "Deleted pinned version refused despite newer version remaining"
+  ],
+  "limitations": [
+    "Owner-seeded synthetic WorkingImage metadata; no real photo, pixel or ICC/model qualification",
+    "No complete V28 manual raster, admission, worker, adoption or UI cycle"
+  ],
+  "environment_note": "Initial run selected unavailable Docker PostgreSQL; final run used configured PHOTO_TEST_NATIVE_INFRA=1 and passed."
+}

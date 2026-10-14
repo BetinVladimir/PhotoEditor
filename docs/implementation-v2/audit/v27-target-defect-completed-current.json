@@ -1,0 +1,57 @@
+{
+  "generated_at": "2026-10-08T18:19:05.716001+00:00",
+  "status": "implementing",
+  "module": "V27",
+  "package_id": "V27",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "sql": {
+      "result": "PASS",
+      "tests": 23,
+      "seconds": 26.048
+    },
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 85.604
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/v2input",
+      "photoeditor/backend/internal/v2draft",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "00950 additive scheduler-only completed producer barrier; same namespace and original lineage, canonical attempt/fence and shared row locks",
+    "Each of person/landmarks/skin running run refuses until restored completed",
+    "Target blocked begin repeats owned plan/anchor/color, canonical/completed dependencies, CPU report/full policy and exact namespace Params pins",
+    "Created/pending replay and revoked refusal; independent SQL/S3 verifier confirms draft/unsealed/blocked/no canonical result",
+    "00899\u219200950 preserves tenant metadata and existing function identity/security"
+  ],
+  "limitations": [
+    "Production automatic target defect advancement not yet connected",
+    "Target input registration/seal/worker/result/finish/saved recovery and original transfer handoff remain required",
+    "No fresh-process Recover or whole V27 acceptance",
+    "Upstream ML doubles; no GPU/photo-quality acceptance",
+    "No production migration"
+  ],
+  "sha256": {
+    "backend/db/migrations/00950_v27_target_defect_completed_dependencies.sql": "cf3fcf10c02385fe0feb334772cec031fb9cfc77d6d4fc5c3cec55180d99f165",
+    "backend/internal/semanticproposal/native_target_defect_begin.go": "69a1ea411e0870179c5495ef759199962741b15ddccf0bf23de264784aedab82",
+    "backend/internal/semanticproposal/native_target_defect_dependencies.go": "7c808960a6ae3043bf74c1da9f58c092dc0a2c273adaf175ebe97d6d7bfb4ccd",
+    "backend/internal/semanticproposal/native_target_defect_dependency_probe_test.go": "0ac7f3f361416c7e338999b596a1ba1679ceff123daa30053bbd9d102a7375b0",
+    "backend/internal/semanticproposal/native_target_defect_plan_probe_test.go": "c9a6e7188e3498104b7613de67836fe9b68c2f925828e071fd6a7023c08765d0",
+    "backend/internal/semanticproposal/native_target_defect_wire_probe_test.go": "d0e55fc0e3939ce7dc7f7093e67a51a1ecfc703ad8ce3fd667050758753549ff",
+    "tests/integration/test_v27_person_migration_upgrade.py": "b58c77c3c937b75725225f072defd733f19aec200fea42819db7bd93f1de63f0",
+    "tests/integration/test_v27_semantic_intent_publication.py": "98150844df4baa7c2124deb78fe6bb156769e74ef17d4ba251a0144287af7178",
+    "tests/integration/v27_face_wire_probe.py": "e49a090108edd7f901aff198de454946713b220fe81c1395ef1035410a6473e8",
+    "docs/implementation-v2/03-database.md": "ba369d65937e676cf6f1a5233ff2c2b21d3d5b6f34ba48a2bbcecc00cc7daba9",
+    "docs/implementation-v2/15-execution-contracts.md": "5e6189900feb80a19816e4d8647effa1cc6361bc9d15147bdc4af650e3e7491b",
+    "docs/implementation-v2/audit/v27-target-defect-completed-go-current.jsonl": "57b44c92b38ecb8c47313ba19b174e628cfd87438d3d75b7d49a2826c67f1a03",
+    "docs/implementation-v2/audit/v27-target-defect-completed-sql-current.xml": "ff42f80a83acccb471f0715a2ee49e30372757d715a7b908df4c905d2c73bea0",
+    "docs/implementation-v2/audit/v27-target-defect-completed-wire-current.xml": "16a9498cdb4e4a0d5c336c41e58bf79915cd167d8be608c9f8f0bf70196b1db6"
+  }
+}

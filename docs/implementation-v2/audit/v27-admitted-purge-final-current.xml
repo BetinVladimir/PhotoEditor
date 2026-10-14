@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="164.008" timestamp="2026-10-09T09:30:04.920709+03:00" hostname="Mac"><testcase classname="tests.integration.test_v27_admitted_tenant_purge" name="test_admitted_native_chain_physical_tenant_purge" time="163.435"><failure message="AssertionError: === RUN   TestIntegrationAdmittedNativeTenantPurge&#10;      v27_admitted_tenant_purge_integration_test.go:78: deletion left active runs 8&#10;  --- FAIL: TestIntegrationAdmittedNativeTenantPurge (0.03s)&#10;  FAIL&#10;  FAIL&#09;photoeditor/backend/internal/maintenance&#09;0.550s&#10;  FAIL&#10;  &#10;assert 1 == 0&#10; +  where 1 = CompletedProcess(args=['go', 'test', '-tags', 'integration', './internal/maintenance', '-run', '^TestIntegrationAdmitt...ionAdmittedNativeTenantPurge (0.03s)\nFAIL\nFAIL\tphotoeditor/backend/internal/maintenance\t0.550s\nFAIL\n', stderr='').returncode">tests/integration/test_v27_admitted_tenant_purge.py:48: in test_admitted_native_chain_physical_tenant_purge
+    assert result.returncode==0,result.stdout+result.stderr
+E   AssertionError: === RUN   TestIntegrationAdmittedNativeTenantPurge
+E         v27_admitted_tenant_purge_integration_test.go:78: deletion left active runs 8
+E     --- FAIL: TestIntegrationAdmittedNativeTenantPurge (0.03s)
+E     FAIL
+E     FAIL	photoeditor/backend/internal/maintenance	0.550s
+E     FAIL
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['go', 'test', '-tags', 'integration', './internal/maintenance', '-run', '^TestIntegrationAdmitt...ionAdmittedNativeTenantPurge (0.03s)\nFAIL\nFAIL\tphotoeditor/backend/internal/maintenance\t0.550s\nFAIL\n', stderr='').returncode</failure></testcase></testsuite></testsuites>

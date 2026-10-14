@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 independent selected manual-mask replay",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "production_migration_applied": false,
+  "checks": {
+    "components": {
+      "passed": 53,
+      "seconds": 1.77,
+      "xml": "v28-relight-manual-replay-current.xml"
+    }
+  },
+  "source_sha256": {
+    "workers/photo_worker/operations/portrait/relight_manual_authority.py": "a29f6f364caf6e89aa5180d0c324445db3671ed5360f722ae93d39fc54b23fb3",
+    "workers/photo_worker/operations/portrait/relight_runtime_lock.py": "b2e6a01f590643d82b0ef7c43921a07a4df606a89c8c1e3a8c3c0d391d763136",
+    "tests/platform/test_relight_manual_authority.py": "159839897f4a83edb28b3923bbd6167df0399db2e86da428be16f994849bcf54",
+    "tests/platform/test_mask_raster_adapter.py": "6767a1133afb3bca8cc71b5cbbd6d5702b96641056c81adda48e914c69d6e72e"
+  },
+  "limitations": [
+    "Concrete live SQL single-mask canonical origin resolver remains required; component origin authority is a double",
+    "Local exact raster replay is verified for inline/external vectors with real arrays; no integrated physical worker/adoption/UI or real image/device qualification"
+  ]
+}

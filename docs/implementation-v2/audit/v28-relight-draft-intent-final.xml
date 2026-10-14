@@ -1,0 +1,1 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="1" time="1.734" timestamp="2026-10-09T14:25:20.490532+03:00" hostname="Mac"><testcase classname="tests.integration.test_v28_relight_draft_intent" name="test_relight_intent_frozen_replay_and_revocation" time="1.577" /></testsuite></testsuites>

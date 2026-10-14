@@ -7,6 +7,15 @@ from pydantic import Field, model_validator
 from .base import ArtifactRef, Contract, SHA256, Unit
 
 
+def validate_format_options(format, quality, alpha, matte_rgb):
+    if format == 'jpeg' and (quality is None or alpha != 'matte'):
+        raise ValueError('JPEG requires quality and matte')
+    if format != 'jpeg' and quality is not None:
+        raise ValueError('Quality is JPEG-only')
+    if (alpha == 'matte') != (matte_rgb is not None):
+        raise ValueError('Matte color mismatch')
+
+
 class ExportSize(Contract):
     long_edge: Annotated[int, Field(ge=1, le=100000)] | None = None
     width: Annotated[int, Field(ge=1, le=100000)] | None = None
@@ -39,12 +48,7 @@ class EncodeParams(Contract):
 
     @model_validator(mode='after')
     def format_options(self):
-        if self.format == 'jpeg' and (self.quality is None or self.alpha != 'matte'):
-            raise ValueError('JPEG requires quality and matte')
-        if self.format != 'jpeg' and self.quality is not None:
-            raise ValueError('Quality is JPEG-only')
-        if (self.alpha == 'matte') != (self.matte_rgb is not None):
-            raise ValueError('Matte color mismatch')
+        validate_format_options(self.format, self.quality, self.alpha, self.matte_rgb)
         return self
 
 

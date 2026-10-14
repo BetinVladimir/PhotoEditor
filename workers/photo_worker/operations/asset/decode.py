@@ -10,6 +10,7 @@ import numpy as np
 from photo_worker.color.icc import ICCRegistry,LittleCMS
 from .inspect import open_raster,read_metadata
 from .verify import AssetError,MAX_PIXELS,VerifiedSource,verify_size
+from photo_worker.contracts.assets import RAWDevelopment
 
 @dataclass(frozen=True)
 class WorkingImage:
@@ -28,25 +29,75 @@ def orient_once(image):
     return image.autorot()
 
 
-def decode_raw(source: VerifiedSource) -> np.ndarray:
+def raw_decoder_version(rawpy) -> str:
+    return f"rawpy-{rawpy.__version__}/libraw-{'.'.join(str(part) for part in rawpy.libraw_version)}"
+
+
+def validate_raw_rgb_layout(rgb: object) -> np.ndarray:
+    """Require a stable contiguous RGB16 layout before tiled conversion."""
+    if (not isinstance(rgb, np.ndarray) or rgb.dtype != np.dtype('=u2') or
+            rgb.ndim != 3 or rgb.shape[2] != 3 or min(rgb.shape[:2]) < 1 or
+            not rgb.flags.c_contiguous or not rgb.flags.aligned):
+        raise AssetError('RAW_DECODE_CONTRACT_ERROR')
+    if rgb.shape[0] * rgb.shape[1] > MAX_PIXELS:
+        raise AssetError('PIXEL_LIMIT_EXCEEDED')
+    return rgb
+
+
+def decode_raw(source: VerifiedSource, development: RAWDevelopment | None = None, *,
+               check_active: Callable[[],None] = lambda:None) -> np.ndarray:
+    check_active()
     import rawpy
+    options = dict(use_camera_wb=True,use_auto_wb=False,no_auto_bright=True,
+                   gamma=(1,1),output_bps=16,output_color=rawpy.ColorSpace.sRGB,
+                   demosaic_algorithm=rawpy.DemosaicAlgorithm.AHD)
+    if development is not None:
+        # model_copy/model_construct may bypass Pydantic validation; reparse
+        # owned fields before mapping options into the native decoder.
+        development = RAWDevelopment.model_validate(development.model_dump() if isinstance(development,RAWDevelopment) else development)
+        if development.decoder_version != raw_decoder_version(rawpy):
+            raise AssetError('RAW_DECODER_VERSION_MISMATCH')
+        options.update(use_camera_wb=development.wb_source=='camera',
+                       use_auto_wb=development.wb_source=='auto',
+                       demosaic_algorithm={'ahd':rawpy.DemosaicAlgorithm.AHD,
+                                           'dcb':rawpy.DemosaicAlgorithm.DCB}[development.demosaic],
+                       exp_shift=2.0**development.exposure_ev,exp_preserve_highlights=0.0,
+                       highlight_mode={'clip':rawpy.HighlightMode.Clip,
+                                       'blend':rawpy.HighlightMode.Blend,
+                                       'reconstruct':rawpy.HighlightMode.ReconstructDefault}[development.highlight_policy])
     try:
+        check_active()
         with rawpy.imread(str(source.path)) as raw:
-            if raw.sizes.raw_width*raw.sizes.raw_height > MAX_PIXELS:
+            check_active()
+            dimensions=(raw.sizes.raw_width,raw.sizes.raw_height)
+            if any(isinstance(value,(bool,np.bool_)) or not isinstance(value,(int,np.integer)) or value<1 for value in dimensions):
+                raise AssetError('RAW_DECODE_CONTRACT_ERROR')
+            if int(dimensions[0])*int(dimensions[1]) > MAX_PIXELS:
                 raise AssetError('PIXEL_LIMIT_EXCEEDED')
-            return raw.postprocess(use_camera_wb=True,use_auto_wb=False,no_auto_bright=True,
-                                   gamma=(1,1),output_bps=16,output_color=rawpy.ColorSpace.sRGB,
-                                   demosaic_algorithm=rawpy.DemosaicAlgorithm.AHD)
+            if development is not None and development.wb_source == 'camera':
+                wb = raw.camera_whitebalance
+                if (not isinstance(wb,(list,tuple,np.ndarray)) or np.shape(wb)!=(4,) or
+                    any(not isinstance(value,(int,float,np.number)) or not np.isfinite(value) for value in wb) or
+                    any(value <= 0 for value in wb[:3]) or wb[3] < 0):
+                    raise AssetError('RAW_CAMERA_WB_UNAVAILABLE')
+            check_active()
+            rgb = raw.postprocess(**options)
+            check_active()
+            # LittleCMS below consumes RGB16. Never reinterpret an unexpected
+            # native tensor's byte layout or publish an invalid working image.
+            return validate_raw_rgb_layout(rgb)
     except rawpy.LibRawError as exc:
         raise AssetError('RAW_UNSUPPORTED') from exc
 
 
 def icc_to_work(source: VerifiedSource, output: Path, registry: ICCRegistry,
                 assume_profile: str | None = None, *, analyze: bool = False, tile: int = 512,
-                alpha_output: Path | None = None, check_active: Callable[[],None] = lambda:None) -> WorkingImage:
+                alpha_output: Path | None = None, raw_development: RAWDevelopment | None = None, check_active: Callable[[],None] = lambda:None) -> WorkingImage:
     if tile not in (256,512,1024):
         raise AssetError('TILE_SIZE_INVALID')
     check_active()
+    if raw_development is not None and source.format != 'raw':
+        raise AssetError('RAW_DEVELOPMENT_ON_RASTER')
     metadata = read_metadata(source)
     if alpha_output is not None and (not metadata.has_alpha or alpha_output.parent!=output.parent or alpha_output==output):
         raise AssetError('ALPHA_OUTPUT_INVALID')
@@ -54,7 +105,7 @@ def icc_to_work(source: VerifiedSource, output: Path, registry: ICCRegistry,
         raise AssetError('ANALYZE_ALPHA_UNSUPPORTED')
     work = registry.resolve('work_rec2020_gamma24_v1')
     if source.format == 'raw':
-        rgb = decode_raw(source)
+        rgb = decode_raw(source, raw_development, check_active=check_active)
         check_active()
         height,width = rgb.shape[:2]
         original_profile = registry.resolve('linear_srgb_v1').data

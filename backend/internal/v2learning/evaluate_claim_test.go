@@ -45,6 +45,15 @@ func TestEvaluateParamsPinCanonicalCandidateAndFrozenLocks(t *testing.T) {
 		params.ICCLockSHA != manifest.ICCLockSHA {
 		t.Fatal("evaluation parameters did not bind frozen inputs")
 	}
+	changedPolicy := draft
+	changedPolicy.Manifest.PolicySHA = strings.Repeat("f", 64)
+	changedPolicy.ManifestSHA, err = canonical.Hash(changedPolicy.Manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := CompileEvaluateParams(lease, changedPolicy); err == nil {
+		t.Fatal("accepted rebound policy with otherwise consistent manifest digest")
+	}
 	lease.RunID = uuid.New()
 	if _, err := CompileEvaluateParams(lease, draft); err == nil {
 		t.Fatal("foreign run lease accepted")
@@ -105,10 +114,20 @@ func TestEvaluateClosureIncludesHoldoutAndRejectsConflictingRefs(t *testing.T) {
 		Until: time.Now().Add(time.Minute), TenantID: draft.TenantID,
 		RunID: draft.RunID, WorkflowID: draft.WorkflowID,
 		Candidate: v2input.Ref{ArtifactID: uuid.New(), SHA256: strings.Repeat("a", 64)}}
-	ref := artifactjson.Ref{ID: uuid.New(), SHA256: strings.Repeat("b", 64)}
+	paramsBody, err := CompileEvaluateParams(lease, draft)
+	if err != nil {
+		t.Fatal(err)
+	}
+	paramsSum := sha256.Sum256(paramsBody)
+	ref := artifactjson.Ref{ID: uuid.New(), SHA256: hex.EncodeToString(paramsSum[:])}
 	closure, err := CompileEvaluateClosure(lease, draft, ref, resolved)
 	if err != nil {
 		t.Fatal(err)
+	}
+	wrongParams := ref
+	wrongParams.SHA256 = strings.Repeat("f", 64)
+	if _, err := CompileEvaluateClosure(lease, draft, wrongParams, resolved); err == nil {
+		t.Fatal("accepted substituted Evaluate parameter digest")
 	}
 	if len(closure.InputDigest) != 64 || len(closure.Direct) != 5 {
 		t.Fatal("incomplete evaluate closure")
@@ -118,8 +137,9 @@ func TestEvaluateClosureIncludesHoldoutAndRejectsConflictingRefs(t *testing.T) {
 		t.Fatal(err)
 	}
 	if admitted.ResourceEstimate.PixelCount != int64(len(resolved))*512*512 ||
-		admitted.ResourceEstimate.ScratchBytes != 100*512*512+536870912 ||
-		admitted.ResourceEstimate.RAMBytes != 4294967296 {
+		admitted.ResourceEstimate.ScratchBytes != (148+64*16)*512*512+536870912+2097152+1073741824 ||
+		admitted.ResourceEstimate.RAMBytes != 4294967296 ||
+		admitted.ResourceEstimate.VRAMBytes != 10000000000 {
 		t.Fatal("resource budget did not follow frozen pixels")
 	}
 	cursor, err := closure.Open(context.Background())

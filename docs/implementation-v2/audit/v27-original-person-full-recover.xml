@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="104.939" timestamp="2026-10-08T16:25:57.888629+03:00" hostname="Mac"><testcase classname="tests.integration.test_v27_semantic_intent_publication" name="test_semantic_intent_publication_old_version_and_replay[native-person-defect-wire]" time="104.205"><failure message="AssertionError: === RUN   TestIntegrationNativePreparationBootstrap&#10;      native_bootstrap_integration_test.go:158: V27_ORIGINAL_PERSON_NEW_RESULT_VERIFIED_OK&#10;      native_bootstrap_integration_test.go:196: V27_ORIGINAL_PERSON_INPUT_AUTHORITY_OK&#10;      native_bootstrap_integration_test.go:342: V27_NATIVE_DEFECT_PERSON_DEPENDENCIES_OK&#10;      native_bootstrap_integration_test.go:418: V27_NATIVE_PARENT_AMBIGUOUS_TARGET_REFUSED_OK&#10;  signal: terminated&#10;  FAIL&#09;photoeditor/backend/internal/semanticproposal&#09;94.560s&#10;  &#10;assert 1 == 0&#10; +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationNativePreparationBootstra...UOUS_TARGET_REFUSED_OK\nsignal: terminated\nFAIL\tphotoeditor/backend/internal/semanticproposal\t94.560s\n', stderr='').returncode">tests/integration/test_v27_semantic_intent_publication.py:752: in test_semantic_intent_publication_old_version_and_replay
+    assert result.returncode==0,result.stdout+result.stderr
+E   AssertionError: === RUN   TestIntegrationNativePreparationBootstrap
+E         native_bootstrap_integration_test.go:158: V27_ORIGINAL_PERSON_NEW_RESULT_VERIFIED_OK
+E         native_bootstrap_integration_test.go:196: V27_ORIGINAL_PERSON_INPUT_AUTHORITY_OK
+E         native_bootstrap_integration_test.go:342: V27_NATIVE_DEFECT_PERSON_DEPENDENCIES_OK
+E         native_bootstrap_integration_test.go:418: V27_NATIVE_PARENT_AMBIGUOUS_TARGET_REFUSED_OK
+E     signal: terminated
+E     FAIL	photoeditor/backend/internal/semanticproposal	94.560s
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationNativePreparationBootstra...UOUS_TARGET_REFUSED_OK\nsignal: terminated\nFAIL\tphotoeditor/backend/internal/semanticproposal\t94.560s\n', stderr='').returncode</failure></testcase></testsuite></testsuites>

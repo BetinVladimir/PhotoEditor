@@ -65,7 +65,7 @@ def test_zero_faces_does_not_upgrade_unmeasurable_identity_to_no_person():
         _qualified_identity(evidence, 1)
 
 
-def test_adapter_stages_measured_evaluation_and_checks_locks(tmp_path):
+def test_adapter_stages_measured_evaluation_and_checks_locks(tmp_path, metric_scratch):
     params, manifest, baseline, candidate, calibration, _ = inputs()
     provider = Provider(params)
     staged = []
@@ -90,7 +90,7 @@ def test_adapter_stages_measured_evaluation_and_checks_locks(tmp_path):
             Path(__file__).resolve().parents[2] /
             'docs/implementation/contracts/examples/style-fixed.example.json'
         ).read_text())),
-        scratch=SimpleNamespace(directory=tmp_path),
+        scratch=metric_scratch,
         stage_contract=lambda value, role: staged.append((value, role)) or ref(900))
     progress = []
     ctx = SimpleNamespace(lease=SimpleNamespace(execution_profile={
@@ -109,7 +109,7 @@ def test_adapter_stages_measured_evaluation_and_checks_locks(tmp_path):
 
 
 @pytest.mark.parametrize('change', ['source', 'base_style', 'icc_lock_sha'])
-def test_adapter_rejects_unbound_holdout_recipe_before_render(tmp_path, change):
+def test_adapter_rejects_unbound_holdout_recipe_before_render(tmp_path, change, metric_scratch):
     params, manifest, baseline, candidate, calibration, _ = inputs()
     provider = Provider(params)
     first = next(item for item in manifest.examples if item.split == 'holdout')
@@ -142,7 +142,7 @@ def test_adapter_rejects_unbound_holdout_recipe_before_render(tmp_path, change):
             return changed
         raise AssertionError('read past invalid first recipe')
     artifacts = SimpleNamespace(params=lambda model: params, contract=resolve,
-        scratch=SimpleNamespace(directory=tmp_path),
+        scratch=metric_scratch,
         stage_contract=lambda value, role: pytest.fail('staged invalid result'))
     ctx = SimpleNamespace(lease=SimpleNamespace(execution_profile={
         'renderer_version': 'v2.2', 'backend': 'cuda'}),
@@ -155,3 +155,44 @@ def test_adapter_rejects_unbound_holdout_recipe_before_render(tmp_path, change):
 def test_adapter_requires_explicit_provider():
     with pytest.raises(ValueError, match='Qualified render provider required'):
         learning_evaluate_operations(None, None)
+
+
+@pytest.fixture
+def metric_scratch(tmp_path):
+    from uuid import uuid4
+    from photo_worker.runtime.scratch import ScratchSpace
+    with ScratchSpace(tmp_path.resolve(), uuid4(), uuid4(), 1, 1024 * 1024,
+                      min_free_bytes=0) as scratch:
+        yield scratch
+
+
+@pytest.mark.parametrize('profile', [None, [], 'cuda', 42])
+def test_evaluate_invalid_profile_refuses_before_artifact_io(profile):
+    ctx = SimpleNamespace(lease=SimpleNamespace(execution_profile=profile))
+    artifacts = SimpleNamespace(params=lambda _: pytest.fail('invalid profile read artifacts'))
+    provider = SimpleNamespace(backend='cuda', renderer_version='v2.2')
+    with pytest.raises(OperationFailure, match='CONFIG_INVALID'):
+        execute(ctx, artifacts, provider)
+
+
+def test_evaluate_owns_params_before_loading_manifest():
+    params, manifest, baseline, candidate, calibration, _ = inputs()
+    original = params.model_copy(deep=True)
+    requested = []
+    def resolve(source, model):
+        requested.append(source.model_copy(deep=True))
+        if model.__name__ == 'TrainingManifest':
+            # A gateway callback cannot redirect later reads by changing the
+            # previously returned parameter object retained by that gateway.
+            params.baseline = ref(9998)
+            return manifest
+        if model.__name__ == 'CandidateProfile':
+            assert source == original.baseline
+            raise ValueError('stop after pinned baseline')
+        pytest.fail('unexpected read')
+    artifacts = SimpleNamespace(params=lambda _: params, contract=resolve)
+    ctx = SimpleNamespace(lease=SimpleNamespace(execution_profile={
+        'renderer_version':'v2.2','backend':'cuda'}),check_active=lambda:None)
+    with pytest.raises(OperationFailure, match='INPUT_INVALID'):
+        execute(ctx, artifacts, Provider(original))
+    assert requested == [original.manifest, original.baseline]

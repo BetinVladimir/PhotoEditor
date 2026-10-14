@@ -16,10 +16,10 @@ def presentation_ram_bytes(source_width,source_height,width,height,*,alpha):
 def admit_presentation(profile,source_width,source_height,width,height,*,alpha):
     required=presentation_ram_bytes(source_width,source_height,width,height,alpha=alpha)
     estimate=profile.get('resource_estimate')
-    if estimate is None:
+    if estimate is None and profile.get('renderer_version')!='v2.2':
         # Existing small-image profiles retain a bounded compatibility budget.
         budget=512*1024*1024
-    elif isinstance(estimate,dict) and type(estimate.get('ram_bytes')) is int and estimate['ram_bytes']>0:
+    elif isinstance(estimate,dict) and type(estimate.get('ram_bytes')) is int and 0<estimate['ram_bytes']<=2**53-1:
         budget=estimate['ram_bytes']
     else:raise OperationFailure('CONFIG_INVALID')
     if required>budget:raise OperationFailure('RAM_ADMISSION_EXCEEDED')

@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 registered transport preflight before repair publication",
+  "whole_module_accepted": false,
+  "migration_head": "00968",
+  "new_migrations": [
+    "00968_v27_native_transfer_registered_preflight.sql"
+  ],
+  "production_code_changed": true,
+  "production_migrations_applied": false,
+  "production_change": "Scheduler-only v3 eligibility checks registered transport and ready/verified/SHA/object-version/live-expiry of all registered inputs under ordered FOR SHARE locks; returns registered IDs. Go rereads and binds every registered transport to frozen task before publication and before final registration. Startup requires v3. No DML/table grants.",
+  "checks": {
+    "go_five_packages": [
+      {
+        "package": "photoeditor/backend/internal/v2qualification",
+        "elapsed": 0.001
+      },
+      {
+        "package": "photoeditor/backend/internal/v2input",
+        "elapsed": 0.01
+      },
+      {
+        "package": "photoeditor/backend/internal/v2draft",
+        "elapsed": 0.01
+      },
+      {
+        "package": "photoeditor/backend/internal/workflow",
+        "elapsed": 1.54
+      },
+      {
+        "package": "photoeditor/backend/internal/semanticproposal",
+        "elapsed": 3.511
+      }
+    ],
+    "sql_upgrade_roles_and_handoff": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "21",
+      "time": "18.797",
+      "timestamp": "2026-10-09T06:23:25.924498+03:00",
+      "hostname": "Mac"
+    },
+    "native_registered_preflight_and_recovery": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "1",
+      "time": "425.945",
+      "timestamp": "2026-10-09T06:24:13.176004+03:00",
+      "hostname": "Mac"
+    },
+    "documentation": "PASS55 tests/2267 static checks",
+    "diff_check": "PASS"
+  },
+  "source_manifest": "v27-registered-preflight-source-current.json",
+  "source_manifest_sha256": "0379b24f5b7f24451eeb7e9a985bbfb1ba34cc14a3d450158f0447f8fcd72060",
+  "source_files": 4821,
+  "quality_preservation": {
+    "workers_src_baseline_files": 544,
+    "changed": 0,
+    "real_photo_quality_accepted": false
+  },
+  "verified": [
+    "Actual repair rejects expired manifest of registered minimum-ID task before publisher calls; captured task profile/input/document/reservation snapshot unchanged.",
+    "Exact original nullable artifact expiry restored before positive recovery; immutable registered rows/content and triggers untouched.",
+    "Mixed two-task recovery completes with preserved existing registration/documents/reservation despite doubled current ReservedBytes; second ProcessOne finds no work.",
+    "Python requires preflight and mixed recovery markers and independently verifies sealed queued parent, ready tasks and one queued event/outbox.",
+    "Existing missing-task corruption, lifecycle/policy/qualification/TTL probes passed. Fresh and 00899→00968 upgrade preserves rows and validates real-role ACL/ownership."
+  ],
+  "remaining": [
+    "Concurrent GC/purge and physical object deletion during publication.",
+    "Separate OS process restart, raw PUT ambiguity and broker redelivery.",
+    "Independent target qualification imports, exact reference locator-version, pending target progression and 5000-target scale.",
+    "Complete browser/native flows, real-photo/GPU and whole V27/V20–V32 acceptance."
+  ],
+  "limitations": [
+    "Controlled fixture-owner manifest expiry, not concurrent GC/purge or object deletion.",
+    "Refusal snapshot covers task profiles/inputs/documents/reservation, not every table; intentional expiry mutation restored separately.",
+    "SQL artifact lock behavior is implemented; distinct concurrent writer lock-timeout proof not executed in this step.",
+    "Upstream ML remains fixture doubles. Production migrations not applied."
+  ]
+}

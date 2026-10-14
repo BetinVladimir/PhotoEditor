@@ -6,6 +6,7 @@ from pydantic import Field, model_validator
 from photo_worker.contracts.base import ArtifactRef, Contract, SHA256, canonical_bytes, canonical_hash, parse_json
 from photo_worker.operations.session.contracts import VersionBinding, CorrectionVector
 from photo_worker.operations.learning.contracts import FrozenRecipe
+from .render_background_binding import FrozenBackgroundAsset
 
 
 class EditingRecipeV3(Contract):
@@ -44,6 +45,7 @@ class FrozenRenderRecipe(Contract):
     recipe_sha256: SHA256
     scalars: FrozenRecipe
     learning: FrozenRenderLearning | None
+    background_asset: FrozenBackgroundAsset | None = Field(default=None, exclude_if=lambda v: v is None)
 
     @model_validator(mode='after')
     def bindings(self):
@@ -57,6 +59,10 @@ class FrozenRenderRecipe(Contract):
                     or any(v.int == 0 for v in (self.learning.version_id, self.learning.analysis_id,
                                               self.learning.model.artifact_id, self.learning.descriptor.artifact_id))):
                 raise ValueError('FROZEN_RENDER_LEARNING_INVALID')
+        if self.background_asset is not None and (
+                self.background_asset.style != self.scalars.base_style
+                or self.background_asset.work_icc_sha != self.scalars.icc_lock_sha):
+            raise ValueError('FROZEN_RENDER_BACKGROUND_CHANGED')
         return self
 
 

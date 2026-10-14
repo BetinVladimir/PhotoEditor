@@ -8,7 +8,6 @@ class DeviceKey:
     def __init__(self, device_id: str):
         import keyring
         from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-        self.keyring = keyring
         self.private_type = Ed25519PrivateKey
         self.account = str(uuid.UUID(device_id))
         backend = keyring.get_keyring()
@@ -17,6 +16,9 @@ class DeviceKey:
             "keyring.backends.SecretService", "keyring.backends.libsecret",
         }:
             raise RuntimeError("a supported OS keychain is required")
+        # Keep the validated backend, rather than resolving global keyring
+        # routing again when reading or writing sensitive material.
+        self.keyring = backend
 
     def load(self):
         encoded = self.keyring.get_password("PhotoEditor studio-agent Ed25519", self.account)

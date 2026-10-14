@@ -25,3 +25,12 @@ def test_go_training_snapshot_matches_contract(tmp_path):
     contract = {**schemas, '$ref': '#/$defs/ArtifactSnapshot'}
     Draft202012Validator(contract, format_checker=FormatChecker()).validate(
         json.loads(output.read_bytes()))
+
+
+def test_holdout_render_case_schema_includes_current_optional_evidence():
+    root = Path(__file__).resolve().parents[2]
+    schemas = json.loads((root / 'docs/implementation-v2/contracts/schemas.json').read_text())
+    properties = schemas['$defs']['RenderCase']['properties']
+    assert properties['background_asset'] == {'$ref': '#/$defs/FrozenBackgroundAsset'}
+    assert properties['defect_evidence'] == {'$ref': '#/$defs/ArtifactRef'}
+    assert properties['dust_evidence'] == {'$ref': '#/$defs/ArtifactRef'}

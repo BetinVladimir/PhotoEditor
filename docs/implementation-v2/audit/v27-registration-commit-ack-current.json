@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 real registration COMMIT acknowledgement loss and durable recovery",
+  "whole_module_accepted": false,
+  "migration_head": "00966",
+  "new_migrations": false,
+  "production_code_changed": true,
+  "production_migrations_applied": false,
+  "production_change": "Extract internal coordinator transaction runner; production still supplies database.InTransaction with unchanged SQL/publication phases.",
+  "checks": {
+    "go_five_packages": [
+      {
+        "package": "photoeditor/backend/internal/v2qualification",
+        "elapsed": 0
+      },
+      {
+        "package": "photoeditor/backend/internal/v2input",
+        "elapsed": 0.009
+      },
+      {
+        "package": "photoeditor/backend/internal/v2draft",
+        "elapsed": 0.009
+      },
+      {
+        "package": "photoeditor/backend/internal/workflow",
+        "elapsed": 1.505
+      },
+      {
+        "package": "photoeditor/backend/internal/semanticproposal",
+        "elapsed": 3.3529999999999998
+      }
+    ],
+    "sql_upgrade_roles_and_handoff": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "21",
+      "time": "17.526",
+      "timestamp": "2026-10-09T05:46:59.246158+03:00",
+      "hostname": "Mac"
+    },
+    "native_committed_registration_recovery": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "1",
+      "time": "410.025",
+      "timestamp": "2026-10-09T05:39:58.633265+03:00",
+      "hostname": "Mac"
+    },
+    "documentation": "PASS55 tests/2267 static checks",
+    "diff_check": "PASS"
+  },
+  "source_manifest": "v27-registration-commit-ack-source-current.json",
+  "source_manifest_sha256": "3447b19c636654a0ca4fb091f812d9722344aaed76af0ae0e79cd8480c986d0d",
+  "source_files": 4817,
+  "quality_preservation": {
+    "workers_src_baseline_files": 544,
+    "changed": 0,
+    "real_photo_quality_accepted": false
+  },
+  "verified": [
+    "Actual blocked draft and all transports persisted before registration. Real registration commits, wrapper then returns acknowledgement loss; coordinator returns nil prepared graph and does not retry unknown outcome.",
+    "Independent owner observes unsealed draft, blocked registered tasks and no queued event/outbox before ProcessOne.",
+    "Actual recovery job with doubled current ReservedBytes and refusing publisher seals existing registration, records handoff and becomes unclaimable.",
+    "Complete backend document and task input JSON plus saved reservation bytes remain identical; publisher called zero times.",
+    "Independent Python verifies sealed queued parent, ready tasks and one queued event/outbox; lifecycle/policy/qualification/TTL probes passed."
+  ],
+  "remaining": [
+    "Raw PUT ambiguity, separate OS process restart and broker redelivery.",
+    "Mixed registered/missing tasks, GC/purge races and 5000-target scale.",
+    "Independent target qualification imports, exact reference locator-version and pending stage progression.",
+    "Complete browser/native flows, real-photo/GPU qualification and whole V27/V20–V32 acceptance."
+  ],
+  "limitations": [
+    "Acknowledgement loss injected after actual successful PostgreSQL registration Commit; not TCP fault injection.",
+    "Upstream ML remains fixture doubles. No production migration applied."
+  ]
+}

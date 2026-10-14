@@ -1,0 +1,31 @@
+{
+  "module_accepted": false,
+  "scope": "CreateService real PostgreSQL/MinIO create commit, two byte-identical replays, changed-body same-key refusal, revoked-session refusal; independent transport/all input artifacts/document/quota/queue verification; prior ordinary admission regression",
+  "physical_result": {
+    "passed": 2,
+    "deselected": 15,
+    "seconds": 30.25
+  },
+  "package_result": {
+    "status": "PASS",
+    "seconds": 1.913,
+    "default_fixture_skips_not_physical_evidence": true
+  },
+  "source_sha256": {
+    "backend/internal/semanticproposal/create_service.go": "c1e1219efb4ca3a16e253e0dd30bd5af7fa979f14f7c3dd9dea5b673099b65c5",
+    "backend/internal/semanticproposal/create_preflight.go": "959b7f5b102a620bd44edda4fae3d666a86d343e9e7acabab35d75eddd9a8420",
+    "backend/internal/semanticproposal/create_integration_probe_test.go": "1f5f26f959bce1473b364472d9043986e65d95adcce31050a1c2e1c9648795d3",
+    "backend/internal/semanticproposal/publication_integration_test.go": "9450effbcdd1f8f244df5e329cd07784221021d91c8c643dc85e8543ac492e77",
+    "backend/internal/semanticproposal/transfer_target_selection.go": "3dcebf2f65a45413fb3d48e03a066f48773afcead55dc0f9e0be29e2f7f93be8",
+    "tests/integration/test_v27_semantic_intent_publication.py": "6a5517bf9a9877e4bb18769cb256363709f07040a09c08997d22b291294aa971",
+    "tests/integration/v27_create_probe.py": "9ff1803d9293679d0cd27247feb93aa1d4e771be39181a0f8df6c74d1e892a1b"
+  },
+  "source_pin_scope": "recorded while final run active and verified unchanged at completion; not full-tree freeze",
+  "limitations": [
+    "synthetic metadata/model qualification fixture",
+    "capability enabled only in disposable fixture",
+    "HTTP installation/configuration selection still incomplete",
+    "native missing-producer startup not covered by ordinary CreateService",
+    "whole-module and RTX3060/real-photo/client acceptance not proven"
+  ]
+}

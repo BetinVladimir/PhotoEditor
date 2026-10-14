@@ -15,6 +15,23 @@ from photo_worker.runtime.executor import ExecutionContext,Operation,OperationFa
 MEAN=np.array([.485,.456,.406],np.float32);STD=np.array([.229,.224,.225],np.float32)
 
 
+def _required_alpha_ram(height:int,width:int,has_alpha:bool)->int:
+    """Reserve whole-frame color conversion, masks and PNG staging headroom."""
+    if (type(height) is not int or type(width) is not int or type(has_alpha) is not bool
+            or height<1 or width<1):raise ValueError('ALPHA_SIZE_INVALID')
+    return 512*1024**2+height*width*(128+(16 if has_alpha else 0))
+
+
+def _declared_alpha_inputs(image,inputs)->bool:
+    return image.pixels in inputs and (image.alpha is None or image.alpha in inputs)
+
+
+def _valid_alpha_image(image)->bool:
+    return (image.dtype=='float32' and image.color.profile_id=='work_rec2020_gamma24_v1'
+            and image.color.encoding=='gamma24'
+            and image.canvas.width*image.canvas.height<=200000000)
+
+
 def normalize_output(raw):
     value=np.asarray(raw,np.float32)
     if value.shape!=(320,320) or not np.isfinite(value).all():raise ValueError('MODEL_OUTPUT_INVALID')
@@ -28,7 +45,9 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts,pool:ModelPool)->Operat
     try:
         p=artifacts.params(AlphaParams);image=artifacts.contract(p.image,WorkingImage)
         if p.model_lock_id!=pool.lock.lock_id:raise ModelError('MODEL_LOCK_MISMATCH')
-        if image.dtype!='float32' or image.canvas.width*image.canvas.height>200000000:raise ValueError('Invalid alpha image')
+        if not _valid_alpha_image(image):raise ValueError('ALPHA_IMAGE_INVALID')
+        if not _declared_alpha_inputs(image,ctx.lease.command.inputs):raise ValueError('ALPHA_INPUT_UNDECLARED')
+        if ram<_required_alpha_ram(image.canvas.height,image.canvas.width,image.alpha is not None):raise OperationFailure('RESOURCE_OOM')
     except ModelError as exc:raise OperationFailure(str(exc)) from exc
     except ValueError as exc:raise OperationFailure('INPUT_INVALID') from exc
     h,w=image.canvas.height,image.canvas.width
@@ -41,16 +60,19 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts,pool:ModelPool)->Operat
             with artifacts.input(image.alpha,suffix='.npy') as local,read_array(local.path,(h,w),'uint16',ctx.check_active) as source_alpha:alpha*=np.asarray(source_alpha,np.float32)/65535
         bound=png16_bound(w,h)
         with artifacts.scratch.reserve(h*w*4+8192+bound) as reservation:
-            path=reservation.path('predicted-alpha','.npy');mm=np.lib.format.open_memmap(path,mode='w+',dtype='<f4',shape=(h,w));mm[:]=alpha;mm.flush();mm._mmap.close();png=reservation.path('predicted-alpha','.png')
+            path=reservation.path('predicted-alpha','.npy');mm=np.lib.format.open_memmap(path,mode='w+',dtype='<f4',shape=(h,w))
+            try:mm[:]=alpha;mm.flush();ctx.check_active()
+            finally:mm._mmap.close()
+            png=reservation.path('predicted-alpha','.png')
             with artifacts.scratch.open_writer(png,reservation) as stream:write_png16(alpha,stream,max_bytes=bound,check_active=ctx.check_active)
-            reservation.validate();aref=artifacts.stage(path,reservation,'alpha_mask','application/octet-stream');pref=artifacts.stage(png,reservation,'alpha_mask_png','image/png');written=path.stat().st_size+png.stat().st_size
+            reservation.validate();ctx.check_active();aref=artifacts.stage(path,reservation,'alpha_mask','application/octet-stream');ctx.check_active();pref=artifacts.stage(png,reservation,'alpha_mask_png','image/png');written=path.stat().st_size+png.stat().st_size
     except ModelError as exc:raise OperationFailure(str(exc)) from exc
     except ValueError as exc:raise OperationFailure('MODEL_OUTPUT_INVALID') from exc
     foreground=float(np.mean(alpha>=.5));confidence=float(np.mean(np.maximum(alpha,1-alpha)));warnings=[]
     if foreground<.001:warnings.append('empty_foreground')
     if confidence<.75:warnings.append('low_confidence')
     if np.any(clipped):warnings.append('source_srgb_clipped')
-    mask=MaskRef(artifact=aref,canvas=image.canvas,transform_chain=image.transform_chain,selector='alpha',confidence=confidence,model_lock_id=p.model_lock_id,protected=False);mref=artifacts.stage_contract(mask,'alpha_mask_ref');report=AlphaPrediction(image=p.image,alpha=mask,model_id=p.model_id,model_lock_id=p.model_lock_id,backend='cpu',preprocessing_id=p.preprocessing_id,foreground_fraction=foreground,source_clip_fraction=float(np.mean(clipped)),warnings=warnings);rref=artifacts.stage_contract(report,'alpha_report')
+    mask=MaskRef(artifact=aref,canvas=image.canvas,transform_chain=image.transform_chain,selector='alpha',confidence=confidence,model_lock_id=p.model_lock_id,protected=False);ctx.check_active();mref=artifacts.stage_contract(mask,'alpha_mask_ref');report=AlphaPrediction(image=p.image,alpha=mask,model_id=p.model_id,model_lock_id=p.model_lock_id,backend='cpu',preprocessing_id=p.preprocessing_id,foreground_fraction=foreground,source_clip_fraction=float(np.mean(clipped)),warnings=warnings);ctx.check_active();rref=artifacts.stage_contract(report,'alpha_report')
     return OperationResult(outputs=[aref,pref,mref,rref],review_required=bool(warnings),bytes_written=written+len(canonical_bytes(mask))+len(canonical_bytes(report)))
 
 

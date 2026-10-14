@@ -69,6 +69,37 @@ def _resize_rgba(rgb,alpha,width,height,*,encoding='gamma24'):
     return np.clip(encoded,0,1).astype(np.float32),opacity
 
 
+def _resize_working_image(rgb, alpha, width, height, image: WorkingImage):
+    return _resize_rgba(rgb, alpha, width, height, encoding=image.color.encoding)
+
+
+def _composite_matte(rgb: np.ndarray, alpha: np.ndarray,
+                     matte_rgb: list[float], icc_id: str) -> np.ndarray:
+    """Composite straight-alpha colors in the target profile's linear light."""
+    if rgb.shape[:2] != alpha.shape or rgb.shape[2] != 3:
+        raise ValueError('MATTE_SHAPE_INVALID')
+    if not np.isfinite(rgb).all() or not np.isfinite(alpha).all() or np.any((alpha < 0) | (alpha > 1)):
+        raise ValueError('MATTE_PIXELS_INVALID')
+    matte = np.asarray(matte_rgb, dtype=np.float32)
+    if matte.shape != (3,) or not np.isfinite(matte).all() or np.any((matte < 0) | (matte > 1)):
+        raise ValueError('MATTE_COLOR_INVALID')
+    if np.all(alpha == 1):
+        return rgb
+    if icc_id == 'srgb_v1':
+        decode = lambda value: np.where(value <= .04045, value / 12.92,
+                                         ((value + .055) / 1.055) ** 2.4)
+        encode = lambda value: np.where(value <= .0031308, value * 12.92,
+                                         1.055 * value ** (1 / 2.4) - .055)
+    elif icc_id == 'work_rec2020_gamma24_v1':
+        decode = lambda value: value ** 2.4
+        encode = lambda value: value ** (1 / 2.4)
+    else:
+        raise ValueError('MATTE_ICC_INVALID')
+    linear = decode(np.clip(rgb, 0, 1)) * alpha[:, :, None]
+    linear += decode(matte)[None, None, :] * (1 - alpha[:, :, None])
+    return np.clip(encode(np.clip(linear, 0, 1)), 0, 1).astype(np.float32)
+
+
 def _write(path, pixels: np.ndarray, profile: bytes, params: EncodeParams):
     height, width, bands = pixels.shape
     rgb16 = np.round(np.clip(pixels[:, :, :3], 0, 1) * 65535).astype('<u2')
@@ -87,18 +118,85 @@ def _write(path, pixels: np.ndarray, profile: bytes, params: EncodeParams):
             image.jpegsave(str(path), Q=params.quality, subsample_mode='off', optimize_coding=True, strip=False)
 
 
-def _verify(path, params: EncodeParams, width: int, height: int, alpha: bool):
+def _verify_png_layout(path, width, height, alpha):
+    with open(path, 'rb') as stream:
+        header = stream.read(33)
+    if (len(header) != 33 or header[:8] != b'\x89PNG\r\n\x1a\n' or
+            int.from_bytes(header[8:12], 'big') != 13 or header[12:16] != b'IHDR' or
+            int.from_bytes(header[16:20], 'big') != width or
+            int.from_bytes(header[20:24], 'big') != height or
+            header[24] != 16 or header[25] != (6 if alpha else 2) or
+            header[26] != 0 or header[27] != 0 or header[28] not in (0, 1)):
+        raise ValueError('PNG_LAYOUT_MISMATCH')
+
+
+def _verify_lossless_pixels(decoded: np.ndarray, pixels: np.ndarray,
+                            channel_order: tuple[int, ...], check_active) -> None:
+    if (decoded.dtype != np.uint16 or
+            decoded.shape != pixels.shape or pixels.ndim != 3 or
+            len(channel_order) != pixels.shape[2]):
+        raise ValueError('ENCODE_PIXEL_MISMATCH')
+    height, width = pixels.shape[:2]
+    rows = max(1, min(256, 1_048_576 // width))
+    for start in range(0, height, rows):
+        check_active()
+        stop = min(height, start + rows)
+        expected = np.round(np.clip(pixels[start:stop], 0, 1) * 65535).astype(np.uint16)
+        for channel, observed in enumerate(channel_order):
+            if not np.array_equal(decoded[start:stop, :, observed],
+                                  expected[:, :, channel]):
+                raise ValueError('ENCODE_PIXEL_MISMATCH')
+
+
+def _verify(path, params: EncodeParams, width: int, height: int, alpha: bool,
+            *, expected_pixels: np.ndarray | None = None,
+            check_active=lambda: None):
     if params.format == 'tiff':
         with tifffile.TiffFile(path) as document:
+            if len(document.pages) != 1:
+                raise ValueError('TIFF_VERIFY_FAILED')
             page = document.pages[0]
             if page.shape != (height, width, 4 if alpha else 3) or page.dtype != np.uint16 or 34675 not in page.tags:
                 raise ValueError('TIFF_VERIFY_FAILED')
+            if page.subifds or int(page.photometric) != 2:
+                raise ValueError('TIFF_VERIFY_FAILED')
+            if alpha and tuple(int(value) for value in page.extrasamples) != (2,):
+                raise ValueError('TIFF_ALPHA_MISMATCH')
+            profile = bytes(page.tags[34675].value)
+            if hashlib.sha256(profile).hexdigest() != params.icc_sha256:
+                raise ValueError('ENCODE_ICC_MISMATCH')
+            # Pixel-derived files must not retain author/source/camera/GPS/XMP,
+            # embedded previews or Photoshop/IPTC blocks under strip policy.
+            forbidden = {270, 315, 33432, 34665, 34853, 700, 33723, 34377, 513, 514}
+            if any(tag in page.tags for tag in forbidden):
+                raise ValueError('ENCODE_METADATA_NOT_STRIPPED')
+            decoded = page.asarray()
+            if decoded.shape != page.shape or decoded.dtype != np.uint16:
+                raise ValueError('TIFF_VERIFY_FAILED')
+            if expected_pixels is not None:
+                _verify_lossless_pixels(decoded, expected_pixels,
+                                        tuple(range(4 if alpha else 3)),
+                                        check_active)
     else:
+        if params.format == 'png':
+            _verify_png_layout(path, width, height, alpha)
         with Image.open(path) as image:
             image.verify()
         with Image.open(path) as image:
             if image.size != (width, height) or (image.mode in ('RGBA', 'LA')) != alpha or image.info.get('icc_profile') is None:
                 raise ValueError('ENCODE_VERIFY_FAILED')
+            if hashlib.sha256(image.info['icc_profile']).hexdigest() != params.icc_sha256:
+                raise ValueError('ENCODE_ICC_MISMATCH')
+            if getattr(image, 'text', {}) or image.getexif() or any(key in image.info for key in ('exif', 'xmp', 'XML:com.adobe.xmp', 'iptc', 'photoshop', 'comment')):
+                raise ValueError('ENCODE_METADATA_NOT_STRIPPED')
+            image.load()
+        if params.format == 'png' and expected_pixels is not None:
+            decoded = cv2.imread(str(path), cv2.IMREAD_UNCHANGED)
+            if decoded is None:
+                raise ValueError('ENCODE_PIXEL_MISMATCH')
+            _verify_lossless_pixels(decoded, expected_pixels,
+                                    (2, 1, 0, 3) if alpha else (2, 1, 0),
+                                    check_active)
 
 
 def execute(ctx: ExecutionContext, artifacts: TaskArtifacts, registry: ICCRegistry) -> OperationResult:
@@ -131,13 +229,13 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts, registry: ICCRegist
             alpha16 = stack.enter_context(read_alpha_array(alpha_local.path, (image.canvas.height, image.canvas.width), ctx.check_active))
             alpha = alpha16.astype(np.float32) / 65535 if alpha16.dtype==np.uint16 else alpha16
         ctx.progress(1, 5)
-        resized,resized_alpha = _resize_rgba(rgb,alpha,width,height)
+        resized,resized_alpha = _resize_working_image(rgb,alpha,width,height,image)
         source16 = np.round(np.clip(resized,0,1) * 65535).astype(np.uint16)
         converted16 = LittleCMS().convert(source16, source_profile.data, target_profile.data)
         converted = converted16.astype(np.float32) / 65535
         if resized_alpha is not None and params.alpha == 'matte':
-            matte = np.asarray(params.matte_rgb, dtype=np.float32)
-            converted = converted * resized_alpha[:, :, None] + matte * (1 - resized_alpha[:, :, None])
+            converted = _composite_matte(converted, resized_alpha, params.matte_rgb,
+                                         params.icc_id)
             resized_alpha = None
         ctx.progress(2, 5)
         bands = converted if resized_alpha is None else np.dstack((converted, resized_alpha))
@@ -148,7 +246,8 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts, registry: ICCRegist
             try:
                 _write(path, bands, target_profile.data, params)
                 reservation.validate_file(path)
-                _verify(path, params, width, height, resized_alpha is not None)
+                _verify(path, params, width, height, resized_alpha is not None,
+                        expected_pixels=bands, check_active=ctx.check_active)
             except (ValueError, OSError, pyvips.Error, tifffile.TiffFileError) as exc:
                 raise OperationFailure('INPUT_INVALID') from exc
             ctx.progress(3, 5)

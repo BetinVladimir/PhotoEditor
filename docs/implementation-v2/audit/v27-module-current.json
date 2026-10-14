@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 module inventory, foreground authority and original-native shell compatibility",
+  "whole_module_accepted": false,
+  "migration_head": "00969",
+  "production_code_changed": true,
+  "production_migrations_applied": false,
+  "source_manifest": "v27-module-source-current.json",
+  "source_manifest_sha256": "c3a0978d8b1feb7d7ae44fb56099e0c8f139f43bd5f48cb25c069d48f88896cd",
+  "source_files": 4824,
+  "checks": {
+    "integration_default_selected": {
+      "tests": 153.0,
+      "failures": 0.0,
+      "errors": 0.0,
+      "skipped": 0.0,
+      "time": 723.728
+    },
+    "integration_initial_failure_retained": {
+      "tests": 153.0,
+      "failures": 10.0,
+      "errors": 0.0,
+      "skipped": 0.0,
+      "time": 644.055
+    },
+    "worker_selected": {
+      "tests": 473.0,
+      "failures": 0.0,
+      "errors": 0.0,
+      "skipped": 0.0,
+      "time": 11.545
+    },
+    "upgrade_and_goose": {
+      "tests": 7.0,
+      "failures": 0.0,
+      "errors": 0.0,
+      "skipped": 0.0,
+      "time": 2.639
+    },
+    "ambiguity_recheck": {
+      "tests": 7.0,
+      "failures": 0.0,
+      "errors": 0.0,
+      "skipped": 0.0,
+      "time": 153.968
+    },
+    "bootstrap_recheck": {
+      "tests": 1.0,
+      "failures": 0.0,
+      "errors": 0.0,
+      "skipped": 0.0,
+      "time": 30.247
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/httpapi",
+      "photoeditor/backend/internal/semanticreview",
+      "photoeditor/backend/internal/workflow",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "client": {
+      "passed": 442,
+      "skipped": 7,
+      "failed": 0,
+      "typecheck": "passed"
+    },
+    "docs": {
+      "semantic_tests": 55,
+      "static_checks": 2267,
+      "deterministic_regeneration": "passed"
+    }
+  },
+  "quality_preservation": {
+    "workers_src_baseline_files": 544,
+    "changed": 0,
+    "real_photo_quality_accepted": false
+  },
+  "remaining": [
+    "Genuine terminal-child late manual-selection refusal fixture; prior healthy-child assertion removed, not credited as coverage.",
+    "Actual browser/native module flows; DOM HTTP captures do not establish real end-to-end UI acceptance.",
+    "GC/purge/physical object deletion races, OS restart, raw PUT ambiguity and broker redelivery.",
+    "Independent target qualification, exact reference locator-version, pending target progression and 5000-target scale.",
+    "Real-photo/GPU/model quality and full V20\u2013V32 acceptance."
+  ],
+  "limitations": [
+    "153 selected integrations;333 deselected; optional all-native flag set not enabled.",
+    "Standalone client suite skips7 capture-dependent tests;3 semantic DOM tests execute inside fresh HTTP capture-backed integrations.",
+    "Inference/qualification fixtures remain doubles; no pixel-algorithm changes.",
+    "Full source manifest identifies dirty working tree, not an isolated commit."
+  ]
+}

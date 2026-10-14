@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 positive worker qualification catalog",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "tests": {
+    "passed": 5,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 11.92,
+    "xml": "v28-relight-catalog-positive-current.xml"
+  },
+  "source_sha256": {
+    "tests/integration/test_v28_relight_lease.py": "45a0fb275c977ee3022d12a8ab4dedd6da7a5c8de1551abf48a9171c0c8c366b",
+    "tests/integration/test_v28_relight_qualification.py": "8a24a8b0db8c32961457c0ec6f46c2c924fd3757b9b6ebed4f48091c5d56cc30"
+  },
+  "limitations": [
+    "Owner-seeded metadata, synthetic report and placeholder Calibration; Params contains calibration binding only, not complete ImageRelightParams",
+    "Closure metadata is synthetic; no original object IO/dispatcher/claim/producer lineage/adoption/UI or actual qualification"
+  ]
+}

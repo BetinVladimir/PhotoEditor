@@ -1,0 +1,54 @@
+{
+  "generated_at": "2026-10-08T17:35:36.930044+00:00",
+  "status": "implementing",
+  "module": "V27",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "sql": {
+      "result": "PASS",
+      "tests": 23,
+      "seconds": 27.341
+    },
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 66.907
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/v2draft",
+      "photoeditor/backend/internal/v2input",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "target skin claim repeats sealed scope under task-derived tenant context and starts run atomically",
+    "actual existing CPU adapter executes over indexed mTLS/S3 transport",
+    "float32 mask, exact uint16 PNG and MaskRef content verified",
+    "canonical target-only output guard rejects tested wrong attempt/fence/hash/foreign/duplicate/reversed outputs",
+    "canonical commit replay and post-task-success sealed receipt replay",
+    "independent SQL/S3 verifier confirms running run and succeeded canonical task",
+    "00899\u219200945 metadata and existing function identity/security preserved"
+  ],
+  "limitations": [
+    "Target skin physical result reader/consumer lock/finish/saved recovery/automatic advancement remain open",
+    "Target defects/transfer and full V27 acceptance remain open",
+    "Upstream ML doubles/shared WorkingImage; no GPU/photo-quality qualification",
+    "No production migration"
+  ],
+  "sha256": {
+    "docs/implementation-v2/audit/v27-target-skin-execution-sql-current.xml": "7ad3c049225c8fd27dd1fb141b9dc6e9494c742e2682fab18de49068986d887e",
+    "docs/implementation-v2/audit/v27-target-skin-execution-wire-current.xml": "36b17325e7f07bbe0f65595fa6c668a34f092f7883745a70ce4e8a906bb5ee92",
+    "docs/implementation-v2/audit/v27-target-skin-execution-go-current.jsonl": "08f80ebe5014ba0cd08b6ab3e0bacddc8f034c3e400d1666066a53974123430d",
+    "backend/db/migrations/00944_v27_target_skin_claim_start.sql": "67a8118758495fe228bcaacf339baba7260ce0247ba2566d9b50f6da4ecd041a",
+    "backend/db/migrations/00945_v27_target_skin_result_guard.sql": "508605e6e1f9bf9ada2e7baeaf17bdbd707dd8d2630fdf662eddea1d028a7b55",
+    "backend/internal/semanticproposal/native_target_skin_wire_probe_test.go": "884d68f07f0f114271afd4c8257fe59860c5b05c00c78e3ca85b411c4669f6c1",
+    "tests/integration/test_v27_semantic_intent_publication.py": "c8cc382f9900e8abc47afead73e4a9c2520a909bad5b2df8d79806283bc73335",
+    "tests/integration/v27_face_wire_probe.py": "61bf24cc489010b83ea6a68bf586e717ed74c61f0045721bb0f94392f4695e0f",
+    "tests/integration/test_v27_person_migration_upgrade.py": "5a85e4f57c3b91271f8348f8fa4ac8c1bc4c82364ceecfd2a2633844d3e8ac04",
+    "docs/implementation-v2/03-database.md": "cbdecee8147473b2fd95571b3709beefff8353ed769814c47f2a5b8e90ea2b99",
+    "docs/implementation-v2/15-execution-contracts.md": "ad92f7f6f98e09fd7f4b45cd9f4bc1da87f8319b8b1773e5028c367a9cc0e24c"
+  }
+}

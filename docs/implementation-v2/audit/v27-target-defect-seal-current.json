@@ -1,0 +1,54 @@
+{
+  "generated_at": "2026-10-08T18:52:38.001323+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "sql": {
+      "result": "PASS",
+      "tests": 23,
+      "seconds": 24.733
+    },
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 87.089
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/v2input",
+      "photoeditor/backend/internal/v2draft",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "00953 private sealed graph/registration/current evidence and scheduler-only atomic seal",
+    "Draft admission/live quota/current native output policy and exact task activation in same TX as event/outbox/202 receipt",
+    "Physical rollback leaves blocked/unsealed/no receipt/no queued events",
+    "Exact replay yields same ticket and one event/outbox/receipt; revoked draft seal and revoked sealed replay refuse",
+    "Independent final SQL/S3 verifier confirms queued/sealed/ready task with exact registered closure",
+    "00899→00953 upgrade retains existing function OID/owner/ACL and metadata"
+  ],
+  "limitations": [
+    "Target defect worker claim/start, canonical native output guard, finish, saved recovery and automatic advancement still required",
+    "Original transfer handoff/fresh-process recovery and whole V27 acceptance remain open",
+    "Upstream ML doubles; no GPU/photo-quality acceptance",
+    "No production migration"
+  ],
+  "sha256": {
+    "backend/db/migrations/00953_v27_target_defect_atomic_seal.sql": "b3c9cea1ceceb5b8013650c6c08d6fe907aba0b7fc6a389a5ea2846d0a1de919",
+    "backend/internal/semanticproposal/native_target_defect_seal.go": "36e36b919d30cefabd87545f064d258052d96dbc616db56389bd1d1ab025b60e",
+    "backend/internal/semanticproposal/native_target_defect_seal_probe_test.go": "ffbb2842f28640f9e5f1422d299517a4f510d41f75b0dd13e3a7c0dddbae7485",
+    "backend/internal/semanticproposal/native_target_defect_transport_probe_test.go": "663b064566b440d3efeafb632efa8b70864d24c151fe30115908eec9382993e4",
+    "tests/integration/test_v27_person_migration_upgrade.py": "ef7c9b71825bbdec87f319811f50b2d1f716a352a50966f7bef759e0695200a8",
+    "tests/integration/test_v27_semantic_intent_publication.py": "7722232f4d2f392801c4536d683ff6cece947d5a69f9a9b3882d86145d946906",
+    "tests/integration/v27_face_wire_probe.py": "66d08e5dc3b7e471015da2664611aad43ecdd2ff2db5ebac924bd57025e82801",
+    "docs/implementation-v2/03-database.md": "e476e508eb6e62422ae34b2ccefd0f12f3183ed0a0eae58be9f1deea46e978d1",
+    "docs/implementation-v2/15-execution-contracts.md": "f077dbf0386958b24b6884c25ff2294fa4f557128c52a6a40fbbca6258342a58",
+    "docs/implementation-v2/audit/v27-target-defect-seal-go-current.jsonl": "f559efa70eaf4c27cf3048e3048eacacd4b23e41b830eb075f6d9678c2ed61d4",
+    "docs/implementation-v2/audit/v27-target-defect-seal-sql-current.xml": "2b1117b6adbe748acbfbf4cabeeacf5deac6b5852e0ebfe2af561c80952c5ab3",
+    "docs/implementation-v2/audit/v27-target-defect-seal-wire-current.xml": "66880e30eb4897a1b67b2e365c4c844bc23dd8db3dfe68125736f4fd46a07296"
+  }
+}

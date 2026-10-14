@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 native protection physical exact-version artifact GC",
+  "whole_module_accepted": false,
+  "migration_head": "00974",
+  "production_code_changed": false,
+  "production_migrations_applied": false,
+  "source_manifest": "v27-artifact-physical-gc-source-current.json",
+  "source_manifest_sha256": "2716f20560713fd4833b7c74b525d6feb6174c334dc354a5eb50fb2a75b95309",
+  "source_files": 4847,
+  "checks": {
+    "physical_artifact_gc": {
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "14.357",
+      "evidence": "v27-artifact-physical-gc-current.xml"
+    },
+    "registry_retention_tenant_purge": {
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "5.954",
+      "evidence": "v27-artifact-gc-regression-current.xml"
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/maintenance"
+    ]
+  },
+  "docs": {
+    "semantic_tests": 55,
+    "static_checks": 2267,
+    "deterministic_regeneration": "passed"
+  },
+  "imaging_preservation": {
+    "files": 544,
+    "changed": 0
+  },
+  "evidence_sha256": {
+    "v27-artifact-physical-gc-current.xml": "e4a1cf631f01fddec84b7a89a14f51dac4b95a8f3e0f432e19b356df718fb117",
+    "v27-artifact-gc-regression-current.xml": "eef2f3ff28f93b847a06ed62d943a8751662d5ff554b9284bb6f6636a5abeb73",
+    "v27-artifact-gc-go-current.jsonl": "9a0c16b5d2035d03f3659f7e5147e487429faba64bd7c37c1e5b7134d7045569"
+  },
+  "active_retry_success_matrix": {
+    "session_id": 57692,
+    "status": "running",
+    "last_observed_at": "2026-10-09T07:04:12.990059+00:00",
+    "expected_cases": 6,
+    "accepted": false
+  },
+  "scope": [
+    "Owner-seeded native registry and synthetic protection bytes; no inference admission.",
+    "Actual SQLArtifactGC/ArtifactCleaner/photo_maintenance, real photo_api lease, actual10-second lease expiry and versioned object deletion.",
+    "New API lease refused during actual deleting state at serialized remove boundary.",
+    "Root-held and live-lease-held bytes retained; only original pinned version deleted; newer same-key version full bytes survive.",
+    "Owned finish replay, stale token refusal, no reclaim, report version preserved."
+  ],
+  "limitations": [
+    "Retention/document state and artifact expiry seeded for fixture; no real run-result retirement workflow is exercised.",
+    "Boundary attach probe is serialized in another DB transaction, not independent reader-process concurrency.",
+    "No actual native model/GPU/photo-quality/qualification, OOM/fallback, restart/redelivery, full browser/native or5000-target acceptance.",
+    "Stronger retry-to-success matrix remains running; no six-case acceptance claimed.",
+    "Whole V27 and V20-V32 remain unaccepted."
+  ]
+}

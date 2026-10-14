@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="13.872" timestamp="2026-10-08T13:31:25.128857+03:00" hostname="Mac"><testcase classname="tests.integration.test_v27_semantic_intent_publication" name="test_semantic_intent_publication_old_version_and_replay[native-face-wire]" time="12.563"><failure message="AssertionError: === RUN   TestIntegrationNativePreparationBootstrap&#10;      native_bootstrap_integration_test.go:184: new native person wire output exit status 1 === RUN   TestIntegrationV27IndexedDownloads&#10;              v27_wire_integration_test.go:245: Python worker probe failed: exit status 1&#10;                  Traceback (most recent call last):&#10;                    File &quot;/Users/freelancer/Documents/PhotoEditor/tests/integration/v27_face_wire_probe.py&quot;, line 177, in &lt;module&gt;&#10;                      main()&#10;                    File &quot;/Users/freelancer/Documents/PhotoEditor/tests/integration/v27_face_wire_probe.py&quot;, line 73, in main&#10;                      with TaskArtifacts.create(ctx, config, frozenset(roles)) as artifacts:&#10;                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^&#10;                    File &quot;/Users/freelancer/Documents/PhotoEditor/workers/photo_worker/runtime/artifacts.py&quot;, line 55, in create&#10;                      index=V2InputIndex.build(task_id=ctx.lease.command.task_id,&#10;                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^&#10;                    File &quot;/Users/freelancer/Documents/PhotoEditor/workers/photo_worker/v2/input_closure.py&quot;, line 74, in build&#10;                      reservation = scratch.reserve(max(16 * 1024 * 1024, manifest.entry_count * 512))&#10;                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^&#10;                    File &quot;/Users/freelancer/Documents/PhotoEditor/workers/photo_worker/runtime/scratch.py&quot;, line 144, in reserve&#10;                      raise DiskQuota('Attempt scratch budget exceeded')&#10;                  photo_worker.runtime.scratch.DiskQuota: Attempt scratch budget exceeded&#10;          --- FAIL: TestIntegrationV27IndexedDownloads (0.44s)&#10;          FAIL&#10;          FAIL&#09;photoeditor/backend/internal/gateway&#09;0.760s&#10;          FAIL&#10;          &#10;  --- FAIL: TestIntegrationNativePreparationBootstrap (8.08s)&#10;  FAIL&#10;  FAIL&#09;photoeditor/backend/internal/semanticproposal&#09;8.673s&#10;  FAIL&#10;  &#10;assert 1 == 0&#10; +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationNativePreparationBootstra...ivePreparationBootstrap (8.08s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t8.673s\nFAIL\n', stderr='').returncode">tests/integration/test_v27_semantic_intent_publication.py:731: in test_semantic_intent_publication_old_version_and_replay
+    assert result.returncode==0,result.stdout+result.stderr
+E   AssertionError: === RUN   TestIntegrationNativePreparationBootstrap
+E         native_bootstrap_integration_test.go:184: new native person wire output exit status 1 === RUN   TestIntegrationV27IndexedDownloads
+E                 v27_wire_integration_test.go:245: Python worker probe failed: exit status 1
+E                     Traceback (most recent call last):
+E                       File "/Users/freelancer/Documents/PhotoEditor/tests/integration/v27_face_wire_probe.py", line 177, in &lt;module&gt;
+E                         main()
+E                       File "/Users/freelancer/Documents/PhotoEditor/tests/integration/v27_face_wire_probe.py", line 73, in main
+E                         with TaskArtifacts.create(ctx, config, frozenset(roles)) as artifacts:
+E                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E                       File "/Users/freelancer/Documents/PhotoEditor/workers/photo_worker/runtime/artifacts.py", line 55, in create
+E                         index=V2InputIndex.build(task_id=ctx.lease.command.task_id,
+E                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E                       File "/Users/freelancer/Documents/PhotoEditor/workers/photo_worker/v2/input_closure.py", line 74, in build
+E                         reservation = scratch.reserve(max(16 * 1024 * 1024, manifest.entry_count * 512))
+E                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E                       File "/Users/freelancer/Documents/PhotoEditor/workers/photo_worker/runtime/scratch.py", line 144, in reserve
+E                         raise DiskQuota('Attempt scratch budget exceeded')
+E                     photo_worker.runtime.scratch.DiskQuota: Attempt scratch budget exceeded
+E             --- FAIL: TestIntegrationV27IndexedDownloads (0.44s)
+E             FAIL
+E             FAIL	photoeditor/backend/internal/gateway	0.760s
+E             FAIL
+E             
+E     --- FAIL: TestIntegrationNativePreparationBootstrap (8.08s)
+E     FAIL
+E     FAIL	photoeditor/backend/internal/semanticproposal	8.673s
+E     FAIL
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationNativePreparationBootstra...ivePreparationBootstrap (8.08s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t8.673s\nFAIL\n', stderr='').returncode</failure></testcase></testsuite></testsuites>

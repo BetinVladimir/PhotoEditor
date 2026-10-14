@@ -133,6 +133,17 @@ func PersistDefectsAuthorized(ctx context.Context, outer pgx.Tx, tenantID, revie
 }
 
 func PersistCandidateAuthorized(ctx context.Context, outer pgx.Tx, tenantID, reviewID, actor, requestID uuid.UUID, request Decision) (CandidatePlan, error) {
+	return persistCandidateAuthorized(ctx, outer, tenantID, reviewID, actor, uuid.Nil, requestID, request, nil)
+}
+
+type negativeCandidateBinding struct{ params, base, candidate ArtifactRef }
+
+func validNegativeCandidateBinding(binding *negativeCandidateBinding, s CandidateSnapshot) bool {
+	return binding != nil && binding.params.valid() && binding.base.valid() && binding.base.ID == s.Base.ID && binding.candidate == s.Candidate && binding.candidate.valid()
+}
+
+func persistCandidateAuthorized(ctx context.Context, outer pgx.Tx, tenantID, reviewID, actor, sessionID, requestID uuid.UUID, request Decision, binding *negativeCandidateBinding) (CandidatePlan, error) {
+
 	if outer == nil || tenantID == uuid.Nil || reviewID == uuid.Nil || actor == uuid.Nil || requestID == uuid.Nil {
 		return CandidatePlan{}, domain.NewError("INTERNAL_ERROR", 500)
 	}
@@ -167,6 +178,48 @@ func PersistCandidateAuthorized(ctx context.Context, outer pgx.Tx, tenantID, rev
 	if err != nil {
 		return CandidatePlan{}, err
 	}
+	if s.Kind == "optical.negative" {
+		// The public persistence entry cannot skip the physical Params/source check.
+		if !validNegativeCandidateBinding(binding, s) {
+			return CandidatePlan{}, domain.NewError("STALE_CANDIDATE_REVIEW", 409)
+		}
+		err = tx.QueryRow(ctx, negativeCandidateAttestationSQL, tenantID, taskID, s.RunID, s.Candidate.ID, s.Candidate.SHA256, s.Base.ID, binding.params.ID, binding.params.SHA256).Scan(&attested)
+		if err != nil {
+			return CandidatePlan{}, err
+		}
+		var baseSHA string
+		if err = tx.QueryRow(ctx, `SELECT sha256 FROM photo.artifacts WHERE tenant_id=$1 AND id=$2`, tenantID, s.Base.ID).Scan(&baseSHA); err != nil {
+			return CandidatePlan{}, err
+		}
+		if baseSHA != binding.base.SHA256 {
+			return CandidatePlan{}, domain.NewError("STALE_CANDIDATE_REVIEW", 409)
+		}
+	}
+	if !attested && s.Kind == "render.compose" {
+		err = tx.QueryRow(ctx, renderCandidateAttestationSQL, tenantID, taskID, s.RunID, s.Candidate.ID, s.Candidate.SHA256, s.Base.ID).Scan(&attested)
+		if err != nil {
+			return CandidatePlan{}, err
+		}
+	}
+	if restorationPreviewKind(s.Kind) {
+		var ready bool
+		err = tx.QueryRow(ctx, `SELECT photo.v28_restoration_review_decision_ready($1,$2)`, tenantID, reviewID).Scan(&ready)
+		if err != nil {
+			return CandidatePlan{}, err
+		}
+		attested = ready
+	}
+	if s.Kind == "portrait.open_eyes" {
+		if sessionID == uuid.Nil {
+			return CandidatePlan{}, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
+		}
+		var ready bool
+		err = tx.QueryRow(ctx, `SELECT photo.v28_open_eyes_review_decision_ready($1,$2,$3,$4)`, tenantID, reviewID, actor, sessionID).Scan(&ready)
+		if err != nil {
+			return CandidatePlan{}, err
+		}
+		attested = ready
+	}
 	if !attested {
 		return CandidatePlan{}, domain.NewError("STALE_CANDIDATE_REVIEW", 409)
 	}
@@ -181,12 +234,27 @@ func PersistCandidateAuthorized(ctx context.Context, outer pgx.Tx, tenantID, rev
 	if err != nil {
 		return CandidatePlan{}, err
 	}
-	tag, err := tx.Exec(ctx, `UPDATE photo.reviews SET state='decided',decision=$3,decided_by=$4,decided_at=clock_timestamp(),revision=$5,selection=$6,decision_hash=$7,decision_route=$8 WHERE tenant_id=$1 AND id=$2 AND state='pending' AND revision=$9`, tenantID, reviewID, request.Decision, actor, plan.Revision, selection, plan.DecisionHash, plan.Route, s.Revision)
-	if err != nil {
-		return CandidatePlan{}, err
-	}
-	if tag.RowsAffected() != 1 {
-		return CandidatePlan{}, domain.NewError("REVISION_CONFLICT", 409)
+	if restorationPreviewKind(s.Kind) || s.Kind == "portrait.open_eyes" {
+		if sessionID == uuid.Nil {
+			return CandidatePlan{}, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
+		}
+		var decided bool
+		decisionFunction := candidateDecisionFunction(s.Kind)
+		err = tx.QueryRow(ctx, `SELECT `+decisionFunction+`($1,$2,$3,$4,$5,$6,$7::jsonb,$8,$9)`, tenantID, reviewID, actor, sessionID, s.Revision, request.Decision, string(selection), plan.DecisionHash, plan.Route).Scan(&decided)
+		if err != nil {
+			return CandidatePlan{}, err
+		}
+		if !decided {
+			return CandidatePlan{}, domain.NewError("STALE_CANDIDATE_REVIEW", 409)
+		}
+	} else {
+		tag, e := tx.Exec(ctx, `UPDATE photo.reviews SET state='decided',decision=$3,decided_by=$4,decided_at=clock_timestamp(),revision=$5,selection=$6,decision_hash=$7,decision_route=$8 WHERE tenant_id=$1 AND id=$2 AND state='pending' AND revision=$9`, tenantID, reviewID, request.Decision, actor, plan.Revision, selection, plan.DecisionHash, plan.Route, s.Revision)
+		if e != nil {
+			return CandidatePlan{}, e
+		}
+		if tag.RowsAffected() != 1 {
+			return CandidatePlan{}, domain.NewError("REVISION_CONFLICT", 409)
+		}
 	}
 	details, err := canonical.Marshal(map[string]any{"decision_hash": plan.DecisionHash, "decision": request.Decision, "route": plan.Route, "revision": plan.Revision, "candidate_hash": s.Candidate.SHA256, "kind": s.Kind})
 	if err != nil {
@@ -199,6 +267,13 @@ func PersistCandidateAuthorized(ctx context.Context, outer pgx.Tx, tenantID, rev
 		return CandidatePlan{}, err
 	}
 	return plan, nil
+}
+
+func candidateDecisionFunction(kind string) string {
+	if kind == "portrait.open_eyes" {
+		return "photo.decide_v28_open_eyes_review"
+	}
+	return "photo.decide_v28_restoration_review"
 }
 
 func PersistDustAuthorized(ctx context.Context, outer pgx.Tx, tenantID, reviewID, actor, requestID uuid.UUID, proposal VerifiedDustProposal, request Decision) (DustPlan, error) {

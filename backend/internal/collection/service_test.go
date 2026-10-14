@@ -34,6 +34,24 @@ func TestOptionalUUIDDistinguishesMissingNullAndValue(t *testing.T) {
 	}
 }
 
+func TestOptionalColorLabelDistinguishesMissingClearAndPalette(t *testing.T) {
+	var missing, cleared, selected ItemPatch
+	if err := json.Unmarshal([]byte(`{}`), &missing); err != nil || missing.ColorLabel.Set {
+		t.Fatalf("missing: %+v %v", missing.ColorLabel, err)
+	}
+	if err := json.Unmarshal([]byte(`{"color_label":null}`), &cleared); err != nil || !cleared.ColorLabel.Set || cleared.ColorLabel.Value != nil {
+		t.Fatalf("clear: %+v %v", cleared.ColorLabel, err)
+	}
+	if err := json.Unmarshal([]byte(`{"color_label":"Blue"}`), &selected); err != nil || !selected.ColorLabel.Set || selected.ColorLabel.Value == nil || *selected.ColorLabel.Value != "Blue" {
+		t.Fatalf("select: %+v %v", selected.ColorLabel, err)
+	}
+	for _, raw := range []string{`{"color_label":"blue"}`, `{"color_label":"Custom"}`, `{"color_label":""}`, `{"color_label":5}`} {
+		if json.Unmarshal([]byte(raw), new(ItemPatch)) == nil {
+			t.Fatalf("accepted %s", raw)
+		}
+	}
+}
+
 func TestApplyItemModerationValidation(t *testing.T) {
 	service := Service{}
 	for _, request := range []ItemModeration{{ExpectedRevision: 0, Decision: "accept"}, {ExpectedRevision: 1, Decision: "approve"}, {ExpectedRevision: 1}} {

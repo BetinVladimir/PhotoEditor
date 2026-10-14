@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "package_id": "V27",
+  "status": "implementing",
+  "sources": [
+    {
+      "path": "backend/internal/semanticproposal/native_initial_person_result.go",
+      "sha256": "66aa40ca94b7f295a7f3760a99b968100483b79d379998a01c1e8fdb32b46dff"
+    },
+    {
+      "path": "backend/internal/semanticproposal/native_initial_person_result_test.go",
+      "sha256": "1d96d4c5b6be0fdb913e95bbe472a7e9b7d0f12b56d0dde29da603fc8f241b21"
+    },
+    {
+      "path": "backend/internal/semanticproposal/native_initial_pipeline_recovery_job.go",
+      "sha256": "03cad7fe632102fc2bbd89ed80a8c520ffb92093718b561cf3dbe188e4aed530"
+    },
+    {
+      "path": "backend/db/migrations/00909_v27_original_person_result.sql",
+      "sha256": "5db09af186b65b8076e897b18f63b1cd504c15b3211a7dce6e96cfc83c57f9ab"
+    },
+    {
+      "path": "tests/integration/test_v27_person_migration_upgrade.py",
+      "sha256": "7c0ca9750e5806d6795964177c95e33005284653baaa4b3054b8601598aff9dd"
+    }
+  ],
+  "changes": [
+    "Initial pipeline now restores the original person plan and physically verifies qualified person authority before internal completion.",
+    "Read-only API function requires root/pixels created by the original saved task, matching parent/request, sealed graph and canonical operation origin.",
+    "Person authority, policy, report and immutable objects are repeated around the exact-child SQL checks."
+  ],
+  "checks": [
+    {
+      "command": "scripts/run-platform.sh go -C backend test ./internal/semanticproposal -count=1",
+      "exit_code": 0,
+      "scope": "package tests; environment-gated infrastructure integration not enabled"
+    },
+    {
+      "command": "PHOTO_TEST_NATIVE_INFRA=1 PYTHONPATH=workers:src:tests/integration PYTHONDONTWRITEBYTECODE=1 .venv-platform/bin/python -m pytest tests/integration/test_v27_person_migration_upgrade.py -q --junitxml=docs/implementation-v2/audit/v27-original-person-upgrade.xml",
+      "exit_code": 0,
+      "passed": 1,
+      "evidence_sha": "3161a699483931374bf48e9b70e7baae0e8227f81f206309baf97b85540c4f0a",
+      "scope": "Populated forward-only upgrade, unchanged tenant rows and old function identity/ACL/security, new-function role allowlist and refused rollback."
+    }
+  ],
+  "limitations": [
+    "No positive newly-inferred-person end-to-end test yet; upgrade evidence does not prove runtime readiness.",
+    "Automatic ordinary defect creation and parent continuation remain incomplete.",
+    "Original person terminal failure recording still needs durable SQL support.",
+    "GPU/model/corpus quality and whole-module acceptance remain unproven."
+  ]
+}

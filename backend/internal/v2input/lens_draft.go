@@ -12,7 +12,7 @@ import (
 type SQLLensDraftStore struct{ DB AnalysisStageQuerier }
 
 func (s SQLLensDraftStore) Begin(ctx context.Context, tenant, actor, run uuid.UUID, policySHA string, draft CompiledLensDraft) error {
-	if s.DB == nil || tenant == uuid.Nil || actor == uuid.Nil || run == uuid.Nil || !digestPattern.MatchString(policySHA) || draft.OutputBytes < 1 {
+	if (draft.Config.QueueClass!=""&&draft.Config.QueueClass!="batch") || s.DB == nil || tenant == uuid.Nil || actor == uuid.Nil || run == uuid.Nil || !digestPattern.MatchString(policySHA) || draft.OutputBytes < 1 {
 		return ErrInvalid
 	}
 	body, err := canonical.Marshal(draft.Config)

@@ -1,0 +1,45 @@
+{
+  "params": {
+    "schema_version": 1,
+    "base": {
+      "asset_version_id": "00000000-0000-0000-0000-000000000001",
+      "source": {
+        "artifact_id": "00000000-0000-0000-0000-000000000002",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "canvas_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "donor": {
+      "asset_version_id": "00000000-0000-0000-0000-000000000003",
+      "source": {
+        "artifact_id": "00000000-0000-0000-0000-000000000004",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "canvas_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "strength": 1,
+    "source_face_id": "00000000-0000-0000-0000-000000000005",
+    "donor_face_id": "00000000-0000-0000-0000-000000000006",
+    "eyes_mask": {
+      "artifact_id": "00000000-0000-0000-0000-000000000007",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "protected": {
+      "artifact_id": "00000000-0000-0000-0000-000000000008",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "confirmation": {
+      "artifact_id": "00000000-0000-0000-0000-000000000009",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "source_faces": {
+      "artifact_id": "00000000-0000-0000-0000-000000000010",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "donor_faces": {
+      "artifact_id": "00000000-0000-0000-0000-000000000011",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  },
+  "sha256": "b1cb9cf847e7cf3f2d330eaba2163fddd796bcf2a6476f119ebf4ef3559ecfb4"
+}

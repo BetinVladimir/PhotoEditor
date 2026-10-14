@@ -1,5 +1,6 @@
 """Synthetic rolled-back worker provisioning; no runtime qualification claim."""
 from uuid import uuid4
+import pytest
 import json
 from copy import deepcopy
 from hashlib import sha256
@@ -7,6 +8,7 @@ from psycopg.types.json import Jsonb
 from contextlib import contextmanager
 from types import SimpleNamespace
 from photo_worker.runtime.database import TaskDatabase
+from photo_worker.contracts.base import canonical_bytes, canonical_hash
 
 
 def assert_render_worker_admission(db,tenant,run,task,params,sha,raw,digest):
@@ -23,7 +25,59 @@ def assert_render_worker_admission(db,tenant,run,task,params,sha,raw,digest):
                 db.execute('SET LOCAL ROLE photo_worker')
                 try:return db.execute('SELECT photo.admit_v26_render_recipe('+','.join(['%s']*10)+')',values).fetchone()[0]
                 finally:db.execute('RESET ROLE')
+        assert admitted() is False  # A lease/registration is not qualification.
+        policy,report=provision_controlled_render_qualification(db,tenant,run)
         assert admitted() is True
+        from render_adoption_inputs_fixture import assert_render_adoption_inputs
+        assert_render_adoption_inputs(db,tenant,run,task,worker,policy,params,sha)
+        def adoption_inputs_ready():
+            with db.transaction():
+                db.execute('SET LOCAL ROLE photo_fn_owner')
+                try:return db.execute('SELECT photo.v26_render_adoption_inputs_ready(%s,%s)',(tenant,task)).fetchone()[0]
+                finally:db.execute('RESET ROLE')
+        assert adoption_inputs_ready() is True
+        with db.transaction(force_rollback=True):
+            db.execute("UPDATE photo.sessions SET revoked_at=clock_timestamp() WHERE id=(SELECT (config_snapshot->'v26_render'->>'auth_session_id')::uuid FROM photo.runs WHERE id=%s)",(run,))
+            assert adoption_inputs_ready() is False
+        assert adoption_inputs_ready() is True
+        # Boundary reachability only: a deferred, rolled-back result identity
+        # and deliberately invalid inventory are not an accepted Render output.
+        with db.transaction(force_rollback=True):
+            result=uuid4()
+            db.execute("UPDATE photo.tasks SET state='succeeded',canonical_result_id=%s,lease_until=NULL,worker_id=NULL WHERE id=%s",(result,task))
+            def adopt_invalid_inventory():
+                with db.transaction():
+                    db.execute('SET LOCAL ROLE photo_scheduler')
+                    value=db.execute("SELECT photo.adopt_v2_plan(%s,%s,1,1,%s,'[]'::jsonb,%s)",(tenant,task,result,'a'*64)).fetchone()[0]
+                    db.execute('RESET ROLE')
+                    return value
+            def adoption_counts():
+                return tuple(db.execute('SELECT count(*) FROM photo.'+table+' WHERE tenant_id=%s',(tenant,)).fetchone()[0]
+                    for table in ('v2_artifact_links','inbox','run_events','outbox'))
+            baseline=adoption_counts()
+            with pytest.raises(Exception) as invalid:
+                adopt_invalid_inventory()
+            assert getattr(invalid.value,'sqlstate',None)=='22023'
+            assert adoption_counts()==baseline
+            for statement,mutation_args in (
+                ("UPDATE photo.v2_qualification_policies SET admission_enabled=false WHERE id=%s",(policy,)),
+                ("UPDATE photo.sessions SET revoked_at=clock_timestamp() WHERE id=(SELECT (config_snapshot->'v26_render'->>'auth_session_id')::uuid FROM photo.runs WHERE id=%s)",(run,)),
+            ):
+                with db.transaction(force_rollback=True):
+                    db.execute(statement,mutation_args)
+                    assert adopt_invalid_inventory() is False
+                    assert adoption_counts()==baseline
+        for statement,mutation_args in (
+            ("UPDATE photo.v2_qualification_policies SET admission_enabled=false WHERE id=%s",(policy,)),
+            ("UPDATE photo.v2_qualification_policies SET license_cleared=false,admission_enabled=false WHERE id=%s",(policy,)),
+            ("UPDATE photo.operation_registry SET v2_enabled=false WHERE operation='render.compose' AND version='1'",()),
+            ("UPDATE photo.artifacts SET expires_at=clock_timestamp()-interval '1 second' WHERE id=%s",(report,)),
+            ("UPDATE photo.artifacts SET verified_at=NULL WHERE id=%s",(report,)),
+        ):
+            with db.transaction(force_rollback=True):
+                db.execute(statement,mutation_args)
+                assert admitted() is False
+            assert admitted() is True
         # Reuse the fixture transaction so the real adapter sees uncommitted
         # provisioning, while preserving its _query and SQL parameter path.
         @contextmanager
@@ -38,6 +92,26 @@ def assert_render_worker_admission(db,tenant,run,task,params,sha,raw,digest):
             params=SimpleNamespace(artifact_id=params,sha256=sha))
         lease=SimpleNamespace(command=command,fence=1,worker_id=worker,input_digest=digest)
         assert transport.admit_render_recipe(lease,raw.encode()) is True
+        expected_pin=db.execute('SELECT v26_qualification_pin FROM photo.runs WHERE id=%s',(run,)).fetchone()[0]
+        assert transport.render_qualification(lease,raw.encode())==expected_pin
+        cache_context=transport.render_cache_context(lease,raw.encode())
+        assert cache_context[:2]==(params,sha) and cache_context[4]==expected_pin
+        assert cache_context[2]==db.execute('SELECT execution_profile FROM photo.tasks WHERE id=%s',(task,)).fetchone()[0]
+        expected_parents=db.execute("SELECT artifact_id,sha256 FROM photo.v2_task_inputs WHERE task_id=%s AND contract='ImageResult' ORDER BY ordinal,artifact_id",(task,)).fetchall()
+        assert cache_context[3]==[{'artifact_id':str(identifier),'sha256':checksum} for identifier,checksum in expected_parents]
+        assert transport.lookup_render_cache(lease,raw.encode(),'0'*64,'{}') is None
+        wrong_generation=SimpleNamespace(command=command,fence=2,worker_id=worker,input_digest=digest)
+        assert transport.render_qualification(wrong_generation,raw.encode()) is None
+        assert transport.render_cache_context(wrong_generation,raw.encode()) is None
+        assert transport.lookup_render_cache(wrong_generation,raw.encode(),'0'*64,'{}') is None
+        assert transport.render_cache_artifacts(lease,raw.encode(),'0'*64,'{}')==[]
+        assert transport.render_cache_artifacts(wrong_generation,raw.encode(),'0'*64,'{}')==[]
+        with db.transaction(force_rollback=True):
+            db.execute("UPDATE photo.worker_registrations SET certificate_sha256=%s WHERE worker_id=%s",('a'*64,worker))
+            db.execute('SET LOCAL ROLE photo_gateway')
+            assert db.execute('SELECT * FROM photo.authorize_gateway_task(%s,1,1,%s,%s)',(task,worker,'a'*64)).fetchone() is not None
+            assert db.execute('SELECT * FROM photo.gateway_input(%s,1,1,%s,%s,%s)',(task,worker,'a'*64,uuid4())).fetchone() is None
+            db.execute('RESET ROLE')
         required_contracts=['StyleV2']
         if json.loads(raw)['recipe'].get('layer_stack') is not None:required_contracts.append('LayerStack')
         if json.loads(raw)['recipe'].get('protected_mask') is not None:required_contracts.extend(['MaskRef','NpyArray'])
@@ -127,3 +201,23 @@ def assert_render_worker_admission(db,tenant,run,task,params,sha,raw,digest):
         db.execute("UPDATE photo.sessions SET revoked_at=clock_timestamp() WHERE id=(SELECT (config_snapshot->'v26_render'->>'auth_session_id')::uuid FROM photo.runs WHERE id=%s)",(run,))
         assert admitted() is False
         assert transport.admit_render_recipe(lease,raw.encode()) is False
+
+
+def provision_controlled_render_qualification(db,tenant,run):
+    """Rollback-only metadata report and identity pin, never a GPU benchmark."""
+    project,actor,model,runtime,backend=db.execute("SELECT w.project_id,r.created_by,r.config_snapshot->'v26_render'->'nodes'->0->'profile'->>'model_lock_sha',r.config_snapshot->'v26_render'->'nodes'->0->'profile'->>'render_runtime_sha',r.config_snapshot->'v26_render'->'nodes'->0->'profile'->>'backend' FROM photo.runs r JOIN photo.v2_workflows w ON w.tenant_id=r.tenant_id AND w.run_id=r.id WHERE r.tenant_id=%s AND r.id=%s",(tenant,run)).fetchone()
+    device,dataset,fixture,proof='c'*64,'d'*64,'e'*64,'f'*64
+    db.execute('INSERT INTO photo.v2_qualification_operators(operator_id,enabled) VALUES(%s,true)',(actor,))
+    policy=db.execute("INSERT INTO photo.v2_qualification_policies(operation,operation_version,model_lock_sha,runtime_lock_sha,backend,device_profile_sha,dataset_sha,issuer_id,required_checks,test_fixture_shas,evidence_shas,license_cleared,enabled,admission_enabled) VALUES('render.compose','1',%s,%s,%s,%s,%s,%s,ARRAY['quality'],ARRAY[%s],ARRAY[%s],true,true,true) RETURNING id",(model,runtime,backend,device,dataset,actor,fixture,proof)).fetchone()[0]
+    body=dict(schema_version=1,operation='render.compose',version='1',model_lock_sha=model,runtime_lock_sha=runtime,device_profile_sha=device,dataset_sha=dataset,input_fixture_shas=[fixture],checks=[dict(id='quality',passed=True,evidence_sha=proof)],metrics=dict(p50_ms=10,p95_ms=20,peak_vram_bytes=0,peak_rss_bytes=0,scratch_bytes=0),status='passed',issuer_id=str(actor),created_at='2026-09-01T00:00:00Z')
+    raw=canonical_bytes(body);digest=canonical_hash(body)
+    report=db.execute("INSERT INTO photo.artifacts(tenant_id,bucket,object_key,object_version,sha256,bytes,media_type,state,verified_at) VALUES(%s,'qualification-metadata-fixture',%s,'fixture-v1',%s,%s,'application/json','ready',clock_timestamp()) RETURNING id",(tenant,str(uuid4()),digest,len(raw))).fetchone()[0]
+    db.execute('SET LOCAL ROLE photo_maintenance')
+    db.execute('SELECT photo.import_v2_qualification(%s,%s,%s,%s,%s,%s,%s)',(tenant,project,report,digest,actor,backend,raw.decode())).fetchone()
+    db.execute('RESET ROLE')
+    db.execute("UPDATE photo.operation_registry SET v2_enabled=true WHERE operation='render.compose' AND version='1'")
+    pin=dict(model_lock_sha=model,runtime_lock_sha=runtime,backend=backend,device_profile_sha=device,dataset_sha=dataset,calibration_sha='e'*64)
+    db.execute('SET LOCAL ROLE photo_fn_owner')
+    db.execute('UPDATE photo.runs SET v26_qualification_pin=%s WHERE tenant_id=%s AND id=%s',(Jsonb(pin),tenant,run))
+    db.execute('RESET ROLE')
+    return policy,report

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="4" time="11.343" timestamp="2026-10-09T12:03:18.035476+03:00" hostname="Mac"><testcase classname="tests.integration.test_v28_relight_qualification" name="test_relight_qualification_exact_authorized_pin_and_revocation" time="1.795"><failure message="psycopg.errors.ObjectNotInPrerequisiteState: V2_IMMUTABLE&#10;CONTEXT:  PL/pgSQL function guard_v2_immutable() line 3 at RAISE">db = &lt;psycopg.Connection [INTRANS] (port=55433 user=photo_test database=photo_test_86c383a3a72642358ebd70ee5387c31a) at 0x107bc3d10&gt;
+
+    def test_relight_qualification_exact_authorized_pin_and_revocation(db):
+        from test_v27_semantic_final_producer_gate import fixture
+        from semantic_qualification_fixture import frozen_qualification
+        tenant,*_,scope=fixture(db,snapshot_authority=True)
+        pin=frozen_qualification(db,tenant,scope['project'],scope['actor'],operation='image.relight',backend='cpu')
+        pin['policy_sha']=db.execute('SELECT photo.v28_relight_policy_sha(%s)',(pin['policy_id'],)).fetchone()[0]
+        assert pin['policy_sha'] is not None
+        def lock(value=pin,tid=tenant,project=scope['project'],actor=scope['actor'],session=scope['session']):
+            with db.transaction():
+                db.execute("SELECT set_config('app.tenant_id',%s,true)",(str(tid),))
+                db.execute('SET LOCAL ROLE photo_scheduler')
+                result=db.execute('SELECT photo.lock_v28_relight_qualification(%s,%s,%s,%s,%s)',(tid,project,actor,session,Jsonb(value))).fetchone()[0]
+                db.execute('RESET ROLE')
+                return result
+        assert lock() is True
+        assert lock(tid=uuid4()) is False
+        assert lock(project=uuid4()) is False
+        assert lock(actor=uuid4()) is False
+        assert lock(session=uuid4()) is False
+        for field in ('policy_sha','model_lock_sha','runtime_lock_sha','device_profile_sha','dataset_sha'):
+            altered=deepcopy(pin);altered[field]='0'*64
+            assert lock(altered) is False
+        for query,args in (
+            ('UPDATE photo.v2_qualification_policies SET admission_enabled=false WHERE id=%s',(pin['policy_id'],)),
+            ('UPDATE photo.model_qualifications SET trusted_import=false WHERE id=%s',(pin['qualification_id'],)),
+            ("UPDATE photo.artifacts SET expires_at=clock_timestamp()-interval '1 second' WHERE id=%s",(pin['report']['artifact_id'],)),
+            ("UPDATE photo.artifacts SET expires_at=clock_timestamp()-interval '1 second' WHERE id=%s",(pin['calibration']['artifact_id'],)),
+            ('UPDATE photo.sessions SET revoked_at=clock_timestamp() WHERE id=%s',(scope['session'],)),
+        ):
+            with db.transaction(force_rollback=True):
+&gt;               db.execute(query,args);assert lock() is False
+                ^^^^^^^^^^^^^^^^^^^^^^
+
+tests/integration/test_v28_relight_qualification.py:35: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;psycopg.Connection [INTRANS] (port=55433 user=photo_test database=photo_test_86c383a3a72642358ebd70ee5387c31a) at 0x107bc3d10&gt;
+query = 'UPDATE photo.model_qualifications SET trusted_import=false WHERE id=%s'
+params = ('72f52473-74ec-4db3-bd4a-04cfc80a842e',), prepare = None
+binary = False
+
+    def execute(
+        self,
+        query: Query,
+        params: Params | None = None,
+        *,
+        prepare: bool | None = None,
+        binary: bool = False,
+    ) -&gt; Cursor[Row]:
+        """Execute a query and return a cursor to read its results."""
+        try:
+            cur = self.cursor()
+            if binary:
+                cur.format = BINARY
+    
+            if isinstance(query, Template):
+                if params is not None:
+                    raise TypeError(
+                        "'execute()' with string template query doesn't support parameters"
+                    )
+                return cur.execute(query, prepare=prepare)
+            else:
+                return cur.execute(query, params, prepare=prepare)
+        except e._NO_TRACEBACK as ex:
+&gt;           raise ex.with_traceback(None)
+E           psycopg.errors.ObjectNotInPrerequisiteState: V2_IMMUTABLE
+E           CONTEXT:  PL/pgSQL function guard_v2_immutable() line 3 at RAISE
+
+.venv-platform/lib/python3.11/site-packages/psycopg/connection.py:304: ObjectNotInPrerequisiteState</failure></testcase><testcase classname="tests.integration.test_v28_relight_lease" name="test_relight_lease_gate_acl_and_unregistered_refusal" time="1.576" /><testcase classname="tests.integration.test_v28_relight_lease" name="test_relight_live_metadata_lease_and_revocation_matrix" time="1.316" /><testcase classname="tests.integration.test_goose_migrations" name="test_goose_empty_database_and_repeat_are_stable" time="6.566" /></testsuite></testsuites>

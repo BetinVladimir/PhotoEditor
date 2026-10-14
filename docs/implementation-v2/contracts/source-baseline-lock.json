@@ -36,7 +36,7 @@
     },
     {
       "path": "workers/photo_worker/contracts/images.py",
-      "sha256": "ef4102a776bc3dec21546992acedc71c25c58f4653039a6488dfd7c238cf52a5",
+      "sha256": "595cce3d3be6e0584f371e7bfb8808bb76886be1cf973bedc44b171861f39433",
       "review_note": "Reviewed V25 DenseWarpTransform marker: omitted legacy pixel_centers preserves chain hashes; explicit null/unknown rejected; half_pixel mask/correspondence verified against lens sampler."
     },
     {
@@ -57,12 +57,38 @@
     },
     {
       "path": "workers/photo_worker/runtime/artifacts.py",
-      "sha256": "4052c0dffb31d55c81b3d875dc302002a4b887a5c505dd64c77701102d514faa",
+      "sha256": "24e012bc898449ecbc142db97d91f1496f1380f66d26fc1d4add1a5e5d112d65",
       "review_note": "Reviewed declared typed input discovery, bounded 8MiB V2 contracts and declared-only streaming. Gateway checks lease on bounded reads; context closes stream on success/consumer error; archive independently validates body hash."
     },
     {
       "path": "workers/photo_worker/runtime/gateway.py",
-      "sha256": "cc1aef36a590e4d0124bf10634eb970b840d7a5661a720577c34a7d26a8b3502"
+      "sha256": "05048a089972d05e1d9db1ced765c0557af214ac9fa21ce3c3212e011f64ad58",
+      "review_note": "Reviewed upload response framing: reject duplicate/invalid Content-Length, CL+TE, unsupported transfer coding and unexpected encoding; retain bounded EOF and chunked responses.17 real TLS tests pass. Physical Go/bootstrap compatibility rerun remains pending and not accepted yet."
+    }
+  ],
+  "review_history": [
+    {
+      "date": "2026-10-08",
+      "evidence": "../audit/v27-source-baseline-review.json",
+      "evidence_sha": "8ce226bd3edfb680b24e924c0b4349d204bcc8cae8b96fb093f70840670dad53",
+      "files": [
+        "workers/photo_worker/contracts/images.py",
+        "workers/photo_worker/runtime/artifacts.py"
+      ]
+    },
+    {
+      "date": "2026-10-09",
+      "path": "workers/photo_worker/runtime/gateway.py",
+      "previous_sha256": "cc1aef36a590e4d0124bf10634eb970b840d7a5661a720577c34a7d26a8b3502",
+      "sha256": "5eb20ab47ca32feb6a798f3e9225baa279b445d9e8af1c975d077037308eeac8",
+      "reason": "Reviewed bounded upload response parsing: partial declared response is retryable dependency failure without PUT replay; complete invalid/oversize response is typed refusal. No change to mTLS, attempt/fence, output SHA or pixel algorithms. Current TLS11PASS, SQL7PASS, physical worker/bootstrap3PASS; see audit/gateway-upload-ambiguity-current.json."
+    },
+    {
+      "date": "2026-10-09",
+      "path": "workers/photo_worker/runtime/gateway.py",
+      "previous_sha256": "5eb20ab47ca32feb6a798f3e9225baa279b445d9e8af1c975d077037308eeac8",
+      "sha256": "05048a089972d05e1d9db1ced765c0557af214ac9fa21ce3c3212e011f64ad58",
+      "reason": "Reviewed upload response framing: reject duplicate/invalid Content-Length, CL+TE, unsupported transfer coding and unexpected encoding; retain bounded EOF and chunked responses.17 real TLS tests pass. Physical Go/bootstrap compatibility rerun remains pending and not accepted yet."
     }
   ]
 }

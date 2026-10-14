@@ -59,6 +59,27 @@ func TestBuildTrainingCaseEvidenceDerivesTargetFromVerifiedRecipes(t *testing.T)
 		evidence.Resolved.Render.ApprovedDocument != approvedDoc {
 		t.Fatalf("incorrect derived evidence: %v", err)
 	}
+ t.Run("freeze_owns_regions_recipes_and_approval",func(t *testing.T){
+  ownedRender:=render
+  ownedRender.RegionMasks=[]TrainingRegionMask{{RegionID:"sky",Mask:ref("d")}}
+  region:=ownedRender.RegionMasks[0]
+  localCompiled:=ownTrainingAssemblyRecipes(compiled)
+  localCandidate:=ownTrainingAssemblyCandidate(candidate)
+  frozen,err:=BuildTrainingCaseEvidence(run,localCandidate,[12]float64{},ownedRender,localCompiled,icc,model)
+  if err!=nil{t.Fatal(err)}
+  ownedRender.RegionMasks[0].RegionID="changed"
+  localCompiled.BaseBody[0]='!'
+  *localCandidate.ApprovalID=uuid.Nil
+  localCandidate.ChangedPaths[0]="changed"
+  if frozen.Resolved.Render.RegionMasks[0]!=region||frozen.Frozen.BaseBody[0]!='{'||*frozen.Resolved.Candidate.ApprovalID!=approval||frozen.Resolved.Candidate.ChangedPaths[0]!="/ev"{t.Fatal("freeze retained mutable evidence")}
+ })
+ for _,mode:=range []string{"empty_id","duplicate_id","invalid_mask","zero_approval"}{t.Run("refuse_"+mode,func(t *testing.T){
+  r:=render;c:=ownTrainingAssemblyCandidate(candidate)
+  r.RegionMasks=[]TrainingRegionMask{{RegionID:"sky",Mask:ref("d")}}
+  switch mode{case "empty_id":r.RegionMasks[0].RegionID="";case "duplicate_id":r.RegionMasks=append(r.RegionMasks,r.RegionMasks[0]);case "invalid_mask":r.RegionMasks[0].Mask=v2input.Ref{};case "zero_approval":*c.ApprovalID=uuid.Nil}
+  result,err:=BuildTrainingCaseEvidence(run,c,[12]float64{},r,compiled,icc,model)
+  if err==nil||result.Frozen!=nil{t.Fatalf("invalid evidence escaped: %v",err)}
+ })}
 	descriptor := TrainingDescriptor{Features: [12]float64{}, Faces: render.Faces,
 		Shard: render.DescriptorShard, AnalysisID: render.DescriptorAnalysisID,
 		Ordinal: render.DescriptorOrdinal}

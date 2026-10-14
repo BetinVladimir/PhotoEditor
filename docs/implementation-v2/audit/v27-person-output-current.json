@@ -1,0 +1,80 @@
+{
+  "recorded_at": "2026-10-08T11:57:52.942793+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "dirty_tree_hash": "8540e0c587bf4b27ce9b5dad50d8f6b687c4b769e8e15cd5629d9dbcade827e2",
+  "contracts_hash": "8aa52def0f263b420c2a654084948cc89955aebf131aa7e1589821464245a25b",
+  "source_manifest": "v27-person-output-source.json",
+  "source_pins": 8195,
+  "checks": [
+    {
+      "command": "pytest tests/integration/test_v27_semantic_intent_publication.py -k 'native-face-wire or native-person-defect-recovery' -q",
+      "evidence": "v27-person-output-wire.xml",
+      "evidence_sha": "6ffb99626b27ce44ffc607df85376b5f68ec024b335e3dfbedabee3f732342c8",
+      "exit_code": 0,
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "command": "pytest tests/integration/test_v27_native_source_authority.py tests/integration/test_v27_native_registration_state.py tests/integration/test_v27_native_face_outputs.py tests/integration/test_v27_native_admission.py -q",
+      "evidence": "v27-person-output-regression.xml",
+      "evidence_sha": "4a3979f8ac8a8665e9eb94bdd16c8b53ea1a17610ba2aaf158635e27f3d6a223",
+      "exit_code": 0,
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "command": "scripts/run-platform.sh go -C backend test ./internal/semanticproposal ./internal/v2input ./internal/review ./internal/masknpy ./internal/gateway ./internal/httpapi -count=1",
+      "evidence": "v27-person-output-go.log",
+      "evidence_sha": "9947947b165f7f2e63cfe0e8fd0a9856938182515a563b7ad5acc67cdc384593",
+      "exit_code": 0
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 .venv-platform/bin/python docs/implementation-v2/check-docs.py",
+      "evidence": "v27-person-output-contracts.log",
+      "evidence_sha": "3d2c617097f24a0f5e35993af9845881e361201fa995daefa464906b28d4f3d3",
+      "exit_code": 0
+    }
+  ],
+  "requirements": [
+    {
+      "id": "original-person-probability-output-validation",
+      "status": "implemented_scoped_negative_runtime_passed_positive_worker_path_open",
+      "evidence": "v27-person-output-wire.xml"
+    },
+    {
+      "id": "complete-integrity-before-coverage-error-classification",
+      "status": "implemented_and_regression_passed",
+      "evidence": "v27-person-output-go.log"
+    },
+    {
+      "id": "person-composed-SQL-admission-completed-packets-activation",
+      "status": "open"
+    },
+    {
+      "id": "automatic-new-person-covering-protection-parent",
+      "status": "open"
+    },
+    {
+      "id": "whole-V27-GPU-corpus-browser-native-acceptance",
+      "status": "open"
+    }
+  ],
+  "changes": [
+    "Native completed-result reader verifies exact declared original person protection and full probability-preserving NPY coverage with repeated original authority",
+    "Shared coverage verifier completes numeric/length/SHA validation before returning coverage errors; corrupt weak streams cannot masquerade as unqualified coverage",
+    "Actual feature-only worker output refuses against qualified original person evidence; outer harness mandates dedicated negative marker"
+  ],
+  "limitations": [
+    "Inference and qualification use explicit doubles and imported original person evidence",
+    "Person-bearing task remains blocked under composed SQL admission; no positive canonical person-union output or parent continuation claim",
+    "Thirteen scoped integration cases do not establish full-module acceptance",
+    "No imaging algorithm, numerical threshold or migration changed"
+  ]
+}

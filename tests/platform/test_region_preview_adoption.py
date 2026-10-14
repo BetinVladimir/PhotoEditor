@@ -91,3 +91,101 @@ def test_coordinator_passes_trusted_icc_and_generation_bound_params(monkeypatch,
         with pytest.raises(AdoptionInvalid,match='PARAMS_STALE'):coordinator.adopt(tenant,task)
     else:
         with pytest.raises(RuntimeError,match='proof reached'):coordinator.adopt(tenant,task)
+
+
+@pytest.mark.parametrize('invalid',[False,True])
+def test_region_stream_close_error_does_not_mask_invalid_data(tmp_path,invalid):
+    reader,params,root,icc,output=case(tmp_path)
+    class ClosingIterator:
+        def __init__(self):self.blocks=iter([b'' if invalid else reader.body[output]]);self.closed=0
+        def __iter__(self):return self
+        def __next__(self):return next(self.blocks)
+        def close(self):self.closed+=1;raise OSError('close failed')
+    stream=ClosingIterator()
+    reader.iter_bytes=lambda *args:stream
+    expected=AdoptionInvalid if invalid else OSError
+    message='STREAM_INVALID' if invalid else 'close failed'
+    with pytest.raises(expected,match=message):prepare(reader,params,root,icc)
+    assert stream.closed==1
+
+
+def test_region_adoption_cancellation_after_params_stops_next_reads(tmp_path):
+    from photo_worker.v2.region_adoption import verify_region_result
+    from photo_worker.runtime.executor import OperationFailure
+    reader,params,root,icc,output=case(tmp_path)
+    original=reader.read_json;reads=[];active=[True]
+    def read_json(ref,max_bytes):
+        result=original(ref,max_bytes);reads.append(ref);active[0]=False
+        return result
+    reader.read_json=read_json
+    def check():
+        if not active[0]:raise OperationFailure('LEASE_LOST')
+    with pytest.raises(OperationFailure,match='LEASE_LOST'):
+        verify_region_result(reader,params,root,target_icc_sha256=icc,check_active=check)
+    assert reads==[params]
+
+
+def test_region_adoption_cancellation_during_stream_closes_iterator(tmp_path):
+    from photo_worker.v2.region_adoption import verify_region_result
+    from photo_worker.runtime.executor import OperationFailure
+    reader,params,root,icc,output=case(tmp_path)
+    active=[True]
+    class CancelledStream:
+        closed=0
+        def __iter__(self):return self
+        def __next__(self):active[0]=False;return reader.body[output]
+        def close(self):self.closed+=1
+    stream=CancelledStream();reader.iter_bytes=lambda *args:stream
+    def check():
+        if not active[0]:raise OperationFailure('LEASE_LOST')
+    with pytest.raises(OperationFailure,match='LEASE_LOST'):
+        verify_region_result(reader,params,root,target_icc_sha256=icc,check_active=check)
+    assert stream.closed==1
+
+
+def test_generic_region_adoption_forwards_activity_into_evidence_reads(tmp_path):
+    reader, params, root, icc, _ = case(tmp_path)
+    reads = []
+    original = reader.read_json
+    def read(ref, limit):
+        reads.append(ref)
+        return original(ref, limit)
+    reader.read_json = read
+    def active():
+        if reads:
+            raise InterruptedError('stopped after Params read')
+    with pytest.raises(InterruptedError, match='Params'):
+        prepare_v2_adoption(task_id=uuid4(), operation='region.preview', version='1',
+            root=root, reader=reader, params_ref=params, region_target_icc_sha=icc,
+            check_active=active)
+    assert reads == [params]
+
+
+def test_coordinator_stop_after_proof_never_enters_write_transaction(monkeypatch):
+    from threading import Event
+    from types import SimpleNamespace
+    from photo_worker.v2 import adoption_service as service
+    stop = Event()
+    def active():
+        if stop.is_set():
+            raise InterruptedError('stopped')
+    params = ArtifactRef(uuid4(), 'a' * 64)
+    class Read:
+        autocommit = True
+        def execute(self, query, args):
+            assert 'v26_region_adoption_params' in query
+            return SimpleNamespace(fetchone=lambda: (params.artifact_id, params.sha256))
+    class Write:
+        def transaction(self):
+            pytest.fail('write transaction after stopped proof')
+    coordinator = service.AdoptionCoordinator(Read(), Write(), object(), 'private',
+        region_target_icc_sha='b' * 64, check_active=active)
+    coordinator.context = lambda *args: service.AdoptionContext(1, 2, uuid4(),
+        'region.preview', '1', ArtifactRef(uuid4(), 'c' * 64))
+    def proof(**kwargs):
+        assert kwargs['check_active'] is active
+        stop.set()
+        return SimpleNamespace(inventory=(), digest='d' * 64)
+    monkeypatch.setattr(service, 'prepare_v2_adoption', proof)
+    with pytest.raises(InterruptedError, match='stopped'):
+        coordinator.adopt(uuid4(), uuid4())

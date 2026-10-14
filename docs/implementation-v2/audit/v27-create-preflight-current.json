@@ -1,0 +1,23 @@
+{
+  "module_accepted": false,
+  "physical": {
+    "passed": 1,
+    "deselected": 15,
+    "seconds": 18.75
+  },
+  "package": {
+    "status": "PASS",
+    "seconds": 2.05
+  },
+  "source_sha256": {
+    "backend/internal/semanticproposal/create_preflight.go": "959b7f5b102a620bd44edda4fae3d666a86d343e9e7acabab35d75eddd9a8420",
+    "backend/internal/semanticproposal/create_service.go": "c1e1219efb4ca3a16e253e0dd30bd5af7fa979f14f7c3dd9dea5b673099b65c5",
+    "backend/internal/semanticproposal/publication_integration_test.go": "f366768184ebca0937eeec4c7e827931ef5762834228f3493f0c458cd569f286"
+  },
+  "scope": "correct real API/scheduler preflight passes; swapped real roles refuse before publication; selection/input preparation and ordinary commit/replay regression retained",
+  "remaining": [
+    "positive full CreateService admission",
+    "configuration loader and HTTP installation",
+    "native generation integration and whole-module gates"
+  ]
+}

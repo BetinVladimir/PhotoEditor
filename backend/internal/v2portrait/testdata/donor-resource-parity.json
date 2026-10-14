@@ -1,0 +1,90 @@
+[
+  {
+    "dimensions": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "expected": {
+      "source_pixel_count": 1,
+      "donor_pixel_count": 1,
+      "patch_pixel_count": 1,
+      "ram_bytes": 536872112,
+      "mask_scratch_bytes": 8200,
+      "material_scratch_bytes": 24616,
+      "output_scratch_bytes": 32784,
+      "scratch_bytes": 67174464,
+      "output_bytes": 33554448,
+      "vram_bytes": 0
+    }
+  },
+  {
+    "dimensions": [
+      100,
+      200,
+      300,
+      400,
+      40,
+      50
+    ],
+    "expected": {
+      "source_pixel_count": 20000,
+      "donor_pixel_count": 120000,
+      "patch_pixel_count": 2000,
+      "ram_bytes": 593670912,
+      "mask_scratch_bytes": 168192,
+      "material_scratch_bytes": 2824576,
+      "output_scratch_bytes": 352768,
+      "scratch_bytes": 70454400,
+      "output_bytes": 33874432,
+      "vram_bytes": 0
+    }
+  },
+  {
+    "dimensions": [
+      6000,
+      4000,
+      6000,
+      4000,
+      1024,
+      1024
+    ],
+    "expected": {
+      "source_pixel_count": 24000000,
+      "donor_pixel_count": 24000000,
+      "patch_pixel_count": 1048576,
+      "ram_bytes": 20156301312,
+      "mask_scratch_bytes": 192008192,
+      "material_scratch_bytes": 960024576,
+      "output_scratch_bytes": 384032768,
+      "scratch_bytes": 1603174400,
+      "output_bytes": 417554432,
+      "vram_bytes": 0
+    }
+  },
+  {
+    "dimensions": [
+      20000,
+      10000,
+      20000,
+      10000,
+      1024,
+      1024
+    ],
+    "expected": {
+      "source_pixel_count": 200000000,
+      "donor_pixel_count": 200000000,
+      "patch_pixel_count": 1048576,
+      "ram_bytes": 160956301312,
+      "mask_scratch_bytes": 1600008192,
+      "material_scratch_bytes": 8000024576,
+      "output_scratch_bytes": 3200032768,
+      "scratch_bytes": 12867174400,
+      "output_bytes": 3233554432,
+      "vram_bytes": 0
+    }
+  }
+]

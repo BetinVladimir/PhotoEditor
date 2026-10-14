@@ -147,7 +147,7 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts, registry: ICCRegist
         with artifacts.scratch.reserve(width * height * 5 + 2 * 1024 * 1024) as reservation:
             path = reservation.planned_path('derivative', suffix)
             try:
-                _write(path, resized, resized_alpha, target_profile.data, QUALITY[params.variant])
+                _write(path, resized, resized_alpha, target_profile.data, QUALITY[params.variant], strip_metadata=True)
                 reservation.validate_file(path)
                 with Image.open(path) as check:
                     check.verify()

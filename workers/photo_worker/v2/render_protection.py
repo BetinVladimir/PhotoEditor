@@ -53,7 +53,7 @@ def preserve_render_protection(artifacts, original, final, read_protected, *, ti
             rgb.flush();rgb.flags.writeable=False
             if alpha is not None:alpha.flush();alpha.flags.writeable=False
             check_active()
-            yield AdjustmentPixels(rgb,alpha,final.generated)
+            yield AdjustmentPixels(rgb,alpha,final.generated,final.effects)
             check_active()
         finally:
             if alpha is not None:alpha._mmap.close()

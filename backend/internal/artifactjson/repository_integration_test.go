@@ -58,7 +58,7 @@ func TestIntegrationDocumentReservationFencing(t *testing.T) {
 	}
 	defer pool.Close()
 	repo := SQLRepository{DB: pool, Bucket: "test-bucket"}
-	scope := Scope{tenant, run, review, "review_selection"}
+	scope := Scope{Tenant: tenant, Run: run, Owner: review, Purpose: "review_selection"}
 	first, err := repo.Reserve(ctx, scope, hash, 2)
 	if err != nil {
 		t.Fatal(err)

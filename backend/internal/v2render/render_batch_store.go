@@ -2,12 +2,14 @@ package v2render
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/database"
+	"photoeditor/backend/internal/domain"
 	"photoeditor/backend/internal/v2input"
 	"strconv"
 )
@@ -20,6 +22,29 @@ func (s SQLRenderDraftStore) BeginBatch(ctx context.Context, tenant, batch, proj
 	}
 	if s.DB == nil || tenant == uuid.Nil {
 		return v2input.ErrInvalid
+	}
+	if s.SubmissionSHA != "" {
+		if _, err := domain.ParseDigest(s.SubmissionSHA); err != nil {
+			return v2input.ErrInvalid
+		}
+	}
+	if s.SubmissionKey != "" {
+		expected, err := v2input.RunID(tenant, who.UserID, s.SubmissionKey)
+		if err != nil || expected != batch || s.SubmissionSHA == "" {
+			return v2input.ErrInvalid
+		}
+	}
+	var qualificationPin []byte
+	if s.QualificationPin != nil {
+		pin := *s.QualificationPin
+		if err := pin.validate(); err != nil {
+			return err
+		}
+		var err error
+		qualificationPin, err = json.Marshal(pin)
+		if err != nil {
+			return err
+		}
 	}
 	raw, err := BuildRenderBatchManifest(batch, project, snapshot, who, policySHA, parts)
 	if err != nil {
@@ -42,6 +67,21 @@ func (s SQLRenderDraftStore) BeginBatch(ctx context.Context, tenant, batch, proj
 		if role != "photo_scheduler" {
 			return v2input.ErrInvalid
 		}
+		if s.SubmissionKey != "" {
+			var outcome string
+			if err := tx.QueryRow(ctx, "SELECT photo.claim_v26_render_submission($1,$2,$3,$4,$5,$6,$7)", tenant, project, who.UserID, who.SessionID, batch, s.SubmissionKey, s.SubmissionSHA).Scan(&outcome); err != nil {
+				return err
+			}
+			switch outcome {
+			case "created", "pending", "replayed":
+			case "conflict":
+				return v2input.ErrConflict
+			case "expired":
+				return v2input.ErrExpired
+			default:
+				return v2input.ErrInvalid
+			}
+		}
 		var ok bool
 		if err := tx.QueryRow(ctx, `SELECT photo.begin_v26_render_batch($1,$2,$3,$4,$5,$6,$7)`, tenant, project, snapshot, who.UserID, who.SessionID, batch, string(raw)).Scan(&ok); err != nil {
 			return err
@@ -60,6 +100,21 @@ func (s SQLRenderDraftStore) BeginBatch(ctx context.Context, tenant, batch, proj
 			}
 			return v2input.ErrExpired
 		}
+		if s.SubmissionSHA != "" {
+			var outcome string
+			if err := tx.QueryRow(ctx, "SELECT photo.bind_v26_render_submission($1,$2,$3,$4,$5)", tenant, batch, who.UserID, who.SessionID, s.SubmissionSHA).Scan(&outcome); err != nil {
+				return err
+			}
+			switch outcome {
+			case "bound":
+			case "conflict":
+				return v2input.ErrConflict
+			case "expired":
+				return v2input.ErrExpired
+			default:
+				return v2input.ErrInvalid
+			}
+		}
 		for i, config := range configs {
 			if err := ctx.Err(); err != nil {
 				return err
@@ -69,6 +124,23 @@ func (s SQLRenderDraftStore) BeginBatch(ctx context.Context, tenant, batch, proj
 			}
 			if !ok {
 				return v2input.ErrExpired
+			}
+		}
+		if len(qualificationPin) != 0 {
+			var outcome string
+			if err := tx.QueryRow(ctx, "SELECT photo.bind_v26_render_qualification($1,$2,$3,$4,$5::jsonb)", tenant, batch, who.UserID, who.SessionID, string(qualificationPin)).Scan(&outcome); err != nil {
+				return err
+			}
+			switch outcome {
+			case "bound":
+			case "conflict":
+				return v2input.ErrConflict
+			case "expired":
+				return v2input.ErrExpired
+			case "unavailable":
+				return renderUnavailable()
+			default:
+				return v2input.ErrInvalid
 			}
 		}
 		return nil

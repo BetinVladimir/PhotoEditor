@@ -29,8 +29,12 @@ type IngestCatalogCoordinator struct {
 // independent idempotent transaction; failure leaves earlier commits intact and
 // never calls Finish. Source must attest canonical decode and JSON integrity.
 func (c IngestCatalogCoordinator) Advance(ctx context.Context, tenant uuid.UUID, spec IngestSpec) (bool, error) {
+ return c.advance(ctx,tenant,spec,true)
+}
+
+func(c IngestCatalogCoordinator)advance(ctx context.Context,tenant uuid.UUID,spec IngestSpec,prepareOriginal bool)(bool,error){
 	invalid := errors.New("invalid ingest catalog batch")
-	if c.Source == nil || c.Originals == nil || c.Catalog == nil || tenant == uuid.Nil {
+	if c.Source == nil || (prepareOriginal && c.Originals == nil) || c.Catalog == nil || tenant == uuid.Nil {
 		return false, invalid
 	}
 	registry, err := LoadRegistry()
@@ -87,12 +91,14 @@ func (c IngestCatalogCoordinator) Advance(ctx context.Context, tenant uuid.UUID,
 		var done bool
 		if item.image != nil {
 			img := *item.image
+			if prepareOriginal {
 			original, e := c.Originals.Prepare(ctx, OriginalScope{Tenant: tenant, Run: spec.RunID, Ordinal: img.Ordinal, Source: img.Source})
 			if e != nil {
 				return false, e
 			}
 			if !validExpansionRef(original) || original.SHA256 != img.Source.SHA256 || original.ID == img.Source.ID {
 				return false, errors.New("invalid prepared original")
+			}
 			}
 			done, err = c.Catalog.AdoptImage(ctx, tenant, spec.RunID, img)
 		} else {

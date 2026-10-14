@@ -2,6 +2,7 @@ package portal
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -11,7 +12,10 @@ import (
 	"photoeditor/backend/internal/objectstore"
 )
 
-type intentRow struct{ mode string }
+type intentRow struct {
+	mode    string
+	current bool
+}
 
 func (r intentRow) Scan(dest ...any) error {
 	switch r.mode {
@@ -29,31 +33,98 @@ func (r intentRow) Scan(dest ...any) error {
 		*dest[4].(**int64) = &size
 		*dest[5].(**string) = &media
 		*dest[6].(**string) = &name
+	case "current":
+		*dest[0].(*bool) = r.current
 	}
 	return nil
 }
 
 type intentDB struct {
-	mode string
-	args []any
+	mode    string
+	current bool
+	args    []any
 }
 
-func (d *intentDB) QueryRow(_ context.Context, _ string, args ...any) pgx.Row {
+func (d *intentDB) QueryRow(_ context.Context, query string, args ...any) pgx.Row {
 	d.args = args
-	return intentRow{d.mode}
+	if strings.Contains(query, "v30_delivery_download_intent_current") {
+		return intentRow{mode: "current", current: d.current}
+	}
+	return intentRow{mode: d.mode}
 }
 func (d *intentDB) Query(context.Context, string, ...any) (pgx.Rows, error) { return nil, nil }
 
 type intentStore struct {
 	portalMultipartFake
-	name   string
-	object objectstore.Object
-	ttl    time.Duration
+	name         string
+	object       objectstore.Object
+	ttl          time.Duration
+	checked      objectstore.Object
+	checkErr     error
+	signedURL    string
+	signedExpiry time.Time
+}
+
+func (s *intentStore) Check(_ context.Context, object objectstore.Object) error {
+	s.checked = object
+	return s.checkErr
 }
 
 func (s *intentStore) SignDownload(_ context.Context, o objectstore.Object, name string, ttl time.Duration) (objectstore.ReadURL, error) {
 	s.name, s.object, s.ttl = name, o, ttl
-	return objectstore.ReadURL{URL: "https://storage.test/download", ExpiresAt: time.Now().Add(time.Minute)}, nil
+	raw := s.signedURL
+	if raw == "" {
+		raw = "https://storage.test/download?versionId=v1"
+	}
+	expiry := s.signedExpiry
+	if expiry.IsZero() {
+		expiry = time.Now().Add(time.Minute)
+	}
+	return objectstore.ReadURL{URL: raw, ExpiresAt: expiry}, nil
+}
+
+func TestDownloadIntentRefusesExtendedSignedURLLifetime(t *testing.T) {
+	db := &intentDB{mode: "redeem", current: true}
+	store := &intentStore{signedExpiry: time.Now().Add(5 * time.Minute)}
+	service := Service{DB: db, Pepper: []byte(strings.Repeat("p", 32)), Objects: store, Bucket: "photo-test"}
+	if _, err := service.RedeemDownloadIntent(context.Background(), DownloadRedeemRequest{Token: strings.Repeat("A", 43)}); err == nil {
+		t.Fatal("overlong signed Delivery download URL exposed")
+	}
+}
+
+func TestDownloadIntentRefusesUnboundSignedURL(t *testing.T) {
+	for _, raw := range []string{
+		"https://storage.test/download",
+		"https://storage.test/download?versionId=other",
+		"https://storage.test/download?versionId=v1&versionId=other",
+		"http://storage.test/download?versionId=v1",
+		"http://localhost.evil.test/download?versionId=v1",
+		"http://192.168.1.2/download?versionId=v1",
+		"https://user@storage.test/download?versionId=v1",
+	} {
+		db := &intentDB{mode: "redeem", current: true}
+		store := &intentStore{signedURL: raw}
+		service := Service{DB: db, Pepper: []byte(strings.Repeat("p", 32)), Objects: store, Bucket: "photo-test"}
+		if _, err := service.RedeemDownloadIntent(context.Background(), DownloadRedeemRequest{Token: strings.Repeat("A", 43)}); err == nil {
+			t.Fatalf("unbound signed URL exposed: %s", raw)
+		}
+	}
+}
+
+func TestDownloadIntentAllowsVersionedLoopbackObjectStore(t *testing.T) {
+	for _, raw := range []string{
+		"http://localhost:9000/download?versionId=v1",
+		"http://127.0.0.2:9000/download?versionId=v1",
+		"http://[::1]:9000/download?versionId=v1",
+	} {
+		db := &intentDB{mode: "redeem", current: true}
+		store := &intentStore{signedURL: raw}
+		service := Service{DB: db, Pepper: []byte(strings.Repeat("p", 32)), Objects: store, Bucket: "photo-test"}
+		link, err := service.RedeemDownloadIntent(context.Background(), DownloadRedeemRequest{Token: strings.Repeat("A", 43)})
+		if err != nil || link.URL != raw {
+			t.Fatalf("local object URL rejected: %s, %v", raw, err)
+		}
+	}
 }
 
 func TestDownloadIntentNeverStoresBearerAndRedeemsAttachment(t *testing.T) {
@@ -69,6 +140,7 @@ func TestDownloadIntentNeverStoresBearerAndRedeemsAttachment(t *testing.T) {
 		}
 	}
 	db.mode = "redeem"
+	db.current = true
 	store := &intentStore{}
 	service.Objects = store
 	service.Bucket = "photo-test"
@@ -81,6 +153,36 @@ func TestDownloadIntentNeverStoresBearerAndRedeemsAttachment(t *testing.T) {
 	}
 	if store.object.VersionID != "v1" {
 		t.Fatal("object version not pinned")
+	}
+	if store.checked != store.object {
+		t.Fatal("signed object was not checked against storage")
+	}
+}
+
+func TestDownloadIntentRejectsMissingPhysicalVersionBeforeSigning(t *testing.T) {
+	db := &intentDB{mode: "redeem", current: true}
+	store := &intentStore{checkErr: errors.New("missing version")}
+	service := Service{DB: db, Pepper: []byte(strings.Repeat("p", 32)), Objects: store, Bucket: "photo-test"}
+	if _, err := service.RedeemDownloadIntent(context.Background(), DownloadRedeemRequest{Token: strings.Repeat("A", 43)}); err == nil {
+		t.Fatal("missing physical version returned a URL")
+	}
+	if store.checked.VersionID != "v1" || store.object.Key != "" {
+		t.Fatal("storage check must precede URL signing")
+	}
+}
+
+func TestDownloadIntentRejectsRevokedTargetAfterSigning(t *testing.T) {
+	db := &intentDB{mode: "redeem", current: false}
+	store := &intentStore{}
+	service := Service{DB: db, Pepper: []byte(strings.Repeat("p", 32)),
+		Objects: store, Bucket: "photo-test"}
+	token := strings.Repeat("A", 43)
+	if _, err := service.RedeemDownloadIntent(context.Background(),
+		DownloadRedeemRequest{Token: token}); err == nil {
+		t.Fatal("revoked Delivery target returned a signed URL")
+	}
+	if store.object.VersionID != "v1" {
+		t.Fatal("post-signing authority was not exercised")
 	}
 }
 

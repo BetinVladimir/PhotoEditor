@@ -1,0 +1,51 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "generated_at": "2026-10-08T14:02:24.790565+00:00",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "source_scope": {
+    "backend/internal/semanticproposal/native_target_preparation_manifest.go": "3faca5155b80706355a02023e67b938d9609d6b5e793a0ac52e87a730590cfa5",
+    "backend/internal/semanticproposal/native_target_preparation_manifest_test.go": "03945ef2a4324f8806c29d06b3f7f62f897a0ddae8d4ff03613ed1c0d651f8ec",
+    "backend/internal/semanticproposal/native_initial_parent_admit.go": "9d3c315d29ddc97e163931c90040a1d1fd9f5eb4e01ce5ef18b6fdf40b268bd4"
+  },
+  "checks": [
+    {
+      "command": "scripts/run-platform.sh go -C backend test -json ./internal/semanticproposal",
+      "exit_code": 0,
+      "evidence": "docs/implementation-v2/audit/v27-target-manifest-current.jsonl",
+      "evidence_sha": "5c410a2b82d6900f27f9b9a98cc571cb01534de5afd978d4cf6e31dfdb7f50c7",
+      "target_tests_passed": [
+        "TestTargetPreparationManifestOwnsWholeSnapshotAndDependencyGraph",
+        "TestTargetPreparationManifestCovers5000TargetsWithoutIdentityAliases"
+      ]
+    },
+    {
+      "command": "scripts/run-platform.sh go -C backend test ./internal/semanticproposal ./internal/v2input ./internal/review",
+      "exit_code": 0,
+      "scope": "before final explicit operation_version field; final semanticproposal package separately rerun"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "implemented": [
+    "Private canonical target prerequisite manifest binds original request/key/session/project/published intent/pinned snapshot and full ordered inventory",
+    "Namespaced version1 person/detector/landmarks/parser/skin/defect stage identities and explicit dependency DAG per target",
+    "Exact reference binding is a reuse hint with no fabricated task/output references",
+    "Automatic parent path returns private frozen continuation only for missing target protection; ambiguous/error classification remains fail closed",
+    "Recompilation verifies saved bytes/hash against all original scope inputs; cancellation returns empty output"
+  ],
+  "verified": [
+    "Deterministic replay and exact snapshot target order",
+    "Substituted target/intent/manifest refused and cancellation produces no plan",
+    "5000 target coverage, disjoint namespaces/stage identities and <=8MiB manifest",
+    "Private continuation preserves dependency-unavailable error classification"
+  ],
+  "limitations": [
+    "Manifest/planning foundation only; target metadata persistence and actual producer scheduling are not implemented",
+    "Missing-target branch compiled but not yet physically exercised through DB/S3 integration",
+    "No target qualification/resource admission, byte IO or accepted output authority conveyed by manifest",
+    "No whole V27 or V20–V32 acceptance; no current real model/GPU/corpus evidence"
+  ]
+}

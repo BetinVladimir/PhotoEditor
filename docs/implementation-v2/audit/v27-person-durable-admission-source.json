@@ -1,0 +1,13 @@
+{
+  "recorded_at": "2026-10-08T09:05:29.958461+00:00",
+  "sources": {
+    "backend/db/migrations/00901_v27_person_admission_recovery.sql": "0c2d96608c2496d46ad0e22919bd9784ee0e7066d2113758a7d668985bf1c733",
+    "backend/internal/semanticproposal/person_draft_begin.go": "4042cc6e34b8b500dd0d402b8b840aec33aea2ad3d78afebb65cc21d309ea90b",
+    "backend/internal/semanticproposal/person_admission_recovery_job.go": "b9c797ebd3a14e4a87a994b448205e20f725166b37687b201d170ef08de93114",
+    "backend/internal/semanticproposal/person_admission_dispatcher.go": "34e622b6cf8ffec1a6c898535c1b8808ced5f20309e4f9c2c2e4dba6d8c60488",
+    "backend/internal/semanticproposal/native_initial_recovery_dispatcher.go": "7449200522b1f89e28298c19f1176c6677d7a151450c0a891725b43966a59742",
+    "backend/internal/semanticproposal/native_bootstrap_integration_test.go": "4dc22de74061b83f97bf3429d69423d0e8dfbbfed7f4161f542b259026330839",
+    "backend/internal/semanticproposal/create_http_probe_test.go": "1b5cce14d90dd277dac50eda0db7d8892283cf9c51b1f70ab89ccc3017b55e60",
+    "tests/integration/test_v27_semantic_intent_publication.py": "1fd3bd3f6dcbe8e4a8a0d91a60e6b4c7d7aeb73e1c24d4aca58e995afd0f4009"
+  }
+}

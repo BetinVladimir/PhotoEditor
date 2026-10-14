@@ -1,8 +1,8 @@
 {
-  "static_checks": 2150,
-  "schemas": 174,
-  "endpoints": 55,
-  "operations": 27,
+  "static_checks": 2275,
+  "schemas": 186,
+  "endpoints": 61,
+  "operations": 29,
   "tables": 40,
   "packages": 13,
   "result": "passed",

@@ -444,6 +444,45 @@
       "http": "POST /api/v1/tenants/{t}/assets/{id}/v2-draft/approve"
     },
     {
+      "name": "FreezeRenderDraft",
+      "layer": "http_service",
+      "package": "V26",
+      "input": "RenderFreezeRequest",
+      "output": "RenderFreezeResult",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/assets/{id}/v2-draft/freeze"
+    },
+    {
+      "name": "CreateRenderInputSnapshot",
+      "layer": "http_service",
+      "package": "V26",
+      "input": "RenderInputSnapshotRequest",
+      "output": "RenderInputSnapshotResult",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/projects/{id}/render-input-snapshots"
+    },
+    {
+      "name": "GetRenderPolicy",
+      "layer": "http_service",
+      "package": "V26",
+      "input": null,
+      "output": "RenderPolicySnapshot",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/projects/{id}/render-policy"
+    },
+    {
       "name": "PreviewRegion",
       "layer": "http_service",
       "package": "V26",
@@ -455,6 +494,32 @@
         "17-integration-security.md"
       ],
       "http": "POST /api/v1/tenants/{t}/assets/{id}/region-previews"
+    },
+    {
+      "name": "QueueRenderBatch",
+      "layer": "http_service",
+      "package": "V26",
+      "input": "RenderBatchSubmission",
+      "output": "RenderBatchTicket",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/projects/{id}/render-batches"
+    },
+    {
+      "name": "SubmitRelight",
+      "layer": "http_service",
+      "package": "V28",
+      "input": "RelightDraftIntent",
+      "output": "JobTicket",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/projects/{id}/relight-intents"
     },
     {
       "name": "Propose",
@@ -611,6 +676,19 @@
         "17-integration-security.md"
       ],
       "http": "POST /api/v1/tenants/{t}/v2-workflows/{id}/cancel"
+    },
+    {
+      "name": "ReadRunIntent",
+      "layer": "http_service",
+      "package": "V27",
+      "input": null,
+      "output": "SemanticRunIntent",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/runs/{id}/semantic-intent"
     },
     {
       "name": "GetRegionPreviewDescriptor",
@@ -1039,6 +1117,226 @@
         "19-runtime-protocol.md"
       ],
       "pool": "gpu"
+    },
+    {
+      "name": "render.compose.execute",
+      "layer": "worker",
+      "package": "V26",
+      "input": "FrozenRenderRecipe",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "gpu"
+    },
+    {
+      "name": "semantic.local_exposure.execute",
+      "layer": "worker",
+      "package": "V27",
+      "input": "ApprovedSemanticEdit",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu"
+    },
+    {
+      "name": "GetReviewPreview",
+      "layer": "http_service",
+      "package": "V26",
+      "input": null,
+      "output": "ReviewPreview",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md",
+        "21-render-review-preview.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/reviews/{id}/previews/{side}/{variant}"
+    },
+    {
+      "name": "GetPerspectiveReplacementReviewScope",
+      "layer": "http_service",
+      "package": "V29",
+      "input": null,
+      "output": "PerspectiveReplacementReviewScope",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/projects/{id}/reviews/{review}/perspective-replacements/{original}"
+    },
+    {
+      "name": "ListPerspectiveReplacementReviews",
+      "layer": "http_service",
+      "package": "V29",
+      "input": null,
+      "output": "PerspectiveReplacementReviewPage",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/reviews/{review}/perspective-replacements"
+    },
+    {
+      "name": "GetMultiReplacementReviewScope",
+      "layer": "http_service",
+      "package": "V29",
+      "input": null,
+      "output": "MultiReplacementReviewScope",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/projects/{id}/reviews/{review}/multi-replacements/{original}"
+    },
+    {
+      "name": "ListMultiReplacementReviews",
+      "layer": "http_service",
+      "package": "V29",
+      "input": null,
+      "output": "MultiReplacementReviewPage",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/reviews/{review}/multi-replacements"
+    },
+    {
+      "name": "BeginInterchangeArchiveUpload",
+      "layer": "http_service",
+      "package": "V30",
+      "input": "ArchiveUploadBegin",
+      "output": "ArchiveUploadReceipt",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads"
+    },
+    {
+      "name": "SignInterchangeArchiveParts",
+      "layer": "http_service",
+      "package": "V30",
+      "input": "ArchiveUploadPartsRequest",
+      "output": "ArchiveUploadPartsResponse",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/{upload}/parts"
+    },
+    {
+      "name": "CompleteInterchangeArchiveUpload",
+      "layer": "http_service",
+      "package": "V30",
+      "input": "ArchiveUploadComplete",
+      "output": "ArchiveUploadAccepted",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/{upload}/complete"
+    },
+    {
+      "name": "AbortInterchangeArchiveUpload",
+      "layer": "http_service",
+      "package": "V30",
+      "input": "ArchiveUploadAbort",
+      "output": "ArchiveUploadAbortAccepted",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/{upload}/abort"
+    },
+    {
+      "name": "GetInterchangeArchiveUpload",
+      "layer": "http_service",
+      "package": "V30",
+      "input": null,
+      "output": "ArchiveUploadStatus",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/{upload}"
+    },
+    {
+      "name": "GetRAWCapabilities",
+      "layer": "http_service",
+      "package": "V25",
+      "input": null,
+      "output": "RAWCapabilities",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/projects/{id}/raw-capabilities"
+    },
+    {
+      "name": "GetPendingReviewMedia",
+      "layer": "http_service",
+      "package": "V26",
+      "input": null,
+      "output": null,
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/media/review-pending"
+    },
+    {
+      "name": "GetSelectedRenderMedia",
+      "layer": "http_service",
+      "package": "V26",
+      "input": null,
+      "output": null,
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/media/render-selected"
+    },
+    {
+      "name": "GetSelectedRestorationMedia",
+      "layer": "http_service",
+      "package": "V28",
+      "input": null,
+      "output": null,
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/media/restoration-selected"
+    },
+    {
+      "name": "GetReviewableRunOutputMedia",
+      "layer": "http_service",
+      "package": "V26",
+      "input": null,
+      "output": null,
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/media/run-output"
     }
   ]
 }

@@ -101,3 +101,18 @@ def test_disabled_region_go_queue_stops_before_external_preparation(database):
     env=dict(os.environ,PHOTO_REGION_QUEUE_DATABASE_URL=make_conninfo(**database),GOCACHE='/private/tmp/photoeditor-go-cache')
     result=subprocess.run(['go','test','./internal/v2region','-run','^TestIntegrationDisabledRegionQueueStopsBeforePreparation$','-count=1'],cwd=Path(__file__).resolve().parents[2]/'backend',env=env,capture_output=True,text=True,timeout=30)
     assert result.returncode==0,result.stdout+result.stderr
+
+
+def test_region_scheduler_scope_wrappers_are_narrow_and_role_bound(db):
+    from uuid import uuid4
+    for name in ('admission','seal'):
+        signature=f'photo.v26_region_{name}_scope_scheduler(uuid,uuid,uuid,uuid,jsonb)'
+        for role in ('photo_api','photo_scheduler','photo_worker','photo_gateway'):
+            assert db.execute('SELECT has_function_privilege(%s,%s,%s)',(role,signature,'EXECUTE')).fetchone()==(role=='photo_scheduler',)
+        tenant=uuid4()
+        with db.transaction():
+            db.execute("SELECT set_config('app.tenant_id',%s,true)",(str(tenant),))
+            db.execute('SET LOCAL ROLE photo_scheduler')
+            try:
+                assert db.execute(f"SELECT photo.v26_region_{name}_scope_scheduler(%s,%s,%s,%s,'{{}}')",(tenant,uuid4(),uuid4(),uuid4())).fetchone()==(False,)
+            finally:db.execute('RESET ROLE')

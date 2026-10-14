@@ -19,6 +19,7 @@ def _copy_entry(ctx: ExecutionContext, source, target, expected_bytes: int, expe
         ctx.check_active()
         limit = min(1024 * 1024, expected_bytes - total + 1)
         block = source.read(limit)
+        ctx.check_active()
         if not isinstance(block, bytes) or len(block) > limit:
             raise OperationFailure('ARTIFACT_HASH_MISMATCH')
         if not block:
@@ -26,7 +27,10 @@ def _copy_entry(ctx: ExecutionContext, source, target, expected_bytes: int, expe
         total += len(block)
         if total > expected_bytes:
             raise OperationFailure('ARTIFACT_HASH_MISMATCH')
-        target.write(block)
+        written = target.write(block)
+        if type(written) is not int or written != len(block):
+            raise OperationFailure('INTERNAL_ERROR')
+        ctx.check_active()
         digest.update(block)
     if total != expected_bytes or digest.hexdigest() != expected_sha:
         raise OperationFailure('ARTIFACT_HASH_MISMATCH')
@@ -62,19 +66,35 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts) -> OperationResult:
     if ctx.lease.execution_profile.get('backend') != 'cpu':
         raise OperationFailure('CONFIG_INVALID')
     try:
-        params = artifacts.params(ArchiveParams)
+        ctx.check_active()
+        params = artifacts.params(ArchiveParams).model_copy(deep=True)
+        ctx.check_active()
     except (ValueError, ValidationError) as exc:
         raise OperationFailure('INPUT_INVALID') from exc
     declared = list(ctx.lease.command.inputs)
     if len(declared) != len(params.entries) or any(entry.artifact != declared[index] for index, entry in enumerate(params.entries)):
         raise OperationFailure('INPUT_INVALID')
     estimate = sum(entry.bytes for entry in params.entries)
-    reserve_bytes = estimate + max(1024 * 1024, estimate // 5)
+    # Stored payload needs no percentage expansion. Reserve per-entry ZIP64
+    # headers/names and the bounded JSON manifest as well: 5000 tiny images
+    # otherwise overflow the old fixed 1MiB minimum despite valid admission.
+    reserve_bytes = estimate + 1024 * 1024 + 4096 * len(params.entries)
+    manifest_entries = [ArchiveManifestEntry(ordinal=ordinal, entry_name=entry.entry_name,
+        artifact=entry.artifact.model_copy(deep=True), bytes=entry.bytes, sha256=entry.artifact.sha256)
+        for ordinal, entry in enumerate(params.entries)]
+    # Check ordinary archive_manifest's 1MiB contract before image IO. The
+    # reserved-size spelling bounds actual archive_bytes in the final document.
+    manifest_bound = ArchiveManifest(snapshot_id=params.snapshot_id, snapshot_digest=params.snapshot_digest,
+        volume_no=params.volume_no, entries=manifest_entries, archive_sha256='0' * 64,
+        archive_bytes=reserve_bytes)
+    if len(canonical_bytes(manifest_bound)) > 1048576:
+        raise OperationFailure('INPUT_INVALID')
+    del manifest_bound
+    ctx.check_active()
     total_steps = len(params.entries) + 2
     ctx.progress(0, total_steps)
     with artifacts.scratch.reserve(reserve_bytes) as reservation:
         archive_path = reservation.path('archive', '.zip')
-        manifest_entries = []
         with zipfile.ZipFile(archive_path, mode='w', compression=zipfile.ZIP_STORED, allowZip64=True) as archive:
             for ordinal, entry in enumerate(params.entries):
                 info = zipfile.ZipInfo(entry.entry_name)
@@ -82,9 +102,7 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts) -> OperationResult:
                 info.external_attr = 0o600 << 16
                 info.date_time = (1980, 1, 1, 0, 0, 0)
                 with artifacts.stream(entry.artifact) as source, archive.open(info, mode='w', force_zip64=True) as target:
-                    digest = _copy_entry(ctx, source, target, entry.bytes, entry.artifact.sha256)
-                manifest_entries.append(ArchiveManifestEntry(ordinal=ordinal, entry_name=entry.entry_name,
-                    artifact=entry.artifact, bytes=entry.bytes, sha256=digest))
+                    _copy_entry(ctx, source, target, entry.bytes, entry.artifact.sha256)
                 ctx.progress(ordinal + 1, total_steps)
             provisional = dict(schema_version=1, snapshot_id=str(params.snapshot_id),
                 snapshot_digest=params.snapshot_digest, volume_no=params.volume_no,
@@ -101,12 +119,16 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts) -> OperationResult:
                 archive_hash.update(block)
                 archive_bytes += len(block)
         _verify_archive(ctx,archive_path,params.entries,manifest_payload)
+        ctx.check_active()
         archive_ref = artifacts.stage(archive_path, reservation, 'archive', 'application/zip')
+        ctx.check_active()
         ctx.progress(total_steps - 1, total_steps)
     manifest = ArchiveManifest(snapshot_id=params.snapshot_id, snapshot_digest=params.snapshot_digest,
         volume_no=params.volume_no, entries=manifest_entries, archive_sha256=archive_hash.hexdigest(),
         archive_bytes=archive_bytes)
+    ctx.check_active()
     manifest_ref = artifacts.stage_contract(manifest, 'archive_manifest')
+    ctx.check_active()
     ctx.progress(total_steps, total_steps)
     return OperationResult(outputs=[archive_ref, manifest_ref], bytes_read=estimate,
         bytes_written=archive_bytes + len(canonical_bytes(manifest)))

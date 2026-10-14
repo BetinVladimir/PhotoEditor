@@ -1,0 +1,57 @@
+[
+  {
+    "width": 1,
+    "height": 1,
+    "expected": {
+      "pixel_count": 1,
+      "ram_bytes": 536871312,
+      "scratch_bytes": 67108928,
+      "output_bytes": 33554448,
+      "vram_bytes": 0
+    }
+  },
+  {
+    "width": 400,
+    "height": 300,
+    "expected": {
+      "pixel_count": 120000,
+      "ram_bytes": 584870912,
+      "scratch_bytes": 74788864,
+      "output_bytes": 35474432,
+      "vram_bytes": 0
+    }
+  },
+  {
+    "width": 3000,
+    "height": 2000,
+    "expected": {
+      "pixel_count": 6000000,
+      "ram_bytes": 2936870912,
+      "scratch_bytes": 451108864,
+      "output_bytes": 129554432,
+      "vram_bytes": 0
+    }
+  },
+  {
+    "width": 20000,
+    "height": 10000,
+    "expected": {
+      "pixel_count": 200000000,
+      "ram_bytes": 80536870912,
+      "scratch_bytes": 12867108864,
+      "output_bytes": 3233554432,
+      "vram_bytes": 0
+    }
+  },
+  {
+    "width": 200000000,
+    "height": 1,
+    "expected": {
+      "pixel_count": 200000000,
+      "ram_bytes": 80536870912,
+      "scratch_bytes": 12867108864,
+      "output_bytes": 3233554432,
+      "vram_bytes": 0
+    }
+  }
+]

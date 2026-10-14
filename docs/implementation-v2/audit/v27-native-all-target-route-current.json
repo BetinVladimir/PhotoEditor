@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 saved all-native parent routing",
+  "whole_module_accepted": false,
+  "migration_head": "00961",
+  "new_migrations": false,
+  "production_migrations_applied": false,
+  "checks": {
+    "go_four_packages": [
+      {
+        "package": "photoeditor/backend/internal/v2qualification",
+        "elapsed": 0
+      },
+      {
+        "package": "photoeditor/backend/internal/v2input",
+        "elapsed": 0.008
+      },
+      {
+        "package": "photoeditor/backend/internal/v2draft",
+        "elapsed": 0.009
+      },
+      {
+        "package": "photoeditor/backend/internal/semanticproposal",
+        "elapsed": 3.5
+      }
+    ],
+    "native_wire": "1 PASS437.83s; v27-native-all-target-route-wire-current.xml",
+    "documentation": "PASS55 tests/2267 static checks",
+    "diff_check": "PASS"
+  },
+  "source_manifest": "v27-native-all-target-route-source-current.json",
+  "source_manifest_sha256": "ec9a59424d956860984be4885501fb46007ba26b7d44a60d774e49be2b68841a",
+  "quality_preservation": {
+    "workers_src_baseline_files": 544,
+    "changed": 0,
+    "real_photo_quality_accepted": false
+  },
+  "native_verified": [
+    "Actual initial parent admission under already-owned parent advisory lock.",
+    "Scoped all-native hint routes before generic person discovery and legacy decoder.",
+    "Locked loader restores proofs/graph and returns run/workflow/queued ticket.",
+    "Independent sealed queued parent, ready tasks and single queued event/outbox."
+  ],
+  "remaining": [
+    "First-time automatic all-native parent admission after target completion.",
+    "Recovery-job claim/record handoff and exact all-native SQL recorder authority.",
+    "Crash/partial publication/unknown commit/replay/lifecycle/scale and whole module acceptance."
+  ],
+  "limitations": [
+    "Existing graph routing only; not whole recovery-job execution.",
+    "Initial admission current runtime/source checks remain before hint.",
+    "PROCESS/private task comparison/repeated replay branches not run in ROUTE scenario.",
+    "Upstream ML doubles; no real-photo/GPU qualification."
+  ]
+}

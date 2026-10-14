@@ -76,9 +76,36 @@ def render_asset_tile(background: np.ndarray, output_shape: tuple[int, int], bou
     factor, left, top = geometry
     xs = (np.arange(x0, x1, dtype=np.float32) + .5 - left) / factor - .5
     ys = (np.arange(y0, y1, dtype=np.float32) + .5 - top) / factor - .5
+    # OpenCV remap requires BOTH source and destination dimensions < SHRT_MAX.
+    # Large panoramas are valid under the pixel limit; sample their mapped pages
+    # directly rather than truncating coordinates or downscaling the source.
+    if max(background.shape[:2])>=32767 or max(y1-y0,x1-x0)>=32767:
+        return _large_asset_linear_tile(background,xs,ys)
     map_x, map_y = np.meshgrid(xs, ys)
     return cv2.remap(background, map_x, map_y, interpolation=cv2.INTER_LINEAR,
                      borderMode=cv2.BORDER_REPLICATE).astype(np.float32)
+
+
+def _large_asset_linear_tile(background,xs,ys):
+    """Match INTER_LINEAR's 1/32 subpixel table and BORDER_REPLICATE.
+
+    Work is bounded by the destination tile, independent of source dimensions.
+    Float32 coordinates are exactly those used by the established native path.
+    """
+    if not np.isfinite(xs).all() or not np.isfinite(ys).all():
+        raise ValueError('ASSET_GEOMETRY_INVALID')
+    xfixed=np.rint(xs.astype(np.float64)*32).astype(np.int64)
+    yfixed=np.rint(ys.astype(np.float64)*32).astype(np.int64)
+    xbase=xfixed//32;ybase=yfixed//32
+    fx=(xfixed%32).astype(np.float32)/np.float32(32)
+    fy=(yfixed%32).astype(np.float32)/np.float32(32)
+    x0=np.clip(xbase,0,background.shape[1]-1);x1=np.clip(xbase+1,0,background.shape[1]-1)
+    y0=np.clip(ybase,0,background.shape[0]-1);y1=np.clip(ybase+1,0,background.shape[0]-1)
+    wx=fx[None,:,None];wy=fy[:,None,None]
+    return (background[y0[:,None],x0[None,:]]*((1-wy)*(1-wx))
+        +background[y0[:,None],x1[None,:]]*((1-wy)*wx)
+        +background[y1[:,None],x0[None,:]]*(wy*(1-wx))
+        +background[y1[:,None],x1[None,:]]*(wy*wx)).astype(np.float32)
 
 
 def contact_shadow(mask: np.ndarray, blur_radius: int, offset_x: int, offset_y: int,

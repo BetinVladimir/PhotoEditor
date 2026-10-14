@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-08",
+  "component": "V27 all-native target transfer preparation and frozen compiler",
+  "whole_module_accepted": false,
+  "migration_head": "00959",
+  "production_migrations_applied": false,
+  "checks": {
+    "go_four_packages": "PASS final current source; semanticproposal 3.555s; v2input/v2draft/v2qualification PASS",
+    "documentation": "2267 static checks + 55 tests passed; deterministic regeneration",
+    "sql": "PASS 23 tests, 24.19s, current head00959",
+    "native_wire": "PASS 1 test, 238.31s, exact current fixture including shared-source ambiguity, original recovery, authority SHA substitution and revoked session"
+  },
+  "failure_history": [
+    "v27-native-all-target-transfer-wire-conflict.xml",
+    "v27-native-all-target-transfer-wire-initial-timeout.xml",
+    "v27-native-all-target-transfer-wire-nested-person-discovery.xml",
+    "v27-native-all-target-transfer-wire-proof-conflict.xml",
+    "v27-native-all-target-transfer-wire-reference-conflict.xml",
+    "v27-native-all-target-transfer-wire-source-mode-failure.xml",
+    "v27-native-all-target-transfer-wire-unpinned-reference.xml"
+  ],
+  "fixed": [
+    "Source proof recheck retains qualified mode: true for native target person-stage, false for reference reuse.",
+    "Exact original person continuation remains stable when distinct asset versions share one source and target completion creates another qualified person producer.",
+    "Nested protection physical rechecks and saved defect-person recovery requalify exact original locators and compare full proof/authority SHA; no source-wide rediscovery."
+  ],
+  "unresolved": [
+    "Dedicated persisted target-transfer discriminator, SQL admission/register/seal/replay, exact reference and 00959 target locks, saved capacity recovery and original parent handoff.",
+    "Fresh-process crash recovery and complete V27 browser/native/quality/GPU/scale/cancel/purge/GC/deadletter acceptance."
+  ],
+  "limitations": [
+    "Current compiler remains disconnected from production admission.",
+    "Native fixture readiness helper executes target defects but does not replace exhaustive queued/completed/revoked prerequisite replay.",
+    "Upstream ML doubles; no GPU or real-photo qualification."
+  ],
+  "source_sha256": {
+    "backend/internal/semanticproposal/native_all_target_transfer_plan.go": "020c2af60dc0c8141af5698858f715ff30bda9cb066782cf5225b96947f4bf1d",
+    "backend/internal/semanticproposal/native_all_target_transfer_probe_test.go": "7c7effcd09181090147982169bcb26c367d0f7e0872f90ccd81b43b720cc57f3",
+    "backend/internal/semanticproposal/native_all_target_transfer_target.go": "7b01bb430e55720a550b77de4e174ba43e881f06f315b3dff1c82bd7e0ea66f3",
+    "backend/internal/semanticproposal/native_all_target_transfer_test.go": "e57bf2b376b1c5801bf32e7aff7ec7eb04d6758633e7971d510feed6fd0a9ee6",
+    "backend/internal/semanticproposal/native_defect_person_recovery.go": "2681b01a2ab2803678d1cb865a069b97ca87846f65496e3bf7387602604ce27c",
+    "backend/internal/semanticproposal/native_input_original_person.go": "dbc02b67d35bfa40f9dc8c4833808361cba6ef8d74651e4f6433489121a24f9e",
+    "backend/internal/semanticproposal/native_input_person_coverage.go": "f023cbe0160dff2eeb1de1d92971e3d9609efa289b463d0bb5095658ae92d74e",
+    "backend/internal/semanticproposal/native_input_reference_person.go": "5bec60862c47995e7a3fe3467207b89271c60e6f8f51e657450bd758d3f2af93",
+    "backend/internal/semanticproposal/native_input_transfer_documents.go": "b1f7478603c9933fd4fa97609b1280353c6d58dd13a28498264477845e4a584f",
+    "backend/internal/semanticproposal/native_input_transfer_plan.go": "2367f5ee1206d27bfcb78e90a00caa52e3609cd09de58c05f2175407186d6ce1",
+    "backend/internal/semanticproposal/native_input_transfer_scope.go": "b0a566d79daa887d556041d3b31157c8fe873b61256acf4b95540abaee3cbb72",
+    "backend/internal/semanticproposal/native_person_input_authority.go": "8905458c1757e63b9bbe583d0714b6b7104e8c43c7ae97af80a8d7487fd68fbc",
+    "backend/internal/semanticproposal/native_person_protection_input.go": "5d9f1b5d19c5b75888c81c82f3d6e55047fbff95b23f3829133cbbbfb71c140e",
+    "backend/internal/semanticproposal/person_selection.go": "10a984d050d8349476cca233e748a70661b8e7cf78ccb1d6ca928a863a60e64d"
+  },
+  "source_manifest": "v27-native-all-target-transfer-source-current.json",
+  "source_manifest_sha256": "815c20052ad22f358d66b9fdd95cbba6b2487de9ceb07955f28e479d2b6eaf0c",
+  "image_source_preservation": {
+    "compared_to": "v27-target-defect-protection-source-current.json",
+    "files": 544,
+    "sha_differences": 0,
+    "real_photo_quality_verified": false
+  },
+  "evidence_sha256": {
+    "v27-native-all-target-transfer-wire-current.xml": "2448f57ec68dabccda0a2ff12a53aa220acec684be7774277e53eabbf66437f6",
+    "v27-native-all-target-transfer-sql-current.xml": "9030a47ba802e125be11f17664016c312bf2439384adc6e68b8251650221a705",
+    "v27-native-all-target-transfer-go-current.jsonl": "a006eb307d678cdf8a6a80b24e26c64c073976008aeda1f6255cda90c5c89ae7"
+  }
+}

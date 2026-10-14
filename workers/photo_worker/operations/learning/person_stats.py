@@ -1,7 +1,7 @@
 """Recompute pinned V2 person mask and Stats20 for a learning holdout."""
 from __future__ import annotations
 
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass
 from typing import Callable, Iterator
 
@@ -27,6 +27,18 @@ class HoldoutPersonStats:
     reliable: bool
 
 
+def _exclude_transparent(target: np.ndarray, alpha: np.ndarray,
+                         check_active: Callable[[], None]) -> None:
+    """Preserve exact alpha==0 semantics without a full-frame boolean array."""
+    height, width = target.shape
+    for y in range(0, height, 512):
+        for x in range(0, width, 512):
+            check_active()
+            block = target[y:y + 512, x:x + 512]
+            block[alpha[y:y + 512, x:x + 512] == 0] = 0
+    check_active()
+
+
 @contextmanager
 def open_holdout_person_stats(source: np.ndarray, alpha: np.ndarray | None,
                               pool: ModelPool, backend: str,
@@ -34,6 +46,7 @@ def open_holdout_person_stats(source: np.ndarray, alpha: np.ndarray | None,
                               check_active: Callable[[], None],
                               ) -> Iterator[HoldoutPersonStats]:
     """Mirror mask.person and color.stats without publishing intermediate refs."""
+    check_active()
     if (pool.lock.lock_id != model_lock_sha or backend != 'cuda' or
             'lraspp_mobilenet_v3_large' not in
             {entry.id for entry in pool.lock.models} or
@@ -43,6 +56,8 @@ def open_holdout_person_stats(source: np.ndarray, alpha: np.ndarray | None,
                                     alpha.dtype not in (np.dtype('uint16'),np.dtype('float32'))))):
         raise ValueError('HOLDOUT_PERSON_INPUT_INVALID')
     height, width = source.shape[:2]
+    if height < 1 or width < 1 or height * width > 200_000_000:
+        raise ValueError('HOLDOUT_PERSON_INPUT_INVALID')
     if alpha is not None and alpha.dtype==np.float32:
         for y in range(0,height,512):
             for x in range(0,width,512):
@@ -52,41 +67,49 @@ def open_holdout_person_stats(source: np.ndarray, alpha: np.ndarray | None,
     pixels = height * width
     check_active()
     srgb, _ = work_to_model(source)
+    check_active()
     preview = _preview(srgb, 768)
+    check_active()
     ph, pw = preview.shape[:2]
     with pool.acquire('lraspp_mobilenet_v3_large', backend) as engine:
+        check_active()
         logits = engine.infer((preview - MEAN) / STD)
+        check_active()
     small, confidence = _probability(logits, ph, pw)
     raw = cv2.resize(small, (width, height),
                      interpolation=cv2.INTER_LINEAR).astype(np.float32)
     if alpha is not None:
-        raw[alpha == 0] = 0
-    with scratch.reserve(pixels * 12 + 16384) as reservation:
+        _exclude_transparent(raw, alpha, check_active)
+    check_active()
+    with scratch.reserve(pixels * 12 + 16384) as reservation, ExitStack() as buffers:
         mask_path = reservation.path('holdout-person', '.npy')
         luma_path = reservation.path('holdout-luma', '.npy')
+        check_active()
         mask = np.lib.format.open_memmap(mask_path, mode='w+', dtype='<f4',
                                          shape=(height, width))
+        buffers.callback(mask._mmap.close)
+        check_active()
         luma = np.lib.format.open_memmap(luma_path, mode='w+', dtype='<f8',
                                          shape=(pixels,))
-        try:
-            for tile in refine_tiles(raw, source, tile_size=512,
-                                     check_active=check_active):
-                mask[tile.y:tile.y + tile.values.shape[0],
-                     tile.x:tile.x + tile.values.shape[1]] = tile.values
-            if alpha is not None:
-                mask[alpha == 0] = 0
-            stats = compute_stats20_bounded(
-                source, mask, luma, alpha=alpha, encoding='gamma24',
-                check_active=check_active)
-            counts = coverage_counts_bounded(
-                source, alpha=alpha, encoding='gamma24',
-                check_active=check_active)
-            mask.flush()
-            reservation.validate()
-            reliable = confidence >= .75 and stats.values[15] >= .01
-            yield HoldoutPersonStats(mask, stats.values, counts,
-                                     confidence, reliable)
-            check_active()
-        finally:
-            mask._mmap.close()
-            luma._mmap.close()
+        buffers.callback(luma._mmap.close)
+        check_active()
+        for tile in refine_tiles(raw, source, tile_size=512,
+                                 check_active=check_active):
+            mask[tile.y:tile.y + tile.values.shape[0],
+                 tile.x:tile.x + tile.values.shape[1]] = tile.values
+        if alpha is not None:
+            _exclude_transparent(mask, alpha, check_active)
+        stats = compute_stats20_bounded(
+            source, mask, luma, alpha=alpha, encoding='gamma24',
+            check_active=check_active)
+        counts = coverage_counts_bounded(
+            source, alpha=alpha, encoding='gamma24',
+            check_active=check_active)
+        check_active()
+        mask.flush()
+        check_active()
+        reservation.validate()
+        reliable = confidence >= .75 and stats.values[15] >= .01
+        yield HoldoutPersonStats(mask, stats.values, counts,
+                                 confidence, reliable)
+        check_active()

@@ -1,0 +1,53 @@
+{
+  "recorded_at": "2026-10-08T09:26:22.887289+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "scope": "Native person result barrier and production worker SQL canonical commit with synthetic lease/output metadata",
+  "sources": {
+    "tests/integration/test_v27_native_face_outputs.py": "bb34bd09cdd58058c7ca5b5e20375ceb39cd704cf91a00ef634ce527ed88b541",
+    "tests/integration/native_person_commit_probe.py": "fc2d0408abeae41a171e35d27ff56ed57b235ede0b1a9370e29467418dc60638",
+    "tests/platform/test_person_mask_adapter.py": "a25f84c4d0a15101da49013dc90e632f8a1107362f0b29c53d998bcb64774bdb",
+    "tests/platform/test_person_config.py": "78d05c6aed29d25e0775eb0650689ec7bc8b22eff7cad7594a011c5b51f7a139",
+    "tests/platform/test_person_measurement.py": "0c0c531f8ef25fd71501da50eefc2ddaabb1af53a217d30af5a18dafdba51602",
+    "tests/platform/test_person_nvml.py": "63676cc381ce306e942a1ba935d65e598317d48121a023f1803ea37583d77792",
+    "backend/db/migrations/00754_v27_native_preparation_result_guard.sql": "867da9d57c1e6c3398b86ac3fb40f4903e4b88ee60b771881d9509bbd149ae46",
+    "backend/db/migrations/00783_v27_native_defect_result_guard.sql": "b17629d9ec3b0bbe464445a9414b60e84d618da0c178f3c349eed4d36b1af544",
+    "backend/db/migrations/00841_v28_output_result_qualification.sql": "430c9f08895723cb588707b4c6345ba27b5657515dc4764484c829c8e69ce6fe"
+  },
+  "checks": [
+    {
+      "command": "PHOTO_TEST_NATIVE_INFRA=1 pytest tests/integration/test_v27_native_face_outputs.py -q --tb=short",
+      "exit_code": 0,
+      "passed": 3,
+      "seconds": 3.99
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=workers:src .venv-platform/bin/python -m pytest tests/platform/test_person_mask_adapter.py tests/platform/test_person_config.py tests/platform/test_person_measurement.py tests/platform/test_person_nvml.py -q --tb=short",
+      "exit_code": 0,
+      "passed": 23,
+      "seconds": 6.17
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "behavior": [
+    "All four native person output roles/order/cardinality, each missing/substituted digest, attempt/fence, cancellation, expired/unverified artifact and upload metadata refusals.",
+    "Immutable artifact version mutation is separately refused; valid pending upload state is unavailable.",
+    "Actual photo_worker role commit_task_success rejects each incomplete four-output manifest and stale fence, creates canonical result once, replays same receipt and rejects changed metrics.",
+    "Production commit updates task canonical_result_id, finishes attempt, releases resource reservation/slot and emits exactly one task.succeeded outbox.",
+    "Worker has no direct task_results read; private result helper not executable by platform service roles."
+  ],
+  "prior_failures": [
+    "Reference guard correctly rejected expired artifacts before operation-specific guard; assertion adjusted to exact earlier guard.",
+    "Artifact object_version is immutable and upload state uploading does not exist; fixtures corrected without weakening production constraints.",
+    "PNG media mutation was initially no-op for PNG role; changed to guaranteed different media type."
+  ],
+  "limitations": [
+    "SQL metadata fixture uses synthetic already-verified outputs and synthetic valid worker lease; does not prove dispatch claim, gateway upload/object bytes, inference or scientific qualification.",
+    "Person native result is canonicalized by production commit, not direct canonical assignment; physical qualified-source\u2192new-mask\u2192parent chain remains unfinished.",
+    "23 adapter/measurement/config tests use synthetic or mocked model/device seams, not RTX3060 evidence.",
+    "Full V27 and V20\u2013V32 acceptance remain open."
+  ]
+}

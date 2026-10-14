@@ -56,6 +56,9 @@ class Artifacts:
 def context(a):
     now=datetime.now(timezone.utc);inputs=[a.image_ref,a.pixel]+([a.image.alpha] if a.image.alpha else [])
     lease=Lease(command=SimpleNamespace(inputs=inputs),worker_id=uuid4(),fence=1,until=now+timedelta(minutes=5),deadline=now+timedelta(minutes=5),execution_profile={'backend':'cuda','resource_estimate':{'ram_bytes':1073741824}},input_digest='d'*64)
+    def require_declared_input(ref):
+        if ref not in lease.command.inputs:raise ValueError('Undeclared fixture input')
+    a.require_declared_input=require_declared_input
     return ExecutionContext(lease)
 
 def test_person_adapter_preprocesses_softmax_refines_and_publishes(tmp_path):
@@ -82,3 +85,73 @@ def test_person_output_shape_is_strict(tmp_path):
         a.scratch=space
         with pytest.raises(OperationFailure) as error:execute(context(a),a,pool,'cuda')
     assert error.value.error.code=='MODEL_OUTPUT_INVALID' and not a.uploads
+
+
+def test_qualification_pinned_person_requires_runtime_before_io(tmp_path):
+    a=Artifacts(tmp_path);pool=Pool();ctx=context(a)
+    ctx.lease.execution_profile.update(model_lock_sha=LOCK,runtime_lock_sha='b'*64,device_profile_sha='c'*64)
+    a.params=lambda model:pytest.fail('artifact IO before authority')
+    with pytest.raises(OperationFailure) as error:execute(ctx,a,pool,'cuda')
+    assert error.value.error.code=='PERSON_RUNTIME_INSTALLATION_REQUIRED'
+    assert pool.engine.input is None and not a.uploads
+
+
+def test_person_runtime_measurement_matches_and_detects_changes(tmp_path):
+    from photo_worker.operations.mask.person_authority import person_runtime_authority
+    a=Artifacts(tmp_path);ctx=context(a)
+    measured=dict(model_lock_sha=LOCK,runtime_lock_sha='b'*64,device_profile_sha='c'*64,backend='cuda')
+    ctx.lease.execution_profile.update(measured)
+    authority=person_runtime_authority(lambda:measured,**measured)
+    assert authority(ctx) is True
+    measured['device_profile_sha']='d'*64
+    with pytest.raises(OperationFailure) as error:authority(ctx)
+    assert error.value.error.code=='PERSON_RUNTIME_UNQUALIFIED'
+    measured['device_profile_sha']='c'*64
+    ctx.lease.execution_profile['runtime_lock_sha']='e'*64
+    with pytest.raises(OperationFailure):authority(ctx)
+
+
+def test_person_runtime_rechecked_before_inference(tmp_path):
+    from photo_worker.operations.mask.person_authority import person_runtime_authority
+    a=Artifacts(tmp_path);pool=Pool();ctx=context(a)
+    expected=dict(model_lock_sha=LOCK,runtime_lock_sha='b'*64,device_profile_sha='c'*64,backend='cuda')
+    ctx.lease.execution_profile.update(expected)
+    calls=[]
+    def measure():
+        calls.append(True)
+        return expected if len(calls)==1 else dict(expected,runtime_lock_sha='d'*64)
+    authority=person_runtime_authority(measure,**expected)
+    with pytest.raises(OperationFailure) as error:execute(ctx,a,pool,'cuda',authority)
+    assert error.value.error.code=='PERSON_RUNTIME_UNQUALIFIED'
+    assert len(calls)==2 and pool.engine.input is None and not a.uploads
+
+
+def test_person_runtime_change_during_inference_cannot_publish(tmp_path):
+    from photo_worker.operations.mask.person_authority import person_runtime_authority
+    a=Artifacts(tmp_path);pool=Pool();ctx=context(a)
+    expected=dict(model_lock_sha=LOCK,runtime_lock_sha='b'*64,device_profile_sha='c'*64,backend='cuda')
+    measured=dict(expected);ctx.lease.execution_profile.update(expected)
+    authority=person_runtime_authority(lambda:measured,**expected)
+    infer=pool.engine.infer
+    def changing_infer(value):
+        result=infer(value)
+        measured['runtime_lock_sha']='d'*64
+        return result
+    pool.engine.infer=changing_infer
+    with pytest.raises(OperationFailure) as error:execute(ctx,a,pool,'cuda',authority)
+    assert error.value.error.code=='PERSON_RUNTIME_UNQUALIFIED'
+    assert pool.engine.input is not None and not a.uploads and not a.staged
+
+
+def test_person_pinned_execution_with_stable_authority(tmp_path):
+    from photo_worker.operations.mask.person_authority import person_runtime_authority
+    a=Artifacts(tmp_path);pool=Pool();ctx=context(a)
+    expected=dict(model_lock_sha=LOCK,runtime_lock_sha='b'*64,device_profile_sha='c'*64,backend='cuda')
+    ctx.lease.execution_profile.update(expected);calls=[]
+    def measure():calls.append(True);return expected
+    authority=person_runtime_authority(measure,**expected)
+    scratch=tmp_path/'scratch';scratch.mkdir()
+    with ScratchSpace(scratch,uuid4(),uuid4(),1,8*1024**2,min_free_bytes=0) as space:
+        a.scratch=space;result=execute(ctx,a,pool,'cuda',authority)
+    assert len(calls)==5 and len(result.outputs)==4
+    assert a.arrays['person_mask'].shape==(20,24)

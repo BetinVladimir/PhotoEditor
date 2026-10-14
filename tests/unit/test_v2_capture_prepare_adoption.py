@@ -13,7 +13,8 @@ from photo_worker.v2.capture_prepare_adoption import prepare_capture_inputs_adop
 def test_capture_prepare_adoption_requires_exact_attempt_outputs(alpha_bytes):
     bodies, evidence, outputs = {}, {}, set()
     def put(number, value, source, role=None, media='application/json'):
-        body = canonical_bytes(value) if media == 'application/json' else b'array'
+        body = canonical_bytes(value) if media == 'application/json' else (
+            b'a' * alpha_bytes if role == 'working_alpha' else b'array')
         ref = Ref(artifact_id=UUID(int=number), sha256=sha256(body).hexdigest())
         key = ArtifactRef(ref.artifact_id, ref.sha256)
         bodies[key] = body
@@ -42,6 +43,10 @@ def test_capture_prepare_adoption_requires_exact_attempt_outputs(alpha_bytes):
     class Reader:
         def evidence(self,ref): return evidence[ref]
         def read_json(self,ref,maximum): return bodies[ref]
+        def iter_bytes(self,ref,maximum):
+            body = bodies[ref]
+            for offset in range(0, len(body), 65536):
+                yield body[offset:offset+65536]
         def staged_outputs(self): return outputs
     if alpha_bytes == 16785409:
         with pytest.raises(AdoptionInvalid, match='EVIDENCE_INVALID'):
@@ -49,6 +54,29 @@ def test_capture_prepare_adoption_requires_exact_attempt_outputs(alpha_bytes):
         return
     result = prepare_capture_inputs_adoption(UUID(int=20),Reader(),params_ref,root)
     assert len(result.inventory)==(7 if alpha_bytes is not None else 6)
+    if alpha_bytes is None:
+        class SubstitutedReader(Reader):
+            def iter_bytes(self,ref,maximum):
+                if ref.artifact_id == child.artifact_id:
+                    yield b'altered'
+                else:
+                    yield from super().iter_bytes(ref,maximum)
+        with pytest.raises(AdoptionInvalid, match='CAPTURE_PREPARATION_BYTES_INVALID'):
+            prepare_capture_inputs_adoption(UUID(int=20),SubstitutedReader(),params_ref,root)
+        state = {'active': True, 'evidence_reads': 0, 'json_reads': 0}
+        class CancelReader(Reader):
+            def evidence(self, ref):
+                state['evidence_reads'] += 1
+                state['active'] = False
+                return super().evidence(ref)
+            def read_json(self, ref, maximum):
+                state['json_reads'] += 1
+                return super().read_json(ref, maximum)
+        with pytest.raises(AdoptionInvalid, match='ADOPTION_INACTIVE'):
+            prepare_capture_inputs_adoption(UUID(int=20), CancelReader(), params_ref,
+                root, check_active=lambda: state['active'])
+        assert state['evidence_reads'] == 1
+        assert state['json_reads'] == 0
     outputs.add(ArtifactRef(UUID(int=99),'e'*64))
     with pytest.raises(AdoptionInvalid,match='OUTPUT_CLOSURE'):
         prepare_capture_inputs_adoption(UUID(int=20),Reader(),params_ref,root)

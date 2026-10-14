@@ -45,3 +45,61 @@ def test_cancel_and_empty_faces(tmp_path):
         with pytest.raises(RuntimeError):
             with prepare_proposals(rgb,image,faces,scratch,check_active=active):pass
         assert not list(scratch.directory.iterdir())
+
+
+def test_multi_protection_max_preserves_probabilities_and_order(tmp_path):
+    rgb,image,_=fixture()
+    sources=[np.full((512,512),value,np.float32) for value in (.25,.5,.75)]
+    sources[0][0,0]=1
+    snapshots=[source.copy() for source in sources]
+    with ScratchSpace(tmp_path,uuid4(),uuid4(),1,12*1024**2,min_free_bytes=0) as scratch:
+        for entries in (sources[1:],sources[1:][::-1]):
+            with prepare_proposals(rgb,image,[],scratch,permanent=sources[0],protections=entries) as files:
+                actual=np.load(files.protection,allow_pickle=False)
+                assert np.array_equal(actual,np.maximum.reduce(sources))
+            assert not list(scratch.directory.iterdir())
+        invalid=sources[1].copy();invalid[-1,-1]=np.nan
+        with pytest.raises(ValueError,match='permanent values'):
+            with prepare_proposals(rgb,image,[],scratch,protections=[invalid]):pass
+        assert not list(scratch.directory.iterdir())
+    assert all(np.array_equal(a,b) for a,b in zip(sources,snapshots))
+
+
+def test_degenerate_face_is_reported_without_losing_required_protection(tmp_path):
+    from photo_worker.operations.defects.protection import verify_proposal_protection
+    rgb,image,faces=fixture()
+    original=faces[0].face
+    degenerate=original.model_copy(update={'points':[point.model_copy(update={'x':.5,'y':.5}) for point in original.points]})
+    entry=FaceInput(degenerate,np.ones((512,512),np.float32))
+    required=np.zeros((512,512),np.float32);required[41,17]=.75
+    with ScratchSpace(tmp_path,uuid4(),uuid4(),1,12*1024**2,min_free_bytes=0) as scratch:
+        with prepare_proposals(rgb,image,[entry],scratch,protections=[required]) as files:
+            labels=np.load(files.labels,allow_pickle=False)
+            protection=np.load(files.protection,allow_pickle=False)
+            assert not files.candidates and not np.any(labels)
+            assert np.array_equal(protection,required)
+            assert files.faces[0].reason=='degenerate_landmarks'
+            verify_proposal_protection(image,[entry],protection,labels,protections=[required])
+        invalid=entry.skin_probability.copy();invalid[-1,-1]=np.nan
+        with pytest.raises(ValueError,match='probability mask'):
+            with prepare_proposals(rgb,image,[FaceInput(degenerate,invalid)],scratch):pass
+        assert not list(scratch.directory.iterdir())
+
+
+def test_skipped_degenerate_face_preserves_other_face_labels_and_protection(tmp_path):
+    rgb,image,faces=fixture()
+    original=faces[0].face
+    degenerate=original.model_copy(update={'object_id':uuid4(),'points':[p.model_copy(update={'x':.5,'y':.5}) for p in original.points]})
+    skipped=FaceInput(degenerate,np.ones((512,512),np.float32))
+    snapshots=[]
+    with ScratchSpace(tmp_path,uuid4(),uuid4(),1,12*1024**2,min_free_bytes=0) as scratch:
+        for selected in (faces,[skipped,*faces]):
+            with prepare_proposals(rgb,image,selected,scratch) as files:
+                snapshots.append((np.load(files.labels,allow_pickle=False),np.load(files.protection,allow_pickle=False),files.candidates))
+                if len(selected)>len(faces):
+                    evidence=next(face for face in files.faces if face.object_id==degenerate.object_id)
+                    assert evidence.reason=='degenerate_landmarks' and evidence.candidates==0
+            assert not list(scratch.directory.iterdir())
+    assert np.array_equal(snapshots[0][0],snapshots[1][0])
+    assert np.array_equal(snapshots[0][1],snapshots[1][1])
+    assert snapshots[0][2]==snapshots[1][2]

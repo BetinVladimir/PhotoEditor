@@ -14,11 +14,13 @@ import (
 	"photoeditor/backend/internal/artifactjson"
 	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/objectstore"
+ "photoeditor/backend/internal/rawdevelopment"
 )
 
 var ErrCompletionLeaseLost = errors.New("upload completion lease lost")
 
 type CompletionLease struct {
+ RAWDevelopment *rawdevelopment.Policy
 	UploadID, Token, TenantID, ArtifactID, SnapshotID, RunID uuid.UUID
 	ObjectKey, MultipartID, MediaType, Filename              string
 	AssumeProfile                                            *string
@@ -52,16 +54,22 @@ func (s SQLCompletionLeases) Claim(ctx context.Context) (*CompletionLease, error
 	}
 	lease := new(CompletionLease)
 	var raw []byte
+ var rawPolicy []byte
 	err := s.DB.QueryRow(ctx, `SELECT upload_id,completion_token,tenant_id,object_key,multipart_id,media_type,filename,assume_profile,
-	 expected_bytes,expected_sha,artifact_id,snapshot_id,run_id,parts FROM photo.claim_upload_completion()`).Scan(
+	 expected_bytes,expected_sha,artifact_id,snapshot_id,run_id,parts,raw_development FROM photo.claim_upload_completion_v2()`).Scan(
 		&lease.UploadID, &lease.Token, &lease.TenantID, &lease.ObjectKey, &lease.MultipartID, &lease.MediaType, &lease.Filename,
-		&lease.AssumeProfile, &lease.ExpectedBytes, &lease.ExpectedSHA, &lease.ArtifactID, &lease.SnapshotID, &lease.RunID, &raw)
+		&lease.AssumeProfile, &lease.ExpectedBytes, &lease.ExpectedSHA, &lease.ArtifactID, &lease.SnapshotID, &lease.RunID, &raw, &rawPolicy)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
+    if rawPolicy != nil {
+        var policy rawdevelopment.Policy
+        if json.Unmarshal(rawPolicy,&policy)!=nil {return nil,errors.New("invalid persisted RAW policy")}
+        lease.RAWDevelopment=&policy
+    }
 	if lease.UploadID == uuid.Nil || lease.Token == uuid.Nil || lease.TenantID == uuid.Nil || lease.ArtifactID == uuid.Nil || lease.SnapshotID == uuid.Nil || lease.RunID == uuid.Nil || lease.ArtifactID == lease.SnapshotID || lease.ArtifactID == lease.RunID || lease.SnapshotID == lease.RunID || lease.ExpectedBytes < 1 || lease.ExpectedBytes > objectstore.MaxUploadBytes {
 		return nil, errors.New("invalid upload completion lease")
 	}
@@ -117,13 +125,17 @@ type CompletionProcessor struct {
 
 func completionDocuments(lease CompletionLease, sha string) (json.RawMessage, string, json.RawMessage, string, error) {
 	suffix := strings.ToLower(filepath.Ext(lease.Filename))
+    if !rawdevelopment.Valid(lease.RAWDevelopment) {return nil,"",nil,"",errors.New("invalid RAW policy")}
+    version:=1
+    if lease.RAWDevelopment!=nil {version=2}
 	payload, err := canonical.Marshal(struct {
 		SchemaVersion int     `json:"schema_version"`
 		Suffix        string  `json:"suffix"`
 		AssumeProfile *string `json:"assume_profile"`
 		Analyze       bool    `json:"analyze"`
 		Tile          int     `json:"tile"`
-	}{1, suffix, lease.AssumeProfile, true, 512})
+        RAWDevelopment *rawdevelopment.Policy `json:"raw_development,omitempty"`
+	}{version, suffix, lease.AssumeProfile, true, 512, lease.RAWDevelopment})
 	if err != nil {
 		return nil, "", nil, "", err
 	}

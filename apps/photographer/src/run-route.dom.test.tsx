@@ -3,12 +3,20 @@ import {APIError} from '@photoeditor/api-client';
 import {afterEach,expect,it,vi} from 'vitest';
 import {act,cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
 import type {RunStatus} from './catalog-types';
-const mocks=vi.hoisted(()=>({params:{id:'run',tenant:'tenant'},request:vi.fn(),stream:vi.fn(),push:vi.fn()}));
+const mocks=vi.hoisted(()=>({params:{id:'run',tenant:'tenant'} as {id:string;tenant:string;semanticWorkflow?:string},request:vi.fn(),stream:vi.fn(),push:vi.fn(),resolve:vi.fn()}));
 vi.mock('react-native',async()=>import('react-native-web'));
 vi.mock('expo-router',()=>({useLocalSearchParams:()=>mocks.params,router:{push:mocks.push}}));
-const client={request:mocks.request,eventStream:mocks.stream};const auth={client:()=>client};
+const client={request:mocks.request,eventStream:mocks.stream,semanticRunIntent:mocks.resolve};const auth={client:()=>client};
 vi.mock('./auth-context',()=>({useAuth:()=>auth}));
 import RunScreen from '../app/runs/[id]';
+it('opens semantic review using resolved intent instead of workflow route ID',async()=>{
+ const workflow='22222222-2222-4222-8222-222222222222',intent='33333333-3333-4333-8333-333333333333';
+ mocks.params={id:'run',tenant:'tenant',semanticWorkflow:workflow};streaming();
+ mocks.request.mockResolvedValue({...value('2','waiting_review'),kind:'v2'});
+ mocks.resolve.mockResolvedValue({run_id:'run',workflow_id:workflow,intent_id:intent,revision:'2',state:'waiting_review'});
+ render(<RunScreen/>);fireEvent.click(await screen.findByText('Open batch review'));
+ expect(mocks.push).toHaveBeenCalledWith({pathname:'/semantic/[id]',params:{tenant:'tenant',id:intent}});
+});
 const value=(revision:string,status:string,id='run'):RunStatus=>({id,kind:'bulk',status,revision,stage:status,progress:status==='completed'?1:0,counts:{total:2,succeeded:status==='completed'?2:0,failed:status==='failed'?2:0,skipped:0,review:0},errors:[]});
 function streaming(){mocks.stream.mockImplementation((_path,_cursor,_receive,signal)=>new Promise<void>(resolve=>signal.addEventListener('abort',()=>resolve(),{once:true})));}
 afterEach(()=>{cleanup();vi.resetAllMocks();mocks.params={id:'run',tenant:'tenant'};});

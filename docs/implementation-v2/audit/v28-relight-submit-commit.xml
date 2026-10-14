@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="4.825" timestamp="2026-10-09T16:49:08.619963+03:00" hostname="Mac"><testcase classname="tests.integration.test_v28_relight_bootstrap" name="test_relight_server_submission_recovers_unknown_commit" time="4.417"><failure message="AssertionError: === RUN   TestIntegrationRelightBootstrap&#10;      relight_bootstrap_integration_test.go:156: complete server submission V2 draft expired&#10;  --- FAIL: TestIntegrationRelightBootstrap (0.55s)&#10;  FAIL&#10;  FAIL&#09;photoeditor/backend/internal/v2portrait&#09;0.977s&#10;  FAIL&#10;  &#10;assert 1 == 0&#10; +  where 1 = CompletedProcess(args=['go', 'test', './internal/v2portrait', '-run', '^TestIntegrationRelightBootstrap$', '-count=1',...stIntegrationRelightBootstrap (0.55s)\nFAIL\nFAIL\tphotoeditor/backend/internal/v2portrait\t0.977s\nFAIL\n', stderr='').returncode">tests/integration/test_v28_relight_bootstrap.py:244: in test_relight_server_submission_recovers_unknown_commit
+    test_actual_relight_bootstrap(database,lens_objects,tmp_path,'manual_external',submit_only=True,admission_fault='unknown_commit')
+tests/integration/test_v28_relight_bootstrap.py:78: in test_actual_relight_bootstrap
+    assert result.returncode==0,result.stdout+result.stderr
+E   AssertionError: === RUN   TestIntegrationRelightBootstrap
+E         relight_bootstrap_integration_test.go:156: complete server submission V2 draft expired
+E     --- FAIL: TestIntegrationRelightBootstrap (0.55s)
+E     FAIL
+E     FAIL	photoeditor/backend/internal/v2portrait	0.977s
+E     FAIL
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['go', 'test', './internal/v2portrait', '-run', '^TestIntegrationRelightBootstrap$', '-count=1',...stIntegrationRelightBootstrap (0.55s)\nFAIL\nFAIL\tphotoeditor/backend/internal/v2portrait\t0.977s\nFAIL\n', stderr='').returncode</failure></testcase></testsuite></testsuites>

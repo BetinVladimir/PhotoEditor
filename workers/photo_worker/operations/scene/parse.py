@@ -12,9 +12,21 @@ from photo_worker.runtime.artifacts import ArtifactConfig,TaskArtifacts
 from photo_worker.runtime.executor import ExecutionContext,Operation,OperationFailure,OperationResult
 
 
+def _required_scene_ram(height:int,width:int)->int:
+    if type(height) is not int or type(width) is not int or height<1 or width<1:raise ValueError('SCENE_SIZE_INVALID')
+    return 512*1024**2+height*width*128
+
+
+def _valid_scene_image(image)->bool:
+    return (image.dtype=='float32' and image.color.profile_id=='work_rec2020_gamma24_v1'
+            and image.color.encoding=='gamma24'
+            and image.canvas.width*image.canvas.height<=200000000)
+
+
 def decode_logits(logits,w,h):
     value=np.asarray(logits,np.float32)
-    if value.ndim!=3 or value.shape[0]!=150 or not np.isfinite(value).all():raise ValueError('MODEL_OUTPUT_INVALID')
+    if (value.ndim!=3 or value.shape[0]!=150 or min(value.shape[1:])<1
+            or max(value.shape[1:])>1024 or not np.isfinite(value).all()):raise ValueError('MODEL_OUTPUT_INVALID')
     maximum=np.max(value,axis=0);exp=np.exp(value-maximum);prob=exp/np.sum(exp,axis=0);labels=np.argmax(prob,axis=0).astype(np.uint16);confidence=float(np.mean(np.max(prob,axis=0)));return cv2.resize(labels,(w,h),interpolation=cv2.INTER_NEAREST).astype(np.uint16),confidence
 
 
@@ -24,7 +36,8 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts,pool:ModelPool,backend:
     try:
         p=artifacts.params(SceneParseParams);image=artifacts.contract(p.image,WorkingImage)
         if p.model_lock_id!=pool.lock.lock_id:raise ModelError('MODEL_LOCK_MISMATCH')
-        if image.dtype!='float32' or image.canvas.width*image.canvas.height>200000000:raise ValueError('Invalid scene image')
+        if not _valid_scene_image(image) or image.pixels not in ctx.lease.command.inputs:raise ValueError('SCENE_INPUT_INVALID')
+        if ram<_required_scene_ram(image.canvas.height,image.canvas.width):raise OperationFailure('RESOURCE_OOM')
     except ModelError as exc:raise OperationFailure(str(exc)) from exc
     except ValueError as exc:raise OperationFailure('INPUT_INVALID') from exc
     h,w=image.canvas.height,image.canvas.width
@@ -34,13 +47,16 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts,pool:ModelPool,backend:
             with pool.acquire(p.model_id,backend) as engine:logits=engine.infer(srgb)
         labels,confidence=decode_logits(logits,w,h)
         with artifacts.scratch.reserve(h*w*2+8192) as reservation:
-            path=reservation.path('scene-labels','.npy');mm=np.lib.format.open_memmap(path,mode='w+',dtype='<u2',shape=(h,w));mm[:]=labels;mm.flush();mm._mmap.close();reservation.validate();lref=artifacts.stage(path,reservation,'scene_labels','application/octet-stream');written=path.stat().st_size
+            path=reservation.path('scene-labels','.npy');mm=np.lib.format.open_memmap(path,mode='w+',dtype='<u2',shape=(h,w))
+            try:mm[:]=labels;mm.flush();ctx.check_active()
+            finally:mm._mmap.close()
+            reservation.validate();ctx.check_active();lref=artifacts.stage(path,reservation,'scene_labels','application/octet-stream');written=path.stat().st_size
     except ModelError as exc:raise OperationFailure(str(exc)) from exc
     except ValueError as exc:raise OperationFailure('MODEL_OUTPUT_INVALID') from exc
     warnings=[]
     if confidence<.75:warnings.append('low_confidence')
     if np.any(clipped):warnings.append('source_srgb_clipped')
-    result=SceneLabels(image=p.image,labels=lref,canvas=image.canvas,transform_chain=image.transform_chain,model_id=p.model_id,model_lock_id=p.model_lock_id,backend=backend,preprocessing_id=p.preprocessing_id,confidence=confidence,warnings=warnings);ref=artifacts.stage_contract(result,'scene_labels_ref');return OperationResult(outputs=[lref,ref],review_required=bool(warnings),bytes_written=written+len(canonical_bytes(result)))
+    result=SceneLabels(image=p.image,labels=lref,canvas=image.canvas,transform_chain=image.transform_chain,model_id=p.model_id,model_lock_id=p.model_lock_id,backend=backend,preprocessing_id=p.preprocessing_id,confidence=confidence,warnings=warnings);ctx.check_active();ref=artifacts.stage_contract(result,'scene_labels_ref');return OperationResult(outputs=[lref,ref],review_required=bool(warnings),bytes_written=written+len(canonical_bytes(result)))
 
 
 def scene_parse_operations(config:ArtifactConfig,pool:ModelPool,backend:str):

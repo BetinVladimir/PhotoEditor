@@ -13,6 +13,7 @@ import (
 	"photoeditor/backend/internal/artifactjson"
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/canonical"
+	"photoeditor/backend/internal/domain"
 	"photoeditor/backend/internal/objectstore"
 	"photoeditor/backend/internal/review"
 	"photoeditor/backend/internal/v2draft"
@@ -30,6 +31,12 @@ type fullRenderClosureStore struct {
 type renderPostIORevocation struct {
 	v2draft.ArtifactCatalog
 	calls int
+}
+
+type renderConsentRefusal struct { err error }
+
+func (s renderConsentRefusal) Lookup(context.Context, auth.Identity, uuid.UUID, v2draft.LayerRef) (objectstore.Object, error) {
+	return objectstore.Object{}, s.err
 }
 
 func (s *renderPostIORevocation) Lookup(ctx context.Context, who auth.Identity, tenant uuid.UUID, node v2draft.LayerRef) (objectstore.Object, error) {
@@ -143,6 +150,10 @@ func testResolveRenderInputsWithActualDocumentClosure(t *testing.T, protected bo
 	choice := RenderExecutionChoice{Backend: request.Backend, RuntimeSHA: request.RuntimeSHA, TileSize: request.TileSize, AlphaMode: request.AlphaMode}
 	selection := RenderSelectionItem{Binding: binding, Recipe: root}
 	loader := RenderRequestLoader{Catalog: store, Objects: store}
+	consentErr := domain.NewError("PROFILE_CONSENT_REVOKED", 409)
+	if _, err := (RenderRequestLoader{Catalog: renderConsentRefusal{err: consentErr}, Objects: store}).Load(ctx, tenant, actor, selection, choice); err != consentErr {
+		t.Fatal("consent refusal lost at loader boundary", err)
+	}
 	loaded, err := loader.Load(ctx, tenant, actor, selection, choice)
 	if err != nil || !bytes.Equal(loaded.RecipeRaw, recipe) || !bytes.Equal(loaded.SourceRaw, source) || !bytes.Equal(loaded.ProtectionRaw, protectionRaw) {
 		t.Fatal("scoped request loading changed evidence", err)
@@ -174,6 +185,404 @@ func testResolveRenderInputsWithActualDocumentClosure(t *testing.T, protected bo
 	layerLoaded, err := loader.Load(ctx, tenant, actor, RenderSelectionItem{Binding: binding, Recipe: put(layerRecipe)}, choice)
 	if err != nil || !bytes.Equal(layerLoaded.LayerRaw, stack) || !bytes.Equal(layerLoaded.ProtectionRaw, protectionRaw) {
 		t.Fatal("authored child documents not loaded", err)
+	}
+	paramsRaw, _ := canonical.Marshal(map[string]any{"schema_version": 1, "ev": 0.2})
+	paramsRef := put(paramsRaw)
+	maskPixels := v2input.Ref{ArtifactID: uuid.New(), SHA256: strings.Repeat("d", 64)}
+	store.objects[maskPixels.ArtifactID] = objectstore.Object{Key: "layer-mask.npy", SHA256: maskPixels.SHA256, Bytes: 64, VersionID: "v1", ContentType: "application/x-npy"}
+	maskRaw, _ := canonical.Marshal(review.MaskRef{Artifact: review.ArtifactRef{ID: maskPixels.ArtifactID, SHA256: maskPixels.SHA256}, Canvas: image.Canvas, TransformChain: image.TransformChain, Selector: "manual", Confidence: 1, Protected: false})
+	maskRef := put(maskRaw)
+	nonempty, _ := canonical.Marshal(map[string]any{"schema_version": 1, "source": binding, "layers": []any{map[string]any{
+		"id": uuid.New(), "enabled": false, "opacity": 0, "blend": "normal", "operation": "adjust.exposure", "operation_version": "1",
+		"params": paramsRef, "mask": map[string]any{"op": "ref", "mask": maskRef, "canvas_hash": binding.CanvasHash}}}})
+	authoredBody["layer_stack"] = put(nonempty)
+	nonemptyAuthored, _ := canonical.Marshal(authoredBody)
+	nonemptyRecipe, e := v2draft.BuildFrozenRenderRecipe(nonemptyAuthored, v2draft.ResolvedRecipeInputs{Binding: binding, BaseStyle: style, Style: v2draft.StyleBaseline{GainsRGB: [3]float64{1, 1, 1}, Saturation: 1}, ICCLockSHA: strings.Repeat("a", 64), ModelLockSHA: strings.Repeat("b", 64)}, nonempty)
+	if e != nil {
+		t.Fatal(e)
+	}
+	nonemptyRef := put(nonemptyRecipe)
+	loadedStack, e := loader.Load(ctx, tenant, actor, RenderSelectionItem{Binding: binding, Recipe: nonemptyRef}, choice)
+	if e != nil || len(loadedStack.LayerDocuments) != 2 || loadedStack.LayerDocuments[0].JCS != string(paramsRaw) || loadedStack.LayerDocuments[1].JCS != string(maskRaw) {
+		t.Fatal("scoped layer documents not retained", e)
+	}
+	fullEvidence, e := resolveRenderClosureEvidence(ctx, loadedStack, resolver)
+	layerEntries, closureDocuments := fullEvidence.Entries, fullEvidence.Documents
+	loadedStack.ClosureOccurrences = fullEvidence.Occurrences
+	if e != nil {
+		t.Fatal(e)
+	}
+	loadedStack.ClosureDocuments = closureDocuments
+	if len(closureDocuments) == 0 {
+		t.Fatal("scoped resolver did not expose closure evidence")
+	}
+	for _, layer := range loadedStack.LayerDocuments {
+		found := false
+		for _, witness := range closureDocuments {
+			if witness.Ref == layer.Ref && witness.Contract == layer.Contract {
+				if witness.Parent != layer.Parent || !strings.Contains(witness.Path, ".layer_stack.layers[") {
+					t.Fatal("layer occurrence lost exact parent/path", witness)
+				}
+				found = true
+			}
+		}
+		if !found {
+			t.Fatal("layer child missing from scoped read evidence")
+		}
+	}
+	layerRun, layerProject, layerSnapshot := uuid.New(), uuid.New(), uuid.New()
+	layerPlan, e := CompileRenderRunPlan(layerRun, layerProject, layerSnapshot, []RenderDraftRequest{loadedStack}, [][]v2input.Entry{layerEntries})
+	if e != nil {
+		t.Fatal("layer witnesses did not freeze", e)
+	}
+	layerSaved := RecoveredRenderDraft{RunID: layerRun, WorkflowID: layerPlan.Workflow, ProjectID: layerProject, SnapshotID: layerSnapshot, Config: layerPlan.Config, ConfigSHA: layerPlan.ConfigSHA, ReservedBytes: layerPlan.OutputBytes}
+	recoveredStack, e := DecodeRecoveredRenderPlan(layerSaved)
+	if e != nil || len(recoveredStack) != 1 || len(recoveredStack[0].Node.LayerDocuments) != 2 {
+		t.Fatal("layer witnesses did not recover", e)
+	}
+	if len(recoveredStack[0].Node.ClosureDocuments) != len(closureDocuments) {
+		t.Fatal("closure read evidence lost during recovery")
+	}
+	for _, removed := range []uuid.UUID{nonemptyRef.ArtifactID, binding.Source.ArtifactID, loadedStack.LayerDocuments[0].Ref.ArtifactID, loadedStack.LayerDocuments[1].Ref.ArtifactID} {
+		var changed map[string]any
+		if json.Unmarshal(layerSaved.Config, &changed) != nil {
+			t.Fatal("saved closure evidence")
+		}
+		node := changed["v26_render"].(map[string]any)["nodes"].([]any)[0].(map[string]any)
+		kept := []any{}
+		for _, entry := range node["closure_documents"].([]any) {
+			if entry.(map[string]any)["Ref"].(map[string]any)["artifact_id"] != removed.String() {
+				kept = append(kept, entry)
+			}
+		}
+		if len(kept) == 0 || len(kept) == len(node["closure_documents"].([]any)) {
+			t.Fatal("coverage fixture must remove a known JSON ref while retaining evidence")
+		}
+		node["closure_documents"] = kept
+		incomplete := layerSaved
+		incomplete.Config, e = canonical.Marshal(changed)
+		if e != nil {
+			t.Fatal(e)
+		}
+		incomplete.ConfigSHA, e = canonical.Hash(json.RawMessage(incomplete.Config))
+		if e != nil {
+			t.Fatal(e)
+		}
+		if _, e := DecodeRecoveredRenderPlan(incomplete); !errors.Is(e, v2input.ErrInvalid) {
+			t.Fatal("rehashed incomplete JSON evidence recovered", removed, e)
+		}
+	}
+	pinnedParams := loadedStack.LayerDocuments[0].Ref.ArtifactID
+	originalObject := store.objects[pinnedParams]
+	driftedObject := originalObject
+	driftedObject.VersionID = "new-version-with-same-sha"
+	store.objects[pinnedParams] = driftedObject
+	driftProbe := &renderCoordinatorProbe{}
+	driftCoordinator := RenderDraftCoordinator{Inputs: driftProbe, Transport: driftProbe, Resolver: resolver}
+	driftErr := driftCoordinator.RecoverInputs(ctx, tenant, actor, layerSaved)
+	store.objects[pinnedParams] = originalObject
+	if !errors.Is(driftErr, v2input.ErrExpired) || len(driftProbe.events) != 0 {
+		t.Fatal("same-SHA version drift published during recovery", driftErr, driftProbe.events)
+	}
+	var binaryID uuid.UUID
+	for _, occurrence := range fullEvidence.Occurrences {
+		if occurrence.Node.Contract == "WorkingPixels" {
+			binaryID = occurrence.Node.Ref.ArtifactID
+			break
+		}
+	}
+	if binaryID == uuid.Nil {
+		t.Fatal("missing binary occurrence fixture")
+	}
+	binaryObject := store.objects[binaryID]
+	changedBinary := binaryObject
+	changedBinary.VersionID = "changed-binary-version"
+	store.objects[binaryID] = changedBinary
+	driftProbe.events = nil
+	binaryErr := driftCoordinator.RecoverInputs(ctx, tenant, actor, layerSaved)
+	store.objects[binaryID] = binaryObject
+	if !errors.Is(binaryErr, v2input.ErrExpired) || len(driftProbe.events) != 0 {
+		t.Fatal("binary version drift published during recovery", binaryErr, driftProbe.events)
+	}
+	var corrupt map[string]any
+	if json.Unmarshal(layerSaved.Config, &corrupt) != nil {
+		t.Fatal("saved evidence")
+	}
+	corruptNode := corrupt["v26_render"].(map[string]any)["nodes"].([]any)[0].(map[string]any)
+	corruptNode["closure_documents"].([]any)[0].(map[string]any)["JCS"] = "{}"
+	corruptSaved := layerSaved
+	corruptSaved.Config, e = canonical.Marshal(corrupt)
+	if e != nil {
+		t.Fatal(e)
+	}
+	corruptSaved.ConfigSHA, e = canonical.Hash(json.RawMessage(corruptSaved.Config))
+	if e != nil {
+		t.Fatal(e)
+	}
+	if _, e := DecodeRecoveredRenderPlan(corruptSaved); !errors.Is(e, v2input.ErrInvalid) {
+		t.Fatal("rehashed contradictory closure bytes recovered", e)
+	}
+	for _, document := range loadedStack.LayerDocuments {
+		incomplete := make([]v2input.Entry, 0, len(layerEntries)-1)
+		for _, entry := range layerEntries {
+			if entry.Ref != document.Ref {
+				incomplete = append(incomplete, entry)
+			}
+		}
+		if len(incomplete) != len(layerEntries)-1 {
+			t.Fatal("fixture witness absent from inventory")
+		}
+		if _, err := ResolveRenderInputs(ctx, actor, tenant, binding, nonemptyRef, nonemptyRecipe, source, renderResolvedInventory{incomplete}); err != nil {
+			t.Fatal("fixture must pass root inventory validation to exercise the witness gate", err)
+		}
+		var changed map[string]any
+		if json.Unmarshal(layerSaved.Config, &changed) != nil {
+			t.Fatal("saved fixture")
+		}
+		node := changed["v26_render"].(map[string]any)["nodes"].([]any)[0].(map[string]any)
+		digest, err := canonical.Hash(struct {
+			Task      uuid.UUID       `json:"task"`
+			Operation string          `json:"operation"`
+			Version   string          `json:"version"`
+			Entries   []v2input.Entry `json:"entries"`
+		}{layerPlan.Tasks[0].ID, "render.compose", "1", incomplete})
+		if err != nil {
+			t.Fatal(err)
+		}
+		node["input_digest"] = digest
+		contradictory := layerSaved
+		contradictory.Config, err = canonical.Marshal(changed)
+		if err != nil {
+			t.Fatal(err)
+		}
+		contradictory.ConfigSHA, err = canonical.Hash(json.RawMessage(contradictory.Config))
+		if err != nil {
+			t.Fatal(err)
+		}
+		probe := &renderCoordinatorProbe{}
+		coordinator := RenderDraftCoordinator{Inputs: probe, Transport: probe, Resolver: renderResolvedInventory{incomplete}}
+		if err := coordinator.RecoverInputs(ctx, tenant, actor, contradictory); !errors.Is(err, v2input.ErrInvalid) || len(probe.events) != 0 {
+			t.Fatal("rehashed incomplete recovery published", err, probe.events)
+		}
+	}
+	for _, mutation := range []string{"missing", "extra", "parent", "content", "order", "closure_missing", "closure_empty", "closure_parent", "closure_path", "closure_cycle", "closure_opaque_child", "occurrences_missing", "occurrences_empty", "occurrences_duplicate_path", "binary_occurrence_missing", "binary_parent", "binary_path", "binary_root", "binary_binding", "binary_learning", "binary_frame", "binary_model", "binary_version", "binary_key", "binary_size", "binary_media"} {
+		var changed map[string]any
+		if json.Unmarshal(layerSaved.Config, &changed) != nil {
+			t.Fatal("cannot decode saved witnesses")
+		}
+		node := changed["v26_render"].(map[string]any)["nodes"].([]any)[0].(map[string]any)
+		documents := node["layer_documents"].([]any)
+		switch mutation {
+		case "binary_parent", "binary_path", "binary_root", "binary_binding", "binary_learning", "binary_frame", "binary_model", "binary_version", "binary_key", "binary_size", "binary_media":
+			found := false
+			for _, raw := range node["closure_occurrences"].([]any) {
+				occurrence := raw.(map[string]any)["Node"].(map[string]any)
+				if occurrence["Contract"] != "WorkingPixels" {
+					continue
+				}
+				switch mutation {
+				case "binary_version":
+					raw.(map[string]any)["Object"].(map[string]any)["VersionID"] = "another-immutable-version"
+				case "binary_key":
+					raw.(map[string]any)["Object"].(map[string]any)["Key"] = "another-immutable-key"
+				case "binary_size":
+					obj := raw.(map[string]any)["Object"].(map[string]any)
+					obj["Bytes"] = obj["Bytes"].(float64) + 1
+				case "binary_media":
+					raw.(map[string]any)["Object"].(map[string]any)["ContentType"] = "application/octet-stream"
+				case "binary_binding":
+					occurrence["ExpectedBinding"] = v2input.SessionVersionBinding{AssetVersionID: uuid.New()}
+				case "binary_learning":
+					occurrence["ExpectedLearning"] = v2draft.FrozenRenderLearning{VersionID: uuid.New()}
+				case "binary_frame":
+					occurrence["RenderFrame"] = v2draft.RenderFrameAuthority{SelectedVersion: uuid.New()}
+				case "binary_model":
+					occurrence["ExpectedModelLockSHA"] = strings.Repeat("b", 64)
+				case "binary_parent":
+					occurrence["ParentRef"] = v2input.Ref{ArtifactID: uuid.New(), SHA256: strings.Repeat("a", 64)}
+				case "binary_path":
+					occurrence["Path"] = occurrence["Path"].(string) + ".unexpected"
+				case "binary_root":
+					occurrence["ParentRef"] = v2input.Ref{}
+				}
+				found = true
+				break
+			}
+			if !found {
+				t.Fatal("missing binary occurrence fixture")
+			}
+		case "binary_occurrence_missing":
+			occurrences := node["closure_occurrences"].([]any)
+			removed := false
+			for i, raw := range occurrences {
+				n := raw.(map[string]any)["Node"].(map[string]any)
+				if n["Contract"] == "WorkingPixels" && strings.Contains(n["Path"].(string), ".recipe.source.source.pixels") {
+					node["closure_occurrences"] = append(occurrences[:i], occurrences[i+1:]...)
+					removed = true
+					break
+				}
+			}
+			if !removed {
+				t.Fatal("missing repeated pixel fixture")
+			}
+		case "occurrences_duplicate_path":
+			occurrences := node["closure_occurrences"].([]any)
+			node["closure_occurrences"] = append(occurrences, occurrences[0])
+		case "occurrences_missing":
+			delete(node, "closure_occurrences")
+		case "occurrences_empty":
+			node["closure_occurrences"] = []any{}
+		case "closure_opaque_child":
+			var parent v2draft.DocumentWitness
+			for _, witness := range closureDocuments {
+				if witness.Contract == "StyleV2" {
+					parent = witness
+					break
+				}
+			}
+			if parent.Ref.ArtifactID == uuid.Nil {
+				t.Fatal("missing opaque parent fixture")
+			}
+			sum := sha256.Sum256([]byte("{}"))
+			ref := v2input.Ref{ArtifactID: uuid.New(), SHA256: hex.EncodeToString(sum[:])}
+			node["closure_documents"] = append(node["closure_documents"].([]any), v2draft.DocumentWitness{
+				Path: parent.Path + ".unexpected", Contract: "Artifact", Ref: ref, Parent: parent.Ref, JCS: "{}",
+				Object: objectstore.Object{Key: "opaque-child", VersionID: "v1", SHA256: ref.SHA256, ContentType: "application/json", Bytes: 2}})
+		case "closure_cycle":
+			sum := sha256.Sum256([]byte("{}"))
+			refA := v2input.Ref{ArtifactID: uuid.New(), SHA256: hex.EncodeToString(sum[:])}
+			refB := v2input.Ref{ArtifactID: uuid.New(), SHA256: refA.SHA256}
+			object := objectstore.Object{Key: "cycle", VersionID: "v1", SHA256: refA.SHA256, ContentType: "application/json", Bytes: 2}
+			node["closure_documents"] = append(node["closure_documents"].([]any),
+				v2draft.DocumentWitness{Path: "unreachable-a", Contract: "Artifact", Ref: refA, Parent: refB, Object: object, JCS: "{}"},
+				v2draft.DocumentWitness{Path: "unreachable-b", Contract: "Artifact", Ref: refB, Parent: refA, Object: object, JCS: "{}"})
+		case "closure_parent":
+			node["closure_documents"].([]any)[0].(map[string]any)["Parent"] = v2input.Ref{ArtifactID: uuid.New(), SHA256: strings.Repeat("a", 64)}
+		case "closure_path":
+			for _, entry := range node["closure_documents"].([]any) {
+				if entry.(map[string]any)["Contract"] == "Params" {
+					entry.(map[string]any)["Path"] = "unrelated.path"
+					break
+				}
+			}
+		case "closure_missing":
+			delete(node, "closure_documents")
+		case "closure_empty":
+			node["closure_documents"] = []any{}
+		case "missing":
+			node["layer_documents"] = documents[:1]
+		case "extra":
+			node["layer_documents"] = append(documents, documents[0])
+		case "parent":
+			documents[0].(map[string]any)["parent"].(map[string]any)["artifact_id"] = uuid.New().String()
+		case "content":
+			documents[0].(map[string]any)["jcs"] = `{"ev":1,"schema_version":1}`
+		case "order":
+			documents[0], documents[1] = documents[1], documents[0]
+		}
+		altered := layerSaved
+		altered.Config, e = canonical.Marshal(changed)
+		if e != nil {
+			t.Fatal(e)
+		}
+		altered.ConfigSHA, e = canonical.Hash(json.RawMessage(altered.Config))
+		if e != nil {
+			t.Fatal(e)
+		}
+		if _, e := DecodeRecoveredRenderPlan(altered); !errors.Is(e, v2input.ErrInvalid) {
+			t.Fatal("rehashed contradictory layer witness recovered", mutation, e)
+		}
+	}
+	withoutClosure := loadedStack
+	withoutClosure.ClosureDocuments = nil
+	if _, _, e := CompileRenderDraft(layerPlan.Workflow, 0, withoutClosure, layerEntries); !errors.Is(e, v2input.ErrInvalid) {
+		t.Fatal("direct draft accepted absent closure evidence", e)
+	}
+	if _, _, e := resolveRenderClosureDocuments(ctx, loadedStack, renderResolvedInventory{layerEntries}); !errors.Is(e, v2input.ErrInvalid) {
+		t.Fatal("nonempty stack accepted a resolver without byte witnesses", e)
+	}
+	for _, batch := range []bool{false, true} {
+		caller := loadedStack
+		caller.LayerDocuments = append([]RenderLayerDocument(nil), loadedStack.LayerDocuments...)
+		before := caller.LayerDocuments[0]
+		mutating := &renderMutatingCallerResolver{CompositionInputResolver: resolver, mutate: func() { caller.LayerDocuments[0].JCS = "{}"; caller.LayerDocuments[0].Path = "changed" }}
+		probe := &renderCoordinatorProbe{}
+		coordinator := RenderDraftCoordinator{Store: probe, Inputs: probe, Transport: probe, Resolver: mutating}
+		var config json.RawMessage
+		if batch {
+			store := &renderBatchRecoveryProbe{failPart: -1}
+			plans, err := (RenderBatchCoordinator{Store: store, Inputs: coordinator}).Prepare(ctx, uuid.New(), layerProject, layerSnapshot, strings.Repeat("a", 64), []RenderDraftRequest{caller})
+			if err != nil || len(plans) != 1 {
+				t.Fatal("batch caller mutation reached frozen witnesses", err)
+			}
+			config = plans[0].Plan.Config
+		} else {
+			plan, err := coordinator.Prepare(ctx, uuid.New(), layerProject, layerSnapshot, strings.Repeat("a", 64), []RenderDraftRequest{caller})
+			if err != nil {
+				t.Fatal("caller mutation reached frozen witnesses", err)
+			}
+			config = plan.Config
+		}
+		var frozen struct {
+			Render struct {
+				Nodes []RenderRunNode `json:"nodes"`
+			} `json:"v26_render"`
+		}
+		if json.Unmarshal(config, &frozen) != nil || len(frozen.Render.Nodes) != 1 || frozen.Render.Nodes[0].LayerDocuments[0] != before || caller.LayerDocuments[0] == before || len(frozen.Render.Nodes[0].ClosureDocuments) == 0 || len(frozen.Render.Nodes[0].ClosureOccurrences) == 0 {
+			t.Fatal("witness ownership not detached", batch)
+		}
+	}
+	cancelledCtx, cancelEvidence := context.WithCancel(ctx)
+	cancelling := &renderCountingEvidenceResolver{CompositionInputResolver: resolver, afterEvidence: cancelEvidence}
+	cancelledProbe := &renderCoordinatorProbe{}
+	cancelledCoordinator := RenderDraftCoordinator{Store: cancelledProbe, Inputs: cancelledProbe, Transport: cancelledProbe, Resolver: cancelling}
+	cancelledPlan, cancelledErr := cancelledCoordinator.Prepare(cancelledCtx, uuid.New(), layerProject, layerSnapshot, strings.Repeat("a", 64), []RenderDraftRequest{loadedStack, loadedStack})
+	cancelEvidence()
+	if !errors.Is(cancelledErr, context.Canceled) || cancelling.calls != 1 || len(cancelledProbe.events) != 0 || len(cancelledPlan.Config) != 0 || len(cancelledPlan.Tasks) != 0 {
+		t.Fatal("evidence cancellation continued compilation", cancelledErr, cancelling.calls, cancelledProbe.events)
+	}
+	cancelledBatchCtx, cancelBatchEvidence := context.WithCancel(ctx)
+	cancellingBatch := &renderCountingEvidenceResolver{CompositionInputResolver: resolver, afterEvidence: cancelBatchEvidence}
+	cancelledBatchStore := &renderBatchRecoveryProbe{failPart: -1}
+	cancelledBatchProbe := &renderCoordinatorProbe{}
+	cancelledBatchCoordinator := RenderBatchCoordinator{Store: cancelledBatchStore, Inputs: RenderDraftCoordinator{Inputs: cancelledBatchProbe, Transport: cancelledBatchProbe, Resolver: cancellingBatch}}
+	cancelledParts, cancelledBatchErr := cancelledBatchCoordinator.Prepare(cancelledBatchCtx, uuid.New(), layerProject, layerSnapshot, strings.Repeat("a", 64), []RenderDraftRequest{loadedStack})
+	cancelBatchEvidence()
+	if !errors.Is(cancelledBatchErr, context.Canceled) || cancellingBatch.calls != 1 || len(cancelledParts) != 0 || cancelledBatchStore.begins != 0 || cancelledBatchStore.loads != 0 || len(cancelledBatchProbe.events) != 0 {
+		t.Fatal("batch evidence cancellation continued", cancelledBatchErr, cancellingBatch.calls, cancelledBatchProbe.events)
+	}
+	evidenceSize := 0
+	for _, document := range fullEvidence.Documents {
+		evidenceSize += len(document.JCS)
+	}
+	for _, occurrence := range fullEvidence.Occurrences {
+		encoded, err := canonical.Marshal(occurrence)
+		if err != nil {
+			t.Fatal(err)
+		}
+		evidenceSize += len(encoded)
+	}
+	required := 1048576/evidenceSize + 1
+	if required < 1 || required >= 5000 {
+		t.Fatal("evidence fixture cannot exercise early bound", required)
+	}
+	oversized := make([]RenderDraftRequest, required+1)
+	for i := range oversized {
+		oversized[i] = loadedStack
+	}
+	counting := &renderCountingEvidenceResolver{CompositionInputResolver: resolver}
+	probe := &renderCoordinatorProbe{}
+	coordinator := RenderDraftCoordinator{Store: probe, Inputs: probe, Transport: probe, Resolver: counting}
+	oversizedPlan, oversizedErr := coordinator.Prepare(ctx, uuid.New(), layerProject, layerSnapshot, strings.Repeat("a", 64), oversized)
+	if !errors.Is(oversizedErr, v2input.ErrInvalid) || counting.calls != required || len(probe.events) != 0 || len(oversizedPlan.Tasks) != 0 || len(oversizedPlan.Config) != 0 {
+		t.Fatal("oversized evidence continued or persisted", oversizedErr, counting.calls, required, probe.events)
+	}
+	loadedStack.LayerDocuments = loadedStack.LayerDocuments[:1]
+	if _, _, e := CompileRenderDraft(layerPlan.Workflow, 0, loadedStack, layerEntries); !errors.Is(e, v2input.ErrInvalid) {
+		t.Fatal("direct task draft accepted incomplete layer proof", e)
+	}
+	if _, e := CompileRenderRunPlan(layerRun, layerProject, layerSnapshot, []RenderDraftRequest{loadedStack}, [][]v2input.Entry{layerEntries}); !errors.Is(e, v2input.ErrInvalid) {
+		t.Fatal("incomplete layer proof frozen", e)
 	}
 	draft, open, err := CompileRenderDraft(workflow, 0, request, entries)
 	expectedTask, _ := v2input.TaskID(workflow, "render.compose", 0)
@@ -276,6 +685,15 @@ func testResolveRenderInputsWithActualDocumentClosure(t *testing.T, protected bo
 		t.Fatal("run plan compilation failed", runPlan, err)
 	}
 	saved := RecoveredRenderDraft{RunID: recoveryRun, WorkflowID: runPlan.Workflow, ProjectID: recoveryProject, SnapshotID: snapshot, Config: runPlan.Config, ConfigSHA: runPlan.ConfigSHA, ReservedBytes: runPlan.OutputBytes}
+ var queuedConfig map[string]json.RawMessage
+ if err:=json.Unmarshal(runPlan.Config,&queuedConfig);err!=nil||string(queuedConfig["queue_class"])!=`"batch"`{t.Fatal("render batch queue not frozen",err)}
+ interactivePlan,queueErr:=compileRenderRunPlanForQueue(recoveryRun,recoveryProject,snapshot,[]RenderDraftRequest{request,request},[][]v2input.Entry{entries,entries},"interactive")
+ if queueErr!=nil||interactivePlan.ConfigSHA==runPlan.ConfigSHA||interactivePlan.Tasks[0].ID!=runPlan.Tasks[0].ID||interactivePlan.Tasks[0].InputDigest!=runPlan.Tasks[0].InputDigest{t.Fatal("queue changed task identity or was not hashed",queueErr)}
+ wrongQueue:=saved
+ queuedConfig["queue_class"]=json.RawMessage(`"training"`)
+ wrongQueue.Config,_=canonical.Marshal(queuedConfig)
+ wrongQueue.ConfigSHA,_=canonical.Hash(wrongQueue.Config)
+ if _,err:=DecodeRecoveredRenderPlan(wrongQueue);!errors.Is(err,v2input.ErrInvalid){t.Fatal("foreign render queue accepted",err)}
 	decoded, err := DecodeRecoveredRenderPlan(saved)
 	if err != nil || len(decoded) != 2 || decoded[0].Node.ParamsJCS != string(recipe) || decoded[0].Node.ProtectionJCS != string(protectionRaw) {
 		t.Fatal("recovered evidence invalid", err)

@@ -1,0 +1,112 @@
+{
+  "recorded_at": "2026-10-08T12:12:19.801431+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "dirty_tree_hash": "1b56c59585aa76f06e3dc33d86514f6488cf4dbcd4b85d58a84d6caf90a12976",
+  "contracts_hash": "0b89f59002ab87336fad94cc54fd1c7512ab6c779e27e95252de5c7cb8be2849",
+  "source_manifest": "v27-person-admission-source.json",
+  "source_pins": 8196,
+  "distinct_integration_scenarios": 17,
+  "integration_executions": 18,
+  "checks": [
+    {
+      "command": "pytest test_v27_semantic_intent_publication.py -k 'native-person-defect or native-face-wire or native-bootstrap or ordinary-admission' (five selected scenarios)",
+      "evidence": "v27-person-admission-final.xml",
+      "evidence_sha": "cd52fb0278824be16ab8cc940c7059330eaa3f3371257071ffcccdbd7c3efb8f",
+      "exit_code": 0,
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "command": "pytest test_v27_native_source_authority.py test_v27_native_registration_state.py test_v27_native_face_outputs.py test_v27_native_admission.py test_v27_person_migration_upgrade.py -q (12 cases, no filter)",
+      "evidence": "v27-person-admission-regression.xml",
+      "evidence_sha": "d17e6e6a7bafa2be7994c53ccef5e60d37d02ab10a06ebe4e442926a198803e8",
+      "exit_code": 0,
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "command": "pytest test_v27_semantic_intent_publication.py -k native-person-defect-wire -q (strengthened exact0.37 preservation fixture)",
+      "evidence": "v27-person-admission-soft.xml",
+      "evidence_sha": "e72654d615a6db69f50b4cde5c989288290799eac22866eb3926dc72ef016546",
+      "exit_code": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "command": "scripts/run-platform.sh go -C backend test ./internal/semanticproposal ./internal/v2input ./internal/review ./internal/masknpy ./internal/gateway ./internal/httpapi -count=1",
+      "evidence": "v27-person-admission-go.log",
+      "evidence_sha": "f98895cdd445ed7322e2f439d1a65caf50435a361ba30d9f0aa44b6d236e76fd",
+      "exit_code": 0
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 .venv-platform/bin/python docs/implementation-v2/check-docs.py",
+      "evidence": "v27-person-admission-contracts.log",
+      "evidence_sha": "547278f709fdd8b06f62f2a08c380f397effb89556763ee276f05c9be3938447",
+      "exit_code": 0
+    }
+  ],
+  "requirements": [
+    {
+      "id": "original-person-composed-SQL-admission-completed-and-atomic-seal",
+      "status": "implemented_and_scoped_runtime_passed",
+      "evidence": "v27-person-admission-final.xml"
+    },
+    {
+      "id": "original-person-production-start-worker-canonical-output-and-registered-coverage",
+      "status": "implemented_and_scoped_runtime_passed_with_explicit_doubles",
+      "evidence": "v27-person-admission-soft.xml"
+    },
+    {
+      "id": "forward-only00908-data-OID-owner-ACL-security-preservation",
+      "status": "passed_populated_upgrade",
+      "evidence": "v27-person-admission-regression.xml"
+    },
+    {
+      "id": "substituted-person-admission-packets-and-resealed-original-object-versions",
+      "status": "refused_in_actual_SQL",
+      "evidence": "v27-person-admission-soft.xml"
+    },
+    {
+      "id": "automatic-newly-inferred-person-to-original-parent",
+      "status": "open"
+    },
+    {
+      "id": "full-manual-real-GPU-corpus-browser-native-V27-acceptance",
+      "status": "open"
+    }
+  ],
+  "changes": [
+    "Scheduler-only original person authority SQL composition with exact saved authority/Params hashes, source/policy/model/ref/object pins and current producer/qualification/candidate locks",
+    "Optional person admission/completed/atomic seal envelope; all legacy native/CPU qualification/registration/budget/consent/idempotency/activation guards preserved",
+    "Production start derives exact person pins, survives blocked transport interruption, replays original plan and creates canonical worker protection covering original qualified person input",
+    "Independent physical verification of soft0.37 preservation outside features, full magnitude coverage, protected candidate exclusion and registered canonical protection; parent remains absent"
+  ],
+  "limitations": [
+    "Explicit GPU inference and qualification doubles; CPU defect algorithm is real",
+    "Original person evidence is imported; newly inferred person adoption and automatic parent continuation are not established",
+    "17 distinct scoped scenarios plus one strengthened rerun are not full V27 acceptance",
+    "No pixel algorithm or numerical threshold changed;00908 does not rewrite/backfill tenant metadata or add table/DML grants"
+  ],
+  "discovery_evidence": [
+    "v27-person-admission-seal-envelope-before.log"
+  ],
+  "intermediate_evidence": [
+    {
+      "evidence": "v27-person-admission-wire.xml",
+      "scope": "Earlier positive admission run before final production-start/integrity changes; not substituted for current checks"
+    },
+    {
+      "evidence": "v27-person-admission-upgrade.xml",
+      "scope": "Earlier00908 revision before atomic-seal envelope replacement; final upgrade is in current regression XML"
+    }
+  ]
+}

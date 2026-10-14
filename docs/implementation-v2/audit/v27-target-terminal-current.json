@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 authenticated terminal target observation and lease retirement",
+  "whole_module_accepted": false,
+  "migration_head": "00972",
+  "production_code_changed": true,
+  "production_migrations_applied": false,
+  "source_manifest": "v27-target-terminal-source-current.json",
+  "source_manifest_sha256": "79fdce0719d6a2356e08083b60b3baaabb0640cd79a4b8d1f6e0d856aa6d7113",
+  "source_files": 4834,
+  "checks": {
+    "target_matrix_checkpoint_upgrade_goose": {
+      "tests": 104.0,
+      "failures": 0.0,
+      "errors": 0.0,
+      "skipped": 0.0,
+      "time": 138.812,
+      "evidence": "v27-target-terminal-final-current.xml"
+    },
+    "original_bootstrap_cancel_worker_failure": {
+      "tests": 6.0,
+      "failures": 0.0,
+      "errors": 0.0,
+      "skipped": 0.0,
+      "time": 56.212,
+      "evidence": "v27-target-terminal-original-current.xml"
+    },
+    "extended_native_success": {
+      "tests": 1.0,
+      "failures": 0.0,
+      "errors": 0.0,
+      "skipped": 0.0,
+      "time": 501.34,
+      "evidence": "v27-target-terminal-native-current.xml"
+    },
+    "authenticated_target_cancel": {
+      "tests": 6.0,
+      "failures": 0.0,
+      "errors": 0.0,
+      "skipped": 0.0,
+      "time": 19.706,
+      "evidence": "v27-target-terminal-cancel-current.xml"
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/run",
+      "photoeditor/backend/internal/httpapi",
+      "photoeditor/backend/internal/gateway",
+      "photoeditor/backend/internal/semanticreview",
+      "photoeditor/backend/internal/workflow",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "docs": {
+      "semantic_tests": 55,
+      "static_checks": 2267,
+      "deterministic_regeneration": "passed"
+    }
+  },
+  "imaging_preservation": {
+    "files": 544,
+    "changed": 0,
+    "baseline": "v27-target-defect-protection-source-current.json"
+  },
+  "limitations": [
+    "Target failure/lock/ProcessOne fixtures seed run/task metadata; they do not execute target model failures.",
+    "Target cancellation invokes real authenticated run.Service.Cancel, scheduler cancel_idle_task and ProcessOne on seeded metadata.",
+    "Recorder concurrency uses a rollback-only metadata writer, not a real retry request or GC.",
+    "Extended native success uses inference/qualification doubles; real GPU/photo quality remains open.",
+    "Full 159-scenario selected integration at00971 is historical and is not relabelled as00972 evidence.",
+    "Actual target worker failure/retry progression, UI review/status behavior, GC/purge/object deletion, process restart/upload ambiguity/redelivery, reference locator versions, independent qualification and 5000-target performance remain open."
+  ],
+  "diagnostics": [
+    "Initial metadata fixtures attempted immutable config update and omitted recovery request key. Guards rejected them; fixture identities/recovery key are now set before insert, without production guard changes."
+  ],
+  "evidence_sha256": {
+    "v27-target-terminal-final-current.xml": "42f4e351809fac584e7622a0cbc158e76aa24bc44ddf73362c3ca6cc09f2db15",
+    "v27-target-terminal-original-current.xml": "4ea76a885d97ae1d551755dad4a4e3424d9cefc3698be6ecd9c10400b8e69681",
+    "v27-target-terminal-native-current.xml": "ba50c86ef1d6efb1ea29f2aee489bd403c63a6432e1a53d82f05298a2762d296",
+    "v27-target-terminal-cancel-current.xml": "806fc335b817926c2332c5cbbc68cbfa11d773694221c61225f913ca4faf64c7",
+    "v27-target-terminal-go-final-current.jsonl": "80b319a5fb02c9eadbec612556168b2e967690d354aa6b542d6ea3e485e149a9"
+  }
+}

@@ -21,6 +21,16 @@ func (n FrozenRegionNode) Admit(ctx context.Context, db *pgxpool.Pool, publisher
 	if db == nil || publisher == nil || !validRegionSHA(requestSHA) {
 		return empty, ErrRegionInvalid
 	}
+	if err := ctx.Err(); err != nil {
+		return empty, err
+	}
+	var role string
+	if err := db.QueryRow(ctx, "SELECT current_user").Scan(&role); err != nil {
+		return empty, err
+	}
+	if role != "photo_scheduler" {
+		return empty, ErrRegionInvalid
+	}
 	shell, sources, err := n.DraftShell(who, key, snapshot, policySHA, reservedBytes)
 	if err != nil {
 		return empty, err
@@ -56,11 +66,11 @@ func (n FrozenRegionNode) Admit(ctx context.Context, db *pgxpool.Pool, publisher
 			return empty, ErrRegionInvalid
 		}
 		built, buildErr := v2input.BuildInputClosure(ctx, sources[0].ID, cursor, publisher)
-		if closer, ok := cursor.(io.Closer); ok {
-			_ = closer.Close()
+		if err := finishRegionInputCursor(cursor, buildErr); err != nil {
+			return empty, err
 		}
-		if buildErr != nil {
-			return empty, buildErr
+		if err := ctx.Err(); err != nil {
+			return empty, err
 		}
 		err = database.TenantTransaction(ctx, db, shell.Tenant, func(tx pgx.Tx) error {
 			return n.SealInTransaction(ctx, tx, who, key, snapshot, policySHA, reservedBytes, built)
@@ -77,4 +87,16 @@ func (n FrozenRegionNode) Admit(ctx context.Context, db *pgxpool.Pool, publisher
 		return empty, ErrRegionInvalid
 	}
 	return ticket, nil
+}
+
+// Close before sealing; incomplete cursor teardown is not successful input proof.
+func finishRegionInputCursor(cursor v2input.Cursor, buildErr error) error {
+	var closeErr error
+	if closer, ok := cursor.(io.Closer); ok {
+		closeErr = closer.Close()
+	}
+	if buildErr != nil {
+		return buildErr
+	}
+	return closeErr
 }

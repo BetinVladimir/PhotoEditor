@@ -1,0 +1,66 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "generated_at": "2026-10-08T13:09:19.465234+00:00",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "source_scope": {
+    "backend/internal/semanticproposal/native_initial_parent_admit.go": "ce01916faefa6858bb5a548d64ec38a123135d47b91517a00b40443526ecd247",
+    "backend/internal/semanticproposal/native_input_transfer_request.go": "326332163930431e7030622633f6708d960a0e80353e84c5bcccaa52202f64bb",
+    "backend/internal/semanticproposal/native_input_transfer_seal.go": "7a7376d654f3c412e8294bcf661b774c0e73f573bdd3a326697f1c6e64354daa",
+    "backend/internal/semanticproposal/native_bootstrap_integration_test.go": "8eccb33a9a692f96676fea4218f47fc304cd01a9cf1f2165a78c58d2b1404df7",
+    "backend/db/migrations/00910_v27_native_protection_row_lock.sql": "0e78234477b04ea02e1e7996cfba1cb26c9b903b9ce3942e530c9b0cd45ad652",
+    "tests/integration/test_v27_person_migration_upgrade.py": "98f85ce8fb99a6a9873d254817ef68b4eafb7758d9a2d3ff4fb90e7349350a28",
+    "tests/integration/test_v27_semantic_intent_publication.py": "79dada91a7bb94ba0c75c986eb7de763ae84e0fb8054c0e26f58600201891d21",
+    "tests/integration/v27_face_wire_probe.py": "d309ba4870bcc5ce85939e82a8609998a5a6aae23412976bce1cba407d4debae"
+  },
+  "checks": [
+    {
+      "command": "PHOTO_TEST_V27_PERSON_DEFECT_PARENT=1 PHOTO_TEST_V27_PERSON_DEFECT_FRESH=1 PHOTO_TEST_NATIVE_INFRA=1 PYTHONPATH=workers:src:tests/integration PYTHONDONTWRITEBYTECODE=1 .venv-platform/bin/python -m pytest tests/integration/test_v27_semantic_intent_publication.py -k native-person-defect-wire -q --tb=short --junitxml=docs/implementation-v2/audit/v27-parent-enabled-registry.xml",
+      "exit_code": 0,
+      "passed": 1,
+      "deselected": 21,
+      "seconds": 404.39,
+      "evidence": "docs/implementation-v2/audit/v27-parent-enabled-registry.xml",
+      "evidence_sha": "4c08c53593f56688cb6835d2069e57d06b1244617ce4d9deb0eada32613d1675"
+    },
+    {
+      "command": "scripts/run-platform.sh go -C backend test ./internal/semanticproposal ./internal/v2input ./internal/review",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "requirements": [
+    {
+      "id": "native-parent-original-admission-replay",
+      "status": "verified_on_isolated_fixture",
+      "evidence": "docs/implementation-v2/audit/v27-parent-enabled-registry.xml"
+    },
+    {
+      "id": "ambiguous-target-policy-refusal",
+      "status": "verified_on_isolated_fixture",
+      "evidence": "docs/implementation-v2/audit/v27-parent-enabled-registry.xml"
+    },
+    {
+      "id": "protection-owner-lock-and-immutable-update",
+      "status": "verified_on_isolated_fixture",
+      "evidence": "docs/implementation-v2/audit/v27-parent-enabled-registry.xml"
+    },
+    {
+      "id": "exact-parent-transport-quota-receipt-event-outbox",
+      "status": "verified_on_isolated_fixture",
+      "evidence": "docs/implementation-v2/audit/v27-parent-enabled-registry.xml"
+    }
+  ],
+  "finding": "00525 deliberately disables semantic.transfer. Parent test previously enabled detector operations only, so generic seal correctly refused. Positive test now explicitly enables transfer in its isolated imported-qualification fixture; no deployed registry default changed. Previous failed evidence retained.",
+  "limitations": [
+    "No whole V27 acceptance",
+    "Fixture imports person authority and deterministic test model qualification; no real GPU/model/corpus acceptance",
+    "Full newly inferred original person -> initial Recover -> parent chain remains unverified",
+    "Durable initial completion after automatic parent handoff remains unimplemented",
+    "404-second fixture duration is not a production SLA pass",
+    "Source scope hashes are not a complete repository dirty-tree acceptance hash"
+  ]
+}

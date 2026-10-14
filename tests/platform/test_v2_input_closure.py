@@ -8,7 +8,7 @@ import pytest
 
 from photo_worker.contracts.base import ArtifactRef, canonical_bytes
 from photo_worker.runtime.scratch import ScratchSpace
-from photo_worker.v2.contract_lock import SCHEMAS_SHA256
+from photo_worker.v2.contract_lock import SCHEMAS_SHA256, SCENE_BOARD_PREVIOUS_SCHEMAS_SHA256, SQL_TRANSPORT_SCHEMAS_SHA256, WORKFLOW_PREVIOUS_SCHEMAS_SHA256, RENDER_PREVIOUS_SCHEMAS_SHA256
 from photo_worker.v2.input_closure import (
     InputClosureChunk, InputClosureEntry, InputClosureManifest,
     V2InputIndex, V2InputsInvalid,
@@ -49,8 +49,10 @@ def fixture(tmp_path, *, reverse=False, wrong_digest=False):
     return task_id, entries, manifest, params, scratch, profile, open_stream
 
 
-def test_exact_disk_backed_allowlist_and_cleanup(tmp_path):
+@pytest.mark.parametrize("contracts_sha", [SCHEMAS_SHA256, SCENE_BOARD_PREVIOUS_SCHEMAS_SHA256, SQL_TRANSPORT_SCHEMAS_SHA256, WORKFLOW_PREVIOUS_SCHEMAS_SHA256, RENDER_PREVIOUS_SCHEMAS_SHA256])
+def test_exact_disk_backed_allowlist_and_cleanup(tmp_path, contracts_sha):
     task, entries, manifest, params, scratch, profile, open_stream = fixture(tmp_path)
+    profile["contracts_sha"] = contracts_sha
     try:
         index = V2InputIndex.build(task_id=task, inputs=[manifest, entries[0].ref], params=params,
                                    execution_profile=profile, scratch=scratch,
@@ -195,3 +197,58 @@ def test_prior_lens_schema_pin_keeps_existing_jobs_readable(tmp_path):
         assert index.allows(entries[0].ref)
         index.close()
     finally:scratch.cleanup()
+
+
+def test_prior_run_intent_schema_pin_keeps_existing_jobs_readable(tmp_path):
+    from photo_worker.v2.contract_lock import RUN_INTENT_PREVIOUS_SCHEMAS_SHA256
+    task,entries,manifest,params,scratch,profile,open_stream=fixture(tmp_path)
+    profile['contracts_sha']=RUN_INTENT_PREVIOUS_SCHEMAS_SHA256
+    try:
+        index=V2InputIndex.build(task_id=task,inputs=[manifest],params=params,
+            execution_profile=profile,scratch=scratch,open_stream=open_stream,check_active=lambda:None)
+        assert index.allows(entries[0].ref)
+        index.close()
+    finally:scratch.cleanup()
+
+
+def test_artifact_preflight_accepts_manifest_input_and_rejects_changed_hash(tmp_path):
+    from types import SimpleNamespace
+    from photo_worker.runtime.artifacts import TaskArtifacts
+    task, entries, manifest, params, scratch, profile, open_stream = fixture(tmp_path)
+    direct = [manifest, entries[0].ref]
+    index = V2InputIndex.build(task_id=task, inputs=direct, params=params,
+                              execution_profile=profile, scratch=scratch,
+                              open_stream=open_stream, check_active=lambda: None)
+    ctx = SimpleNamespace(lease=SimpleNamespace(command=SimpleNamespace(inputs=direct, params=params)),
+                          check_active=lambda: None)
+    artifacts = TaskArtifacts(ctx, object(), scratch, index)
+    try:
+        assert entries[1].ref not in direct
+        artifacts.require_declared_input(entries[1].ref)
+        changed = entries[1].ref.model_copy(update={'sha256': 'f' * 64})
+        with pytest.raises(ValueError):
+            artifacts.require_declared_input(changed)
+        foreign = entries[1].ref.model_copy(update={'artifact_id': uuid4()})
+        with pytest.raises(ValueError):
+            artifacts.require_declared_input(foreign)
+    finally:
+        artifacts.close()
+
+
+def test_full_input_snapshot_includes_transport_and_params_without_truncation(tmp_path):
+    task,entries,manifest,params,scratch,profile,open_stream=fixture(tmp_path)
+    index=V2InputIndex.build(task_id=task,inputs=[manifest],params=params,
+        execution_profile=profile,scratch=scratch,open_stream=open_stream,check_active=lambda:None)
+    try:
+        refs=index.allowed_refs()
+        assert len(refs)==5
+        assert all(index.allows(ref) for ref in refs)
+        assert {manifest.artifact_id,params.artifact_id,*[entry.ref.artifact_id for entry in entries]} <= {ref.artifact_id for ref in refs}
+        with pytest.raises(V2InputsInvalid):index.allowed_refs(4)
+        with pytest.raises(V2InputsInvalid):index.allowed_refs(True)
+        refs[0].sha256='f'*64
+        assert index.allowed_refs()[0].sha256!='f'*64
+        index.close()
+        with pytest.raises(V2InputsInvalid):index.allowed_refs()
+    finally:
+        index.close();scratch.cleanup()

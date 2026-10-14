@@ -31,6 +31,25 @@ func TestRetryBudgets(t *testing.T) {
 		t.Fatal(d)
 	}
 }
+func TestClaimCrashTimeoutUsesRetryPolicy(t *testing.T) {
+	now := time.Unix(1000, 0).UTC()
+	c := RetryContext{TaskID: uuid.New(), Attempt: 1, Now: now}
+	d := DecideRetry(c, Failure{Code: "TIMEOUT", Retryable: true})
+	if d.State != RetryWait || d.RetryCount != 1 || d.OOMCount != 0 ||
+		d.Reason != "TIMEOUT" || d.NextAttemptAt == nil ||
+		d.NextAttemptAt.Sub(now) < 4*time.Second ||
+		d.NextAttemptAt.Sub(now) > 6*time.Second ||
+		d.ReduceResources || d.FallbackCPU {
+		t.Fatal("claim crash did not preserve the bounded retry policy", d)
+	}
+	if repeat := DecideRetry(c, Failure{Code: "TIMEOUT", Retryable: true}); !reflect.DeepEqual(d, repeat) {
+		t.Fatal("claim crash retry delay changed across recovery", d, repeat)
+	}
+	c.CancelRequested = true
+	if cancelled := DecideRetry(c, Failure{Code: "TIMEOUT", Retryable: true}); cancelled.State != Cancelled {
+		t.Fatal("cancelled claim crash was retried", cancelled)
+	}
+}
 func TestOOMFallbackAndAttemptCap(t *testing.T) {
 	c := RetryContext{TaskID: uuid.New(), Attempt: 1, CanReduce: true, CanFallbackCPU: true, Now: time.Now()}
 	for i := 0; i < 2; i++ {

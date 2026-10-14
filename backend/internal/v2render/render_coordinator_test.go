@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/google/uuid"
 	"photoeditor/backend/internal/auth"
+	"photoeditor/backend/internal/v2draft"
 	"photoeditor/backend/internal/v2input"
 )
 
@@ -12,6 +13,46 @@ type renderCoordinatorProbe struct {
 	fail        string
 	cancelPhase string
 	cancel      context.CancelFunc
+}
+
+type renderMutatingCallerResolver struct {
+	CompositionInputResolver
+	mutate func()
+}
+
+func (r *renderMutatingCallerResolver) ResolveTaskInputs(ctx context.Context, who auth.Identity, tenant uuid.UUID, roots []v2input.Entry, binding v2input.SessionVersionBinding) ([]v2input.Entry, error) {
+	if r.mutate != nil {
+		mutate := r.mutate
+		r.mutate = nil
+		mutate()
+	}
+	return r.CompositionInputResolver.ResolveTaskInputs(ctx, who, tenant, roots, binding)
+}
+
+func (r *renderMutatingCallerResolver) ResolveTaskInputsWithWitnesses(ctx context.Context, who auth.Identity, tenant uuid.UUID, roots []v2input.Entry, binding v2input.SessionVersionBinding) ([]v2input.Entry, []v2draft.DocumentWitness, error) {
+	if r.mutate != nil {
+		mutate := r.mutate
+		r.mutate = nil
+		mutate()
+	}
+	provider, ok := r.CompositionInputResolver.(renderWitnessResolver)
+	if !ok {
+		return nil, nil, v2input.ErrInvalid
+	}
+	return provider.ResolveTaskInputsWithWitnesses(ctx, who, tenant, roots, binding)
+}
+
+func (r *renderMutatingCallerResolver) ResolveTaskInputEvidence(ctx context.Context, who auth.Identity, tenant uuid.UUID, roots []v2input.Entry, binding v2input.SessionVersionBinding) (v2draft.TaskInputEvidence, error) {
+	if r.mutate != nil {
+		mutate := r.mutate
+		r.mutate = nil
+		mutate()
+	}
+	provider, ok := r.CompositionInputResolver.(renderEvidenceResolver)
+	if !ok {
+		return v2draft.TaskInputEvidence{}, v2input.ErrInvalid
+	}
+	return provider.ResolveTaskInputEvidence(ctx, who, tenant, roots, binding)
 }
 
 func (p *renderCoordinatorProbe) Begin(context.Context, uuid.UUID, uuid.UUID, auth.Identity, string, CompiledRenderRun) error {
@@ -44,4 +85,24 @@ func (p *renderCoordinatorProbe) RegisterRenderInputs(context.Context, uuid.UUID
 		p.cancel()
 	}
 	return nil
+}
+
+// Count real scoped evidence passes rather than replacing them with fixtures.
+type renderCountingEvidenceResolver struct {
+	CompositionInputResolver
+	calls         int
+	afterEvidence context.CancelFunc
+}
+
+func (r *renderCountingEvidenceResolver) ResolveTaskInputEvidence(ctx context.Context, who auth.Identity, tenant uuid.UUID, roots []v2input.Entry, binding v2input.SessionVersionBinding) (v2draft.TaskInputEvidence, error) {
+	r.calls++
+	provider, ok := r.CompositionInputResolver.(renderEvidenceResolver)
+	if !ok {
+		return v2draft.TaskInputEvidence{}, v2input.ErrInvalid
+	}
+	evidence, err := provider.ResolveTaskInputEvidence(ctx, who, tenant, roots, binding)
+	if r.afterEvidence != nil {
+		r.afterEvidence()
+	}
+	return evidence, err
 }

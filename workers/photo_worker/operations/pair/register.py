@@ -4,7 +4,7 @@ import numpy as np
 from photo_worker.algorithms.registration import register_pair
 from photo_worker.contracts.base import canonical_bytes
 from photo_worker.contracts.images import WorkingImage
-from photo_worker.contracts.pair import RegistrationParams,PairAlignment
+from photo_worker.contracts.pair import RegistrationParams,PairAlignment,validate_alignment_origin
 from photo_worker.runtime.arrays import read_array
 from photo_worker.runtime.artifacts import TaskArtifacts,ArtifactConfig
 from photo_worker.runtime.executor import ExecutionContext,Operation,OperationResult,OperationFailure
@@ -47,6 +47,7 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
         manifest=PairAlignment(before=params.before,after=params.after,before_canvas=images[0].canvas,after_canvas=images[1].canvas,
             before_to_after=result.before_to_after.ravel().tolist(),overlap=result.overlap,median_reprojection=result.median_reprojection,
             inlier_count=result.inlier_count,confidence=result.confidence,crop_aware=result.crop_aware,warnings=list(result.warnings))
+        validate_alignment_origin(params,manifest)
     except ValueError as exc:raise OperationFailure('INPUT_INVALID') from exc
     ctx.progress(3,4)
     output=artifacts.stage_contract(manifest,'alignment')

@@ -7,6 +7,7 @@ from uuid import UUID
 from pydantic import Field, model_validator
 
 from photo_worker.contracts.base import ArtifactRef, Contract, SHA256
+from photo_worker.v2.render_background_binding import FrozenBackgroundAsset
 from photo_worker.operations.session.contracts import CorrectionVector, VersionBinding
 
 
@@ -21,6 +22,14 @@ class HoldoutRegionMask(Contract):
 
 
 class RenderCase(Contract):
+    background_asset: FrozenBackgroundAsset | None = Field(
+        default=None, exclude_if=lambda value: value is None)
+    defect_evidence: ArtifactRef | None = Field(
+        default=None, exclude_if=lambda value: value is None)
+    dust_evidence: ArtifactRef | None = Field(
+        default=None, exclude_if=lambda value: value is None)
+    detail_evidence: ArtifactRef | None = Field(
+        default=None, exclude_if=lambda value: value is None)
     binding: VersionBinding
     working_image: ArtifactRef
     base_recipe: ArtifactRef
@@ -43,10 +52,38 @@ class RenderCase(Contract):
 
     @model_validator(mode='after')
     def identity_evidence_pair(self):
+        roots = [self.working_image, self.base_recipe, self.approved_recipe,
+                 self.base_document, self.approved_document, self.descriptor_shard,
+                 self.protected, self.faces, self.binding.source,
+                 *([self.effective_mask] if self.effective_mask is not None else []),
+                 *([self.consent_snapshot] if self.consent_snapshot is not None else []),
+                 *(region.mask for region in self.region_masks)]
+        if (self.binding.asset_version_id.int == 0 or self.approval_id.int == 0
+                or self.descriptor_analysis_id.int == 0
+                or self.binding.source != self.working_image
+                or any(ref.artifact_id.int == 0 for ref in roots)):
+            raise ValueError('INVALID_HOLDOUT_RENDER_IDENTITY')
         if (self.effective_mask is None) != (self.consent_snapshot is None):
             raise ValueError('INCOMPLETE_HOLDOUT_IDENTITY_EVIDENCE')
         if len({item.region_id for item in self.region_masks}) != len(self.region_masks):
             raise ValueError('DUPLICATE_HOLDOUT_REGION_MASK')
+        if (self.defect_evidence is not None and
+                (self.defect_evidence.artifact_id.int == 0 or
+                 any(self.defect_evidence.artifact_id == ref.artifact_id
+                     for ref in roots))):
+            raise ValueError('INVALID_HOLDOUT_DEFECT_EVIDENCE')
+        if (self.dust_evidence is not None and
+                (self.defect_evidence is not None or self.detail_evidence is not None or
+                 self.dust_evidence.artifact_id.int == 0 or
+                 any(self.dust_evidence.artifact_id == ref.artifact_id
+                     for ref in roots))):
+            raise ValueError('INVALID_HOLDOUT_DUST_EVIDENCE')
+        if (self.detail_evidence is not None and
+                (self.defect_evidence is not None or self.dust_evidence is not None or
+                 self.detail_evidence.artifact_id.int == 0 or
+                 any(self.detail_evidence.artifact_id == ref.artifact_id
+                     for ref in roots))):
+            raise ValueError('INVALID_HOLDOUT_DETAIL_EVIDENCE')
         return self
 
 
@@ -70,6 +107,13 @@ class TrainingExample(Contract):
     target: CorrectionVector
     render_case: RenderCase
 
+    @model_validator(mode='after')
+    def nonzero_identity(self):
+        if any(value.int == 0 for value in
+               (self.event_id, self.session_id, self.subject_group_id)):
+            raise ValueError('INVALID_TRAINING_EXAMPLE_IDENTITY')
+        return self
+
 
 class TrainingManifest(Contract):
     schema_version: Literal[1]
@@ -84,6 +128,22 @@ class TrainingManifest(Contract):
     icc_lock_sha: SHA256
     model_lock_sha: SHA256
     calibration: ArtifactRef
+
+    @model_validator(mode='after')
+    def identity_scope(self):
+        if (self.profile_id.int == 0 or
+                (self.mode == 'person') != (self.person_id is not None) or
+                (self.person_id is not None and self.person_id.int == 0) or
+                not self.consents or
+                any(item.subject_group_id.int == 0 for item in self.examples) or
+                len({item.consent_id for item in self.consents}) != len(self.consents) or
+                any(item.consent_id.int == 0 or
+                    not item.epoch.isascii() or not item.epoch.isdigit() or
+                    item.epoch.startswith('0') or
+                    not 1 <= int(item.epoch) <= 9223372036854775807
+                    for item in self.consents)):
+            raise ValueError('INVALID_TRAINING_MANIFEST')
+        return self
 
 
 class LearningPolicy(Contract):

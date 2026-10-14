@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 qualification policy revocation at all-native handoff",
+  "whole_module_accepted": false,
+  "migration_head": "00964",
+  "new_migration": "00964_v27_handoff_policy_snapshot.sql",
+  "production_migrations_applied": false,
+  "checks": {
+    "go_five_packages": [
+      {
+        "package": "photoeditor/backend/internal/v2qualification",
+        "elapsed": 0
+      },
+      {
+        "package": "photoeditor/backend/internal/v2input",
+        "elapsed": 0.012
+      },
+      {
+        "package": "photoeditor/backend/internal/v2draft",
+        "elapsed": 0.012
+      },
+      {
+        "package": "photoeditor/backend/internal/workflow",
+        "elapsed": 1.315
+      },
+      {
+        "package": "photoeditor/backend/internal/semanticproposal",
+        "elapsed": 3.269
+      }
+    ],
+    "native_wire": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "1",
+      "time": "444.056",
+      "timestamp": "2026-10-09T04:41:51.724040+03:00",
+      "hostname": "Mac"
+    },
+    "sql_upgrade_roles_and_handoff": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "21",
+      "time": "16.734",
+      "timestamp": "2026-10-09T04:49:26.318568+03:00",
+      "hostname": "Mac"
+    },
+    "documentation": "PASS55 tests/2267 static checks",
+    "diff_check": "PASS"
+  },
+  "source_manifest": "v27-handoff-policy-source-current.json",
+  "source_manifest_sha256": "31e06892951173adafa2199cbeb3093041abf86423e73fca2f0fc3634a8714f9",
+  "source_files": 4810,
+  "quality_preservation": {
+    "workers_src_baseline_files": 544,
+    "changed": 0,
+    "real_photo_quality_accepted": false
+  },
+  "verified": [
+    "ProcessOne completes through five-argument snapshot-bound recorder on full checkpoint-job admission.",
+    "Each of six admission policy revocations refuses completion and preserves scheduling token/done.",
+    "Empty/malformed/unbound snapshot refused; four-argument all-native completion cannot bypass.",
+    "Positive snapshot-bound handoff retires lease; separate policy writer gets55P03 until transaction rollback, then identical mutation succeeds.",
+    "Existing root/asset/producer refusal, concurrent row-lock and natural TTL probes rerun through new recorder.",
+    "Fresh migration and00899\u219200964 upgrade preserve tenant metadata/function OIDs/ACL; new overload scheduler-only, policy trigger explicitly BEFORE STATEMENT."
+  ],
+  "remaining": [
+    "Upstream imported qualification revocation beyond transfer pin and mixed lifecycle deadlock analysis.",
+    "Original reference exact object-version; pending target stage job progression.",
+    "Partial publication repair, unknown commit, restart/replay, GC/purge/deadletter/scale.",
+    "Whole V27 and all V20\u2013V32 acceptance, browser/native flows, real-photo/GPU qualification."
+  ],
+  "limitations": [
+    "Upstream ML doubles; no real-photo/GPU qualification.",
+    "Concrete revocation/concurrent writer cases only; not arbitrary interleavings.",
+    "Manual and legacy positive native branches not executed this step; negative/manual SQL checks passed."
+  ]
+}

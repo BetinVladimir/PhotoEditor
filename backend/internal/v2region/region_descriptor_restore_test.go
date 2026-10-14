@@ -3,7 +3,6 @@ package v2region
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"github.com/google/uuid"
 	"io"
 	"photoeditor/backend/internal/objectstore"
@@ -36,7 +35,11 @@ func TestRestoreRegionDescriptorVerifiesPersistedNodeAndPinnedDocuments(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	profile, _ := json.Marshal(map[string]any{"renderer_version": "v2.2", "backend": "cuda", "icc_lock_sha": regionSHA, "model_lock_sha": regionSHA, "region_runtime_sha256": regionSHA})
+	policy, err := CompileRegionExecutionPolicy(plan, regionCostFixture(t, plan))
+	if err != nil {
+		t.Fatal(err)
+	}
+	profile := policy.Profile
 	node, err := plan.CompileNode(task, v2input.Ref{ArtifactID: uuid.New(), SHA256: plan.SHA256()}, plan.InputRequirements(), profile)
 	if err != nil {
 		t.Fatal(err)

@@ -16,12 +16,18 @@ type TrainingCaseEvidence struct {
 	Source   EligibleTrainingExample
 	Resolved ResolvedTrainingCase
 	Frozen   *CompiledTrainingRecipes
+	Defect   *PreparedReviewedDefectHoldout
+	Dust     *PreparedReviewedDustHoldout
+	Detail   *PreparedPortraitDetailHoldout
 }
 
 type TrainingCompilation struct {
-	Draft         TrainingDraftPrepared
-	Excluded      []ExcludedTrainingCandidate
-	FrozenRecipes map[uuid.UUID]CompiledTrainingRecipes
+	Draft           TrainingDraftPrepared
+	Excluded        []ExcludedTrainingCandidate
+	FrozenRecipes   map[uuid.UUID]CompiledTrainingRecipes
+	ReviewedDefects map[uuid.UUID]PreparedReviewedDefectHoldout
+	ReviewedDust    map[uuid.UUID]PreparedReviewedDustHoldout
+	PortraitDetail  map[uuid.UUID]PreparedPortraitDetailHoldout
 }
 
 // CompileTrainingDraft joins the locked candidate inventory with resolved
@@ -122,6 +128,9 @@ func CompileTrainingDraftWithExclusions(tenantID, actorID, authSessionID,
 	}
 	resolved := make(map[uuid.UUID]ResolvedTrainingCase, len(split.Examples))
 	frozenRecipes := make(map[uuid.UUID]CompiledTrainingRecipes, len(split.Examples))
+	reviewedDefects := make(map[uuid.UUID]PreparedReviewedDefectHoldout)
+	reviewedDust := make(map[uuid.UUID]PreparedReviewedDustHoldout)
+	portraitDetail := make(map[uuid.UUID]PreparedPortraitDetailHoldout)
 	runID, err := v2input.RunID(tenantID, actorID, key)
 	if err != nil {
 		return empty, ErrInvalidTrainingDraft
@@ -145,6 +154,94 @@ func CompileTrainingDraftWithExclusions(tenantID, actorID, authSessionID,
 		}
 		entry.Render.BaseRecipe = baseRef
 		entry.Render.ApprovedRecipe = approvedRef
+		if evidence.Defect != nil {
+			if entry.Render.DefectEvidence != nil ||
+				evidence.Defect.Document.TenantID != tenantID ||
+				evidence.Defect.Document.EventID != item.Source.EventID ||
+				evidence.Defect.Document.AssetVersionID != entry.Candidate.AssetVersionID ||
+				evidence.Defect.Document.Image != entry.Render.WorkingImage ||
+				evidence.Defect.Document.Protection != entry.Render.Protected {
+				return empty, ErrInvalidTrainingDraft
+			}
+			ref, err := ReviewedDefectHoldoutRef(runID,
+				item.Source.EventID, evidence.Defect.SHA256)
+			if err != nil {
+				return empty, err
+			}
+			if _, err := DecodeFrozenDefectHoldoutEvidence(
+				evidence.Defect.Body, ref,
+				defectHoldoutExpected(evidence.Defect.Document)); err != nil {
+				return empty, err
+			}
+			entry.Render.DefectEvidence = &ref
+			owned := *evidence.Defect
+			owned.Body = append([]byte(nil), owned.Body...)
+			owned.Document.Selection.Accepted = append([]string(nil),
+				owned.Document.Selection.Accepted...)
+			owned.Document.Selection.Rejected = append([]string(nil),
+				owned.Document.Selection.Rejected...)
+			reviewedDefects[item.Source.EventID] = owned
+		}
+		if evidence.Dust != nil {
+			if evidence.Defect != nil || evidence.Detail != nil ||
+				entry.Render.DustEvidence != nil ||
+				entry.Render.DefectEvidence != nil ||
+				evidence.Dust.Document.TenantID != tenantID ||
+				evidence.Dust.Document.EventID != item.Source.EventID ||
+				evidence.Dust.Document.AssetVersionID != entry.Candidate.AssetVersionID ||
+				evidence.Dust.Document.Image != entry.Render.WorkingImage ||
+				evidence.Dust.Document.Protection != entry.Render.Protected {
+				return empty, ErrInvalidTrainingDraft
+			}
+			ref, err := ReviewedDustHoldoutRef(runID,
+				item.Source.EventID, evidence.Dust.SHA256)
+			if err != nil {
+				return empty, err
+			}
+			if _, err := DecodeFrozenDustHoldoutEvidence(evidence.Dust.Body,
+				ref, dustHoldoutExpected(evidence.Dust.Document)); err != nil {
+				return empty, err
+			}
+			entry.Render.DustEvidence = &ref
+			owned := *evidence.Dust
+			owned.Body = append([]byte(nil), owned.Body...)
+			owned.Document.Selection.Accepted = append([]string(nil),
+				owned.Document.Selection.Accepted...)
+			owned.Document.Selection.Rejected = append([]string(nil),
+				owned.Document.Selection.Rejected...)
+			reviewedDust[item.Source.EventID] = owned
+		}
+		if evidence.Detail != nil {
+			owned := *evidence.Detail
+			if evidence.Defect != nil || evidence.Dust != nil ||
+				entry.Render.DefectEvidence != nil ||
+				entry.Render.DustEvidence != nil ||
+				entry.Render.DetailEvidence != nil ||
+				owned.Document.TenantID != tenantID ||
+				owned.Document.EventID != item.Source.EventID ||
+				owned.Document.AssetVersionID != entry.Candidate.AssetVersionID ||
+				owned.Document.Source != entry.Render.WorkingImage ||
+				owned.Document.Protection != entry.Render.Protected {
+				return empty, ErrInvalidTrainingDraft
+			}
+			ref, err := PortraitDetailHoldoutRef(runID,
+				item.Source.EventID, owned.SHA256)
+			if err != nil {
+				return empty, err
+			}
+			if _, err := DecodeFrozenPortraitDetailHoldoutEvidence(
+				owned.Body, ref, detailHoldoutExpected(owned.Document)); err != nil {
+				return empty, err
+			}
+			entry.Render.DetailEvidence = &ref
+			owned.Body = append([]byte(nil), owned.Body...)
+			owned.Document.MaskArtifacts = append([]v2input.Ref(nil),
+				owned.Document.MaskArtifacts...)
+			portraitDetail[item.Source.EventID] = owned
+		}
+		if entry.Render.DetailEvidence != nil && evidence.Detail == nil {
+			return empty, ErrInvalidTrainingDraft
+		}
 		entry.Render.BaseDocument = v2input.Ref{ArtifactID: entry.Candidate.BaseArtifactID, SHA256: entry.Candidate.BaseSHA}
 		entry.Render.ApprovedDocument = v2input.Ref{ArtifactID: entry.Candidate.ApprovedArtifactID, SHA256: entry.Candidate.ApprovedSHA}
 		resolved[item.Source.EventID] = entry
@@ -162,11 +259,24 @@ func CompileTrainingDraftWithExclusions(tenantID, actorID, authSessionID,
 	if err != nil {
 		return empty, err
 	}
+	draft, err = AttachReviewedDefectRecovery(draft, reviewedDefects)
+	if err != nil {
+		return empty, err
+	}
+	draft, err = AttachReviewedDustRecovery(draft, reviewedDust)
+	if err != nil {
+		return empty, err
+	}
+	draft, err = AttachPortraitDetailRecovery(draft, portraitDetail)
+	if err != nil {
+		return empty, err
+	}
 	excluded = append(excluded, artifactExcluded...)
 	excluded = append(excluded, split.Excluded...)
 	sort.Slice(excluded, func(i, j int) bool {
 		return bytes.Compare(excluded[i].EventID[:], excluded[j].EventID[:]) < 0
 	})
 	return TrainingCompilation{Draft: draft, Excluded: excluded,
-		FrozenRecipes: frozenRecipes}, nil
+		FrozenRecipes: frozenRecipes, ReviewedDefects: reviewedDefects,
+		ReviewedDust: reviewedDust, PortraitDetail: portraitDetail}, nil
 }

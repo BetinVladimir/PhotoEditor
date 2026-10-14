@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 completed canonical depth origin and original Params replay",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "production_migration_applied": false,
+  "checks": {
+    "native_sql_goose": {
+      "passed": 3,
+      "seconds": 11.33,
+      "xml": "v28-relight-adoption-depth-current.xml"
+    },
+    "relight_components": {
+      "passed": 172,
+      "xml": "v28-relight-adoption-depth-components.xml"
+    }
+  },
+  "source_sha256": {
+    "backend/db/migrations/00988_v28_relight_adoption_depth.sql": "83ad8c70d51f4b2e66c33d14c9a5baa9455b1657908e44cf4e68e9323b067da4",
+    "workers/photo_worker/v2/relight_adoption_depth.py": "82e09fc9c81c8015bd8d1b43cc3dbc478245ef57034a5974cd8783c0738f8ba1",
+    "tests/integration/test_v28_relight_adoption_depth.py": "56be6b03680f36f07a34e5392778c02b7c7348f878c3ec577ca7efed0e4530e1",
+    "tests/integration/test_v28_relight_adoption_source.py": "06e9c9da2136cd06d6358c62ba0f68cf8040c4481b568f50f6028dbd2a42f3c4",
+    "tests/platform/test_relight_adoption_depth.py": "0363f3b0bbbdbf10b9ba55d2b81719b1a1d9c244956cadac501c55d55b33e999"
+  },
+  "limitations": [
+    "Positive SQL fixture contains partial Params and owner-seeded canonical producer/source/result/upload/qualification; pixels placeholders",
+    "Python completed depth reader/checkpoint tests use doubles; physical completed replay integration pending",
+    "Completed mask authorities, transactional commit and real device/photo qualification remain open"
+  ]
+}

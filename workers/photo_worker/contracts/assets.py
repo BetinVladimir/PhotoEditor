@@ -19,10 +19,19 @@ class SourceParams(Contract):
 class VerifyParams(SourceParams):pass
 class InspectParams(SourceParams):pass
 
+class RAWDevelopment(Contract):
+    schema_version:Literal[1]=1
+    demosaic:Literal['ahd','dcb']
+    wb_source:Literal['camera','daylight','auto']
+    exposure_ev:Annotated[float,Field(ge=-2,le=3)]
+    highlight_policy:Literal['clip','blend','reconstruct']
+    decoder_version:Annotated[str,Field(max_length=128,pattern=r'^rawpy-[0-9]+\.[0-9]+\.[0-9]+/libraw-[0-9]+\.[0-9]+\.[0-9]+$')]
+
 class DecodeParams(SourceParams):
     assume_profile:Literal['srgb_v1','linear_srgb_v1','work_rec2020_gamma24_v1']|None=None
     analyze:bool=False
     tile:Literal[256,512,1024]=512
+    raw_development:RAWDevelopment|None=None
 
 class SensorAlignment(Contract):
     camera_id:Annotated[str,Field(pattern=r'^raw-[0-9a-f]{64}$')]

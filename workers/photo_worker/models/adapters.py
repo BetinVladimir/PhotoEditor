@@ -108,22 +108,58 @@ class TorchvisionKeypointRCNN:
             if isinstance(state,dict) and set(state)=={'state_dict'}:state=state['state_dict']
             self.model.load_state_dict(state,strict=True);self.model.eval()
         except Exception as exc:raise ModelError('MODEL_ARCHITECTURE_INVALID') from exc
+    @staticmethod
+    def _bounded_pose_fields(item):
+        required={'boxes','scores','keypoints','keypoints_scores'}
+        if not isinstance(item,dict) or not required<=set(item):
+            raise ValueError('MODEL_OUTPUT_INVALID')
+        values={name:item[name] for name in required}
+        scores=values['scores']
+        shape=getattr(scores,'shape',None)
+        if shape is None or len(shape)!=1 or type(shape[0]) is not int or not 0<=shape[0]<=10000:
+            raise ValueError('MODEL_OUTPUT_INVALID')
+        count=shape[0]
+        expected={'scores':(count,), 'boxes':(count,4),
+                  'keypoints':(count,17,3), 'keypoints_scores':(count,17)}
+        if any(getattr(value,'shape',None) is None or
+               tuple(value.shape)!=expected[name] or
+               not callable(getattr(value,'is_floating_point',None)) or
+               not value.is_floating_point()
+               for name,value in values.items()):
+            raise ValueError('MODEL_OUTPUT_INVALID')
+        return values
     def infer(self,rgb):
         value=np.asarray(rgb,np.float32)
         if value.ndim!=3 or value.shape[2]!=3 or not np.isfinite(value).all() or np.any(value<0) or np.any(value>1):raise ValueError('MODEL_INPUT_INVALID')
         tensor=self.torch.from_numpy(np.ascontiguousarray(value.transpose(2,0,1))).to(self.device)
         with self.torch.inference_mode():result=self.model([tensor])
         if not isinstance(result,list) or len(result)!=1 or not isinstance(result[0],dict):raise ValueError('MODEL_OUTPUT_INVALID')
-        item=result[0]
-        required={'boxes','scores','keypoints','keypoints_scores'}
-        if not required<=set(item):raise ValueError('MODEL_OUTPUT_INVALID')
-        return {name:item[name].detach().to('cpu',dtype=self.torch.float32).numpy() for name in required}
+        item=self._bounded_pose_fields(result[0])
+        values={name:value.detach().to('cpu',dtype=self.torch.float32).numpy()
+                for name,value in item.items()}
+        return _pose_detection_fields(values)
+
+
+def _pose_detection_fields(values):
+    """Translate torchvision's plural score key to the Pose17 worker ABI."""
+    if not isinstance(values,dict) or set(values)!={'boxes','scores','keypoints','keypoints_scores'}:
+        raise ValueError('MODEL_OUTPUT_INVALID')
+    return {'boxes':values['boxes'],'scores':values['scores'],
+            'keypoints':values['keypoints'],'keypoint_scores':values['keypoints_scores']}
 
 class TorchScriptSFD:
     def __init__(self,path,backend):
         import torch
         try:self.torch=torch;self.device=_device(backend);self.model=torch.jit.load(str(path),map_location=self.device).eval()
         except Exception as exc:raise ModelError('MODEL_ARCHITECTURE_INVALID') from exc
+    @staticmethod
+    def _bounded_output(value):
+        shape=tuple(value.shape)
+        if (not value.is_floating_point() or
+                not (len(shape)==2 and shape[1]==5 and shape[0]<=100000 or
+                     len(shape)==3 and shape[0]==1 and shape[2]==5 and shape[1]<=100000)):
+            raise ValueError('MODEL_OUTPUT_INVALID')
+        return value
     def infer(self,bgr_mean_subtracted):
         value=np.asarray(bgr_mean_subtracted,np.float32)
         if value.ndim!=3 or value.shape[2]!=3 or not np.isfinite(value).all():raise ValueError('MODEL_INPUT_INVALID')
@@ -131,6 +167,7 @@ class TorchScriptSFD:
         with self.torch.inference_mode():result=self.model(tensor)
         if isinstance(result,(tuple,list)) and len(result)==1:result=result[0]
         if not isinstance(result,self.torch.Tensor):raise ValueError('MODEL_OUTPUT_INVALID')
+        result=self._bounded_output(result)
         output=result.detach().to('cpu',dtype=self.torch.float32).numpy()
         if output.ndim==3 and output.shape[0]==1:output=output[0]
         if output.ndim!=2 or output.shape[1]!=5:raise ValueError('MODEL_OUTPUT_INVALID')
@@ -141,6 +178,12 @@ class TorchScriptFAN:
         import torch
         try:self.torch=torch;self.device=_device(backend);self.model=torch.jit.load(str(path),map_location=self.device).eval()
         except Exception as exc:raise ModelError('MODEL_ARCHITECTURE_INVALID') from exc
+    @staticmethod
+    def _bounded_output(value):
+        if (tuple(value.shape) not in ((68,3),(1,68,3)) or
+                not value.is_floating_point()):
+            raise ValueError('MODEL_OUTPUT_INVALID')
+        return value
     def infer(self,crop_rgb):
         value=np.asarray(crop_rgb,np.float32)
         if value.shape!=(256,256,3) or not np.isfinite(value).all() or np.any(value<0) or np.any(value>1):raise ValueError('MODEL_INPUT_INVALID')
@@ -148,6 +191,7 @@ class TorchScriptFAN:
         with self.torch.inference_mode():result=self.model(tensor)
         if isinstance(result,(tuple,list)) and len(result)==1:result=result[0]
         if not isinstance(result,self.torch.Tensor):raise ValueError('MODEL_OUTPUT_INVALID')
+        result=self._bounded_output(result)
         output=result.detach().to('cpu',dtype=self.torch.float32).numpy()
         if output.shape==(1,68,3):output=output[0]
         if output.shape!=(68,3):raise ValueError('MODEL_OUTPUT_INVALID')
@@ -162,6 +206,41 @@ class TransformersVision:
             cls=AutoModel if kind=='dino' else AutoModelForDepthEstimation
             self.model=cls.from_pretrained(str(root),local_files_only=True).to(self.device).eval();self.kind=kind
         except Exception as exc:raise ModelError('MODEL_ARCHITECTURE_INVALID') from exc
+
+    @staticmethod
+    def _bounded_depth_output(value):
+        # Validate on-device metadata before detach/copy can allocate a second
+        # full tensor in host memory. DepthAnything's pinned 518px processor
+        # should be well below this conservative four-megapixel ceiling.
+        shape=getattr(value,'shape',None)
+        if (shape is None or len(shape)!=3 or shape[0]!=1 or
+                type(shape[1]) is not int or type(shape[2]) is not int or
+                shape[1]<1 or shape[2]<1 or shape[1]*shape[2]>4194304 or
+                not callable(getattr(value,'is_floating_point',None)) or
+                not value.is_floating_point()):
+            raise ValueError('MODEL_OUTPUT_INVALID')
+        return value
+
+    @staticmethod
+    def _bounded_dino_output(output):
+        value=getattr(output,'pooler_output',None)
+        if value is None:
+            hidden=getattr(output,'last_hidden_state',None)
+            shape=getattr(hidden,'shape',None)
+            if (shape is None or len(shape)!=3 or shape[0]!=1 or
+                    type(shape[1]) is not int or not 1<=shape[1]<=4096 or
+                    shape[2]!=384 or
+                    not callable(getattr(hidden,'is_floating_point',None)) or
+                    not hidden.is_floating_point()):
+                raise ValueError('MODEL_OUTPUT_INVALID')
+            value=hidden[:,0]
+        shape=getattr(value,'shape',None)
+        if (shape is None or tuple(shape)!=(1,384) or
+                not callable(getattr(value,'is_floating_point',None)) or
+                not value.is_floating_point()):
+            raise ValueError('MODEL_OUTPUT_INVALID')
+        return value
+
     def infer(self,rgb):
         from PIL import Image
         value=np.asarray(rgb,np.float32)
@@ -170,10 +249,10 @@ class TransformersVision:
         inputs={k:v.to(self.device) for k,v in inputs.items()}
         with self.torch.inference_mode():out=self.model(**inputs)
         if self.kind=='dino':
-            value=getattr(out,'pooler_output',None)
-            if value is None:value=out.last_hidden_state[:,0]
+            value=self._bounded_dino_output(out)
             return value.detach().to('cpu',dtype=self.torch.float32).numpy()[0]
-        value=out.predicted_depth.detach().to('cpu',dtype=self.torch.float32).numpy()
+        value=self._bounded_depth_output(getattr(out,'predicted_depth',None))
+        value=value.detach().to('cpu',dtype=self.torch.float32).numpy()
         return value[0]
 
 class TransformersSegformer:
@@ -184,12 +263,23 @@ class TransformersSegformer:
             self.torch=torch;self.device=_device(backend);self.processor=AutoImageProcessor.from_pretrained(str(root),local_files_only=True)
             self.model=SegformerForSemanticSegmentation.from_pretrained(str(root),local_files_only=True).to(self.device).eval()
         except Exception as exc:raise ModelError('MODEL_ARCHITECTURE_INVALID') from exc
+    @staticmethod
+    def _bounded_logits(value):
+        shape=getattr(value,'shape',None)
+        if (shape is None or len(shape)!=4 or shape[0]!=1 or shape[1]!=150 or
+                type(shape[2]) is not int or type(shape[3]) is not int or
+                not 1<=shape[2]<=1024 or not 1<=shape[3]<=1024 or
+                not callable(getattr(value,'is_floating_point',None)) or
+                not value.is_floating_point()):
+            raise ValueError('MODEL_OUTPUT_INVALID')
+        return value
     def infer(self,rgb):
         from PIL import Image
         value=np.asarray(rgb,np.float32)
         if value.ndim!=3 or value.shape[2]!=3 or not np.isfinite(value).all() or np.any(value<0) or np.any(value>1):raise ValueError('MODEL_INPUT_INVALID')
         inputs=self.processor(images=Image.fromarray(np.rint(value*255).astype(np.uint8),'RGB'),return_tensors='pt');inputs={k:v.to(self.device) for k,v in inputs.items()}
-        with self.torch.inference_mode():logits=self.model(**inputs).logits
+        with self.torch.inference_mode():logits=self.model(**inputs)
+        logits=self._bounded_logits(getattr(logits,'logits',None))
         return logits.detach().to('cpu',dtype=self.torch.float32).numpy()[0]
 
 class ONNXU2Net:
@@ -197,7 +287,7 @@ class ONNXU2Net:
         if backend!='cpu':raise ModelError('BACKEND_UNAVAILABLE')
         try:
             import onnxruntime as ort
-            self.session=ort.InferenceSession(str(path),providers=['CPUExecutionProvider']);inputs=self.session.get_inputs();outputs=self.session.get_outputs()
+            self.session=ort.InferenceSession(str(path),providers=['CPUExecutionProvider']);self.inputs=self.session.get_inputs();self.outputs=self.session.get_outputs()
             if len(self.inputs)!=1 or not self.outputs:raise ValueError()
         except Exception as exc:raise ModelError('MODEL_ARCHITECTURE_INVALID') from exc
     def infer(self,normalized_rgb):
@@ -309,6 +399,17 @@ def factories():
         candidates=[path for name,path in files.items() if Path(name).suffix.lower()=='.onnx']
         if len(candidates)!=1 or len(files)!=1:raise ModelError('MODEL_LAYOUT_INVALID')
         return ONNXIdentity512(candidates[0],backend)
+    def reflection_rgb(entry,files,backend):
+        if (entry.architecture != 'onnx.reflection_rgb.v2_1'
+                or entry.preprocessing_id != 'srgb_nchw_float32_0_1'
+                or backend not in ('cpu', 'cuda')):
+            raise ModelError('MODEL_ARCHITECTURE_INVALID')
+        candidates = [path for name,path in files.items()
+                      if Path(name).suffix.lower() == '.onnx']
+        if len(candidates) != 1 or len(files) != 1:
+            raise ModelError('MODEL_LAYOUT_INVALID')
+        from .reflection_onnx import ONNXReflection
+        return ONNXReflection(candidates[0],backend)
     def mobilesam(entry,files,backend):
         if entry.architecture!=MOBILESAM_ARCHITECTURE or entry.weight_id!=MOBILESAM_WEIGHT_ID or entry.preprocessing_id!='mobilesam_long1024_v1':raise ModelError('MODEL_ARCHITECTURE_INVALID')
         return TorchScriptPrompt(_single_weight(files),backend)
@@ -327,6 +428,7 @@ def factories():
         'sfd':sfd,
         'fan2d':fan,
         'identity512':identity512,
+        'reflection_rgb':reflection_rgb,
         'eye_open':capture('eye_open'),
         'glare_mask':capture('glare_mask'),
         'dinov2_vits14':transformer(DINO_ARCHITECTURE,DINO_WEIGHT_ID,'dinov2_pad518_v1','dino'),

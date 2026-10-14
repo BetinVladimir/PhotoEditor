@@ -27,6 +27,7 @@ type SessionAnalysisBeginRequest struct {
 }
 
 type sessionAnalysisConfig struct {
+ QueueClass string `json:"queue_class,omitempty"`
 	ProjectID uuid.UUID `json:"project_id"`
 	SessionID uuid.UUID `json:"session_id"`
 	Plan      struct {
@@ -267,7 +268,7 @@ func (s SQLSessionAnalysisBegin) Begin(ctx context.Context,
 		if !qualified {
 			return ErrInvalid
 		}
-		configRow := sessionAnalysisConfig{ProjectID: project, SessionID: selection.Session}
+		configRow := sessionAnalysisConfig{QueueClass:"batch",ProjectID: project, SessionID: selection.Session}
 		configRow.Plan.SchemaVersion = 1
 		configRow.Plan.ItemCount = len(snapshot.Items)
 		configRow.Plan.SnapshotDigest = snapshot.SnapshotDigest

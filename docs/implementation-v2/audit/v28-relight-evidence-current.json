@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 worker scoped relight qualification evidence catalog",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "production_migration_applied": false,
+  "checks": {
+    "native_sql": {
+      "passed": 5,
+      "seconds": 11.72,
+      "xml": "v28-relight-evidence-current.xml"
+    },
+    "components": {
+      "passed": 76,
+      "xml": "v28-relight-evidence-components-current.xml"
+    }
+  },
+  "source_sha256": {
+    "backend/db/migrations/00982_v28_worker_relight_qualification.sql": "a6e421c3228ceacb0e97980e548d51f9943ec4b67a4cc9ee14b6eea74192e338",
+    "workers/photo_worker/runtime/database.py": "210e730bfc9ceb388d411a99c24e040651baf1d8f2517fd3b5ca10c00a0f3469",
+    "tests/integration/test_v28_relight_qualification.py": "046a83bb62c170ebcf8a48e2dedc36d0e67ce77d6524d141c644170cbec6da94",
+    "tests/platform/test_relight_database.py": "6670b24d7ff41810c400509dd6b506759fd65cb2c10945ad92e5a2b600dab527"
+  },
+  "limitations": [
+    "Positive worker evidence catalog not exercised; qualification lock positive has separate metadata evidence",
+    "Object content loader, producer lineage and public workflow/adoption/UI pending"
+  ]
+}

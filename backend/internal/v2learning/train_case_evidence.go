@@ -35,8 +35,17 @@ func BuildTrainingCaseEvidence(runID uuid.UUID, candidate TrainingCandidate,
 	compiled CompiledTrainingRecipes, iccLock, modelLock string) (
 	TrainingCaseEvidence, error) {
 	var empty TrainingCaseEvidence
+ // Own all mutable evidence at the freeze boundary, including region bindings
+ // returned by readers and optional root pointers retained by callers.
+ candidate=ownTrainingAssemblyCandidate(candidate)
+ compiled=ownTrainingAssemblyRecipes(compiled)
+ if render.BackgroundAsset!=nil { value:=*render.BackgroundAsset;if value.AssumeProfile!=nil{assume:=*value.AssumeProfile;value.AssumeProfile=&assume};render.BackgroundAsset=&value }
+ render.RegionMasks=append([]TrainingRegionMask(nil),render.RegionMasks...)
+ if render.EffectiveMask!=nil { value:=*render.EffectiveMask;render.EffectiveMask=&value }
+ if render.ConsentSnapshot!=nil { value:=*render.ConsentSnapshot;render.ConsentSnapshot=&value }
 	if runID == uuid.Nil || candidate.EventID == uuid.Nil ||
 		candidate.SessionID == uuid.Nil || candidate.ApprovalID == nil ||
+  *candidate.ApprovalID == uuid.Nil ||
 		!candidate.ConsentLive || !candidate.SourceReady ||
 		!candidate.BaseReady || !candidate.ApprovedReady ||
 		!validSHA(iccLock) || !validSHA(modelLock) ||
@@ -63,6 +72,7 @@ func BuildTrainingCaseEvidence(runID uuid.UUID, candidate TrainingCandidate,
 		base.ModelLockSHA != modelLock || approved.ModelLockSHA != modelLock {
 		return empty, ErrInvalidTrainingExample
 	}
+ if !validTrainingBackgroundPin(render.BackgroundAsset,iccLock,base.BaseStyle){return empty,ErrInvalidTrainingExample}
 	baseSum := sha256.Sum256(compiled.BaseBody)
 	approvedSum := sha256.Sum256(compiled.ApprovedBody)
 	if compiled.BaseSHA != hex.EncodeToString(baseSum[:]) ||
@@ -101,6 +111,12 @@ func BuildTrainingCaseEvidence(runID uuid.UUID, candidate TrainingCandidate,
 		len(render.RegionMasks) > 128 {
 		return empty, ErrInvalidTrainingExample
 	}
+ if render.EffectiveMask!=nil && (!validManifestRef(*render.EffectiveMask)||!validManifestRef(*render.ConsentSnapshot)) {return empty,ErrInvalidTrainingExample}
+ regions:=make(map[string]bool,len(render.RegionMasks))
+ for _,region:=range render.RegionMasks {
+  if len(region.RegionID)<1||len(region.RegionID)>120||regions[region.RegionID]||!validManifestRef(region.Mask){return empty,ErrInvalidTrainingExample}
+  regions[region.RegionID]=true
+ }
 	render.BaseRecipe, render.ApprovedRecipe = baseRef, approvedRef
 	render.BaseDocument = v2input.Ref{ArtifactID: candidate.BaseArtifactID,
 		SHA256: candidate.BaseSHA}

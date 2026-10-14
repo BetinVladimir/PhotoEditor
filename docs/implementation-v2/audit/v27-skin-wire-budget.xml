@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="18.253" timestamp="2026-10-08T13:32:27.520841+03:00" hostname="Mac"><testcase classname="tests.integration.test_v27_semantic_intent_publication" name="test_semantic_intent_publication_old_version_and_replay[native-face-wire]" time="17.759"><failure message="AssertionError: === RUN   TestIntegrationNativePreparationBootstrap&#10;      native_bootstrap_integration_test.go:184: new native person wire output exit status 1 === RUN   TestIntegrationV27IndexedDownloads&#10;              v27_wire_integration_test.go:245: Python worker probe failed: exit status 1&#10;                  Traceback (most recent call last):&#10;                    File &quot;/Users/freelancer/Documents/PhotoEditor/tests/integration/v27_face_wire_probe.py&quot;, line 177, in &lt;module&gt;&#10;                      main()&#10;                    File &quot;/Users/freelancer/Documents/PhotoEditor/tests/integration/v27_face_wire_probe.py&quot;, line 115, in main&#10;                      committed = database.commit_success(lease, payload)&#10;                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^&#10;                    File &quot;/Users/freelancer/Documents/PhotoEditor/workers/photo_worker/runtime/database.py&quot;, line 405, in commit_success&#10;                      return self._query('SELECT * FROM photo.commit_task_success(%s,%s,%s,%s,%s)',&#10;                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^&#10;                    File &quot;/Users/freelancer/Documents/PhotoEditor/workers/photo_worker/runtime/database.py&quot;, line 76, in _query&#10;                      row = conn.execute(query,params).fetchone()&#10;                            ^^^^^^^^^^^^^^^^^^^^^^^^^^&#10;                    File &quot;/Users/freelancer/Documents/PhotoEditor/.venv-platform/lib/python3.11/site-packages/psycopg/connection.py&quot;, line 304, in execute&#10;                      raise ex.with_traceback(None)&#10;                  psycopg.errors.CheckViolation: V27_NATIVE_SKIN_OUTPUTS_UNVERIFIED&#10;                  CONTEXT:  PL/pgSQL function guard_v2_result_root() line 16 at RAISE&#10;                  SQL statement &quot;INSERT INTO photo.task_results(tenant_id,task_id,attempt,fencing_token,outputs,metrics,review_required,result_digest)&#10;                   VALUES(t.tenant_id,t.id,p_attempt,p_fence,m-&gt;'outputs',m-&gt;'metrics',(m-&gt;&gt;'review_required')::boolean,digest) RETURNING id&quot;&#10;                  PL/pgSQL function commit_task_success_pre_v28(uuid,integer,bigint,uuid,text) line 38 at SQL statement&#10;                  SQL statement &quot;SELECT * FROM photo.commit_task_success_pre_v28(p_task,p_attempt,p_fence,p_worker,p_manifest)&quot;&#10;                  PL/pgSQL function commit_task_success(uuid,integer,bigint,uuid,text) line 13 at RETURN QUERY&#10;          --- FAIL: TestIntegrationV27IndexedDownloads (0.59s)&#10;          FAIL&#10;          FAIL&#09;photoeditor/backend/internal/gateway&#09;1.076s&#10;          FAIL&#10;          &#10;  --- FAIL: TestIntegrationNativePreparationBootstrap (9.00s)&#10;  FAIL&#10;  FAIL&#09;photoeditor/backend/internal/semanticproposal&#09;9.877s&#10;  FAIL&#10;  &#10;assert 1 == 0&#10; +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationNativePreparationBootstra...ivePreparationBootstrap (9.00s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t9.877s\nFAIL\n', stderr='').returncode">tests/integration/test_v27_semantic_intent_publication.py:731: in test_semantic_intent_publication_old_version_and_replay
+    assert result.returncode==0,result.stdout+result.stderr
+E   AssertionError: === RUN   TestIntegrationNativePreparationBootstrap
+E         native_bootstrap_integration_test.go:184: new native person wire output exit status 1 === RUN   TestIntegrationV27IndexedDownloads
+E                 v27_wire_integration_test.go:245: Python worker probe failed: exit status 1
+E                     Traceback (most recent call last):
+E                       File "/Users/freelancer/Documents/PhotoEditor/tests/integration/v27_face_wire_probe.py", line 177, in &lt;module&gt;
+E                         main()
+E                       File "/Users/freelancer/Documents/PhotoEditor/tests/integration/v27_face_wire_probe.py", line 115, in main
+E                         committed = database.commit_success(lease, payload)
+E                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E                       File "/Users/freelancer/Documents/PhotoEditor/workers/photo_worker/runtime/database.py", line 405, in commit_success
+E                         return self._query('SELECT * FROM photo.commit_task_success(%s,%s,%s,%s,%s)',
+E                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E                       File "/Users/freelancer/Documents/PhotoEditor/workers/photo_worker/runtime/database.py", line 76, in _query
+E                         row = conn.execute(query,params).fetchone()
+E                               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E                       File "/Users/freelancer/Documents/PhotoEditor/.venv-platform/lib/python3.11/site-packages/psycopg/connection.py", line 304, in execute
+E                         raise ex.with_traceback(None)
+E                     psycopg.errors.CheckViolation: V27_NATIVE_SKIN_OUTPUTS_UNVERIFIED
+E                     CONTEXT:  PL/pgSQL function guard_v2_result_root() line 16 at RAISE
+E                     SQL statement "INSERT INTO photo.task_results(tenant_id,task_id,attempt,fencing_token,outputs,metrics,review_required,result_digest)
+E                      VALUES(t.tenant_id,t.id,p_attempt,p_fence,m-&gt;'outputs',m-&gt;'metrics',(m-&gt;&gt;'review_required')::boolean,digest) RETURNING id"
+E                     PL/pgSQL function commit_task_success_pre_v28(uuid,integer,bigint,uuid,text) line 38 at SQL statement
+E                     SQL statement "SELECT * FROM photo.commit_task_success_pre_v28(p_task,p_attempt,p_fence,p_worker,p_manifest)"
+E                     PL/pgSQL function commit_task_success(uuid,integer,bigint,uuid,text) line 13 at RETURN QUERY
+E             --- FAIL: TestIntegrationV27IndexedDownloads (0.59s)
+E             FAIL
+E             FAIL	photoeditor/backend/internal/gateway	1.076s
+E             FAIL
+E             
+E     --- FAIL: TestIntegrationNativePreparationBootstrap (9.00s)
+E     FAIL
+E     FAIL	photoeditor/backend/internal/semanticproposal	9.877s
+E     FAIL
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationNativePreparationBootstra...ivePreparationBootstrap (9.00s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t9.877s\nFAIL\n', stderr='').returncode</failure></testcase></testsuite></testsuites>

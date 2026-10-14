@@ -1,0 +1,146 @@
+{
+  "date": "2026-10-13",
+  "scope": "Additional current Expo routes absent from the historical module-inventory.json screen list; route shell states only, child component states require separate runtime trace.",
+  "routes": [
+    {
+      "module": "V30",
+      "path": "apps/photographer/app/deliveries/[id].tsx",
+      "sha256": "b404255186732e9bf37f9c00f7092a85b417e4fb48e8e5defcbc235f7ee93deb",
+      "component": "DeliveryPackageScreen",
+      "route_states": [
+        "auth_loading",
+        "auth_failure",
+        "package_screen"
+      ],
+      "verification": "source_inspected_not_runtime_verified"
+    },
+    {
+      "module": "V30",
+      "path": "apps/photographer/app/deliveries/index.tsx",
+      "sha256": "b2df925f2c632f5a92885ce4d04057086f021412dfbd268a265083d3fa415c32",
+      "component": "DeliveryListRoute",
+      "route_states": [
+        "loading",
+        "empty",
+        "page",
+        "next_page",
+        "retry",
+        "access_revoked"
+      ],
+      "verification": "source_inspected_not_runtime_verified"
+    },
+    {
+      "module": "V30",
+      "path": "apps/photographer/app/deliveries/new.tsx",
+      "sha256": "9a884c814ab74f5f624578feaa9110ed0ee30cd5a7d4cc9db055f5ae87158a64",
+      "component": "DeliveryCreateScreen",
+      "route_states": [
+        "auth_loading",
+        "auth_failure",
+        "create_screen",
+        "created_navigation"
+      ],
+      "verification": "source_inspected_not_runtime_verified"
+    },
+    {
+      "module": "V31",
+      "path": "apps/photographer/app/exports/sign.tsx",
+      "sha256": "2631de94144981643c5b3bc7bf7172d20d10955bfe271284d9432221d2aea62e",
+      "component": "SigningScreen",
+      "route_states": [
+        "auth_loading",
+        "auth_failure",
+        "signing_screen",
+        "created_navigation"
+      ],
+      "verification": "source_inspected_not_runtime_verified"
+    },
+    {
+      "module": "V30",
+      "path": "apps/photographer/app/interchange/[id].tsx",
+      "sha256": "e6241aecb3955f5f4efe28257969741f2880f06e6b99ef50336ea90ad9fc5f75",
+      "component": "InterchangeJobScreen",
+      "route_states": [
+        "auth_loading",
+        "auth_failure",
+        "job_screen"
+      ],
+      "verification": "source_inspected_not_runtime_verified"
+    },
+    {
+      "module": "V30",
+      "path": "apps/photographer/app/interchange/format.tsx",
+      "sha256": "a138e1167a1a8467f21a87e1b9c0419d50c82f0f9d16c4c58a79698f7693560e",
+      "component": "InterchangeExportFormatScreen",
+      "route_states": [
+        "invalid_scope",
+        "format_choices",
+        "navigation_locked"
+      ],
+      "verification": "source_inspected_not_runtime_verified"
+    },
+    {
+      "module": "V30",
+      "path": "apps/photographer/app/interchange/import-format.tsx",
+      "sha256": "ab6a14e84d1b2281ffc1404af7a798c17f11661f0c385601bedb8caea1fb0100",
+      "component": "InterchangeImportFormatScreen",
+      "route_states": [
+        "invalid_scope",
+        "format_choices",
+        "navigation_locked"
+      ],
+      "verification": "source_inspected_not_runtime_verified"
+    },
+    {
+      "module": "V30",
+      "path": "apps/photographer/app/interchange/new.tsx",
+      "sha256": "a1c1a577dc1c8b45f8c4fb9b14e135c1ff4419f2b6636fa5e58538fd5a6d21e5",
+      "component": "InterchangeCreateScreen",
+      "route_states": [
+        "auth_loading",
+        "invalid_request",
+        "create_screen",
+        "created_navigation"
+      ],
+      "verification": "source_inspected_not_runtime_verified"
+    },
+    {
+      "module": "V30",
+      "path": "apps/photographer/app/interchange/prepare.tsx",
+      "sha256": "1fd8aff9fe2b997ab4f30226e55da0b9e4116120957273e1157f164082d72c07",
+      "component": "InterchangeSnapshotScreen",
+      "route_states": [
+        "auth_loading",
+        "invalid_request",
+        "snapshot_screen",
+        "prepared_navigation"
+      ],
+      "verification": "source_inspected_not_runtime_verified"
+    },
+    {
+      "module": "V30",
+      "path": "apps/photographer/app/interchange/upload.tsx",
+      "sha256": "db42023fe16d2f6ec5c541f95badc8ce7b1c3561830b02b994bdba479bd76c7f",
+      "component": "InterchangeArchiveScreen",
+      "route_states": [
+        "auth_loading",
+        "invalid_scope",
+        "retry",
+        "archive_screen",
+        "ready_navigation"
+      ],
+      "verification": "source_inspected_not_runtime_verified"
+    },
+    {
+      "module": "V29",
+      "path": "apps/photographer/app/multi-replacements/[original].tsx",
+      "sha256": "5b078472f9332b4411df79241520326af45e1ee1ee532d120cf3eee2b2766808",
+      "component": "MultiReplacementReview",
+      "route_states": [
+        "invalid_operation",
+        "review_screen"
+      ],
+      "verification": "source_inspected_not_runtime_verified"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 composed producer/qualification resolver and explicit operation factory",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "production_migration_applied": false,
+  "checks": {
+    "focused_components": {
+      "passed": 49,
+      "seconds": 0.72,
+      "xml": "v28-relight-resolver-current.xml"
+    },
+    "all_relight_components": {
+      "passed": 134,
+      "seconds": 1.62,
+      "xml": "v28-relight-resolver-regression.xml"
+    }
+  },
+  "source_sha256": {
+    "workers/photo_worker/operations/portrait/relight_resolver.py": "7b917e88c4ee512fcee4d3e96f4cdfcf2bba50cd90fd4a590246818d3d931b69",
+    "workers/photo_worker/operations/portrait/relight_runtime_lock.py": "36d39a004e7ad3072037ebe83455dd29ef952a9ab8c0985e95a814433e95bd3d",
+    "tests/platform/test_relight_resolver.py": "f020e15db559eddcfea7d96a6c50fe1d804faf5ed29b10b456d925b0b9974d4d"
+  },
+  "limitations": [
+    "Resolver composition tests use producer/evidence doubles; integrated physical factory execution not proven",
+    "Concrete factory supports person/manual subject and manual guard; other mask producer authority remains open",
+    "No default registration/deployment, full public workflow/adoption/UI or actual model/photo/device qualification"
+  ]
+}

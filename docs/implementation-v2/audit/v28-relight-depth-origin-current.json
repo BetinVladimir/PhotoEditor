@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 canonical depth producer authority",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "production_migration_applied": false,
+  "checks": {
+    "native_sql": {
+      "passed": 3,
+      "seconds": 8.64,
+      "xml": "v28-relight-depth-origin-current.xml"
+    },
+    "components": {
+      "passed": 34,
+      "xml": "v28-relight-depth-components-current.xml"
+    }
+  },
+  "source_sha256": {
+    "backend/db/migrations/00984_v28_worker_relight_depth.sql": "80235fafa04a213df4c0485e2ea876c5044fdea26b7321fad23a99abb0df335b",
+    "workers/photo_worker/runtime/database.py": "0e44a0efce22abc190599be9995fc01c541294815901a7bf49a49626a8524a82",
+    "workers/photo_worker/operations/portrait/relight_depth_authority.py": "54e100e857173f5101799dfbfe11fb00c547df14875627a11e3d9410c9446cb6",
+    "workers/photo_worker/operations/portrait/relight_runtime_lock.py": "d403a1203851ab8316fd78a51189b0d7d64a19a9599a0c896f521b6b55cbdb77",
+    "tests/platform/test_relight_depth_authority.py": "e5a5c34d527f90fe53bdafcfe56c4c87a9db1941b1014e54fcea8d70f3b26736",
+    "tests/integration/test_v28_relight_source.py": "e362ecca29d3bd58022f072fc6e2db4832d1b23060c55893a197b2a28753afea"
+  },
+  "limitations": [
+    "Positive canonical depth SQL path untested; original producer replay uses doubles",
+    "Depth model/device qualification and physical source/producer inputs/adoption/UI pending"
+  ]
+}

@@ -112,6 +112,9 @@ func CompileEvaluateParams(lease LearningEvaluateLease,
 		len(draft.Manifest.Examples) < 40 {
 		return nil, ErrInvalidTrainingDraft
 	}
+	if !validFrozenEvaluationManifest(draft.Manifest) {
+		return nil, ErrInvalidTrainingDraft
+	}
 	manifestSHA, err := canonical.Hash(draft.Manifest)
 	if err != nil || manifestSHA != draft.ManifestSHA {
 		return nil, ErrInvalidTrainingDraft
@@ -157,6 +160,12 @@ type EvaluateStageResult struct {
 // Extras carry any additional refs exposed by its StyleV2/transform documents.
 type LearningRenderInputs struct {
 	EventID            uuid.UUID
+	DefectEvidence     *v2input.Ref
+	DefectProof        *FrozenEvaluateDefectInputs
+	DustEvidence       *v2input.Ref
+	DustProof          *FrozenEvaluateDustInputs
+	DetailEvidence     *v2input.Ref
+	DetailProof        *FrozenEvaluateDetailInputs
 	WorkingImage       v2input.Ref
 	PixelCount         int64
 	Pixels             v2input.Ref
@@ -243,8 +252,13 @@ func (s TrainingInputStager) StageEvaluateTask(ctx context.Context,
 func CompileEvaluateClosure(lease LearningEvaluateLease,
 	draft TrainingDraftPrepared, params artifactjson.Ref,
 	resolved []LearningRenderInputs) (FitClosure, error) {
-	if _, err := CompileEvaluateParams(lease, draft); err != nil {
+	body, err := CompileEvaluateParams(lease, draft)
+	if err != nil {
 		return FitClosure{}, err
+	}
+	paramsDigest := sha256.Sum256(body)
+	if params.SHA256 != hex.EncodeToString(paramsDigest[:]) {
+		return FitClosure{}, ErrInvalidTrainingDraft
 	}
 	if !validManifestRef(v2input.Ref{ArtifactID: params.ID, SHA256: params.SHA256}) {
 		return FitClosure{}, ErrInvalidTrainingDraft
@@ -263,7 +277,8 @@ func CompileEvaluateClosure(lease LearningEvaluateLease,
 		{Ref: draft.Manifest.Calibration, Contract: "Calibration"},
 	}
 	holdout := 0
-	var totalPixels, largestPixels, largestRegionPixels int64
+	var totalPixels, largestPixels, largestRegionPixels, largestDustPixels, largestDetailPixels, largestDetailMaskBytes int64
+	var backgroundRAM, backgroundScratch int64
 	byEvent := make(map[uuid.UUID]LearningRenderInputs, len(resolved))
 	for _, item := range resolved {
 		if item.EventID == uuid.Nil {
@@ -282,6 +297,59 @@ func CompileEvaluateClosure(lease LearningEvaluateLease,
 		c := example.RenderCase
 		{
 			item, okay := byEvent[example.EventID]
+			if (c.DefectEvidence == nil) != (item.DefectEvidence == nil) ||
+				(c.DefectEvidence == nil) != (item.DefectProof == nil) {
+				return FitClosure{}, ErrInvalidTrainingDraft
+			}
+			if c.DefectEvidence != nil {
+				if *c.DefectEvidence != *item.DefectEvidence ||
+					validateFrozenDefectEvaluateInputs(lease, example.EventID,
+						c, *item.DefectProof) != nil {
+					return FitClosure{}, ErrInvalidTrainingDraft
+				}
+				entries = append(entries, item.DefectProof.Entries[:]...)
+			}
+			if (c.DustEvidence == nil) != (item.DustEvidence == nil) ||
+				(c.DustEvidence == nil) != (item.DustProof == nil) ||
+				(c.DustEvidence != nil && c.DefectEvidence != nil) {
+				return FitClosure{}, ErrInvalidTrainingDraft
+			}
+			if c.DustEvidence != nil {
+				if *c.DustEvidence != *item.DustEvidence ||
+					validateFrozenDustEvaluateInputs(lease, example.EventID,
+						c, *item.DustProof) != nil {
+					return FitClosure{}, ErrInvalidTrainingDraft
+				}
+				entries = append(entries, item.DustProof.Entries[:]...)
+				if item.PixelCount > largestDustPixels {
+					largestDustPixels = item.PixelCount
+				}
+			}
+			if (c.DetailEvidence == nil) != (item.DetailEvidence == nil) ||
+				(c.DetailEvidence == nil) != (item.DetailProof == nil) ||
+				(c.DetailEvidence != nil &&
+					(c.DefectEvidence != nil || c.DustEvidence != nil)) {
+				return FitClosure{}, ErrInvalidTrainingDraft
+			}
+			if c.DetailEvidence != nil {
+				if item.PixelCount < 1 || item.PixelCount > 200_000_000 {
+					return FitClosure{}, ErrInvalidTrainingDraft
+				}
+				if *c.DetailEvidence != *item.DetailEvidence ||
+					validateFrozenDetailEvaluateInputs(lease, example.EventID,
+						c, *item.DetailProof) != nil {
+					return FitClosure{}, ErrInvalidTrainingDraft
+				}
+				entries = append(entries, item.DetailProof.Entries...)
+				if item.PixelCount > largestDetailPixels {
+					largestDetailPixels = item.PixelCount
+				}
+				maskBytes := int64(len(item.DetailProof.Evidence.MaskArtifacts)) *
+					(4*item.PixelCount + 8192)
+				if maskBytes > largestDetailMaskBytes {
+					largestDetailMaskBytes = maskBytes
+				}
+			}
 			baseSum := sha256.Sum256(item.BaseRecipeBody)
 			approvedSum := sha256.Sum256(item.ApprovedRecipeBody)
 			style, recipeErr := ValidateFrozenRecipePair(
@@ -309,6 +377,22 @@ func CompileEvaluateClosure(lease LearningEvaluateLease,
 				!validManifestRef(item.BaseStyle) ||
 				(item.Alpha != nil && !validManifestRef(*item.Alpha)) {
 				return FitClosure{}, ErrInvalidTrainingDraft
+			}
+			if c.BackgroundAsset != nil {
+				if !validTrainingBackgroundPin(c.BackgroundAsset, draft.Manifest.ICCLockSHA, item.BaseStyle) {
+					return FitClosure{}, ErrInvalidTrainingDraft
+				}
+				peakRAM, peakScratch, err := trainingBackgroundDecodeResources(c.BackgroundAsset)
+				if err != nil {
+					return FitClosure{}, err
+				}
+				if peakRAM > backgroundRAM {
+					backgroundRAM = peakRAM
+				}
+				if peakScratch > backgroundScratch {
+					backgroundScratch = peakScratch
+				}
+				entries = append(entries, v2input.Entry{Ref: c.BackgroundAsset.Source, Contract: "StyleBackgroundAsset"})
 			}
 			totalPixels += item.PixelCount
 			if item.PixelCount > largestPixels {
@@ -400,32 +484,62 @@ func CompileEvaluateClosure(lease LearningEvaluateLease,
 	// The largest sequential case keeps pinned source children, three RGB
 	// renders, person mask/Stats20 workspace and two float64 metric buffers
 	// live together. Reserve their full disk footprint plus transport headroom.
-	scratch := int64(96)*largestPixels + 4*largestRegionPixels + 536870912
+	// Candidate retouch_delta can enable beauty even when the base style has
+	// it disabled. The existing portrait stage retains at most 64 ROI RGB
+	// deltas and weights (16 bytes/pixel), each capped at 4194304 pixels,
+	// plus a full RGB result/protection buffer and bounded NPY headers.
+	beautyROIPixels := largestPixels
+	if beautyROIPixels > 4194304 {
+		beautyROIPixels = 4194304
+	}
+	// Retain one sequential halo-tiled denoise RGB output before color.
+	// One native denoise or depth model runs at a time in the shared ModelPool.
+	// Its signed peak is capped at 1 GiB RAM and scratch by the worker.
+	scratch := int64(144)*largestPixels + int64(64*16)*beautyROIPixels +
+		4*largestRegionPixels + 536870912 + 2097152 + backgroundScratch + 1073741824
+	if largestDustPixels > 0 {
+		scratch += 40*largestDustPixels + 32768
+	}
+	if largestDetailPixels > 0 {
+		// prepare_detail retains the arm and one full RGB output while its
+		// native region temporaries are live. All distinct pinned NPY masks
+		// remain materialized through the three sequential arms.
+		scratch += 12*largestDetailPixels + 8192 + largestDetailMaskBytes
+	}
 	if scratch > 16*1024*1024*1024 {
 		return FitClosure{}, ErrInvalidTrainingDraft
 	}
-	ram := int64(36)*largestPixels + 1073741824
+	ram := int64(128)*largestPixels + 2147483648 + backgroundRAM + 1073741824
+	if largestDustPixels > 0 {
+		ram += 128*largestDustPixels + 512*1048576
+	}
+	if largestDetailPixels > 0 {
+		detailPeak := 160*largestDetailPixels + 1048576
+		if detailPeak < 1073741824 {
+			detailPeak = 1073741824
+		}
+		ram += detailPeak
+	}
 	if ram < 4294967296 {
 		ram = 4294967296
 	}
 	profileBody, err := canonical.Marshal(evaluateProfile{
 		Backend: "cuda", RendererVersion: "v2.2",
 		ResourceEstimate: evaluateResourceEstimate{RAMBytes: ram,
-			VRAMBytes: 4294967296, ScratchBytes: scratch,
+			VRAMBytes: 10000000000, ScratchBytes: scratch,
 			OutputBytes: 8388608, PixelCount: totalPixels}})
 	if err != nil {
 		return FitClosure{}, ErrInvalidTrainingDraft
 	}
 	profile := json.RawMessage(profileBody)
-	return FitClosure{Open: func(context.Context) (v2input.Cursor, error) { return &fitEntryCursor{entries: unique}, nil },
+	return FitClosure{Open: func(ctx context.Context) (v2input.Cursor, error) { return openFitEntryCursor(ctx, unique) },
 		Direct:      []v2input.Ref{paramsRef, manifestRef, lease.Candidate, draft.Manifest.Baseline, draft.Manifest.Calibration},
 		InputDigest: digest, Profile: profile}, nil
 }
 
 // CommitEvaluateClosure registers the already published transport and closes
-// the evaluation barrier in the same database transaction. The SQL close is
-// fail-closed until learning.evaluate is enabled and its safety worker is
-// qualified.
+// the evaluation barrier in the same database transaction. The guarded SQL
+// close repeats live defect, dust, portrait-detail and consent authority.
 func (a SQLLearningEvaluateStore) CommitEvaluateClosure(ctx context.Context,
 	lease LearningEvaluateLease, task v2input.GraphTask) error {
 	if a.DB == nil || !validLearningEvaluateLease(lease) {
@@ -441,7 +555,7 @@ func (a SQLLearningEvaluateStore) CommitEvaluateClosure(ctx context.Context,
 			return err
 		}
 		var closed bool
-		if err := tx.QueryRow(ctx, `SELECT photo.close_v23_learning_evaluate($1,$2,$3,$4,$5)`,
+		if err := tx.QueryRow(ctx, `SELECT photo.close_v23_learning_evaluate_guarded($1,$2,$3,$4,$5)`,
 			lease.TenantID, lease.RunID, lease.ExpansionID, lease.Token,
 			task.ID).Scan(&closed); err != nil {
 			return err

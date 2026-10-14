@@ -51,13 +51,13 @@ def test_actual_source_masks_composition_and_change_evidence_share_owned_scope(t
     finally:space.cleanup()
 
 
-@pytest.mark.parametrize('failure',['base','consumer','geometry'])
+@pytest.mark.parametrize('failure',['base','consumer','geometry','upscale'])
 def test_preparation_failure_closes_every_materialized_input(tmp_path,failure):
     image,_,ref,_,mask_artifacts,_=fixture(tmp_path)
     state=inputs(image,ref)
     for layer in state.layers.layers:
         layer.operation='test.adjust';layer.blend='normal'
-    if failure=='geometry':state.layers.layers[0].operation='optical.lens'
+    if failure in ('geometry','upscale'):state.layers.layers[0].operation='image.upscale' if failure=='upscale' else 'optical.lens'
     loaded=tuple(SimpleNamespace(layer=layer) for layer in state.layers.layers)
     rgb_path=tmp_path/'source.npy';np.save(rgb_path,np.zeros((1,2,3),np.float32))
     space=scratch(tmp_path);events=[]
@@ -79,11 +79,11 @@ def test_preparation_failure_closes_every_materialized_input(tmp_path,failure):
     @contextmanager
     def proposal(item,current):yield AdjustmentPixels(np.ones_like(current.rgb),None)
     try:
-        with pytest.raises(ValueError if failure=='geometry' else RuntimeError):
+        with pytest.raises(ValueError if failure in ('geometry','upscale') else RuntimeError):
             with prepare_render_pixels(Artifacts(),state,loaded,base,proposal,max_input_bytes=100000,max_mask_bytes=100000,max_tile_bytes=4096):
                 raise RuntimeError('consumer failed')
-        assert events==([] if failure=='geometry' else ['open','close'])
-        assert mask_artifacts.opens==mask_artifacts.closes==(0 if failure=='geometry' else 1)
+        assert events==([] if failure in ('geometry','upscale') else ['open','close'])
+        assert mask_artifacts.opens==mask_artifacts.closes==(0 if failure in ('geometry','upscale') else 1)
         assert set(tmp_path.rglob('*.npy'))=={tmp_path/'mask.npy',rgb_path}
     finally:space.cleanup()
 

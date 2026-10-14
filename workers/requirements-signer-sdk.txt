@@ -1,0 +1,7 @@
+# Baseline SDK from docs/implementation-v2/15-execution-contracts.md.
+# Install offline on Linux x86_64, with --no-deps; install transitive dependencies
+# separately from a qualified complete deployment lock. This is not qualification.
+--only-binary=:all:
+--require-hashes
+c2pa-python==0.32.4 \
+    --hash=sha256:a98a594cf79655e3f29987f40bcc5a601de382d352a567bba6601cd4a5322c56

@@ -14,7 +14,9 @@ import (
 	"photoeditor/backend/internal/domain"
 	"photoeditor/backend/internal/idempotency"
 	"photoeditor/backend/internal/objectstore"
+	"photoeditor/backend/internal/rawdevelopment"
 	"photoeditor/backend/internal/v2capture"
+	"photoeditor/backend/internal/v2qualification"
 )
 
 // DeviceBeginRequest binds the upload to exactly one open shoot session.
@@ -47,7 +49,8 @@ func deviceSession(ctx context.Context, tx pgx.Tx, principal v2capture.DevicePri
 }
 
 // BeginDevice reserves ordinary upload quota. No object-store call occurs in
-// the DB transaction; a retry can safely return the same initializing row.
+// the DB transaction; a retry only resumes after the external writer receipt
+// was committed. An ambiguous Begin outcome requires reconciliation.
 func (s Service) BeginDevice(ctx context.Context, principal v2capture.DevicePrincipal,
 	key string, raw DeviceBeginRequest) (Session, error) {
 	request, mediaType, err := normalize(raw.BeginRequest)
@@ -57,9 +60,42 @@ func (s Service) BeginDevice(ctx context.Context, principal v2capture.DevicePrin
 	if s.DB == nil || s.Objects == nil {
 		return Session{}, errors.New("upload dependencies unavailable")
 	}
+	if _, ok := s.Objects.(interface {
+		BeginCaptureMultipart(context.Context, uuid.UUID, uuid.UUID, string) (string, error)
+	}); !ok {
+		return Session{}, errors.New("capture multipart starter unavailable")
+	}
 	raw.BeginRequest = request
 	var uploadID uuid.UUID
 	err = database.TenantTransaction(ctx, s.DB, principal.TenantID, func(tx pgx.Tx) error {
+		if request.RAWDevelopment != nil {
+			if err := v2capture.AdmitDeviceTx(ctx, tx, principal); err != nil {
+				return err
+			}
+			admission, ok := s.RAWAdmission.(interface {
+				AdmitDevice(context.Context, rawdevelopment.ReportRows, v2capture.DevicePrincipal, uuid.UUID, uuid.UUID, *rawdevelopment.Policy) (*rawdevelopment.Policy, error)
+			})
+			if !ok {
+				return domain.NewError("QUALIFICATION_UNAVAILABLE", 503)
+			}
+			expected := *request.RAWDevelopment
+			input := expected
+			admitted, err := admission.AdmitDevice(ctx, tx, principal, raw.SessionID, *request.CollectionID, &input)
+			if errors.Is(err, v2qualification.ErrUnqualified) {
+				failure := domain.NewError("QUALIFICATION_UNAVAILABLE", 503)
+				failure.Cause = err
+				return failure
+			}
+			if err != nil {
+				return err
+			}
+			if admitted == nil || !rawdevelopment.Valid(admitted) || *admitted != expected {
+				return domain.NewError("QUALIFICATION_UNAVAILABLE", 503)
+			}
+			owned := *admitted
+			request.RAWDevelopment = &owned
+			raw.BeginRequest = request
+		}
 		response, err := idempotency.Use(ctx, tx, idempotency.Scope{Tenant: principal.TenantID,
 			Principal: principal.DeviceID, PrincipalType: "device", Route: "Upload.BeginDevice", Key: key},
 			raw, s.now().Add(30*24*time.Hour), func() (idempotency.Response, error) {
@@ -98,11 +134,11 @@ func (s Service) BeginDevice(ctx context.Context, principal v2capture.DevicePrin
 				expires := s.now().Add(24 * time.Hour)
 				_, err = tx.Exec(ctx, `INSERT INTO photo.upload_sessions(id,tenant_id,project_id,collection_id,
 				principal_type,principal_id,expected_size,filename,assume_profile,object_key,state,
-				expires_at,reservation_id,media_type,expected_sha256,capture_session_id,capture_credential_epoch)
-				VALUES($1,$2,$3,$4,'device',$5,$6,$7,$8,$9,'initializing',$10,$11,$12,$13,$14,$15)`,
+				expires_at,reservation_id,media_type,expected_sha256,capture_session_id,capture_credential_epoch,raw_development)
+				VALUES($1,$2,$3,$4,'device',$5,$6,$7,$8,$9,'initializing',$10,$11,$12,$13,$14,$15,$16)`,
 					uploadID, principal.TenantID, principal.ProjectID, request.CollectionID, principal.DeviceID,
 					request.Bytes, request.Filename, request.AssumeProfile, objectKey, expires,
-					reservationID, mediaType, request.SHA256, raw.SessionID, principal.CredentialEpoch)
+					reservationID, mediaType, request.SHA256, raw.SessionID, principal.CredentialEpoch, rawPolicyValue(request.RAWDevelopment))
 				if err != nil {
 					return idempotency.Response{}, err
 				}
@@ -148,13 +184,56 @@ func (s Service) GetDevice(ctx context.Context, principal v2capture.DevicePrinci
 }
 
 func (s Service) ensureMultipartDevice(ctx context.Context, principal v2capture.DevicePrincipal, id uuid.UUID) (Session, error) {
-	current, err := s.GetDevice(ctx, principal, id)
-	if err != nil || current.State != "initializing" {
+	starter, ok := s.Objects.(interface {
+		BeginCaptureMultipart(context.Context, uuid.UUID, uuid.UUID, string) (string, error)
+	})
+	if !ok {
+		return Session{}, errors.New("capture multipart starter unavailable")
+	}
+	// Claim the one external writer before BeginMultipart. Once claimed, even a
+	// timeout or process crash has an unknown remote outcome: replay must fail
+	// closed until exact-key reconciliation resolves the durable claim.
+	var current Session
+	claim := uuid.New()
+	claimed := false
+	err := database.TenantTransaction(ctx, s.DB, principal.TenantID, func(tx pgx.Tx) error {
+		var err error
+		current, err = deviceSession(ctx, tx, principal, id, true)
+		if err != nil || current.State != "initializing" {
+			return err
+		}
+		if !current.ExpiresAt.After(s.now()) {
+			return domain.NewError("UPLOAD_EXPIRED", 409)
+		}
+		var existing *uuid.UUID
+		if err = tx.QueryRow(ctx, `SELECT device_begin_token FROM photo.upload_sessions
+			WHERE tenant_id=$1 AND id=$2`, principal.TenantID, id).Scan(&existing); err != nil {
+			return err
+		}
+		if existing != nil {
+			return domain.NewError("CAPTURE_BEGIN_RECONCILIATION_REQUIRED", 409)
+		}
+		tag, execErr := tx.Exec(ctx, `UPDATE photo.upload_sessions SET device_begin_token=$3
+			WHERE tenant_id=$1 AND id=$2 AND state='initializing' AND device_begin_token IS NULL`,
+			principal.TenantID, id, claim)
+		if execErr != nil {
+			return execErr
+		}
+		if tag.RowsAffected() != 1 {
+			return domain.NewError("CAPTURE_BEGIN_RECONCILIATION_REQUIRED", 409)
+		}
+		claimed = true
+		return nil
+	})
+	if err != nil || !claimed || current.State != "initializing" {
 		return current, err
 	}
-	multipartID, err := s.Objects.BeginMultipart(ctx, current.objectKey, current.mediaType)
+	multipartID, err := starter.BeginCaptureMultipart(ctx, principal.TenantID, id, current.mediaType)
 	if err != nil {
 		return Session{}, err
+	}
+	if !objectstore.ValidInterchangeMultipartID(multipartID) {
+		return Session{}, objectstore.ErrIntegrity
 	}
 	attached := false
 	err = database.TenantTransaction(ctx, s.DB, principal.TenantID, func(tx pgx.Tx) error {
@@ -162,20 +241,34 @@ func (s Service) ensureMultipartDevice(ctx context.Context, principal v2capture.
 		if err != nil {
 			return err
 		}
-		if locked.State == "initializing" && locked.multipartID == nil && locked.ExpiresAt.After(s.now()) {
-			_, err = tx.Exec(ctx, `UPDATE photo.upload_sessions SET multipart_id=$3,state='uploading',
-				revision=revision+1 WHERE tenant_id=$1 AND id=$2`, principal.TenantID, id, multipartID)
-			attached = err == nil
+		var token *uuid.UUID
+		if err = tx.QueryRow(ctx, `SELECT device_begin_token FROM photo.upload_sessions
+			WHERE tenant_id=$1 AND id=$2`, principal.TenantID, id).Scan(&token); err != nil {
+			return err
 		}
-		return err
+		if locked.State == "uploading" && locked.multipartID != nil &&
+			*locked.multipartID == multipartID && token != nil && *token == claim {
+			attached = true
+			return nil
+		}
+		if locked.State == "initializing" && locked.multipartID == nil && locked.ExpiresAt.After(s.now()) &&
+			token != nil && *token == claim {
+			tag, execErr := tx.Exec(ctx, `UPDATE photo.upload_sessions SET multipart_id=$3,state='uploading',
+				revision=revision+1 WHERE tenant_id=$1 AND id=$2 AND device_begin_token=$4`, principal.TenantID, id, multipartID, claim)
+			if execErr != nil {
+				return execErr
+			}
+			attached = tag.RowsAffected() == 1
+		}
+		return nil
 	})
-	if err != nil || !attached {
-		abortCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
-		_ = s.Objects.AbortMultipart(abortCtx, current.objectKey, multipartID)
-		cancel()
-		if err != nil {
-			return Session{}, err
-		}
+	if err != nil {
+		return Session{}, err
+	}
+	if !attached {
+		// A known receipt may have raced an operator bind or a changed SQL
+		// state. Never abort by key or ID without re-establishing authority.
+		return Session{}, domain.NewError("CAPTURE_BEGIN_RECONCILIATION_REQUIRED", 409)
 	}
 	return s.GetDevice(ctx, principal, id)
 }

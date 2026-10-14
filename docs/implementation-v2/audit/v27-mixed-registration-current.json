@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 strict prepublication repair eligibility and mixed registration recovery",
+  "whole_module_accepted": false,
+  "migration_head": "00967",
+  "new_migrations": [
+    "00967_v27_native_transfer_strict_repair_state.sql"
+  ],
+  "production_code_changed": true,
+  "production_migrations_applied": false,
+  "production_change": "Repair and startup require scheduler-only strict v2 eligibility helper. Missing tasks must have empty direct inputs in addition to absent registration metadata/rows. Old helper preserved for compatibility. No DML/table grants added.",
+  "checks": {
+    "go_five_packages": [
+      {
+        "package": "photoeditor/backend/internal/v2qualification",
+        "elapsed": 0
+      },
+      {
+        "package": "photoeditor/backend/internal/v2input",
+        "elapsed": 0.011
+      },
+      {
+        "package": "photoeditor/backend/internal/v2draft",
+        "elapsed": 0.011
+      },
+      {
+        "package": "photoeditor/backend/internal/workflow",
+        "elapsed": 0.012
+      },
+      {
+        "package": "photoeditor/backend/internal/semanticproposal",
+        "elapsed": 3.395
+      }
+    ],
+    "sql_upgrade_roles_and_handoff": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "21",
+      "time": "18.862",
+      "timestamp": "2026-10-09T05:52:41.957522+03:00",
+      "hostname": "Mac"
+    },
+    "native_mixed_registration_recovery": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "1",
+      "time": "399.790",
+      "timestamp": "2026-10-09T06:12:51.444037+03:00",
+      "hostname": "Mac"
+    },
+    "documentation": "PASS55 tests/2267 static checks",
+    "diff_check": "PASS"
+  },
+  "source_manifest": "v27-mixed-registration-source-current.json",
+  "source_manifest_sha256": "17dd81c36c0d704cf9618c14de1021b136c3a4e80c3b9941323a0a6b7b6450b0",
+  "source_files": 4819,
+  "quality_preservation": {
+    "workers_src_baseline_files": 544,
+    "changed": 0,
+    "real_photo_quality_accepted": false
+  },
+  "verified": [
+    "Two targets include supported original-reference reuse. Production draft helper, scoped publisher, physical recheck and complete admission locks precede scheduler registration of minimum-ID task only. Immutable rows and triggers remain intact.",
+    "Actual repair refuses stray contracts_sha and a valid but nonempty direct source input array on the unregistered task before publisher calls; profile/input/document/reservation snapshots unchanged.",
+    "After restoring valid empty draft inputs, actual ProcessOne repairs missing registration and seals graph despite doubled current ReservedBytes.",
+    "Minimum-ID registered task full profile/direct inputs/v2_task_inputs JSON, complete parent backend_documents JSON and saved reservation bytes unchanged.",
+    "Second ProcessOne finds no work; Python independently verifies sealed queued parent, ready tasks and one queued event/outbox. Lifecycle/policy/qualification/TTL probes also passed.",
+    "Fresh and 00899→00967 upgrade with row preservation, effective owner and real-role ACL checks passed."
+  ],
+  "remaining": [
+    "Raw PUT ambiguity, separate OS process restart and broker redelivery.",
+    "GC/purge races, corrupt already-registered transport and 5000-target scale.",
+    "Independent target qualification imports, exact reference locator-version and pending stage progression.",
+    "Complete browser/native flows, real-photo/GPU qualification and whole V27/V20–V32 acceptance."
+  ],
+  "limitations": [
+    "Mixed state explicitly constructed through scheduler APIs; not a crash inside atomic production registration.",
+    "Corruption fixtures modify only the still-unregistered task. Refusal snapshot covers task profiles/inputs/documents/reservation, not every table.",
+    "Upstream ML remains fixture doubles. No production migration applied."
+  ],
+  "diagnostic_attempts": [
+    "v27-mixed-registration-interrupted.xml",
+    "v27-mixed-registration-one-task-failure.xml",
+    "v27-mixed-registration-immutable-fixture-failure.xml",
+    "v27-mixed-registration-registered-immutability-failure.xml",
+    "v27-mixed-registration-invalid-input-fixture-failure.xml"
+  ]
+}

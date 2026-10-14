@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 durable all-native transfer admission and replay",
+  "whole_module_accepted": false,
+  "migration_head": "00961",
+  "new_migrations": false,
+  "production_migrations_applied": false,
+  "checks": {
+    "go_four_packages": [
+      {
+        "package": "photoeditor/backend/internal/v2qualification",
+        "elapsed": 0.002
+      },
+      {
+        "package": "photoeditor/backend/internal/v2input",
+        "elapsed": 0.01
+      },
+      {
+        "package": "photoeditor/backend/internal/v2draft",
+        "elapsed": 0.014
+      },
+      {
+        "package": "photoeditor/backend/internal/semanticproposal",
+        "elapsed": 3.5789999999999997
+      }
+    ],
+    "native_wire": "1 PASS431.23s; v27-native-all-target-admit-wire-current.xml",
+    "python_syntax": "PASS",
+    "diff_check": "PASS"
+  },
+  "source_manifest": "v27-native-all-target-admit-source-current.json",
+  "source_manifest_sha256": "6a16c0c6586c293493fff75134ca59524bddd03d29b11371df7af28cb2419a4e",
+  "quality_preservation": {
+    "workers_src_baseline_files": 544,
+    "changed": 0,
+    "real_photo_quality_accepted": false
+  },
+  "implemented": [
+    "Native physical recheck without generic authority or unique source rediscovery.",
+    "Commit-aware blocked Begin, publication outside SQL, physical recheck and registration commit.",
+    "Commit-aware activation and exact sealed replay."
+  ],
+  "native_verified": [
+    "Full prerequisite and existing component checks.",
+    "Actual blocked parent commit and owned S3 transport publication/registration.",
+    "Scoped saved config lookup and hash equality.",
+    "Sealed queued ticket and identical repeated activation ticket.",
+    "Independent Python: all ready tasks, one queued run event, one queued outbox row."
+  ],
+  "remaining": [
+    "Saved full graph transport recovery and fresh-process/crash/failure/race cases.",
+    "Automatic original parent recovery handoff and production wiring.",
+    "Whole V27 and V20\u2013V32 acceptance."
+  ],
+  "limitations": [
+    "Native call is explicit test orchestration; automatic all-native production recovery not enabled.",
+    "ML prerequisites include doubles; no real-photo/GPU qualification."
+  ]
+}

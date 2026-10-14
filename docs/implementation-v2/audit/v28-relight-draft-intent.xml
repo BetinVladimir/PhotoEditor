@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="2.013" timestamp="2026-10-09T14:24:46.017772+03:00" hostname="Mac"><testcase classname="tests.integration.test_v28_relight_draft_intent" name="test_relight_intent_frozen_replay_and_revocation" time="1.808"><failure message="psycopg.errors.CheckViolation: V2_WORKFLOW_SCOPE_INVALID&#10;CONTEXT:  PL/pgSQL function guard_v2_workflow() line 9 at RAISE">db = &lt;psycopg.Connection [INERROR] (port=55433 user=photo_test database=photo_test_2f37744b13754d90b4fac14869ebf684) at 0x1195b9f50&gt;
+
+    def test_relight_intent_frozen_replay_and_revocation(db):
+        tenant,*_,scope=fixture(db,snapshot_authority=True)
+        pin=frozen_qualification(db,tenant,scope['project'],scope['actor'],operation='image.relight',backend='cpu')
+        pin['policy_sha']=db.execute('SELECT photo.v28_relight_policy_sha(%s)',(pin['policy_id'],)).fetchone()[0]
+        run,workflow=uuid4(),uuid4()
+        db.execute("INSERT INTO photo.runs(id,tenant_id,kind,status,input_snapshot_id,config_snapshot,config_hash,created_by,failure_policy,graph_sealed) VALUES(%s,%s,'v2','draft',%s,'{}','b'||repeat('b',63),%s,'fail_fast',false)",(run,tenant,scope['snapshot'],scope['actor']))
+&gt;       db.execute("INSERT INTO photo.v2_workflows(id,tenant_id,project_id,run_id,input_snapshot_id,workflow_type,renderer_version,policy_sha) VALUES(%s,%s,%s,%s,%s,'preview','v2.2',repeat('b',64))",(workflow,tenant,scope['project'],run,scope['snapshot']))
+
+tests/integration/test_v28_relight_draft_intent.py:17: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;psycopg.Connection [INERROR] (port=55433 user=photo_test database=photo_test_2f37744b13754d90b4fac14869ebf684) at 0x1195b9f50&gt;
+query = "INSERT INTO photo.v2_workflows(id,tenant_id,project_id,run_id,input_snapshot_id,workflow_type,renderer_version,policy_sha) VALUES(%s,%s,%s,%s,%s,'preview','v2.2',repeat('b',64))"
+params = (UUID('2fdcf9f4-6ec1-43ff-b754-1c27ec98b87a'), UUID('9e89cbe2-63d9-4edc-bb0e-9dd36dd2dc9d'), UUID('4ff3289a-9d78-4d08-98cc-81fdea97d982'), UUID('7fd8b611-0311-4311-be32-3276ea482c9c'), UUID('f61170f7-4f7d-4ccc-ab83-da2561064789'))
+prepare = None, binary = False
+
+    def execute(
+        self,
+        query: Query,
+        params: Params | None = None,
+        *,
+        prepare: bool | None = None,
+        binary: bool = False,
+    ) -&gt; Cursor[Row]:
+        """Execute a query and return a cursor to read its results."""
+        try:
+            cur = self.cursor()
+            if binary:
+                cur.format = BINARY
+    
+            if isinstance(query, Template):
+                if params is not None:
+                    raise TypeError(
+                        "'execute()' with string template query doesn't support parameters"
+                    )
+                return cur.execute(query, prepare=prepare)
+            else:
+                return cur.execute(query, params, prepare=prepare)
+        except e._NO_TRACEBACK as ex:
+&gt;           raise ex.with_traceback(None)
+E           psycopg.errors.CheckViolation: V2_WORKFLOW_SCOPE_INVALID
+E           CONTEXT:  PL/pgSQL function guard_v2_workflow() line 9 at RAISE
+
+.venv-platform/lib/python3.11/site-packages/psycopg/connection.py:304: CheckViolation</failure></testcase></testsuite></testsuites>

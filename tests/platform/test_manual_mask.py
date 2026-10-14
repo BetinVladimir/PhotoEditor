@@ -41,3 +41,19 @@ def test_stale_duplicate_and_cancel():
     with pytest.raises(ValueError,match='OVERRIDE_SOURCE_MISMATCH'):list(rasterize(document([]),'b'*64))
     def cancel():raise RuntimeError('cancelled')
     with pytest.raises(RuntimeError,match='cancelled'):next(rasterize(document([stroke]),'a'*64,check_active=cancel))
+
+
+@pytest.mark.parametrize('left,right', [
+    ('target','protected'),('target','target_png'),('target','protected_png'),
+    ('protected','target_png'),('protected','protected_png'),('target_png','protected_png')])
+def test_rasterized_mask_output_role_aliases_are_rejected(left,right):
+    from pathlib import Path
+    import json
+    from photo_worker.contracts.manual_mask import RasterizedMask
+    path=Path(__file__).resolve().parents[2]/'backend/internal/review/testdata/face-manual-root-python.json'
+    document=json.loads(path.read_text())
+    assert RasterizedMask.model_validate_json(json.dumps(document))
+    def ref(role):return document[role]['artifact'] if role in ('target','protected') else document[role]
+    ref(right)['artifact_id']=ref(left)['artifact_id']
+    with pytest.raises(ValidationError,match='distinct artifact IDs'):
+        RasterizedMask.model_validate_json(json.dumps(document))

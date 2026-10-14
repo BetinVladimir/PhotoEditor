@@ -92,6 +92,21 @@ def test_staged_lens_closure_and_zero_strength_reuse(tmp_path):
                     prepared=prepare_v2_adoption(task_id=uuid4(),operation='optical.lens',version='1',
                         root=AdoptionRef(result.document.artifact_id,result.document.sha256),reader=Reader(),params_ref=params_ref)
                     assert len(prepared.inventory)==len(result.outputs)+1
+                    state={'cancelled':False,'blocks':0}
+                    class CancelReader(Reader):
+                        def iter_bytes(self,requested,limit):
+                            for block in super().iter_bytes(requested,limit):
+                                state['blocks']+=1
+                                state['cancelled']=True
+                                yield block
+                    def check_active():
+                        if state['cancelled']:
+                            raise RuntimeError('lens adoption cancelled')
+                    with pytest.raises(RuntimeError,match='lens adoption cancelled'):
+                        prepare_v2_adoption(task_id=uuid4(),operation='optical.lens',version='1',
+                            root=AdoptionRef(result.document.artifact_id,result.document.sha256),
+                            reader=CancelReader(),params_ref=params_ref,check_active=check_active)
+                    assert state['blocks']==1
                     from photo_worker.v2.lens_adoption import verify_lens_correction
                     from photo_worker.v2.adoption import AdoptionInvalid
                     from photo_worker.operations.optical.contracts import ImageReport

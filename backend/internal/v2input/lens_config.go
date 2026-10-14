@@ -9,6 +9,7 @@ import (
 )
 
 type LensDraftConfig struct {
+ QueueClass string `json:"queue_class,omitempty"`
 	ProjectID  uuid.UUID      `json:"project_id"`
 	SnapshotID uuid.UUID      `json:"input_snapshot_id"`
 	Lens       LensDraftNodes `json:"v25_lens"`
@@ -35,7 +36,7 @@ func CompileLensDraftConfig(project, snapshot, session, run uuid.UUID, tasks []F
 	if err != nil {
 		return empty, err
 	}
-	config := LensDraftConfig{ProjectID: project, SnapshotID: snapshot, Lens: LensDraftNodes{AuthSessionID: session, Nodes: make([]LensDocumentPlan, 0, len(tasks))}}
+	config := LensDraftConfig{QueueClass:"batch",ProjectID: project, SnapshotID: snapshot, Lens: LensDraftNodes{AuthSessionID: session, Nodes: make([]LensDocumentPlan, 0, len(tasks))}}
 	seen := map[uuid.UUID]bool{}
 	var output int64
 	for _, task := range tasks {

@@ -7,7 +7,8 @@ import pytest
 from psycopg import errors
 
 
-def test_qualification_import_is_maintenance_only_and_operator_fenced(db):
+@pytest.mark.parametrize("p95,stored", [(20,20),(20.25,21),(0,None)])
+def test_qualification_import_is_maintenance_only_and_operator_fenced(db,p95,stored):
     operator = db.execute("INSERT INTO photo.users(email_normalized) VALUES(%s) RETURNING id",
                           ('qualification-operator@example.test',)).fetchone()[0]
     tenant = db.execute("INSERT INTO photo.tenants(name,owner_user_id,quotas,retention) "
@@ -33,7 +34,7 @@ def test_qualification_import_is_maintenance_only_and_operator_fenced(db):
                   device_profile_sha=device, dataset_sha=dataset,
                   input_fixture_shas=[fixture],
                   checks=[dict(id='quality', passed=True, evidence_sha=evidence)],
-                  metrics=dict(p50_ms=10, p95_ms=20, peak_vram_bytes=0,
+                  metrics=dict(p50_ms=min(10,p95), p95_ms=p95, peak_vram_bytes=0,
                                peak_rss_bytes=0, scratch_bytes=0), status='passed',
                   issuer_id=str(operator), created_at='2026-09-01T00:00:00Z')
     body = json.dumps(report, sort_keys=True, separators=(',', ':')).encode()
@@ -56,9 +57,15 @@ def test_qualification_import_is_maintenance_only_and_operator_fenced(db):
         replay = db.execute(statement, args).fetchone()[0]
         assert replay == qualification
     db.execute('RESET ROLE')
-    row = db.execute("SELECT trusted_import,backend,report_sha FROM "
+    row = db.execute("SELECT trusted_import,backend,report_sha,measured_p95_ms FROM "
                      "photo.model_qualifications WHERE id=%s", (qualification,)).fetchone()
-    assert row == (True, 'cuda', sha)
+    assert row == (True, 'cuda', sha, stored)
+    assert db.execute('SELECT count(*) FROM photo.model_qualifications WHERE tenant_id=%s AND report_artifact_id=%s',(tenant,artifact)).fetchone()==(1,)
+    assert db.execute("SELECT count(*) FROM photo.audit_log WHERE tenant_id=%s AND action='v2_qualification.imported' AND resource_id=%s",(tenant,qualification)).fetchone()==(1,)
+    # Imported timing remains part of immutable report identity, including NULL.
+    with pytest.raises(errors.ObjectNotInPrerequisiteState), db.transaction():
+        db.execute('UPDATE photo.model_qualifications SET measured_p95_ms=42 WHERE id=%s',(qualification,))
+    assert db.execute('SELECT measured_p95_ms FROM photo.model_qualifications WHERE id=%s',(qualification,)).fetchone()==(stored,)
     db.execute("UPDATE photo.v2_qualification_policies SET admission_enabled=true "
                "WHERE operation='identity.compare' AND operation_version='1'")
     with db.transaction():

@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "Admitted V27 physical tenant purge and tenant cancellation drain correction",
+  "whole_module_accepted": false,
+  "physical_purge_named_case_passed": true,
+  "migration_head": "00974",
+  "production_code_changed": true,
+  "production_sql_changed": true,
+  "production_go_changed": false,
+  "production_migrations_applied": false,
+  "migration": {
+    "path": "backend/db/migrations/00974_tenant_deletion_cancellation_drain.sql",
+    "sha256": "9352ca052cb485acd31ec9b6b66f4d57dbe07ab91452311a8a096e04838426a2",
+    "forward_only": true,
+    "registered": true,
+    "old_migrations_unchanged": true,
+    "function_oid_owner_acl_preserved_by_upgrade_test": true
+  },
+  "source_manifest": "v27-admitted-purge-source-current.json",
+  "source_manifest_sha256": "7e163ae62b6db872deda2ce6a72287ebd4b31f050beb250552a308a0f7801fea",
+  "source_files": 4843,
+  "checks": {
+    "fresh_upgrade_goose_markers": {
+      "tests": "9",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "18.232",
+      "evidence": "tenant-deletion-drain-upgrade-goose-current.xml"
+    },
+    "admitted_physical_purge": {
+      "case": "test_admitted_native_chain_physical_tenant_purge",
+      "status": "passed",
+      "time": "205.006",
+      "evidence": "v27-admitted-purge-00974-current.xml"
+    },
+    "combined_purge_and_legacy_loaded_goose": {
+      "tests": "8",
+      "failures": "1",
+      "errors": "0",
+      "skipped": "0",
+      "time": "207.753",
+      "status": "failed",
+      "reason": "Process loaded prior native Goose harness requiring password; corrected separate fresh/repeat Goose suite passed9."
+    },
+    "worker_matrix": {
+      "migration_head": "00973",
+      "tests": 19,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "evidence": "v27-target-budget-matrix-current.xml",
+      "not_relabelled_as_00974": true
+    },
+    "docs": {
+      "semantic_tests": 55,
+      "static_checks": 2267,
+      "deterministic_regeneration": "passed"
+    }
+  },
+  "imaging_preservation": {
+    "files": 544,
+    "changed": 0
+  },
+  "production_go_preservation": {
+    "files": 1357,
+    "changed": 0
+  },
+  "diagnostics": [
+    "Owner-seeded deletion initially refused while native runs active; test changed to authenticated production API SQL request/replay and real scheduler cancellation.",
+    "Head00973 real request left8 active native runs; four-state reproduction moved only queued to cancelling.00974 includes draft/running/waiting_review and repairs existing queued/running deletion jobs.",
+    "Upgrade revision expectation corrected to2/2/3/3, preserving exact increments and stable replay.",
+    "First staged runner accidentally included intentionally forbidden Down; subsequent Up-only rollback probe passed.",
+    "The combined physical run retains its failed legacy-loaded Goose case; no full combined PASS claimed."
+  ],
+  "evidence_sha256": {
+    "tenant-deletion-drain-before-current.xml": "d2abf5d8084e6158fcb151ca81afae772e843b7ed72c2407bf397366e22c8233",
+    "tenant-deletion-drain-staged-current.xml": "f78d40c19ade642fae46fb934b1493b5fc8e0fdcf431d8fc36e80338535df2dc",
+    "tenant-deletion-drain-upgrade-goose-current.xml": "61c828b561f9ef53587ab34ff7c546065e444ef4f113c207db5f2f3bae6842cb",
+    "v27-admitted-purge-current.xml": "c0bd707fb6d0902ddcf3f0aeec1fd73a6cffd34cdebabacabf20d2f3047fb271",
+    "v27-admitted-purge-final-current.xml": "8f45efd5a87761e7e767fe84b6fa635fd4493c296a7ecc382473654e5470224b",
+    "v27-admitted-purge-00974-current.xml": "21de8ca39185556d1b2d5c5163a7d077b4dff5179c85dbd94e40b6e03207833a"
+  },
+  "limitations": [
+    "Native successful producers use declared model/qualification doubles, not GPU/photo-quality acceptance.",
+    "This is tenant-wide physical cleanup after admitted native outputs, not per-artifact GC race acceptance.",
+    "No full browser/native, independent restart/redelivery, retry-to-success/OOM/fallback, independent qualification or5000-target acceptance.",
+    "Worker19-case matrix was executed before00974; not repeated/relabelled on current head.",
+    "Whole V27 and V20-V32 acceptance remain open."
+  ]
+}

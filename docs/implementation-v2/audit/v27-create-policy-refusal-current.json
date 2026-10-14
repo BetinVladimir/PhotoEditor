@@ -1,0 +1,36 @@
+{
+  "module_accepted": false,
+  "recovery": {
+    "go_checkpoint_exact": true,
+    "python_checkpoint_exact": true,
+    "native_bootstrap_delta": "only previously authorized ensureSkin replay regression; removal gives exact full integration source pin"
+  },
+  "verification": {
+    "restored_ordinary_and_native": {
+      "passed": 2,
+      "deselected": 14,
+      "seconds": 46.91
+    },
+    "new_service_ambiguity_and_ordinary_commit_replay": {
+      "passed": 1,
+      "deselected": 15,
+      "seconds": 17.92
+    },
+    "default_package": {
+      "status": "PASS",
+      "seconds": 1.975
+    }
+  },
+  "current_source_sha256": {
+    "backend/internal/semanticproposal/publication_integration_test.go": "2669db8e27b1d4bd83de633441dbf2704300c6c1103e198aed0253f34918d7d5",
+    "tests/integration/test_v27_semantic_intent_publication.py": "3c3946a6733b0391abd38817568354329893f7add52e84bd3fe205b6c0db727a",
+    "backend/internal/semanticproposal/create_service.go": "207bc867c9f0ee8b072b02a50837a44064286bb34c6ecb7adfdddf1b25413670",
+    "backend/internal/semanticproposal/transfer_policy_selection.go": "2dd87ef2a9f8ad34fb31d0f5196878b8d63dca3bd78ce3fc855a7f6488260e33"
+  },
+  "remaining": [
+    "service positive end-to-end admission",
+    "configuration loader and HTTP installation",
+    "native producer creation integration",
+    "whole V27 acceptance"
+  ]
+}

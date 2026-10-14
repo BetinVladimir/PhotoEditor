@@ -38,7 +38,11 @@ func (s SQLLearningEvaluateRootSource) Load(ctx context.Context,
 		(contract != "WorkingImage" && contract != "FrozenRecipe" &&
 			contract != "MaskRef" && contract != "FaceObservations" &&
 			contract != "CandidateProfile" && contract != "Calibration" &&
-			contract != "ConsentSnapshot") {
+			contract != "ConsentSnapshot" &&
+			contract != "FrozenDefectHoldoutEvidence" &&
+			contract != "FrozenDustHoldoutEvidence") {
+		// Portrait detail is intentionally routed through a dedicated reader
+		// until its current producer and mask inventory are reauthorized.
 		return nil, FrozenRootProvenance{}, ErrInvalidTrainingDraft
 	}
 	var found v2input.Ref
@@ -63,6 +67,16 @@ func (s SQLLearningEvaluateRootSource) Load(ctx context.Context,
 	if found != ref || bucket != s.Bucket {
 		return nil, FrozenRootProvenance{}, ErrInvalidTrainingDraft
 	}
+	if contract == "FrozenDefectHoldoutEvidence" &&
+		(role != "v23_defect_holdout" || object.Bytes > 1<<20 ||
+			object.ContentType != "application/json") {
+		return nil, FrozenRootProvenance{}, ErrInvalidTrainingDraft
+	}
+	if contract == "FrozenDustHoldoutEvidence" &&
+		(role != "v23_dust_holdout" || object.Bytes > 1<<20 ||
+			object.ContentType != "application/json") {
+		return nil, FrozenRootProvenance{}, ErrInvalidTrainingDraft
+	}
 	object.SHA256 = found.SHA256
 	provenance.Role = role
 	body, err := ReadFrozenRootDocument(ctx, s.Objects, object, ref)
@@ -72,6 +86,9 @@ func (s SQLLearningEvaluateRootSource) Load(ctx context.Context,
 func ReadFrozenRootDocument(ctx context.Context,
 	reader LearningEvaluateObjectReader, object objectstore.Object,
 	ref v2input.Ref) ([]byte, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	if reader == nil || !validManifestRef(ref) || object.SHA256 != ref.SHA256 ||
 		object.Key == "" || object.VersionID == "" || object.VersionID == "null" ||
 		object.ContentType != "application/json" || object.Bytes < 2 ||
@@ -80,6 +97,16 @@ func ReadFrozenRootDocument(ctx context.Context,
 	}
 	stream, err := reader.Open(ctx, object)
 	if err != nil {
+		if stream != nil {
+			_ = stream.Close()
+		}
+		return nil, err
+	}
+	if stream == nil {
+		return nil, ErrInvalidTrainingDraft
+	}
+	if err := ctx.Err(); err != nil {
+		_ = stream.Close()
 		return nil, err
 	}
 	body, readErr := io.ReadAll(io.LimitReader(stream, 8388609))
@@ -87,7 +114,13 @@ func ReadFrozenRootDocument(ctx context.Context,
 	if readErr != nil {
 		return nil, readErr
 	}
-	if closeErr != nil || ctx.Err() != nil || int64(len(body)) != object.Bytes {
+	if closeErr != nil {
+		return nil, closeErr
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if int64(len(body)) != object.Bytes {
 		return nil, ErrInvalidTrainingDraft
 	}
 	sum := sha256.Sum256(body)

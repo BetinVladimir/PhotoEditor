@@ -1,0 +1,47 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "recorded_at": "2026-10-08T01:59:32.280771+00:00",
+  "scope": "editor accepted semantic ticket to resolved review client route",
+  "sources": {
+    "apps/photographer/src/semantic-run-link.tsx": "fae749a75a21a663d70185bd0cff7d11715a8d1e4e57b49cc33567df81594b52",
+    "apps/photographer/src/semantic-run-link.test.tsx": "56c82737c709bd8f57c12af12d9694347e61451c0945f651e695a3ccd26be791",
+    "apps/photographer/src/run-route.dom.test.tsx": "dc59a1483ba1c0e1f75f64177e354107c6ca9dd024a94a75a853f4cb28c815d9",
+    "apps/photographer/app/runs/[id].tsx": "42d2218bc44c0db591729b75d8e5667eb038ee9a22dc68813556a3c25100dd7d",
+    "apps/photographer/app/editor/[version].tsx": "464633149e07fdb357659c50745904fe775faa5089985f5a93ff0744e61105f7",
+    "locales/en/common.json": "7ec9517cc2ecd19a955c9661b5dfd0a4a8fb0ad3f65d8cf46ece4b13ccefe037",
+    "locales/ru/common.json": "002c7db6c47b21f759c0c06178a09109a498405d8dd0b6b4ca07693811e7e686",
+    "locales/bg/common.json": "54a2e7df974ca79774274ba859cfc228acbe67dfaecd9d31d282c5a5aee746ba",
+    "docs/implementation-v2/v27-run-intent-resolution.md": "49ef82ccfb2941dd456a436065105eee12928e81129e9f7dd734ccfc53af85eb"
+  },
+  "checks": [
+    {
+      "command": "npm --prefix apps/photographer test -- --reporter=dot",
+      "exit_code": 0,
+      "passed": 418,
+      "skipped": 7,
+      "files_passed": 86,
+      "files_skipped": 5,
+      "seconds": 25.07
+    },
+    {
+      "command": "npm --prefix apps/photographer run typecheck",
+      "exit_code": 0
+    }
+  ],
+  "behavior": [
+    "foreground sequential polling and background abort/revalidation",
+    "exact accepted run/workflow and monotonic bigint revision",
+    "immutable non-null intent across errors and refresh",
+    "private navigation removed on failed read",
+    "real route DOM navigation uses independent intent id",
+    "terminal polling stops without endless preparation message"
+  ],
+  "limitations": [
+    "real browser/native flow not verified",
+    "physical post-assembly non-null resolver still unverified",
+    "generic run URL without semanticWorkflow does not auto-discover semantic workflow",
+    "OpenAPI catalog synchronization pending",
+    "producer orchestration/restart persistence/full module acceptance remain open"
+  ]
+}

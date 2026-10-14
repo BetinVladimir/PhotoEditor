@@ -1,0 +1,68 @@
+{
+  "params": {
+    "schema_version": 1,
+    "base": {
+      "asset_version_id": "06488617-ac21-4fac-bc98-26a2941a2efc",
+      "canvas_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "source": {
+        "artifact_id": "bd238789-063e-4ddd-af6d-8d87a5252479",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    "strength": 1,
+    "film_base_rgb": [
+      0.8,
+      0.5,
+      0.2
+    ],
+    "calibration": {
+      "artifact_id": "0249010a-2706-41e4-8807-cd9f68248a2c",
+      "sha256": "20e53f632ac26ab1e3e04c3398448aed17ebc53785dd95944ef658b8af98058c"
+    },
+    "exposure_ev": 0
+  },
+  "calibration": "{\"density_matrix\":[[1,0,0],[0,1,0],[0,0,1]],\"density_offset\":[0,0,0],\"density_range\":[1,1,1],\"input_icc_sha\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"qualification\":{\"artifact_id\":\"b09cdc4d-5a3f-4e2e-a2ce-3b08e4f5a29f\",\"sha256\":\"3f6c63f577ab1d9c6cfd08e31724cacc9b7e128e4a0a065aeae2ef480cd6d48c\"},\"schema_version\":1}",
+  "report": "{\"checks\":[{\"evidence_sha\":\"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\",\"id\":\"identity\",\"passed\":true}],\"created_at\":\"2026-10-07T00:00:00Z\",\"dataset_sha\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"device_profile_sha\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"input_fixture_shas\":[\"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"issuer_id\":\"16a1d8df-b9f5-4a80-bbe3-8931f2c68f23\",\"metrics\":{\"p50_ms\":1,\"p95_ms\":2,\"peak_rss_bytes\":1024,\"peak_vram_bytes\":0,\"scratch_bytes\":1024},\"model_lock_sha\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"operation\":\"optical.negative\",\"runtime_lock_sha\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"schema_version\":1,\"status\":\"passed\",\"version\":\"1\"}",
+  "pin": {
+    "policy_id": "f3605295-f24b-437c-9484-4b4c4ee8c708",
+    "qualification_id": "ac4ce2b9-5913-462a-be59-db3750e3aaec",
+    "policy_sha": "7e508b1553a1edffe808a4c0881d843682be27320c28cdff6f31b65abb92c5fb",
+    "report": {
+      "artifact_id": "b09cdc4d-5a3f-4e2e-a2ce-3b08e4f5a29f",
+      "sha256": "3f6c63f577ab1d9c6cfd08e31724cacc9b7e128e4a0a065aeae2ef480cd6d48c"
+    },
+    "calibration": {
+      "artifact_id": "0249010a-2706-41e4-8807-cd9f68248a2c",
+      "sha256": "20e53f632ac26ab1e3e04c3398448aed17ebc53785dd95944ef658b8af98058c"
+    },
+    "model_lock_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "runtime_lock_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "device_profile_sha": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "dataset_sha": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "issuer_id": "16a1d8df-b9f5-4a80-bbe3-8931f2c68f23",
+    "backend": "cpu"
+  },
+  "locks": {
+    "operation": "optical.negative",
+    "backend": "cpu",
+    "model_lock_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "runtime_lock_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "device_profile_sha": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "dataset_sha": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "issuer_id": "16a1d8df-b9f5-4a80-bbe3-8931f2c68f23",
+    "required_checks": [
+      "identity"
+    ],
+    "test_fixture_shas": [
+      "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    ],
+    "calibration_shas": [
+      "20e53f632ac26ab1e3e04c3398448aed17ebc53785dd95944ef658b8af98058c"
+    ],
+    "evidence_shas": [
+      "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    ],
+    "license_cleared": true,
+    "version": "1"
+  }
+}

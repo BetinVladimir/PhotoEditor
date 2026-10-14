@@ -85,3 +85,24 @@ def test_inference_clamps_each_correction_coordinate():
         1.0, -0.223144, 0.223144, -0.223144, 0.15, -0.15)
     with pytest.raises(ValueError, match='INVALID_CANDIDATE_PROFILE'):
         predict_delta(model, (0.0,) * 11)
+
+
+@pytest.mark.parametrize('stop_after_fit', [0, 1, 17])
+def test_fit_observes_activity_before_between_and_after_folds(monkeypatch, stop_after_fit):
+    from photo_worker.operations.learning import model
+    rows = examples()
+    # Fixture has four train sessions:16 CV solves followed by one final fit.
+    fits = 0
+    original = model._fit
+    def fit(*args):
+        nonlocal fits
+        result = original(*args)
+        fits += 1
+        return result
+    def active():
+        if fits >= stop_after_fit:
+            raise RuntimeError('lease no longer active')
+    monkeypatch.setattr(model, '_fit', fit)
+    with pytest.raises(RuntimeError, match='lease no longer active'):
+        model.fit_delta_model(rows, WEIGHTS, SCALES, check_active=active)
+    assert fits == stop_after_fit

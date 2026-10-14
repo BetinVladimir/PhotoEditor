@@ -1,0 +1,48 @@
+{
+  "generated_at": "2026-10-08T16:27:38.862005+00:00",
+  "status": "implementing",
+  "module": "V27",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "go_packages": [
+      "photoeditor/backend/internal/workflow",
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/semanticproposal",
+      "photoeditor/backend/internal/v2input"
+    ],
+    "physical_fixture": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 47.524
+    },
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "target face blocked begin and pending replay for landmarks/parse",
+    "original parent/target entry/canonical detector/qualification/Params/policy transaction barriers",
+    "independent SQL checks draft/blocked/unsealed and absent registered inputs",
+    "independent versioned S3 Params digest/length and image binding"
+  ],
+  "limitations": [
+    "No target face registration, dedicated admission/seal, worker execution, finish or automatic recovery yet",
+    "No new migration; existing generic blocked admission only",
+    "No revocation races of target face begin verified in this slice",
+    "ML doubles; shared immutable WorkingImage; no GPU/image quality or whole-module acceptance"
+  ],
+  "sha256": {
+    "backend/internal/semanticproposal/native_target_face_params.go": "4751d8d1134f4f29e94d925213e569a2331a3d306590260be17160e140e2c0c9",
+    "backend/internal/semanticproposal/native_target_face_transport.go": "4e718900c93d1029d74ad6850ff6b22246da2fbada9713b95b36b19d12534659",
+    "backend/internal/semanticproposal/native_target_face_begin.go": "0d74241d64243e4310132c86e2541999938ff1d1f8890f1ac340037daa5e3b86",
+    "backend/internal/semanticproposal/native_target_face_wire_probe_test.go": "90b140e3ec05c33b0c8d50eeb137dd38175623c248f4fee5d4116d56af4f02c3",
+    "backend/internal/semanticproposal/native_target_face_task.go": "76fdf5b67da5aca8bd757b0b55ef6911dab80d5b8f4fbcf4dd3b8cfb1bcb68cc",
+    "backend/internal/semanticproposal/native_target_face_plan.go": "0dd57813922b51a988815dd29f8eee47bbec9b87e7f2c60c0b1d260d1e9699e4",
+    "backend/internal/semanticproposal/native_face_draft_begin.go": "06c31d932da81aa1c95e94b95b894bc3a4dcd752f0c30795ac6b8d40a562d0b2",
+    "backend/internal/semanticproposal/native_target_detector_wire_probe_test.go": "62ce2aff6b6f4a4181664d39cd1742ae125bb7ad29077e2a3d790f4e682b2b3c",
+    "tests/integration/test_v27_semantic_intent_publication.py": "61c86a87822b9a02abea3def46ad696ac3ea9abbeb7db67ee81adabdf1e7045a",
+    "tests/integration/v27_face_wire_probe.py": "ebe6cce876384e17f32eab83e79b0f3057d007fda76af2522d6d06c1f5f0d61a",
+    "docs/implementation-v2/15-execution-contracts.md": "c6b4a93611fce5549410222a8613f057ac5511fc88a369cd2697bb7bf03a2e49",
+    "docs/implementation-v2/audit/v27-target-face-begin-wire-current.xml": "9158d8cb192e85e78ac227655b93b1b10da25fdd7bd6f856013156fbd4deaaed",
+    "docs/implementation-v2/audit/v27-target-face-begin-go-current.jsonl": "d2cd5680e237fa57294009bdfe5b52b96cd29cf8b1db5c1599e2b944b3909e49"
+  }
+}

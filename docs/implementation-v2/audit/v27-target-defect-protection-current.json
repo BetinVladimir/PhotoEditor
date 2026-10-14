@@ -1,0 +1,74 @@
+{
+  "generated_at": "2026-10-08T19:45:44.067455+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "dirty_tree_hash": "addbaebcb6dd633dce277ab42a4029ad4a3f066e8c1cbf1abffc690d19cbd0e1",
+  "contracts_hash": "f40c37bf44cdf379c1b12e9ba6c0a99460df18728be6e3c1d7ab41985d54a798",
+  "checks": {
+    "sql": {
+      "result": "PASS",
+      "tests": 23,
+      "seconds": 57.222
+    },
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 334.292
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/v2draft",
+      "photoeditor/backend/internal/v2input",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "00959 scheduler-only target MaskRef provenance registration and exact immutable root consumer lock; API-only authorized root pin lookup",
+    "Existing insert-only semantic_native_protections registry, existing purge/GC coverage, no new DELETE privileges",
+    "Exact namespace publication of original report.protection without pixel or geometry changes",
+    "Automatic target advance integrates publication, registration, full physical read and SQL root-version barrier",
+    "Six registration substitutions, seven consumer substitutions, revoked register/read/lock refusal, restored-session replay",
+    "Independent S3 SHA/root equality to report, exact completed event/outbox and released quota, no duplicate artifacts/drafts/registry rows",
+    "00899→00959 upgrade60 migrations preserves existing data/OID/owner/ACL"
+  ],
+  "attempts": [
+    {
+      "result": "FAIL",
+      "seconds": 623.37,
+      "reason": "Pre-optimization fixture600s context deadline during additional protection probe",
+      "evidence": "v27-target-defect-protection-wire-preoptimization.xml"
+    },
+    {
+      "result": "PASS",
+      "seconds": 334.292,
+      "reason": "Redundant complete reread after pure Build removed; same600s fixture context; before/after external IO checks retained"
+    }
+  ],
+  "limitations": [
+    "All-native target transfer compiler/admission/recovery and original parent handoff remain required",
+    "Fresh-process Recover/ProcessOne/crash coverage remains required",
+    "Whole V27 module/browser/scale/cancel/purge/GC/deadletter/real-photo/GPU acceptance remains open",
+    "Upstream ML doubles; actual CPU defects worker and DB/S3/mTLS",
+    "No production migration"
+  ],
+  "sha256": {
+    "backend/db/migrations/00959_v27_target_defect_protection_registration.sql": "f7c246976c7a34de96b92d3f9816160eb02ad4e937eb7ba10e6f2e27e43747b3",
+    "backend/internal/semanticproposal/native_target_defect_protection.go": "012b128a255a07ea6ddf9784437fc406cd18558a8640f30824615c27e79a3531",
+    "backend/internal/semanticproposal/native_target_defect_protection_probe_test.go": "ff0dd5eea2b2bd3a2bc242706c11b23da4d7e67f623f9e36a362a85da1fea6f5",
+    "backend/internal/semanticproposal/native_target_defect_advance.go": "6498eb6e2e24a91b121ced7e070336e25a0e092f1d69fe9f48f33ee82c5f497a",
+    "backend/internal/semanticproposal/native_target_defect_advance_probe_test.go": "a258d1aa937f490595dd6b6d01a2b09e3eab286df47c3dd9daefef5076431d8e",
+    "tests/integration/test_v27_person_migration_upgrade.py": "bd4e80b970eb8a7ffe1479b372429f485290cb7a7a52ac262382271dad44fa1a",
+    "tests/integration/test_v27_semantic_intent_publication.py": "2d1c0dff71f7ae565da51e2d562126e4577f2f7857b7af5223e838f41d88c273",
+    "tests/integration/v27_face_wire_probe.py": "cf4fcb4b3354b457c5b6e0620eea24173663b27a420de1634c82726982bb4d58",
+    "docs/implementation-v2/03-database.md": "0919e402fc8001d39b50675f83057ae4796e7c5af86426d34f32497d7ff43614",
+    "docs/implementation-v2/15-execution-contracts.md": "f3ecf84677cb21b695dc379869dac234ab96cfdd8bfca63a5541f01cd23b2de3",
+    "docs/implementation-v2/audit/v27-target-defect-protection-go-current.jsonl": "9fc237fad7af441468a19c26a9d04863d5ba8394ce3762aa27fed64f96f45710",
+    "docs/implementation-v2/audit/v27-target-defect-protection-sql-current.xml": "d8eff24870d479752ed0a63b55f3173c5054ac4ab4f47d23366cbbefc48837aa",
+    "docs/implementation-v2/audit/v27-target-defect-protection-wire-current.xml": "5d5c5fbcdbab03bbcaf5fdb75e20f10b607e9eef496d8fe77e064bff3dfca5d9",
+    "docs/implementation-v2/audit/v27-target-defect-protection-wire-preoptimization.xml": "66dc8176aeca0a359f773f57e861d82ccf2bf9484c41fff98b19e813582ae0bb",
+    "docs/implementation-v2/audit/v27-target-defect-protection-source-current.json": "1eff82e7ac2358ecd577bff243cb0171e410acbce92cbc74ae02f563c07f577c"
+  }
+}

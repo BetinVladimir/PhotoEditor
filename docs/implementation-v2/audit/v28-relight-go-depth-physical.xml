@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="2.959" timestamp="2026-10-09T14:36:46.813887+03:00" hostname="Mac"><testcase classname="tests.integration.test_v28_relight_go_depth_reader" name="test_go_relight_depth_reader_real_sql_and_original_object" time="1.867"><failure message="assert (None is not None)">database = &lt;isolated PostgreSQL configuration&gt;
+lens_objects = (&lt;minio.api.Minio object at 0x12347c310&gt;, 'native-lens-98cdb67ca06c42f8b1ca33b9830b4ae0')
+tmp_path = PosixPath('/Users/freelancer/Documents/PhotoEditor/work/relight-go-depth-physical-20261009/test_go_relight_depth_reader_r0')
+
+    def test_go_relight_depth_reader_real_sql_and_original_object(database,lens_objects,tmp_path):
+        client,bucket=lens_objects
+        def source_builder(artifact,original_sha):
+            image=json.loads((ROOT/'backend/internal/review/testdata/working-images-python.json').read_text())[0]
+            image['canvas'].update(width=5,height=5,source_sha256=original_sha,space_id='oriented')
+            pixel=artifact('a'*64,role='working_rgb',media='application/octet-stream')
+            image['pixels']=dict(artifact_id=str(pixel),sha256='a'*64)
+            return canonical_bytes(image)
+        with psycopg.connect(**database) as setup:
+&gt;           seed=fixture(setup,snapshot_authority=True,source_builder=source_builder)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/integration/test_v28_relight_go_depth_reader.py:26: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/integration/test_v27_semantic_final_producer_gate.py:40: in fixture
+    source=artifact(source_sha,role='working_image',body=source_body)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+digest = '8657d0594e5f02e78251399471d8c3074a0397c68111d4c6f1fb3b8e8a19da60'
+task = None, media = 'application/json', role = 'working_image'
+body = b'{"alpha":null,"canvas":{"height":5,"orientation":1,"source_sha256":"666666666666666666666666666666666666666666666666...aaaaaaaaaa"},"transform_chain":{"hash":"4430e7786edc0f8419f02e909c15422ebf572287a58132d8f6f33250ce053121","steps":[]}}'
+
+    def artifact(digest,task=None,media='application/json',role=None,body=None):
+        value=uuid4()
+        bucket,version,size='fixture','v1',2
+        if body is not None:
+            from io import BytesIO
+&gt;           assert qualification_objects is not None and isinstance(body,bytes)
+E           assert (None is not None)
+
+tests/integration/test_v27_semantic_final_producer_gate.py:16: AssertionError</failure></testcase></testsuite></testsuites>

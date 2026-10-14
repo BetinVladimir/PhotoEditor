@@ -24,6 +24,10 @@ def fixture(strength=0,nonzero=False):
         def evidence(self,ref):return self.rows[ref]
         def staged_outputs(self):return {ref for ref,evidence in self.rows.items() if evidence.source=='output'}
         def read_json(self,ref,limit):return self.payloads[ref]
+        def iter_bytes(self,ref,limit):
+            payload=self.payloads[ref]
+            for offset in range(0,len(payload),65536):
+                yield payload[offset:offset+65536]
     r=Reader();fake={'artifact_id':uuid4(),'sha256':'a'*64}
     image=WorkingImage(pixels=fake,alpha=None,dtype='float32',canvas=Canvas(width=3,height=2,orientation=1,space_id='source',source_sha256='b'*64),color=ColorSpace(profile_id='linear_srgb_v1',encoding='linear',icc_sha256='c'*64),transform_chain=TransformChain.create([]))
     source=r.add(image,'input');binding=VersionBinding(asset_version_id=uuid4(),source=source.__dict__,canvas_hash=canonical_hash(image.canvas))
@@ -44,6 +48,12 @@ def test_identity_uses_exact_zero_mask_bytes_and_bound_params():
     r,params,root,source=fixture(strength=.5)
     with pytest.raises(AdoptionInvalid,match='NOT_IDENTITY'):verify_lens_identity(r,params,root)
     r,params,root,source=fixture(nonzero=True)
+    with pytest.raises(AdoptionInvalid,match='MASK_NONZERO'):verify_lens_identity(r,params,root)
+    r,params,root,source=fixture()
+    result=ImageResult.model_validate_json(r.payloads[root])
+    mask=MaskRef.model_validate_json(r.payloads[ArtifactRef(result.changed_mask.artifact_id,result.changed_mask.sha256)])
+    pixels=ArtifactRef(mask.artifact.artifact_id,mask.artifact.sha256)
+    tampered=bytearray(r.payloads[pixels]);tampered[-1]=1;r.payloads[pixels]=bytes(tampered)
     with pytest.raises(AdoptionInvalid,match='MASK_NONZERO'):verify_lens_identity(r,params,root)
     r,params,root,source=fixture();r.payloads[params]=b'{}'
     with pytest.raises(AdoptionInvalid,match='BYTES_INVALID'):verify_lens_identity(r,params,root)

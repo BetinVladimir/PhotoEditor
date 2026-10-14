@@ -3,7 +3,9 @@ package v2draft
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/google/uuid"
+	"io"
 	"os"
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/canonical"
@@ -60,6 +62,11 @@ func TestRegionResolverExpandsScopedStyleAndSource(t *testing.T) {
 	if err != nil || len(entries) != 4 {
 		t.Fatalf("closure %v %v", entries, err)
 	}
+	resolver.Objects = nilRegionObjectReader{}
+	if partial, err := resolver.ResolveRegionInputs(context.Background(), auth.Identity{}, uuid.New(), binding, style, CorrectionVector{}); !errors.Is(err, v2input.ErrInvalid) || len(partial) != 0 {
+		t.Fatal("nil object stream must fail without partial inputs", partial, err)
+	}
+	resolver.Objects = f
 	parentChecked := false
 	for _, node := range f.calls {
 		if node.Ref == lut {
@@ -81,4 +88,11 @@ func TestRegionResolverExpandsScopedStyleAndSource(t *testing.T) {
 	if _, err = resolver.ResolveRegionInputs(context.Background(), auth.Identity{}, uuid.New(), binding, style, CorrectionVector{}); err == nil {
 		t.Fatal("changed style bytes admitted")
 	}
+}
+
+// A dependency returning no stream must not panic or authorize a partial closure.
+type nilRegionObjectReader struct{}
+
+func (nilRegionObjectReader) Open(context.Context, objectstore.Object) (io.ReadCloser, error) {
+	return nil, nil
 }

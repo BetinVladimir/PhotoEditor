@@ -7,6 +7,7 @@ import (
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/v2input"
+	"reflect"
 )
 
 // RecoverInputs resumes publication/registration for an existing immutable
@@ -47,8 +48,31 @@ func (c RenderDraftCoordinator) prepareRecoveredInputs(ctx context.Context, tena
 			return nil, nil, err
 		}
 		node := recovered.Node
-		entries, err := ResolveRenderInputs(ctx, who, tenant, recovered.Evidence.Recipe.Scalars.Source, node.Params, []byte(node.ParamsJCS), []byte(node.SourceJCS), c.Resolver)
+		evidence, err := resolveRenderClosureEvidence(ctx, RenderDraftRequest{
+			Tenant: tenant, Actor: who, Binding: recovered.Evidence.Recipe.Scalars.Source, RecipeRef: node.Params,
+			RecipeRaw: []byte(node.ParamsJCS), SourceRaw: []byte(node.SourceJCS), LayerRaw: []byte(node.LayerJCS), LayerDocuments: node.LayerDocuments,
+		}, c.Resolver)
 		if err != nil {
+			return nil, nil, err
+		}
+		entries, documents := evidence.Entries, evidence.Documents
+		if !reflect.DeepEqual(evidence.Occurrences, node.ClosureOccurrences) {
+			return nil, nil, v2input.ErrExpired
+		}
+		if len(node.ClosureDocuments) > 0 {
+			if len(documents) != len(node.ClosureDocuments) {
+				return nil, nil, v2input.ErrInvalid
+			}
+			for i := range documents {
+				if documents[i] != node.ClosureDocuments[i] {
+					return nil, nil, v2input.ErrExpired
+				}
+			}
+		}
+		if err := validateRenderLayerInventory(node.LayerDocuments, entries); err != nil {
+			return nil, nil, err
+		}
+		if err := validateRenderClosureDocuments(node.ClosureDocuments, entries); err != nil {
 			return nil, nil, err
 		}
 		digest, err := canonical.Hash(struct {

@@ -1,0 +1,26 @@
+{
+  "schema_version": "restore-task-outbox-golden/v1",
+  "domain": "photoeditor.restore-task-outbox/v1\n",
+  "rows": [
+    {
+      "payload": {"z": 1e-7, "label": "Café 🎞", "a": [true, null, 9007199254740991]},
+      "routing_key": "photo.restore",
+      "destination": "tasks",
+      "event_id": "00000000-0000-0000-0000-0000000000c9",
+      "tenant_id": "00000000-0000-0000-0000-000000000064",
+      "id": "00000000-0000-0000-0000-000000000001"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000002",
+      "tenant_id": "00000000-0000-0000-0000-000000000064",
+      "event_id": "00000000-0000-0000-0000-0000000000ca",
+      "destination": "tasks",
+      "routing_key": "",
+      "payload": {"nested": {"b": -0.0, "a": "é"}, "int": 1000000.0}
+    }
+  ],
+  "canonical_lines": [
+    "{\"destination\":\"tasks\",\"event_id\":\"00000000-0000-0000-0000-0000000000c9\",\"id\":\"00000000-0000-0000-0000-000000000001\",\"payload\":{\"a\":[true,null,9007199254740991],\"label\":\"Café 🎞\",\"z\":1e-7},\"routing_key\":\"photo.restore\",\"tenant_id\":\"00000000-0000-0000-0000-000000000064\"}\n",
+    "{\"destination\":\"tasks\",\"event_id\":\"00000000-0000-0000-0000-0000000000ca\",\"id\":\"00000000-0000-0000-0000-000000000002\",\"payload\":{\"int\":1000000,\"nested\":{\"a\":\"é\",\"b\":0}},\"routing_key\":\"\",\"tenant_id\":\"00000000-0000-0000-0000-000000000064\"}\n"
+  ]
+}

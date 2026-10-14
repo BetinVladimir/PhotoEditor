@@ -1,0 +1,30 @@
+// @vitest-environment jsdom
+import {afterEach,expect,it,vi} from 'vitest';
+import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
+vi.mock('react-native',async()=>import('react-native-web'));
+const memory=vi.hoisted(()=>new Map<string,string>());
+vi.mock('@react-native-async-storage/async-storage',()=>({default:{getItem:async(key:string)=>memory.get(key)??null,setItem:async(key:string,value:string)=>{memory.set(key,value);},removeItem:async(key:string)=>{memory.delete(key);}}}));
+import {EditorLocalPortrait} from './editor-local-portrait';
+import type {OwnerAPI} from './owner-api';
+const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+const ref=(n:number)=>({artifact_id:id(n),sha256:'a'.repeat(64)});
+const base={asset_version_id:id(1),source:ref(2),canvas_hash:'b'.repeat(64)};
+const pair={mask:ref(4),protected:ref(5),target_pixel:ref(6),protected_pixel:ref(7)};
+afterEach(()=>{cleanup();memory.clear();});
+it('submits server-prepared hair choices with exact manual producer pair',async()=>{
+ const ticket={run_id:id(20),workflow_id:id(21),task_id:id(22),state:'queued' as const};
+ const prepareLocalPortrait=vi.fn(async(_project:string,body:unknown,_key:string)=>body);
+ const submitLocalPortrait=vi.fn(async(_project:string,_body:unknown,_key:string)=>ticket);
+ const api={me:vi.fn(async()=>({id:id(30)})),v2Binding:vi.fn(async()=>base),createRenderInputSnapshot:vi.fn(async()=>({id:id(17)})),localPortraitMaskPairs:vi.fn(async()=>({items:[pair],next_cursor:null})),prepareLocalPortrait,submitLocalPortrait,get:vi.fn(async()=>({run_id:ticket.run_id,workflow_id:ticket.workflow_id}))} as unknown as OwnerAPI;
+ const onSubmitted=vi.fn();render(<EditorLocalPortrait api={api} origin="https://photo.test" tenant={id(32)} project={id(33)} asset={id(34)} version={base.asset_version_id} hairAvailable clothingAvailable onSubmitted={onSubmitted}/>);
+ const option=await screen.findByRole('radio',{name:'Mask pair 1'});
+ await waitFor(()=>expect(option.getAttribute('aria-disabled')).not.toBe('true'));
+ fireEvent.click(option);
+ fireEvent.click(screen.getByRole('button',{name:'Review local portrait request'}));
+ const submit=await screen.findByRole('button',{name:'Prepare and submit'});
+ await waitFor(()=>expect(submit.getAttribute('aria-disabled')).not.toBe('true'));
+ fireEvent.click(submit);
+ await waitFor(()=>expect(onSubmitted).toHaveBeenCalledWith(ticket));
+ expect(prepareLocalPortrait.mock.calls[0][1]).toMatchObject({operation:'portrait.hair',params:{mask:pair.mask,protected:pair.protected},target_pixel:pair.target_pixel,protected_pixel:pair.protected_pixel});
+ expect(prepareLocalPortrait.mock.calls[0][2]).toBe(submitLocalPortrait.mock.calls[0][2]);
+});

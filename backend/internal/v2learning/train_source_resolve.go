@@ -47,6 +47,20 @@ func (f SQLTrainingCaseFactory) ForCandidate(start TrainingStart,
 	reader := v2draft.Service{DB: f.API, Objects: f.Objects,
 		Bucket: f.Bucket}
 	return TrainingCaseAssembler{
+		PortraitDetail: SQLTrainingPortraitDetailPreparer{
+			DB: f.Scheduler, Catalog: catalog, Objects: f.Objects,
+			Producer: SQLPortraitDetailObjects{DB: f.Scheduler,
+				Objects: f.Objects, Bucket: f.Bucket},
+			Masks: SQLPortraitDetailMaskObjects{DB: f.Scheduler,
+				Objects: f.Objects, Bucket: f.Bucket}},
+		ReviewedDust: SQLTrainingReviewedDustPreparer{
+			DB: f.Scheduler, Catalog: catalog, Objects: f.Objects,
+			Reviews: SQLReviewedDustObjects{DB: f.Scheduler,
+				Objects: f.Objects, Bucket: f.Bucket}},
+		ReviewedDefects: SQLTrainingReviewedDefectPreparer{
+			DB: f.Scheduler, Catalog: catalog, Objects: f.Objects,
+			Reviews: SQLReviewedDefectObjects{DB: f.Scheduler,
+				Objects: f.Objects, Bucket: f.Bucket}},
 		Documents: SQLTrainingDocumentSource{DB: f.Scheduler,
 			Objects: f.Objects, Bucket: f.Bucket,
 			ProjectID: start.ProjectID},
@@ -56,6 +70,11 @@ func (f SQLTrainingCaseFactory) ForCandidate(start TrainingStart,
 		Images:      TrainingImageSource{Catalog: catalog, Objects: f.Objects},
 		Descriptors: TrainingDescriptorSource{Reader: reader},
 		Faces:       TrainingFacesSource{Catalog: catalog, Objects: f.Objects},
+		Backgrounds: TrainingBackgroundSource{Catalog: catalog, Objects: f.Objects, Assets: v2draft.SQLBackgroundAssetResolver{DB: f.API, Bucket: f.Bucket}},
+		Regions: TrainingRegionSource{Catalog: catalog, Objects: f.Objects, Selector: TrainingMaskSelector{
+			Roots:  SQLTrainingMaskRoots{DB: f.Scheduler},
+			Reader: ScopedTrainingMaskRootReader{Catalog: catalog, Objects: f.Objects},
+			Masks:  TrainingMaskSource{Catalog: catalog, Objects: f.Objects, Provenance: SQLTrainingMaskProvenance{DB: f.Scheduler}}}},
 		Protection: TrainingMaskSelector{
 			Roots: SQLTrainingMaskRoots{DB: f.Scheduler},
 			Reader: ScopedTrainingMaskRootReader{Catalog: catalog,

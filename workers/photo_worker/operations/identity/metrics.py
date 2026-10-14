@@ -8,6 +8,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from math import hypot, isfinite
 from uuid import UUID
+from typing import Callable
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -39,8 +40,10 @@ class PixelGuards:
 
 def measure_pixel_guards(before: np.ndarray, after: np.ndarray,
                          effective_mask: np.ndarray,
-                         protected: np.ndarray, *, tile: int = 512) -> PixelGuards:
+                         protected: np.ndarray, *, tile: int = 512,
+                         check_active: Callable[[], None] = lambda: None) -> PixelGuards:
     """Measure every aligned pixel; any positive protected weight is strict."""
+    check_active()
     shape = before.shape
     if (len(shape) != 3 or shape[2] not in (3, 4) or
             shape[0] < 1 or shape[1] < 1 or shape[0] * shape[1] > 200_000_000 or
@@ -50,6 +53,7 @@ def measure_pixel_guards(before: np.ndarray, after: np.ndarray,
     outside_error = protected_error = 0.0
     for y in range(0, shape[0], tile):
         for x in range(0, shape[1], tile):
+            check_active()
             sl = np.s_[y:y + tile, x:x + tile]
             source = np.asarray(before[sl])
             result = np.asarray(after[sl])
@@ -70,6 +74,7 @@ def measure_pixel_guards(before: np.ndarray, after: np.ndarray,
             if np.any(protected_pixels):
                 protected_error = max(protected_error,
                                       float(np.max(difference[protected_pixels])))
+    check_active()
     return PixelGuards(outside_error, protected_error)
 
 

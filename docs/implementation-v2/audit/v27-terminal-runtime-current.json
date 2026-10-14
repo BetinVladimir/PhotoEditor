@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 actual ProcessOne terminal original-stage recovery",
+  "whole_module_accepted": false,
+  "migration_head": "00970",
+  "production_code_changed": true,
+  "production_migrations_applied": false,
+  "source_manifest": "v27-terminal-runtime-source-current.json",
+  "source_manifest_sha256": "d96eb9bea565c6db8f85e1df9167d3a4b2a5e82535c58299fc6ca07b816fd136",
+  "source_files": 4828,
+  "checks": {
+    "broad_selected_integration": {
+      "tests": 156.0,
+      "failures": 0.0,
+      "errors": 0.0,
+      "skipped": 0.0,
+      "time": 764.819
+    },
+    "native_extended_success": {
+      "tests": 1.0,
+      "failures": 0.0,
+      "errors": 0.0,
+      "skipped": 0.0,
+      "time": 464.869
+    },
+    "cancellation_locks_upgrade_and_goose": {
+      "tests": 11.0,
+      "failures": 0.0,
+      "errors": 0.0,
+      "skipped": 0.0,
+      "time": 42.412
+    },
+    "strengthened_authenticated_api_cancel": {
+      "tests": 2.0,
+      "failures": 0.0,
+      "errors": 0.0,
+      "skipped": 0.0,
+      "time": 12.207
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/httpapi",
+      "photoeditor/backend/internal/semanticreview",
+      "photoeditor/backend/internal/workflow",
+      "photoeditor/backend/internal/run",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "docs": {
+      "semantic_tests": 55,
+      "static_checks": 2267,
+      "deterministic_regeneration": "passed"
+    }
+  },
+  "extended_native_flags": [
+    "PHOTO_TEST_V27_NATIVE_ALL_TARGET_MIXED_REGISTRATION",
+    "PHOTO_TEST_V27_NATIVE_ALL_TARGET_HANDOFF_LOCKS",
+    "PHOTO_TEST_V27_NATIVE_ALL_TARGET_HANDOFF",
+    "PHOTO_TEST_V27_NATIVE_ALL_TARGET_JOB",
+    "PHOTO_TEST_V27_NATIVE_ALL_TARGET_FIRST",
+    "PHOTO_TEST_V27_NATIVE_ALL_TARGET_LOAD",
+    "PHOTO_TEST_V27_NATIVE_ALL_TARGET_ADMIT",
+    "PHOTO_TEST_V27_NATIVE_ALL_TARGET_TRANSFER",
+    "PHOTO_TEST_V27_TARGET_DEFECT_ADVANCE",
+    "PHOTO_TEST_V27_TARGET_SKIN_ADVANCE",
+    "PHOTO_TEST_V27_TARGET_SKIN_PLAN",
+    "PHOTO_TEST_V27_TARGET_FACE_FINISH",
+    "PHOTO_TEST_V27_TARGET_FACE_EXECUTE",
+    "PHOTO_TEST_V27_TARGET_FACE_PLAN",
+    "PHOTO_TEST_V27_TARGET_DETECTOR_FINISH",
+    "PHOTO_TEST_V27_TARGET_DETECTOR_EXECUTE",
+    "PHOTO_TEST_V27_TARGET_DETECTOR_SEAL",
+    "PHOTO_TEST_V27_TARGET_DETECTOR_REGISTER",
+    "PHOTO_TEST_V27_TARGET_DETECTOR_DRAFT",
+    "PHOTO_TEST_V27_TARGET_PERSON_ADVANCE",
+    "PHOTO_TEST_V27_TARGET_PERSON_FINISH",
+    "PHOTO_TEST_V27_TARGET_PERSON_EXECUTE",
+    "PHOTO_TEST_V27_TARGET_PERSON_SEAL",
+    "PHOTO_TEST_V27_TARGET_PERSON_DRAFT",
+    "PHOTO_TEST_V27_PERSON_DEFECT_PARENT",
+    "PHOTO_TEST_V27_PERSON_DEFECT_FRESH",
+    "PHOTO_TEST_V27_ORIGINAL_PERSON"
+  ],
+  "quality_preservation": {
+    "workers_src_baseline_files": 544,
+    "changed": 0,
+    "real_photo_quality_accepted": false
+  },
+  "verified": [
+    "Authenticated original terminal observer binds deterministic run/workflow/task/node, single-task schema/version, project/actor/session/request/source/intent/snapshot.",
+    "Healthy/pending rows return no terminal operation; foreign session/parent refuse. Real-role direct calls deny non-API application roles.",
+    "Person cancellation uses authenticated run.Service.Cancel; detector uses task-local request; production cancel_idle_task performs cancellation.",
+    "Actual ProcessOne records failed under a live lease, clears token, retires checkpoint and refuses reclaim/late selection; no transport publication or semantic parent.",
+    "Recorder independently rechecks terminal state and locks stage/run/task rows until transaction release. Distinct writer receives55P03 then executes same UPDATE after release in rollback control.",
+    "Successful all-target mixed-registration/recovery/handoff and default V27/semantic regressions pass under00970.",
+    "Populated00899\u219200970 upgrade preserves tenant rows and old function OID/owner/ACL/security except reviewed recorder body. Observer API-only; no new table/DML grants."
+  ],
+  "remaining": [
+    "Unsealed original person draft cancellation: current terminal observer requires sealed stage; implement and verify draft case.",
+    "Worker-reported failure distinct from cancellation; full target-producer terminal progression and retry state matrix.",
+    "Actual browser/native whole-module flows, GC/purge/object deletion, OS restart/redelivery and scale.",
+    "Real-photo/GPU/model qualification and full V27/V20\u2013V32 acceptance."
+  ],
+  "limitations": [
+    "156 default selected integration scenarios;333 deselected. Extended native is a separate1-scenario flag set, not all optional combinations.",
+    "Inference/qualification remain explicit doubles; no real model/GPU acceptance.",
+    "Lock writer proof is a metadata UPDATE plus rollback, not real retry/GC.",
+    "Working tree source pins include tracked/untracked source; no isolated release commit."
+  ]
+}

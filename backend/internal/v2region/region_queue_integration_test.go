@@ -38,7 +38,7 @@ func TestIntegrationDisabledRegionQueueStopsBeforePreparation(t *testing.T) {
 	resolver := &regionInventoryResolver{}
 	params := &regionParamsFixture{}
 	closure := &regionTransportPublisher{}
-	queue := QueueService{DB: pool, Profiles: profile, Resolver: resolver, Params: params, Closure: closure}
+	queue := QueueService{Preparation: Service{}, DB: pool, Scheduler: pool, Profiles: profile, Resolver: resolver, Params: params, Closure: closure}
 	who := auth.Identity{UserID: uuid.New(), SessionID: uuid.New()}
 	// Preparation deliberately has no object service. Reaching it returns invalid,
 	// proving unavailable is decided by the live SQL gate before any preparation.

@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "scope": "local_cpu_preparation_only",
+  "status": "measured",
+  "date": "2026-10-07",
+  "operation": "portrait.clothing",
+  "width": 3000,
+  "height": 2000,
+  "input_pattern": "waves",
+  "seconds": 3.01422162502422,
+  "process_peak_rss_bytes": 1254113280,
+  "os": "Darwin",
+  "python": "3.11.3",
+  "numpy": "2.4.6",
+  "admitted_estimate": {
+    "output_bytes": 129554432,
+    "pixel_count": 6000000,
+    "ram_bytes": 2936870912,
+    "scratch_bytes": 451108864,
+    "vram_bytes": 0
+  },
+  "production_acceptance": false,
+  "previous_attempt": {
+    "schema_version": 1,
+    "scope": "local_cpu_preparation_only",
+    "status": "not_run_insufficient_repository_disk",
+    "attempted_dimensions": [
+      [
+        3000,
+        2000
+      ],
+      [
+        1500,
+        1000
+      ]
+    ],
+    "available_bytes_at_followup": 260313088,
+    "production_acceptance": false
+  }
+}

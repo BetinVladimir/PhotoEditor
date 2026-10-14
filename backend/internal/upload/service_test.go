@@ -15,13 +15,28 @@ import (
 type multipartFake struct {
 	mu                    sync.Mutex
 	begins, aborts, signs int
+	beginErr              error
+	beginID               string
 }
 
 func (f *multipartFake) BeginMultipart(context.Context, string, string) (string, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.begins++
+	if f.beginErr != nil {
+		return "", f.beginErr
+	}
+	if f.beginID != "" {
+		return f.beginID, nil
+	}
 	return "multipart-token", nil
+}
+func (f *multipartFake) BeginCaptureMultipart(ctx context.Context, tenant, upload uuid.UUID, mediaType string) (string, error) {
+	key, err := objectstore.StagingKey(tenant, upload)
+	if err != nil {
+		return "", err
+	}
+	return f.BeginMultipart(ctx, key, mediaType)
 }
 func (f *multipartFake) AbortMultipart(context.Context, string, string) error {
 	f.mu.Lock()

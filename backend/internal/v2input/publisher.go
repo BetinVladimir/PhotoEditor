@@ -16,9 +16,10 @@ type DocumentPublisher interface {
 // ordinal has a separate durable reservation, so retries cannot overwrite a
 // prior chunk; the V2 SQL functions authenticate task/run scope.
 type ScopedPublisher struct {
-	Documents DocumentPublisher
-	Tenant    uuid.UUID
-	Run       uuid.UUID
+	Documents     DocumentPublisher
+	Tenant        uuid.UUID
+	Run           uuid.UUID
+	AssemblyLease uuid.UUID
 }
 
 func (p ScopedPublisher) Publish(ctx context.Context, task uuid.UUID, ordinal int, contract string, body []byte) (Ref, error) {
@@ -41,7 +42,7 @@ func (p ScopedPublisher) Publish(ctx context.Context, task uuid.UUID, ordinal in
 		return Ref{}, ErrInvalid
 	}
 	ref, err := p.Documents.Publish(ctx, artifactjson.Scope{
-		Tenant: p.Tenant, Run: p.Run, Owner: task, Purpose: purpose,
+		Tenant: p.Tenant, Run: p.Run, Owner: task, Purpose: purpose, AssemblyLease: p.AssemblyLease,
 	}, body)
 	if err != nil {
 		return Ref{}, err

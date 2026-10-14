@@ -1,0 +1,51 @@
+{
+  "generated_at": "2026-10-08T18:27:41.678247+00:00",
+  "status": "implementing",
+  "module": "V27",
+  "package_id": "V27",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 78.57
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/v2draft",
+      "photoeditor/backend/internal/semanticproposal",
+      "photoeditor/backend/internal/v2input"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "Target-specific transport publication/binding after committed blocked child",
+    "Live original target anchor, physical target dependencies and CPU qualification bracket object IO",
+    "Exact immutable publication replay and binding; malformed manifest/chunk refs, count and digest refuse",
+    "Valid-looking foreign locator produces distinct serialization only; no ownership/admission authority granted",
+    "Independent SQL/S3 verifies every manifest/chunk version/SHA/size, exact chunk refs and ordered entries",
+    "Zero task input registration and zero queued outbox; revoked publication refuses and restored replay passes"
+  ],
+  "limitations": [
+    "Dedicated SQL target registration/ownership gate is not implemented yet; binding alone grants no authority",
+    "Seal/native worker/result/finalization/saved recovery and original transfer handoff remain required",
+    "No fresh-process Recover, GPU/photo-quality qualification or whole V27 acceptance",
+    "No SQL changes or production migration"
+  ],
+  "notes": [
+    "Initial run failed on PostgreSQL disk exhaustion before target transport; only repo Go build cache was cleared with go clean -cache",
+    "A test incorrectly expected pure binding to reject a valid foreign UUID; corrected to assert distinct serialization and preserve mandatory future SQL ownership gate"
+  ],
+  "sha256": {
+    "backend/internal/semanticproposal/native_target_defect_transport.go": "b013f205f5519ec6f5abd671e789b545dfa1611a8a9658ab94e97b4c333023ac",
+    "backend/internal/semanticproposal/native_target_defect_registration_binding.go": "85b46ed810010734c7b40de64cc8f83db098ef79035232db3280d6dc9f5ddbe2",
+    "backend/internal/semanticproposal/native_target_defect_transport_probe_test.go": "15cde10f73a833b91ec5219b019655bb03fb2067ef6a94cd88916fa502e1cdb1",
+    "backend/internal/semanticproposal/native_target_defect_dependency_probe_test.go": "7072a62b86327f0cf863acee9f63b9320e6aa823e4b4bee2b00cb71dfa04103e",
+    "tests/integration/test_v27_semantic_intent_publication.py": "0aa3421f9acd772a8b69884d62eb7535214f5b76c8bf6ce9811f0e5879336f3c",
+    "tests/integration/v27_face_wire_probe.py": "c240b00b6a6c824bae31305df2d8bef4f684f8a9835cac9fad07f5b598ce4d68",
+    "docs/implementation-v2/15-execution-contracts.md": "e38b119009fdb7104cbf493d47f688133f38b8d831887883325b106df2f35fc4",
+    "docs/implementation-v2/audit/v27-target-defect-transport-wire-current.xml": "48a3c0633d5cc80525ced36c2868ce6548d616cdd2ab311909063e2d35ec0ca9",
+    "docs/implementation-v2/audit/v27-target-defect-transport-go-current.jsonl": "003167659fa6cffb7830e27051f191edf14758d233713c75d6a56cd7f35e0012"
+  }
+}

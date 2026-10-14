@@ -1,0 +1,21 @@
+import {readSemanticChildStatus} from './semantic-child';
+import {readFileSync} from 'node:fs';
+import {it,expect,vi} from 'vitest';
+import {decodeSemanticTargets} from './semantic';
+import {closeSemanticReview,type SemanticReviewClose} from './semantic-close';
+const captured=process.env.PHOTO_TEST_V27_TARGETS_RESPONSE_FILE;
+it.skipIf(!captured)('decodes the completed target HTTP response from the real Apply fixture',async()=>{
+ const fixture=JSON.parse(readFileSync(captured!,'utf8')) as {tenant:string;intent:string;response:unknown;close_request:SemanticReviewClose;close_response:unknown;child_status:unknown};
+ const result=decodeSemanticTargets(fixture.response,fixture.tenant,fixture.intent);
+ expect(result.items).toHaveLength(1);expect(result.items[0].data.state).toBe('applied');
+ expect(result.items[0].data.child_run_id).not.toBeNull();expect(result.items[0].document).not.toBeNull();
+ expect(typeof result.items[0].revision).toBe('string');
+ const childRequest=vi.fn().mockResolvedValue(fixture.child_status);
+ const child=await readSemanticChildStatus({request:childRequest},fixture.tenant,result.items[0].data.child_run_id!);
+ expect(child.status).toBe('completed');expect(child.progress).toBe(1);
+ const request=vi.fn().mockResolvedValue(fixture.close_response);
+ const closed=await closeSemanticReview({request},fixture.tenant,fixture.intent,fixture.close_request,'physical-close-review');
+ expect(closed.state).toBe('completed');
+ expect(closed.revision).toBe((BigInt(fixture.close_request.expected_revision)+1n).toString());
+ expect(request).toHaveBeenCalledWith(`/api/v1/tenants/${fixture.tenant}/semantic-intents/${fixture.intent}/close-review`,expect.objectContaining({method:'POST',idempotencyKey:'physical-close-review',body:fixture.close_request}));
+});

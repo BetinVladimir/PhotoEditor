@@ -2,10 +2,8 @@
 from __future__ import annotations
 
 from contextlib import ExitStack
-import numpy as np
 
-from photo_worker.algorithms.background import (alpha_u16, asset_geometry, contact_shadow,
-                                                effective_alpha, render_asset_tile, solid, transparent)
+from .prepare import prepare_background
 from photo_worker.contracts.background import ComposeParams, ComposeReport
 from photo_worker.contracts.base import canonical_bytes
 from photo_worker.contracts.images import WorkingImage
@@ -32,8 +30,6 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts) -> OperationResult:
         background = artifacts.contract(params.background, WorkingImage) if params.background else None
         if background is not None and (background.dtype != "float32" or background.color != image.color or background.alpha is not None):
             raise ValueError("BACKGROUND_ASSET_INVALID")
-        geometry = asset_geometry(background.canvas.width, background.canvas.height, image.canvas.width, image.canvas.height,
-                                  params.asset_scale, params.position_x, params.position_y) if background else None
         required = [image.pixels, params.subject.artifact, *([image.alpha] if image.alpha else []),
                     *([background.pixels] if background else [])]
         if any(ref not in ctx.lease.command.inputs for ref in required):
@@ -55,47 +51,10 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts) -> OperationResult:
         subject = mapped(params.subject.artifact, (height, width), "float32", True)
         source_alpha = mapped(image.alpha, (height, width), "uint16") if image.alpha else None
         background_rgb = mapped(background.pixels, (background.canvas.height, background.canvas.width, 3), "float32", True) if background else None
-        shadow_radius = int(np.ceil(params.shadow_blur_fraction * max(height, width)))
-        shadow_dx = int(round(params.shadow_offset_x * width)); shadow_dy = int(round(params.shadow_offset_y * height))
-        shadow_halo = shadow_radius + max(abs(shadow_dx), abs(shadow_dy)) if params.shadow_opacity else 0
-        output_bytes = height * width * (14 if params.mode == "transparent" else 12) + 16_384
-        with artifacts.scratch.reserve(output_bytes) as reservation:
-            rgb_path = reservation.path("background-rgb", ".npy")
-            alpha_path = reservation.path("background-alpha", ".npy") if params.mode == "transparent" else None
-            rgb_out = np.lib.format.open_memmap(rgb_path, mode="w+", dtype="<f4", shape=(height, width, 3))
-            alpha_out = np.lib.format.open_memmap(alpha_path, mode="w+", dtype="<u2", shape=(height, width)) if alpha_path else None
-            try:
-                done = 0
-                for y in range(0, height, tile):
-                    for x in range(0, width, tile):
-                        ctx.check_active()
-                        sl = (slice(y, y + tile), slice(x, x + tile))
-                        alpha = effective_alpha(subject[sl], None if source_alpha is None else source_alpha[sl])
-                        if params.mode in ("solid", "asset"):
-                            backdrop = params.solid_rgb if params.mode == "solid" else render_asset_tile(
-                                background_rgb, (height, width), (y, min(y + tile, height), x, min(x + tile, width)), geometry)
-                            if params.shadow_opacity:
-                                y0, y1 = max(0, y - shadow_halo), min(height, y + tile + shadow_halo)
-                                x0, x1 = max(0, x - shadow_halo), min(width, x + tile + shadow_halo)
-                                core = (slice(y - y0, min(y + tile, height) - y0), slice(x - x0, min(x + tile, width) - x0))
-                                shade = contact_shadow(subject[y0:y1, x0:x1], shadow_radius, shadow_dx, shadow_dy,
-                                                       params.shadow_opacity, core)
-                                backdrop = np.power(np.power(np.asarray(backdrop, np.float32), np.float32(2.4)) *
-                                                      (1 - shade[..., None]), np.float32(1 / 2.4), dtype=np.float32)
-                            rgb_out[sl] = solid(rgb[sl], alpha, backdrop)
-                        else:
-                            rgb_out[sl] = transparent(rgb[sl], alpha)
-                            alpha_out[sl] = alpha_u16(alpha)
-                        done += 1
-                        ctx.progress(done, total)
-                rgb_out.flush()
-                if alpha_out is not None:
-                    alpha_out.flush()
-                reservation.validate()
-            finally:
-                rgb_out._mmap.close()
-                if alpha_out is not None:
-                    alpha_out._mmap.close()
+        with prepare_background(rgb, subject, source_alpha, background_rgb, params,
+                artifacts.scratch, check_active=ctx.check_active,
+                progress=lambda done:ctx.progress(done,total)) as prepared:
+            rgb_path,alpha_path,reservation=prepared.rgb,prepared.alpha,prepared.reservation
             pixel_ref = artifacts.stage(rgb_path, reservation, "working_rgb", "application/octet-stream")
             alpha_ref = artifacts.stage(alpha_path, reservation, "working_alpha", "application/octet-stream") if alpha_path else None
             written = rgb_path.stat().st_size + (alpha_path.stat().st_size if alpha_path else 0)

@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 from uuid import uuid4
 import numpy as np
+import pytest
 from photo_worker.runtime.scratch import ScratchSpace
 from photo_worker.v2.render_adjustments import AdjustmentPixels
 from photo_worker.v2.render_defects import prepare_defect_stage
@@ -200,3 +201,145 @@ def test_alpha_cannot_be_added_to_reviewed_opaque_image(tmp_path):
                     a.image_ref,a.image,AdjustmentPixels(rgb,np.ones(labels.shape,np.float32)),ref,proposal,review,labels,protected,
                     strength=1,protection_ref=a.protection_ref,review_ref=a.review_ref,execution_profile=profile):pass
         assert not list(scratch.directory.iterdir())
+
+
+def test_review_changed_by_artifact_callback_denied_before_repair(tmp_path):
+    import pytest
+    a,ref,proposal,review,labels,rgb,protected=fixture(tmp_path)
+    assert review.accepted_candidate_ids
+    calls=[]
+    def contract(reference,model):
+        if reference==a.image_ref:
+            review.accepted_candidate_ids.clear()
+            calls.append('review-changed')
+        return a.contract(reference,model)
+    root=tmp_path/'scratch';root.mkdir()
+    with ScratchSpace(root,uuid4(),uuid4(),1,4*1024**2,min_free_bytes=0) as scratch:
+        with pytest.raises(ValueError,match='RENDER_DEFECT_DOCUMENT_CHANGED'):
+            with prepare_defect_stage(SimpleNamespace(scratch=scratch,input=a.input,contract=contract),
+                    a.image_ref,a.image,AdjustmentPixels(rgb,None),ref,proposal,review,labels,protected,
+                    strength=1,protection_ref=a.protection_ref,review_ref=a.review_ref,
+                    execution_profile={'resource_estimate':dict(pixel_count=labels.size,ram_bytes=8*1024**3,
+                        scratch_bytes=8*1024**3,vram_bytes=0,output_bytes=8*1024**3)}):
+                pytest.fail('changed accepted review rendered')
+        assert calls==['review-changed'] and not list(scratch.directory.iterdir())
+
+
+@pytest.mark.parametrize('variant',['pass','disabled','current_changed'])
+def test_pinned_repair_params_runs_actual_accepted_layer(tmp_path,variant):
+    from photo_worker.v2.render_defects import prepare_pinned_defect_repair
+    from photo_worker.contracts.defects import DefectRepairParams
+    from photo_worker.contracts.style import Defects
+    from photo_worker.contracts.resolved import ResolvedStyle
+    a,ref,proposal,review,labels,rgb,protected=fixture(tmp_path)
+    values=a.resolved.model_dump(mode='python',exclude={'hash'})
+    values['params']=a.resolved.params.model_copy(update={'image':a.image_ref})
+    values['strength']=1.
+    values['modules']['defects']=Defects(enabled=True,algorithm='defectrepair_telea_v1',policy='review',
+        strength=1.,diameter_face_fraction=[.002,.012],preserve_permanent_marks=True)
+    if variant=='disabled':
+        from photo_worker.contracts.style import Disabled
+        values['modules']['defects']=Disabled()
+    resolved=a.add(ResolvedStyle.create(**values))
+    from photo_worker.contracts.images import MaskRef
+    mask=a.contract(a.protection_ref,MaskRef)
+    params=a.add(DefectRepairParams(image=a.image_ref,proposal=ref,review=a.review_ref,resolved=resolved,protected=mask))
+    root=tmp_path/'scratch';root.mkdir()
+    with ScratchSpace(root,uuid4(),uuid4(),1,4*1024**2,min_free_bytes=0) as scratch:
+        current=rgb.copy()
+        if variant=='current_changed':current[0,0,0]=.25
+        def prepare():
+            return prepare_pinned_defect_repair(SimpleNamespace(scratch=scratch,input=a.input,contract=a.contract),
+                params,AdjustmentPixels(current,None),protection_ref=a.protection_ref,
+                execution_profile={'resource_estimate':dict(pixel_count=labels.size,ram_bytes=8*1024**3,
+                    scratch_bytes=8*1024**3,vram_bytes=0,output_bytes=8*1024**3)})
+        if variant=='current_changed':
+            with pytest.raises(ValueError,match='RENDER_DEFECT_CURRENT_PIXELS_CHANGED'):
+                with prepare():pytest.fail('stale reviewed pixels repaired')
+        else:
+            with prepare() as result:
+                np.testing.assert_array_equal(result.pixels.rgb[labels!=2],rgb[labels!=2])
+                if variant=='pass':
+                    assert result.candidates[0].applied_pixels==9
+                    assert np.mean(result.pixels.rgb[labels==2])>.3
+                else:
+                    assert result.candidates[0].applied_pixels==0 and result.review_required
+                    np.testing.assert_array_equal(result.pixels.rgb,rgb)
+        if variant!='current_changed':
+            from photo_worker.v2.render_defects import PinnedDefectProviderFactory
+            from photo_worker.v2.render_layer_params import LoadedRenderLayer
+            from photo_worker.v2.render_layers import RenderLayer
+            from photo_worker.v2.render_adjustments import compose_render_adjustments
+            from photo_worker.v2.render_effects import RenderCombinedEffects,effect_review_required
+            layer=RenderLayer(id=uuid4(),enabled=True,opacity=1.,blend='normal',operation='defects.repair',
+                operation_version='1',params=params,mask={'type':'all'})
+            item=LoadedRenderLayer(layer,a.contract(params,DefectRepairParams),'b'*64)
+            verified=[]
+            factory=PinnedDefectProviderFactory(runtime_sha256='b'*64,
+                verify_runtime=lambda:verified.append('runtime'),validate_binding=lambda params,inputs:None,
+                protection_reference=lambda inputs:a.protection_ref)
+            providers=factory(SimpleNamespace(scratch=scratch,input=a.input,contract=a.contract),
+                SimpleNamespace(),{'resource_estimate':dict(pixel_count=labels.size,ram_bytes=8*1024**3,
+                    scratch_bytes=8*1024**3,vram_bytes=0,output_bytes=8*1024**3)},lambda:None)
+            from photo_worker.v2.render_providers import RenderLayerProviders
+            dispatch=RenderLayerProviders(providers)
+            assert dispatch.operators==(providers[0].operator,)
+            masks=SimpleNamespace(layer=lambda id,x,y,w,h:np.ones((h,w),np.float32),
+                protection=lambda x,y,w,h:protected[y:y+h,x:x+w])
+            with compose_render_adjustments(rgb,None,(item,),masks,scratch,dispatch,color=a.image.color,
+                    max_tile_bytes=4*1024**2,tile_size=256) as composed:
+                assert verified==['runtime']
+                assert len(composed.effects)==1 and composed.effects[0].layer_id==layer.id
+                assert composed.effects[0].candidates[0].applied_pixels==(9 if variant=='pass' else 0)
+                assert effect_review_required(RenderCombinedEffects(None,composed.effects))==composed.effects[0].review_required
+                np.testing.assert_array_equal(composed.rgb[labels!=2],rgb[labels!=2])
+                if variant=='pass':assert np.mean(composed.rgb[labels==2])>.3
+                else:np.testing.assert_array_equal(composed.rgb,rgb)
+        assert not list(scratch.directory.iterdir())
+
+
+def test_defect_factory_refuses_missing_protection_reference():
+    from photo_worker.v2.render_defects import PinnedDefectProviderFactory
+    factory=PinnedDefectProviderFactory(runtime_sha256='a'*64,
+        verify_runtime=lambda:None,validate_binding=lambda *args:None,
+        protection_reference=lambda inputs:None)
+    with pytest.raises(ValueError,match='PARAMS_REF_INVALID'):
+        factory(object(),object(),{},lambda:None)
+
+
+def test_defect_factory_snapshots_profile_before_reference_callback():
+    from photo_worker.v2.render_defects import PinnedDefectProviderFactory
+    from photo_worker.contracts.base import ArtifactRef
+    profile={'resource_estimate':{'ram_bytes':100}}
+    def protection(inputs):
+        profile['resource_estimate']['ram_bytes']=0
+        return ArtifactRef(artifact_id=uuid4(),sha256='b'*64)
+    factory=PinnedDefectProviderFactory(runtime_sha256='a'*64,
+        verify_runtime=lambda:None,validate_binding=lambda *args:None,
+        protection_reference=protection)
+    provider,=factory(object(),object(),profile,lambda:None)
+    assert provider.prepare.execution_profile['resource_estimate']['ram_bytes']==100
+
+
+def test_defect_layer_rejects_second_params_substitution(tmp_path):
+    from photo_worker.contracts.defects import DefectRepairParams
+    from photo_worker.contracts.images import MaskRef
+    from photo_worker.v2.render_defects import PinnedDefectLayerProposal
+    from photo_worker.v2.render_layers import RenderLayer
+    from photo_worker.v2.render_layer_params import LoadedRenderLayer
+    a,ref,proposal,review,labels,rgb,protected=fixture(tmp_path)
+    params=DefectRepairParams(image=a.image_ref,proposal=ref,review=a.review_ref,
+        resolved=a.review_ref,protected=a.contract(a.protection_ref,MaskRef))
+    params_ref=a.add(params);calls=[]
+    def contract(reference,model):
+        assert reference==params_ref and model is DefectRepairParams
+        calls.append(reference)
+        return params if len(calls)==1 else params.model_copy(update={'resolved':ref})
+    def forbidden(*args,**kwargs):raise AssertionError('Premature pixel IO')
+    callback=PinnedDefectLayerProposal(SimpleNamespace(contract=contract,input=forbidden),
+        execution_profile={},runtime_sha256='b'*64,protection_ref=a.protection_ref)
+    layer=RenderLayer(id=uuid4(),enabled=True,opacity=1,blend='normal',operation='defects.repair',
+        operation_version='1',params=params_ref,mask={'type':'all'})
+    with pytest.raises(ValueError,match='DOCUMENT_CHANGED'):
+        with callback(LoadedRenderLayer(layer,params,'b'*64),None):pass
+    assert len(calls)==2

@@ -1,0 +1,101 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "generated_at": "2026-10-08T14:40:54.969570+00:00",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "dirty_tree_hash": "1ae28ad7cc56f29380ec21c3d8a5db141cda696734973de8f08d63f5320f75ff",
+  "dirty_tree_hash_scope": {
+    "roots": [
+      "backend/",
+      "workers/",
+      "src/",
+      "apps/",
+      "packages/",
+      "tests/",
+      "scripts/",
+      "deploy/",
+      "docs/implementation-v2/contracts/"
+    ],
+    "paths": 4740,
+    "algorithm": "sorted git tracked+untracked nonignored names NUL sha256(bytes) newline; MISSING marker; excludes generated audit evidence"
+  },
+  "contracts_hash": "12f82a0da98b25b3fb70d1643e08f50166f608e37b4036c7443e7f310c50d50c",
+  "source_scope": {
+    "backend/db/migrations/00913_v27_target_preparation_entry_lock.sql": "f116edf98655ee3af63b41450f80db42ab442b9556f49d748504ba9559025b2a",
+    "backend/internal/semanticproposal/native_target_anchor.go": "fb9710593693561b734136a89dce14af03a8e4c40a03e9839570a976cefae088",
+    "backend/internal/semanticproposal/native_target_person_plan.go": "250194c0738cd31c505813aa5d9a5dac6fc382dd3ec69db7a7c97bdf20380073",
+    "backend/internal/semanticproposal/native_target_person_begin.go": "d3904f30d8fd8a160374c6c433afff5d963dcd55dbec6db9ade2c8aa5e35479d",
+    "backend/internal/semanticproposal/native_target_person_plan_test.go": "a5426ad0ec705a98e42ce719e8a33854707f5439d52f54047bc6dcdc4be8101d",
+    "backend/internal/semanticproposal/native_target_person_wire_probe_test.go": "41cb213ce877e619d72e34a9b24eefc08c448f468f796fb86987b1da96834f15",
+    "backend/internal/semanticproposal/native_target_preparation_manifest_test.go": "58809c3c13f419e7d33163c22814cd8d7219cd4f76105a93d9a2e421f0c9a9b2",
+    "backend/internal/semanticproposal/person_draft_plan_fixture_test.go": "4dd67279951393025164a58c2112c375c40795524a5559737695ca3da1a9cbd5",
+    "backend/internal/semanticproposal/native_bootstrap_integration_test.go": "d91f21495ec53301344163918c50c89f91e03357d8c701fea8ed396af5699f43",
+    "tests/integration/test_v27_target_checkpoint.py": "03bd18ff206d5e5a5067c25886ce16932c1b2a105609c4ed749e7527b5590e93",
+    "tests/integration/test_v27_person_migration_upgrade.py": "9738aab5aa4492837a2fa5b4626501df79ae52e3bf231ec415ef67986030de82",
+    "tests/integration/test_v27_semantic_intent_publication.py": "8bae1ca362d22e889a8fd9af17b6db8770e43291462ddb6b92491dc4b4f1b321",
+    "tests/integration/v27_face_wire_probe.py": "b508df66af897f5f971a41ec3d4e80b54436a4d7ef07837fbf7144093fbb2e28"
+  },
+  "checks": [
+    {
+      "command": "PHOTO_TEST_NATIVE_INFRA=1 PYTHONPATH=workers:src:tests/integration PYTHONDONTWRITEBYTECODE=1 .venv-platform/bin/python -m pytest -q tests/integration/test_v27_target_checkpoint.py tests/integration/test_v27_person_migration_upgrade.py tests/integration/test_v27_native_anchor.py tests/integration/test_v27_automatic_initial_handoff.py tests/platform/test_goose_markers.py",
+      "exit_code": 0,
+      "passed": 21,
+      "evidence": "docs/implementation-v2/audit/v27-target-entry-current.xml",
+      "evidence_sha": "a6957d1e0813a483684a1e21de5afaa83cc3ed7658eb5aebc251ebe919a73c5c"
+    },
+    {
+      "command": "PHOTO_TEST_NATIVE_INFRA=1 PHOTO_TEST_V27_TARGET_PERSON_DRAFT=1 PHOTO_TEST_V27_PERSON_DEFECT_PARENT=1 PHOTO_TEST_V27_PERSON_DEFECT_FRESH=1 PHOTO_TEST_V27_ORIGINAL_PERSON=1 PYTHONPATH=workers:src:tests/integration PYTHONDONTWRITEBYTECODE=1 .venv-platform/bin/python -m pytest -q tests/integration/test_v27_semantic_intent_publication.py -k native-person-defect-wire",
+      "exit_code": 0,
+      "passed": 1,
+      "evidence": "docs/implementation-v2/audit/v27-target-person-wire-current.xml",
+      "evidence_sha": "d00349ab4319e25bad33740c021c91abde5a78a36ac91455bf40356ad472094d"
+    },
+    {
+      "command": "scripts/run-platform.sh go -C backend test -json ./internal/semanticproposal ./internal/v2input ./internal/review",
+      "exit_code": 0,
+      "packages_passed": [
+        "photoeditor/backend/internal/semanticproposal",
+        "photoeditor/backend/internal/v2input",
+        "photoeditor/backend/internal/review"
+      ],
+      "evidence": "docs/implementation-v2/audit/v27-target-person-plan-current.jsonl",
+      "evidence_sha": "6da7a253228ea26d859396b1a35f3e3ac1c311580812605323d7de117cbb918d"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "requirements": [
+    {
+      "id": "target-entry-original-scope-authority",
+      "status": "component_verified",
+      "evidence": "fresh/upgrade00913, persisted manifest, original scope, ordinal/reference reuse, exact independently reconstructed DAG and current revocation locks"
+    },
+    {
+      "id": "target-person-qualified-physical-draft",
+      "status": "component_verified",
+      "evidence": "production factory, source pixels/ICC/report/Params, explicit execution pins, blocked begin/replay and independent SQL/S3 verification"
+    },
+    {
+      "id": "target-person-execution-and-recovery",
+      "status": "not_implemented"
+    },
+    {
+      "id": "automatic-target-orchestration",
+      "status": "not_implemented"
+    },
+    {
+      "id": "V27-whole-module",
+      "status": "not_accepted"
+    }
+  ],
+  "limitations": [
+    "Automatic Recover currently persists checkpoint and waits; target factory/begin not yet wired to automatic orchestration",
+    "No target transport registration/dedicated seal/worker execution/canonical result authority/restart recovery",
+    "Physical target fixture uses different accepted version and recipe but shared immutable WorkingImage bytes; not a distinct-photo corpus",
+    "Target draft is unsealed/blocked; no parent graph or completed receipt claimed",
+    "No actual model/GPU/quality/browser/capacity or whole module acceptance",
+    "Only isolated test databases migrated; production DB not changed"
+  ]
+}

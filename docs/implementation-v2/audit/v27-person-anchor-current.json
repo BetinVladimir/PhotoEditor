@@ -1,0 +1,54 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "recorded_at": "2026-10-08T08:37:35.113874+00:00",
+  "scope": "Standalone original person preparation anchor recovery from tenant/parent, followed by exact plan reconstruction",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "sources": {
+    "backend/internal/semanticproposal/native_input_saved_anchor.go": "bb2aef7b0cd8804cb143b22efd7e59a644bf08b09ae8ac72e6bf47d56ba4ed19",
+    "backend/internal/semanticproposal/native_input_saved_anchor_test.go": "c49fe3f1dc94101323001edb1eca7efee11d0e841ba086089dde2630ef2f934f",
+    "backend/internal/semanticproposal/native_bootstrap_integration_test.go": "554a8d1e3e5783f041336336e3ac23980dae36a44100d1273679015eb49ce7fc",
+    "backend/db/migrations/00898_v27_person_anchor_documents.sql": "46cff3195baa83a485fcc16a89b0e108dd6d76f5bb8353dfb650d591363f7bd1",
+    "tests/integration/test_v27_semantic_intent_publication.py": "2602e0a2d9eadb01e48ea6cb028dffd0a3c511769ba8320344a8dcafa5930dfc"
+  },
+  "source_manifest_unchanged_after_checks": true,
+  "checks": [
+    {
+      "command": "scripts/run-platform.sh go -C backend test ./internal/semanticproposal ./internal/v2input",
+      "exit_code": 0,
+      "seconds_semanticproposal": 1.972
+    },
+    {
+      "command": "PHOTO_TEST_NATIVE_INFRA=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=workers:src:tests/integration .venv-platform/bin/python -m pytest tests/integration/test_v27_semantic_intent_publication.py -k native-bootstrap -q --tb=short",
+      "exit_code": 0,
+      "passed": 1,
+      "deselected": 16,
+      "seconds": 37.11,
+      "required_markers": [
+        "V27_PERSON_SAVED_ANCHOR_RECONSTRUCTED_OK",
+        "V27_PERSON_SAVED_ANCHOR_REVOKED_OK",
+        "V27_PERSON_SAVED_PLAN_RECONSTRUCTED_OK",
+        "V27_PERSON_SAVED_PLAN_REVOKED_OK"
+      ]
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "behavior": [
+    "Original request key and canonical intent reconstructed from saved person config and version-pinned immutable documents.",
+    "Full request/source/session/task/profile and target inventory are rechecked.",
+    "Metadata byte budget enforced before object reads.",
+    "New read-only SECURITY DEFINER locator grants EXECUTE solely to photo_api; existing denied-role matrix includes its signature.",
+    "Fresh API pool loads identical original anchor and replays identical person child admission receipt.",
+    "Revoked original session returns neither original request nor plan.",
+    "Detector anchor path remains on its original SQL function and passes same physical scenario."
+  ],
+  "limitations": [
+    "Automatic person scheduler dispatch and public missing-person creation orchestration remain unconnected.",
+    "Operator project/color configuration and tenant/parent identity remain necessary caller inputs.",
+    "Legacy shells lacking original recovery metadata fail closed.",
+    "Physical reports are synthetic; actual model inference/quality and full V27 acceptance remain unproven."
+  ]
+}

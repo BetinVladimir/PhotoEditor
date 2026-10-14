@@ -13,4 +13,9 @@ describe("photographer route contract",()=>{
     for(const route of routeCapabilities)for(const api of route.api)
       expect(known.has(api),`${route.route}: ${api}`).toBe(true);
   });
+  it("keeps decided render selection and selected preview in the review screen inventory",()=>{
+    const review=routeCapabilities.find(value=>value.route==="/reviews/[id]");
+    expect(review?.api).toContain("GET /api/v1/tenants/{t}/reviews/{id}/render-result-selection");
+    expect(review?.api).toContain("GET /api/v1/tenants/{t}/reviews/{id}/selected-preview/{variant}");
+  });
 });

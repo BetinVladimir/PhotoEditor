@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 physical SQLLocalPortraitMaterialLoader assembly",
+  "migration_head": "00976",
+  "whole_module_accepted": false,
+  "production_code_changed": false,
+  "checks": {
+    "tests": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 23.87,
+    "xml": "v28-material-physical-current.xml"
+  },
+  "assertions": [
+    "Actual photo_api reads pinned source and actual photo_scheduler reads producer root/Params/vector documents",
+    "Material loader preserves source/root/Params/vector byte strings and original origin pins in both inline and external modes",
+    "Corrupt root and missing pinned Params reject and return zero material",
+    "On both successful modes substituted root, original Params, vectors, actor and noncanonical request all reject with zero material",
+    "Each Python scenario executes both Go physical manual-document and material-loader probes"
+  ],
+  "source_sha256": {
+    "backend/internal/v2draft/local_portrait_material.go": "2a26ac36a54f116108b1eb56b4b4405ba986950e84425d3aca8010fba249da38",
+    "backend/internal/v2draft/local_portrait_material_physical_integration_test.go": "ebb56c5dfc799359fa8422ab05f95125b1e1dded688eaa3a61b5890aebd36e9d",
+    "tests/integration/test_v28_manual_documents_physical.py": "e325475d4f34523630caa51ed6a901a52e5b467e31ac405b58680831f7142ed5"
+  },
+  "limitations": [
+    "Request constructed for material assembly; not a compiled/admitted portrait graph",
+    "Finished producer metadata seeded; no mask worker execution",
+    "Synthetic pixels and ICC refs; no image quality/model qualification",
+    "No HTTP/UI/worker/adoption whole V28 cycle"
+  ]
+}

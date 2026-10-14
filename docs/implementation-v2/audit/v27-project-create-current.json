@@ -1,0 +1,24 @@
+{
+  "module_accepted": false,
+  "scope": "project-routed full CreateService create/replay with unconfigured-project, foreign-tenant, changed-body and revoked-session refusal plus independent physical closure/quota checks",
+  "physical_result": {
+    "passed": 1,
+    "deselected": 16,
+    "seconds": 15.94
+  },
+  "package_result": {
+    "status": "PASS",
+    "seconds": 1.892
+  },
+  "source_sha256": {
+    "backend/internal/semanticproposal/project_create_service.go": "ffea3dc690c6d1b2ef632403b97895e51a0d7481f87f94b6fc6d3afa467ba6a0",
+    "backend/internal/semanticproposal/create_service.go": "c1e1219efb4ca3a16e253e0dd30bd5af7fa979f14f7c3dd9dea5b673099b65c5",
+    "backend/internal/semanticproposal/create_integration_probe_test.go": "29654954016460961947adddacde1c6488ea3eff76fedf8d0ef073dd9c77c2ed"
+  },
+  "limitations": [
+    "no HTTP installation yet",
+    "deployment configuration file loading not implemented",
+    "native missing producer initiation not integrated",
+    "module acceptance incomplete"
+  ]
+}

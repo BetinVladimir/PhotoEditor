@@ -6,7 +6,7 @@ import {sha256} from '@noble/hashes/sha2.js';
 import {bytesToHex} from '@noble/hashes/utils.js';
 import {APIError} from '@photoeditor/api-client';
 import en from '../../../locales/en/common.json';
-const mocks=vi.hoisted(()=>({api:{draft:vi.fn(),me:vi.fn(),mediaLinks:vi.fn(),capabilities:vi.fn(),saveDraft:vi.fn(),v2Draft:vi.fn(),v2Binding:vi.fn(),v2Document:vi.fn(),v2Layers:vi.fn(),saveV2Draft:vi.fn()},query:{tenant:'11111111-1111-4111-8111-111111111111',asset:'asset',version:'22222222-2222-4222-8222-222222222222'},auth:{origin:'https://editor-test',client:()=>({})},storage:new Map<string,string>()}));
+const mocks=vi.hoisted(()=>({api:{draft:vi.fn(),me:vi.fn(),mediaLinks:vi.fn(),capabilities:vi.fn(),collection:vi.fn(),styles:vi.fn(),styleVersions:vi.fn(),saveDraft:vi.fn(),v2Draft:vi.fn(),v2Binding:vi.fn(),v2Document:vi.fn(),v2Layers:vi.fn(),saveV2Draft:vi.fn()},query:{tenant:'11111111-1111-4111-8111-111111111111',asset:'asset',version:'22222222-2222-4222-8222-222222222222',collection:''},auth:{origin:'https://editor-test',client:()=>({})},storage:new Map<string,string>()}));
 vi.mock('react-native',async()=>import('react-native-web'));
 vi.mock('expo-router',()=>({useLocalSearchParams:()=>mocks.query,useRouter:()=>({push:vi.fn()})}));
 vi.mock('./auth-context',()=>({useAuth:()=>mocks.auth}));
@@ -20,7 +20,7 @@ import Editor from '../app/editor/[version]';
 const base={asset_version_id:'22222222-2222-4222-8222-222222222222',source_sha256:'a'.repeat(64),revision:'4',params:{schema_version:1,modules:{strength:1}},mask_refs:[]};
 afterEach(cleanup);
 beforeEach(()=>{
- vi.resetAllMocks();mocks.storage.clear();mocks.query.asset='asset';mocks.query.version=base.asset_version_id;
+ vi.resetAllMocks();mocks.storage.clear();mocks.query.asset='asset';mocks.query.version=base.asset_version_id;mocks.query.collection='';
  mocks.api.draft.mockResolvedValue(base);mocks.api.me.mockResolvedValue({id:'33333333-3333-4333-8333-333333333333'});
  mocks.api.mediaLinks.mockResolvedValue({items:[]});mocks.api.capabilities.mockResolvedValue({operations:[]});
 });
@@ -62,6 +62,52 @@ it('keeps a newer recipe while a save response is pending',async()=>{
  await waitFor(()=>expect([...mocks.storage.values()].some(raw=>{
   const cached=JSON.parse(raw);return cached.base.revision==='5'&&cached.local.params.modules.strength===.2;
  })).toBe(true));
+});
+
+it('ignores a late legacy save acknowledgement after switching photos',async()=>{
+ let finish!:(value:unknown)=>void;
+ const next={...base,asset_version_id:'44444444-4444-4444-8444-444444444444',source_sha256:'b'.repeat(64),params:{schema_version:1,modules:{strength:.7}}};
+ mocks.api.draft.mockImplementation(async asset=>asset==='other'?next:base);
+ mocks.api.saveDraft.mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve}));
+ const view=render(<Editor/>);
+ await waitFor(()=>expect((screen.getByLabelText('Editor recipe') as HTMLTextAreaElement).value).toContain('strength'));
+ fireEvent.click(screen.getByRole('button',{name:'Save draft'}));
+ await waitFor(()=>expect(mocks.api.saveDraft).toHaveBeenCalledTimes(1));
+ mocks.query.asset='other';mocks.query.version=next.asset_version_id;
+ view.rerender(<Editor/>);
+ await waitFor(()=>expect((screen.getByLabelText('Editor recipe') as HTMLTextAreaElement).value).toContain('0.7'));
+ await act(async()=>{finish({...base,revision:'5'})});
+ expect((screen.getByLabelText('Editor recipe') as HTMLTextAreaElement).value).toContain('0.7');
+ expect(screen.queryByText('Draft could not be saved. Check the recipe and reload if its revision changed.')).toBeNull();
+});
+
+it('keeps collection styles scoped when an older request finishes late',async()=>{
+ let finishOld!:(value:unknown)=>void;
+ mocks.query.collection='old';
+ mocks.api.collection.mockImplementation(async id=>id==='old'?await new Promise(resolve=>{finishOld=resolve}):{project_id:'new-project'});
+ mocks.api.styles.mockImplementation(async project=>({items:[{id:project,name:project}]}));
+ const view=render(<Editor/>);
+ await waitFor(()=>expect(mocks.api.collection).toHaveBeenCalledWith('old'));
+ mocks.query.collection='new';view.rerender(<Editor/>);
+ await screen.findByText('new-project');
+ await act(async()=>{finishOld({project_id:'old-project'})});
+ expect(screen.queryByText('old-project')).toBeNull();
+ expect(screen.getByText('new-project')).toBeTruthy();
+});
+
+it('keeps the latest style version choice within one collection',async()=>{
+ let finishOld!:(value:unknown)=>void;
+ mocks.query.collection='current';
+ mocks.api.collection.mockResolvedValue({project_id:'project'});
+ mocks.api.styles.mockResolvedValue({items:[{id:'first',name:'First style'},{id:'second',name:'Second style'}]});
+ mocks.api.styleVersions.mockImplementation(async id=>id==='first'?await new Promise(resolve=>{finishOld=resolve}):{items:[{id:'new-version',version_no:'2',approval_status:'accepted',export_artifact_id:'artifact'}]});
+ render(<Editor/>);
+ fireEvent.click(await screen.findByText('First style'));
+ fireEvent.click(screen.getByText('Second style'));
+ await screen.findByText('Create V2 draft · style version 2');
+ await act(async()=>{finishOld({items:[{id:'old-version',version_no:'1',approval_status:'accepted',export_artifact_id:'artifact'}]})});
+ expect(screen.queryByText('Create V2 draft · style version 1')).toBeNull();
+ expect(screen.getByText('Create V2 draft · style version 2')).toBeTruthy();
 });
 
 it('restores cached local edits against an original base and compares newer server revision',async()=>{
@@ -113,6 +159,7 @@ it('retries the same V2 layer request and key after losing the response',async()
  render(<Editor/>);await openLayers();
  fireEvent.click(screen.getByRole('button',{name:en.layers_save}));await screen.findByText(en.layers_save_retry);
  expect(screen.getByRole('button',{name:en.layers_load}).getAttribute('aria-disabled')).toBe('true');
+ await waitFor(()=>expect(screen.getByRole('button',{name:en.layers_retry_save}).hasAttribute('disabled')).toBe(false));
  fireEvent.click(screen.getByRole('button',{name:en.layers_retry_save}));await screen.findByText(en.layers_saved);
  expect(mocks.api.saveV2Draft).toHaveBeenCalledTimes(2);
  expect(mocks.api.saveV2Draft.mock.calls[1].slice(0,5)).toEqual(mocks.api.saveV2Draft.mock.calls[0].slice(0,5));

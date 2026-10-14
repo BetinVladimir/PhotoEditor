@@ -1,0 +1,52 @@
+{
+  "generated_at": "2026-10-08T17:46:33.855786+00:00",
+  "status": "implementing",
+  "module": "V27",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "sql": {
+      "result": "PASS",
+      "tests": 23,
+      "seconds": 29.34
+    },
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 69.715
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/v2draft",
+      "photoeditor/backend/internal/v2input",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "API exact target skin saved state and scheduler persisted transport reader",
+    "queued/completed target skin reconstruction from immutable Params and physical parser proof",
+    "saved CPU limits/profile preserved; exact config/input digest/task/Params equality",
+    "original plan fingerprint and sealed receipt replay reproduced",
+    "config SHA/profile/Params substitutions refuse",
+    "00899\u219200949 metadata and function identity/security preserved"
+  ],
+  "limitations": [
+    "Automatic target skin advancement and Recover hook remain open",
+    "No fresh-process crash/restart proof; target defects/transfer and full V27 acceptance remain open",
+    "Upstream ML doubles/shared WorkingImage; no GPU/photo-quality qualification",
+    "No production migration"
+  ],
+  "sha256": {
+    "docs/implementation-v2/audit/v27-target-skin-recovery-sql-current.xml": "140a2fc7afb51e28cb3019a2d98fa8db7bf2a44a638bb6cfb6cd6af1a239ede4",
+    "docs/implementation-v2/audit/v27-target-skin-recovery-wire-current.xml": "d0abeb35a8a55b065a8cbbf127a274808b4976630607e06a4d2de4d92a284f40",
+    "docs/implementation-v2/audit/v27-target-skin-recovery-go-current.jsonl": "3ca932d8d545fe527a3fb01233191b280c7014920560c5bc7dd90f83216bab84",
+    "backend/db/migrations/00949_v27_target_skin_saved_recovery.sql": "cc0055e8cebf4de77c41ceac6c6bc96b3329f16f6d647de9856886fb12594c59",
+    "backend/internal/semanticproposal/native_target_skin_recovery.go": "7a69bbf0d02f9b2be1ceda12a23a0d1bb875b4222575643ebe5fedf9e87dbf08",
+    "backend/internal/semanticproposal/native_target_skin_wire_probe_test.go": "59315c01567f20caf59bd21903b7abd7dea1fca9f0592057a99b28bb02abcac7",
+    "tests/integration/test_v27_semantic_intent_publication.py": "8d2297fcf712f4842a443b52b37c9e01c0b0915970e9a17af33b381d75d4d894",
+    "tests/integration/test_v27_person_migration_upgrade.py": "e0d9e3ea0d90c0772b42920101c49c1ee5b431013c3746c3f4fc738216925b0f",
+    "docs/implementation-v2/03-database.md": "9fab644db568f2e83ec44b4a4977ea2187e0ef9dab9441bb523000509637fe1a",
+    "docs/implementation-v2/15-execution-contracts.md": "e12f1f3bea3310c6eb26b91593ee246813f7e87dbafd32e07b3a2a69b758535e"
+  }
+}

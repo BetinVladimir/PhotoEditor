@@ -1,0 +1,52 @@
+{"Time":"2026-10-08T02:28:10.743619+03:00","Action":"start","Package":"photoeditor/backend/internal/upload"}
+{"Time":"2026-10-08T02:28:11.070382+03:00","Action":"run","Package":"photoeditor/backend/internal/upload","Test":"TestIntegrationStorageCompletionUnknownOutcome"}
+{"Time":"2026-10-08T02:28:11.070441+03:00","Action":"output","Package":"photoeditor/backend/internal/upload","Test":"TestIntegrationStorageCompletionUnknownOutcome","Output":"=== RUN   TestIntegrationStorageCompletionUnknownOutcome\n"}
+{"Time":"2026-10-08T02:28:11.070462+03:00","Action":"run","Package":"photoeditor/backend/internal/upload","Test":"TestIntegrationStorageCompletionUnknownOutcome/before"}
+{"Time":"2026-10-08T02:28:11.070463+03:00","Action":"output","Package":"photoeditor/backend/internal/upload","Test":"TestIntegrationStorageCompletionUnknownOutcome/before","Output":"=== RUN   TestIntegrationStorageCompletionUnknownOutcome/before\n"}
+{"Time":"2026-10-08T02:28:11.280398+03:00","Action":"output","Package":"photoeditor/backend/internal/upload","Test":"TestIntegrationStorageCompletionUnknownOutcome/before","Output":"--- PASS: TestIntegrationStorageCompletionUnknownOutcome/before (0.21s)\n"}
+{"Time":"2026-10-08T02:28:11.280444+03:00","Action":"pass","Package":"photoeditor/backend/internal/upload","Test":"TestIntegrationStorageCompletionUnknownOutcome/before","Elapsed":0.21}
+{"Time":"2026-10-08T02:28:11.280465+03:00","Action":"run","Package":"photoeditor/backend/internal/upload","Test":"TestIntegrationStorageCompletionUnknownOutcome/after"}
+{"Time":"2026-10-08T02:28:11.28047+03:00","Action":"output","Package":"photoeditor/backend/internal/upload","Test":"TestIntegrationStorageCompletionUnknownOutcome/after","Output":"=== RUN   TestIntegrationStorageCompletionUnknownOutcome/after\n"}
+{"Time":"2026-10-08T02:28:11.340831+03:00","Action":"output","Package":"photoeditor/backend/internal/upload","Test":"TestIntegrationStorageCompletionUnknownOutcome/after","Output":"--- PASS: TestIntegrationStorageCompletionUnknownOutcome/after (0.06s)\n"}
+{"Time":"2026-10-08T02:28:11.340904+03:00","Action":"pass","Package":"photoeditor/backend/internal/upload","Test":"TestIntegrationStorageCompletionUnknownOutcome/after","Elapsed":0.06}
+{"Time":"2026-10-08T02:28:11.340922+03:00","Action":"output","Package":"photoeditor/backend/internal/upload","Test":"TestIntegrationStorageCompletionUnknownOutcome","Output":"--- PASS: TestIntegrationStorageCompletionUnknownOutcome (0.27s)\n"}
+{"Time":"2026-10-08T02:28:11.340925+03:00","Action":"pass","Package":"photoeditor/backend/internal/upload","Test":"TestIntegrationStorageCompletionUnknownOutcome","Elapsed":0.27}
+{"Time":"2026-10-08T02:28:11.340929+03:00","Action":"run","Package":"photoeditor/backend/internal/upload","Test":"TestCompletionProcessorSettlesExpectedHashMismatch"}
+{"Time":"2026-10-08T02:28:11.340932+03:00","Action":"output","Package":"photoeditor/backend/internal/upload","Test":"TestCompletionProcessorSettlesExpectedHashMismatch","Output":"=== RUN   TestCompletionProcessorSettlesExpectedHashMismatch\n"}
+{"Time":"2026-10-08T02:28:11.341019+03:00","Action":"output","Package":"photoeditor/backend/internal/upload","Test":"TestCompletionProcessorSettlesExpectedHashMismatch","Output":"--- PASS: TestCompletionProcessorSettlesExpectedHashMismatch (0.00s)\n"}
+{"Time":"2026-10-08T02:28:11.341037+03:00","Action":"pass","Package":"photoeditor/backend/internal/upload","Test":"TestCompletionProcessorSettlesExpectedHashMismatch","Elapsed":0}
+{"Time":"2026-10-08T02:28:11.34104+03:00","Action":"run","Package":"photoeditor/backend/internal/upload","Test":"TestCompletionProcessorCommitsCanonicalIngestDocuments"}
+{"Time":"2026-10-08T02:28:11.341042+03:00","Action":"output","Package":"photoeditor/backend/internal/upload","Test":"TestCompletionProcessorCommitsCanonicalIngestDocuments","Output":"=== RUN   TestCompletionProcessorCommitsCanonicalIngestDocuments\n"}
+{"Time":"2026-10-08T02:28:11.341108+03:00","Action":"output","Package":"photoeditor/backend/internal/upload","Test":"TestCompletionProcessorCommitsCanonicalIngestDocuments","Output":"--- PASS: TestCompletionProcessorCommitsCanonicalIngestDocuments (0.00s)\n"}
+{"Time":"2026-10-08T02:28:11.341126+03:00","Action":"pass","Package":"photoeditor/backend/internal/upload","Test":"TestCompletionProcessorCommitsCanonicalIngestDocuments","Elapsed":0}
+{"Time":"2026-10-08T02:28:11.34113+03:00","Action":"run","Package":"photoeditor/backend/internal/upload","Test":"TestCompletionProcessorRecoversLostCompleteResponse"}
+{"Time":"2026-10-08T02:28:11.341134+03:00","Action":"output","Package":"photoeditor/backend/internal/upload","Test":"TestCompletionProcessorRecoversLostCompleteResponse","Output":"=== RUN   TestCompletionProcessorRecoversLostCompleteResponse\n"}
+{"Time":"2026-10-08T02:28:11.341262+03:00","Action":"output","Package":"photoeditor/backend/internal/upload","Test":"TestCompletionProcessorRecoversLostCompleteResponse","Output":"--- PASS: TestCompletionProcessorRecoversLostCompleteResponse (0.00s)\n"}
+{"Time":"2026-10-08T02:28:11.341266+03:00","Action":"pass","Package":"photoeditor/backend/internal/upload","Test":"TestCompletionProcessorRecoversLostCompleteResponse","Elapsed":0}
+{"Time":"2026-10-08T02:28:11.341269+03:00","Action":"run","Package":"photoeditor/backend/internal/upload","Test":"TestCompletionProcessorStopsBeforeStorageAfterLeaseLoss"}
+{"Time":"2026-10-08T02:28:11.34127+03:00","Action":"output","Package":"photoeditor/backend/internal/upload","Test":"TestCompletionProcessorStopsBeforeStorageAfterLeaseLoss","Output":"=== RUN   TestCompletionProcessorStopsBeforeStorageAfterLeaseLoss\n"}
+{"Time":"2026-10-08T02:28:11.341336+03:00","Action":"output","Package":"photoeditor/backend/internal/upload","Test":"TestCompletionProcessorStopsBeforeStorageAfterLeaseLoss","Output":"--- PASS: TestCompletionProcessorStopsBeforeStorageAfterLeaseLoss (0.00s)\n"}
+{"Time":"2026-10-08T02:28:11.341339+03:00","Action":"pass","Package":"photoeditor/backend/internal/upload","Test":"TestCompletionProcessorStopsBeforeStorageAfterLeaseLoss","Elapsed":0}
+{"Time":"2026-10-08T02:28:11.341341+03:00","Action":"run","Package":"photoeditor/backend/internal/upload","Test":"TestIntegrationCaptureDeviceUpload"}
+{"Time":"2026-10-08T02:28:11.341346+03:00","Action":"output","Package":"photoeditor/backend/internal/upload","Test":"TestIntegrationCaptureDeviceUpload","Output":"=== RUN   TestIntegrationCaptureDeviceUpload\n"}
+{"Time":"2026-10-08T02:28:11.383679+03:00","Action":"output","Package":"photoeditor/backend/internal/upload","Test":"TestIntegrationCaptureDeviceUpload","Output":"--- PASS: TestIntegrationCaptureDeviceUpload (0.04s)\n"}
+{"Time":"2026-10-08T02:28:11.383701+03:00","Action":"pass","Package":"photoeditor/backend/internal/upload","Test":"TestIntegrationCaptureDeviceUpload","Elapsed":0.04}
+{"Time":"2026-10-08T02:28:11.383706+03:00","Action":"run","Package":"photoeditor/backend/internal/upload","Test":"TestIntegrationBeginReservesOnceAndResumesMultipart"}
+{"Time":"2026-10-08T02:28:11.383707+03:00","Action":"output","Package":"photoeditor/backend/internal/upload","Test":"TestIntegrationBeginReservesOnceAndResumesMultipart","Output":"=== RUN   TestIntegrationBeginReservesOnceAndResumesMultipart\n"}
+{"Time":"2026-10-08T02:28:11.408457+03:00","Action":"output","Package":"photoeditor/backend/internal/upload","Test":"TestIntegrationBeginReservesOnceAndResumesMultipart","Output":"--- PASS: TestIntegrationBeginReservesOnceAndResumesMultipart (0.02s)\n"}
+{"Time":"2026-10-08T02:28:11.408491+03:00","Action":"pass","Package":"photoeditor/backend/internal/upload","Test":"TestIntegrationBeginReservesOnceAndResumesMultipart","Elapsed":0.02}
+{"Time":"2026-10-08T02:28:11.408504+03:00","Action":"run","Package":"photoeditor/backend/internal/upload","Test":"TestIntegrationConcurrentQuotaReservationHasOneWinner"}
+{"Time":"2026-10-08T02:28:11.40851+03:00","Action":"output","Package":"photoeditor/backend/internal/upload","Test":"TestIntegrationConcurrentQuotaReservationHasOneWinner","Output":"=== RUN   TestIntegrationConcurrentQuotaReservationHasOneWinner\n"}
+{"Time":"2026-10-08T02:28:11.430151+03:00","Action":"output","Package":"photoeditor/backend/internal/upload","Test":"TestIntegrationConcurrentQuotaReservationHasOneWinner","Output":"--- PASS: TestIntegrationConcurrentQuotaReservationHasOneWinner (0.02s)\n"}
+{"Time":"2026-10-08T02:28:11.430213+03:00","Action":"pass","Package":"photoeditor/backend/internal/upload","Test":"TestIntegrationConcurrentQuotaReservationHasOneWinner","Elapsed":0.02}
+{"Time":"2026-10-08T02:28:11.430222+03:00","Action":"run","Package":"photoeditor/backend/internal/upload","Test":"TestBeginValidationAndSessionRedaction"}
+{"Time":"2026-10-08T02:28:11.430238+03:00","Action":"output","Package":"photoeditor/backend/internal/upload","Test":"TestBeginValidationAndSessionRedaction","Output":"=== RUN   TestBeginValidationAndSessionRedaction\n"}
+{"Time":"2026-10-08T02:28:11.430286+03:00","Action":"output","Package":"photoeditor/backend/internal/upload","Test":"TestBeginValidationAndSessionRedaction","Output":"--- PASS: TestBeginValidationAndSessionRedaction (0.00s)\n"}
+{"Time":"2026-10-08T02:28:11.430314+03:00","Action":"pass","Package":"photoeditor/backend/internal/upload","Test":"TestBeginValidationAndSessionRedaction","Elapsed":0}
+{"Time":"2026-10-08T02:28:11.430363+03:00","Action":"run","Package":"photoeditor/backend/internal/upload","Test":"TestModerationValidation"}
+{"Time":"2026-10-08T02:28:11.430376+03:00","Action":"output","Package":"photoeditor/backend/internal/upload","Test":"TestModerationValidation","Output":"=== RUN   TestModerationValidation\n"}
+{"Time":"2026-10-08T02:28:11.43038+03:00","Action":"output","Package":"photoeditor/backend/internal/upload","Test":"TestModerationValidation","Output":"--- PASS: TestModerationValidation (0.00s)\n"}
+{"Time":"2026-10-08T02:28:11.430392+03:00","Action":"pass","Package":"photoeditor/backend/internal/upload","Test":"TestModerationValidation","Elapsed":0}
+{"Time":"2026-10-08T02:28:11.430396+03:00","Action":"output","Package":"photoeditor/backend/internal/upload","Output":"PASS\n"}
+{"Time":"2026-10-08T02:28:11.431384+03:00","Action":"output","Package":"photoeditor/backend/internal/upload","Output":"ok  \tphotoeditor/backend/internal/upload\t0.687s\n"}
+{"Time":"2026-10-08T02:28:11.431403+03:00","Action":"pass","Package":"photoeditor/backend/internal/upload","Elapsed":0.688}

@@ -126,7 +126,7 @@ func CurrentCorrection(raw []byte, binding v2input.SessionVersionBinding) (Corre
 }
 
 // ValidateCorrectionPlan requires the current source exactly once in an
-// ordinal-complete, bounded session plan. Other items belong to the same
+// ordered, bounded scene group using original snapshot ordinals. Other items belong to the same
 // project through artifact provenance checks in the catalog.
 func ValidateCorrectionPlan(raw []byte, binding v2input.SessionVersionBinding) error {
 	if len(raw) < 2 || len(raw) > maxDocumentJSON {
@@ -148,7 +148,8 @@ func ValidateCorrectionPlan(raw []byte, binding v2input.SessionVersionBinding) e
 	}
 	matched := false
 	seen := make(map[uuid.UUID]bool, len(items))
-	for ordinal, rawItem := range items {
+	previousOrdinal := -1
+	for _, rawItem := range items {
 		item, valid := exactFields(rawItem, "binding", "ordinal", "delta", "disposition", "reason")
 		if !valid || !validCorrectionVector(item["delta"]) {
 			return v2input.ErrInvalid
@@ -165,7 +166,7 @@ func ValidateCorrectionPlan(raw []byte, binding v2input.SessionVersionBinding) e
 		var disposition string
 		if json.Unmarshal(item["binding"], &source) != nil || source.AssetVersionID == uuid.Nil ||
 			!correctionDigest(source.CanvasHash) || seen[source.AssetVersionID] ||
-			json.Unmarshal(item["ordinal"], &index) != nil || index != ordinal ||
+			json.Unmarshal(item["ordinal"], &index) != nil || index < 0 || index > 4999 || index <= previousOrdinal ||
 			json.Unmarshal(item["disposition"], &disposition) != nil ||
 			(disposition != "apply" && disposition != "no_change" && disposition != "manual_locked") {
 			return v2input.ErrInvalid
@@ -183,6 +184,7 @@ func ValidateCorrectionPlan(raw []byte, binding v2input.SessionVersionBinding) e
 			}
 		}
 		seen[source.AssetVersionID] = true
+		previousOrdinal = index
 		if source == binding {
 			matched = true
 		}

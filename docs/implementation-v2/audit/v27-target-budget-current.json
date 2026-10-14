@@ -1,0 +1,60 @@
+{
+  "date": "2026-10-09",
+  "component": "V27 target retry budget exhaustion",
+  "whole_module_accepted": false,
+  "production_code_changed": false,
+  "production_migrations_applied": false,
+  "migration_head": "00973",
+  "source_manifest": "v27-target-budget-source-current.json",
+  "source_manifest_sha256": "59ad2137a45089e359630b37547bb3e4a244280f769869af4d0ddffc3923b38b",
+  "source_files": 4839,
+  "first_scenario": {
+    "tests": "1",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "time": "46.692"
+  },
+  "go_packages": [
+    "photoeditor/backend/internal/gateway",
+    "photoeditor/backend/internal/workflow",
+    "photoeditor/backend/internal/semanticproposal"
+  ],
+  "matrix": {
+    "status": "passed",
+    "tests": 19,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "time": "1173.545",
+    "evidence": "v27-target-budget-matrix-current.xml",
+    "migration_head": "00973",
+    "sha256": "00e0bd7e63897079c85cac593446b6d234b04654b46957c58207795ab6736e70",
+    "whole_module_accepted": false
+  },
+  "clock": "Production Recovery.Now injected three minutes behind real time; no persisted due/state/attempt/fence/counter patches. Not elapsed-backoff acceptance.",
+  "imaging_preservation": {
+    "files": 544,
+    "changed": 0
+  },
+  "docs": {
+    "semantic_tests": 55,
+    "static_checks": 2267,
+    "deterministic_regeneration": "passed"
+  },
+  "changed_since_live_client_source": [
+    "backend/internal/gateway/v27_worker_failure_probe_test.go",
+    "backend/internal/semanticproposal/create_person_wire_probe_test.go",
+    "docs/implementation-v2/15-execution-contracts.md",
+    "docs/implementation-v2/runtime-verification.md",
+    "tests/integration/test_v27_semantic_intent_publication.py"
+  ],
+  "limitations": [
+    "Errors injected after actual admission/dispatch/claim; successful prerequisites use declared model/qualification doubles.",
+    "Retry-to-success, OOM/fallback, independent restart/redelivery, physical GC/purge, real GPU/photo-quality, full browser/native and scale remain open."
+  ],
+  "evidence_sha256": {
+    "v27-target-budget-first-current.xml": "9194933a2962897587b455eeaad568f313bbb1897b5f2345c79ab6ba26b63c3c",
+    "v27-target-budget-go-current.jsonl": "8b059b16d069d9457b45b88244ba7fed70e880b64ec019737e6c8181dabe2926"
+  }
+}

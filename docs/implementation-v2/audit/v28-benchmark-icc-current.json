@@ -1,0 +1,87 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 benchmark ICC identity and available corpus assessment",
+  "whole_module_accepted": false,
+  "imaging_algorithms_changed": false,
+  "changes": [
+    "Pinned fixture loader verifies WorkingImage ICC SHA against actual repository ICCRegistry profile bytes"
+  ],
+  "checks": {
+    "tests": 15,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 3.05,
+    "xml": "v28-benchmark-icc-current.xml"
+  },
+  "assertions": [
+    "Wrong declared ICC SHA refuses for hair and clothing even with internally consistent manifest/file hashes",
+    "Full CLI repeats and previous path/dtype/mask/output-corruption checks pass"
+  ],
+  "source_sha256": {
+    "tools/benchmark_v28_local.py": "7b27c21d8a3db33cf9f17b515c1fea0be4fcbbcd693f17c7ed74dd578513053c",
+    "tests/platform/test_v28_local_benchmark.py": "160833067e9f745d469efa2b8021111825c5cbbc3265c86e2a12be54180bf2ec",
+    "resources/icc/profiles.lock.json": "c99cadf4ee7f870cfa4d00295c2a6fb60312a85c9e254d0458d637097e6e8029"
+  },
+  "available_jpeg_inventory": [
+    {
+      "path": "e2e/input/01_window_overexposure.jpg",
+      "width": 6000,
+      "height": 4000,
+      "mode": "RGB",
+      "embedded_icc_bytes": 0,
+      "sha256": "2d0a833cff6250051d575c7173be881ec909a5b3ddf3cadfdf4e10960d03cf5f"
+    },
+    {
+      "path": "e2e/input/02_low_light.jpg",
+      "width": 6000,
+      "height": 4000,
+      "mode": "RGB",
+      "embedded_icc_bytes": 0,
+      "sha256": "08ab67fa169f6e073aef8d9063f124ccdfeb82aa5eb68dfd48491b5cf8db1a05"
+    },
+    {
+      "path": "e2e/input/03_family_backlight.jpg",
+      "width": 6000,
+      "height": 4000,
+      "mode": "RGB",
+      "embedded_icc_bytes": 0,
+      "sha256": "d23537a9ae93addc64c06d21b3c9a46b70d71a15b9de03c073a71dc7e1ee2a31"
+    },
+    {
+      "path": "e2e/input/04_harsh_sun_shadows.jpg",
+      "width": 6000,
+      "height": 4000,
+      "mode": "RGB",
+      "embedded_icc_bytes": 0,
+      "sha256": "b004f3261a77e3ba85805de8482b63e7b76bce6a2a6075ba30ca601bb891d723"
+    },
+    {
+      "path": "e2e/input/05_mixed_light_flash.jpg",
+      "width": 6000,
+      "height": 4000,
+      "mode": "RGB",
+      "embedded_icc_bytes": 0,
+      "sha256": "4d0131d685de5b45897900c08e9bbac63fb52cb143cb6fb2e7df5cb76ca7be98"
+    },
+    {
+      "path": "e2e/input/06_seaside_sun_dress.jpg",
+      "width": 6000,
+      "height": 4000,
+      "mode": "RGB",
+      "embedded_icc_bytes": 0,
+      "sha256": "9b5501915bb404411b4420639b0813af0453c71551366850bfd8586d6e9983a2"
+    }
+  ],
+  "corpus_provenance": {
+    "source": "docs/e2e-studio-series.md section2",
+    "classification": "All6 JPEGs synthetic imagegen upscaled1536x1024 to6000x4000",
+    "usable_for": "Functional IO/memory/lighting tests",
+    "does_not_prove": "Native24MP microtexture or real-camera corpus acceptance"
+  },
+  "limitations": [
+    "No JPEG color conversion added; working pixels must already match declared profile",
+    "No native-photo corpus/human qualification or target hardware acceptance",
+    "No trusted import or positive qualified graph admission/full V28 cycle"
+  ]
+}

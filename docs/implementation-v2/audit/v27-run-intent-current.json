@@ -1,0 +1,55 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "recorded_at": "2026-10-08T01:56:06.949255+00:00",
+  "scope": "read-only parent run to semantic intent resolver; not whole-module acceptance",
+  "sources": {
+    "backend/internal/semanticreview/run_intent.go": "3221d449c3900456f25694db29621960d2f3df8a0ba0d4d7f0c11181a96cc6c4",
+    "backend/internal/semanticreview/run_intent_test.go": "071a3cf2e2284427c49715e86ae965df117875dda2bde56656945417d07f8529",
+    "backend/internal/httpapi/semantic_review.go": "60b0242cfb9eda63088be9d5dfbbf52e074cc002a367e983405e7e74945ca581",
+    "backend/internal/httpapi/semantic_review_test.go": "69deebd2eb6971b37a73869c44d89bacf731b437840c8efe6398c6646d686ebe",
+    "backend/cmd/photo/semantic_create_executable_test.go": "61066dd75de357b721b27956b322f4c0e32cb6ad76ae8bd6a224ba12e6db6172",
+    "packages/api-client/src/semantic-close.ts": "fab531402cb869c7733844f2dcedec8144de175dd3fbf71bf13dc698d1834812",
+    "packages/api-client/src/index.ts": "5a688811f17feb2e7486d4d531c801b0b7eab203fb522177de1f0c98ca486a07",
+    "packages/api-client/src/semantic-run-intent.test.ts": "a6e8d7e58255fd04342c558ea76bd8e61a94719571ffd91e800dbbade99e294b",
+    "docs/implementation-v2/v27-run-intent-resolution.md": "4702c5ef55c5d411485c3a05f6b748107ef0670c50c343b7d90829de1a0d136f"
+  },
+  "checks": [
+    {
+      "command": "go -C backend test ./internal/semanticreview ./internal/httpapi ./cmd/photo",
+      "exit_code": 0
+    },
+    {
+      "command": "npm --prefix packages/api-client test -- --reporter=dot",
+      "exit_code": 0,
+      "passed": 89,
+      "skipped": 3
+    },
+    {
+      "command": "npm --prefix packages/api-client run typecheck",
+      "exit_code": 0
+    },
+    {
+      "command": "npm --prefix apps/photographer run typecheck",
+      "exit_code": 0
+    },
+    {
+      "command": "PHOTO_TEST_NATIVE_INFRA=1 pytest tests/integration/test_v27_semantic_intent_publication.py -k create-service -q --tb=short",
+      "exit_code": 0,
+      "passed": 1,
+      "deselected": 16,
+      "seconds": 24.54
+    }
+  ],
+  "limitations": [
+    "post-assembly non-null physical resolution unverified",
+    "restricted ACL/cross-tenant full matrix not run",
+    "UI resolver not integrated",
+    "machine OpenAPI catalog synchronization pending",
+    "V27 producer orchestration and whole-module acceptance remain open"
+  ],
+  "repairs": [
+    "removed call to private v2_editor_authorized from API role; uses standard project.Authorize within tenant transaction",
+    "physical probe revision expectation corrected from draft1 to sealed admission2 after tracing SQL"
+  ]
+}

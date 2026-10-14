@@ -1,0 +1,83 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "generated_at": "2026-10-08T16:13:15.783163+00:00",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "source_scope": {
+    "backend/internal/semanticproposal/native_target_detector_advance.go": "a0c4a9693abcc3fc14eafde86fdc6233bb2dc22feeecf5ce16de68b677e9c174",
+    "backend/internal/semanticproposal/native_initial_pipeline_recovery_job.go": "96e6f4c07c970249de32fdc79cfe8fa4a9da1b9b0cd02761c5bbe9eef41b3216",
+    "backend/internal/semanticproposal/native_target_detector_wire_probe_test.go": "ed2f7d533ec187cf3c3b6c10b7bf1d39e18fe82d1bdac049bacad9890846dc94",
+    "tests/integration/test_v27_semantic_intent_publication.py": "bccad5d5d72ab83b39ef31f3b14947912de3bf4edaa53b728909445a689a5fa6",
+    "tests/integration/v27_face_wire_probe.py": "d822b98a58e908aa503a2f100a29887744c7978d189c6749352160c46048d589"
+  },
+  "checks": [
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-detector-advance-sql-current.xml",
+      "sha256": "e37faefbcf334631d30d1c47b8e527d4a2f7b636dfc18bd487c981ffbb4e3caa",
+      "exit_code": 0,
+      "tests": 21,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "seconds": 58.578
+    },
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-detector-advance-wire-current.xml",
+      "sha256": "72a8e1bfe1d2b944408a9fbe6c7c7b9d7d4212b6f13aa07b50b1ff7a2c16219e",
+      "exit_code": 0,
+      "tests": 1,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "seconds": 45.94
+    },
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-detector-advance-go-final.jsonl",
+      "sha256": "2805196d16b8e1459c9edc9e8d943724e8f385b28c30b394ac0e1ce1e316a1e1",
+      "exit_code": 0,
+      "packages_passed": [
+        "photoeditor/backend/internal/gateway",
+        "photoeditor/backend/internal/review",
+        "photoeditor/backend/internal/v2input",
+        "photoeditor/backend/internal/semanticproposal"
+      ]
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "requirements": [
+    {
+      "id": "target-detector-automatic-absent-create-publish-register-seal",
+      "status": "physical_helper_verified"
+    },
+    {
+      "id": "queued-restore-worker-execution-canonical-finish-and-completed-repeat",
+      "status": "physical_helper_verified"
+    },
+    {
+      "id": "Recover-target-person-then-target-detector-wiring",
+      "status": "compiled_not_full_process_verified"
+    },
+    {
+      "id": "current-SQL-guards-and-00899-00930-upgrade",
+      "status": "sql_verified"
+    },
+    {
+      "id": "whole-V27",
+      "status": "not_accepted"
+    }
+  ],
+  "limitations": [
+    "Physical fixture calls production advance helper under original parent lock; full fresh-process Recover/ProcessOne crash/restart not proved",
+    "Four remaining target producer stages and original semantic parent orchestration still required",
+    "Failed target/dead-letter policy remains open; failed/invalid/partial state refuses repair",
+    "Deterministic ML double/shared immutable WorkingImage; no actual GPU/photo-quality qualification",
+    "No full parallel/cancel/purge/browser/5000-target/capacity or whole-module acceptance",
+    "No new migration in this slice; only isolated test databases used"
+  ],
+  "corrected_failures": [
+    "Initial physical Go fixture passed but Python verifier expected manual-branch marker; automatic branch now requires its own marker and still runs independent SQL/S3 verification; final rerun passed"
+  ]
+}

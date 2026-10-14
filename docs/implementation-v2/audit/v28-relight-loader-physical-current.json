@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 real SQL and MinIO qualification object loader",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "tests": {
+    "passed": 8,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 11.95,
+    "xml": "v28-relight-loader-physical-current.xml"
+  },
+  "source_sha256": {
+    "tests/integration/test_v28_relight_loader_physical.py": "45fe5106ec2f2abeda6a3e6cc449f1ce9fb1e508d715b8dfdf979d4ebc57b7ec",
+    "tests/integration/test_v28_relight_lease.py": "bc65836a54a5efbc6a9fa4958d9a95a773e84e74216c203c1d43437178dbcd97"
+  },
+  "limitations": [
+    "Owner-seeded running lease and synthetic imported report/Calibration; not actual dispatcher/claim or real model/device qualification",
+    "Source/depth/subject/guard producer authority and image arrays not exercised",
+    "No public workflow/adoption/UI acceptance"
+  ]
+}

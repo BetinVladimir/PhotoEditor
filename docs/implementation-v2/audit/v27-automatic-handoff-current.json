@@ -1,0 +1,47 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "generated_at": "2026-10-08T13:15:36.967972+00:00",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "source_scope": {
+    "backend/db/migrations/00911_v27_automatic_initial_handoff.sql": "9d4e9e5e376399002de310b40ae3a561fe9e8b079f92650a216e1c81e4226108",
+    "backend/internal/semanticproposal/native_initial_pipeline_recovery_job.go": "7111c9c9ecca17c63b849b694d39b3793a1a1bbc935e0a273e24745092852ec1",
+    "tests/integration/test_v27_automatic_initial_handoff.py": "7dee24a1a4defefd73278833d6d40c208fe87f6f80e49812e12c66e4bf3f31f4",
+    "tests/integration/test_v27_person_migration_upgrade.py": "39232e46b00239c183ddb56b275c808ac27784936cba28ee333a0f9fc60825bb"
+  },
+  "checks": [
+    {
+      "command": "PHOTO_TEST_NATIVE_INFRA=1 PYTHONPATH=workers:src:tests/integration PYTHONDONTWRITEBYTECODE=1 .venv-platform/bin/python -m pytest tests/integration/test_v27_automatic_initial_handoff.py tests/integration/test_v27_person_migration_upgrade.py tests/platform/test_goose_markers.py -q --tb=short --junitxml=docs/implementation-v2/audit/v27-handoff-guard-current.xml",
+      "exit_code": 0,
+      "passed": 8,
+      "seconds": 5.88,
+      "evidence": "docs/implementation-v2/audit/v27-handoff-guard-current.xml",
+      "evidence_sha": "4592cc3ce313164dd4ee92d6bd14b701068bd4e820c8a8dfdb28bb5b56ff0b6a"
+    },
+    {
+      "command": "scripts/run-platform.sh go -C backend test ./internal/semanticproposal ./internal/v2input ./internal/review",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "changes": [
+    "Forward-only00911 requires original person producer, canonical defect/protection and sealed original parent202receipt before automatic completion",
+    "Existing manual completion branch and private recording helper retained; no application privileges added",
+    "Automatic Recover retains verified face producer success only after exact parent ticket; final record independently checks live lease and durable authority"
+  ],
+  "verified": [
+    "Upgrade00899→00911 retains tenant metadata and old OID/owner/ACL/security properties except explicitly changed bodies",
+    "Missing parent, missing original producers, wrong tenant/token/outcome and consumed lease refuse completion without changing detector state",
+    "Scheduler obtains real lease; waiting releases it without marking done",
+    "New handoff helper unavailable to all eight application roles"
+  ],
+  "limitations": [
+    "Positive automatic whole Recover/handoff with newly inferred original person remains unverified",
+    "Late positive SQL producer/artifact-lock branches and concurrency/crash tests remain required",
+    "No whole V27 acceptance or model/GPU/real-photo quality acceptance",
+    "Scoped source hashes do not claim whole repository dirty-tree acceptance"
+  ]
+}

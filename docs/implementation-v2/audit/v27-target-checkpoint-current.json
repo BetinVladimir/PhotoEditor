@@ -1,0 +1,98 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "generated_at": "2026-10-08T14:21:00.587035+00:00",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "dirty_tree_hash": "e1c652dd5823e9dbab0748d5f6d6f7d7c3e34a77ddec5e0b4239b36982a019d7",
+  "dirty_tree_hash_scope": {
+    "roots": [
+      "backend/",
+      "workers/",
+      "src/",
+      "apps/",
+      "packages/",
+      "tests/",
+      "scripts/",
+      "deploy/",
+      "docs/implementation-v2/contracts/"
+    ],
+    "files": 4734,
+    "algorithm": "sorted git tracked+untracked nonignored names NUL sha256(bytes) newline; MISSING marker; source scope excludes generated audit evidence"
+  },
+  "source_scope": {
+    "backend/db/migrations/00912_v27_target_preparation_checkpoint.sql": "19e176a477dedfd1790bf5a809e614c3cac2d2cfd6b6c8a16bb7783ef5879a78",
+    "backend/internal/semanticproposal/native_target_preparation_checkpoint.go": "313f7fcd380485fb985b98dba127f26ae9a942c15fa0772dd00e6c0ea6a9eb45",
+    "backend/internal/semanticproposal/native_target_preparation_manifest.go": "ead1d88428863ac025fbec53cb0fe1aaa4df77a9bed7223d74edae2d68b780cf",
+    "backend/internal/semanticproposal/native_target_preparation_manifest_test.go": "ddadf725a020986e9657601a86eb7803217f1dd92cb0b7e606cf49d93496a1a2",
+    "backend/internal/semanticproposal/native_initial_pipeline_recovery_job.go": "7597da5fb82bb30fe48107325b3358d6531d48d483d369728050583d537c997a",
+    "backend/internal/semanticproposal/native_initial_pipeline_recovery_job_test.go": "9c626eedb3c7ffb609f692c3d138aeaa1d10555ce2136d893a82a23dbb25681e",
+    "backend/internal/semanticproposal/native_bootstrap_integration_test.go": "f7fad318ada43109d38c7b3c9e901101c05d1db62e7e6c0135677c39ee8c64cc",
+    "tests/integration/test_v27_target_checkpoint.py": "f2951a75762763a82d6d98a7373ae391e29b7c8a82895764f179466ee2f755c5",
+    "tests/integration/test_v27_native_anchor.py": "eaaeeeec18420eab3e161cd7abfd8cf6493006b3f36bcab0eac16ee24ffefc06",
+    "tests/integration/test_v27_person_migration_upgrade.py": "6a629e4b6f3f73c50740aecba0e76ba12273a70c02304d1de59d63ede3724d7f",
+    "tests/integration/test_v27_semantic_intent_publication.py": "28466485eedec93de449d2ab7aace328a3e2cc8e92429379dbfd793853325131"
+  },
+  "checks": [
+    {
+      "command": "PHOTO_TEST_NATIVE_INFRA=1 PYTHONPATH=workers:src:tests/integration PYTHONDONTWRITEBYTECODE=1 .venv-platform/bin/python -m pytest -q tests/integration/test_v27_target_checkpoint.py tests/integration/test_v27_person_migration_upgrade.py tests/integration/test_v27_native_anchor.py tests/integration/test_v27_automatic_initial_handoff.py tests/platform/test_goose_markers.py",
+      "exit_code": 0,
+      "passed": 20,
+      "evidence": "docs/implementation-v2/audit/v27-target-checkpoint-current.xml",
+      "evidence_sha": "b82469958e6a7ec9d2146ea6b87a61a1672a2923b43c4e9ff899f72d8c450a3d"
+    },
+    {
+      "command": "PHOTO_TEST_NATIVE_INFRA=1 PHOTO_TEST_V27_PERSON_DEFECT_PARENT=1 PHOTO_TEST_V27_PERSON_DEFECT_FRESH=1 PHOTO_TEST_V27_ORIGINAL_PERSON=1 PYTHONPATH=workers:src:tests/integration PYTHONDONTWRITEBYTECODE=1 .venv-platform/bin/python -m pytest -q tests/integration/test_v27_semantic_intent_publication.py -k native-person-defect-wire",
+      "exit_code": 0,
+      "passed": 1,
+      "evidence": "docs/implementation-v2/audit/v27-target-checkpoint-wire-current.xml",
+      "evidence_sha": "b54e78324dc74a6dbda49306bd0238c662ca88385762ca34a01baed54a9825bd"
+    },
+    {
+      "command": "scripts/run-platform.sh go -C backend test -json ./internal/semanticproposal ./internal/v2input ./internal/review",
+      "exit_code": 0,
+      "packages_passed": [
+        "photoeditor/backend/internal/semanticproposal",
+        "photoeditor/backend/internal/v2input",
+        "photoeditor/backend/internal/review"
+      ],
+      "evidence": "docs/implementation-v2/audit/v27-target-checkpoint-go-current.jsonl",
+      "evidence_sha": "0c90a6c39a99e0e8e6c0706b1ce87d6fcc99dca767b9d4a4fbc425d6ebe5738a"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "requirements": [
+    {
+      "id": "durable-original-target-manifest",
+      "status": "component_verified",
+      "evidence": [
+        "SQL fresh/upgrade00912, exact canonical independently reconstructed DAG, immutable owner and scheduler-only boundary",
+        "committed reconnect and concurrent replay serialization",
+        "current authorization/revoke/cancel/expiry/recipe drift refusal",
+        "production Go checkpoint/replay on physical native original person/face/defect parent fixture"
+      ]
+    },
+    {
+      "id": "recover-target-waiting",
+      "status": "partially_verified",
+      "evidence": "current Go waiting classification and compiled production catch; missing-target Recover physical execution pending"
+    },
+    {
+      "id": "automatic-target-producers",
+      "status": "not_implemented"
+    },
+    {
+      "id": "V27-whole-module",
+      "status": "not_accepted"
+    }
+  ],
+  "limitations": [
+    "Physical parent fixture uses explicit server-selected target protection pins; not automatic target execution",
+    "Actual model/GPU/corpus/browser quality/capacity not verified; deterministic ML doubles in wire fixture",
+    "No whole ProcessOne cold restart/kill across target checkpoint proof",
+    "No full V27 or V20–V32 acceptance",
+    "Only isolated test databases migrated; no production migration"
+  ]
+}

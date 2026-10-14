@@ -70,8 +70,18 @@ type Preset struct {
 }
 
 func validate(req Create) error {
-	c := req.Config
-	if strings.TrimSpace(req.Name) == "" || len([]rune(req.Name)) > 120 || !map[string]bool{"tiff": true, "png": true, "jpeg": true}[c.Format] || !map[string]bool{"srgb_v1": true, "work_rec2020_gamma24_v1": true}[c.ICCID] || c.Subsampling != "444" || !map[string]bool{"preserve": true, "matte": true}[c.Alpha] || c.MetadataPolicy != "strip" || strings.TrimSpace(c.NamingTemplate) == "" || len(c.NamingTemplate) > 200 {
+	if strings.TrimSpace(req.Name) == "" || len([]rune(req.Name)) > 120 {
+		return domain.NewError("VALIDATION_FAILED", 422)
+	}
+	return ValidateConfig(req.Config)
+}
+
+// ValidateConfig is shared by mutable preset authoring and frozen delivery admission.
+func ValidateConfig(c Config) error {
+	if _, err := canonical.Marshal(c); err != nil {
+		return domain.NewError("VALIDATION_FAILED", 422)
+	}
+	if !map[string]bool{"tiff": true, "png": true, "jpeg": true}[c.Format] || !map[string]bool{"srgb_v1": true, "work_rec2020_gamma24_v1": true}[c.ICCID] || c.Subsampling != "444" || !map[string]bool{"preserve": true, "matte": true}[c.Alpha] || !map[string]bool{"strip": true, "copyright": true, "approved_exif": true}[c.MetadataPolicy] || strings.TrimSpace(c.NamingTemplate) == "" || len(c.NamingTemplate) > 200 {
 		return domain.NewError("VALIDATION_FAILED", 422)
 	}
 	dims := 0

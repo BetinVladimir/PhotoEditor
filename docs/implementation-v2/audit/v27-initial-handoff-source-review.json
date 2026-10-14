@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "package_id": "V27",
+  "status": "implementing",
+  "kind": "superseded_source_trace_not_current_runtime_acceptance",
+  "normative_requirements": "docs/implementation-v2",
+  "sources": [
+    {
+      "path": "docs/implementation-v2/README.md",
+      "sha256": "64a7294febd99527c406a8a6ef51cd47ae4394f2a70157ab426e84a0fbaa2641"
+    },
+    {
+      "path": "docs/implementation-v2/07-execution-acceptance.md",
+      "sha256": "9516d7a7a4da7bf8aba87a93e9138b31675dc1084fd69289c50562a7692d934d"
+    },
+    {
+      "path": "docs/implementation-v2/audit/module-inventory.json",
+      "sha256": "9f6ad855839547f121df9654377c80e6cae81c29d04d309113b52ca6252b90b2"
+    },
+    {
+      "path": "backend/internal/semanticproposal/native_initial_pipeline_recovery_job.go",
+      "sha256": "2429f9ee9b487b2736c88e845a97208a247612cabfd866792951051ce1789210"
+    },
+    {
+      "path": "backend/internal/semanticproposal/native_initial_person_prepare.go",
+      "sha256": "150ec8b805504ecd649e389c37e9196ecf343c286f32876690fff61fd4d4d5c6"
+    },
+    {
+      "path": "backend/internal/semanticproposal/native_defect_bootstrap.go",
+      "sha256": "5be14e4d5601481a8863009b3a8566ed5152ce52ee4499c50478df95789b6b0f"
+    },
+    {
+      "path": "backend/db/migrations/00815_native_initial_manual_handoff.sql",
+      "sha256": "ec09270421fd368c663ffd026531734e77f5d35104eac970f29c47216bb6b467"
+    },
+    {
+      "path": "backend/internal/semanticproposal/native_initial_pipeline_recovery_job_test.go",
+      "sha256": "c22470f63cc8208323db4229e9686e6bcd9be1cd392cf7778336d7d8f8fd82c1"
+    }
+  ],
+  "findings": [
+    {
+      "id": "automatic-person-defect-handoff",
+      "status": "open",
+      "observation": "Recover schedules or resumes mask.person, then advances face producers. With no manual selection it returns without scheduling ordinary defects.propose. ensureInitialPersonPreparation returns admission/resume only, not verified output readiness.",
+      "required_behavior": [
+        "Restore the original person checkpoint and qualification; do not substitute an imported candidate or newly selected report on recovery.",
+        "Wait for and physically verify the original person output, preserve probability values and immutable object versions.",
+        "Create or restore the original ordinary defect child using verified face and person inputs and server-selected CPU qualification.",
+        "Persist handoff and enable parent continuation atomically with original identity, authority and retry checks.",
+        "Test fresh completion, restart at persistence/publication/registration/admission/result boundaries, terminal failures, cancellation, stale policy and cross-tenant access."
+      ]
+    }
+  ],
+  "limitations": [
+    "No PostgreSQL/MinIO runtime or GPU quality tests executed for this change.",
+    "Static API declarations are not resolved full routes.",
+    "State candidates require behavior tracing.",
+    "Historical evidence does not certify this working tree.",
+    "Whole V27 and V20-V32 acceptance remain unproven."
+  ],
+  "changes": [
+    "After face readiness, read the original saved person task state before allowing internal checkpoint completion.",
+    "Blocked or pending original person tasks return a waiting outcome with empty producer proof.",
+    "Terminal/invalid person observations refuse completion; original person terminal SQL recording remains to implement."
+  ],
+  "checks": [
+    {
+      "command": "scripts/run-platform.sh go -C backend test ./internal/semanticproposal -run 'TestInitial' -count=1",
+      "exit_code": 0,
+      "scope": "initial pipeline state and cancellation unit tests"
+    },
+    {
+      "command": "scripts/run-platform.sh go -C backend test ./internal/semanticproposal -count=1",
+      "exit_code": 0,
+      "scope": "package tests; environment-gated infrastructure integration not enabled"
+    }
+  ],
+  "superseded_by": "docs/implementation-v2/audit/v27-original-person-current.json"
+}

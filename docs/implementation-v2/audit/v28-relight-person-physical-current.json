@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 positive person-mask SQL and original-version physical authority",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "production_migration_applied": false,
+  "checks": {
+    "positive_sql_and_source_regression": {
+      "passed": 4,
+      "seconds": 6.21,
+      "xml": "v28-relight-person-positive-current.xml"
+    },
+    "physical_person_params_and_sql": {
+      "passed": 4,
+      "seconds": 6.37,
+      "xml": "v28-relight-person-physical-current.xml"
+    }
+  },
+  "source_sha256": {
+    "tests/integration/test_v28_relight_person.py": "5de19559c706c8bf6dfab0668e88a22eb72e13f272c869c5c99288040f34dafa",
+    "tests/integration/test_v28_relight_person_physical.py": "cb78adfa5f2ed03d86c4855a241fbcac2e5fde926192116cf3bb9e093ab5cf93",
+    "backend/db/migrations/00985_v28_worker_relight_person.sql": "f8adc1cf5fe734108169105c0bcc653bd128c9225f97f900ae88b8393a960911",
+    "workers/photo_worker/operations/portrait/relight_person_authority.py": "f247fd27617800a5307a5dc15ac1820befa48967fdf5ce8191a389ca3b79a745"
+  },
+  "limitations": [
+    "Producer/source/lease/closure metadata are owner-seeded; mask pixel bytes are placeholders, no actual person inference",
+    "No complete source/pixel closure replay, manual/protected authority, factory installation, execution/adoption/UI or actual model/device qualification"
+  ]
+}

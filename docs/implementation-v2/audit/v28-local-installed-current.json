@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-09",
+  "package": "V28",
+  "migration_head": "00974",
+  "status": "implementing",
+  "whole_module_accepted": false,
+  "production_code_changed": false,
+  "production_migrations_applied": false,
+  "checks": {
+    "tests": "4",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "time": "12.182",
+    "evidence": "v28-local-installed-current.xml",
+    "go_skip_or_fail_permitted": false
+  },
+  "source_sha256": {
+    "tests/integration/test_v28_local_installed_catalog.py": "1e381107339855ea1e6558539e66c27c555da68cb185469ea31fb9e4b65f7755",
+    "backend/internal/v2portrait/local_catalog_integration_test.go": "fae3ff76d685326e1b0dffbb90da0727ebc374cc01607180470c61daa7dabd97",
+    "backend/internal/v2portrait/local_acl_integration_test.go": "089d33059fea8b8e6843ee7295a8825a3bbfa79528a06cc4952b26373175875a",
+    "backend/internal/v2portrait/local_resources_integration_test.go": "1503761a16812fdabfbbd22f243d3c7ace4f86ec94be08664ddc9cc1a3f5057c",
+    "backend/internal/v2draft/local_portrait_digest_integration_test.go": "e51731f3e8fde9cd97ce3d8b92172640e5926941cf956eb69d7813da18e23803",
+    "backend/internal/v2draft/local_portrait_coordinator.go": "2a1f60bf8646171f203bbfafcded7b0b6d75771b85e7fa4d02990b24d72cf14f",
+    "backend/internal/v2draft/local_portrait_owner_admit.go": "f7e164d2879d32809bdddddaa068790b3d209b76f12502c4ff527ba8c6b40c68",
+    "backend/internal/v2draft/local_portrait_recovery_service.go": "05e191183e4b583af27fe0ae6e158cfbffc8ff5d2598544584af8278e4c78fd0"
+  },
+  "implemented_current_code": [
+    "LocalPortraitCoordinator Submit/Recover",
+    "SQLLocalPortraitOwnerScope Begin/Stage/Admit",
+    "LocalPortraitRecoveryService and SQL factory/material loader"
+  ],
+  "current_physical_checks": [
+    "SQL local resource estimation parity",
+    "Installed catalog absent/null/unauthorized-context refusal",
+    "Actual worker/gateway ACL denials",
+    "SQL/Go inventory digest parity"
+  ],
+  "remaining": [
+    "Positive owner/manual-mask/material/Params/input/admission/dispatch/execution/adoption integration on physical PostgreSQL/objectstore",
+    "Authenticated public service composition and client entrypoint wiring not located in cmd/httpapi searches",
+    "All portrait operations and donor/real-model visual qualification",
+    "Lifecycle GC/purge/cancellation/races and full browser/native module cycle"
+  ],
+  "limitations": [
+    "Installed denial/parity checks require no positive producer/owner fixture and do not establish full SQL control flow correctness",
+    "Full package acceptance and V20-V32 goal remain open"
+  ],
+  "stale_status_note": "v28-local-runtime-status.json predates coordinator/recovery and still reports some implemented layers as missing; historical statements retained, current correction below."
+}

@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 relight structural input closure",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "tests": {
+    "passed": 22,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 0.69,
+    "xml": "v28-relight-inputs-current.xml"
+  },
+  "source_sha256": {
+    "workers/photo_worker/operations/portrait/relight_inputs.py": "d0a3a16a799989423920e1e0f69e352d297b3fa9da09eaab5c96df638a9eaba0",
+    "tests/platform/test_relight_inputs.py": "e9c96293299e71ad5f0184b31babc9f7525312143a5635fd520dabb6b3368179"
+  },
+  "limitations": [
+    "Structural checks only; no current SQL/model/runtime authority established",
+    "Not wired into installed worker; no physical IO/admission/adoption/UI or image qualification"
+  ]
+}

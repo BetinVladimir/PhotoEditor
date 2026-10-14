@@ -343,11 +343,91 @@
     },
     {
       "method": "POST",
+      "path": "/api/v1/tenants/{t}/assets/{id}/v2-draft/freeze",
+      "request_schema": "RenderFreezeRequest",
+      "response_schema": "RenderFreezeResult",
+      "package": "V26",
+      "handler": "FreezeRenderDraft",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/render-input-snapshots",
+      "request_schema": "RenderInputSnapshotRequest",
+      "response_schema": "RenderInputSnapshotResult",
+      "package": "V26",
+      "handler": "CreateRenderInputSnapshot",
+      "role": "editor",
+      "success_status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/projects/{id}/render-policy",
+      "request_schema": null,
+      "response_schema": "RenderPolicySnapshot",
+      "package": "V26",
+      "handler": "GetRenderPolicy",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
       "path": "/api/v1/tenants/{t}/assets/{id}/region-previews",
       "request_schema": "RegionPreview",
       "response_schema": "JobTicket",
       "package": "V26",
       "handler": "PreviewRegion",
+      "role": "editor",
+      "success_status": 202
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/render-batches",
+      "request_schema": "RenderBatchSubmission",
+      "response_schema": "RenderBatchTicket",
+      "package": "V26",
+      "handler": "QueueRenderBatch",
+      "role": "editor",
+      "success_status": 202
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/relight-analyses",
+      "request_schema": "RelightAnalysisIntent",
+      "response_schema": "JobTicket",
+      "package": "V28",
+      "handler": "SubmitRelightAnalysis",
+      "role": "editor",
+      "success_status": 202
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/relight-preparation",
+      "request_schema": "RelightPreparationRequest",
+      "response_schema": "RelightDraftIntent",
+      "package": "V28",
+      "handler": "PrepareRelightIntent",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/relight-candidates",
+      "request_schema": "RelightCandidateQuery",
+      "response_schema": "RelightCandidatePage",
+      "package": "V28",
+      "handler": "ListRelightCandidates",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/relight-intents",
+      "request_schema": "RelightDraftIntent",
+      "response_schema": "JobTicket",
+      "package": "V28",
+      "handler": "SubmitRelight",
       "role": "editor",
       "success_status": 202
     },
@@ -473,6 +553,16 @@
     },
     {
       "method": "GET",
+      "path": "/api/v1/tenants/{t}/runs/{id}/semantic-intent",
+      "request_schema": null,
+      "response_schema": "SemanticRunIntent",
+      "package": "V27",
+      "handler": "ReadRunIntent",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "GET",
       "path": "/api/v1/tenants/{t}/assets/{id}/region-previews/{run}/descriptor",
       "request_schema": null,
       "response_schema": "RegionPreviewDescriptor",
@@ -549,6 +639,156 @@
       "package": "V23",
       "handler": "ReviewLearningSafety",
       "role": "profile_owner",
+      "success_status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/projects/{id}/reviews/{review}/perspective-replacements/{original}",
+      "request_schema": null,
+      "response_schema": "PerspectiveReplacementReviewScope",
+      "package": "V29",
+      "handler": "GetPerspectiveReplacementReviewScope",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/reviews/{review}/perspective-replacements",
+      "request_schema": null,
+      "response_schema": "PerspectiveReplacementReviewPage",
+      "package": "V29",
+      "handler": "ListPerspectiveReplacementReviews",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/projects/{id}/reviews/{review}/multi-replacements/{original}",
+      "request_schema": null,
+      "response_schema": "MultiReplacementReviewScope",
+      "package": "V29",
+      "handler": "GetMultiReplacementReviewScope",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/reviews/{review}/multi-replacements",
+      "request_schema": null,
+      "response_schema": "MultiReplacementReviewPage",
+      "package": "V29",
+      "handler": "ListMultiReplacementReviews",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads",
+      "request_schema": "ArchiveUploadBegin",
+      "response_schema": "ArchiveUploadReceipt",
+      "package": "V30",
+      "handler": "BeginInterchangeArchiveUpload",
+      "role": "editor",
+      "success_status": 201
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/{upload}/parts",
+      "request_schema": "ArchiveUploadPartsRequest",
+      "response_schema": "ArchiveUploadPartsResponse",
+      "package": "V30",
+      "handler": "SignInterchangeArchiveParts",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/{upload}/complete",
+      "request_schema": "ArchiveUploadComplete",
+      "response_schema": "ArchiveUploadAccepted",
+      "package": "V30",
+      "handler": "CompleteInterchangeArchiveUpload",
+      "role": "editor",
+      "success_status": 202
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/{upload}/abort",
+      "request_schema": "ArchiveUploadAbort",
+      "response_schema": "ArchiveUploadAbortAccepted",
+      "package": "V30",
+      "handler": "AbortInterchangeArchiveUpload",
+      "role": "editor",
+      "success_status": 202
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/attempt-status",
+      "request_schema": "ArchiveUploadBegin",
+      "response_schema": "ArchiveUploadStatus",
+      "package": "V30",
+      "handler": "ReadInterchangeArchiveAttemptStatus",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/{upload}",
+      "request_schema": null,
+      "response_schema": "ArchiveUploadStatus",
+      "package": "V30",
+      "handler": "GetInterchangeArchiveUpload",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/projects/{id}/raw-capabilities",
+      "request_schema": null,
+      "response_schema": "RAWCapabilities",
+      "package": "V25",
+      "handler": "GetRAWCapabilities",
+      "role": "editor",
+      "success_status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/media/review-pending",
+      "request_schema": null,
+      "response_schema": null,
+      "package": "V26",
+      "handler": "GetPendingReviewMedia",
+      "role": "capability",
+      "success_status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/media/render-selected",
+      "request_schema": null,
+      "response_schema": null,
+      "package": "V26",
+      "handler": "GetSelectedRenderMedia",
+      "role": "capability",
+      "success_status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/media/restoration-selected",
+      "request_schema": null,
+      "response_schema": null,
+      "package": "V28",
+      "handler": "GetSelectedRestorationMedia",
+      "role": "capability",
+      "success_status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/media/run-output",
+      "request_schema": null,
+      "response_schema": null,
+      "package": "V26",
+      "handler": "GetReviewableRunOutputMedia",
+      "role": "capability",
       "success_status": 200
     }
   ]

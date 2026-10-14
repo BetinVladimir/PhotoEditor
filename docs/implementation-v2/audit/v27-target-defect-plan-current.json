@@ -1,0 +1,50 @@
+{
+  "generated_at": "2026-10-08T18:10:01.559828+00:00",
+  "status": "implementing",
+  "package_id": "V27",
+  "module": "V27",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 80.825
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/v2input",
+      "photoeditor/backend/internal/v2draft",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "Owned in-memory target defect blocked draft plan/compiler with actual defects.propose DAG anchor",
+    "Exact namespace run/workflow/task/config identity and immutable original public request/target scope",
+    "Saved CPU estimates, qualification report/costs/reserve and exact three-producer lineage",
+    "Full frozen task recompilation and canonical entry/size equality",
+    "Eleven plan substitutions, four compiler substitutions, inadequate reserve and canceled verification refuse",
+    "Current physical prerequisite chain and independent Params/no-activation SQL/S3 verification repeated"
+  ],
+  "limitations": [
+    "Plan only; no persisted blocked draft/SQL dependency locks yet",
+    "Target defect registration/seal/native worker/result/finalization/saved recovery required",
+    "Original transfer handoff, fresh-process Recover and whole V27 acceptance remain open",
+    "Upstream ML doubles; no GPU/photo-quality acceptance",
+    "No SQL changes or production migration"
+  ],
+  "sha256": {
+    "backend/internal/semanticproposal/native_target_defect_plan.go": "77fdb70e2f8044018794a42ef16c0b94394c293a89c567c37e9df98bceb47ef9",
+    "backend/internal/semanticproposal/native_target_defect_plan_probe_test.go": "5d9b1042bf3cdda17b40c7e91794f38eb3210a138efeb40034ed7734f5e5a28f",
+    "backend/internal/semanticproposal/native_target_defect_wire_probe_test.go": "86b7665bf0ac2c191a80db36e67e8150a06adeac9c6bf9106700e94f4949a98a",
+    "backend/internal/semanticproposal/native_target_defect_task.go": "282e8b3da8fc975d8e8e445e0f3812a47251085951680b213d52805b434ce7d1",
+    "backend/internal/semanticproposal/native_target_defect_preparation.go": "6b42d04c2c49b3d4b764e3595a9b8b458b1130e01a95314faa8c4a538eabb54a",
+    "backend/internal/semanticproposal/native_target_defect_qualification.go": "9870e6965278485d0b21638b8f56468f3ccbab8003797a43fad3c81565d07533",
+    "tests/integration/test_v27_semantic_intent_publication.py": "c4bedb3188f7066c3123ccf8fc5154d8283777a819912dfb90e9e3fb7c2ad2c1",
+    "tests/integration/v27_face_wire_probe.py": "bf650ee8f86fe33ae1df3ef70c6d664ddf1d0f2bb77ae57c8281191f2579e252",
+    "docs/implementation-v2/15-execution-contracts.md": "eefdc2cef28b70a7e683c36859c5889882c71fe78e1304546607c45bef52a864",
+    "docs/implementation-v2/audit/v27-target-defect-plan-wire-current.xml": "5ff4da40613de4a3e3dedf9f7674da480da328a271649fdcbcd097445a6c2fc8",
+    "docs/implementation-v2/audit/v27-target-defect-plan-go-current.jsonl": "6642ced1cc6df6d379d5ea7a992ed4cc166d103ab8e20e249f891068668ee275"
+  }
+}

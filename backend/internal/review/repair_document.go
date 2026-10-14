@@ -60,19 +60,9 @@ func BuildRepairDocument(proposal VerifiedProposal, selection DefectSelection, s
 	if err != nil || !bytes.Equal(a, b) {
 		return fail()
 	}
-	known := map[string]bool{}
-	for _, c := range proposal.document.Candidates {
-		known[c.ID] = true
-	}
-	seen := map[string]bool{}
-	for _, list := range [][]string{selection.Accepted, selection.Rejected} {
-		for _, id := range list {
-			if !known[id] || seen[id] {
-				return fail()
-			}
-			seen[id] = true
-		}
-	}
+ if err := proposal.ValidateSelection(selection); err != nil {
+  return fail()
+ }
 	raw, err := canonical.Marshal(selection)
 	if err != nil {
 		return fail()

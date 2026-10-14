@@ -37,12 +37,13 @@ func (portalMultipartFake) AbortMultipart(context.Context, string, string) error
 func (portalMultipartFake) SignUploadParts(_ context.Context, _ string, _ string, parts []int, _ time.Duration) ([]objectstore.PartURL, error) {
 	return []objectstore.PartURL{{PartNumber: parts[0], URL: "https://storage.test/part"}}, nil
 }
-func (portalMultipartFake) SignRead(context.Context, objectstore.Object, time.Duration) (objectstore.ReadURL, error) {
-	return objectstore.ReadURL{URL: "https://storage.test/read", ExpiresAt: time.Now().Add(time.Minute)}, nil
+func (portalMultipartFake) SignRead(_ context.Context, object objectstore.Object, _ time.Duration) (objectstore.ReadURL, error) {
+	return objectstore.ReadURL{URL: "https://storage.test/read?versionId=" + object.VersionID, ExpiresAt: time.Now().Add(time.Minute)}, nil
 }
 func (portalMultipartFake) SignDownload(context.Context, objectstore.Object, string, time.Duration) (objectstore.ReadURL, error) {
 	return objectstore.ReadURL{URL: "https://storage.test/download", ExpiresAt: time.Now().Add(time.Minute)}, nil
 }
+func (portalMultipartFake) Check(context.Context, objectstore.Object) error { return nil }
 
 func TestGuestUploadValidationAndRedaction(t *testing.T) {
 	profile, hash := "sRGB", strings.Repeat("A", 64)
@@ -103,6 +104,29 @@ func TestMediaRequestValidation(t *testing.T) {
 		if _, err = normalizeMediaRequest(invalid); err == nil {
 			t.Fatal("invalid media request accepted", invalid)
 		}
+	}
+}
+
+func TestPortalMediaLinkRequiresExactVersionAndBoundedExpiry(t *testing.T) {
+	now := time.Date(2026, 10, 13, 12, 0, 0, 0, time.UTC)
+	object := objectstore.Object{VersionID: "v1"}
+	link := objectstore.ReadURL{URL: "https://storage.test/read?versionId=v1", ExpiresAt: now.Add(time.Minute)}
+	if !validPortalMediaReadURL(object, link, now) {
+		t.Fatal("valid portal media link refused")
+	}
+	for _, raw := range []string{"http://storage.test/read?versionId=v1", "https://storage.test/read?versionId=other", "https://storage.test/read?versionId=v1&versionId=other"} {
+		link.URL = raw
+		if validPortalMediaReadURL(object, link, now) {
+			t.Fatal("unsafe portal media link accepted", raw)
+		}
+	}
+	link.URL = "http://localhost:9000/read?versionId=v1"
+	if !validPortalMediaReadURL(object, link, now) {
+		t.Fatal("local portal media link refused")
+	}
+	link.ExpiresAt = now.Add(time.Minute + 6*time.Second)
+	if validPortalMediaReadURL(object, link, now) {
+		t.Fatal("overlong portal media link accepted")
 	}
 }
 

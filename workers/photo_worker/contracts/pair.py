@@ -43,3 +43,18 @@ class PairAlignment(Contract):
         import numpy as np
         _similarity(np.array(self.before_to_after).reshape(3,3))
         return self
+
+
+def validate_alignment_origin(params: RegistrationParams, alignment: PairAlignment) -> PairAlignment:
+    """Bind complete production schemas; caller owns producer/byte authority."""
+    if not isinstance(params, RegistrationParams) or not isinstance(alignment, PairAlignment):
+        raise ValueError('PAIR_ORIGIN_CONTRACT')
+    if (alignment.before != params.before or alignment.after != params.after
+            or alignment.crop_aware != (params.mode == 'crop_aware')):
+        raise ValueError('PAIR_ORIGIN_SOURCE_MODE')
+    expected_confidence = 'user_confirmed' if params.manual_confirmed else 'measured'
+    if alignment.confidence != expected_confidence:
+        raise ValueError('PAIR_ORIGIN_CONFIRMATION')
+    if params.manual_confirmed and alignment.before_to_after != params.manual_transform:
+        raise ValueError('PAIR_ORIGIN_MANUAL_TRANSFORM')
+    return alignment

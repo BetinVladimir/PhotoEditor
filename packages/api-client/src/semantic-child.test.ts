@@ -1,0 +1,7 @@
+import {it,expect,vi} from 'vitest';
+import {decodeSemanticChildStatus,readSemanticChildStatus} from './semantic-child';
+const id='11111111-1111-4111-8111-111111111111';
+const fixture=()=>({id,kind:'apply',status:'running',revision:'9007199254740993',counts:{total:2,succeeded:1,failed:0,skipped:0,review:0},stage:'running',progress:.5,errors:[]});
+it('binds run identity and owns counts',()=>{const raw=fixture(),result=decodeSemanticChildStatus(raw,id);raw.counts.succeeded=0;expect(result.counts.succeeded).toBe(1);expect(result.revision).toBe('9007199254740993')});
+it.each(['id','kind','count','progress','revision','extra'])('rejects %s substitution',kind=>{const raw=fixture();if(kind==='id')raw.id='22222222-2222-4222-8222-222222222222';if(kind==='kind')raw.kind='v2';if(kind==='count')raw.counts.failed=2;if(kind==='progress')raw.progress=.7;if(kind==='revision')raw.revision='9223372036854775808';if(kind==='extra')Object.assign(raw,{object_key:'private'});expect(()=>decodeSemanticChildStatus(raw,id)).toThrow('SEMANTIC_CHILD_STATUS_INVALID')});
+it('validates scope before IO and carries cancellation',async()=>{const request=vi.fn().mockResolvedValue(fixture()),signal=new AbortController().signal;await readSemanticChildStatus({request},id,id,signal);expect(request).toHaveBeenCalledWith(`/api/v1/tenants/${id}/runs/${id}`,{signal});request.mockClear();await expect(readSemanticChildStatus({request},'bad',id)).rejects.toThrow('SEMANTIC_CHILD_QUERY_INVALID');expect(request).not.toHaveBeenCalled()});

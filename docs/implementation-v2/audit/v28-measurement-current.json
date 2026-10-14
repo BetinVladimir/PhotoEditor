@@ -1,0 +1,160 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 actual CPU preparation measurement invariants",
+  "whole_module_accepted": false,
+  "imaging_algorithms_changed": false,
+  "changes": [
+    "Existing benchmark supports hair and clothing",
+    "Measures actual output finite values, bitwise protected/disabled preservation, exact changed-mask agreement and pixel digest in bounded row chunks",
+    "Invariant violation raises before successful evidence output"
+  ],
+  "checks": {
+    "tests": 11,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 1.83,
+    "xml": "v28-measurement-checks-current.xml"
+  },
+  "fault_tests": [
+    "Injected protected pixel modification refused",
+    "Injected NaN refused",
+    "Injected changed-mask mismatch refused"
+  ],
+  "measurements": [
+    {
+      "admitted_estimate": {
+        "output_bytes": 38456624,
+        "pixel_count": 306387,
+        "ram_bytes": 659425712,
+        "scratch_bytes": 86717632,
+        "vram_bytes": 0
+      },
+      "checks": {
+        "changed_mask_mismatches": 0,
+        "disabled_pixel_changes": 0,
+        "disabled_pixels": 30798,
+        "nonfinite_values": 0,
+        "protected_pixel_changes": 0,
+        "protected_pixels": 30798
+      },
+      "height": 531,
+      "input_pattern": "waves",
+      "numpy": "2.4.6",
+      "operation": "portrait.hair",
+      "os": "Darwin",
+      "output_pixels_sha256": "799dc0e8f6e242243b149a56308c377806cca1256f939b208d1b0867b99a0e30",
+      "process_peak_rss_bytes": 258785280,
+      "production_acceptance": false,
+      "python": "3.11.3",
+      "schema_version": 1,
+      "scope": "local_cpu_preparation_only",
+      "seconds": 0.12403312500100583,
+      "width": 577
+    },
+    {
+      "admitted_estimate": {
+        "output_bytes": 38456624,
+        "pixel_count": 306387,
+        "ram_bytes": 659425712,
+        "scratch_bytes": 86717632,
+        "vram_bytes": 0
+      },
+      "checks": {
+        "changed_mask_mismatches": 0,
+        "disabled_pixel_changes": 0,
+        "disabled_pixels": 30798,
+        "nonfinite_values": 0,
+        "protected_pixel_changes": 0,
+        "protected_pixels": 30798
+      },
+      "height": 531,
+      "input_pattern": "waves",
+      "numpy": "2.4.6",
+      "operation": "portrait.clothing",
+      "os": "Darwin",
+      "output_pixels_sha256": "44d887a55e42d85764531a367f340326e2f1ab3deac31c85496e47257faa8028",
+      "process_peak_rss_bytes": 237830144,
+      "production_acceptance": false,
+      "python": "3.11.3",
+      "schema_version": 1,
+      "scope": "local_cpu_preparation_only",
+      "seconds": 0.11735583300469443,
+      "width": 577
+    },
+    {
+      "admitted_estimate": {
+        "output_bytes": 129554432,
+        "pixel_count": 6000000,
+        "ram_bytes": 2936870912,
+        "scratch_bytes": 451108864,
+        "vram_bytes": 0
+      },
+      "checks": {
+        "changed_mask_mismatches": 0,
+        "disabled_pixel_changes": 0,
+        "disabled_pixels": 600000,
+        "nonfinite_values": 0,
+        "protected_pixel_changes": 0,
+        "protected_pixels": 598000
+      },
+      "height": 2000,
+      "input_pattern": "waves",
+      "numpy": "2.4.6",
+      "operation": "portrait.hair",
+      "os": "Darwin",
+      "output_pixels_sha256": "cdf8c8e09b1fd1ecd3d594eb012e52aae2a90c06d87a866c3ef4d84b7f343b72",
+      "process_peak_rss_bytes": 926334976,
+      "production_acceptance": false,
+      "python": "3.11.3",
+      "schema_version": 1,
+      "scope": "local_cpu_preparation_only",
+      "seconds": 1.650434209004743,
+      "width": 3000
+    },
+    {
+      "admitted_estimate": {
+        "output_bytes": 129554432,
+        "pixel_count": 6000000,
+        "ram_bytes": 2936870912,
+        "scratch_bytes": 451108864,
+        "vram_bytes": 0
+      },
+      "checks": {
+        "changed_mask_mismatches": 0,
+        "disabled_pixel_changes": 0,
+        "disabled_pixels": 600000,
+        "nonfinite_values": 0,
+        "protected_pixel_changes": 0,
+        "protected_pixels": 598000
+      },
+      "height": 2000,
+      "input_pattern": "waves",
+      "numpy": "2.4.6",
+      "operation": "portrait.clothing",
+      "os": "Darwin",
+      "output_pixels_sha256": "5fc277517a3bdbfbf4c7b8343c0f6dd002e29f5dc9bde3a5fc3fc7b66b28952e",
+      "process_peak_rss_bytes": 1232846848,
+      "production_acceptance": false,
+      "python": "3.11.3",
+      "schema_version": 1,
+      "scope": "local_cpu_preparation_only",
+      "seconds": 3.03946933298721,
+      "width": 3000
+    }
+  ],
+  "source_sha256": {
+    "tools/benchmark_v28_local.py": "af735d30100845f3cc205cfbc331023f82d5e22fad1b5e4c0f6e1410dfe567b2",
+    "tests/platform/test_v28_local_benchmark.py": "2f2ef9e43a63070341e90763470a9d416fc9011e3a1039b69ff3f6b47c674037",
+    "workers/photo_worker/algorithms/portrait_local.py": "3db61636c6da42639541a83a739b3a3045be3187ad4c855e0e4b45c89fdd4bc6",
+    "workers/photo_worker/algorithms/portrait_local_tiles.py": "55ae60c08086f9040b649cbada712daa598ce5eb03bf2342637802b6d44f1c0a",
+    "workers/photo_worker/operations/portrait/prepare_local.py": "18f97bd95b1092b455726804d103450f1a52c48c119c6eb0d3b377c250c434ef"
+  },
+  "limitations": [
+    "Synthetic waves, Darwin CPU host; no real-photo/human quality acceptance or RTX3060/Ryzen qualification",
+    "Single preparation run each, no p50/p95 or endurance claim",
+    "seconds measures preparation only; RSS is process peak including validation, NumPy imports and input generation",
+    "No report import, qualification policy/registry changes or positive admission",
+    "Whole V28 and V20-V32 remain open"
+  ]
+}

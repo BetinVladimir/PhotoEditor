@@ -209,3 +209,140 @@ def test_holdout_render_mapping_stays_open_through_measurement(tmp_path, monkeyp
     evaluate_holdout(params, manifest, baseline, candidate, calibration,
                      render, source, tmp_path)
     assert not active and len(closed) >= 10
+
+
+@pytest.mark.parametrize('stop_at', [1, 4, 5, 6, 7])
+def test_metric_cancellation_cleans_scratch_and_stops_tiles(tmp_path, monkeypatch, stop_at):
+    from photo_worker.operations.learning import evaluation
+    from photo_worker.runtime.executor import LeaseLost
+    rgb = np.full((128, 256, 3), .5, np.float32)
+    checks = 0
+    conversions = 0
+    original = evaluation.rgb_to_lab_d50
+
+    def active():
+        nonlocal checks
+        checks += 1
+        if checks == stop_at:
+            raise LeaseLost('metric lease lost')
+
+    def convert(*args, **kwargs):
+        nonlocal conversions
+        conversions += 1
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(evaluation, 'rgb_to_lab_d50', convert)
+    with pytest.raises(LeaseLost, match='metric lease lost'):
+        measure_render_case(UUID(int=1), rgb, rgb, rgb,
+                            np.ones((128, 256), np.float32),
+                            np.zeros((128, 256), np.float32), 'no_person',
+                            tmp_path, tile=128, check_active=active)
+    assert checks == stop_at
+    # Two tiles, three conversions per tile; stop_at4 is before tile2.
+    assert conversions == (0 if stop_at == 1 else 3 if stop_at == 4 else 6)
+    assert list(tmp_path.iterdir()) == []
+
+
+@pytest.mark.parametrize('outcome', ['success', 'cancel', 'second_allocation'])
+def test_metric_explicitly_closes_disk_mappings(tmp_path, monkeypatch, outcome):
+    from photo_worker.operations.learning import evaluation
+    from photo_worker.runtime.executor import LeaseLost
+    original = evaluation.np.memmap
+    mappings = []
+
+    def mapped(*args, **kwargs):
+        if outcome == 'second_allocation' and mappings:
+            raise OSError('scratch allocation failed')
+        result = original(*args, **kwargs)
+        mappings.append(result)
+        return result
+
+    def active():
+        if outcome == 'cancel' and len(mappings) == 2:
+            raise LeaseLost('cancelled with mapped buffers')
+
+    monkeypatch.setattr(evaluation.np, 'memmap', mapped)
+    rgb = np.full((2, 2, 3), .5, np.float32)
+    def measure():
+        return measure_render_case(UUID(int=1), rgb, rgb, rgb,
+            np.ones((2, 2), np.float32), np.zeros((2, 2), np.float32),
+            'no_person', tmp_path, check_active=active)
+    if outcome == 'success':
+        assert measure().color_delta == 0
+    else:
+        expected = LeaseLost if outcome == 'cancel' else OSError
+        with pytest.raises(expected):
+            measure()
+    assert len(mappings) == (1 if outcome == 'second_allocation' else 2)
+    assert all(value._mmap.closed for value in mappings)
+    assert list(tmp_path.iterdir()) == []
+
+
+@pytest.mark.parametrize('budget', [63, 64])
+def test_metric_uses_attempt_disk_reservation(tmp_path, budget):
+    from uuid import uuid4
+    from photo_worker.runtime.scratch import ScratchSpace, DiskQuota
+    rgb = np.full((2, 2, 3), .5, np.float32)
+    with ScratchSpace(tmp_path.resolve(), uuid4(), uuid4(), 1, budget,
+                      min_free_bytes=0) as scratch:
+        def measure():
+            return measure_render_case(UUID(int=1), rgb, rgb, rgb,
+                np.ones((2, 2), np.float32), np.zeros((2, 2), np.float32),
+                'no_person', scratch.directory, scratch_space=scratch)
+        if budget < 64:
+            with pytest.raises(DiskQuota):
+                measure()
+        else:
+            assert measure().color_delta == 0
+            assert measure().color_delta == 0  # Previous reservation released.
+        assert list(scratch.directory.iterdir()) == []
+
+
+@pytest.mark.parametrize('change', ['consent', 'duplicate', 'epoch'])
+def test_evaluation_rechecks_manifest_consent_shape(change):
+    params, manifest, baseline, candidate, calibration, cases = inputs()
+    if change == 'consent':
+        manifest.consents[0].consent_id = UUID(int=0)
+    elif change == 'duplicate':
+        manifest.consents.append(manifest.consents[0].model_copy(deep=True))
+    else:
+        manifest.consents[0].epoch = '9223372036854775808'
+    with pytest.raises(ValueError, match='INVALID_TRAINING_MANIFEST'):
+        aggregate_evaluation(params, manifest, baseline, candidate, calibration, cases)
+
+
+def test_evaluate_rejects_insufficient_train_partition_before_render(tmp_path):
+    params, manifest, baseline, candidate, calibration, _ = inputs()
+    held = [item for item in manifest.examples if item.split == 'holdout']
+    train = [item for item in manifest.examples if item.split == 'train']
+    # Preserve all four train sessions but retain only19 train examples.
+    by_session = {}
+    for item in train:
+        by_session.setdefault(item.session_id, []).append(item)
+    retained = [item for rows in by_session.values() for item in rows[:4]]
+    retained.extend(rows[4] for rows in list(by_session.values())[:3])
+    extra = held[0].model_copy(deep=True)
+    extra.event_id = UUID(int=90000)
+    extra.render_case.source_lineage_sha = 'f' * 64
+    manifest.examples = [*held, extra, *retained]
+    assert len(manifest.examples) == 40
+    assert len({item.session_id for item in manifest.examples}) == 6
+    with pytest.raises(ValueError, match='INVALID_HOLDOUT_SPLIT'):
+        evaluate_holdout(params, manifest, baseline, candidate, calibration,
+            lambda *args: pytest.fail('rendered insufficient training manifest'),
+            lambda *args: pytest.fail('read insufficient training manifest faces'),
+            tmp_path)
+
+
+def test_evaluate_rejects_zero_subject_group():
+    params, manifest, baseline, candidate, calibration, cases = inputs()
+    manifest.examples[0].subject_group_id = UUID(int=0)
+    with pytest.raises(ValueError, match='INVALID_TRAINING_MANIFEST'):
+        aggregate_evaluation(params, manifest, baseline, candidate, calibration, cases)
+
+
+def test_evaluate_rejects_manifest_policy_digest_substitution():
+    params, manifest, baseline, candidate, calibration, cases = inputs()
+    manifest.policy_sha = 'f' * 64
+    with pytest.raises(ValueError, match='INVALID_TRAINING_MANIFEST'):
+        aggregate_evaluation(params, manifest, baseline, candidate, calibration, cases)

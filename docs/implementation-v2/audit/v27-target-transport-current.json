@@ -1,0 +1,100 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "generated_at": "2026-10-08T14:55:33.714374+00:00",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "dirty_tree_hash": "3e7fa2dec4f5011dbf73e51126c56fbed4f5afdb5332ff53f5b7f50a8da772c5",
+  "dirty_tree_hash_scope": {
+    "roots": [
+      "backend/",
+      "workers/",
+      "src/",
+      "apps/",
+      "packages/",
+      "tests/",
+      "scripts/",
+      "deploy/",
+      "docs/implementation-v2/contracts/"
+    ],
+    "paths": 4744,
+    "algorithm": "sorted git tracked+untracked nonignored names NUL sha256(bytes) newline; MISSING marker; excludes generated audit evidence"
+  },
+  "contracts_hash": "bedf81fee94e5e75a78db7d8fc942cdc67d7fb580301c33071233e3abf357b38",
+  "source_scope": {
+    "backend/db/migrations/00914_v27_target_person_registration.sql": "d587b9ce629f0161bae4124911c7a57d00424162c5234519a83015c12b4fc7b8",
+    "backend/db/migrations/00915_v27_target_person_shell_replay.sql": "83fb22e368c023fa7bef7b19764f84bc23b52a94ab80c4907c979de00357ff8e",
+    "backend/internal/semanticproposal/native_target_person_transport.go": "f8356020cc1ac001733039ade6c0c2705c8bd3326ea2c099a2b1d40565112699",
+    "backend/internal/semanticproposal/native_target_person_plan_test.go": "90f7c73e55ab1c9b3c623a80f022a9fa4b1e80476d5e957eba2a72a7efccf25c",
+    "backend/internal/semanticproposal/native_target_person_wire_probe_test.go": "f4c35b1908d46167c6ccb6d6ab5f2c32f14c7a9e9eb81c09d5e22aade6ca1585",
+    "tests/integration/test_v27_target_person_registration.py": "6c05188137879d0da4ca1d580e21ac12c49ee14c930659b2f16f4b25901d0f88",
+    "tests/integration/test_v27_person_migration_upgrade.py": "c84a0aaded3bc77b17c4c16092fdf223fa17cf7de292cc9474a4fe6d4a296aa0",
+    "tests/integration/test_v27_semantic_intent_publication.py": "2ef213ffaabc7a08a026e6504a13f31ba8cd272e92a6a9da15da995b759606a0",
+    "tests/integration/v27_face_wire_probe.py": "a04d4f4809b2ad0accf49083b830d5b6663c96e636f9c8f5bf26bfd81aa000eb"
+  },
+  "checks": [
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-transport-sql-current.xml",
+      "evidence_sha": "b1e2228fc51c28bd623113784db7cd764b511b80417cbaa254cd9b84b40ca067",
+      "exit_code": 0,
+      "tests": 17,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 50.568
+    },
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-transport-wire-current.xml",
+      "evidence_sha": "2f71c1298aca1a294a9a69ad730fe5bd60ecbc53fa9b4e0b6318e92a4f796b68",
+      "exit_code": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 81.163
+    },
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-transport-go-current.jsonl",
+      "evidence_sha": "036cbd07dd6f7100b3040806c006c14e1cfb7eaae010d66c9fcdc3a6efc8dd9f",
+      "exit_code": 0,
+      "packages_passed": [
+        "photoeditor/backend/internal/v2input",
+        "photoeditor/backend/internal/review",
+        "photoeditor/backend/internal/semanticproposal"
+      ]
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "requirements": [
+    {
+      "id": "target-person-transport-publication",
+      "status": "component_verified"
+    },
+    {
+      "id": "target-person-transactional-registration-and-exact-replay",
+      "status": "component_verified"
+    },
+    {
+      "id": "revoked-session-after-publication-no-partial-inputs",
+      "status": "physical_fixture_verified"
+    },
+    {
+      "id": "00899-00915-forward-upgrade-preserves-tenant-data-and-function-identity",
+      "status": "sql_verified"
+    },
+    {
+      "id": "whole-V27-module",
+      "status": "not_accepted"
+    }
+  ],
+  "limitations": [
+    "Automatic Recover persists target checkpoint and waits; target helpers not wired to automatic orchestration",
+    "Target dedicated seal, worker execution, canonical adoption, cold restart and remaining five target stages are still required",
+    "Physical fixture uses distinct accepted version/recipe with shared immutable WorkingImage bytes and deterministic ML doubles; not real GPU or image-quality qualification",
+    "Target run remains draft/unsealed/task blocked; no parent graph or completion receipt",
+    "No current whole-module/browser/capacity acceptance; static inventory is coverage inventory only",
+    "Only isolated test databases migrated; production DB unchanged"
+  ]
+}

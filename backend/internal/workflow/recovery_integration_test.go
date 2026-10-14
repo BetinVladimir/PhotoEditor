@@ -51,13 +51,24 @@ func TestIntegrationRecovery(t *testing.T) {
 		t.Fatal(err)
 	}
 	task, worker := uuid.New(), uuid.New()
+	profile := `{"backend":"cpu","resource_estimate":{"ram_bytes":2048,"vram_bytes":0,"scratch_bytes":1024,"output_bytes":0,"pixel_count":0}}`
 	_, err = admin.Exec(ctx, `INSERT INTO photo.tasks(id,tenant_id,run_id,node_key,operation,operation_version,resource_class,state,inputs,params_artifact_id,input_digest,execution_profile,attempt,fencing_token,worker_id,lease_until,deadline)
- VALUES($1,$2,$3,'test','asset.verify','1','media','running','[]',$4,$5,'{"backend":"cpu"}',1,1,$6,now()-interval '1 second',now()+interval '600 seconds')`, task, tenant, run, params, hash, worker)
+ VALUES($1,$2,$3,'test','asset.verify','1','media','running','[]',$4,$5,$7,1,1,$6,now()-interval '1 second',now()+interval '600 seconds')`, task, tenant, run, params, hash, worker, profile)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = admin.Exec(ctx, `INSERT INTO photo.task_attempts(tenant_id,task_id,attempt,fencing_token,worker_id,started_at,backend,profile) VALUES($1,$2,1,1,$3,now()-interval '10 seconds','cpu','{"backend":"cpu"}')`, tenant, task, worker)
+	_, err = admin.Exec(ctx, `INSERT INTO photo.task_attempts(tenant_id,task_id,attempt,fencing_token,worker_id,started_at,backend,profile) VALUES($1,$2,1,1,$3,now()-interval '10 seconds','cpu',$4)`, tenant, task, worker, profile)
 	if err != nil {
+		t.Fatal(err)
+	}
+	node := "retry-" + uuid.NewString()
+	if _, err = admin.Exec(ctx, `INSERT INTO photo.resource_nodes(node_id,enabled,ram_budget_bytes,vram_budget_bytes,scratch_budget_bytes,ram_available_bytes,scratch_available_bytes,reported_at,doctor_report_sha256) VALUES($1,true,10000000,0,10000000,10000000,10000000,clock_timestamp(),$2)`, node, hash); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = admin.Exec(ctx, `INSERT INTO photo.resource_slots(node_id,slot_name,resource_class,capacity) VALUES($1,'media1','media','{}')`, node); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = admin.Exec(ctx, `INSERT INTO photo.worker_registrations(tenant_id,worker_id,resource_classes,backends,lock_id,last_seen,capacity,db_principal,node_id,enabled,qualified_operations) VALUES($1,$2,'["media"]','["cpu"]',$3,clock_timestamp(),'{}',session_user,$4,true,'{"asset.verify":["cpu"]}')`, tenant, uuid.New(), hash, node); err != nil {
 		t.Fatal(err)
 	}
 	r := Recovery{DB: pool}
@@ -81,14 +92,33 @@ func TestIntegrationRecovery(t *testing.T) {
 	if err = admin.QueryRow(ctx, "SELECT retry_count FROM photo.tasks WHERE id=$1", task).Scan(&stable); err != nil || stable != 1 {
 		t.Fatal("duplicate recovery consumed budget", err)
 	}
-	if _, err = admin.Exec(ctx, "UPDATE photo.tasks SET next_attempt_at=now()-interval '1 second' WHERE id=$1", task); err != nil {
-		t.Fatal(err)
+	untilDue := time.Until(*next)
+	if untilDue > 7*time.Second {
+		t.Fatal("retry deadline outside the bounded production backoff", untilDue)
+	}
+	if untilDue > 0 {
+		time.Sleep(untilDue + 50*time.Millisecond)
 	}
 	if _, err = r.Recover(ctx, 100); err != nil {
 		t.Fatal(err)
 	}
 	if err = admin.QueryRow(ctx, "SELECT state FROM photo.tasks WHERE id=$1", task).Scan(&state); err != nil || state != "ready" {
 		t.Fatal("retry not activated", state, err)
+	}
+	dispatcher := Dispatcher{DB: pool}
+	if n, e := dispatcher.Dispatch(ctx, 100); e != nil || n != 1 {
+		t.Fatal("recovered task not dispatched", n, e)
+	}
+	if n, e := dispatcher.Dispatch(ctx, 100); e != nil || n != 0 {
+		t.Fatal("recovered task dispatched twice", n, e)
+	}
+	var command []byte
+	if err = admin.QueryRow(ctx, "SELECT state,attempt,retry_count,fencing_token,dispatch_command FROM photo.tasks WHERE id=$1", task).Scan(&state, &attempt, &retries, &fence, &command); err != nil || state != "queued" || attempt != 1 || retries != 1 || fence != 2 || len(command) == 0 {
+		t.Fatal("invalid recovered dispatch", state, attempt, retries, fence, err)
+	}
+	var assigned string
+	if err = admin.QueryRow(ctx, "SELECT node_id FROM photo.resource_reservations WHERE task_id=$1 AND state='reserved'", task).Scan(&assigned); err != nil || assigned != node {
+		t.Fatal("recovered dispatch lost node reservation", assigned, err)
 	}
 }
 

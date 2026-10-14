@@ -1,0 +1,56 @@
+{
+  "generated_at": "2026-10-08T18:35:35.776997+00:00",
+  "status": "implementing",
+  "module": "V27",
+  "package_id": "V27",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "sql": {
+      "result": "PASS",
+      "tests": 23,
+      "seconds": 35.596
+    },
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 90.799
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/v2input",
+      "photoeditor/backend/internal/v2draft",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "00951 private target graph scope and registration state plus strict scheduler binding gate",
+    "Actual target defect manifest/DAG/namespace/original parent scope and completed producers repeated",
+    "Ready exact backend transport ownership checked before missing state; valid foreign manifest refuses before and after registration",
+    "Canonical row SHA and exact ordered rows/transport/direct/profile replay; partial one-row registration refuses without repair",
+    "Go registration repeats full blocked begin/dependencies/qualification/Params authority",
+    "Created blocked registration/replay/revoked refusal; independent SQL/S3 confirms exact registered row count/closure readiness and zero queued outbox",
+    "00899\u219200951 metadata and function OID/owner/ACL preserved; existing pending shell branches retained"
+  ],
+  "limitations": [
+    "Target defect seal/native worker/result/finish/saved recovery and automatic advancement still required",
+    "Original transfer handoff/fresh-process Recover and whole V27 acceptance remain open",
+    "Upstream ML doubles; no GPU/photo-quality acceptance",
+    "No production migration"
+  ],
+  "sha256": {
+    "backend/db/migrations/00951_v27_target_defect_registration.sql": "885e5e8bfecf32ead1cdf8cdeb16636d33d4f9616db110b2048e4ed8a8653849",
+    "backend/internal/semanticproposal/native_target_defect_registration.go": "711fe8eb2fb7ff99f6eb86562c9742dfa24ee4e1ed82a502552d120c7b772f7e",
+    "backend/internal/semanticproposal/native_target_defect_transport_probe_test.go": "38e55223c70a88c4253099b1cabc59a28d4f4794231286950c72c2db245906ac",
+    "backend/internal/semanticproposal/native_target_defect_dependency_probe_test.go": "416fa9aca88830afe34c33c18723cd9294b407111273cf42424bd957944e1e8c",
+    "tests/integration/test_v27_person_migration_upgrade.py": "f03c3c51bfc3eb1080d3db5931d227952575ce62aabbe3a405d7615d8e8a1f7c",
+    "tests/integration/test_v27_semantic_intent_publication.py": "f72ce998007824f18116936138c4358a141eec8ecb588611b8f8faa9cda7c333",
+    "tests/integration/v27_face_wire_probe.py": "c982a55a8838c4cd307d500365f4e9bc606b454c16c48bdc3f2d27ed5cdb9489",
+    "docs/implementation-v2/03-database.md": "27e08051ea495b5ebb880fbf05c509ee2716951bb82e536158baab5a24532778",
+    "docs/implementation-v2/15-execution-contracts.md": "18257b8f326c2d3e09a44b85471767e3d5d9a537942df81e262fa13f99fdc50d",
+    "docs/implementation-v2/audit/v27-target-defect-registration-go-current.jsonl": "d9d99984cf9a7040fb762f490827ebb3ea8b1aeba7411cbd5aa4aecc248eab7d",
+    "docs/implementation-v2/audit/v27-target-defect-registration-sql-current.xml": "a5e47febc00186eef773bc7e3341cf937200837500729347af0fa1fa3a41b8b8",
+    "docs/implementation-v2/audit/v27-target-defect-registration-wire-current.xml": "c234988e03252b8208e77b69c3256e24ec575ef977d261972bb2a3d9fc657031"
+  }
+}

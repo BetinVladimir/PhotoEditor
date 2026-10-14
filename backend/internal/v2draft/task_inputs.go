@@ -14,6 +14,17 @@ import (
 // catalog used by drafts. It returns a sorted immutable inventory, not a task
 // authorization or registration. SQL must revalidate scope at graph admission.
 func (s ClosureResolver) ResolveTaskInputs(ctx context.Context, who auth.Identity, tenantID uuid.UUID, roots []v2input.Entry, binding v2input.SessionVersionBinding) ([]v2input.Entry, error) {
+	return s.resolveTaskInputs(ctx, who, tenantID, roots, binding, nil)
+}
+
+func (s ClosureResolver) resolveTaskInputs(ctx context.Context, who auth.Identity, tenantID uuid.UUID, roots []v2input.Entry, binding v2input.SessionVersionBinding, witnesses *[]DocumentWitness, occurrenceSets ...*[]OccurrenceWitness) ([]v2input.Entry, error) {
+	if len(occurrenceSets) > 1 {
+		return nil, v2input.ErrInvalid
+	}
+	var occurrences *[]OccurrenceWitness
+	if len(occurrenceSets) == 1 {
+		occurrences = occurrenceSets[0]
+	}
 	if len(roots) < 2 || len(roots) > 260 || binding.AssetVersionID == uuid.Nil || !isDocumentRef(binding.Source) || !isDocumentRef(v2input.Ref{ArtifactID: binding.AssetVersionID, SHA256: binding.CanvasHash}) {
 		return nil, v2input.ErrInvalid
 	}
@@ -55,7 +66,7 @@ func (s ClosureResolver) ResolveTaskInputs(ctx context.Context, who auth.Identit
 		return nil, v2input.ErrInvalid
 	}
 	inventory := []v2input.Entry{}
-	if _, err := s.resolveRootsWithInventory(ctx, who, tenantID, nodes, binding, &inventory); err != nil {
+	if _, err := s.resolveRootsWithEvidence(ctx, who, tenantID, nodes, binding, &inventory, witnesses, occurrences); err != nil {
 		return nil, err
 	}
 	return uniqueTaskInputs(inventory)

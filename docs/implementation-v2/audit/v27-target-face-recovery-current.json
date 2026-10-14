@@ -1,0 +1,53 @@
+{
+  "generated_at": "2026-10-08T17:03:51.509132+00:00",
+  "status": "implementing",
+  "module": "V27",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "sql": {
+      "result": "PASS",
+      "tests": 23,
+      "seconds": 28.689
+    },
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 61.85
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/v2input",
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/semanticproposal",
+      "photoeditor/backend/internal/v2draft"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "00939 API saved reader and scheduler exact transport recovery",
+    "queued and completed landmarks/parse restore reproduces exact plan and sealed receipt",
+    "config/profile/Params substitutions refused",
+    "original parent request key supported for qualified face recovery profiles",
+    "00899\u219200939 metadata and function security preservation"
+  ],
+  "limitations": [
+    "Automatic target face advancement and Recover hook remain open",
+    "No fresh-process crash/restart or whole V27 acceptance",
+    "ML doubles/shared WorkingImage; no GPU/photo-quality qualification",
+    "No production migration"
+  ],
+  "sha256": {
+    "docs/implementation-v2/audit/v27-target-face-recovery-sql-current.xml": "64ec54a467517f4a6b5a5e2931f2a0dc7378c116adef2858363e5eca8349e096",
+    "docs/implementation-v2/audit/v27-target-face-recovery-wire-current.xml": "eb6ccec0d570114864c0cb8d427c75250b195e703e2b3839994d6047f1c775aa",
+    "docs/implementation-v2/audit/v27-target-face-recovery-go-current.jsonl": "8be77bcae538529bdc0204c4dc4ec550c4fe35d0fb761d99fe50b3d186d728c0",
+    "backend/db/migrations/00939_v27_target_face_saved_recovery.sql": "6ef4ac6c65d31e19352f82a28f42e22f9707914a18c71c891df4478b760944fa",
+    "backend/internal/semanticproposal/native_target_face_recovery.go": "14666953974994fecd855576d5f3219ac0338115e32abb1560aeefd48f59ce0d",
+    "backend/internal/semanticproposal/native_target_face_wire_probe_test.go": "de82d6a4c6e2b6eb66ced6753eeb8ba1f803564dedb630d8eec9a8b39a6cfce3",
+    "backend/internal/semanticproposal/native_plan_recovery_metadata.go": "f286588427156345864c0f0bc562e5dadc9c44db8180a34bc9d409f12c49bf68",
+    "backend/internal/semanticproposal/native_plan_recovery_metadata_test.go": "767bc27947cafe2a2c55ed94e247c7dcfefb2f6c29ede41ed68bb525e4789530",
+    "tests/integration/test_v27_person_migration_upgrade.py": "85285b41d53d9c80d01930477566dfb216d2752bac188dc17d559bdb8563f088",
+    "tests/integration/test_v27_semantic_intent_publication.py": "2f05bf2a667a0623e1a133b3170a39c74cadaa4207a59cc54e272b1bf66f4dfd",
+    "docs/implementation-v2/03-database.md": "dfaeb32557234790f420cb3855d033086bc4ae99d3ce3bff0cfba14a305d162b",
+    "docs/implementation-v2/15-execution-contracts.md": "b105947cf9203ad1dc540a11707804279b97afad8cef950fbb080015a109e30f"
+  }
+}

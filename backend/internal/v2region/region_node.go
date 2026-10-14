@@ -60,6 +60,9 @@ func (p FrozenRegionPlan) CompileNode(task uuid.UUID, params v2input.Ref, resolv
 		!validRegionSHA(value("region_runtime_sha256")) {
 		return FrozenRegionNode{}, ErrRegionInvalid
 	}
+	if err := p.validatePinnedProfile(fields); err != nil {
+		return FrozenRegionNode{}, err
+	}
 	inputs, err := p.FreezeInputs(task, params, resolved)
 	if err != nil {
 		return FrozenRegionNode{}, err

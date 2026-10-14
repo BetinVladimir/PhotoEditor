@@ -2,7 +2,7 @@
 from pathlib import Path
 from copy import deepcopy
 import json, math, unittest, unicodedata
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, FormatChecker
 R=Path(__file__).resolve().parent
 D=json.loads((R/'contracts/schemas.json').read_text())['$defs']
 OPS={o['id']:o for o in json.loads((R/'contracts/operations.json').read_text())['operations']}
@@ -114,6 +114,17 @@ def relight(x,y,depth,lights,sigma):
     return 2**max(-1,min(1,sum(l['ev']*math.exp(-((x-l['x'])**2+(y-l['y'])**2)/(2*l['r']**2))*math.exp(-(depth-l['depth'])**2/(2*sigma*sigma)) for l in lights)))
 
 class Semantics(unittest.TestCase):
+    def test_semantic_run_intent_resolution_contract(self):
+        schema={'$ref':'#/$defs/SemanticRunIntent','$defs':D}
+        validator=Draft202012Validator(schema,format_checker=FormatChecker())
+        sample={'run_id':'11111111-1111-4111-8111-111111111111','workflow_id':'22222222-2222-4222-8222-222222222222','intent_id':None,'revision':'2','state':'queued'}
+        validator.validate(sample)
+        validator.validate({**sample,'intent_id':'33333333-3333-4333-8333-333333333333','state':'waiting_review'})
+        for change in ({'extra':True},{'revision':2},{'state':'draft'},{'intent_id':'invalid'}):
+            self.assertTrue(list(validator.iter_errors({**sample,**change})))
+        route=json.loads((R/'contracts/openapi.json').read_text())['paths']['/api/v1/tenants/{t}/runs/{id}/semantic-intent']['get']
+        self.assertEqual(route['operationId'],'ReadRunIntent')
+        self.assertEqual(route['x-role'],'editor')
     def rejects(self,fn,*args):
         with self.assertRaises(ValueError):fn(*args)
     def state(self,n=3):return {'state':'waiting_review','revision':1,'sha':'plan','targets':{i:'proposed' for i in range(n)}}

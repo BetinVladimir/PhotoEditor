@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"context"
+ "encoding/json"
 	"testing"
 
 	"github.com/google/uuid"
@@ -18,7 +19,7 @@ func snapshotValues(t *testing.T) (IngestSpec, [][]any) {
 		if tile == 0 {
 			tile = 512
 		}
-		raw, err := canonical.Marshal(IngestSnapshotPayload{1, item.Suffix, item.AssumeProfile, item.Analyze, tile})
+		raw, err := canonical.Marshal(IngestSnapshotPayload{1, item.Suffix, item.AssumeProfile, item.Analyze, tile, nil})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -95,4 +96,54 @@ func TestIngestSnapshotPayloadStrictContract(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestIngestSnapshotV2RetainsExactRAWPolicy(t *testing.T) {
+ settings:=RAWDevelopment{1,"dcb","daylight",1.5,"blend","rawpy-0.27.1/libraw-0.21.4"}
+ for _,version:=range []int{1,2} {
+  spec,values:=snapshotValues(t)
+  // Fixture stores the RAW item first (ordinal2), then the PNG item.
+  item:=spec.Items[1]
+  raw,err:=canonical.Marshal(IngestSnapshotPayload{version,item.Suffix,item.AssumeProfile,item.Analyze,512,&settings})
+  if err!=nil {t.Fatal(err)}
+  values[0][7]=raw
+  got,err:=(IngestRunReader{DB:outcomeDB{&outcomeRows{values:values}}}).Load(context.Background(),uuid.New(),spec.RunID)
+  if version==1 {
+   if err==nil {t.Fatal("RAW policy accepted in historical v1 shape")}
+   continue
+  }
+  if err!=nil || got.Spec.Items[0].RAWDevelopment==nil || *got.Spec.Items[0].RAWDevelopment!=settings {t.Fatal("RAW snapshot policy lost",err)}
+  _,registry:=ingestFixture(t)
+  plan,err:=CompileIngest(got.Spec,registry)
+  if err!=nil {t.Fatal(err)}
+  found:=false
+  for _,node:=range plan.Nodes {
+   if node.Operation=="asset.decode" && node.Key=="asset.decode/0000000000000002" {
+    var params ingestDecodeParams
+    if err:=json.Unmarshal(node.Params,&params);err!=nil {t.Fatal(err)}
+    if params.RAWDevelopment==nil || *params.RAWDevelopment!=settings {t.Fatal("snapshot-to-task policy changed")}
+    found=true
+   }
+  }
+  if !found {t.Fatal("RAW decode absent")}
+ }
+}
+
+func TestIngestSnapshotV2RejectsPolicyOnRasterOrInvalidPolicy(t *testing.T) {
+ for _,kind:=range []string{"raster","invalid version","invalid wb","invalid decoder"} {
+  spec,values:=snapshotValues(t)
+  item:=spec.Items[1]
+  settings:=RAWDevelopment{1,"ahd","camera",0,"clip","rawpy-0.27.1/libraw-0.21.4"}
+  switch kind {
+  case "raster":item.Suffix=".png"
+  case "invalid version":settings.SchemaVersion=2
+  case "invalid wb":settings.WBSource="guess"
+  case "invalid decoder":settings.DecoderVersion="unlocked"
+  }
+  raw,err:=canonical.Marshal(IngestSnapshotPayload{2,item.Suffix,item.AssumeProfile,item.Analyze,512,&settings})
+  if err!=nil{t.Fatal(err)}
+  values[0][7]=raw
+  rows:=&outcomeRows{values:values}
+  if _,err=(IngestRunReader{DB:outcomeDB{rows}}).Load(context.Background(),uuid.New(),spec.RunID);err==nil || !rows.closed {t.Fatal("invalid RAW snapshot accepted",kind)}
+ }
 }

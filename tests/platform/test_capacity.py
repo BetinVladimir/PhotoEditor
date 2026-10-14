@@ -60,3 +60,30 @@ def test_cuda_requires_single_device_and_uses_global_free(monkeypatch):
     monkeypatch.setattr(torch.cuda,'device_count',lambda:1)
     monkeypatch.setattr(torch.cuda,'mem_get_info',lambda device:(200,100))
     with pytest.raises(ValueError):capacity.measure_accelerator(Path('.'),'cuda')
+
+
+@pytest.mark.parametrize('response',[False,None,1,'true',{'accepted':True}])
+def test_report_requires_exact_boolean_acceptance(response):
+    reporter=CapacityReporter(lambda sample:response,lambda:Capacity(1,1),lambda:None)
+    with pytest.raises(RuntimeError,match='registration rejected'):reporter.report_once()
+
+
+def test_rejected_report_stops_before_aborting_even_if_abort_raises():
+    stop=Event();events=[]
+    class Tick:
+        def wait(self,interval):return stop.is_set()
+        def set(self):stop.set()
+    def abort():
+        assert stop.is_set() and reporter.failed.is_set()
+        events.append('abort')
+        raise RuntimeError('abort failed')
+    reporter=CapacityReporter(lambda sample:'true',lambda:Capacity(1,1),abort)
+    with pytest.raises(RuntimeError,match='abort failed'):reporter.run(Tick())
+    assert events==['abort'] and stop.is_set() and reporter.failed.is_set()
+
+
+def test_exact_true_report_is_accepted():
+    samples=[]
+    reporter=CapacityReporter(lambda sample:samples.append(sample) or True,lambda:Capacity(1,2,3),lambda:None)
+    reporter.report_once()
+    assert samples==[Capacity(1,2,3)] and not reporter.failed.is_set()

@@ -2,9 +2,8 @@
 from __future__ import annotations
 
 from contextlib import ExitStack
-import numpy as np
 
-from photo_worker.algorithms.background import blur_background_tile, depth_layer_radii
+from .prepare_blur import prepare_blur
 from photo_worker.contracts.background import BlurParams, BlurReport
 from photo_worker.contracts.base import canonical_bytes
 from photo_worker.contracts.images import WorkingImage
@@ -48,38 +47,11 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts) -> OperationResult:
         rgb = mapped(image.pixels, (height, width, 3))
         subject = mapped(params.subject.artifact, (height, width))
         depth = mapped(params.depth.artifact, (height, width))
-        # Deterministic bounded reduction; no full-size temporary.
-        weighted = 0.0; weight = 0.0
-        for y in range(0, height, tile):
-            ctx.check_active()
-            mask = subject[y:y + tile]
-            selected = mask >= .5
-            if np.any(selected):
-                weighted += float(np.sum(depth[y:y + tile][selected], dtype=np.float64))
-                weight += int(np.count_nonzero(selected))
-        if weight == 0:
-            raise OperationFailure("MASK_EMPTY")
-        subject_depth = weighted / weight
-        radii = depth_layer_radii(max(height, width), params.strength, subject_depth)
-        halo = max(radii)
-        ctx.progress(1, total)
-        with artifacts.scratch.reserve(height * width * 12 + 8192) as reservation:
-            path = reservation.path("background-blur-rgb", ".npy")
-            target = np.lib.format.open_memmap(path, mode="w+", dtype="<f4", shape=(height, width, 3))
-            try:
-                done = 1
-                for y in range(0, height, tile):
-                    for x in range(0, width, tile):
-                        ctx.check_active()
-                        y0, y1 = max(0, y - halo), min(height, y + tile + halo)
-                        x0, x1 = max(0, x - halo), min(width, x + tile + halo)
-                        core = (slice(y - y0, min(y + tile, height) - y0), slice(x - x0, min(x + tile, width) - x0))
-                        target[y:min(y + tile, height), x:min(x + tile, width)] = blur_background_tile(
-                            rgb[y0:y1, x0:x1], subject[y0:y1, x0:x1], depth[y0:y1, x0:x1], radii, core)
-                        done += 1; ctx.progress(done, total)
-                target.flush(); reservation.validate()
-            finally:
-                target._mmap.close()
+        with prepare_blur(rgb,subject,depth,artifacts.scratch,strength=params.strength,
+                tile=tile,check_active=ctx.check_active,
+                progress=lambda done:ctx.progress(done,total)) as prepared:
+            path,reservation=prepared.rgb,prepared.reservation
+            subject_depth,radii=prepared.subject_depth,prepared.radii
             pixel_ref = artifacts.stage(path, reservation, "working_rgb", "application/octet-stream")
             written = path.stat().st_size
     output_image = WorkingImage(pixels=pixel_ref, canvas=image.canvas, color=image.color, dtype="float32",

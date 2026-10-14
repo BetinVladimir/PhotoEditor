@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 all-native authority barrier and blocked Begin/replay/rollback",
+  "whole_module_accepted": false,
+  "migration_head": "00961",
+  "production_migrations_applied": false,
+  "checks": {
+    "go": "4 packages PASS; v27-native-all-target-locks-go-current.jsonl",
+    "sql": "25 PASS33.95s; v27-native-all-target-locks-sql-current.xml",
+    "native_wire": "1 PASS226.06s; v27-native-all-target-locks-wire-current.xml",
+    "diff_check": "PASS"
+  },
+  "source_manifest": "v27-native-all-target-locks-source-current.json",
+  "source_manifest_sha256": "3614d3283721ddaf1571bf4f1262971a0d6dd95755af4b7ee3770091e6763d94",
+  "quality_preservation": {
+    "workers_src_baseline_files": 544,
+    "changed": 0,
+    "real_photo_quality_accepted": false
+  },
+  "implemented": [
+    "Retained sealed physically verified completed target packets and metadata accounting.",
+    "Combined exact original reference, target00959 protection/source, inventory, qualification, intent and snapshot locks.",
+    "Dedicated Begin/register/seal/replay transaction adapters."
+  ],
+  "native_verified": [
+    "Complete barrier replay twice.",
+    "Foreign target packet refusal.",
+    "Blocked Begin and repeat Begin in one transaction.",
+    "Exact missing registration state for every task through scheduler-only function.",
+    "Rollback with independent absence of parent run."
+  ],
+  "remaining": [
+    "Commit-aware transport coordinator and actual durable publish/register/seal/replay execution verification.",
+    "Saved full graph/process/crash recovery and original parent handoff.",
+    "Complete V27 and V20\u2013V32 acceptance."
+  ],
+  "limitations": [
+    "Registration/seal/replay adapters compiled but their committed lifecycle is not yet verified.",
+    "Native ML prerequisites include doubles; no real-photo/GPU qualification.",
+    "No original parent activation or ticket claimed."
+  ]
+}

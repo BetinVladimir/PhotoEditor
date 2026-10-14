@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "package_id": "V27",
+  "status": "implementing",
+  "sources": [
+    {
+      "path": "backend/internal/semanticproposal/native_initial_defect_ensure.go",
+      "sha256": "b8888c48203566a8305410943f30aae166a6896918f1ae34407d98b674b53e6d"
+    },
+    {
+      "path": "backend/internal/semanticproposal/native_initial_defect_ensure_test.go",
+      "sha256": "04064d891c1039833c71b05ebbda623e75ea8d4767ac2e9d6ac6788dbf64c53c"
+    },
+    {
+      "path": "backend/internal/semanticproposal/native_initial_pipeline_recovery_job.go",
+      "sha256": "fd984497a60376f1adc40bc794c955db997ec8a8c8b6d9effbc68215f1289fe1"
+    },
+    {
+      "path": "backend/internal/semanticproposal/native_initial_detector_start_test.go",
+      "sha256": "6cd19d6096c82db47c281e4974baa52b54adec537c2c70f6ae829929a7c029df"
+    },
+    {
+      "path": "backend/internal/semanticproposal/native_bootstrap_integration_test.go",
+      "sha256": "226cbbe4f0fa2d7888c8321364594b23cb30538f784fa1d600d13bb9061a1981"
+    },
+    {
+      "path": "docs/implementation-v2/v27-cpu-assembly-runtime.md",
+      "sha256": "0900e7f839d2e394a6209ac20bea84a3704be128fdb66d14fe7938b5a82c7c8e"
+    }
+  ],
+  "changes": [
+    "Ordinary initial pipeline invokes person-protected defect coordinator after original person and face readiness.",
+    "Absent child uses qualified CPU budget, original face transports and supported diameter range; existing child restores original Params, person authority, resource costs and report.",
+    "Queued child retains initial scheduling checkpoint in waiting state; no parent-completion claim."
+  ],
+  "checks": [
+    {
+      "command": "scripts/run-platform.sh go -C backend test ./internal/semanticproposal -count=1",
+      "exit_code": 0,
+      "scope": "Go package tests; infrastructure environment not enabled"
+    },
+    {
+      "command": "PHOTO_TEST_NATIVE_INFRA=1 PYTHONPATH=workers:src:tests/integration PYTHONDONTWRITEBYTECODE=1 .venv-platform/bin/python -m pytest tests/integration/test_v27_semantic_intent_publication.py -k native-person-defect-wire -q --junitxml=docs/implementation-v2/audit/v27-automatic-person-defect-wire.xml",
+      "exit_code": 0,
+      "passed": 1,
+      "deselected": 21,
+      "seconds": 51.33,
+      "evidence_sha": "be53beeb0747b47dfdf62ee82b1e1a964b55e52a11fd3672af1a2e77bf19cfda",
+      "scope": "Coordinator original admitted checkpoint replay, CPU defect execution and physical probability coverage; imported original person fixture and deterministic face inference doubles."
+    }
+  ],
+  "limitations": [
+    "Automatic absent-child creation has no physical positive test yet.",
+    "Newly inferred original person result positive end-to-end test remains missing.",
+    "Completed defect to durable parent handoff and terminal recording remain incomplete.",
+    "No real GPU/model scientific quality or whole V27 acceptance claim."
+  ]
+}

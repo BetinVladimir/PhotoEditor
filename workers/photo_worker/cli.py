@@ -82,13 +82,96 @@ def capacity_policy(path:Path):
 def run():
     """Consume the provisioned worker queue using installed atomic operations."""
     from photo_worker.runtime.service import WorkerConfig,WorkerConfigurationError,run_worker
-    try:run_worker(WorkerConfig.from_env())
+    try:
+        from photo_worker.runtime.semantic_assembly_config import semantic_assembly_from_environment
+        config=WorkerConfig.from_env()
+        assembly=semantic_assembly_from_environment(config)
+        from photo_worker.runtime.exposure_config import local_exposure_from_environment
+        exposure=local_exposure_from_environment(config)
+        from photo_worker.runtime.donor_config import donor_installation_from_environment
+        donor=donor_installation_from_environment(config)
+        from photo_worker.runtime.negative_config import negative_installation_from_environment
+        negative=negative_installation_from_environment(config)
+        from photo_worker.runtime.relight_config import relight_installation_from_environment
+        relight=relight_installation_from_environment(config)
+        from photo_worker.runtime.local_portrait_config import local_portrait_installation_from_environment
+        local_portrait=local_portrait_installation_from_environment(config)
+        from photo_worker.runtime.reflection_config import reflection_installation_from_environment
+        reflection=reflection_installation_from_environment(config)
+        from photo_worker.runtime.glare_config import glare_donor_installation_from_environment
+        glare=glare_donor_installation_from_environment(config)
+        from photo_worker.runtime.perspective_config import perspective_installation_from_environment
+        perspective=perspective_installation_from_environment(config)
+        from photo_worker.runtime.perspective_lines_config import perspective_lines_installation_from_environment
+        perspective_lines=perspective_lines_installation_from_environment(config)
+        from photo_worker.runtime.multi_config import multi_installation_from_environment
+        multi=tuple(item for operation in ('optical.panorama','optical.focus_stack')
+            if (item:=multi_installation_from_environment(config,operation)) is not None)
+        from photo_worker.runtime.learning_config import learning_evaluation_from_environment
+        learning_evaluation=learning_evaluation_from_environment(config)
+        installations={}
+        if learning_evaluation is not None:
+            installations['learning_evaluation_installation']=learning_evaluation
+        if multi:installations['multi_installations']=multi
+        if perspective_lines is not None:installations['perspective_lines_installation']=perspective_lines
+        if perspective is not None:installations['perspective_installation']=perspective
+        if relight is not None:installations['relight_installation']=relight
+        if local_portrait is not None:installations['local_portrait_installation']=local_portrait
+        if reflection is not None:installations['reflection_installation']=reflection
+        if glare is not None:installations['glare_installation']=glare
+        if negative is not None:installations['negative_installation']=negative
+        if donor is not None:installations['donor_installation']=donor
+        if assembly is not None:installations['semantic_assembly_installation_factory']=assembly
+        if exposure is not None:installations['local_exposure_installation_factory']=exposure
+        run_worker(config,**installations)
     except WorkerConfigurationError as exc:
         typer.echo(str(exc),err=True);raise typer.Exit(2)
     except Exception:
         # Broker/DB exceptions may contain credentials. Never print their text.
         typer.echo('Worker stopped: configuration, dependency or shutdown failure',err=True)
         raise typer.Exit(1)
+
+@app.command('verify-region-runtime')
+def verify_region_runtime(path: Path, expected_sha: str):
+    """Verify externally pinned Region build bytes without claiming qualification."""
+    from photo_worker.operations.region.runtime_lock import load_region_runtime_lock
+    from photo_worker.runtime.executor import OperationFailure
+    try:
+        lock = load_region_runtime_lock(path, expected_sha)
+    except (OSError, ValueError, OperationFailure):
+        typer.echo('Region runtime verification failed', err=True)
+        raise typer.Exit(2)
+    typer.echo(json.dumps({'valid': True, 'sha256': expected_sha,
+        'components': len(lock.components), 'qualification': 'not_measured'}))
+
+
+@app.command('verify-reflection-runtime')
+def verify_reflection_runtime(path: Path, expected_sha: str, backend: str):
+    """Verify installed reflection code without asserting model qualification."""
+    from photo_worker.operations.image.reflection_runtime_lock import load_reflection_runtime_lock
+    try:
+        lock = load_reflection_runtime_lock(path, expected_sha, backend)
+    except (OSError, ValueError):
+        typer.echo('Reflection runtime verification failed', err=True)
+        raise typer.Exit(2)
+    typer.echo(json.dumps({'valid': True, 'sha256': expected_sha,
+        'backend': lock.backend, 'components': len(lock.components),
+        'qualification': 'not_measured'}, sort_keys=True))
+
+
+@app.command('verify-glare-donor-runtime')
+def verify_glare_donor_runtime(path: Path, expected_sha: str):
+    """Verify donor-glare code bytes, not corpus or model qualification."""
+    from photo_worker.operations.portrait.glare_donor_runtime_lock import load_glare_donor_runtime_lock
+    try:
+        lock = load_glare_donor_runtime_lock(path, expected_sha)
+    except (OSError, ValueError):
+        typer.echo('Donor glare runtime verification failed', err=True)
+        raise typer.Exit(2)
+    typer.echo(json.dumps({'valid': True, 'sha256': expected_sha,
+        'components': len(lock.components), 'qualification': 'not_measured'},
+        sort_keys=True))
+
 
 @app.command('v2-adopter')
 def v2_adopter():
@@ -99,7 +182,27 @@ def v2_adopter():
     stop=Event()
     signal.signal(signal.SIGTERM,lambda *_:stop.set())
     signal.signal(signal.SIGINT,lambda *_:stop.set())
-    try:run_adopter(AdopterConfig.from_env(),stop)
+    try:
+        from photo_worker.v2.portrait_donor_adopter_config import donor_adopter_from_environment
+        donor=donor_adopter_from_environment()
+        options={} if donor is None else {'donor_installation':donor}
+        from photo_worker.v2.negative_adopter_config import negative_adopter_from_environment
+        negative=negative_adopter_from_environment()
+        if negative is not None:options['negative_installation']=negative
+        from photo_worker.v2.relight_adopter_config import relight_adopter_from_environment
+        relight=relight_adopter_from_environment()
+        if relight is not None:options['relight_installation']=relight
+        from photo_worker.v2.perspective_adopter_config import perspective_adopter_from_environment
+        perspective=perspective_adopter_from_environment()
+        from photo_worker.v2.perspective_lines_adopter_config import perspective_lines_adopter_from_environment
+        perspective_lines=perspective_lines_adopter_from_environment()
+        if perspective_lines is not None:options['perspective_lines_installation']=perspective_lines
+        if perspective is not None:options['perspective_installation']=perspective
+        from photo_worker.v2.multi_adopter_config import multi_adopter_from_environment
+        multi=tuple(item for operation in ('optical.panorama','optical.focus_stack')
+            if (item:=multi_adopter_from_environment(operation)) is not None)
+        if multi:options['multi_installations']=multi
+        run_adopter(AdopterConfig.from_env(),stop,**options)
     except ValueError:
         typer.echo('V2 adopter configuration invalid',err=True);raise typer.Exit(2)
     except Exception:
@@ -107,4 +210,91 @@ def v2_adopter():
         typer.echo('V2 adopter stopped: dependency or runtime failure',err=True)
         raise typer.Exit(1)
 
-if __name__=='__main__':app()
+
+
+@app.command('signer-verify-sdk-wheel')
+def signer_verify_sdk_wheel(path: Path):
+    """Verify the approved SDK distribution offline; do not install or qualify it."""
+    from dataclasses import asdict
+    from photo_worker.runtime.signer_wheel import verify_signer_sdk_wheel
+    try:
+        receipt = verify_signer_sdk_wheel(path)
+    except (OSError, ValueError):
+        typer.echo('Signer SDK wheel rejected: check the approved digest, path and file permissions', err=True)
+        raise typer.Exit(2)
+    typer.echo(json.dumps(asdict(receipt), sort_keys=True))
+
+
+@app.command('signer-verify-deployment')
+def signer_verify_deployment(root: Path,
+                             runtime_file: Annotated[list[str], typer.Option('--runtime-file')],
+                             runtime_lock: str = 'runtime-lock.json'):
+    """Check pinned signer deployment files offline, without reading the PIN."""
+    from photo_worker.runtime.signer_preflight import verify_signer_deployment_files
+    files = {}
+    for item in runtime_file:
+        name, separator, path = item.partition('=')
+        if not separator or not name or not path or name in files:
+            typer.echo('Signer deployment file mapping invalid', err=True)
+            raise typer.Exit(2)
+        files[name] = path
+    try:
+        receipt = verify_signer_deployment_files(root, runtime_lock, files)
+    except (OSError, ValueError):
+        typer.echo('Signer deployment file preflight failed', err=True)
+        raise typer.Exit(2)
+    typer.echo(json.dumps(receipt, sort_keys=True))
+
+
+@app.command('capacity-policy-install')
+def capacity_policy_install(path: Path):
+    """Install exact policy timing using PHOTO_OPERATOR_DATABASE_URL."""
+    from photo_worker.runtime.capacity_policy_operator import provision_capacity_policy
+    try:
+        receipt = provision_capacity_policy(path)
+    except Exception:
+        typer.echo('Capacity policy installation failed; transaction not acknowledged', err=True)
+        raise typer.Exit(1)
+    typer.echo(json.dumps(receipt, sort_keys=True))
+
+
+@app.command('capacity-policy-rotate')
+def capacity_policy_rotate(path: Path, worker: str, principal: str, node: str,
+                           expected_sha: str | None = typer.Option(None),
+                           expect_legacy: bool = typer.Option(False)):
+    """CAS worker policy; explicitly select expected SHA or an unpinned legacy worker."""
+    from uuid import UUID
+    from photo_worker.runtime.capacity_policy_operator import provision_capacity_policy
+    if expect_legacy == (expected_sha is not None):
+        typer.echo('Supply exactly one of --expected-sha or --expect-legacy', err=True)
+        raise typer.Exit(2)
+    try:
+        receipt = provision_capacity_policy(path, rotate=True, worker_id=UUID(worker),
+            principal=principal, node=node, expected_sha=expected_sha)
+    except Exception:
+        typer.echo('Capacity policy rotation failed; transaction not acknowledged', err=True)
+        raise typer.Exit(1)
+    typer.echo(json.dumps(receipt, sort_keys=True))
+
+
+@app.command('capacity-policy-reconcile')
+def capacity_policy_reconcile(path: Path, worker: str, principal: str, node: str,
+                              expected_sha: str | None = typer.Option(None),
+                              expect_legacy: bool = typer.Option(False)):
+    """Read current policy pins after an uncertain commit; never mutate or resume."""
+    from uuid import UUID
+    from photo_worker.runtime.capacity_policy_operator import reconcile_capacity_policy
+    if expect_legacy == (expected_sha is not None):
+        typer.echo('Supply exactly one of --expected-sha or --expect-legacy', err=True)
+        raise typer.Exit(2)
+    try:
+        receipt = reconcile_capacity_policy(path, worker_id=UUID(worker), principal=principal,
+            node=node, expected_sha=expected_sha)
+    except Exception:
+        typer.echo('Capacity policy reconciliation failed; state is unconfirmed', err=True)
+        raise typer.Exit(1)
+    typer.echo(json.dumps(receipt, sort_keys=True))
+
+
+if __name__ == '__main__':
+    app()

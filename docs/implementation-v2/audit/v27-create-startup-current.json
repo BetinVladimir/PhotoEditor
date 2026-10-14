@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-08",
+  "module": "V27",
+  "module_accepted": false,
+  "scope": "Separate Go-process production buildSemanticCreate with real config file/verified ICC/environment/SQL API+scheduler roles, ownership cleanup and wrong-role/malformed-config refusal; followed by real HTTP parent admission and independent physical closure verification.",
+  "physical": {
+    "passed": 1,
+    "deselected": 16,
+    "seconds": 21.79,
+    "command": "PHOTO_TEST_NATIVE_INFRA=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=workers:src:tests/integration .venv-platform/bin/python -m pytest tests/integration/test_v27_semantic_intent_publication.py -k create-service -q --tb=short"
+  },
+  "packages": {
+    "semanticproposal": "PASS 1.960s",
+    "cmd/photo": "PASS 1.049s"
+  },
+  "source_sha256": {
+    "backend/cmd/photo/semantic_create_integration_test.go": "993d1cc32f01ab3d6d208994967d22e1734fc8e4bbb965256e7137cf973ac3ac",
+    "backend/cmd/photo/semantic_create.go": "62d69416a276837ceaee092566d43ab468a630b8851174d28b7a9329c0beddf2",
+    "backend/cmd/photo/main.go": "ace19e0cc799a4dc31a6a0b57fdcbc64e77719a95ec3ce487e166ec3f9daddf9",
+    "backend/internal/semanticproposal/create_deployment_probe_test.go": "76d16e4ca74db22e43dae121112da02e69bb2e62b503acc5a5eaa78bb72ffbae",
+    "backend/internal/semanticproposal/create_integration_probe_test.go": "5e9bdfd08d38ce0e6fa5db19d5159ea564d2cb9c576d6c7c941df86eaa23c30e",
+    "backend/internal/semanticproposal/create_http_probe_test.go": "647d9dd56316d41041fd026d0b9b75348956b925dc8e7273412a8a92fbe7a7f3",
+    "backend/internal/semanticproposal/create_deployment.go": "99929f56952f8f7c02bc39ec4b790e2c72d9a7f1d16389cabee6dbf2d6ae4dda",
+    "tests/integration/test_v27_semantic_intent_publication.py": "938e01258c4051ba954b6e614129d7c221fd10a181c36d49d84fd3f66eb2826c",
+    "tests/integration/v27_create_probe.py": "9ff1803d9293679d0cd27247feb93aa1d4e771be39181a0f8df6c74d1e892a1b"
+  },
+  "remaining": [
+    "complete main executable start/serve/graceful shutdown",
+    "native missing-producer public initiation",
+    "real model/photo/hardware/client/lifecycle whole-module acceptance"
+  ]
+}

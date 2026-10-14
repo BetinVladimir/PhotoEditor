@@ -3,6 +3,8 @@ package gateway
 import (
 	"bytes"
 	"context"
+ "crypto/sha256"
+ "encoding/hex"
 	"crypto/tls"
 	"crypto/x509"
 	"github.com/google/uuid"
@@ -42,6 +44,7 @@ func TestDownloadAuthorizationAndRanges(t *testing.T) {
 		t.Fatal(err)
 	}
 	denied := false
+ version := "v1"
 	h := HTTP{Signer: signer, Bucket: "private", MaxDownloadBytes: 100, Objects: objects,
 		Tasks: resolverFunc(func(context.Context, uuid.UUID, int, int64, uuid.UUID, *x509.Certificate) (TaskContext, error) {
 			return TaskContext{Identity: id, Deadline: time.Now().Add(time.Hour)}, nil
@@ -50,7 +53,7 @@ func TestDownloadAuthorizationAndRanges(t *testing.T) {
 			if denied || expected != id || requested != artifact || bucket != "private" {
 				return objectstore.Object{}, objectstore.ErrMissing
 			}
-			return objectstore.Object{Key: "private/key", VersionID: "v1", SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Bytes: 10, ContentType: "image/png"}, nil
+			return objectstore.Object{Key: "private/key", VersionID: version, SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Bytes: 10, ContentType: "image/png"}, nil
 		})}
 	request := func(rangeHeader string) *http.Request {
 		r := httptest.NewRequest("GET", "/internal/v1/tasks/"+id.TaskID.String()+"/objects/"+artifact.String(), nil)
@@ -73,6 +76,13 @@ func TestDownloadAuthorizationAndRanges(t *testing.T) {
 		if w.Code != test.status || w.Body.String() != test.body || w.Header().Get("X-Photo-Artifact-ID") != artifact.String() {
 			t.Fatal("incorrect download", w.Code, w.Body.String())
 		}
+        digest := sha256.Sum256([]byte("v1"))
+        if w.Header().Get("X-Photo-Media-Type") != "image/png" || w.Header().Get("X-Photo-Object-Version-SHA256") != hex.EncodeToString(digest[:]) {
+            t.Fatal("immutable metadata headers missing or changed")
+        }
+        if w.Header().Get("Content-Type") != "application/octet-stream" {
+            t.Fatal("download transport media changed")
+        }
 		if test.status == 206 && w.Header().Get("Content-Range") != "bytes 2-5/10" {
 			t.Fatal("incorrect Content-Range")
 		}
@@ -101,7 +111,16 @@ func TestDownloadAuthorizationAndRanges(t *testing.T) {
 	if w.Code != 413 || objects.calls != before {
 		t.Fatal("download quota ignored")
 	}
-	h.MaxDownloadBytes = 100
+ h.MaxDownloadBytes = 100
+ for _, invalidVersion := range []string{"", "null"} {
+  version = invalidVersion
+  w = httptest.NewRecorder()
+  h.Handler().ServeHTTP(w, request(""))
+  if w.Code != 503 || objects.calls != before || w.Header().Get("X-Photo-Object-Version-SHA256") != "" {
+   t.Fatal("unversioned object certified or streamed")
+  }
+ }
+ version = "v1"
 	checks := 0
 	h.Tasks = resolverFunc(func(context.Context, uuid.UUID, int, int64, uuid.UUID, *x509.Certificate) (TaskContext, error) {
 		checks++

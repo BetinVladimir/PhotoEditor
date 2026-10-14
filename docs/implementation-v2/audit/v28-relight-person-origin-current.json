@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 canonical person-mask subject authority",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "production_migration_applied": false,
+  "checks": {
+    "native_sql": {
+      "passed": 4,
+      "seconds": 14.03,
+      "xml": "v28-relight-person-origin-current.xml"
+    },
+    "components": {
+      "passed": 40,
+      "xml": "v28-relight-person-components-current.xml"
+    }
+  },
+  "source_sha256": {
+    "backend/db/migrations/00985_v28_worker_relight_person.sql": "f8adc1cf5fe734108169105c0bcc653bd128c9225f97f900ae88b8393a960911",
+    "workers/photo_worker/runtime/database.py": "2b2287586ca30d2b5783e24941873351b797b32429be3c92bf290feb06701a91",
+    "workers/photo_worker/operations/portrait/relight_person_authority.py": "f247fd27617800a5307a5dc15ac1820befa48967fdf5ce8191a389ca3b79a745",
+    "workers/photo_worker/operations/portrait/relight_runtime_lock.py": "e241c6e8c0c900955d4b00fee1b94680f19e9c281e24fffef13675d6a9d34fba",
+    "tests/platform/test_relight_person_authority.py": "89c8eff5db8368fd9c28a36ccd2ad40ce51088c19dbe6d384286853b8a3af74d",
+    "tests/integration/test_v28_relight_source.py": "3d7c5c4be70540ebfa45fcf75760d851a3a7edfd11f7f743c4e5e1d41bb43dd2"
+  },
+  "limitations": [
+    "Positive person SQL/physical replay remains untested; component publisher/origin doubles",
+    "Manual/other subject and protected producers, complete execution/adoption/UI and real qualification pending"
+  ]
+}

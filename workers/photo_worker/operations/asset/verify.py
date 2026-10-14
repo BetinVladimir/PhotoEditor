@@ -77,14 +77,19 @@ def verify_decode(path: Path, expected_size: int | None = None, expected_sha256:
     from .inspect import read_metadata
     read_metadata(source)
     if kind != 'raw':
-        from .inspect import open_raster
-        import pyvips
-        image = open_raster(path)
-        try:
-            for y in range(0,image.height,512):
-                for x in range(0,image.width,512):
-                    if check_active is not None:check_active()
-                    image.crop(x,y,min(512,image.width-x),min(512,image.height-y)).write_to_memory()
-        except pyvips.Error as exc:
-            raise AssetError('IMAGE_DECODE_FAILED') from exc
+        verify_raster_decode(path, check_active=check_active)
     return source
+
+
+def verify_raster_decode(path: Path, *, check_active: Callable[[],None] | None = None) -> None:
+    """Force every bounded raster tile through the existing strict decoder."""
+    from .inspect import open_raster
+    import pyvips
+    image = open_raster(path)
+    try:
+        for y in range(0,image.height,512):
+            for x in range(0,image.width,512):
+                if check_active is not None:check_active()
+                image.crop(x,y,min(512,image.width-x),min(512,image.height-y)).write_to_memory()
+    except pyvips.Error as exc:
+        raise AssetError('IMAGE_DECODE_FAILED') from exc

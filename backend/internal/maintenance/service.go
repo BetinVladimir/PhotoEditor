@@ -7,7 +7,9 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"net"
 	"net/http"
+	"os"
 	"photoeditor/backend/internal/objectstore"
+	"strings"
 	"sync/atomic"
 	"time"
 )
@@ -15,9 +17,116 @@ import (
 type CleanupJob interface {
 	CleanOne(context.Context) (bool, error)
 }
+type cleanupCycleBudget interface{ CleanupCycleTimeout() time.Duration }
+
+func cleanupCycleTimeout(job CleanupJob) time.Duration {
+	if budget, ok := job.(cleanupCycleBudget); ok {
+		return budget.CleanupCycleTimeout()
+	}
+	return 50 * time.Second
+}
+
 type LoopState struct {
 	Ready             atomic.Bool
 	Cleaned, Failures atomic.Uint64
+}
+
+type tenantBucketReadiness interface{ Ready(context.Context) error }
+
+// Shared across startup and concurrent health requests. A stalled target may
+// outlive its caller, but it cannot create unbounded in-flight storage probes.
+var tenantReadinessSlots = make(chan struct{}, 32)
+
+func probeTenantBucketReady(ctx context.Context, store tenantBucketReadiness) (err error) {
+	defer func() {
+		<-tenantReadinessSlots
+		if recover() != nil {
+			err = errors.New("tenant purge bucket readiness failed")
+		}
+	}()
+	return store.Ready(ctx)
+}
+
+func readyTenantBuckets(ctx context.Context, stores []tenantBucketReadiness) error {
+	if len(stores) == 0 || len(stores) > 256 {
+		return errors.New("invalid tenant purge bucket readiness")
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	for _, store := range stores {
+		if store == nil {
+			return errors.New("missing tenant purge bucket")
+		}
+	}
+	// Bound concurrent network probes while ensuring every configured target is
+	// checked within the shared startup/health deadline.
+	results := make(chan error, len(stores))
+	jobs := make(chan tenantBucketReadiness, len(stores))
+	for _, store := range stores {
+		jobs <- store
+	}
+	close(jobs)
+	workers := len(stores)
+	if workers > cap(tenantReadinessSlots) {
+		workers = cap(tenantReadinessSlots)
+	}
+	for range workers {
+		go func() {
+			for store := range jobs {
+				select {
+				case tenantReadinessSlots <- struct{}{}:
+				case <-ctx.Done():
+					return
+				}
+				if err := ctx.Err(); err != nil {
+					<-tenantReadinessSlots
+					results <- err
+					continue
+				}
+				err := probeTenantBucketReady(ctx, store)
+				results <- err
+			}
+		}()
+	}
+	var firstErr error
+	for range stores {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case err := <-results:
+			if firstErr == nil {
+				firstErr = err
+			}
+		}
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	return firstErr
+}
+
+// S3_TENANT_PURGE_BUCKETS lists additional buckets on the configured S3
+// endpoint. Primary bucket is always included; duplicate/empty names refuse
+// startup instead of silently narrowing physical deletion coverage.
+func tenantPurgeBucketNames(primary, extra string) ([]string, error) {
+	if primary == "" {
+		return nil, errors.New("tenant purge primary bucket required")
+	}
+	names := []string{primary}
+	seen := map[string]bool{primary: true}
+	if extra == "" {
+		return names, nil
+	}
+	for _, part := range strings.Split(extra, ",") {
+		name := strings.TrimSpace(part)
+		if name == "" || seen[name] || len(names) >= 256 {
+			return nil, errors.New("invalid tenant purge bucket list")
+		}
+		seen[name] = true
+		names = append(names, name)
+	}
+	return names, nil
 }
 
 // RunLoop preserves the single-job API used by embedders and tests.
@@ -47,8 +156,13 @@ func RunJobs(ctx context.Context, jobs []CleanupJob, states []*LoopState, idle t
 		if ctx.Err() != nil {
 			return nil
 		}
-		cycle, cancel := context.WithTimeout(ctx, 50*time.Second)
+		cycle, cancel := context.WithTimeout(ctx, cleanupCycleTimeout(jobs[index]))
 		cleaned, err := jobs[index].CleanOne(cycle)
+		// A dependency may return success after ignoring the cycle deadline.
+		// Keep that result from making the job ready or increasing success counts.
+		if cycleErr := cycle.Err(); cycleErr != nil && err == nil {
+			err = cycleErr
+		}
 		cancel()
 		if ctx.Err() != nil {
 			return nil
@@ -75,9 +189,34 @@ func RunJobs(ctx context.Context, jobs []CleanupJob, states []*LoopState, idle t
 }
 
 func Run(ctx context.Context, dsn, listen string, storageConfig objectstore.Config) error {
+	appender, requireHistory, err := loadTenantDeletionHistoryAppender()
+	if err != nil {
+		return err
+	}
 	storage, err := objectstore.New(storageConfig)
 	if err != nil {
 		return err
+	}
+	targets, err := loadTenantPurgeTargets(os.Getenv("S3_TENANT_PURGE_TARGETS_FILE"))
+	if err != nil {
+		return err
+	}
+	tenantConfigs, err := tenantPurgeConfigs(storageConfig, os.Getenv("S3_TENANT_PURGE_BUCKETS"), targets)
+	if err != nil {
+		return err
+	}
+	tenantStores := make(TenantPurgeBuckets, 0, len(tenantConfigs))
+	tenantReady := make([]tenantBucketReadiness, 0, len(tenantConfigs))
+	for _, config := range tenantConfigs {
+		current := storage
+		if config.Endpoint != storageConfig.Endpoint || config.Bucket != storageConfig.Bucket || config.AccessKey != storageConfig.AccessKey || config.SecretKey != storageConfig.SecretKey || config.Region != storageConfig.Region || config.Development != storageConfig.Development {
+			current, err = objectstore.New(config)
+			if err != nil {
+				return err
+			}
+		}
+		tenantStores = append(tenantStores, TenantPurgeBucket{Name: config.Endpoint + "/" + config.Bucket, Objects: current})
+		tenantReady = append(tenantReady, current)
 	}
 	config, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
@@ -93,9 +232,47 @@ func Run(ctx context.Context, dsn, listen string, storageConfig objectstore.Conf
 	defer pool.Close()
 	startup, cancel := context.WithTimeout(ctx, 10*time.Second)
 	var installed bool
-	err = pool.QueryRow(startup, `SELECT to_regprocedure('photo.claim_tenant_deletion()') IS NOT NULL AND to_regprocedure('photo.checkpoint_tenant_deletion(uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.finish_tenant_deletion(uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.claim_staging_cleanup()') IS NOT NULL AND to_regprocedure('photo.finish_staging_cleanup(uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.claim_original_cleanup()') IS NOT NULL AND to_regprocedure('photo.finish_original_cleanup(uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.claim_output_cleanup()') IS NOT NULL AND to_regprocedure('photo.finish_output_cleanup(uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.claim_document_cleanup()') IS NOT NULL AND to_regprocedure('photo.finish_document_cleanup(uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.expire_upload_session()') IS NOT NULL AND to_regprocedure('photo.claim_upload_abort_cleanup()') IS NOT NULL AND to_regprocedure('photo.finish_upload_abort_cleanup(uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.claim_artifact_gc()') IS NOT NULL AND to_regprocedure('photo.finish_artifact_gc(uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.recover_artifact_gc()') IS NOT NULL`).Scan(&installed)
+	err = pool.QueryRow(startup, `SELECT to_regprocedure('photo.claim_tenant_deletion()') IS NOT NULL AND to_regprocedure('photo.checkpoint_tenant_deletion(uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.settle_v30_archive_generations_after_tenant_purge(uuid,uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.renew_tenant_deletion_lease(uuid,uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.finish_tenant_deletion(uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.claim_staging_cleanup()') IS NOT NULL AND to_regprocedure('photo.finish_staging_cleanup(uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.claim_original_cleanup()') IS NOT NULL AND to_regprocedure('photo.finish_original_cleanup(uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.claim_output_cleanup()') IS NOT NULL AND to_regprocedure('photo.finish_output_cleanup(uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.claim_document_cleanup()') IS NOT NULL AND to_regprocedure('photo.finish_document_cleanup(uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.expire_upload_session()') IS NOT NULL AND to_regprocedure('photo.claim_upload_abort_cleanup()') IS NOT NULL AND to_regprocedure('photo.finish_upload_abort_cleanup(uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.claim_artifact_gc()') IS NOT NULL AND to_regprocedure('photo.finish_artifact_gc(uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.recover_artifact_gc()') IS NOT NULL`).Scan(&installed)
 	if err == nil && installed {
-		err = storage.Ready(startup)
+		var ready bool
+		err = pool.QueryRow(startup, `SELECT current_user='photo_maintenance' AND p.prosecdef AND owner.rolname='photo_fn_owner'
+   AND EXISTS(SELECT 1 FROM unnest(p.proconfig) cfg WHERE cfg LIKE 'search_path=pg_catalog,%' AND cfg LIKE '%photo%')
+   AND has_function_privilege(current_user,p.oid,'EXECUTE')
+   AND NOT EXISTS(SELECT FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE')
+   FROM pg_proc p JOIN pg_roles owner ON owner.oid=p.proowner
+   WHERE p.oid=to_regprocedure('photo.settle_v30_archive_generations_after_tenant_purge(uuid,uuid,uuid)')`).Scan(&ready)
+		if err == nil && !ready {
+			err = errors.New("archive generation tenant purge settlement unavailable")
+		}
+		if err == nil {
+			err = pool.QueryRow(startup, `SELECT current_user='photo_maintenance' AND p.prosecdef AND owner.rolname='photo_fn_owner'
+   AND EXISTS(SELECT 1 FROM unnest(p.proconfig) cfg WHERE cfg LIKE 'search_path=pg_catalog,%' AND cfg LIKE '%photo%')
+   AND has_function_privilege(current_user,p.oid,'EXECUTE')
+   AND NOT EXISTS(SELECT FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE')
+   FROM pg_proc p JOIN pg_roles owner ON owner.oid=p.proowner
+   WHERE p.oid=to_regprocedure('photo.renew_tenant_deletion_lease(uuid,uuid,uuid)')`).Scan(&ready)
+			if err == nil && !ready {
+				err = errors.New("tenant deletion lease renewal unavailable")
+			}
+		}
+	}
+	var history TenantDeletionHistory
+	if err == nil && installed && appender != nil {
+		var ready bool
+		err = pool.QueryRow(startup, `SELECT current_user='photo_maintenance' AND p.prosecdef AND owner.rolname='photo_fn_owner'
+   AND has_function_privilege(current_user,p.oid,'EXECUTE')
+   AND NOT EXISTS(SELECT FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE')
+   FROM pg_proc p JOIN pg_roles owner ON owner.oid=p.proowner
+   WHERE p.oid=to_regprocedure('photo.v32_tenant_deletion_history_intent(uuid,uuid,uuid)')`).Scan(&ready)
+		if err == nil && !ready {
+			err = errors.New("deletion history SQL installation unavailable")
+		}
+		if err == nil {
+			history = SQLTenantDeletionHistory{DB: pool, Appender: appender}
+		}
+	}
+	if err == nil && installed {
+		err = readyTenantBuckets(startup, tenantReady)
 	}
 	cancel()
 	if err != nil || !installed {
@@ -133,7 +310,7 @@ func Run(ctx context.Context, dsn, listen string, storageConfig objectstore.Conf
 	mux.HandleFunc("GET /health/ready", func(w http.ResponseWriter, r *http.Request) {
 		check, done := context.WithTimeout(r.Context(), 5*time.Second)
 		defer done()
-		if !state.Ready.Load() || !documentState.Ready.Load() || !originalState.Ready.Load() || !stagingState.Ready.Load() || !uploadState.Ready.Load() || !artifactState.Ready.Load() || !tenantState.Ready.Load() || (v2DraftInstalled && !v2DraftState.Ready.Load()) || (v2UploadInstalled && !v2UploadState.Ready.Load()) || pool.Ping(check) != nil || storage.Ready(check) != nil {
+		if !state.Ready.Load() || !documentState.Ready.Load() || !originalState.Ready.Load() || !stagingState.Ready.Load() || !uploadState.Ready.Load() || !artifactState.Ready.Load() || !tenantState.Ready.Load() || (v2DraftInstalled && !v2DraftState.Ready.Load()) || (v2UploadInstalled && !v2UploadState.Ready.Load()) || pool.Ping(check) != nil || readyTenantBuckets(check, tenantReady) != nil {
 			w.WriteHeader(503)
 			return
 		}
@@ -172,7 +349,7 @@ func Run(ctx context.Context, dsn, listen string, storageConfig objectstore.Conf
 			StagingCleaner{Repository: SQLStagingCleanup{DB: pool}, Objects: storage, Bucket: storageConfig.Bucket},
 			UploadCleaner{Repository: SQLUploadCleanup{DB: pool}, Objects: storage},
 			ArtifactCleaner{Repository: SQLArtifactGC{DB: pool}, Objects: storage, Bucket: storageConfig.Bucket},
-			TenantCleaner{Repository: SQLTenantDeletion{DB: pool}, Objects: storage, Batch: 256},
+			TenantCleaner{Repository: SQLTenantDeletion{DB: pool}, Objects: tenantStores, Batch: 256, History: history, RequireHistory: requireHistory},
 		}
 		cleanupStates := []*LoopState{state, documentState, originalState, stagingState, uploadState, artifactState, tenantState}
 		if v2DraftInstalled {

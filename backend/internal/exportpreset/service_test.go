@@ -30,3 +30,14 @@ func TestValidatePreset(t *testing.T) {
 		}
 	}
 }
+
+func TestMetadataDeliveryPresetModes(t *testing.T){
+ for _,mode:=range []string{"strip","copyright","approved_exif"}{
+  v:=validCreate();v.Config.MetadataPolicy=mode
+  if err:=ValidateConfig(v.Config);err!=nil{t.Fatal(mode,err)}
+ }
+ for _,mode:=range []string{"","safe_camera","copyright_only","preserve_all"}{
+  v:=validCreate();v.Config.MetadataPolicy=mode
+  if err:=ValidateConfig(v.Config);err==nil{t.Fatal("unknown mode accepted",mode)}
+ }
+}

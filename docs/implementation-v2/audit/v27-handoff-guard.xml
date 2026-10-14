@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="4.429" timestamp="2026-10-08T16:12:21.549128+03:00" hostname="Mac"><testcase classname="tests.integration.test_v27_automatic_initial_handoff" name="test_automatic_handoff_requires_parent_and_preserves_lease" time="1.844"><failure message="psycopg.errors.InsufficientPrivilege: V27_INITIAL_RECOVERY_PRIVATE&#10;CONTEXT:  PL/pgSQL function guard_v27_initial_recovery() line 6 at RAISE">tests/integration/test_v27_automatic_initial_handoff.py:16: in test_automatic_handoff_requires_parent_and_preserves_lease
+    db.execute("""INSERT INTO photo.runs
+.venv-platform/lib/python3.11/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: V27_INITIAL_RECOVERY_PRIVATE
+E   CONTEXT:  PL/pgSQL function guard_v27_initial_recovery() line 6 at RAISE</failure></testcase><testcase classname="tests.integration.test_v27_person_migration_upgrade" name="test_person_forward_upgrade_preserves_existing_work" time="2.156" /></testsuite></testsuites>

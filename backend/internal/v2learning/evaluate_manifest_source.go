@@ -89,6 +89,9 @@ func (s SQLLearningEvaluateManifestSource) LoadManifest(ctx context.Context,
 func ReadFrozenEvaluationManifest(ctx context.Context,
 	reader LearningEvaluateObjectReader, object objectstore.Object,
 	bucket, expectedBucket string) (TrainingManifest, string, error) {
+	if err := ctx.Err(); err != nil {
+		return TrainingManifest{}, "", err
+	}
 	if reader == nil || bucket != expectedBucket || bucket == "" ||
 		object.Key == "" || object.VersionID == "" || object.VersionID == "null" ||
 		object.ContentType != "application/json" || object.Bytes < 2 ||
@@ -97,14 +100,26 @@ func ReadFrozenEvaluationManifest(ctx context.Context,
 	}
 	stream, err := reader.Open(ctx, object)
 	if err != nil {
+		if stream != nil {
+			_ = stream.Close()
+		}
 		return TrainingManifest{}, "", err
+	}
+	if stream == nil {
+		return TrainingManifest{}, "", ErrInvalidTrainingDraft
 	}
 	body, readErr := io.ReadAll(io.LimitReader(stream, 8388609))
 	closeErr := stream.Close()
 	if readErr != nil {
 		return TrainingManifest{}, "", readErr
 	}
-	if closeErr != nil || ctx.Err() != nil || int64(len(body)) != object.Bytes {
+	if closeErr != nil {
+		return TrainingManifest{}, "", closeErr
+	}
+	if err := ctx.Err(); err != nil {
+		return TrainingManifest{}, "", err
+	}
+	if int64(len(body)) != object.Bytes {
 		return TrainingManifest{}, "", ErrInvalidTrainingDraft
 	}
 	sum := sha256.Sum256(body)
@@ -121,9 +136,21 @@ func ReadFrozenEvaluationManifest(ctx context.Context,
 	}
 	serialized, err := canonical.Marshal(manifest)
 	if err != nil || string(serialized) != string(body) ||
-		manifest.SchemaVersion != 1 || manifest.RendererVersion != "v2.2" ||
-		len(manifest.Examples) < 40 || len(manifest.Examples) > 5000 {
+		!validFrozenEvaluationManifest(manifest) {
 		return TrainingManifest{}, "", ErrInvalidTrainingDraft
 	}
 	return manifest, object.SHA256, nil
+}
+
+
+// This is structural frozen-policy authority only; live consent remains SQL-owned.
+func validFrozenEvaluationManifest(manifest TrainingManifest) bool {
+	if !validateDraftManifest(manifest) {
+		return false
+	}
+	policy := LearningPolicy{SchemaVersion: 1, Mode: manifest.Mode,
+		MinExamples: 40, MinSessions: 6, HoldoutFraction: .2, Seed: 2026,
+		Calibration: manifest.Calibration}
+	sha, err := canonical.Hash(policy)
+	return err == nil && sha == manifest.PolicySHA
 }

@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "package_id": "V27",
+  "status": "implementing",
+  "sources": [
+    {
+      "path": "backend/internal/semanticproposal/native_initial_defect_advance.go",
+      "sha256": "2561e4405dddad42aa5c06c687b0ab236b855c184c14f1ad909f6205d83ccf8b"
+    },
+    {
+      "path": "backend/internal/semanticproposal/native_initial_defect_advance_test.go",
+      "sha256": "829cb20cd44b20fa43c4d16a6f50447372ad792f9da84eb34f989b2e8a223124"
+    },
+    {
+      "path": "backend/internal/semanticproposal/native_initial_pipeline_recovery_job.go",
+      "sha256": "4ccce5032afe14d2ebb04d95989bc92c5df8b83917edb5070bb794f2b491390e"
+    },
+    {
+      "path": "backend/internal/semanticproposal/native_bootstrap_integration_test.go",
+      "sha256": "57acb6e9ab19bfc9783afec843e27b391a353cbfe2ba7bd09d2e9d7d82434e0f"
+    },
+    {
+      "path": "tests/integration/test_v27_semantic_intent_publication.py",
+      "sha256": "62728b6463b32b9a448e36fc131f3d4b5637fdb27d12a5b316794f281fc68390"
+    },
+    {
+      "path": "docs/implementation-v2/v27-cpu-assembly-runtime.md",
+      "sha256": "53d3d60c918a80a63379d3bc9b3f87c8003ad27263f8b4cbd6c5565dee29a6a2"
+    }
+  ],
+  "checks": [
+    {
+      "command": "scripts/run-platform.sh go -C backend test ./internal/semanticproposal -count=1",
+      "exit_code": 0,
+      "scope": "package tests; runtime integration environment not enabled"
+    },
+    {
+      "command": "PHOTO_TEST_V27_PERSON_DEFECT_FRESH=1 PHOTO_TEST_NATIVE_INFRA=1 PYTHONPATH=workers:src:tests/integration PYTHONDONTWRITEBYTECODE=1 .venv-platform/bin/python -m pytest tests/integration/test_v27_semantic_intent_publication.py -k native-person-defect-wire -q --junitxml=docs/implementation-v2/audit/v27-automatic-defect-advance.xml",
+      "exit_code": 0,
+      "passed": 1,
+      "deselected": 21,
+      "seconds": 51.37,
+      "evidence_sha": "d5d34bda72cce03a522ae761ff452431470a1602c7f650c4393e093a4c46ba7d"
+    }
+  ],
+  "proven": [
+    "Automatic fresh CPU defect creation and original receipt replay.",
+    "Pending defect exposes no registered protection.",
+    "Completed CPU defect automatically advances through physical canonical verification and protection publication/registration.",
+    "Independent Python verification of original person input, all canonical outputs, person probability 0.37 and absence of parent."
+  ],
+  "limitations": [
+    "Imported person mask and synthetic qualifications; deterministic face inference doubles.",
+    "Positive newly inferred original person result remains unverified.",
+    "Automatic completed protection to parent admission/recovery remains incomplete.",
+    "Whole V27 and full V20-V32 acceptance remain unproven."
+  ]
+}

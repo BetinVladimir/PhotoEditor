@@ -51,6 +51,9 @@ class Artifacts:
 def context(a):
     now=datetime.now(timezone.utc);inputs=[a.image_ref,a.image.pixels,a.faces_ref]
     lease=Lease(command=SimpleNamespace(inputs=inputs),worker_id=uuid4(),fence=1,until=now+timedelta(minutes=5),deadline=now+timedelta(minutes=5),execution_profile={'backend':'cuda','resource_estimate':{'ram_bytes':1073741824}},input_digest='d'*64)
+    def require_declared_input(ref):
+        if ref not in lease.command.inputs:raise ValueError('Undeclared fixture input')
+    a.require_declared_input=require_declared_input
     return ExecutionContext(lease)
 
 

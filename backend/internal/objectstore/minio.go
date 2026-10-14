@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/cors"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/minio/minio-go/v7/pkg/s3utils"
 	"hash"
@@ -46,11 +47,13 @@ var mimePattern = regexp.MustCompile(`^[a-z0-9.+-]+/[a-z0-9.+-]+$`)
 type Config struct {
 	Endpoint, PublicEndpoint, Bucket, AccessKey, SecretKey, Region string
 	Development                                                    bool
+	CORSOrigins                                                    []string
 }
 type Store struct {
 	client       *minio.Client
 	publicClient *minio.Client
 	bucket       string
+	corsOrigins  []string
 }
 type Object struct {
 	Key, VersionID, SHA256, ContentType string
@@ -70,6 +73,8 @@ func AttemptKey(tenant, task, artifact uuid.UUID, attempt int, fence int64) (str
 	return fmt.Sprintf("tenants/%s/tasks/%s/attempts/%d/fences/%d/%s", tenant, task, attempt, fence, artifact), nil
 }
 func New(c Config) (*Store, error) {
+	origins, err := archiveCORSOrigins(c.CORSOrigins, c.Development)
+	if err != nil { return nil, err }
 	u, err := url.Parse(c.Endpoint)
 	if err != nil || u.Host == "" || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" || (u.Scheme != "https" && u.Scheme != "http") || c.AccessKey == "" || c.SecretKey == "" || s3utils.CheckValidBucketNameStrict(c.Bucket) != nil {
 		return nil, ErrInvalid
@@ -97,16 +102,17 @@ func New(c Config) (*Store, error) {
 		}
 	}
 	transport := &http.Transport{DialContext: (&net.Dialer{Timeout: 5 * time.Second, KeepAlive: 30 * time.Second}).DialContext, TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12}, TLSHandshakeTimeout: 10 * time.Second, ResponseHeaderTimeout: 15 * time.Second, IdleConnTimeout: 90 * time.Second, MaxIdleConns: 32, MaxIdleConnsPerHost: 16}
+	storageTransport := &singleMultipartCreateTransport{base: transport}
 	creds := credentials.NewStaticV4(c.AccessKey, c.SecretKey, "")
-	client, err := minio.New(u.Host, &minio.Options{Creds: creds, Secure: u.Scheme == "https", Region: c.Region, Transport: transport, TrailingHeaders: true})
+	client, err := minio.New(u.Host, &minio.Options{Creds: creds, Secure: u.Scheme == "https", Region: c.Region, Transport: storageTransport, TrailingHeaders: true})
 	if err != nil {
 		return nil, ErrInvalid
 	}
-	publicClient, err := minio.New(publicURL.Host, &minio.Options{Creds: creds, Secure: publicURL.Scheme == "https", Region: c.Region, Transport: transport, TrailingHeaders: true})
+	publicClient, err := minio.New(publicURL.Host, &minio.Options{Creds: creds, Secure: publicURL.Scheme == "https", Region: c.Region, Transport: storageTransport, TrailingHeaders: true})
 	if err != nil {
 		return nil, ErrInvalid
 	}
-	return &Store{client: client, publicClient: publicClient, bucket: c.Bucket}, nil
+	return &Store{client: client, publicClient: publicClient, bucket: c.Bucket, corsOrigins: origins}, nil
 }
 
 // Bootstrap is privileged and explicit; normal runtime never creates buckets.
@@ -129,6 +135,12 @@ func (s *Store) Bootstrap(ctx context.Context) error {
 	}
 	if !status.Enabled() {
 		return ErrInvalid
+	}
+	if len(s.corsOrigins)>0 {
+		rules:=[]cors.Rule{{AllowedOrigin:append([]string(nil),s.corsOrigins...),AllowedMethod:[]string{"GET","HEAD","PUT"},AllowedHeader:[]string{"*"},ExposeHeader:[]string{"ETag"},MaxAgeSeconds:300}}
+		if err=s.client.SetBucketCors(ctx,s.bucket,cors.NewConfig(rules));err!=nil{return classify(err)}
+		installed,readErr:=s.client.GetBucketCors(ctx,s.bucket);if readErr!=nil{return classify(readErr)}
+		if !archiveCORSInstalled(installed,s.corsOrigins){return ErrIntegrity}
 	}
 	return nil
 }
@@ -364,59 +376,24 @@ func tenantPrefix(tenant uuid.UUID) (string, error) {
 	return "tenants/" + tenant.String() + "/", nil
 }
 
-// PurgeTenantBatch is available only to the maintenance service. It removes a
-// bounded number of exact versions and incomplete uploads below one UUID-derived
-// tenant prefix. Returning true requires another pass; false means both listings
-// were observed empty after deletion.
+// PurgeTenantBatch removes at most limit physical versions or incomplete uploads
+// across all canonical tenant namespaces. False requires a second empty pass.
 func (s *Store) PurgeTenantBatch(ctx context.Context, tenant uuid.UUID, limit int) (bool, error) {
-	prefix, err := tenantPrefix(tenant)
-	if err != nil || limit < 1 || limit > 256 {
+	if s == nil || s.client == nil || s.bucket == "" {
 		return false, ErrInvalid
 	}
-	removed := 0
-	for upload := range s.client.ListIncompleteUploads(ctx, s.bucket, prefix, true) {
-		if upload.Err != nil {
-			return false, classify(upload.Err)
-		}
-		if !strings.HasPrefix(upload.Key, prefix) || !validKey(upload.Key) {
-			return false, ErrInvalid
-		}
-		if err = s.client.RemoveIncompleteUpload(ctx, s.bucket, upload.Key); err != nil {
-			return false, classify(err)
-		}
-		removed++
-		if removed >= limit {
-			return true, nil
-		}
-	}
-	for object := range s.client.ListObjects(ctx, s.bucket, minio.ListObjectsOptions{Prefix: prefix, Recursive: true, WithVersions: true}) {
-		if object.Err != nil {
-			return false, classify(object.Err)
-		}
-		if !strings.HasPrefix(object.Key, prefix) || !validKey(object.Key) || object.VersionID == "" || object.VersionID == "null" {
-			return false, ErrInvalid
-		}
-		if err = s.client.RemoveObject(ctx, s.bucket, object.Key, minio.RemoveObjectOptions{VersionID: object.VersionID}); err != nil {
-			return false, classify(err)
-		}
-		removed++
-		if removed >= limit {
-			return true, nil
-		}
-	}
-	// A second observation closes races with listing pagination and delayed
-	// version visibility. The SQL fence prevents new tenant work before claim.
-	for upload := range s.client.ListIncompleteUploads(ctx, s.bucket, prefix, true) {
-		if upload.Err != nil {
-			return false, classify(upload.Err)
-		}
-		return true, nil
-	}
-	for object := range s.client.ListObjects(ctx, s.bucket, minio.ListObjectsOptions{Prefix: prefix, Recursive: true, WithVersions: true}) {
-		if object.Err != nil {
-			return false, classify(object.Err)
-		}
-		return true, nil
-	}
-	return false, nil
+	return purgeTenantBatch(ctx, tenant, limit, tenantPurgeIO{
+		versions: func(ctx context.Context, prefix string) <-chan minio.ObjectInfo {
+			return s.client.ListObjects(ctx, s.bucket, minio.ListObjectsOptions{Prefix: prefix, Recursive: true, WithVersions: true})
+		},
+		uploads: func(ctx context.Context, prefix string) <-chan minio.ObjectMultipartInfo {
+			return s.client.ListIncompleteUploads(ctx, s.bucket, prefix, true)
+		},
+		removeVersion: func(ctx context.Context, key, version string) error {
+			return s.client.RemoveObject(ctx, s.bucket, key, minio.RemoveObjectOptions{VersionID: version})
+		},
+		removeUpload: func(ctx context.Context, key, uploadID string) error {
+			return (minio.Core{Client: s.client}).AbortMultipartUpload(ctx, s.bucket, key, uploadID)
+		},
+	})
 }

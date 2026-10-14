@@ -1,0 +1,26 @@
+{
+  "module_accepted": false,
+  "physical": {
+    "passed": 1,
+    "deselected": 16,
+    "seconds": 17.32
+  },
+  "packages": {
+    "cmd/photo": "PASS0.490s",
+    "semanticproposal": "PASS1.888s"
+  },
+  "source_sha256": {
+    "backend/cmd/photo/main.go": "ace19e0cc799a4dc31a6a0b57fdcbc64e77719a95ec3ce487e166ec3f9daddf9",
+    "backend/cmd/photo/semantic_create.go": "62d69416a276837ceaee092566d43ab468a630b8851174d28b7a9329c0beddf2",
+    "backend/cmd/photo/semantic_create_test.go": "556a950b3caee6bf57bb1a6949dd9303507cc880d7f370f689e02b01608ea7a3",
+    "backend/internal/semanticproposal/create_deployment.go": "99929f56952f8f7c02bc39ec4b790e2c72d9a7f1d16389cabee6dbf2d6ae4dda",
+    "backend/internal/semanticproposal/create_deployment_probe_test.go": "2126abfd21245c62c669a79e95c126591de29edebc0aface3017a20a8ffb7c5f",
+    "backend/internal/semanticproposal/create_integration_probe_test.go": "3c78159144e2809b91677d7f71375a8b6a1d61f005b3d8a576a062907e2ab9b3"
+  },
+  "scope": "strict operator deployment decode/build feeding full real CreateService; main HTTPServer field wiring and startup tests",
+  "remaining": [
+    "running HTTP process end-to-end acceptance",
+    "native missing-producer initiation",
+    "current whole-module/real-photo/hardware/client acceptance"
+  ]
+}

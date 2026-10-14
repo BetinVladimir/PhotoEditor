@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "policy": "strip",
+      "approved_fields": [],
+      "binding": {
+        "asset_version_id": "11111111-1111-4111-8111-111111111111",
+        "source": {
+          "artifact_id": "22222222-2222-4222-8222-222222222222",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "canvas_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "metadata_source": {
+        "artifact_id": "33333333-3333-4333-8333-333333333333",
+        "sha256": "ddc131d248f2d60b98f138162e236cac99e3c3dd80984614fab6b8359d1f05c7"
+      },
+      "source_jcs": "{\"author\":\"Author\",\"camera_make\":\"Make\",\"camera_model\":\"Model\",\"copyright\":\"Copyright\",\"datetime_original\":\"2026:10:12 10:00:00\",\"gps\":{\"altitude_m\":null,\"latitude\":42.5,\"longitude\":23.25},\"lens\":\"Lens\"}",
+      "frozen_jcs": "{\"approved_fields\":[],\"binding\":{\"asset_version_id\":\"11111111-1111-4111-8111-111111111111\",\"canvas_hash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"source\":{\"artifact_id\":\"22222222-2222-4222-8222-222222222222\",\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}},\"metadata_source\":{\"artifact_id\":\"33333333-3333-4333-8333-333333333333\",\"sha256\":\"ddc131d248f2d60b98f138162e236cac99e3c3dd80984614fab6b8359d1f05c7\"},\"policy\":\"strip\",\"projection\":{\"author\":null,\"camera_make\":null,\"camera_model\":null,\"copyright\":null,\"datetime_original\":null,\"gps\":null,\"lens\":null},\"schema_version\":1}",
+      "frozen_sha256": "4864d16f7986adeae21f264b847d5eeff6a663d4de6c7ca858952a2a8dfbdc4d"
+    },
+    {
+      "policy": "copyright",
+      "approved_fields": [],
+      "binding": {
+        "asset_version_id": "11111111-1111-4111-8111-111111111111",
+        "source": {
+          "artifact_id": "22222222-2222-4222-8222-222222222222",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "canvas_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "metadata_source": {
+        "artifact_id": "33333333-3333-4333-8333-333333333333",
+        "sha256": "ddc131d248f2d60b98f138162e236cac99e3c3dd80984614fab6b8359d1f05c7"
+      },
+      "source_jcs": "{\"author\":\"Author\",\"camera_make\":\"Make\",\"camera_model\":\"Model\",\"copyright\":\"Copyright\",\"datetime_original\":\"2026:10:12 10:00:00\",\"gps\":{\"altitude_m\":null,\"latitude\":42.5,\"longitude\":23.25},\"lens\":\"Lens\"}",
+      "frozen_jcs": "{\"approved_fields\":[],\"binding\":{\"asset_version_id\":\"11111111-1111-4111-8111-111111111111\",\"canvas_hash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"source\":{\"artifact_id\":\"22222222-2222-4222-8222-222222222222\",\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}},\"metadata_source\":{\"artifact_id\":\"33333333-3333-4333-8333-333333333333\",\"sha256\":\"ddc131d248f2d60b98f138162e236cac99e3c3dd80984614fab6b8359d1f05c7\"},\"policy\":\"copyright\",\"projection\":{\"author\":\"Author\",\"camera_make\":null,\"camera_model\":null,\"copyright\":\"Copyright\",\"datetime_original\":null,\"gps\":null,\"lens\":null},\"schema_version\":1}",
+      "frozen_sha256": "e1598b36bb90f7d6d71e667273354f5cd4609f534ee9d58821cfa4821d58c874"
+    },
+    {
+      "policy": "approved_exif",
+      "approved_fields": [
+        "gps",
+        "camera_model"
+      ],
+      "binding": {
+        "asset_version_id": "11111111-1111-4111-8111-111111111111",
+        "source": {
+          "artifact_id": "22222222-2222-4222-8222-222222222222",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "canvas_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "metadata_source": {
+        "artifact_id": "33333333-3333-4333-8333-333333333333",
+        "sha256": "ddc131d248f2d60b98f138162e236cac99e3c3dd80984614fab6b8359d1f05c7"
+      },
+      "source_jcs": "{\"author\":\"Author\",\"camera_make\":\"Make\",\"camera_model\":\"Model\",\"copyright\":\"Copyright\",\"datetime_original\":\"2026:10:12 10:00:00\",\"gps\":{\"altitude_m\":null,\"latitude\":42.5,\"longitude\":23.25},\"lens\":\"Lens\"}",
+      "frozen_jcs": "{\"approved_fields\":[\"camera_model\",\"gps\"],\"binding\":{\"asset_version_id\":\"11111111-1111-4111-8111-111111111111\",\"canvas_hash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"source\":{\"artifact_id\":\"22222222-2222-4222-8222-222222222222\",\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}},\"metadata_source\":{\"artifact_id\":\"33333333-3333-4333-8333-333333333333\",\"sha256\":\"ddc131d248f2d60b98f138162e236cac99e3c3dd80984614fab6b8359d1f05c7\"},\"policy\":\"approved_exif\",\"projection\":{\"author\":null,\"camera_make\":null,\"camera_model\":\"Model\",\"copyright\":null,\"datetime_original\":null,\"gps\":{\"altitude_m\":null,\"latitude\":42.5,\"longitude\":23.25},\"lens\":null},\"schema_version\":1}",
+      "frozen_sha256": "c8150854617370bfef315215349743f62351fb680023ce48d1f20268f61119d5"
+    },
+    {
+      "policy": "approved_exif",
+      "approved_fields": [],
+      "binding": {
+        "asset_version_id": "11111111-1111-4111-8111-111111111111",
+        "source": {
+          "artifact_id": "22222222-2222-4222-8222-222222222222",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "canvas_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "metadata_source": {
+        "artifact_id": "33333333-3333-4333-8333-333333333333",
+        "sha256": "ddc131d248f2d60b98f138162e236cac99e3c3dd80984614fab6b8359d1f05c7"
+      },
+      "source_jcs": "{\"author\":\"Author\",\"camera_make\":\"Make\",\"camera_model\":\"Model\",\"copyright\":\"Copyright\",\"datetime_original\":\"2026:10:12 10:00:00\",\"gps\":{\"altitude_m\":null,\"latitude\":42.5,\"longitude\":23.25},\"lens\":\"Lens\"}",
+      "frozen_jcs": "{\"approved_fields\":[],\"binding\":{\"asset_version_id\":\"11111111-1111-4111-8111-111111111111\",\"canvas_hash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"source\":{\"artifact_id\":\"22222222-2222-4222-8222-222222222222\",\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}},\"metadata_source\":{\"artifact_id\":\"33333333-3333-4333-8333-333333333333\",\"sha256\":\"ddc131d248f2d60b98f138162e236cac99e3c3dd80984614fab6b8359d1f05c7\"},\"policy\":\"approved_exif\",\"projection\":{\"author\":null,\"camera_make\":null,\"camera_model\":null,\"copyright\":null,\"datetime_original\":null,\"gps\":null,\"lens\":null},\"schema_version\":1}",
+      "frozen_sha256": "7f2b084d910045e1be2210b428c368d8413cf49d287c6b16130dcd02a04c1476"
+    }
+  ]
+}

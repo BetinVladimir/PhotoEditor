@@ -11,6 +11,6 @@ export function comparePreview(link:MediaLink,versionId:string,sourceSha:string,
  const expected=bytesToHex(sha256(new TextEncoder().encode(canonicalJSON({schema_version:1,variant:link.variant,long_edge:edge,quality:88,icc_sha256:link.icc_sha256,no_upscale:true,metadata_policy:'stripped'}))));
  if(link.profile_hash!==expected)throw new Error('COMPARE_PREVIEW_INVALID');
  let url:URL;try{url=new URL(link.url);}catch{throw new Error('COMPARE_PREVIEW_INVALID');}
- if(!['http:','https:'].includes(url.protocol)||url.username||url.password||url.hash)throw new Error('COMPARE_PREVIEW_INVALID');
+ if(!['http:','https:'].includes(url.protocol)||!url.hostname||url.username||url.password||url.hash||url.protocol==='http:'&&!['localhost','[::1]'].includes(url.hostname)&&!/^127(?:\.[0-9]{1,3}){3}$/.test(url.hostname))throw new Error('COMPARE_PREVIEW_INVALID');
  return {versionId,sourceSha,iccSha:link.icc_sha256,previewURI:link.url};
 }

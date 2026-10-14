@@ -34,6 +34,8 @@ Tiles512×512, Gaussian separable kernel exp(−x²/(2σ²)), radius=ceil(3σ), 
 
 ## Relight
 
+Protected mask follows the safe-delta invariant from05: every sample with protected>0 is copied bit-for-bit from the source, including fractional antialiased edges. Subject probability remains a soft edit weight only outside protected support. Changed-mask is zero throughout protected support.
+
 `build_light_field(depth,lights)`: RelativeDepth minmax_valid D[0,1]; invalid samples E=0. Для каждого light normalized(x_l,y_l), radius r, EV e: d0 — bilinear depth в clamped light position; если invalid, ближайший valid по Euclidean distance, tie(row,col); нет valid→DEPTH_UNAVAILABLE. Для pixel(x,y): w=exp(−((x−x_l)^2+(y−y_l)^2)/(2*r²))*exp(−(D−d0)^2/(2*depth_sigma²)). Field F=clamp(sum_l e_l*w,−1,1). Proposal=S*2**F; compose с subject/protected/strength. Depth discontinuities подавляются второй экспонентой; normals не вычисляются, Lambert shading и физический relighting не заявляются. Golden: одна light, pixel в её центре с D=d0, EV1⇒gain2; zeroEV⇒identity.
 
 ## Lens
@@ -48,6 +50,8 @@ Manual corners TL,TR,BR,BL normalized, строго convex clockwise в image co
 
 Auto использует LineSegments c минимум2 nonparallel segments каждой family. Для каждой family найти vanishing point v как right singular vector матрицы normalized homogeneous lines, минимум singular gap s1/s2≥10 (s2=0 допускается как infinity solution); degenerate family reject. Horizon l=cross(v_h,v_v), normalize l_z=1; |l_z|≤1e-8⇒unsupported. Projective rectification H=[[1,0,0],[0,1,0],[l_x,l_y,1]]. После H directions family взять mean unit directions со знаком positive x/y; A — inverse matrix этих двух направлений, rotation/shear. Compose A*H. Выполнить horizon/determinant/bounds checks. Определить output как axis-aligned bbox warped corners, transparent uncovered area; crop_fraction здесь доля uncovered pixels, считать tiled coverage до render. Если cap нарушен, reject; автоматический подбор crop без specification запрещён. Всегда preview+review.
 
+Perspective strength semantics (v1 implementation clarification): `strength=0` returns the exact original WorkingImage ref, zero changed mask and pass report, without RGB transfer/interpolation. Manual strength interpolates each normalized requested corner from the corresponding full-frame corner: q(s)=(1−s)q_full+s*q_requested; run the same manual solve/crop limits on q(s). Auto first computes the qualified full rectification H, normalizes H33=1, then H(s)=(1−s)I+sH. Recheck determinant/condition/horizon, compute translated bbox and tiled uncovered fraction for the effective transform. H33 too small, invalid intermediate geometry or exceeded limits reject; no fallback or hidden clamp. At s=1 preserve the full algorithm result. For nonzero strength output requires review. MatrixTransform and ResolvedTransform serialize integer-center coordinates T(−.5) H T(.5), matching existing mask consumers; algorithm calculations use pixel-edge coordinates.
+
 ## Panorama и focus stack
 
 `register_pairs`: proxies longest edge2048, linear luma→uint8 round(clamp(luma,0,1)*255). OpenCV ORB nfeatures4000,scaleFactor1.2,nlevels8,edgeThreshold31,firstLevel0,WTA_K2,scoreTypeHARRIS_SCORE,patchSize31,fastThreshold20. cv threads1, RNG seed2026 перед каждой pair. BF Hamming, mutual nearest2 ratio<0.75 в обе стороны; ties по indices. Homography RANSAC maxIters2000, confidence.995, threshold=calibration.registration_error_px, минимум12matches, inlier fraction≥match_inlier_min; singular/horizon checks выше. Порядок pair(i,j) lexicographic, library version locked; byte exact между разными OpenCV builds не обещать. Квалификация привязана к runtime lock.
@@ -61,6 +65,8 @@ Focus: registration каждого кадра напрямую к reference че
 ## Negative
 
 film_base_rgb измеряется пользователем по unexposed film в том же input ICC; все компоненты>0. D_c=−log(max(S_c,eps)/film_base_c). Z=M*D + density_offset. Positive linear P_c=clamp(Z_c/density_range_c,0,1)*2**exposure_ev. Это выбранная linear density inversion; curve/gamma не угадывать. Calibration.input_icc_sha exact; отсутствующий profile unavailable. S=film_base при identityM,offset0⇒black0; S=film_base/e при range1⇒white1. Compose full image strength с сохранением alpha; оригинальный scan неизменен; review всегда.
+
+Negative ImageReport.clipping_fraction: доля пикселей итогового linear RGB полного разрешения, где любой канал ≥1 или <0; соответствует критерию descriptor из10-algorithms-calibration.md, но без proxy resize. Alpha не меняет знаменатель. Считать после strength compose, без clamp HDR. Worker вычисляет по фактическому output; adopter независимо пересчитывает. Поставщик статистики не может подменить значение.
 
 ## Identity и модели
 
@@ -100,3 +106,9 @@ Registry/activation `layer.compose` не включать до завершен�
 ### Наследуемое generated dependency coverage
 
 `generated_coverage` принимает binary float32 маски source/proposal в совпадающей геометрии. E вычисляется как в композиции, включая strict protected. Для normal source coverage сохраняется при E<1; при E=1 source заменён proposal. Для multiply/screen source coverage сохраняется консервативно независимо от E, потому что blend зависит от source. Proposal coverage наследуется при E>0. Итог — binary union этих зависимостей; отсутствие обеих масок даёт null. Bit-identical proposal всё равно может иметь generated dependency. Это покрытие потенциальных зависимостей, а не утверждение об аутентичности фотографии. Исходные маски должны быть извлечены из проверенных parent ImageResults и уже приведены к target canvas/chain; утраченные upstream claims должен предотвращать graph/adoption guard. Kernel не восстанавливает отсутствующую историю по пикселям.
+
+### Focus pyramid numerical clarification
+
+V29 focus Gaussian sigma1 uses explicit9×9 support (radius4), float64 filter arithmetic and global REFLECT_101 boundaries, including size1 axes. Laplacian uses OpenCV ksize3/CV_64F. Focus weights are float64 to avoid squaring overflow for finite float32 HDR. Gaussian downsample takes even global integer centres; bilinear upsample uses half-pixel resize coordinates to the exact finer shape with edge clamping. These choices must be pinned by runtime qualification; tile partition must not change the algorithm. L denotes downsample transitions, so the pyramid contains L+1 arrays.
+
+Focus alpha clarification: output remains on the reference canvas and retains reference opacity. At final full-resolution pixels with no visible coverage from any source, copy exact reference RGB/alpha regardless of Gaussian weight propagation. Review motion fallback also copies exact reference RGB/alpha. Reconstruction uses float64 scratch; reject nonfinite or out-of-float32-range reconstructed colors before final conversion, never silently clamp HDR.

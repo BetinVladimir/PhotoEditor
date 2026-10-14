@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 worker SQL manual origin discovery and child recheck",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "production_migration_applied": false,
+  "checks": {
+    "native_sql": {
+      "passed": 4,
+      "seconds": 5.57,
+      "xml": "v28-relight-manual-origin-current.xml"
+    },
+    "components": {
+      "passed": 53,
+      "xml": "v28-relight-manual-origin-components.xml"
+    }
+  },
+  "source_sha256": {
+    "backend/db/migrations/00986_v28_worker_relight_manual.sql": "da410be614ab0a1f77598b5cfb626078bad74d2b76e4fe040a243fd9c984ff6f",
+    "workers/photo_worker/runtime/database.py": "4273fef0daa6a3273021837587d4e9fdd902270fcfdc685b3cea5e73c79fdb32",
+    "workers/photo_worker/operations/portrait/relight_manual_authority.py": "d708cae0a82cac272e8fcb81cdafbeec4598695ca7038ff7a66dd800faedd84d",
+    "tests/platform/test_relight_manual_authority.py": "14732d8b05fc2a1a4ac70c44cdbafe076d019e1b0e674fe17905521c8df1a4ea",
+    "tests/platform/test_relight_database.py": "d48895b4c84d75957cb1a262be523857a4e2f2a8a057e3a6da1a168ece52410c",
+    "tests/integration/test_v28_relight_source.py": "c863142c0e753d746d755a53b713cc1fbb732d8b0652c177236ef2bebe7832cb"
+  },
+  "limitations": [
+    "Positive manual SQL producer/child scenario and physical original-version integration pending",
+    "Component SQL origin and artifact publisher are doubles; full execution/adoption/UI and qualification pending"
+  ]
+}

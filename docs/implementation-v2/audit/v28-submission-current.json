@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-09",
+  "package": "V28",
+  "component": "Initial local portrait service Submit",
+  "whole_module_accepted": false,
+  "production_code_changed": true,
+  "production_migrations_applied": false,
+  "checks": {
+    "go_package": "passed",
+    "tests_passed": 178,
+    "tests_skipped": 7,
+    "evidence": "v28-submission-go-current.jsonl"
+  },
+  "source_sha256": {
+    "backend/internal/v2draft/local_portrait_submission_service.go": "75a2e56e2a99caa18dadd90c53f9aee35fb1cf7c3166b0ebf0f1ca52cfbe1f03",
+    "backend/internal/v2draft/manual_raster_context_test.go": "5ebb6da30c8e921b8cc2fa01a11aba7107053f9229e76c6662e08f5431b3d976"
+  },
+  "behavior": [
+    "Bound/copy server-compiled request, validate owner config and tenant/actor/session before material IO",
+    "Build per-request SQL factory when installed; never share mutable project/version resolver",
+    "Load current material through scoped loader with a copied request",
+    "Check cancellation after IO and compose existing coordinator Submit",
+    "No preexisting saved owner required for first submission"
+  ],
+  "limitations": [
+    "Coordinator tests use declared material/store/publisher doubles",
+    "Actual positive SQL/objectstore owner/Params/admission/execution flow remains unverified",
+    "No new public HTTP endpoint or frontend activation; composition/wiring remains open",
+    "Model/device/visual qualification and whole V28 acceptance remain open"
+  ]
+}

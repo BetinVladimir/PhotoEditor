@@ -133,9 +133,11 @@ func CompileDownloadExports(spec DownloadExportSpec, registry Registry) ([]Compi
 		if item.Ordinal != int64(index) || !validExpansionRef(item.Manifest) || !validExpansionRef(item.Image.Pixels) ||
 			item.Manifest == item.Image.Pixels || item.Image.DType != "float32" ||
 			item.Image.Color.ProfileID != "work_rec2020_gamma24_v1" || item.Image.Color.Encoding != "gamma24" ||
-			item.Image.Canvas.Width < 1 || item.Image.Canvas.Height < 1 || item.Image.Canvas.Width*item.Image.Canvas.Height > 200000000 {
+			item.Image.Canvas.Width < 1 || item.Image.Canvas.Height < 1 || item.Image.Canvas.Width > 200000000 || item.Image.Canvas.Height > 200000000 || item.Image.Canvas.Width*item.Image.Canvas.Height > 200000000 {
 			return fail()
 		}
+  width,height := encodeDimensions(item.Image.Canvas.Width,item.Image.Canvas.Height,spec.Preset.Size)
+  if width<1 || height<1 || width>200000000 || height>200000000 || width*height>200000000 { return fail() }
 		inputs := []review.ArtifactRef{item.Manifest, item.Image.Pixels}
 		if item.Image.Alpha != nil {
 			if !validExpansionRef(*item.Image.Alpha) || *item.Image.Alpha == item.Manifest || *item.Image.Alpha == item.Image.Pixels {

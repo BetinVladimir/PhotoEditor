@@ -6,9 +6,9 @@ snapshot, policy and descriptor set.
 """
 from __future__ import annotations
 
+from bisect import bisect_left, bisect_right
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from heapq import heappush, heappushpop
 from math import isfinite, log, log2
 from typing import Mapping, Sequence
 from uuid import UUID, uuid5
@@ -125,23 +125,39 @@ def group_scenes(frames: Sequence[Frame], snapshot_id: UUID, policy_sha: str,
     times = [f.captured_at + timedelta(seconds=policy.camera_offsets.get(f.camera_hash, 0))
              if f.captured_at is not None else None for f in frames]
     known = sorted((i for i, t in enumerate(times) if t is not None), key=lambda i: (times[i], frames[i].ordinal))
+    known_indexes = np.asarray(known, dtype=np.intp)
+    ordinals_array = np.asarray([frame.ordinal for frame in frames], dtype=np.intp)
+    known_times = [times[i] for i in known]
+    time_gap = timedelta(seconds=policy.time_gap_seconds)
     edges: dict[tuple[int, int], float] = {}
     for i in known:
-        top: list[tuple[float, int, int]] = []
-        for start in range(0, len(known), BLOCK):
-            block = known[start:start + BLOCK]
-            candidates = [j for j in block if j != i and abs((times[j] - times[i]).total_seconds()) <= policy.time_gap_seconds]
-            if not candidates:
+        # Inclusive window preserves exact time-gap semantics and original block boundaries.
+        try:
+            first = bisect_left(known_times, times[i] - time_gap)
+        except OverflowError:
+            first = 0
+        try:
+            last = bisect_right(known_times, times[i] + time_gap)
+        except OverflowError:
+            last = len(known)
+        candidate_indexes = np.empty(max(0, last - first - 1), dtype=np.intp)
+        candidate_cosines = np.empty(len(candidate_indexes), dtype=np.float64)
+        filled = 0
+        for start in range((first // BLOCK) * BLOCK, last, BLOCK):
+            block = known_indexes[max(start, first):min(start + BLOCK, last)]
+            candidates = block[block != i]
+            if not len(candidates):
                 continue
             similarities = embeddings[candidates] @ embeddings[i]
-            for j, raw in zip(candidates, similarities, strict=True):
-                cosine = max(-1.0, min(1.0, float(raw)))
-                item = (cosine, -frames[j].ordinal, j)
-                if len(top) < policy.neighbor_count:
-                    heappush(top, item)
-                elif item > top[0]:
-                    heappushpop(top, item)
-        for cosine, _, j in top:
+            count = len(candidates)
+            candidate_indexes[filled:filled + count] = candidates
+            candidate_cosines[filled:filled + count] = np.clip(similarities, -1.0, 1.0)
+            filled += count
+        # Exact cosine-descending/ordinal-ascending order, no approximate search.
+        ranking = np.lexsort((ordinals_array[candidate_indexes], -candidate_cosines))
+        for position in ranking[:policy.neighbor_count]:
+            j = int(candidate_indexes[position])
+            cosine = float(candidate_cosines[position])
             if cosine < calibration.scene_cosine_min:
                 continue
             luma_distance = abs(log2((frames[i].median_luma + EPS) / (frames[j].median_luma + EPS)))
@@ -204,7 +220,8 @@ def group_scenes(frames: Sequence[Frame], snapshot_id: UUID, policy_sha: str,
 def solve_consistency(frames: Sequence[Frame], reference_ordinal: int,
                       manual_locked: frozenset[int] = frozenset()) -> list[Correction]:
     by_ordinal = {f.ordinal: f for f in frames}
-    if len(by_ordinal) != len(frames) or reference_ordinal not in by_ordinal:
+    if (len(by_ordinal) != len(frames) or reference_ordinal not in by_ordinal
+            or not manual_locked.issubset(by_ordinal)):
         raise ValueError("INVALID_SCENE_GROUP")
     reference = by_ordinal[reference_ordinal]
     result = []

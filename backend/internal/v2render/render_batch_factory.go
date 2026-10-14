@@ -13,10 +13,13 @@ import (
 // owned by the service. Separate buckets permit read-only source storage and
 // writable transport storage; each reference is checked by its own catalog.
 type SQLRenderBatchFactory struct {
+	QualificationPin             *RenderQualificationPin
 	API, Scheduler               *pgxpool.Pool
 	Sources                      v2input.SessionAnalysisObjectReader
 	Documents                    artifactjson.Objects
 	SourceBucket, DocumentBucket string
+	SubmissionSHA                string
+	SubmissionKey                string
 }
 
 func (f SQLRenderBatchFactory) ForProject(ctx context.Context, project uuid.UUID) (RenderBatchCoordinator, error) {
@@ -38,7 +41,7 @@ func (f SQLRenderBatchFactory) ForProject(ctx context.Context, project uuid.UUID
 			return RenderBatchCoordinator{}, v2input.ErrInvalid
 		}
 	}
-	store := SQLRenderDraftStore{DB: f.Scheduler}
+	store := SQLRenderDraftStore{DB: f.Scheduler, SubmissionSHA: f.SubmissionSHA, SubmissionKey: f.SubmissionKey, QualificationPin: f.QualificationPin}
 	documents := artifactjson.Publisher{Repository: artifactjson.SQLRepository{DB: f.Scheduler, Bucket: f.DocumentBucket}, Objects: f.Documents}
 	return RenderBatchCoordinator{Store: store, Inputs: RenderDraftCoordinator{
 		Store: store, Inputs: RenderInputAdmission{DB: f.Scheduler}, Transport: RenderTransportPublisher{Documents: documents},

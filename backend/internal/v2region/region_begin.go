@@ -29,7 +29,7 @@ func (n FrozenRegionNode) BeginInTransaction(ctx context.Context, tx pgx.Tx, who
 		return "", uuid.Nil, ErrRegionInvalid
 	}
 	var allowed bool
-	err = tx.QueryRow(ctx, "SELECT photo.v26_region_admission_scope($1,$2,$3,$4,$5)", shell.Tenant, snapshot, who.UserID, who.SessionID, json.RawMessage(node.ParamsJCS)).Scan(&allowed)
+	err = tx.QueryRow(ctx, "SELECT photo.v26_region_admission_scope_scheduler($1,$2,$3,$4,$5)", shell.Tenant, snapshot, who.UserID, who.SessionID, json.RawMessage(node.ParamsJCS)).Scan(&allowed)
 	if err != nil {
 		return "", uuid.Nil, err
 	}

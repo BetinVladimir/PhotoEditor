@@ -258,3 +258,12 @@ class Stats20(Contract):
     coverage_bins: Annotated[list[bool],Field(min_length=512,max_length=512)]
     mask_confidence: Unit
     warnings: Annotated[list[Identifier],Field(max_length=64)]
+
+
+class ResolvedTransform(Contract):
+    """V2 source/target canvas-bound planar geometry document."""
+    schema_version: Literal[1]
+    from_canvas_hash: SHA256
+    to_canvas_hash: SHA256
+    matrix: Annotated[list[Annotated[float,Field(ge=-1e8,le=1e8,allow_inf_nan=False)]],Field(min_length=9,max_length=9)]
+    kind: Literal['homography','similarity']

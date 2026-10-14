@@ -1,0 +1,125 @@
+{"Time":"2026-10-08T02:18:20.240204+03:00","Action":"start","Package":"photoeditor/backend/internal/httpapi"}
+{"Time":"2026-10-08T02:18:20.73018+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationCaptureCredentialsHTTP"}
+{"Time":"2026-10-08T02:18:20.730234+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationCaptureCredentialsHTTP","Output":"=== RUN   TestIntegrationCaptureCredentialsHTTP\n"}
+{"Time":"2026-10-08T02:18:20.828166+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationCaptureCredentialsHTTP/python_agent_live_challenge"}
+{"Time":"2026-10-08T02:18:20.828224+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationCaptureCredentialsHTTP/python_agent_live_challenge","Output":"=== RUN   TestIntegrationCaptureCredentialsHTTP/python_agent_live_challenge\n"}
+{"Time":"2026-10-08T02:18:21.278434+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationCaptureCredentialsHTTP/python_agent_live_challenge","Output":"--- PASS: TestIntegrationCaptureCredentialsHTTP/python_agent_live_challenge (0.45s)\n"}
+{"Time":"2026-10-08T02:18:21.278451+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationCaptureCredentialsHTTP/python_agent_live_challenge","Elapsed":0.45}
+{"Time":"2026-10-08T02:18:21.280299+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationCaptureCredentialsHTTP","Output":"--- PASS: TestIntegrationCaptureCredentialsHTTP (0.55s)\n"}
+{"Time":"2026-10-08T02:18:21.280336+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationCaptureCredentialsHTTP","Elapsed":0.55}
+{"Time":"2026-10-08T02:18:21.280345+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationCaptureAlertHTTP"}
+{"Time":"2026-10-08T02:18:21.280347+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationCaptureAlertHTTP","Output":"=== RUN   TestIntegrationCaptureAlertHTTP\n"}
+{"Time":"2026-10-08T02:18:21.383531+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationCaptureAlertHTTP","Output":"--- PASS: TestIntegrationCaptureAlertHTTP (0.10s)\n"}
+{"Time":"2026-10-08T02:18:21.383549+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationCaptureAlertHTTP","Elapsed":0.1}
+{"Time":"2026-10-08T02:18:21.383553+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestCaptureClientRoutesRegistered"}
+{"Time":"2026-10-08T02:18:21.383556+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestCaptureClientRoutesRegistered","Output":"=== RUN   TestCaptureClientRoutesRegistered\n"}
+{"Time":"2026-10-08T02:18:21.384691+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestCaptureClientRoutesRegistered","Output":"--- PASS: TestCaptureClientRoutesRegistered (0.00s)\n"}
+{"Time":"2026-10-08T02:18:21.384702+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestCaptureClientRoutesRegistered","Elapsed":0}
+{"Time":"2026-10-08T02:18:21.384709+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationEventSSE"}
+{"Time":"2026-10-08T02:18:21.384713+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationEventSSE","Output":"=== RUN   TestIntegrationEventSSE\n"}
+{"Time":"2026-10-08T02:18:22.405151+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationEventSSE","Output":"--- PASS: TestIntegrationEventSSE (1.02s)\n"}
+{"Time":"2026-10-08T02:18:22.405167+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationEventSSE","Elapsed":1.02}
+{"Time":"2026-10-08T02:18:22.405176+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestStrictJSON"}
+{"Time":"2026-10-08T02:18:22.405214+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestStrictJSON","Output":"=== RUN   TestStrictJSON\n"}
+{"Time":"2026-10-08T02:18:22.405273+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestStrictJSON","Output":"--- PASS: TestStrictJSON (0.00s)\n"}
+{"Time":"2026-10-08T02:18:22.405282+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestStrictJSON","Elapsed":0}
+{"Time":"2026-10-08T02:18:22.405289+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestJSONBodyLimit"}
+{"Time":"2026-10-08T02:18:22.405294+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestJSONBodyLimit","Output":"=== RUN   TestJSONBodyLimit\n"}
+{"Time":"2026-10-08T02:18:22.405297+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestJSONBodyLimit","Output":"--- PASS: TestJSONBodyLimit (0.00s)\n"}
+{"Time":"2026-10-08T02:18:22.405301+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestJSONBodyLimit","Elapsed":0}
+{"Time":"2026-10-08T02:18:22.405304+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationRegionHTTP"}
+{"Time":"2026-10-08T02:18:22.405307+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationRegionHTTP","Output":"=== RUN   TestIntegrationRegionHTTP\n"}
+{"Time":"2026-10-08T02:18:22.415974+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationRegionHTTP","Output":"--- PASS: TestIntegrationRegionHTTP (0.01s)\n"}
+{"Time":"2026-10-08T02:18:22.415985+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationRegionHTTP","Elapsed":0.01}
+{"Time":"2026-10-08T02:18:22.416002+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationRegionHTTPRejectsBeforeQueue"}
+{"Time":"2026-10-08T02:18:22.416022+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationRegionHTTPRejectsBeforeQueue","Output":"=== RUN   TestIntegrationRegionHTTPRejectsBeforeQueue\n"}
+{"Time":"2026-10-08T02:18:22.424096+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationRegionHTTPRejectsBeforeQueue","Output":"--- PASS: TestIntegrationRegionHTTPRejectsBeforeQueue (0.01s)\n"}
+{"Time":"2026-10-08T02:18:22.424116+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationRegionHTTPRejectsBeforeQueue","Elapsed":0.01}
+{"Time":"2026-10-08T02:18:22.424132+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestRegionRouteRegisteredAndRequiresAuthentication"}
+{"Time":"2026-10-08T02:18:22.424134+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestRegionRouteRegisteredAndRequiresAuthentication","Output":"=== RUN   TestRegionRouteRegisteredAndRequiresAuthentication\n"}
+{"Time":"2026-10-08T02:18:22.424804+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestRegionRouteRegisteredAndRequiresAuthentication","Output":"--- PASS: TestRegionRouteRegisteredAndRequiresAuthentication (0.00s)\n"}
+{"Time":"2026-10-08T02:18:22.424819+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestRegionRouteRegisteredAndRequiresAuthentication","Elapsed":0}
+{"Time":"2026-10-08T02:18:22.424825+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestRegionDescriptorRouteRegisteredAndRequiresAuthentication"}
+{"Time":"2026-10-08T02:18:22.424828+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestRegionDescriptorRouteRegisteredAndRequiresAuthentication","Output":"=== RUN   TestRegionDescriptorRouteRegisteredAndRequiresAuthentication\n"}
+{"Time":"2026-10-08T02:18:22.42508+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestRegionDescriptorRouteRegisteredAndRequiresAuthentication","Output":"--- PASS: TestRegionDescriptorRouteRegisteredAndRequiresAuthentication (0.00s)\n"}
+{"Time":"2026-10-08T02:18:22.425087+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestRegionDescriptorRouteRegisteredAndRequiresAuthentication","Elapsed":0}
+{"Time":"2026-10-08T02:18:22.425094+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationRenderFreezeHTTP"}
+{"Time":"2026-10-08T02:18:22.425095+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationRenderFreezeHTTP","Output":"=== RUN   TestIntegrationRenderFreezeHTTP\n"}
+{"Time":"2026-10-08T02:18:22.437349+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationRenderFreezeHTTP","Output":"--- PASS: TestIntegrationRenderFreezeHTTP (0.01s)\n"}
+{"Time":"2026-10-08T02:18:22.437372+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationRenderFreezeHTTP","Elapsed":0.01}
+{"Time":"2026-10-08T02:18:22.437378+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationRenderHTTP"}
+{"Time":"2026-10-08T02:18:22.437381+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationRenderHTTP","Output":"=== RUN   TestIntegrationRenderHTTP\n"}
+{"Time":"2026-10-08T02:18:22.732903+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationRenderHTTP","Output":"--- PASS: TestIntegrationRenderHTTP (0.30s)\n"}
+{"Time":"2026-10-08T02:18:22.732933+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationRenderHTTP","Elapsed":0.3}
+{"Time":"2026-10-08T02:18:22.73294+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationRenderHTTPRejectsBeforeQueue"}
+{"Time":"2026-10-08T02:18:22.732943+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationRenderHTTPRejectsBeforeQueue","Output":"=== RUN   TestIntegrationRenderHTTPRejectsBeforeQueue\n"}
+{"Time":"2026-10-08T02:18:22.752442+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationRenderHTTPRejectsBeforeQueue","Output":"--- PASS: TestIntegrationRenderHTTPRejectsBeforeQueue (0.02s)\n"}
+{"Time":"2026-10-08T02:18:22.752463+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationRenderHTTPRejectsBeforeQueue","Elapsed":0.02}
+{"Time":"2026-10-08T02:18:22.752468+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationRenderHTTPRealAdmissionGate"}
+{"Time":"2026-10-08T02:18:22.75247+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationRenderHTTPRealAdmissionGate","Output":"=== RUN   TestIntegrationRenderHTTPRealAdmissionGate\n"}
+{"Time":"2026-10-08T02:18:22.784405+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationRenderHTTPRealAdmissionGate","Output":"--- PASS: TestIntegrationRenderHTTPRealAdmissionGate (0.03s)\n"}
+{"Time":"2026-10-08T02:18:22.784463+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationRenderHTTPRealAdmissionGate","Elapsed":0.03}
+{"Time":"2026-10-08T02:18:22.784471+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestRenderRouteRequiresAuthentication"}
+{"Time":"2026-10-08T02:18:22.784496+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestRenderRouteRequiresAuthentication","Output":"=== RUN   TestRenderRouteRequiresAuthentication\n"}
+{"Time":"2026-10-08T02:18:22.784755+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestRenderRouteRequiresAuthentication","Output":"--- PASS: TestRenderRouteRequiresAuthentication (0.00s)\n"}
+{"Time":"2026-10-08T02:18:22.784818+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestRenderRouteRequiresAuthentication","Elapsed":0}
+{"Time":"2026-10-08T02:18:22.784822+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestRenderFreezeRouteRequiresAuthentication"}
+{"Time":"2026-10-08T02:18:22.784825+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestRenderFreezeRouteRequiresAuthentication","Output":"=== RUN   TestRenderFreezeRouteRequiresAuthentication\n"}
+{"Time":"2026-10-08T02:18:22.785251+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestRenderFreezeRouteRequiresAuthentication","Output":"--- PASS: TestRenderFreezeRouteRequiresAuthentication (0.00s)\n"}
+{"Time":"2026-10-08T02:18:22.785261+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestRenderFreezeRouteRequiresAuthentication","Elapsed":0}
+{"Time":"2026-10-08T02:18:22.785264+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestRenderInputSnapshotRouteRequiresAuthentication"}
+{"Time":"2026-10-08T02:18:22.785265+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestRenderInputSnapshotRouteRequiresAuthentication","Output":"=== RUN   TestRenderInputSnapshotRouteRequiresAuthentication\n"}
+{"Time":"2026-10-08T02:18:22.785571+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestRenderInputSnapshotRouteRequiresAuthentication","Output":"--- PASS: TestRenderInputSnapshotRouteRequiresAuthentication (0.00s)\n"}
+{"Time":"2026-10-08T02:18:22.785604+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestRenderInputSnapshotRouteRequiresAuthentication","Elapsed":0}
+{"Time":"2026-10-08T02:18:22.78561+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestRenderPolicyRouteRequiresAuthentication"}
+{"Time":"2026-10-08T02:18:22.785613+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestRenderPolicyRouteRequiresAuthentication","Output":"=== RUN   TestRenderPolicyRouteRequiresAuthentication\n"}
+{"Time":"2026-10-08T02:18:22.785791+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestRenderPolicyRouteRequiresAuthentication","Output":"--- PASS: TestRenderPolicyRouteRequiresAuthentication (0.00s)\n"}
+{"Time":"2026-10-08T02:18:22.785799+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestRenderPolicyRouteRequiresAuthentication","Elapsed":0}
+{"Time":"2026-10-08T02:18:22.785803+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestProposalAdmissionFailuresHaveStablePublicCodes"}
+{"Time":"2026-10-08T02:18:22.785804+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestProposalAdmissionFailuresHaveStablePublicCodes","Output":"=== RUN   TestProposalAdmissionFailuresHaveStablePublicCodes\n"}
+{"Time":"2026-10-08T02:18:22.785821+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestProposalAdmissionFailuresHaveStablePublicCodes","Output":"--- PASS: TestProposalAdmissionFailuresHaveStablePublicCodes (0.00s)\n"}
+{"Time":"2026-10-08T02:18:22.785826+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestProposalAdmissionFailuresHaveStablePublicCodes","Elapsed":0}
+{"Time":"2026-10-08T02:18:22.78583+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestSemanticProposeRequiresAuthentication"}
+{"Time":"2026-10-08T02:18:22.785831+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestSemanticProposeRequiresAuthentication","Output":"=== RUN   TestSemanticProposeRequiresAuthentication\n"}
+{"Time":"2026-10-08T02:18:22.786111+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestSemanticProposeRequiresAuthentication","Output":"--- PASS: TestSemanticProposeRequiresAuthentication (0.00s)\n"}
+{"Time":"2026-10-08T02:18:22.786119+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestSemanticProposeRequiresAuthentication","Elapsed":0}
+{"Time":"2026-10-08T02:18:22.786124+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestSemanticProposeResponseRequiresDurableRunReceipt"}
+{"Time":"2026-10-08T02:18:22.786126+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestSemanticProposeResponseRequiresDurableRunReceipt","Output":"=== RUN   TestSemanticProposeResponseRequiresDurableRunReceipt\n"}
+{"Time":"2026-10-08T02:18:22.78613+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestSemanticProposeResponseRequiresDurableRunReceipt","Output":"--- PASS: TestSemanticProposeResponseRequiresDurableRunReceipt (0.00s)\n"}
+{"Time":"2026-10-08T02:18:22.786137+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestSemanticProposeResponseRequiresDurableRunReceipt","Elapsed":0}
+{"Time":"2026-10-08T02:18:22.78614+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestReviewSQLAdmissionErrorsHaveStablePublicCodes"}
+{"Time":"2026-10-08T02:18:22.786142+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestReviewSQLAdmissionErrorsHaveStablePublicCodes","Output":"=== RUN   TestReviewSQLAdmissionErrorsHaveStablePublicCodes\n"}
+{"Time":"2026-10-08T02:18:22.786171+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestReviewSQLAdmissionErrorsHaveStablePublicCodes","Output":"--- PASS: TestReviewSQLAdmissionErrorsHaveStablePublicCodes (0.00s)\n"}
+{"Time":"2026-10-08T02:18:22.78618+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestReviewSQLAdmissionErrorsHaveStablePublicCodes","Elapsed":0}
+{"Time":"2026-10-08T02:18:22.786184+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestSemanticApplyRouteRequiresAuthentication"}
+{"Time":"2026-10-08T02:18:22.786186+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestSemanticApplyRouteRequiresAuthentication","Output":"=== RUN   TestSemanticApplyRouteRequiresAuthentication\n"}
+{"Time":"2026-10-08T02:18:22.78651+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestSemanticApplyRouteRequiresAuthentication","Output":"--- PASS: TestSemanticApplyRouteRequiresAuthentication (0.00s)\n"}
+{"Time":"2026-10-08T02:18:22.786518+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestSemanticApplyRouteRequiresAuthentication","Elapsed":0}
+{"Time":"2026-10-08T02:18:22.78652+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestSemanticApplyResponseRequiresExactReceipt"}
+{"Time":"2026-10-08T02:18:22.786552+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestSemanticApplyResponseRequiresExactReceipt","Output":"=== RUN   TestSemanticApplyResponseRequiresExactReceipt\n"}
+{"Time":"2026-10-08T02:18:22.786624+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestSemanticApplyResponseRequiresExactReceipt","Output":"--- PASS: TestSemanticApplyResponseRequiresExactReceipt (0.00s)\n"}
+{"Time":"2026-10-08T02:18:22.786635+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestSemanticApplyResponseRequiresExactReceipt","Elapsed":0}
+{"Time":"2026-10-08T02:18:22.786637+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestSemanticCloseRouteRequiresAuthentication"}
+{"Time":"2026-10-08T02:18:22.786638+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestSemanticCloseRouteRequiresAuthentication","Output":"=== RUN   TestSemanticCloseRouteRequiresAuthentication\n"}
+{"Time":"2026-10-08T02:18:22.786886+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestSemanticCloseRouteRequiresAuthentication","Output":"--- PASS: TestSemanticCloseRouteRequiresAuthentication (0.00s)\n"}
+{"Time":"2026-10-08T02:18:22.786902+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestSemanticCloseRouteRequiresAuthentication","Elapsed":0}
+{"Time":"2026-10-08T02:18:22.786905+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestSemanticCloseResponseRejectsIncompleteJob"}
+{"Time":"2026-10-08T02:18:22.786907+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestSemanticCloseResponseRejectsIncompleteJob","Output":"=== RUN   TestSemanticCloseResponseRejectsIncompleteJob\n"}
+{"Time":"2026-10-08T02:18:22.786983+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestSemanticCloseResponseRejectsIncompleteJob","Output":"--- PASS: TestSemanticCloseResponseRejectsIncompleteJob (0.00s)\n"}
+{"Time":"2026-10-08T02:18:22.786989+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestSemanticCloseResponseRejectsIncompleteJob","Elapsed":0}
+{"Time":"2026-10-08T02:18:22.786992+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationCompletedSemanticTargetsHTTP"}
+{"Time":"2026-10-08T02:18:22.786994+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationCompletedSemanticTargetsHTTP","Output":"=== RUN   TestIntegrationCompletedSemanticTargetsHTTP\n"}
+{"Time":"2026-10-08T02:18:22.787021+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationCompletedSemanticTargetsHTTP","Output":"    semantic_targets_integration_test.go:33: completed owned semantic exposure fixture required\n"}
+{"Time":"2026-10-08T02:18:22.787035+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationCompletedSemanticTargetsHTTP","Output":"--- SKIP: TestIntegrationCompletedSemanticTargetsHTTP (0.00s)\n"}
+{"Time":"2026-10-08T02:18:22.787042+03:00","Action":"skip","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationCompletedSemanticTargetsHTTP","Elapsed":0}
+{"Time":"2026-10-08T02:18:22.787044+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationProjectHTTP"}
+{"Time":"2026-10-08T02:18:22.787046+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationProjectHTTP","Output":"=== RUN   TestIntegrationProjectHTTP\n"}
+{"Time":"2026-10-08T02:18:22.811642+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationProjectHTTP","Output":"--- PASS: TestIntegrationProjectHTTP (0.02s)\n"}
+{"Time":"2026-10-08T02:18:22.811671+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationProjectHTTP","Elapsed":0.02}
+{"Time":"2026-10-08T02:18:22.811678+03:00","Action":"run","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationBrowserCSRF"}
+{"Time":"2026-10-08T02:18:22.811682+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationBrowserCSRF","Output":"=== RUN   TestIntegrationBrowserCSRF\n"}
+{"Time":"2026-10-08T02:18:22.824232+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationBrowserCSRF","Output":"--- PASS: TestIntegrationBrowserCSRF (0.01s)\n"}
+{"Time":"2026-10-08T02:18:22.824252+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Test":"TestIntegrationBrowserCSRF","Elapsed":0.01}
+{"Time":"2026-10-08T02:18:22.824256+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Output":"PASS\n"}
+{"Time":"2026-10-08T02:18:22.826873+03:00","Action":"output","Package":"photoeditor/backend/internal/httpapi","Output":"ok  \tphotoeditor/backend/internal/httpapi\t2.586s\n"}
+{"Time":"2026-10-08T02:18:22.826883+03:00","Action":"pass","Package":"photoeditor/backend/internal/httpapi","Elapsed":2.5869999999999997}

@@ -4,6 +4,7 @@ import hashlib
 import http.client
 import os
 from pathlib import Path
+from dataclasses import dataclass
 import re
 import ssl
 import stat
@@ -35,10 +36,30 @@ def client_tls(ca:Path,certificate:Path,private_key:Path)->ssl.SSLContext:
     return context
 
 
+@dataclass(frozen=True)
+class ArtifactMetadata:
+    bytes: int
+    media_type: str
+    version_sha256: str
+
+
+def artifact_metadata(headers, size):
+    media = headers.get_all('X-Photo-Media-Type') or []
+    versions = headers.get_all('X-Photo-Object-Version-SHA256') or []
+    if not media and not versions:
+        return None  # Older gateways can stream, but cannot qualify metadata.
+    if (len(media) != 1 or len(versions) != 1
+            or not re.fullmatch(r'[a-z0-9!#$&^_.+-]+/[a-z0-9!#$&^_.+-]+', media[0])
+            or not re.fullmatch(r'[0-9a-f]{64}', versions[0])):
+        raise GatewayError('GATEWAY_RESPONSE_INVALID')
+    return ArtifactMetadata(size, media[0], versions[0])
+
+
 class ArtifactStream:
     def __init__(self,response:http.client.HTTPResponse,connection:http.client.HTTPSConnection,
-                 expected:int,check_active:Callable[[],None]):
+                 expected:int,check_active:Callable[[],None],metadata:ArtifactMetadata|None=None):
         self._response,self._connection=response,connection
+        self.metadata=metadata
         self._remaining=expected
         self._size=expected
         self._check_active=check_active
@@ -131,7 +152,7 @@ class Gateway:
             if response.getheader('X-Photo-SHA256')!=ref.sha256 or response.getheader('X-Photo-Artifact-ID')!=str(ref.artifact_id):
                 raise GatewayError('ARTIFACT_HASH_MISMATCH')
             self._check()
-            return ArtifactStream(response,connection,size,self._check)
+            return ArtifactStream(response,connection,size,self._check,artifact_metadata(response.headers,size))
         except ssl.SSLError as exc:
             connection.close()
             raise GatewayError('CONFIG_INVALID') from exc
@@ -142,7 +163,15 @@ class Gateway:
             connection.close()
             raise
 
-    def upload(self,path:Path,role:str,media_type:str)->ArtifactRef:
+    def metadata(self, ref: ArtifactRef) -> ArtifactMetadata:
+        # GET headers run the same lease/input/object authority as byte reads.
+        # Close immediately; do not download or materialize the body.
+        with self.open_stream(ref) as stream:
+            if stream.metadata is None:
+                raise GatewayError('GATEWAY_METADATA_UNAVAILABLE')
+            return stream.metadata
+
+    def upload(self,path:Path,role:str,media_type:str,*,expected_identity=None)->ArtifactRef:
         if role not in self._roles:raise ValueError('Output role is not allowed')
         if not re.fullmatch(r'[a-z0-9.+-]+/[a-z0-9.+-]+',media_type):raise ValueError('Invalid output media type')
         self._check()
@@ -150,6 +179,12 @@ class Gateway:
         with os.fdopen(fd,'rb') as source:
             before=os.fstat(source.fileno())
             if not stat.S_ISREG(before.st_mode):raise ValueError('Output must be a regular file')
+            if expected_identity is not None:
+                if (not isinstance(expected_identity,tuple) or len(expected_identity)!=2
+                        or any(type(value) is not int or value<0 for value in expected_identity)
+                        or before.st_nlink!=1
+                        or (before.st_dev,before.st_ino)!=expected_identity):
+                    raise GatewayError('ARTIFACT_CHANGED')
             if before.st_size>self._max_output:raise GatewayError('DISK_QUOTA')
             digest=hashlib.sha256()
             for block in iter(lambda:source.read(1024*1024),b''):
@@ -175,10 +210,36 @@ class Gateway:
                 self._status(response)
                 if response.status not in (200,201) or response.getheader('Content-Type','').split(';')[0]!='application/json':
                     raise GatewayError('GATEWAY_RESPONSE_INVALID')
+                lengths=response.headers.get_all('Content-Length') or []
+                transfer=response.getheader('Transfer-Encoding')
+                if (response.getheader('Content-Encoding','identity')!='identity' or
+                    len(lengths)>1 or
+                    (lengths and (not lengths[0].isascii() or not lengths[0].isdigit())) or
+                    (lengths and transfer is not None) or
+                    (transfer is not None and transfer.lower()!='chunked')):
+                    raise GatewayError('GATEWAY_RESPONSE_INVALID')
+                if response.length is not None and response.length>65536:
+                    raise GatewayError('GATEWAY_RESPONSE_INVALID')
                 body=response.read(65537)
-                parse_json(body,max_bytes=65536)
-                ref=ArtifactRef.model_validate_json(body)
+                # HTTPResponse.read(amount) may return a short body without
+                # IncompleteRead. A remaining declared length means a lost
+                # response, not malformed operation input or a safe PUT retry.
+                if response.length is not None and response.length>0:
+                    raise GatewayError('DEPENDENCY_UNAVAILABLE',True)
+                try:
+                    parse_json(body,max_bytes=65536)
+                    ref=ArtifactRef.model_validate_json(body)
+                except ValueError as exc:
+                    raise GatewayError('GATEWAY_RESPONSE_INVALID') from exc
                 if ref.sha256!=sha:raise GatewayError('ARTIFACT_HASH_MISMATCH')
+                if expected_identity is not None:
+                    try:
+                        current=os.stat(path,follow_symlinks=False)
+                    except FileNotFoundError as exc:
+                        raise GatewayError('ARTIFACT_CHANGED') from exc
+                    if (not stat.S_ISREG(current.st_mode) or current.st_nlink!=1
+                            or (current.st_dev,current.st_ino)!=expected_identity):
+                        raise GatewayError('ARTIFACT_CHANGED')
                 self._check()
                 return ref
             except ssl.SSLError as exc:

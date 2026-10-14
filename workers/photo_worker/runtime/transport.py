@@ -54,6 +54,8 @@ class Transport:
     def consume(self, stop: Event, *, max_messages: int | None = None) -> int:
         if max_messages is not None and max_messages < 1:
             raise ValueError('Invalid delivery limit')
+        if stop.is_set():
+            return 0
         parameters = pika.URLParameters(self._url)
         parameters.heartbeat = 30
         parameters.socket_timeout = 5
@@ -70,6 +72,10 @@ class Transport:
 
             def delivered(ch, method, properties, body):
                 nonlocal active, delivery_tag
+                # Capacity failure/signal may arrive while pika dispatches buffered
+                # callbacks. Leave this delivery unacked; shutdown requeues it.
+                if stop.is_set():
+                    return
                 if active is not None:
                     raise RuntimeError('Worker prefetch invariant violated')
                 delivery_tag = method.delivery_tag
@@ -101,7 +107,11 @@ class Transport:
                     raise RuntimeError('Worker channel closed')
             return processed
         finally:
-            self.executor.abort_active()
+            abort_error = None
+            try:
+                self.executor.abort_active()
+            except Exception as error:
+                abort_error = error
             # Stop fetching before waiting for an in-flight operation to observe
             # its lost lease. Closing deliberately leaves its delivery unacked.
             if connection.is_open:
@@ -115,3 +125,6 @@ class Transport:
                     Event().wait(.05)
                 if not active.done():
                     raise WorkerNotStopped('Operation did not stop within shutdown grace')
+            if abort_error is not None:
+                # Never reconnect this process after cancellation authority failed.
+                raise WorkerNotStopped('Worker cancellation failed during shutdown') from abort_error

@@ -6,6 +6,7 @@ from photo_worker.runtime.arrays import read_array,read_inverse_field
 from photo_worker.runtime.artifacts import TaskArtifacts,ArtifactConfig
 from photo_worker.runtime.executor import ExecutionContext,Operation,OperationResult,OperationFailure
 from .transform_prepare import prepare_transform
+from .transform_publish import stage_transform,finish_transform
 
 
 def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
@@ -33,15 +34,10 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
         with prepare_transform(source,params.step,artifacts.scratch,guide=guide,labels=labels,inverse_field=field,tile=tile,
                                max_work_pixels=min(4194304,ram//256),check_active=ctx.check_active) as files:
             ctx.progress(1,2)
-            pixels=artifacts.stage(files.array,files.arrays,'transformed_mask','application/octet-stream')
-            png=artifacts.stage(files.png,files.pngs,'transformed_mask_png','image/png')
-            written=files.array.stat().st_size+files.png.stat().st_size
-            radius=files.radius
-    mask=MaskRef(artifact=pixels,canvas=target.canvas,transform_chain=chain,object_id=params.mask.object_id,
-                 selector=params.mask.selector,confidence=params.mask.confidence,model_lock_id=params.mask.model_lock_id,protected=params.mask.protected)
-    result=TransformedMask(params=params,mask=mask,png=png,dtype=params.dtype,guided_radius=radius)
-    manifest=artifacts.stage_contract(result,'mask_transform_result');ctx.progress(2,2)
-    return OperationResult(outputs=[pixels,png,manifest],bytes_written=written+len(canonical_bytes(result)))
+            published=stage_transform(artifacts,files,params,target,check_active=ctx.check_active)
+    published=finish_transform(artifacts,published,check_active=ctx.check_active)
+    ctx.progress(2,2)
+    return OperationResult(outputs=list(published.outputs),bytes_written=published.bytes_written)
 
 
 def mask_transform_operations(config:ArtifactConfig)->list[Operation]:

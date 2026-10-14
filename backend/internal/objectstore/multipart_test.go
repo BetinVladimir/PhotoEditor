@@ -92,6 +92,9 @@ func TestMultipartBoundariesRejectBeforeStorage(t *testing.T) {
 	if _, err := store.CompleteMultipart(context.Background(), key, "token", "image/jpeg", 1, []UploadedPart{{PartNumber: 2, ETag: "etag"}, {PartNumber: 1, ETag: "etag"}}); err != ErrInvalid {
 		t.Fatal("unordered completion accepted", err)
 	}
+	if _, err := store.CompleteMultipart(context.Background(), key, "token", "image/jpeg", 1, []UploadedPart{{PartNumber: 1, ETag: "bad\x00etag"}}); err != ErrInvalid {
+		t.Fatal("NUL-containing completion ETag accepted", err)
+	}
 	if err := store.AbortMultipart(context.Background(), key, "bad\nvalue"); err != ErrInvalid {
 		t.Fatal("invalid upload id accepted", err)
 	}

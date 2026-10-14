@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="5" time="8.099" timestamp="2026-10-09T14:26:21.117126+03:00" hostname="Mac"><testcase classname="tests.integration.test_v28_relight_draft_intent" name="test_relight_intent_upgrade_preserves_existing_runs" time="1.698"><failure message="psycopg.errors.ObjectInUse: cannot ALTER TABLE &quot;runs&quot; because it has pending trigger events">db = &lt;psycopg.Connection [INERROR] (port=55433 user=photo_test database=photo_test_29cc6427256a4efaa36f5ce54aa90d30) at 0x1035216d0&gt;
+
+    @pytest.mark.migration_head(995)
+    def test_relight_intent_upgrade_preserves_existing_runs(db):
+        fixture(db,snapshot_authority=True)
+        count=db.execute('SELECT count(*) FROM photo.runs').fetchone()[0]
+        migration=Path(__file__).resolve().parents[2]/'backend/db/migrations/00996_v28_relight_draft_intent.sql'
+&gt;       db.execute(migration.read_text().split('-- +goose Down')[0])
+
+tests/integration/test_v28_relight_draft_intent.py:18: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;psycopg.Connection [INERROR] (port=55433 user=photo_test database=photo_test_29cc6427256a4efaa36f5ce54aa90d30) at 0x1035216d0&gt;
+query = '-- +goose Up\n-- Frozen preliminary intent only: no publication, transport or activation grant.\nALTER TABLE photo.ru...GRANT EXECUTE ON FUNCTION photo.save_v28_relight_intent(uuid,uuid,jsonb) TO photo_scheduler;\n-- +goose StatementEnd\n'
+params = None, prepare = None, binary = False
+
+    def execute(
+        self,
+        query: Query,
+        params: Params | None = None,
+        *,
+        prepare: bool | None = None,
+        binary: bool = False,
+    ) -&gt; Cursor[Row]:
+        """Execute a query and return a cursor to read its results."""
+        try:
+            cur = self.cursor()
+            if binary:
+                cur.format = BINARY
+    
+            if isinstance(query, Template):
+                if params is not None:
+                    raise TypeError(
+                        "'execute()' with string template query doesn't support parameters"
+                    )
+                return cur.execute(query, prepare=prepare)
+            else:
+                return cur.execute(query, params, prepare=prepare)
+        except e._NO_TRACEBACK as ex:
+&gt;           raise ex.with_traceback(None)
+E           psycopg.errors.ObjectInUse: cannot ALTER TABLE "runs" because it has pending trigger events
+
+.venv-platform/lib/python3.11/site-packages/psycopg/connection.py:304: ObjectInUse</failure></testcase><testcase classname="tests.integration.test_v28_relight_draft_intent" name="test_relight_intent_frozen_replay_and_revocation" time="1.448" /><testcase classname="tests.integration.test_v28_relight_source_lock" name="test_relight_source_lock_upgrade_from_previous_head" time="1.501" /><testcase classname="tests.integration.test_v28_relight_source_lock" name="test_relight_prepublication_source_gate_and_revocation" time="1.365" /><testcase classname="tests.integration.test_v28_relight_source_lock" name="test_relight_source_locks_block_competing_revocation" time="1.904" /></testsuite></testsuites>

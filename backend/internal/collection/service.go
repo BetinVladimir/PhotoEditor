@@ -56,6 +56,7 @@ type Item struct {
 	ModerationState string          `json:"moderation_state"`
 	Rating          int             `json:"rating"`
 	Flag            string          `json:"flag"`
+	ColorLabel      *string         `json:"color_label,omitempty"`
 	Tags            json.RawMessage `json:"tags"`
 	CreatedAt       time.Time       `json:"created_at"`
 }
@@ -68,11 +69,12 @@ type ItemAdd struct {
 }
 
 type ItemPatch struct {
-	Rating    *int         `json:"rating,omitempty"`
-	Flag      *string      `json:"flag,omitempty"`
-	Tags      *[]string    `json:"tags,omitempty"`
-	SectionID OptionalUUID `json:"section_id,omitempty"`
-	Position  *int64       `json:"position,omitempty"`
+	Rating     *int               `json:"rating,omitempty"`
+	Flag       *string            `json:"flag,omitempty"`
+	ColorLabel OptionalColorLabel `json:"color_label,omitempty"`
+	Tags       *[]string          `json:"tags,omitempty"`
+	SectionID  OptionalUUID       `json:"section_id,omitempty"`
+	Position   *int64             `json:"position,omitempty"`
 }
 
 type ItemModeration struct {
@@ -140,6 +142,36 @@ type Patch struct {
 type OptionalUUID struct {
 	Set   bool
 	Value *uuid.UUID
+}
+
+// OptionalColorLabel distinguishes an omitted patch field from an explicit
+// null, which clears the label without changing the independent pick flag.
+type OptionalColorLabel struct {
+	Set   bool
+	Value *string
+}
+
+func (v *OptionalColorLabel) UnmarshalJSON(raw []byte) error {
+	v.Set = true
+	if string(raw) == "null" {
+		v.Value = nil
+		return nil
+	}
+	var label string
+	if err := json.Unmarshal(raw, &label); err != nil || !validColorLabel(label) {
+		return errors.New("invalid color label")
+	}
+	v.Value = &label
+	return nil
+}
+
+func validColorLabel(label string) bool {
+	switch label {
+	case "Red", "Yellow", "Green", "Blue", "Purple":
+		return true
+	default:
+		return false
+	}
 }
 
 func (v *OptionalUUID) UnmarshalJSON(raw []byte) error {
@@ -432,12 +464,12 @@ func audit(ctx context.Context, tx pgx.Tx, who auth.Identity, tid, id uuid.UUID,
 	return err
 }
 
-const itemFields = `i.id,i.collection_id,i.asset_id,i.asset_version_id,i.section_id,i.position,i.visibility,i.moderation_state,i.rating,i.flag,i.tags,i.created_at`
+const itemFields = `i.id,i.collection_id,i.asset_id,i.asset_version_id,i.section_id,i.position,i.visibility,i.moderation_state,i.rating,i.flag,i.color_label,i.tags,i.created_at`
 
 func scanItem(row scanner) (Item, error) {
 	var out Item
 	err := row.Scan(&out.ID, &out.CollectionID, &out.AssetID, &out.AssetVersionID, &out.SectionID, &out.Position,
-		&out.Visibility, &out.ModerationState, &out.Rating, &out.Flag, &out.Tags, &out.CreatedAt)
+		&out.Visibility, &out.ModerationState, &out.Rating, &out.Flag, &out.ColorLabel, &out.Tags, &out.CreatedAt)
 	return out, err
 }
 
@@ -565,6 +597,9 @@ func (s Service) UpdateItem(ctx context.Context, who auth.Identity, tid, collect
 		if patch.Flag != nil {
 			current.Flag = *patch.Flag
 		}
+		if patch.ColorLabel.Set {
+			current.ColorLabel = patch.ColorLabel.Value
+		}
 		if patch.Tags != nil {
 			if !validTags(*patch.Tags) {
 				return domain.NewError("VALIDATION_FAILED", 422)
@@ -580,14 +615,14 @@ func (s Service) UpdateItem(ctx context.Context, who auth.Identity, tid, collect
 		if patch.Position != nil {
 			current.Position = *patch.Position
 		}
-		if current.Rating < 0 || current.Rating > 5 || (current.Flag != "none" && current.Flag != "pick" && current.Flag != "reject") || current.Position < 0 || current.Position > 9007199254740991 {
+		if current.Rating < 0 || current.Rating > 5 || (current.Flag != "none" && current.Flag != "pick" && current.Flag != "reject") || (current.ColorLabel != nil && !validColorLabel(*current.ColorLabel)) || current.Position < 0 || current.Position > 9007199254740991 {
 			return domain.NewError("VALIDATION_FAILED", 422)
 		}
 		if err = verifySection(ctx, tx, tid, collectionID, current.SectionID); err != nil {
 			return err
 		}
-		out, err = scanItem(tx.QueryRow(ctx, `UPDATE photo.collection_items AS i SET section_id=$4,position=$5,rating=$6,flag=$7,tags=$8
- WHERE tenant_id=$1 AND collection_id=$2 AND id=$3 RETURNING `+itemFields, tid, collectionID, itemID, current.SectionID, current.Position, current.Rating, current.Flag, current.Tags))
+		out, err = scanItem(tx.QueryRow(ctx, `UPDATE photo.collection_items AS i SET section_id=$4,position=$5,rating=$6,flag=$7,tags=$8,color_label=$9
+ WHERE tenant_id=$1 AND collection_id=$2 AND id=$3 RETURNING `+itemFields, tid, collectionID, itemID, current.SectionID, current.Position, current.Rating, current.Flag, current.Tags, current.ColorLabel))
 		if err != nil {
 			return err
 		}

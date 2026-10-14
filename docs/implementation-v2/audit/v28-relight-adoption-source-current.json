@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 completed relight source/qualification evidence",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "production_migration_applied": false,
+  "checks": {
+    "native_sql_goose": {
+      "passed": 2,
+      "seconds": 8.38,
+      "xml": "v28-relight-adoption-source-current.xml"
+    },
+    "relight_components": {
+      "passed": 166,
+      "seconds": 2.56,
+      "xml": "v28-relight-adoption-source-components.xml"
+    }
+  },
+  "source_sha256": {
+    "backend/db/migrations/00987_v28_relight_adoption_source.sql": "de4d1d85458a5c5ab527d7cc09a6db0de890457d372ad67d850d6b0d8eb09875",
+    "workers/photo_worker/v2/relight_adoption_source.py": "a70dc00ecbf4759eef427efddf79d1edb329acc9bee88c887d172d66e1e5b52f",
+    "tests/integration/test_v28_relight_adoption_source.py": "576dd4242c21ed4b5140486ab723c00709e8952b5f5e38567b321dd09cc696ec",
+    "tests/platform/test_relight_adoption_source.py": "acd1a67d87534288f1f0736c3d2b978dc9df0de855c854fd91d8a2829ab7ddc9"
+  },
+  "limitations": [
+    "Source/qualification metadata gate only; completed depth/person/manual authority and transactional commit pending",
+    "Positive SQL fixture has partial Params and owner-seeded output upload/task/result/qualification; no physical replay in this selection",
+    "Python completed source loader uses DB doubles; actual SQL-to-loader integration pending",
+    "No production installation/public UI or actual photo/model/device qualification"
+  ]
+}

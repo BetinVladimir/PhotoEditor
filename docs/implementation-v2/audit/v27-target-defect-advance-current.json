@@ -1,0 +1,54 @@
+{
+  "generated_at": "2026-10-08T19:23:22.740680+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "changed_source_hash": "bd93405f80dda1caa73829bb0470fb02b3ee0402d89e10c7164e8c8bd30513c3",
+  "checks": {
+    "sql": {
+      "result": "PASS",
+      "tests": 23,
+      "seconds": 28.524
+    },
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 160.431
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/v2input",
+      "photoeditor/backend/internal/v2draft",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "Automatic target defects progression connected after target skin stage in original recovery job",
+    "Exact physical completed prerequisite plans and persisted transports restored under original parent advisory lock",
+    "Absent task: qualified CPU selection, Params, blocked Begin, owned transport publication, registration and atomic seal",
+    "Saved task: saved report/costs/limits/diameter and immutable Params restore; canonical worker result finish and completed consumer lock",
+    "Repeated queued/completed advances, revoked session refusal, unchanged artifact/backend-document counts",
+    "Independent PostgreSQL/S3 verification including one completed event/outbox and released quota"
+  ],
+  "limitations": [
+    "Probe runs in one process; fresh-process Recover/ProcessOne and crash paths remain required",
+    "Waiting semantic.transfer does not implement downstream parent handoff or whole V27 acceptance",
+    "Upstream ML fixtures use doubles; no GPU/real-photo qualification",
+    "No production migration; migration head00958 unchanged"
+  ],
+  "sha256": {
+    "backend/internal/semanticproposal/native_target_defect_advance.go": "bf58c8eb8770841a57b6c7c7d0a675af6c8769626898600876f1cca10806d0fd",
+    "backend/internal/semanticproposal/native_target_defect_prerequisites.go": "1abdb07d18dee941e82a3aeaec42318ac5b971d08ce11a610ed72772e7d14f04",
+    "backend/internal/semanticproposal/native_target_defect_advance_probe_test.go": "f2a5121a7a4afa4cf1133da3146e695927acba835f686a9e5e2cfecec8d93b82",
+    "backend/internal/semanticproposal/native_initial_pipeline_recovery_job.go": "d8abac208bdb4c4ea3598389cebfe2872076033902d271b3aecc114e8ff0eb97",
+    "backend/internal/semanticproposal/native_target_skin_wire_probe_test.go": "bb5980812a3fc94cc5ebbedbb7193be3c397b0c144d6ac33cf230490c14193c3",
+    "tests/integration/test_v27_semantic_intent_publication.py": "6ae918ad05054475dc316b0479931318cd41b9c3b4bfe4d5c04ea794b3bce9f5",
+    "tests/integration/v27_face_wire_probe.py": "a2856823de1dad061250845d7e42233e9add6b4d09a9aa8be1f250718a613282",
+    "docs/implementation-v2/15-execution-contracts.md": "f5c4c5889ceaf6466762d585bf44c968e4a4032b208005c780b2971634408bf1",
+    "docs/implementation-v2/audit/v27-target-defect-advance-go-current.jsonl": "1095ca015f9e95e84e3ad7685e523fce32af340b299f7a2d36c65338b7d377ff",
+    "docs/implementation-v2/audit/v27-target-defect-advance-sql-current.xml": "0f8a2b7b8c9e37f553d2043431aad46d2989c597a280f76f97a74f07e740efdd",
+    "docs/implementation-v2/audit/v27-target-defect-advance-wire-current.xml": "eb446865eb34f7d17621e814cf9ca35e67b526eafa1243e76e4d8ff716da9d4c"
+  }
+}

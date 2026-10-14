@@ -1,0 +1,69 @@
+-- +goose Up
+-- Original Params discovery only for current completed multi tasks.
+-- +goose StatementBegin
+CREATE FUNCTION photo.v29_multi_adoption_params(p_tenant uuid,p_task uuid,p_attempt integer,p_fence bigint,p_result uuid)
+RETURNS TABLE(artifact_id uuid,sha256 text) LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,photo AS $$
+ SELECT a.id,a.sha256 FROM photo.tasks t
+ JOIN photo.artifacts a ON a.tenant_id=t.tenant_id AND a.id=t.params_artifact_id
+ JOIN photo.v2_task_inputs i ON i.tenant_id=t.tenant_id AND i.task_id=t.id AND i.artifact_id=a.id AND i.sha256=a.sha256 AND i.contract='Params'
+ WHERE t.tenant_id=p_tenant AND t.id=p_task AND t.operation IN ('optical.panorama','optical.focus_stack') AND t.operation_version='1'
+ AND t.attempt=p_attempt AND t.fencing_token=p_fence AND t.canonical_result_id=p_result
+ AND a.state='ready' AND a.verified_at IS NOT NULL AND a.media_type='application/json' AND a.bytes BETWEEN 2 AND 65536
+ AND a.object_version IS NOT NULL AND a.object_version NOT IN('','null')
+ AND (a.expires_at IS NULL OR a.expires_at>clock_timestamp())
+ AND EXISTS(SELECT 1 FROM photo.v2_adoption_context(p_tenant,p_task));
+$$;
+ALTER FUNCTION photo.v29_multi_adoption_params(uuid,uuid,integer,bigint,uuid) OWNER TO photo_fn_owner;
+REVOKE ALL ON FUNCTION photo.v29_multi_adoption_params(uuid,uuid,integer,bigint,uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION photo.v29_multi_adoption_params(uuid,uuid,integer,bigint,uuid) TO photo_scheduler;
+-- +goose StatementEnd
+
+-- Negative results require a dedicated proof-carrying scheduler commit.
+-- +goose StatementBegin
+ALTER FUNCTION photo.adopt_v2_plan(uuid,uuid,integer,bigint,uuid,jsonb,text) RENAME TO adopt_v2_plan_pre_multi;
+REVOKE ALL ON FUNCTION photo.adopt_v2_plan_pre_multi(uuid,uuid,integer,bigint,uuid,jsonb,text) FROM PUBLIC,photo_scheduler;
+CREATE FUNCTION photo.adopt_v2_plan(p_tenant uuid,p_task uuid,p_attempt integer,p_fence bigint,p_result uuid,p_inventory jsonb,p_digest text)
+RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,photo AS $$
+BEGIN
+ IF EXISTS(SELECT 1 FROM photo.tasks WHERE tenant_id=p_tenant AND id=p_task AND operation IN ('optical.panorama','optical.focus_stack')) THEN RETURN false;END IF;
+ RETURN photo.adopt_v2_plan_pre_multi(p_tenant,p_task,p_attempt,p_fence,p_result,p_inventory,p_digest);
+END $$;
+ALTER FUNCTION photo.adopt_v2_plan(uuid,uuid,integer,bigint,uuid,jsonb,text) OWNER TO photo_fn_owner;
+REVOKE ALL ON FUNCTION photo.adopt_v2_plan(uuid,uuid,integer,bigint,uuid,jsonb,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION photo.adopt_v2_plan(uuid,uuid,integer,bigint,uuid,jsonb,text) TO photo_scheduler;
+CREATE FUNCTION photo.adopt_v29_multi(p_tenant uuid,p_task uuid,p_attempt integer,p_fence bigint,p_result uuid,
+ p_inventory jsonb,p_digest text,p_evidence text,p_body text)
+RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,photo AS $$
+DECLARE expected jsonb;actual jsonb;project uuid;run uuid;
+BEGIN
+ IF p_evidence IS NULL OR octet_length(p_evidence) NOT BETWEEN 2 AND 1048576 THEN RETURN false;END IF;
+ expected:=p_evidence::jsonb;
+ PERFORM id FROM photo.tenants WHERE id=p_tenant AND status='active' FOR UPDATE;
+ IF NOT FOUND THEN RETURN false;END IF;
+ PERFORM tenant_id FROM photo.tenant_usage WHERE tenant_id=p_tenant FOR UPDATE;
+ IF NOT FOUND THEN RETURN false;END IF;
+ SELECT w.project_id,t.run_id INTO project,run FROM photo.tasks t JOIN photo.v2_workflows w
+ ON w.tenant_id=t.tenant_id AND w.run_id=t.run_id WHERE t.tenant_id=p_tenant AND t.id=p_task;
+ IF project IS NULL OR run IS NULL THEN RETURN false;END IF;
+ PERFORM id FROM photo.projects WHERE tenant_id=p_tenant AND id=project AND archived_at IS NULL FOR UPDATE;
+ IF NOT FOUND THEN RETURN false;END IF;
+ PERFORM id FROM photo.runs WHERE tenant_id=p_tenant AND id=run FOR UPDATE;
+ IF NOT FOUND THEN RETURN false;END IF;
+ PERFORM id FROM photo.tasks WHERE tenant_id=p_tenant AND id=p_task AND run_id=run FOR UPDATE;
+ IF NOT FOUND THEN RETURN false;END IF;
+ actual:=photo.v29_multi_adoption_evidence(p_tenant,p_task,p_attempt,p_fence,p_result,p_body);
+ IF actual IS NULL OR actual IS DISTINCT FROM expected THEN RETURN false;END IF;
+ -- Generic closure/link publication remains one transaction; bypass only the
+ -- multi dispatch guard after the dedicated current evidence re-lock.
+ RETURN photo.adopt_v2_plan_pre_multi(p_tenant,p_task,p_attempt,p_fence,p_result,p_inventory,p_digest);
+EXCEPTION WHEN invalid_text_representation OR numeric_value_out_of_range OR invalid_parameter_value THEN RETURN false;
+END $$;
+ALTER FUNCTION photo.adopt_v29_multi(uuid,uuid,integer,bigint,uuid,jsonb,text,text,text) OWNER TO photo_fn_owner;
+REVOKE ALL ON FUNCTION photo.adopt_v29_multi(uuid,uuid,integer,bigint,uuid,jsonb,text,text,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION photo.adopt_v29_multi(uuid,uuid,integer,bigint,uuid,jsonb,text,text,text) TO photo_scheduler;
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+DO $$ BEGIN RAISE EXCEPTION 'Forward-only migration';END $$;
+-- +goose StatementEnd

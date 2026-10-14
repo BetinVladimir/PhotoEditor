@@ -1,0 +1,15 @@
+{
+  "recorded_at": "2026-10-08T08:59:29.325436+00:00",
+  "sources": {
+    "backend/internal/semanticproposal/publication_integration_test.go": "2fc75d24b1d82241f776b821fcce286b4f6b40b8a5a498e79d277cdf3a17e116",
+    "backend/internal/semanticproposal/create_integration_probe_test.go": "4a83689136e0be2fc6d8ddd9c9ccbea45ca026cfaa76494d6291a2ff9c585961",
+    "backend/internal/semanticproposal/create_http_probe_test.go": "69c1bc83703bc68a23dbaa312fa109886e60ef6d44a73d403982347beac65297",
+    "tests/integration/test_v27_semantic_intent_publication.py": "e1739aa58bf1cb018946c337e781598b1efab722226f9b94453f6a7b28c99ee5",
+    "tests/integration/v27_create_probe.py": "c5cf1498dfbcf7651c9950573a4f404aca5288e306a58422ab1da1173f8c9a16",
+    "backend/internal/semanticproposal/create_person_preparation.go": "4dbf39e5564ff1283228c60454a5ebf8539ee0f141b33c452c0a63a61cb878e9",
+    "backend/internal/semanticproposal/create_service.go": "b643521eb90c9e13f63ca20367d6ac9ad7666cd31bf762afc5c4375d330f94e6",
+    "backend/internal/semanticproposal/transfer_policy_selection.go": "3da443f165c41ea862869b114960274264e6fcd569ec5e161558c752162527fa",
+    "backend/db/migrations/00900_v27_create_person_presence.sql": "5af6c977271e7545a27659fa896b6a1df731baaddd693420656b5a3940f05dcc",
+    "backend/internal/semanticproposal/native_input_saved_anchor.go": "5842b104c81b24ec0a8f1607d8425eeafec3ad9cb29782b460236b3b90ad5e90"
+  }
+}

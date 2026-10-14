@@ -43,3 +43,37 @@ func (p Publisher) RegisterFrozenRenderRecipe(ctx context.Context, who auth.Iden
 	}
 	return nil
 }
+
+// RegisterFrozenRenderDraftRecipe atomically proves current authored document,
+// exact revision/SHA and existing source/background registration after upload.
+// A failed fence leaves the uploaded artifact for the normal cleanup lifecycle.
+func (p Publisher) RegisterFrozenRenderDraftRecipe(ctx context.Context, who auth.Identity,
+	tenantID, assetVersionID, documentID uuid.UUID, ref v2input.Ref, raw []byte,
+	draftDocumentID uuid.UUID, expectedRevision int64) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if len(raw) < 2 || len(raw) > 1048576 {
+		return domain.NewError("VALIDATION_FAILED", 422)
+	}
+	body := append([]byte(nil), raw...)
+	recipe, err := DecodeFrozenRenderRecipe(body)
+	sum := sha256.Sum256(body)
+	if err != nil || tenantID == uuid.Nil || documentID == uuid.Nil || draftDocumentID == uuid.Nil || documentID == draftDocumentID || expectedRevision < 1 || who.UserID == uuid.Nil || who.SessionID == uuid.Nil || assetVersionID == uuid.Nil || recipe.Scalars.Source.AssetVersionID != assetVersionID || !isDocumentRef(ref) || hex.EncodeToString(sum[:]) != ref.SHA256 {
+		return domain.NewError("VALIDATION_FAILED", 422)
+	}
+	if p.DB == nil {
+		return domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
+	}
+	var registered bool
+	err = tenant.WithTenant(ctx, p.DB, who, tenantID, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
+		return tx.QueryRow(ctx, `SELECT photo.register_v26_render_draft_recipe($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, tenantID, assetVersionID, documentID, who.UserID, who.SessionID, ref.ArtifactID, ref.SHA256, recipe.Scalars.Source.Source.ArtifactID, recipe.Scalars.Source.Source.SHA256, string(body), draftDocumentID, expectedRevision).Scan(&registered)
+	})
+	if err != nil {
+		return err
+	}
+	if !registered {
+		return domain.NewError("REVISION_CONFLICT", 409)
+	}
+	return nil
+}

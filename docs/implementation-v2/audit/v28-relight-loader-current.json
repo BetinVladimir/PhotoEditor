@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 original relight qualification object loader",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "tests": {
+    "passed": 87,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 2.73,
+    "xml": "v28-relight-loader-current.xml"
+  },
+  "source_sha256": {
+    "workers/photo_worker/v2/relight_qualification_loader.py": "d78d15569bdcf2eb9ab98d154b488a867d25bf9a7bba128af3b40624feebf6d9",
+    "workers/photo_worker/operations/portrait/relight_runtime_lock.py": "7607ef81fb9a04f022bffec0f417384f2f2625cd927c2dc9bfc86d3d1ac913da",
+    "tests/platform/test_relight_qualification_loader.py": "f298c45cd70fdf3bd26cc7551211664b5cbfb523228244f55e3923aee627ef8e"
+  },
+  "limitations": [
+    "SQL and object transport doubles; physical SQL/objectstore combined replay pending",
+    "No producer authority or production factory installation/adoption/UI/real qualification"
+  ]
+}

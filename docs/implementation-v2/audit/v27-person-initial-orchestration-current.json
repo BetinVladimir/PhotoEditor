@@ -1,0 +1,72 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "recorded_at": "2026-10-08T08:42:56.978118+00:00",
+  "scope": "Production original initial recovery ensures independent qualified person child and recovers blocked transport interruption",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "sources": {
+    "backend/db/migrations/00899_v27_person_stage_presence.sql": "6ec272bcea85d48a2622713c8f697b63f6557da5bbd11a27bef5e37e52a5c606",
+    "backend/internal/semanticproposal/native_input_stage_presence.go": "cf7489a0aaed053a0af2997c3650f187e1bab2c73cca203487b735807c989e64",
+    "backend/internal/semanticproposal/native_initial_person_prepare.go": "150ec8b805504ecd649e389c37e9196ecf343c286f32876690fff61fd4d4d5c6",
+    "backend/internal/semanticproposal/native_initial_person_prepare_test.go": "38d411d67a080d88a49d83c789e64d7401c784e051f56ca58ccc3ab557e93c1a",
+    "backend/internal/semanticproposal/native_initial_pipeline_recovery_job.go": "8359bacc209f64b576198df9e18a3121ce24723d03ad82224026848a45550047",
+    "backend/internal/semanticproposal/native_bootstrap_integration_test.go": "bf45918c1579e83f6792ee09d884701eda71c7991e3c3d9fdeb366fae92b7466",
+    "tests/integration/test_v27_semantic_intent_publication.py": "044c21c3f3135490fe684c199e89ce2cfe738db5bed13513e79720672827f513"
+  },
+  "source_manifest_unchanged_after_checks": true,
+  "checks": [
+    {
+      "command": "scripts/run-platform.sh go -C backend test ./internal/semanticproposal ./internal/v2input",
+      "exit_code": 0,
+      "seconds_semanticproposal": 2.067
+    },
+    {
+      "command": "scripts/run-platform.sh go -C backend test ./internal/workflow ./cmd/photo ./internal/httpapi",
+      "exit_code": 0
+    },
+    {
+      "command": "PHOTO_TEST_NATIVE_INFRA=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=workers:src:tests/integration .venv-platform/bin/python -m pytest tests/integration/test_v27_semantic_intent_publication.py -k native-bootstrap -q --tb=short",
+      "exit_code": 0,
+      "passed": 1,
+      "deselected": 16,
+      "seconds": 35.14,
+      "required_markers": [
+        "V27_PERSON_PRODUCTION_INITIAL_ENSURE_OK",
+        "V27_PERSON_PRODUCTION_INTERRUPTED_TRANSPORT_OK",
+        "V27_PERSON_SAVED_ANCHOR_RECONSTRUCTED_OK",
+        "V27_PERSON_SAVED_ANCHOR_REVOKED_OK",
+        "V27_PERSON_SAVED_PLAN_RECONSTRUCTED_OK",
+        "V27_PERSON_SAVED_PLAN_REVOKED_OK"
+      ]
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "behavior": [
+    "Existing production SQLNativeInitialPipelineRecovery invokes person orchestration under original parent advisory lock and durable initial checkpoint.",
+    "Authenticated absent/present/conflict gate extended to mask.person by forward-only00899.",
+    "New person child uses server policy/report, physically verified measured costs and fixed bounded guided tile512.",
+    "Existing sealed checkpoint is exactly reconstructed and receipt replayed without republishing.",
+    "Existing blocked checkpoint recovers original transport/registration then admission.",
+    "Injected publication failure leaves blocked original shell; next production pass preserves plan seal and completes admission.",
+    "Repeated production pass preserves same immutable plan and receipt.",
+    "Child receipt remains internal; face readiness is not person output readiness or public parent acceptance."
+  ],
+  "prior_attempts": [
+    {
+      "physical_without_interruption": "PASS30.52s"
+    },
+    {
+      "physical_interruption_first": "FAIL9.06s: test incorrectly expected done=true on callback error; existing lock helper returns done=false. Corrected only assertion, then scenario passed."
+    }
+  ],
+  "limitations": [
+    "Public Propose still does not automatically start initial chain for missing person dependency.",
+    "No actual person model inference/image-quality claim; synthetic imported report has explicit positive test VRAM measurement.",
+    "Initial face completion marks face pipeline only; downstream admission must continue to verify person canonical output and coverage.",
+    "Legacy person shell without recovery inputs remains a refusal.",
+    "Full V27 and V20–V32 acceptance remain open."
+  ]
+}

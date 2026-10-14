@@ -1,12 +1,14 @@
 # PhotoEditor studio agent (V24)
 
-The watch-folder foundation journals each capture in SQLite before network IO. A file becomes `hashed` only after two unchanged observations at least one second apart and a descriptor-based hash through a path that cannot traverse symlinks. `rehash_before_complete` must succeed immediately before the multipart completion call. A transactionally enforced `max_queued_bytes` limit defers discovery of new files while retaining existing sequence numbers and retry backlog. The agent never deletes or edits camera originals.
+The watch-folder foundation journals each capture in SQLite before network IO. A file becomes `hashed` only after two unchanged observations at least one second apart and a descriptor-based hash through a path that cannot traverse symlinks. The reader also requires a single-link regular file so an in-folder hardlink cannot expose an inode from outside the watch root. `rehash_before_complete` must succeed immediately before the multipart completion call. A transactionally enforced `max_queued_bytes` limit defers discovery of new files while retaining existing sequence numbers and retry backlog. The agent never deletes or edits camera originals.
 
 `Journal.recover` returns interrupted uploads to `hashed`, preserving the upload ID, multipart layout and acknowledged part ETags. `Transfer.process` resumes the server state, sends missing parts, rehashes the source before completion, and retries receipt creation with a constant `(device_id, sequence, action)` idempotency key. A lost completion response is resolved by reading the upload state; a lost receipt response retries the same receipt. The agent marks a capture done only after the receipt matches device, sequence and source SHA. `verified` and `receipt` states remain pending across restarts.
 
 `HTTPClient` implements `CaptureAPI`: challenge signing through an injected Ed25519 signer, capture-token caching, begin/get/parts/complete and receipt HTTP calls. Production origins require HTTPS; development HTTP is limited to explicit loopback origins. Storage PUT origins must be allowlisted, redirects are rejected, and API credentials never accompany storage requests. A 401 invalidates the cached token for the next attempt. Response bodies and multipart part buffers have bounds.
 
-`DeviceKey` uses cryptography Ed25519 and requires an OS keychain backend (macOS, Windows, SecretService or libsecret); plaintext and fallback backends are rejected. `Runner` persists retry due times, caps exponential delay at 300 seconds plus jitter and stops on device authorization failure. Multipart transfer sends at most two parts concurrently and checkpoints a successful sibling even if the other PUT fails. Token acquisition is serialized across part threads. The CLI requires an operator CA bundle in production. QA alerts, native camera adapters and live server/hardware acceptance remain outstanding. Tests inject server behavior and do not replace a live server integration test. OS keychain integration must be verified on each supported platform.
+`DeviceKey` uses cryptography Ed25519 and requires an OS keychain backend (macOS, Windows, SecretService or libsecret); plaintext and fallback backends are rejected. `Runner` persists retry due times, caps exponential delay at 300 seconds plus jitter and stops on device authorization failure. Multipart transfer sends at most two parts concurrently and checkpoints a successful sibling even if the other PUT fails. Token acquisition is serialized across part threads. The CLI requires an operator CA bundle in production. QA alerts are consumed by the photographer capture screen through SSE and5s polling. Native camera adapters and live server/hardware acceptance remain outstanding. Tests inject server behavior and do not replace a live server integration test. OS keychain integration must be verified on each supported platform.
+
+HTTP 408, 425, 429 and 5xx are retried against the existing durable upload and deterministic action keys. Other non-authorization 4xx responses remain permanent protocol/application refusals; 401/403 stop the runner for operator action.
 
 Install this separate package and create a key before registering its public key with an administrator:
 
@@ -50,3 +52,30 @@ Receipt acceptance validates the complete server response binding: resource type
 Live credential interoperability is covered by backend `TestIntegrationCaptureCredentialsHTTP/python_agent_live_challenge`. Set `PHOTO_TEST_STUDIO_PYTHON` to a Python runtime with this package's dependencies and `PHOTO_TEST_DATABASE_URL` to the isolated migrated test database. The fixture starts the real Go router on loopback and runs the actual Python HTTPClient/cryptography signer against it. It proves challenge/token interoperability and authenticated payload validation; it does not yet prove successful storage upload, receipt adoption or QA processing. The optional default runtime is `.runtime/studio-agent-venv/bin/python`; a missing runtime skips only this subtest.
 
 The live credentials fixture additionally creates a successful receipt from synthetic verified upload/ingest metadata, checks replay with the same and different idempotency keys, rejects conflicting sequence content, and asserts one frame binding and one QA queue entry. Actual object-store verification, ingest execution and QA completion are not covered by that metadata fixture.
+
+Recovery of a persisted `initializing` upload replays its original deterministic Begin key. The replay must retain the exact journal upload ID and multipart layout. No parts are sent until a subsequent GET confirms `uploading`; transport errors retain the admission and use durable runner backoff.
+
+Configuration is validated before keychain/network access: JSON is limited to64KiB, duplicate/unknown fields and nonfinite numbers are rejected. Scope IDs must be nonzero UUIDs; storage_origins is an explicit list of1–32 allowed origins. max_queued_bytes must be an integer in1..9007199254740991 (default100GiB). Private keys/tokens are not permitted configuration fields.
+When the server returns `CAPTURE_BEGIN_RECONCILIATION_REQUIRED` for an uncertain
+multipart Begin, the agent retains the same capture, upload ID and deterministic
+Begin key. It checks again after five minutes without increasing its transport
+retry counter. An operator must complete the exact-key writer reconciliation
+described in `docs/implementation-v2/v24-device-begin-reconciliation.md` before
+the upload can proceed.
+
+For an explicitly qualified RAW workflow, the operator may add
+`raw_development` to the agent JSON configuration with exactly
+`schema_version`, `demosaic`, `wb_source`, `exposure_ev`, `highlight_policy`,
+and `decoder_version`. The decoder version must be the installed qualified
+`rawpy-X.Y.Z/libraw-X.Y.Z` lock. The agent validates and freezes that choice
+with each RAW file hash in SQLite; JPEG/PNG/TIFF uploads never inherit it.
+Changing the configuration affects only newly hashed RAW captures. The server
+still checks current device, shoot and physical RAW qualification on every
+Begin replay, and can refuse a stale choice.
+When it returns `QUALIFICATION_UNAVAILABLE`, the agent retains the frozen
+capture and checks again after five minutes without increasing its transport
+retry counter. The operator must restore a matching qualified decoder/report;
+editing the config cannot silently replace a policy already saved in SQLite.
+`photo-studio-agent status` reports counts for `qualification_unavailable`
+and `begin_reconciliation` in `operator_holds` without exposing filenames or
+source hashes.

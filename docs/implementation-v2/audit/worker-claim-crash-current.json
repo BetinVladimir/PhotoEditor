@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "Worker crash before commit, actual deadline expiry and reaper fencing",
+  "migration_head": "00974",
+  "whole_module_accepted": false,
+  "production_code_changed": false,
+  "production_migrations_applied": false,
+  "checks": {
+    "tests": "2",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "time": "6.596",
+    "evidence": "worker-claim-crash-current.xml"
+  },
+  "source_scope": "Selected exercised test/runtime/recovery sources; not whole-repository acceptance",
+  "source_sha256": {
+    "tests/integration/worker_commit_restart_probe.py": "0f4c88b7a097e8ecba9b64f123f615543473aa88f389475bbddd94a1092ce4fc",
+    "tests/integration/test_worker_claim_crash.py": "27094f4d780abf769f5b1be6e8ba4c9f911b7b724f7691c478d91c53a9910567",
+    "tests/integration/test_worker_commit_restart.py": "947708dc22b379135e362bd42bce80dbf28aefbf939a4a9e737b4f41c023f8a9",
+    "tests/integration/test_task_leases.py": "3ea0dfebfd09e053e57c4ecbe7eef0996fcd78c6602d3a55a27d6df4f6d8ca0d",
+    "tests/integration/conftest.py": "ed7c6fb93cd576f4969f314cf0c49e425125d50ee6aca95b9ce3f2faed9a85d4",
+    "workers/photo_worker/runtime/executor.py": "5af8efe8f667df32d09e368102baf40ea3ce7f302a239e5d96f095affaebe5ff",
+    "workers/photo_worker/runtime/database.py": "bd3d8bc81f898dceecf612d406697b3b28c7b7babb85c2c8b85bfadbcd0a0bf0",
+    "workers/photo_worker/runtime/transport.py": "930e97e5ca0b331c73578661559a63e0425fbe648aef4260e44f20dee6747335",
+    "backend/db/migrations/00016_task_recovery.sql": "e037a9db399861448ba204eb720f3c39aa1f359315cd270276e05a43f9111d47"
+  },
+  "evidence_sha256": {
+    "worker-claim-crash-current.xml": "3ead3d8d176ccc8587cdd4845f008c766780b593f18e95f3500c2eba7a361173"
+  },
+  "imaging_preservation": {
+    "files": 544,
+    "changed": 0
+  },
+  "assertions": [
+    "Real subprocess exits74 from operation after actual SQL claim before any commit; actual Rabbit delivery remains unacked",
+    "Owner fixture timeout2 seconds set before claim; actual database deadline/lease expiry waited, no postclaim timestamp/state/fence mutations",
+    "Production scheduler-role reap_tasks marks TIMEOUT, finishes attempt, releases resources and increments fence once",
+    "Second reaper call returns0",
+    "Old claimed identity success/failure commits return stale and preserve entire task/outbox rows",
+    "No result and no held reservations/slots; broker returns original message",
+    "Prior after-commit-before-ACK restart test remains passing"
+  ],
+  "diagnostics": [
+    "Initial test invocation failed strict Python model_validate on UUID strings; fixed to production-equivalent model_validate_json. Original failed XML/log retained."
+  ],
+  "limitations": [
+    "Owner-seeded media task, empty output protocol; no native model/GPU/qualification or upload IO",
+    "Covers actual expiry and reaper invalidation; does not execute scheduler retry admission, fresh dispatch and eventual native success",
+    "Preclaim fixture task timeout is deliberately2s; frozen dispatch command remains existing media fixture",
+    "Whole V27 and V20-V32 remain unaccepted"
+  ]
+}

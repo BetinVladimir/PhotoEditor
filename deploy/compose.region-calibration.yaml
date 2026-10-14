@@ -1,0 +1,14 @@
+# Optional independently qualified Region catalog; combine with compose.yaml.
+services:
+  api:
+    environment:
+      PHOTO_REGION_CALIBRATION_FILE: /run/photo/region/calibration.json
+      PHOTO_REGION_CALIBRATION_SHA256: ${PHOTO_REGION_CALIBRATION_SHA256:?operator-pinned Region catalog SHA256 required}
+      PHOTO_REGION_EVIDENCE_SHA256: ${PHOTO_REGION_EVIDENCE_SHA256:?approved Region calibration evidence SHA256 required}
+    volumes:
+      - type: bind
+        source: ${PHOTO_REGION_CALIBRATION_HOST_FILE:?absolute qualified Region calibration catalog required}
+        target: /run/photo/region/calibration.json
+        read_only: true
+        bind:
+          create_host_path: false

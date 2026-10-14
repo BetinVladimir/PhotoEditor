@@ -31,6 +31,9 @@ type TrainingFitOrchestrator struct {
 func (o TrainingFitOrchestrator) Admit(ctx context.Context,
 	draft TrainingDraftPrepared, policy LearningPolicy) (
 	FitStageResult, error) {
+	if err := ctx.Err(); err != nil {
+		return FitStageResult{}, err
+	}
 	if o.Stager == nil || o.Transport == nil || o.Committer == nil ||
 		draft.TenantID == uuid.Nil || draft.RunID == uuid.Nil ||
 		draft.WorkflowID == uuid.Nil {
@@ -38,6 +41,9 @@ func (o TrainingFitOrchestrator) Admit(ctx context.Context,
 	}
 	stage, err := o.Stager.Stage(ctx, draft)
 	if err != nil {
+		return FitStageResult{}, err
+	}
+	if err := ctx.Err(); err != nil {
 		return FitStageResult{}, err
 	}
 	if stage.Outcome == "replayed" {
@@ -52,22 +58,36 @@ func (o TrainingFitOrchestrator) Admit(ctx context.Context,
 	if err != nil {
 		return FitStageResult{}, err
 	}
+	if err := ctx.Err(); err != nil {
+		return FitStageResult{}, err
+	}
 	task, err := v2input.TaskID(draft.WorkflowID, "learning.fit", 0)
 	if err != nil || fit.TaskID != task || fit.Closure.Open == nil ||
 		len(fit.Closure.InputDigest) != 64 {
 		return FitStageResult{}, ErrInvalidTrainingDraft
 	}
 	cursor, err := fit.Closure.Open(ctx)
-	if err != nil || cursor == nil {
+	if err != nil {
+		if closer, okay := cursor.(io.Closer); okay {
+			_ = closer.Close()
+		}
+		return FitStageResult{}, err
+	}
+	if cursor == nil {
 		return FitStageResult{}, ErrInvalidTrainingDraft
 	}
 	built, buildErr := v2input.BuildInputClosure(ctx, task, cursor,
 		o.Transport)
 	if closer, okay := cursor.(io.Closer); okay {
-		_ = closer.Close()
+		if closeErr := closer.Close(); buildErr == nil {
+			buildErr = closeErr
+		}
 	}
 	if buildErr != nil {
 		return FitStageResult{}, buildErr
+	}
+	if err := ctx.Err(); err != nil {
+		return FitStageResult{}, err
 	}
 	graph := []v2input.GraphTask{{ID: task, Built: built,
 		Open: fit.Closure.Open, Direct: fit.Closure.Direct}}

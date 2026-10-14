@@ -2,7 +2,7 @@
 """Explicit synthetic backend check; never enables a worker registration."""
 from pathlib import Path
 from dataclasses import asdict
-import hashlib,json,platform,time
+import argparse,hashlib,json,platform,time
 import numpy as np
 import torch
 from skimage.color import deltaE_ciede2000
@@ -13,6 +13,12 @@ from photo_worker.contracts.style import LocalColor
 ROOT=Path(__file__).resolve().parents[1]
 
 def main():
+    parser=argparse.ArgumentParser()
+    parser.add_argument('--backends',nargs='+',choices=('cpu','mps','cuda'),default=['cpu','mps'])
+    parser.add_argument('--metal-memory-limit-bytes',type=int,default=10_000_000_000)
+    args=parser.parse_args()
+    if not 0<args.metal_memory_limit_bytes<=10_000_000_000:
+        parser.error('Metal verification limit must be positive and at most 10 GB')
     torch.set_num_threads(2)
     rng=np.random.default_rng(2026)
     train=rng.uniform(.12,.72,(512,3)).astype(np.float32)
@@ -26,16 +32,22 @@ def main():
     baseline=reconstruction_metrics(identity_color(),[pair])
     report={'scope':'Synthetic fixed-fixture fitting only; not photographic/model qualification or worker registration approval',
         'torch_version':str(torch.__version__),'machine':platform.machine(),'system':platform.system(),
-        'fixture_seed':2026,'train_samples':512,'holdout_samples':256,'baseline':baseline,'backends':{},
+        'metal_memory_limit_bytes':args.metal_memory_limit_bytes,'fixture_seed':2026,'train_samples':512,'holdout_samples':256,'baseline':baseline,'backends':{},
         'source_sha256':{str(path.relative_to(ROOT)):hashlib.sha256(path.read_bytes()).hexdigest() for path in sorted((ROOT/'workers/photo_worker/algorithms').glob('*.py'))}}
     rendered={}
-    for backend in ('cpu','mps','cuda'):
+    for backend in dict.fromkeys(args.backends):
         available=backend=='cpu' or backend=='mps' and torch.backends.mps.is_available() or backend=='cuda' and torch.cuda.is_available()
         if not available:
             report['backends'][backend]={'status':'unavailable'};continue
+        if backend=='mps':
+            recommended=torch.mps.recommended_max_memory()
+            if recommended<=0:raise RuntimeError('Invalid Metal recommended memory')
+            # PyTorch's allocator enforces this ceiling; never disable its guard.
+            torch.mps.set_per_process_memory_fraction(min(1.0,args.metal_memory_limit_bytes/recommended))
         started=time.monotonic();deadline=started+900
         def active():
             if time.monotonic()>=deadline:raise RuntimeError('Qualification deadline exceeded')
+            if backend=='mps' and torch.mps.driver_allocated_memory()>args.metal_memory_limit_bytes:raise RuntimeError('Metal verification memory ceiling exceeded')
         try:
             options=FitOptions(device=backend)
             result=fit_color([pair],options,check_active=active)
@@ -57,7 +69,7 @@ def main():
     path=ROOT/'work/evidence/fitting-backends.json'
     path.parent.mkdir(parents=True,exist_ok=True)
     path.write_text(json.dumps(report,indent=2)+'\n')
-    failed=any(item['status'].startswith('failed') for item in report['backends'].values())
+    failed=any(item['status']!='passed' for item in report['backends'].values())
     if failed:raise SystemExit(1)
 
 if __name__=='__main__':main()

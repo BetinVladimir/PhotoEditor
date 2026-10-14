@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 attempt-bound qualified relight admission composition",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "tests": {
+    "passed": 65,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 2.24,
+    "xml": "v28-relight-admission-current.xml"
+  },
+  "source_sha256": {
+    "workers/photo_worker/operations/portrait/relight_admission.py": "fd5992d9e30d966dc95d71f47304a5710c3fcd926d10f152ce83984b7a57cd12",
+    "workers/photo_worker/operations/portrait/relight_runtime_lock.py": "ce285ae3e750e48949372ee3e71c022bc6737c1b9a3fe5fe7a361859aa43616b",
+    "tests/platform/test_relight_admission.py": "7d933a7b0a460157341753c637f1eb4b3eb4509f9782d929d161a5ff8063d233"
+  },
+  "limitations": [
+    "Resolver is a test double; concrete SQL lease/producer/object-version authority pending",
+    "No physical gateway/adoption/UI or real qualification"
+  ]
+}

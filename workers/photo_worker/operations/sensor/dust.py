@@ -3,9 +3,9 @@ from __future__ import annotations
 
 from contextlib import ExitStack
 
-from photo_worker.algorithms.dust import detect_frame_dust, map_to_sensor, repeated_dust
-from photo_worker.contracts.base import canonical_bytes, canonical_hash
-from photo_worker.contracts.dust import DustCandidate, DustCandidates, DustParams
+from photo_worker.algorithms.dust import detect_frame_dust, map_to_sensor, repeated_dust, dust_detection_ram_bytes
+from photo_worker.contracts.base import canonical_bytes
+from photo_worker.contracts.dust import DustCandidate, DustCandidates, DustParams, dust_candidate_id, verify_dust_candidate_ids
 from photo_worker.contracts.images import WorkingImage
 from photo_worker.runtime.arrays import read_array
 from photo_worker.runtime.artifacts import ArtifactConfig, TaskArtifacts
@@ -30,6 +30,8 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts) -> OperationResult:
                 raise ValueError("DUST_PIXEL_LIMIT")
     except ValueError as exc:
         raise OperationFailure("INPUT_INVALID") from exc
+    if ram < max(dust_detection_ram_bytes(image.canvas.width,image.canvas.height) for image in images):
+        raise OperationFailure('RAM_ADMISSION_EXCEEDED')
     total = len(images) + 1; ctx.progress(0, total); detected = []
     crop = (params.raw_crop.x, params.raw_crop.y, params.raw_crop.width, params.raw_crop.height)
     for index, image in enumerate(images):
@@ -40,20 +42,20 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts) -> OperationResult:
             frame = [map_to_sensor(item, (image.canvas.height, image.canvas.width), crop)
                      for item in detect_frame_dust(rgb, ctx.check_active)]
         detected.append(frame); ctx.progress(index + 1, total)
-    repeated = repeated_dust(detected, params.recurrence)
+    repeated = repeated_dust(detected, params.recurrence, ctx.check_active)
     candidates = []
     for item, observed, eligible in repeated:
+        ctx.check_active()
         radius = min(item.radius, 32)
-        identity = {"algorithm": "sensor_dust_log_v1", "camera_id": params.camera_id,
-                    "sensor": [params.sensor_width, params.sensor_height], "x": item.x, "y": item.y,
-                    "radius": radius, "frames": [ref.sha256 for ref in params.frames]}
-        candidates.append(DustCandidate(id=canonical_hash(identity), sensor_x=item.x, sensor_y=item.y,
+        candidates.append(DustCandidate(id=dust_candidate_id(params.camera_id,
+            params.sensor_width,params.sensor_height,params.frames,item.x,item.y,radius), sensor_x=item.x, sensor_y=item.y,
                                         radius_sensor_px=radius, observed_frames=observed,
                                         eligible_frames=eligible, recurrence=observed / eligible))
     manifest = DustCandidates(frames=params.frames, camera_id=params.camera_id,
                               sensor_width=params.sensor_width, sensor_height=params.sensor_height,
                               raw_crop=params.raw_crop, candidates=candidates,
                               warnings=[] if candidates else ["no_repeated_dust"])
+    verify_dust_candidate_ids(manifest)
     output = artifacts.stage_contract(manifest, "dust_candidates"); ctx.progress(total, total)
     return OperationResult(outputs=[output], review_required=bool(candidates), bytes_written=len(canonical_bytes(manifest)))
 

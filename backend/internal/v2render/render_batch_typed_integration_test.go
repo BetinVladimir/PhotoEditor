@@ -275,6 +275,12 @@ func TestIntegrationRenderBatchTypedPlan(t *testing.T) {
 	second.Binding = binding2
 	second.RecipeRef = ref2
 	second.RecipeRaw = recipe2
+	multi, submissionSHA, err := CompileRenderSubmissionIdentity(f.Tenant, who.UserID, f.Project, "typed-render-ticket", RenderBatchSubmissionRequest{SnapshotID: snapshot2, PolicySHA: strings.Repeat("a", 64), Selection: []RenderSelectionItem{{Binding: request.Binding, Recipe: request.RecipeRef}, {Binding: second.Binding, Recipe: second.RecipeRef}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	store.SubmissionKey = "typed-render-ticket"
+	store.SubmissionSHA = submissionSHA
 	multiParts := make([]CompiledRenderBatchPart, 2)
 	for ordinal, item := range []RenderDraftRequest{request, second} {
 		id := uuid.NewSHA1(multi, []byte("render.batch:"+strconv.Itoa(ordinal)))
@@ -327,6 +333,9 @@ func TestIntegrationRenderBatchTypedPlan(t *testing.T) {
 	if err := admin.QueryRow(ctx, "SELECT reserved_bytes FROM photo.tenant_usage WHERE tenant_id=$1", f.Tenant).Scan(&afterReserved); err != nil || afterReserved != beforeReserved {
 		t.Fatal("late-part quota rollback", beforeReserved, afterReserved, err)
 	}
+	if err := admin.QueryRow(ctx, "SELECT count(*) FROM photo.idempotency_records WHERE tenant_id=$1 AND principal_id=$2 AND route='V2.Admit' AND key='typed-render-ticket'", f.Tenant, who.UserID).Scan(&leftover); err != nil || leftover != 0 {
+		t.Fatal("late-part rollback retained admission key", err, leftover)
+	}
 	if _, err := admin.Exec(ctx, "UPDATE photo.artifacts SET expires_at=NULL WHERE id=$1", root2); err != nil {
 		t.Fatal(err)
 	}
@@ -350,7 +359,7 @@ func TestIntegrationRenderBatchTypedPlan(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	uncertainStore := SQLRenderDraftStore{DB: uncertainPool}
+	uncertainStore := SQLRenderDraftStore{DB: uncertainPool, SubmissionKey: store.SubmissionKey, SubmissionSHA: store.SubmissionSHA}
 	uncertainErr := uncertainStore.BeginBatch(ctx, f.Tenant, multi, f.Project, snapshot2, who, strings.Repeat("a", 64), multiParts)
 	uncertainPool.Close()
 	if uncertainErr == nil || !dropped.Load() {
@@ -384,6 +393,8 @@ func TestIntegrationRenderBatchTypedPlan(t *testing.T) {
 	}
 	checkpoint := renderBatchRestartEvidence{Tenant: f.Tenant, Batch: multi, Project: f.Project, Snapshot: snapshot2, Actor: who, ManifestSHA: manifestSHA}
 	for _, part := range multiParts {
+		checkpoint.SubmissionKey = store.SubmissionKey
+		checkpoint.SubmissionSHA = store.SubmissionSHA
 		checkpoint.Parts = append(checkpoint.Parts, renderBatchRestartPart{RunID: part.RunID, ConfigSHA: part.Plan.ConfigSHA, OutputBytes: part.Plan.OutputBytes})
 	}
 	checkpointRaw, err := json.Marshal(checkpoint)
@@ -401,6 +412,9 @@ func TestIntegrationRenderBatchTypedPlan(t *testing.T) {
 		if err := process.Kill(); err != nil {
 			t.Fatal("self-kill injection failed", err)
 		}
+		// Kill sends the signal but may return before the kernel delivers it.
+		// Preserve the real abrupt crash without racing a normal test failure exit.
+		time.Sleep(time.Second)
 		t.Fatal("self-kill injection unexpectedly returned")
 	}
 
@@ -415,6 +429,7 @@ type renderBatchRestartEvidence struct {
 	Tenant, Batch, Project, Snapshot uuid.UUID
 	Actor                            auth.Identity
 	ManifestSHA                      string
+	SubmissionKey, SubmissionSHA     string
 	Parts                            []renderBatchRestartPart
 }
 
@@ -711,22 +726,44 @@ func TestIntegrationRenderBatchTypedRestart(t *testing.T) {
 		t.Fatal(err)
 	}
 	choice := RenderExecutionChoice{Backend: execution.Backend, RuntimeSHA: execution.RuntimeSHA, TileSize: execution.TileSize, AlphaMode: execution.AlphaMode}
-	restoreQualification, _ := seedRenderQualificationMetadata(t, ctx, admin, evidence, firstNodes[0].Evidence.Recipe.Scalars.ModelLockSHA, choice)
+	restoreQualification, qualificationPolicy := seedRenderQualificationMetadata(t, ctx, admin, evidence, firstNodes[0].Evidence.Recipe.Scalars.ModelLockSHA, choice)
+	if _, err := store.ActivateSubmission(ctx, evidence.Tenant, evidence.Batch, evidence.Actor, evidence.SubmissionKey, evidence.SubmissionSHA); err == nil || domain.AsError(err).Code != "RENDER_UNAVAILABLE" {
+		t.Fatal("uncalibrated qualified shell issued public ticket", err)
+	}
+	if err := admin.QueryRow(ctx, "SELECT count(*) FROM photo.runs WHERE tenant_id=$1 AND graph_sealed AND id=ANY($2::uuid[])", evidence.Tenant, []uuid.UUID{evidence.Parts[0].RunID, evidence.Parts[1].RunID}).Scan(&sealedChildren); err != nil || sealedChildren != 0 {
+		t.Fatal("missing pin refusal retained activated children", err, sealedChildren)
+	}
+	// Controlled identity only: no empirical provider measurement is claimed.
+	fixturePin := RenderQualificationPin{RenderQualification: RenderQualification{ModelSHA: firstNodes[0].Evidence.Recipe.Scalars.ModelLockSHA, RuntimeSHA: choice.RuntimeSHA, Backend: choice.Backend, DeviceSHA: strings.Repeat("c", 64), DatasetSHA: strings.Repeat("d", 64)}, CalibrationSHA: strings.Repeat("e", 64)}
+	fixturePinRaw, err := json.Marshal(fixturePin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var pinOutcome string
+	if err := pool.QueryRow(ctx, "SELECT photo.bind_v26_render_qualification($1,$2,$3,$4,$5::jsonb)", evidence.Tenant, evidence.Batch, evidence.Actor.UserID, evidence.Actor.SessionID, string(fixturePinRaw)).Scan(&pinOutcome); err != nil || pinOutcome != "bound" {
+		t.Fatal("controlled qualification pin", err, pinOutcome)
+	}
 	// Reject the second part after the first part has passed every live gate.
 	// The store's transaction must roll back the earlier seal and its side effects.
 	if _, err := admin.Exec(ctx, "UPDATE photo.tasks SET cancel_requested=true WHERE tenant_id=$1 AND run_id=$2", evidence.Tenant, evidence.Parts[1].RunID); err != nil {
 		t.Fatal(err)
 	}
-	if err := store.ActivateBatch(ctx, evidence.Tenant, evidence.Batch, evidence.Actor); err == nil || domain.AsError(err).Code != "RENDER_UNAVAILABLE" {
+	if _, err := store.ActivateSubmission(ctx, evidence.Tenant, evidence.Batch, evidence.Actor, evidence.SubmissionKey, evidence.SubmissionSHA); err == nil || domain.AsError(err).Code != "RENDER_UNAVAILABLE" {
 		t.Fatal("late child rejection not propagated", err)
 	}
-	var queuedEvents int
+	var queuedEvents, queuedOutbox, readyAfterRefusal int
 	if err := admin.QueryRow(ctx, `SELECT
  (SELECT count(*) FROM photo.runs WHERE tenant_id=$1 AND graph_sealed AND id=ANY($2::uuid[])),
- (SELECT count(*) FROM photo.run_events WHERE tenant_id=$1 AND run_id=ANY($2::uuid[]) AND type='v2.run.queued')`, evidence.Tenant, []uuid.UUID{evidence.Parts[0].RunID, evidence.Parts[1].RunID}).Scan(&sealedChildren, &queuedEvents); err != nil || sealedChildren != 0 || queuedEvents != 0 {
-		t.Fatal("late refusal committed partial activation", err, sealedChildren, queuedEvents)
+ (SELECT count(*) FROM photo.run_events WHERE tenant_id=$1 AND run_id=ANY($2::uuid[]) AND type='v2.run.queued'),
+ (SELECT count(*) FROM photo.outbox WHERE tenant_id=$1 AND routing_key='v2.run.queued' AND payload->>'run_id' IN (SELECT unnest($2::uuid[])::text)),
+ (SELECT count(*) FROM photo.tasks WHERE tenant_id=$1 AND run_id=ANY($2::uuid[]) AND state='ready')`, evidence.Tenant, []uuid.UUID{evidence.Parts[0].RunID, evidence.Parts[1].RunID}).Scan(&sealedChildren, &queuedEvents, &queuedOutbox, &readyAfterRefusal); err != nil || sealedChildren != 0 || queuedEvents != 0 || queuedOutbox != 0 || readyAfterRefusal != 0 {
+		t.Fatal("late refusal committed partial activation", err, sealedChildren, queuedEvents, queuedOutbox, readyAfterRefusal)
 	}
 	if _, err := admin.Exec(ctx, "UPDATE photo.tasks SET cancel_requested=false WHERE tenant_id=$1 AND run_id=$2", evidence.Tenant, evidence.Parts[1].RunID); err != nil {
+		t.Fatal(err)
+	}
+	var parentRevisionBefore int64
+	if err := admin.QueryRow(ctx, "SELECT revision FROM photo.runs WHERE tenant_id=$1 AND id=$2", evidence.Tenant, evidence.Batch).Scan(&parentRevisionBefore); err != nil {
 		t.Fatal(err)
 	}
 	activation, err := pool.Begin(ctx)
@@ -735,8 +772,13 @@ func TestIntegrationRenderBatchTypedRestart(t *testing.T) {
 	}
 	defer activation.Rollback(ctx)
 	var activated bool
-	if err := activateRenderBatchInTransaction(ctx, activation, evidence.Tenant, evidence.Batch, evidence.Actor); err != nil {
-		t.Fatal("qualified atomic batch activation", err)
+	ticket, err := activateRenderSubmissionInTransaction(ctx, activation, evidence.Tenant, evidence.Batch, evidence.Actor, evidence.SubmissionKey, evidence.SubmissionSHA)
+	if err != nil || ticket.RunID != evidence.Batch || ticket.State != "queued" || len(ticket.ChildRunIDs) != len(evidence.Parts) {
+		t.Fatal("qualified submission activation/ticket", err, ticket)
+	}
+	ticketSHA, err := canonical.Hash(ticket)
+	if err != nil {
+		t.Fatal(err)
 	}
 	// Fixture login owns trusted roles; inspect uncommitted state without
 	// granting table access to the actual scheduler service role.
@@ -769,11 +811,56 @@ func TestIntegrationRenderBatchTypedRestart(t *testing.T) {
 	if _, err := activation.Exec(ctx, fixtureReadRole); err != nil {
 		t.Fatal(err)
 	}
+	var parentRevision, parentEvents int64
+	var parentQueued bool
+	var savedResponse int
+	if err := activation.QueryRow(ctx, `SELECT r.revision,r.status='queued',i.response_status,
+ (SELECT count(*) FROM photo.run_events WHERE tenant_id=$1 AND run_id=$2 AND type='run.queued')
+ FROM photo.runs r JOIN photo.idempotency_records i ON i.tenant_id=r.tenant_id AND i.resource_id=r.id
+ WHERE r.tenant_id=$1 AND r.id=$2 AND i.route='V2.Admit' AND i.key=$3`, evidence.Tenant, evidence.Batch, evidence.SubmissionKey).Scan(&parentRevision, &parentQueued, &savedResponse, &parentEvents); err != nil || parentRevision != parentRevisionBefore+1 || !parentQueued || savedResponse != 202 || parentEvents != 1 {
+		t.Fatal("submission parent/response not atomic", err, parentRevision, parentEvents, savedResponse)
+	}
+	if _, err := activation.Exec(ctx, "SAVEPOINT response_guard"); err != nil {
+		t.Fatal(err)
+	}
+	_, guardErr := activation.Exec(ctx, `UPDATE photo.idempotency_records SET response_body=jsonb_set(response_body,'{state}','"running"'::jsonb) WHERE tenant_id=$1 AND resource_id=$2 AND route='V2.Admit' AND key=$3`, evidence.Tenant, evidence.Batch, evidence.SubmissionKey)
+	if guardErr == nil {
+		t.Fatal("completed response body replaced")
+	}
+	if _, err := activation.Exec(ctx, "ROLLBACK TO SAVEPOINT response_guard"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := activation.Exec(ctx, "RELEASE SAVEPOINT response_guard"); err != nil {
+		t.Fatal(err)
+	}
 	if err := activation.QueryRow(ctx, activationState, evidence.Tenant, firstSaved.RunID).Scan(&revisionBefore, &eventsBefore, &outboxBefore); err != nil || eventsBefore != 1 || outboxBefore != 1 {
 		t.Fatal(err)
 	}
+	// Capture every child independently before replaying the whole batch.
+	batchStates := make(map[uuid.UUID][3]int64, len(evidence.Parts))
+	for _, part := range evidence.Parts {
+		var counters [3]int64
+		if err := activation.QueryRow(ctx, activationState, evidence.Tenant, part.RunID).Scan(&counters[0], &counters[1], &counters[2]); err != nil || counters[1] != 1 || counters[2] != 1 {
+			t.Fatal("initial child activation evidence", part.RunID, err, counters)
+		}
+		batchStates[part.RunID] = counters
+	}
+	if _, err := activation.Exec(ctx, "UPDATE photo.v2_qualification_policies SET admission_enabled=false WHERE id=$1", qualificationPolicy); err != nil {
+		t.Fatal("fixture qualification revocation", err)
+	}
 	if _, err := activation.Exec(ctx, "SET LOCAL ROLE photo_scheduler"); err != nil {
 		t.Fatal(err)
+	}
+	if err := activateRenderBatchInTransaction(ctx, activation, evidence.Tenant, evidence.Batch, evidence.Actor); err != nil {
+		t.Fatal("whole batch activation replay", err)
+	}
+	if _, err := activateRenderSubmissionInTransaction(ctx, activation, evidence.Tenant, evidence.Batch, evidence.Actor, evidence.SubmissionKey, strings.Repeat("0", 64)); !errors.Is(err, v2input.ErrConflict) {
+		t.Fatal("changed activation request did not conflict", err)
+	}
+	repeatedTicket, err := activateRenderSubmissionInTransaction(ctx, activation, evidence.Tenant, evidence.Batch, evidence.Actor, evidence.SubmissionKey, evidence.SubmissionSHA)
+	repeatedSHA, hashErr := canonical.Hash(repeatedTicket)
+	if err != nil || hashErr != nil || repeatedSHA != ticketSHA {
+		t.Fatal("saved submission response changed on replay", err, hashErr)
 	}
 	if err := activation.QueryRow(ctx, "SELECT photo.seal_v2_graph($1,$2)", evidence.Tenant, firstSaved.RunID).Scan(&activated); err != nil || !activated {
 		t.Fatal("sealed graph replay rejected", err, activated)
@@ -783,6 +870,16 @@ func TestIntegrationRenderBatchTypedRestart(t *testing.T) {
 	}
 	if err := activation.QueryRow(ctx, activationState, evidence.Tenant, firstSaved.RunID).Scan(&revisionAfter, &eventsAfter, &outboxAfter); err != nil || revisionAfter != revisionBefore || eventsAfter != eventsBefore || outboxAfter != outboxBefore {
 		t.Fatal("sealed replay changed revision/events/outbox", err)
+	}
+	for _, part := range evidence.Parts {
+		var counters [3]int64
+		if err := activation.QueryRow(ctx, activationState, evidence.Tenant, part.RunID).Scan(&counters[0], &counters[1], &counters[2]); err != nil || counters != batchStates[part.RunID] {
+			t.Fatal("batch replay changed child revision/event/outbox", part.RunID, err, counters, batchStates[part.RunID])
+		}
+	}
+	var parentRevisionAfter, parentEventsAfter int64
+	if err := activation.QueryRow(ctx, `SELECT revision,(SELECT count(*) FROM photo.run_events WHERE tenant_id=$1 AND run_id=$2 AND type='run.queued') FROM photo.runs WHERE tenant_id=$1 AND id=$2`, evidence.Tenant, evidence.Batch).Scan(&parentRevisionAfter, &parentEventsAfter); err != nil || parentRevisionAfter != parentRevision || parentEventsAfter != parentEvents {
+		t.Fatal("response replay changed parent state", err)
 	}
 	if err := activation.Rollback(ctx); err != nil {
 		t.Fatal(err)

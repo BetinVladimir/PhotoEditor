@@ -2,9 +2,34 @@ package media
 
 import (
 	"github.com/google/uuid"
+	"photoeditor/backend/internal/objectstore"
 	"strings"
 	"testing"
+	"time"
 )
+
+func TestMediaSignedReadRequiresExactVersionAndSafeTransport(t *testing.T) {
+	now := time.Date(2026, 10, 13, 12, 0, 0, 0, time.UTC)
+	object := objectstore.Object{VersionID: "immutable-v1"}
+	link := objectstore.ReadURL{URL: "https://objects.example/thumb?versionId=immutable-v1", ExpiresAt: now.Add(10 * time.Minute)}
+	if !validMediaSignedRead(object, link, now) {
+		t.Fatal("valid signed media link refused")
+	}
+	for _, raw := range []string{"http://objects.example/thumb?versionId=immutable-v1", "https://objects.example/thumb?versionId=other", "https://objects.example/thumb?versionId=immutable-v1&versionId=other", "https://objects.example/thumb?versionId=immutable-v1#fragment"} {
+		link.URL = raw
+		if validMediaSignedRead(object, link, now) {
+			t.Fatal("unsafe signed media link accepted", raw)
+		}
+	}
+	link.URL = "http://127.0.0.1:9000/thumb?versionId=immutable-v1"
+	if !validMediaSignedRead(object, link, now) {
+		t.Fatal("local signed media link refused")
+	}
+	link.ExpiresAt = now.Add(10*time.Minute + 6*time.Second)
+	if validMediaSignedRead(object, link, now) {
+		t.Fatal("overlong signed media link accepted")
+	}
+}
 
 func TestProfileHashIsPolicyBound(t *testing.T) {
 	a, err := ProfileHash("thumb320", strings.Repeat("a", 64))

@@ -25,7 +25,7 @@ func (n FrozenRegionNode) SealInTransaction(ctx context.Context, tx pgx.Tx, who 
 		return err
 	}
 	var allowed bool
-	err = tx.QueryRow(ctx, "SELECT photo.v26_region_seal_scope($1,$2,$3,$4,$5)", shell.Tenant, shell.Run, who.UserID, who.SessionID, json.RawMessage(n.JSON())).Scan(&allowed)
+	err = tx.QueryRow(ctx, "SELECT photo.v26_region_seal_scope_scheduler($1,$2,$3,$4,$5)", shell.Tenant, shell.Run, who.UserID, who.SessionID, json.RawMessage(n.JSON())).Scan(&allowed)
 	if err != nil {
 		return err
 	}

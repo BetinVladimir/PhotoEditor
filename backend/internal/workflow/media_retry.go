@@ -240,20 +240,8 @@ func PrepareMediaRetryTask(entry PublishedMediaRetry, master MediaMaster) (Prepa
 	} else if n.Operation != "media.thumbnail" {
 		return PreparedTask{}, errors.New("invalid media retry operation")
 	}
-	pixels := master.Width * master.Height
-	if master.Working != nil {
-		pixels = int64(master.Working.Canvas.Width) * int64(master.Working.Canvas.Height)
-	}
-	ram := pixels*24 + 64*1024*1024
-	profile, err := canonical.Marshal(struct {
-		Backend   string           `json:"backend"`
-		Precision string           `json:"precision"`
-		Estimate  ResourceEstimate `json:"resource_estimate"`
-	}{"cpu", "float32", ResourceEstimate{RAMBytes: ram, ScratchBytes: 64 * 1024 * 1024, OutputBytes: 52 * 1024 * 1024, PixelCount: pixels}})
+	profile, err := mediaPresentationProfile(master, n.Variant)
 	if err != nil {
-		return PreparedTask{}, err
-	}
-	if _, err = ParseResourceEstimate(profile); err != nil {
 		return PreparedTask{}, err
 	}
 	digest, err := repairInputDigest(n.Operation, "1", entry.Params, n.Inputs)
@@ -261,4 +249,59 @@ func PrepareMediaRetryTask(entry PublishedMediaRetry, master MediaMaster) (Prepa
 		return PreparedTask{}, err
 	}
 	return PreparedTask{ID: n.ID, NodeKey: "media.retry/" + n.EventID.String() + "/" + n.Variant, Operation: n.Operation, Version: "1", ResourceClass: "media", TimeoutSeconds: timeout, Params: entry.Params, Inputs: append([]review.ArtifactRef(nil), n.Inputs...), InputDigest: digest, ExecutionProfile: profile}, nil
+}
+
+func mediaPresentationProfile(master MediaMaster, variant string) (json.RawMessage, error) {
+	width, height := master.Width, master.Height
+	if master.Working != nil {
+		width, height = int64(master.Working.Canvas.Width), int64(master.Working.Canvas.Height)
+	}
+	if width < 1 || height < 1 || width > 200000 || height > 200000 {
+		return nil, errors.New("invalid presentation dimensions")
+	}
+	pixels := width * height
+	// Match worker presentation admission with a conservative target pixel bound.
+	// The no-upscale target fits inside the variant edge square and source canvas.
+	edges := map[string]int64{"thumb320": 320, "thumb640": 640, "preview1600": 1600, "preview2560": 2560}
+	edge, ok := edges[variant]
+	if !ok || pixels < 1 || pixels > 200000000 {
+		return nil, errors.New("invalid presentation resource dimensions")
+	}
+	targetPixels := edge * edge
+	if pixels < targetPixels {
+		targetPixels = pixels
+	}
+	sourceCost := int64(24)
+	if master.Working != nil && master.Working.Alpha != nil {
+		sourceCost = 96
+	}
+	// Encoded masters can carry alpha not known in advance: reserve the alpha path.
+	if master.Working == nil {
+		sourceCost = 96
+	}
+	ram := pixels*sourceCost + targetPixels*96 + 128*1024*1024
+	scratch := int64(64 * 1024 * 1024)
+	if master.Working != nil {
+		scratch += pixels * 12 // Downloaded RGB NPY stays owned while encoding.
+		if master.Working.Alpha != nil {
+			scratch += pixels * 4
+		}
+	} else {
+		if master.Bytes < 1 || master.Bytes > 9007199254740991-scratch {
+			return nil, errors.New("invalid encoded presentation size")
+		}
+		scratch += master.Bytes
+	}
+	profile, err := canonical.Marshal(struct {
+		Backend   string           `json:"backend"`
+		Precision string           `json:"precision"`
+		Estimate  ResourceEstimate `json:"resource_estimate"`
+	}{"cpu", "float32", ResourceEstimate{RAMBytes: ram, ScratchBytes: scratch, OutputBytes: 52 * 1024 * 1024, PixelCount: pixels}})
+	if err != nil {
+		return nil, err
+	}
+	if _, err = ParseResourceEstimate(profile); err != nil {
+		return nil, err
+	}
+	return profile, nil
 }

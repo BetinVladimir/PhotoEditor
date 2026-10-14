@@ -36,8 +36,8 @@ func (c RenderExecutionChoice) validate() error {
 }
 
 type RenderSelectionItem struct {
-	Binding v2input.SessionVersionBinding
-	Recipe  v2input.Ref
+	Binding v2input.SessionVersionBinding `json:"source"`
+	Recipe  v2input.Ref                   `json:"recipe"`
 }
 
 func validateRenderSelectionItem(item RenderSelectionItem) error {
@@ -143,6 +143,10 @@ func (s RenderRequestLoader) Load(ctx context.Context, tenant uuid.UUID, who aut
 		}
 	}
 	if err := ValidateRenderProtectionEvidence(evidence, request.ProtectionRaw); err != nil {
+		return RenderDraftRequest{}, err
+	}
+	request.LayerDocuments, err = loadRenderLayerDocuments(evidence, request.LayerRaw, read)
+	if err != nil {
 		return RenderDraftRequest{}, err
 	}
 	if _, err := CompileRenderExecutionProfile(item.Binding, item.Recipe, recipe, source, request.LayerRaw, execution.Backend, execution.RuntimeSHA, execution.TileSize, execution.AlphaMode, execution.Provider); err != nil {

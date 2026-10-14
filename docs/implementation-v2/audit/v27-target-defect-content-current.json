@@ -1,0 +1,57 @@
+{
+  "generated_at": "2026-10-08T19:06:11.157839+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "sql": {
+      "result": "PASS",
+      "tests": 23,
+      "seconds": 30.739
+    },
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 119.838
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/v2input",
+      "photoeditor/backend/internal/v2draft",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "00956 API-only exact target catalog and six object pins; current target manifest/producers/canonical result and namespace Params authority",
+    "Dedicated physical target reader repeats preparation/qualification/catalog/pins around object IO",
+    "Actual Params/proposal/report links, PNG/NPY label equality, label/protection geometry and original target-person probability coverage",
+    "Physical canonical identity/repeated evidence equality; revoked catalog refusal and restored pass",
+    "00899→00956 metadata/OID/owner/ACL preserved; no new table grants"
+  ],
+  "limitations": [
+    "Target downstream SQL completed-result lock/consumer packet still required",
+    "Saved recovery/automatic target advance/original transfer handoff/fresh-process recovery still required",
+    "Whole V27 acceptance remains open; upstream ML doubles; no GPU/real-photo qualification",
+    "No production migration"
+  ],
+  "repairs": [
+    "New target person coverage helper initially had leftover source-only code and string/RawMessage mismatch; fixed before final current Go and physical runs"
+  ],
+  "sha256": {
+    "backend/db/migrations/00956_v27_target_defect_result_catalog.sql": "ecdd6587b5434d3b63c24ca4aefbe60f3183867513580dd22f3a29a7b00283bb",
+    "backend/internal/semanticproposal/native_target_defect_result.go": "77ee68e430d905b69419a6eb92e0c64dbe002b2f6fb27a10819e8d057a160984",
+    "backend/internal/semanticproposal/native_target_defect_objects.go": "306818e7c70f3374153d7353636a3ddfd4e0c78af84bc5f6d0df4bac55a27d5e",
+    "backend/internal/semanticproposal/native_target_defect_content.go": "dd08cec001a553926f99e8d6584cb2df508d782efd1b1d63b16c5ffbbc28edbf",
+    "backend/internal/semanticproposal/native_target_defect_person_output.go": "e3c6d097aaefa9780fdbb2090032729283d3fe5e78d579261348922ccd13d833",
+    "backend/internal/semanticproposal/native_target_defect_seal_probe_test.go": "6d1e471e4bbf2f898de0fdb041f2810c10ccbc51a97ee02b6185e95166c779ad",
+    "tests/integration/test_v27_person_migration_upgrade.py": "a181588a33cc7392f4dcde0951da247606296085c5bd21027f3866c1c6e23851",
+    "tests/integration/test_v27_semantic_intent_publication.py": "7124bf4eeaa0c9c9e6b95c1f9f1f4d2b732e9104d93c883cd148f6361f390eb0",
+    "docs/implementation-v2/03-database.md": "6dcea6f68aff02ad5a976cb8ee24f6e47268551932ada2b564707cb444035904",
+    "docs/implementation-v2/15-execution-contracts.md": "ad3c3568ebc98331c7ac465ea2129a82a038989b57da1be356cb928e5fbbae03",
+    "docs/implementation-v2/audit/v27-target-defect-content-go-current.jsonl": "bcb63ce733576b59ee319b6b3a8d1719ea07e88e44af52a0da9d6ebb7eb38a7a",
+    "docs/implementation-v2/audit/v27-target-defect-content-sql-current.xml": "9c893b60d19a6b3e4b411adb54195ba3d7dff549ccdceb9e068732daa30ef826",
+    "docs/implementation-v2/audit/v27-target-defect-content-wire-current.xml": "e416225efc4d3d79fb260368a7d383a572570d4856cb947c07bfd5a34237f65f"
+  }
+}

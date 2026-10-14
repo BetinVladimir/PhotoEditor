@@ -1,0 +1,1 @@
+{"image":{"artifact_id":"00000000-0000-0000-0000-000000000001","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"long_side":1024,"max_faces":64,"model_id":"sfd","model_lock_id":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","nms_iou":0.3,"preprocessing_id":"sfd_long1024_bgr_v1","score_threshold":0.8}

@@ -12,6 +12,7 @@ import (
 	"photoeditor/backend/internal/objectstore"
 	"photoeditor/backend/internal/review"
 	"photoeditor/backend/internal/v2input"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -84,15 +85,16 @@ func testFullRecipeClosure128Frames(t *testing.T, distinct bool) {
 	modelRef := put(model)
 	learningID := uuid.New()
 	delta := CorrectionVector{}
-	authored, _ := canonical.Marshal(map[string]any{"schema_version": 3, "source": binding, "base_style": style, "session_corrections": nil, "learning_version_id": learningID, "overrides": []any{}, "layer_stack": nil, "renderer_version": "v2.2", "parameter_delta": delta})
-	frozen, err := BuildFrozenRenderRecipe(authored, ResolvedRecipeInputs{Binding: binding, BaseStyle: style, Style: StyleBaseline{GainsRGB: [3]float64{1, 1, 1}, Saturation: 1}, LearningID: learningID, Learning: &delta, LearningModelRef: modelRef, LearningDescriptorRef: shard, LearningAnalysisID: uuid.New(), ICCLockSHA: strings.Repeat("c", 64), ModelLockSHA: strings.Repeat("d", 64)}, nil)
+	corrections := put(map[string]any{"schema_version": 1, "snapshot_digest": strings.Repeat("e", 64), "items": []any{map[string]any{"binding": binding, "ordinal": 0, "delta": delta, "disposition": "apply", "reason": nil}}})
+	authored, _ := canonical.Marshal(map[string]any{"schema_version": 3, "source": binding, "base_style": style, "session_corrections": corrections, "learning_version_id": learningID, "overrides": []any{}, "layer_stack": nil, "renderer_version": "v2.2", "parameter_delta": delta})
+	frozen, err := BuildFrozenRenderRecipe(authored, ResolvedRecipeInputs{Binding: binding, BaseStyle: style, Session: &ResolvedCorrection{Ref: corrections, Vector: delta}, Style: StyleBaseline{GainsRGB: [3]float64{1, 1, 1}, Saturation: 1}, LearningID: learningID, Learning: &delta, LearningModelRef: modelRef, LearningDescriptorRef: shard, LearningAnalysisID: uuid.New(), ICCLockSHA: strings.Repeat("c", 64), ModelLockSHA: strings.Repeat("d", 64)}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	root := put(json.RawMessage(frozen))
 	resolver := ClosureResolver{Catalog: f, Objects: f}
 	refs, err := resolver.resolveRoots(context.Background(), auth.Identity{}, uuid.New(), []LayerRef{{Path: "root", Contract: "FrozenRenderRecipe", Ref: root}}, binding)
-	if err != nil || len(refs) != 646 || len(refs) != len(f.lookups) {
+	if err != nil || len(refs) != 648 || len(refs)+f.reads != len(f.lookups) {
 		t.Fatal(len(refs), len(f.lookups), err)
 	}
 	faces := 0
@@ -115,13 +117,73 @@ func testFullRecipeClosure128Frames(t *testing.T, distinct bool) {
 			faces++
 		}
 	}
-	if faces != 128 {
+	if faces != 256 {
 		t.Fatal("face closure incomplete", faces)
 	}
 	f.lookups = nil
-	entries, err := resolver.ResolveTaskInputs(context.Background(), auth.Identity{}, uuid.New(), []v2input.Entry{{Ref: root, Contract: "FrozenRenderRecipe"}, {Ref: source, Contract: "WorkingImage"}}, binding)
+	evidence, err := resolver.ResolveTaskInputEvidence(context.Background(), auth.Identity{}, uuid.New(), []v2input.Entry{{Ref: root, Contract: "FrozenRenderRecipe"}, {Ref: source, Contract: "WorkingImage"}}, binding)
+	entries := evidence.Entries
 	if err != nil {
 		t.Fatal("full roots rejected by task resolver", err)
+	}
+	// Compare contextual parsing with actual scoped traversal for every typed
+	// parent read, including all 128 descriptor frames and binary descendants.
+	for _, document := range evidence.Documents {
+		var parent *LayerRef
+		for _, occurrence := range evidence.Occurrences {
+			if occurrence.Node.Ref == document.Ref && occurrence.Node.Path == document.Path && occurrence.Node.Contract == document.Contract {
+				owned := occurrence.Node
+				parent = &owned
+				break
+			}
+		}
+		if parent == nil {
+			t.Fatal("document lacks occurrence", document.Path)
+		}
+		children, parseErr := DocumentOccurrenceChildren([]byte(document.JCS), *parent)
+		if parseErr != nil {
+			if parent.Contract == "StyleV2" {
+				continue
+			}
+			t.Fatal("context parser rejected resolved parent", parent.Path, parseErr)
+		}
+		for _, child := range children {
+			found := false
+			for _, occurrence := range evidence.Occurrences {
+				n := occurrence.Node
+				if n.Path == child.Path && n.Ref == child.Ref && n.ParentRef == child.ParentRef && n.Contract == child.Contract && reflect.DeepEqual(n.ExpectedBinding, child.ExpectedBinding) && reflect.DeepEqual(n.ExpectedLearning, child.ExpectedLearning) && n.ExpectedModelLockSHA == child.ExpectedModelLockSHA && reflect.DeepEqual(n.RenderFrame, child.RenderFrame) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Fatal("derived child absent from scoped evidence", child.Path)
+			}
+		}
+	}
+	frameFaces := 0
+	for _, occurrence := range evidence.Occurrences {
+		if occurrence.Node.RenderFrame == nil {
+			continue
+		}
+		frame := occurrence.Node.RenderFrame
+		if frame.Root != root || frame.Descriptor != shard || frame.SelectedVersion != binding.AssetVersionID || frame.ModelLockSHA != strings.Repeat("d", 64) || occurrence.Node.ExpectedBinding == nil {
+			t.Fatal("occurrence evidence lost frame/source authority", occurrence.Node.Path)
+		}
+		if occurrence.Node.Contract == "FaceObservations" {
+			frameFaces++
+		}
+	}
+	if frameFaces != 128 {
+		t.Fatal("frame occurrences omitted", frameFaces)
+	}
+	// Repeated source descendants have their own scoped authorization. A root
+	// pixel lookup cannot authorize the recipe source occurrence's pixel path.
+	f.denyPath = "TaskInputs[0].recipe.source.source.pixels"
+	deniedEvidence, deniedErr := resolver.ResolveTaskInputEvidence(context.Background(), auth.Identity{}, uuid.New(), []v2input.Entry{{Ref: root, Contract: "FrozenRenderRecipe"}, {Ref: source, Contract: "WorkingImage"}}, binding)
+	f.denyPath = ""
+	if !errors.Is(deniedErr, v2input.ErrInvalid) || deniedEvidence.Entries != nil || deniedEvidence.Documents != nil || deniedEvidence.Occurrences != nil {
+		t.Fatal("repeated source descendant denial exposed evidence", deniedErr)
 	}
 	seen := map[uuid.UUID]v2input.Entry{}
 	for _, entry := range entries {
@@ -183,6 +245,7 @@ func testFullRecipeClosure128Frames(t *testing.T, distinct bool) {
 	t.Logf("authorized occurrences: %d", len(refs))
 	if distinct {
 		f.lookups = nil
+		readsBefore := f.reads
 		roots := make([]LayerRef, maxRenderDocumentClosure+1)
 		for i := range roots {
 			roots[i] = LayerRef{Path: "root", Contract: "FrozenRenderRecipe", Ref: root}
@@ -190,7 +253,7 @@ func testFullRecipeClosure128Frames(t *testing.T, distinct bool) {
 		if _, err := resolver.resolveRoots(context.Background(), auth.Identity{}, uuid.New(), roots, binding); err == nil {
 			t.Fatal("full-render occurrence cap bypassed")
 		}
-		if len(f.lookups) != maxRenderDocumentClosure {
+		if len(f.lookups) != maxRenderDocumentClosure+f.reads-readsBefore {
 			t.Fatal("cap must reject before the next catalog lookup", len(f.lookups))
 		}
 	}

@@ -53,14 +53,33 @@ def endpoint(tls_files):
             self.send_header('Content-Length',str(len(payload)))
             self.end_headers();self.wfile.write(payload)
         def do_PUT(self):
+            state['upload_calls']=state.get('upload_calls',0)+1
             state['uploaded']=self.rfile.read(int(self.headers['Content-Length']))
             state['headers']=dict(self.headers)
             state['path']=self.path
             payload=json.dumps(dict(artifact_id=str(uuid4()),sha256=hashlib.sha256(state['uploaded']).hexdigest())).encode()
+            if state.get('upload_invalid')=='json':payload=b'{'
+            if state.get('upload_invalid')=='oversize':payload=b'x'*65537
+            if state.get('upload_drop')=='before-headers':
+                self.close_connection=True
+                return
             self.send_response(201)
             self.send_header('Content-Type','application/json')
-            self.send_header('Content-Length',str(len(payload)))
-            self.end_headers();self.wfile.write(payload)
+            framing=state.get('upload_framing','length')
+            if framing not in ('eof','chunked'):
+                self.send_header('Content-Length','garbage' if framing=='invalid-length' else str(len(payload)))
+            if framing=='duplicate':self.send_header('Content-Length',str(len(payload)))
+            if framing in ('mixed','chunked'):self.send_header('Transfer-Encoding','chunked')
+            if framing=='encoding':self.send_header('Content-Encoding','gzip')
+            self.end_headers()
+            if framing=='chunked':
+                self.wfile.write(('%x\r\n'%len(payload)).encode()+payload+b'\r\n0\r\n\r\n')
+                return
+            if state.get('upload_drop')=='partial-body':
+                self.wfile.write(payload[:len(payload)//2]);self.wfile.flush()
+                self.close_connection=True
+                return
+            self.wfile.write(payload)
     server=ThreadingHTTPServer(('127.0.0.1',0),Handler)
     context=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.minimum_version=ssl.TLSVersion.TLSv1_2
@@ -196,3 +215,44 @@ def test_task_artifact_factory_requires_admitted_budget(tls_files,endpoint,tmp_p
     ctx.lease.execution_profile['resource_estimate']=dict(scratch_bytes=101,output_bytes=100)
     with pytest.raises(ValueError,match='exceeds'):TaskArtifacts.create(ctx,config,frozenset({'verified'}))
     assert not list(tmp_path.iterdir())
+
+
+@pytest.mark.parametrize('boundary',['before-headers','partial-body'])
+def test_unknown_upload_outcome_is_retryable_without_automatic_reupload(tls_files,endpoint,tmp_path,boundary):
+    _,state=endpoint;state['upload_drop']=boundary
+    g=gateway(tls_files,endpoint)
+    path=tmp_path/'unknown-output';path.write_bytes(b'accepted-output-bytes')
+    with pytest.raises(GatewayError,match='DEPENDENCY_UNAVAILABLE') as caught:
+        g.upload(path,'verified','application/octet-stream')
+    assert caught.value.retryable
+    assert state['uploaded']==path.read_bytes() and state['upload_calls']==1
+    assert state['headers']['X-Photo-Attempt']==str(g._lease.command.attempt)
+    assert state['headers']['X-Photo-Fence']==str(g._lease.fence)
+    assert state['headers']['X-Photo-Worker']==str(g._lease.worker_id)
+
+
+@pytest.mark.parametrize('kind',['json','oversize'])
+def test_upload_invalid_complete_response_has_typed_error(tls_files,endpoint,tmp_path,kind):
+    _,state=endpoint;state['upload_invalid']=kind
+    path=tmp_path/'output';path.write_bytes(b'output')
+    with pytest.raises(GatewayError,match='GATEWAY_RESPONSE_INVALID') as caught:
+        gateway(tls_files,endpoint).upload(path,'verified','application/octet-stream')
+    assert not caught.value.retryable and state['upload_calls']==1
+
+
+@pytest.mark.parametrize('framing',['invalid-length','duplicate','mixed','encoding'])
+def test_upload_refuses_ambiguous_response_framing(tls_files,endpoint,tmp_path,framing):
+    _,state=endpoint;state['upload_framing']=framing
+    path=tmp_path/'output';path.write_bytes(b'output')
+    with pytest.raises(GatewayError,match='GATEWAY_RESPONSE_INVALID'):
+        gateway(tls_files,endpoint).upload(path,'verified','application/octet-stream')
+    assert state['upload_calls']==1
+
+
+@pytest.mark.parametrize('framing',['eof','chunked'])
+def test_upload_accepts_bounded_standard_response_framing(tls_files,endpoint,tmp_path,framing):
+    _,state=endpoint;state['upload_framing']=framing
+    path=tmp_path/'output';path.write_bytes(b'output')
+    result=gateway(tls_files,endpoint).upload(path,'verified','application/octet-stream')
+    assert result.sha256==hashlib.sha256(path.read_bytes()).hexdigest()
+    assert state['upload_calls']==1

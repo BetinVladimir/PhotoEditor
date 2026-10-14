@@ -6,6 +6,7 @@ never substitutes synthetic image metrics or an unqualified face verdict.
 """
 from __future__ import annotations
 
+from contextlib import ExitStack
 from dataclasses import dataclass
 from math import ceil, isfinite
 from pathlib import Path
@@ -17,12 +18,15 @@ import numpy as np
 from skimage.color import deltaE_ciede2000
 
 from photo_worker.algorithms.color import rgb_to_lab_d50
+from photo_worker.contracts.base import canonical_hash
 from photo_worker.operations.session.contracts import (
     Calibration, FaceObservations, VersionBinding,
 )
 
+from photo_worker.runtime.scratch import ScratchSpace
+
 from .contracts import (CandidateProfile, Evaluation, EvaluationCase,
-                        LearningEvaluateParams, TrainingExample, TrainingManifest)
+                        LearningEvaluateParams, LearningPolicy, TrainingExample, TrainingManifest)
 from .freeze import _session_order
 from .model import FittedDeltaModel, predict_delta
 
@@ -86,18 +90,23 @@ def evaluate_holdout(params: LearningEvaluateParams,
                      render: Callable[[TrainingExample, CandidateProfile,
                                        CandidateProfile], ContextManager[RenderedHoldout]],
                      source_observations: Callable[[TrainingExample], FaceObservations],
-                     scratch: Path) -> Evaluation:
+                     scratch: Path, *,
+                     check_active: Callable[[], None] = lambda: None,
+                     scratch_space: ScratchSpace | None = None) -> Evaluation:
     """Measure each frozen holdout event through an external qualified renderer.
 
     Rendering is deliberately an injected provider until the task adapter can
     invoke the complete pinned V2 image pipeline. No synthetic metric fallback
     is accepted here.
     """
+    check_active()
     holdout = _validated_holdout(params, manifest, baseline, candidate,
                                  calibration)
     measured = []
     for item in holdout:
+        check_active()
         with render(item, baseline, candidate) as evidence:
+            check_active()
             if (not isinstance(evidence, RenderedHoldout) or
                     evidence.event_id != item.event_id or
                     evidence.binding != item.render_case.binding or
@@ -106,6 +115,7 @@ def evaluate_holdout(params: LearningEvaluateParams,
                     evidence.model_lock_sha != params.model_lock_sha):
                 raise ValueError('INVALID_EVALUATION_RENDER_BINDING')
             frozen_faces = source_observations(item)
+            check_active()
             if (not isinstance(frozen_faces, FaceObservations) or
                     frozen_faces.binding != item.render_case.binding):
                 raise ValueError('INVALID_EVALUATION_FACE_BINDING')
@@ -113,7 +123,9 @@ def evaluate_holdout(params: LearningEvaluateParams,
             measured.append(measure_render_case(
                 item.event_id, evidence.baseline_rgb, evidence.candidate_rgb,
                 evidence.approved_rgb, evidence.alpha, evidence.protected,
-                identity, scratch))
+                identity, scratch, check_active=check_active,
+                scratch_space=scratch_space))
+    check_active()
     return aggregate_evaluation(params, manifest, baseline, candidate,
                                 calibration, measured)
 
@@ -123,13 +135,16 @@ def _measure_render_case(event_id: UUID, baseline_rgb: np.ndarray,
                         alpha: np.ndarray, protected: np.ndarray,
                         identity_status: Literal['pass', 'fail',
                                                  'not_measurable', 'no_person'],
-                        scratch: Path, tile: int = 256) -> EvaluationCase:
+                        scratch: Path, tile: int = 256, *,
+                        check_active: Callable[[], None] = lambda: None,
+                        error_paths: tuple[Path, Path] | None = None) -> EvaluationCase:
     """Measure exact same valid pixels with disk-backed nearest-rank p95.
 
     RGB arrays are renderer outputs in the locked working color space. The
     caller verifies the ICC lock and obtains identity_status from the qualified
     face verifier. No image subsampling or averaged per-tile percentiles occur.
     """
+    check_active()
     shape = baseline_rgb.shape
     if (event_id.int == 0 or len(shape) != 3 or shape[2] != 3 or
             shape[0] < 1 or shape[1] < 1 or shape[0] * shape[1] > 200_000_000 or
@@ -139,55 +154,65 @@ def _measure_render_case(event_id: UUID, baseline_rgb: np.ndarray,
         raise ValueError('INVALID_EVALUATION_RENDER')
     scratch.mkdir(parents=True, exist_ok=True)
     max_pixels = shape[0] * shape[1]
-    baseline_error = np.memmap(scratch / 'baseline_delta_e.f64', mode='w+',
-                               dtype=np.float64, shape=(max_pixels,))
-    candidate_error = np.memmap(scratch / 'candidate_delta_e.f64', mode='w+',
-                                dtype=np.float64, shape=(max_pixels,))
-    count = baseline_clipped = candidate_clipped = 0
-    protected_max = 0.0
-    for y in range(0, shape[0], tile):
-        for x in range(0, shape[1], tile):
-            sl = np.s_[y:y + tile, x:x + tile]
-            b = np.asarray(baseline_rgb[sl], dtype=np.float64)
-            c = np.asarray(candidate_rgb[sl], dtype=np.float64)
-            a = np.asarray(approved_rgb[sl], dtype=np.float64)
-            validity = np.asarray(alpha[sl])
-            guard = np.asarray(protected[sl])
-            if (not all(np.isfinite(v).all() for v in (b, c, a, validity, guard))
-                    or np.any(validity < 0) or np.any(validity > 1)
-                    or np.any(guard < 0) or np.any(guard > 1)):
-                raise ValueError('INVALID_EVALUATION_RENDER')
-            covered = guard > 0
-            if np.any(covered):
-                protected_max = max(protected_max,
-                                    float(np.max(np.abs(c[covered] - b[covered]))))
-            valid = validity > 0
-            number = int(np.count_nonzero(valid))
-            if number == 0:
-                continue
-            lab_approved = rgb_to_lab_d50(a[valid])
-            baseline_error[count:count + number] = deltaE_ciede2000(
-                rgb_to_lab_d50(b[valid]), lab_approved)
-            candidate_error[count:count + number] = deltaE_ciede2000(
-                rgb_to_lab_d50(c[valid]), lab_approved)
-            baseline_clipped += int(np.count_nonzero(np.any(
-                (b[valid] < 0) | (b[valid] >= 1), axis=1)))
-            candidate_clipped += int(np.count_nonzero(np.any(
-                (c[valid] < 0) | (c[valid] >= 1), axis=1)))
-            count += number
-    if count == 0:
-        raise ValueError('EVALUATION_NOT_MEASURABLE')
-    rank = ceil(.95 * count) - 1
-    baseline_error[:count].partition(rank)
-    candidate_error[:count].partition(rank)
-    color_delta = float(candidate_error[rank] - baseline_error[rank])
-    clipping_delta = (candidate_clipped - baseline_clipped) / count
-    if not isfinite(color_delta):
-        raise ValueError('EVALUATION_NOT_MEASURABLE')
-    return EvaluationCase(event_id=event_id, color_delta=color_delta,
-                          clipping_delta=clipping_delta,
-                          identity_status=identity_status,
-                          protected_max_error=protected_max)
+    baseline_path, candidate_path = error_paths or (
+        scratch / 'baseline_delta_e.f64', scratch / 'candidate_delta_e.f64')
+    # Close mappings even when an exception traceback retains local arrays.
+    with ExitStack() as buffers:
+        baseline_error = np.memmap(baseline_path, mode='w+',
+                                   dtype=np.float64, shape=(max_pixels,))
+        buffers.callback(baseline_error._mmap.close)
+        candidate_error = np.memmap(candidate_path, mode='w+',
+                                    dtype=np.float64, shape=(max_pixels,))
+        buffers.callback(candidate_error._mmap.close)
+        count = baseline_clipped = candidate_clipped = 0
+        protected_max = 0.0
+        for y in range(0, shape[0], tile):
+            for x in range(0, shape[1], tile):
+                check_active()
+                sl = np.s_[y:y + tile, x:x + tile]
+                b = np.asarray(baseline_rgb[sl], dtype=np.float64)
+                c = np.asarray(candidate_rgb[sl], dtype=np.float64)
+                a = np.asarray(approved_rgb[sl], dtype=np.float64)
+                validity = np.asarray(alpha[sl])
+                guard = np.asarray(protected[sl])
+                if (not all(np.isfinite(v).all() for v in (b, c, a, validity, guard))
+                        or np.any(validity < 0) or np.any(validity > 1)
+                        or np.any(guard < 0) or np.any(guard > 1)):
+                    raise ValueError('INVALID_EVALUATION_RENDER')
+                covered = guard > 0
+                if np.any(covered):
+                    protected_max = max(protected_max,
+                                        float(np.max(np.abs(c[covered] - b[covered]))))
+                valid = validity > 0
+                number = int(np.count_nonzero(valid))
+                if number == 0:
+                    continue
+                lab_approved = rgb_to_lab_d50(a[valid])
+                baseline_error[count:count + number] = deltaE_ciede2000(
+                    rgb_to_lab_d50(b[valid]), lab_approved)
+                candidate_error[count:count + number] = deltaE_ciede2000(
+                    rgb_to_lab_d50(c[valid]), lab_approved)
+                baseline_clipped += int(np.count_nonzero(np.any(
+                    (b[valid] < 0) | (b[valid] >= 1), axis=1)))
+                candidate_clipped += int(np.count_nonzero(np.any(
+                    (c[valid] < 0) | (c[valid] >= 1), axis=1)))
+                count += number
+        if count == 0:
+            raise ValueError('EVALUATION_NOT_MEASURABLE')
+        check_active()
+        rank = ceil(.95 * count) - 1
+        baseline_error[:count].partition(rank)
+        check_active()
+        candidate_error[:count].partition(rank)
+        check_active()
+        color_delta = float(candidate_error[rank] - baseline_error[rank])
+        clipping_delta = (candidate_clipped - baseline_clipped) / count
+        if not isfinite(color_delta):
+            raise ValueError('EVALUATION_NOT_MEASURABLE')
+        return EvaluationCase(event_id=event_id, color_delta=color_delta,
+                              clipping_delta=clipping_delta,
+                              identity_status=identity_status,
+                              protected_max_error=protected_max)
 
 
 def measure_render_case(event_id: UUID, baseline_rgb: np.ndarray,
@@ -195,12 +220,31 @@ def measure_render_case(event_id: UUID, baseline_rgb: np.ndarray,
                         alpha: np.ndarray, protected: np.ndarray,
                         identity_status: Literal['pass', 'fail',
                                                  'not_measurable', 'no_person'],
-                        scratch: Path, tile: int = 256) -> EvaluationCase:
+                        scratch: Path, tile: int = 256, *,
+                        check_active: Callable[[], None] = lambda: None,
+                        scratch_space: ScratchSpace | None = None) -> EvaluationCase:
+    check_active()
+    if scratch_space is not None:
+        shape = baseline_rgb.shape
+        if (len(shape) != 3 or shape[2] != 3 or shape[0] < 1 or shape[1] < 1 or
+                shape[0] * shape[1] > 200_000_000):
+            raise ValueError('INVALID_EVALUATION_RENDER')
+        with scratch_space.reserve(shape[0] * shape[1] * 16) as reservation:
+            paths = (reservation.path('baseline-delta-e', '.bin'),
+                     reservation.path('candidate-delta-e', '.bin'))
+            result = _measure_render_case(
+                event_id, baseline_rgb, candidate_rgb, approved_rgb, alpha,
+                protected, identity_status, scratch_space.directory, tile,
+                check_active=check_active, error_paths=paths)
+            check_active()
+            reservation.validate()
+            return result
     scratch.mkdir(parents=True, exist_ok=True)
     with TemporaryDirectory(prefix='learning-evaluate-', dir=scratch) as directory:
         return _measure_render_case(event_id, baseline_rgb, candidate_rgb,
                                     approved_rgb, alpha, protected,
-                                    identity_status, Path(directory), tile)
+                                    identity_status, Path(directory), tile,
+                                    check_active=check_active)
 
 
 def _model(profile: CandidateProfile) -> FittedDeltaModel:
@@ -224,6 +268,12 @@ def _validated_holdout(params: LearningEvaluateParams,
                        manifest: TrainingManifest, baseline: CandidateProfile,
                        candidate: CandidateProfile,
                        calibration: Calibration) -> list[TrainingExample]:
+    manifest.identity_scope()
+    expected_policy = LearningPolicy(schema_version=1, mode=manifest.mode,
+        min_examples=40, min_sessions=6, holdout_fraction=.2, seed=2026,
+        calibration=manifest.calibration)
+    if canonical_hash(expected_policy) != manifest.policy_sha:
+        raise ValueError('INVALID_TRAINING_MANIFEST')
     if (params.manifest.sha256 == '0' * 64 or
             params.candidate.sha256 == '0' * 64 or
             params.baseline != manifest.baseline or
@@ -256,7 +306,8 @@ def _validated_holdout(params: LearningEvaluateParams,
     expected_holdout = set(sessions[:max(2, ceil(.2 * len(sessions)))])
     holdout = [item for item in manifest.examples
                if item.session_id in expected_holdout]
-    if (len(holdout) < 10 or
+    if (len(holdout) < 10 or len(manifest.examples) - len(holdout) < 20 or
+            len(sessions) - len(expected_holdout) < 4 or
             any((item.split == 'holdout') !=
                 (item.session_id in expected_holdout)
                 for item in manifest.examples)):

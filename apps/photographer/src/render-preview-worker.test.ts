@@ -1,0 +1,21 @@
+import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {it,expect,vi} from 'vitest';
+import {loadEditorRenderResults} from './editor-render-results';
+import type {RunOutput} from './catalog-types';
+type Case={alpha:boolean;encoded:string;image:RunOutput;manifest:RunOutput};
+const path=process.env.PHOTO_RENDER_CLIENT_CASES;
+const cases:Case[]=path?JSON.parse(readFileSync(path,'utf8')):[];
+const parent='11111111-1111-4111-8111-111111111111',child='22222222-2222-4222-8222-222222222222';
+for(const alpha of [false,true])it.skipIf(!path)(`loads actual Render worker ${alpha?'WebP alpha':'JPEG'} presentation`,async()=>{
+ const value=cases.find(item=>item.alpha===alpha)!;expect(value).toBeDefined();
+ const bytes=Buffer.from(value.encoded,'base64');
+ expect(bytes.length).toBe(value.image.bytes);
+ expect(createHash('sha256').update(bytes).digest('hex')).toBe(value.image.sha256);
+ expect(value.image.media_type).toBe(alpha?'image/webp':'image/jpeg');
+ const presentation={total:1,pending:0,ready:1,failed:0,cancelled:0,unavailable:0};
+ const api={run:vi.fn(async()=>({id:child,kind:'v2',status:'completed',revision:'1',counts:{total:1,succeeded:1,failed:0,skipped:0,review:0},stage:'completed',progress:1,errors:[],presentation})),runOutputs:vi.fn(async()=>({items:[value.image,value.manifest]}))};
+ const result=await loadEditorRenderResults(api,{run_id:parent,state:'queued',child_run_ids:[child]},new AbortController().signal);
+ expect(result[0].images).toEqual([value.image]);expect(result[0].presentation).toEqual(presentation);
+ expect(result[0].images.every(image=>image.role==='derivative')).toBe(true);
+});

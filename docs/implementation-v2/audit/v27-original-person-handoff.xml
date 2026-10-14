@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="4.864" timestamp="2026-10-08T16:18:06.684976+03:00" hostname="Mac"><testcase classname="tests.integration.test_v27_semantic_intent_publication" name="test_semantic_intent_publication_old_version_and_replay[native-person-defect-wire]" time="3.156"><failure message="UnboundLocalError: cannot access local variable 'canonical_bytes' where it is not associated with a value">tests/integration/test_v27_semantic_intent_publication.py:278: in test_semantic_intent_publication_old_version_and_replay
+    defect_params_body=canonical_bytes(defect_params)
+                       ^^^^^^^^^^^^^^^
+E   UnboundLocalError: cannot access local variable 'canonical_bytes' where it is not associated with a value</failure></testcase></testsuite></testsuites>

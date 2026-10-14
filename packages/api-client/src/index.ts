@@ -1,3 +1,17 @@
+export * from "./semantic-propose";
+export * from "./provenance";
+import {signExport,signingPolicies,type SignCreate} from './provenance';
+import {proposeSemanticIntent,type SemanticEditIntent} from "./semantic-propose";
+export * from "./semantic-child";
+import {readSemanticChildStatus} from "./semantic-child";
+export * from "./semantic-apply";
+import {applySemanticReview,type SemanticApplyRequest} from "./semantic-apply";
+export * from "./semantic-close";
+import {closeSemanticReview,readSemanticReviewStatus,readSemanticRunIntent,type SemanticReviewClose} from "./semantic-close";
+export * from "./run-outputs";
+import {listRunOutputs} from "./run-outputs";
+export * from "./semantic";
+import {listSemanticTargets,type SemanticTargetQuery} from "./semantic";
 import {readEventStream,type StreamEvent} from "./sse";
 export type Principal = { kind: "owner"; accessToken: string } | { kind: "guest"; shareID: string; sessionEpoch: number };
 export type RequestOptions = { method?: string; body?: unknown; headers?: HeadersInit; idempotencyKey?: string; signal?: AbortSignal };
@@ -24,6 +38,52 @@ const pause = (ms: number, signal?: AbortSignal) => new Promise<void>((resolve, 
 });
 
 export class ApiClient {
+  async requestBytes(path:string,mime:string,maxBytes:number,signal?:AbortSignal):Promise<Uint8Array>{
+    if(!path.startsWith('/api/v1/')||!/^image\/(png|jpeg|webp)$/.test(mime)||!Number.isSafeInteger(maxBytes)||maxBytes<1||maxBytes>16<<20)throw new Error('BINARY_REQUEST_INVALID');
+    let refreshed=false;
+    for(;;){
+      signal?.throwIfAborted();
+      const principal=this.auth.principal();
+      if(principal?.kind!=='owner')throw new APIError(401,'AUTH_REQUIRED');
+      const headers=new Headers(this.auth.clientHeaders?.());
+      headers.set('Accept',mime);headers.set('Authorization',`Bearer ${principal.accessToken}`);
+      const response=await this.transport(`${this.origin.replace(/\/$/,'')}${path}`,{method:'GET',headers,signal,credentials:'include',cache:'no-store'});
+      if(response.status===401&&!refreshed){
+        await response.body?.cancel();refreshed=true;
+        if(!this.refreshFlight)this.refreshFlight=this.auth.refresh(signal).finally(()=>{this.refreshFlight=undefined});
+        try{await this.refreshFlight;}catch(error){await this.auth.clear();throw error;}
+        continue;
+      }
+      if(!response.ok){await response.body?.cancel();throw new APIError(response.status,`HTTP_${response.status}`,undefined,response.headers.get('X-Request-ID')||undefined);}
+      const actual=response.headers.get('Content-Type')?.split(';',1)[0]?.trim().toLowerCase();
+      const length=response.headers.get('Content-Length');
+      if(actual!==mime||length!==null&&(!/^\d+$/.test(length)||Number(length)>maxBytes)){
+        await response.body?.cancel();throw new Error('BINARY_RESPONSE_INVALID');
+      }
+      let bytes:Uint8Array;
+      if(response.body){
+        const reader=response.body.getReader(),parts:Uint8Array[]=[];let total=0;
+        try{for(;;){signal?.throwIfAborted();const next=await reader.read();if(next.done)break;total+=next.value.byteLength;if(total>maxBytes)throw new Error('BINARY_RESPONSE_INVALID');parts.push(next.value);}}
+        finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
+        bytes=new Uint8Array(total);let offset=0;for(const part of parts){bytes.set(part,offset);offset+=part.byteLength;}
+      }else{
+        bytes=new Uint8Array(await response.arrayBuffer());if(bytes.byteLength>maxBytes)throw new Error('BINARY_RESPONSE_INVALID');
+      }
+      signal?.throwIfAborted();
+      if(bytes.byteLength<1||length!==null&&bytes.byteLength!==Number(length))throw new Error('BINARY_RESPONSE_INVALID');
+      return bytes;
+    }
+  }
+ signingPolicies(tenant:string,exportID:string,signal?:AbortSignal){return signingPolicies(this,tenant,exportID,signal);}
+ signExport(tenant:string,exportID:string,request:SignCreate,key:string,signal?:AbortSignal){return signExport(this,tenant,exportID,request,key,signal);}
+ proposeSemanticIntent(tenant:string,input:SemanticEditIntent,key:string,signal?:AbortSignal) { return proposeSemanticIntent(this,tenant,input,key,signal); }
+ semanticChildStatus(tenant:string,run:string,signal?:AbortSignal) { return readSemanticChildStatus(this,tenant,run,signal); }
+ applySemanticReview(tenant:string,intent:string,request:SemanticApplyRequest,key:string,signal?:AbortSignal) { return applySemanticReview(this,tenant,intent,request,key,signal); }
+ semanticReviewStatus(tenant:string,intent:string,signal?:AbortSignal) { return readSemanticReviewStatus(this,tenant,intent,signal); }
+ semanticRunIntent(tenant:string,run:string,signal?:AbortSignal) { return readSemanticRunIntent(this,tenant,run,signal); }
+ closeSemanticReview(tenant:string,intent:string,request:SemanticReviewClose,key:string,signal?:AbortSignal) { return closeSemanticReview(this,tenant,intent,request,key,signal); }
+  runOutputs(tenant:string,run:string,signal?:AbortSignal) { return listRunOutputs(this,tenant,run,signal); }
+  semanticTargets(tenant:string,intent:string,query:SemanticTargetQuery={}) { return listSemanticTargets(this,tenant,intent,query); }
   private refreshFlight?: Promise<string>;
   private csrfFlight?: Promise<string>;
   constructor(readonly origin: string, private auth: AuthStore, private transport: typeof fetch = fetch) {}
@@ -140,3 +200,5 @@ export class EventPoller {
   }
 }
 export * from "./upload";
+
+export * from "./raw-development";

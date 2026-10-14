@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-09",
+  "component": "Actual Mask.Create service compatibility after00975",
+  "migration_head": "00975",
+  "whole_module_accepted": false,
+  "production_code_changed": false,
+  "production_migrations_applied": false,
+  "checks": {
+    "tests": "2",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "time": "4.506",
+    "evidence": "mask-create-service-current.xml"
+  },
+  "source_sha256": {
+    "backend/internal/interactive/mask_create_integration_test.go": "f315b5579d55b2cac9cf28df14e9e3a2b938acb7f1d3bd4a4c6031eac27fda23",
+    "tests/integration/test_mask_create_service.py": "b20ff6f3bc73331637473387d4306936ac401bfb5dbe1bd38c9fb70160d42133",
+    "backend/internal/interactive/service.go": "c2227be91ff1d6a9af7e702410a4a38765e6f70ac41ae162593e4806fc7d0bc0",
+    "backend/db/migrations/00975_restore_mask_run_kind.sql": "cec34b969bd0d4c5436931d2444d162b8a766ef312e989e5bf1a3d20f5329bb9"
+  },
+  "assertions": [
+    "Production Service.CreateMask under actual photo_api creates202 manual-mask receipt",
+    "Same key/body returns exact original receipt",
+    "New key with wrong source SHA refuses",
+    "Same key with changed stroke radius refuses",
+    "Outer SQL confirms exactly one mask run and one manual interactive task",
+    "Companion canonical V28 manual-origin SQL regression passes"
+  ],
+  "limitations": [
+    "Asset/project/source metadata owner-seeded; source bytes not read",
+    "Service call bypasses HTTP middleware/router, so not full browser/API request acceptance",
+    "No actual scheduler dispatch/raster worker/output adoption in this increment",
+    "Whole V28 and V20-V32 remain unaccepted"
+  ]
+}

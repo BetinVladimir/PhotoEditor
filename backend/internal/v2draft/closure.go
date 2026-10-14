@@ -49,6 +49,29 @@ func (s SQLArtifactCatalog) Lookup(ctx context.Context, who auth.Identity,
 		s.AssetVersionID == uuid.Nil {
 		return object, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
 	}
+	if node.Contract == "DonorConfirmation" && !validDonorConfirmationCatalogNode(node, s.AssetVersionID) {
+		return object, v2input.ErrInvalid
+	}
+	if node.Contract == "DonorFaceObservations" && (node.ExpectedBinding == nil || node.ExpectedBinding.AssetVersionID != s.AssetVersionID || !isDocumentRef(node.Ref) || !isDocumentRef(node.ParentRef) || node.CanvasHash != node.ExpectedBinding.CanvasHash || node.RenderFrame != nil) {
+		return object, v2input.ErrInvalid
+	}
+	if node.Contract == "StyleBackgroundAsset" {
+		pin := node.ExpectedBackground
+		if pin == nil || !isDocumentRef(node.ParentRef) || pin.Source != node.Ref {
+			return object, v2input.ErrInvalid
+		}
+		if _, err := s.Lookup(ctx, who, tenantID, LayerRef{Ref: node.ParentRef, Contract: "FrozenRenderRecipe"}); err != nil {
+			return object, err
+		}
+		asset, err := (SQLBackgroundAssetResolver{DB: s.DB, Bucket: s.Bucket}).Resolve(ctx, who, tenantID, s.ProjectID, pin.Style, pin.PortableAssetID)
+		if err != nil {
+			return object, err
+		}
+		if asset.Ref != pin.Source || asset.StyleVersionID != pin.StyleVersionID || asset.Object.Bytes != pin.ExpectedBytes || asset.Object.ContentType != pin.MediaType {
+			return object, v2input.ErrInvalid
+		}
+		return asset.Object, nil
+	}
 	var bucket string
 	scopeSQL := "photo.v2_draft_artifact_scope($1,$4,$5,a.id,a.sha256,$6,$7,$8,$9,$10)"
 	if node.Contract == "FrozenRenderRecipe" {
@@ -102,6 +125,21 @@ func (s SQLArtifactCatalog) Lookup(ctx context.Context, who auth.Identity,
 	}
 	err := tenant.WithTenant(ctx, s.DB, who, tenantID, domain.Editor,
 		func(tx pgx.Tx, _ domain.Role) error {
+			if node.Contract == "CandidateProfile" {
+				// Diagnose consent only after proving the authorized frozen root and
+				// its exact authored-document/model lineage. Unknown or foreign
+				// artifacts retain the generic invalid response below.
+				var revoked bool
+				if err := tx.QueryRow(ctx, `SELECT photo.v26_render_model_consent_revoked($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+					tenantID, s.ProjectID, s.AssetVersionID, node.ParentRef.ArtifactID,
+					node.ParentRef.SHA256, node.ExpectedLearning.VersionID, node.Ref.ArtifactID,
+					node.Ref.SHA256, who.UserID, who.SessionID).Scan(&revoked); err != nil {
+					return err
+				}
+				if revoked {
+					return domain.NewError("PROFILE_CONSENT_REVOKED", 409)
+				}
+			}
 			err := tx.QueryRow(ctx, `SELECT a.bytes,a.bucket,a.object_key,
 			 a.object_version,a.media_type,a.sha256 FROM photo.artifacts a
 			 WHERE a.tenant_id=$1 AND a.id=$2 AND a.sha256=$3 AND a.state='ready'
@@ -163,6 +201,9 @@ func isDocumentRef(ref v2input.Ref) bool {
 
 func readJSONArtifact(ctx context.Context, objects v2input.SessionAnalysisObjectReader,
 	obj objectstore.Object, ref v2input.Ref) ([]byte, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	if obj.ContentType != "application/json" || obj.Bytes < 2 || obj.Bytes > maxDocumentJSON ||
 		obj.SHA256 != ref.SHA256 || obj.VersionID == "" || obj.VersionID == "null" {
 		return nil, v2input.ErrInvalid
@@ -171,12 +212,18 @@ func readJSONArtifact(ctx context.Context, objects v2input.SessionAnalysisObject
 	if err != nil {
 		return nil, err
 	}
-	raw, readErr := io.ReadAll(io.LimitReader(reader, maxDocumentJSON+1))
+	if reader == nil {
+		return nil, v2input.ErrInvalid
+	}
+	raw, readErr := io.ReadAll(io.LimitReader(reader, obj.Bytes+1))
 	closeErr := reader.Close()
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	if readErr != nil {
 		return nil, readErr
 	}
-	if closeErr != nil || ctx.Err() != nil || int64(len(raw)) != obj.Bytes {
+	if closeErr != nil || int64(len(raw)) != obj.Bytes {
 		return nil, v2input.ErrInvalid
 	}
 	sum := sha256.Sum256(raw)
@@ -184,6 +231,9 @@ func readJSONArtifact(ctx context.Context, objects v2input.SessionAnalysisObject
 		return nil, v2input.ErrInvalid
 	}
 	canonicalBody, err := canonical.Bytes(raw)
+	if cancelled := ctx.Err(); cancelled != nil {
+		return nil, cancelled
+	}
 	if err != nil || !bytes.Equal(canonicalBody, raw) {
 		return nil, v2input.ErrInvalid
 	}
@@ -199,6 +249,12 @@ func nestedRefs(raw []byte, path, parentContract string, parent v2input.Ref,
 	}
 	var fields map[string]json.RawMessage
 	if err := json.Unmarshal(raw, &fields); err == nil && fields != nil {
+		_, hasID := fields["artifact_id"]
+		_, hasSHA := fields["sha256"]
+		if hasID && hasSHA && len(fields) != 2 {
+			// A malformed reference must not disappear from the input closure.
+			return v2input.ErrInvalid
+		}
 		if len(fields) == 2 {
 			if _, present := fields["artifact_id"]; present {
 				ref, ok := layerRef(raw)
@@ -277,7 +333,19 @@ func (s ClosureResolver) resolveRoots(ctx context.Context, who auth.Identity,
 }
 
 func (s ClosureResolver) resolveRootsWithInventory(ctx context.Context, who auth.Identity,
-	tenantID uuid.UUID, roots []LayerRef, binding v2input.SessionVersionBinding, inventory *[]v2input.Entry) ([]DocumentRef, error) {
+	tenantID uuid.UUID, roots []LayerRef, binding v2input.SessionVersionBinding, inventory *[]v2input.Entry, witnessSets ...*[]DocumentWitness) ([]DocumentRef, error) {
+	if len(witnessSets) > 1 {
+		return nil, v2input.ErrInvalid
+	}
+	var witnesses *[]DocumentWitness
+	if len(witnessSets) == 1 {
+		witnesses = witnessSets[0]
+	}
+	return s.resolveRootsWithEvidence(ctx, who, tenantID, roots, binding, inventory, witnesses, nil)
+}
+
+func (s ClosureResolver) resolveRootsWithEvidence(ctx context.Context, who auth.Identity,
+	tenantID uuid.UUID, roots []LayerRef, binding v2input.SessionVersionBinding, inventory *[]v2input.Entry, witnesses *[]DocumentWitness, occurrences *[]OccurrenceWitness) ([]DocumentRef, error) {
 	if s.Catalog == nil || s.Objects == nil || tenantID == uuid.Nil {
 		return nil, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
 	}
@@ -292,10 +360,20 @@ func (s ClosureResolver) resolveRootsWithInventory(ctx context.Context, who auth
 	contracts := make(map[uuid.UUID]string)
 	active := make(map[uuid.UUID]bool)
 	validatedContracts := make(map[uuid.UUID]string)
+	objects := make(map[uuid.UUID]objectstore.Object)
+	witnessBytes := 0
+	occurrenceBytes := 0
 	var sourceSHA string
 	var sourceTransform []byte
 	var walk func(LayerRef, int) error
 	walk = func(node LayerRef, depth int) error {
+		if node.ManualVectors != nil {
+			owned := *node.ManualVectors
+			node.ManualVectors = &owned
+		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if depth > 32 || len(refs) >= closureLimit || !isDocumentRef(node.Ref) ||
 			active[node.Ref.ArtifactID] {
 			return v2input.ErrInvalid
@@ -318,9 +396,16 @@ func (s ClosureResolver) resolveRootsWithInventory(ctx context.Context, who auth
 		if err != nil {
 			return err
 		}
+		backgroundContract := node.Contract == "StyleBackgroundAsset"
+		if backgroundContract {
+			pin := node.ExpectedBackground
+			if pin == nil || pin.Source != node.Ref || obj.Bytes != pin.ExpectedBytes || obj.ContentType != pin.MediaType || !isDocumentRef(node.ParentRef) {
+				return v2input.ErrInvalid
+			}
+		}
 		binaryContract := node.Contract == "WorkingPixels" || node.Contract == "WorkingAlpha" ||
 			node.Contract == "MaskPixels" || node.Contract == "DenseWarpField"
-		if binaryContract && obj.ContentType != "application/octet-stream" && obj.ContentType != "application/x-npy" || !binaryContract && node.Contract != "Artifact" && obj.ContentType != "application/json" {
+		if binaryContract && obj.ContentType != "application/octet-stream" && obj.ContentType != "application/x-npy" || !binaryContract && !backgroundContract && node.Contract != "Artifact" && obj.ContentType != "application/json" {
 			return v2input.ErrInvalid
 		}
 		if inventory != nil {
@@ -334,15 +419,30 @@ func (s ClosureResolver) resolveRootsWithInventory(ctx context.Context, who auth
 		if obj.Bytes < 1 || obj.SHA256 != node.Ref.SHA256 || obj.VersionID == "" || obj.VersionID == "null" {
 			return v2input.ErrInvalid
 		}
+		// Reusing validated bytes is safe only for the same immutable object.
+		// Every occurrence still performs its own live scoped catalog lookup.
+		if prior, ok := objects[node.Ref.ArtifactID]; ok && prior != obj {
+			return v2input.ErrExpired
+		}
+		objects[node.Ref.ArtifactID] = obj
+		if occurrences != nil {
+			occurrence := OccurrenceWitness{Node: ownOccurrenceNode(node), Object: obj}
+			wire, err := json.Marshal(occurrence)
+			if err != nil || len(wire) > (32<<20)-occurrenceBytes {
+				return v2input.ErrInvalid
+			}
+			occurrenceBytes += len(wire)
+			*occurrences = append(*occurrences, occurrence)
+		}
 		sameValidation := validatedContracts[node.Ref.ArtifactID] == node.Contract
-		if repeated && (node.Contract == "Artifact" || sameValidation && node.Contract != "WorkingImage" && node.Contract != "MaskRef" && node.Contract != "FaceObservations" && node.Contract != "DescriptorShard") {
+		if occurrences == nil && repeated && (node.Contract == "Artifact" || sameValidation && node.Contract != "WorkingImage" && node.Contract != "MaskRef" && node.Contract != "FaceObservations" && node.Contract != "DescriptorShard") {
 			return nil
 		}
 		seen[node.Ref.ArtifactID] = node.Ref.SHA256
 		active[node.Ref.ArtifactID] = true
 		defer delete(active, node.Ref.ArtifactID)
 		if obj.ContentType != "application/json" {
-			if !(node.Contract == "Artifact" || binaryContract) || obj.Bytes < 1 ||
+			if !(node.Contract == "Artifact" || binaryContract || backgroundContract) || obj.Bytes < 1 ||
 				obj.SHA256 != node.Ref.SHA256 || obj.VersionID == "" || obj.VersionID == "null" {
 				return v2input.ErrInvalid
 			}
@@ -352,6 +452,20 @@ func (s ClosureResolver) resolveRootsWithInventory(ctx context.Context, who auth
 		body, err := readJSONArtifact(ctx, s.Objects, obj, node.Ref)
 		if err != nil {
 			return err
+		}
+		current, err := s.Catalog.Lookup(ctx, who, tenantID, node)
+		if err != nil {
+			return err
+		}
+		if current != obj {
+			return v2input.ErrExpired
+		}
+		if witnesses != nil {
+			if len(body) > (32<<20)-witnessBytes {
+				return v2input.ErrInvalid
+			}
+			witnessBytes += len(body)
+			*witnesses = append(*witnesses, DocumentWitness{Path: node.Path, Contract: node.Contract, Ref: node.Ref, Parent: node.ParentRef, Object: obj, JCS: string(body)})
 		}
 		var children []LayerRef
 		compositionParams := false
@@ -389,9 +503,24 @@ func (s ClosureResolver) resolveRootsWithInventory(ctx context.Context, who auth
 				return err
 			}
 		case "Params":
-			children, compositionParams, err = compositionParamRefs(body, node.Path, node.Ref)
+			children, compositionParams, err = operationParamRefs(body, node.Path, node.Ref)
 			if err != nil {
 				return err
+			}
+		case "RasterizedMask":
+			children, err = manualRasterRootRefs(body, node.Path, node.Ref, node.ManualVectors)
+			if err != nil {
+				return err
+			}
+			compositionParams = true
+		case "ManualMask":
+			canvas, e := review.ParseManualVectorsCanvas(body)
+			if e != nil {
+				return v2input.ErrInvalid
+			}
+			hash, e := canonical.Hash(canvas)
+			if e != nil || node.CanvasHash != "" && node.CanvasHash != hash {
+				return v2input.ErrInvalid
 			}
 		case "IdentityReport":
 			children, err = identityReportRefs(body, node.Path, node.Ref)
@@ -447,7 +576,7 @@ func (s ClosureResolver) resolveRootsWithInventory(ctx context.Context, who auth
 			for i, item := range items {
 				children = append(children, LayerRef{
 					Path:     node.Path + ".items[" + strconv.Itoa(i) + "].binding.source",
-					Contract: "WorkingImage", Ref: item.Source, CanvasHash: item.CanvasHash})
+					Contract: "WorkingImage", Ref: item.Source, CanvasHash: item.CanvasHash, ParentRef: node.Ref})
 			}
 		case "Override":
 			if sourceSHA == "" || editor.ValidateOverride(body, sourceSHA) != nil {
@@ -457,6 +586,10 @@ func (s ClosureResolver) resolveRootsWithInventory(ctx context.Context, who auth
 			children, err = ValidateLayerStack(body, binding)
 			if err != nil {
 				return err
+			}
+			for i := range children {
+				children[i].ParentRef = node.Ref
+				children[i].Path = node.Path + strings.TrimPrefix(children[i].Path, "LayerStack")
 			}
 		case "MaskRef":
 			mask, e := review.ParseMaskRef(body)
@@ -489,7 +622,7 @@ func (s ClosureResolver) resolveRootsWithInventory(ctx context.Context, who auth
 		}
 		// Repeated image/mask occurrences still validate their canvas/protection
 		// requirements. A generic Artifact encounter never proves typed schema.
-		if repeated && sameValidation && node.RenderFrame == nil {
+		if occurrences == nil && repeated && sameValidation && node.RenderFrame == nil {
 			return nil
 		}
 		validatedContracts[node.Ref.ArtifactID] = node.Contract

@@ -1,0 +1,51 @@
+{
+  "generated_at": "2026-10-08T16:22:49.744906+00:00",
+  "status": "implementing",
+  "module": "V27",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/workflow",
+      "photoeditor/backend/internal/semanticproposal",
+      "photoeditor/backend/internal/v2input"
+    ],
+    "physical_fixture": {
+      "tests": 1,
+      "seconds": 75.09,
+      "result": "PASS"
+    },
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "target landmarks/parse Params and qualified task factories",
+    "canonical target detector proof binding",
+    "deterministic target compiler",
+    "substitution negatives for namespace/result/Params/actor/operation/report/budget/fingerprint",
+    "memory transport binding"
+  ],
+  "limitations": [
+    "No target face SQL persistence, registration, sealing, execution or automatic recovery",
+    "ML deterministic doubles; not GPU or photo quality qualification",
+    "Target accepted version shares immutable WorkingImage with reference",
+    "No whole-module browser, scale, purge/cancel, or fresh-process crash acceptance"
+  ],
+  "corrected_failures": [
+    "duplicate transport helper name and unused test import",
+    "test command package name corrected to v2qualification",
+    "new fixture qualification reports had zero VRAM; new target-face scenario now records positive VRAM without weakening production capacity checks"
+  ],
+  "sha256": {
+    "backend/internal/semanticproposal/native_target_face_params.go": "4751d8d1134f4f29e94d925213e569a2331a3d306590260be17160e140e2c0c9",
+    "backend/internal/semanticproposal/native_target_face_transport.go": "4e718900c93d1029d74ad6850ff6b22246da2fbada9713b95b36b19d12534659",
+    "backend/internal/semanticproposal/native_target_face_wire_probe_test.go": "9beab64accd22471a531bcf81cbc9493e7d2a0d001cfc500f0df3c50d34ea863",
+    "backend/internal/semanticproposal/native_target_face_task.go": "76fdf5b67da5aca8bd757b0b55ef6911dab80d5b8f4fbcf4dd3b8cfb1bcb68cc",
+    "backend/internal/semanticproposal/native_target_face_plan.go": "0dd57813922b51a988815dd29f8eee47bbec9b87e7f2c60c0b1d260d1e9699e4",
+    "backend/internal/semanticproposal/native_target_detector_wire_probe_test.go": "068fe33cff3719d5cd8e49fa2e8ddfe3cf72c41425cb1a7aa0a9aa22ee1824ed",
+    "tests/integration/test_v27_semantic_intent_publication.py": "6b86c387a90797a18fd3b3a97a75a57345b89528a967bb1a2a5c6005f6516e2f",
+    "docs/implementation-v2/15-execution-contracts.md": "feeb8dd9028afdde591433c97e8c49831fce6ef3db45a47d9b49abda43e5f636",
+    "docs/implementation-v2/audit/v27-target-face-plan-wire-current.xml": "db3c4652133aabdc8a056b5fdfb142c9e467a257c3f70a73b25fc8e36916eda8",
+    "docs/implementation-v2/audit/v27-target-face-plan-go-current.jsonl": "43c201bbbf95e8ddebe584d428ef019b6d42d9672f1b39784d9eadb8110ff3ef"
+  }
+}

@@ -27,6 +27,16 @@ type DeploymentLocks struct {
 	LicenseCleared   bool     `json:"license_cleared"`
 }
 
+// Expected validates and owns an in-memory trusted policy using the same rules
+// as the deployment lock-file loader. Callers must independently authenticate it.
+func (locks DeploymentLocks) Expected() (Expected, error) {
+	locks.RequiredChecks = append([]string(nil), locks.RequiredChecks...)
+	locks.CalibrationSHAs = append([]string(nil), locks.CalibrationSHAs...)
+	locks.TestFixtureSHAs = append([]string(nil), locks.TestFixtureSHAs...)
+	locks.EvidenceSHAs = append([]string(nil), locks.EvidenceSHAs...)
+	return locks.expected()
+}
+
 func trustedSet(values []string, min int) (map[string]struct{}, bool) {
 	if len(values) < min || len(values) > 10000 {
 		return nil, false

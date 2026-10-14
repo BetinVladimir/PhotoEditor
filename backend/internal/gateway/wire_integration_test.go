@@ -145,7 +145,7 @@ func TestIntegrationWireSQLUpload(t *testing.T) {
 	}
 	signer, _, _, _ := fixture(t)
 	signer.Now = time.Now
-	token, err := signer.Issue(id, clientCert.Leaf, time.Now().Add(duration), time.Now().Add(time.Hour), []string{WriteOutputs})
+	token, err := signer.Issue(id, clientCert.Leaf, time.Now().Add(duration), time.Now().Add(time.Hour), []string{WriteOutputs, ReadObjects})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -153,7 +153,7 @@ func TestIntegrationWireSQLUpload(t *testing.T) {
 	if large {
 		maxBytes = 6 << 30
 	}
-	api := HTTP{Signer: signer, Tasks: Authorizer{DB: pool}, MaxUploadBytes: maxBytes, Uploads: &UploadService{Repository: SQLOutputs{DB: pool, Bucket: bucket}, Objects: storage}}
+	api := HTTP{Signer: signer, Tasks: Authorizer{DB: pool}, Inputs: Authorizer{DB: pool}, Objects: storage, Bucket: bucket, MaxDownloadBytes: maxBytes, MaxUploadBytes: maxBytes, Uploads: &UploadService{Repository: SQLOutputs{DB: pool, Bucket: bucket}, Objects: storage}}
 	server := httptest.NewUnstartedServer(api.Handler())
 	server.TLS = &tls.Config{Certificates: []tls.Certificate{serverCert}, ClientCAs: roots, ClientAuth: tls.RequireAndVerifyClientCert, MinVersion: tls.VersionTLS13}
 	server.StartTLS()
@@ -236,6 +236,51 @@ func TestIntegrationWireSQLUpload(t *testing.T) {
 	if err != nil || closeErr != nil || actualSize != size || hex.EncodeToString(readHash.Sum(nil)) != digest {
 		t.Fatal("version read", err, closeErr)
 	}
+	// The isolated legacy task now declares the uploaded artifact as an input.
+	// This proves actual mTLS/capability/live-SQL/versioned-S3 download transport,
+	// not cross-task Render cache authorization or canonical result adoption.
+	input, err := json.Marshal([]ArtifactRef{ref})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = admin.Exec(ctx, `UPDATE photo.tasks SET inputs=$1::jsonb,
+ dispatch_command=jsonb_set(dispatch_command,'{inputs}',$1::jsonb) WHERE id=$2`, string(input), id.TaskID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	download := func(fence string, artifact uuid.UUID, expectedStatus int) {
+		t.Helper()
+		request, err := http.NewRequestWithContext(ctx, "GET", server.URL+"/internal/v1/tasks/"+task.String()+"/objects/"+artifact.String(), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		request.Header.Set("Authorization", "Bearer "+token)
+		request.Header.Set("X-Photo-Worker", id.WorkerID.String())
+		request.Header.Set("X-Photo-Attempt", "1")
+		request.Header.Set("X-Photo-Fence", fence)
+		response, err := client.Do(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer response.Body.Close()
+		if response.StatusCode != expectedStatus {
+			t.Fatalf("wire download status=%d expected=%d", response.StatusCode, expectedStatus)
+		}
+		if expectedStatus != http.StatusOK {
+			return
+		}
+		if response.ContentLength != size || response.Header.Get("X-Photo-SHA256") != digest || response.Header.Get("X-Photo-Artifact-ID") != ref.ArtifactID.String() {
+			t.Fatal("wire download metadata mismatch")
+		}
+		hash := sha256.New()
+		count, err := io.CopyBuffer(hash, response.Body, make([]byte, 65536))
+		if err != nil || count != size || hex.EncodeToString(hash.Sum(nil)) != digest {
+			t.Fatal("wire download bytes mismatch", err)
+		}
+	}
+	download("1", ref.ArtifactID, http.StatusOK)
+	download("2", ref.ArtifactID, http.StatusForbidden)
+	download("1", uuid.New(), http.StatusNotFound)
 	select {
 	case err := <-heartbeatErrors:
 		t.Fatal(err)

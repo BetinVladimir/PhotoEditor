@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 import {afterEach,expect,it,vi} from 'vitest';
 import {cleanup,fireEvent,render,screen,waitFor,act} from '@testing-library/react';
-const mocks=vi.hoisted(()=>({params:{id:'one',tenant:'tenant'},request:vi.fn(),snapshot:vi.fn(),sheet:vi.fn(),push:vi.fn(),media:vi.fn(),moderate:vi.fn()}));
+const mocks=vi.hoisted(()=>({params:{id:'one',tenant:'tenant'},request:vi.fn(),snapshot:vi.fn(),sheet:vi.fn(),push:vi.fn(),media:vi.fn(),moderate:vi.fn(),label:vi.fn()}));
 vi.mock('./gallery-comparison',()=>({GalleryComparison:()=>null}));
 vi.mock('react-native',async()=>import('react-native-web'));
 vi.mock('expo-router',()=>({useLocalSearchParams:()=>mocks.params,router:{push:mocks.push}}));
 const client={request:mocks.request};const auth={client:()=>client};
 vi.mock('./auth-context',()=>({useAuth:()=>auth}));
-vi.mock('./owner-api',()=>({OwnerAPI:class {mediaLinks=mocks.media;selectionSnapshot=mocks.snapshot;contactSheet=mocks.sheet;moderateApplyItem=mocks.moderate;}}));
+vi.mock('./owner-api',()=>({OwnerAPI:class {mediaLinks=mocks.media;selectionSnapshot=mocks.snapshot;contactSheet=mocks.sheet;moderateApplyItem=mocks.moderate;setItemColorLabel=mocks.label;}}));
 import CollectionDetail from '../app/collections/[id]/index';
 function deferred<T>(){let resolve!:(value:T)=>void;const promise=new Promise<T>(r=>resolve=r);return {promise,resolve};}
 afterEach(()=>{cleanup();vi.clearAllMocks();mocks.params={id:'one',tenant:'tenant'};});
@@ -40,5 +40,16 @@ it('reloads authoritative metadata after failed moderation without retrying the 
  render(<CollectionDetail/>);await screen.findByText('one');await waitFor(()=>expect(mocks.media).toHaveBeenCalled());
  fireEvent.click(screen.getByLabelText('Accept photo 1'));await screen.findByText('Some decisions were not saved. Reload the collection before retrying.');expect(mocks.moderate).toHaveBeenCalledTimes(1);
  expect(screen.queryByLabelText('Accept photo 1')).toBeNull();
- const count=mocks.request.mock.calls.length;fireEvent.click(screen.getByText('Reload collection'));await screen.findByText('one');await waitFor(()=>expect(mocks.request.mock.calls.length).toBe(count+2));expect(mocks.moderate).toHaveBeenCalledTimes(1);expect(screen.getByLabelText('Accept photo 1')).toBeDefined();
+ const reload=screen.getByRole('button',{name:'Reload collection'});
+ await waitFor(()=>expect(reload.hasAttribute('disabled')).toBe(false));
+ const count=mocks.request.mock.calls.length;fireEvent.click(reload);await screen.findByText('one');await waitFor(()=>expect(mocks.request.mock.calls.length).toBe(count+2));expect(mocks.moderate).toHaveBeenCalledTimes(1);expect(screen.getByLabelText('Accept photo 1')).toBeDefined();
+});
+it('reloads the full collection after changing a color label',async()=>{
+ load();mocks.label.mockResolvedValue({id:'item',color_label:'Blue'});
+ const original=mocks.request.getMockImplementation()!;let pages=0;
+ mocks.request.mockImplementation(async(path:string,...rest:unknown[])=>{const value=await original(path,...rest);if(path.includes('/items?')){pages++;return {...value,items:value.items.map((item:object)=>({...item,color_label:pages>1?'Blue':undefined}))}}return value});
+ render(<CollectionDetail/>);await screen.findByLabelText('Set Blue color label for photo 1');
+ fireEvent.click(screen.getByLabelText('Set Blue color label for photo 1'));
+ await waitFor(()=>expect(mocks.label).toHaveBeenCalledWith(expect.objectContaining({revision:'1'}),expect.objectContaining({id:'item'}),'Blue',expect.any(AbortSignal)));
+ await screen.findByLabelText('Color label Blue');expect(pages).toBe(2);
 });

@@ -1,0 +1,84 @@
+{
+  "recorded_at": "2026-10-08T10:05:59.212197+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "dirty_tree_hash": "a25402c4813e005d5f832e318ea6513e2f9132c1dd06d524b1392e83058a3ce7",
+  "source_manifest": "v27-person-dispatch-source.json",
+  "contracts_hash": "4092c7b6caacbfc2e6552f73a8e31a4cd53de3d5ca4ab165625d8423748d1d71",
+  "changes": [
+    "Qualified native person profiles now own model_lock_id/model_lock_sha/runtime_lock_sha/device_profile_sha, bound to Params and retained task proof.",
+    "Versioned person_profile_version recovery preserves old unpinned profiles without rewriting saved snapshots; malformed/partial/unknown identities refuse.",
+    "Version1 scratch includes actual16MiB V2InputIndex reservation, then final profile is checked against original resource limits.",
+    "Forward-only00903 preserves dispatch/claim OIDs and role grants; exact person model lock selection/claim validation and atomic native run start.",
+    "Actual admitted person task uses real reservation/claim, Python adapter, mTLS download/upload, immutable new NPY/PNG/MaskRef/Report, canonical commit/replay and physical independent verification. Model/runtime measurements are explicit deterministic test doubles.",
+    "Missing person protection support is classified separately from corrupt mask values; parent refuses with503 and recovery remains pending."
+  ],
+  "checks": [
+    {
+      "evidence": "v27-person-new-output-parent.xml",
+      "evidence_sha": "0236e25b2aadc48a69171b90c32d694c0ad149a5753cecf94cfa2ecdf6af71de",
+      "exit_code": 0,
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "evidence": "v27-person-dispatch-regression.xml",
+      "evidence_sha": "21b764d14c25c7e979a8cc8e71910f36064d18e4cb4f387a99e4ed1c5d45f8a8",
+      "exit_code": 0,
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "evidence": "v27-person-claim-denied.xml",
+      "evidence_sha": "731d0886f9020c0154d92900284b9e04696ef59ffb25d840b480f02c8b234fb0",
+      "exit_code": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "command": "scripts/run-platform.sh go -C backend test ./internal/v2input ./internal/semanticproposal ./internal/masknpy",
+      "exit_code": 0,
+      "evidence": "v27-person-identity-go.log",
+      "evidence_sha": "22a39b03c47b01612d6eb2e1d73cb12c9c1172a62f36feb8ad2b4776f465f903"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "native_person_actual_execution_plumbing",
+      "status": "verified_with_model_test_double",
+      "evidence": "v27-person-claim-denied.xml"
+    },
+    {
+      "id": "new_person_result_parent_protection_gate",
+      "status": "negative_verified",
+      "evidence": "v27-person-claim-denied.xml"
+    },
+    {
+      "id": "new_person_result_successful_parent_continuation",
+      "status": "incomplete",
+      "evidence": null
+    },
+    {
+      "id": "scientific_GPU_qualification",
+      "status": "unverified",
+      "evidence": null
+    }
+  ],
+  "limitations": [
+    "Real GPU LRASPP/model installation, quality corpus and full V27 acceptance remain unverified.",
+    "New-result-to-parent positive chain still requires an automatically produced canonical protection mask covering the new person result; current positive old case restores original fixture evidence and is not claimed as this chain.",
+    "Historical identity-free checkpoints remain unqualified/unavailable; locator replay preserves bytes rather than silently upgrading authority.",
+    "Incremental deployment migration/old-running Apply acceptance and full V20\u2013V32 goal remain open."
+  ],
+  "retained_failures": [
+    "v27-person-new-output-parent-unqualified-model.log",
+    "v27-person-new-output-parent-scratch-failed.log"
+  ]
+}

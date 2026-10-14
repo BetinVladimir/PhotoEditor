@@ -58,7 +58,7 @@ func (o *objects) RecoverImmutable(_ context.Context, key string, size int64, sh
 func setup() (Publisher, *repo, *objects, Scope) {
 	r := &repo{ticket: Reservation{ArtifactID: uuid.New(), Token: uuid.New()}}
 	o := &objects{}
-	return Publisher{r, o}, r, o, Scope{uuid.New(), uuid.New(), uuid.New(), "review_selection"}
+	return Publisher{r, o}, r, o, Scope{Tenant: uuid.New(), Run: uuid.New(), Owner: uuid.New(), Purpose: "review_selection"}
 }
 
 func TestPublishCanonicalAndRecover(t *testing.T) {
@@ -194,5 +194,26 @@ func TestLensPublicationPurposesAreExplicitAndBounded(t *testing.T) {
 		if _, err := DocumentKey(s, uuid.New()); err == nil {
 			t.Fatal("unrecognized lens purpose accepted", purpose)
 		}
+	}
+}
+
+func TestAssemblyParamsPublishKeepsLegacyBoundAndRejectsWrongPurpose(t *testing.T) {
+	p, r, o, s := setup()
+	s.Purpose = "task_params"
+	body := append([]byte(`{"value":"`), make([]byte, 1100000)...)
+	for i := len(`{"value":"`); i < len(body); i++ {
+		body[i] = 'a'
+	}
+	body = append(body, []byte(`"}`)...)
+	if _, err := p.Publish(context.Background(), s, body); !errors.Is(err, objectstore.ErrInvalid) || r.calls != 0 || o.put != 0 {
+		t.Fatal("legacy bound bypassed", err)
+	}
+	s.AssemblyLease = uuid.New()
+	if _, err := p.Publish(context.Background(), s, body); err != nil || r.complete != 1 || o.put != 1 {
+		t.Fatal("assembly publication failed", err)
+	}
+	s.Purpose = "review_selection"
+	if _, err := p.Publish(context.Background(), s, []byte(`{}`)); !errors.Is(err, objectstore.ErrInvalid) || r.complete != 1 || o.put != 1 {
+		t.Fatal("lease used outside assembly params", err)
 	}
 }

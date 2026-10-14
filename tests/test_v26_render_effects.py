@@ -66,3 +66,21 @@ def test_invalid_repair_metrics_cannot_reach_publication(change):
     item=replace(RepairEvidence('a'*64,1,9,None,1),**change)
     with pytest.raises(ValueError,match='EVIDENCE_INVALID'):
         unpack_render_base(RenderDefectStage(pixels,(item,),False))
+
+
+def test_layer_review_survives_combination_and_validates_all_layers():
+    from dataclasses import replace
+    from photo_worker.v2.render_effects import RenderLayerEffect,RenderCombinedEffects
+    repaired=RenderLayerEffect(uuid4(),'defects.repair','1','b'*64,
+        (RepairEvidence('a'*64,1,9,None,1),),False)
+    assert not effect_review_required(RenderCombinedEffects(None,(repaired,)))
+    skipped=replace(repaired,layer_id=uuid4(),
+        candidates=(RepairEvidence('a'*64,1,0,'protected',1),))
+    assert effect_review_required(RenderCombinedEffects(None,(repaired,skipped)))
+    invalid=replace(repaired,layer_id=uuid4(),runtime_sha256='unqualified')
+    with pytest.raises(ValueError,match='EVIDENCE_INVALID'):
+        effect_review_required(RenderCombinedEffects(None,(skipped,invalid)))
+    with pytest.raises(ValueError,match='EVIDENCE_INVALID'):
+        effect_review_required(RenderCombinedEffects(None,(repaired,repaired)))
+    with pytest.raises(ValueError,match='EVIDENCE_INVALID'):
+        effect_review_required(RenderCombinedEffects(None,()))

@@ -1,0 +1,43 @@
+{
+  "generated_at": "2026-10-08T17:51:29.252415+00:00",
+  "status": "implementing",
+  "module": "V27",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 64.152
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/v2input",
+      "photoeditor/backend/internal/v2draft",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "Automatic missing target skin creation and atomic registration/seal",
+    "Queued saved plan/transport restore",
+    "Canonical CPU worker commit, physical result verification and finish",
+    "Completed automatic repeat; independent SQL/S3 verification",
+    "Recover hook after person/detector/face readiness; hook itself not fresh-process tested"
+  ],
+  "limitations": [
+    "No fresh-process Recover/crash proof",
+    "Target defects, original transfer handoff and whole V27 acceptance remain open",
+    "Upstream ML doubles; no GPU/photo-quality acceptance",
+    "No new SQL changes or production migration"
+  ],
+  "sha256": {
+    "backend/internal/semanticproposal/native_target_skin_advance.go": "46e82d5c219da147fdc59f44f29b4f8120c1d377ce92caefa7eb19be81e5d1c8",
+    "backend/internal/semanticproposal/native_initial_pipeline_recovery_job.go": "6f7215ad823472c33cc8e4e5aba7e3975bdc694ad3f44cc58e61fa54f7352fb6",
+    "backend/internal/semanticproposal/native_target_skin_wire_probe_test.go": "4b593f754281499becc7613d58665d62355f636ea691af60eb41650636ded0ad",
+    "tests/integration/test_v27_semantic_intent_publication.py": "45c8bcce0b881b0cd605ba6434351c07f7832cecb586bec6ac36950d78c849aa",
+    "docs/implementation-v2/15-execution-contracts.md": "d17bb8dd69073c8f38d8b83668dafe06a83a28baae0beed294b606ca2db43f71",
+    "docs/implementation-v2/audit/v27-target-skin-advance-wire-current.xml": "a894985e9803216630f2ee126e125473ec5e8328bb879d1af2ece52e32b8d119",
+    "docs/implementation-v2/audit/v27-target-skin-advance-go-current.jsonl": "36e18cc04d6582ff743381033c45d7417803c785936c893e9be7f1b06cb95db2"
+  }
+}

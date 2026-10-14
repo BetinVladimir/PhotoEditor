@@ -1,0 +1,60 @@
+{
+  "generated_at": "2026-10-08T16:36:42.050496+00:00",
+  "status": "implementing",
+  "module": "V27",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "sql": {
+      "result": "PASS",
+      "tests": 22,
+      "seconds": 27.329
+    },
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 78.705
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/workflow",
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/semanticproposal",
+      "photoeditor/backend/internal/v2input"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "dedicated full target face evidence compiler and SQL admission barrier",
+    "both operations admissible after exact physical target detector result and registration",
+    "null substitutions of actor/run/parent/request/policy/binding/expected/Params/files/registration refuse",
+    "revoked session refuses admission and registered replay",
+    "00899 to 00932 metadata and function identity/security upgrade inventory"
+  ],
+  "limitations": [
+    "Go admission wrapper compiled; fixture directly exercises compiled packet through fixed SQL barrier",
+    "No dedicated target face atomic seal/replay, claim/output guards, canonical execution/finalization or automatic recovery yet",
+    "ML doubles/shared immutable WorkingImage; no GPU/image-quality qualification",
+    "No whole-module acceptance or production migration"
+  ],
+  "sha256": {
+    "backend/internal/semanticproposal/native_target_face_admission_evidence.go": "d5b4f2bfe6d085bd5de4706860f8a615ecbf1b19d0ba6392e44bdbf944ba6dc4",
+    "backend/internal/semanticproposal/native_target_face_admission_lock.go": "960550c73b87ac1f4a6af6485d31b71e33130258507c4777dac9db3dc686782b",
+    "backend/internal/semanticproposal/native_target_face_params.go": "4751d8d1134f4f29e94d925213e569a2331a3d306590260be17160e140e2c0c9",
+    "backend/internal/semanticproposal/native_target_face_transport.go": "4e718900c93d1029d74ad6850ff6b22246da2fbada9713b95b36b19d12534659",
+    "backend/internal/semanticproposal/native_target_face_begin.go": "0d74241d64243e4310132c86e2541999938ff1d1f8890f1ac340037daa5e3b86",
+    "backend/internal/semanticproposal/native_target_face_wire_probe_test.go": "661d71e9029d9e1d191ebdc7c1d47f94b9207e359d01565a7934d79744cda8b2",
+    "backend/internal/semanticproposal/native_target_face_registration.go": "3ac8e027df21465f5879591be78ccbca2c9c62aebbc1f871da78677a10e1e2d1",
+    "backend/internal/semanticproposal/native_target_face_task.go": "76fdf5b67da5aca8bd757b0b55ef6911dab80d5b8f4fbcf4dd3b8cfb1bcb68cc",
+    "backend/internal/semanticproposal/native_target_face_plan.go": "0dd57813922b51a988815dd29f8eee47bbec9b87e7f2c60c0b1d260d1e9699e4",
+    "backend/internal/semanticproposal/native_target_detector_result_pins.go": "fd613e8696777e9a578bdf0e5bdd4e4e746b4735e409a86a5d3e4cd1cd5b12b9",
+    "backend/db/migrations/00932_v27_target_face_admission.sql": "51757a39e13083b7ca98326148b8ea7135be7a18114424f1b93715078c3c3c36",
+    "tests/integration/test_v27_person_migration_upgrade.py": "c37a135d9c12ee951d9587be7a9f4c0c5d4f64d235f96574f2d59069f1de6ae7",
+    "tests/integration/test_v27_semantic_intent_publication.py": "e9003124808843fc174c323636c3c6a908bd5ccac232ee35179990ce6ac26180",
+    "tests/integration/v27_face_wire_probe.py": "48b5e0137b4c21dad221e0f64ae849227f7ba3bcfd0c1709e61980f0faa69165",
+    "docs/implementation-v2/03-database.md": "3e4d193fece3ad52dd144aee579d0ca25e449a819384452c9ae4f712aea64666",
+    "docs/implementation-v2/15-execution-contracts.md": "d630f5f6462b0ca930afd41ec5dc6206c0edf0024cc8520e0aa2916a27e94efe",
+    "docs/implementation-v2/audit/v27-target-face-admission-sql-current.xml": "c68e7a03f7c6ea1874c8edcdc6d4c107f85529943092100121a7a93c6bd9dec4",
+    "docs/implementation-v2/audit/v27-target-face-admission-wire-current.xml": "5bfaac82e79871205cd74d6ca3c93641045e878f6ebd373761b4f44be6fe80a5",
+    "docs/implementation-v2/audit/v27-target-face-admission-go-current.jsonl": "1a2840e42e8600babb3ac436fa0b68f695dbbdf8f327b403445f430c2743a425"
+  }
+}

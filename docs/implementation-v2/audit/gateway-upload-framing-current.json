@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-09",
+  "component": "Worker upload response framing",
+  "whole_module_accepted": false,
+  "production_code_changed": true,
+  "source_sha256": {
+    "workers/photo_worker/runtime/gateway.py": "05048a089972d05e1d9db1ced765c0557af214ac9fa21ce3c3212e011f64ad58",
+    "tests/platform/test_gateway.py": "a23c9009fdb399d35e968b2de317f5d22517b596f225bbe6b79006016f248d1f"
+  },
+  "checks": {
+    "tests": "17",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "time": "10.127",
+    "evidence": "gateway-upload-framing-current.xml"
+  },
+  "physical_bootstrap": {
+    "tests": "3",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "time": "101.052",
+    "status": "passed",
+    "accepted": true,
+    "evidence": "gateway-framing-live-bootstrap-current.xml"
+  },
+  "baseline_review": {
+    "old_sha256": "5eb20ab47ca32feb6a798f3e9225baa279b445d9e8af1c975d077037308eeac8",
+    "new_sha256": "05048a089972d05e1d9db1ced765c0557af214ac9fa21ce3c3212e011f64ad58",
+    "note": "Reviewed upload response framing: reject duplicate/invalid Content-Length, CL+TE, unsupported transfer coding and unexpected encoding; retain bounded EOF and chunked responses.17 real TLS tests pass. Physical Go/bootstrap compatibility rerun remains pending and not accepted yet."
+  },
+  "limitations": [
+    "TLS fault endpoint is a declared test handler; no real orphan object cleanup fault is exercised",
+    "Physical Go/SQL/objectstore bootstrap3PASS with declared model/qualification doubles; no real photo/GPU acceptance.",
+    "Whole V27 and V20-V32 remain unaccepted"
+  ],
+  "production_migrations_applied": false
+}

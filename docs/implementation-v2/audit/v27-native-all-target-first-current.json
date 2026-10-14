@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 first all-native parent admission",
+  "whole_module_accepted": false,
+  "migration_head": "00961",
+  "new_migrations": false,
+  "production_migrations_applied": false,
+  "checks": {
+    "go_four_packages": [
+      {
+        "package": "photoeditor/backend/internal/v2qualification",
+        "elapsed": 0
+      },
+      {
+        "package": "photoeditor/backend/internal/v2input",
+        "elapsed": 0.008
+      },
+      {
+        "package": "photoeditor/backend/internal/v2draft",
+        "elapsed": 0.008
+      },
+      {
+        "package": "photoeditor/backend/internal/semanticproposal",
+        "elapsed": 3.409
+      }
+    ],
+    "native_wire": "1 PASS425.80s; v27-native-all-target-first-wire-current.xml",
+    "documentation": "PASS55 tests/2267 static checks",
+    "diff_check": "PASS"
+  },
+  "source_manifest": "v27-native-all-target-first-source-current.json",
+  "source_manifest_sha256": "1e08f52cd9809aea2057dabd8c0dc4417f663e376c00738875897d0091aea3fe",
+  "quality_preservation": {
+    "workers_src_baseline_files": 544,
+    "changed": 0,
+    "real_photo_quality_accepted": false
+  },
+  "native_verified": [
+    "Production first-parent coordinator invoked before parent durable publication.",
+    "OriginalPinned reference and completed target reconstruction.",
+    "Params/graph compilation, blocked commit, transport publication/registration and committed activation.",
+    "Correct queued run/workflow ticket; independent ready sealed graph and single queued event/outbox."
+  ],
+  "remaining": [
+    "Full recovery-job claim/lease/record handoff and exact all-native recorder authority.",
+    "Partial publication repair/crash/unknown commit/restart replay/lifecycle/scale.",
+    "Whole V27 and V20–V32 acceptance."
+  ],
+  "limitations": [
+    "Recovery hook compiled; native test calls coordinator directly, not full ProcessOne.",
+    "Existing SQL recorder unchanged.",
+    "ROUTE/PROCESS/private task-comparison/repeated-replay branches not run.",
+    "Upstream ML doubles; no real-photo/GPU qualification."
+  ]
+}

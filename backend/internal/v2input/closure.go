@@ -77,15 +77,19 @@ func validEntry(entry Entry) bool {
 }
 
 func publish(ctx context.Context, task uuid.UUID, ordinal int, contract string, value any, out Publisher) (Ref, error) {
+	if err := ctx.Err(); err != nil { return Ref{}, err }
 	body, err := canonical.Marshal(value)
 	if err != nil || len(body) < 2 || len(body) > 1_048_576 {
 		return Ref{}, ErrInvalid
 	}
-	ref, err := out.Publish(ctx, task, ordinal, contract, body)
+	// Publisher callbacks must not change the intended canonical transport body.
+	sum := sha256.Sum256(body)
+	if err := ctx.Err(); err != nil { return Ref{}, err }
+	ref, err := out.Publish(ctx, task, ordinal, contract, append([]byte(nil), body...))
 	if err != nil {
 		return Ref{}, err
 	}
-	sum := sha256.Sum256(body)
+	if err := ctx.Err(); err != nil { return Ref{}, err }
 	if !validRef(ref) || ref.SHA256 != hex.EncodeToString(sum[:]) {
 		return Ref{}, ErrInvalid
 	}
@@ -138,6 +142,7 @@ func BuildInputClosure(ctx context.Context, task uuid.UUID, cursor Cursor, out P
 		if err != nil {
 			return Built{}, err
 		}
+		if err := ctx.Err(); err != nil { return Built{}, err }
 		if !ok {
 			break
 		}

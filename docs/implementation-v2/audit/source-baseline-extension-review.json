@@ -1,0 +1,35 @@
+{
+  "recorded_at": "2026-10-08T02:07:17.195741+00:00",
+  "scope": "review of baseline drift only; historical baseline and gate not changed",
+  "files": [
+    {
+      "path": "workers/photo_worker/contracts/images.py",
+      "historical_sha": "ef4102a776bc3dec21546992acedc71c25c58f4653039a6488dfd7c238cf52a5",
+      "head_matches_historical": true,
+      "current_sha": "595cce3d3be6e0584f371e7bfb8808bb76886be1cf973bedc44b171861f39433",
+      "original_bytes_prefix_preserved": true
+    },
+    {
+      "path": "workers/photo_worker/runtime/artifacts.py",
+      "historical_sha": "4052c0dffb31d55c81b3d875dc302002a4b887a5c505dd64c77701102d514faa",
+      "head_matches_historical": true,
+      "current_sha": "24e012bc898449ecbc142db97d91f1496f1380f66d26fc1d4add1a5e5d112d65",
+      "original_bytes_prefix_preserved": false,
+      "modified_original_methods": [],
+      "added_methods": [
+        "contract_bytes",
+        "declared_input_refs",
+        "require_declared_input"
+      ]
+    }
+  ],
+  "scoped_tests": {
+    "passed": 58,
+    "seconds": 8.02,
+    "scope": "v2 input closure/parameters and semantic geometry/closure/replay"
+  },
+  "remaining": [
+    "full runtime/legacy and photo-quality acceptance not proved",
+    "check-docs baseline gate still fails until documented reviewed evolution is reconciled"
+  ]
+}

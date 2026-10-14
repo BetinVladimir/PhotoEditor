@@ -1,0 +1,43 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "recorded_at": "2026-10-08T08:25:31.898315+00:00",
+  "scope": "current editor/parent authority on persisted semantic request recovery and foreground return",
+  "sources": {
+    "apps/photographer/src/persistent-semantic-create.tsx": "725eecb92b54c71f72d96aeba934294e376681297496b3f8f1b975aad6d15345",
+    "apps/photographer/src/persistent-semantic-create.test.tsx": "60b0e410d7a538c18092a3db18e7982d7c4ab2276ee47d2d467b0c5302d16fe1",
+    "apps/photographer/src/owner-api.ts": "b9af84d582ac3d86f2d11260378b4f81c6593d5cac3f8388974dd939106e390b",
+    "apps/photographer/src/semantic-create-wire.test.ts": "5dc41541e9ef753cd1fffc8c5f8ad9e4c9070aea6f276f37c3505213e2599daf",
+    "docs/implementation-v2/v27-client-attempt-recovery.md": "d48727e87063e8c738e5c38e2c04e5907c60a88cd82ef3d3c3c6cf4ec9eb290e"
+  },
+  "checks": [
+    {
+      "command": "npm --prefix apps/photographer test -- --reporter=dot",
+      "exit_code": 0,
+      "passed": 441,
+      "skipped": 7,
+      "files_passed": 89,
+      "files_skipped": 5,
+      "seconds": 10.17
+    },
+    {
+      "command": "npm --prefix apps/photographer run typecheck",
+      "exit_code": 0
+    }
+  ],
+  "behavior": [
+    "source editor authority checked before rendering unknown request",
+    "accepted parent authority checked through strict resolver and exact run/workflow before rendering saved ticket",
+    "unknown frozen source/body is never replaced by newer current asset binding",
+    "401/403/404/409 or failed read hides recovery form and starts no mutation",
+    "background abort/hide; foreground fresh me+journal+authority reads",
+    "lifecycle fence ignores late source checks and accepted-receipt clearing",
+    "OwnerAPI real SDK wire keeps cancellation signals"
+  ],
+  "limitations": [
+    "no full real UI/API/session/project revocation E2E matrix in this run",
+    "native/process-kill/full browser module acceptance open",
+    "no continuous authority polling while foreground idle",
+    "producer orchestration/lifecycle and source baseline gate remain open"
+  ]
+}

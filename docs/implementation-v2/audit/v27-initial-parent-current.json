@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "package_id": "V27",
+  "status": "implementing",
+  "sources": [
+    {
+      "path": "backend/internal/semanticproposal/native_initial_parent_admit.go",
+      "sha256": "7d5887d4ec7202574e526d06d7a327cbfb6aa6a30ce21f75a8e67e77187602a6"
+    },
+    {
+      "path": "backend/internal/semanticproposal/native_initial_parent_admit_test.go",
+      "sha256": "dc6627fe348d358d357c3b33a0071b432addd2c961227959ddc9afe17ced9a63"
+    },
+    {
+      "path": "backend/internal/semanticproposal/native_input_source_continuation.go",
+      "sha256": "eb2fa9ebda5a480a1deb75c2f550f21c27a429bcb0cec6500ce736d002a485b3"
+    },
+    {
+      "path": "backend/internal/semanticproposal/native_input_source_modes_test.go",
+      "sha256": "c0ec12ae2678fa724d79c123ed27e39c4d2b3601563fd5a46ddfc1be4d353b0b"
+    },
+    {
+      "path": "backend/internal/semanticproposal/native_input_transfer_original_recovery.go",
+      "sha256": "b026079e753f7e0be8a19928134b58077869b7fc63043247cb4c65bba936e2b2"
+    },
+    {
+      "path": "backend/internal/semanticproposal/native_initial_pipeline_recovery_job.go",
+      "sha256": "5559e8afad3caff9067f34e66d245ca91d02300fdda572ea101fe7e0b42d46be"
+    },
+    {
+      "path": "backend/internal/semanticproposal/native_bootstrap_integration_test.go",
+      "sha256": "9e88055a3170b8ac440e046300619c38715b78e37a840ab95c7c0a7847866ee2"
+    },
+    {
+      "path": "backend/internal/semanticproposal/transfer_target_selection.go",
+      "sha256": "781b895164c180c224e05fce08206776d22096a829195e5d4933f8fd85168914"
+    },
+    {
+      "path": "tests/integration/test_v27_semantic_intent_publication.py",
+      "sha256": "e756534690e4d6180821ca4e70e16d6265dd8fc401bc51c24637c992d0571c01"
+    },
+    {
+      "path": "tests/integration/v27_face_wire_probe.py",
+      "sha256": "0067005096d3a8af9d817aea3bfe31fb6803cc98bada3f5f2ff751b6c0dbfb4e"
+    },
+    {
+      "path": "docs/implementation-v2/v27-cpu-assembly-runtime.md",
+      "sha256": "c15279861505f3fac915b59bccade77ff9f64d1de2506f104cd94411c96c4eb5"
+    }
+  ],
+  "changes": [
+    "Added initial parent admission from registered person-protected defect output and existing-parent recovery of original target protection pins.",
+    "Original WorkingImage transfer source is physically verified separately; exact detector scope/ICC/object versions retained across validation mode comparison.",
+    "Initial scheduling stays waiting until durable parent completion transition exists."
+  ],
+  "checks": [
+    {
+      "command": "scripts/run-platform.sh go -C backend test ./internal/semanticproposal ./internal/v2input ./internal/review -count=1",
+      "exit_code": 0,
+      "scope": "three Go packages; environment-gated infrastructure not enabled"
+    },
+    {
+      "command": "PHOTO_TEST_V27_PERSON_DEFECT_FRESH=1 PHOTO_TEST_NATIVE_INFRA=1 PYTHONPATH=workers:src:tests/integration PYTHONDONTWRITEBYTECODE=1 .venv-platform/bin/python -m pytest tests/integration/test_v27_semantic_intent_publication.py -k native-person-defect-wire -q --tb=short --junitxml=docs/implementation-v2/audit/v27-parent-source-regression.xml",
+      "exit_code": 0,
+      "passed": 1,
+      "deselected": 21,
+      "seconds": 54.48,
+      "evidence": {
+        "path": "docs/implementation-v2/audit/v27-parent-source-regression.xml",
+        "sha256": "cef083f08a6ec353a801918cd184fa4d5b77611d361593c5f180b003abfa9315"
+      },
+      "scope": "fresh automatic defect, replay, substitution refusal, CPU result, registered protection and probability coverage; parent mode disabled"
+    },
+    {
+      "command": "same physical selection with PHOTO_TEST_V27_PERSON_DEFECT_PARENT=1",
+      "exit_code": 1,
+      "evidence": {
+        "path": "docs/implementation-v2/audit/v27-automatic-parent-source-modes.xml",
+        "sha256": "5ae2f4040b09c2ff6efb1ae21a8e59be7d128348d57c04c334790d6af6dd0293"
+      },
+      "scope": "diagnostic after mode comparison fix: reference person authority passes, target selection refuses ambiguous protection inventory; parent not admitted"
+    }
+  ],
+  "open_requirements": [
+    {
+      "id": "target-authority",
+      "status": "incomplete",
+      "evidence": "initial native parent target protection selection: V2 admission idempotency conflict",
+      "next_action": "Implement durable original per-target protection authority/preparation; preserve refusal of arbitrary or ambiguous candidates."
+    },
+    {
+      "id": "positive-parent-admission-and-recovery",
+      "status": "unverified"
+    },
+    {
+      "id": "durable-initial-completion",
+      "status": "incomplete"
+    },
+    {
+      "id": "newly-inferred-original-person",
+      "status": "unverified"
+    }
+  ],
+  "limitations": [
+    "Parent implementation is not physically accepted; diagnostic failure is retained and not counted as PASS.",
+    "Original transfer source recovery adjustment has package coverage but no positive original-recovery integration yet.",
+    "Imported person mask, deterministic face inference and synthetic qualification fixtures do not prove ML/GPU quality.",
+    "Whole V27 and full V20-V32 acceptance remain unproven."
+  ]
+}

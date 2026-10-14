@@ -1,0 +1,45 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "generated_at": "2026-10-08T14:07:20.008285+00:00",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "source_scope": {
+    "backend/internal/semanticproposal/native_target_preparation_manifest.go": "ead1d88428863ac025fbec53cb0fe1aaa4df77a9bed7223d74edae2d68b780cf",
+    "backend/internal/semanticproposal/native_target_preparation_manifest_test.go": "ddadf725a020986e9657601a86eb7803217f1dd92cb0b7e606cf49d93496a1a2",
+    "backend/internal/semanticproposal/native_initial_parent_admit.go": "9d3c315d29ddc97e163931c90040a1d1fd9f5eb4e01ce5ef18b6fdf40b268bd4"
+  },
+  "checks": [
+    {
+      "command": "scripts/run-platform.sh go -C backend test -json ./internal/semanticproposal ./internal/v2input ./internal/review",
+      "exit_code": 0,
+      "evidence": "docs/implementation-v2/audit/v27-target-restore-current.jsonl",
+      "evidence_sha": "37d16c10da1d0842b55f157d2ad3576bfb9bed79d7a67e309ee54472728a6e3e",
+      "packages_passed": [
+        "photoeditor/backend/internal/semanticproposal",
+        "photoeditor/backend/internal/v2input",
+        "photoeditor/backend/internal/review"
+      ]
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "requirements": [
+    {
+      "id": "target-manifest-untrusted-restore",
+      "status": "component_verified",
+      "evidence": "Current JSONL: scope/DAG substitutions with recalculated SHA, byte bounds/canonical identity, checksum, cancellation and buffer ownership"
+    },
+    {
+      "id": "V27-whole-module",
+      "status": "not_accepted"
+    }
+  ],
+  "limitations": [
+    "Source hashes cover listed component files only; not a whole dirty-tree release acceptance",
+    "SQL manifest persistence and target producer orchestration not implemented",
+    "No fresh/upgrade DB evidence required by future persistence migration; no new migration in this change",
+    "No actual model/GPU/corpus/browser or whole V27 acceptance"
+  ]
+}

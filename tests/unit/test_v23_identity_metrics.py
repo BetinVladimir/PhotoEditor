@@ -124,3 +124,21 @@ def test_invalid_canvas_and_duplicate_identity_rejected():
                                       canvas_size=(0,512),
                                       outside_mask_max_error=0,
                                       protected_max_error=0)
+
+
+@pytest.mark.parametrize('stop_at', [1, 2, 3, 4])
+def test_pixel_guards_check_activity_before_each_tile_and_return(stop_at):
+    from photo_worker.runtime.executor import LeaseLost
+    from photo_worker.operations.identity.metrics import measure_pixel_guards
+    checks = 0
+    def active():
+        nonlocal checks
+        checks += 1
+        if checks == stop_at:
+            raise LeaseLost('guard lease lost')
+    rgb = np.zeros((128, 256, 3), np.float32)
+    with pytest.raises(LeaseLost, match='guard lease lost'):
+        measure_pixel_guards(rgb, rgb, np.ones((128, 256), np.float32),
+                             np.zeros((128, 256), np.float32), tile=128,
+                             check_active=active)
+    assert checks == stop_at

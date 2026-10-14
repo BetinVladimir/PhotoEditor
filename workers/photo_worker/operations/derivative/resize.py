@@ -8,12 +8,34 @@ from photo_worker.contracts.images import Canvas,Rect,ResizeTransform,TransformC
 from photo_worker.runtime.artifacts import ArtifactConfig,TaskArtifacts
 from photo_worker.runtime.executor import ExecutionContext,Operation,OperationFailure,OperationResult
 from .common import open_image,stage_arrays,validate_image
+from .memory import admit_derivative
 
 
 def _dimensions(w,h,p):
     scale=p.long_edge/max(w,h) if p.long_edge is not None else min(p.width/w,p.height/h)
     if not p.allow_upscale:scale=min(1.,scale)
     return max(1,round(w*scale)),max(1,round(h*scale))
+
+
+def _resize_pixels(rgb, alpha, width, height):
+    """Resize in linear light; translucent RGB uses premultiplied opacity."""
+    if alpha is not None and (alpha.shape != rgb.shape[:2] or
+            alpha.dtype != np.float32 or not np.isfinite(alpha).all() or
+            np.any((alpha < 0) | (alpha > 1))):
+        raise ValueError('RESIZE_ALPHA_INVALID')
+    if (width, height) == (rgb.shape[1], rgb.shape[0]):
+        return np.array(rgb, copy=True), None if alpha is None else np.array(alpha, copy=True)
+    interpolation = cv2.INTER_AREA if width < rgb.shape[1] or height < rgb.shape[0] else cv2.INTER_LANCZOS4
+    linear = to_linear(np.asarray(rgb))
+    if alpha is None or np.all(alpha == 1):
+        out = to_encoded(cv2.resize(linear, (width, height), interpolation=interpolation))
+        opacity = None if alpha is None else np.clip(cv2.resize(alpha, (width, height), interpolation=interpolation), 0, 1)
+        return out, opacity
+    premult = cv2.resize(linear * alpha[..., None], (width, height), interpolation=interpolation)
+    opacity = np.clip(cv2.resize(alpha, (width, height), interpolation=interpolation), 0, 1).astype(np.float32)
+    straight = np.zeros_like(premult)
+    np.divide(premult, opacity[..., None], out=straight, where=opacity[..., None] > 1e-6)
+    return to_encoded(np.clip(straight, 0, 1)), opacity
 
 
 def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
@@ -23,14 +45,12 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
         w,h=_dimensions(image.canvas.width,image.canvas.height,p)
         if w*h>200000000:raise ValueError('OUTPUT_PIXELS_LIMIT')
     except ValueError as exc:raise OperationFailure('INPUT_INVALID') from exc
+    admit_derivative(ctx.lease.execution_profile,image.canvas.width,image.canvas.height,w,h)
     ctx.progress(0,4)
     with ExitStack() as stack:
         rgb,alpha=open_image(stack,ctx,artifacts,image);same=(w,h)==(image.canvas.width,image.canvas.height)
-        if same:out=np.array(rgb,copy=True);out_alpha=None if alpha is None else np.array(alpha,copy=True)
-        else:
-            interpolation=cv2.INTER_AREA if w<image.canvas.width or h<image.canvas.height else cv2.INTER_LANCZOS4
-            out=to_encoded(cv2.resize(to_linear(np.asarray(rgb)),(w,h),interpolation=interpolation));out_alpha=None if alpha is None else np.clip(cv2.resize(alpha,(w,h),interpolation=interpolation),0,1)
-        with artifacts.scratch.reserve(w*h*(14 if alpha is not None else 12)+8192) as reservation:
+        out,out_alpha=_resize_pixels(rgb,alpha,w,h)
+        with artifacts.scratch.reserve(w*h*(16 if alpha is not None else 12)+8192) as reservation:
             pixel,alpha_ref,outputs,written=stage_arrays(artifacts,reservation,out,out_alpha)
     canvas=Canvas(width=w,height=h,orientation=1,space_id='resize:'+canonical_hash({'image':p.image.model_dump(mode='json'),'width':w,'height':h})[:32],source_sha256=image.canvas.source_sha256);step=ResizeTransform(kind='resize',from_canvas=image.canvas,to_canvas=canvas,invertibility='invertible',valid_region=Rect(x=0,y=0,width=w,height=h),pixel_centers='half_pixel');chain=TransformChain.create([*image.transform_chain.steps,step]);result_image=WorkingImage(pixels=pixel,canvas=canvas,color=image.color,dtype='float32',alpha=alpha_ref,transform_chain=chain);image_ref=artifacts.stage_contract(result_image,'working_image');report=DerivativeReport(image=p.image,operation='resize',applied=not same,width=w,height=h,max_channel_delta=0,warnings=['no_resize_required'] if same else []);report_ref=artifacts.stage_contract(report,'derivative_report');ctx.progress(4,4);return OperationResult(outputs=[*outputs,image_ref,report_ref],bytes_written=written+len(canonical_bytes(result_image))+len(canonical_bytes(report)))
 

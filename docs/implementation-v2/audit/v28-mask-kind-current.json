@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-09",
+  "package": "V28",
+  "component": "Restore existing Mask.Create run kind",
+  "migration_head": "00975",
+  "whole_module_accepted": false,
+  "production_code_changed": true,
+  "production_migrations_applied": false,
+  "source_sha256": {
+    "backend/db/migrations/00975_restore_mask_run_kind.sql": "cec34b969bd0d4c5436931d2444d162b8a766ef312e989e5bf1a3d20f5329bb9",
+    "backend/internal/interactive/service.go": "c2227be91ff1d6a9af7e702410a4a38765e6f70ac41ae162593e4806fc7d0bc0",
+    "tests/integration/test_v28_manual_origin_sql.py": "5502cee53fa52d6e9f9f2b761e9b50c43d33f74a530e5db29bd25a54db96ff54",
+    "tests/integration/test_mask_run_kind_upgrade.py": "aa8ec3dd85668d4e21461270e185d72378300f8d06562891a03fc22ef4bfb0dc"
+  },
+  "root_cause": "Mask.Create emits runs.kind=mask and V28 producer guards require mask, but runs_domain_0 rejects it. Positive fixture reproduced CheckViolation before any origin query.",
+  "fix": "Forward-only00975 preserves all previously allowed kinds and adds only mask; separate runs_v2_fail_fast unchanged. No source SQL guard weakened.",
+  "checks": {
+    "positive_manual_origin": "1PASS2.15s, actual scheduler role, canonical finished task/result; foreign tenant/session and altered produced fence refused",
+    "initial_failure": "v28-manual-origin-initial-failed.xml retained",
+    "fresh_upgrade_goose_regression": {
+      "tests": "7",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "19.941",
+      "status": "passed",
+      "accepted": true,
+      "xml": "v28-mask-kind-regression-current.xml"
+    }
+  },
+  "limitations": [
+    "Manual origin fixture seeds canonical metadata; no original mask bytes/raster replay/model IO",
+    "No public Mask.Create full HTTP request or full V28 execution acceptance claimed",
+    "Full V28 and V20-V32 goal remain open"
+  ]
+}

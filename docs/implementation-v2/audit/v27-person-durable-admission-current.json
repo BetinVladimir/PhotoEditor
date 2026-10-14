@@ -1,0 +1,61 @@
+{
+  "recorded_at": "2026-10-08T09:07:37.790095+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "scope": "Durable independent original person-child admission recovery; not full V27 acceptance",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "sources": {
+    "backend/db/migrations/00901_v27_person_admission_recovery.sql": "0c2d96608c2496d46ad0e22919bd9784ee0e7066d2113758a7d668985bf1c733",
+    "backend/internal/semanticproposal/person_draft_begin.go": "4042cc6e34b8b500dd0d402b8b840aec33aea2ad3d78afebb65cc21d309ea90b",
+    "backend/internal/semanticproposal/person_admission_recovery_job.go": "b9c797ebd3a14e4a87a994b448205e20f725166b37687b201d170ef08de93114",
+    "backend/internal/semanticproposal/person_admission_dispatcher.go": "34e622b6cf8ffec1a6c898535c1b8808ced5f20309e4f9c2c2e4dba6d8c60488",
+    "backend/internal/semanticproposal/native_initial_recovery_dispatcher.go": "7449200522b1f89e28298c19f1176c6677d7a151450c0a891725b43966a59742",
+    "backend/internal/semanticproposal/native_bootstrap_integration_test.go": "4dc22de74061b83f97bf3429d69423d0e8dfbbfed7f4161f542b259026330839",
+    "backend/internal/semanticproposal/create_http_probe_test.go": "1b5cce14d90dd277dac50eda0db7d8892283cf9c51b1f70ab89ccc3017b55e60",
+    "tests/integration/test_v27_semantic_intent_publication.py": "1fd3bd3f6dcbe8e4a8a0d91a60e6b4c7d7aeb73e1c24d4aca58e995afd0f4009"
+  },
+  "source_manifest_unchanged_after_checks": true,
+  "checks": [
+    {
+      "command": "scripts/run-platform.sh go -C backend test ./internal/semanticproposal ./internal/workflow ./internal/v2input ./internal/httpapi ./cmd/photo",
+      "exit_code": 0,
+      "semanticproposal_seconds": 2.422,
+      "workflow_seconds": 1.418
+    },
+    {
+      "command": "PHOTO_TEST_NATIVE_INFRA=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=workers:src:tests/integration .venv-platform/bin/python -m pytest tests/integration/test_v27_semantic_intent_publication.py -k \"native-bootstrap or create-person or create-service\" -q --tb=short",
+      "exit_code": 0,
+      "passed": 3,
+      "deselected": 15,
+      "seconds": 88.81,
+      "required_markers": [
+        "V27_PERSON_DURABLE_ADMISSION_RECOVERY_OK",
+        "V27_PERSON_STANDALONE_DURABLE_REPLAY_OK"
+      ]
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "behavior": [
+    "00901 forward-only scheduler-only enable/discovery/claim/record functions; existing guarded per-run lease fields reused independently on person runs.",
+    "New person blocked draft and enabled recovery metadata commit atomically before transport publication.",
+    "Recover uses original parent advisory lock, person anchor physical bytes and exact immutable plan restore; unsealed original transport registration/admission continues.",
+    "Production scheduler rotates parent, face-initial and independent person queues.",
+    "Synthetic blocked transport fault through ProcessOne records failures1, clears lease, retains blocked shell and future backoff; immediate claim refuses; fixture advances only own due time as metadata owner; next ProcessOne admits original child and next cannot reclaim.",
+    "Public no-detector person child project discovery and ProcessOne receipt replay; done metadata and stale token refusal; original queue/event/outbox/receipt/config checks unchanged.",
+    "Fresh isolated PostgreSQL applies all migrations; real role EXECUTE deny/allowlist checks; versioned MinIO closure/storage/quota verification."
+  ],
+  "prior_failures": [
+    "First physical native bootstrap failed because new claim selector incorrectly referenced detector_run_id; corrected to person_run_id.",
+    "Final test collection initially failed due indentation of newly required Python marker; corrected before final3PASS."
+  ],
+  "limitations": [
+    "Synthetic imported qualification and synthetic RGB fixtures, not actual GPU/model quality evidence.",
+    "No incremental old-deployment upgrade acceptance or legacy backfill claimed.",
+    "New person result adoption and automatic ordinary parent continuation still unfinished.",
+    "Target prerequisites, full browser/native/GC/purge/real-photo acceptance and full V20\u2013V32 remain open.",
+    "Full V27 module not accepted."
+  ]
+}

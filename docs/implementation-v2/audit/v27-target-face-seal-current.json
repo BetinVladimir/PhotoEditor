@@ -1,0 +1,63 @@
+{
+  "generated_at": "2026-10-08T16:39:47.244292+00:00",
+  "status": "implementing",
+  "module": "V27",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "sql": {
+      "result": "PASS",
+      "tests": 23,
+      "seconds": 27.792
+    },
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 55.301
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/workflow",
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/semanticproposal",
+      "photoeditor/backend/internal/v2input"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "dedicated target face atomic activation via production Go seal wrapper",
+    "both landmarks and parse queued/ready and exact ticket replay",
+    "exactly one queued event and outbox item per target stage",
+    "revoked session rejects sealed retry; restored session permits exact retry",
+    "private sealed scope/registration/evidence validators and scheduler-only seal ACL",
+    "00899 to 00933 upgrade metadata and existing function identity/security preservation"
+  ],
+  "limitations": [
+    "No target face worker claim/output guard, canonical execution/result/finalization or automatic recovery yet",
+    "No running/completed target face sealed replay proof yet",
+    "No expiry/cancel/purge/failure race coverage for this slice",
+    "ML doubles/shared WorkingImage; no GPU/image-quality or whole-module acceptance",
+    "No production migration"
+  ],
+  "sha256": {
+    "backend/internal/semanticproposal/native_target_face_admission_evidence.go": "d5b4f2bfe6d085bd5de4706860f8a615ecbf1b19d0ba6392e44bdbf944ba6dc4",
+    "backend/internal/semanticproposal/native_target_face_admission_lock.go": "960550c73b87ac1f4a6af6485d31b71e33130258507c4777dac9db3dc686782b",
+    "backend/internal/semanticproposal/native_target_face_params.go": "4751d8d1134f4f29e94d925213e569a2331a3d306590260be17160e140e2c0c9",
+    "backend/internal/semanticproposal/native_target_face_transport.go": "4e718900c93d1029d74ad6850ff6b22246da2fbada9713b95b36b19d12534659",
+    "backend/internal/semanticproposal/native_target_face_begin.go": "0d74241d64243e4310132c86e2541999938ff1d1f8890f1ac340037daa5e3b86",
+    "backend/internal/semanticproposal/native_target_face_seal.go": "127df86d708c7a7c95b6b8899f1a4d5ddd491c41c3b1d96bdc2d85655c937723",
+    "backend/internal/semanticproposal/native_target_face_wire_probe_test.go": "c851a7056069ce35d0bfcc5533f69722840e01651dfe2214f74125698d24f35d",
+    "backend/internal/semanticproposal/native_target_face_registration.go": "3ac8e027df21465f5879591be78ccbca2c9c62aebbc1f871da78677a10e1e2d1",
+    "backend/internal/semanticproposal/native_target_face_task.go": "76fdf5b67da5aca8bd757b0b55ef6911dab80d5b8f4fbcf4dd3b8cfb1bcb68cc",
+    "backend/internal/semanticproposal/native_target_face_plan.go": "0dd57813922b51a988815dd29f8eee47bbec9b87e7f2c60c0b1d260d1e9699e4",
+    "backend/db/migrations/00933_v27_target_face_atomic_seal.sql": "8ea00d2446e82cdd062e57b5d7d2f27b1e0700618f18808aedecfc4e78103412",
+    "tests/integration/test_v27_person_migration_upgrade.py": "27a33e4af92873cfcb88075809db23fd5f6a082e860220836a30377911c40a26",
+    "tests/integration/test_v27_target_face_registration.py": "4c63867e65a642882447d5d2e84b0c9b6024df0e6cb4ca91a393e23c7865153f",
+    "tests/integration/test_v27_semantic_intent_publication.py": "d4bd14f4f5e1d61e64e4da187f7905c4641929eae828a940f885ae3526199259",
+    "tests/integration/v27_face_wire_probe.py": "3a422c9802a2670be2d35e31b1522df147c49c024c34c4656782612afb047afb",
+    "docs/implementation-v2/03-database.md": "d50c5d704a2b430d99c91831a4d065e0ae88cae4060438adb1cef7019824b6ca",
+    "docs/implementation-v2/15-execution-contracts.md": "2cbf25cbdecca0adf3d19cedcfbf7e098657a1027cf48ca9e602fde31bf9a834",
+    "docs/implementation-v2/audit/v27-target-face-seal-sql-current.xml": "ba88e3e5864635ba94933fa62e46422708946e4846f416dfaecb2d420b4e7323",
+    "docs/implementation-v2/audit/v27-target-face-seal-wire-current.xml": "7c6ad94c428102e66b7fc2a0ee3275226921a7813aba522c6dcbf6f6975ad35a",
+    "docs/implementation-v2/audit/v27-target-face-seal-go-current.jsonl": "c3284fa4507f2a775c2e74f0b5f1720db99cd416cbb4fa63b8afd5c631fca43c"
+  }
+}

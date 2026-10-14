@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 upstream qualification liveness at all-native handoff",
+  "whole_module_accepted": false,
+  "migration_head": "00965",
+  "new_migration": "00965_v27_handoff_upstream_qualification.sql",
+  "production_migrations_applied": false,
+  "checks": {
+    "go_five_packages": [
+      {
+        "package": "photoeditor/backend/internal/v2qualification",
+        "elapsed": 0
+      },
+      {
+        "package": "photoeditor/backend/internal/v2input",
+        "elapsed": 0.009
+      },
+      {
+        "package": "photoeditor/backend/internal/v2draft",
+        "elapsed": 0.011
+      },
+      {
+        "package": "photoeditor/backend/internal/workflow",
+        "elapsed": 0.013
+      },
+      {
+        "package": "photoeditor/backend/internal/semanticproposal",
+        "elapsed": 3.331
+      }
+    ],
+    "native_wire": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "1",
+      "time": "505.634",
+      "timestamp": "2026-10-09T04:54:05.302140+03:00",
+      "hostname": "Mac"
+    },
+    "sql_upgrade_roles_and_handoff": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "21",
+      "time": "17.932",
+      "timestamp": "2026-10-09T04:53:25.708775+03:00",
+      "hostname": "Mac"
+    },
+    "documentation": "PASS55 tests/2267 static checks",
+    "diff_check": "PASS"
+  },
+  "source_manifest": "v27-handoff-qualification-source-current.json",
+  "source_manifest_sha256": "c06f48b37d60d3c42acddd9daa843ef2beb5b15030d7916aaf5226cd683c511a",
+  "source_files": 4811,
+  "quality_preservation": {
+    "workers_src_baseline_files": 544,
+    "changed": 0,
+    "real_photo_quality_accepted": false
+  },
+  "verified": [
+    "Full checkpoint-job admission and successful snapshot-bound recorder after revalidation of exact original/target stage chains.",
+    "Twenty rollback-only saved-stage mutations: five operations, reference/target locators, import deletion/report expiry; every recorder refusal retains done/token.",
+    "Distinct writer backend cannot DELETE target person qualification until positive handoff transaction releases locks; same mutation then succeeds and rolls back.",
+    "Existing six policy revocations, snapshot/no-bypass checks, row lifecycle/lock and natural TTL probes rerun.",
+    "Fresh schema and00899\u219200965 upgrade preserve tenant metadata and existing OID/ACL invariants; new helper has no application EXECUTE grant."
+  ],
+  "remaining": [
+    "Separate-import target isolation proof; reports may be shared by reference/target fixtures.",
+    "Mixed lifecycle deadlocks, exact report object-version races and natural report TTL interleaving.",
+    "Original reference locator-version, pending target stage progression, partial publication repair with saved quota reservation.",
+    "Commit ambiguity, restart/replay, GC/purge/deadletter/5000 scale, real-photo/GPU and whole V27/V20\u2013V32 acceptance."
+  ],
+  "limitations": [
+    "Upstream ML doubles; no real-photo/GPU qualification.",
+    "505.64s native test stays within unchanged600s fixture deadline; not a production latency/SLA claim.",
+    "Other native branches not executed.",
+    "Immutable qualification rows are deleted or their reports expired in isolated rollback fixtures; no production revocation or migration performed."
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 scoped all-native saved config lookup and decoder",
+  "component_checks_passed": true,
+  "whole_module_accepted": false,
+  "migration_head": "00961",
+  "production_migrations_applied": false,
+  "checks": {
+    "go": "4 packages PASS; work/native-targets-saved-go.log",
+    "sql": "9 PASS4.94s; v27-native-targets-saved-sql-current.xml",
+    "native_wire": "1 PASS284.93s; v27-native-targets-saved-wire-current.xml",
+    "python_syntax": "PASS",
+    "diff_check": "PASS"
+  },
+  "source_manifest": "v27-native-targets-saved-source-current.json",
+  "source_manifest_sha256": "b06741e58a6edeb21855101dfea2d9082b2b2b142b984452f1de7315e5c7ed5d",
+  "quality_preservation": {
+    "workers_src_baseline_files": 544,
+    "changed": 0,
+    "real_photo_quality_accepted": false
+  },
+  "remaining": [
+    "Atomic all-native Begin/register/seal/replay with original-reference and every target00959 lock.",
+    "Full saved graph recovery, process restart/crash recovery and original parent handoff.",
+    "Whole V27 module and V20\u2013V32 acceptance."
+  ],
+  "limitations": [
+    "SQL fixture proves scoped metadata reads, not graph/model authority.",
+    "Native prerequisite scenario uses upstream ML doubles and actual CPU defects/DB/S3/mTLS.",
+    "No original parent draft or ticket created by saved lookup."
+  ]
+}

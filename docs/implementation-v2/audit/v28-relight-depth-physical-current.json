@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 physical original DepthParams authority",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "checks": {
+    "physical": {
+      "passed": 6,
+      "seconds": 11.82,
+      "xml": "v28-relight-depth-physical-current.xml"
+    },
+    "components": {
+      "passed": 34,
+      "xml": "v28-relight-depth-physical-components-current.xml"
+    }
+  },
+  "source_sha256": {
+    "workers/photo_worker/operations/portrait/relight_depth_authority.py": "b098d5ac76f940f92d4a55dc20ddcbc1b937e650d5bb6b4dfbda9bc99b5c8f6a",
+    "tests/integration/test_v28_relight_depth.py": "46a596f74756c42caad206280cc05c3466007a9e9ee4e9536455c93b6755558a",
+    "tests/integration/test_v28_relight_depth_physical.py": "152e1ca1a682440df819c13a30cf83b606de609ef51666fcc0900d9d402bc9f2"
+  },
+  "limitations": [
+    "Owner-seeded canonical depth producer/lease and placeholder depth pixels, no actual depth inference",
+    "Full image source/closure/mask authority, installation/adoption/UI and real quality qualification pending"
+  ]
+}

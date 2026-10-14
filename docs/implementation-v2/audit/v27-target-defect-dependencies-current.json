@@ -1,0 +1,48 @@
+{
+  "generated_at": "2026-10-08T18:13:33.950361+00:00",
+  "status": "implementing",
+  "package_id": "V27",
+  "module": "V27",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 89.951
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/v2draft",
+      "photoeditor/backend/internal/v2input",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "Complete target physical prerequisite preparation before consumer transaction",
+    "Exact persisted transport recovery and original-parent-bound person/landmarks/skin packets retained",
+    "Dedicated scheduler canonical consumer locks in person/landmarks/skin order",
+    "Canonical consumer replay, four evidence substitutions, invalid rehashed skin packet at SQL boundary and revoked/restored session pass",
+    "Current physical prerequisites, Params/qualification/task/plan and independent no-activation verifier repeated"
+  ],
+  "limitations": [
+    "Consumer barrier alone does not independently require completed run state for every producer; blocked begin must add completed-state locks",
+    "No target defect persisted blocked draft, qualification SQL admission, registration or seal yet",
+    "Native target defect worker/result/finalization/recovery and original transfer handoff/fresh-process Recover required",
+    "No whole V27 acceptance or GPU/photo-quality qualification",
+    "No SQL changes or production migration"
+  ],
+  "sha256": {
+    "backend/internal/semanticproposal/native_target_defect_dependencies.go": "612d8081aa1fb8a05d387701b8ef4fd2b86a5bab31ce58e7e08554a3fd178371",
+    "backend/internal/semanticproposal/native_target_defect_dependency_probe_test.go": "fc26fd221937c0a45bdd57f70699515752c1d5a2757d808ef1b374608f96276b",
+    "backend/internal/semanticproposal/native_target_defect_wire_probe_test.go": "029f273b3f9771011900cc5b0762d732c87ad8a750ee0ca7d22ea3f47fdd5962",
+    "backend/internal/semanticproposal/native_target_skin_wire_probe_test.go": "402ecba4952e80b8d76f747fdc1222d76124dc8fecc4073f4eafd87dfe4303b3",
+    "backend/internal/semanticproposal/native_target_defect_preparation.go": "6b42d04c2c49b3d4b764e3595a9b8b458b1130e01a95314faa8c4a538eabb54a",
+    "tests/integration/test_v27_semantic_intent_publication.py": "c3c6496f0fd3b11dd5aab41f8d77ae8c4e4d8dcc5eeb89c659404a2a0fbccffb",
+    "tests/integration/v27_face_wire_probe.py": "bf650ee8f86fe33ae1df3ef70c6d664ddf1d0f2bb77ae57c8281191f2579e252",
+    "docs/implementation-v2/15-execution-contracts.md": "da30e61eb10454e455c07679e557cef679d958151c713e5437e7abb62f434e10",
+    "docs/implementation-v2/audit/v27-target-defect-dependencies-wire-current.xml": "d9b069daf0b8d5f886f48e016d1fc1b9a96e07125c4e64f1e33925384a579e09",
+    "docs/implementation-v2/audit/v27-target-defect-dependencies-go-current.jsonl": "cf909d8233d49c8d8032464bca510e4f2d1649f09e99ac2a700769271be1eca4"
+  }
+}

@@ -1,0 +1,657 @@
+{
+  "scope": "native_input production files only; comparisons reviewed with containing struct fields",
+  "limitations": "Static call-site inventory is not full-module/manual runtime acceptance. Executable closures are handled by typed helpers, whose seals do not replace physical readers or SQL locks.",
+  "remaining_reflect_calls": [
+    {
+      "file": "backend/internal/semanticproposal/native_input_defect_dependency_restore.go",
+      "line": 43,
+      "expression": "if !reflect.DeepEqual(before, after) {",
+      "source_sha256": "1092b5d73a29e62283630ffc0ad257d5d6c6457647e920fd085549a908793829",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_defect_plan_restore.go",
+      "line": 64,
+      "expression": "if paramsObject != afterObject || !reflect.DeepEqual(saved, after) {",
+      "source_sha256": "7aa34b7b601c5cbe2c8813677458bad3cb9a398e9826bc0d59bd0beacd2e3196",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_defect_protection.go",
+      "line": 45,
+      "expression": "if !reflect.DeepEqual(after, result) {",
+      "source_sha256": "b1611f7838b857a11614c94ea688ec740057a86b90000b97fb5ab21b1e770fc1",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_defect_protection_publish.go",
+      "line": 49,
+      "expression": "if after.document != prepared.document || after.body != prepared.body || after.pixels != prepared.pixels || !reflect.DeepEqual(after.result, prepared.result) {",
+      "source_sha256": "924987c9667fe8b9eb253cf449f4fc7a8073605ef15925bc2f54ca9c666d57c4",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_defect_protection_read.go",
+      "line": 29,
+      "expression": "if !reflect.DeepEqual(result, p.result) {",
+      "source_sha256": "25f2d85daabadad01390f0c2779dfcbcda2bf9ecbd64654f4ed6ffba3f2c98de",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_defect_protection_read.go",
+      "line": 63,
+      "expression": "if current != objects || !reflect.DeepEqual(after, result) {",
+      "source_sha256": "25f2d85daabadad01390f0c2779dfcbcda2bf9ecbd64654f4ed6ffba3f2c98de",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_defect_saved_face_params.go",
+      "line": 26,
+      "expression": "if !reflect.DeepEqual(landmarks.detector.request, request) || !reflect.DeepEqual(skin.parser.detector.request, request) || landmarks.detector.published.Ref != intent || skin.parser.detector.published.Ref != intent {",
+      "source_sha256": "d998511f642d635529550d930c9ee3b7bd0c0d14b7c14645e37f5cbb5278c08b",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_defect_saved_face_params.go",
+      "line": 51,
+      "expression": "if !reflect.DeepEqual(after, saved) || string(current) != string(raw) {",
+      "source_sha256": "d998511f642d635529550d930c9ee3b7bd0c0d14b7c14645e37f5cbb5278c08b",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_defect_saved_params.go",
+      "line": 63,
+      "expression": "if !reflect.DeepEqual(current, saved) {",
+      "source_sha256": "bcb5759c87141213fc3f3af67b6e0f957bb3d1847e35fec0e56e479723c5c37f",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_admission_evidence.go",
+      "line": 30,
+      "expression": "if owned.seal != plan.seal || !reflect.DeepEqual(owned.shell, plan.shell) {",
+      "source_sha256": "0b7eb3ca6be334b486b51eb7c3a7942720e8b1627c13f1cd393d8165803c56c2",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_completed_packets.go",
+      "line": 51,
+      "expression": "if packet.Schema != 1 || len(packet.Admission) < 2 || bytes.Equal(packet.Admission, []byte(\"null\")) || packet.Result != check.result || packet.Params != check.params || !reflect.DeepEqual(packet.Outputs, check.outputs) || !reflect.DeepEqual(packet.SkinPixels, check.skinPixels) {",
+      "source_sha256": "6f1240d2747a8af294b120a8616f106a39ee6f44efa4ee010d240ab12ee9a7d3",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_completed_packets.go",
+      "line": 58,
+      "expression": "if !reflect.DeepEqual(packet.Files, files) {",
+      "source_sha256": "6f1240d2747a8af294b120a8616f106a39ee6f44efa4ee010d240ab12ee9a7d3",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_dependencies.go",
+      "line": 32,
+      "expression": "if !reflect.DeepEqual(current, selection) {",
+      "source_sha256": "a4b1b12808ba9e7ce2e4b1170c7e0cfa40b2f6364bf81687293bec481cb1c2de",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_dependency_restore.go",
+      "line": 39,
+      "expression": "if !reflect.DeepEqual(before, after) {",
+      "source_sha256": "0d3c487b6161b22032b92d13a1d0631e7dcab6bcb0579aa8b316227d76f4b8b3",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_draft_restore.go",
+      "line": 33,
+      "expression": "if object != stage.params.object || !reflect.DeepEqual(saved, stage.saved) {",
+      "source_sha256": "8d940d76c4c93106ff6a77546776cbc2c9d6d8a1d4ae34e6cfe6285b8932379d",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_initial.go",
+      "line": 46,
+      "expression": "if len(landmarks.catalog.Outputs) != 1 || !reflect.DeepEqual(landmarks.detector, skin.parser.detector) {",
+      "source_sha256": "2a02300ccbe25a8f64535597031f4b5c60619016d3f68ccf3f82065817ee6c70",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_initial.go",
+      "line": 121,
+      "expression": "if !reflect.DeepEqual(landmarks, currentLandmarks) || !reflect.DeepEqual(skin, currentSkin) {",
+      "source_sha256": "2a02300ccbe25a8f64535597031f4b5c60619016d3f68ccf3f82065817ee6c70",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_initial_begin.go",
+      "line": 30,
+      "expression": "if owned.seal != plan.seal || !reflect.DeepEqual(owned.shell, plan.shell) {",
+      "source_sha256": "2691bcf67e1d6ed519bef680bacd1c4b221a196554005c1340118404a84dc806",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_initial_completed_evidence.go",
+      "line": 27,
+      "expression": "if !reflect.DeepEqual(current, completed) || current.catalog.ResultID == uuid.Nil {",
+      "source_sha256": "b6a6a0e06d6c98e7e9f181df09f87cea22ba463dc6d643810179d01962b4e053",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_initial_content.go",
+      "line": 49,
+      "expression": "if !reflect.DeepEqual(landmarks, p.landmarks) || !reflect.DeepEqual(skin, p.skin) {",
+      "source_sha256": "e994e75ddc15a97c7e8b08f558ae3a49d2f0fce03af9d34caec726110a8e4f8f",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_initial_content.go",
+      "line": 132,
+      "expression": "if !reflect.DeepEqual(current, catalog) || currentObjects != objects || !reflect.DeepEqual(currentLandmarks, landmarks) || !reflect.DeepEqual(currentSkin, skin) {",
+      "source_sha256": "e994e75ddc15a97c7e8b08f558ae3a49d2f0fce03af9d34caec726110a8e4f8f",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_initial_dependencies.go",
+      "line": 43,
+      "expression": "if !reflect.DeepEqual(current, params) {",
+      "source_sha256": "5e961618cace07a9a94354db29e94dcac51f2d6837280ef4b1911875a6ffe0f5",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_initial_dependencies.go",
+      "line": 50,
+      "expression": "if !reflect.DeepEqual(before, after) {",
+      "source_sha256": "5e961618cace07a9a94354db29e94dcac51f2d6837280ef4b1911875a6ffe0f5",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_initial_draft.go",
+      "line": 50,
+      "expression": "if !reflect.DeepEqual(task, current) || owned.compiled.entries != p.compiled.entries || owned.compiled.sizes != p.compiled.sizes {",
+      "source_sha256": "ab6798eb7e62001039c2632db32c758febb9a93c31d513f35c96771a55b9f960",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_initial_objects.go",
+      "line": 28,
+      "expression": "if owned.seal != plan.seal || !reflect.DeepEqual(owned.shell, plan.shell) || catalog.Params != plan.prepared.stage.dependencies.params.params.ref {",
+      "source_sha256": "97e9adeba523f449b33c64b1ac5a415256ff83ac9db245da890b3af99a6c34bf",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_initial_protection.go",
+      "line": 45,
+      "expression": "if !reflect.DeepEqual(after, result) {",
+      "source_sha256": "ea3ab6e94790b3c7c0638fba5e8ebcebd09c17c0d9f73f4ba4108cf194750a99",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_initial_protection_publish.go",
+      "line": 49,
+      "expression": "if after.document != prepared.document || after.body != prepared.body || after.pixels != prepared.pixels || !reflect.DeepEqual(after.result, prepared.result) {",
+      "source_sha256": "a74295302e52d3d6a1fddecc4424379b41a2323b62d97226bf95d625edbdfeb4",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_initial_protection_read.go",
+      "line": 29,
+      "expression": "if !reflect.DeepEqual(result, p.result) {",
+      "source_sha256": "f9e05fe5117e81911cbc71ca1539e898f3f86e0afa6aa4b990e243d9b7ee76d5",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_initial_protection_read.go",
+      "line": 63,
+      "expression": "if current != objects || !reflect.DeepEqual(after, result) {",
+      "source_sha256": "f9e05fe5117e81911cbc71ca1539e898f3f86e0afa6aa4b990e243d9b7ee76d5",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_initial_qualification.go",
+      "line": 23,
+      "expression": "if !reflect.DeepEqual(initial.params.published.selection, initial.dependencies.selection) || initial.params.params.ref != initial.dependencies.selection.paramsRef {",
+      "source_sha256": "9ad9146d50c725c7e4573bb91c4331c72c66cdca75770fac198a4b7d015754a9",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_initial_qualification.go",
+      "line": 31,
+      "expression": "if !reflect.DeepEqual(current, initial.params) {",
+      "source_sha256": "9ad9146d50c725c7e4573bb91c4331c72c66cdca75770fac198a4b7d015754a9",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_initial_registration.go",
+      "line": 25,
+      "expression": "if owned.seal != plan.seal || !reflect.DeepEqual(owned.shell, plan.shell) {",
+      "source_sha256": "a5b4fe7d2182ed3b6863c3da41cab76bfb571c2a5de77d8d3061313224cb5c65",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_initial_restore.go",
+      "line": 26,
+      "expression": "if params.params != stage.params || !reflect.DeepEqual(params.published.selection, stage.dependencies.selection) {",
+      "source_sha256": "eac0a61fde3d47292b500113a709b95964a86bfd5c62b0b3045c390ec1c4786e",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_initial_restore.go",
+      "line": 38,
+      "expression": "if !reflect.DeepEqual(qualified.qualification, stage.qualification) {",
+      "source_sha256": "eac0a61fde3d47292b500113a709b95964a86bfd5c62b0b3045c390ec1c4786e",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_initial_restore.go",
+      "line": 52,
+      "expression": "if !reflect.DeepEqual(plan.shell, original.shell) {",
+      "source_sha256": "eac0a61fde3d47292b500113a709b95964a86bfd5c62b0b3045c390ec1c4786e",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_initial_restore.go",
+      "line": 59,
+      "expression": "if after.seal != original.seal || !reflect.DeepEqual(after.shell, original.shell) {",
+      "source_sha256": "eac0a61fde3d47292b500113a709b95964a86bfd5c62b0b3045c390ec1c4786e",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_initial_result.go",
+      "line": 31,
+      "expression": "if owned.seal != plan.seal || !reflect.DeepEqual(owned.shell, plan.shell) {",
+      "source_sha256": "962364e2b17c9591f02cc7bdad7d0ba1e8779470d40f72e494c1c4d75b7ca108",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_initial_seal.go",
+      "line": 22,
+      "expression": "if owned.seal != plan.seal || !reflect.DeepEqual(owned.shell, plan.shell) {",
+      "source_sha256": "9246d12fdd143cf55e333529044540596ee710e77b1d6436efbcc9ada5353a1f",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_initial_task.go",
+      "line": 24,
+      "expression": "if !reflect.DeepEqual(initial.params.published.selection, initial.dependencies.selection) {",
+      "source_sha256": "a0ed073f8ae1c76abe3edb7ac3d1628b4662644f63eac1f53d3bdf3cad7b7330",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_initial_transport.go",
+      "line": 26,
+      "expression": "if owned.seal != plan.seal || !reflect.DeepEqual(owned.shell, plan.shell) {",
+      "source_sha256": "34bd1b2ead45432cd35ea9a481b1080927230f0e5814cf8a87d2978cbb8041d6",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_inventory_compile.go",
+      "line": 38,
+      "expression": "if !reflect.DeepEqual(pins, selection.pins) {",
+      "source_sha256": "c9a9edf287baf352b3128cbcb669d0ea9b602b59de64e20915f99defe1a16df1",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_locks.go",
+      "line": 30,
+      "expression": "if !reflect.DeepEqual(pins, selection.pins) {",
+      "source_sha256": "c9412a937f04491ce1fd3bd82d3054c059cb30cf085416dbbe639d2a8ac1c543",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_params_publication.go",
+      "line": 43,
+      "expression": "if !reflect.DeepEqual(current, initial) {",
+      "source_sha256": "56623725c639c2d71e76316be23322724652fc3f25ddeeeb0c302bec5203eddf",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_parent_start.go",
+      "line": 41,
+      "expression": "if owned.seal != child.plan.seal || !reflect.DeepEqual(owned.shell, child.plan.shell) {",
+      "source_sha256": "1946cc16672ccf3179280b018fbdb137fe583f56fb382751a7ce7ed33bbc196f",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_producer_bindings.go",
+      "line": 27,
+      "expression": "if len(landmarks.catalog.Outputs) != 1 || selection.sourceBody != landmarks.detector.sourceBody || !reflect.DeepEqual(landmarks.detector, skin.parser.detector) {",
+      "source_sha256": "e351be27ca40cbadb2a203d6adfff1adebeeb0b94aa53e656ab0724c94d81b85",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_protection_pins.go",
+      "line": 38,
+      "expression": "if !reflect.DeepEqual(mask, selection.policy.Protections[i]) {",
+      "source_sha256": "c480f33fa54660b2ea2b76bc55d492db680ce12617fb5898f4fc34d0e4e55f3b",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_published_params.go",
+      "line": 32,
+      "expression": "if !reflect.DeepEqual(current.selection, selection) {",
+      "source_sha256": "f26c9b8577a47f8843a05f443020fdcafdeb3863ef6b3f5ad69b842ac4b66d26",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_qualified_restore.go",
+      "line": 60,
+      "expression": "if currentObject != object || !reflect.DeepEqual(saved, current) {",
+      "source_sha256": "cc5bd722d85d54fa063f4b647d1b9f01beb8db495d78b782b9ed5d3b7fee150b",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_reference_person.go",
+      "line": 34,
+      "expression": "if !reflect.DeepEqual(policy, retained) {",
+      "source_sha256": "091bd5e140ea63d8807aa3a4a07279bc1d341ed95558122d1bf95000535d7800",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_reference_person.go",
+      "line": 59,
+      "expression": "if !reflect.DeepEqual(after, policy) {",
+      "source_sha256": "091bd5e140ea63d8807aa3a4a07279bc1d341ed95558122d1bf95000535d7800",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_reference_person.go",
+      "line": 74,
+      "expression": "if !reflect.DeepEqual(proof.policy, proof.source.protection.published.preparation.plan.prepared.stage.qualification.qualification.policy) {",
+      "source_sha256": "091bd5e140ea63d8807aa3a4a07279bc1d341ed95558122d1bf95000535d7800",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_registration_binding.go",
+      "line": 22,
+      "expression": "if current.seal != plan.seal || !reflect.DeepEqual(current.shell, plan.shell) {",
+      "source_sha256": "ede8b85754d7a04f658477973846134790f783131dae48dfb057217c7cde082f",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_seal.go",
+      "line": 83,
+      "expression": "if current.seal != plan.seal || !reflect.DeepEqual(current.shell, plan.shell) {",
+      "source_sha256": "b7ebdc5f2ba7acc5ba6f0b94c6dab5d582e1e32316460372f3361328deaf7700",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_seal.go",
+      "line": 90,
+      "expression": "if !reflect.DeepEqual(qualified, stage.qualification) {",
+      "source_sha256": "b7ebdc5f2ba7acc5ba6f0b94c6dab5d582e1e32316460372f3361328deaf7700",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_selection_params.go",
+      "line": 37,
+      "expression": "if !reflect.DeepEqual(policy, selection.policy) {",
+      "source_sha256": "1337ffa98bba0021a961cee1fa15c3f417a5e3d11a4b3f615222b3c0b410ab2a",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_stage_lock.go",
+      "line": 25,
+      "expression": "if qualified.dependencySeal == \"\" || qualified.dependencySeal != dependencies.seal || q.landmarksSeal != dependencies.producers.landmarks.seal || q.skinSeal != dependencies.producers.skin.seal || !validQualificationPolicySnapshot(s, who, tenant, q.policy) || !reflect.DeepEqual(q.policy, d.policy) {",
+      "source_sha256": "12046fad1143becbd29b0a20f09ed1c3b9cd553b8bb354e22ac8bfecd3e42dc8",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_stage_qualification.go",
+      "line": 25,
+      "expression": "if !reflect.DeepEqual(current, dependencies.selection) {",
+      "source_sha256": "2cab56d990b5d97261fbe2135532109332140b24d9778335a5e36f63ebfbce80",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_stage_qualification.go",
+      "line": 54,
+      "expression": "if !reflect.DeepEqual(policy, d.policy) {",
+      "source_sha256": "2cab56d990b5d97261fbe2135532109332140b24d9778335a5e36f63ebfbce80",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_task.go",
+      "line": 33,
+      "expression": "if stage.saved.run != run || stage.saved.task != task || stage.params.ref != stage.saved.params || stage.params.ref != deps.selection.paramsRef || m.Report == nil || q.report.report.ref != *m.Report || !reflect.DeepEqual(q.costs, m.Costs) || stage.qualification.dependencySeal == \"\" || stage.qualification.dependencySeal != deps.seal {",
+      "source_sha256": "e59f4e990cc123d707e808c927e41a5980fd353c637c5264246e3a14acc2fc35",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_task.go",
+      "line": 63,
+      "expression": "if q.landmarksSeal != deps.producers.landmarks.seal || q.skinSeal != deps.producers.skin.seal || !validQualificationPolicySnapshot(s, who, d.request.TenantID, q.policy) || !reflect.DeepEqual(q.policy, d.policy) {",
+      "source_sha256": "e59f4e990cc123d707e808c927e41a5980fd353c637c5264246e3a14acc2fc35",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_transfer_original_loader.go",
+      "line": 48,
+      "expression": "if !reflect.DeepEqual(saved, after) {",
+      "source_sha256": "2975f4e6f0826f474b821eb8743d024d9b80820f2dedc3e3d09ebf0d03fa092c",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_transfer_request_recovery.go",
+      "line": 35,
+      "expression": "if saved.snapshot != snapshot || !reflect.DeepEqual(saved.params, params) {",
+      "source_sha256": "6c1c3b0e16d04cad4b1a8d33af8dcf390452b806d206b2445d19c1dd43e889db",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_transfer_request_recovery.go",
+      "line": 59,
+      "expression": "if !reflect.DeepEqual(currentSaved, saved) {",
+      "source_sha256": "6c1c3b0e16d04cad4b1a8d33af8dcf390452b806d206b2445d19c1dd43e889db",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_transfer_scope.go",
+      "line": 46,
+      "expression": "if !reflect.DeepEqual(draft, p.tasks[i]) {",
+      "source_sha256": "6e2a3c7ab7a40b615544ed26c07cf20e5837709cb72b6e07f50a7fb278ea4d59",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_manual_transport_recovery.go",
+      "line": 28,
+      "expression": "if current.seal != plan.seal || !reflect.DeepEqual(current.shell, plan.shell) {",
+      "source_sha256": "6a5268fd8ef968c97127bcbce37cef09cbe0f53b16844e41f9753dcebae5945b",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_nested_equality.go",
+      "line": 18,
+      "expression": "return a.published.root == b.published.root && a.objects == b.objects && reflect.DeepEqual(a.verified, b.verified) && x.document == y.document && x.body == y.body && x.pixels == y.pixels && reflect.DeepEqual(x.result, y.result) && x.plan.seal == y.plan.seal && x.plan.key == y.plan.key && reflect.DeepEqual(x.plan.shell, y.plan.shell)",
+      "source_sha256": "b3fed35791afc046a6f50cd8ddd1d77a9241f19bd2b38b9ca63bc05308a4c578",
+      "classification": "typed-helper remainder after nested proof comparison"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_nested_equality.go",
+      "line": 28,
+      "expression": "return reflect.DeepEqual(a, b)",
+      "source_sha256": "b3fed35791afc046a6f50cd8ddd1d77a9241f19bd2b38b9ca63bc05308a4c578",
+      "classification": "typed-helper remainder after nested proof comparison"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_nested_equality.go",
+      "line": 36,
+      "expression": "return reflect.DeepEqual(a, b)",
+      "source_sha256": "b3fed35791afc046a6f50cd8ddd1d77a9241f19bd2b38b9ca63bc05308a4c578",
+      "classification": "typed-helper remainder after nested proof comparison"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_nested_equality.go",
+      "line": 46,
+      "expression": "return reflect.DeepEqual(a, b)",
+      "source_sha256": "b3fed35791afc046a6f50cd8ddd1d77a9241f19bd2b38b9ca63bc05308a4c578",
+      "classification": "typed-helper remainder after nested proof comparison"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_nested_equality.go",
+      "line": 56,
+      "expression": "return reflect.DeepEqual(a, b)",
+      "source_sha256": "b3fed35791afc046a6f50cd8ddd1d77a9241f19bd2b38b9ca63bc05308a4c578",
+      "classification": "typed-helper remainder after nested proof comparison"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_nested_equality.go",
+      "line": 64,
+      "expression": "return reflect.DeepEqual(a, b)",
+      "source_sha256": "b3fed35791afc046a6f50cd8ddd1d77a9241f19bd2b38b9ca63bc05308a4c578",
+      "classification": "typed-helper remainder after nested proof comparison"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_nested_equality.go",
+      "line": 74,
+      "expression": "return reflect.DeepEqual(a, b)",
+      "source_sha256": "b3fed35791afc046a6f50cd8ddd1d77a9241f19bd2b38b9ca63bc05308a4c578",
+      "classification": "typed-helper remainder after nested proof comparison"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_nested_equality.go",
+      "line": 85,
+      "expression": "return a.detector.seal == b.detector.seal && a.detector.key == b.detector.key && reflect.DeepEqual(a.detector.shell, b.detector.shell) && a.landmarks.seal == b.landmarks.seal && a.landmarks.key == b.landmarks.key && reflect.DeepEqual(a.landmarks.shell, b.landmarks.shell) && a.parser.seal == b.parser.seal && a.parser.key == b.parser.key && reflect.DeepEqual(a.parser.shell, b.parser.shell) && a.skin.seal == b.skin.seal && a.skin.key == b.skin.key && reflect.DeepEqual(a.skin.shell, b.skin.shell)",
+      "source_sha256": "b3fed35791afc046a6f50cd8ddd1d77a9241f19bd2b38b9ca63bc05308a4c578",
+      "classification": "typed-helper remainder after nested proof comparison"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_nested_equality.go",
+      "line": 94,
+      "expression": "return reflect.DeepEqual(a, b)",
+      "source_sha256": "b3fed35791afc046a6f50cd8ddd1d77a9241f19bd2b38b9ca63bc05308a4c578",
+      "classification": "typed-helper remainder after nested proof comparison"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_protection_equality.go",
+      "line": 21,
+      "expression": "reflect.DeepEqual(a.verified, b.verified) && x.document == y.document && x.body == y.body && x.pixels == y.pixels &&",
+      "source_sha256": "64e7897bbdb70877e1cd91b87efa4061b78ff23a9c3627f5185eb4517bd6d52b",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_protection_equality.go",
+      "line": 22,
+      "expression": "reflect.DeepEqual(x.result, y.result) && x.plan.seal == y.plan.seal && x.plan.key == y.plan.key && reflect.DeepEqual(x.plan.shell, y.plan.shell)",
+      "source_sha256": "64e7897bbdb70877e1cd91b87efa4061b78ff23a9c3627f5185eb4517bd6d52b",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_reference_person.go",
+      "line": 34,
+      "expression": "if !reflect.DeepEqual(policy, retained) {",
+      "source_sha256": "f561b6906b271bd0738970525b0843a4a2ddec2e94188f26f0d73285c3f457a8",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_reference_person.go",
+      "line": 59,
+      "expression": "if !reflect.DeepEqual(after, policy) {",
+      "source_sha256": "f561b6906b271bd0738970525b0843a4a2ddec2e94188f26f0d73285c3f457a8",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_reference_person.go",
+      "line": 74,
+      "expression": "if !reflect.DeepEqual(proof.policy, proof.source.protection.published.preparation.plan.prepared.qualification.policy) {",
+      "source_sha256": "f561b6906b271bd0738970525b0843a4a2ddec2e94188f26f0d73285c3f457a8",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_saved_anchor.go",
+      "line": 229,
+      "expression": "if !reflect.DeepEqual(targets, published.Inventory.Targets) {",
+      "source_sha256": "5842b104c81b24ec0a8f1607d8425eeafec3ad9cb29782b460236b3b90ad5e90",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_saved_anchor.go",
+      "line": 249,
+      "expression": "if !reflect.DeepEqual(saved, after) {",
+      "source_sha256": "5842b104c81b24ec0a8f1607d8425eeafec3ad9cb29782b460236b3b90ad5e90",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_saved_defect_diameter.go",
+      "line": 50,
+      "expression": "if !reflect.DeepEqual(saved, after) || string(raw) != string(current) {",
+      "source_sha256": "47ff87cb8cda532a64b3479cf61f6179382202494411ed65c1d46ce5aa0dbf91",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_saved_detector_restore.go",
+      "line": 84,
+      "expression": "if !reflect.DeepEqual(saved, after) || !bytes.Equal(raw, current) {",
+      "source_sha256": "05deed571b639abca3c78596cb9335c87c2d9923908dcbdf0cf69c76f291b8ff",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_saved_manual_inputs.go",
+      "line": 94,
+      "expression": "if !reflect.DeepEqual(landmarks, currentLandmarks) || !reflect.DeepEqual(skin, currentSkin) {",
+      "source_sha256": "b9cc0047ec7520f82ae1c1b5b8e5f7bcda498c6933e6af72886df7197456f738",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_saved_manual_inputs.go",
+      "line": 101,
+      "expression": "if !reflect.DeepEqual(policy, after) {",
+      "source_sha256": "b9cc0047ec7520f82ae1c1b5b8e5f7bcda498c6933e6af72886df7197456f738",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_saved_request.go",
+      "line": 32,
+      "expression": "if !reflect.DeepEqual(saved, after) {",
+      "source_sha256": "620deb8be03fbd985447fb2eb970b47471055a9f693e0141df2c14b93f66e6cf",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_saved_stage_restore.go",
+      "line": 106,
+      "expression": "if !reflect.DeepEqual(saved, after) || string(raw) != string(current) {",
+      "source_sha256": "84bed10c1e5027102b5f700c2f3bdab8e9937111e9332b3ccb194b2050f881fc",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_saved_stage_restore.go",
+      "line": 157,
+      "expression": "if !reflect.DeepEqual(saved, after) || string(raw) != string(current) {",
+      "source_sha256": "84bed10c1e5027102b5f700c2f3bdab8e9937111e9332b3ccb194b2050f881fc",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_transfer_original_loader.go",
+      "line": 49,
+      "expression": "if !reflect.DeepEqual(saved, after) {",
+      "source_sha256": "49fa1e0282e09fe6e404250d798c5aa94ecb4fb97b52d0cb179af96d6a9c0a91",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_transfer_request_recovery.go",
+      "line": 35,
+      "expression": "if saved.snapshot != snapshot || !reflect.DeepEqual(saved.params, params) {",
+      "source_sha256": "b1c16a75c3b2dbd5e3a7e2459cd7916f1595ef3078beb59d580067a6e10f6937",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_transfer_request_recovery.go",
+      "line": 59,
+      "expression": "if !reflect.DeepEqual(currentSaved, saved) {",
+      "source_sha256": "b1c16a75c3b2dbd5e3a7e2459cd7916f1595ef3078beb59d580067a6e10f6937",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_transfer_saved_protections.go",
+      "line": 39,
+      "expression": "if len(owned.TargetProtection) != 0 && !reflect.DeepEqual(owned.TargetProtection, targets) {",
+      "source_sha256": "0401b8745ddbd217440065c8e0d4e181f9096c45be119d96289d11bf09fbfb8b",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    },
+    {
+      "file": "backend/internal/semanticproposal/native_input_transfer_scope.go",
+      "line": 46,
+      "expression": "if !reflect.DeepEqual(draft, p.tasks[i]) {",
+      "source_sha256": "3cd7ec24878f3e3fee6ebb313157d2e7a09dc555bc171bccf40dea2e39b2d112",
+      "classification": "function-free saved/policy/selection/result/task/shell/pin values"
+    }
+  ]
+}

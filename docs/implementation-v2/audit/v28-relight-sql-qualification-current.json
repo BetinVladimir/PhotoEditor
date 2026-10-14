@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 relight SQL qualification lock",
+  "whole_module_accepted": false,
+  "production_migration_applied": false,
+  "operation_enabled": false,
+  "tests": {
+    "passed": 4,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 7.26,
+    "xml": "v28-relight-sql-qualification-current.xml"
+  },
+  "source_sha256": {
+    "backend/db/migrations/00981_v28_relight_qualification.sql": "0c8bc65df901cd87e1841bf138099c763b256965272ae4ba85c04633a31a2f34",
+    "tests/integration/test_v28_relight_qualification.py": "5b3a8862bd2d86f14bde42df591067e51826366a036acf72de4f7632d08b606b"
+  },
+  "limitations": [
+    "Synthetic imported report and placeholder Calibration metadata; no physical object content or real qualification",
+    "Worker evidence catalog, producer lineage, public execution/adoption/UI remain pending"
+  ]
+}

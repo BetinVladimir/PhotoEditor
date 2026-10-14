@@ -59,7 +59,7 @@ func ParseResourceEstimate(profile []byte) (ResourceEstimate, error) {
 	return e, nil
 }
 
-type Dispatcher struct{ DB *pgxpool.Pool }
+type Dispatcher struct{ DB *pgxpool.Pool; LegacyOnly bool; PreferModelAffinity bool }
 
 func (d Dispatcher) Dispatch(ctx context.Context, limit int) (int, error) {
 	if limit < 1 || limit > 100 {
@@ -92,18 +92,27 @@ func (d Dispatcher) dispatchInTransaction(ctx context.Context, tx pgx.Tx) (picke
 	var id uuid.UUID
 	var class string
 	var profile []byte
-	err = tx.QueryRow(ctx, "SELECT task_id,resource_class,profile FROM photo.pick_ready_task()").Scan(&id, &class, &profile)
+	query:="SELECT task_id,resource_class,profile FROM photo.pick_ready_task()"
+	if d.LegacyOnly {query="SELECT task_id,resource_class,profile FROM photo.pick_ready_legacy_task()"}
+	err = tx.QueryRow(ctx, query).Scan(&id, &class, &profile)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, false, nil
 	}
 	if err != nil {
 		return false, false, err
 	}
+	return d.dispatchSelectedInTransaction(ctx,tx,id,profile)
+}
+
+// Shared admission/outbox path for legacy selection and leader-owned V32 DRR.
+func (d Dispatcher) dispatchSelectedInTransaction(ctx context.Context, tx pgx.Tx, id uuid.UUID, profile []byte) (picked, queued bool, err error) {
 	estimate, estimateErr := ParseResourceEstimate(profile)
 	reason := "waiting_worker"
 	var nodes []string
 	if estimateErr == nil {
-		rows, e := tx.Query(ctx, "SELECT node_id FROM photo.eligible_dispatch_nodes($1)", id)
+		nodeQuery := "SELECT node_id FROM photo.eligible_dispatch_nodes($1)"
+		if d.PreferModelAffinity { nodeQuery = "SELECT node_id FROM photo.capacity_affinity_dispatch_nodes($1)" }
+		rows, e := tx.Query(ctx, nodeQuery, id)
 		if e != nil {
 			return true, false, e
 		}

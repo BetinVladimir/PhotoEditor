@@ -1,0 +1,12 @@
+{
+  "recorded_at": "2026-10-08T08:41:57.337702+00:00",
+  "sources": {
+    "backend/db/migrations/00899_v27_person_stage_presence.sql": "6ec272bcea85d48a2622713c8f697b63f6557da5bbd11a27bef5e37e52a5c606",
+    "backend/internal/semanticproposal/native_input_stage_presence.go": "cf7489a0aaed053a0af2997c3650f187e1bab2c73cca203487b735807c989e64",
+    "backend/internal/semanticproposal/native_initial_person_prepare.go": "150ec8b805504ecd649e389c37e9196ecf343c286f32876690fff61fd4d4d5c6",
+    "backend/internal/semanticproposal/native_initial_person_prepare_test.go": "38d411d67a080d88a49d83c789e64d7401c784e051f56ca58ccc3ab557e93c1a",
+    "backend/internal/semanticproposal/native_initial_pipeline_recovery_job.go": "8359bacc209f64b576198df9e18a3121ce24723d03ad82224026848a45550047",
+    "backend/internal/semanticproposal/native_bootstrap_integration_test.go": "bf45918c1579e83f6792ee09d884701eda71c7991e3c3d9fdeb366fae92b7466",
+    "tests/integration/test_v27_semantic_intent_publication.py": "044c21c3f3135490fe684c199e89ce2cfe738db5bed13513e79720672827f513"
+  }
+}

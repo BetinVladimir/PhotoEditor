@@ -13,6 +13,7 @@ import (
 	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/review"
 	"photoeditor/backend/internal/v2input"
+ "photoeditor/backend/internal/v2draft"
 )
 
 type frozenRootFixture struct{ bodies map[uuid.UUID][]byte }
@@ -26,14 +27,15 @@ func (s frozenRootFixture) Load(_ context.Context, _ LearningEvaluateLease,
 	return body, FrozenRootProvenance{}, nil
 }
 
-type frozenImageFixture struct{}
+type frozenImageFixture struct{ cancel context.CancelFunc }
 
-func (frozenImageFixture) Resolve(_ context.Context, _ LearningEvaluateLease,
+func (f frozenImageFixture) Resolve(_ context.Context, _ LearningEvaluateLease,
 	_ v2input.Ref, raw []byte, binding v2input.SessionVersionBinding) (FrozenEvaluationImage, error) {
 	image, err := ParseFrozenEvaluationImage(raw, binding)
 	if err != nil {
 		return FrozenEvaluationImage{}, err
 	}
+	if f.cancel != nil { f.cancel() }
 	return FrozenEvaluationImage{Pixels: v2input.Ref{ArtifactID: image.Pixels.ID,
 		SHA256: image.Pixels.SHA256}, PixelCount: image.Canvas.Width * image.Canvas.Height}, nil
 }
@@ -50,7 +52,10 @@ func (frozenMaskFixture) ResolveEffective(_ context.Context, _ LearningEvaluateL
 	return ParseFrozenEffectiveMask(raw, image)
 }
 
-type frozenStyleFixture struct{ body []byte }
+type frozenStyleFixture struct {
+	body []byte
+	cancel context.CancelFunc
+}
 
 type frozenConsentFixture struct{}
 
@@ -61,10 +66,19 @@ func (frozenConsentFixture) Pin(_ context.Context,
 
 func (f frozenStyleFixture) Load(_ context.Context, _ LearningEvaluateLease,
 	_ v2input.Ref) ([]byte, error) {
+	if f.cancel != nil { f.cancel() }
 	if f.body != nil {
 		return f.body, nil
 	}
 	return []byte(`{}`), nil
+}
+
+type frozenBackgroundStyleFixture struct {
+ frozenStyleFixture
+ verify func(context.Context,LearningEvaluateLease,v2draft.FrozenBackgroundAsset)error
+}
+func(f frozenBackgroundStyleFixture)VerifyBackground(ctx context.Context,lease LearningEvaluateLease,pin v2draft.FrozenBackgroundAsset)error{
+ return f.verify(ctx,lease,pin)
 }
 
 func TestFrozenRenderResolverBuildsEveryHoldoutAndRejectsMissingRoot(t *testing.T) {
@@ -134,6 +148,51 @@ func TestFrozenRenderResolverBuildsEveryHoldoutAndRejectsMissingRoot(t *testing.
 	resolved, err := resolver.Resolve(context.Background(), lease, manifest)
 	if err != nil || len(resolved) != holdout {
 		t.Fatalf("holdout closure incomplete: %v, %d/%d", err, len(resolved), holdout)
+	}
+ // Authorize the encoded background before admitting the rest of the case.
+ for index:=range manifest.Examples{
+  item:=&manifest.Examples[index]
+  if item.Split!="holdout"{continue}
+  pin:=v2draft.FrozenBackgroundAsset{SchemaVersion:1,PortableAssetID:"installed",StyleVersionID:uuid.New(),Style:style,Source:v2input.Ref{ArtifactID:uuid.New(),SHA256:strings.Repeat("b",64)},ExpectedBytes:10,MediaType:"image/png",Suffix:".png",WorkICCSHA:manifest.ICCLockSHA}
+  item.RenderCase.BackgroundAsset=&pin
+  for _,mode:=range []string{"valid","missing_verifier","denied","cancelled"}{t.Run("background_"+mode,func(t *testing.T){
+   ctx,cancel:=context.WithCancel(context.Background());defer cancel()
+   candidate:=resolver;calls:=0
+   assetStyle:=[]byte(`{"extensions":{"background":{"mode":"asset","asset_id":"installed"}}}`)
+   candidate.Styles=frozenStyleFixture{body:assetStyle}
+   if mode!="missing_verifier"{
+    candidate.Styles=frozenBackgroundStyleFixture{frozenStyleFixture:frozenStyleFixture{body:assetStyle},verify:func(_ context.Context,gotLease LearningEvaluateLease,got v2draft.FrozenBackgroundAsset)error{
+     calls++
+     if gotLease!=lease||got.Source!=pin.Source||got.Style!=style{t.Fatal("background authority scope changed")}
+     if mode=="denied"{return ErrTrainingDraftConflict}
+     if mode=="cancelled"{cancel()}
+     return nil
+    }}
+   }
+   got,err:=candidate.Resolve(ctx,lease,manifest)
+   if mode=="valid"{
+    if err!=nil||len(got)!=holdout||calls!=1{t.Fatalf("authorized background refused: %v calls=%d",err,calls)}
+   }else{
+    expected:=ErrInvalidTrainingDraft
+    if mode=="denied"{expected=ErrTrainingDraftConflict}
+    if mode=="cancelled"{expected=context.Canceled}
+    if got!=nil||!errors.Is(err,expected){t.Fatalf("unauthorized background yielded closure: %v %v",got,err)}
+    if mode!="missing_verifier"&&calls!=1{t.Fatal("verifier was not invoked exactly once")}
+   }
+  })}
+  item.RenderCase.BackgroundAsset=nil
+  break
+ }
+	for _, phase := range []string{"image", "style"} {
+		ctx, cancel := context.WithCancel(context.Background())
+		candidate := resolver
+		if phase == "image" { candidate.Images = frozenImageFixture{cancel: cancel} }
+		if phase == "style" { candidate.Styles = frozenStyleFixture{cancel: cancel} }
+		got, err := candidate.Resolve(ctx, lease, manifest)
+		cancel()
+		if got != nil || !errors.Is(err, context.Canceled) {
+			t.Fatalf("successful-but-cancelled %s escaped: %v %v", phase, got, err)
+		}
 	}
 	for index := range manifest.Examples {
 		item := &manifest.Examples[index]
@@ -208,4 +267,66 @@ func TestFrozenRenderResolverBuildsEveryHoldoutAndRejectsMissingRoot(t *testing.
 	if _, err := resolver.Resolve(context.Background(), lease, manifest); !errors.Is(err, ErrInvalidTrainingDraft) {
 		t.Fatalf("missing frozen root accepted: %v", err)
 	}
+}
+
+
+type reusedEvaluateRootBuffer struct {
+	buffer []byte
+	calls int
+	cancel context.CancelFunc
+}
+
+func (s *reusedEvaluateRootBuffer) Load(context.Context, LearningEvaluateLease,
+	v2input.Ref, string) ([]byte, FrozenRootProvenance, error) {
+	s.calls++
+	for index := range s.buffer { s.buffer[index] = byte('a' + s.calls - 1) }
+	if s.cancel != nil { s.cancel() }
+	return s.buffer, FrozenRootProvenance{}, nil
+}
+
+func TestEvaluateRootBytesAreOwnedAcrossReaderReuse(t *testing.T) {
+	reader := &reusedEvaluateRootBuffer{buffer: make([]byte, 4)}
+	resolver := FrozenLearningRenderResolver{Roots: reader}
+	first, _, err := resolver.loadRoot(context.Background(), LearningEvaluateLease{}, v2input.Ref{}, "FrozenRecipe")
+	if err != nil { t.Fatal(err) }
+	second, _, err := resolver.loadRoot(context.Background(), LearningEvaluateLease{}, v2input.Ref{}, "FrozenRecipe")
+	if err != nil { t.Fatal(err) }
+	if string(first) != "aaaa" || string(second) != "bbbb" { t.Fatal("reader reuse changed frozen recipe bytes") }
+	reader.buffer[0] = 'z'
+	if string(first) != "aaaa" || string(second) != "bbbb" { t.Fatal("returned root retained borrowed backing storage") }
+}
+
+func TestEvaluateRootReadCancellationRefusesBytes(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	reader := &reusedEvaluateRootBuffer{buffer: make([]byte, 4), cancel: cancel}
+	resolver := FrozenLearningRenderResolver{Roots: reader}
+	for attempt := 0; attempt < 2; attempt++ {
+		body, _, err := resolver.loadRoot(ctx, LearningEvaluateLease{}, v2input.Ref{}, "WorkingImage")
+		if body != nil || !errors.Is(err, context.Canceled) { t.Fatalf("cancelled bytes escaped: %q %v", body, err) }
+	}
+	if reader.calls != 1 { t.Fatal("pre-cancelled read performed IO") }
+}
+
+
+func TestEvaluationManifestOwnsNestedAuthorityBeforeIO(t *testing.T) {
+	_, _, _, manifest := compiledTrainingDraftFixture(t)
+	mask := v2input.Ref{ArtifactID: uuid.New(), SHA256: strings.Repeat("c", 64)}
+	consent := v2input.Ref{ArtifactID: uuid.New(), SHA256: strings.Repeat("d", 64)}
+	manifest.Examples[0].RenderCase.EffectiveMask = &mask
+	manifest.Examples[0].RenderCase.ConsentSnapshot = &consent
+	manifest.Examples[0].RenderCase.RegionMasks = []TrainingRegionMask{{RegionID: "sky", Mask: mask}}
+	owned, err := ownEvaluationManifest(manifest)
+	if err != nil { t.Fatal(err) }
+	before, err := canonical.Marshal(owned)
+	if err != nil { t.Fatal(err) }
+	manifest.Consents[0].Epoch = "2"
+	manifest.Examples[0].Features[0] = 99
+	manifest.Examples[0].RenderCase.Binding.CanvasHash = strings.Repeat("f", 64)
+	manifest.Examples[0].RenderCase.RegionMasks[0].RegionID = "changed"
+	mask.ArtifactID = uuid.Nil
+	consent.ArtifactID = uuid.Nil
+	after, err := canonical.Marshal(owned)
+	if err != nil || string(before) != string(after) { t.Fatal("borrowed manifest authority changed after caller mutation") }
+	if _, err := ownEvaluationManifest(manifest); err == nil { t.Fatal("accepted malformed source manifest") }
 }

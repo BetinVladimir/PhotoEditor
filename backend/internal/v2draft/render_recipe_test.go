@@ -197,7 +197,51 @@ func TestFrozenRenderClosureRejectsWrongTaskSourceBeforeChildIO(t *testing.T) {
 	if _, err := resolver.resolveRoots(context.Background(), auth.Identity{}, uuid.New(), []LayerRef{{Contract: "FrozenRenderRecipe", Ref: root, Path: "root"}}, wrong); err == nil {
 		t.Fatal("different task source accepted")
 	}
-	if len(fixture.lookups) != 1 || fixture.lookups[0].Ref != root {
+	if len(fixture.lookups) != 2 || fixture.lookups[0].Ref != root || fixture.lookups[1].Ref != root || fixture.reads != 1 {
 		t.Fatal("child IO preceded task source proof", fixture.lookups)
+	}
+}
+
+func TestFrozenRenderRecipeDependenciesUseExactTypedAdmissionRoots(t *testing.T) {
+	binding := v2input.SessionVersionBinding{AssetVersionID: uuid.New(), Source: v2input.Ref{ArtifactID: uuid.New(), SHA256: strings.Repeat("a", 64)}, CanvasHash: strings.Repeat("b", 64)}
+	style := v2input.Ref{ArtifactID: uuid.New(), SHA256: strings.Repeat("c", 64)}
+	stack, _ := canonical.Marshal(map[string]any{"schema_version": 1, "source": binding, "layers": []any{}})
+	sum := sha256.Sum256(stack)
+	layers := v2input.Ref{ArtifactID: uuid.New(), SHA256: hex.EncodeToString(sum[:])}
+	protection := v2input.Ref{ArtifactID: uuid.New(), SHA256: strings.Repeat("d", 64)}
+	authored, _ := canonical.Marshal(map[string]any{"schema_version": 3, "source": binding, "base_style": style, "session_corrections": nil, "learning_version_id": nil, "overrides": []v2input.Ref{}, "layer_stack": layers, "protected_mask": protection, "renderer_version": "v2.2", "parameter_delta": CorrectionVector{}})
+	raw, err := BuildFrozenRenderRecipe(authored, ResolvedRecipeInputs{Binding: binding, BaseStyle: style, Style: StyleBaseline{GainsRGB: [3]float64{1, 1, 1}, Saturation: 1}, ICCLockSHA: strings.Repeat("e", 64), ModelLockSHA: strings.Repeat("f", 64)}, stack)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sum = sha256.Sum256(raw)
+	parent := v2input.Ref{ArtifactID: uuid.New(), SHA256: hex.EncodeToString(sum[:])}
+	roots, err := FrozenRenderRecipeDependencies(raw, parent)
+	if err != nil || len(roots) != 4 {
+		t.Fatal("typed dependency inventory", err, len(roots))
+	}
+	expected := []struct {
+		contract string
+		ref      v2input.Ref
+	}{{"WorkingImage", binding.Source}, {"StyleV2", style}, {"LayerStack", layers}, {"MaskRef", protection}}
+	for i, want := range expected {
+		if roots[i].Contract != want.contract || roots[i].Ref != want.ref || roots[i].ParentRef != parent {
+			t.Fatal("dependency changed", i, roots[i])
+		}
+	}
+	if roots[0].CanvasHash != binding.CanvasHash {
+		t.Fatal("source canvas binding omitted")
+	}
+	bad := parent
+	bad.SHA256 = strings.Repeat("0", 64)
+	if _, err := FrozenRenderRecipeDependencies(raw, bad); err == nil {
+		t.Fatal("foreign parent accepted")
+	}
+	raw[0] = 'x'
+	if roots[0].Ref != binding.Source {
+		t.Fatal("dependency inventory aliases input bytes")
+	}
+	if _, err := FrozenRenderRecipeDependencies(raw, parent); err == nil {
+		t.Fatal("changed bytes accepted")
 	}
 }

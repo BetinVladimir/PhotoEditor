@@ -8,6 +8,7 @@ import pytest
 
 from photo_worker.contracts.base import ArtifactRef, Contract, canonical_bytes
 from photo_worker.runtime.artifacts import TaskArtifacts
+from photo_worker.runtime.gateway import GatewayError
 from photo_worker.runtime.scratch import ScratchSpace
 
 
@@ -19,7 +20,8 @@ class Gateway:
     def __init__(self):
         self.bytes_uploaded = []
 
-    def upload(self, path: Path, role: str, media_type: str) -> ArtifactRef:
+    def upload(self, path: Path, role: str, media_type: str, *, expected_identity=None) -> ArtifactRef:
+        assert expected_identity == (path.stat().st_dev, path.stat().st_ino)
         raw = path.read_bytes()
         self.bytes_uploaded.append((len(raw), role, media_type))
         return ArtifactRef(artifact_id=uuid4(), sha256=sha256(raw).hexdigest())
@@ -53,5 +55,21 @@ def test_typed_stage_limit_is_exact_and_legacy_stays_one_mebibyte(tmp_path, v2, 
         with pytest.raises(ValueError, match="typed document limit"):
             session.stage_contract(Payload(data="x" * (limit - overhead + 1)), "document")
         assert len(gateway.bytes_uploaded) == 1
+    finally:
+        session.close()
+
+
+def test_stage_rejects_replaced_reserved_file_before_upload(tmp_path):
+    session, gateway = artifact_session(tmp_path, v2=True)
+    try:
+        with session.scratch.reserve(64) as reservation:
+            path = reservation.path('payload', '.bin')
+            path.write_bytes(b'first')
+            identity = (path.stat().st_dev, path.stat().st_ino)
+            path.unlink()
+            path.write_bytes(b'second')
+            with pytest.raises(GatewayError, match='ARTIFACT_CHANGED'):
+                session.stage(path, reservation, 'document', 'application/octet-stream', expected_identity=identity)
+            assert gateway.bytes_uploaded == []
     finally:
         session.close()

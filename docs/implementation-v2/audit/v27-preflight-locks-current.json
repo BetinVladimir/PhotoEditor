@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 registered preflight concurrent writer lock and release",
+  "whole_module_accepted": false,
+  "migration_head": "00968",
+  "new_migrations": false,
+  "production_code_changed": false,
+  "production_migrations_applied": false,
+  "production_change": "No production changes; adds distinct-session concurrent writer proof for installed00968 preflight.",
+  "checks": {
+    "go_five_packages": [
+      {
+        "package": "photoeditor/backend/internal/v2qualification",
+        "elapsed": 0.001
+      },
+      {
+        "package": "photoeditor/backend/internal/v2input",
+        "elapsed": 0.011
+      },
+      {
+        "package": "photoeditor/backend/internal/v2draft",
+        "elapsed": 0.012
+      },
+      {
+        "package": "photoeditor/backend/internal/workflow",
+        "elapsed": 0.013
+      },
+      {
+        "package": "photoeditor/backend/internal/semanticproposal",
+        "elapsed": 3.344
+      }
+    ],
+    "sql_upgrade_roles_and_handoff": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "21",
+      "time": "17.308",
+      "timestamp": "2026-10-09T06:34:11.017614+03:00",
+      "hostname": "Mac"
+    },
+    "native_preflight_concurrent_writer_and_recovery": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "1",
+      "time": "424.946",
+      "timestamp": "2026-10-09T06:34:57.525100+03:00",
+      "hostname": "Mac"
+    },
+    "documentation": "PASS55 tests/2267 static checks",
+    "diff_check": "PASS"
+  },
+  "source_manifest": "v27-preflight-locks-source-current.json",
+  "source_manifest_sha256": "6e52a537edecdd08b45f4ddc9145dba2f599c47196d0d179c6c83b3f95a72d21",
+  "source_files": 4822,
+  "quality_preservation": {
+    "workers_src_baseline_files": 544,
+    "changed": 0,
+    "real_photo_quality_accepted": false
+  },
+  "verified": [
+    "Actual scheduler preflight transaction repeats complete authority and installed v3 eligibility, observes one registered and one missing task.",
+    "Distinct PostgreSQL backend PID attempts expiry UPDATE on registered manifest artifact and receives55P03 while reader remains open.",
+    "After reader rollback, a fresh writer executes exactly the same UPDATE and affects one row; that control transaction rolls back.",
+    "Captured task profile/input/backend-document/reservation snapshot unchanged. Existing expiry-refusal and mixed-registration recovery probes passed.",
+    "Actual ProcessOne preserves existing registration/documents/reservation, seals parent, records handoff and becomes unclaimable. Independent Python verifies ready tasks and one queued event/outbox.",
+    "Lifecycle/policy/qualification/TTL probes plus fresh/00899→00968 upgrade, row preservation and real-role ACL checks passed."
+  ],
+  "remaining": [
+    "Concurrent GC/purge and physical object deletion during publication.",
+    "Separate OS process restart, raw PUT ambiguity and broker redelivery.",
+    "Independent target qualification imports, exact reference locator-version, pending target progression and 5000-target scale.",
+    "Complete browser/native flows, real-photo/GPU and whole V27/V20–V32 acceptance."
+  ],
+  "limitations": [
+    "Distinct-session metadata writer, not actual GC/delete/purge worker or physical object-store deletion.",
+    "Writer control and expiry fixture restored through rollback/deferred cleanup; captured snapshot does not cover every table.",
+    "Upstream ML remains fixture doubles; no real-photo/GPU acceptance.",
+    "No new production code/migration; no production migrations applied."
+  ]
+}

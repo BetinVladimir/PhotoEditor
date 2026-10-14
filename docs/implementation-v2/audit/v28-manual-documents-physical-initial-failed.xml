@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="3" time="8.767" timestamp="2026-10-09T11:01:54.696179+03:00" hostname="Mac"><testcase classname="tests.integration.test_v28_manual_documents_physical" name="test_manual_documents_exact_bytes_and_lineage[]" time="3.893"><failure message="AssertionError: === RUN   TestIntegrationManualDocumentsPhysical&#10;      manual_documents_physical_integration_test.go:60: ERROR: permission denied for table artifacts (SQLSTATE 42501)&#10;  --- FAIL: TestIntegrationManualDocumentsPhysical (0.06s)&#10;  FAIL&#10;  FAIL&#09;photoeditor/backend/internal/v2portrait&#09;0.617s&#10;  FAIL&#10;  &#10;assert 1 == 0&#10; +  where 1 = CompletedProcess(args=['go', 'test', './internal/v2portrait', '-run', '^TestIntegrationManualDocumentsPhysical$', '-co...rationManualDocumentsPhysical (0.06s)\nFAIL\nFAIL\tphotoeditor/backend/internal/v2portrait\t0.617s\nFAIL\n', stderr='').returncode">database = &lt;isolated PostgreSQL configuration&gt;
+lens_objects = (&lt;minio.api.Minio object at 0x1188ba0d0&gt;, 'native-lens-debf34acf6d348d8b5e54ae69985f40b')
+failure = ''
+
+    @pytest.mark.parametrize('failure', ['', 'corrupt-root', 'missing-params'])
+    def test_manual_documents_exact_bytes_and_lineage(database, lens_objects, failure):
+        client,bucket=lens_objects
+        root_path=Path(__file__).resolve().parents[2]
+        source=json.loads((root_path/'backend/internal/review/testdata/working-images-python.json').read_text())[0]
+        source_raw=canonical_bytes(source)
+        def publish(raw):
+            key='manual-documents/'+uuid4().hex
+            version=client.put_object(bucket,key,BytesIO(raw),len(raw),content_type='application/json').version_id
+            return dict(bucket=bucket,key=key,version=version,sha256=sha256(raw).hexdigest(),bytes=len(raw))
+        source_object=publish(source_raw)
+        with psycopg.connect(**database) as db:
+            case=seed_original_composition(db,source_object=source_object,canvas_hash=canonical_hash(source['canvas']))
+            base=json.loads(case['Params'])['base'];tenant=case['Tenant']
+            root=json.loads((root_path/'backend/internal/review/testdata/face-manual-root-python.json').read_text())
+            root['image']=base['source']
+            params=dict(image=base['source'],object_id=root['target']['object_id'],vectors=None,inline_vectors=dict(version='manual_mask_v1',source_sha256=source['canvas']['source_sha256'],canvas=source['canvas'],shapes=[]))
+            params_raw=canonical_bytes(params);params_object=publish(params_raw)
+            params_id=db.execute("INSERT INTO photo.artifacts(tenant_id,bucket,object_key,object_version,sha256,bytes,media_type,verified_at) VALUES(%s,%s,%s,%s,%s,%s,'application/json',clock_timestamp()) RETURNING id",(tenant,bucket,params_object['key'],params_object['version'],params_object['sha256'],params_object['bytes'])).fetchone()[0]
+            root['vectors']=dict(artifact_id=str(params_id),sha256=params_object['sha256'])
+            run=db.execute("INSERT INTO photo.runs(tenant_id,kind,status,input_snapshot_id,config_snapshot,config_hash,created_by,graph_sealed) VALUES(%s,'mask','running',%s,%s,%s,%s,true) RETURNING id",(tenant,case['Snapshot'],Jsonb(dict(asset_version_id=base['asset_version_id'],source_sha256=base['source']['sha256'])),'a'*64,case['Actor'])).fetchone()[0]
+            task=db.execute("INSERT INTO photo.tasks(tenant_id,run_id,node_key,operation,operation_version,resource_class,state,inputs,params_artifact_id,input_digest,execution_profile,attempt,fencing_token) VALUES(%s,%s,'manual:0','mask.rasterize','1','cpu','blocked',%s,%s,%s,'{}',1,1) RETURNING id",(tenant,run,Jsonb([base['source']]),params_id,'b'*64)).fetchone()[0]
+            pins={}
+            def artifact(role,raw,aid=None,media='application/json'):
+                obj=publish(raw)
+                aid=aid or uuid4()
+                db.execute("INSERT INTO photo.artifacts(id,tenant_id,bucket,object_key,object_version,sha256,bytes,media_type,output_role,verified_at,created_by_task_id,produced_attempt,produced_fence) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,clock_timestamp(),%s,1,1)",(aid,tenant,bucket,obj['key'],obj['version'],obj['sha256'],obj['bytes'],media,role,task))
+                pin=dict(artifact_id=str(aid),sha256=obj['sha256']);pins[role]=pin
+                return pin,obj
+            # SQL lineage requires physical-pixel artifact rows; pixel decoding is outside this test.
+            for member,role in [('target','mask_target'),('protected','mask_protected')]:
+                pixel,_=artifact(role,b'0'*100,media='application/octet-stream')
+                root[member]['artifact']=pixel
+            target,_=artifact('mask_target_ref',canonical_bytes(root['target']))
+            guard,_=artifact('mask_guard_ref',canonical_bytes(root['protected']))
+            root_raw=canonical_bytes(root)
+            _,root_object=artifact('rasterized_mask',root_raw)
+            db.execute("INSERT INTO photo.interactive_tasks(tenant_id,run_id,task_id,kind,operation,source_artifact_id,declared_inputs,params,params_sha256,backend) VALUES(%s,%s,%s,'mask_manual','mask.rasterize',%s,%s,%s,%s,'cpu')",(tenant,run,task,base['source']['artifact_id'],Jsonb([base['source']]),Jsonb(params),params_object['sha256']))
+            db.execute("INSERT INTO photo.task_attempts(tenant_id,task_id,attempt,fencing_token,worker_id,started_at,finished_at,backend,profile) VALUES(%s,%s,1,1,%s,clock_timestamp(),clock_timestamp(),'cpu','{}')",(tenant,task,uuid4()))
+            result=db.execute("INSERT INTO photo.task_results(tenant_id,task_id,attempt,fencing_token,outputs,metrics,result_digest) VALUES(%s,%s,1,1,%s,'{}',%s) RETURNING id",(tenant,task,Jsonb(list(pins.values())),'d'*64)).fetchone()[0]
+            db.execute("UPDATE photo.tasks SET state='succeeded',canonical_result_id=%s WHERE id=%s",(result,task))
+            # A newer key version must never replace the catalog-pinned original bytes.
+            for obj in (root_object,params_object):
+                client.put_object(bucket,obj['key'],BytesIO(b'{}'),2,content_type='application/json')
+            if failure=='corrupt-root':
+                # Rebind only object locator to different bytes while retaining expected digest/length.
+                bad=publish(b'x'*len(root_raw))
+                db.execute('UPDATE photo.artifacts SET object_key=%s,object_version=%s WHERE id=%s',(bad['key'],bad['version'],pins['rasterized_mask']['artifact_id']))
+            elif failure=='missing-params':
+                client.remove_object(bucket,params_object['key'],version_id=params_object['version'])
+        config={k:case[k] for k in ('Tenant','Project','Snapshot','Actor','Session')}
+        config.update(Binding=base,Target=target,Guard=guard,TargetPixel=pins['mask_target'],GuardPixel=pins['mask_protected'],Source=source_raw.decode(),Root=root_raw.decode(),Params=params_raw.decode(),Failure=failure,Objects={**client._photo_test_config,'Development':True})
+        env={**os.environ,'PHOTO_TEST_DATABASE_URL':make_conninfo(**database),'PHOTO_TEST_MANUAL_DOCUMENTS':json.dumps(config),'GOCACHE':'/private/tmp/photoeditor-go-cache'}
+        result=subprocess.run(['go','test','./internal/v2portrait','-run','^TestIntegrationManualDocumentsPhysical$','-count=1','-timeout=30s','-v'],cwd=root_path/'backend',env=env,capture_output=True,text=True,timeout=45)
+&gt;       assert result.returncode==0,result.stdout+result.stderr
+E       AssertionError: === RUN   TestIntegrationManualDocumentsPhysical
+E             manual_documents_physical_integration_test.go:60: ERROR: permission denied for table artifacts (SQLSTATE 42501)
+E         --- FAIL: TestIntegrationManualDocumentsPhysical (0.06s)
+E         FAIL
+E         FAIL	photoeditor/backend/internal/v2portrait	0.617s
+E         FAIL
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['go', 'test', './internal/v2portrait', '-run', '^TestIntegrationManualDocumentsPhysical$', '-co...rationManualDocumentsPhysical (0.06s)\nFAIL\nFAIL\tphotoeditor/backend/internal/v2portrait\t0.617s\nFAIL\n', stderr='').returncode
+
+tests/integration/test_v28_manual_documents_physical.py:72: AssertionError</failure></testcase><testcase classname="tests.integration.test_v28_manual_documents_physical" name="test_manual_documents_exact_bytes_and_lineage[corrupt-root]" time="1.465"><failure message="psycopg.errors.CheckViolation: immutable field artifacts.object_key&#10;CONTEXT:  PL/pgSQL function reject_content_update() line 2 at RAISE">database = &lt;isolated PostgreSQL configuration&gt;
+lens_objects = (&lt;minio.api.Minio object at 0x11893e690&gt;, 'native-lens-44554733396241fb86cb2b04f5a3d655')
+failure = 'corrupt-root'
+
+    @pytest.mark.parametrize('failure', ['', 'corrupt-root', 'missing-params'])
+    def test_manual_documents_exact_bytes_and_lineage(database, lens_objects, failure):
+        client,bucket=lens_objects
+        root_path=Path(__file__).resolve().parents[2]
+        source=json.loads((root_path/'backend/internal/review/testdata/working-images-python.json').read_text())[0]
+        source_raw=canonical_bytes(source)
+        def publish(raw):
+            key='manual-documents/'+uuid4().hex
+            version=client.put_object(bucket,key,BytesIO(raw),len(raw),content_type='application/json').version_id
+            return dict(bucket=bucket,key=key,version=version,sha256=sha256(raw).hexdigest(),bytes=len(raw))
+        source_object=publish(source_raw)
+        with psycopg.connect(**database) as db:
+            case=seed_original_composition(db,source_object=source_object,canvas_hash=canonical_hash(source['canvas']))
+            base=json.loads(case['Params'])['base'];tenant=case['Tenant']
+            root=json.loads((root_path/'backend/internal/review/testdata/face-manual-root-python.json').read_text())
+            root['image']=base['source']
+            params=dict(image=base['source'],object_id=root['target']['object_id'],vectors=None,inline_vectors=dict(version='manual_mask_v1',source_sha256=source['canvas']['source_sha256'],canvas=source['canvas'],shapes=[]))
+            params_raw=canonical_bytes(params);params_object=publish(params_raw)
+            params_id=db.execute("INSERT INTO photo.artifacts(tenant_id,bucket,object_key,object_version,sha256,bytes,media_type,verified_at) VALUES(%s,%s,%s,%s,%s,%s,'application/json',clock_timestamp()) RETURNING id",(tenant,bucket,params_object['key'],params_object['version'],params_object['sha256'],params_object['bytes'])).fetchone()[0]
+            root['vectors']=dict(artifact_id=str(params_id),sha256=params_object['sha256'])
+            run=db.execute("INSERT INTO photo.runs(tenant_id,kind,status,input_snapshot_id,config_snapshot,config_hash,created_by,graph_sealed) VALUES(%s,'mask','running',%s,%s,%s,%s,true) RETURNING id",(tenant,case['Snapshot'],Jsonb(dict(asset_version_id=base['asset_version_id'],source_sha256=base['source']['sha256'])),'a'*64,case['Actor'])).fetchone()[0]
+            task=db.execute("INSERT INTO photo.tasks(tenant_id,run_id,node_key,operation,operation_version,resource_class,state,inputs,params_artifact_id,input_digest,execution_profile,attempt,fencing_token) VALUES(%s,%s,'manual:0','mask.rasterize','1','cpu','blocked',%s,%s,%s,'{}',1,1) RETURNING id",(tenant,run,Jsonb([base['source']]),params_id,'b'*64)).fetchone()[0]
+            pins={}
+            def artifact(role,raw,aid=None,media='application/json'):
+                obj=publish(raw)
+                aid=aid or uuid4()
+                db.execute("INSERT INTO photo.artifacts(id,tenant_id,bucket,object_key,object_version,sha256,bytes,media_type,output_role,verified_at,created_by_task_id,produced_attempt,produced_fence) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,clock_timestamp(),%s,1,1)",(aid,tenant,bucket,obj['key'],obj['version'],obj['sha256'],obj['bytes'],media,role,task))
+                pin=dict(artifact_id=str(aid),sha256=obj['sha256']);pins[role]=pin
+                return pin,obj
+            # SQL lineage requires physical-pixel artifact rows; pixel decoding is outside this test.
+            for member,role in [('target','mask_target'),('protected','mask_protected')]:
+                pixel,_=artifact(role,b'0'*100,media='application/octet-stream')
+                root[member]['artifact']=pixel
+            target,_=artifact('mask_target_ref',canonical_bytes(root['target']))
+            guard,_=artifact('mask_guard_ref',canonical_bytes(root['protected']))
+            root_raw=canonical_bytes(root)
+            _,root_object=artifact('rasterized_mask',root_raw)
+            db.execute("INSERT INTO photo.interactive_tasks(tenant_id,run_id,task_id,kind,operation,source_artifact_id,declared_inputs,params,params_sha256,backend) VALUES(%s,%s,%s,'mask_manual','mask.rasterize',%s,%s,%s,%s,'cpu')",(tenant,run,task,base['source']['artifact_id'],Jsonb([base['source']]),Jsonb(params),params_object['sha256']))
+            db.execute("INSERT INTO photo.task_attempts(tenant_id,task_id,attempt,fencing_token,worker_id,started_at,finished_at,backend,profile) VALUES(%s,%s,1,1,%s,clock_timestamp(),clock_timestamp(),'cpu','{}')",(tenant,task,uuid4()))
+            result=db.execute("INSERT INTO photo.task_results(tenant_id,task_id,attempt,fencing_token,outputs,metrics,result_digest) VALUES(%s,%s,1,1,%s,'{}',%s) RETURNING id",(tenant,task,Jsonb(list(pins.values())),'d'*64)).fetchone()[0]
+            db.execute("UPDATE photo.tasks SET state='succeeded',canonical_result_id=%s WHERE id=%s",(result,task))
+            # A newer key version must never replace the catalog-pinned original bytes.
+            for obj in (root_object,params_object):
+                client.put_object(bucket,obj['key'],BytesIO(b'{}'),2,content_type='application/json')
+            if failure=='corrupt-root':
+                # Rebind only object locator to different bytes while retaining expected digest/length.
+                bad=publish(b'x'*len(root_raw))
+&gt;               db.execute('UPDATE photo.artifacts SET object_key=%s,object_version=%s WHERE id=%s',(bad['key'],bad['version'],pins['rasterized_mask']['artifact_id']))
+
+tests/integration/test_v28_manual_documents_physical.py:65: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;psycopg.Connection [BAD] at 0x11893e710&gt;
+query = 'UPDATE photo.artifacts SET object_key=%s,object_version=%s WHERE id=%s'
+params = ('manual-documents/ee1a1048d82945d9b3b22b7abb69f664', '05c66633-296c-47d2-a1f1-0232687a26b9', '859fdc0f-f32e-4ce1-83f6-846a861cf631')
+prepare = None, binary = False
+
+    def execute(
+        self,
+        query: Query,
+        params: Params | None = None,
+        *,
+        prepare: bool | None = None,
+        binary: bool = False,
+    ) -&gt; Cursor[Row]:
+        """Execute a query and return a cursor to read its results."""
+        try:
+            cur = self.cursor()
+            if binary:
+                cur.format = BINARY
+    
+            if isinstance(query, Template):
+                if params is not None:
+                    raise TypeError(
+                        "'execute()' with string template query doesn't support parameters"
+                    )
+                return cur.execute(query, prepare=prepare)
+            else:
+                return cur.execute(query, params, prepare=prepare)
+        except e._NO_TRACEBACK as ex:
+&gt;           raise ex.with_traceback(None)
+E           psycopg.errors.CheckViolation: immutable field artifacts.object_key
+E           CONTEXT:  PL/pgSQL function reject_content_update() line 2 at RAISE
+
+.venv-platform/lib/python3.11/site-packages/psycopg/connection.py:304: CheckViolation</failure></testcase><testcase classname="tests.integration.test_v28_manual_documents_physical" name="test_manual_documents_exact_bytes_and_lineage[missing-params]" time="2.533" /></testsuite></testsuites>

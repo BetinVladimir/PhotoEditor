@@ -183,3 +183,39 @@ def test_cancel_cleans_unpublished_output(tmp_path):
         with pytest.raises(RuntimeError, match="cancelled"):
             execute(ctx, artifacts)
         assert not list(scratch.directory.iterdir()) and not artifacts.uploads
+
+
+def test_large_asset_sampler_matches_native_subpixel_and_border():
+    import cv2
+    from photo_worker.algorithms.background import _large_asset_linear_tile
+    background=np.random.default_rng(49).random((9,13,3),dtype=np.float32)
+    xs=np.array([-2,-.5,-.015625,.015625,.046875,2.3,7.71,12.2,14],np.float32)
+    ys=np.array([-1,-.015625,.015625,.046875,3.31,8.7,10],np.float32)
+    mx,my=np.meshgrid(xs,ys)
+    expected=cv2.remap(background,mx,my,cv2.INTER_LINEAR,borderMode=cv2.BORDER_REPLICATE)
+    np.testing.assert_allclose(_large_asset_linear_tile(background,xs,ys),expected,rtol=0,atol=2e-7)
+
+
+@pytest.mark.parametrize('vertical',[False,True])
+def test_asset_panorama_exceeding_native_dimension_limit(vertical):
+    import cv2
+    # Small memory but >SHRT_MAX: reproduce the previous native assertion and
+    # compare the valid fallback tile against a local native reference.
+    background=np.random.default_rng(51).random((2,40000,3),dtype=np.float32)
+    if vertical:background=background.transpose(1,0,2).copy()
+    h,w=background.shape[:2]
+    bounds=(32760,32790,0,2) if vertical else (0,2,32760,32790)
+    y0,y1,x0,x1=bounds
+    geometry=asset_geometry(w,h,w,h,1,.5,.5)
+    actual=render_asset_tile(background,(h,w),bounds,geometry)
+    np.testing.assert_array_equal(actual,background[y0:y1,x0:x1])
+    # Fractional shifted sampling, including the replicated last source edge.
+    bounds=(39970,40000,0,2) if vertical else (0,2,39970,40000)
+    y0,y1,x0,x1=bounds
+    geometry=(1.,-.3 if not vertical else 0.,-.3 if vertical else 0.)
+    actual=render_asset_tile(background,(h,w),bounds,geometry)
+    local=background[y0:h,x0:w]
+    mx,my=np.meshgrid(np.arange(x1-x0,dtype=np.float32)+(.3 if not vertical else 0),
+                      np.arange(y1-y0,dtype=np.float32)+(.3 if vertical else 0))
+    expected=cv2.remap(local,mx,my,cv2.INTER_LINEAR,borderMode=cv2.BORDER_REPLICATE)
+    np.testing.assert_allclose(actual,expected,rtol=0,atol=2e-7)

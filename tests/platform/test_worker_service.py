@@ -1,8 +1,13 @@
 from uuid import uuid4
+from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 from photo_worker.cli import app
 from photo_worker.runtime.service import WorkerConfig,WorkerConfigurationError
+
+
+def metal_policy(backend):
+    return {'PHOTO_CAPACITY_POLICY':str(Path(__file__).resolve().parents[2]/'configs'/'capacity-metal-verification.json')} if backend=='mps' else {}
 
 
 def environment(tmp_path):
@@ -90,7 +95,7 @@ def test_gpu_backend_is_explicit_and_bound_to_executor(monkeypatch,tmp_path):
     from types import SimpleNamespace
     import photo_worker.runtime.service as service
     from photo_worker.runtime.executor import OperationFailure
-    env={**environment(tmp_path),'PHOTO_WORKER_CLASS':'gpu','PHOTO_WORKER_BACKEND':'mps'}
+    env={**environment(tmp_path),'PHOTO_WORKER_CLASS':'gpu','PHOTO_WORKER_BACKEND':'mps',**metal_policy('mps')}
     config=WorkerConfig.from_env(env)
     assert config.backend=='mps' and config.resource_class=='gpu'
     with pytest.raises(WorkerConfigurationError):WorkerConfig.from_env({**env,'PHOTO_WORKER_BACKEND':'auto'})
@@ -99,6 +104,71 @@ def test_gpu_backend_is_explicit_and_bound_to_executor(monkeypatch,tmp_path):
     assert set(transport.executor.operations)=={'pair.fit.color'}
     wrong=SimpleNamespace(lease=SimpleNamespace(execution_profile={'backend':'cpu'}))
     with pytest.raises(OperationFailure):transport.executor.operations['pair.fit.color'].execute(wrong)
+
+
+@pytest.mark.parametrize('backend',['cpu','cuda','mps'])
+def test_installed_render_operation_uses_worker_database_admission(monkeypatch,tmp_path,backend):
+    import ssl
+    from contextlib import nullcontext
+    from types import SimpleNamespace
+    import photo_worker.runtime.service as service
+    from photo_worker.v2 import render_task
+    from photo_worker.runtime.artifacts import TaskArtifacts
+    config=WorkerConfig.from_env({**environment(tmp_path),'PHOTO_WORKER_CLASS':'gpu',
+        'PHOTO_WORKER_BACKEND':backend,**metal_policy(backend)})
+    monkeypatch.setattr(service,'client_tls',lambda *args:ssl.create_default_context())
+    verified=[]
+    renderer=SimpleNamespace(backend=backend,verify_runtime=lambda:verified.append(True))
+    database,transport=service.build_worker(config,render_renderer=renderer)
+    assert verified==[True]
+    assert set(transport.executor.operations)=={'pair.fit.color','render.compose'}
+    actual_artifacts=object();calls=[]
+    def create(ctx,artifact_config,roles):
+        assert artifact_config.max_scratch_bytes==config.max_scratch_bytes
+        assert roles==frozenset({'document','working_image','pixels','alpha','mask_pixels','mask','report'})
+        return nullcontext(actual_artifacts)
+    monkeypatch.setattr(TaskArtifacts,'create',create)
+    def execute(ctx,artifacts,admission,installed_renderer):
+        assert isinstance(admission,render_task.SQLRenderTaskAdmission)
+        assert admission.database is database and installed_renderer is renderer
+        assert artifacts is actual_artifacts
+        calls.append(ctx);return 'render-result'
+    monkeypatch.setattr(render_task,'execute_render_task',execute)
+    command=SimpleNamespace(operation='render.compose',operation_version='1',resource_class='gpu')
+    ctx=SimpleNamespace(check_active=lambda:None,lease=SimpleNamespace(command=command))
+    assert transport.executor.operations['render.compose'].execute(ctx)=='render-result'
+    assert calls==[ctx]
+
+
+@pytest.mark.parametrize('worker_class,backend,renderer_backend',[
+    ('cpu','cpu','cpu'),('media','cpu','cpu'),('gpu','cuda','mps'),('gpu','cuda',None),
+])
+def test_render_installation_mismatch_refuses_before_tls(monkeypatch,tmp_path,worker_class,backend,renderer_backend):
+    from types import SimpleNamespace
+    import photo_worker.runtime.service as service
+    config=WorkerConfig.from_env({**environment(tmp_path),'PHOTO_WORKER_CLASS':worker_class,
+        'PHOTO_WORKER_BACKEND':backend,**metal_policy(backend)})
+    def forbidden(*args):raise AssertionError('TLS IO before Render configuration validation')
+    monkeypatch.setattr(service,'client_tls',forbidden)
+    with pytest.raises(WorkerConfigurationError,match='Render'):
+        service.build_worker(config,render_renderer=SimpleNamespace(backend=renderer_backend))
+
+
+def test_run_worker_forwards_render_installation_and_keeps_registration_gate(monkeypatch,tmp_path):
+    from types import SimpleNamespace
+    import photo_worker.runtime.service as service
+    renderer=object();calls=[]
+    config=WorkerConfig.from_env({**environment(tmp_path),'PHOTO_WORKER_CLASS':'gpu',
+        'PHOTO_WORKER_BACKEND':'cuda'})
+    database=SimpleNamespace(ping=lambda:None,accelerator_operations=lambda *args:frozenset({'render.compose'}))
+    transport=SimpleNamespace(executor=SimpleNamespace(operations={'pair.fit.color':object()}))
+    def build(actual_config,*,render_renderer):
+        assert actual_config is config and render_renderer is renderer
+        calls.append(True);return database,transport
+    monkeypatch.setattr(service,'build_worker',build)
+    with pytest.raises(WorkerConfigurationError,match='registration'):
+        service.run_worker(config,render_renderer=renderer)
+    assert calls==[True]
 
 
 def test_model_runtime_configuration_is_all_or_nothing(tmp_path):
@@ -119,6 +189,9 @@ def test_gpu_startup_uses_backend_preflight_and_capacity(monkeypatch,tmp_path):
         def ping(self):pass
         def accelerator_operations(self,worker,backend):
             calls.append(('preflight',backend));return frozenset({'pair.fit.color'})
+        def heartbeat_policy_worker(self,worker,resource_class,backend,ops,ram,vram,scratch,policy_sha):
+            assert len(policy_sha)==64
+            return self.heartbeat_accelerator_worker(worker,backend,ops,ram,vram,scratch)
         def heartbeat_accelerator_worker(self,worker,backend,ops,ram,vram,scratch):
             calls.append(('capacity',backend,ram,vram,scratch));return True
     class Executor:
@@ -129,7 +202,9 @@ def test_gpu_startup_uses_backend_preflight_and_capacity(monkeypatch,tmp_path):
         def run(self,stop):signal.getsignal(signal.SIGTERM)(signal.SIGTERM,None)
     monkeypatch.setattr(service,'build_worker',lambda config:(Database(),Transport()))
     monkeypatch.setattr(service,'measure_accelerator',lambda root,backend:Capacity(100,200,300))
-    config=WorkerConfig.from_env({**environment(tmp_path),'PHOTO_WORKER_CLASS':'gpu','PHOTO_WORKER_BACKEND':'mps'})
+    monkeypatch.setattr(service,'_install_metal_budget',lambda config:None)
+    monkeypatch.setattr(service,'_capacity_sample',lambda config,sample,**kwargs:sample)
+    config=WorkerConfig.from_env({**environment(tmp_path),'PHOTO_WORKER_CLASS':'gpu','PHOTO_WORKER_BACKEND':'mps',**metal_policy('mps')})
     service.run_worker(config)
     assert calls==[('preflight','mps'),('capacity','mps',100,300,200)]
 
@@ -150,3 +225,255 @@ def test_worker_lens_registry_config_is_paired_and_cpu_only(tmp_path):
     assert WorkerConfig.from_env(configured).lens_registry.profiles==[]
     with pytest.raises(WorkerConfigurationError):WorkerConfig.from_env({**configured,'PHOTO_WORKER_CLASS':'media'})
     with pytest.raises(WorkerConfigurationError):WorkerConfig.from_env({**configured,'PHOTO_LENS_REGISTRY_SHA256':'a'*64})
+
+
+def test_installed_region_operation_uses_worker_database_admission(monkeypatch,tmp_path):
+    import ssl
+    from contextlib import nullcontext
+    from types import SimpleNamespace
+    import photo_worker.runtime.service as service
+    from photo_worker.operations.region import adapter,admission
+    from photo_worker.runtime.artifacts import TaskArtifacts
+    config=WorkerConfig.from_env({**environment(tmp_path),'PHOTO_WORKER_CLASS':'gpu','PHOTO_WORKER_BACKEND':'cuda'})
+    monkeypatch.setattr(service,'client_tls',lambda *args:ssl.create_default_context())
+    verified=[]
+    renderer=SimpleNamespace(backend='cuda',runtime_sha256='a'*64,renderer_version='v2.2',model_lock_sha='b'*64,icc_lock_sha='c'*64,icc_root=tmp_path,supported_modules=frozenset({'color'}),admit_resources=lambda *args:None,render=lambda *args:None,verify_runtime=lambda:verified.append(True))
+    database,transport=service.build_worker(config,region_renderer=renderer)
+    assert verified==[True]
+    assert set(transport.executor.operations)=={'pair.fit.color','region.preview'}
+    artifacts=object()
+    def create(ctx,config,roles):
+        assert roles==frozenset({'derivative','document'})
+        return nullcontext(artifacts)
+    monkeypatch.setattr(TaskArtifacts,'create',create)
+    def execute(ctx,actual,installed_admission,installed_renderer):
+        assert actual is artifacts and installed_renderer is renderer
+        assert isinstance(installed_admission,admission.SQLRegionAdmission)
+        assert installed_admission.database is database
+        return 'region-result'
+    monkeypatch.setattr(adapter,'execute',execute)
+    assert transport.executor.operations['region.preview'].execute(object())=='region-result'
+
+
+@pytest.mark.parametrize('worker_class,backend',[('cpu','cpu'),('media','cpu'),('gpu','mps'),('gpu','cpu')])
+def test_region_installation_requires_cuda_before_tls(monkeypatch,tmp_path,worker_class,backend):
+    from types import SimpleNamespace
+    import photo_worker.runtime.service as service
+    config=WorkerConfig.from_env({**environment(tmp_path),'PHOTO_WORKER_CLASS':worker_class,'PHOTO_WORKER_BACKEND':backend,**metal_policy(backend)})
+    def forbidden(*args):raise AssertionError('TLS before Region configuration validation')
+    monkeypatch.setattr(service,'client_tls',forbidden)
+    with pytest.raises(WorkerConfigurationError,match='Region'):
+        service.build_worker(config,region_renderer=SimpleNamespace(backend='cuda'))
+
+
+def test_run_worker_forwards_region_installation_and_checks_registration(monkeypatch,tmp_path):
+    from types import SimpleNamespace
+    import photo_worker.runtime.service as service
+    config=WorkerConfig.from_env({**environment(tmp_path),'PHOTO_WORKER_CLASS':'gpu','PHOTO_WORKER_BACKEND':'cuda'})
+    renderer=object();calls=[]
+    database=SimpleNamespace(ping=lambda:None,accelerator_operations=lambda *args:frozenset({'region.preview'}))
+    transport=SimpleNamespace(executor=SimpleNamespace(operations={'pair.fit.color':object()}))
+    def build(actual_config,*,region_renderer):
+        assert actual_config is config and region_renderer is renderer
+        calls.append(True);return database,transport
+    monkeypatch.setattr(service,'build_worker',build)
+    with pytest.raises(WorkerConfigurationError,match='registration'):
+        service.run_worker(config,region_renderer=renderer)
+    assert calls==[True]
+
+
+@pytest.mark.parametrize("pinned_region", [False, True])
+def test_render_and_region_install_together_with_one_admission_database(monkeypatch,tmp_path,pinned_region):
+    import ssl
+    from contextlib import nullcontext
+    from types import SimpleNamespace
+    import photo_worker.runtime.service as service
+    from photo_worker.v2 import render_task
+    from photo_worker.operations.region import adapter,admission
+    from photo_worker.runtime.artifacts import TaskArtifacts
+    config=WorkerConfig.from_env({**environment(tmp_path),'PHOTO_WORKER_CLASS':'gpu','PHOTO_WORKER_BACKEND':'cuda'})
+    monkeypatch.setattr(service,'client_tls',lambda *args:ssl.create_default_context())
+    verified=[]
+    render=SimpleNamespace(backend='cuda',verify_runtime=lambda:verified.append('render'))
+    region=SimpleNamespace(backend='cuda',runtime_sha256='a'*64,renderer_version='v2.2',model_lock_sha='b'*64,icc_lock_sha='c'*64,icc_root=tmp_path,supported_modules=frozenset({'color'}),admit_resources=lambda *args:None,render=lambda *args:None,verify_runtime=lambda:verified.append('region'))
+    if pinned_region:
+        from photo_worker.operations.region.renderer import PinnedRegionRenderer
+        from photo_worker.contracts.base import canonical_bytes,canonical_hash
+        from test_region_runtime_lock import lock
+        manifest=lock();path=tmp_path/'region-runtime.json';path.write_bytes(canonical_bytes(manifest))
+        region.runtime_sha256=canonical_hash(manifest)
+        region=PinnedRegionRenderer(region,path,region.runtime_sha256,
+            render_pipeline=lambda *args:None,max_input_bytes=100000)
+        # Constructor verification is independent of build-time registration.
+        assert verified==['region']
+        verified.clear()
+    database,transport=service.build_worker(config,render_renderer=render,region_renderer=region)
+    assert verified==['render','region']
+    assert set(transport.executor.operations)=={'pair.fit.color','render.compose','region.preview'}
+    roles_seen=[]
+    def create(ctx,actual_config,roles):
+        assert actual_config.max_scratch_bytes==config.max_scratch_bytes
+        roles_seen.append(roles)
+        return nullcontext(object())
+    monkeypatch.setattr(TaskArtifacts,'create',create)
+    def render_execute(ctx,artifacts,actual_admission,renderer):
+        assert isinstance(actual_admission,render_task.SQLRenderTaskAdmission)
+        assert actual_admission.database is database and renderer is render
+        return 'render'
+    def region_execute(ctx,artifacts,actual_admission,renderer):
+        assert isinstance(actual_admission,admission.SQLRegionAdmission)
+        assert actual_admission.database is database and renderer is region
+        return 'region'
+    monkeypatch.setattr(render_task,'execute_render_task',render_execute)
+    monkeypatch.setattr(adapter,'execute',region_execute)
+    command=SimpleNamespace(operation='render.compose',operation_version='1',resource_class='gpu')
+    ctx=SimpleNamespace(check_active=lambda:None,lease=SimpleNamespace(command=command))
+    assert transport.executor.operations['render.compose'].execute(ctx)=='render'
+    assert transport.executor.operations['region.preview'].execute(ctx)=='region'
+    assert roles_seen==[frozenset({'document','working_image','pixels','alpha','mask_pixels','mask','report'}),frozenset({'derivative','document'})]
+
+
+def test_run_worker_advertises_both_installed_renderers(monkeypatch,tmp_path):
+    from threading import Event
+    from types import SimpleNamespace
+    import photo_worker.runtime.service as service
+    config=WorkerConfig.from_env({**environment(tmp_path),'PHOTO_WORKER_CLASS':'gpu','PHOTO_WORKER_BACKEND':'cuda'})
+    render,region=object(),object();events=[]
+    installed={'pair.fit.color':object(),'render.compose':object(),'region.preview':object()}
+    database=SimpleNamespace(ping=lambda:events.append('ping'),
+        accelerator_operations=lambda *args:frozenset({'render.compose','region.preview'}),
+        heartbeat_accelerator_worker=lambda worker,backend,operations,ram,vram,scratch:events.append((backend,operations,ram,vram,scratch)))
+    executor=SimpleNamespace(operations=installed,abort_active=lambda:events.append('abort'))
+    transport=SimpleNamespace(executor=executor,run=lambda stop:events.append('run'))
+    def build(actual_config,*,render_renderer,region_renderer):
+        assert actual_config is config and render_renderer is render and region_renderer is region
+        return database,transport
+    monkeypatch.setattr(service,'build_worker',build)
+    monkeypatch.setattr(service,'measure_accelerator',lambda *args:SimpleNamespace(ram_bytes=1,vram_bytes=2,scratch_bytes=3))
+    monkeypatch.setattr(service,'_capacity_sample',lambda config,sample,**kwargs:sample)
+    class Reporter:
+        def __init__(self,report,measure,abort,**kwargs):self.report=report;self.measure=measure;self.failed=Event()
+        def report_once(self):self.report(self.measure())
+        def run(self,stop):raise AssertionError('unexpected background execution in controlled test')
+    class Thread:
+        ident=None
+        def __init__(self,**kwargs):pass
+        def start(self):events.append('capacity-thread')
+        def is_alive(self):return False
+    monkeypatch.setattr(service,'CapacityReporter',Reporter)
+    monkeypatch.setattr(service,'Thread',Thread)
+    service.run_worker(config,render_renderer=render,region_renderer=region)
+    assert events==['ping',('cuda',frozenset(installed),1,2,3),'capacity-thread','run','abort']
+
+
+def test_semantic_operation_installed_only_with_explicit_cuda_factory(monkeypatch,tmp_path):
+    import ssl
+    from dataclasses import replace
+    import photo_worker.runtime.service as service
+    base=WorkerConfig.from_env(environment(tmp_path))
+    monkeypatch.setattr(service,'client_tls',lambda *args:ssl.create_default_context())
+    cuda=replace(base,resource_class='gpu',backend='cuda')
+    _,baseline=service.build_worker(cuda)
+    assert 'semantic.transfer' not in baseline.executor.operations
+    _,installed=service.build_worker(cuda,semantic_installation_factory=lambda ctx:None)
+    assert installed.executor.operations['semantic.transfer'].resource_class=='gpu'
+    _,installed=service.build_worker(cuda,semantic_artifact_installation_factory=lambda ctx,artifacts:None)
+    assert installed.executor.operations['semantic.transfer'].resource_class=='gpu'
+    with pytest.raises(WorkerConfigurationError,match='ambiguous'):
+        service.build_worker(cuda,semantic_installation_factory=lambda ctx:None,
+            semantic_artifact_installation_factory=lambda ctx,artifacts:None)
+    for config,factory in [(base,lambda ctx:None),(replace(cuda,backend='mps'),lambda ctx:None),(cuda,object())]:
+        with pytest.raises(WorkerConfigurationError,match='Semantic installation'):
+            service.build_worker(config,semantic_installation_factory=factory)
+        with pytest.raises(WorkerConfigurationError,match='Semantic installation'):
+            service.build_worker(config,semantic_artifact_installation_factory=factory)
+
+
+def test_semantic_assembly_installed_only_with_cpu_authority(monkeypatch,tmp_path):
+    import ssl
+    from dataclasses import replace
+    import photo_worker.runtime.service as service
+    cpu=WorkerConfig.from_env({**environment(tmp_path),'PHOTO_WORKER_CLASS':'cpu'})
+    monkeypatch.setattr(service,'client_tls',lambda *args:ssl.create_default_context())
+    _,baseline=service.build_worker(cpu)
+    assert 'v2.semantic.assemble' not in baseline.executor.operations
+    factory=lambda ctx,artifacts:None
+    _,installed=service.build_worker(cpu,semantic_assembly_installation_factory=factory)
+    assert installed.executor.operations['v2.semantic.assemble'].resource_class=='cpu'
+    for config,owner in [(replace(cpu,resource_class='gpu',backend='cuda'),factory),(replace(cpu,resource_class='media'),factory),(cpu,object())]:
+        with pytest.raises(WorkerConfigurationError,match='assembly installation'):
+            service.build_worker(config,semantic_assembly_installation_factory=owner)
+
+
+def test_local_exposure_installed_only_with_explicit_cpu_authority(monkeypatch,tmp_path):
+    import ssl
+    from dataclasses import replace
+    import photo_worker.runtime.service as service
+    cpu=WorkerConfig.from_env({**environment(tmp_path),'PHOTO_WORKER_CLASS':'cpu'})
+    monkeypatch.setattr(service,'client_tls',lambda *args:ssl.create_default_context())
+    _,baseline=service.build_worker(cpu)
+    assert 'semantic.local_exposure' not in baseline.executor.operations
+    factory=lambda ctx,artifacts:None
+    _,installed=service.build_worker(cpu,local_exposure_installation_factory=factory)
+    operation=installed.executor.operations['semantic.local_exposure']
+    assert operation.resource_class=='cpu'
+    for config,owner in [(replace(cpu,resource_class='gpu',backend='cuda'),factory),
+            (replace(cpu,resource_class='media'),factory),(replace(cpu,backend='mps'),factory),(cpu,object())]:
+        with pytest.raises(WorkerConfigurationError,match='Local exposure installation'):
+            service.build_worker(config,local_exposure_installation_factory=owner)
+
+
+def test_run_worker_forwards_local_exposure_installation(monkeypatch,tmp_path):
+    import photo_worker.runtime.service as service
+    cpu=WorkerConfig.from_env({**environment(tmp_path),'PHOTO_WORKER_CLASS':'cpu'})
+    factory=lambda ctx,artifacts:None
+    class Captured(Exception):pass
+    def build(config,**kwargs):
+        assert config is cpu
+        assert kwargs=={'local_exposure_installation_factory':factory}
+        raise Captured()
+    monkeypatch.setattr(service,'build_worker',build)
+    with pytest.raises(Captured):
+        service.run_worker(cpu,local_exposure_installation_factory=factory)
+
+
+def test_negative_service_installs_concrete_icc_verifier(monkeypatch,tmp_path):
+    import ssl
+    from dataclasses import replace
+    from pathlib import Path
+    from types import SimpleNamespace
+    import photo_worker.runtime.service as service
+    from photo_worker.operations.optical import negative_adapter
+    from photo_worker.runtime.executor import Operation
+    cpu=WorkerConfig.from_env({**environment(tmp_path),'PHOTO_WORKER_CLASS':'cpu'})
+    cpu=replace(cpu,icc_root=Path(__file__).resolve().parents[2]/'resources/icc')
+    monkeypatch.setattr(service,'client_tls',lambda *args:ssl.create_default_context())
+    calls=[]
+    def install(config,database,objects,**kwargs):
+        assert callable(kwargs['verify_color'])
+        calls.append(kwargs['bucket'])
+        return [Operation('optical.negative','cpu',lambda ctx:None)]
+    monkeypatch.setattr(negative_adapter,'negative_operations',install)
+    installation=negative_adapter.NegativeInstallation(object(),'qualified',None)
+    _,baseline=service.build_worker(cpu)
+    assert 'optical.negative' not in baseline.executor.operations
+    _,installed=service.build_worker(cpu,negative_installation=installation)
+    assert installed.executor.operations['optical.negative'].resource_class=='cpu'
+    assert calls==['qualified']
+    for config,owner in [(replace(cpu,resource_class='gpu'),installation),
+            (replace(cpu,icc_root=None),installation),(cpu,object())]:
+        with pytest.raises(WorkerConfigurationError):
+            service.build_worker(config,negative_installation=owner)
+    assert calls==['qualified']
+
+
+def test_mps_configuration_requires_explicit_capacity_policy(tmp_path):
+    env = {**environment(tmp_path), 'PHOTO_WORKER_CLASS':'gpu', 'PHOTO_WORKER_BACKEND':'mps',**metal_policy('mps')}
+    env.pop('PHOTO_CAPACITY_POLICY')
+    with pytest.raises(WorkerConfigurationError, match='PHOTO_CAPACITY_POLICY required for MPS'):
+        WorkerConfig.from_env(env)
+
+
+def test_mps_verification_policy_preserves_ten_decimal_gb(tmp_path):
+    config = WorkerConfig.from_env({**environment(tmp_path), 'PHOTO_WORKER_CLASS':'gpu', 'PHOTO_WORKER_BACKEND':'mps',**metal_policy('mps')})
+    assert config.capacity_policy.gpu_budget_bytes == 10_000_000_000

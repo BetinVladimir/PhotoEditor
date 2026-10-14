@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-08",
+  "module": "V27",
+  "module_accepted": false,
+  "scope": "Qualified person candidate absence maps to dependency unavailable only after original source version/document verification; missing source keeps original error. HTTP503 without bypass/admission when sole person producer is expired; exact expiry restored then ordinary create/executable replay verified.",
+  "physical": {
+    "passed": 3,
+    "deselected": 14,
+    "seconds": 71.03,
+    "command": "PHOTO_TEST_NATIVE_INFRA=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=workers:src:tests/integration .venv-platform/bin/python -m pytest tests/integration/test_v27_semantic_intent_publication.py -k 'create-service or native-bootstrap or ordinary-admission' -q --tb=short"
+  },
+  "packages": {
+    "semanticproposal": "PASS 1.939s",
+    "httpapi": "PASS 0.922s",
+    "cmd/photo": "PASS 1.343s"
+  },
+  "initial_regression": {
+    "passed": 1,
+    "failed": 2,
+    "seconds": 48.84,
+    "cause": "missing asset version was incorrectly classified unavailable",
+    "repair": "on empty candidate inventory, verify original source through scoped catalog and pinned document reader before returning unavailable"
+  },
+  "source_sha256": {
+    "backend/internal/semanticproposal/person_selection.go": "ee68bfbbce3cedfca81eb5aae3c8a13f3acfe3a7a845c30d26633a30ef9384ed",
+    "backend/internal/semanticproposal/create_http_probe_test.go": "7c20802ffa95274bca7521a59d1571d2430fc0224ee5baf318620f99cec5f48a",
+    "backend/internal/semanticproposal/create_integration_probe_test.go": "dd0fb2033796443899130c42082cc7e172b540dedfb65be3bd11704a1474bd38",
+    "backend/internal/semanticproposal/source_read.go": "3b84bc91874efdd32544f59d937fc4319c21e5f3caf9ce1e90dc937499da16fe",
+    "backend/internal/semanticproposal/transfer_target_selection.go": "781b895164c180c224e05fce08206776d22096a829195e5d4933f8fd85168914",
+    "backend/internal/httpapi/semantic_proposal_errors.go": "fcb306f1e26548ba88b1f27d0e7da492720350761c4ccd1f5558a74c277076db",
+    "tests/integration/test_v27_semantic_intent_publication.py": "b60db71c92f2410fb25193328d7ea2b11fa7c488d7ddf4705a475daee12fdb33"
+  },
+  "remaining": [
+    "automatic missing-producer initiation with durable original authority",
+    "complete current V27 model/photo/client/hardware/security/lifecycle acceptance"
+  ]
+}

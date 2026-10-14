@@ -31,5 +31,7 @@
 | v2.interchange.parse | V2InterchangeParseParams | request, max_expanded_bytes, max_files | ParsedInterchange | V30 |
 | v2.delivery.prepare | V2DeliveryPrepareParams | input | DeliveryPreparation | V30 |
 | region.preview | RegionPreviewParams | tenant_id, project_id, asset_id, request, source, recipe, frozen_recipe, geometry, render_order, inputs | RegionDerivativeManifest | V26 |
+| render.compose | FrozenRenderRecipe | recipe, recipe_sha256, scalars, learning, background_asset | ImageResult | V26 |
+| semantic.local_exposure | ApprovedSemanticEdit | target_id, source, intent, candidate, mask, transform, kind, strength, ev, prompt, preserve_persons | ImageResult | V27 |
 
 DTO добавлять в existing contract generator. Go strict decoding, TS generated types, Pydantic forbid extras; semantic validation15–19 обязательна на сервере и перед исполнением worker. Cross-language tests: unknown fields, null, finite numeric bounds, duplicate IDs, order, byte caps и revision overflow.

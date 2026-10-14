@@ -1,0 +1,114 @@
+[
+  {
+    "Width": 1,
+    "Height": 1,
+    "Alpha": false,
+    "Expected": {
+      "pixel_count": 1,
+      "vram_bytes": 0,
+      "ram_bytes": 536871068,
+      "material_scratch_bytes": 32780,
+      "output_scratch_bytes": 32784,
+      "scratch_bytes": 65564,
+      "output_bytes": 294928
+    }
+  },
+  {
+    "Width": 1,
+    "Height": 1,
+    "Alpha": true,
+    "Expected": {
+      "pixel_count": 1,
+      "vram_bytes": 0,
+      "ram_bytes": 536871072,
+      "material_scratch_bytes": 32784,
+      "output_scratch_bytes": 32784,
+      "scratch_bytes": 65568,
+      "output_bytes": 294928
+    }
+  },
+  {
+    "Width": 513,
+    "Height": 3,
+    "Alpha": false,
+    "Expected": {
+      "pixel_count": 1539,
+      "vram_bytes": 0,
+      "ram_bytes": 537110996,
+      "material_scratch_bytes": 51236,
+      "output_scratch_bytes": 57392,
+      "scratch_bytes": 108628,
+      "output_bytes": 319536
+    }
+  },
+  {
+    "Width": 513,
+    "Height": 3,
+    "Alpha": true,
+    "Expected": {
+      "pixel_count": 1539,
+      "vram_bytes": 0,
+      "ram_bytes": 537117152,
+      "material_scratch_bytes": 57392,
+      "output_scratch_bytes": 57392,
+      "scratch_bytes": 114784,
+      "output_bytes": 319536
+    }
+  },
+  {
+    "Width": 6000,
+    "Height": 4000,
+    "Alpha": false,
+    "Expected": {
+      "pixel_count": 24000000,
+      "vram_bytes": 0,
+      "ram_bytes": 1242425344,
+      "material_scratch_bytes": 288032768,
+      "output_scratch_bytes": 384032768,
+      "scratch_bytes": 672065536,
+      "output_bytes": 384294912
+    }
+  },
+  {
+    "Width": 6000,
+    "Height": 4000,
+    "Alpha": true,
+    "Expected": {
+      "pixel_count": 24000000,
+      "vram_bytes": 0,
+      "ram_bytes": 1338425344,
+      "material_scratch_bytes": 384032768,
+      "output_scratch_bytes": 384032768,
+      "scratch_bytes": 768065536,
+      "output_bytes": 384294912
+    }
+  },
+  {
+    "Width": 200000000,
+    "Height": 1,
+    "Alpha": false,
+    "Expected": {
+      "pixel_count": 200000000,
+      "vram_bytes": 0,
+      "ram_bytes": 6170425344,
+      "material_scratch_bytes": 2400032768,
+      "output_scratch_bytes": 3200032768,
+      "scratch_bytes": 5600065536,
+      "output_bytes": 3200294912
+    }
+  },
+  {
+    "Width": 200000000,
+    "Height": 1,
+    "Alpha": true,
+    "Expected": {
+      "pixel_count": 200000000,
+      "vram_bytes": 0,
+      "ram_bytes": 6970425344,
+      "material_scratch_bytes": 3200032768,
+      "output_scratch_bytes": 3200032768,
+      "scratch_bytes": 6400065536,
+      "output_bytes": 3200294912
+    }
+  }
+]

@@ -52,3 +52,53 @@ func TestCorrectionCreateRequiresExactWireFields(t *testing.T) {
 		t.Fatal("accepted null learn")
 	}
 }
+
+func TestCorrectionCreatePortraitDetailRequiresExactProducer(t *testing.T) {
+	request := map[string]any{
+		"client_event_id": uuid.New().String(), "session_id": uuid.New().String(),
+		"asset_version_id": uuid.New().String(), "base_document_id": uuid.New().String(),
+		"approved_document_id": uuid.New().String(), "reason": "retouch",
+		"learn": true, "person_id": nil, "scene_group_id": nil,
+		"consent_id": uuid.New().String(), "consent_epoch": "1",
+	}
+	producer := map[string]any{
+		"run_id": uuid.New().String(), "task_id": uuid.New().String(),
+		"result_id": uuid.New().String(), "attempt_id": uuid.New().String(),
+	}
+	request["portrait_detail_producer"] = producer
+	decode := func() error {
+		body, err := json.Marshal(request)
+		if err != nil {
+			return err
+		}
+		var got CorrectionCreate
+		if err = json.Unmarshal(body, &got); err != nil {
+			return err
+		}
+		if !validCorrection(got) {
+			return ErrInvalidTrainingDraft
+		}
+		return nil
+	}
+	if err := decode(); err != nil {
+		t.Fatal(err)
+	}
+	producer["extra"] = "forbidden"
+	if err := decode(); err == nil {
+		t.Fatal("unknown producer field accepted")
+	}
+	delete(producer, "extra")
+	delete(producer, "attempt_id")
+	if err := decode(); err == nil {
+		t.Fatal("missing attempt accepted")
+	}
+	producer["attempt_id"] = uuid.Nil.String()
+	if err := decode(); err == nil {
+		t.Fatal("zero attempt accepted")
+	}
+	producer["attempt_id"] = uuid.New().String()
+	request["reason"] = "exposure"
+	if err := decode(); err == nil {
+		t.Fatal("non-retouch producer accepted")
+	}
+}

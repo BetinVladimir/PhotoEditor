@@ -1,0 +1,20 @@
+{"Time":"2026-10-08T02:19:32.948961+03:00","Action":"start","Package":"photoeditor/backend/internal/v2render"}
+{"Time":"2026-10-08T02:19:32.949077+03:00","Action":"start","Package":"photoeditor/backend/internal/v2draft"}
+{"Time":"2026-10-08T02:19:33.512546+03:00","Action":"run","Package":"photoeditor/backend/internal/v2render","Test":"TestCompositionWirePythonCanonicalParity"}
+{"Time":"2026-10-08T02:19:33.512641+03:00","Action":"output","Package":"photoeditor/backend/internal/v2render","Test":"TestCompositionWirePythonCanonicalParity","Output":"=== RUN   TestCompositionWirePythonCanonicalParity\n"}
+{"Time":"2026-10-08T02:19:33.897324+03:00","Action":"run","Package":"photoeditor/backend/internal/v2draft","Test":"TestImageReportWorkerWire"}
+{"Time":"2026-10-08T02:19:33.897384+03:00","Action":"output","Package":"photoeditor/backend/internal/v2draft","Test":"TestImageReportWorkerWire","Output":"=== RUN   TestImageReportWorkerWire\n"}
+{"Time":"2026-10-08T02:19:34.180155+03:00","Action":"output","Package":"photoeditor/backend/internal/v2draft","Test":"TestImageReportWorkerWire","Output":"--- PASS: TestImageReportWorkerWire (0.28s)\n"}
+{"Time":"2026-10-08T02:19:34.180176+03:00","Action":"pass","Package":"photoeditor/backend/internal/v2draft","Test":"TestImageReportWorkerWire","Elapsed":0.28}
+{"Time":"2026-10-08T02:19:34.181071+03:00","Action":"output","Package":"photoeditor/backend/internal/v2draft","Output":"PASS\n"}
+{"Time":"2026-10-08T02:19:34.181903+03:00","Action":"output","Package":"photoeditor/backend/internal/v2draft","Output":"ok  \tphotoeditor/backend/internal/v2draft\t1.233s\n"}
+{"Time":"2026-10-08T02:19:34.181931+03:00","Action":"pass","Package":"photoeditor/backend/internal/v2draft","Elapsed":1.233}
+{"Time":"2026-10-08T02:19:34.331319+03:00","Action":"output","Package":"photoeditor/backend/internal/v2render","Test":"TestCompositionWirePythonCanonicalParity","Output":"--- PASS: TestCompositionWirePythonCanonicalParity (0.82s)\n"}
+{"Time":"2026-10-08T02:19:34.331351+03:00","Action":"pass","Package":"photoeditor/backend/internal/v2render","Test":"TestCompositionWirePythonCanonicalParity","Elapsed":0.82}
+{"Time":"2026-10-08T02:19:34.331926+03:00","Action":"run","Package":"photoeditor/backend/internal/v2render","Test":"TestRenderResourcesActualWorkerParity"}
+{"Time":"2026-10-08T02:19:34.331935+03:00","Action":"output","Package":"photoeditor/backend/internal/v2render","Test":"TestRenderResourcesActualWorkerParity","Output":"=== RUN   TestRenderResourcesActualWorkerParity\n"}
+{"Time":"2026-10-08T02:19:34.88055+03:00","Action":"output","Package":"photoeditor/backend/internal/v2render","Test":"TestRenderResourcesActualWorkerParity","Output":"--- PASS: TestRenderResourcesActualWorkerParity (0.55s)\n"}
+{"Time":"2026-10-08T02:19:34.88057+03:00","Action":"pass","Package":"photoeditor/backend/internal/v2render","Test":"TestRenderResourcesActualWorkerParity","Elapsed":0.55}
+{"Time":"2026-10-08T02:19:34.880868+03:00","Action":"output","Package":"photoeditor/backend/internal/v2render","Output":"PASS\n"}
+{"Time":"2026-10-08T02:19:34.882184+03:00","Action":"output","Package":"photoeditor/backend/internal/v2render","Output":"ok  \tphotoeditor/backend/internal/v2render\t1.933s\n"}
+{"Time":"2026-10-08T02:19:34.882262+03:00","Action":"pass","Package":"photoeditor/backend/internal/v2render","Elapsed":1.933}

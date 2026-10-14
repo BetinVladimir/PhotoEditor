@@ -125,3 +125,31 @@ func TestImageReportWorkerWire(t *testing.T) {
 		}
 	}
 }
+
+func TestParseImageReportRetainsTypedSourcesAndOwnsBytes(t *testing.T) {
+	fields, parent := reportFixture()
+	fields["parent_reports"] = []v2input.Ref{}
+	raw, err := canonical.Marshal(fields)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := ParseImageReport(raw, parent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Status != "review" || len(result.Sources) != 1 || result.ParentReports == nil || result.Registrations == nil {
+		t.Fatal("typed report fields lost")
+	}
+	raw[0] = 'x'
+	if result.Operation != "layer.compose" {
+		t.Fatal("typed report aliases bytes")
+	}
+	fields["unknown"] = true
+	raw, err = canonical.Marshal(fields)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ParseImageReport(raw, parent); err == nil {
+		t.Fatal("typed parser bypassed strict report validation")
+	}
+}

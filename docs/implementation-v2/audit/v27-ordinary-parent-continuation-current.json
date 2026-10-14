@@ -1,0 +1,90 @@
+{
+  "recorded_at": "2026-10-08T09:19:23.408065+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "scope": "Original ordinary public request durable parent continuation; not full module acceptance",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "dirty_tree_hash": "3997ab98543959dc5beef0624de63e47c4bc35276526553be8ae87db44ad08f8",
+  "dirty_tree_hash_algorithm": "SHA256 sorted git tracked+nonignored untracked paths/type/content; report itself excluded; symlink text hashed without following",
+  "contracts_hash": "4092c7b6caacbfc2e6552f73a8e31a4cd53de3d5ca4ab165625d8423748d1d71",
+  "sources": {
+    "backend/db/migrations/00902_v27_ordinary_parent_continuation.sql": "eb460315f8dd6184fcd9a44469cf057bc6927d6b8e3fd72bc346701c8a103c5d",
+    "backend/internal/semanticproposal/create_service.go": "225a753b882b196200c0bf9110693e1d8b4a54e1933236164629d1b51bcb4ec8",
+    "backend/internal/semanticproposal/create_person_preparation.go": "1b2c9ae13d5623f2c559e2a268d1a7d56c846f1497197cd00f13236b372cd281",
+    "backend/internal/semanticproposal/native_plan_factory.go": "d50a1cf6de23f57eae1bfc2a3bca5c3be049e09adfe62715eab10834ed58ea28",
+    "backend/internal/semanticproposal/native_plan_recovery_metadata.go": "30f15f2271e7c9bd012ad322652d9d5be7dc13efe4f21272188d0c52f8d395b0",
+    "backend/internal/semanticproposal/native_plan_recovery_metadata_test.go": "870d8e3b341d31f12ddfc65f24b0239dbe0187c00fbc1507a48e58399128b326",
+    "backend/internal/semanticproposal/person_source_task.go": "97f7e69d882bb7f6916c4346c05815cbd8c4b5adae57ca1d8793da868d03cb99",
+    "backend/internal/semanticproposal/person_draft_plan.go": "3668c44c6b4d7aea63c3de184e42beb2d62f2f65773b9d0852677fe5d0b99806",
+    "backend/internal/semanticproposal/person_saved_restore.go": "cb075150b56f6844432cfa2520fa4183929e2e4acf5564c30c437028eacf4790",
+    "backend/internal/semanticproposal/ordinary_parent_policy.go": "14fa9aa01edb727eb150aa93ec6dfa6714b9f683d7f24f7ddaf29bc6bfb6b40d",
+    "backend/internal/semanticproposal/ordinary_parent_recovery_job.go": "8ae311d619c966c6486b9757e78cd1b02b901c7a83029b38bcdf087967636d50",
+    "backend/internal/semanticproposal/ordinary_parent_dispatcher.go": "02c8082674d5fecb0df525dcbe826f7b75306f4a09f8a5edb411ebf67ce88d4c",
+    "backend/internal/semanticproposal/native_initial_recovery_dispatcher.go": "f151412899b1967a479aea71ec6f94e22e5267112005ad73cd0ca00b99b573bd",
+    "backend/internal/semanticproposal/native_bootstrap_integration_test.go": "c6d6442464afa5401af478ddc36f471ab71df56615a1c468dcfcf265afb47b98",
+    "backend/internal/semanticproposal/create_http_probe_test.go": "0182df33bf83e10b03be3ab5ed1c526f841fe5cb079fab76e2552cd323542b59",
+    "tests/integration/test_v27_semantic_intent_publication.py": "725f64eb83cad4cbd31335d82d6c47cbcd0451f95c6b320f91bddea6180c4a0e",
+    "tests/integration/v27_create_probe.py": "1ed7223bb75a8295d7860daf62032fe9c60c5bdb836fce24fa11350e18c87efb"
+  },
+  "source_manifest_unchanged_after_final_checks": true,
+  "checks": [
+    {
+      "command": "scripts/run-platform.sh go -C backend test ./internal/semanticproposal ./internal/workflow ./internal/v2input ./internal/httpapi ./cmd/photo",
+      "exit_code": 0,
+      "semanticproposal_seconds": 1.998
+    },
+    {
+      "command": "PHOTO_TEST_NATIVE_INFRA=1 pytest tests/integration/test_v27_semantic_intent_publication.py -k \"native-bootstrap or create-person or create-service\" -q --tb=short",
+      "exit_code": 1,
+      "passed": 2,
+      "failed": 1,
+      "deselected": 15,
+      "seconds": 71.14,
+      "failure": "Independent verifier used uppercase Report key, while frozen qualification fixture key is report; production Go probes passed."
+    },
+    {
+      "command": "PHOTO_TEST_NATIVE_INFRA=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=workers:src:tests/integration .venv-platform/bin/python -m pytest tests/integration/test_v27_semantic_intent_publication.py -k create-person -q --tb=short",
+      "exit_code": 0,
+      "passed": 1,
+      "deselected": 17,
+      "seconds": 18.64,
+      "required_markers": [
+        "V27_ORDINARY_PARENT_DURABLE_CONTINUATION_OK",
+        "V27_PERSON_STANDALONE_DURABLE_REPLAY_OK"
+      ]
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "requirements": [
+    {
+      "id": "ordinary-origin-only",
+      "status": "implemented_scoped_verified",
+      "evidence": "Strict recovery codec and physical native initial/manual-origin refusal marker."
+    },
+    {
+      "id": "exact-original-public-policy",
+      "status": "implemented_scoped_verified",
+      "evidence": "Immutable ordinary_policy, restore/recompile, physical independent original report/project and reservation assertions."
+    },
+    {
+      "id": "durable-ordinary-parent-admission",
+      "status": "implemented_scoped_verified",
+      "evidence": "Missing canonical evidence retry; fixture canonical restoration then scheduler ProcessOne admission/done/no-reclaim and public202 replay; exact closure/storage/quota/event/receipt assertions."
+    },
+    {
+      "id": "new-person-worker-result-to-parent",
+      "status": "missing_evidence",
+      "evidence": null
+    }
+  ],
+  "limitations": [
+    "Synthetic imported qualification and transformed unit RGB fixtures; no real GPU model or photo quality evidence.",
+    "Canonical readiness transition restores original fixture evidence; newly inferred person output adoption not exercised.",
+    "No incremental old-deployment upgrade acceptance claimed; legacy checkpoints are not backfilled.",
+    "Target prerequisite orchestration and complete V27/browser/native/GC/purge/quality gates remain open.",
+    "Full V20\u2013V32 objective active; no whole module accepted."
+  ]
+}

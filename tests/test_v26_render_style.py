@@ -67,7 +67,7 @@ def test_example_style_rejected_before_override_loading():
 def test_scalar_substitution_rejected_after_complete_module_validation():
     artifacts, inputs, scalars = setup()
     scalars[0].delta.ev = .2
-    with pytest.raises(ValueError, match='EFFECTIVE_DELTA_CHANGED'):
+    with pytest.raises(ValueError, match='OVERRIDE_SCALAR_DOUBLE_APPLICATION'):
         prepare_render_style(artifacts, inputs, scalars, max_override_document_bytes=4096)
 
 
@@ -78,3 +78,57 @@ def test_actual_pinned_style_bytes_required():
     with pytest.raises(ValueError):
         prepare_render_style(artifacts, inputs, scalars, max_override_document_bytes=4096)
     assert len(artifacts.reads) == 1
+
+
+def test_matching_frozen_total_cannot_hide_double_application_of_module_scalar():
+    artifacts, inputs, scalars = setup()
+    scalars[0].delta.ev = .2
+    inputs.recipe.scalars.effective_delta.ev = .2 + .1
+    with pytest.raises(ValueError, match='OVERRIDE_SCALAR_DOUBLE_APPLICATION'):
+        prepare_render_style(artifacts, inputs, scalars, max_override_document_bytes=4096)
+    assert artifacts.reads == []
+
+
+def test_absolute_global_override_and_authored_delta_are_each_applied_once():
+    artifacts, inputs, scalars = setup()
+    ref = inputs.recipe.recipe.overrides[0]
+    patch = parse_json(artifacts.bodies[ref.artifact_id])
+    base = parse_json(artifacts.bodies[inputs.recipe.recipe.base_style.artifact_id])
+    patch['modules'] = {'global': dict(base['global'], gains_rgb=[2, 2, 2])}
+    raw = canonical_bytes(patch)
+    pinned = ArtifactRef(artifact_id=ref.artifact_id, sha256=canonical_hash(patch))
+    artifacts.bodies[ref.artifact_id] = raw
+    inputs.recipe.recipe.overrides = [pinned]
+    inputs.recipe.recipe_sha256 = canonical_hash(inputs.recipe.recipe)
+    evidence = (ResolvedRenderOverride(pinned, scalars[0].delta),)
+    result = prepare_render_style(artifacts, inputs, evidence, max_override_document_bytes=16384)
+    assert result.merged.global_.gains_rgb == [2, 2, 2]
+    assert result.effective.global_.gains_rgb == [2 * 2**.1] * 3
+    assert result.effective_delta.ev == .1
+
+
+@pytest.mark.parametrize('base_gain,target_gain,valid', [(4, 1, True), (1, 4, False)])
+def test_final_bounds_follow_merged_module_instead_of_base(base_gain, target_gain, valid):
+    artifacts, inputs, scalars = setup()
+    base_ref = inputs.recipe.recipe.base_style
+    override_ref = inputs.recipe.recipe.overrides[0]
+    base = parse_json(artifacts.bodies[base_ref.artifact_id])
+    base['global']['gains_rgb'] = [base_gain] * 3
+    patch = parse_json(artifacts.bodies[override_ref.artifact_id])
+    patch['modules'] = {'global': dict(base['global'], gains_rgb=[target_gain] * 3)}
+    pinned_base = ArtifactRef(artifact_id=base_ref.artifact_id, sha256=canonical_hash(base))
+    pinned_override = ArtifactRef(artifact_id=override_ref.artifact_id, sha256=canonical_hash(patch))
+    artifacts.bodies[base_ref.artifact_id] = canonical_bytes(base)
+    artifacts.bodies[override_ref.artifact_id] = canonical_bytes(patch)
+    inputs.recipe.recipe.base_style = pinned_base
+    inputs.recipe.scalars.base_style = pinned_base
+    inputs.recipe.recipe.overrides = [pinned_override]
+    inputs.recipe.recipe_sha256 = canonical_hash(inputs.recipe.recipe)
+    evidence = (ResolvedRenderOverride(pinned_override, scalars[0].delta),)
+    if valid:
+        result = prepare_render_style(artifacts, inputs, evidence, max_override_document_bytes=16384)
+        assert result.base.global_.gains_rgb == [4] * 3
+        assert result.effective.global_.gains_rgb == [2**.1] * 3
+    else:
+        with pytest.raises(ValueError, match='PARAMETER_RANGE'):
+            prepare_render_style(artifacts, inputs, evidence, max_override_document_bytes=16384)

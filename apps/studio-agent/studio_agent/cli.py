@@ -6,6 +6,7 @@ import time
 import uuid
 from pathlib import Path
 
+from .config import load_config
 from .credentials import DeviceKey
 from .http import HTTPClient
 from .journal import Journal
@@ -48,7 +49,7 @@ def main() -> int:
         device_id = str(uuid.UUID(args.device_id))
         if not args.journal.is_file():
             raise ValueError("journal does not exist")
-        journal = Journal(args.journal)
+        journal = Journal(args.journal, readonly=True)
         try:
             print(json.dumps(journal.summary(device_id), allow_nan=False))
         finally:
@@ -58,14 +59,8 @@ def main() -> int:
         key_id = args.key_id or str(uuid.uuid4())
         print(json.dumps({"key_id": key_id, "public_key": DeviceKey(key_id).create()}))
         return 0
-    if args.config.stat().st_size > 65536:
-        raise ValueError("agent config exceeds limit")
-    config = json.loads(args.config.read_text())
-    development = config.get("development", False)
-    if not isinstance(development, bool):
-        raise ValueError("development must be boolean")
-    if not development and not config.get("ca_bundle"):
-        raise ValueError("production capture requires operator CA bundle")
+    config = load_config(args.config)
+    development = config["development"]
     key = DeviceKey(config["key_id"])
     key.load()
     client = HTTPClient(config["api_origin"], config["tenant_id"], config["project_id"],
@@ -78,7 +73,8 @@ def main() -> int:
         try:
             watch = WatchFolder(Path(config["watch_root"]), journal, client.device_id,
                 max_file_bytes=512 * 1024**2,
-                max_queued_bytes=config.get("max_queued_bytes", 100 * 1024**3))
+                max_queued_bytes=config.get("max_queued_bytes", 100 * 1024**3),
+                raw_policy_json=config.get("raw_development"))
             journal.recover(client.device_id)
             runner = Runner(Transfer(watch, client))
             while True:
@@ -89,9 +85,11 @@ def main() -> int:
         except KeyboardInterrupt:
             return 0
         finally:
-            if runner is not None:
-                runner.camera.disconnect()
-            journal.close()
+            try:
+                if runner is not None:
+                    runner.camera.disconnect()
+            finally:
+                journal.close()
 
 
 if __name__ == "__main__":

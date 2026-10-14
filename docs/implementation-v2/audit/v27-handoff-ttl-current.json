@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 natural root and lease TTL expiry within open handoff transaction",
+  "whole_module_accepted": false,
+  "migration_head": "00963",
+  "new_migrations": false,
+  "production_migrations_applied": false,
+  "checks": {
+    "go_four_packages": [
+      {
+        "package": "photoeditor/backend/internal/v2qualification",
+        "elapsed": 0
+      },
+      {
+        "package": "photoeditor/backend/internal/v2draft",
+        "elapsed": 0.007
+      },
+      {
+        "package": "photoeditor/backend/internal/v2input",
+        "elapsed": 0.007
+      },
+      {
+        "package": "photoeditor/backend/internal/semanticproposal",
+        "elapsed": 3.467
+      }
+    ],
+    "native_wire": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "1",
+      "time": "441.273",
+      "timestamp": "2026-10-09T04:30:05.108864+03:00",
+      "hostname": "Mac"
+    },
+    "documentation": "PASS55 tests/2267 static checks",
+    "diff_check": "PASS"
+  },
+  "source_manifest": "v27-handoff-ttl-source-current.json",
+  "source_manifest_sha256": "c415e4d6be9904e8a9dc628a669c7b7e2e50061ca1c9add70701268167de5865",
+  "source_files": 4808,
+  "quality_preservation": {
+    "workers_src_baseline_files": 544,
+    "changed": 0,
+    "real_photo_quality_accepted": false
+  },
+  "verified": [
+    "Same transaction positive readiness followed by natural root TTL expiry; scheduler completed recorder refused.",
+    "Initially live recovery lease naturally expires in same transaction; scheduler recorder refused.",
+    "Both refusals preserve done=false and exact token; rollback restores fixture.",
+    "Concurrent writer and sequential lifecycle probes rerun with checkpoint-job native scenario."
+  ],
+  "remaining": [
+    "Qualification policy revocation revalidation and concurrent locks at handoff.",
+    "Original reference exact object-version, pending target job progression.",
+    "Partial publication repair, commit ambiguity, restart, GC/purge/deadletter/scale.",
+    "Whole V27 and V20\u2013V32 acceptance."
+  ],
+  "limitations": [
+    "Upstream ML doubles; no real-photo/GPU qualification.",
+    "SQL upgrade suite not rerun; no migration added.",
+    "Other native branches and arbitrary timing interleavings not validated."
+  ]
+}

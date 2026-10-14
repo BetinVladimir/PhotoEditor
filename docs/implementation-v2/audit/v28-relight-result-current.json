@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 image.relight output closure staging",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "existing_imaging_algorithms_changed": false,
+  "checks": {
+    "name": "pytest",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "tests": "11",
+    "time": "1.585",
+    "timestamp": "2026-10-09T11:42:06.347823+03:00",
+    "hostname": "Mac",
+    "xml": "v28-relight-result-current.xml"
+  },
+  "implemented": [
+    "Stage pixels, working_image, changed mask pixels/MaskRef, review ImageReport and ImageResult using documented roles",
+    "Require exact source document digest and canvas binding before any staging",
+    "Preserve source geometry/color/alpha references and source version lineage",
+    "Non-generative depth exposure reports generated_mask=null and review status"
+  ],
+  "assertions": [
+    "All required image.relight output policy roles emitted",
+    "Source document/canvas mutation and review-state mismatch refuse before any output",
+    "Working image/report/mask/result refs and byte accounting agree",
+    "Field and scratch preparation tests remain green"
+  ],
+  "source_sha256": {
+    "workers/photo_worker/operations/portrait/relight_result.py": "beb3b5a8896fae4bfed74e837e94a3dc39bfb033d50eafc4cb83ab6eed565604",
+    "tests/platform/test_relight_result.py": "790280d6f8c94da0c424d80c5402d68a3e8e80302998aa61574c045c3f433359"
+  },
+  "limitations": [
+    "Staging backend is a test double; no physical gateway/store upload/adoption yet",
+    "No relight worker lease/registration/SQL admission or UI wiring",
+    "Alpha reference preservation only; physical alpha read/admission remains worker responsibility",
+    "No depth model/calibration/real-photo/human/device qualification",
+    "Whole V28 remains open"
+  ]
+}

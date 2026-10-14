@@ -1,0 +1,54 @@
+"""Reassemble a SemanticPlan from authenticated inputs before adoption.
+
+Snapshot and producer authority callbacks must use scoped database evidence;
+content equality alone cannot establish tenant access or adopted producers.
+"""
+from copy import deepcopy
+from hashlib import sha256
+
+from photo_worker.contracts.base import canonical_bytes
+from photo_worker.contracts.semantic import V2SemanticAssembleParams, EditIntent, TransferCandidate, SemanticPlan
+from photo_worker.operations.session.contracts import Calibration, InputSnapshot
+from photo_worker.operations.semantic.assemble import assemble_semantic_plan
+from .adoption import ArtifactRef, AdoptionInvalid, MAX_JSON_BYTES
+
+
+def verify_semantic_plan(reader, params_ref, root_ref, *, load_snapshot, verify_provenance,
+                         check_active=lambda: None):
+    if not callable(load_snapshot) or not callable(verify_provenance):
+        raise AdoptionInvalid('SEMANTIC_PLAN_AUTHORITY_REQUIRED')
+    def ref(value):
+        return ArtifactRef(value.artifact_id, value.sha256)
+    def document(value, model, source):
+        check_active()
+        evidence = reader.evidence(value)
+        if (evidence.ref != value or evidence.source != source
+                or evidence.media_type != 'application/json'
+                or (source == 'output' and evidence.role != 'document')):
+            raise AdoptionInvalid('SEMANTIC_PLAN_EVIDENCE_INVALID')
+        raw = reader.read_json(value, MAX_JSON_BYTES)
+        check_active()
+        if (not isinstance(raw, bytes) or len(raw) > MAX_JSON_BYTES
+                or len(raw) != evidence.bytes or sha256(raw).hexdigest() != value.sha256):
+            raise AdoptionInvalid('SEMANTIC_PLAN_BYTES_INVALID')
+        try:
+            return model.model_validate_json(raw)
+        except ValueError as error:
+            raise AdoptionInvalid('SEMANTIC_PLAN_CONTRACT_INVALID') from error
+    params = document(params_ref, V2SemanticAssembleParams, 'input')
+    actual = document(root_ref, SemanticPlan, 'output')
+    intent = document(ref(params.intent), EditIntent, 'input')
+    calibration = document(ref(params.calibration), Calibration, 'input')
+    snapshot = InputSnapshot.model_validate_json(canonical_bytes(load_snapshot(reader, deepcopy(intent))))
+    candidates = [document(ref(value), TransferCandidate, 'input') for value in params.candidates]
+    try:
+        expected = assemble_semantic_plan(params, intent, snapshot, calibration, candidates,
+                                          check_active=check_active)
+    except ValueError as error:
+        raise AdoptionInvalid('SEMANTIC_PLAN_INPUTS_INVALID') from error
+    if canonical_bytes(actual) != canonical_bytes(expected):
+        raise AdoptionInvalid('SEMANTIC_PLAN_REASSEMBLY_MISMATCH')
+    check_active()
+    verify_provenance(deepcopy(params), deepcopy(intent), deepcopy(snapshot), deepcopy(candidates))
+    check_active()
+    return expected

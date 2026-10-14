@@ -1,0 +1,45 @@
+{
+  "generated_at": "2026-10-08T17:08:02.201590+00:00",
+  "status": "implementing",
+  "module": "V27",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 53.824
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/v2input",
+      "photoeditor/backend/internal/v2draft",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "automatic absent target landmarks/parse creation, transport registration and seal",
+    "queued restore and repeat without worker waiting",
+    "worker canonical outputs, physical proof and prerequisite finalization",
+    "completed replay through automatic helper",
+    "independent persisted SQL/S3 state, closure and immutable Params verifier",
+    "Recover hook after completed target-person/detector advancement (compiled, no fresh-process proof)"
+  ],
+  "limitations": [
+    "Target skin/defects/transfer parent handoff remain open",
+    "No fresh-process Recover crash/restart or whole V27 acceptance",
+    "No GPU/photo-quality qualification; explicit ML doubles/shared WorkingImage",
+    "No production migration; no SQL changes in this slice"
+  ],
+  "sha256": {
+    "docs/implementation-v2/audit/v27-target-face-advance-wire-current.xml": "f0f74b81701ff25c2c52648d54ecd2754a44f35249dfbb8613576c4a9a9694b1",
+    "docs/implementation-v2/audit/v27-target-face-advance-go-current.jsonl": "acba659d7412641d82b54d92d11910baa7be70fc26196de0bac1a6eafdf7232e",
+    "backend/internal/semanticproposal/native_target_face_advance.go": "121e4df5d550dce665b3e5ade1ff54b435c1fd43610206ae581635157f1b8790",
+    "backend/internal/semanticproposal/native_initial_pipeline_recovery_job.go": "b09ed61749c0eeb071e1835cf20a01d3152e22a8dad823c430137c624575c865",
+    "backend/internal/semanticproposal/native_target_face_wire_probe_test.go": "0449b90fff0038d175d9ccda1842d05e22a73b763922172edef347e6760a8971",
+    "tests/integration/test_v27_semantic_intent_publication.py": "893d5becedd2c58270ae058d7455489f1bc8b0652b8f04edf653828f45193f63",
+    "tests/integration/v27_face_wire_probe.py": "8dedd797952ddf6704cc884a0bfffb108caf5c5a1843ef91638de1c234d44576",
+    "docs/implementation-v2/15-execution-contracts.md": "804189085e5f56276dc88f098ac4edec70d97c057d5fe36b45d422f59db34a60"
+  }
+}

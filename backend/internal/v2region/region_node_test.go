@@ -10,6 +10,7 @@ import (
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/objectstore"
+	"photoeditor/backend/internal/v2draft"
 	"photoeditor/backend/internal/v2input"
 )
 
@@ -63,10 +64,16 @@ func regionNodeFixture(t *testing.T) (FrozenRegionPlan, uuid.UUID, v2input.Ref, 
 	if err != nil {
 		t.Fatal(err)
 	}
-	return plan, uuid.New(), v2input.Ref{ArtifactID: uuid.New(), SHA256: plan.SHA256()}, map[string]any{
-		"renderer_version": "v2.2", "backend": "cuda", "icc_lock_sha": regionSHA,
-		"model_lock_sha": regionSHA, "region_runtime_sha256": regionSHA, "max_canvas_pixels": 200000000,
+	policy, err := CompileRegionExecutionPolicy(plan, regionCostFixture(t, plan))
+	if err != nil {
+		t.Fatal(err)
 	}
+	var profile map[string]any
+	if json.Unmarshal(policy.Profile, &profile) != nil {
+		t.Fatal("invalid fixture profile")
+	}
+	profile["max_canvas_pixels"] = 200000000
+	return plan, uuid.New(), v2input.Ref{ArtifactID: uuid.New(), SHA256: plan.SHA256()}, profile
 }
 
 func TestRegionNodeFreezesExactCommitEvidence(t *testing.T) {
@@ -240,5 +247,26 @@ func TestRegionProfileSourceShapeUsesVerifiedFullCanvas(t *testing.T) {
 	missing := FrozenRegionPlan{body: plan.JSON(), digest: plan.SHA256(), inputs: plan.InputRequirements()}
 	if _, err = missing.SourceShape(); err == nil {
 		t.Fatal("missing verified source evidence accepted")
+	}
+}
+
+type cancellingRegionResolver struct{ cancel context.CancelFunc }
+
+func (r cancellingRegionResolver) ResolveRegionInputs(context.Context, auth.Identity, uuid.UUID, v2input.SessionVersionBinding, v2input.Ref, v2draft.CorrectionVector) ([]v2input.Entry, error) {
+	r.cancel()
+	return nil, nil
+}
+func TestRegionResolverCancellationDoesNotBecomeInvalidInventory(t *testing.T) {
+	plan, task, _, profile := regionNodeFixture(t)
+	raw, err := json.Marshal(profile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	publisher := &regionParamsFixture{digest: plan.SHA256()}
+	node, err := plan.PrepareNode(ctx, auth.Identity{UserID: uuid.New(), SessionID: uuid.New()}, task, cancellingRegionResolver{cancel}, publisher, raw)
+	if err != context.Canceled || publisher.document != uuid.Nil || len(node.JSON()) != 0 {
+		t.Fatal("cancelled resolver advanced or returned validation failure", err)
 	}
 }

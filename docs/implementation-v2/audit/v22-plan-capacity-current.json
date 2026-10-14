@@ -1,0 +1,58 @@
+{
+  "source_sha256": "deff6c5da565ff8c8fd39e9b03c6006204369c5ce552852e04b835d2606be26b",
+  "platform": "macOS-26.7.1-arm64-arm-64bit",
+  "python": "3.11.3",
+  "cases": [
+    {
+      "case": "unknown",
+      "status": "passed",
+      "frames": 5000,
+      "neighbor_count": 2,
+      "groups": 5000,
+      "elapsed_seconds": 0.6814042080077343,
+      "traced_peak_bytes": 47318692,
+      "process_peak_rss_bytes": 95338496
+    },
+    {
+      "case": "known_sparse",
+      "status": "passed",
+      "frames": 5000,
+      "neighbor_count": 2,
+      "groups": 5000,
+      "elapsed_seconds": 0.9493955409852788,
+      "traced_peak_bytes": 47559446,
+      "process_peak_rss_bytes": 96534528
+    },
+    {
+      "case": "known_dense",
+      "status": "passed",
+      "frames": 5000,
+      "neighbor_count": 2,
+      "groups": 1290,
+      "elapsed_seconds": 1.7693673339963425,
+      "traced_peak_bytes": 47558866,
+      "process_peak_rss_bytes": 105906176
+    },
+    {
+      "case": "known_dense_64",
+      "status": "passed",
+      "frames": 5000,
+      "neighbor_count": 64,
+      "groups": 82,
+      "elapsed_seconds": 12.600080333009828,
+      "traced_peak_bytes": 124903244,
+      "process_peak_rss_bytes": 340590592
+    },
+    {
+      "case": "known_burst_64",
+      "status": "passed",
+      "frames": 5000,
+      "neighbor_count": 64,
+      "groups": 1,
+      "elapsed_seconds": 34.283946125011425,
+      "traced_peak_bytes": 123185514,
+      "process_peak_rss_bytes": 335298560
+    }
+  ],
+  "scope": "CPU descriptors/planning/validation; isolated process RSS includes imports; no renderer/model/GPU or whole-worker qualification"
+}

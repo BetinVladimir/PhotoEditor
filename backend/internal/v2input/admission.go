@@ -120,7 +120,17 @@ func validBuilt(built Built, direct []Ref) bool {
 // the verified transport references. Its caller must roll back on any error;
 // no object IO is allowed while the transaction is open.
 func RegisterInTransaction(ctx context.Context, tx pgx.Tx, tenant, run, task uuid.UUID,
-	built Built, open CursorFactory, direct []Ref) error {
+ built Built, open CursorFactory, direct []Ref) error {
+ return registerTaskInputs(ctx,tx,tenant,run,task,built,open,direct,nil)
+}
+// RegisterInterchangeInTransaction uses a fixed dedicated SQL dialect for late
+// import continuations. Caller must roll back the entire registration on error.
+func RegisterInterchangeInTransaction(ctx context.Context,tx pgx.Tx,tenant,run,task uuid.UUID,built Built,open CursorFactory,direct []Ref,parsed []byte)error{
+ if len(parsed)<2||len(parsed)>8<<20{return ErrInvalid}
+ return registerTaskInputs(ctx,tx,tenant,run,task,built,open,direct,append([]byte(nil),parsed...))
+}
+func registerTaskInputs(ctx context.Context, tx pgx.Tx, tenant, run, task uuid.UUID,
+ built Built, open CursorFactory, direct []Ref, parsed []byte) error {
 	if tx == nil || tenant == uuid.Nil || run == uuid.Nil || task == uuid.Nil ||
 		open == nil || !validBuilt(built, direct) {
 		return ErrInvalid
@@ -150,8 +160,10 @@ func RegisterInTransaction(ctx context.Context, tx pgx.Tx, tenant, run, task uui
 		}
 		first := count - len(batch)
 		var inserted int
-		if err := tx.QueryRow(ctx, "SELECT photo.register_v2_task_input_batch($1,$2,$3,$4,$5)",
-			tenant, run, task, first, json.RawMessage(payload)).Scan(&inserted); err != nil {
+        statement:="SELECT photo.register_v2_task_input_batch($1,$2,$3,$4,$5)"
+        args:=[]any{tenant,run,task,first,json.RawMessage(payload)}
+        if parsed!=nil{statement="SELECT photo.register_v30_interchange_input_batch($1,$2,$3,$4,$5,$6)";args=append(args,string(parsed))}
+        if err := tx.QueryRow(ctx,statement,args...).Scan(&inserted); err != nil {
 			return err
 		}
 		if inserted != len(batch) {
@@ -201,9 +213,10 @@ func RegisterInTransaction(ctx context.Context, tx pgx.Tx, tenant, run, task uui
 	chunks, _ := json.Marshal(built.Chunks)
 	roots, _ := json.Marshal(direct)
 	var sealed bool
-	if err := tx.QueryRow(ctx, "SELECT photo.seal_v2_task_inputs($1,$2,$3,$4,$5,$6,$7,$8)",
-		tenant, run, task, json.RawMessage(manifest), json.RawMessage(chunks),
-		built.Count, built.SHA256, json.RawMessage(roots)).Scan(&sealed); err != nil {
+    statement:="SELECT photo.seal_v2_task_inputs($1,$2,$3,$4,$5,$6,$7,$8)"
+    args:=[]any{tenant,run,task,json.RawMessage(manifest),json.RawMessage(chunks),built.Count,built.SHA256,json.RawMessage(roots)}
+    if parsed!=nil{statement="SELECT photo.seal_v30_interchange_inputs($1,$2,$3,$4,$5,$6,$7,$8,$9)";args=append(args,string(parsed))}
+    if err:=tx.QueryRow(ctx,statement,args...).Scan(&sealed);err!=nil{
 		return err
 	}
 	if !sealed {

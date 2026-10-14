@@ -1,0 +1,34 @@
+-- Exact pending semantic assembly result parameters; no adoption marker required yet.
+-- +goose Up
+-- Narrow result-generation-bound parameter read for composition adoption.
+-- +goose StatementBegin
+CREATE FUNCTION photo.v27_semantic_assembly_adoption_params(p_tenant uuid,p_task uuid,p_attempt integer,p_fence bigint,p_result uuid)
+RETURNS TABLE(artifact_id uuid,sha256 text)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,photo AS $$
+ SELECT a.id,a.sha256 FROM photo.tasks t
+ JOIN photo.runs r ON r.tenant_id=t.tenant_id AND r.id=t.run_id
+ JOIN photo.v2_workflows w ON w.tenant_id=r.tenant_id AND w.run_id=r.id
+ JOIN photo.task_results z ON z.tenant_id=t.tenant_id AND z.id=t.canonical_result_id
+  AND z.task_id=t.id AND z.attempt=t.attempt AND z.fencing_token=t.fencing_token
+ JOIN photo.artifacts a ON a.tenant_id=t.tenant_id AND a.id=t.params_artifact_id
+ WHERE t.tenant_id=p_tenant AND t.id=p_task AND t.operation='v2.semantic.assemble' AND t.resource_class='cpu'
+ AND t.operation_version='1' AND t.state='succeeded' AND NOT t.cancel_requested
+ AND t.attempt=p_attempt AND t.fencing_token=p_fence AND z.id=p_result
+ AND r.kind='v2' AND r.graph_sealed AND NOT r.cancel_requested AND w.renderer_version='v2.2' AND w.workflow_type='semantic'
+ AND EXISTS(SELECT 1 FROM photo.tenants tenant WHERE tenant.id=t.tenant_id AND tenant.status='active')
+ AND a.state='ready' AND a.verified_at IS NOT NULL AND a.media_type='application/json'
+ AND a.object_version IS NOT NULL AND a.object_version NOT IN('','null')
+ AND (a.expires_at IS NULL OR a.expires_at>clock_timestamp())
+ AND photo.v2_input_closure_ready(t.id)
+ AND EXISTS(SELECT 1 FROM photo.v2_adoption_context(p_tenant,p_task))
+ AND EXISTS(SELECT 1 FROM photo.v2_task_inputs i WHERE i.tenant_id=t.tenant_id
+  AND i.task_id=t.id AND i.artifact_id=a.id AND i.sha256=a.sha256 AND i.contract='Params');
+$$;
+-- +goose StatementEnd
+ALTER FUNCTION photo.v27_semantic_assembly_adoption_params(uuid,uuid,integer,bigint,uuid) OWNER TO photo_fn_owner;
+REVOKE ALL ON FUNCTION photo.v27_semantic_assembly_adoption_params(uuid,uuid,integer,bigint,uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION photo.v27_semantic_assembly_adoption_params(uuid,uuid,integer,bigint,uuid) TO photo_scheduler;
+-- +goose Down
+-- +goose StatementBegin
+DO $$ BEGIN RAISE EXCEPTION 'Forward-only migration';END $$;
+-- +goose StatementEnd

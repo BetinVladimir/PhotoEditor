@@ -1,0 +1,56 @@
+{
+  "generated_at": "2026-10-08T16:57:00.216855+00:00",
+  "status": "implementing",
+  "module": "V27",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "sql": {
+      "result": "PASS",
+      "tests": 23,
+      "seconds": 36.787
+    },
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 72.341
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/workflow",
+      "photoeditor/backend/internal/semanticproposal",
+      "photoeditor/backend/internal/v2input"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "dedicated target face finalizer through production Go wrapper",
+    "both landmarks/parse producer runs completed with exact canonical task proofs",
+    "expired quota rejects first finish",
+    "residual reserved bytes released exactly once; released zero-byte reservation on repeat",
+    "exactly one completion event and outbox per stage",
+    "physical completed read/consumer lock/sealed receipt replay",
+    "running-only worker predicate refuses completed runs; completed consumer predicate accepts",
+    "00899 to 00938 upgrade metadata and per-step existing function identity/security preservation"
+  ],
+  "limitations": [
+    "No target face saved-state/transport restoration or automatic parent advancement yet",
+    "No fresh-process crash/restart or whole V27 acceptance",
+    "ML doubles/shared WorkingImage; no GPU/photo-quality qualification",
+    "No production migration"
+  ],
+  "sha256": {
+    "backend/db/migrations/00938_v27_target_face_finish.sql": "d5e0f4f41bddf52c4d17a50b3bf8318b132fcd73a0a1d5e0211ca59a3d145b0b",
+    "backend/db/migrations/00935_v27_target_face_result_guard.sql": "5907b2bc54ca80b10ad867aefd5c56f7f957b495ab1ea656b43a9c1beedf3be1",
+    "backend/internal/semanticproposal/native_target_face_result.go": "6dfc1081d804c437e207f3850890727c0b5e7f4ab3ac7a3cd136a5656123ee48",
+    "backend/internal/semanticproposal/native_target_face_wire_probe_test.go": "76037da68dcb27918f9ea16aa99686b642f5bf79763b0684488377d79c348c94",
+    "tests/integration/test_v27_person_migration_upgrade.py": "b608e1be57f538cd1e21228b04c9d060d056a7187a91e40e709c038f74effcd0",
+    "tests/integration/test_v27_semantic_intent_publication.py": "baf99ac4927d164580331aea1041baab7f2e9b5aab41ed54bc4e803428ebb7e1",
+    "tests/integration/v27_face_wire_probe.py": "8dedd797952ddf6704cc884a0bfffb108caf5c5a1843ef91638de1c234d44576",
+    "docs/implementation-v2/03-database.md": "85ae4ef05bba60a4a8bc15e9f46251d332099853c7933a69325d4ff6effbbab6",
+    "docs/implementation-v2/15-execution-contracts.md": "f1c34f0961771efe2505cdfe916e2d869202824411539b7cabdb65f72c4e6b4c",
+    "docs/implementation-v2/audit/v27-target-face-finish-sql-current.xml": "36f53ca1aeb5a31a09636dc96a73758c10222d1a7ac07c6174be25433c98d270",
+    "docs/implementation-v2/audit/v27-target-face-finish-wire-current.xml": "862d1c2cf8c1e1d161f5c59ac599539bac7c1338187dcf7056e2c421ec0fbeed",
+    "docs/implementation-v2/audit/v27-target-face-finish-go-current.jsonl": "c6eb831800e1296a5edc8e475e7147c255dcf236dc84bbcace0a41b04dc2e4a0"
+  }
+}

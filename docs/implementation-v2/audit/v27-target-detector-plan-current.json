@@ -1,0 +1,77 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "generated_at": "2026-10-08T15:47:57.271337+00:00",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "source_scope": {
+    "backend/internal/semanticproposal/native_target_detector_plan.go": "010edf488dc9e003059f85ab154b373bd7e61191740114abf553da57a69fbe03",
+    "backend/internal/semanticproposal/native_target_detector_begin.go": "166aa838cdde18fee4bba1cb3d5b34f01eca589715cb88cd1132f040da21d3ed",
+    "backend/internal/semanticproposal/native_target_detector_transport.go": "33e9203ebf626995d06ebf1511b475156c1a047598011f9a680b9ee67030784e",
+    "backend/internal/semanticproposal/native_target_detector_plan_test.go": "eb34e1968a281f2a17fe944a059dc9bc62a8bed5459812249f8b4059e157b040",
+    "backend/internal/semanticproposal/native_target_detector_wire_probe_test.go": "dc5a1beb192283fc5149fc6ee6801981e4cad39c904bffd959ebb22730ee5ab3",
+    "backend/internal/semanticproposal/detector_catalog_task_test.go": "1fcfaf48ae9c442481befd941b8fa38c0611975b217c1deaab66ec194b917a8e",
+    "backend/internal/semanticproposal/native_target_person_wire_probe_test.go": "40b6504e37124c3d3f59742fbf89c6211f161eaf2456cc65d3a7db9406e2dbf7",
+    "tests/integration/test_v27_semantic_intent_publication.py": "9854191bbc7330cdcc4e08948eca930c246c187bdbbedf046a7e199adb291c18",
+    "tests/integration/v27_face_wire_probe.py": "9cff2ff225d1337fe6600ef6223411057d4fcfe1e667f16985f341720160d772"
+  },
+  "checks": [
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-detector-plan-wire-current.xml",
+      "sha256": "cb572535d832a08f0a7e2d5b8ff902c3a792a420ed625204324d0350cae67447",
+      "exit_code": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 235.801
+    },
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-detector-plan-go-final.jsonl",
+      "sha256": "f3434a3911d1444e7ff9aeab373ae69bce1c56d9068bfd810443a7a8a4146a3e",
+      "exit_code": 0,
+      "packages_passed": [
+        "photoeditor/backend/internal/gateway",
+        "photoeditor/backend/internal/v2input",
+        "photoeditor/backend/internal/review",
+        "photoeditor/backend/internal/semanticproposal"
+      ]
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "requirements": [
+    {
+      "id": "target-detector-owned-compiler-and-original-intent-preservation",
+      "status": "unit_and_physical_helper_verified"
+    },
+    {
+      "id": "target-detector-physical-Params-source-qualification-and-transport-publication",
+      "status": "physical_helper_verified"
+    },
+    {
+      "id": "target-detector-blocked-begin-repeat-and-revoked-replay-refusal",
+      "status": "physical_helper_verified"
+    },
+    {
+      "id": "target-detector-registration-seal-execution-result-recovery-and-automatic-advance",
+      "status": "not_implemented"
+    },
+    {
+      "id": "whole-V27",
+      "status": "not_accepted"
+    }
+  ],
+  "limitations": [
+    "Target detector remains draft/blocked; published transport is not registered and no task execution or queue admission is claimed",
+    "No dedicated target detector SQL registration/seal/output guards or saved recovery yet",
+    "Physical fixture additionally exercises prior target-person automatic advancement; not a full Recover/ProcessOne cold restart",
+    "Deterministic ML doubles and shared immutable WorkingImage; no real GPU/photo-quality acceptance",
+    "No browser/native/5000-target/cancel/purge/fairness or whole-module acceptance",
+    "No new migration in this slice; only isolated test database used"
+  ],
+  "corrected_failures": [
+    "Synthetic reference detector fixture now retains measured VRAM costs used to construct its frozen task; initial target catalog compilation correctly refused the incomplete fixture"
+  ]
+}

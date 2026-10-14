@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "paths": {
+    "/api/v1/media/review-pending": {
+      "get": {
+        "operationId": "GetPendingReviewMedia",
+        "x-package": "V26",
+        "x-role": "capability",
+        "security": [],
+        "parameters": [
+          {"name": "token", "in": "query", "required": true, "schema": {"type": "string", "minLength": 1, "maxLength": 1600}},
+          {"name": "versionId", "in": "query", "required": true, "schema": {"type": "string", "minLength": 1, "maxLength": 1024}}
+        ],
+        "responses": {
+          "200": {"description": "Pending-only, exact-version manifest or image after fresh project/session and physical SHA checks; no Range requests.", "headers": {"Cache-Control": {"schema": {"const": "private, no-store"}}}, "content": {"application/octet-stream": {"schema": {"type": "string", "format": "binary"}}}},
+          "404": {"description": "Invalid, expired, substituted or unavailable capability"},
+          "409": {"description": "Review or object changed before delivery"},
+          "503": {"description": "Media authority unavailable"}
+        }
+      }
+    },
+    "/api/v1/media/render-selected": {
+      "get": {
+        "operationId": "GetSelectedRenderMedia",
+        "x-package": "V26",
+        "x-role": "capability",
+        "security": [],
+        "parameters": [
+          {"name": "token", "in": "query", "required": true, "schema": {"type": "string", "minLength": 1, "maxLength": 1600}},
+          {"name": "versionId", "in": "query", "required": true, "schema": {"type": "string", "minLength": 1, "maxLength": 1024}}
+        ],
+        "responses": {
+          "200": {"description": "Decided render selection's exact-version manifest or image after fresh project/session/selection and physical SHA checks; no Range requests.", "headers": {"Cache-Control": {"schema": {"const": "private, no-store"}}}, "content": {"application/octet-stream": {"schema": {"type": "string", "format": "binary"}}}},
+          "404": {"description": "Invalid, expired, substituted or unavailable capability"},
+          "409": {"description": "Selection or object changed before delivery"},
+          "503": {"description": "Media authority unavailable"}
+        }
+      }
+    },
+    "/api/v1/media/restoration-selected": {
+      "get": {
+        "operationId": "GetSelectedRestorationMedia",
+        "x-package": "V28",
+        "x-role": "capability",
+        "security": [],
+        "parameters": [
+          {"name": "token", "in": "query", "required": true, "schema": {"type": "string", "minLength": 1, "maxLength": 1600}},
+          {"name": "versionId", "in": "query", "required": true, "schema": {"type": "string", "minLength": 1, "maxLength": 1024}}
+        ],
+        "responses": {
+          "200": {"description": "Decided restoration selection's exact-version manifest or image after fresh project/session/selection and physical SHA checks; no Range requests.", "headers": {"Cache-Control": {"schema": {"const": "private, no-store"}}}, "content": {"application/octet-stream": {"schema": {"type": "string", "format": "binary"}}}},
+          "404": {"description": "Invalid, expired, substituted or unavailable capability"},
+          "409": {"description": "Selection or object changed before delivery"},
+          "503": {"description": "Media authority unavailable"}
+        }
+      }
+    },
+    "/api/v1/media/run-output": {
+      "get": {
+        "operationId": "GetReviewableRunOutputMedia",
+        "x-package": "V26",
+        "x-role": "capability",
+        "security": [],
+        "parameters": [
+          {"name": "token", "in": "query", "required": true, "schema": {"type": "string", "minLength": 1, "maxLength": 1600}},
+          {"name": "versionId", "in": "query", "required": true, "schema": {"type": "string", "minLength": 1, "maxLength": 1024}}
+        ],
+        "responses": {
+          "200": {"description": "Reviewable run output after fresh full output authority and bounded physical SHA verification; exact version, no Range requests, at most 4 GiB.", "headers": {"Cache-Control": {"schema": {"const": "private, no-store"}}}, "content": {"application/octet-stream": {"schema": {"type": "string", "format": "binary"}}}},
+          "404": {"description": "Invalid, expired, substituted or unavailable capability"},
+          "409": {"description": "Output authority changed before delivery"},
+          "503": {"description": "Media authority unavailable"}
+        }
+      }
+    }
+  }
+}

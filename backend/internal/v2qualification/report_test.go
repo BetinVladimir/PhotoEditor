@@ -41,10 +41,21 @@ func TestVerifyQualificationBindsTrustedLocksAndEvidence(t *testing.T) {
 	if _, err := Verify(body, digest, expected); err != nil {
 		t.Fatal(err)
 	}
+ estimate,err:=VerifiedTimingMilliseconds(body,digest,expected)
+ if err!=nil||estimate==nil||*estimate!=20{t.Fatal("verified p95 estimate unavailable",estimate,err)}
+ for _,sample:=range []struct{value float64;want int64}{{0,0},{0.1,1},{1000,1000},{1000.01,1001},{9007199254740991,9007199254740991}}{
+  report.Metrics.P50MS=0;report.Metrics.P95MS=sample.value
+  timedBody,timedSHA:=encode()
+  measured,err:=VerifiedTimingMilliseconds(timedBody,timedSHA,expected)
+  if err!=nil{t.Fatal(err)}
+  if sample.value==0{if measured!=nil{t.Fatal("zero measurement became known timing")}}else if measured==nil||*measured!=sample.want{t.Fatal("incorrect timing rounding",measured)}
+ }
+ report.Metrics.P50MS=10;report.Metrics.P95MS=20
 	expected.RuntimeLockSHA = sha("0")
 	if _, err := Verify(body, digest, expected); err == nil {
 		t.Fatal("wrong runtime accepted")
 	}
+ if measured,err:=VerifiedTimingMilliseconds(body,digest,expected);err==nil||measured!=nil{t.Fatal("unqualified timing accepted")}
 	expected.RuntimeLockSHA = report.RuntimeLockSHA
 	expected.CalibrationSHAs = map[string]struct{}{sha("e"): {}}
 	if _, err := Verify(body, digest, expected); err == nil {

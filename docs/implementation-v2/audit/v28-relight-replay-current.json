@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 independent qualified relight algorithm replay",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "production_migration_applied": false,
+  "checks": {
+    "relight_components": {
+      "passed": 156,
+      "seconds": 1.86,
+      "xml": "v28-relight-replay-components.xml"
+    },
+    "postgres_minio_execution_replay": {
+      "passed": 1,
+      "seconds": 12.8,
+      "xml": "v28-relight-replay-physical-current.xml"
+    }
+  },
+  "source_sha256": {
+    "workers/photo_worker/v2/relight_replay.py": "56dfd39d5cd6d302fdee2fed18d4af05c150b2e832eede8ec84ec8a018a0a56e",
+    "tests/platform/test_relight_replay.py": "e8b866cb2ea9e014d386044d368ef934adbd6745d279853803c965f2c7a1b529",
+    "tests/integration/test_v28_relight_resolver_physical.py": "1a69dd72417d91aa398f69ba063709d65624b1865633ce160232dadf76323c34"
+  },
+  "limitations": [
+    "Replay requires externally supplied current source/producer/runtime qualification authority and transactional recheck; no SQL commit installed",
+    "Synthetic5x5 arrays and owner-seeded task/result/lease/closure/qualification metadata",
+    "Evidence transport and staged publisher are fixture implementations; hostile recomputed-output reader synthetic",
+    "No production factory/gateway/adoption/public UI or actual photo/model/device qualification"
+  ]
+}

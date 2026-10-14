@@ -4,6 +4,8 @@ from photo_worker.contracts.images import WorkingImage,MaskRef
 from photo_worker.runtime.artifacts import TaskArtifacts,ArtifactConfig
 from photo_worker.runtime.executor import ExecutionContext,Operation,OperationResult,OperationFailure
 from .prepare import prepare_raster
+from .verify import verify_raster
+from photo_worker.runtime.arrays import read_array
 
 
 def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
@@ -24,6 +26,12 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
     ctx.progress(0,2)
     with prepare_raster(vectors,image.canvas.source_sha256,artifacts.scratch,tile=tile,check_active=ctx.check_active) as files:
         ctx.progress(1,2)
+        try:
+            shape=(image.canvas.height,image.canvas.width)
+            with read_array(files.target,shape,'float32',ctx.check_active,unit_interval=True) as actual_target, read_array(files.protected,shape,'float32',ctx.check_active,unit_interval=True) as actual_protected:
+                verified_nonzero=verify_raster(vectors,image.canvas.source_sha256,actual_target,actual_protected,tile=tile,check_active=ctx.check_active)
+            if verified_nonzero!=files.protected_nonzero:raise ValueError('RASTER_PROTECTION_FLAG_MISMATCH')
+        except ValueError as exc:raise OperationFailure('INPUT_INVALID') from exc
         target=artifacts.stage(files.target,files.arrays,'mask_target','application/octet-stream')
         protected=artifacts.stage(files.protected,files.arrays,'mask_protected','application/octet-stream')
         target_png=artifacts.stage(files.target_png,files.pngs,'mask_target_png','image/png')
@@ -38,17 +46,19 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
         target=MaskRef(artifact=target,protected=False,**common),protected=MaskRef(artifact=protected,protected=True,**common),
         target_png=target_png,protected_png=protected_png)
     manifest=artifacts.stage_contract(result,'rasterized_mask')
-    outputs=[target,protected,target_png,protected_png,manifest]
+    target_ref=artifacts.stage_contract(result.target,'mask_target_ref')
+    guard_ref=artifacts.stage_contract(result.protected,'mask_guard_ref')
+    outputs=[target,protected,target_png,protected_png,manifest,target_ref,guard_ref]
     if protected_nonzero:
         # A standalone immutable MaskRef can be bound into EditingRecipeV3.
         # Empty protection never becomes learning evidence.
         outputs.append(artifacts.stage_contract(result.protected,'mask_protected_ref'))
     ctx.progress(2,2)
-    return OperationResult(outputs=outputs,bytes_written=written+len(canonical_bytes(result))+(len(canonical_bytes(result.protected)) if protected_nonzero else 0))
+    return OperationResult(outputs=outputs,bytes_written=written+len(canonical_bytes(result))+len(canonical_bytes(result.target))+len(canonical_bytes(result.protected))+(len(canonical_bytes(result.protected)) if protected_nonzero else 0))
 
 
 def mask_operations(config:ArtifactConfig)->list[Operation]:
     def rasterized(ctx):
-        with TaskArtifacts.create(ctx,config,frozenset({'mask_target','mask_protected','mask_target_png','mask_protected_png','rasterized_mask','mask_protected_ref'})) as artifacts:
+        with TaskArtifacts.create(ctx,config,frozenset({'mask_target','mask_protected','mask_target_png','mask_protected_png','rasterized_mask','mask_target_ref','mask_guard_ref','mask_protected_ref'})) as artifacts:
             return execute(ctx,artifacts)
     return [Operation('mask.rasterize','cpu',rasterized)]

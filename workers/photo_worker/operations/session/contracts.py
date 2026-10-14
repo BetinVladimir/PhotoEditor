@@ -93,6 +93,13 @@ class FaceRect(Contract):
     y1: Unit
 
 
+    @model_validator(mode='after')
+    def ordered_edges(self):
+        if self.x0 >= self.x1 or self.y0 >= self.y1:
+            raise ValueError('INVALID_FACE_RECT')
+        return self
+
+
 class FacePoint(Contract):
     x: Unit
     y: Unit
@@ -108,10 +115,29 @@ class FaceObservation(Contract):
     face_id: UUID
 
 
+    @model_validator(mode='after')
+    def observation_identity(self):
+        if (self.observation_id.int == 0 or self.face_id.int == 0
+                or (self.person_id is None) != (self.embedding is None)
+                or self.person_id is not None and self.person_id.int == 0):
+            raise ValueError('INVALID_FACE_OBSERVATION_IDENTITY')
+        return self
+
+
 class FaceObservations(Contract):
     schema_version: Literal[1]
     binding: VersionBinding
     faces: Annotated[list[FaceObservation], Field(max_length=100)]
+
+
+    @model_validator(mode='after')
+    def scoped_unique_faces(self):
+        if (self.binding.asset_version_id.int == 0
+                or self.binding.source.artifact_id.int == 0
+                or len({face.observation_id for face in self.faces}) != len(self.faces)
+                or len({face.face_id for face in self.faces}) != len(self.faces)):
+            raise ValueError('INVALID_FACE_OBSERVATIONS_SCOPE')
+        return self
 
 
 class CameraOffset(Contract):

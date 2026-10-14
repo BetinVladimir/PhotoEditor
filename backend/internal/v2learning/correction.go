@@ -25,17 +25,27 @@ import (
 // CorrectionCreate contains only client-owned fields. The project, approver,
 // event time and changed paths are derived from immutable server records.
 type CorrectionCreate struct {
-	ClientEventID      uuid.UUID  `json:"client_event_id"`
-	SessionID          uuid.UUID  `json:"session_id"`
-	AssetVersionID     uuid.UUID  `json:"asset_version_id"`
-	BaseDocumentID     uuid.UUID  `json:"base_document_id"`
-	ApprovedDocumentID uuid.UUID  `json:"approved_document_id"`
-	Reason             string     `json:"reason"`
-	Learn              bool       `json:"learn"`
-	PersonID           *uuid.UUID `json:"person_id"`
-	SceneGroupID       *uuid.UUID `json:"scene_group_id"`
-	ConsentID          *uuid.UUID `json:"consent_id"`
-	ConsentEpoch       *string    `json:"consent_epoch"`
+	ClientEventID          uuid.UUID                        `json:"client_event_id"`
+	SessionID              uuid.UUID                        `json:"session_id"`
+	AssetVersionID         uuid.UUID                        `json:"asset_version_id"`
+	BaseDocumentID         uuid.UUID                        `json:"base_document_id"`
+	ApprovedDocumentID     uuid.UUID                        `json:"approved_document_id"`
+	Reason                 string                           `json:"reason"`
+	Learn                  bool                             `json:"learn"`
+	PersonID               *uuid.UUID                       `json:"person_id"`
+	SceneGroupID           *uuid.UUID                       `json:"scene_group_id"`
+	ConsentID              *uuid.UUID                       `json:"consent_id"`
+	ConsentEpoch           *string                          `json:"consent_epoch"`
+	PortraitDetailProducer *PortraitDetailProducerSelection `json:"portrait_detail_producer,omitempty"`
+}
+
+// PortraitDetailProducerSelection is selected from the completed Apply graph
+// by the editor; SQL independently reselects and binds it in this transaction.
+type PortraitDetailProducerSelection struct {
+	RunID     uuid.UUID `json:"run_id"`
+	TaskID    uuid.UUID `json:"task_id"`
+	ResultID  uuid.UUID `json:"result_id"`
+	AttemptID uuid.UUID `json:"attempt_id"`
 }
 
 func (r *CorrectionCreate) UnmarshalJSON(body []byte) error {
@@ -43,8 +53,8 @@ func (r *CorrectionCreate) UnmarshalJSON(body []byte) error {
 	if err := json.Unmarshal(body, &fields); err != nil {
 		return err
 	}
-	if len(fields) != 11 {
-		return fmt.Errorf("CorrectionCreate requires 11 exact fields")
+	if len(fields) != 11 && len(fields) != 12 {
+		return fmt.Errorf("CorrectionCreate requires 11 or 12 exact fields")
 	}
 	for _, key := range []string{"client_event_id", "session_id",
 		"asset_version_id", "base_document_id", "approved_document_id",
@@ -56,6 +66,21 @@ func (r *CorrectionCreate) UnmarshalJSON(body []byte) error {
 	}
 	if string(fields["learn"]) != "true" && string(fields["learn"]) != "false" {
 		return fmt.Errorf("CorrectionCreate.learn must be boolean")
+	}
+	if len(fields) == 12 && (fields["portrait_detail_producer"] == nil ||
+		string(fields["portrait_detail_producer"]) == "null") {
+		return fmt.Errorf("CorrectionCreate has unknown or null producer")
+	}
+	if raw := fields["portrait_detail_producer"]; raw != nil {
+		var producerFields map[string]json.RawMessage
+		if json.Unmarshal(raw, &producerFields) != nil || len(producerFields) != 4 {
+			return fmt.Errorf("CorrectionCreate has invalid producer")
+		}
+		for _, key := range []string{"run_id", "task_id", "result_id", "attempt_id"} {
+			if producerFields[key] == nil {
+				return fmt.Errorf("CorrectionCreate producer missing %s", key)
+			}
+		}
 	}
 	type wire CorrectionCreate
 	var decoded wire
@@ -105,6 +130,12 @@ func validCorrection(req CorrectionCreate) bool {
 		if _, err := strconv.ParseInt(value, 10, 64); err != nil {
 			return false
 		}
+	}
+	if producer := req.PortraitDetailProducer; producer != nil &&
+		(!req.Learn || req.Reason != "retouch" ||
+			producer.RunID == uuid.Nil || producer.TaskID == uuid.Nil ||
+			producer.ResultID == uuid.Nil || producer.AttemptID == uuid.Nil) {
+		return false
 	}
 	return true
 }
@@ -160,7 +191,9 @@ func (s CorrectionService) RecordCorrection(ctx context.Context, who auth.Identi
 	if err != nil {
 		return out, domain.NewError("DOCUMENT_INVALID", 422)
 	}
-	requestBody, err := json.Marshal(req)
+	sqlRequest := req
+	sqlRequest.PortraitDetailProducer = nil
+	requestBody, err := json.Marshal(sqlRequest)
 	if err != nil {
 		return out, err
 	}
@@ -186,10 +219,28 @@ func (s CorrectionService) RecordCorrection(ctx context.Context, who auth.Identi
 					return idempotency.Response{}, correctionError(e)
 				}
 				var event struct {
-					ID uuid.UUID `json:"id"`
+					ID        uuid.UUID `json:"id"`
+					ProjectID uuid.UUID `json:"project_id"`
 				}
 				if e = json.Unmarshal(body, &event); e != nil || event.ID == uuid.Nil {
 					return idempotency.Response{}, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
+				}
+				if producer := req.PortraitDetailProducer; producer != nil {
+					if event.ProjectID == uuid.Nil {
+						return idempotency.Response{}, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
+					}
+					var linked bool
+					e = tx.QueryRow(ctx, `SELECT photo.bind_v23_portrait_detail_event(
+					 $1,$2,$3,$4,$5,$6,$7,$8,$9)`, tenantID, event.ProjectID,
+						who.UserID, who.SessionID, event.ID, producer.RunID, producer.TaskID,
+						producer.ResultID, producer.AttemptID).Scan(&linked)
+					if e != nil {
+						return idempotency.Response{}, correctionError(e)
+					}
+					if !linked {
+						return idempotency.Response{},
+							domain.NewError("REVISION_CONFLICT", 409)
+					}
 				}
 				return idempotency.Response{Status: 201, Body: body,
 					ResourceID: &event.ID}, nil

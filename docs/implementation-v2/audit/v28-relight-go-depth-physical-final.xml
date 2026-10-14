@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="5.496" timestamp="2026-10-09T14:38:18.092355+03:00" hostname="Mac"><testcase classname="tests.integration.test_v28_relight_go_depth_reader" name="test_go_relight_depth_reader_real_sql_and_original_object" time="4.409"><failure message="AssertionError: === RUN   TestIntegrationRelightDepthReader&#10;      relight_depth_reader_integration_test.go:81: actual pinned original depth Params read failed object integrity mismatch&#10;  --- FAIL: TestIntegrationRelightDepthReader (0.03s)&#10;  FAIL&#10;  FAIL&#09;photoeditor/backend/internal/v2portrait&#09;0.459s&#10;  FAIL&#10;  &#10;assert 1 == 0&#10; +  where 1 = CompletedProcess(args=['go', 'test', './internal/v2portrait', '-run', '^TestIntegrationRelightDepthReader$', '-count=1...IntegrationRelightDepthReader (0.03s)\nFAIL\nFAIL\tphotoeditor/backend/internal/v2portrait\t0.459s\nFAIL\n', stderr='').returncode">database = &lt;isolated PostgreSQL configuration&gt;
+lens_objects = (&lt;minio.api.Minio object at 0x1345322d0&gt;, 'native-lens-305683d1a83c42b4b7f669fe15b66784')
+tmp_path = PosixPath('/Users/freelancer/Documents/PhotoEditor/work/relight-go-depth-physical-final-20261009/test_go_relight_depth_reader_r0')
+
+    def test_go_relight_depth_reader_real_sql_and_original_object(database,lens_objects,tmp_path):
+        client,bucket=lens_objects
+        def source_builder(artifact,original_sha):
+            image=json.loads((ROOT/'backend/internal/review/testdata/working-images-python.json').read_text())[0]
+            image['canvas'].update(width=5,height=5,source_sha256=original_sha,space_id='oriented')
+            pixel=artifact('a'*64,role='working_rgb',media='application/octet-stream')
+            image['pixels']=dict(artifact_id=str(pixel),sha256='a'*64)
+            return canonical_bytes(image)
+        with psycopg.connect(**database) as setup:
+            seed=fixture(setup,snapshot_authority=True,source_builder=source_builder,qualification_objects=(client,bucket))
+            saved=check_relight_intent(setup,seed,verify_depth=True,objects=(client,bucket))
+        retained=saved['retained']
+        # A mutable latest object cannot replace the original SQL-pinned version.
+        newer=b'newer invalid original Params'
+        client.put_object(bucket,retained['key'],BytesIO(newer),len(newer),content_type='application/json')
+        seed_file=tmp_path/'go-relight-depth-reader.json'
+        seed_file.write_text(json.dumps(dict(tenant=str(saved['tenant']),run=str(saved['run']),intent=saved['request'],
+            source=saved['scope']['source_body'].decode(),depth=retained['body'].decode(),
+            original=retained['original'].decode(),original_id=str(retained['params']))))
+        credentials=client._provider.retrieve()
+        env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_TEST_RELIGHT_DEPTH_SEED=str(seed_file),
+            PHOTO_TEST_MINIO_URL='http://'+client._base_url.host,PHOTO_TEST_MINIO_BUCKET=bucket,
+            PHOTO_TEST_MINIO_ACCESS=credentials.access_key,PHOTO_TEST_MINIO_SECRET=credentials.secret_key,
+            GOCACHE=str(ROOT/'work/go-cache'))
+        result=subprocess.run(['go','test','./internal/v2portrait','-run','^TestIntegrationRelightDepthReader$',
+            '-count=1','-timeout=60s','-v'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=90)
+&gt;       assert result.returncode==0,result.stdout+result.stderr
+E       AssertionError: === RUN   TestIntegrationRelightDepthReader
+E             relight_depth_reader_integration_test.go:81: actual pinned original depth Params read failed object integrity mismatch
+E         --- FAIL: TestIntegrationRelightDepthReader (0.03s)
+E         FAIL
+E         FAIL	photoeditor/backend/internal/v2portrait	0.459s
+E         FAIL
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['go', 'test', './internal/v2portrait', '-run', '^TestIntegrationRelightDepthReader$', '-count=1...IntegrationRelightDepthReader (0.03s)\nFAIL\nFAIL\tphotoeditor/backend/internal/v2portrait\t0.459s\nFAIL\n', stderr='').returncode
+
+tests/integration/test_v28_relight_go_depth_reader.py:43: AssertionError</failure></testcase></testsuite></testsuites>

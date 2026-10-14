@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="147.631" timestamp="2026-10-09T08:35:37.203464+03:00" hostname="Mac"><testcase classname="tests.integration.test_v27_target_worker_failure_matrix" name="test_target_worker_success_regression" time="147.110"><failure message="AssertionError">tests/integration/test_v27_target_worker_failure_matrix.py:18: in test_target_worker_success_regression
+    test_target_worker_failure_recovery(database,lens_objects,monkeypatch,'')
+tests/integration/test_v27_target_worker_failure_matrix.py:13: in test_target_worker_failure_recovery
+    run_native_case(database,lens_objects,True,'native-person-defect-wire')
+tests/integration/test_v27_semantic_intent_publication.py:839: in test_semantic_intent_publication_old_version_and_replay
+    verify_target_person_draft(db,client,case['Tenant'])
+tests/integration/v27_face_wire_probe.py:459: in verify_target_person_draft
+    else: assert status=='draft' and not sealed and state=='blocked' and canonical is None
+                                                                         ^^^^^^^^^^^^^^^^^
+E   AssertionError</failure></testcase></testsuite></testsuites>

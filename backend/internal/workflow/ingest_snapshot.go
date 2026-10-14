@@ -12,13 +12,14 @@ import (
 )
 
 // IngestSnapshotPayload is the complete versioned per-file snapshot contract.
-// All fields, including the nullable assume_profile, are required on the wire.
+// V1 retains its exact legacy shape. V2 additionally requires RAW development.
 type IngestSnapshotPayload struct {
 	SchemaVersion int     `json:"schema_version"`
 	Suffix        string  `json:"suffix"`
 	AssumeProfile *string `json:"assume_profile"`
 	Analyze       bool    `json:"analyze"`
 	Tile          int     `json:"tile"`
+	RAWDevelopment *RAWDevelopment `json:"raw_development,omitempty"`
 }
 
 type IngestRunContext struct {
@@ -88,9 +89,13 @@ func (r IngestRunReader) Load(ctx context.Context, tenant, run uuid.UUID) (Inges
 			return fail()
 		}
 		roundtrip, e := canonical.Marshal(payload)
-		if e != nil || !bytes.Equal(normalized, roundtrip) || payload.SchemaVersion != 1 || (payload.Tile != 256 && payload.Tile != 512 && payload.Tile != 1024) {
+		if e != nil || !bytes.Equal(normalized, roundtrip) || (payload.SchemaVersion != 1 && payload.SchemaVersion != 2) || (payload.Tile != 256 && payload.Tile != 512 && payload.Tile != 1024) {
 			return fail()
 		}
+        if payload.SchemaVersion == 1 && payload.RAWDevelopment != nil ||
+           payload.SchemaVersion == 2 && payload.RAWDevelopment == nil ||
+           !validRAWDevelopment(payload.RAWDevelopment) { return fail() }
+        item.RAWDevelopment = payload.RAWDevelopment
 		item.Suffix = payload.Suffix
 		item.AssumeProfile = payload.AssumeProfile
 		item.Analyze = payload.Analyze

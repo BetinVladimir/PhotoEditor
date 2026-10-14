@@ -1,0 +1,51 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "recorded_at": "2026-10-08T08:13:13.238128+00:00",
+  "scope": "production editor durable single-runtime semantic request journal and DOM remount recovery",
+  "sources": {
+    "apps/photographer/src/semantic-attempt-store.ts": "1fd99b818df493f7c7082b6d577fc69fef8a2bbb014eb44d482934107fe5d280",
+    "apps/photographer/src/semantic-attempt-store.test.ts": "8e1719ebaa87c8c6cc14a524058a8e26d8bdca9e5f55c24b6e36905cfea195f8",
+    "apps/photographer/src/persistent-semantic-create.tsx": "668cc009373af4acb621031b3c8bda6dcb7197add54b890b33785674de0113da",
+    "apps/photographer/src/persistent-semantic-create.test.tsx": "c4163d51afda6ff53774cc22982998d5de1d40d0b41a58bf4dbf085eb814a73f",
+    "apps/photographer/src/semantic-create.tsx": "c41251931e728dde2131877f5f5b5d65e93793d589dd427231a9b00bdb2490a2",
+    "apps/photographer/src/semantic-create.test.tsx": "175fdfcd0157765394ee1b2e3461938cb9577bb26910b30906e2c3f39e9819dd",
+    "apps/photographer/src/auth-context.tsx": "b5e41c66fb8221e0d13bcdeb77336618c6c8e3056072cf483068f622fca90d9f",
+    "apps/photographer/app/editor/[version].tsx": "2fd9f3a12d09c542a5209da18d3ca12917c182586871e21e9b4548550fbda7bf",
+    "locales/en/common.json": "aa5dd6a0feda1cefa5e153e50e38bed289e58b5b3e08dd9de98f7162fd47f712",
+    "locales/ru/common.json": "858731e09339951355801b19a4978c2d917a535473cdf1fc2f1c33f99eca8842",
+    "locales/bg/common.json": "b92d72f0d5fe4670921f5369beec6a577616d450d977521248ae39d6da7d7c1e"
+  },
+  "checks": [
+    {
+      "command": "npm --prefix apps/photographer test -- --reporter=dot",
+      "exit_code": 0,
+      "passed": 428,
+      "skipped": 7,
+      "files_passed": 88,
+      "files_skipped": 5,
+      "seconds": 7.97
+    },
+    {
+      "command": "npm --prefix apps/photographer run typecheck",
+      "exit_code": 0
+    }
+  ],
+  "behavior": [
+    "persist request keys before external IO",
+    "persist immutable source/snapshot/body and accepted ticket",
+    "restore original request without current live mask",
+    "frozen collection revision on uncertain snapshot retry",
+    "receipt-only navigation without new POST after accepted recovery",
+    "explicit new request only after saved accepted ticket",
+    "origin/principal scope and logout epoch fencing",
+    "storage errors stop subsequent network stages"
+  ],
+  "limitations": [
+    "real process-kill/browser/native not verified",
+    "cross-tab atomic CAS/lock not yet implemented",
+    "full recovery ACL/session/lifecycle matrix not proved",
+    "producer orchestration and complete V27 acceptance remain open",
+    "source baseline gate remains unresolved"
+  ]
+}

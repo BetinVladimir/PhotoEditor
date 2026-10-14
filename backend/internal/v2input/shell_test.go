@@ -86,3 +86,15 @@ func TestDraftShellValidatesGraphBeforeDatabaseWrite(t *testing.T) {
 		t.Fatalf("invalid idempotency key reached database: %v", err)
 	}
 }
+
+func TestSemanticShellQueueClassRefusesForeignRehashedConfig(t *testing.T){
+ shell:=DraftShell{Tenant:uuid.New(),Run:uuid.New(),WorkflowID:uuid.New(),Project:uuid.New(),Snapshot:uuid.New(),Actor:uuid.New(),Workflow:"semantic",PolicySHA:strings.Repeat("a",64),Bytes:1024,
+ Tasks:[]DraftTask{{ID:uuid.New(),ParamsArtifactID:uuid.New(),ParamsSHA:strings.Repeat("c",64),InputDigest:strings.Repeat("d",64),ExecutionProfile:json.RawMessage(`{"backend":"cpu"}`)}}}
+ for _,queue:=range []string{"batch","interactive","training",""}{
+  config:=map[string]any{"project_id":shell.Project.String(),"v27_semantic":map[string]any{}}
+  if queue!=""{config["queue_class"]=queue}
+  shell.Config,_=canonical.Marshal(config);shell.ConfigSHA,_=canonical.Hash(shell.Config)
+  _,_,err:=encodeDraftShell(shell)
+  if (queue=="batch"||queue=="")!=(err==nil){t.Fatal("wrong semantic shell queue result",queue,err)}
+ }
+}

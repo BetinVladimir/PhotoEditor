@@ -44,6 +44,9 @@ func (o LearningEvaluateOrchestrator) ProcessOne(ctx context.Context) (bool, err
 }
 
 func (o LearningEvaluateOrchestrator) RunOnce(ctx context.Context) (bool, error) {
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
 	if o.Leases == nil || o.Source == nil || o.Stager == nil ||
 		o.TransportForLease == nil || o.Committer == nil {
 		return false, ErrInvalidTrainingDraft
@@ -60,6 +63,9 @@ func (o LearningEvaluateOrchestrator) RunOnce(ctx context.Context) (bool, error)
 			_, _ = o.Leases.Release(releaseCtx, *lease)
 		}
 	}()
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
 	if !validLearningEvaluateLease(*lease) {
 		return false, ErrInvalidTrainingDraft
 	}
@@ -69,6 +75,9 @@ func (o LearningEvaluateOrchestrator) RunOnce(ctx context.Context) (bool, error)
 	}
 	draft, resolved, err := o.Source.Load(ctx, *lease)
 	if err != nil {
+		return false, err
+	}
+	if err := ctx.Err(); err != nil {
 		return false, err
 	}
 	if draft.TenantID != lease.TenantID || draft.RunID != lease.RunID ||
@@ -81,8 +90,14 @@ func (o LearningEvaluateOrchestrator) RunOnce(ctx context.Context) (bool, error)
 		}
 		return false, ErrTrainingDraftConflict
 	}
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
 	stage, err := o.Stager.StageEvaluateTask(ctx, *lease, draft, resolved)
 	if err != nil {
+		return false, err
+	}
+	if err := ctx.Err(); err != nil {
 		return false, err
 	}
 	expectedTask, err := v2input.TaskID(lease.WorkflowID, "learning.evaluate", 0)
@@ -91,21 +106,35 @@ func (o LearningEvaluateOrchestrator) RunOnce(ctx context.Context) (bool, error)
 		return false, ErrInvalidTrainingDraft
 	}
 	cursor, err := stage.Closure.Open(ctx)
-	if err != nil || cursor == nil {
+	if err != nil {
+		if closer, okay := cursor.(io.Closer); okay {
+			_ = closer.Close()
+		}
+		return false, err
+	}
+	if cursor == nil {
 		return false, ErrInvalidTrainingDraft
 	}
 	built, buildErr := v2input.BuildInputClosure(ctx, stage.TaskID, cursor, transport)
 	if closer, okay := cursor.(io.Closer); okay {
-		_ = closer.Close()
+		if closeErr := closer.Close(); buildErr == nil {
+			buildErr = closeErr
+		}
 	}
 	if buildErr != nil {
 		return false, buildErr
+	}
+	if err := ctx.Err(); err != nil {
+		return false, err
 	}
 	if okay, err := o.Leases.Renew(ctx, *lease); err != nil || !okay {
 		if err != nil {
 			return false, err
 		}
 		return false, ErrTrainingDraftConflict
+	}
+	if err := ctx.Err(); err != nil {
+		return false, err
 	}
 	if err := o.Committer.CommitEvaluateClosure(ctx, *lease, v2input.GraphTask{
 		ID: stage.TaskID, Built: built, Open: stage.Closure.Open,

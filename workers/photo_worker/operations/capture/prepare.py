@@ -167,6 +167,7 @@ def prepare_face_observations(source: WorkingImage, prepared: CaptureProxyPixels
             raise ModelError('MODEL_UNAVAILABLE')
     check_active()
     srgb = capture_model_preview(prepared.rgb, prepared.alpha)
+    check_active()
     return _face_observations(srgb, binding, pool, backend,
                               calibration.min_face_edge_px, check_active)
 

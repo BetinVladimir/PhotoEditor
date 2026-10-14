@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 actual retry-to-success and tenant deletion isolation",
+  "whole_module_accepted": false,
+  "migration_head": "00974",
+  "production_code_changed": false,
+  "production_migrations_applied": false,
+  "source_manifest": "v27-retry-success-source-current.json",
+  "source_manifest_sha256": "5c3dc96dade04f5e69c96473481f9d6e1d6af09a850b1708574ee2e072db5893",
+  "source_files": 4845,
+  "checks": {
+    "tenant_isolation_atomic_revision": {
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "4.272",
+      "evidence": "tenant-deletion-isolation-current.xml"
+    },
+    "first_retry_success_before_lineage_late_assertions": {
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "172.122",
+      "evidence": "v27-retry-success-first-current.xml"
+    },
+    "shared_failure_regression": {
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "105.816",
+      "evidence": "v27-retry-success-failure-regression-current.xml"
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/workflow",
+      "photoeditor/backend/internal/gateway",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "retry_success_six_operations": {
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "1269.945",
+      "evidence": "v27-retry-success-matrix-current.xml",
+      "source_scope_check": "All launch-pinned backend/workers/src/tests files still match; later additive maintenance tests and frontend/docs changes are outside exercised matrix sources."
+    }
+  },
+  "docs": {
+    "semantic_tests": 55,
+    "static_checks": 2267,
+    "deterministic_regeneration": "passed"
+  },
+  "matrix": {
+    "status": "passed",
+    "session_id": 57692,
+    "expected_cases": 6,
+    "accepted": true,
+    "log": "work/v27-retry-success-matrix-current.log",
+    "xml": "v27-retry-success-matrix-current.xml",
+    "last_observed_at": "2026-10-09T06:57:19.821904+00:00",
+    "completed_observed_at": "2026-10-09T07:18:20.295792+00:00",
+    "tests": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "time_seconds": "1269.945"
+  },
+  "imaging_preservation": {
+    "files": 544,
+    "changed": 0
+  },
+  "evidence_sha256": {
+    "tenant-deletion-isolation-current.xml": "3e97cac7d9b6ee96883869de8eb3ce68caf5e84220e5330cc51257ab1adf4f22",
+    "v27-retry-success-first-current.xml": "6157e63e511ed1af3df059ec510244ff8c2baf0158438c2e217fd4d3271404c7",
+    "v27-retry-success-failure-regression-current.xml": "739ce8b578b32f68bac5f7e178d60fd3f28badff4ad53baa43bfeed58876ffad",
+    "v27-retry-success-go-current.jsonl": "cc97286b858db854c3573fe5a826583ce54dc9004548ccc1cba9d94a6c35cf73",
+    "v27-retry-success-matrix-current.xml": "9f108b0f5d43f95b95ac613b8d3de31880492203e43f45bafb76f2efb75a6b9c"
+  },
+  "limitations": [
+    "Injected retryable failure after real admission/dispatch/claim; successful models/qualification use declared doubles.",
+    "Six-operation matrix completed with outer output-lineage and late-after-success assertions. Original launch source pin retained; backend/worker/existing integration sources verified unchanged at completion. Later frontend/docs and additive maintenance test changes do not establish whole-repository exact-build acceptance.",
+    "Ordinary retry-to-success waits actual backoff; prior exhausted budget matrix used explicit accelerated scheduler clock.",
+    "No independent GPU/photo-quality/qualification, OOM/fallback, restart/redelivery, per-artifact GC races, full browser/native or5000-target acceptance.",
+    "Whole V27 and V20-V32 remain unaccepted."
+  ]
+}

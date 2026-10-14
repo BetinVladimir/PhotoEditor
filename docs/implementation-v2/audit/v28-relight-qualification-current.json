@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 exact relight qualification documents",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "checks": {
+    "passed": 45,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 1.85,
+    "xml": "v28-relight-qualification-current.xml"
+  },
+  "source_sha256": {
+    "workers/photo_worker/v2/relight_qualification.py": "9551b730c4381313aa7045dfb6d0659d29bd549fbf6d07b71c3c8e1f4649ff18",
+    "tests/platform/test_relight_qualification.py": "e2b6d53d8f95cd1e30b5643e2daa3c19af1c0868d7599979b8c2666dad30e2bd"
+  },
+  "limitations": [
+    "Synthetic evidence and injected current pin loader; no trusted SQL/catalog/issuer authority established",
+    "Expected runtime hash is caller-owned; installed build verification and worker integration pending",
+    "No physical gateway/adoption/UI or real depth/photo/device qualification"
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 full recovery-job handoff from registered blocked parent",
+  "whole_module_accepted": false,
+  "migration_head": "00961",
+  "new_migrations": false,
+  "production_migrations_applied": false,
+  "checks": {
+    "go_four_packages": [
+      {
+        "package": "photoeditor/backend/internal/v2qualification",
+        "elapsed": 0.002
+      },
+      {
+        "package": "photoeditor/backend/internal/v2input",
+        "elapsed": 0.009
+      },
+      {
+        "package": "photoeditor/backend/internal/v2draft",
+        "elapsed": 0.01
+      },
+      {
+        "package": "photoeditor/backend/internal/semanticproposal",
+        "elapsed": 3.33
+      }
+    ],
+    "native_wire": "1 PASS411.39s; v27-native-all-target-job-wire-current.xml",
+    "documentation": "PASS55 tests/2267 static checks",
+    "diff_check": "PASS"
+  },
+  "source_manifest": "v27-native-all-target-job-source-current.json",
+  "source_manifest_sha256": "fe19b61cb4a525a7ffdd8b5f320421add479cc7fb38d78c23a7230634a07a1da",
+  "quality_preservation": {
+    "workers_src_baseline_files": 544,
+    "changed": 0,
+    "real_photo_quality_accepted": false
+  },
+  "native_verified": [
+    "Blocked committed parent and registered transport before job, publication lock released.",
+    "Forged lease completion token refused.",
+    "Actual ProcessOne claim, exact saved restoration, seal and SQL handoff record.",
+    "Owner observes done=true,token=NULL; second ProcessOne no work.",
+    "Independent sealed queued parent, ready tasks and single queued event/outbox."
+  ],
+  "retained_failures": [
+    "v27-native-all-target-job-wire-before-fix.xml: shared-source initial discovery conflict.",
+    "v27-native-all-target-job-wire-120s.xml: job120s deadline exceeded."
+  ],
+  "remaining": [
+    "First-time job admission solely from target checkpoint.",
+    "Target-specific handoff authority and revoke-between-admission-and-record race acceptance.",
+    "Partial publication repair/lease expiry/concurrency/unknown commit/replay/lifecycle/scale.",
+    "Whole V27 and V20–V32 acceptance."
+  ],
+  "limitations": [
+    "JOB starts from registered blocked parent; FIRST activation is a different scenario.",
+    "Job240s within overall600s; not120s performance acceptance.",
+    "SQL recorder unchanged.",
+    "ROUTE/PROCESS/private task comparison/repeated replay branches not run.",
+    "Upstream ML doubles; no real-photo/GPU qualification."
+  ]
+}

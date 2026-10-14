@@ -83,5 +83,6 @@ func ValidateFrozenRecipePair(baseRaw, approvedRaw []byte,
 		base.BaseStyle != approved.BaseStyle {
 		return v2input.Ref{}, ErrInvalidTrainingManifest
 	}
+ if !validTrainingBackgroundPin(caseRef.BackgroundAsset,manifest.ICCLockSHA,base.BaseStyle){return v2input.Ref{},ErrInvalidTrainingManifest}
 	return base.BaseStyle, nil
 }

@@ -3,6 +3,8 @@ package v2learning
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"sort"
 
@@ -79,8 +81,13 @@ func CompileFitClosure(draft TrainingDraftPrepared, policy LearningPolicy,
 		SHA256: params.SHA256}) || len(draft.Manifest.Examples) < 40 {
 		return FitClosure{}, ErrInvalidTrainingDraft
 	}
-	if _, err := CompileFitParams(draft, policy); err != nil {
+	body, err := CompileFitParams(draft, policy)
+	if err != nil {
 		return FitClosure{}, err
+	}
+	paramsDigest := sha256.Sum256(body)
+	if params.SHA256 != hex.EncodeToString(paramsDigest[:]) {
+		return FitClosure{}, ErrInvalidTrainingDraft
 	}
 	manifestID, _ := TrainingDocumentID(draft.RunID, trainingManifestPurpose)
 	manifestRef := v2input.Ref{ArtifactID: manifestID, SHA256: draft.ManifestSHA}
@@ -91,8 +98,65 @@ func CompileFitClosure(draft TrainingDraftPrepared, policy LearningPolicy,
 		{Ref: draft.Manifest.Baseline, Contract: "CandidateProfile"},
 		{Ref: draft.Manifest.Calibration, Contract: "Calibration"},
 	}
+	var detailRecovery map[uuid.UUID]PreparedPortraitDetailHoldout
+	for _, example := range draft.Manifest.Examples {
+		if example.RenderCase.DetailEvidence != nil {
+			var saved trainingDraftRecovery
+			if json.Unmarshal(draft.RecoveryBody, &saved) != nil {
+				return FitClosure{}, ErrInvalidTrainingDraft
+			}
+			detailRecovery, err = portraitDetailFromRecovery(draft,
+				[]byte(saved.DetailJCS))
+			if err != nil {
+				return FitClosure{}, err
+			}
+			break
+		}
+	}
 	for _, example := range draft.Manifest.Examples {
 		c := example.RenderCase
+		if c.DefectEvidence != nil {
+			expected, err := ReviewedDefectHoldoutRef(draft.RunID,
+				example.EventID, c.DefectEvidence.SHA256)
+			if err != nil || expected != *c.DefectEvidence {
+				return FitClosure{}, ErrInvalidTrainingDraft
+			}
+			entries = append(entries, v2input.Entry{Ref: expected,
+				Contract: "FrozenDefectHoldoutEvidence"})
+		}
+		if c.DustEvidence != nil {
+			expected, err := ReviewedDustHoldoutRef(draft.RunID,
+				example.EventID, c.DustEvidence.SHA256)
+			if err != nil || expected != *c.DustEvidence || c.DefectEvidence != nil {
+				return FitClosure{}, ErrInvalidTrainingDraft
+			}
+			entries = append(entries, v2input.Entry{Ref: expected,
+				Contract: "FrozenDustHoldoutEvidence"})
+		}
+		if c.DetailEvidence != nil {
+			origin, found := detailRecovery[example.EventID]
+			if !found || origin.Document.Source != c.WorkingImage ||
+				origin.Document.Protection != c.Protected ||
+				origin.Document.AssetVersionID != c.Binding.AssetVersionID {
+				return FitClosure{}, ErrInvalidTrainingDraft
+			}
+			expected, err := PortraitDetailHoldoutRef(draft.RunID,
+				example.EventID, c.DetailEvidence.SHA256)
+			if err != nil || expected != *c.DetailEvidence ||
+				c.DefectEvidence != nil || c.DustEvidence != nil {
+				return FitClosure{}, ErrInvalidTrainingDraft
+			}
+			entries = append(entries, v2input.Entry{Ref: expected,
+				Contract: "FrozenPortraitDetailHoldoutEvidence"})
+			entries = append(entries,
+				v2input.Entry{Ref: origin.Document.Image, Contract: "WorkingImage"},
+				v2input.Entry{Ref: origin.Document.Params, Contract: "PortraitParams"},
+				v2input.Entry{Ref: origin.Document.Resolved, Contract: "ResolvedStyle"})
+			for _, mask := range origin.Document.MaskArtifacts {
+				entries = append(entries, v2input.Entry{Ref: mask,
+					Contract: "NpyArray"})
+			}
+		}
 		entries = append(entries,
 			v2input.Entry{Ref: c.WorkingImage, Contract: "WorkingImage"},
 			v2input.Entry{Ref: c.BaseRecipe, Contract: "FrozenRecipe"},
@@ -108,6 +172,12 @@ func CompileFitClosure(draft TrainingDraftPrepared, policy LearningPolicy,
 			entries = append(entries,
 				v2input.Entry{Ref: *c.EffectiveMask, Contract: "MaskRef"},
 				v2input.Entry{Ref: *c.ConsentSnapshot, Contract: "ConsentSnapshot"})
+		}
+		if c.BackgroundAsset != nil {
+			if !validTrainingBackgroundPin(c.BackgroundAsset, draft.Manifest.ICCLockSHA, v2input.Ref{}) {
+				return FitClosure{}, ErrInvalidTrainingDraft
+			}
+			entries = append(entries, v2input.Entry{Ref: c.BackgroundAsset.Style, Contract: "StyleV2"}, v2input.Entry{Ref: c.BackgroundAsset.Source, Contract: "StyleBackgroundAsset"})
 		}
 		for _, region := range c.RegionMasks {
 			if len(region.RegionID) < 1 || len(region.RegionID) > 120 ||
@@ -153,8 +223,8 @@ func CompileFitClosure(draft TrainingDraftPrepared, policy LearningPolicy,
 		return FitClosure{}, err
 	}
 	profile := json.RawMessage(`{"backend":"cpu","renderer_version":"v2.2","resource_estimate":{"ram_bytes":2147483648,"vram_bytes":0,"scratch_bytes":536870912,"output_bytes":8388608,"pixel_count":0}}`)
-	return FitClosure{Open: func(context.Context) (v2input.Cursor, error) {
-		return &fitEntryCursor{entries: unique}, nil
+	return FitClosure{Open: func(ctx context.Context) (v2input.Cursor, error) {
+		return openFitEntryCursor(ctx, unique)
 	}, Direct: []v2input.Ref{paramsRef, manifestRef,
 		draft.Manifest.Baseline, draft.Manifest.Calibration},
 		InputDigest: digest, Profile: profile}, nil
@@ -165,7 +235,17 @@ type fitEntryCursor struct {
 	index   int
 }
 
-func (c *fitEntryCursor) Next(context.Context) (v2input.Entry, bool, error) {
+func openFitEntryCursor(ctx context.Context, entries []v2input.Entry) (v2input.Cursor, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	return &fitEntryCursor{entries: entries}, nil
+}
+
+func (c *fitEntryCursor) Next(ctx context.Context) (v2input.Entry, bool, error) {
+	if err := ctx.Err(); err != nil {
+		return v2input.Entry{}, false, err
+	}
 	if c.index == len(c.entries) {
 		return v2input.Entry{}, false, nil
 	}

@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-09",
+  "package": "V28",
+  "component": "Submission factory/material failure boundaries",
+  "whole_module_accepted": false,
+  "production_code_changed": true,
+  "production_migrations_applied": false,
+  "source_sha256": {
+    "backend/internal/v2draft/local_portrait_submission_service.go": "7eaaf42e8cad5e017bfe58824601cc4974c02b9c4da084bdea9144d0effd7596",
+    "backend/internal/v2draft/local_portrait_recovery_service.go": "17f6cd5de0088da7de64e60c906b9e5b2daa64788fdd9ff38c65c95bd5777965",
+    "backend/internal/v2draft/manual_raster_context_test.go": "aa2e51c4363a110c6a443f680fd774a506852a9f816287616d113944d6035ffc"
+  },
+  "checks": {
+    "package": "v2draft",
+    "result": "passed",
+    "evidence": "v28-submission-boundaries-current.jsonl",
+    "evidence_sha256": "08d6c3e53df039d7683f141a3d9b65785a180b09c75580495a40e28c2b14d14e"
+  },
+  "change": "Explicit cancellation check after factory construction before material Load in both Submit and Resume",
+  "tested_submission_boundaries": [
+    "factory-error",
+    "nil-material",
+    "cancel-factory",
+    "material-error",
+    "cancel-material"
+  ],
+  "limitations": [
+    "Boundary tests use declared factory/material/owner/publisher doubles",
+    "Resume uses same added cancellation gate but no new dedicated cancel-factory Resume regression in this increment",
+    "Full positive SQL/objectstore cycle and authenticated HTTP/UI composition remain open",
+    "Whole V28 and V20-V32 remain unaccepted"
+  ]
+}

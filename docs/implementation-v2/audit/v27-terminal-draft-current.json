@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 terminal unsealed draft cancellation and committed nonretryable worker failure",
+  "whole_module_accepted": false,
+  "migration_head": "00971",
+  "production_code_changed": true,
+  "production_migrations_applied": false,
+  "source_manifest": "v27-terminal-draft-source-current.json",
+  "source_manifest_sha256": "2a994026e7da4db7dbc6e2224d0bd2d9cb4fac07a8d1d68cecdefea034706eb0",
+  "source_files": 4831,
+  "checks": {
+    "draft_cancellation_upgrade_goose": {
+      "tests": 10.0,
+      "failures": 0.0,
+      "errors": 0.0,
+      "skipped": 0.0,
+      "time": 17.803
+    },
+    "worker_failure_and_draft": {
+      "tests": 3.0,
+      "failures": 0.0,
+      "errors": 0.0,
+      "skipped": 0.0,
+      "time": 18.043
+    },
+    "person_admission_retirement": {
+      "tests": 1.0,
+      "failures": 0.0,
+      "errors": 0.0,
+      "skipped": 0.0,
+      "time": 9.444
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/gateway",
+      "photoeditor/backend/internal/run",
+      "photoeditor/backend/internal/httpapi",
+      "photoeditor/backend/internal/semanticreview",
+      "photoeditor/backend/internal/workflow",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "go_failures": 0,
+    "docs": {
+      "semantic_tests": 55,
+      "static_checks": 2267,
+      "deterministic_regeneration": "passed"
+    },
+    "broad_selected_integration": {
+      "tests": 159.0,
+      "failures": 0.0,
+      "errors": 0.0,
+      "skipped": 0.0,
+      "time": 740.461,
+      "deselected": 333,
+      "evidence": "v27-terminal-draft-broad-current.xml"
+    }
+  },
+  "imaging_preservation": {
+    "files": 544,
+    "changed": 0,
+    "baseline": "v27-target-defect-protection-source-current.json"
+  },
+  "limitations": [
+    "Worker failure is injected through actual claimed-worker TaskDatabase protocol; not actual model inference failure or HTTP/mTLS request.",
+    "Recorder lock probe uses rollback-only metadata writer, not actual retry or GC.",
+    "Extended native success at migration00970 is historical; not rerun under00971.",
+    "Target-producer terminal/retry matrix, GC/purge/object deletion, OS restart/upload ambiguity/redelivery, reference locator versions, independent target qualification and 5000-target scale remain open.",
+    "Whole browser/native module acceptance and real GPU/photo quality remain open."
+  ],
+  "diagnostics": [
+    "Initial worker probe test harness import cycle was fixed by placing scheduler Recovery in nested gateway test subprocess; subsequent targeted and six Go package runs passed."
+  ],
+  "evidence_sha256": {
+    "v27-terminal-draft-broad-current.xml": "389d7191d39d50461db10d431cd86980bdc28162db91ec82390c1b5bc2873f46",
+    "v27-terminal-draft-current.xml": "be575eecd934ee2ef3c77aed9cfb1c3ec6538be21c9fb5ddb9ad949fd07eda2f",
+    "v27-terminal-failure-current.xml": "9d6aea632dadda40bf6f09b2258763546340b1244ba66f75d14c4e05bb812c86",
+    "v27-terminal-person-admission-current.xml": "738cf0ee290d41b34db9cf04b27062cc1e286dade0c114ffce845ac22cc3be79",
+    "v27-terminal-draft-go-current.jsonl": "bce3c01628d39927c705fe88750b7661b114d397cd9de5f87784098d29f0ba3a"
+  }
+}

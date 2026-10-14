@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="93.695" timestamp="2026-10-08T15:39:16.786414+03:00" hostname="Mac"><testcase classname="tests.integration.test_v27_semantic_intent_publication" name="test_semantic_intent_publication_old_version_and_replay[native-person-defect-wire]" time="92.703"><failure message="AssertionError: === RUN   TestIntegrationNativePreparationBootstrap&#10;      native_bootstrap_integration_test.go:167: V27_ORIGINAL_PERSON_INPUT_AUTHORITY_OK&#10;      native_bootstrap_integration_test.go:313: V27_NATIVE_DEFECT_PERSON_DEPENDENCIES_OK&#10;      native_bootstrap_integration_test.go:389: V27_NATIVE_PARENT_AMBIGUOUS_TARGET_REFUSED_OK&#10;      native_bootstrap_integration_test.go:398: automatic native parent admission initial native parent prepare/activate: invalid float32 mask NPY&#10;  --- FAIL: TestIntegrationNativePreparationBootstrap (81.78s)&#10;  FAIL&#10;  FAIL&#09;photoeditor/backend/internal/semanticproposal&#09;82.470s&#10;  FAIL&#10;  &#10;assert 1 == 0&#10; +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationNativePreparationBootstra...ePreparationBootstrap (81.78s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t82.470s\nFAIL\n', stderr='').returncode">tests/integration/test_v27_semantic_intent_publication.py:737: in test_semantic_intent_publication_old_version_and_replay
+    assert result.returncode==0,result.stdout+result.stderr
+E   AssertionError: === RUN   TestIntegrationNativePreparationBootstrap
+E         native_bootstrap_integration_test.go:167: V27_ORIGINAL_PERSON_INPUT_AUTHORITY_OK
+E         native_bootstrap_integration_test.go:313: V27_NATIVE_DEFECT_PERSON_DEPENDENCIES_OK
+E         native_bootstrap_integration_test.go:389: V27_NATIVE_PARENT_AMBIGUOUS_TARGET_REFUSED_OK
+E         native_bootstrap_integration_test.go:398: automatic native parent admission initial native parent prepare/activate: invalid float32 mask NPY
+E     --- FAIL: TestIntegrationNativePreparationBootstrap (81.78s)
+E     FAIL
+E     FAIL	photoeditor/backend/internal/semanticproposal	82.470s
+E     FAIL
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationNativePreparationBootstra...ePreparationBootstrap (81.78s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t82.470s\nFAIL\n', stderr='').returncode</failure></testcase></testsuite></testsuites>

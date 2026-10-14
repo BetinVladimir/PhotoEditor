@@ -1,0 +1,47 @@
+{
+  "recorded_at": "2026-10-08T09:47:07.014286+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "change": "Current SQL evidence proves ready native person uploads remain absent from API inventory until real worker commit; committed canonical person result and Params/Report enter the exact-source profile-bound catalogue.",
+  "sources": {
+    "tests/integration/test_v27_native_face_outputs.py": "f5c78d3627ef353876e4e23e3bbef4210edbe6bd7bcd9c34b17a88fce1786c30",
+    "tests/integration/native_person_commit_probe.py": "fc2d0408abeae41a171e35d27ff56ed57b235ede0b1a9370e29467418dc60638",
+    "tests/integration/native_person_catalog_probe.py": "5d6f4806e498cc548eedfc574bdcd5870edcb0e1ba449088fa8c8e30b68273eb",
+    "backend/db/migrations/00640_v27_proposal_person_mask_origin.sql": "b99d7d38802d21b95dee494a947b67199cecb334f43a6626ebdf430e0fcf68a6",
+    "backend/db/migrations/00642_v27_person_evidence_objects.sql": "f7ede964337c5428a4c2c220850da670d8e59456823da1f473c4217f14475d3f",
+    "backend/db/migrations/00644_v27_person_producer_profile.sql": "bad94b5370e765a3540afc1e8f55cb31cd70f47c785e1b894a98e98e7dbdaee3",
+    "backend/db/migrations/00645_v27_person_candidate_discovery.sql": "de00001ac49133729a962d824d7b0a0e51afe5791642d670a71c1707ee7964f3",
+    "backend/internal/semanticproposal/person_selection.go": "ee68bfbbce3cedfca81eb5aae3c8a13f3acfe3a7a845c30d26633a30ef9384ed"
+  },
+  "checks": [
+    {
+      "evidence": "v27-person-catalog.xml",
+      "sha256": "3623729b7591c1b679f4471918423386c5198155857b745b0fea4eb36eb4cce4",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "evidence": "v27-person-catalog-regression.xml",
+      "sha256": "d169bcede38ffd18dbea6ceec75279997f602426d4b71e924c94df35a0757fcc",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "negative_cases": [
+    "foreign tenant/project/actor/session/version/source and wrong source SHA",
+    "wrong model/runtime/device/backend expected profile",
+    "revoked session, archived project, nonaccepted asset version",
+    "unfinished attempt and altered attempt runtime pin",
+    "expired root and unverified child",
+    "ready outputs before canonical worker commit do not appear"
+  ],
+  "limitations": [
+    "Synthetic verified DB metadata; no physical bytes or actual model inference in this check.",
+    "This does not prove scientific qualification, protection coverage, adoption or ordinary-parent continuation from new worker bytes.",
+    "Full V27 and V20\u2013V32 acceptance remain open."
+  ]
+}

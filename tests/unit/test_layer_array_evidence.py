@@ -68,3 +68,18 @@ def test_legacy_alpha_cannot_bypass_policy_or_budget(tmp_path,failure):
     assert reader.calls==reader.closed
     if failure in ('output','mode'):assert reader.calls==0
     assert not list(tmp_path.iterdir())
+
+
+@pytest.mark.parametrize('source,allowed',[('input',False),('input',True),('output',True)])
+def test_legacy_npy_media_requires_explicit_input_policy(tmp_path,source,allowed):
+    reader,ref,raw=fixture()
+    reader.evidence=lambda received:SimpleNamespace(ref=received,source=source,role=None,media_type='application/octet-stream',bytes=len(raw))
+    with ArrayEvidenceSession(reader,tmp_path,len(raw)) as session:
+        if source=='input' and allowed:
+            mapped=session.array(ref,(1,2),source=source,legacy_input_npy=allowed)
+            np.testing.assert_array_equal(mapped,[[0,1]])
+        else:
+            with pytest.raises(AdoptionInvalid):
+                session.array(ref,(1,2),source=source,legacy_input_npy=allowed)
+            assert reader.calls==0
+    assert not list(tmp_path.iterdir())

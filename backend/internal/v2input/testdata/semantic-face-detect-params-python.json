@@ -1,0 +1,80 @@
+[
+  {
+    "binding": {
+      "asset_version_id": "89a33104-f97d-4b16-8d3b-85742b82f88e",
+      "source": {
+        "artifact_id": "e38ee4f8-2c3e-4efc-a3a8-1375d0f974ce",
+        "sha256": "9d5ca45af157ca81dd363238a757dd3ca8585f8c33d35a089f2bfa55fd545bd8"
+      },
+      "canvas_hash": "f07c4a9a47388c273281f5f3ed88726855fbbb81f6b92bf246ef820e367e9ebe"
+    },
+    "source_index": 0,
+    "score_threshold": 0.8,
+    "max_faces": 64,
+    "params": {
+      "image": {
+        "artifact_id": "e38ee4f8-2c3e-4efc-a3a8-1375d0f974ce",
+        "sha256": "9d5ca45af157ca81dd363238a757dd3ca8585f8c33d35a089f2bfa55fd545bd8"
+      },
+      "long_side": 1024,
+      "max_faces": 64,
+      "model_id": "sfd",
+      "model_lock_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "nms_iou": 0.3,
+      "preprocessing_id": "sfd_long1024_bgr_v1",
+      "score_threshold": 0.8
+    }
+  },
+  {
+    "binding": {
+      "asset_version_id": "89a33104-f97d-4b16-8d3b-85742b82f88e",
+      "source": {
+        "artifact_id": "e38ee4f8-2c3e-4efc-a3a8-1375d0f974ce",
+        "sha256": "9d5ca45af157ca81dd363238a757dd3ca8585f8c33d35a089f2bfa55fd545bd8"
+      },
+      "canvas_hash": "f07c4a9a47388c273281f5f3ed88726855fbbb81f6b92bf246ef820e367e9ebe"
+    },
+    "source_index": 0,
+    "score_threshold": 0.5,
+    "max_faces": 1,
+    "params": {
+      "image": {
+        "artifact_id": "e38ee4f8-2c3e-4efc-a3a8-1375d0f974ce",
+        "sha256": "9d5ca45af157ca81dd363238a757dd3ca8585f8c33d35a089f2bfa55fd545bd8"
+      },
+      "long_side": 1024,
+      "max_faces": 1,
+      "model_id": "sfd",
+      "model_lock_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "nms_iou": 0.3,
+      "preprocessing_id": "sfd_long1024_bgr_v1",
+      "score_threshold": 0.5
+    }
+  },
+  {
+    "binding": {
+      "asset_version_id": "89a33104-f97d-4b16-8d3b-85742b82f88e",
+      "source": {
+        "artifact_id": "e38ee4f8-2c3e-4efc-a3a8-1375d0f974ce",
+        "sha256": "9d5ca45af157ca81dd363238a757dd3ca8585f8c33d35a089f2bfa55fd545bd8"
+      },
+      "canvas_hash": "f07c4a9a47388c273281f5f3ed88726855fbbb81f6b92bf246ef820e367e9ebe"
+    },
+    "source_index": 0,
+    "score_threshold": 0.99,
+    "max_faces": 100,
+    "params": {
+      "image": {
+        "artifact_id": "e38ee4f8-2c3e-4efc-a3a8-1375d0f974ce",
+        "sha256": "9d5ca45af157ca81dd363238a757dd3ca8585f8c33d35a089f2bfa55fd545bd8"
+      },
+      "long_side": 1024,
+      "max_faces": 100,
+      "model_id": "sfd",
+      "model_lock_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "nms_iou": 0.3,
+      "preprocessing_id": "sfd_long1024_bgr_v1",
+      "score_threshold": 0.99
+    }
+  }
+]

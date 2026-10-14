@@ -27,6 +27,7 @@ func DecodeRecoveredRenderPlan(saved RecoveredRenderDraft) ([]RecoveredRenderNod
 		return invalid()
 	}
 	var config struct {
+ QueueClass string `json:"queue_class"`
 		Project  uuid.UUID `json:"project_id"`
 		Snapshot uuid.UUID `json:"input_snapshot_id"`
 		Render   struct {
@@ -34,7 +35,7 @@ func DecodeRecoveredRenderPlan(saved RecoveredRenderDraft) ([]RecoveredRenderNod
 			Nodes   []RenderRunNode `json:"nodes"`
 		} `json:"v26_render"`
 	}
-	if json.Unmarshal(saved.Config, &config) != nil || config.Project != saved.ProjectID || config.Snapshot != saved.SnapshotID || config.Project == uuid.Nil || config.Snapshot == uuid.Nil || config.Render.Session == uuid.Nil || len(config.Render.Nodes) < 1 || len(config.Render.Nodes) > 5000 {
+	if json.Unmarshal(saved.Config, &config) != nil || (config.QueueClass!=""&&config.QueueClass!="batch"&&config.QueueClass!="interactive") || config.Project != saved.ProjectID || config.Snapshot != saved.SnapshotID || config.Project == uuid.Nil || config.Snapshot == uuid.Nil || config.Render.Session == uuid.Nil || len(config.Render.Nodes) < 1 || len(config.Render.Nodes) > 5000 {
 		return invalid()
 	}
 	result := make([]RecoveredRenderNode, 0, len(config.Render.Nodes))
@@ -53,6 +54,18 @@ func DecodeRecoveredRenderPlan(saved RecoveredRenderDraft) ([]RecoveredRenderNod
 			return invalid()
 		}
 		if err := ValidateRenderProtectionEvidence(evidence, []byte(node.ProtectionJCS)); err != nil {
+			return invalid()
+		}
+		if err := ValidateRenderLayerDocuments(evidence, []byte(node.LayerJCS), node.LayerDocuments); err != nil {
+			return invalid()
+		}
+		if err := validateRenderClosureDocuments(node.ClosureDocuments, nil); err != nil {
+			return invalid()
+		}
+		if err := validateRenderClosureCoverage(RenderDraftRequest{Binding: recipe.Scalars.Source, RecipeRef: node.Params, RecipeRaw: []byte(node.ParamsJCS), SourceRaw: []byte(node.SourceJCS), LayerDocuments: node.LayerDocuments, ClosureDocuments: node.ClosureDocuments}); err != nil {
+			return invalid()
+		}
+		if err := validateRenderOccurrences(RenderDraftRequest{Binding: recipe.Scalars.Source, RecipeRef: node.Params, LayerDocuments: node.LayerDocuments, ClosureDocuments: node.ClosureDocuments, ClosureOccurrences: node.ClosureOccurrences}, nil); err != nil {
 			return invalid()
 		}
 		var profile struct {
@@ -81,7 +94,10 @@ func DecodeRecoveredRenderPlan(saved RecoveredRenderDraft) ([]RecoveredRenderNod
 			return invalid()
 		}
 		output += profile.Resources.OutputBytes
+		node.ClosureOccurrences = cloneRenderOccurrences(node.ClosureOccurrences)
 		node.Profile = append(json.RawMessage(nil), node.Profile...)
+		node.ClosureDocuments = append([]v2draft.DocumentWitness(nil), node.ClosureDocuments...)
+		node.LayerDocuments = append([]RenderLayerDocument(nil), node.LayerDocuments...)
 		result = append(result, RecoveredRenderNode{node, evidence})
 	}
 	return result, nil

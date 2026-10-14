@@ -59,6 +59,24 @@ func encodeDraftShell(shell DraftShell) ([]byte, []byte, error) {
 		!json.Valid(shell.Config) {
 		return nil, nil, ErrInvalid
 	}
+ if shell.Workflow=="semantic"{
+  var root map[string]json.RawMessage
+  if json.Unmarshal(shell.Config,&root)!=nil{return nil,nil,ErrInvalid}
+  _,semantic:=root["v27_semantic"]
+  _,detector:=root["v27_detector_prepare"]
+  _,face:=root["v27_face_prepare"]
+  _,skin:=root["v27_skin_prepare"]
+  _,person:=root["v27_person_prepare"]
+  _,defect:=root["v27_defect_native_prepare"]
+  _,targetPerson:=root["v27_target_person_prepare"]
+  _,targetDetector:=root["v27_target_detector_prepare"]
+  _,targetFace:=root["v27_target_face_prepare"]
+  _,targetSkin:=root["v27_target_skin_prepare"]
+  _,targetDefect:=root["v27_target_defect_prepare"]
+  if semantic||detector||face||skin||person||defect||targetPerson||targetDetector||targetFace||targetSkin||targetDefect{
+   if raw,present:=root["queue_class"];present{var queue string;if json.Unmarshal(raw,&queue)!=nil||queue!="batch"{return nil,nil,ErrInvalid}}
+  }
+ }
 	configSHA, err := canonical.Hash(json.RawMessage(shell.Config))
 	if err != nil || configSHA != shell.ConfigSHA {
 		return nil, nil, ErrInvalid

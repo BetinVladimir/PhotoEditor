@@ -12,11 +12,14 @@ from photo_worker.models.pool import ModelPool
 from photo_worker.runtime.arrays import read_array
 from photo_worker.runtime.artifacts import ArtifactConfig,TaskArtifacts
 from photo_worker.runtime.executor import ExecutionContext,Operation,OperationFailure,OperationResult
+from .inpaint import _blend_selected, _mask_roi, _required_frame_ram, _roi_pixel_budget
 
 def _square_roi(mask,context=64):
-    h,w=mask.shape;ys,xs=np.nonzero(mask)
-    if not len(xs):raise ValueError('GENERATION_MASK_EMPTY')
-    x0=max(0,int(xs.min())-context);x1=min(w,int(xs.max())+1+context);y0=max(0,int(ys.min())-context);y1=min(h,int(ys.max())+1+context)
+    h,w=mask.shape
+    try:x0,y0,x1,y1=_mask_roi(mask,context)
+    except ValueError as exc:
+        if str(exc)=='INPAINT_MASK_EMPTY':raise ValueError('GENERATION_MASK_EMPTY') from exc
+        raise
     side=max(x1-x0,y1-y0);cx=(x0+x1)/2;cy=(y0+y1)/2
     x0=max(0,min(w-side,int(round(cx-side/2))));y0=max(0,min(h-side,int(round(cy-side/2))))
     return x0,y0,min(w,x0+side),min(h,y0+side)
@@ -34,6 +37,7 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts,pool:ModelPool,backend:
         required=[image.pixels,params.mask.artifact,*[m.artifact for m in params.protected],*([image.alpha] if image.alpha else [])]
         if any(ref not in ctx.lease.command.inputs for ref in required):raise ValueError('GENERATION_INPUT_UNDECLARED')
         h,w=image.canvas.height,image.canvas.width
+        if ram < _required_frame_ram(h,w):raise OperationFailure('RESOURCE_OOM')
     except ModelError as exc:raise OperationFailure(str(exc)) from exc
     except ValueError as exc:raise OperationFailure('INPUT_INVALID') from exc
     ctx.progress(0,5)
@@ -44,7 +48,9 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts,pool:ModelPool,backend:
                 return stack.enter_context(read_array(local.path,shape,'float32',ctx.check_active,unit_interval=True))
             source=mapped(image.pixels,(h,w,3));target=np.asarray(mapped(params.mask.artifact,(h,w)))>=.5;protected=np.zeros((h,w),bool)
             for item in params.protected:protected|=np.asarray(mapped(item.artifact,(h,w)))>=.5
-            effective=target&~protected;x0,y0,x1,y1=_square_roi(effective);roi=np.asarray(source[y0:y1,x0:x1],np.float32);mask=effective[y0:y1,x0:x1]
+            effective=target&~protected;x0,y0,x1,y1=_square_roi(effective)
+            if (x1-x0)*(y1-y0)>_roi_pixel_budget(ram,h,w):raise OperationFailure('RESOURCE_OOM')
+            roi=np.asarray(source[y0:y1,x0:x1],np.float32);mask=effective[y0:y1,x0:x1]
             model_input,_=work_to_model(roi);input512=cv2.resize(model_input,(512,512),interpolation=cv2.INTER_AREA if max(roi.shape[:2])>512 else cv2.INTER_CUBIC)
             mask512=cv2.resize(mask.astype(np.uint8),(512,512),interpolation=cv2.INTER_NEAREST).astype(np.float32)
             generated=np.asarray(engine.generate(input512,mask512,prompt=params.prompt,negative_prompt=params.negative_prompt,
@@ -57,9 +63,10 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts,pool:ModelPool,backend:
                 path=reservation.path('generated-rgb','.npy');output=np.lib.format.open_memmap(path,mode='w+',dtype='<f4',shape=(h,w,3))
                 try:
                     for row in range(0,h,256):ctx.check_active();output[row:row+256]=source[row:row+256]
-                    original=np.asarray(source[y0:y1,x0:x1],np.float32);output[y0:y1,x0:x1]=original+(restored-original)*weight[...,None]
-                    output.flush();reservation.validate()
+                    _blend_selected(output,roi,restored,weight,x0,y0,ctx.check_active)
+                    output.flush();reservation.validate();ctx.check_active()
                 finally:output._mmap.close()
+                ctx.check_active()
                 pixel_ref=artifacts.stage(path,reservation,'working_rgb','application/octet-stream');written=path.stat().st_size
     except ModelError as exc:raise OperationFailure(str(exc)) from exc
     except ValueError as exc:raise OperationFailure('MODEL_OUTPUT_INVALID') from exc

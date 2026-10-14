@@ -66,7 +66,7 @@ def _decode(ctx:ExecutionContext,artifacts:TaskArtifacts,registry:ICCRegistry)->
             alpha=reservation.planned_path('alpha','.npy') if metadata.has_alpha else None
             try:
                 decoded=icc_to_work(source,pixels,registry,params.assume_profile,analyze=params.analyze,
-                    tile=params.tile,alpha_output=alpha,check_active=ctx.check_active)
+                    tile=params.tile,alpha_output=alpha,raw_development=params.raw_development,check_active=ctx.check_active)
             except ValueError as exc:raise OperationFailure('INPUT_INVALID') from exc
             ctx.progress(2,4)
             pixel_ref=artifacts.stage(pixels,reservation,'working_rgb','application/octet-stream')

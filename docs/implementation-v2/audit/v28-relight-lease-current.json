@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 relight SQL attempt gate",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "production_migration_applied": false,
+  "checks": {
+    "native_postgresql_goose": {
+      "passed": 2,
+      "seconds": 8.51,
+      "xml": "v28-relight-lease-current.xml"
+    },
+    "components": {
+      "passed": 73,
+      "xml": "v28-relight-lease-components-current.xml"
+    }
+  },
+  "source_sha256": {
+    "backend/db/migrations/00980_v28_relight_lease_ready.sql": "707ee37d9a3c966ddf61514410bd4eb334513a02d491d5316873d626577f49e3",
+    "workers/photo_worker/runtime/database.py": "e4f6d248e441fc4e89f104a7916793ecc2c423efe8d95a0b6c6973c32452aeb6",
+    "workers/photo_worker/operations/portrait/relight_admission.py": "ea1a249433e8a2af1a4403631275169d8121a4752e09f815970e5f9fc9c68c3b",
+    "tests/integration/test_v28_relight_lease.py": "49ee197080a9a34be06d4c31313ff250882d22c1af223a3bb656a311bcbd469e",
+    "tests/platform/test_relight_admission.py": "fafe129ca74dbcdc95f9d8002a272b223c2ba700419928f7292139277af76d3b"
+  },
+  "limitations": [
+    "Positive live relight lease fixture not exercised",
+    "Producer lineage and trusted qualification catalog resolver pending",
+    "No public workflow/adoption/UI or real qualification"
+  ]
+}

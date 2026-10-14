@@ -144,7 +144,14 @@ func (s Service) Sign(ctx context.Context, who auth.Identity, tenantID, assetID 
 		if signErr != nil {
 			return Links{}, signErr
 		}
+		if !validMediaSignedRead(item.object, link, time.Now()) {
+			return Links{}, domain.NewError("MEDIA_SIGNED_LINK_INVALID", 503)
+		}
 		out.Items = append(out.Items, Link{AssetVersionID: request.AssetVersionID, ArtifactSHA256: item.object.SHA256, ICCSHA256: s.SRGBSHA256, ProfileHash: hashes[item.variant], Variant: item.variant, URL: link.URL, ExpiresAt: link.ExpiresAt, Width: item.width, Height: item.height, MediaType: item.object.ContentType})
 	}
 	return out, nil
+}
+
+func validMediaSignedRead(object objectstore.Object, link objectstore.ReadURL, now time.Time) bool {
+	return objectstore.ValidSignedReadURL(link.URL, object.VersionID) && link.ExpiresAt.After(now) && !link.ExpiresAt.After(now.Add(10*time.Minute+5*time.Second))
 }

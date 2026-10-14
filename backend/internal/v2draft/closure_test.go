@@ -6,8 +6,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -183,7 +185,162 @@ func TestLegacyClosureBudgetPreservesOccurrenceAuthorization(t *testing.T) {
 	if _, err := resolver.resolveRoots(context.Background(), auth.Identity{}, uuid.New(), roots, v2input.SessionVersionBinding{}); err == nil {
 		t.Fatal("legacy occurrence cap bypassed")
 	}
-	if len(fixture.lookups) != 512 {
+	if len(fixture.lookups) != 512+fixture.reads {
 		t.Fatal(len(fixture.lookups))
+	}
+}
+
+type changingClosureCatalog struct {
+	closureFixture
+	calls    int
+	change   func(*objectstore.Object)
+	changeAt int
+	deny     error
+}
+
+func (f *changingClosureCatalog) Lookup(ctx context.Context, who auth.Identity, tenant uuid.UUID, node LayerRef) (objectstore.Object, error) {
+	obj, err := f.closureFixture.Lookup(ctx, who, tenant, node)
+	f.calls++
+	at := f.changeAt
+	if at == 0 {
+		at = 3
+	}
+	if f.calls == at {
+		if f.deny != nil {
+			return objectstore.Object{}, f.deny
+		}
+		if f.change != nil {
+			f.change(&obj)
+		}
+	}
+	return obj, err
+}
+
+func TestClosurePostReadScopeAndVersionRecheck(t *testing.T) {
+	for _, revoke := range []bool{false, true} {
+		raw := []byte(`{"child":{"artifact_id":"00000000-0000-4000-8000-000000000001","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}`)
+		sum := sha256.Sum256(raw)
+		ref := v2input.Ref{ArtifactID: uuid.New(), SHA256: hex.EncodeToString(sum[:])}
+		catalog := &changingClosureCatalog{closureFixture: closureFixture{
+			objects: map[uuid.UUID]objectstore.Object{ref.ArtifactID: {Key: "root", VersionID: "v1", SHA256: ref.SHA256, Bytes: int64(len(raw)), ContentType: "application/json"}},
+			bodies:  map[string][]byte{"root": raw},
+		}, changeAt: 2, change: func(o *objectstore.Object) { o.VersionID = "v2" }}
+		if revoke {
+			catalog.deny = v2input.ErrExpired
+		}
+		resolver := ClosureResolver{Catalog: catalog, Objects: catalog}
+		if _, err := resolver.resolveRoots(context.Background(), auth.Identity{}, uuid.New(), []LayerRef{{Contract: "Artifact", Ref: ref}}, v2input.SessionVersionBinding{}); !errors.Is(err, v2input.ErrExpired) || catalog.calls != 2 {
+			t.Fatal("post-read authority drift reached descendant resolution", revoke, err, catalog.calls)
+		}
+	}
+}
+
+func TestClosureRepeatedOccurrenceRequiresIdenticalObjectMetadata(t *testing.T) {
+	for name, change := range map[string]func(*objectstore.Object){
+		"unchanged": nil,
+		"version":   func(o *objectstore.Object) { o.VersionID = "v2" },
+		"key":       func(o *objectstore.Object) { o.Key = "other" },
+		"bytes":     func(o *objectstore.Object) { o.Bytes++ },
+		"media":     func(o *objectstore.Object) { o.ContentType = "application/octet-stream" },
+	} {
+		t.Run(name, func(t *testing.T) {
+			raw := []byte(`{"fixture":true}`)
+			sum := sha256.Sum256(raw)
+			ref := v2input.Ref{ArtifactID: uuid.New(), SHA256: hex.EncodeToString(sum[:])}
+			catalog := &changingClosureCatalog{closureFixture: closureFixture{
+				objects: map[uuid.UUID]objectstore.Object{ref.ArtifactID: {Key: "root", VersionID: "v1", SHA256: ref.SHA256, Bytes: int64(len(raw)), ContentType: "application/json"}},
+				bodies:  map[string][]byte{"root": raw},
+			}, change: change}
+			resolver := ClosureResolver{Catalog: catalog, Objects: catalog}
+			refs, err := resolver.resolveRoots(context.Background(), auth.Identity{}, uuid.New(), []LayerRef{
+				{Contract: "Artifact", Ref: ref, Path: "first"},
+				{Contract: "Artifact", Ref: ref, Path: "second"},
+			}, v2input.SessionVersionBinding{})
+			if catalog.calls != 3 {
+				t.Fatal("repeated occurrence was not scoped independently", catalog.calls)
+			}
+			if change == nil {
+				if err != nil || len(refs) != 2 {
+					t.Fatal("stable repeated object refused", err)
+				}
+			} else if err != v2input.ErrExpired {
+				t.Fatal("changed immutable metadata reused", err)
+			}
+		})
+	}
+}
+
+type cancelingClosureReader struct {
+	closureFixture
+	cancel context.CancelFunc
+	opened bool
+	closed bool
+}
+
+type closureCancelReadCloser struct {
+	*bytes.Reader
+	owner *cancelingClosureReader
+}
+
+func (r closureCancelReadCloser) Read(p []byte) (int, error) {
+	r.owner.cancel()
+	return r.Reader.Read(p)
+}
+
+func (r closureCancelReadCloser) Close() error { r.owner.closed = true; return nil }
+
+func (f *cancelingClosureReader) Open(_ context.Context, obj objectstore.Object) (io.ReadCloser, error) {
+	f.opened = true
+	return closureCancelReadCloser{bytes.NewReader(f.bodies[obj.Key]), f}, nil
+}
+
+func TestClosureCancellationIsNotInvalidInput(t *testing.T) {
+	raw := []byte(`{"fixture":true}`)
+	sum := sha256.Sum256(raw)
+	ref := v2input.Ref{ArtifactID: uuid.New(), SHA256: hex.EncodeToString(sum[:])}
+	obj := objectstore.Object{Key: "root", VersionID: "v1", SHA256: ref.SHA256, Bytes: int64(len(raw)), ContentType: "application/json"}
+	fixture := closureFixture{objects: map[uuid.UUID]objectstore.Object{ref.ArtifactID: obj}, bodies: map[string][]byte{"root": raw}}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	reader := &cancelingClosureReader{closureFixture: fixture, cancel: cancel}
+	if _, err := readJSONArtifact(ctx, reader, obj, ref); !errors.Is(err, context.Canceled) || !reader.opened || !reader.closed {
+		t.Fatal("in-flight cancellation lost or reader leaked", err, reader.opened, reader.closed)
+	}
+	catalog := &changingClosureCatalog{closureFixture: fixture}
+	resolver := ClosureResolver{Catalog: catalog, Objects: fixture}
+	if _, err := resolver.resolveRoots(ctx, auth.Identity{}, uuid.New(), []LayerRef{{Contract: "Artifact", Ref: ref}}, v2input.SessionVersionBinding{}); !errors.Is(err, context.Canceled) || catalog.calls != 0 {
+		t.Fatal("canceled traversal performed catalog IO", err, catalog.calls)
+	}
+	reader.opened = false
+	if _, err := readJSONArtifact(ctx, reader, obj, ref); !errors.Is(err, context.Canceled) || reader.opened {
+		t.Fatal("canceled document read opened an object", err)
+	}
+}
+
+type closureBoundedReader struct {
+	consumed int
+	closed   bool
+}
+
+func (r *closureBoundedReader) Open(context.Context, objectstore.Object) (io.ReadCloser, error) {
+	return r, nil
+}
+func (r *closureBoundedReader) Read(p []byte) (int, error) {
+	for i := range p {
+		p[i] = 'x'
+	}
+	r.consumed += len(p)
+	return len(p), nil
+}
+func (r *closureBoundedReader) Close() error { r.closed = true; return nil }
+
+func TestClosureJSONReadRejectsOversizedStreamAtDeclaredBoundary(t *testing.T) {
+	for _, size := range []int64{2, 4096, maxDocumentJSON} {
+		reader := &closureBoundedReader{}
+		ref := v2input.Ref{ArtifactID: uuid.New(), SHA256: strings.Repeat("a", 64)}
+		obj := objectstore.Object{Key: "root", VersionID: "v1", SHA256: ref.SHA256, Bytes: size, ContentType: "application/json"}
+		if _, err := readJSONArtifact(context.Background(), reader, obj, ref); !errors.Is(err, v2input.ErrInvalid) || reader.consumed != int(size+1) || !reader.closed {
+			t.Fatal("stream exceeded declared size or reader leaked", size, err, reader.consumed, reader.closed)
+		}
 	}
 }

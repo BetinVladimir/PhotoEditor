@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="5" time="7.546" timestamp="2026-10-09T14:26:55.079906+03:00" hostname="Mac"><testcase classname="tests.integration.test_v28_relight_draft_intent" name="test_relight_intent_upgrade_preserves_existing_runs" time="1.310"><failure message="psycopg.errors.UniqueViolation: duplicate key value violates unique constraint &quot;v2_qualification_one_admission_policy&quot;&#10;DETAIL:  Key (operation, operation_version)=(semantic.transfer, 1) already exists.">database = &lt;isolated PostgreSQL configuration&gt;
+
+    @pytest.mark.migration_head(995)
+    def test_relight_intent_upgrade_preserves_existing_runs(database):
+        with psycopg.connect(**database) as setup:
+            fixture(setup,snapshot_authority=True)
+            count=setup.execute('SELECT count(*) FROM photo.runs').fetchone()[0]
+        migration=Path(__file__).resolve().parents[2]/'backend/db/migrations/00996_v28_relight_draft_intent.sql'
+        with psycopg.connect(**database) as upgraded:
+            upgraded.execute(migration.read_text().split('-- +goose Down')[0])
+            assert upgraded.execute('SELECT count(*) FROM photo.runs WHERE v28_relight_intent IS NULL').fetchone()[0]==count
+        with psycopg.connect(**database) as checked:
+&gt;           test_relight_intent_frozen_replay_and_revocation(checked)
+
+tests/integration/test_v28_relight_draft_intent.py:24: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/integration/test_v28_relight_draft_intent.py:28: in test_relight_intent_frozen_replay_and_revocation
+    tenant,*_,scope=fixture(db,snapshot_authority=True)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v27_semantic_final_producer_gate.py:62: in fixture
+    authority['qualification']=frozen_qualification(db,tid,project,actor,objects=qualification_objects,calibration_ref=calibration_ref)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/semantic_qualification_fixture.py:11: in frozen_qualification
+    policy=db.execute("INSERT INTO photo.v2_qualification_policies(operation,operation_version,model_lock_sha,runtime_lock_sha,backend,device_profile_sha,dataset_sha,issuer_id,required_checks,test_fixture_shas,calibration_shas,evidence_shas,license_cleared,enabled,admission_enabled) VALUES(%s,'1',%s,%s,%s,%s,%s,%s,ARRAY['quality'],ARRAY[%s],ARRAY[%s],ARRAY[%s],true,true,true) RETURNING id", (operation,model_lock_sha,runtime_lock_sha,backend,'c'*64,dataset_sha,actor,'e'*64,calibration_sha,'f'*64)).fetchone()[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;psycopg.Connection [BAD] at 0x107e14d50&gt;
+query = "INSERT INTO photo.v2_qualification_policies(operation,operation_version,model_lock_sha,runtime_lock_sha,backend,devic...n_enabled) VALUES(%s,'1',%s,%s,%s,%s,%s,%s,ARRAY['quality'],ARRAY[%s],ARRAY[%s],ARRAY[%s],true,true,true) RETURNING id"
+params = ('semantic.transfer', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbbbbbbbbbbbbb...cccccccccccccccccccccccccccccccccccccccccccc', 'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd', ...)
+prepare = None, binary = False
+
+    def execute(
+        self,
+        query: Query,
+        params: Params | None = None,
+        *,
+        prepare: bool | None = None,
+        binary: bool = False,
+    ) -&gt; Cursor[Row]:
+        """Execute a query and return a cursor to read its results."""
+        try:
+            cur = self.cursor()
+            if binary:
+                cur.format = BINARY
+    
+            if isinstance(query, Template):
+                if params is not None:
+                    raise TypeError(
+                        "'execute()' with string template query doesn't support parameters"
+                    )
+                return cur.execute(query, prepare=prepare)
+            else:
+                return cur.execute(query, params, prepare=prepare)
+        except e._NO_TRACEBACK as ex:
+&gt;           raise ex.with_traceback(None)
+E           psycopg.errors.UniqueViolation: duplicate key value violates unique constraint "v2_qualification_one_admission_policy"
+E           DETAIL:  Key (operation, operation_version)=(semantic.transfer, 1) already exists.
+
+.venv-platform/lib/python3.11/site-packages/psycopg/connection.py:304: UniqueViolation</failure></testcase><testcase classname="tests.integration.test_v28_relight_draft_intent" name="test_relight_intent_frozen_replay_and_revocation" time="1.468" /><testcase classname="tests.integration.test_v28_relight_source_lock" name="test_relight_source_lock_upgrade_from_previous_head" time="1.413" /><testcase classname="tests.integration.test_v28_relight_source_lock" name="test_relight_prepublication_source_gate_and_revocation" time="1.475" /><testcase classname="tests.integration.test_v28_relight_source_lock" name="test_relight_source_locks_block_competing_revocation" time="1.769" /></testsuite></testsuites>

@@ -7,12 +7,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"github.com/google/uuid"
+	"io"
 	"os"
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/objectstore"
 	"photoeditor/backend/internal/review"
 	"photoeditor/backend/internal/v2input"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -20,8 +22,15 @@ import (
 type imageClosureCatalog struct {
 	closureFixture
 	lookups    []LayerRef
+	reads      int
 	denyParent bool
+	denyPath   string
 	geometries map[uuid.UUID]DocumentGeometry
+}
+
+func (f *imageClosureCatalog) Open(ctx context.Context, obj objectstore.Object) (io.ReadCloser, error) {
+	f.reads++
+	return f.closureFixture.Open(ctx, obj)
 }
 
 func (f *imageClosureCatalog) Geometry(ctx context.Context, who auth.Identity, tenant uuid.UUID, node LayerRef) (DocumentGeometry, bool, error) {
@@ -31,7 +40,7 @@ func (f *imageClosureCatalog) Geometry(ctx context.Context, who auth.Identity, t
 
 func (f *imageClosureCatalog) Lookup(ctx context.Context, who auth.Identity, tenant uuid.UUID, node LayerRef) (objectstore.Object, error) {
 	f.lookups = append(f.lookups, node)
-	if f.denyParent && node.Contract == "Calibration" {
+	if f.denyPath != "" && node.Path == f.denyPath || f.denyParent && node.Contract == "Calibration" {
 		return objectstore.Object{}, v2input.ErrInvalid
 	}
 	return f.closureFixture.Lookup(ctx, who, tenant, node)
@@ -108,7 +117,7 @@ func TestScopedImageClosureTraversesAllTypedEvidenceAndRechecksOccurrences(t *te
 			sourceOccurrences++
 		}
 	}
-	if len(seen) != len(expected) || len(refs) != len(f.lookups) || sourceOccurrences < 3 {
+	if len(seen) != len(expected) || len(refs)+f.reads != len(f.lookups) || sourceOccurrences < 3 {
 		t.Fatal("missing dependency/occurrence authorization", len(refs), len(seen), sourceOccurrences)
 	}
 	chainSHA, _ := canonical.Hash(image.TransformChain)
@@ -141,6 +150,45 @@ func TestScopedImageClosureTraversesAllTypedEvidenceAndRechecksOccurrences(t *te
 	if err != nil || len(inventory) != len(expected) {
 		t.Fatal("task inventory", inventory, err)
 	}
+	readsBefore := f.reads
+	withEvidence, witnesses, err := resolver.ResolveTaskInputsWithWitnesses(context.Background(), auth.Identity{}, uuid.New(), []v2input.Entry{{Ref: result, Contract: "ImageResult"}, {Ref: source, Contract: "WorkingImage"}}, binding)
+	if err != nil || !reflect.DeepEqual(inventory, withEvidence) || len(witnesses) != f.reads-readsBefore || len(witnesses) == 0 {
+		t.Fatal("witness collection changed inventory or repeated IO", err, len(witnesses), f.reads-readsBefore)
+	}
+	for _, witness := range witnesses {
+		sum := sha256.Sum256([]byte(witness.JCS))
+		if hex.EncodeToString(sum[:]) != witness.Ref.SHA256 || witness.Object != f.objects[witness.Ref.ArtifactID] || witness.Path == "" {
+			t.Fatal("witness lost immutable byte/metadata identity", witness.Path)
+		}
+	}
+	lookupsBefore := len(f.lookups)
+	readsBefore = f.reads
+	evidence, err := resolver.ResolveTaskInputEvidence(context.Background(), auth.Identity{}, uuid.New(), []v2input.Entry{{Ref: result, Contract: "ImageResult"}, {Ref: source, Contract: "WorkingImage"}}, binding)
+	if err != nil || !reflect.DeepEqual(inventory, evidence.Entries) || len(evidence.Documents) != f.reads-readsBefore || len(evidence.Occurrences) != len(f.lookups)-lookupsBefore-(f.reads-readsBefore) {
+		t.Fatal("full evidence changed traversal or lost an occurrence", err)
+	}
+	binaries := 0
+	for _, occurrence := range evidence.Occurrences {
+		if occurrence.Object != f.objects[occurrence.Node.Ref.ArtifactID] {
+			t.Fatal("occurrence metadata changed")
+		}
+		if occurrence.Node.Contract == "WorkingPixels" || occurrence.Node.Contract == "MaskPixels" {
+			binaries++
+		}
+	}
+	if binaries == 0 || len(evidence.Occurrences) <= len(evidence.Entries) {
+		t.Fatal("binary/repeated occurrences omitted")
+	}
+	f.denyParent = true
+	failedEntries, failedWitnesses, err := resolver.ResolveTaskInputsWithWitnesses(context.Background(), auth.Identity{}, uuid.New(), []v2input.Entry{{Ref: result, Contract: "ImageResult"}, {Ref: source, Contract: "WorkingImage"}}, binding)
+	if err == nil || failedEntries != nil || failedWitnesses != nil {
+		t.Fatal("failed closure leaked partial evidence")
+	}
+	failedEvidence, err := resolver.ResolveTaskInputEvidence(context.Background(), auth.Identity{}, uuid.New(), []v2input.Entry{{Ref: result, Contract: "ImageResult"}, {Ref: source, Contract: "WorkingImage"}}, binding)
+	if err == nil || failedEvidence.Entries != nil || failedEvidence.Documents != nil || failedEvidence.Occurrences != nil {
+		t.Fatal("full evidence leaked a failed partial traversal")
+	}
+	f.denyParent = false
 	for i, entry := range inventory {
 		want := expected[entry.Ref.ArtifactID]
 		if want == "WorkingPixels" || want == "MaskPixels" {

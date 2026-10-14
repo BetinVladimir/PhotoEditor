@@ -131,6 +131,26 @@ func (r Recovery) Recover(ctx context.Context, limit int) (int, error) {
 			break
 		}
 	}
+	for i := 0; i < limit; i++ {
+		var n int
+		if err := r.DB.QueryRow(ctx, "SELECT photo.finalize_next_semantic_apply_child()").Scan(&n); err != nil {
+			return count, err
+		}
+		count += n
+		if n == 0 {
+			break
+		}
+	}
+	for i := 0; i < limit; i++ {
+		var n int
+		if err := r.DB.QueryRow(ctx, "SELECT photo.settle_next_semantic_child()").Scan(&n); err != nil {
+			return count, err
+		}
+		count += n
+		if n == 0 {
+			break
+		}
+	}
 	return count, nil
 }
 

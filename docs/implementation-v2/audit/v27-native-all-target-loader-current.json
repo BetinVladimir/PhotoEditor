@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 server-loaded registered all-native transfer",
+  "whole_module_accepted": false,
+  "migration_head": "00961",
+  "new_migrations": false,
+  "production_migrations_applied": false,
+  "checks": {
+    "go_four_packages": [
+      {
+        "package": "photoeditor/backend/internal/v2qualification",
+        "elapsed": 0
+      },
+      {
+        "package": "photoeditor/backend/internal/v2draft",
+        "elapsed": 0.009
+      },
+      {
+        "package": "photoeditor/backend/internal/v2input",
+        "elapsed": 0.009
+      },
+      {
+        "package": "photoeditor/backend/internal/semanticproposal",
+        "elapsed": 3.383
+      }
+    ],
+    "native_wire": "1 PASS425.85s; v27-native-all-target-loader-wire-current.xml",
+    "documentation": "PASS; 55 tests,2267 static checks",
+    "diff_check": "PASS"
+  },
+  "source_manifest": "v27-native-all-target-loader-source-current.json",
+  "source_manifest_sha256": "3bfd594d5d7be75cf3e60154d2a90508a25c20f4b19dcec48c4299e04589562d",
+  "quality_preservation": {
+    "workers_src_baseline_files": 544,
+    "changed": 0,
+    "real_photo_quality_accepted": false
+  },
+  "native_verified": [
+    "Entry owns parent advisory lock after prior publication lock is released.",
+    "Scoped config, intent and snapshot loaded without private proof/publisher/current capacity inputs.",
+    "Original proof and full saved graph reconstruction followed by registered resume.",
+    "Independent SQL sealed queued parent, all ready tasks, exactly one queued event/outbox."
+  ],
+  "remaining": [
+    "Separate-process restart/crash recovery.",
+    "Automatic production recovery dispatch and original parent handoff.",
+    "Partial publication/unknown commit/cancel/revoke/GC/purge/deadletter/scale acceptance.",
+    "Whole V27 and V20–V32 acceptance."
+  ],
+  "limitations": [
+    "Same-process test.",
+    "Explicit reconstruction task/capacity comparisons and repeated sealed replay branch not run in LOAD scenario.",
+    "Upstream ML doubles; no real-photo/GPU qualification.",
+    "Cumulative full-path RSS at5000 targets not measured."
+  ]
+}

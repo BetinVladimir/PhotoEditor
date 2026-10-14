@@ -1,0 +1,54 @@
+{
+  "generated_at": "2026-10-08T17:29:09.744180+00:00",
+  "status": "implementing",
+  "module": "V27",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "sql": {
+      "result": "PASS",
+      "tests": 23,
+      "seconds": 26.358
+    },
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 65.084
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/v2input",
+      "photoeditor/backend/internal/v2draft",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "dedicated target skin full parser/dependency/registration admission packet",
+    "production Go scheduler wrapper invokes exact target-only SQL barrier",
+    "null substitutions of five required evidence sections refuse",
+    "revoked session refuses; restored authority permits admission",
+    "immutable config/target lineage/object pins/Params/registered closure/live CPU budget validated",
+    "00899\u219200942 tenant metadata and existing function security preserved"
+  ],
+  "limitations": [
+    "Target skin seal/worker/result/finalization/saved recovery/automatic advancement remain open",
+    "Target defects/transfer and full V27 acceptance remain open",
+    "ML doubles/shared WorkingImage; no GPU/photo-quality qualification",
+    "No activation or production migration"
+  ],
+  "sha256": {
+    "docs/implementation-v2/audit/v27-target-skin-admission-sql-current.xml": "19e7d14f8162c36d79253052d8158fd8b0e4d8f3d2933cb10cf23fc4622665ce",
+    "docs/implementation-v2/audit/v27-target-skin-admission-wire-current.xml": "56187561cba6fff1076512ed16e8f64ecbd46ebbb8b973604477a4d0581f7362",
+    "docs/implementation-v2/audit/v27-target-skin-admission-go-current.jsonl": "5ec57243a140d5b63adfd1d03a4f8073fd01bddf12fff9479956a3cda703f03b",
+    "backend/db/migrations/00942_v27_target_skin_admission.sql": "8f875516170e739abbec48b13d9bee701591850e39469edbdc0fa1fc6fbf5ff1",
+    "backend/internal/semanticproposal/native_target_skin_admission_evidence.go": "7bba87043b0b744316d9bd9229a40285d78a7cd424b89adbe61053910773b805",
+    "backend/internal/semanticproposal/native_target_skin_dependency_evidence.go": "173f695f2d2ebe39e68b52b6ca10149c222d5d5685bad4fda9f392010f8db81f",
+    "backend/internal/semanticproposal/native_target_skin_admission_lock.go": "b6cd7ace39a4ca3e7992367776197343f0fee72bd779b32e672b630f53cc9dd7",
+    "backend/internal/semanticproposal/native_target_skin_wire_probe_test.go": "70f34e4f23b96e804ea62da2dd5a89632cf3b5d68a15ca9ca069813b9497e0fb",
+    "tests/integration/test_v27_semantic_intent_publication.py": "6e1df43b04b5763b5cbbb1879cc968ce79a480b46b44f13c85505c5b1f4ef1da",
+    "tests/integration/test_v27_person_migration_upgrade.py": "efd3db58085dc297deb8b398c199f08b4eb6d31efc59a844af04c44abae44f40",
+    "docs/implementation-v2/03-database.md": "12f6a2e19ebbf35ec3ca7abab34a0ec4f28ac605543f1b15b429557241024ebb",
+    "docs/implementation-v2/15-execution-contracts.md": "25d9d98d03831c30628ded7fac42a8f6143b5a122d8529216e4cfcc3efed7a8c"
+  }
+}

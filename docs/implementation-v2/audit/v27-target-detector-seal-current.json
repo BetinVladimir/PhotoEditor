@@ -1,0 +1,91 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "generated_at": "2026-10-08T15:54:20.041577+00:00",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "source_scope": {
+    "backend/db/migrations/00924_v27_target_detector_admission_evidence.sql": "dd0227ac765efd57dc9f0abe8e3c7b8f4edc2e9d0b7147da5571f8f9ea93b41c",
+    "backend/db/migrations/00925_v27_target_detector_atomic_seal.sql": "63e44735dfe231f3026610ad393de84d2ac87832394b24f4b53c51c64bc43346",
+    "backend/internal/semanticproposal/native_target_detector_admission.go": "13a72229ce17a1be03c211287eeba4b61eb99d7bd863d52076d1e09e6995de53",
+    "backend/internal/semanticproposal/native_target_detector_wire_probe_test.go": "b59fd759ccb230f7f158a634d385f968c6f2e1009d859beca9ed619f8b431533",
+    "tests/integration/test_v27_target_detector_registration.py": "8ef2341e6eaf094b231e801a3acb01093ce38e896e3b724cf37cbe365c9be9f3",
+    "tests/integration/test_v27_person_migration_upgrade.py": "a2e2ee234a69daff70a6c6a16dbe644caa04f748fe11473586b1d20d038f7fd6",
+    "tests/integration/test_v27_semantic_intent_publication.py": "79090226fac9c974619a19eb2fe34dc69631dce00cbb83d012005dfc439a157e",
+    "tests/integration/v27_face_wire_probe.py": "6546707215623599aabb8f3c500fda136ea64f236d4488d5fcae110cf31136a9"
+  },
+  "checks": [
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-detector-seal-sql-current.xml",
+      "sha256": "81f13c1f980fd25d4f56cf582c8efead4625694ca74897cfcb26221ad60f7893",
+      "exit_code": 0,
+      "tests": 21,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "seconds": 23.987
+    },
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-detector-seal-wire-current.xml",
+      "sha256": "8433ec11cf583df2ed34b4c85ca2cb97ae392dc2a0a64ba55bdb8019c05a378e",
+      "exit_code": 0,
+      "tests": 1,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "seconds": 53.269
+    },
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-detector-seal-go-current.jsonl",
+      "sha256": "e3f810a9b6034ee59fd8c62a0f405abf2d4a258a9171d46478e2f1b3347ddd32",
+      "exit_code": 0,
+      "packages_passed": [
+        "photoeditor/backend/internal/gateway",
+        "photoeditor/backend/internal/review",
+        "photoeditor/backend/internal/v2input",
+        "photoeditor/backend/internal/semanticproposal"
+      ]
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "requirements": [
+    {
+      "id": "target-detector-distinct-original-target-admission-evidence",
+      "status": "physical_helper_verified"
+    },
+    {
+      "id": "target-detector-admission-substitution-refusals",
+      "status": "physical_helper_verified"
+    },
+    {
+      "id": "target-detector-atomic-seal-replay-and-revoked-session-refusal",
+      "status": "physical_helper_verified"
+    },
+    {
+      "id": "one-queued-event-outbox-receipt-and-live-reservation",
+      "status": "physical_fixture_verified"
+    },
+    {
+      "id": "00899-00925-forward-upgrade-data-function-identity-owner-ACL",
+      "status": "sql_verified"
+    },
+    {
+      "id": "target-detector-worker-start-canonical-result-finalization-recovery",
+      "status": "not_implemented"
+    },
+    {
+      "id": "whole-V27",
+      "status": "not_accepted"
+    }
+  ],
+  "limitations": [
+    "Target detector queued/ready with no canonical result; no detector execution or result adoption claimed",
+    "Dedicated target claim/start/output guards, result lifecycle and automatic saved restore/advance still required",
+    "Deterministic ML doubles/shared immutable WorkingImage; no actual GPU/photo-quality qualification",
+    "No full Recover/ProcessOne cold-restart, parallel/cancel/purge/browser/5000-target/capacity or whole-module acceptance",
+    "Completed target detector lifecycle remains a separate requirement",
+    "Only isolated databases migrated; production DB unchanged"
+  ]
+}

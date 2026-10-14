@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-09",
+  "package": "V28",
+  "component": "Positive physical scoped source read",
+  "whole_module_accepted": false,
+  "production_code_changed": false,
+  "production_migrations_applied": false,
+  "checks": {
+    "tests": "1",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "time": "6.949",
+    "evidence": "v28-local-source-physical-current.xml"
+  },
+  "source_sha256": {
+    "tests/integration/test_v28_local_source_physical.py": "c952f6ad5a872518f03b0cd49bcc56f320db3ac54b8ee33a916b0ac9641c7f13",
+    "backend/internal/v2draft/local_portrait_source_physical_integration_test.go": "fa54d2b6f5f5dfecfa099c43a09bd1d553da571389f9a4db8360da193a259255",
+    "backend/internal/v2draft/local_portrait_material.go": "2a26ac36a54f116108b1eb56b4b4405ba986950e84425d3aca8010fba249da38",
+    "backend/internal/v2draft/closure.go": "d16fa395d532138008023b77639775ff69c15039e360328b07879e804f805acd"
+  },
+  "assertions": [
+    "Actual photo_api SQLArtifactCatalog authority before and after exact immutable object read",
+    "Actual versioned objectstore original document bytes returned despite newer invalid same-key version",
+    "Wrong tenant/session/canvas refuses"
+  ],
+  "limitations": [
+    "Owner-seeded source/project/asset/snapshot metadata with synthetic WorkingImage",
+    "Pixels reference intentionally synthetic and not traversed; no pixel/ICC/model qualification evidence",
+    "No positive manual producer/owner/Params/admission/execution/adoption cycle established",
+    "Whole V28 and V20-V32 remain open"
+  ]
+}

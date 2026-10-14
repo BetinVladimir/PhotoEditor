@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 mandatory relight replay in generic adoption preparation",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "production_migration_applied": false,
+  "checks": {
+    "relight_components": {
+      "passed": 159,
+      "seconds": 2.85,
+      "xml": "v28-relight-adoption-gate-components.xml"
+    },
+    "generic_donor_regression": {
+      "passed": 17,
+      "seconds": 0.57,
+      "xml": "v28-relight-adoption-generic-regression.xml"
+    },
+    "postgres_minio_inventory": {
+      "passed": 1,
+      "seconds": 17.2,
+      "xml": "v28-relight-adoption-gate-physical.xml"
+    }
+  },
+  "source_sha256": {
+    "workers/photo_worker/v2/adoption.py": "0d312341d7131701d54f08b5d2cdb04df1f61403b9334321aef05752ca1d6ed5",
+    "workers/photo_worker/v2/relight_replay.py": "064a478a6e6d988936cf34859c63979eaf66ab8cbcb9c42fb7489b5f227e2d78",
+    "tests/platform/test_relight_replay.py": "c5b8b3930c3cb48196fe51f4aceb441c73a64e876a3da32f02b50fffb2d2b98a",
+    "tests/integration/test_v28_relight_resolver_physical.py": "6a27f11e907412b48685ef9820dc7c96c527ef99853ab014b7317e6934f8d499"
+  },
+  "limitations": [
+    "Replay context authority is supplied by caller; production completed-task SQL evidence/transaction commit not yet installed",
+    "Physical integration uses active lease authorities, fixture transport/stage/evidence and synthetic qualification",
+    "No production factory/gateway/adoption commit/UI or actual photo/model/device qualification"
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "Actual process death after durable commit before Rabbit ACK",
+  "whole_module_accepted": false,
+  "migration_head": "00974",
+  "production_code_changed": false,
+  "production_migrations_applied": false,
+  "source_manifest": "worker-commit-restart-source-current.json",
+  "source_manifest_sha256": "300b2b0ca48aa474f41e499867c5f088f5398895c87a5b8beae578a27a7880b2",
+  "source_files": 4854,
+  "checks": {
+    "tests": "2",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "time": "6.485",
+    "evidence": "worker-commit-restart-current.xml"
+  },
+  "broker": {
+    "implementation": "Real RabbitMQ Docker, dedicated UUID vhost, targeted quorum queue",
+    "image": "rabbitmq@sha256:e002010fddc214d38f7c8acf058a2fb62350daa10316431cd2cf959f42761e34",
+    "development_only": true,
+    "endpoint_scope": "loopback",
+    "vhost_cleanup": "fixture passed"
+  },
+  "assertions": [
+    "One persistent message published exactly once",
+    "First real OS process exits73 after Executor durable SQL commit, before process returns to Transport ACK",
+    "Broker passive queue observation confirms unacknowledged message returned",
+    "Fresh second OS process gets terminal delivery without invoking operation",
+    "One task result, one task attempt and exact unchanged task row/outbox rows",
+    "No held resource slots/reservations and empty broker queue after restart"
+  ],
+  "imaging_preservation": {
+    "files": 544,
+    "changed": 0
+  },
+  "evidence_sha256": {
+    "worker-commit-restart-current.xml": "1399f9c47d55191bd8940d2749a78c5546430a99c6d815eec7dc9e111efdc489"
+  },
+  "limitations": [
+    "Owner-seeded asset.verify media fixture, empty output list; no actual native model/GPU/photo execution.",
+    "Covers crash after commit before ACK only; crash before commit, native upload ambiguity and scheduler lease recovery remain open.",
+    "Companion existing poison/dead-letter and duplicate-delivery test uses same real broker but is not a native module acceptance test.",
+    "Whole V27 and V20-V32 remain unaccepted."
+  ],
+  "docs": {
+    "semantic_tests": 55,
+    "static_checks": 2267,
+    "deterministic_regeneration": "passed"
+  }
+}

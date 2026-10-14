@@ -1,0 +1,47 @@
+{
+  "baseline_source_sha256": "0f2dc18e1452046b4e383d63738bc2b31ecda8a530a9ec1de3e39f79ea6d1193",
+  "current_source_sha256": "deff6c5da565ff8c8fd39e9b03c6006204369c5ce552852e04b835d2606be26b",
+  "cases": [
+    {
+      "seed": 0,
+      "exact_plan_equal": true,
+      "groups": 8
+    },
+    {
+      "seed": 1,
+      "exact_plan_equal": true,
+      "groups": 7
+    },
+    {
+      "seed": 2,
+      "exact_plan_equal": true,
+      "groups": 8
+    },
+    {
+      "seed": 3,
+      "exact_plan_equal": true,
+      "groups": 8
+    },
+    {
+      "seed": 4,
+      "exact_plan_equal": true,
+      "groups": 8
+    },
+    {
+      "seed": 5,
+      "exact_plan_equal": true,
+      "groups": 8
+    },
+    {
+      "seed": 6,
+      "exact_plan_equal": true,
+      "groups": 8
+    },
+    {
+      "seed": 7,
+      "exact_plan_equal": true,
+      "groups": 10
+    }
+  ],
+  "scope": "eight deterministic mixed-scene fixtures; exact equality of groups, reference, confidence, IDs; not full real-photo qualification"
+}

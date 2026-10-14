@@ -89,3 +89,31 @@ func imageReportRefs(raw []byte, path string, parent v2input.Ref) ([]LayerRef, e
 	}
 	return children, nil
 }
+
+// ImageReportDocument exposes strictly validated metadata without granting
+// authority to read child artifacts or treating status as human approval.
+type ImageReportDocument struct {
+	SchemaVersion       int                             `json:"schema_version"`
+	Status              string                          `json:"status"`
+	Operation           string                          `json:"operation"`
+	SkippedCount        int                             `json:"skipped_count"`
+	Reason              *string                         `json:"reason"`
+	OutsideMaskMaxError float64                         `json:"outside_mask_max_error"`
+	ClippingFraction    float64                         `json:"clipping_fraction"`
+	Identity            *v2input.Ref                    `json:"identity"`
+	Transform           *v2input.Ref                    `json:"transform"`
+	Sources             []v2input.SessionVersionBinding `json:"sources"`
+	Registrations       []v2input.Ref                   `json:"registrations"`
+	ParentReports       []v2input.Ref                   `json:"parent_reports,omitempty"`
+}
+
+func ParseImageReport(raw []byte, parent v2input.Ref) (ImageReportDocument, error) {
+	if _, err := imageReportRefs(raw, "ImageReport", parent); err != nil {
+		return ImageReportDocument{}, err
+	}
+	var document ImageReportDocument
+	if err := json.Unmarshal(raw, &document); err != nil {
+		return ImageReportDocument{}, v2input.ErrInvalid
+	}
+	return document, nil
+}

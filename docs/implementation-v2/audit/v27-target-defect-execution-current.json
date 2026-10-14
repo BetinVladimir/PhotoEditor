@@ -1,0 +1,55 @@
+{
+  "generated_at": "2026-10-08T18:56:39.717325+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "sql": {
+      "result": "PASS",
+      "tests": 23,
+      "seconds": 30.492
+    },
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 96.796
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/v2input",
+      "photoeditor/backend/internal/v2draft",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "00954 additive exact target claim/start and running-only five-role native result guard; existing branches/OID/ACL preserved",
+    "Real CPU defects.propose adapter over mTLS gateway with physical indexed downloads and verified S3 outputs",
+    "Guard rejects wrong attempt/fence/order/SHA/duplicate/count before canonical commit",
+    "PNG labels match NPY and protected pixels contain no defect labels",
+    "Canonical commit and replay share one result; resource slots/reservations released",
+    "Post execution sealed replay passes; final independent verifier confirms running/sealed run and succeeded canonical task",
+    "00899→00954 fresh/upgrade metadata/function privilege tests"
+  ],
+  "limitations": [
+    "Target defect finish/result catalog/byte-verified consumer authority/saved recovery/automatic advancement still required",
+    "Original transfer handoff/fresh-process recovery and whole V27 acceptance remain open",
+    "Upstream ML doubles; no GPU/photo-quality acceptance",
+    "No production migration"
+  ],
+  "sha256": {
+    "backend/db/migrations/00954_v27_target_defect_execution.sql": "7a268085717b226c2711a25569677a72dcf809a0bbbc1e8605bbcd7162b26906",
+    "backend/internal/semanticproposal/native_target_defect_seal_probe_test.go": "ab99f00c21937918975fe56dfae79e56dd9ac19aba6c0b21108c7fd98bed0bad",
+    "tests/integration/v27_defect_wire_probe.py": "0deeddcc3b67ca493d3dc63b947cd4b07981024c7e40a8706689522ea7830eec",
+    "tests/integration/test_v27_person_migration_upgrade.py": "bd70711e9e8b3717fbf13c07af49be96bff982357d150cc46ecabdfe33f17dd1",
+    "tests/integration/test_v27_semantic_intent_publication.py": "2d9d845923b3c5ca59c820238a1fef1f379162c4de0e08e92094f83d15d52821",
+    "tests/integration/v27_face_wire_probe.py": "c401445d1fef33fedd40fb63d679252bcebd84bb77f57f6b1d36cd83c4baa418",
+    "workers/photo_worker/operations/defects/propose.py": "f09b5f00d38f720412bf7f9651f87fe9bcfa75253442e4d1d0e73e6d2d1ca06f",
+    "docs/implementation-v2/03-database.md": "3a49b8c2c89ce67b6aa934d39e20d9fb6487ea5d2ab86eef506ae15c15e22458",
+    "docs/implementation-v2/15-execution-contracts.md": "5fbca450215f43b344292673516520629e9ccce2f7735579061d49cc024c47de",
+    "docs/implementation-v2/audit/v27-target-defect-execution-go-current.jsonl": "a5c36a6e4ad093c284b8d1cb7ee05e8d588170e61a7e79b7d488b66bc39d38bd",
+    "docs/implementation-v2/audit/v27-target-defect-execution-sql-current.xml": "2562a6ea72fdfdc5a8a9f241a6079e1a3cf8f9a8988205eb8f03dc8e84c5a8d6",
+    "docs/implementation-v2/audit/v27-target-defect-execution-wire-current.xml": "fb9b48d0a0b8df0cc17bcaaecee287851bca3fa48b2b9bd4adeb48d9f1f8ffb5"
+  }
+}

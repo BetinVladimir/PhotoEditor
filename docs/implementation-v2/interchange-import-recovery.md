@@ -1,0 +1,17 @@
+# V30: post-ingest import retry scheduling
+
+Migration 01581 adds `v2_workflows.v30_import_retry_after` and scheduler-only `photo.v30_claim_next_interchange_import()`. The processor uses this claim rather than read-only oldest-first discovery. Startup requires the new function.
+
+The claim selects a currently eligible workflow, locks only its workflow row using `FOR UPDATE SKIP LOCKED`, and atomically sets a retry deadline 31 minutes ahead. All original tenant, project, editor, immutable parse object, draft collection, child ingest and task-state discovery gates remain. Concurrent claimers skip locked workflows; a permanently refused oldest workflow cannot monopolize every scheduler iteration. Never-attempted workflows precede expired retries; expired retries retain deterministic ordering.
+
+The 31-minute deadline exceeds the existing processor maximum attempt timeout of 30 minutes. Success leaves metadata untouched: activation excludes the workflow from subsequent discovery. Error, timeout or process crash leaves a bounded cooldown; after expiry the workflow is eligible again and every authority gate is repeated. The timestamp is scheduling metadata, never an execution permission, source proof or successful admission receipt. It lives on the existing workflow row and requires no extra tenant purge table.
+
+This claim does not replace activation idempotency or row-lock authority. It does not classify permanent failures, implement a terminal retry ledger, guarantee fairness under indefinitely growing traffic, or fence an external operation continuing beyond context cancellation. Those remain separate lifecycle requirements.
+
+Deferred coverage: processor refusal followed by another candidate and SQL owner/ACL/search_path tests authored, NOT RUN. Migration NOT APPLIED. Populated PostgreSQL concurrent claim, rollback, deadline expiry, persistent refusal and successful activation exclusion scenarios remain open. No acceptance or module completion is claimed.
+
+The legacy read-only discovery function loses scheduler EXECUTE permission in 01581, so old scheduler binaries cannot bypass retry claims. The private UUID decoder returns NULL for malformed/missing artifact or auth-session identifiers; such candidates fail the existing join/authorization gates instead of aborting all discovery. Direct scheduler UPDATE of the retry column is not granted. Deferred SQL tests cover these privileges and malformed UUID decoding; they do not substitute for populated workflow/concurrency fixtures.
+
+Startup also refuses installations where the scheduler retains legacy discovery/helper execution or direct retry-column update permission. UUID input length must be exactly 36 bytes before conversion.
+
+Before deployment SQL/scratch setup, NativeImportSchedulerFactory requires ImportRecipeInstallationValidator. The SQL recipe factory validates actual entry configuration: mandatory semantic ports, closed operator configuration, independent mask acceptance, exact report policy and conflict-free derived keys/locks. This performs no semantic callbacks or object IO, does not grant admission and cannot replace per-entry physical/current authority checks. Incomplete installation fails before claiming workflows. Configuration unit scenarios are authored, NOT RUN.

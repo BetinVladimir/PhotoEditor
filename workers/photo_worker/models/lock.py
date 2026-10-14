@@ -5,7 +5,7 @@ from urllib.parse import urlsplit
 from pydantic import Field,model_validator
 from photo_worker.contracts.base import Contract,SHA256,canonical_hash
 
-MODEL_IDS=('lraspp_mobilenet_v3_large','sfd','fan2d','identity512','eye_open','glare_mask','keypointrcnn_resnet50_fpn','dinov2_vits14','segformer_b0_ade','bisenet_face19','u2net','mobilesam','depth_anything_v2_small','scunet_color_real_psnr','realesrgan_x2','realesrgan_x4','big_lama','sd15_inpaint')
+MODEL_IDS=('lraspp_mobilenet_v3_large','sfd','fan2d','identity512','eye_open','glare_mask','reflection_rgb','keypointrcnn_resnet50_fpn','dinov2_vits14','segformer_b0_ade','bisenet_face19','u2net','mobilesam','depth_anything_v2_small','scunet_color_real_psnr','realesrgan_x2','realesrgan_x4','big_lama','sd15_inpaint')
 DOWNLOAD_HOSTS=frozenset({'download.pytorch.org','huggingface.co','cdn-lfs.huggingface.co','cdn-lfs-us-1.huggingface.co','cas-bridge.xethub.hf.co','github.com','raw.githubusercontent.com','objects.githubusercontent.com','release-assets.githubusercontent.com'})
 
 def safe_url(value:str) -> str:

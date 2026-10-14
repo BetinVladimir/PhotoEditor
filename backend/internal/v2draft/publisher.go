@@ -24,6 +24,10 @@ type ImmutableStore interface {
 	RecoverImmutable(context.Context, string, int64, string, string) (objectstore.Object, error)
 }
 
+type immutableVersionReader interface {
+	Open(context.Context, objectstore.Object) (io.ReadCloser, error)
+}
+
 type Publisher struct {
 	DB      *pgxpool.Pool
 	Objects ImmutableStore
@@ -36,11 +40,93 @@ type reservation struct {
 	Ready      bool
 }
 
+func validPublishedDraftObject(object objectstore.Object, key, digest string, size int64) bool {
+	return object.Key == key && object.VersionID != "" && object.VersionID != "null" &&
+		object.SHA256 == digest && object.Bytes == size && object.ContentType == "application/json"
+}
+
+func verifyExactDraftObjectStream(ctx context.Context, stream io.ReadCloser, object objectstore.Object) error {
+	if stream == nil || object.Bytes < 2 || object.Bytes > 1048576 {
+		if stream != nil {
+			_ = stream.Close()
+		}
+		return objectstore.ErrIntegrity
+	}
+	if err := ctx.Err(); err != nil {
+		_ = stream.Close()
+		return err
+	}
+	hash := sha256.New()
+	count, readErr := io.Copy(hash, io.LimitReader(stream, object.Bytes+1))
+	closeErr := stream.Close()
+	if readErr != nil {
+		return readErr
+	}
+	if closeErr != nil {
+		return closeErr
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if count != object.Bytes || hex.EncodeToString(hash.Sum(nil)) != object.SHA256 {
+		return objectstore.ErrIntegrity
+	}
+	return nil
+}
+
+func (p Publisher) readyDraftObject(ctx context.Context, who auth.Identity, tenantID, documentID uuid.UUID, ref v2input.Ref, digest string) (objectstore.Object, error) {
+	var object objectstore.Object
+	err := tenant.WithTenant(ctx, p.DB, who, tenantID, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
+		object.SHA256 = digest
+		return tx.QueryRow(ctx, `SELECT object_key,object_version,bytes,media_type
+		 FROM photo.v21_ready_draft_object($1,$2,$3,$4,$5,$6,$7)`,
+			tenantID, documentID, who.UserID, who.SessionID, ref.ArtifactID, digest, p.Bucket).
+			Scan(&object.Key, &object.VersionID, &object.Bytes, &object.ContentType)
+	})
+	if err != nil {
+		return objectstore.Object{}, err
+	}
+	key, err := objectstore.V2DraftKey(tenantID, ref.ArtifactID)
+	if err != nil || !validPublishedDraftObject(object, key, digest, object.Bytes) || object.Bytes < 2 || object.Bytes > 1048576 {
+		return objectstore.Object{}, objectstore.ErrIntegrity
+	}
+	return object, nil
+}
+
+func (p Publisher) verifyReadyDraftReplay(ctx context.Context, who auth.Identity, tenantID, documentID uuid.UUID, ref v2input.Ref, expectedBytes int64) error {
+	reader, ok := p.Objects.(immutableVersionReader)
+	if !ok {
+		return domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
+	}
+	object, err := p.readyDraftObject(ctx, who, tenantID, documentID, ref, ref.SHA256)
+	if err != nil {
+		return err
+	}
+	if object.Bytes != expectedBytes {
+		return objectstore.ErrIntegrity
+	}
+	stream, err := reader.Open(ctx, object)
+	if err != nil {
+		return err
+	}
+	if err := verifyExactDraftObjectStream(ctx, stream, object); err != nil {
+		return err
+	}
+	current, err := p.readyDraftObject(ctx, who, tenantID, documentID, ref, ref.SHA256)
+	if err != nil {
+		return err
+	}
+	if current != object {
+		return objectstore.ErrIntegrity
+	}
+	return nil
+}
+
 // Publish makes a recipe or base checkpoint immutable before its document
 // pointer can be changed. documentID is stable across retries of one save.
 func (p Publisher) Publish(ctx context.Context, who auth.Identity, tenantID,
 	assetVersionID, documentID uuid.UUID, raw []byte) (v2input.Ref, error) {
-	return p.publish(ctx, who, tenantID, assetVersionID, documentID, raw, false)
+	return p.publish(ctx, who, tenantID, assetVersionID, documentID, raw, false, false)
 }
 
 // PublishShotList publishes a validated session-scoped ShotList using the same
@@ -51,13 +137,17 @@ func (p Publisher) PublishShotList(ctx context.Context, who auth.Identity, tenan
 	if err != nil {
 		return v2input.Ref{}, domain.NewError("VALIDATION_FAILED", 422)
 	}
-	return p.publish(ctx, who, tenantID, sessionID, documentID, body, true)
+	return p.publish(ctx, who, tenantID, sessionID, documentID, body, true, false)
 }
 
 func (p Publisher) publish(ctx context.Context, who auth.Identity, tenantID,
-	assetVersionID, documentID uuid.UUID, raw []byte, shotList bool) (v2input.Ref, error) {
+	assetVersionID, documentID uuid.UUID, raw []byte, shotList, semanticIntent bool) (v2input.Ref, error) {
 	reserveSQL := `SELECT outcome,artifact_id,token,ready FROM photo.reserve_v2_draft_upload($1,$2,$3,$4,$5,$6,$7,$8)`
 	completeSQL := `SELECT photo.complete_v2_draft_upload($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`
+	if semanticIntent {
+		reserveSQL = `SELECT outcome,artifact_id,token,ready FROM photo.reserve_v27_semantic_intent_upload($1,$2,$3,$4,$5,$6,$7,$8)`
+		completeSQL = `SELECT photo.complete_v27_semantic_intent_upload($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`
+	}
 	if shotList {
 		reserveSQL = `SELECT outcome,artifact_id,token,ready FROM photo.reserve_v24_shot_upload($1,$2,$3,$4,$5,$6,$7,$8)`
 		completeSQL = `SELECT photo.complete_v24_shot_upload($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`
@@ -101,6 +191,23 @@ func (p Publisher) publish(ctx context.Context, who auth.Identity, tenantID,
 	}
 	ref := v2input.Ref{ArtifactID: r.ArtifactID, SHA256: digest}
 	if r.Ready {
+		if err := p.verifyReadyDraftReplay(ctx, who, tenantID, documentID, ref, int64(len(body))); err != nil {
+			return v2input.Ref{}, err
+		}
+		var current reservation
+		var replayOutcome string
+		err := tenant.WithTenant(ctx, p.DB, who, tenantID, domain.Editor,
+			func(tx pgx.Tx, _ domain.Role) error {
+				return tx.QueryRow(ctx, reserveSQL, tenantID, assetVersionID, documentID,
+					who.UserID, who.SessionID, digest, len(body), p.Bucket).
+					Scan(&replayOutcome, &current.ArtifactID, &current.Token, &current.Ready)
+			})
+		if err != nil {
+			return v2input.Ref{}, err
+		}
+		if replayOutcome != "replayed" || !current.Ready || current.ArtifactID != r.ArtifactID || current.Token != r.Token {
+			return v2input.Ref{}, domain.NewError("REVISION_CONFLICT", 409)
+		}
 		return ref, nil
 	}
 	key, err := objectstore.V2DraftKey(tenantID, r.ArtifactID)
@@ -114,6 +221,9 @@ func (p Publisher) publish(ctx context.Context, who auth.Identity, tenantID,
 	}
 	if err != nil {
 		return v2input.Ref{}, err
+	}
+	if !validPublishedDraftObject(obj, key, digest, int64(len(body))) {
+		return v2input.Ref{}, objectstore.ErrIntegrity
 	}
 	var completed bool
 	err = tenant.WithTenant(ctx, p.DB, who, tenantID, domain.Editor,
@@ -129,4 +239,26 @@ func (p Publisher) publish(ctx context.Context, who auth.Identity, tenantID,
 		return v2input.Ref{}, domain.NewError("REVISION_CONFLICT", 409)
 	}
 	return ref, nil
+}
+
+// PublishSemanticIntent publishes strict user intent using the accepted-version
+// reservation path. Catalog/mask/snapshot scope remains a caller obligation.
+func (p Publisher) PublishSemanticIntent(ctx context.Context, who auth.Identity, tenantID, assetVersionID, documentID uuid.UUID, raw []byte) (v2input.Ref, error) {
+	intent, err := v2input.DecodeSemanticEditIntent(raw)
+	if err != nil || intent.Reference.AssetVersionID != assetVersionID {
+		return v2input.Ref{}, domain.NewError("VALIDATION_FAILED", 422)
+	}
+	return p.publish(ctx, who, tenantID, assetVersionID, documentID, raw, false, true)
+}
+
+// PublishSemanticTransferParams publishes server-compiled transfer parameters
+// against the exact accepted target version, including an older pinned version.
+// Qualification and both source closures must be verified by the preparer;
+// publication alone does not authorize task admission.
+func (p Publisher) PublishSemanticTransferParams(ctx context.Context, who auth.Identity, tenantID, assetVersionID, documentID uuid.UUID, raw []byte) (v2input.Ref, error) {
+	params, err := v2input.DecodeSemanticTransferParams(raw)
+	if err != nil || params.Target.AssetVersionID != assetVersionID {
+		return v2input.Ref{}, domain.NewError("VALIDATION_FAILED", 422)
+	}
+	return p.publish(ctx, who, tenantID, assetVersionID, documentID, raw, false, true)
 }

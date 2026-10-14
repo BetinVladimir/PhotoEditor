@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 positive canonical manual producer and child SQL authority",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "production_migration_applied": false,
+  "checks": {
+    "native_sql": {
+      "passed": 6,
+      "seconds": 10.15,
+      "xml": "v28-relight-manual-positive-current.xml"
+    },
+    "goose_fresh_repeat": {
+      "passed": 1,
+      "seconds": 7.07,
+      "xml": "v28-relight-manual-goose-current.xml"
+    }
+  },
+  "source_sha256": {
+    "tests/integration/test_v28_relight_manual.py": "55c2df1851b5f5a7ffb8924809eb99238746e73fbdc4f32cf5498f48db3d5cd9",
+    "backend/db/migrations/00986_v28_worker_relight_manual.sql": "da410be614ab0a1f77598b5cfb626078bad74d2b76e4fe040a243fd9c984ff6f",
+    "workers/photo_worker/operations/portrait/relight_manual_authority.py": "d708cae0a82cac272e8fcb81cdafbeec4598695ca7038ff7a66dd800faedd84d"
+  },
+  "limitations": [
+    "Canonical producer, source/lease/input closure metadata owner-seeded; pixel and PNG bytes placeholders",
+    "No original-version MinIO/raster integration or full execution/adoption/UI/quality/device qualification"
+  ]
+}

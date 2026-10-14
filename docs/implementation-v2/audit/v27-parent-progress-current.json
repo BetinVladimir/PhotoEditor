@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-08",
+  "module": "V27",
+  "module_accepted": false,
+  "scope": "Existing intent parent progress and automatic target refresh; foreground lifecycle, immutable server run/workflow pair, bigint monotonic revision, access-loss result clearing. Corrected creation navigation to actual parent run rather than incorrectly treating workflow UUID as semantic_intents.id.",
+  "photographer": {
+    "passed": 408,
+    "skipped": 7,
+    "files_passed": 85,
+    "files_skipped": 5,
+    "seconds": 7.27
+  },
+  "api_client": {
+    "passed": 81,
+    "skipped": 3,
+    "files_passed": 10,
+    "files_skipped": 3,
+    "seconds": 0.665
+  },
+  "typecheck": "photographer PASS",
+  "source_sha256": {
+    "apps/photographer/src/semantic-parent-progress.tsx": "0ea97a665af387b07a2d522681c6aedb93a9d46105120a315f2044a74e235ee5",
+    "apps/photographer/src/semantic-parent-progress.test.tsx": "82ccf4eb990816c228608af44f569e146e0d2397c6c25eaa7c481b15d134ee09",
+    "apps/photographer/src/semantic-target-screen.tsx": "14288ae2bccfdaf50bd5676c7e5a267ed748db45afe03e4b2e07fa07b1ee01ea",
+    "apps/photographer/src/semantic-target-screen.dom.test.tsx": "4522f4191c0bcaee2ea4d0d1ed9586f1690f0e4280bb2eff4a2a42ac6cd0ed1c",
+    "apps/photographer/src/semantic-create.test.tsx": "14b4ab736d3b19fa60949fe55bb4d489f9d78fd4a82dd7c2b731209b369243bc",
+    "apps/photographer/app/editor/[version].tsx": "7f9d885a5234823462d84de7065384a2ede3c39b166b8912b0496308b3ab38f2",
+    "packages/api-client/src/semantic-close.ts": "24e457232ea5b959d6ed041e369f7ec45a212b29dc74cb61e3f5965e96278e0f",
+    "packages/api-client/src/semantic-close.test.ts": "e5449c1033ab891e1ba872e78f028eebdcca2ed15bf8e203cf01ce3ed4f70f77",
+    "backend/db/migrations/00535_v27_semantic_review_storage.sql": "8080d06617342d52c08a371e5ff33dafd1775f6994d97c1cab4c622f218a2ec1",
+    "backend/db/migrations/00544_v27_semantic_review_initialization.sql": "00d0d7b09db0f5e06fffe520915fec3f83696acf72f8b28508a98f971144ae70",
+    "backend/db/migrations/00547_v27_semantic_review_identity.sql": "ac79cb744a24b6d929e16d12bc0beab958c29bb33353c9933179834c37f95b99",
+    "locales/en/common.json": "e5f87214512d88c50f1c7d23d8456846ef6d7f612d4237cc4bd523fd80ce41c1",
+    "locales/ru/common.json": "501378ca8582b429e56edc195b3dbf075739152f208c356a8049649c1a3b5223",
+    "locales/bg/common.json": "26e389585c30bae82d90a82f04d4c688425bee605b9e020cb3d65d56b4984247"
+  },
+  "findings": [
+    "SQL00535/00544 assigns independent semantic_intents.id; review identity00547 looks up that ID. Workflow ticket is insufficient to navigate directly to review.",
+    "An interim SDK workflow==intent check was removed before final verification; test now asserts distinct identity support.",
+    "One full app run hit an earlier retry-test click before button enablement; tests now await enabled retry control."
+  ],
+  "remaining": [
+    "authenticated parent run/workflow to semantic-intent resolver and navigation",
+    "durable unknown-attempt restart recovery",
+    "automatic missing-producer initiation",
+    "real browser/native/model/photo/hardware/security/lifecycle acceptance"
+  ]
+}

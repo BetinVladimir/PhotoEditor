@@ -1,0 +1,729 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="49.615" timestamp="2026-10-08T14:14:49.160585+03:00" hostname="Mac"><testcase classname="tests.integration.test_v27_semantic_intent_publication" name="test_semantic_intent_publication_old_version_and_replay[native-face-wire]" time="48.567"><failure message="AssertionError: === RUN   TestIntegrationNativePreparationBootstrap&#10;      native_bootstrap_integration_test.go:157: V27_ORIGINAL_PERSON_INPUT_AUTHORITY_OK&#10;      native_bootstrap_integration_test.go:268: native uncovered person dependency classification native person registered proof changed (verified=true published=false objects=true): V2 admission idempotency conflict&#10;  --- FAIL: TestIntegrationNativePreparationBootstrap (38.45s)&#10;  FAIL&#10;  FAIL&#09;photoeditor/backend/internal/semanticproposal&#09;39.147s&#10;  FAIL&#10;  &#10;assert 1 == 0&#10; +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationNativePreparationBootstra...ePreparationBootstrap (38.45s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t39.147s\nFAIL\n', stderr='').returncode">database = &lt;isolated PostgreSQL configuration&gt;
+lens_objects = (&lt;minio.api.Minio object at 0x12530b110&gt;, 'native-lens-3e8a5fa0631843158d0fc9473b50ec95')
+wrapper = True, race = False
+
+    @pytest.mark.parametrize("wrapper,race",[(False,False),(True,False),(True,True),(True,"source"),(True,"batch"),(True,"fresh"),(True,"partial"),(True,"registration-revoke"),(True,"oriented"),(True,"external"),(True,"manual-lock"),(True,"manual-lock-go"),(True,"manual-lock-go-disjoint"),(True,"manual-races"),(True,"native-bootstrap"),(True,"ordinary-admission"),(True,"create-service"),(True,"create-person"),(True,"create-person-uncovered"),(True,"native-face-wire")],ids=["publisher","proposal-wrapper","revoke-during-put","source-during-put","transfer-batch","preparer-fresh","preparer-partial","preparer-registration-revoke","transfer-batch-oriented","transfer-batch-external","manual-lock-external","manual-lock-go-external","manual-lock-go-disjoint-external","manual-races-external","native-bootstrap","ordinary-admission","create-service","create-person","create-person-uncovered","native-face-wire"])
+    def test_semantic_intent_publication_old_version_and_replay(database,lens_objects,wrapper,race):
+        commit_ordinary=race=="ordinary-admission"
+        create_ordinary=race in ("create-service","create-person","create-person-uncovered")
+        person_wire=race=="create-person-uncovered"
+        create_person=race in ("create-person","create-person-uncovered")
+        face_wire=race=="native-face-wire"
+        native_bootstrap=race in ("native-bootstrap","native-face-wire")
+        race_only=race=="manual-races"
+        native_disjoint=race=="manual-lock-go-disjoint"
+        go_lock_only=race in ("manual-lock-go","manual-lock-go-disjoint")
+        lock_only=race=="manual-lock"
+        external_vectors=race in ("external","manual-lock","manual-lock-go","manual-lock-go-disjoint","manual-races")
+        oriented=race in ("native-bootstrap","native-face-wire","oriented","external","manual-lock","manual-lock-go","manual-lock-go-disjoint","manual-races")
+        fresh=race in ("fresh","partial","registration-revoke")
+        revoke_registration=race=="registration-revoke"
+        partial=race=="partial"
+        batch=race in ("native-face-wire","create-person-uncovered","create-person","create-service","ordinary-admission","native-bootstrap","batch","fresh","partial","registration-revoke","oriented","external","manual-lock","manual-lock-go","manual-lock-go-disjoint","manual-races")
+        if batch:race=False
+        client,bucket=lens_objects
+        source_object=None
+        source_image=None
+        source_canvas=None
+        if batch:
+            source_image=json.loads((ROOT/'backend/internal/review/testdata/working-images-python.json').read_text())[2]
+            profiles=json.loads((ROOT/'resources/icc/profiles.lock.json').read_text())
+            source_image['color']['icc_sha256']=next(profile['sha256'] for profile in profiles['profiles'] if profile['id']=='work_rec2020_gamma24_v1')
+            rgb_buffer=BytesIO()
+            np.save(rgb_buffer,np.full((300,400,3),.5 if oriented or create_person else 1.25,dtype='&lt;f4'),allow_pickle=False)
+            rgb_body=rgb_buffer.getvalue()
+            rgb_id=str(uuid4())
+            rgb_sha=sha256(rgb_body).hexdigest()
+            rgb_key='proposal-rgb/'+rgb_id
+            rgb_version=client.put_object(bucket,rgb_key,BytesIO(rgb_body),len(rgb_body),content_type='application/x-npy',metadata={'sha256':rgb_sha}).version_id
+            source_image['pixels']=dict(artifact_id=rgb_id,sha256=rgb_sha)
+            alpha_buffer=BytesIO()
+            np.save(alpha_buffer,np.full((300,400),32768,dtype='&lt;u2'),allow_pickle=False)
+            alpha_body=alpha_buffer.getvalue()
+            alpha_id=str(uuid4())
+            alpha_sha=sha256(alpha_body).hexdigest()
+            alpha_key='proposal-alpha/'+alpha_id
+            alpha_version=client.put_object(bucket,alpha_key,BytesIO(alpha_body),len(alpha_body),content_type='application/x-npy',metadata={'sha256':alpha_sha}).version_id
+            source_image['alpha']=dict(artifact_id=alpha_id,sha256=alpha_sha)
+            warp_id=str(uuid4())
+            warp_buffer=BytesIO()
+            grid_y,grid_x=np.indices((300,400),dtype=np.float32)
+            np.save(warp_buffer,np.stack((grid_x,grid_y),axis=-1),allow_pickle=False)
+            warp_body=warp_buffer.getvalue()
+            warp_sha=sha256(warp_body).hexdigest()
+            warp_key='proposal-warp/'+warp_id
+            warp_version=client.put_object(bucket,warp_key,BytesIO(warp_body),len(warp_body),content_type='application/x-npy',metadata={'sha256':warp_sha}).version_id
+            source_image['transform_chain']['steps'][0]['inverse_field']=dict(artifact_id=warp_id,sha256=warp_sha)
+            source_image['transform_chain']['hash']=sha256(json.dumps(dict(steps=source_image['transform_chain']['steps']),sort_keys=True,separators=(',',':')).encode()).hexdigest()
+            if oriented:
+                source_image['transform_chain']=dict(steps=[],hash=sha256(b'{"steps":[]}').hexdigest())
+            source_body=json.dumps(source_image,sort_keys=True,separators=(',',':')).encode()
+            source_digest=sha256(source_body).hexdigest()
+            source_key='proposal-source/'+str(uuid4())
+            source_version=client.put_object(bucket,source_key,BytesIO(source_body),len(source_body),content_type='application/json',metadata={'sha256':source_digest}).version_id
+            source_object=dict(bucket=bucket,key=source_key,version=source_version,sha256=source_digest,bytes=len(source_body))
+            source_canvas=sha256(json.dumps(source_image['canvas'],sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        with psycopg.connect(**database,autocommit=True) as db:
+            # Inspect effective grants and attempt denied calls as the actual roles.
+            for function,allowed,types in (
+                ('enable_v27_person_admission','photo_scheduler','uuid,uuid,uuid,uuid,uuid,uuid'),
+                ('claim_v27_person_admission','photo_scheduler','uuid,integer'),
+                ('claim_v27_ordinary_parent','photo_scheduler','uuid,integer'),
+                ('record_v27_ordinary_parent','photo_scheduler','uuid,uuid,uuid,text'),
+                ('next_v27_ordinary_parent_project','photo_scheduler','uuid'),
+                ('record_v27_person_admission','photo_scheduler','uuid,uuid,uuid,text'),
+                ('next_v27_person_admission_project','photo_scheduler','uuid'),
+                ('semantic_proposal_face_parse_preparation_candidates','photo_api','uuid,uuid,uuid,uuid,uuid,uuid,text,jsonb'),
+                ('lock_semantic_proposal_face_parse_inventory','photo_scheduler','uuid,uuid,uuid,uuid,uuid,uuid,text,jsonb,jsonb'),
+                ('lock_semantic_proposal_qualification_inventory','photo_scheduler','uuid,uuid,uuid,uuid'),
+                ('semantic_proposal_qualification_policy_inventory','photo_api','uuid,uuid,uuid,uuid'),
+                ('lock_semantic_proposal_qualification_policy_snapshot','photo_scheduler','uuid,uuid,uuid,uuid,jsonb'),
+                ('semantic_defect_native_policy_ready','photo_api','uuid,uuid,uuid,uuid,uuid,jsonb,text'),
+                ('lock_semantic_defect_native_policy','photo_scheduler','uuid,uuid,uuid,uuid,uuid,jsonb,text,jsonb'),
+                ('lock_semantic_native_selection_evidence','photo_scheduler','uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,text,uuid,jsonb'),
+            ):
+                signature=f'photo.{function}({types})'
+                owner,definer,configuration=db.execute("SELECT pg_get_userbyid(proowner),prosecdef,proconfig FROM pg_proc WHERE oid=%s::regprocedure",(signature,)).fetchone()
+                assert owner=='photo_fn_owner' and definer and 'search_path=pg_catalog, photo' in configuration
+                for role in ('photo_api','photo_scheduler','photo_worker','photo_publisher','photo_portal','photo_auth','photo_gateway','photo_maintenance','photo_semantic_admission'):
+                    permitted=db.execute("SELECT has_function_privilege(%s,%s,'EXECUTE')",(role,signature)).fetchone()[0]
+                    assert permitted==(role==allowed),(function,role,permitted)
+                    if role!=allowed:
+                        with pytest.raises(psycopg.errors.InsufficientPrivilege):
+                            with db.transaction():
+                                db.execute(psycopg.sql.SQL('SET LOCAL ROLE {}').format(psycopg.sql.Identifier(role)))
+                                arguments=psycopg.sql.SQL(',').join(psycopg.sql.SQL('NULL::{}').format(psycopg.sql.SQL(kind)) for kind in types.split(','))
+                                db.execute(psycopg.sql.SQL('SELECT * FROM photo.{}({})').format(psycopg.sql.Identifier(function),arguments))
+            with db.transaction():
+                case=seed_original_composition(db,snapshot_canvas=True,source_object=source_object,canvas_hash=source_canvas)
+                db.execute('INSERT INTO photo.tenant_usage(tenant_id) VALUES(%s)',(case['Tenant'],))
+                base=json.loads(case['Params'])['base']
+                if batch:
+                    producer_run,producer_task=uuid4(),uuid4()
+                    db.execute("INSERT INTO photo.runs(id,tenant_id,kind,status,input_snapshot_id,config_snapshot,config_hash,created_by,failure_policy) VALUES(%s,%s,'v2','draft',%s,%s,%s,%s,'fail_fast')",(producer_run,case['Tenant'],case['Snapshot'],Jsonb(dict(project_id=case['Project'])),'a'*64,case['Actor']))
+                    db.execute("INSERT INTO photo.tasks(id,tenant_id,run_id,node_key,operation,operation_version,resource_class,inputs,params_artifact_id,input_digest,execution_profile) VALUES(%s,%s,%s,'semantic.transfer:0','semantic.transfer','1','gpu','[]',%s,%s,%s)",(producer_task,case['Tenant'],producer_run,case['Artifact']['artifact_id'],'a'*64,Jsonb(dict(backend='cuda'))))
+                    db.execute("UPDATE photo.artifacts SET created_by_task_id=%s,produced_attempt=1,produced_fence=1 WHERE id=%s",(producer_task,base['source']['artifact_id']))
+                    db.execute("INSERT INTO photo.artifacts(id,tenant_id,bucket,object_key,sha256,bytes,media_type,object_version,verified_at,output_role,created_by_task_id,produced_attempt,produced_fence) VALUES(%s,%s,%s,%s,%s,%s,'application/x-npy',%s,clock_timestamp(),'working_rgb',%s,1,1)",(rgb_id,case['Tenant'],bucket,rgb_key,rgb_sha,len(rgb_body),rgb_version,producer_task))
+                    db.execute("INSERT INTO photo.artifacts(id,tenant_id,bucket,object_key,sha256,bytes,media_type,object_version,verified_at,output_role,created_by_task_id,produced_attempt,produced_fence) VALUES(%s,%s,%s,%s,%s,%s,'application/x-npy',%s,clock_timestamp(),'alpha',%s,1,1)",(alpha_id,case['Tenant'],bucket,alpha_key,alpha_sha,len(alpha_body),alpha_version,producer_task))
+                    db.execute("INSERT INTO photo.artifacts(id,tenant_id,bucket,object_key,sha256,bytes,media_type,object_version,verified_at,output_role,created_by_task_id,produced_attempt,produced_fence) VALUES(%s,%s,%s,%s,%s,%s,'application/x-npy',%s,clock_timestamp(),'inverse_field',%s,1,1)",(warp_id,case['Tenant'],bucket,warp_key,warp_sha,len(warp_body),warp_version,producer_task))
+                db.execute("INSERT INTO photo.asset_versions(tenant_id,asset_id,master_artifact_id,content_hash,metadata,review_state,version_no) SELECT tenant_id,asset_id,master_artifact_id,content_hash,'{}','accepted',2 FROM photo.asset_versions WHERE id=%s",(base['asset_version_id'],))
+            intent=dict(schema_version=1,kind='local_exposure',reference=base,reference_mask=dict(artifact_id=str(uuid4()),sha256='a'*64),target_snapshot_id=case['Snapshot'],strength=.5,ev=0,preserve_persons=True,prompt=None)
+            if wrapper:
+                mask=intent['reference_mask']
+                mask_bucket,mask_version,mask_size,mask_key,mask_document='test','v1',100,str(uuid4()),{}
+                if batch:
+                    pixels_id=str(uuid4())
+                    pixels_buffer=BytesIO()
+                    selected_pixels=np.full((300,400),.5,dtype='&lt;f4')
+                    selected_pixels[41,17]=0
+                    if native_disjoint:
+                        selected_pixels.fill(0)
+                        selected_pixels[0,0]=.5
+                    np.save(pixels_buffer,selected_pixels,allow_pickle=False)
+                    pixels_body=pixels_buffer.getvalue()
+                    pixels_sha=sha256(pixels_body).hexdigest()
+                    pixels_key=f"tenants/{case['Tenant']}/v2-drafts/{pixels_id}"
+                    pixels_version=client.put_object(bucket,pixels_key,BytesIO(pixels_body),len(pixels_body),content_type='application/x-npy',metadata={'sha256':pixels_sha}).version_id
+                    mask_document=dict(artifact=dict(artifact_id=pixels_id,sha256=pixels_sha),canvas=source_image['canvas'],transform_chain=source_image['transform_chain'],selector='manual',confidence=1,protected=False,object_id=None,model_lock_id=None)
+                    mask_body=json.dumps(mask_document,sort_keys=True,separators=(',',':')).encode()
+                    mask['sha256']=sha256(mask_body).hexdigest()
+                    mask_key=f"tenants/{case['Tenant']}/v2-drafts/{mask['artifact_id']}"
+                    mask_bucket=bucket
+                    mask_size=len(mask_body)
+                    mask_version=client.put_object(bucket,mask_key,BytesIO(mask_body),len(mask_body),content_type='application/json',metadata={'sha256':mask['sha256']}).version_id
+                with db.transaction():
+                    if batch:
+                        db.execute("INSERT INTO photo.artifacts(id,tenant_id,bucket,object_key,sha256,bytes,media_type,object_version,verified_at,output_role) VALUES(%s,%s,%s,%s,%s,%s,'application/x-npy',%s,clock_timestamp(),'mask_pixels')",(pixels_id,case['Tenant'],bucket,pixels_key,pixels_sha,len(pixels_body),pixels_version))
+                        db.execute("INSERT INTO photo.v2_draft_uploads(tenant_id,document_id,project_id,asset_version_id,artifact_id,sha256,bytes,bucket,state,object_version,completed_at,upload_contract,mask_width,mask_height) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,'ready',%s,clock_timestamp(),'MaskPixels',400,300)",(case['Tenant'],uuid4(),case['Project'],base['asset_version_id'],pixels_id,pixels_sha,len(pixels_body),bucket,pixels_version))
+                    db.execute("INSERT INTO photo.artifacts(id,tenant_id,bucket,object_key,sha256,bytes,media_type,object_version,verified_at,output_role) VALUES(%s,%s,%s,%s,%s,%s,'application/json',%s,clock_timestamp(),'document')",(mask['artifact_id'],case['Tenant'],mask_bucket,mask_key,mask['sha256'],mask_size,mask_version))
+                    db.execute("INSERT INTO photo.v2_draft_uploads(tenant_id,document_id,project_id,asset_version_id,artifact_id,sha256,bytes,bucket,state,object_version,completed_at,user_mask_binding) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,'ready',%s,clock_timestamp(),%s)",(case['Tenant'],uuid4(),case['Project'],base['asset_version_id'],mask['artifact_id'],mask['sha256'],mask_size,mask_bucket,mask_version,Jsonb(dict(source=base['source'],canvas_hash=base['canvas_hash'],mask=mask_document))))
+            fixture=dict(Tenant=case['Tenant'],Actor=case['Actor'],Session=case['Session'],Document=str(uuid4()),Intent=intent,TransferBatch=batch,CommitOrdinary=commit_ordinary,CreateOrdinary=create_ordinary,CreatePerson=create_person,FailManifest=partial,RevokeManifest=revoke_registration,Objects=client._photo_test_config,RevokeDuringPut=race is True,SourceDuringPut=race=="source")
+            fixture['ManualLockOnly']=go_lock_only
+            fixture['ManualRaceOnly']=race_only
+            if batch:
+                fixture['SourceBody']=source_image
+                fixture['MaskBody']=mask_document
+                with db.transaction():
+                    db.execute("UPDATE photo.tenants SET quotas=jsonb_set(quotas,'{storage_bytes}','1073741824'::jsonb) WHERE id=%s",(case['Tenant'],))
+                    calibration=json.loads((ROOT/'docs/implementation-v2/contracts/structural-fixtures.json').read_text())['fixtures']['Calibration']
+                    calibration.update(qualified=True,model_lock_sha='c'*64,dataset_sha='d'*64,loss_weights=[1/6]*6)
+                    calibration_body=json.dumps(calibration,sort_keys=True,separators=(',',':')).encode()
+                    calibration_id=str(uuid4())
+                    calibration_sha=sha256(calibration_body).hexdigest()
+                    calibration_key='proposal-calibration/'+calibration_id
+                    calibration_version=client.put_object(bucket,calibration_key,BytesIO(calibration_body),len(calibration_body),content_type='application/json',metadata={'sha256':calibration_sha}).version_id
+                    db.execute("INSERT INTO photo.artifacts(id,tenant_id,bucket,object_key,sha256,bytes,media_type,object_version,verified_at) VALUES(%s,%s,%s,%s,%s,%s,'application/json',%s,clock_timestamp())",(calibration_id,case['Tenant'],bucket,calibration_key,calibration_sha,len(calibration_body),calibration_version))
+                    fixture['Qualification']=frozen_qualification(db,case['Tenant'],case['Project'],case['Actor'],objects=lens_objects,calibration_ref=dict(artifact_id=calibration_id,sha256=calibration_sha),model_lock_sha='c'*64,resource_metrics=dict(peak_rss_bytes=101,peak_vram_bytes=202,scratch_bytes=303) if race=='external' else None)
+                    fixture['MeasuredTransferCosts']=race=='external'
+                    fixture['PersonQualification']=frozen_qualification(db,case['Tenant'],case['Project'],case['Actor'],objects=lens_objects,calibration_ref=dict(artifact_id=calibration_id,sha256=calibration_sha),model_lock_sha='c'*64,operation='mask.person',resource_metrics={'peak_vram_bytes':128&lt;&lt;20} if native_bootstrap or create_person else None)
+                    fixture['FaceQualifications']=[frozen_qualification(db,case['Tenant'],case['Project'],case['Actor'],objects=lens_objects,calibration_ref=dict(artifact_id=calibration_id,sha256=calibration_sha),model_lock_sha='c'*64,operation=operation,backend='cuda' if native_bootstrap else 'cpu') for operation in ('face.landmarks','face.detect')]
+                    fixture['DefectQualification']=frozen_qualification(db,case['Tenant'],case['Project'],case['Actor'],objects=lens_objects,calibration_ref=dict(artifact_id=calibration_id,sha256=calibration_sha),model_lock_sha='c'*64,operation='defects.propose',backend='cpu',resource_metrics=dict(peak_rss_bytes=401,peak_vram_bytes=0,scratch_bytes=503))
+                    fixture['ParseQualification']=frozen_qualification(db,case['Tenant'],case['Project'],case['Actor'],objects=lens_objects,calibration_ref=dict(artifact_id=calibration_id,sha256=calibration_sha),model_lock_sha='c'*64,operation='face.parse',backend='cuda' if native_bootstrap else 'cpu')
+                    protection_run=str(uuid4())
+                    db.execute("INSERT INTO photo.runs(id,tenant_id,kind,status,input_snapshot_id,config_snapshot,config_hash,created_by,failure_policy) VALUES(%s,%s,'apply','running',%s,%s,%s,%s,'fail_fast')",(protection_run,case['Tenant'],case['Snapshot'],Jsonb(dict(project_id=case['Project'])),'b'*64,case['Actor']))
+                    protection_task=str(uuid4())
+                    protection_root=str(uuid4())
+                    protection_child=str(uuid4())
+                    protected_buffer=BytesIO()
+                    np.save(protected_buffer,np.zeros((300,400),dtype='&lt;f4'),allow_pickle=False)
+                    protected_body=protected_buffer.getvalue()
+                    protected_sha=sha256(protected_body).hexdigest()
+                    protection_document=dict(mask_document,protected=True,artifact=dict(artifact_id=protection_child,sha256=protected_sha))
+                    protection_body=json.dumps(protection_document,sort_keys=True,separators=(',',':')).encode()
+                    protection_sha=sha256(protection_body).hexdigest()
+                    db.execute("INSERT INTO photo.tasks(id,tenant_id,run_id,node_key,operation,operation_version,resource_class,inputs,params_artifact_id,input_digest,execution_profile,attempt,fencing_token) VALUES(%s,%s,%s,'protection:0','mask.rasterize','1','cpu','[]',%s,%s,'{}',1,1)",(protection_task,case['Tenant'],protection_run,case['Artifact']['artifact_id'],'a'*64))
+                    for aid,digest,body,role,media in ((protection_root,protection_sha,protection_body,'mask_protected_ref','application/json'),(protection_child,protected_sha,protected_body,'mask_protected','application/octet-stream')):
+                        key='proposal-protection/'+aid
+                        version=client.put_object(bucket,key,BytesIO(body),len(body),content_type=media,metadata={'sha256':digest}).version_id
+                        db.execute("INSERT INTO photo.artifacts(id,tenant_id,bucket,object_key,sha256,bytes,media_type,object_version,verified_at,output_role,created_by_task_id,produced_attempt,produced_fence) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,clock_timestamp(),%s,%s,1,1)",(aid,case['Tenant'],bucket,key,digest,len(body),media,version,role,protection_task))
+                    outputs=[dict(artifact_id=protection_root,sha256=protection_sha),dict(artifact_id=protection_child,sha256=protected_sha)]
+                    # Separate real pinned required coverage, with one positive pixel.
+                    required_root,required_child=str(uuid4()),str(uuid4())
+                    required_pixels=np.zeros((300,400),dtype='&lt;f4')
+                    required_pixels[41,17]=1
+                    required_buffer=BytesIO()
+                    np.save(required_buffer,required_pixels,allow_pickle=False)
+                    required_body=required_buffer.getvalue()
+                    required_sha=sha256(required_body).hexdigest()
+                    required_document=dict(protection_document,artifact=dict(artifact_id=required_child,sha256=required_sha))
+                    required_json=json.dumps(required_document,sort_keys=True,separators=(',',':')).encode()
+                    required_json_sha=sha256(required_json).hexdigest()
+                    for aid,digest,body,role,media in ((required_root,required_json_sha,required_json,'mask_protected_ref','application/json'),(required_child,required_sha,required_body,'mask_protected','application/octet-stream')):
+                        key='proposal-required/'+aid
+                        version=client.put_object(bucket,key,BytesIO(body),len(body),content_type=media,metadata={'sha256':digest}).version_id
+                        db.execute("INSERT INTO photo.artifacts(id,tenant_id,bucket,object_key,sha256,bytes,media_type,object_version,verified_at,output_role,created_by_task_id,produced_attempt,produced_fence) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,clock_timestamp(),%s,%s,1,1)",(aid,case['Tenant'],bucket,key,digest,len(body),media,version,role,protection_task))
+                        outputs.append(dict(artifact_id=aid,sha256=digest))
+                    fixture['RequiredProtection']=dict(artifact_id=required_root,sha256=required_json_sha)
+    
+                    db.execute("INSERT INTO photo.task_attempts(tenant_id,task_id,attempt,fencing_token,worker_id,started_at,finished_at,backend,profile) VALUES(%s,%s,1,1,%s,clock_timestamp(),clock_timestamp(),'cpu','{}')",(case['Tenant'],protection_task,uuid4()))
+                    result_id=db.execute("INSERT INTO photo.task_results(tenant_id,task_id,attempt,fencing_token,outputs,metrics,result_digest) VALUES(%s,%s,1,1,%s,'{}',%s) RETURNING id",(case['Tenant'],protection_task,Jsonb(outputs),'3'*64)).fetchone()[0]
+                    db.execute("UPDATE photo.tasks SET state='succeeded',canonical_result_id=%s WHERE id=%s",(result_id,protection_task))
+                    db.execute("INSERT INTO photo.interactive_tasks(tenant_id,run_id,task_id,kind,operation,source_artifact_id,declared_inputs,params,params_sha256,backend) VALUES(%s,%s,%s,'mask_manual','mask.rasterize',%s,'[]','{}',%s,'cpu')",(case['Tenant'],protection_run,protection_task,base['source']['artifact_id'],'a'*64))
+                    fixture['Protection']=dict(artifact_id=protection_root,sha256=protection_sha)
+                    for person_ordinal in range(2):
+                        person_task,person_root,person_child=str(uuid4()),str(uuid4()),str(uuid4())
+                        from photo_worker.contracts.base import canonical_bytes
+                        from photo_worker.contracts.person import PersonParams,PersonReport
+                        person_params=PersonParams.model_validate_json(json.dumps(dict(image=base['source'],model_lock_id='c'*64)))
+                        person_params_body=canonical_bytes(person_params)
+                        person_params_id=str(uuid4())
+                        person_params_sha=sha256(person_params_body).hexdigest()
+                        person_params_key='proposal-person-params/'+person_params_id
+                        person_params_version=client.put_object(bucket,person_params_key,BytesIO(person_params_body),len(person_params_body),content_type='application/json',metadata={'sha256':person_params_sha}).version_id
+                        db.execute("INSERT INTO photo.artifacts(id,tenant_id,bucket,object_key,sha256,bytes,media_type,object_version,verified_at,output_role) VALUES(%s,%s,%s,%s,%s,%s,'application/json',%s,clock_timestamp(),'document')",(person_params_id,case['Tenant'],bucket,person_params_key,person_params_sha,len(person_params_body),person_params_version))
+                        person_report_id=str(uuid4())
+                        person_report=PersonReport.model_validate_json(json.dumps(dict(image=base['source'],mask=dict(artifact_id=person_child,sha256=required_sha),preview_width=768,preview_height=576,model_id=person_params.model_id,model_lock_id='c'*64,backend='cuda',preprocessing_id=person_params.preprocessing_id,confidence=1,person_fraction=1/120000,source_clip_fraction=0,alpha_excluded_fraction=0,warnings=['empty_person'])))
+                        person_report_body=canonical_bytes(person_report)
+                        person_report_sha=sha256(person_report_body).hexdigest()
+    
+                        person_document=dict(required_document,protected=False,selector='person',model_lock_id='c'*64,artifact=dict(artifact_id=person_child,sha256=required_sha))
+                        person_json=json.dumps(person_document,sort_keys=True,separators=(',',':')).encode()
+                        person_sha=sha256(person_json).hexdigest()
+                        db.execute("INSERT INTO photo.tasks(id,tenant_id,run_id,node_key,operation,operation_version,resource_class,inputs,params_artifact_id,input_digest,execution_profile,attempt,fencing_token) VALUES(%s,%s,%s,%s,'mask.person','1','gpu','[]',%s,%s,%s,1,1)",(person_task,case['Tenant'],protection_run,f'person:{person_ordinal}',person_params_id,'a'*64,Jsonb(dict(backend='cuda',model_lock_sha='c'*64,runtime_lock_sha='b'*64,device_profile_sha='c'*64))))
+                        person_outputs=[]
+                        for aid,digest,body,role,media in ((person_root,person_sha,person_json,'person_mask_ref','application/json'),(person_child,required_sha,required_body,'person_mask','application/octet-stream'),(person_report_id,person_report_sha,person_report_body,'person_report','application/json')):
+                            key='proposal-person/'+aid
+                            version=client.put_object(bucket,key,BytesIO(body),len(body),content_type=media,metadata={'sha256':digest}).version_id
+                            db.execute("INSERT INTO photo.artifacts(id,tenant_id,bucket,object_key,sha256,bytes,media_type,object_version,verified_at,output_role,created_by_task_id,produced_attempt,produced_fence) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,clock_timestamp(),%s,%s,1,1)",(aid,case['Tenant'],bucket,key,digest,len(body),media,version,role,person_task))
+                            person_outputs.append(dict(artifact_id=aid,sha256=digest))
+                        db.execute("INSERT INTO photo.task_attempts(tenant_id,task_id,attempt,fencing_token,worker_id,started_at,finished_at,backend,profile) VALUES(%s,%s,1,1,%s,clock_timestamp(),clock_timestamp(),'cuda',%s)",(case['Tenant'],person_task,uuid4(),Jsonb(dict(backend='cuda',model_lock_sha='c'*64,runtime_lock_sha='b'*64,device_profile_sha='c'*64))))
+                        person_result=db.execute("INSERT INTO photo.task_results(tenant_id,task_id,attempt,fencing_token,outputs,metrics,result_digest) VALUES(%s,%s,1,1,%s,'{}',%s) RETURNING id",(case['Tenant'],person_task,Jsonb(person_outputs),'4'*64)).fetchone()[0]
+                        db.execute("UPDATE photo.tasks SET state='succeeded',canonical_result_id=%s WHERE id=%s",(person_result,person_task))
+                        db.execute("INSERT INTO photo.apply_nodes(id,tenant_id,run_id,phase,ordinal,source_item_id,source_asset_id,source_version_id,node_key,operation,inputs,params_sha256,params) VALUES(%s,%s,%s,'mask',%s,%s,%s,%s,%s,'mask.person',%s,%s,%s)",(person_task,case['Tenant'],protection_run,person_ordinal,uuid4(),db.execute('SELECT asset_id FROM photo.asset_versions WHERE id=%s',(base['asset_version_id'],)).fetchone()[0],base['asset_version_id'],f'person:{person_ordinal}',Jsonb([base['source']]),person_params_sha,Jsonb(person_params.model_dump(mode='json'))))
+                        if person_ordinal == 0:
+                            fixture['PersonMask']=dict(artifact_id=person_root,sha256=person_sha)
+                            fixture['PersonReport']=dict(artifact_id=person_report_id,sha256=person_report_sha)
+                        else:
+                            fixture['AmbiguousPersonMask']=dict(artifact_id=person_root,sha256=person_sha)
+                            db.execute("UPDATE photo.artifacts SET expires_at=clock_timestamp()-interval '1 day' WHERE id=%s",(person_root,))
+                    from photo_worker.contracts.defects import DefectProposeParams,DefectCandidates,DefectProposeReport
+                    from PIL import Image
+                    defect_task=str(uuid4())
+                    defect_ids={role:str(uuid4()) for role in ('params','proposal','report','labels','protection','png')}
+                    label_buffer=BytesIO()
+                    np.save(label_buffer,np.zeros((300,400),dtype='&lt;u2'),allow_pickle=False)
+                    label_body=label_buffer.getvalue()
+                    label_sha=sha256(label_body).hexdigest()
+                    png_buffer=BytesIO()
+                    from photo_worker.algorithms.mask_png import write_png16, png16_bound
+                    write_png16(np.zeros((300,400),dtype=np.uint16),png_buffer,max_bytes=png16_bound(400,300))
+                    png_body=png_buffer.getvalue()
+                    png_sha=sha256(png_body).hexdigest()
+                    defect_params=DefectProposeParams.model_validate_json(json.dumps(dict(image=base['source'],faces=[],permanent=required_document)))
+                    defect_params_body=canonical_bytes(defect_params)
+                    defect_params_sha=sha256(defect_params_body).hexdigest()
+                    defect_proposal=DefectCandidates.model_validate_json(json.dumps(dict(image=base['source'],source_pixels=source_image['pixels'],label_map=dict(artifact_id=defect_ids['labels'],sha256=label_sha),canvas=source_image['canvas'],transform_chain=source_image['transform_chain'],candidates=[])))
+                    defect_proposal_body=canonical_bytes(defect_proposal)
+                    defect_proposal_sha=sha256(defect_proposal_body).hexdigest()
+                    defect_protection=dict(required_document,artifact=dict(artifact_id=defect_ids['protection'],sha256=required_sha))
+                    defect_report=DefectProposeReport.model_validate_json(json.dumps(dict(params=defect_params.model_dump(mode='json'),proposal=dict(artifact_id=defect_ids['proposal'],sha256=defect_proposal_sha),protection=defect_protection,label_png=dict(artifact_id=defect_ids['png'],sha256=png_sha),faces=[],warnings=['no_faces'])))
+                    defect_report_body=canonical_bytes(defect_report)
+                    defect_report_sha=sha256(defect_report_body).hexdigest()
+                    def defect_object(aid,body,role,media,producer=None):
+                        digest=sha256(body).hexdigest()
+                        key='proposal-defect/'+aid
+                        version=client.put_object(bucket,key,BytesIO(body),len(body),content_type=media,metadata={'sha256':digest}).version_id
+                        db.execute("INSERT INTO photo.artifacts(id,tenant_id,bucket,object_key,sha256,bytes,media_type,object_version,verified_at,output_role,created_by_task_id,produced_attempt,produced_fence) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,clock_timestamp(),%s,%s,%s,%s)",(aid,case['Tenant'],bucket,key,digest,len(body),media,version,role,producer,1 if producer else None,1 if producer else None))
+                        return dict(artifact_id=aid,sha256=digest)
+                    params_pin=defect_object(defect_ids['params'],defect_params_body,'document','application/json')
+                    db.execute("INSERT INTO photo.tasks(id,tenant_id,run_id,node_key,operation,operation_version,resource_class,inputs,params_artifact_id,input_digest,execution_profile,attempt,fencing_token) VALUES(%s,%s,%s,'defect:0','defects.propose','1','cpu',%s,%s,%s,%s,1,1)",(defect_task,case['Tenant'],protection_run,Jsonb([base['source'],required_document['artifact']]),defect_ids['params'],'a'*64,Jsonb(dict(backend='cpu'))))
+                    defect_outputs=[]
+                    for role,body,output,media in (
+                        ('proposal',defect_proposal_body,'defect_candidates','application/json'),
+                        ('report',defect_report_body,'defect_propose_report','application/json'),
+                        ('labels',label_body,'defect_labels','application/octet-stream'),
+                        ('protection',required_body,'defect_protection','application/octet-stream'),
+                        ('png',png_body,'defect_labels_png','image/png')):
+                        defect_outputs.append(defect_object(defect_ids[role],body,output,media,defect_task))
+                    db.execute("INSERT INTO photo.task_attempts(tenant_id,task_id,attempt,fencing_token,worker_id,started_at,finished_at,backend,profile) VALUES(%s,%s,1,1,%s,clock_timestamp(),clock_timestamp(),'cpu',%s)",(case['Tenant'],defect_task,uuid4(),Jsonb(dict(backend='cpu'))))
+                    defect_result=db.execute("INSERT INTO photo.task_results(tenant_id,task_id,attempt,fencing_token,outputs,metrics,result_digest) VALUES(%s,%s,1,1,%s,'{}',%s) RETURNING id",(case['Tenant'],defect_task,Jsonb(defect_outputs),'5'*64)).fetchone()[0]
+                    db.execute("UPDATE photo.tasks SET state='succeeded',canonical_result_id=%s WHERE id=%s",(defect_result,defect_task))
+                    by_id={pin['artifact_id']:pin for pin in defect_outputs}
+                    fixture['DefectPins']=dict(Proposal=by_id[defect_ids['proposal']],Report=by_id[defect_ids['report']],Labels=by_id[defect_ids['labels']],Protection=by_id[defect_ids['protection']],Params=params_pin)
+                    # Valid original documents and ready producer-owned PNG, but the
+                    # immutable canonical output inventory intentionally omits PNG.
+                    incomplete_task=str(uuid4())
+                    incomplete_ids={role:str(uuid4()) for role in ('proposal','report','labels','protection','png')}
+                    incomplete_doc=defect_proposal.model_dump(mode='json')
+                    incomplete_doc['label_map']=dict(artifact_id=incomplete_ids['labels'],sha256=label_sha)
+                    incomplete_proposal=DefectCandidates.model_validate_json(json.dumps(incomplete_doc))
+                    incomplete_proposal_body=canonical_bytes(incomplete_proposal)
+                    incomplete_proposal_sha=sha256(incomplete_proposal_body).hexdigest()
+                    incomplete_report=DefectProposeReport.model_validate_json(json.dumps(dict(
+                        params=defect_params.model_dump(mode='json'),
+                        proposal=dict(artifact_id=incomplete_ids['proposal'],sha256=incomplete_proposal_sha),
+                        protection=dict(defect_protection,artifact=dict(artifact_id=incomplete_ids['protection'],sha256=required_sha)),
+                        label_png=dict(artifact_id=incomplete_ids['png'],sha256=png_sha),faces=[],warnings=['no_faces'])))
+                    db.execute("INSERT INTO photo.tasks(id,tenant_id,run_id,node_key,operation,operation_version,resource_class,inputs,params_artifact_id,input_digest,execution_profile,attempt,fencing_token) VALUES(%s,%s,%s,'defect:png-incomplete','defects.propose','1','cpu',%s,%s,%s,%s,1,1)",(incomplete_task,case['Tenant'],protection_run,Jsonb([base['source'],required_document['artifact']]),defect_ids['params'],'a'*64,Jsonb(dict(backend='cpu'))))
+                    incomplete_outputs=[]
+                    incomplete_by_role={}
+                    for role,body,output,media in (
+                        ('proposal',incomplete_proposal_body,'defect_candidates','application/json'),
+                        ('report',canonical_bytes(incomplete_report),'defect_propose_report','application/json'),
+                        ('labels',label_body,'defect_labels','application/octet-stream'),
+                        ('protection',required_body,'defect_protection','application/octet-stream'),
+                        ('png',png_body,'defect_labels_png','image/png')):
+                        pin=defect_object(incomplete_ids[role],body,output,media,incomplete_task)
+                        incomplete_by_role[role]=pin
+                        if role!='png':incomplete_outputs.append(pin)
+                    db.execute("INSERT INTO photo.task_attempts(tenant_id,task_id,attempt,fencing_token,worker_id,started_at,finished_at,backend,profile) VALUES(%s,%s,1,1,%s,clock_timestamp(),clock_timestamp(),'cpu',%s)",(case['Tenant'],incomplete_task,uuid4(),Jsonb(dict(backend='cpu'))))
+                    incomplete_result=db.execute("INSERT INTO photo.task_results(tenant_id,task_id,attempt,fencing_token,outputs,metrics,result_digest) VALUES(%s,%s,1,1,%s,'{}',%s) RETURNING id",(case['Tenant'],incomplete_task,Jsonb(incomplete_outputs),'6'*64)).fetchone()[0]
+                    db.execute("UPDATE photo.tasks SET state='succeeded',canonical_result_id=%s WHERE id=%s",(incomplete_result,incomplete_task))
+                    fixture['IncompletePNGDefectPins']=dict(Proposal=incomplete_by_role['proposal'],Report=incomplete_by_role['report'],Labels=incomplete_by_role['labels'],Protection=incomplete_by_role['protection'],Params=params_pin)
+                    from photo_worker.contracts.face import FaceLandmarks,LandmarkParams,FaceBoxes,FaceDetectParams
+                    from photo_worker.contracts.images import Face68
+                    face_id=str(uuid4())
+                    landmark_task=str(uuid4())
+                    landmark_id=str(uuid4())
+                    face=Face68.model_validate_json(json.dumps(dict(object_id=face_id,points=[dict(x=.5,y=.5,confidence=1) for _ in range(68)],canvas=source_image['canvas'],transform_chain=source_image['transform_chain'])))
+                    detection_task=str(uuid4())
+                    detection_params=FaceDetectParams.model_validate_json(json.dumps(dict(image=base['source'],model_lock_id='c'*64)))
+                    detection_params_pin=defect_object(str(uuid4()),canonical_bytes(detection_params),'document','application/json')
+                    db.execute("INSERT INTO photo.tasks(id,tenant_id,run_id,node_key,operation,operation_version,resource_class,inputs,params_artifact_id,input_digest,execution_profile,attempt,fencing_token) VALUES(%s,%s,%s,'detect:0','face.detect','1','gpu',%s,%s,%s,%s,1,1)",(detection_task,case['Tenant'],protection_run,Jsonb([base['source']]),detection_params_pin['artifact_id'],'a'*64,Jsonb(dict(backend='cpu',model_lock_sha='c'*64,runtime_lock_sha='b'*64,device_profile_sha='c'*64))))
+                    detection_doc=FaceBoxes.model_validate_json(json.dumps(dict(image=base['source'],faces=[dict(object_id=face_id,bbox_normalized=dict(x0=.25,y0=.25,x1=.75,y1=.75),confidence=1)],model_id='sfd',model_lock_id='c'*64,backend='cpu',preprocessing_id='sfd_long1024_bgr_v1',preview_width=400,preview_height=300,candidate_count=1,accepted_count=1,alpha_excluded_fraction=0,warnings=[])))
+                    detection_pin=defect_object(str(uuid4()),canonical_bytes(detection_doc),'face_boxes','application/json',detection_task)
+                    db.execute("INSERT INTO photo.task_attempts(tenant_id,task_id,attempt,fencing_token,worker_id,started_at,finished_at,backend,profile) VALUES(%s,%s,1,1,%s,clock_timestamp(),clock_timestamp(),'cpu',%s)",(case['Tenant'],detection_task,uuid4(),Jsonb(dict(backend='cpu',model_lock_sha='c'*64,runtime_lock_sha='b'*64,device_profile_sha='c'*64))))
+                    detection_result=db.execute("INSERT INTO photo.task_results(tenant_id,task_id,attempt,fencing_token,outputs,metrics,result_digest) VALUES(%s,%s,1,1,%s,'{}',%s) RETURNING id",(case['Tenant'],detection_task,Jsonb([detection_pin]),'8'*64)).fetchone()[0]
+                    db.execute("UPDATE photo.tasks SET state='succeeded',canonical_result_id=%s WHERE id=%s",(detection_result,detection_task))
+                    landmark_doc=FaceLandmarks.model_validate_json(json.dumps(dict(image=base['source'],faces=detection_pin,landmarks=[face.model_dump(mode='json')],model_id='fan2d',model_lock_id='c'*64,backend='cpu',preprocessing_id='fan2d_crop256_v1',mean_confidence=1,warnings=[])))
+                    landmark_params=LandmarkParams.model_validate_json(json.dumps(dict(image=base['source'],faces=detection_pin,model_lock_id='c'*64)))
+                    landmark_params_pin=defect_object(str(uuid4()),canonical_bytes(landmark_params),'document','application/json')
+                    db.execute("INSERT INTO photo.tasks(id,tenant_id,run_id,node_key,operation,operation_version,resource_class,inputs,params_artifact_id,input_digest,execution_profile,attempt,fencing_token) VALUES(%s,%s,%s,'landmarks:0','face.landmarks','1','gpu',%s,%s,%s,%s,1,1)",(landmark_task,case['Tenant'],protection_run,Jsonb([base['source'],detection_pin]),landmark_params_pin['artifact_id'],'a'*64,Jsonb(dict(backend='cpu',model_lock_sha='c'*64,runtime_lock_sha='b'*64,device_profile_sha='c'*64))))
+                    landmark_pin=defect_object(landmark_id,canonical_bytes(landmark_doc),'face_landmarks','application/json',landmark_task)
+                    db.execute("INSERT INTO photo.task_attempts(tenant_id,task_id,attempt,fencing_token,worker_id,started_at,finished_at,backend,profile) VALUES(%s,%s,1,1,%s,clock_timestamp(),clock_timestamp(),'cpu',%s)",(case['Tenant'],landmark_task,uuid4(),Jsonb(dict(backend='cpu',model_lock_sha='c'*64,runtime_lock_sha='b'*64,device_profile_sha='c'*64))))
+                    landmark_result=db.execute("INSERT INTO photo.task_results(tenant_id,task_id,attempt,fencing_token,outputs,metrics,result_digest) VALUES(%s,%s,1,1,%s,'{}',%s) RETURNING id",(case['Tenant'],landmark_task,Jsonb([landmark_pin]),'6'*64)).fetchone()[0]
+                    db.execute("UPDATE photo.tasks SET state='succeeded',canonical_result_id=%s WHERE id=%s",(landmark_result,landmark_task))
+                    # No defect producer exists yet: face preparation must work independently.
+                    def face_preparation(ref,operation):
+                        db.execute("SELECT set_config('app.tenant_id',%s,true)",(case['Tenant'],))
+                        db.execute('SET LOCAL ROLE photo_api')
+                        try:
+                            return db.execute("SELECT * FROM photo.semantic_proposal_face_preparation_object(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",(case['Tenant'],case['Project'],case['Actor'],case['Session'],base['asset_version_id'],base['source']['artifact_id'],base['source']['sha256'],ref['artifact_id'],ref['sha256'],operation)).fetchall()
+                        finally:
+                            db.execute('RESET ROLE')
+                    for ref,operation,params_ref in [(detection_pin,'face.detect',detection_params_pin),(landmark_pin,'face.landmarks',landmark_params_pin)]:
+                        found=face_preparation(ref,operation)
+                        assert len(found)==1 and str(found[0][4])==params_ref['artifact_id'] and found[0][5]==params_ref['sha256']
+                        assert not face_preparation(ref,'mask.rasterize')
+                        db.execute("UPDATE photo.artifacts SET expires_at=clock_timestamp()-interval '1 second' WHERE id=%s",(ref['artifact_id'],))
+                        assert not face_preparation(ref,operation)
+                        db.execute("UPDATE photo.artifacts SET expires_at=NULL WHERE id=%s",(ref['artifact_id'],))
+                        assert len(face_preparation(ref,operation))==1
+                    face_defect_task=str(uuid4())
+                    face_ids={role:str(uuid4()) for role in ('params','proposal','report','labels','protection','png')}
+                    face_mask=dict(required_document,selector='manual',protected=False,object_id=face_id)
+                    face_params=DefectProposeParams.model_validate_json(json.dumps(dict(image=base['source'],faces=[dict(object_id=face_id,landmarks=landmark_pin,skin=None,manual=face_mask,manual_mode=True)],permanent=required_document)))
+                    face_params_pin=defect_object(face_ids['params'],canonical_bytes(face_params),'document','application/json')
+                    db.execute("INSERT INTO photo.tasks(id,tenant_id,run_id,node_key,operation,operation_version,resource_class,inputs,params_artifact_id,input_digest,execution_profile,attempt,fencing_token) VALUES(%s,%s,%s,'defect:1','defects.propose','1','cpu',%s,%s,%s,%s,1,1)",(face_defect_task,case['Tenant'],protection_run,Jsonb([base['source'],landmark_pin,required_document['artifact']]),face_ids['params'],'a'*64,Jsonb(dict(backend='cpu'))))
+                    face_proposal=defect_proposal.model_copy(update={'label_map':defect_proposal.label_map.model_copy(update={'artifact_id':UUID(face_ids['labels'])})})
+                    face_proposal_pin=defect_object(face_ids['proposal'],canonical_bytes(face_proposal),'defect_candidates','application/json',face_defect_task)
+                    face_protection=dict(required_document,artifact=dict(artifact_id=face_ids['protection'],sha256=required_sha))
+                    face_report=DefectProposeReport.model_validate_json(json.dumps(dict(params=face_params.model_dump(mode='json'),proposal=face_proposal_pin,protection=face_protection,label_png=dict(artifact_id=face_ids['png'],sha256=png_sha),faces=[dict(object_id=face_id,reason='degenerate_landmarks',threshold=0,candidates=0,overlapping_candidates=0)],warnings=['face_skipped'])))
+                    face_outputs=[face_proposal_pin]
+                    for role,body,output,media in (('report',canonical_bytes(face_report),'defect_propose_report','application/json'),('labels',label_body,'defect_labels','application/octet-stream'),('protection',required_body,'defect_protection','application/octet-stream'),('png',png_body,'defect_labels_png','image/png')):
+                        face_outputs.append(defect_object(face_ids[role],body,output,media,face_defect_task))
+                    db.execute("INSERT INTO photo.task_attempts(tenant_id,task_id,attempt,fencing_token,worker_id,started_at,finished_at,backend,profile) VALUES(%s,%s,1,1,%s,clock_timestamp(),clock_timestamp(),'cpu',%s)",(case['Tenant'],face_defect_task,uuid4(),Jsonb(dict(backend='cpu'))))
+                    face_result=db.execute("INSERT INTO photo.task_results(tenant_id,task_id,attempt,fencing_token,outputs,metrics,result_digest) VALUES(%s,%s,1,1,%s,'{}',%s) RETURNING id",(case['Tenant'],face_defect_task,Jsonb(face_outputs),'7'*64)).fetchone()[0]
+                    db.execute("UPDATE photo.tasks SET state='succeeded',canonical_result_id=%s WHERE id=%s",(face_result,face_defect_task))
+                    face_by_id={pin['artifact_id']:pin for pin in face_outputs}
+                    fixture['FaceDefectPins']=dict(Proposal=face_by_id[face_ids['proposal']],Report=face_by_id[face_ids['report']],Labels=face_by_id[face_ids['labels']],Protection=face_by_id[face_ids['protection']],Params=face_params_pin)
+                    from photo_worker.contracts.manual_mask import MaskRasterParams,RasterizedMask
+                    from photo_worker.contracts.images import MaskRef
+                    from photo_worker.algorithms.manual_mask import rasterize
+                    from photo_worker.algorithms.mask_png import write_png16,png16_bound
+                    manual_task=str(uuid4())
+                    manual_params=MaskRasterParams.model_validate_json(json.dumps(dict(image=base['source'],inline_vectors=dict(source_sha256=source_image['canvas']['source_sha256'],canvas=source_image['canvas'],shapes=[dict(kind='polygon',sequence=0,mode='add',points=[dict(x=.2,y=.2),dict(x=.8,y=.2),dict(x=.8,y=.8),dict(x=.2,y=.8)]),dict(kind='stroke',sequence=1,mode='protect',points=[dict(x=.5,y=.5)],radius=.03,hardness=1)]),object_id=face_id)))
+                    manual_vectors=manual_params.inline_vectors
+                    manual_inputs=[base['source']]
+                    manual_vector_pin=None
+                    if external_vectors:
+                        manual_vector_pin=defect_object(str(uuid4()),canonical_bytes(manual_vectors),'document','application/json')
+                        manual_inputs.append(manual_vector_pin)
+                        manual_params=MaskRasterParams.model_validate_json(json.dumps(dict(image=base['source'],vectors=manual_vector_pin,object_id=face_id)))
+                    fixture['ManualVectors']=manual_vector_pin
+                    manual_params_id=str(uuid4())
+                    manual_params_pin=defect_object(manual_params_id,canonical_bytes(manual_params),'document','application/json')
+                    db.execute("INSERT INTO photo.tasks(id,tenant_id,run_id,node_key,operation,operation_version,resource_class,inputs,params_artifact_id,input_digest,execution_profile,attempt,fencing_token) VALUES(%s,%s,%s,'manual:positive','mask.rasterize','1','cpu',%s,%s,%s,%s,1,1)",(manual_task,case['Tenant'],protection_run,Jsonb(manual_inputs),manual_params_id,'a'*64,Jsonb(dict(backend='cpu'))))
+                    manual_arrays=[np.zeros((300,400),dtype='&lt;f4'),np.zeros((300,400),dtype='&lt;f4')]
+                    for tile in rasterize(manual_vectors,source_image['canvas']['source_sha256'],tile_size=256):
+                        th,tw=tile.target.shape
+                        for full,part in zip(manual_arrays,(tile.target,tile.protected)):
+                            full[tile.y:tile.y+th,tile.x:tile.x+tw]=part
+                    assert np.count_nonzero(manual_arrays[0])&gt;0 and np.count_nonzero(manual_arrays[1])&gt;0
+                    manual_binary_pins=[]
+                    manual_png_pins=[]
+                    for array,role in zip(manual_arrays,('mask_target','mask_protected')):
+                        encoded=BytesIO()
+                        np.save(encoded,array,allow_pickle=False)
+                        manual_binary_pins.append(defect_object(str(uuid4()),encoded.getvalue(),role,'application/octet-stream',manual_task))
+                        encoded_png=BytesIO()
+                        write_png16(array,encoded_png,max_bytes=png16_bound(400,300))
+                        manual_png_pins.append(defect_object(str(uuid4()),encoded_png.getvalue(),role+'_png','image/png',manual_task))
+                    manual_pixel,manual_protected_pixel=manual_binary_pins
+                    fixture['ManualOutputs']=[manual_protected_pixel,*manual_png_pins]
+                    manual_target=MaskRef.model_validate_json(json.dumps(dict(required_document,artifact=manual_pixel,selector='manual',protected=False,object_id=face_id)))
+                    manual_protected=MaskRef.model_validate_json(json.dumps(dict(required_document,artifact=manual_protected_pixel,selector='manual',protected=True,object_id=face_id)))
+                    manual_root=RasterizedMask.model_validate_json(json.dumps(dict(image=base['source'],vectors=manual_vector_pin or manual_params_pin,target=manual_target.model_dump(mode='json'),protected=manual_protected.model_dump(mode='json'),target_png=manual_png_pins[0],protected_png=manual_png_pins[1])))
+                    manual_root_pin=defect_object(str(uuid4()),canonical_bytes(manual_root),'rasterized_mask','application/json',manual_task)
+                    db.execute("INSERT INTO photo.task_attempts(tenant_id,task_id,attempt,fencing_token,worker_id,started_at,finished_at,backend,profile) VALUES(%s,%s,1,1,%s,clock_timestamp(),clock_timestamp(),'cpu',%s)",(case['Tenant'],manual_task,uuid4(),Jsonb(dict(backend='cpu'))))
+                    manual_result=db.execute("INSERT INTO photo.task_results(tenant_id,task_id,attempt,fencing_token,outputs,metrics,result_digest) VALUES(%s,%s,1,1,%s,'{}',%s) RETURNING id",(case['Tenant'],manual_task,Jsonb([*manual_binary_pins,*manual_png_pins,manual_root_pin]),'8'*64)).fetchone()[0]
+                    db.execute("UPDATE photo.tasks SET state='succeeded',canonical_result_id=%s WHERE id=%s",(manual_result,manual_task))
+                    if go_lock_only:
+                        second_manual_face_id=str(uuid4())
+                        second_manual_task=str(uuid4())
+                        second_manual_params=MaskRasterParams.model_validate_json(json.dumps(dict(image=base['source'],inline_vectors=dict(source_sha256=source_image['canvas']['source_sha256'],canvas=source_image['canvas'],shapes=[dict(kind='polygon',sequence=0,mode='add',points=[dict(x=.2,y=.2),dict(x=.8,y=.2),dict(x=.8,y=.8),dict(x=.2,y=.8)]),dict(kind='stroke',sequence=1,mode='protect',points=[dict(x=.5,y=.5)],radius=.03,hardness=1)]),object_id=second_manual_face_id)))
+                        second_manual_vectors=second_manual_params.inline_vectors
+                        second_manual_inputs=[base['source']]
+                        second_manual_vector_pin=None
+                        if external_vectors:
+                            second_manual_vector_pin=defect_object(str(uuid4()),canonical_bytes(second_manual_vectors),'document','application/json')
+                            second_manual_inputs.append(second_manual_vector_pin)
+                            second_manual_params=MaskRasterParams.model_validate_json(json.dumps(dict(image=base['source'],vectors=second_manual_vector_pin,object_id=second_manual_face_id)))
+                        fixture['SecondManualVectors']=second_manual_vector_pin
+                        second_manual_params_id=str(uuid4())
+                        second_manual_params_pin=defect_object(second_manual_params_id,canonical_bytes(second_manual_params),'document','application/json')
+                        db.execute("INSERT INTO photo.tasks(id,tenant_id,run_id,node_key,operation,operation_version,resource_class,inputs,params_artifact_id,input_digest,execution_profile,attempt,fencing_token) VALUES(%s,%s,%s,'manual:second','mask.rasterize','1','cpu',%s,%s,%s,%s,1,1)",(second_manual_task,case['Tenant'],protection_run,Jsonb(second_manual_inputs),second_manual_params_id,'a'*64,Jsonb(dict(backend='cpu'))))
+                        second_manual_arrays=[np.zeros((300,400),dtype='&lt;f4'),np.zeros((300,400),dtype='&lt;f4')]
+                        for tile in rasterize(second_manual_vectors,source_image['canvas']['source_sha256'],tile_size=256):
+                            th,tw=tile.target.shape
+                            for full,part in zip(second_manual_arrays,(tile.target,tile.protected)):
+                                full[tile.y:tile.y+th,tile.x:tile.x+tw]=part
+                        assert np.count_nonzero(second_manual_arrays[0])&gt;0 and np.count_nonzero(second_manual_arrays[1])&gt;0
+                        second_manual_binary_pins=[]
+                        second_manual_png_pins=[]
+                        for array,role in zip(second_manual_arrays,('mask_target','mask_protected')):
+                            encoded=BytesIO()
+                            np.save(encoded,array,allow_pickle=False)
+                            second_manual_binary_pins.append(defect_object(str(uuid4()),encoded.getvalue(),role,'application/octet-stream',second_manual_task))
+                            encoded_png=BytesIO()
+                            write_png16(array,encoded_png,max_bytes=png16_bound(400,300))
+                            second_manual_png_pins.append(defect_object(str(uuid4()),encoded_png.getvalue(),role+'_png','image/png',second_manual_task))
+                        second_manual_pixel,second_manual_protected_pixel=second_manual_binary_pins
+                        fixture['SecondManualOutputs']=[second_manual_protected_pixel,*second_manual_png_pins]
+                        second_manual_target=MaskRef.model_validate_json(json.dumps(dict(required_document,artifact=second_manual_pixel,selector='manual',protected=False,object_id=second_manual_face_id)))
+                        second_manual_protected=MaskRef.model_validate_json(json.dumps(dict(required_document,artifact=second_manual_protected_pixel,selector='manual',protected=True,object_id=second_manual_face_id)))
+                        second_manual_root=RasterizedMask.model_validate_json(json.dumps(dict(image=base['source'],vectors=second_manual_vector_pin or second_manual_params_pin,target=second_manual_target.model_dump(mode='json'),protected=second_manual_protected.model_dump(mode='json'),target_png=second_manual_png_pins[0],protected_png=second_manual_png_pins[1])))
+                        second_manual_root_pin=defect_object(str(uuid4()),canonical_bytes(second_manual_root),'rasterized_mask','application/json',second_manual_task)
+                        db.execute("INSERT INTO photo.task_attempts(tenant_id,task_id,attempt,fencing_token,worker_id,started_at,finished_at,backend,profile) VALUES(%s,%s,1,1,%s,clock_timestamp(),clock_timestamp(),'cpu',%s)",(case['Tenant'],second_manual_task,uuid4(),Jsonb(dict(backend='cpu'))))
+                        second_manual_result=db.execute("INSERT INTO photo.task_results(tenant_id,task_id,attempt,fencing_token,outputs,metrics,result_digest) VALUES(%s,%s,1,1,%s,'{}',%s) RETURNING id",(case['Tenant'],second_manual_task,Jsonb([*second_manual_binary_pins,*second_manual_png_pins,second_manual_root_pin]),'8'*64)).fetchone()[0]
+                        db.execute("UPDATE photo.tasks SET state='succeeded',canonical_result_id=%s WHERE id=%s",(second_manual_result,second_manual_task))
+                        fixture['SecondManualTarget']=second_manual_target.model_dump(mode='json')
+                    # Exercise exact retained-pin locks through the restricted scheduler role.
+                    roles={'rasterized_mask':manual_root_pin,'task_params':manual_params_pin,
+                           'mask_target':manual_pixel,'mask_protected':manual_protected_pixel,
+                           'mask_target_png':manual_png_pins[0],'mask_protected_png':manual_png_pins[1]}
+                    if manual_vector_pin is not None:
+                        roles['manual_vectors']=manual_vector_pin
+                    lock_pins=[]
+                    for role,ref in sorted(roles.items()):
+                        row=db.execute("SELECT bucket,object_key,object_version,bytes,media_type FROM photo.artifacts WHERE tenant_id=%s AND id=%s",(case['Tenant'],ref['artifact_id'])).fetchone()
+                        lock_pins.append(dict(role=role,artifact_id=ref['artifact_id'],sha256=ref['sha256'],bucket=row[0],key=row[1],version=row[2],bytes=row[3],media_type=row[4]))
+                    def manual_lock(pins,tenant=None):
+                        db.execute("SELECT set_config('app.tenant_id',%s,true)",(case['Tenant'],))
+                        db.execute('SET LOCAL ROLE photo_scheduler')
+                        try:
+                            return db.execute("SELECT photo.lock_semantic_proposal_manual_evidence(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",(tenant or case['Tenant'],case['Project'],case['Actor'],case['Session'],base['asset_version_id'],base['source']['artifact_id'],base['source']['sha256'],manual_pixel['artifact_id'],manual_pixel['sha256'],Jsonb(pins))).fetchone()[0]
+                        finally:
+                            db.execute('RESET ROLE')
+                    assert manual_lock(lock_pins) is True
+                    assert manual_lock(lock_pins,str(uuid4())) is False
+                    assert manual_lock(lock_pins[:-1]) is False
+                    for field,value in [('version','different-version'),('sha256','f'*64),('bytes',1),('media_type','text/plain'),('key','different-key'),('bucket','different-bucket')]:
+                        changed=json.loads(json.dumps(lock_pins))
+                        changed[0][field]=value
+                        assert manual_lock(changed) is False
+                    changed=json.loads(json.dumps(lock_pins))
+                    changed[0]['artifact_id']=changed[1]['artifact_id']
+                    assert manual_lock(changed) is False
+                    db.execute("UPDATE photo.artifacts SET expires_at=clock_timestamp()-interval '1 second' WHERE id=%s",(manual_protected_pixel['artifact_id'],))
+                    assert manual_lock(lock_pins) is False
+                    db.execute("UPDATE photo.artifacts SET expires_at=NULL WHERE id=%s",(manual_protected_pixel['artifact_id'],))
+                    assert manual_lock(lock_pins) is True
+                    fixture['OrientedSource']=oriented
+                    fixture['ManualFaceMaskRoot']=manual_root_pin
+                    positive_face_defect_task=str(uuid4())
+                    positive_face_ids={role:str(uuid4()) for role in ('params','proposal','report','labels','protection','png')}
+                    positive_face_mask=manual_target.model_dump(mode='json')
+                    positive_face_params=DefectProposeParams.model_validate_json(json.dumps(dict(image=base['source'],faces=[dict(object_id=face_id,landmarks=landmark_pin,skin=None,manual=positive_face_mask,manual_mode=True)],permanent=required_document,protections=[manual_protected.model_dump(mode='json')])))
+                    positive_face_params_pin=defect_object(positive_face_ids['params'],canonical_bytes(positive_face_params),'document','application/json')
+                    db.execute("INSERT INTO photo.tasks(id,tenant_id,run_id,node_key,operation,operation_version,resource_class,inputs,params_artifact_id,input_digest,execution_profile,attempt,fencing_token) VALUES(%s,%s,%s,'defect:3','defects.propose','1','cpu',%s,%s,%s,%s,1,1)",(positive_face_defect_task,case['Tenant'],protection_run,Jsonb([base['source'],landmark_pin,required_document['artifact'],manual_pixel,manual_protected_pixel]),positive_face_ids['params'],'a'*64,Jsonb(dict(backend='cpu'))))
+                    positive_face_proposal=defect_proposal.model_copy(update={'label_map':defect_proposal.label_map.model_copy(update={'artifact_id':UUID(positive_face_ids['labels'])})})
+                    positive_face_proposal_pin=defect_object(positive_face_ids['proposal'],canonical_bytes(positive_face_proposal),'defect_candidates','application/json',positive_face_defect_task)
+                    covered_protection_encoded=BytesIO()
+                    required_array=np.load(BytesIO(required_body),allow_pickle=False)
+                    np.save(covered_protection_encoded,np.maximum(required_array,manual_arrays[1]),allow_pickle=False)
+                    covered_protection_body=covered_protection_encoded.getvalue()
+                    covered_protection_sha=sha256(covered_protection_body).hexdigest()
+                    positive_face_protection=dict(required_document,artifact=dict(artifact_id=positive_face_ids['protection'],sha256=covered_protection_sha))
+                    positive_face_report=DefectProposeReport.model_validate_json(json.dumps(dict(params=positive_face_params.model_dump(mode='json'),proposal=positive_face_proposal_pin,protection=positive_face_protection,label_png=dict(artifact_id=positive_face_ids['png'],sha256=png_sha),faces=[dict(object_id=face_id,reason='degenerate_landmarks',threshold=0,candidates=0,overlapping_candidates=0)],warnings=['face_skipped'])))
+                    positive_face_outputs=[positive_face_proposal_pin]
+                    for role,body,output,media in (('report',canonical_bytes(positive_face_report),'defect_propose_report','application/json'),('labels',label_body,'defect_labels','application/octet-stream'),('protection',covered_protection_body,'defect_protection','application/octet-stream'),('png',png_body,'defect_labels_png','image/png')):
+                        positive_face_outputs.append(defect_object(positive_face_ids[role],body,output,media,positive_face_defect_task))
+                    db.execute("INSERT INTO photo.task_attempts(tenant_id,task_id,attempt,fencing_token,worker_id,started_at,finished_at,backend,profile) VALUES(%s,%s,1,1,%s,clock_timestamp(),clock_timestamp(),'cpu',%s)",(case['Tenant'],positive_face_defect_task,uuid4(),Jsonb(dict(backend='cpu'))))
+                    positive_face_result=db.execute("INSERT INTO photo.task_results(tenant_id,task_id,attempt,fencing_token,outputs,metrics,result_digest) VALUES(%s,%s,1,1,%s,'{}',%s) RETURNING id",(case['Tenant'],positive_face_defect_task,Jsonb(positive_face_outputs),'7'*64)).fetchone()[0]
+                    db.execute("UPDATE photo.tasks SET state='succeeded',canonical_result_id=%s WHERE id=%s",(positive_face_result,positive_face_defect_task))
+                    positive_face_by_id={pin['artifact_id']:pin for pin in positive_face_outputs}
+                    fixture['ManualFaceDefectTask']=positive_face_defect_task
+                    fixture['ManualFaceDefectPins']=dict(Proposal=positive_face_by_id[positive_face_ids['proposal']],Report=positive_face_by_id[positive_face_ids['report']],Labels=positive_face_by_id[positive_face_ids['labels']],Protection=positive_face_by_id[positive_face_ids['protection']],Params=positive_face_params_pin)
+                    # Same original manual inputs, valid objects and canonical result,
+                    # but deliberately missing the manual protected stroke in output.
+                    uncovered_task=str(uuid4())
+                    uncovered_ids={role:str(uuid4()) for role in ('proposal','report','labels','protection','png')}
+                    uncovered_proposal=positive_face_proposal.model_copy(update={'label_map':positive_face_proposal.label_map.model_copy(update={'artifact_id':UUID(uncovered_ids['labels'])})})
+                    uncovered_proposal_body=canonical_bytes(uncovered_proposal)
+                    uncovered_proposal_ref=dict(artifact_id=uncovered_ids['proposal'],sha256=sha256(uncovered_proposal_body).hexdigest())
+                    uncovered_report=DefectProposeReport.model_validate_json(json.dumps(dict(params=positive_face_params.model_dump(mode='json'),proposal=uncovered_proposal_ref,protection=dict(required_document,artifact=dict(artifact_id=uncovered_ids['protection'],sha256=required_sha)),label_png=dict(artifact_id=uncovered_ids['png'],sha256=png_sha),faces=[dict(object_id=face_id,reason='degenerate_landmarks',threshold=0,candidates=0,overlapping_candidates=0)],warnings=['face_skipped'])))
+                    db.execute("INSERT INTO photo.tasks(id,tenant_id,run_id,node_key,operation,operation_version,resource_class,inputs,params_artifact_id,input_digest,execution_profile,attempt,fencing_token) VALUES(%s,%s,%s,'defect:manual-uncovered','defects.propose','1','cpu',%s,%s,%s,%s,1,1)",(uncovered_task,case['Tenant'],protection_run,Jsonb([base['source'],landmark_pin,required_document['artifact'],manual_pixel,manual_protected_pixel]),positive_face_ids['params'],'a'*64,Jsonb(dict(backend='cpu'))))
+                    uncovered_outputs=[]
+                    uncovered_by_role={}
+                    for role,body,output,media in (('proposal',uncovered_proposal_body,'defect_candidates','application/json'),('report',canonical_bytes(uncovered_report),'defect_propose_report','application/json'),('labels',label_body,'defect_labels','application/octet-stream'),('protection',required_body,'defect_protection','application/octet-stream'),('png',png_body,'defect_labels_png','image/png')):
+                        pin=defect_object(uncovered_ids[role],body,output,media,uncovered_task)
+                        uncovered_outputs.append(pin);uncovered_by_role[role]=pin
+                    db.execute("INSERT INTO photo.task_attempts(tenant_id,task_id,attempt,fencing_token,worker_id,started_at,finished_at,backend,profile) VALUES(%s,%s,1,1,%s,clock_timestamp(),clock_timestamp(),'cpu',%s)",(case['Tenant'],uncovered_task,uuid4(),Jsonb(dict(backend='cpu'))))
+                    uncovered_result=db.execute("INSERT INTO photo.task_results(tenant_id,task_id,attempt,fencing_token,outputs,metrics,result_digest) VALUES(%s,%s,1,1,%s,'{}',%s) RETURNING id",(case['Tenant'],uncovered_task,Jsonb(uncovered_outputs),'7'*64)).fetchone()[0]
+                    db.execute("UPDATE photo.tasks SET state='succeeded',canonical_result_id=%s WHERE id=%s",(uncovered_result,uncovered_task))
+                    fixture['UncoveredManualDefectPins']=dict(Proposal=uncovered_by_role['proposal'],Report=uncovered_by_role['report'],Labels=uncovered_by_role['labels'],Protection=uncovered_by_role['protection'],Params=positive_face_params_pin)
+                    from photo_worker.contracts.face_parse import FaceParseParams,FaceLabels19
+                    from photo_worker.contracts.face_skin import FaceSkinParams
+                    from photo_worker.operations.mask.face_skin import skin_probability
+                    def start_skin_task(operation,node,params,inputs,resource):
+                        task=str(uuid4())
+                        params_pin=defect_object(str(uuid4()),canonical_bytes(params),'document','application/json')
+                        db.execute("INSERT INTO photo.tasks(id,tenant_id,run_id,node_key,operation,operation_version,resource_class,inputs,params_artifact_id,input_digest,execution_profile,attempt,fencing_token) VALUES(%s,%s,%s,%s,%s,'1',%s,%s,%s,%s,%s,1,1)",(task,case['Tenant'],protection_run,node,operation,resource,Jsonb(inputs),params_pin['artifact_id'],'a'*64,Jsonb(dict(backend='cpu',model_lock_sha='c'*64,runtime_lock_sha='b'*64,device_profile_sha='c'*64))))
+                        return task
+                    def finish_skin_task(task,outputs):
+                        db.execute("INSERT INTO photo.task_attempts(tenant_id,task_id,attempt,fencing_token,worker_id,started_at,finished_at,backend,profile) VALUES(%s,%s,1,1,%s,clock_timestamp(),clock_timestamp(),'cpu',%s)",(case['Tenant'],task,uuid4(),Jsonb(dict(backend='cpu',model_lock_sha='c'*64,runtime_lock_sha='b'*64,device_profile_sha='c'*64))))
+                        result=db.execute("INSERT INTO photo.task_results(tenant_id,task_id,attempt,fencing_token,outputs,metrics,result_digest) VALUES(%s,%s,1,1,%s,'{}',%s) RETURNING id",(case['Tenant'],task,Jsonb(outputs),'9'*64)).fetchone()[0]
+                        db.execute("UPDATE photo.tasks SET state='succeeded',canonical_result_id=%s WHERE id=%s",(result,task))
+                    parse_params=FaceParseParams.model_validate_json(json.dumps(dict(image=base['source'],faces=detection_pin,model_lock_id='c'*64)))
+                    parse_task=start_skin_task('face.parse','parse:positive',parse_params,[base['source'],detection_pin],'gpu')
+                    parse_array=np.zeros((300,400),dtype='&lt;u2')
+                    parse_array[70:230,90:310]=1
+                    parse_array[140:150,170:230]=10
+                    parse_encoded=BytesIO()
+                    np.save(parse_encoded,parse_array,allow_pickle=False)
+                    parse_pixel=defect_object(str(uuid4()),parse_encoded.getvalue(),'face_labels','application/octet-stream',parse_task)
+                    parse_manifest=FaceLabels19.model_validate_json(json.dumps(dict(image=base['source'],faces=detection_pin,labels=parse_pixel,canvas=source_image['canvas'],transform_chain=source_image['transform_chain'],model_id='bisenet_face19',model_lock_id='c'*64,backend='cpu',preprocessing_id='bisenet_face19_crop512_v1',parsed_faces=1,mean_confidence=.9,warnings=[])))
+                    parse_pin=defect_object(str(uuid4()),canonical_bytes(parse_manifest),'face_labels_ref','application/json',parse_task)
+                    finish_skin_task(parse_task,[parse_pixel,parse_pin])
+                    # Independent parser catalog does not require a live defects.propose output.
+                    parse_found=face_preparation(parse_pin,'face.parse')
+                    assert len(parse_found)==1
+                    parse_params_id=db.execute('SELECT params_artifact_id FROM photo.tasks WHERE id=%s',(parse_task,)).fetchone()[0]
+                    assert str(parse_found[0][4])==str(parse_params_id)
+                    db.execute("UPDATE photo.artifacts SET expires_at=clock_timestamp()-interval '1 second' WHERE id=%s",(parse_params_id,))
+                    assert not face_preparation(parse_pin,'face.parse')
+                    db.execute('UPDATE photo.artifacts SET expires_at=NULL WHERE id=%s',(parse_params_id,))
+                    assert len(face_preparation(parse_pin,'face.parse'))==1
+                    assert not face_preparation(parse_pin,'face.detect')
+                    def parse_pixels_catalog():
+                        db.execute("SELECT set_config('app.tenant_id',%s,true)",(case['Tenant'],))
+                        db.execute('SET LOCAL ROLE photo_api')
+                        try:
+                            return db.execute('SELECT * FROM photo.semantic_proposal_face_parse_preparation_pixels(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',(case['Tenant'],case['Project'],case['Actor'],case['Session'],base['asset_version_id'],base['source']['artifact_id'],base['source']['sha256'],parse_pin['artifact_id'],parse_pin['sha256'],detection_pin['artifact_id'],detection_pin['sha256'],parse_pixel['artifact_id'],parse_pixel['sha256'])).fetchall()
+                        finally:
+                            db.execute('RESET ROLE')
+                    assert len(parse_pixels_catalog())==1
+                    db.execute("UPDATE photo.artifacts SET expires_at=clock_timestamp()-interval '1 second' WHERE id=%s",(parse_pixel['artifact_id'],))
+                    assert not parse_pixels_catalog()
+                    db.execute('UPDATE photo.artifacts SET expires_at=NULL WHERE id=%s',(parse_pixel['artifact_id'],))
+                    assert len(parse_pixels_catalog())==1
+                    original_parse_inputs=db.execute('SELECT inputs FROM photo.tasks WHERE id=%s',(parse_task,)).fetchone()[0]
+                    db.execute('UPDATE photo.tasks SET inputs=%s WHERE id=%s',(Jsonb([base['source']]),parse_task))
+                    assert not parse_pixels_catalog()
+                    db.execute('UPDATE photo.tasks SET inputs=%s WHERE id=%s',(Jsonb(original_parse_inputs),parse_task))
+                    assert len(parse_pixels_catalog())==1
+                    skin_params=FaceSkinParams.model_validate_json(json.dumps(dict(labels=parse_pin)))
+                    skin_task=start_skin_task('mask.face_skin','skin:positive',skin_params,[parse_pin,parse_pixel],'cpu')
+                    skin_array=skin_probability(parse_array)
+                    skin_encoded=BytesIO()
+                    np.save(skin_encoded,skin_array,allow_pickle=False)
+                    skin_pixel=defect_object(str(uuid4()),skin_encoded.getvalue(),'skin_mask','application/octet-stream',skin_task)
+                    skin_mask=MaskRef.model_validate_json(json.dumps(dict(artifact=skin_pixel,canvas=source_image['canvas'],transform_chain=source_image['transform_chain'],selector='skin',confidence=.9,model_lock_id='c'*64,protected=False)))
+                    skin_root=defect_object(str(uuid4()),canonical_bytes(skin_mask),'skin_mask_ref','application/json',skin_task)
+                    skin_png_encoded=BytesIO()
+                    write_png16(skin_array,skin_png_encoded,max_bytes=png16_bound(400,300))
+                    skin_png=defect_object(str(uuid4()),skin_png_encoded.getvalue(),'skin_mask_png','image/png',skin_task)
+                    finish_skin_task(skin_task,[skin_pixel,skin_root,skin_png])
+                    fixture['SkinPNG']=skin_png
+                    fixture['SkinMaskRoot']=skin_root
+                    fixture['SkinLabels']=parse_pixel
+                    fixture['SkinParse']=parse_pin
+                    skin_face_defect_task=str(uuid4())
+                    skin_face_ids={role:str(uuid4()) for role in ('params','proposal','report','labels','protection','png')}
+                    skin_face_mask=skin_mask.model_dump(mode='json')
+                    skin_face_params=DefectProposeParams.model_validate_json(json.dumps(dict(image=base['source'],faces=[dict(object_id=face_id,landmarks=landmark_pin,skin=skin_face_mask,manual=None,manual_mode=False)],permanent=required_document)))
+                    skin_face_params_pin=defect_object(skin_face_ids['params'],canonical_bytes(skin_face_params),'document','application/json')
+                    db.execute("INSERT INTO photo.tasks(id,tenant_id,run_id,node_key,operation,operation_version,resource_class,inputs,params_artifact_id,input_digest,execution_profile,attempt,fencing_token) VALUES(%s,%s,%s,'defect:4','defects.propose','1','cpu',%s,%s,%s,%s,1,1)",(skin_face_defect_task,case['Tenant'],protection_run,Jsonb([base['source'],landmark_pin,required_document['artifact'],skin_pixel]),skin_face_ids['params'],'a'*64,Jsonb(dict(backend='cpu'))))
+                    skin_face_proposal=defect_proposal.model_copy(update={'label_map':defect_proposal.label_map.model_copy(update={'artifact_id':UUID(skin_face_ids['labels'])})})
+                    skin_face_proposal_pin=defect_object(skin_face_ids['proposal'],canonical_bytes(skin_face_proposal),'defect_candidates','application/json',skin_face_defect_task)
+                    skin_face_protection=dict(required_document,artifact=dict(artifact_id=skin_face_ids['protection'],sha256=required_sha))
+                    skin_face_report=DefectProposeReport.model_validate_json(json.dumps(dict(params=skin_face_params.model_dump(mode='json'),proposal=skin_face_proposal_pin,protection=skin_face_protection,label_png=dict(artifact_id=skin_face_ids['png'],sha256=png_sha),faces=[dict(object_id=face_id,reason='degenerate_landmarks',threshold=0,candidates=0,overlapping_candidates=0)],warnings=['face_skipped'])))
+                    skin_face_outputs=[skin_face_proposal_pin]
+                    for role,body,output,media in (('report',canonical_bytes(skin_face_report),'defect_propose_report','application/json'),('labels',label_body,'defect_labels','application/octet-stream'),('protection',required_body,'defect_protection','application/octet-stream'),('png',png_body,'defect_labels_png','image/png')):
+                        skin_face_outputs.append(defect_object(skin_face_ids[role],body,output,media,skin_face_defect_task))
+                    db.execute("INSERT INTO photo.task_attempts(tenant_id,task_id,attempt,fencing_token,worker_id,started_at,finished_at,backend,profile) VALUES(%s,%s,1,1,%s,clock_timestamp(),clock_timestamp(),'cpu',%s)",(case['Tenant'],skin_face_defect_task,uuid4(),Jsonb(dict(backend='cpu'))))
+                    skin_face_result=db.execute("INSERT INTO photo.task_results(tenant_id,task_id,attempt,fencing_token,outputs,metrics,result_digest) VALUES(%s,%s,1,1,%s,'{}',%s) RETURNING id",(case['Tenant'],skin_face_defect_task,Jsonb(skin_face_outputs),'7'*64)).fetchone()[0]
+                    db.execute("UPDATE photo.tasks SET state='succeeded',canonical_result_id=%s WHERE id=%s",(skin_face_result,skin_face_defect_task))
+                    skin_face_by_id={pin['artifact_id']:pin for pin in skin_face_outputs}
+                    fixture['SkinFaceDefectPins']=dict(Proposal=skin_face_by_id[skin_face_ids['proposal']],Report=skin_face_by_id[skin_face_ids['report']],Labels=skin_face_by_id[skin_face_ids['labels']],Protection=skin_face_by_id[skin_face_ids['protection']],Params=skin_face_params_pin)
+                    fixture['DefectLandmark']=landmark_pin
+                    fixture['DefectDetection']=detection_pin
+                    fixture['DefectFaceID']=face_id
+                    second_face_id=str(uuid4())
+                    second_landmark_task=str(uuid4())
+                    second_landmark_id=str(uuid4())
+                    second_face=Face68.model_validate_json(json.dumps(dict(object_id=second_face_id,points=[dict(x=.5,y=.5,confidence=1) for _ in range(68)],canvas=source_image['canvas'],transform_chain=source_image['transform_chain'])))
+                    second_detection_task=str(uuid4())
+                    second_detection_params=FaceDetectParams.model_validate_json(json.dumps(dict(image=base['source'],model_lock_id='c'*64)))
+                    second_detection_params_pin=defect_object(str(uuid4()),canonical_bytes(second_detection_params),'document','application/json')
+                    db.execute("INSERT INTO photo.tasks(id,tenant_id,run_id,node_key,operation,operation_version,resource_class,inputs,params_artifact_id,input_digest,execution_profile,attempt,fencing_token) VALUES(%s,%s,%s,'detect:1','face.detect','1','gpu',%s,%s,%s,%s,1,1)",(second_detection_task,case['Tenant'],protection_run,Jsonb([base['source']]),second_detection_params_pin['artifact_id'],'a'*64,Jsonb(dict(backend='cpu',model_lock_sha='c'*64,runtime_lock_sha='b'*64,device_profile_sha='c'*64))))
+                    second_detection_doc=FaceBoxes.model_validate_json(json.dumps(dict(image=base['source'],faces=[dict(object_id=second_face_id,bbox_normalized=dict(x0=.25,y0=.25,x1=.75,y1=.75),confidence=1)],model_id='sfd',model_lock_id='c'*64,backend='cpu',preprocessing_id='sfd_long1024_bgr_v1',preview_width=400,preview_height=300,candidate_count=1,accepted_count=1,alpha_excluded_fraction=0,warnings=[])))
+                    second_detection_pin=defect_object(str(uuid4()),canonical_bytes(second_detection_doc),'face_boxes','application/json',second_detection_task)
+                    db.execute("INSERT INTO photo.task_attempts(tenant_id,task_id,attempt,fencing_token,worker_id,started_at,finished_at,backend,profile) VALUES(%s,%s,1,1,%s,clock_timestamp(),clock_timestamp(),'cpu',%s)",(case['Tenant'],second_detection_task,uuid4(),Jsonb(dict(backend='cpu',model_lock_sha='c'*64,runtime_lock_sha='b'*64,device_profile_sha='c'*64))))
+                    second_detection_result=db.execute("INSERT INTO photo.task_results(tenant_id,task_id,attempt,fencing_token,outputs,metrics,result_digest) VALUES(%s,%s,1,1,%s,'{}',%s) RETURNING id",(case['Tenant'],second_detection_task,Jsonb([second_detection_pin]),'8'*64)).fetchone()[0]
+                    db.execute("UPDATE photo.tasks SET state='succeeded',canonical_result_id=%s WHERE id=%s",(second_detection_result,second_detection_task))
+                    second_landmark_doc=FaceLandmarks.model_validate_json(json.dumps(dict(image=base['source'],faces=second_detection_pin,landmarks=[second_face.model_dump(mode='json')],model_id='fan2d',model_lock_id='c'*64,backend='cpu',preprocessing_id='fan2d_crop256_v1',mean_confidence=1,warnings=[])))
+                    second_landmark_params=LandmarkParams.model_validate_json(json.dumps(dict(image=base['source'],faces=second_detection_pin,model_lock_id='c'*64)))
+                    second_landmark_params_pin=defect_object(str(uuid4()),canonical_bytes(second_landmark_params),'document','application/json')
+                    db.execute("INSERT INTO photo.tasks(id,tenant_id,run_id,node_key,operation,operation_version,resource_class,inputs,params_artifact_id,input_digest,execution_profile,attempt,fencing_token) VALUES(%s,%s,%s,'landmarks:1','face.landmarks','1','gpu',%s,%s,%s,%s,1,1)",(second_landmark_task,case['Tenant'],protection_run,Jsonb([base['source'],second_detection_pin]),second_landmark_params_pin['artifact_id'],'a'*64,Jsonb(dict(backend='cpu',model_lock_sha='c'*64,runtime_lock_sha='b'*64,device_profile_sha='c'*64))))
+                    second_landmark_pin=defect_object(second_landmark_id,canonical_bytes(second_landmark_doc),'face_landmarks','application/json',second_landmark_task)
+                    db.execute("INSERT INTO photo.task_attempts(tenant_id,task_id,attempt,fencing_token,worker_id,started_at,finished_at,backend,profile) VALUES(%s,%s,1,1,%s,clock_timestamp(),clock_timestamp(),'cpu',%s)",(case['Tenant'],second_landmark_task,uuid4(),Jsonb(dict(backend='cpu',model_lock_sha='c'*64,runtime_lock_sha='b'*64,device_profile_sha='c'*64))))
+                    second_landmark_result=db.execute("INSERT INTO photo.task_results(tenant_id,task_id,attempt,fencing_token,outputs,metrics,result_digest) VALUES(%s,%s,1,1,%s,'{}',%s) RETURNING id",(case['Tenant'],second_landmark_task,Jsonb([second_landmark_pin]),'6'*64)).fetchone()[0]
+                    db.execute("UPDATE photo.tasks SET state='succeeded',canonical_result_id=%s WHERE id=%s",(second_landmark_result,second_landmark_task))
+                    multi_face_defect_task=str(uuid4())
+                    multi_face_ids={role:str(uuid4()) for role in ('params','proposal','report','labels','protection','png')}
+                    multi_face_mask=dict(required_document,selector='manual',protected=False,object_id=second_face_id)
+                    multi_face_params=DefectProposeParams.model_validate_json(json.dumps(dict(image=base['source'],faces=[face_params.faces[0].model_dump(mode='json'),dict(object_id=second_face_id,landmarks=second_landmark_pin,skin=None,manual=multi_face_mask,manual_mode=True)],permanent=required_document)))
+                    multi_face_params_pin=defect_object(multi_face_ids['params'],canonical_bytes(multi_face_params),'document','application/json')
+                    db.execute("INSERT INTO photo.tasks(id,tenant_id,run_id,node_key,operation,operation_version,resource_class,inputs,params_artifact_id,input_digest,execution_profile,attempt,fencing_token) VALUES(%s,%s,%s,'defect:2','defects.propose','1','cpu',%s,%s,%s,%s,1,1)",(multi_face_defect_task,case['Tenant'],protection_run,Jsonb([base['source'],landmark_pin,second_landmark_pin,required_document['artifact']]),multi_face_ids['params'],'a'*64,Jsonb(dict(backend='cpu'))))
+                    multi_face_proposal=defect_proposal.model_copy(update={'label_map':defect_proposal.label_map.model_copy(update={'artifact_id':UUID(multi_face_ids['labels'])})})
+                    multi_face_proposal_pin=defect_object(multi_face_ids['proposal'],canonical_bytes(multi_face_proposal),'defect_candidates','application/json',multi_face_defect_task)
+                    multi_face_protection=dict(required_document,artifact=dict(artifact_id=multi_face_ids['protection'],sha256=required_sha))
+                    multi_face_report=DefectProposeReport.model_validate_json(json.dumps(dict(params=multi_face_params.model_dump(mode='json'),proposal=multi_face_proposal_pin,protection=multi_face_protection,label_png=dict(artifact_id=multi_face_ids['png'],sha256=png_sha),faces=[face_report.faces[0].model_dump(mode='json'),dict(object_id=second_face_id,reason='degenerate_landmarks',threshold=0,candidates=0,overlapping_candidates=0)],warnings=['face_skipped'])))
+                    multi_face_outputs=[multi_face_proposal_pin]
+                    for role,body,output,media in (('report',canonical_bytes(multi_face_report),'defect_propose_report','application/json'),('labels',label_body,'defect_labels','application/octet-stream'),('protection',required_body,'defect_protection','application/octet-stream'),('png',png_body,'defect_labels_png','image/png')):
+                        multi_face_outputs.append(defect_object(multi_face_ids[role],body,output,media,multi_face_defect_task))
+                    db.execute("INSERT INTO photo.task_attempts(tenant_id,task_id,attempt,fencing_token,worker_id,started_at,finished_at,backend,profile) VALUES(%s,%s,1,1,%s,clock_timestamp(),clock_timestamp(),'cpu',%s)",(case['Tenant'],multi_face_defect_task,uuid4(),Jsonb(dict(backend='cpu'))))
+                    multi_face_result=db.execute("INSERT INTO photo.task_results(tenant_id,task_id,attempt,fencing_token,outputs,metrics,result_digest) VALUES(%s,%s,1,1,%s,'{}',%s) RETURNING id",(case['Tenant'],multi_face_defect_task,Jsonb(multi_face_outputs),'7'*64)).fetchone()[0]
+                    db.execute("UPDATE photo.tasks SET state='succeeded',canonical_result_id=%s WHERE id=%s",(multi_face_result,multi_face_defect_task))
+                    multi_face_by_id={pin['artifact_id']:pin for pin in multi_face_outputs}
+                    fixture['MultiFaceDefectPins']=dict(Proposal=multi_face_by_id[multi_face_ids['proposal']],Report=multi_face_by_id[multi_face_ids['report']],Labels=multi_face_by_id[multi_face_ids['labels']],Protection=multi_face_by_id[multi_face_ids['protection']],Params=multi_face_params_pin)
+                    fixture['SecondDefectLandmark']=second_landmark_pin
+                    fixture['SecondDefectFaceID']=second_face_id
+    
+                    recipe=dict(schema_version=3,source=base,base_style=base['source'],session_corrections=None,learning_version_id=None,overrides=[],layer_stack=None,renderer_version='v2.2',parameter_delta=dict(ev=0,log_r=0,log_g=0,log_b=0,saturation_delta=0,retouch_delta=0))
+                    recipe_body=json.dumps(recipe,sort_keys=True,separators=(',',':')).encode()
+                    recipe_id=str(uuid4())
+                    recipe_sha=sha256(recipe_body).hexdigest()
+                    recipe_key='proposal-recipe/'+recipe_id
+                    recipe_version=client.put_object(bucket,recipe_key,BytesIO(recipe_body),len(recipe_body),content_type='application/json',metadata={'sha256':recipe_sha}).version_id
+                    db.execute("INSERT INTO photo.artifacts(id,tenant_id,bucket,object_key,sha256,bytes,media_type,object_version,verified_at,output_role) VALUES(%s,%s,%s,%s,%s,%s,'application/json',%s,clock_timestamp(),'document')",(recipe_id,case['Tenant'],bucket,recipe_key,recipe_sha,len(recipe_body),recipe_version))
+                    stream=db.execute("INSERT INTO photo.v2_document_streams(tenant_id,project_id,asset_version_id,stream_type) VALUES(%s,%s,%s,'draft') RETURNING id",(case['Tenant'],case['Project'],base['asset_version_id'])).fetchone()[0]
+                    document=db.execute("INSERT INTO photo.v2_documents(tenant_id,project_id,stream_id,version_no,document_type,artifact_id,sha256) VALUES(%s,%s,%s,1,'EditingRecipeV3',%s,%s) RETURNING id",(case['Tenant'],case['Project'],stream,recipe_id,recipe_sha)).fetchone()[0]
+                    db.execute("UPDATE photo.v2_document_streams SET current_document_id=%s WHERE id=%s",(document,stream))
+    
+    
+            if lock_only:
+                # The fixture has committed. A separate writer must wait on selected
+                # evidence until the scheduler transaction releases its SHARE locks.
+                with db.transaction():
+                    db.execute("SELECT set_config('app.tenant_id',%s,true)",(case['Tenant'],))
+                    db.execute('SET LOCAL ROLE photo_scheduler')
+                    inventory=db.execute("SELECT * FROM photo.lock_semantic_proposal_inventory(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",(case['Tenant'],case['Actor'],case['Session'],base['asset_version_id'],base['source']['artifact_id'],base['source']['sha256'],base['canvas_hash'],intent['reference_mask']['artifact_id'],intent['reference_mask']['sha256'],case['Snapshot'])).fetchall()
+                    assert inventory
+                    db.execute('RESET ROLE')
+                    assert manual_lock(lock_pins) is True
+                    with psycopg.connect(**database,autocommit=True) as writer:
+                        writer.execute("SET lock_timeout='250ms'")
+                        for table,column,identifier in [('artifacts','id',manual_protected_pixel['artifact_id']),('tasks','id',manual_task),('task_results','id',manual_result),('users','id',case['Actor']),('sessions','id',case['Session']),('projects','id',case['Project']),('snapshots','id',case['Snapshot']),('asset_versions','id',base['asset_version_id']),('artifacts','id',base['source']['artifact_id'])]:
+                            with pytest.raises(psycopg.errors.LockNotAvailable):
+                                writer.execute(f'UPDATE photo.{table} SET {column}={column} WHERE {column}=%s',(identifier,))
+                # Frozen inventory is immutable even after the admission TX releases.
+                with psycopg.connect(**database,autocommit=True) as writer:
+                    for mutation in (
+                        "DELETE FROM photo.snapshot_items WHERE tenant_id=%s AND snapshot_id=%s",
+                        "INSERT INTO photo.snapshot_items(tenant_id,snapshot_id,ordinal,asset_version_id,artifact_id,sha256,payload) SELECT tenant_id,snapshot_id,ordinal+1,asset_version_id,artifact_id,sha256,payload FROM photo.snapshot_items WHERE tenant_id=%s AND snapshot_id=%s",
+                    ):
+                        with pytest.raises(psycopg.errors.CheckViolation,match='V22_FROZEN_ITEMS_IMMUTABLE'):
+                            writer.execute(mutation,(case['Tenant'],case['Snapshot']))
+                    assert writer.execute("SELECT count(*) FROM photo.snapshot_items WHERE tenant_id=%s AND snapshot_id=%s",(case['Tenant'],case['Snapshot'])).fetchone()[0]==len(inventory)
+                with psycopg.connect(**database,autocommit=True) as writer:
+                    writer.execute("UPDATE photo.users SET status='disabled' WHERE id=%s",(case['Actor'],))
+                with db.transaction():
+                    assert manual_lock(lock_pins) is False
+                with psycopg.connect(**database,autocommit=True) as writer:
+                    writer.execute("UPDATE photo.users SET status='active' WHERE id=%s",(case['Actor'],))
+                with db.transaction():
+                    assert manual_lock(lock_pins) is True
+                with psycopg.connect(**database,autocommit=True) as writer:
+                    writer.execute("SET lock_timeout='1s'")
+                    writer.execute("UPDATE photo.artifacts SET expires_at=clock_timestamp()-interval '1 second' WHERE id=%s",(manual_protected_pixel['artifact_id'],))
+                with db.transaction():
+                    assert manual_lock(lock_pins) is False
+                return
+    
+            if native_bootstrap:
+                db.execute("UPDATE photo.operation_registry SET v2_enabled=true WHERE operation IN ('face.detect','mask.person','face.landmarks','face.parse') AND version='1'")
+            if face_wire:
+                db.execute("UPDATE photo.operation_registry SET v2_enabled=true WHERE operation IN ('mask.face_skin','defects.propose') AND version='1'")
+            before=db.execute('SELECT storage_bytes,reserved_bytes FROM photo.tenant_usage WHERE tenant_id=%s',(case['Tenant'],)).fetchone()
+            env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_SEMANTIC_INTENT_PUBLISH_CASE=json.dumps(fixture),GOCACHE='/private/tmp/photoeditor-go-cache')
+            if person_wire: env['PHOTO_TEST_V27_PERSON_WIRE']='1'
+            if face_wire: env['PHOTO_TEST_V27_FACE_WIRE']='1'
+            package='./internal/semanticproposal' if wrapper else './internal/v2draft'
+            probe='^TestIntegrationNativePreparationBootstrap$' if native_bootstrap else '^TestIntegrationTransferDraftPreparer$' if fresh else '^TestIntegrationProposalIntentPublication$' if wrapper else '^TestIntegrationSemanticIntentPublication$'
+            result=subprocess.run(['go','test',package,'-run',probe,'-count=1','-timeout','540s' if go_lock_only else '210s','-v'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=570 if go_lock_only else 240)
+&gt;           assert result.returncode==0,result.stdout+result.stderr
+E           AssertionError: === RUN   TestIntegrationNativePreparationBootstrap
+E                 native_bootstrap_integration_test.go:157: V27_ORIGINAL_PERSON_INPUT_AUTHORITY_OK
+E                 native_bootstrap_integration_test.go:268: native uncovered person dependency classification native person registered proof changed (verified=true published=false objects=true): V2 admission idempotency conflict
+E             --- FAIL: TestIntegrationNativePreparationBootstrap (38.45s)
+E             FAIL
+E             FAIL	photoeditor/backend/internal/semanticproposal	39.147s
+E             FAIL
+E             
+E           assert 1 == 0
+E            +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationNativePreparationBootstra...ePreparationBootstrap (38.45s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t39.147s\nFAIL\n', stderr='').returncode
+
+tests/integration/test_v27_semantic_intent_publication.py:731: AssertionError</failure></testcase></testsuite></testsuites>

@@ -1,0 +1,116 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "generated_at": "2026-10-08T15:39:28.390240+00:00",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "dirty_tree_hash": "f0d33c7ae4d39cace633472cfb957d9bfabbcabeab548b948145f38d7decf146",
+  "dirty_tree_hash_scope": {
+    "roots": [
+      "backend/",
+      "workers/",
+      "src/",
+      "apps/",
+      "packages/",
+      "tests/",
+      "scripts/",
+      "deploy/",
+      "docs/implementation-v2/contracts/"
+    ],
+    "paths": 4755,
+    "algorithm": "sorted git tracked+untracked nonignored names NUL sha256(bytes) newline; MISSING marker; excludes generated audit evidence"
+  },
+  "contracts_hash": "bedf81fee94e5e75a78db7d8fc942cdc67d7fb580301c33071233e3abf357b38",
+  "source_scope": {
+    "backend/db/migrations/00922_v27_target_person_recovery.sql": "ec1a476e3d4d37023da75d9a46e07ac821314a828be7487bb393200d4066f4d6",
+    "backend/internal/semanticproposal/native_target_person_recovery.go": "430bd0a8750e9768f7288de5640103da95e73c7e9047eca9a8c4b484bad2dab7",
+    "backend/internal/semanticproposal/native_target_person_advance.go": "f88de0b966872c0ee425239e38bbac255789608a7824cc24033aa3a5541369cf",
+    "backend/internal/semanticproposal/native_initial_pipeline_recovery_job.go": "cff0230196325fe458749fca25875dfe26b2fefea85984f4fb372f1ff6e92e50",
+    "backend/internal/semanticproposal/native_target_person_wire_probe_test.go": "ab59a93f863404856a84885a7684236e4941081a33ad8f15e0ceebe4ffe7f0f5",
+    "tests/integration/test_v27_person_migration_upgrade.py": "4ab4139f616dba24c7d8a2cbc188f27fe1f1a70f977b8599586875cd5cbc6833",
+    "tests/integration/test_v27_semantic_intent_publication.py": "259a8ac0ffb95091ef5d3ba0d53dfd068dca06582c9202a2537c6f637ad378db",
+    "tests/integration/v27_face_wire_probe.py": "d6b78261a2020aa0890aa5074688060c9214b47b397c37441bc107aa02d37b89"
+  },
+  "checks": [
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-recovery-sql-current.xml",
+      "evidence_sha": "3a8357f63d86a1e7dddeff3c558fc5f3d7941b5c002aa9872314b58b84de48a4",
+      "exit_code": 0,
+      "tests": 19,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 141.907
+    },
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-recovery-wire-current.xml",
+      "evidence_sha": "eae7cf7e93ab65927969b35d77b3a49f36b8c734a532c20f0bd5040f0f1eb1bb",
+      "exit_code": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 239.101
+    },
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-recovery-go-current.jsonl",
+      "evidence_sha": "3d16628d7a475d36bc489fb358afc483d24a59ee2ed1aeff02a13846a9b953c7",
+      "exit_code": 0,
+      "packages_passed": [
+        "photoeditor/backend/internal/gateway",
+        "photoeditor/backend/internal/v2input",
+        "photoeditor/backend/internal/review",
+        "photoeditor/backend/internal/semanticproposal"
+      ]
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 .venv-platform/bin/python docs/implementation-v2/check-docs.py",
+      "exit_code": 0,
+      "static_checks": 2267,
+      "semantic_tests": 55,
+      "regeneration": "deterministic",
+      "scope": "documentation only"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "target-person-absent-create-publish-register-seal",
+      "status": "physical_helper_verified"
+    },
+    {
+      "id": "target-person-saved-waiting-and-completed-restore-without-new-reservation",
+      "status": "physical_helper_verified"
+    },
+    {
+      "id": "target-person-canonical-execution-finish-and-replay",
+      "status": "physical_helper_verified"
+    },
+    {
+      "id": "00899-00922-forward-upgrade-data-OID-owner-ACL-preservation",
+      "status": "sql_verified"
+    },
+    {
+      "id": "Recover-missing-target-branch-wired",
+      "status": "compiled_not_full_process_verified"
+    },
+    {
+      "id": "whole-V27",
+      "status": "not_accepted"
+    }
+  ],
+  "limitations": [
+    "Physical fixture calls the production advance helper under original parent lock; full fresh-process Recover/ProcessOne crash/restart is not proved",
+    "Remaining five target stages and final semantic parent orchestration are not implemented",
+    "Failed target scheduling/dead-letter policy remains open; invalid/failed/partial state refuses repair",
+    "No actual GPU/photo-quality qualification; shared immutable WorkingImage and deterministic ML fixture",
+    "No complete parallel/cancel/purge/browser/5000-target/capacity or whole-module acceptance",
+    "Only isolated databases migrated; production DB unchanged"
+  ],
+  "corrected_failures": [
+    "Saved-reader child_run/child_task aliases disambiguate SQL task selection; catalog factory is invoked as function",
+    "Post-IO saved base profile equality is checked; final physical/Go reruns passed"
+  ]
+}

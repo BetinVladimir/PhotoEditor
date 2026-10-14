@@ -16,8 +16,9 @@ import (
 )
 
 type lensOriginalRow struct {
-	ref Ref
-	sha string
+	ref   Ref
+	sha   string
+	media string
 }
 
 func (r lensOriginalRow) Scan(d ...any) error {
@@ -27,7 +28,11 @@ func (r lensOriginalRow) Scan(d ...any) error {
 	*d[3].(*string) = "photos"
 	*d[4].(*string) = "original"
 	*d[5].(*string) = "v1"
-	*d[6].(*string) = "image/jpeg"
+	if r.media == "" {
+		*d[6].(*string) = "image/jpeg"
+	} else {
+		*d[6].(*string) = r.media
+	}
 	return nil
 }
 

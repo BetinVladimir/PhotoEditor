@@ -1,0 +1,73 @@
+{
+  "date": "2026-10-09",
+  "component": "V27 real target retry-once protocol",
+  "whole_module_accepted": false,
+  "migration_head": "00973",
+  "production_code_changed": false,
+  "production_migrations_applied": false,
+  "checks": {
+    "worker_retry_failure_success": {
+      "tests": 13.0,
+      "failures": 0.0,
+      "errors": 0.0,
+      "skipped": 0.0,
+      "time": 814.399,
+      "evidence": "v27-target-retry-matrix-current.xml"
+    },
+    "broad_integration": {
+      "tests": 256.0,
+      "failures": 0.0,
+      "errors": 0.0,
+      "skipped": 0.0,
+      "time": 923.825,
+      "evidence": "v27-target-retry-broad-current.xml"
+    },
+    "goose": {
+      "tests": 6.0,
+      "failures": 0.0,
+      "errors": 0.0,
+      "skipped": 0.0,
+      "time": 0.081,
+      "evidence": "v27-target-retry-goose-current.xml"
+    },
+    "photographer": {
+      "passed": 442,
+      "skipped": 7
+    },
+    "portal": {
+      "passed": 7,
+      "skipped": 0
+    },
+    "typecheck": "passed",
+    "docs": {
+      "semantic_tests": 55,
+      "static_checks": 2267,
+      "deterministic_regeneration": "passed"
+    }
+  },
+  "source_manifest": "v27-target-retry-source-current.json",
+  "source_manifest_sha256": "52f4e4c36c00c06b7dbc15e45aac7c38ea89887bb8198f664df1fde716552a89",
+  "source_files": 4838,
+  "imaging_preservation": {
+    "files": 544,
+    "changed": []
+  },
+  "production_go_preservation": {
+    "files": 1357,
+    "changed": []
+  },
+  "evidence_sha256": {
+    "v27-target-retry-matrix-current.xml": "3366815e4ff08b350a48d0ac8982037ed090305a45dff1c800b43cb0ed785503",
+    "v27-target-retry-broad-current.xml": "acd7c8e782805a209d00cf1e1347eee9306dddb972fbcd2c4612f2620aa73d1a",
+    "v27-target-retry-goose-current.xml": "ea24a1d7a65f399f7a044152021e7dc664cccb57d84a247eca73ea135f186fdf",
+    "v27-target-retry-go-current.jsonl": "c53e0a898c4843c1678af431f6beaaa3d5a25caf0ad028f66be3f73ab9e427dd",
+    "v27-target-retry-photographer-current.json": "c03464a068ed3aa004efce1193dd4e890a8d8f6c3da586adf3a738a32ae5036b",
+    "v27-target-retry-portal-current.json": "d4360930867586cbd5336799e087f50cc965bc94a8e6ff7d77643324eb75fcea"
+  },
+  "limitations": [
+    "Injected worker failures after actual admission/dispatch/claim; no actual inference error or HTTP/mTLS failure request.",
+    "Successful prerequisites use declared model/qualification doubles.",
+    "Seven client fixture-dependent tests skipped; DOM results are not browser/native acceptance.",
+    "Retry-to-success, retry budget exhaustion, OOM/fallback, independent restart/broker redelivery, GC/purge, full UI, real GPU/photo-quality and 5000-target performance remain open."
+  ]
+}

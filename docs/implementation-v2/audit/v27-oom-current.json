@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 frozen native OOM refusal and actual Executor classification",
+  "whole_module_accepted": false,
+  "migration_head": "00974",
+  "production_code_changed": false,
+  "production_migrations_applied": false,
+  "source_manifest": "v27-oom-source-current.json",
+  "source_manifest_sha256": "ea77211b8c64c449fe9d48f532f3c959a56b52606699b09256db5b6f28660a99",
+  "source_files": 4852,
+  "checks": {
+    "executor_classification": {
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "5.902",
+      "evidence": "executor-oom-policy-current.xml"
+    },
+    "first_native_probe": {
+      "status": "failed",
+      "reason": "Nested gateway evidence marker was not forwarded to outer Go test; fixed explicit forwarding and started fresh matrix. Original failure retained.",
+      "evidence": "v27-oom-first-current.xml"
+    },
+    "nonretryable_shared_probe_regression": {
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "53.384",
+      "evidence": "v27-oom-failure-regression-current.xml"
+    },
+    "lease_fencing_executor_regression": {
+      "tests": "15",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "23.965",
+      "evidence": "v27-oom-lease-regression-current.xml"
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/gateway",
+      "photoeditor/backend/internal/workflow",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "native_oom_matrix": {
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "384.102",
+      "evidence": "v27-oom-matrix-current.xml"
+    }
+  },
+  "matrix": {
+    "status": "passed",
+    "session_id": 47761,
+    "expected_cases": 6,
+    "accepted": true,
+    "xml": "v27-oom-matrix-current.xml",
+    "log": "work/v27-oom-matrix-current.log",
+    "last_observed_at": "2026-10-09T07:24:20.606525+00:00",
+    "completed_observed_at": "2026-10-09T07:28:23.422282+00:00",
+    "tests": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "time_seconds": "384.102"
+  },
+  "imaging_preservation": {
+    "files": 544,
+    "changed": 0
+  },
+  "limitations": [
+    "Native OOM is an injected TaskError after actual admission/dispatch/claim; no real model/GPU OOM.",
+    "Actual Executor classification uses owner-seeded media fixture and declared Torch OOM class stand-in, not native model inference.",
+    "No declared native reduction or qualified CPU fallback is invented or added. Positive reduction/fallback qualification and hardware evidence remain open.",
+    "Whole V27 and V20-V32 remain unaccepted."
+  ],
+  "evidence_sha256": {
+    "executor-oom-policy-current.xml": "bf9bf74297605a78fdb296256a3788e91ba95d9d9766c6801d336d9554125f0d",
+    "v27-oom-failure-regression-current.xml": "7692a49d4e79975c7a4a4c8b7922719f223b889d35f6e2319ef3a870f13a8470",
+    "v27-oom-lease-regression-current.xml": "b26253f73a24bcf394477abb74d0bc39bea120ab4e45833f86795fb75c831068",
+    "v27-oom-go-current.jsonl": "f1c3948d0fff99b2ba6f3852d5ccb062b47dacbf287f63397eb8a63ea32ec27c",
+    "v27-oom-matrix-current.xml": "1401da10cc144eece869a4651ac9b3d58d4765c17ea53815520c7d737870f5cb"
+  },
+  "docs": {
+    "semantic_tests": 55,
+    "static_checks": 2267,
+    "deterministic_regeneration": "passed"
+  },
+  "source_scope_check": "All launch-pinned backend/workers/src/tests hashes unchanged at completion; later standalone restart tests were additive and not exercised by OOM matrix."
+}

@@ -1,0 +1,93 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "generated_at": "2026-10-08T14:59:09.286672+00:00",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "dirty_tree_hash": "2397861c3396446ca1af06359eb3a9aaec69f2f61168bdf051cb55dfb125eb36",
+  "dirty_tree_hash_scope": {
+    "roots": [
+      "backend/",
+      "workers/",
+      "src/",
+      "apps/",
+      "packages/",
+      "tests/",
+      "scripts/",
+      "deploy/",
+      "docs/implementation-v2/contracts/"
+    ],
+    "paths": 4746,
+    "algorithm": "sorted git tracked+untracked nonignored names NUL sha256(bytes) newline; MISSING marker; excludes generated audit evidence"
+  },
+  "contracts_hash": "bedf81fee94e5e75a78db7d8fc942cdc67d7fb580301c33071233e3abf357b38",
+  "source_scope": {
+    "backend/db/migrations/00916_v27_target_person_admission_evidence.sql": "42191a2ae935af8bc3ac7d6665e62061509acc859364abb53f02e1dd4f7bda08",
+    "backend/internal/semanticproposal/native_target_person_admission.go": "14a192887ad28c6942ecb1227c4a9726304a4a45253464f672d0751b68f53709",
+    "backend/internal/semanticproposal/native_target_person_wire_probe_test.go": "4c11ff35c61c55309e7c991120f5615ca7f7071e55ee91b45fc5d86f9c81fe0b",
+    "tests/integration/test_v27_person_migration_upgrade.py": "e91fcc41fa89a1b084a03809684bc13a4636ef11e47b6701c46d3b4f21bb47c5",
+    "tests/integration/test_v27_target_person_registration.py": "95902d0b004da89c7607e5afb63dc821798a705fc2e5cc08f52d84d73889204b",
+    "tests/integration/test_v27_semantic_intent_publication.py": "61ddff36c54990d3770dbbcb44a2d7db3f4b0a1bacade3117f7bd5b8edff317f"
+  },
+  "checks": [
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-admission-sql-current.xml",
+      "evidence_sha": "f7aa20d38005282419f2c48d617d25c16be4a474561837a7c776c76863c9707b",
+      "exit_code": 0,
+      "tests": 18,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 18.876
+    },
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-admission-wire-current.xml",
+      "evidence_sha": "411006cde49aa97fcdd19e563bc82424cef9c06a1975c9208f952f584772687e",
+      "exit_code": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 57.222
+    },
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-admission-go-current.jsonl",
+      "evidence_sha": "bd7cfdf40678c8e6f87b924eff39302a748b0043e95c49aaf7ced30bad5b613b",
+      "exit_code": 0,
+      "packages_passed": [
+        "photoeditor/backend/internal/v2input",
+        "photoeditor/backend/internal/review",
+        "photoeditor/backend/internal/semanticproposal"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "target-person-admission-envelope-current-authority-and-qualification",
+      "status": "physical_fixture_verified"
+    },
+    {
+      "id": "target-person-admission-replay-and-substitutions",
+      "status": "physical_fixture_verified"
+    },
+    {
+      "id": "00899-00916-forward-upgrade-preserves-data-and-existing-functions",
+      "status": "sql_verified"
+    },
+    {
+      "id": "target-person-seal-execution-canonical-adoption",
+      "status": "not_implemented"
+    },
+    {
+      "id": "whole-V27-module",
+      "status": "not_accepted"
+    }
+  ],
+  "limitations": [
+    "Automatic Recover persists target checkpoint and waits; target helpers not wired to automatic orchestration",
+    "Target dedicated seal, worker execution, canonical adoption, cold restart and remaining five target stages are still required",
+    "Physical fixture uses distinct accepted version/recipe with shared immutable WorkingImage bytes and deterministic ML doubles; not real GPU or image-quality qualification",
+    "Target run remains draft/unsealed/task blocked; no parent graph or completion receipt",
+    "No current whole-module/browser/capacity acceptance; static inventory is coverage inventory only",
+    "Only isolated test databases migrated; production DB unchanged"
+  ]
+}

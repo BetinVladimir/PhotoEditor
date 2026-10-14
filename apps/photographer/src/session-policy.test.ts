@@ -1,6 +1,9 @@
 import {expect,it} from 'vitest';
-import {editSessionPolicy} from './session-policy';
+import {editSessionPolicy,sessionName} from './session-policy';
 import type {ShootSessionPolicy} from './capture-types';
 const policy:ShootSessionPolicy={schema_version:1,time_gap_seconds:60,neighbor_count:4,protect_manual_picks:true,camera_offsets:[{camera_hash:'a'.repeat(64),seconds:2}],calibration:{artifact_id:'calibration',sha256:'b'.repeat(64)}};
+it('bounds names by Unicode code points and rejects malformed Unicode',()=>{expect(sessionName('📷'.repeat(200))).toHaveLength(400);for(const name of ['', 'x'.repeat(201),'📷'.repeat(201),'\ud800'])expect(()=>sessionName(name)).toThrow();});
 it('updates grouping controls while preserving quality/calibration settings',()=>{const updated=editSessionPolicy(policy,'7200','64');expect(updated).toEqual({...policy,time_gap_seconds:7200,neighbor_count:64});updated.camera_offsets[0].seconds=4;expect(policy.camera_offsets[0].seconds).toBe(2);});
 it('rejects malformed and out-of-range grouping values',()=>{for(const [gap,count] of [['29','4'],['7201','4'],['60','0'],['60','65'],['1e3','4'],['60','1.5']])expect(()=>editSessionPolicy(policy,gap,count)).toThrow();});
+it('changes manual protection only with an explicit boolean choice',()=>{expect(editSessionPolicy(policy,'60','4').protect_manual_picks).toBe(true);expect(editSessionPolicy(policy,'60','4',false)).toEqual({...policy,protect_manual_picks:false});expect(()=>editSessionPolicy(policy,'60','4','false' as never)).toThrow();});
+it('validates explicit camera offsets and retains omitted server offsets',()=>{const offset={camera_hash:'a'.repeat(64),seconds:'-86400'};expect(editSessionPolicy(policy,'60','4',undefined,[offset]).camera_offsets).toEqual([{...offset,seconds:-86400}]);for(const seconds of ['86401','-86401','1.5','1e2',''])expect(()=>editSessionPolicy(policy,'60','4',undefined,[{...offset,seconds}])).toThrow();expect(()=>editSessionPolicy(policy,'60','4',undefined,[offset,offset])).toThrow();expect(editSessionPolicy(policy,'60','4').camera_offsets).toEqual(policy.camera_offsets);});

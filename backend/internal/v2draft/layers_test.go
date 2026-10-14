@@ -33,6 +33,17 @@ func TestValidateLayerStackPinsCanvasAndNestedRefs(t *testing.T) {
 		refs[1].Ref != params || refs[2].Ref != mask || refs[2].Contract != "MaskRef" {
 		t.Fatalf("invalid layer refs: %+v, %v", refs, err)
 	}
+	parent := ref()
+	children, e := DocumentChildren(raw, "LayerStack", parent)
+	if e != nil || len(children) != len(refs) {
+		t.Fatal("document layer children", e)
+	}
+	for i, child := range children {
+		if child.Ref != refs[i].Ref || child.Contract != refs[i].Contract || child.ParentRef != parent ||
+			child.Path != "Document"+strings.TrimPrefix(refs[i].Path, "LayerStack") {
+			t.Fatal("layer occurrence or parent lost", child)
+		}
+	}
 	binding.CanvasHash = strings.Repeat("c", 64)
 	if _, err := ValidateLayerStack(raw, binding); err == nil {
 		t.Fatal("accepted layer stack bound to another canvas")
@@ -50,6 +61,29 @@ func TestValidateLayerStackPinsCanvasAndNestedRefs(t *testing.T) {
 	}
 	if _, err := ValidateLayerStack(raw, binding); err == nil {
 		t.Fatal("accepted mask expression deeper than 16")
+	}
+	if _, err := DocumentChildren(raw, "LayerStack", parent); err == nil {
+		t.Fatal("document reader accepted deep layer mask")
+	}
+}
+
+func TestDocumentEmptyLayerStackRejectsMalformedSourceCanvas(t *testing.T) {
+	ref := v2input.Ref{ArtifactID: uuid.New(), SHA256: strings.Repeat("a", 64)}
+	binding := v2input.SessionVersionBinding{AssetVersionID: uuid.New(), Source: ref, CanvasHash: strings.Repeat("b", 64)}
+	for _, canvas := range []string{strings.Repeat("b", 64), strings.Repeat("x", 64)} {
+		binding.CanvasHash = canvas
+		raw, err := canonical.Marshal(map[string]any{"schema_version": 1, "source": binding, "layers": []any{}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		children, err := DocumentChildren(raw, "LayerStack", ref)
+		if canvas == strings.Repeat("b", 64) {
+			if err != nil || len(children) != 1 || children[0].Contract != "WorkingImage" || children[0].Ref != ref {
+				t.Fatal("valid empty stack source lost", err)
+			}
+		} else if err == nil {
+			t.Fatal("malformed canvas accepted")
+		}
 	}
 }
 

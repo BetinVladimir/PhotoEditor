@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 relight scratch preparation",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "existing_imaging_algorithms_changed": false,
+  "implemented": [
+    "Attempt-scoped RGB, changed-mask and EV-field NPY output with20*pixels+32768 scratch reservation",
+    "Bounded input/field/color/proposal/compose blocks; conservative existing local portrait CPU resource ceiling retained",
+    "Exact source restoration for zero strength, protected/zero-subject and zero-field regions",
+    "Cancellation/error cleanup and review-required result metadata"
+  ],
+  "source_sha256": {
+    "workers/photo_worker/operations/portrait/prepare_relight.py": "881d254104a629e858849bc0cf1f9e65a76b5ccd9155ec17af2777d3fb7c14ba",
+    "tests/platform/test_relight_prepare.py": "70ddf488a25f9d0c4d14b48d9c793d3cd9d128f729a92cba91cffc0a013e598f",
+    "workers/photo_worker/algorithms/relight.py": "f3c3d9c108db6a9a8c0a0ed39a5bff8eef1d5a7f949ffe779d255eeb93567018"
+  },
+  "limitations": [
+    "No relight worker registration/lease/SQL admission/output adoption or UI yet",
+    "No actual depth-model inference or trusted calibration/qualification; caller must authorize depth_sigma separately",
+    "Synthetic float32 pixels only, no real-photo/human/target-device acceptance"
+  ],
+  "checks": {
+    "name": "pytest",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "tests": "17",
+    "time": "1.108",
+    "timestamp": "2026-10-09T11:39:29.002165+03:00",
+    "hostname": "Mac",
+    "xml": "v28-relight-prepare-current.xml"
+  },
+  "assertions": [
+    "Scratch output matches independent full-frame field/color/compose reference for strength0 and.7 across block seams",
+    "Exact untouched source and actual changed-mask agreement",
+    "Cancellation and all-invalid depth clean allocated scratch files",
+    "Insufficient RAM rejected without scratch files",
+    "Existing local portrait tile parity passes"
+  ]
+}

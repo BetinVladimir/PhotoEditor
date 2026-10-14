@@ -10,6 +10,87 @@ from photo_worker.v2.render_execute import execute_authored_render, execute_pinn
 from test_v26_render_authored import fixture
 
 
+@pytest.mark.parametrize('retain_parent',[True,False])
+def test_profiled_worker_inherits_primary_generated_mask_and_review(tmp_path,retain_parent):
+    from io import BytesIO
+    from types import SimpleNamespace
+    from photo_worker.contracts.base import canonical_hash
+    from photo_worker.contracts.images import MaskRef
+    from photo_worker.v2.adoption import ArtifactRef as ScopedRef
+    from photo_worker.v2.render_adoption_inputs import RenderAdoptionInputs
+    from photo_worker.v2.render_qualification_pin import RenderQualificationPin
+    from photo_worker.v2.render_task import ProfiledTaskRenderer
+    from test_v26_render_runtime import lock
+    artifacts,inputs,overrides,_,options,original_path=fixture(tmp_path)
+    runtime=lock();runtime_sha=canonical_hash(runtime)
+    runtime_path=tmp_path/'runtime.json';runtime_path.write_bytes(canonical_bytes(runtime))
+    pin=RenderQualificationPin(inputs.recipe.scalars.model_lock_sha,runtime_sha,'cpu','c'*64,'d'*64,'e'*64)
+    profile=dict(options['execution_profile'],backend='cpu',renderer_version='v2.2',render_runtime_sha=runtime_sha,
+        model_lock_sha=pin.model_lock_sha,icc_lock_sha=inputs.recipe.scalars.icc_lock_sha,tile_size=512,alpha_mode='require_float32')
+    documents={};payloads={}
+    def document(value):
+        raw=canonical_bytes(value);ref=ArtifactRef(artifact_id=uuid4(),sha256=sha256(raw).hexdigest())
+        documents[ref.artifact_id]=value;return ref
+    generated_path=tmp_path/'generated.npy';np.save(generated_path,np.array([[0,1]],np.float32))
+    generated_pixels=ArtifactRef(artifact_id=uuid4(),sha256=sha256(generated_path.read_bytes()).hexdigest())
+    generated_ref=document(MaskRef(artifact=generated_pixels,canvas=inputs.source.canvas,
+        transform_chain=inputs.source.transform_chain,selector='generated',confidence=1,model_lock_id=None,protected=False))
+    binding=inputs.recipe.recipe.source
+    report_ref=document(ImageReport(schema_version=1,status='review',operation='asset.decode',skipped_count=0,
+        reason='SOURCE_REVIEW',outside_mask_max_error=0,clipping_fraction=0,identity=None,transform=None,
+        sources=[binding],registrations=[],parent_reports=[]))
+    parent=ImageResult(schema_version=1,working_image=binding.source,report=report_ref,
+        changed_mask=generated_ref,generated_mask=generated_ref)
+    parent_ref=document(parent)
+    recipe_ref=ArtifactRef(artifact_id=uuid4(),sha256=canonical_hash(inputs.recipe))
+    scoped=RenderAdoptionInputs(ScopedRef(recipe_ref.artifact_id,recipe_ref.sha256),canonical_bytes(profile),
+        (ScopedRef(parent_ref.artifact_id,parent_ref.sha256),),pin)
+    def contract(ref,model):return model.model_validate_json(canonical_bytes(documents[ref.artifact_id]))
+    artifacts.contract=contract
+    @contextmanager
+    def input_file(ref,**kwargs):
+        assert ref in (inputs.source.pixels,generated_pixels)
+        yield SimpleNamespace(path=original_path if ref==inputs.source.pixels else generated_path)
+    artifacts.input=input_file
+    def stage(path,owner,role,mime):
+        owner.validate_file(path);raw=path.read_bytes()
+        ref=ArtifactRef(artifact_id=uuid4(),sha256=sha256(raw).hexdigest());payloads[ref.artifact_id]=raw;return ref
+    artifacts.stage=stage;artifacts.stage_contract=lambda value,role:document(value)
+    @contextmanager
+    def base(state,style,original,masks):
+        np.testing.assert_array_equal(original.generated,[[0,1]])
+        yield AdjustmentPixels(np.full_like(original.rgb,.5),original.alpha,original.generated)
+    def measure(state,prepared):
+        assert prepared.render.source_reports.review_required
+        assert prepared.render.source_reports.reports==(report_ref,)
+        np.testing.assert_array_equal(prepared.render.composition.pixels.generated,[[0,1]])
+        measured=ImageReport(schema_version=1,status='pass',operation='render.compose',skipped_count=0,
+            reason=None,outside_mask_max_error=0,clipping_fraction=0,identity=None,transform=None,
+            sources=[binding],registrations=[],parent_reports=[report_ref] if retain_parent else [])
+        return MeasuredAuthoredRender(measured,(parent,) if retain_parent else ())
+    preparation={k:v for k,v in options.items() if k not in ('execution_profile','provider_peak')}
+    renderer=ProfiledTaskRenderer(backend='cpu',runtime_path=runtime_path,runtime_sha256=runtime_sha,
+        model_lock_sha=pin.model_lock_sha,icc_lock_sha=inputs.recipe.scalars.icc_lock_sha,
+        provider_peak=options['provider_peak'],qualification_pin=pin,verify_qualification=lambda supplied:None,
+        load_providers=lambda *args:dict(operators=(),scalar_overrides=overrides,render_base=base,
+            render_proposal=None,measure=measure,preparation=preparation))
+    ctx=SimpleNamespace(check_active=lambda:None,lease=SimpleNamespace(execution_profile=profile,
+        command=SimpleNamespace(params=recipe_ref)))
+    try:
+        if not retain_parent:
+            with pytest.raises(ValueError,match='SOURCE_REPORTS_DROPPED'):
+                renderer.execute(ctx,artifacts,inputs,authoritative_inputs=scoped)
+            assert not payloads
+        else:
+            result=renderer.execute(ctx,artifacts,inputs,authoritative_inputs=scoped)
+            root=documents[result.document.artifact_id]
+            report=documents[root.report.artifact_id]
+            assert report.status=='review' and report.parent_reports==[report_ref] and result.review_required
+            generated=documents[root.generated_mask.artifact_id]
+            np.testing.assert_array_equal(np.load(BytesIO(payloads[generated.artifact.artifact_id]),allow_pickle=False),[[0,1]])
+    finally:artifacts.scratch.cleanup()
+
+
 @pytest.mark.parametrize('entry',[execute_pinned_authored_render,execute_profiled_authored_render,'task-renderer'])
 @pytest.mark.parametrize('status',['pass','review','fail'])
 @pytest.mark.parametrize('base_review',[False,True])
@@ -56,16 +137,24 @@ def test_authored_execution_stages_exact_result_inventory_only_after_measurement
     if entry == 'task-renderer':
         from types import SimpleNamespace
         from photo_worker.v2.render_task import ProfiledTaskRenderer
+        from photo_worker.v2.render_qualification_pin import RenderQualificationPin
+        from photo_worker.v2.render_adoption_inputs import RenderAdoptionInputs
+        from photo_worker.v2.adoption import ArtifactRef as ScopedRef
         options={key:value for key,value in arguments.items() if key not in {
             'backend','runtime_lock_path','runtime_lock_sha','execution_profile','provider_peak'}}
+        pin=RenderQualificationPin(inputs.recipe.scalars.model_lock_sha,canonical_hash(runtime),
+            'cuda','c'*64,'d'*64,'e'*64)
         renderer=ProfiledTaskRenderer(backend='cuda',runtime_path=runtime_path,
             runtime_sha256=canonical_hash(runtime),model_lock_sha=inputs.recipe.scalars.model_lock_sha,
             icc_lock_sha=inputs.recipe.scalars.icc_lock_sha,provider_peak=arguments['provider_peak'],
-            verify_qualification=lambda:None,load_providers=lambda *args:dict(
+            qualification_pin=pin,verify_qualification=lambda supplied:None,load_providers=lambda *args:dict(
                 operators=(),scalar_overrides=overrides,render_base=base,render_proposal=None,
                 measure=measure,preparation=options))
-        ctx=SimpleNamespace(check_active=lambda:None,lease=SimpleNamespace(execution_profile=arguments['execution_profile']))
-        entry=lambda *args,**kwargs:renderer.execute(ctx,artifacts,inputs)
+        ref=ArtifactRef(artifact_id=uuid4(),sha256=canonical_hash(inputs.recipe))
+        scoped=RenderAdoptionInputs(ScopedRef(ref.artifact_id,ref.sha256),canonical_bytes(arguments['execution_profile']),(),pin)
+        ctx=SimpleNamespace(check_active=lambda:None,lease=SimpleNamespace(execution_profile=arguments['execution_profile'],
+            command=SimpleNamespace(params=ref)))
+        entry=lambda *args,**kwargs:renderer.execute(ctx,artifacts,inputs,authoritative_inputs=scoped)
     try:
         if status=='fail':
             with pytest.raises(ValueError,match='MEASURED_INVALID'):

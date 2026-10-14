@@ -16,8 +16,10 @@ describe("OwnerAPI contracts",()=>{
  it("rejects an unaccepted style before requesting a V2 binding",async()=>{const{api,request}=setup();await expect(api.createV2Draft("asset",{approval_status:"draft",export_artifact_id:"artifact",config_hash:"c".repeat(64)}as never)).rejects.toThrow("No accepted StyleV2 artifact");expect(request).not.toHaveBeenCalled()});
  it("freezes a collection before creating a contact sheet",async()=>{const{api,request}=setup({id:"snapshot",run_id:"run",status:"queued"});const collection={id:"collection/id",revision:"7"}as Collection;await api.selectionSnapshot(collection);await api.contactSheet("snapshot","bg",4,5);expect(request.mock.calls[0][0]).toContain("collection%2Fid/selection-snapshots");expect(request.mock.calls[0][1].body).toEqual({collection_revision:"7",scope:"all"});expect(request.mock.calls[1][1].body).toEqual({selection_snapshot_id:"snapshot",locale:"bg",columns:4,rows:5})});
  it("starts a download only from an explicit frozen snapshot",async()=>{const{api,request}=setup();await api.startDownload("snapshot","preset");expect(request.mock.calls[0][1].body).toEqual({selection_snapshot_id:"snapshot",preset_id:"preset"})});
+ it("preserves caller-owned retry keys for preset creation and download start",async()=>{const{api,request}=setup();await api.createPreset("Print",{metadata_policy:"strip"} as never,"preset-key");await api.startDownload("snapshot","preset","download-key");expect(request.mock.calls[0][1].idempotencyKey).toBe("preset-key");expect(request.mock.calls[1][1].idempotencyKey).toBe("download-key")});
  it("requests an approved derivative and never a master object",async()=>{const{api,request}=setup({items:[]});await api.mediaLinks("asset/id","version",["thumb640"]);expect(request).toHaveBeenCalledWith("/api/v1/tenants/tenant%2Fid/assets/asset%2Fid/media-links",expect.objectContaining({body:{asset_version_id:"version",variants:["thumb640"]}}))});
  it("moderates the exact Apply item at the current collection revision",async()=>{const{api,request}=setup({});const collection={id:"c/id",revision:"9"}as Collection;const item={id:"item/id"}as CollectionItem;await api.moderateApplyItem(collection,item,"accept");expect(request).toHaveBeenCalledWith("/api/v1/tenants/tenant%2Fid/collections/c%2Fid/items/item%2Fid/moderation",expect.objectContaining({method:"POST",body:{expected_revision:9,decision:"accept"}}))});
+ it("sets and clears an independent color label under the collection CAS revision",async()=>{const{api,request}=setup({});const collection={id:"c/id",revision:"9"}as Collection;const item={id:"item/id"}as CollectionItem;await api.setItemColorLabel(collection,item,"Blue");await api.setItemColorLabel(collection,item,null);for(const [index,label] of [[0,"Blue"],[1,null]] as const){expect(request.mock.calls[index]).toEqual(["/api/v1/tenants/tenant%2Fid/collections/c%2Fid/items/item%2Fid",expect.objectContaining({method:"PATCH",headers:{"If-Match":"\"9\""},body:{color_label:label}})])}});
 });
 
 describe("OwnerAPI capture",()=>{
@@ -66,4 +68,11 @@ it('reads an admitted region descriptor against captured request/source evidence
  const bound=await pending;expect(bound.request.rect.x1).toBe(1);expect(bound.source.sha256).toBe('b'.repeat(64));
  expect(transport.mock.calls[0][0]).toContain(`/assets/${id(4)}/region-previews/${id(5)}/descriptor`);
  expect(transport.mock.calls[0][1].signal).toBe(controller.signal);
+});
+
+it("passes review-load cancellation with tenant and review scope",async()=>{
+ const{api,request}=setup({id:"review/id"});
+ const controller=new AbortController();
+ await api.review("review/id",controller.signal);
+ expect(request).toHaveBeenCalledWith("/api/v1/tenants/tenant%2Fid/reviews/review%2Fid",expect.objectContaining({signal:controller.signal}));
 });

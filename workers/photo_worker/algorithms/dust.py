@@ -14,6 +14,14 @@ class FrameDust:
     radius: float
 
 
+def dust_detection_ram_bytes(width,height):
+    """Conservative native full-frame detector peak; qualify measured peaks separately."""
+    if (type(width) is not int or type(height) is not int or min(width,height)<8
+            or width*height>200000000):
+        raise ValueError('DUST_IMAGE_INVALID')
+    return max(536870912,192*width*height+268435456)
+
+
 def detect_frame_dust(rgb: np.ndarray, check_active: Callable[[], None] = lambda: None) -> list[FrameDust]:
     if (not isinstance(rgb, np.ndarray) or rgb.dtype != np.float32 or rgb.ndim != 3 or rgb.shape[2] != 3
             or min(rgb.shape[:2]) < 8 or not np.isfinite(rgb).all() or np.any(rgb < 0) or np.any(rgb > 1)):
@@ -54,25 +62,42 @@ def map_to_sensor(candidate: FrameDust, frame_shape: tuple[int, int], crop: tupl
                      candidate.radius * .5 * (crop_width / width + crop_height / height))
 
 
-def repeated_dust(frames: list[list[FrameDust]], minimum_fraction: float = .8) -> list[tuple[FrameDust, int, int]]:
+def repeated_dust(frames: list[list[FrameDust]], minimum_fraction: float = .8,
+                  check_active: Callable[[], None] = lambda: None) -> list[tuple[FrameDust, int, int]]:
     if len(frames) < 5 or not .8 <= minimum_fraction <= 1: raise ValueError("DUST_SERIES_INVALID")
+    check_active()
     clusters: list[list[tuple[int, FrameDust]]] = []
+    centres=[];seen_frames=[]
     for frame_index, candidates in enumerate(frames):
+        check_active()
         for candidate in candidates:
+            check_active()
             best = None; best_distance = float("inf")
             for index, cluster in enumerate(clusters):
-                if any(seen_frame == frame_index for seen_frame, _ in cluster): continue
-                centre_x = np.mean([item.x for _, item in cluster]); centre_y = np.mean([item.y for _, item in cluster])
+                if index%256==0:check_active()
+                if frame_index in seen_frames[index]: continue
+                centre_x,centre_y=centres[index]
                 distance = float(np.hypot(candidate.x - centre_x, candidate.y - centre_y))
                 if distance <= 2 and distance < best_distance: best, best_distance = index, distance
-            if best is None: clusters.append([(frame_index, candidate)])
-            else: clusters[best].append((frame_index, candidate))
+            if best is None:
+                best=len(clusters)
+                clusters.append([(frame_index, candidate)])
+                seen_frames.append({frame_index})
+            else:
+                clusters[best].append((frame_index, candidate))
+                seen_frames[best].add(frame_index)
+            # Recompute using the original NumPy mean/order, never a running sum.
+            cluster=clusters[best]
+            centre=(np.mean([item.x for _,item in cluster]),np.mean([item.y for _,item in cluster]))
+            if best==len(centres):centres.append(centre)
+            else:centres[best]=centre
     required = int(np.ceil(minimum_fraction * len(frames)))
     output = []
-    for cluster in clusters:
-        observed = len({frame for frame, _ in cluster})
+    for index,cluster in enumerate(clusters):
+        check_active()
+        observed = len(seen_frames[index])
         if observed < required: continue
-        output.append((FrameDust(float(np.mean([item.x for _, item in cluster])),
-                                 float(np.mean([item.y for _, item in cluster])),
+        output.append((FrameDust(float(centres[index][0]),float(centres[index][1]),
                                  float(np.mean([item.radius for _, item in cluster]))), observed, len(frames)))
+    check_active()
     return sorted(output, key=lambda value: (value[0].y, value[0].x))

@@ -32,11 +32,18 @@ IMAGE='photoeditor-minio-integration:9e49d5e7'
 
 @pytest.fixture
 def lens_objects():
-    inspected=subprocess.run(['docker','image','inspect',IMAGE],capture_output=True,text=True,timeout=10)
+    if os.environ.get('PHOTO_TEST_NATIVE_INFRA')=='1':
+        yield from native_lens_objects()
+        return
+    # Docker Desktop can respond slowly after a full schema/bootstrap run.
+    # Keep this read-only preflight bounded; a timeout remains a test error.
+    inspected=subprocess.run(['docker','image','inspect',IMAGE],capture_output=True,text=True,timeout=60)
     if inspected.returncode:pytest.skip('Build deploy/images/minio-integration/Dockerfile first')
     metadata=json.loads(inspected.stdout)[0]
     assert metadata['Config']['Labels']['photoeditor.purpose']=='isolated-objectstore-integration'
     assert metadata['Config']['Labels']['photoeditor.scope']=='development'
+    tmpfs=os.getenv('PHOTO_TEST_MINIO_TMPFS','0')
+    assert tmpfs in ('0','1'),'PHOTO_TEST_MINIO_TMPFS must be 0 or 1'
     identity=uuid4().hex
     folder=ROOT/'.runtime/v25-objectstore'/identity
     folder.mkdir(parents=True,mode=0o700)
@@ -45,8 +52,6 @@ def lens_objects():
     access='lens'+uuid4().hex;secret=uuid4().hex+uuid4().hex
     env.write_text(f'MINIO_ROOT_USER={access}\nMINIO_ROOT_PASSWORD={secret}\n');env.chmod(0o600)
     name='photoeditor-v25-'+identity
-    tmpfs=os.getenv('PHOTO_TEST_MINIO_TMPFS','0')
-    assert tmpfs in ('0','1'),'PHOTO_TEST_MINIO_TMPFS must be 0 or 1'
     # Explicit small-fixture mode for disk-constrained hosts. This does not test
     # MinIO container restart durability; creator/recovery processes remain real.
     storage_args=(['--tmpfs','/data:rw,size=128m'] if tmpfs=='1'
@@ -61,7 +66,7 @@ def lens_objects():
         client=Minio('127.0.0.1:'+port,access_key=access,secret_key=secret,secure=False,
             http_client=urllib3.PoolManager(timeout=urllib3.Timeout(connect=1,read=2),retries=False))
         bucket='lens-'+identity
-        deadline=time.monotonic()+20
+        deadline=time.monotonic()+60
         while True:
             try:
                 client.make_bucket(bucket);break
@@ -73,12 +78,18 @@ def lens_objects():
         yield client,bucket
     finally:
         stopped=subprocess.run(['docker','stop','--time','3',name],capture_output=True,text=True,timeout=10)
-        # Do not remove a bind mount if its owner container is still alive.
-        remaining=subprocess.run(['docker','inspect',name],capture_output=True,text=True,timeout=10)
-        if remaining.returncode!=0:
-            shutil.rmtree(folder)
-        else:
-            raise RuntimeError('Integration container still exists; preserve its data')
+        # --rm removal can lag a successful stop. Confirm absence through a
+        # successful inventory; an inspect/daemon error is not proof of absence.
+        deadline=time.monotonic()+5
+        while True:
+            remaining=subprocess.run(['docker','ps','--all','--filter','name='+name,
+                '--format','{{.Names}}'],capture_output=True,text=True,timeout=3)
+            if remaining.returncode==0 and name not in remaining.stdout.splitlines():
+                shutil.rmtree(folder)
+                break
+            if time.monotonic()>=deadline:
+                raise RuntimeError('Integration container absence unconfirmed; preserve its data')
+            time.sleep(.1)
 
 
 def test_lens_array_reads_exact_old_version_and_rejects_new_wrong_bytes(lens_objects,database):
@@ -127,3 +138,27 @@ def test_lens_array_reads_exact_old_version_and_rejects_new_wrong_bytes(lens_obj
         catalog.execute('SET ROLE photo_scheduler')
         with pytest.raises(AdoptionInvalid,match='HEADER_INVALID'):
             verify_lens_array(reader(),bad,array.shape,'pixels')
+
+
+def native_lens_objects():
+    """Opt-in local native server; each case owns only its fresh bucket."""
+    from hashlib import sha256
+    credential_file=ROOT/'work/minio-native-audit.env'
+    assert credential_file.stat().st_mode&0o077==0,'Unsafe native credentials permissions'
+    manifest=json.loads((ROOT/'.runtime/minio-native/source-manifest.json').read_text())
+    lock=json.loads((ROOT/'resources/minio-source.lock.json').read_text())
+    assert manifest['commit']==lock['commit'] and manifest['sum']==lock['sum']
+    assert sha256((ROOT/'.runtime/minio-native/minio-server').read_bytes()).hexdigest()==manifest['binary_sha256']
+    values=dict(line.split('=',1) for line in credential_file.read_text().splitlines())
+    client=Minio('127.0.0.1:59010',access_key=values['MINIO_ROOT_USER'],secret_key=values['MINIO_ROOT_PASSWORD'],secure=False,
+        http_client=urllib3.PoolManager(timeout=urllib3.Timeout(connect=2,read=10),retries=False))
+    bucket='native-lens-'+uuid4().hex
+    client.make_bucket(bucket)
+    try:
+        client.set_bucket_versioning(bucket,VersioningConfig(ENABLED))
+        client._photo_test_config=dict(Endpoint='http://127.0.0.1:59010',Bucket=bucket,AccessKey=values['MINIO_ROOT_USER'],SecretKey=values['MINIO_ROOT_PASSWORD'],Development=True)
+        yield client,bucket
+    finally:
+        for item in client.list_objects(bucket,recursive=True,include_version=True):
+            client.remove_object(bucket,item.object_name,version_id=item.version_id)
+        client.remove_bucket(bucket)

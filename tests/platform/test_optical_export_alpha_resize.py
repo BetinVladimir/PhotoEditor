@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
-from photo_worker.operations.export.encode import _resize,_resize_rgba
+from photo_worker.operations.export.encode import _resize,_resize_rgba,_resize_working_image
+from types import SimpleNamespace
 
 
 @pytest.mark.parametrize('encoding',['gamma24','srgb'])
@@ -23,3 +24,17 @@ def test_opaque_and_unchanged_geometry_preserve_previous_values():
     output,alpha=_resize_rgba(rgb,opaque,6,4)
     np.testing.assert_array_equal(output,rgb)
     np.testing.assert_array_equal(alpha,opaque)
+
+
+def test_export_resize_uses_working_image_transfer_function():
+    rgb=np.array([[[.2,.1,.8],[.8,.5,.1]]],np.float32)
+    alpha=np.array([[1,.25]],np.float32)
+    linear=SimpleNamespace(color=SimpleNamespace(encoding='linear'))
+    gamma=SimpleNamespace(color=SimpleNamespace(encoding='gamma24'))
+    linear_rgb,linear_alpha=_resize_working_image(rgb,alpha,1,1,linear)
+    gamma_rgb,gamma_alpha=_resize_working_image(rgb,alpha,1,1,gamma)
+    expected_rgb,expected_alpha=_resize_rgba(rgb,alpha,1,1,encoding='linear')
+    np.testing.assert_array_equal(linear_rgb,expected_rgb)
+    np.testing.assert_array_equal(linear_alpha,expected_alpha)
+    np.testing.assert_array_equal(gamma_alpha,linear_alpha)
+    assert not np.allclose(gamma_rgb,linear_rgb)

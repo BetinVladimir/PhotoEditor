@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 relight positive SQL attempt and revocation matrix",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "tests": {
+    "passed": 2,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 3.36,
+    "xml": "v28-relight-live-lease-current.xml"
+  },
+  "source_sha256": {
+    "tests/integration/test_v28_relight_lease.py": "f3b7213f7737a693ccdc14880cd1a9125f6f198a7d9320e62e3ee42373df0acb"
+  },
+  "limitations": [
+    "Owner-seeded SQL metadata, placeholder Params {} and closure objects; no physical input verification",
+    "No real dispatcher/claim, qualification/producer authority, worker pixels/adoption/UI"
+  ]
+}

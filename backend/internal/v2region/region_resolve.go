@@ -33,6 +33,9 @@ func (p FrozenRegionPlan) ResolveInputs(ctx context.Context, resolver RegionInpu
 	if err != nil {
 		return nil, err
 	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	if len(resolved) < 3 || len(resolved) > 511 {
 		return nil, ErrRegionInvalid
 	}

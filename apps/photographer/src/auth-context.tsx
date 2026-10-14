@@ -1,3 +1,29 @@
+import {clearCollectionApplyAttempts} from './collection-apply-store';
+import {clearUploadStorage} from './upload-storage';
+import {clearInterchangeArchiveAttempts} from './interchange-archive-attempt-store';
+import {clearInterchangeSnapshotAttempts} from './interchange-snapshot-attempt-store';
+import {clearInterchangeCreateAttempts} from './interchange-create-attempt-store';
+import {clearInterchangeReviewAttempts} from './interchange-review-attempt-store';
+import {clearDeliveryPublishAttempts} from './delivery-publish-attempt-store';
+import {clearSigningAttempts} from './signing-attempt-store';
+import {clearDeliveryCreateAttempts} from "./delivery-create-attempt-store";
+import {clearMultiApplyAttempts} from "./multi-apply-store";
+import {clearMultiAttempts} from './multi-attempt-store';
+import {clearPerspectiveApplyAttempts} from "./perspective-apply-store";
+import {clearPerspectiveLinesAttempts} from './perspective-lines-attempt-store';
+import {clearNegativeAttempts} from "./negative-attempt-store";
+import {clearPerspectiveAttempts} from "./perspective-attempt-store";
+import {clearRelightAnalysisAttempts} from "./relight-analysis-attempt-store";
+import {clearRelightAttempts} from "./relight-attempt-store";
+import {clearGlareDonorAttempts} from "./glare-donor-attempt-store";
+import {clearOpenEyesAttempts} from "./open-eyes-attempt-store";
+import {clearReflectionAttempts} from "./reflection-attempt-store";
+import {clearLocalPortraitAttempts} from "./local-portrait-attempt-store";
+import {clearSemanticAttempts} from "./semantic-attempt-store";
+import {clearSceneApplyAttempts} from './scene-apply-attempt-store';
+import {clearSceneReferenceAttempts} from './scene-reference-attempt-store';
+import {clearSessionPolicyDrafts} from './session-policy-draft';
+import {clearEditorRenderCaches} from './editor-render-cache';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {clearCaptureDrafts} from './capture-draft-store';
 import {clearEditorDraftCaches} from './editor-draft-cache';
@@ -6,5 +32,5 @@ import { OwnerAuth } from "./auth";
 import { Platform } from "react-native";
 import { ActivityIndicator, View } from "react-native";
 const AuthContext=createContext<OwnerAuth|null>(null);
-export function AuthProvider({children}:{children:ReactNode}){const auth=useMemo(()=>new OwnerAuth(process.env.EXPO_PUBLIC_API_ORIGIN||"",Platform.OS==="web"?"web":"native",fetch,async()=>{const origin=process.env.EXPO_PUBLIC_API_ORIGIN||"";await Promise.all([clearCaptureDrafts(AsyncStorage,origin),clearEditorDraftCaches(AsyncStorage,origin)])}),[]);const[ready,setReady]=useState(false);useEffect(()=>{let active=true;void auth.restore().finally(()=>{if(active)setReady(true)});return()=>{active=false}},[auth]);if(!ready)return <View style={{flex:1,backgroundColor:"#222",justifyContent:"center"}}><ActivityIndicator/></View>;return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>}
+export function AuthProvider({children}:{children:ReactNode}){const auth=useMemo(()=>new OwnerAuth(process.env.EXPO_PUBLIC_API_ORIGIN||"",Platform.OS==="web"?"web":"native",fetch,async()=>{const origin=process.env.EXPO_PUBLIC_API_ORIGIN||"";await Promise.all([clearCollectionApplyAttempts(AsyncStorage,origin),clearUploadStorage(AsyncStorage,origin),clearInterchangeArchiveAttempts(AsyncStorage,origin),clearInterchangeSnapshotAttempts(AsyncStorage,origin),clearInterchangeCreateAttempts(AsyncStorage,origin),clearInterchangeReviewAttempts(AsyncStorage,origin),clearSigningAttempts(AsyncStorage,origin),clearDeliveryCreateAttempts(AsyncStorage,origin),clearDeliveryPublishAttempts(AsyncStorage,origin),clearMultiAttempts(AsyncStorage,origin),clearMultiApplyAttempts(AsyncStorage,origin),clearPerspectiveApplyAttempts(AsyncStorage,origin),clearPerspectiveLinesAttempts(AsyncStorage,origin),clearPerspectiveAttempts(AsyncStorage,origin),clearNegativeAttempts(AsyncStorage,origin),clearRelightAnalysisAttempts(AsyncStorage,origin),clearRelightAttempts(AsyncStorage,origin),clearGlareDonorAttempts(AsyncStorage,origin),clearOpenEyesAttempts(AsyncStorage,origin),clearReflectionAttempts(AsyncStorage,origin),clearLocalPortraitAttempts(AsyncStorage,origin),clearSemanticAttempts(AsyncStorage,origin),clearSceneApplyAttempts(AsyncStorage,origin),clearSceneReferenceAttempts(AsyncStorage,origin),clearCaptureDrafts(AsyncStorage,origin),clearSessionPolicyDrafts(AsyncStorage,origin),clearEditorDraftCaches(AsyncStorage,origin),clearEditorRenderCaches(AsyncStorage,origin)])}),[]);const[ready,setReady]=useState(false);useEffect(()=>{let active=true;void auth.restore().finally(()=>{if(active)setReady(true)});return()=>{active=false}},[auth]);if(!ready)return <View style={{flex:1,backgroundColor:"#222",justifyContent:"center"}}><ActivityIndicator/></View>;return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>}
 export function useAuth(){const value=useContext(AuthContext);if(!value)throw new Error("AuthProvider missing");return value}

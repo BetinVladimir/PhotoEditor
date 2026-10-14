@@ -1,0 +1,103 @@
+{
+  "recorded_at": "2026-10-08T10:27:34.414805+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "dirty_tree_hash": "f3367da3611d7520eb6265ad9fd2d144f7dc3821cd82da921556a8d42c951b86",
+  "source_manifest": "v27-face-identity-source.json",
+  "source_pins": 8176,
+  "contracts_hash": "63429539af562f81156ee8f79464d4a1ef2e92e40cc8663be04d833488ae4a26",
+  "changes": [
+    "New native face.detect/face.landmarks/face.parse profiles own complete qualification identity and concurrent16MiB V2InputIndex scratch; final capacity check and task proof cover identified profile.",
+    "Saved face_profile_version controls exact legacy/identified restoration; omitted version retains original bytes without repair.",
+    "Forward-only00904 extends immutable model dispatch/claim checks and atomic native detector/face start; no new grants or tenant metadata changes.",
+    "Nonempty detector→landmarks/parser cycle runs production adapters via real reservation/claim and mTLS, physical new outputs and canonical commit/replay. Independent outer SQL/MinIO verifier checks exact parent/source, pins, new result lineage, resource release and absence of parent admission.",
+    "Re-reviewed two prior baseline additions against exact original HEAD hashes and unchanged original AST;500 worker tests passed before refreshing only reviewed baseline entries. Documentation regeneration now passes deterministically."
+  ],
+  "checks": [
+    {
+      "evidence": "v27-face-identity-sql.xml",
+      "evidence_sha": "e82bb7721325abc2dd7ff69070f5bc4ce563cf96bd1da900869c8a9e75f65079",
+      "exit_code": 0,
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "evidence": "v27-face-identity-runtime-regression.xml",
+      "evidence_sha": "80aa980df6cbc5e1d0f5131e76eb1d6da8a45903d5eea92cce535e26aa06fd1f",
+      "exit_code": 0,
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "evidence": "v27-baseline-review-worker.xml",
+      "evidence_sha": "555e5322618317bed7ea65fdb8edb9cb16cfc5b610a463e62bbb4d98ece9c3aa",
+      "exit_code": 0,
+      "tests": 500,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "evidence": "v27-face-identity-go.log",
+      "evidence_sha": "e93d9db02224af97c75037191c393db9551fbb20b8821dfa9d1f2f4487f0d685",
+      "exit_code": 0
+    },
+    {
+      "evidence": "v27-face-identity-contracts.log",
+      "evidence_sha": "27fd7c205ac3540f3fd8fd93832bdd0c5281e86f59bb9e297f4c41c0747eaed4",
+      "exit_code": 0
+    }
+  ],
+  "requirements": [
+    {
+      "id": "native-face-model-dispatch-runtime-plumbing",
+      "status": "unproven_selector_bypass",
+      "evidence": "v27-face-identity-runtime-regression.xml"
+    },
+    {
+      "id": "00899-00904-populated-forward-upgrade",
+      "status": "passed_metadata_scope",
+      "evidence": "v27-face-identity-sql.xml"
+    },
+    {
+      "id": "original-image-contract-preservation",
+      "status": "passed_review_and_targeted_checks",
+      "evidence": "v27-source-baseline-review.json"
+    },
+    {
+      "id": "native-skin-defect-full-runtime",
+      "status": "open"
+    },
+    {
+      "id": "new-person-result-canonical-protection-parent",
+      "status": "open"
+    },
+    {
+      "id": "whole-V27-acceptance",
+      "status": "open"
+    }
+  ],
+  "limitations": [
+    "Deterministic inference doubles and synthetic qualification/resource nodes do not prove real GPU, model, photo-corpus quality or RTX3060 capacity.",
+    "Native skin/defect runtime and automatic covering-protection to original parent remain unfinished.",
+    "Historical full V27 integration snapshot predates this implementation; current17 integration checks are targeted, not full-module acceptance.",
+    "Browser/native UI, whole V20-V32 acceptance, old Apply execution-to-completion and crash/deployment rollout remain open."
+  ],
+  "retained_discovery_failures": [
+    "v27-face-wire-build-failed.log",
+    "v27-face-wire-fixture-failed.log",
+    "v27-face-wire-build.log",
+    "v27-face-identity-contracts-baseline-failed.log"
+  ],
+  "correction": {
+    "reason": "native-face-wire selection tested race after batch reset to False; actual nonempty wire branch and independent verifier did not run.",
+    "affected_claim": "native-face-model-dispatch-runtime-plumbing",
+    "status": "unproven_pending_corrected_run",
+    "next_evidence": "v27-skin-runtime-current.json"
+  }
+}

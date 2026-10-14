@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "package_id": "V27",
+  "status": "implementing",
+  "sources": [
+    {
+      "path": "backend/internal/semanticproposal/native_initial_defect_ensure.go",
+      "sha256": "b8888c48203566a8305410943f30aae166a6896918f1ae34407d98b674b53e6d"
+    },
+    {
+      "path": "backend/internal/semanticproposal/native_initial_pipeline_recovery_job.go",
+      "sha256": "fd984497a60376f1adc40bc794c955db997ec8a8c8b6d9effbc68215f1289fe1"
+    },
+    {
+      "path": "backend/internal/semanticproposal/native_bootstrap_integration_test.go",
+      "sha256": "b6a3b339867b1ebaf1d8c320dd78de14d7aac7c3d0e09ca205ccc6c2a8055de6"
+    },
+    {
+      "path": "tests/integration/test_v27_semantic_intent_publication.py",
+      "sha256": "7c7a736ddc6d0ddc7261af90ea1ac1e60f2f2f6cfbfe695aa333b7f921adf8d4"
+    },
+    {
+      "path": "tests/integration/v27_face_wire_probe.py",
+      "sha256": "6166014430363955c6e9c5abc3abae2540545703246f39951f05fe02f406224f"
+    }
+  ],
+  "checks": [
+    {
+      "command": "scripts/run-platform.sh go -C backend test ./internal/semanticproposal -count=1",
+      "exit_code": 0,
+      "scope": "package tests; environment-gated runtime not enabled"
+    },
+    {
+      "command": "PHOTO_TEST_V27_PERSON_DEFECT_FRESH=1 PHOTO_TEST_NATIVE_INFRA=1 PYTHONPATH=workers:src:tests/integration PYTHONDONTWRITEBYTECODE=1 .venv-platform/bin/python -m pytest tests/integration/test_v27_semantic_intent_publication.py -k native-person-defect-wire -q --junitxml=docs/implementation-v2/audit/v27-automatic-person-defect-fresh.xml",
+      "exit_code": 0,
+      "passed": 1,
+      "deselected": 21,
+      "seconds": 42.24,
+      "evidence_sha": "1659383d256168952d032530a2964602c6bef7676de774c7fbb1f1df61eaefec"
+    }
+  ],
+  "proven": [
+    "Absent original defect child created and activated by production automatic coordinator.",
+    "Existing checkpoint replay retains exact private plan seal and receipt.",
+    "Resealed substituted person pixel object version refused without returning plan or receipt.",
+    "Real CPU defect worker canonical results physically verified, protection published/registered and original soft probability 0.37 preserved.",
+    "Independent Python verifier checks face chain, saved person input/config/transport, defect canonical outputs and absent parent."
+  ],
+  "limitations": [
+    "Person mask is imported qualified fixture; face inference uses deterministic doubles and qualification reports are synthetic.",
+    "Positive newly inferred original person result still unverified.",
+    "Initial processor to completed defect/protection/parent durable handoff remains incomplete.",
+    "No GPU quality, target transfer, full UI or whole-module acceptance claim."
+  ]
+}

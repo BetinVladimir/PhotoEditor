@@ -84,6 +84,24 @@ def test_resampling_tile_invariance_and_uncovered_canvas():
         next(resample_lens_tiles(p,rgb,alpha.astype(np.float64),1))
 
 
+def test_resampling_input_validation_checks_cancellation_per_tile():
+    from photo_worker.algorithms.lens import resample_lens_tiles
+    rgb = np.zeros((1, 4, 3), np.float32)
+    alpha = np.ones((1, 4), np.float32)
+    calls = 0
+
+    def check_active():
+        nonlocal calls
+        calls += 1
+        if calls == 3:
+            raise RuntimeError('lens cancelled')
+
+    with pytest.raises(RuntimeError, match='lens cancelled'):
+        list(resample_lens_tiles(profile(), rgb, alpha, 0,
+                                 tile=1, check_active=check_active))
+    assert calls == 3
+
+
 def test_ca_coverage_is_conservative_and_vignette_does_not_clip_hdr():
     from photo_worker.algorithms.lens import resample_lens_tiles
     rgb=np.full((3,3,3),2,dtype=np.float32);alpha=np.ones((3,3),dtype=np.float32)

@@ -1,0 +1,35 @@
+{
+  "recorded_at": "2026-10-08T10:25:58.492122+00:00",
+  "reviewer": "current implementation audit",
+  "status": "reviewed",
+  "files": [
+    {
+      "path": "workers/photo_worker/contracts/images.py",
+      "original_sha": "ef4102a776bc3dec21546992acedc71c25c58f4653039a6488dfd7c238cf52a5",
+      "reviewed_sha": "595cce3d3be6e0584f371e7bfb8808bb76886be1cf973bedc44b171861f39433",
+      "old_AST_unchanged": true,
+      "review": "ResolvedTransform is appended with finite bounded matrix/canvas hashes; image contracts/validators unchanged."
+    },
+    {
+      "path": "workers/photo_worker/runtime/artifacts.py",
+      "original_sha": "4052c0dffb31d55c81b3d875dc302002a4b887a5c505dd64c77701102d514faa",
+      "reviewed_sha": "24e012bc898449ecbc142db97d91f1496f1380f66d26fc1d4add1a5e5d112d65",
+      "old_AST_unchanged": true,
+      "review": "Only three methods and one import added. All use _check; access requires exact _allows or verified bounded V2 inventory; no legacy implicit access. Byte reader keeps full SHA/strict JSON/model validation."
+    }
+  ],
+  "limits": [
+    "Original AST preservation and targeted worker verification are not full V27/module acceptance."
+  ],
+  "checks": [
+    {
+      "evidence": "v27-baseline-review-worker.xml",
+      "evidence_sha": "555e5322618317bed7ea65fdb8edb9cb16cfc5b610a463e62bbb4d98ece9c3aa",
+      "exit_code": 0,
+      "tests": 500,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "generated_at": "2026-10-08T16:53:13.826520+00:00",
+  "status": "implementing",
+  "module": "V27",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "sql": {
+      "result": "PASS",
+      "tests": 23,
+      "seconds": 28.423
+    },
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 57.481
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/workflow",
+      "photoeditor/backend/internal/semanticproposal",
+      "photoeditor/backend/internal/v2input"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "dedicated target face exact canonical API catalog and locked scheduler consumer",
+    "physical landmarks geometry/Params and parse manifest/full uint16 labels validation",
+    "repeated physical read fingerprint and current metadata/dependency/report rechecks",
+    "explicit output/Params/label-pixel object pins and target detector proof",
+    "modified proof/plan/result UUID/output UUID rejected; modified canonical identities recomputed to exercise SQL refusal",
+    "revoked session rejects read/lock and restored authority permits lock",
+    "00899 to 00937 upgrade metadata and existing function identity/security preservation"
+  ],
+  "corrected_failures": [
+    "00936 CASE expression needed parentheses in PL/pgSQL IF",
+    "target parser labels were absent from legacy indexed FaceBoxes closure branch; 00937 adds explicit exact target lineage without weakening existing source branches"
+  ],
+  "limitations": [
+    "No target face finish/completed producer catalog or saved automatic recovery yet",
+    "Producer runs remain running after canonical task success",
+    "ML doubles/shared WorkingImage; no scientific GPU/photo-quality qualification",
+    "No full V27 browser/scale/failure/purge/cancel/fresh-process acceptance",
+    "No production migration"
+  ],
+  "sha256": {
+    "backend/db/migrations/00936_v27_target_face_result_catalog.sql": "c1567e974b970798abbaf94558c31e3ae0304c798e335c91dbed84a4d8c3305d",
+    "backend/db/migrations/00937_v27_target_parse_pixels_closure.sql": "42d3f75ea81a039e458d9e932b43f9742a79cdd71b6c8d565e0d4ef8c954d779",
+    "backend/internal/semanticproposal/native_target_face_result_catalog.go": "f5215174aa3d682743e3bb4e08ab9ce03b47ed625fe57e3ef0d2a672b095de4a",
+    "backend/internal/semanticproposal/native_target_face_result.go": "e6792a50594d887448fe6e20c20ac6078f538568e02985a21fecfce6994715e6",
+    "backend/internal/semanticproposal/native_target_landmark_content.go": "80eba295c208f472b354cf835c9d4cba30b7a7bd1235ad58997ab7875e0acbb5",
+    "backend/internal/semanticproposal/native_target_parse_content.go": "bda13a71854a9de7f779bd9886eb56fdee82f6eae89afe046fd0bd8c41546526",
+    "backend/internal/semanticproposal/native_target_face_wire_probe_test.go": "9436a7d00d1e51eddb0c8a2d8a176fff172013cd1f39c52715b17ad0a0b5eaa0",
+    "tests/integration/test_v27_person_migration_upgrade.py": "bc49a8051bc4bf749736f76ef111c54761caabb30274648c13fa85d3a7c7f1cc",
+    "tests/integration/test_v27_semantic_intent_publication.py": "0894a0717819a63bc5d0e39b31d3849f5f2abd3e8de9a1aec82d7374db6d1dc7",
+    "docs/implementation-v2/03-database.md": "d16e64cd798c50a728ab90804da86b4b3b981c01efc74b9b94fc64be8018929a",
+    "docs/implementation-v2/15-execution-contracts.md": "e04c0635019c046cb7da1b8adcf9626aa7f3bf238404b3549a030bdd1ba8425f",
+    "docs/implementation-v2/audit/v27-target-face-result-sql-current.xml": "441abae31849beff7fb644cd5752e5ec2a1d6783c18ded116f3892788bcc5428",
+    "docs/implementation-v2/audit/v27-target-face-result-wire-current.xml": "5d25e97b129e29bca563000127810a34e428a57d40587b7b096ac477ff71fe7e",
+    "docs/implementation-v2/audit/v27-target-face-result-go-current.jsonl": "85bb762eb45b6e818832d7ece31dd3a2bffd66a52e8001c795d023cf9fd0a274"
+  }
+}

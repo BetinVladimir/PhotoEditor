@@ -44,8 +44,8 @@ def focus_score(linear_rgb: np.ndarray) -> float:
 
 def clipping_score(linear_rgb: np.ndarray) -> float:
     rgb = _rgb(linear_rgb)
-    # Exact black and white remain valid; only values outside [0,1] clip.
-    return float(np.mean(np.any((rgb < 0) | (rgb > 1), axis=2)))
+    # A channel at or above the representable white endpoint is clipped.
+    return float(np.mean(np.any((rgb < 0) | (rgb >= 1), axis=2)))
 
 
 def assess_focus(linear_rgb: np.ndarray, critical: float, warning: float) -> PixelCheck:

@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 independent relight metadata and physical output invariants",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "production_migration_applied": false,
+  "checks": {
+    "all_relight_components": {
+      "passed": 149,
+      "seconds": 1.78,
+      "xml": "v28-relight-adoption-current.xml"
+    },
+    "postgres_minio_execute_output_guards": {
+      "passed": 1,
+      "seconds": 10.84,
+      "xml": "v28-relight-adoption-physical-current.xml"
+    }
+  },
+  "source_sha256": {
+    "workers/photo_worker/v2/relight_adoption.py": "746f9d74ab5359e9838a8d53552b9c3a039f24f468e53d1cc7c0bec73a588531",
+    "tests/platform/test_relight_adoption.py": "2ffe0ef2548971666f76c40d942f051aa2acb7d03a7a5e0487a3bc8f72f66ff6",
+    "tests/integration/test_v28_relight_resolver_physical.py": "40007c4187a8f4eb6078046781681a8eee0b2f2f841650a41e41a7b1f3f47bdb"
+  },
+  "limitations": [
+    "Output invariants are necessary but do not prove relight algorithm replay",
+    "Evidence readers/transports are fixture implementations; producer/task/lease/closure and qualification owner-seeded",
+    "No transactional result adoption, installed-runtime factory/gateway/public UI or actual model/photo/device qualification"
+  ]
+}

@@ -7,6 +7,7 @@ from .assess import FaceModelEvidence
 
 
 def infer_face_evidence(ctx, work, faces, calibration, pool, backend, policy, alpha=None):
+    ctx.check_active()
     entries = {entry.id: entry for entry in pool.lock.models}
     def available(model_id):
         entry = entries.get(model_id)
@@ -15,8 +16,10 @@ def infer_face_evidence(ctx, work, faces, calibration, pool, backend, policy, al
     eye_ready = 'eyes' in policy.checks and available('eye_open')
     glare_ready = 'glare' in policy.checks and available('glare_mask')
     if not eye_ready and not glare_ready:
+        ctx.check_active()
         return {}
     srgb = capture_model_preview(work, alpha)
+    ctx.check_active()
     height, width = srgb.shape[:2]
     evidence = {}
     for face in faces.faces:
@@ -27,21 +30,28 @@ def infer_face_evidence(ctx, work, faces, calibration, pool, backend, policy, al
             continue
         crop = np.ascontiguousarray(srgb[y0:y1, x0:x1], dtype=np.float32)
         eyes, glare = None, None
-        eye_spans = [(max(point.x for point in face.landmarks[start:start+6])
-                     - min(point.x for point in face.landmarks[start:start+6])) * width
-                     for start in (36, 42)]
-        visible = all(box.x0 <= point.x <= box.x1 and box.y0 <= point.y <= box.y1
-                      for point in face.landmarks[36:48])
+        if eye_ready:
+            eye_spans = [(max(point.x for point in face.landmarks[start:start+6])
+                         - min(point.x for point in face.landmarks[start:start+6])) * width
+                         for start in (36, 42)]
+            visible = all(box.x0 <= point.x <= box.x1 and box.y0 <= point.y <= box.y1
+                          for point in face.landmarks[36:48])
         if eye_ready and visible and min(eye_spans) >= 8:
             with pool.acquire('eye_open', backend) as engine:
                 values = engine.infer(crop)
+            ctx.check_active()
             eyes = tuple(float(value) for value in values)
         if glare_ready:
             ctx.check_active()
             with pool.acquire('glare_mask', backend) as engine:
                 mask = engine.infer(crop)
-            if mask.shape != crop.shape[:2]:
-                raise ValueError('CAPTURE_GLARE_SHAPE_INVALID')
+            ctx.check_active()
+            if (not isinstance(mask, np.ndarray) or mask.shape != crop.shape[:2]
+                    or not np.issubdtype(mask.dtype, np.number)
+                    or np.iscomplexobj(mask) or not np.isfinite(mask).all()
+                    or np.any((mask < 0) | (mask > 1))):
+                raise ValueError('CAPTURE_GLARE_OUTPUT_INVALID')
             glare = float(np.mean(mask > .5))
         evidence[face.face_id] = FaceModelEvidence(True, eyes, glare)
+    ctx.check_active()
     return evidence

@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 manual producer physical documents and scoped SQL locators",
+  "migration_head": "00976",
+  "whole_module_accepted": false,
+  "production_code_changed": true,
+  "production_migrations_applied": false,
+  "root_cause": "photo_scheduler has no direct SELECT on artifacts; both pair and external vector readers performed direct table queries after scope checks, producing SQLSTATE42501 on valid production path.",
+  "fix": "Forward-only00976 adds SECURITY DEFINER exact-origin pair/vector locator functions owned by photo_fn_owner; PUBLIC revoked, scheduler EXECUTE only. Go readers call scoped functions; no new table privileges.",
+  "checks": {
+    "tests": 12,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 27.55,
+    "xml": "v28-manual-documents-physical-current.xml"
+  },
+  "assertions": [
+    "Actual scheduler reads original root/Params and inline or external vector documents using pinned object versions despite newer invalid versions",
+    "Corrupt root and missing original Params version refuse in both vector modes",
+    "Foreign tenant/session refused",
+    "Scheduler still lacks direct artifact SELECT",
+    "Installed V28 contracts, canonical origin and actual Goose migrations pass"
+  ],
+  "initial_failure": "v28-manual-documents-physical-initial-failed.xml",
+  "source_sha256": {
+    "backend/db/migrations/00976_v28_scoped_manual_object_locators.sql": "c8542b60863ba5a09903925968a1cedac85ae02a39586491a29bbcc42a575d73",
+    "backend/internal/v2portrait/manual_catalog.go": "230f0b99602884a04066585952fa4c7715b2a81a98abcb14f052b254cf77e39f",
+    "backend/internal/v2portrait/manual_vectors_catalog.go": "d132e91ca786de6315ece15888ee3800ac92e8bbc67c1b15f51b7d3b3d147291",
+    "backend/internal/v2portrait/manual_documents_physical_integration_test.go": "9ec1e4566c2a04c3ad885ce4f6ae5c6d2586686b3c94bd69739153c15f3287a3",
+    "tests/integration/test_v28_manual_documents_physical.py": "0ed258e5f067e1946d9e7e43fc7572c45117ec6fff76db97f7d54facac7be855"
+  },
+  "limitations": [
+    "Canonical finished producer metadata is seeded; no actual mask.rasterize task execution",
+    "Synthetic source and mask pixel placeholders; no pixel decoding, raster replay, ICC or model qualification",
+    "Full local portrait admission, execution, adoption, HTTP and UI module cycle remains open"
+  ]
+}

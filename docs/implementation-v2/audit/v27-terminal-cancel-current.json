@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 real scheduler terminal cancellation and late checkpoint gate",
+  "whole_module_accepted": false,
+  "migration_head": "00969",
+  "production_code_changed": false,
+  "production_migrations_applied": false,
+  "checks": {
+    "terminal_cancel_and_ordinary_bootstrap": {
+      "tests": 2.0,
+      "failures": 0.0,
+      "errors": 0.0,
+      "skipped": 0.0,
+      "time": 29.232
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/httpapi",
+      "photoeditor/backend/internal/semanticreview",
+      "photoeditor/backend/internal/workflow",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "docs": {
+      "semantic_tests": 55,
+      "static_checks": 2267,
+      "deterministic_regeneration": "passed"
+    }
+  },
+  "source_manifest": "v27-terminal-cancel-source-current.json",
+  "source_manifest_sha256": "61a33ff80adbc189b563fcfee10b6a5fa15937b87c814b8918a23b7ea963a1a3",
+  "source_files": 4825,
+  "quality_preservation": {
+    "workers_src_baseline_files": 544,
+    "changed": 0,
+    "real_photo_quality_accepted": false
+  },
+  "verified": [
+    "Exact checkpoint accepted by production save method in rollback positive control.",
+    "Scheduler lease and healthy failed outcome refusal.",
+    "Owner only requests task-local cancellation; production cancel_idle_task transitions ready\u2192cancelled and increments fence.",
+    "Completed and stale-token handoff refuse; owned failed handoff records terminal state.",
+    "Same checkpoint then refuses with run cancel_requested=false, done=true, cleared lease and absent selection.",
+    "Independent Python scoped verifier observes cancelled child, no detector result and no semantic parent."
+  ],
+  "excluded_evidence": [
+    "v27-terminal-cancel-unrouted.xml ran ordinary bootstrap only; not credited for cancellation."
+  ],
+  "native_regression": {
+    "status": "passed",
+    "tests": 1,
+    "deselected": 22,
+    "seconds": 415.65,
+    "migration_head": "00969",
+    "xml": "v27-native-module-regression-current.xml",
+    "scope": "Existing optional all-target mixed-registration/recovery/locks/handoff flag set; model doubles; not whole-module acceptance."
+  },
+  "remaining": [
+    "ProcessOne terminal observation currently excludes cancellation rows and retries original mask.person terminal state; implement authenticated terminal-only observer plus independent SQL recorder support.",
+    "Worker-reported failed child separate from scheduler cancellation.",
+    "Actual browser/native flows, real GPU/photo qualification, GC/purge/physical deletion, OS restart/redelivery and scale.",
+    "Full V27 and V20\u2013V32 acceptance."
+  ]
+}

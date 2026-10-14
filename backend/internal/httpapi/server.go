@@ -21,18 +21,60 @@ import (
 )
 
 type Server struct {
-	RenderCalibrations v2render.RenderCalibrationCatalog
-	Auth               *auth.Service
-	Config             config.Config
-	DB                 *pgxpool.Pool
-	Uploads            *upload.Service
-	Portal             *portal.Service
-	Reviews            *review.Service
-	Media              *media.Service
-	ContactSheets      *contactsheet.Service
-	AnalysisAdmission  v2sessions.AnalysisAdmission
-	TrainingAdmission  v2learning.TrainingAdmission
-	RegionQueue        RegionQueue
+	OpenEyesPrepare           OpenEyesPrepare
+	OpenEyesSubmit            OpenEyesSubmit
+	OpenEyesSourceCandidates  GlareSourceCandidates
+	OpenEyesDonorCandidates   GlareDonorCandidates
+	OpenEyesMaskPairs         GlareMaskPairs
+	LocalPortraitPrepare      LocalPortraitPrepare
+	LocalPortraitSubmit       LocalPortraitSubmit
+	ReflectionPrepare         ReflectionPrepare
+	ReflectionSubmit          ReflectionSubmit
+	GlareDonorSubmit          GlareDonorSubmit
+	GlareDonorPrepare         GlareDonorPrepare
+	GlareDonorCandidates      GlareDonorCandidates
+	GlareSourceCandidates     GlareSourceCandidates
+	GlareMaskPairs            GlareMaskPairs
+	InterchangeArchiveStatus  InterchangeArchiveStatusReader
+	InterchangeArchiveActions InterchangeArchiveActions
+	InterchangeArchiveBegin   InterchangeArchiveBeginner
+	InterchangeSnapshots      InterchangeSnapshotPreparer
+	ReviewPreviews            ReviewPreviewProvider
+	SelectedPreviewKey        []byte
+	ExportSigner              ExportSigner
+	DeliveryCreator           DeliveryCreator
+	InterchangeCreator        InterchangeCreator
+	InterchangeReviewCloser   InterchangeReviewCloser
+	InterchangeReviewDecider  InterchangeReviewDecider
+	InterchangeMaskDecider    InterchangeMaskDecider
+	InterchangeMaskCandidates InterchangeMaskCandidateReader
+	PerspectiveLinesSubmit    PerspectiveLinesSubmit
+	PerspectiveDetectedLines  PerspectiveDetectedLines
+	PerspectiveProposals      *v2render.PerspectiveProposalService
+	NegativeSubmit            NegativeSubmit
+	PerspectiveSubmit         PerspectiveSubmit
+	MultiProposals            MultiProposalReader
+	PanoramaSubmit            MultiSubmit
+	FocusStackSubmit          MultiSubmit
+	RelightAnalysis           RelightAnalysisSubmit
+	RelightSubmit             RelightSubmit
+	SemanticPropose           SemanticPropose
+	SemanticReviewApply       SemanticReviewApply
+	SemanticReviewClose       SemanticReviewClose
+	RenderFreezer             RenderFreezer
+	RenderQueue               RenderQueue
+	RenderCalibrations        v2render.RenderCalibrationCatalog
+	Auth                      *auth.Service
+	Config                    config.Config
+	DB                        *pgxpool.Pool
+	Uploads                   *upload.Service
+	Portal                    *portal.Service
+	Reviews                   *review.Service
+	Media                     *media.Service
+	ContactSheets             *contactsheet.Service
+	AnalysisAdmission         v2sessions.AnalysisAdmission
+	TrainingAdmission         v2learning.TrainingAdmission
+	RegionQueue               RegionQueue
 }
 
 func (s *Server) Routes() http.Handler {
@@ -45,7 +87,11 @@ func (s *Server) Routes() http.Handler {
 			w.Header().Set("Cache-Control", "private, no-store")
 			w.Header().Set("Referrer-Policy", "no-referrer")
 			w.Header().Set("X-Request-ID", middleware.GetReqID(r.Context()))
-			r.Body = http.MaxBytesReader(w, r.Body, s.Config.MaxJSONBytes)
+			bodyLimit := s.Config.MaxJSONBytes
+			if isRenderSubmissionPath(r) {
+				bodyLimit = v2render.MaxRenderSubmissionBytes
+			}
+			r.Body = http.MaxBytesReader(w, r.Body, bodyLimit)
 			next.ServeHTTP(w, r)
 		})
 	})
@@ -63,7 +109,25 @@ func (s *Server) Routes() http.Handler {
 	if s.Auth != nil {
 		s.authRoutes(r)
 		s.catalogRoutes(r)
+		s.deliveryRoutes(r)
+		s.provenanceRoutes(r)
+		s.interchangeRoutes(r)
+		s.semanticReviewRoutes(r)
+		s.relightRoutes(r)
+		s.glareDonorRoutes(r)
+		s.openEyesRoutes(r)
+		s.reflectionRoutes(r)
+		s.localPortraitRoutes(r)
+		s.perspectiveRoutes(r)
+		s.negativeRoutes(r)
+		s.multiRoutes(r)
+		s.multiProposalRoutes(r)
+		s.multiReplacementReviewRoutes(r)
+		s.perspectiveDetectedLinesRoutes(r)
+		s.perspectiveLinesSubmissionRoutes(r)
 		s.regionRoutes(r)
+		s.renderRoutes(r)
+		s.renderFreezeRoutes(r)
 	}
 	if s.Portal != nil {
 		s.portalRoutes(r)

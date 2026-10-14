@@ -1,7 +1,7 @@
 from contextlib import ExitStack
 import numpy as np
 from photo_worker.algorithms.effective import resolve_effective_params
-from photo_worker.algorithms.portrait_detail import apply_region
+from .prepare_detail import prepare_detail,detail_peak
 from photo_worker.contracts.base import canonical_bytes
 from photo_worker.contracts.images import WorkingImage
 from photo_worker.contracts.portrait_detail import DetailEvidence,PortraitDetailReport,PortraitParams
@@ -25,13 +25,13 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
     h,w=image.canvas.height,image.canvas.width;reports=[];warnings=[];outputs=[];written=0;output=image
     enabled=detail is not None and detail.enabled
     if enabled:
+        if ram<detail_peak(w,h)['ram_bytes']:raise OperationFailure('CONFIG_INVALID')
         with ExitStack() as stack:
             def mapped(ref):return stack.enter_context(read_array(stack.enter_context(artifacts.input(ref,suffix='.npy')).path,(h,w),'float32',ctx.check_active,unit_interval=True))
-            rgb=stack.enter_context(read_array(stack.enter_context(artifacts.input(image.pixels,suffix='.npy')).path,(h,w,3),'float32',ctx.check_active,unit_interval=True));current=np.asarray(rgb).copy();protection=np.zeros((h,w),np.float32)
+            rgb=stack.enter_context(read_array(stack.enter_context(artifacts.input(image.pixels,suffix='.npy')).path,(h,w,3),'float32',ctx.check_active,unit_interval=True));protection=np.zeros((h,w),np.float32)
             for mask in p.protected:np.maximum(protection,mapped(mask.artifact),out=protection)
-            for region in sorted(p.regions,key=lambda x:x.region_id):
-                base={'teeth':detail.teeth_strength,'sclera':detail.teeth_strength,'shine':detail.shine_strength,'under_eye':detail.under_eye_strength,'cloth':region.strength,'glasses':region.strength}[region.kind];strength=base*region.strength if region.kind not in ('cloth','glasses') else base
-                current,changed,max_ev,chroma,reason=apply_region(current,np.asarray(mapped(region.mask.artifact)),region.kind,strength,protection,ctx.check_active);reports.append(DetailEvidence(region_id=region.region_id,kind=region.kind,applied=reason is None,changed_pixels=changed,max_ev=max_ev,chroma_reduction=chroma,reason=reason))
+            prepared=stack.enter_context(prepare_detail(rgb,p.regions,detail,mapped,protection,check_active=ctx.check_active))
+            current=prepared.rgb;reports=list(prepared.regions)
             reserve=h*w*12+8192
             with artifacts.scratch.reserve(reserve) as reservation:
                 path=reservation.path('portrait-detail-rgb','.npy');mm=np.lib.format.open_memmap(path,mode='w+',dtype='<f4',shape=(h,w,3));mm[:]=current;mm.flush();mm._mmap.close();reservation.validate();pixels=artifacts.stage(path,reservation,'working_rgb','application/octet-stream');written=path.stat().st_size

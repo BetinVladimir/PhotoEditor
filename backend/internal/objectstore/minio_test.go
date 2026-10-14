@@ -32,14 +32,15 @@ func TestRejectUnsafeKeysAndEndpoints(t *testing.T) {
 	}
 }
 func digest(data []byte) string { h := sha256.Sum256(data); return hex.EncodeToString(h[:]) }
-func testStore(t *testing.T) *Store {
+func testStore(t *testing.T) *Store { return testStoreWithCORS(t,nil) }
+func testStoreWithCORS(t *testing.T,origins []string) *Store {
 	t.Helper()
 	endpoint := os.Getenv("PHOTO_TEST_MINIO_URL")
 	if endpoint == "" {
 		t.Skip("isolated MinIO required")
 	}
 	bucket := "photo-test-" + uuid.NewString()
-	s, err := New(Config{Endpoint: endpoint, Bucket: bucket, AccessKey: os.Getenv("PHOTO_TEST_MINIO_ACCESS"), SecretKey: os.Getenv("PHOTO_TEST_MINIO_SECRET"), Development: true})
+	s, err := New(Config{Endpoint: endpoint, Bucket: bucket, AccessKey: os.Getenv("PHOTO_TEST_MINIO_ACCESS"), SecretKey: os.Getenv("PHOTO_TEST_MINIO_SECRET"), Development: true,CORSOrigins:origins})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,6 +66,17 @@ func testStore(t *testing.T) *Store {
 		}
 	})
 	return s
+}
+func TestIntegrationBootstrapArchiveCORSReadbackAndRotation(t *testing.T){
+ origins:=[]string{"http://localhost:8080","http://127.0.0.2:3000"}
+ s:=testStoreWithCORS(t,origins)
+ ctx,cancel:=context.WithTimeout(context.Background(),30*time.Second);defer cancel()
+ installed,err:=s.client.GetBucketCors(ctx,s.bucket)
+ if err!=nil||!archiveCORSInstalled(installed,origins){t.Fatal("archive CORS missing after bootstrap",err,installed)}
+ s.corsOrigins=[]string{origins[0]}
+ if err=s.Bootstrap(ctx);err!=nil{t.Fatal("CORS rotation failed",err)}
+ installed,err=s.client.GetBucketCors(ctx,s.bucket)
+ if err!=nil||!archiveCORSInstalled(installed,s.corsOrigins){t.Fatal("old origin retained after rotation",err,installed)}
 }
 func TestIntegrationVersionedStreamAndMultipart(t *testing.T) {
 	s := testStore(t)
@@ -206,13 +218,16 @@ func TestIntegrationPurgeTenantBatchIsBoundedAndScoped(t *testing.T) {
 	tenant, neighborTenant := uuid.New(), uuid.New()
 	payload := []byte("tenant-delete")
 	var owned []Object
-	for i := 0; i < 3; i++ {
-		key, _ := AttemptKey(tenant, uuid.New(), uuid.New(), 1, 1)
-		object, err := s.PutImmutable(ctx, key, bytes.NewReader(payload), int64(len(payload)), digest(payload), "application/octet-stream")
-		if err != nil {
-			t.Fatal(err)
+	prefixes, _ := tenantNamespaces(tenant)
+	for _, prefix := range prefixes {
+		for i := 0; i < 3; i++ {
+			key := prefix + uuid.NewString()
+			object, err := s.PutImmutable(ctx, key, bytes.NewReader(payload), int64(len(payload)), digest(payload), "application/octet-stream")
+			if err != nil {
+				t.Fatal(err)
+			}
+			owned = append(owned, object)
 		}
-		owned = append(owned, object)
 	}
 	key, _ := AttemptKey(neighborTenant, uuid.New(), uuid.New(), 1, 1)
 	neighbor, err := s.PutImmutable(ctx, key, bytes.NewReader(payload), int64(len(payload)), digest(payload), "application/octet-stream")
@@ -229,11 +244,11 @@ func TestIntegrationPurgeTenantBatchIsBoundedAndScoped(t *testing.T) {
 		if !more {
 			break
 		}
-		if passes > 5 {
+		if passes > 12 {
 			t.Fatal("tenant cleanup did not converge")
 		}
 	}
-	if passes < 3 {
+	if passes < 9 {
 		t.Fatal("batch limit was not enforced", passes)
 	}
 	for _, object := range owned {
@@ -244,4 +259,20 @@ func TestIntegrationPurgeTenantBatchIsBoundedAndScoped(t *testing.T) {
 	if err = s.Check(ctx, neighbor); err != nil {
 		t.Fatal("neighbor tenant object deleted", err)
 	}
+}
+
+func TestIntegrationPurgeTenantBatchCountsMultipartSessions(t *testing.T){
+ s:=testStore(t);ctx,cancel:=context.WithTimeout(context.Background(),30*time.Second);defer cancel()
+ tenant:=uuid.New();prefix,_:=tenantPrefix(tenant);key:=prefix+"two-sessions"
+ core:=minio.Core{Client:s.client}
+ first,err:=core.NewMultipartUpload(ctx,s.bucket,key,minio.PutObjectOptions{});if err!=nil{t.Fatal(err)}
+ defer s.client.RemoveIncompleteUpload(context.Background(),s.bucket,key)
+ second,err:=core.NewMultipartUpload(ctx,s.bucket,key,minio.PutObjectOptions{});if err!=nil{t.Fatal(err)}
+ if first==second{t.Fatal("multipart sessions were not distinct")}
+ more,err:=s.PurgeTenantBatch(ctx,tenant,1);if err!=nil||!more{t.Fatal("first exact session cleanup",more,err)}
+ scan:=s.client.ListIncompleteUploads(ctx,s.bucket,key,true);remaining:=map[string]bool{}
+ for row:=range scan{if row.Err!=nil{t.Fatal(row.Err)};if row.Key==key{remaining[row.UploadID]=true}}
+ if len(remaining)!=1{t.Fatal("batch removed more than one multipart session",remaining)}
+ more,err=s.PurgeTenantBatch(ctx,tenant,1);if err!=nil||!more{t.Fatal("second exact session cleanup",more,err)}
+ more,err=s.PurgeTenantBatch(ctx,tenant,1);if err!=nil||more{t.Fatal("multipart cleanup did not converge",more,err)}
 }

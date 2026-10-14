@@ -16,8 +16,13 @@ from .evidence import infer_face_evidence
 
 
 def validate_proxy(source: WorkingImage, proxy: WorkingImage, binding) -> None:
+    scale = min(1.0, 2048 / max(source.canvas.width, source.canvas.height))
+    expected_width = max(1, round(source.canvas.width * scale))
+    expected_height = max(1, round(source.canvas.height * scale))
     if (canonical_hash(source.canvas) != binding.canvas_hash or
         source.canvas.source_sha256 != proxy.canvas.source_sha256 or
+        source.canvas.space_id != proxy.canvas.space_id or
+        (proxy.canvas.width, proxy.canvas.height) != (expected_width, expected_height) or
         (source.alpha is None) != (proxy.alpha is None) or
         source.color != proxy.color or proxy.color.profile_id != 'work_rec2020_gamma24_v1' or
         proxy.dtype != 'float32' or max(proxy.canvas.width, proxy.canvas.height) > 2048):
@@ -31,7 +36,12 @@ def validate_proxy(source: WorkingImage, proxy: WorkingImage, binding) -> None:
         if source.canvas != proxy.canvas:
             raise ValueError('CAPTURE_PROXY_TRANSFORM_INVALID')
         return
-    if len(extra) != 1 or extra[0].kind != 'matrix' or extra[0].from_canvas != source.canvas:
+    if (len(extra) != 1 or extra[0].kind != 'matrix' or
+            extra[0].from_canvas != source.canvas or extra[0].to_canvas != proxy.canvas or
+            extra[0].invertibility != 'invertible' or
+            extra[0].valid_region.x != 0 or extra[0].valid_region.y != 0 or
+            extra[0].valid_region.width != proxy.canvas.width or
+            extra[0].valid_region.height != proxy.canvas.height):
         raise ValueError('CAPTURE_PROXY_TRANSFORM_INVALID')
     transform = extra[0]
     sx, sy = proxy.canvas.width / source.canvas.width, proxy.canvas.height / source.canvas.height

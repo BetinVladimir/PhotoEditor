@@ -32,13 +32,16 @@ class PostgresObjectEvidenceReader:
 
     def __init__(self, connection: Connection, objects: VersionedObjectStore,
                  *, tenant_id: UUID, task_id: UUID, attempt: int, fence: int,
-                 allowed_bucket: str):
+                 allowed_bucket: str, exposure: bool = False):
         if not connection.autocommit:
             raise ValueError("Adoption preparation requires an autocommit connection")
         if attempt < 1 or fence < 1:
             raise ValueError("Invalid task fence")
         if not allowed_bucket:
             raise ValueError("Missing adoption bucket")
+        if type(exposure) is not bool:
+            raise ValueError("Invalid adoption scope")
+        self._exposure = exposure
         self.connection = connection
         self.objects = objects
         self.tenant_id = tenant_id
@@ -53,7 +56,8 @@ class PostgresObjectEvidenceReader:
             return self._locations[ref]
         row = self.connection.execute(
             "SELECT bucket,object_key,object_version,sha256,bytes,media_type,role,source "
-            "FROM photo.v2_adoption_artifact(%s,%s,%s,%s,%s)",
+            + ("FROM photo.v27_exposure_adoption_artifact(%s,%s,%s,%s,%s)" if self._exposure
+             else "FROM photo.v2_adoption_artifact(%s,%s,%s,%s,%s)"),
             (self.tenant_id, self.task_id, self.attempt, self.fence, ref.artifact_id),
         ).fetchone()
         if (row is None or row[0] != self.allowed_bucket or row[3] != ref.sha256 or row[4] < 0
@@ -117,7 +121,8 @@ class PostgresObjectEvidenceReader:
 
     def staged_outputs(self) -> set[ArtifactRef]:
         rows = self.connection.execute(
-            "SELECT artifact_id,sha256,state FROM photo.v2_adoption_staged_outputs(%s,%s,%s,%s)",
+            ("SELECT artifact_id,sha256,state FROM photo.v27_exposure_adoption_staged_outputs(%s,%s,%s,%s)" if self._exposure
+             else "SELECT artifact_id,sha256,state FROM photo.v2_adoption_staged_outputs(%s,%s,%s,%s)"),
             (self.tenant_id, self.task_id, self.attempt, self.fence),
         ).fetchall()
         if any(state != "ready" for _, _, state in rows):

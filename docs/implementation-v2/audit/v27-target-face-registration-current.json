@@ -1,0 +1,62 @@
+{
+  "generated_at": "2026-10-08T16:32:32.673425+00:00",
+  "status": "implementing",
+  "module": "V27",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "sql": {
+      "result": "PASS",
+      "tests": 22,
+      "seconds": 28.925
+    },
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 56.736
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/workflow",
+      "photoeditor/backend/internal/semanticproposal",
+      "photoeditor/backend/internal/v2input"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "target landmarks/parse physical transport publication and registration",
+    "exact registered pending replay for both stages",
+    "revoked session registration retry refuses",
+    "strict SQL registration scope and canonical target detector result binding",
+    "malformed envelopes, denied application roles and private scope",
+    "00899 to 00931 upgrade preserving historical metadata and function OID/owner/ACL",
+    "independent SQL/S3 target draft and closure/Params verification"
+  ],
+  "limitations": [
+    "No target face dedicated admission/seal, worker claim/output predicates, canonical execution/finalization or automatic recovery yet",
+    "ML doubles and shared immutable WorkingImage; no GPU or photo-quality qualification",
+    "No whole V27 browser/5000-target/failure-deadletter/purge/cancel/fresh-process acceptance",
+    "Migration applied to isolated test databases only"
+  ],
+  "sha256": {
+    "backend/internal/semanticproposal/native_target_face_params.go": "4751d8d1134f4f29e94d925213e569a2331a3d306590260be17160e140e2c0c9",
+    "backend/internal/semanticproposal/native_target_face_transport.go": "4e718900c93d1029d74ad6850ff6b22246da2fbada9713b95b36b19d12534659",
+    "backend/internal/semanticproposal/native_target_face_begin.go": "0d74241d64243e4310132c86e2541999938ff1d1f8890f1ac340037daa5e3b86",
+    "backend/internal/semanticproposal/native_target_face_wire_probe_test.go": "f79884a8602848458b97c0163b1b3638e226c2ee91365c68d8f1bae57cf5358d",
+    "backend/internal/semanticproposal/native_target_face_registration.go": "3ac8e027df21465f5879591be78ccbca2c9c62aebbc1f871da78677a10e1e2d1",
+    "backend/internal/semanticproposal/native_target_face_task.go": "76fdf5b67da5aca8bd757b0b55ef6911dab80d5b8f4fbcf4dd3b8cfb1bcb68cc",
+    "backend/internal/semanticproposal/native_target_face_plan.go": "0dd57813922b51a988815dd29f8eee47bbec9b87e7f2c60c0b1d260d1e9699e4",
+    "backend/db/migrations/00931_v27_target_face_registration.sql": "0d8508d0a2d8c2667a94a9b748999f9eeb771959265080476adc9a3e7745dac1",
+    "backend/internal/semanticproposal/native_face_draft_begin.go": "06c31d932da81aa1c95e94b95b894bc3a4dcd752f0c30795ac6b8d40a562d0b2",
+    "backend/internal/semanticproposal/native_target_detector_wire_probe_test.go": "ebd6712bf563012d247d0bce54a11f439e32ae40f4b9a6057d5092df2170fee0",
+    "tests/integration/test_v27_target_face_registration.py": "3540af130a68f0f9bc8b7a15f40286db6ed0509f05017b12a6f2b72090ba44c7",
+    "tests/integration/test_v27_person_migration_upgrade.py": "4c9515152e5bbd1a499b2411b1b77f4cde027b65e98ea06be48cc3f22b4881cc",
+    "tests/integration/test_v27_semantic_intent_publication.py": "b3aacf40e4ba150549f1a3e05a7260ef8d2f675a44ac628f19d6f8be67d0172c",
+    "tests/integration/v27_face_wire_probe.py": "48b5e0137b4c21dad221e0f64ae849227f7ba3bcfd0c1709e61980f0faa69165",
+    "docs/implementation-v2/03-database.md": "d0c54ab56a88a6825166e256e2fe0351406d18d0385ad30a334e058c438fa885",
+    "docs/implementation-v2/15-execution-contracts.md": "8ac986e3e790b535beb3e5644c04a9f3618af79ecd7cc81d861b0dbbd5b27277",
+    "docs/implementation-v2/audit/v27-target-face-registration-sql-current.xml": "bbcad0e8431ad7c8574ccac478fd51f3b33fa6b4c1d24acf2310ea5910d7ee48",
+    "docs/implementation-v2/audit/v27-target-face-registration-wire-current.xml": "7caf67b6fca1a96e000bb63fd285a864a590161bd3f88362e4eec50a46e91983",
+    "docs/implementation-v2/audit/v27-target-face-registration-go-current.jsonl": "59683845dda4a31202ce1171974f3e770324be65a0461e402a2da6399c9c91ad"
+  }
+}

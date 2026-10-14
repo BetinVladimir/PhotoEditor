@@ -43,6 +43,7 @@ type MultipartStore interface {
 	SignUploadParts(context.Context, string, string, []int, time.Duration) ([]objectstore.PartURL, error)
 	SignRead(context.Context, objectstore.Object, time.Duration) (objectstore.ReadURL, error)
 	SignDownload(context.Context, objectstore.Object, string, time.Duration) (objectstore.ReadURL, error)
+	Check(context.Context, objectstore.Object) error
 }
 
 type ExchangeRequest struct {
@@ -147,6 +148,14 @@ type MediaLink struct {
 
 type MediaLinks struct {
 	Items []MediaLink `json:"items"`
+}
+
+type portalResolvedMedia struct {
+	itemID                      uuid.UUID
+	variant                     string
+	object                      objectstore.Object
+	width, height               int
+	itemOrdinal, variantOrdinal int64
 }
 
 type SelectionFilter struct {
@@ -596,14 +605,7 @@ func (s Service) MediaLinks(ctx context.Context, token, csrf string, request Med
 	if _, err := s.Authorize(ctx, token, csrf, "view", true); err != nil {
 		return out, err
 	}
-	type resolved struct {
-		itemID                      uuid.UUID
-		variant                     string
-		object                      objectstore.Object
-		width, height               int
-		itemOrdinal, variantOrdinal int64
-	}
-	resolvedItems := make([]resolved, 0, len(request.ItemIDs)*len(request.Variants))
+	resolvedItems := make([]portalResolvedMedia, 0, len(request.ItemIDs)*len(request.Variants))
 	rows, err := s.DB.Query(ctx, `SELECT item_ordinal,variant_ordinal,outcome,item_id,variant,object_key,object_version,sha256,bytes,media_type,width,height
 		FROM photo.resolve_portal_media($1,$2,$3,$4)`, auth.MAC(s.Pepper, "portal-session", token), s.Bucket, request.ItemIDs, request.Variants)
 	if err != nil {
@@ -611,7 +613,7 @@ func (s Service) MediaLinks(ctx context.Context, token, csrf string, request Med
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var r resolved
+		var r portalResolvedMedia
 		var outcome string
 		var key, version, sha, media *string
 		var bytes *int64
@@ -642,13 +644,69 @@ func (s Service) MediaLinks(ctx context.Context, token, csrf string, request Med
 		}
 	}
 	for _, r := range resolvedItems {
+		if err := s.Objects.Check(ctx, r.object); err != nil {
+			return MediaLinks{}, err
+		}
 		signed, signErr := s.Objects.SignRead(ctx, r.object, time.Minute)
 		if signErr != nil {
 			return MediaLinks{}, signErr
 		}
+		if !validPortalMediaReadURL(r.object, signed, time.Now()) {
+			return MediaLinks{}, domain.NewError("MEDIA_SIGNED_LINK_INVALID", 503)
+		}
 		out.Items = append(out.Items, MediaLink{ItemID: r.itemID, Variant: r.variant, URL: signed.URL, ExpiresAt: signed.ExpiresAt, Width: r.width, Height: r.height, MediaType: r.object.ContentType})
 	}
+	// A share can be revoked while the external signer is running. Never expose
+	// the already signed links when the current session lost view permission.
+	if _, err := s.Authorize(ctx, token, csrf, "view", true); err != nil {
+		return MediaLinks{}, err
+	}
+	if err := s.portalMediaStillCurrent(ctx, token, request, resolvedItems); err != nil {
+		return MediaLinks{}, err
+	}
 	return out, nil
+}
+
+// Signing is external IO. Resolve the entire requested set again before any
+// signed URL escapes, so a changed or removed object binding fails closed.
+func (s Service) portalMediaStillCurrent(ctx context.Context, token string, request MediaRequest, expected []portalResolvedMedia) error {
+	rows, err := s.DB.Query(ctx, `SELECT item_ordinal,variant_ordinal,outcome,item_id,variant,object_key,object_version,sha256,bytes,media_type,width,height
+		FROM photo.resolve_portal_media($1,$2,$3,$4)`, auth.MAC(s.Pepper, "portal-session", token), s.Bucket, request.ItemIDs, request.Variants)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	index := 0
+	for rows.Next() {
+		var itemID uuid.UUID
+		var itemOrdinal, variantOrdinal int64
+		var outcome, variant string
+		var key, version, sha, media *string
+		var bytes *int64
+		var width, height *int
+		if err := rows.Scan(&itemOrdinal, &variantOrdinal, &outcome, &itemID, &variant, &key, &version, &sha, &bytes, &media, &width, &height); err != nil {
+			return err
+		}
+		if index >= len(expected) || outcome != "ok" || key == nil || version == nil || sha == nil || bytes == nil || media == nil || width == nil || height == nil {
+			return domain.NewError("MEDIA_NOT_READY", 409)
+		}
+		want := expected[index]
+		if itemOrdinal != want.itemOrdinal || variantOrdinal != want.variantOrdinal || itemID != want.itemID || variant != want.variant || *key != want.object.Key || *version != want.object.VersionID || *sha != want.object.SHA256 || *bytes != want.object.Bytes || *media != want.object.ContentType || *width != want.width || *height != want.height {
+			return domain.NewError("MEDIA_NOT_READY", 409)
+		}
+		index++
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	if index != len(expected) {
+		return domain.NewError("MEDIA_NOT_READY", 409)
+	}
+	return nil
+}
+
+func validPortalMediaReadURL(object objectstore.Object, signed objectstore.ReadURL, now time.Time) bool {
+	return objectstore.ValidSignedReadURL(signed.URL, object.VersionID) && signed.ExpiresAt.After(now) && !signed.ExpiresAt.After(now.Add(time.Minute+5*time.Second))
 }
 
 func (s Service) CreateSelection(ctx context.Context, token, csrf, key string, raw SelectionRequest) (SnapshotRef, error) {
@@ -909,11 +967,30 @@ func (s Service) RedeemDownloadIntent(ctx context.Context, request DownloadRedee
 	if outcome != "ok" || key == nil || version == nil || sha == nil || size == nil || media == nil || filename == nil {
 		return DownloadLink{}, domain.NewError("DOWNLOAD_INTENT_INVALID", 404)
 	}
-	signed, err := s.Objects.SignDownload(ctx, objectstore.Object{Key: *key, VersionID: *version, SHA256: *sha, Bytes: *size, ContentType: *media}, *filename, time.Minute)
+	object := objectstore.Object{Key: *key, VersionID: *version, SHA256: *sha, Bytes: *size, ContentType: *media}
+	if err := s.Objects.Check(ctx, object); err != nil {
+		return DownloadLink{}, err
+	}
+	signed, err := s.Objects.SignDownload(ctx, object, *filename, time.Minute)
 	if err != nil {
 		return DownloadLink{}, err
 	}
+	now := time.Now()
+	if !validDownloadReadURL(signed.URL, object.VersionID) || !signed.ExpiresAt.After(now) || signed.ExpiresAt.After(now.Add(time.Minute+5*time.Second)) {
+		return DownloadLink{}, domain.NewError("DOWNLOAD_INTENT_INVALID", 404)
+	}
+	var current bool
+	err = s.DB.QueryRow(ctx, `SELECT photo.v30_delivery_download_intent_current($1,$2,$3,$4,$5,$6,$7)`,
+		auth.MAC(s.Pepper, "portal-download-intent", request.Token), s.Bucket,
+		*key, *version, *sha, *size, *media).Scan(&current)
+	if err != nil || !current {
+		return DownloadLink{}, domain.NewError("DOWNLOAD_INTENT_INVALID", 404)
+	}
 	return DownloadLink{URL: signed.URL, ExpiresAt: signed.ExpiresAt, Filename: *filename, Bytes: *size, SHA256: *sha}, nil
+}
+
+func validDownloadReadURL(raw, version string) bool {
+	return objectstore.ValidSignedReadURL(raw, version)
 }
 
 func (s Service) BeginUpload(ctx context.Context, token, csrf, key string, raw GuestUploadBegin) (GuestUpload, error) {

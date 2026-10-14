@@ -1,0 +1,45 @@
+{
+  "generated_at": "2026-10-08T18:01:15.386267+00:00",
+  "status": "implementing",
+  "package_id": "V27",
+  "module": "V27",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 72.153
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/v2input",
+      "photoeditor/backend/internal/v2draft",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "Dedicated target defect CPU qualification bound to complete target preparation/current policy",
+    "Physical qualification report, immutable object metadata, expected policy, costs and measured peaks retained in private fingerprint",
+    "Exact target dependency physical recheck and live qualification/policy recheck",
+    "Eight evidence substitution classes refuse; revoked/restored session and exact replay pass",
+    "Independent physical target Params SQL/S3 verification repeated"
+  ],
+  "limitations": [
+    "No target defect task/inventory/admission/execution/finish/recovery yet",
+    "Original transfer handoff/fresh-process Recover and full V27 acceptance remain open",
+    "Upstream ML doubles, no GPU/photo-quality qualification",
+    "No SQL changes or production migration"
+  ],
+  "sha256": {
+    "backend/internal/semanticproposal/native_target_defect_qualification.go": "9870e6965278485d0b21638b8f56468f3ccbab8003797a43fad3c81565d07533",
+    "backend/internal/semanticproposal/native_target_defect_preparation.go": "6b42d04c2c49b3d4b764e3595a9b8b458b1130e01a95314faa8c4a538eabb54a",
+    "backend/internal/semanticproposal/native_target_defect_wire_probe_test.go": "8ee81151724bb5e6205ffb1094c5f22158ad3815395b9b7c063ba71356648875",
+    "tests/integration/test_v27_semantic_intent_publication.py": "48cf714c7143656fbafedbcbc9d7b150498158631f75e8b08e664ff969e56e9e",
+    "tests/integration/v27_face_wire_probe.py": "4225c9f470ed9fc820ced2a748dac38bdab43b7ebf3babefe1a114aba257e320",
+    "docs/implementation-v2/15-execution-contracts.md": "bb91c05e7d6b8f497e4df7d1284f5759552823415ba54460fa2ddcfd4b9c532f",
+    "docs/implementation-v2/audit/v27-target-defect-qualification-wire-current.xml": "54b2cfe4219a5ee45bb45bcc9e45bc2724702140928a7a04b5687706f4dfc741",
+    "docs/implementation-v2/audit/v27-target-defect-qualification-go-current.jsonl": "15fda8bf96dccf255f9e3a410fa357f2883873688d8fa1405f5c138bf07e4191"
+  }
+}

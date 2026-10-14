@@ -10,9 +10,9 @@ from photo_worker.contracts.base import Contract, SHA256, canonical_hash, canoni
 from photo_worker.operations.layers.runtime_lock import component_paths as layer_paths
 from photo_worker.runtime.executor import OperationFailure
 
-RENDER_COMPONENTS = ('recipe','inputs','layers','layer_params','learning','scalars','overrides',
-    'style','color','beauty','defects','effects','portrait','protection','masks','adjustments','changes','composition','source','reports','prepare','files',
-    'stage','quality','result','publish','resources','modules','authored','execute','task','adoption','runtime')
+RENDER_COMPONENTS = ('recipe','inputs','layers','layer_params','providers','learning','scalars','overrides',
+    'style','color','native_base','background','background_binding','background_decode','beauty','defects','detail','denoise','dust','upscale','geometry_masks','effects','portrait','portrait_background','protection','masks','adjustments','changes','composition','source','reports','prepare','files',
+    'stage','quality','result','publish','resources','modules','authored','execute','task','adoption','adoption_inputs','prepare_adoption','profiled_replay','qualification_pin','cache_identity','cache_lookup','cache_store','cache_bytes','cache_republish','cache_worker','replay_artifacts','replay_reader','recomposition_adoption','runtime')
 
 
 def component_paths():
@@ -26,6 +26,24 @@ def component_paths():
             'learning_model':'operations/learning/model.py',
             'learning_recipe':'operations/learning/recipe.py',
             'portrait_prepare':'operations/portrait/prepare.py',
+            'portrait_detail_prepare':'operations/portrait/prepare_detail.py',
+            'portrait_detail_algorithm':'algorithms/portrait_detail.py',
+            'portrait_detail_contract':'contracts/portrait_detail.py',
+            'denoise_prepare':'operations/image/prepare_denoise.py',
+            'upscale_prepare':'operations/image/prepare_upscale.py',
+            'mask_transform_prepare':'operations/mask/transform_prepare.py',
+            'mask_transform_publish':'operations/mask/transform_publish.py',
+            'mask_transform_algorithm':'algorithms/mask_transform.py',
+            'mask_refine_algorithm':'algorithms/mask_refine.py',
+            'mask_png_algorithm':'algorithms/mask_png.py',
+            'denoise_delta':'algorithms/model_delta.py',
+            'restoration_contract':'contracts/restoration.py',
+            'background_prepare':'operations/background/prepare.py',
+            'background_prepare_blur':'operations/background/prepare_blur.py',
+            'algorithm_background':'algorithms/background.py','contract_background':'contracts/background.py',
+            'geometry_prepare':'operations/geometry/prepare.py',
+            'asset_decode':'operations/asset/decode.py','asset_verify':'operations/asset/verify.py',
+            'asset_inspect':'operations/asset/inspect.py','contract_assets':'contracts/assets.py',
             'defects_prepare':'operations/defects/prepare.py','contract_defects':'contracts/defects.py',
             'algorithm_defect_labels':'algorithms/defect_labels.py','algorithm_defect_repair':'algorithms/defect_repair.py',
             'algorithm_effective':'algorithms/effective.py',
@@ -37,8 +55,19 @@ def component_paths():
             'algorithm_color':'algorithms/color.py','algorithm_style':'algorithms/style.py',
             'algorithm_regions':'algorithms/regions.py','contract_resolved':'contracts/resolved.py',
             'runtime_database':'runtime/database.py',
+            'runtime_service':'runtime/service.py','adopter_service':'v2/service.py',
             'array_evidence':'v2/array_evidence.py','adoption':'v2/adoption.py',
-            'lens_adoption':'v2/lens_adoption.py','lens_bypass':'v2/lens_bypass.py'}.items():
+            'adoption_service':'v2/adoption_service.py',
+            'lens_adoption':'v2/lens_adoption.py','lens_bypass':'v2/lens_bypass.py',
+            'render_derivative':'v2/render_derivative.py',
+            'render_derivative_adoption':'v2/render_derivative_adoption.py',
+            'render_derivative_store':'v2/render_derivative_store.py',
+            'render_derivative_service':'v2/render_derivative_service.py',
+            'render_derivative_schema':'v2/render_derivative_schema.py',
+            'object_evidence_reader':'v2/adoption_store.py',
+            'media_derivative_encoder':'operations/media/derivative.py',
+            'media_contract':'contracts/media.py',
+            'dust_prepare':'operations/sensor/prepare_repair.py','dust_contract':'contracts/dust.py'}.items():
         result[name] = root/relative
     return result
 

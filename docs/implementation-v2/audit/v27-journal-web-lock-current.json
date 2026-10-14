@@ -1,0 +1,55 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "recorded_at": "2026-10-08T08:20:35.815374+00:00",
+  "scope": "origin-scoped browser Web Locks plus persistent generation fencing for semantic journal",
+  "sources": {
+    "apps/photographer/src/semantic-attempt-store.ts": "5d5fa4ffe6f0fd8d01340306c9c43fd12117401afef1388f57c6f68adc2aef2a",
+    "apps/photographer/src/semantic-attempt-store.test.ts": "96ee51eb2daf04798a2d01bd3be78027a066fe69f16e6e38eccb8f81380a6b8b",
+    "apps/photographer/src/semantic-journal-lock.test.ts": "36669664a1299f697d6435d388312944587bb2c4d98cd1562e3ceadf9644d28a",
+    "apps/photographer/src/persistent-semantic-create.test.tsx": "7037ed1e972b0b1c47cea7669b465213fe7a8ef979b8475ee6f8a1fe88c34dc1",
+    "apps/photographer/src/collection-scope.dom.test.tsx": "d112734ac7dd50ef8651d201ce0724ee22cf7a612dc2b609a202964f3862eb59",
+    "work/v27-journal-browser/journal.js": "6237f330e255c36cc9557d2ad73ab9309f81dd0550ffd2cbf7f9695e2b821ee7",
+    "work/v27-journal-browser/index.html": "bed398d51d2d7372f75a82fc590c3e69b4273c5bf74d79f2e0fafef497d36aff",
+    "work/v27-journal-browser/frame.html": "4bc3374d869f9eb7e913a1065c50d5451cfc67ecb5dd166c0680ccadf12d1f9d",
+    "work/v27-journal-browser/serve.py": "9458067fe23a038ef51841639eff118a3cd8b76156c2d312e75ed7cfef3e0a37",
+    "work/v27-journal-browser/browser-result.json": "6cb998fa3fb758c5bec47ca1b124d270d56e3cbe3af6b9e79428ef80b4e7de8f"
+  },
+  "checks": [
+    {
+      "command": "npm --prefix apps/photographer test -- --reporter=dot",
+      "exit_code": 0,
+      "passed": 431,
+      "skipped": 7,
+      "files_passed": 89,
+      "files_skipped": 5,
+      "seconds": 7.8
+    },
+    {
+      "command": "npm --prefix apps/photographer run typecheck",
+      "exit_code": 0
+    },
+    {
+      "command": "Vite build production semantic-attempt-store.ts; actual in-app-browser two independent iframe localStorage/Web Locks probe",
+      "exit_code": 0,
+      "result": {
+        "status": "PASS",
+        "webLocks": true,
+        "independentContexts": 2,
+        "winners": 1,
+        "conflicts": 1,
+        "logoutFenced": true,
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36"
+      }
+    }
+  ],
+  "repairs": [
+    "first complete run430PASS/1FAIL/7SKIP: existing collection moderation test clicked Reload before it was enabled; now waits actual enabled button before keeping identical refresh/mutation assertions"
+  ],
+  "limitations": [
+    "browser probe is journal-only, not editor/API admission end-to-end",
+    "separate real tabs/processes and native multi-runtime/process-kill unverified",
+    "full recovery authority/lifecycle and producer orchestration not accepted",
+    "source-baseline gate remains open"
+  ]
+}

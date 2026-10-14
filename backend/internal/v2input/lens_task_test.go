@@ -201,11 +201,17 @@ func TestPrepareLensTaskBuildsReplayableTransportBeforeCommit(t *testing.T) {
 	}
 	project, snapshot, session := uuid.New(), uuid.New(), uuid.New()
 	config, err := CompileLensDraftConfig(project, snapshot, session, run, []FrozenLensTask{configTask})
-	if err != nil || config.OutputBytes <= 0 || config.Config.Lens.AuthSessionID != session || len(config.Config.Lens.Nodes) != 1 {
+	if err != nil || config.Config.QueueClass!="batch" || config.OutputBytes <= 0 || config.Config.Lens.AuthSessionID != session || len(config.Config.Lens.Nodes) != 1 {
 		t.Fatal(config, err)
 	}
 	draftDB := &lensDraftDB{accepted: true}
 	store := SQLLensDraftStore{DB: draftDB}
+ wrongQueue:=config
+ wrongQueue.Config.QueueClass="interactive"
+ wrongQueue.Body,_=canonical.Marshal(wrongQueue.Config)
+ wrongQueue.SHA256,_=canonical.Hash(wrongQueue.Config)
+ if err:=store.Begin(context.Background(),tenant,uuid.New(),run,strings.Repeat("e",64),wrongQueue);err==nil||draftDB.calls!=0{t.Fatal("foreign queue reached lens SQL")}
+
 	if err := store.Begin(context.Background(), tenant, uuid.New(), run, strings.Repeat("e", 64), config); err != nil {
 		t.Fatal(err)
 	}

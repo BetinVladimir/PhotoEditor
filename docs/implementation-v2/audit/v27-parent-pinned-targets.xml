@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="3.515" timestamp="2026-10-08T15:38:36.614991+03:00" hostname="Mac"><testcase classname="tests.integration.test_v27_semantic_intent_publication" name="test_semantic_intent_publication_old_version_and_replay[native-person-defect-wire]" time="2.907"><failure message="AssertionError: FAIL&#09;photoeditor/backend/internal/semanticproposal [build failed]&#10;  FAIL&#10;  # photoeditor/backend/internal/semanticproposal [photoeditor/backend/internal/semanticproposal.test]&#10;  internal/semanticproposal/native_bootstrap_integration_test.go:386:15: undefined: inspector&#10;  &#10;assert 1 == 0&#10; +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationNativePreparationBootstra...semanticproposal.test]\ninternal/semanticproposal/native_bootstrap_integration_test.go:386:15: undefined: inspector\n').returncode">tests/integration/test_v27_semantic_intent_publication.py:737: in test_semantic_intent_publication_old_version_and_replay
+    assert result.returncode==0,result.stdout+result.stderr
+E   AssertionError: FAIL	photoeditor/backend/internal/semanticproposal [build failed]
+E     FAIL
+E     # photoeditor/backend/internal/semanticproposal [photoeditor/backend/internal/semanticproposal.test]
+E     internal/semanticproposal/native_bootstrap_integration_test.go:386:15: undefined: inspector
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationNativePreparationBootstra...semanticproposal.test]\ninternal/semanticproposal/native_bootstrap_integration_test.go:386:15: undefined: inspector\n').returncode</failure></testcase></testsuite></testsuites>

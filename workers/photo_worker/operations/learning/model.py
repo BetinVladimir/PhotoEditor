@@ -113,25 +113,30 @@ def _fit(x: np.ndarray, y: np.ndarray, ridge_lambda: float) -> tuple[np.ndarray,
 
 def fit_delta_model(examples: list[TrainExample],
                     weights: tuple[float, ...],
-                    loss_scales: tuple[float, ...]) -> FittedDeltaModel:
+                    loss_scales: tuple[float, ...], *,
+                    check_active=lambda: None) -> FittedDeltaModel:
     """Choose lambda by leave-one-train-session-out CV, then fit all train rows.
 
     Every held-out CV session is transformed using statistics from its own
     fold's training sessions. Equal losses within 1e-12 favor larger lambda.
     """
+    check_active()
     x, y, session_ids, w, scales = _validated_training(examples, weights, loss_scales)
+    check_active()
     sessions = sorted(set(session_ids), key=str)
     scores = []
     for ridge_lambda in RIDGE_LAMBDAS:
         total_loss = 0.0
         total_rows = 0
         for session in sessions:
+            check_active()
             valid = np.asarray([item == session for item in session_ids], dtype=bool)
             train = ~valid
             if not np.any(valid) or not np.any(train):
                 raise ValueError('INSUFFICIENT_DATA')
             means, feature_scales, coefficients, intercept = _fit(
                 x[train], y[train], ridge_lambda)
+            check_active()
             prediction = np.clip(
                 ((x[valid] - means) / feature_scales) @ coefficients + intercept,
                 -TARGET_LIMITS, TARGET_LIMITS)
@@ -143,7 +148,9 @@ def fit_delta_model(examples: list[TrainExample],
     selected = max(ridge_lambda for ridge_lambda, score in zip(RIDGE_LAMBDAS,
                                                                scores, strict=True)
                    if score <= best + 1e-12)
+    check_active()
     means, feature_scales, coefficients, intercept = _fit(x, y, selected)
+    check_active()
     if (not np.isfinite(means).all() or not np.isfinite(feature_scales).all() or
             not np.isfinite(coefficients).all() or not np.isfinite(intercept).all() or
             np.any(np.abs(means) > 100) or np.any(feature_scales > 1e8) or

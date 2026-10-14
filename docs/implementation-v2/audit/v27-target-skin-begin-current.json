@@ -1,0 +1,55 @@
+{
+  "generated_at": "2026-10-08T17:21:45.335518+00:00",
+  "status": "implementing",
+  "module": "V27",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "sql": {
+      "result": "PASS",
+      "tests": 23,
+      "seconds": 29.359
+    },
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 56.626
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/v2input",
+      "photoeditor/backend/internal/v2draft",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "blocked target skin begin and exact pending replay",
+    "full original/target/parser result/Params/policy locked authority",
+    "running parser run refuses without leaked draft",
+    "revoked session refuses; restored session replays",
+    "draft/unsealed/blocked state with no queued outbox",
+    "independent SQL/S3 namespace IDs/Params bytes/parser manifest source verification",
+    "00899\u219200940 metadata and function identity/security preservation; no broad scheduler table grants"
+  ],
+  "limitations": [
+    "Target skin registration/admission/seal/worker/result/finalization/saved recovery/automatic advancement remain open",
+    "Target defects/transfer and whole V27 acceptance remain open",
+    "ML doubles/shared WorkingImage; no GPU/photo-quality qualification",
+    "No production migration"
+  ],
+  "sha256": {
+    "docs/implementation-v2/audit/v27-target-skin-begin-sql-current.xml": "729520c5d7bb3b482e54a170006245a0ed8dd7d2a696bbf6ff78e287252d5ce9",
+    "docs/implementation-v2/audit/v27-target-skin-begin-wire-current.xml": "1e509cda7d0cbef8282617db827ef27e6a01c90d042f2cc41ba97c82d085f20f",
+    "docs/implementation-v2/audit/v27-target-skin-begin-go-current.jsonl": "d2e275874d1bef44b7fa93bae4c50591791a40245e5086ed2e6c70d3d5ec09ad",
+    "backend/db/migrations/00940_v27_target_skin_parser_barrier.sql": "3e4885a09542acdc58efbfadef204748176e5f4290284aa9c6050028f706503c",
+    "backend/internal/semanticproposal/native_target_skin_begin.go": "16b236ea4c4b40f8e25f4a88f1e84c938a2d7ba76ea865d2e6132293da4264bd",
+    "backend/internal/semanticproposal/native_target_skin_wire_probe_test.go": "9705206123fbe8f53b9ff3d97ff675732b988041f07fa58b770f71e148b67405",
+    "backend/internal/semanticproposal/native_target_face_wire_probe_test.go": "a85802935a0525c3b607453f9479e19efa92d72dcc737be1ea8ee199e51064ca",
+    "tests/integration/test_v27_semantic_intent_publication.py": "d7c4d61cd43d5fa87e755285bac6f0a7f4e94de7bc0e0f36db4efd19095f3d23",
+    "tests/integration/v27_face_wire_probe.py": "a7206152a09ec51ceb60830803a4ad509bfb0b3c48f948a7975f2517628eb090",
+    "tests/integration/test_v27_person_migration_upgrade.py": "3df3de9c1fe9758d791474d066bae6a4cd005ee9231664b385360fb24d02dac8",
+    "docs/implementation-v2/03-database.md": "b14cea23a93dd6f3b98c6e9caee8ca3fd0532471c1f31767b1c55655e5bdecf5",
+    "docs/implementation-v2/15-execution-contracts.md": "9fde8d7737c7b4540e7cf2c9c381931ca5262344007eec1a90df9d5491a76330"
+  }
+}

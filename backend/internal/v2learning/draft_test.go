@@ -119,3 +119,23 @@ func TestTrainingDraftRecoveryUsesExactCanonicalBytes(t *testing.T) {
 		t.Fatal("manifest outside selected sessions accepted")
 	}
 }
+
+func TestTrainingQueueRecoveryPreservesNewAndHistoricalConfigBytes(t *testing.T){
+ project,profile,request,manifest:=compiledTrainingDraftFixture(t)
+ tenant,actor,session:=uuid.New(),uuid.New(),uuid.New()
+ var currentHash string
+ for _,queue:=range []string{"training",""}{
+  prepared,err:=prepareTrainingDraftForQueue(tenant,actor,session,project,profile,"queue-recovery",4096,request,manifest,queue)
+  if err!=nil{t.Fatal(err)}
+  var config map[string]json.RawMessage;if err=json.Unmarshal(prepared.ConfigBody,&config);err!=nil{t.Fatal(err)}
+  if queue=="training"{if string(config["queue_class"])!=`"training"`{t.Fatal("new class not frozen")};currentHash=prepared.ConfigSHA}else{if _,present:=config["queue_class"];present{t.Fatal("historical config rewritten")};if prepared.ConfigSHA==currentHash{t.Fatal("class not hashed")}}
+  recovered,err:=ResumeTrainingDraft(tenant,actor,session,project,profile,"queue-recovery",request,prepared.RecoveryBody)
+  if err!=nil||!bytes.Equal(recovered.ConfigBody,prepared.ConfigBody)||recovered.ConfigSHA!=prepared.ConfigSHA||!bytes.Equal(recovered.RecoveryBody,prepared.RecoveryBody){t.Fatal("queue recovery changed saved bytes",queue,err)}
+  var changed map[string]any;if err=json.Unmarshal(prepared.RecoveryBody,&changed);err!=nil{t.Fatal(err)}
+  changed["queue_class"]="interactive"
+  bad,_:=canonical.Marshal(changed)
+  if _,err=ResumeTrainingDraft(tenant,actor,session,project,profile,"queue-recovery",request,bad);err==nil{t.Fatal("foreign training queue accepted")}
+ }
+ fresh,err:=PrepareTrainingDraft(tenant,actor,session,project,profile,"queue-recovery",4096,request,manifest)
+ if err!=nil||fresh.ConfigSHA!=currentHash{t.Fatal("public producer did not use training queue",err)}
+}

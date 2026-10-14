@@ -1,0 +1,56 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "recorded_at": "2026-10-08T02:10:01.140497+00:00",
+  "scope": "initialized intent restricted ACL/archive plus schema pin backward compatibility",
+  "sources": {
+    "backend/internal/semanticreview/run_intent.go": "3221d449c3900456f25694db29621960d2f3df8a0ba0d4d7f0c11181a96cc6c4",
+    "backend/internal/semanticreview/run_intent_integration_probe_test.go": "e13ab3b6f7f20b497df082806a4cf41f227b0d22bf2f27c3700fbde76e2822a5",
+    "backend/internal/semanticreview/read_integration_test.go": "67abd371f982f645285d154ac376f037b0bff4aa6072b40849d12bf1155bfbbb",
+    "tests/integration/test_v27_semantic_qualification_objectstore.py": "4e8a7910489d8413753153ab1d141e338d089f39c799f6e37cc68f7fad1652d5",
+    "workers/photo_worker/v2/contract_lock.py": "7e48664601a146b241e1ae531110f5c4b3d03ad71571e39c88ecdefa5dffe42a",
+    "workers/photo_worker/v2/input_closure.py": "fd038a1a29779ed5ab9debe10080dd41c3626bc7724a0bbb6b60b52852e67384",
+    "tests/platform/test_v2_input_closure.py": "3e87d28ae61d7c443bf47d9609c69a11cc4edf07f3fed7b7798e3143bbf337f6",
+    "docs/implementation-v2/contracts/schemas.json": "4092c7b6caacbfc2e6552f73a8e31a4cd53de3d5ca4ab165625d8423748d1d71"
+  },
+  "changed_during_final_physical_run": [],
+  "checks": [
+    {
+      "command": "PHOTO_TEST_NATIVE_INFRA=1 pytest tests/integration/test_v27_semantic_qualification_objectstore.py -k fresh-assembly -q --tb=short",
+      "exit_code": 0,
+      "passed": 1,
+      "deselected": 12,
+      "seconds": 98.18
+    },
+    {
+      "command": "go -C backend test ./internal/semanticreview ./internal/v2input",
+      "exit_code": 0
+    },
+    {
+      "command": "pytest tests/platform/test_v2_input_closure.py tests/platform/test_parameters.py tests/platform/test_semantic_adoption_geometry.py tests/platform/test_semantic_transfer_adoption_closure.py tests/platform/test_semantic_replay_inputs.py tests/platform/test_semantic_adoption_replay.py -q --tb=short",
+      "exit_code": 0,
+      "passed": 58,
+      "seconds": 8.02
+    },
+    {
+      "command": "pytest tests/platform/test_image_contracts.py tests/platform/test_semantic_transfer_contracts.py -q --tb=short",
+      "exit_code": 0,
+      "passed": 22,
+      "seconds": 1.06
+    },
+    {
+      "command": "python docs/implementation-v2/semantic-spec.py",
+      "exit_code": 0,
+      "passed": 55
+    }
+  ],
+  "repairs": [
+    "initial ACL fixture downgraded last owner and correctly hit tenant owner invariant; replaced with independent editor identity",
+    "schema pin mismatch exposed by exact contract lock test; preserved prior schema SHA in explicit worker allowlist and added physical disk-index backward-read test"
+  ],
+  "limitations": [
+    "source-baseline gate remains failed; historical lock not changed",
+    "full existing foreign-tenant role matrix/browser/native/deep-link discovery unverified",
+    "producer orchestration and whole-module acceptance remain open"
+  ]
+}

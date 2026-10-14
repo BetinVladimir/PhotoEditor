@@ -18,13 +18,26 @@ def test_actual_installed_composition_bytes_match_operator_pinned_digest():
     assert verify_installed_runtime(value,canonical_hash(value))==canonical_hash(value)
     assert 'render_adoption' in value.components and 'render_execute' in value.components
     assert 'contract_override' in value.components
+    assert 'render_recomposition_adoption' in value.components
+    assert 'render_adoption_inputs' in value.components
+    assert 'render_prepare_adoption' in value.components
+    assert 'adoption_service' in value.components
+    assert 'render_replay_reader' in value.components
+    assert 'render_replay_artifacts' in value.components
+    assert 'render_profiled_replay' in value.components
+    assert 'render_qualification_pin' in value.components
+    assert 'render_cache_identity' in value.components
+    assert 'runtime_service' in value.components
+    assert 'adopter_service' in value.components
 
 
-@pytest.mark.parametrize('field',['digest','component','package','machine'])
+@pytest.mark.parametrize('field',['digest','component','recomposition','runtime_service','adopter_service','package','machine'])
 def test_changed_build_or_host_cannot_match_pinned_runtime(field):
     value=lock();expected=canonical_hash(value)
     if field=='digest':expected='0'*64
     elif field=='component':value.components['render_execute']='0'*64;expected=canonical_hash(value)
+    elif field=='recomposition':value.components['render_recomposition_adoption']='0'*64;expected=canonical_hash(value)
+    elif field in ('runtime_service','adopter_service'):value.components[field]='0'*64;expected=canonical_hash(value)
     elif field=='package':value.packages['numpy']='not-installed';expected=canonical_hash(value)
     else:value.machine='other-machine';expected=canonical_hash(value)
     with pytest.raises(OperationFailure):verify_installed_runtime(value,expected)

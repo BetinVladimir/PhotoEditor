@@ -10,6 +10,7 @@ import (
 )
 
 type CaptureDraftConfig struct {
+ QueueClass string `json:"queue_class,omitempty"`
 	ProjectID uuid.UUID `json:"project_id"`
 	Capture   struct {
 		JobID          uuid.UUID            `json:"job_id"`
@@ -40,7 +41,7 @@ func (s SQLCaptureAssessmentStore) BeginDraft(ctx context.Context, l CaptureAsse
 	if err != nil {
 		return CaptureDraftConfig{}, err
 	}
-	config := CaptureDraftConfig{ProjectID: l.ProjectID}
+	config := CaptureDraftConfig{ProjectID: l.ProjectID,QueueClass:"capture"}
 	config.Capture.JobID = l.JobID
 	config.Capture.Policy = l.Policy
 	config.Capture.PolicySHA = policySHA
@@ -93,7 +94,7 @@ func (s SQLCaptureAssessmentStore) LoadDraft(ctx context.Context, l CaptureAsses
 	var config CaptureDraftConfig
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	decoder.DisallowUnknownFields()
-	if decoder.Decode(&config) != nil || decoder.Decode(new(any)) != io.EOF {
+	if decoder.Decode(&config) != nil || decoder.Decode(new(any)) != io.EOF || (config.QueueClass!=""&&config.QueueClass!="capture") {
 		return CaptureDraftConfig{}, ErrInvalid
 	}
 	sha, err := canonical.Hash(config)

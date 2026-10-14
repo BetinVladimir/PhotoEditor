@@ -28,11 +28,24 @@ def smoke(model_id: str, model: Any) -> dict[str, Any]:
     black64 = np.zeros((64, 64, 3), np.float32)
     if model_id == "lraspp_mobilenet_v3_large":
         output = _array(model.infer(black64), model_id)
+        if output.shape != (21, 64, 64):
+            raise ModelError(f"{model_id}:MODEL_OUTPUT_INVALID")
     elif model_id == "keypointrcnn_resnet50_fpn":
         values = model.infer(np.zeros((640, 640, 3), np.float32))
         if not isinstance(values, dict) or set(values) != {"boxes", "scores", "keypoints", "keypoints_scores"}:
             raise ModelError(f"{model_id}:MODEL_OUTPUT_INVALID")
-        output = np.concatenate([_array(value, model_id, allow_empty=True).reshape(-1) for value in values.values()])
+        boxes = _array(values["boxes"], model_id, allow_empty=True)
+        scores = _array(values["scores"], model_id, allow_empty=True)
+        keypoints = _array(values["keypoints"], model_id, allow_empty=True)
+        keypoint_scores = _array(values["keypoints_scores"], model_id, allow_empty=True)
+        if boxes.ndim != 2:
+            raise ModelError(f"{model_id}:MODEL_OUTPUT_INVALID")
+        count = boxes.shape[0]
+        if (boxes.shape != (count, 4) or scores.shape != (count,) or
+                keypoints.shape != (count, 17, 3) or keypoint_scores.shape != (count, 17) or
+                np.any(scores < 0) or np.any(scores > 1)):
+            raise ModelError(f"{model_id}:MODEL_OUTPUT_INVALID")
+        output = np.concatenate([value.reshape(-1) for value in (boxes, scores, keypoints, keypoint_scores)])
     elif model_id == "sfd":
         output = _array(model.infer(black64), model_id, allow_empty=True)
         if output.ndim != 2 or output.shape[1] != 5:
@@ -40,6 +53,40 @@ def smoke(model_id: str, model: Any) -> dict[str, Any]:
     elif model_id == "fan2d":
         output = _array(model.infer(np.zeros((256, 256, 3), np.float32)), model_id)
         if output.shape != (68, 3):
+            raise ModelError(f"{model_id}:MODEL_OUTPUT_INVALID")
+    elif model_id == "identity512":
+        output = _array(model.infer(np.zeros((112, 112, 3), np.float32)), model_id)
+        norm = float(np.linalg.norm(output.astype(np.float64)))
+        if output.shape != (512,) or not 0.999 <= norm <= 1.001:
+            raise ModelError(f"{model_id}:MODEL_OUTPUT_INVALID")
+    elif model_id == "eye_open":
+        output = _array(model.infer(black64), model_id)
+        if output.shape != (2,) or np.any(output < 0) or np.any(output > 1):
+            raise ModelError(f"{model_id}:MODEL_OUTPUT_INVALID")
+    elif model_id == "glare_mask":
+        output = _array(model.infer(black64), model_id)
+        if output.shape != (64, 64) or np.any(output < 0) or np.any(output > 1):
+            raise ModelError(f"{model_id}:MODEL_OUTPUT_INVALID")
+    elif model_id == "bisenet_face19":
+        output = _array(model.infer(np.zeros((512, 512, 3), np.float32)), model_id)
+        if output.shape != (512, 512, 19):
+            raise ModelError(f"{model_id}:MODEL_OUTPUT_INVALID")
+    elif model_id in ("realesrgan_x2", "realesrgan_x4"):
+        scale = 2 if model_id == "realesrgan_x2" else 4
+        output = _array(model.infer(black64), model_id)
+        if output.shape != (64 * scale, 64 * scale, 3) or np.any(output < 0) or np.any(output > 1):
+            raise ModelError(f"{model_id}:MODEL_OUTPUT_INVALID")
+    elif model_id == "dinov2_vits14":
+        output = _array(model.infer(black64), model_id)
+        if output.shape != (384,) or float(np.linalg.norm(output.astype(np.float64))) <= 1e-12:
+            raise ModelError(f"{model_id}:MODEL_OUTPUT_INVALID")
+    elif model_id == "segformer_b0_ade":
+        output = _array(model.infer(black64), model_id)
+        if output.ndim != 3 or output.shape[0] != 150 or min(output.shape[1:]) < 1:
+            raise ModelError(f"{model_id}:MODEL_OUTPUT_INVALID")
+    elif model_id == "depth_anything_v2_small":
+        output = _array(model.infer(black64), model_id)
+        if output.ndim != 2 or min(output.shape) < 1:
             raise ModelError(f"{model_id}:MODEL_OUTPUT_INVALID")
     elif model_id == "u2net":
         output = _array(model.infer(np.zeros((320, 320, 3), np.float32)), model_id)
@@ -49,15 +96,32 @@ def smoke(model_id: str, model: Any) -> dict[str, Any]:
         values = model.infer(np.zeros((1024, 1024, 3), np.float32), np.array([[512, 512]], np.float32), np.array([1], np.float32), np.array([0, 0, 1023, 1023], np.float32))
         if not isinstance(values, tuple) or len(values) != 2:
             raise ModelError(f"{model_id}:MODEL_OUTPUT_INVALID")
-        output = np.concatenate([_array(value, model_id).reshape(-1) for value in values])
+        masks = _array(values[0], model_id)
+        scores = _array(values[1], model_id)
+        while masks.ndim > 3 and masks.shape[0] == 1:
+            masks = masks[0]
+        if masks.ndim == 2:
+            masks = masks[None]
+        if (masks.ndim != 3 or not 1 <= masks.shape[0] <= 16 or
+                min(masks.shape[1:]) < 1 or scores.size != masks.shape[0]):
+            raise ModelError(f"{model_id}:MODEL_OUTPUT_INVALID")
+        output = np.concatenate([masks.reshape(-1), scores.reshape(-1)])
     elif model_id == "big_lama":
         output = _array(model.infer(black64, np.zeros((64, 64), np.float32)), model_id)
+        if output.shape != black64.shape or np.any(output < 0) or np.any(output > 1):
+            raise ModelError(f"{model_id}:MODEL_OUTPUT_INVALID")
+    elif model_id == "scunet_color_real_psnr":
+        output = _array(model.infer(black64), model_id)
+        if output.shape != black64.shape or np.any(output < 0) or np.any(output > 1):
+            raise ModelError(f"{model_id}:MODEL_OUTPUT_INVALID")
     elif model_id == "sd15_inpaint":
         mask = np.zeros((512, 512), np.float32)
         mask[192:320, 192:320] = 1
         output = _array(model.generate(np.zeros((512, 512, 3), np.float32), mask, prompt="neutral gray square", negative_prompt="", seed=0, steps=25, guidance_scale=7.5, scheduler="ddim_v1"), model_id)
+        if output.shape != (512, 512, 3) or np.any(output < 0) or np.any(output > 1):
+            raise ModelError(f"{model_id}:MODEL_OUTPUT_INVALID")
     else:
-        output = _array(model.infer(black64), model_id)
+        raise ModelError(f"{model_id}:MODEL_DOCTOR_UNSUPPORTED")
     return {"shape": list(output.shape), "dtype": str(output.dtype), "minimum": float(output.min(initial=0)), "maximum": float(output.max(initial=0))}
 
 

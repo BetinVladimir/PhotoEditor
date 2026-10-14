@@ -12,6 +12,9 @@ def assert_registered_render_model_authority(db,tenant,project,binding,learning,
         model,model_sha=db.execute('SELECT a.id,a.sha256 FROM photo.learning_versions v JOIN photo.artifacts a ON a.tenant_id=v.tenant_id AND a.id=v.model_artifact_id WHERE v.tenant_id=%s AND v.id=%s',(tenant,learning)).fetchone()
         args=(tenant,project,binding['asset_version_id'],root,'9'*64,model,model_sha,learning,actor,session)
         query='SELECT photo.v26_render_model_scope('+','.join(['%s']*10)+')'
+        consent_query='SELECT photo.v26_render_model_consent_revoked('+','.join(['%s']*10)+')'
+        # The diagnostic orders learning before model, unlike model_scope.
+        consent_args=(*args[:5],learning,model,model_sha,actor,session)
         db.execute('SET LOCAL ROLE photo_api')
         actual=db.execute(query,args).fetchone()
         if actual!=(True,):
@@ -27,8 +30,26 @@ def assert_registered_render_model_authority(db,tenant,project,binding,learning,
             db.execute('SET LOCAL ROLE photo_api')
             assert db.execute(query,args).fetchone()==(False,)
         assert db.execute(query,args).fetchone()==(True,)
+        assert db.execute(consent_query,consent_args).fetchone()==(False,)
         with db.transaction(force_rollback=True):
             db.execute('RESET ROLE')
             db.execute("UPDATE photo.consent_grants SET status='revoked',epoch=epoch+1 WHERE tenant_id=%s AND id=%s",(tenant,consent))
             db.execute('SET LOCAL ROLE photo_api')
             assert db.execute(query,args).fetchone()==(False,)
+            assert db.execute(consent_query,consent_args).fetchone()==(True,)
+            # A revoked grant must not become an oracle for guessed foreign
+            # roots, model/version identifiers or actor/session credentials.
+            for index,replacement in ((0,uuid4()),(1,uuid4()),(2,uuid4()),(3,uuid4()),
+                    (4,'f'*64),(5,uuid4()),(6,uuid4()),(7,'f'*64),(8,uuid4()),(9,uuid4())):
+                wrong=list(consent_args);wrong[index]=replacement
+                assert db.execute(consent_query,wrong).fetchone()==(False,)
+            with db.transaction(force_rollback=True):
+                db.execute('RESET ROLE')
+                db.execute('UPDATE photo.v2_draft_uploads SET render_authored_sha=%s WHERE tenant_id=%s AND artifact_id=%s',
+                    ('f'*64,tenant,root))
+                db.execute('SET LOCAL ROLE photo_api')
+                assert db.execute(consent_query,consent_args).fetchone()==(False,)
+            assert db.execute(consent_query,consent_args).fetchone()==(True,)
+        # Revocation in this SQL fixture is rolled back; this is metadata
+        # authority coverage, not evidence of an executed HTTP revoke probe.
+        assert db.execute(consent_query,consent_args).fetchone()==(False,)

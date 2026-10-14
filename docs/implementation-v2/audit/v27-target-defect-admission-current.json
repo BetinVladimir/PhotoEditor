@@ -1,0 +1,56 @@
+{
+  "generated_at": "2026-10-08T18:48:47.204314+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "sql": {
+      "result": "PASS",
+      "tests": 23,
+      "seconds": 25.988
+    },
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 131.663
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/v2draft",
+      "photoeditor/backend/internal/v2input",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "00952 private target graph budget and scheduler-only SQL admission gate with no table privilege expansion",
+    "Original target manifest/DAG/completed producer scope and exact person/landmarks/skin canonical outputs repeated",
+    "Exact config hash, shared source/request/namespace/intent/snapshot/policy, frozen qualification report, Params object pin and registered transport",
+    "Physical admission replay, ten null-field substitutions, revoked/restored session and expired/restored quota; Go adapter pass",
+    "Registered run remains draft/unsealed/blocked; independent transport verification confirms zero queued outbox",
+    "00899→00952 upgrade preserves existing metadata/OID/owner/ACL"
+  ],
+  "limitations": [
+    "Dedicated target defect seal/activation/native worker/result/finish/recovery/automatic advancement still required",
+    "Original transfer handoff/fresh-process recovery and whole V27 acceptance remain open",
+    "Upstream ML doubles; no GPU/photo-quality acceptance",
+    "No production migration"
+  ],
+  "repairs": [
+    "Initial physical admission failed SQLSTATE 42725 in JSON subtraction expression; explicit parentheses fixed; final current SQL and physical runs passed"
+  ],
+  "sha256": {
+    "backend/db/migrations/00952_v27_target_defect_admission.sql": "2eaf7f724f4e016ab4d01bcc3d8f48ab5b6573184856f4408f6fd45267a267ae",
+    "backend/internal/semanticproposal/native_target_defect_admission_evidence.go": "da2d92aea497d330a694116f0bc6b484215063f4df1f42a3937a81d1f7fac4ff",
+    "backend/internal/semanticproposal/native_target_defect_admission_lock.go": "7446b2a7aae7d61bf1a2e979b3682549917bc6b6eacdac3977dffb4e542090ad",
+    "backend/internal/semanticproposal/native_target_defect_transport_probe_test.go": "ee4afa3f54fe3e9dfc3096bcd892abd85a7b5fcd70e7ec70214e2d817fd630d9",
+    "tests/integration/test_v27_person_migration_upgrade.py": "35df1363f09770d42edb9c9fd903cb2e32929bc9d3fd69f038857263140590e5",
+    "tests/integration/test_v27_semantic_intent_publication.py": "0469be2cc908a4e4f985c364b2845bb0bfecb320024e5f436a596b6172969433",
+    "docs/implementation-v2/03-database.md": "3671f0520083d2e01d74f953a435b76808d418ddce2ad8e55806609e63701313",
+    "docs/implementation-v2/15-execution-contracts.md": "1277f1dafefc12201d563df55d0ec4cec835ef0cc74d446050ae86d07523b419",
+    "docs/implementation-v2/audit/v27-target-defect-admission-go-current.jsonl": "af71de506887c518dd86a77eab869e3e099803e4c6566bc537a610367abffffd",
+    "docs/implementation-v2/audit/v27-target-defect-admission-sql-current.xml": "f4ebd98f5f8b0ed55f3463bd7ccb61052713477a7c5eb4fae1ca1ba17f9993e7",
+    "docs/implementation-v2/audit/v27-target-defect-admission-wire-current.xml": "e59f94c0b2717bab1ca41b555051388f9f39ec93c4ee058027a4758bafed4200"
+  }
+}

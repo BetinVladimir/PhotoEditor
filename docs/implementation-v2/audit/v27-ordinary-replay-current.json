@@ -1,0 +1,28 @@
+{
+  "module": "V27",
+  "module_accepted": false,
+  "verification_scope": "ordinary-admission physical scenario plus default semanticproposal package",
+  "physical_result": {
+    "passed": 1,
+    "deselected": 15,
+    "seconds": 20.2
+  },
+  "package_result": {
+    "status": "PASS",
+    "seconds": 1.871,
+    "default_fixture_skips_do_not_count_as_physical_evidence": true
+  },
+  "source_sha256": {
+    "backend/internal/semanticproposal/transfer_replay.go": "9752a208225ca45c75595ec9276d1ac45095802f4a91f5bc4c73f35bf0a45ecd",
+    "backend/internal/semanticproposal/transfer_activation.go": "391f09470d62db91ccbeac84eca7d5c76a8683c84dfce95e8dd57424e7d3bfe6",
+    "backend/internal/semanticproposal/transfer_seal.go": "c00a309a7d6419b540a0d02497408217f13abb79b86630ed898cd1b642f3edad",
+    "backend/internal/semanticproposal/transfer_draft_preparer.go": "5d8010185348d9988d9d33062d20e90082abbde740124a22d970be71e0cbf4dd",
+    "backend/internal/semanticproposal/publication_integration_test.go": "9062218bf33da6e80e3ef9db1e4f7857c6b670e3d9165e0e9ec039bc72650098",
+    "tests/integration/test_v27_semantic_intent_publication.py": "3c3946a6733b0391abd38817568354329893f7add52e84bd3fe205b6c0db727a"
+  },
+  "remaining": [
+    "public SemanticPropose installation",
+    "independent server policy configuration selection",
+    "current whole-module acceptance and hardware/real-photo/client gates"
+  ]
+}

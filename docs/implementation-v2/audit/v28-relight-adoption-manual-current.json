@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 completed canonical manual origin SQL",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "production_migration_applied": false,
+  "checks": {
+    "native_sql_goose": {
+      "passed": 4,
+      "seconds": 14.64,
+      "xml": "v28-relight-adoption-manual-current.xml"
+    }
+  },
+  "source_sha256": {
+    "backend/db/migrations/00990_v28_relight_adoption_manual.sql": "bda6a3e34da82d75fe7b25adeaf2584ce8b3102ad6265a0403f18fb24e4dd8ab",
+    "tests/integration/test_v28_relight_adoption_manual.py": "20ebec2b0f5b7825788437ccc8e5e40d5987d85a5a7e66286f54e23ccf9c6433"
+  },
+  "limitations": [
+    "Positive SQL uses partial Params and owner-seeded producer/result/source/upload/qualification; mask pixel/PNG bytes placeholders",
+    "Completed manual Python original-vector/raster integration and transactional commit pending",
+    "No production installation/public UI or actual image/device qualification"
+  ]
+}

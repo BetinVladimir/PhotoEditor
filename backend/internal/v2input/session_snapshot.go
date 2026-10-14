@@ -1,6 +1,7 @@
 package v2input
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -42,9 +43,26 @@ func AnalysisSnapshotID(run uuid.UUID) (uuid.UUID, error) {
 func CompileSessionInputSnapshot(run uuid.UUID, items []SessionSnapshotItem) (SessionInputSnapshot, []byte, error) {
 	var empty SessionInputSnapshot
 	id, err := AnalysisSnapshotID(run)
-	if err != nil || len(items) < 1 || len(items) > 5000 {
+	if err != nil {
+		return empty, nil, err
+	}
+	return CompilePinnedSessionInputSnapshot(id, items)
+}
+
+// CompilePinnedSessionInputSnapshot binds an existing catalog snapshot ID.
+// Catalog/project authority is required separately before supplying items.
+func CompilePinnedSessionInputSnapshot(id uuid.UUID, items []SessionSnapshotItem) (SessionInputSnapshot, []byte, error) {
+	var empty SessionInputSnapshot
+	if id == uuid.Nil || len(items) < 1 || len(items) > 5000 {
 		return empty, nil, ErrInvalid
 	}
+	// Own nested pointer fields as well as the item slice.
+	owned, err := canonical.Marshal(items)
+	var copied []SessionSnapshotItem
+	if err != nil || json.Unmarshal(owned, &copied) != nil {
+		return empty, nil, ErrInvalid
+	}
+	items = copied
 	seen := make(map[uuid.UUID]bool, len(items))
 	for ordinal, item := range items {
 		if item.Ordinal != ordinal || item.Binding.AssetVersionID == uuid.Nil ||

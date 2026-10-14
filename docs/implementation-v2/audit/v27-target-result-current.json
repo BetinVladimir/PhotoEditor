@@ -1,0 +1,98 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "generated_at": "2026-10-08T15:14:56.444234+00:00",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "dirty_tree_hash": "80403f7cac2171839dfd6a681c9e7a268fbcefd876e54fa6c0a48868a77a175e",
+  "dirty_tree_hash_scope": {
+    "roots": [
+      "backend/",
+      "workers/",
+      "src/",
+      "apps/",
+      "packages/",
+      "tests/",
+      "scripts/",
+      "deploy/",
+      "docs/implementation-v2/contracts/"
+    ],
+    "paths": 4751,
+    "algorithm": "sorted git tracked+untracked nonignored names NUL sha256(bytes) newline; MISSING marker; excludes generated audit evidence"
+  },
+  "contracts_hash": "bedf81fee94e5e75a78db7d8fc942cdc67d7fb580301c33071233e3abf357b38",
+  "source_scope": {
+    "backend/db/migrations/00920_v27_target_person_result_authority.sql": "c4a8d53fd43666415d5c3165a399581cd6f4239692a5e79173d061971fca9be5",
+    "backend/internal/semanticproposal/native_target_person_result.go": "681dced6f6761aabadf29d531a8c7323a9d9128459646afec4ff967c711182ba",
+    "backend/internal/semanticproposal/native_target_person_wire_probe_test.go": "2b691e5dc74a974f4ce60fe9cc1ddc4281ae804fcb990f577caff4a2f71ef0a2",
+    "tests/integration/test_v27_person_migration_upgrade.py": "5f677ebdedd3289186eec124974a7366881b7231d3fc9eb1cdd31802c7141d7e",
+    "tests/integration/test_v27_semantic_intent_publication.py": "127b9c1028d699fd325fc8824885fceb878406490c78aa95df22ce91aa20b7c4"
+  },
+  "checks": [
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-result-sql-current.xml",
+      "evidence_sha": "2082ff43e38b7cc28bef31dc1f22636f2dbcc585dd15200e04270ebbc62d23ac",
+      "exit_code": 0,
+      "tests": 19,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 40.358
+    },
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-result-wire-current.xml",
+      "evidence_sha": "3b6918d62929fb5bc1c14e4f42f449d543067673be9ed4b15219733ac8f7945f",
+      "exit_code": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 84.091
+    },
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-result-go-current.jsonl",
+      "evidence_sha": "72220c57bd0ac9f857878c50416271737b6fd93672eb5963ea3d0c4221adfaf9",
+      "exit_code": 0,
+      "packages_passed": [
+        "photoeditor/backend/internal/gateway",
+        "photoeditor/backend/internal/review",
+        "photoeditor/backend/internal/v2input",
+        "photoeditor/backend/internal/semanticproposal"
+      ]
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "requirements": [
+    {
+      "id": "exact-target-canonical-result-discovery-and-physical-qualified-read",
+      "status": "physical_fixture_verified"
+    },
+    {
+      "id": "current-target-result-authority-and-full-output-array-lock",
+      "status": "physical_fixture_verified"
+    },
+    {
+      "id": "foreign-result-report-and-revoked-session-refusal",
+      "status": "physical_fixture_verified"
+    },
+    {
+      "id": "00899-00920-forward-upgrade-existing-data-function-identity-and-ACL-preservation",
+      "status": "sql_verified"
+    },
+    {
+      "id": "automatic-target-orchestration-and-whole-V27",
+      "status": "not_accepted"
+    }
+  ],
+  "limitations": [
+    "Target producer finalization is not implemented; locked consumption currently requires running producer through00919 readiness, while discovery permits running/succeeded",
+    "Result lock is standalone prerequisite authority, not automatic later-stage adoption or parent completion",
+    "Automatic Recover still checkpoints/waits; remaining five target stages and orchestration remain required",
+    "Shared immutable WorkingImage bytes and deterministic ML doubles do not prove real GPU or photo quality",
+    "No full cold restart/parallel/cancel/purge/browser/capacity or whole-module acceptance",
+    "Only isolated databases migrated; production DB unchanged"
+  ],
+  "corrected_failures": []
+}

@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="1.494" timestamp="2026-10-09T09:35:08.364610+03:00" hostname="Mac"><testcase classname="tests.integration.test_tenant_deletion_cancel_drain" name="test_tenant_deletion_moves_all_nonterminal_runs_to_cancelling" time="1.350"><failure message="assert 1 == 4">tests/integration/test_tenant_deletion_cancel_drain.py:20: in test_tenant_deletion_moves_all_nonterminal_runs_to_cancelling
+    assert db.execute("SELECT count(*) FROM photo.runs WHERE tenant_id=%s AND id=ANY(%s) AND status='cancelling' AND cancel_requested",(tenant,ids)).fetchone()[0]==4
+E   assert 1 == 4</failure></testcase></testsuite></testsuites>

@@ -31,6 +31,7 @@ def component_paths():
         'optical_runtime_lock':'operations/optical/runtime_lock.py',
         'session_contracts':'operations/session/contracts.py',
         'input_closure':'v2/input_closure.py',
+        'contract_lock':'v2/contract_lock.py',
         'render_reports':'v2/render_reports.py',
         'wire_contracts':'contracts/wire.py',
     }.items():

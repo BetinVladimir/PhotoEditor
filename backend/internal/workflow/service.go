@@ -15,6 +15,8 @@ import (
 	"photoeditor/backend/internal/objectstore"
 	"photoeditor/backend/internal/upload"
 	"photoeditor/backend/internal/v2input"
+	"photoeditor/backend/internal/v2learning"
+	"photoeditor/backend/internal/v2optical"
 	"photoeditor/backend/internal/v2sessions"
 	"sync/atomic"
 	"time"
@@ -24,6 +26,44 @@ import (
 // persisted ingest/review work in independent bounded loops. Worker messages do
 // not directly manufacture downstream tasks.
 func RunScheduler(ctx context.Context, dsn, listen string, storageConfig objectstore.Config, iccDirectory string) error {
+	return RunSchedulerWithNativeRecovery(ctx, dsn, listen, storageConfig, iccDirectory, nil)
+}
+
+// The native factory supplies verified deployment policy and scoped dependencies.
+// No qualification reports or protection refs are synthesized during startup.
+func RunSchedulerWithNativeRecovery(ctx context.Context, dsn, listen string, storageConfig objectstore.Config, iccDirectory string, nativeFactory SchedulerNativeRecoveryFactory, importFactories ...SchedulerInterchangeImportFactory) error {
+	return RunSchedulerWithArchiveCompletion(ctx, dsn, listen, storageConfig, iccDirectory, nativeFactory, nil, importFactories...)
+}
+
+type SchedulerDeliverySigningFactory func(context.Context, string, *pgxpool.Pool,
+	*objectstore.Store, string, string) (DeliverySigningRuntime, func(), error)
+
+func RunSchedulerWithArchiveCompletion(ctx context.Context, dsn, listen string, storageConfig objectstore.Config, iccDirectory string, nativeFactory SchedulerNativeRecoveryFactory, archiveFactory SchedulerArchiveCompletionFactory, importFactories ...SchedulerInterchangeImportFactory) error {
+	return runSchedulerWithDeliverySigning(ctx, dsn, listen, storageConfig,
+		iccDirectory, nativeFactory, archiveFactory, nil, importFactories...)
+}
+
+func RunSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string,
+	storageConfig objectstore.Config, iccDirectory string,
+	nativeFactory SchedulerNativeRecoveryFactory,
+	archiveFactory SchedulerArchiveCompletionFactory,
+	signingFactory SchedulerDeliverySigningFactory,
+	importFactories ...SchedulerInterchangeImportFactory) error {
+	return runSchedulerWithDeliverySigning(ctx, dsn, listen, storageConfig,
+		iccDirectory, nativeFactory, archiveFactory, signingFactory, importFactories...)
+}
+
+func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, storageConfig objectstore.Config, iccDirectory string, nativeFactory SchedulerNativeRecoveryFactory, archiveFactory SchedulerArchiveCompletionFactory, signingFactory SchedulerDeliverySigningFactory, importFactories ...SchedulerInterchangeImportFactory) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	capacityPin := os.Getenv("PHOTO_V32_SCHEDULER_POLICY_SHA256")
+	if capacityPin != "" && !capacityPolicyDigest.MatchString(capacityPin) {
+		return errors.New("invalid V32 scheduler policy SHA256")
+	}
+	if len(importFactories) > 1 || (len(importFactories) == 1 && importFactories[0] == nil) {
+		return errors.New("invalid interchange import scheduler factory")
+	}
 	workSHA, err := colorprofile.LoadWorkSHA(iccDirectory)
 	if err != nil {
 		return err
@@ -48,15 +88,50 @@ func RunScheduler(ctx context.Context, dsn, listen string, storageConfig objects
 		return errors.New("scheduler database unavailable")
 	}
 	defer pool.Close()
+	var capacityRuntime *CapacityRuntime
+	if capacityPin != "" {
+		capacityStartup, stopCapacityStartup := context.WithTimeout(ctx, 10*time.Second)
+		capacityRuntime, err = NewCapacityRuntime(capacityStartup, pool, capacityPin)
+		stopCapacityStartup()
+		if err != nil {
+			return err
+		}
+		defer capacityRuntime.Close()
+	}
+	var localCapacityMonitor *LocalCapacityMonitor
+	localScaleAlerts := os.Getenv("PHOTO_V32_LOCAL_SCALE_ALERTS")
+	if localScaleAlerts != "" && localScaleAlerts != "true" && localScaleAlerts != "false" {
+		return errors.New("invalid PHOTO_V32_LOCAL_SCALE_ALERTS")
+	}
+	if localScaleAlerts == "true" {
+		if capacityRuntime == nil {
+			return errors.New("local capacity alerts require V32 scheduler policy")
+		}
+		localCapacityMonitor, err = NewLocalCapacityMonitor(capacityRuntime, []string{"cpu", "gpu", "signer"})
+		if err != nil {
+			return err
+		}
+	}
 	startup, finishStartup := context.WithTimeout(ctx, 10*time.Second)
 	var installed bool
 	err = pool.QueryRow(startup, `SELECT to_regprocedure('photo.adopt_ingest_image(uuid,uuid,bigint,uuid,text,jsonb,jsonb)') IS NOT NULL
  AND to_regprocedure('photo.reject_ingest_upload(uuid,uuid,bigint,uuid,text,text,text)') IS NOT NULL
  AND to_regprocedure('photo.finish_ingest_run(uuid,uuid)') IS NOT NULL
  AND to_regprocedure('photo.cancel_idle_task()') IS NOT NULL
+ AND to_regprocedure('photo.read_v29_negative_scheduler_decisions(uuid,integer)') IS NOT NULL
+ AND to_regprocedure('photo.release_next_v29_negative_cancelled_quota()') IS NOT NULL
+ AND to_regprocedure('photo.close_v29_negative_skipped_dependencies(uuid,uuid,uuid,uuid,uuid,text,jsonb)') IS NOT NULL
+ AND to_regprocedure('photo.reconcile_v29_negative_invalidation(uuid,uuid,uuid,uuid,uuid,text,jsonb,integer,integer)') IS NOT NULL
  AND to_regprocedure('photo.cancel_ingest_upload()') IS NOT NULL
  AND to_regprocedure('photo.finalize_run_cancellation()') IS NOT NULL
+ AND to_regprocedure('photo.release_next_v29_replacement_detector_quota()') IS NOT NULL
+ AND has_function_privilege(current_user,to_regprocedure('photo.release_next_v29_replacement_detector_quota()'),'EXECUTE')
+ AND to_regprocedure('photo.settle_next_semantic_child()') IS NOT NULL
+ AND to_regprocedure('photo.finalize_next_semantic_apply_child()') IS NOT NULL
  AND to_regprocedure('photo.claim_upload_completion()') IS NOT NULL
+ AND to_regprocedure('photo.claim_upload_completion_v2()') IS NOT NULL
+ AND has_function_privilege(current_user,to_regprocedure('photo.claim_upload_completion_v2()'),'EXECUTE')
+ AND EXISTS(SELECT FROM pg_catalog.pg_attribute WHERE attrelid=to_regclass('photo.upload_sessions') AND attname='raw_development' AND NOT attisdropped)
  AND to_regprocedure('photo.renew_upload_completion(uuid,uuid)') IS NOT NULL
  AND to_regprocedure('photo.release_upload_completion(uuid,uuid)') IS NOT NULL
  AND to_regprocedure('photo.finish_upload_completion(uuid,uuid,text,text,text,jsonb,text,jsonb,text)') IS NOT NULL
@@ -68,6 +143,8 @@ func RunScheduler(ctx context.Context, dsn, listen string, storageConfig objects
  AND to_regprocedure('photo.claim_ingest_build()') IS NOT NULL
  AND to_regprocedure('photo.renew_ingest_build(uuid,uuid)') IS NOT NULL
  AND to_regprocedure('photo.release_ingest_build(uuid,uuid)') IS NOT NULL
+ AND to_regprocedure('photo.v30_next_interchange_collection()') IS NOT NULL
+ AND to_regprocedure('photo.prepare_v30_interchange_draft_collection(uuid,uuid,text)') IS NOT NULL
  AND to_regprocedure('photo.ingest_run_context(uuid,uuid)') IS NOT NULL
  AND to_regprocedure('photo.ingest_published_params(uuid,uuid)') IS NOT NULL
  AND to_regprocedure('photo.ingest_inspection_outcomes(uuid,uuid)') IS NOT NULL
@@ -114,10 +191,38 @@ func RunScheduler(ctx context.Context, dsn, listen string, storageConfig objects
  AND to_regprocedure('photo.finalize_export_batch()') IS NOT NULL
  AND to_regprocedure('photo.finalize_v26_render_batch()') IS NOT NULL
  AND to_regprocedure('photo.sync_v26_render_batch_state()') IS NOT NULL
+ AND to_regprocedure('photo.release_next_v26_render_derivative_quota()') IS NOT NULL
+ AND to_regprocedure('photo.finalize_failed_v26_render_derivative()') IS NOT NULL
+ AND to_regprocedure('photo.finalize_successful_v26_render_derivative()') IS NOT NULL
+ AND to_regprocedure('photo.cancel_stale_v26_render_derivative()') IS NOT NULL
+ AND to_regprocedure('photo.next_v29_perspective_quality_producer(uuid)') IS NOT NULL
+ AND to_regprocedure('photo.seal_v29_perspective_quality(uuid,uuid,text,text,text,jsonb)') IS NOT NULL
+ AND to_regprocedure('photo.v29_perspective_quality_receipt(uuid,uuid,uuid,uuid,text)') IS NOT NULL
+ AND to_regprocedure('photo.next_v29_multi_quality_producer(uuid)') IS NOT NULL
+ AND to_regprocedure('photo.seal_v29_multi_quality(uuid,uuid,text,text,jsonb,jsonb)') IS NOT NULL
+ AND to_regprocedure('photo.v29_multi_quality_receipt(uuid,uuid,uuid,uuid,text,text,integer,bigint)') IS NOT NULL
+ AND to_regprocedure('photo.next_v29_multi_preview_producer(uuid,text)') IS NOT NULL
+ AND to_regprocedure('photo.seal_v29_multi_preview(uuid,uuid,text,text,jsonb,jsonb)') IS NOT NULL
+ AND to_regprocedure('photo.v29_multi_preview_receipt(uuid,uuid,uuid,uuid,text,text,text,integer,bigint)') IS NOT NULL
+ AND to_regprocedure('photo.v29_multi_preview_read_originals(uuid,uuid,text,integer,bigint,uuid,text)') IS NOT NULL
+ AND to_regprocedure('photo.next_v29_perspective_preview_producer(uuid,text)') IS NOT NULL
+ AND to_regprocedure('photo.seal_v29_perspective_preview(uuid,uuid,text,text,text,jsonb)') IS NOT NULL
+ AND to_regprocedure('photo.finalize_successful_v29_perspective_preview(uuid,uuid)') IS NOT NULL
+ AND to_regprocedure('photo.maintain_v29_perspective_preview(uuid,uuid)') IS NOT NULL
+ AND to_regprocedure('photo.next_v26_render_derivative(uuid)') IS NOT NULL
+ AND to_regprocedure('photo.enqueue_next_v26_render_derivative(text)') IS NOT NULL
+ AND to_regprocedure('photo.enqueue_next_semantic_exposure_preview(text)') IS NOT NULL
+ AND to_regprocedure('photo.v26_render_derivative_artifact(uuid,uuid,uuid,text)') IS NOT NULL
+ AND to_regprocedure('photo.reserve_v26_render_derivative_document(uuid,uuid,uuid,text,text,bigint,text,text,text,text)') IS NOT NULL
+ AND to_regprocedure('photo.materialize_v26_render_derivative_task(uuid,uuid,text,text,text,jsonb)') IS NOT NULL
+ AND to_regprocedure('photo.seal_v26_render_derivative(uuid,uuid,text,text)') IS NOT NULL
  AND to_regprocedure('photo.next_v26_render_recovery(uuid)') IS NOT NULL
  AND to_regprocedure('photo.record_v26_render_recovery(uuid,uuid,boolean)') IS NOT NULL
  AND to_regprocedure('photo.claim_interactive_task()') IS NOT NULL
  AND to_regprocedure('photo.plan_interactive_params(uuid,uuid,jsonb,text)') IS NOT NULL
+ AND to_regprocedure('photo.fail_interactive_manual_preflight(uuid,uuid,uuid,uuid,text,jsonb,text)') IS NOT NULL
+ AND coalesce(has_function_privilege(current_user,to_regprocedure('photo.fail_interactive_manual_preflight(uuid,uuid,uuid,uuid,text,jsonb,text)'),'EXECUTE'),false)
+ AND NOT coalesce(has_function_privilege(current_user,to_regprocedure('photo.fail_interactive_manual_preflight(uuid,uuid,uuid,uuid,text)'),'EXECUTE'),false)
  AND to_regprocedure('photo.reserve_interactive_document(uuid,uuid,uuid,text,bigint,text)') IS NOT NULL
  AND to_regprocedure('photo.complete_interactive_document(uuid,uuid,uuid,uuid,uuid,text,bigint,text,text)') IS NOT NULL
  AND to_regprocedure('photo.materialize_interactive_task(uuid,uuid,uuid,uuid,uuid,text,jsonb,text,jsonb)') IS NOT NULL
@@ -169,6 +274,10 @@ func RunScheduler(ctx context.Context, dsn, listen string, storageConfig objects
 	if err != nil || !installed {
 		return errors.New("scheduler expansion dependencies unavailable")
 	}
+	negativeBackend, err := buildNegativeReplacementScheduler(ctx, pool, storage, storageConfig.Bucket, workSHA)
+	if err != nil {
+		return err
+	}
 	var sessionPlanInstalled bool
 	err = pool.QueryRow(ctx, `SELECT
   to_regprocedure('photo.claim_v22_session_plan()') IS NOT NULL
@@ -182,6 +291,60 @@ func RunScheduler(ctx context.Context, dsn, listen string, storageConfig objects
   AND to_regprocedure('photo.close_v22_session_plan(uuid,uuid,uuid,uuid,uuid)') IS NOT NULL`).Scan(&sessionPlanInstalled)
 	if err != nil {
 		return errors.New("scheduler V22 capability check unavailable")
+	}
+	var learningEvaluateInstalled bool
+	err = pool.QueryRow(ctx, `SELECT
+ to_regproc('photo.claim_v23_learning_evaluate') IS NOT NULL AND
+ to_regproc('photo.renew_v23_learning_evaluate') IS NOT NULL AND
+ to_regproc('photo.release_v23_learning_evaluate') IS NOT NULL AND
+ to_regproc('photo.v23_evaluate_manifest_source') IS NOT NULL AND
+ to_regproc('photo.v23_evaluate_frozen_root') IS NOT NULL AND
+ to_regproc('photo.v23_evaluate_reviewed_defect_authority') IS NOT NULL AND
+ to_regproc('photo.v23_evaluate_defect_closure_current') IS NOT NULL AND
+ to_regprocedure('photo.v23_evaluate_reviewed_dust_authority(uuid,uuid,uuid,uuid,uuid,uuid,text)') IS NOT NULL AND
+ to_regprocedure('photo.v23_evaluate_dust_closure_current(uuid,uuid,uuid,uuid,uuid)') IS NOT NULL AND
+ to_regprocedure('photo.v23_evaluate_detail_authority(uuid,uuid,uuid,uuid,uuid,uuid,text)') IS NOT NULL AND
+ to_regprocedure('photo.v23_evaluate_detail_nested(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,text)') IS NOT NULL AND
+ to_regprocedure('photo.v23_evaluate_detail_closure_current(uuid,uuid,uuid,uuid,uuid)') IS NOT NULL AND
+ to_regprocedure('photo.v23_evaluate_detail_protection_current(uuid,uuid,uuid,uuid,uuid)') IS NOT NULL AND
+ to_regproc('photo.close_v23_learning_evaluate_guarded') IS NOT NULL AND
+ to_regproc('photo.v23_evaluate_image_child') IS NOT NULL AND
+ to_regproc('photo.v23_evaluate_protected_mask_child') IS NOT NULL AND
+ to_regproc('photo.v23_evaluate_effective_mask_child') IS NOT NULL AND
+ to_regproc('photo.v23_evaluate_base_style_source') IS NOT NULL AND
+ to_regproc('photo.v23_pin_evaluate_identity_consents') IS NOT NULL AND
+ to_regproc('photo.stage_v23_learning_evaluate') IS NOT NULL AND
+ to_regproc('photo.close_v23_learning_evaluate') IS NOT NULL AND
+ coalesce(has_function_privilege(current_user,
+  to_regprocedure('photo.v23_evaluate_reviewed_defect_authority(uuid,uuid,uuid,uuid,uuid,uuid,text)'),
+  'EXECUTE'),false) AND
+ coalesce(has_function_privilege(current_user,
+  to_regprocedure('photo.v23_evaluate_detail_authority(uuid,uuid,uuid,uuid,uuid,uuid,text)'),
+  'EXECUTE'),false) AND
+ coalesce(has_function_privilege(current_user,
+  to_regprocedure('photo.v23_evaluate_detail_nested(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,text)'),
+  'EXECUTE'),false) AND
+ coalesce(has_function_privilege(current_user,
+  to_regprocedure('photo.v23_evaluate_detail_closure_current(uuid,uuid,uuid,uuid,uuid)'),
+  'EXECUTE'),false)`).Scan(&learningEvaluateInstalled)
+	if err != nil {
+		return errors.New("scheduler V23 evaluate capability check unavailable")
+	}
+	var semanticAssemblyInstalled bool
+	err = pool.QueryRow(ctx, `SELECT to_regprocedure('photo.claim_v27_semantic_assembly()') IS NOT NULL
+ AND to_regprocedure('photo.renew_v27_semantic_assembly(uuid,uuid)') IS NOT NULL
+ AND to_regprocedure('photo.release_v27_semantic_assembly(uuid,uuid)') IS NOT NULL
+ AND to_regprocedure('photo.v27_semantic_assembly_source_inventory(uuid,uuid,uuid,uuid)') IS NOT NULL
+ AND to_regprocedure('photo.v27_semantic_assembly_lease_live(uuid,uuid,uuid,uuid)') IS NOT NULL
+ AND to_regprocedure('photo.stage_v27_semantic_assembly(uuid,uuid,uuid,uuid,uuid,uuid,text,text,jsonb,jsonb)') IS NOT NULL
+ AND to_regprocedure('photo.reserve_v27_semantic_assembly_document(uuid,uuid,uuid,uuid,text,text,bigint,text)') IS NOT NULL
+ AND to_regprocedure('photo.complete_v27_semantic_assembly_document(uuid,uuid,uuid,uuid,text,uuid,uuid,text,bigint,text,text)') IS NOT NULL
+ AND to_regprocedure('photo.reserve_v27_semantic_transport_document(uuid,uuid,uuid,uuid,text,text,bigint,text)') IS NOT NULL
+ AND to_regprocedure('photo.complete_v27_semantic_transport_document(uuid,uuid,uuid,uuid,text,uuid,uuid,text,bigint,text,text)') IS NOT NULL
+ AND to_regprocedure('photo.v27_semantic_frozen_assembly_qualification(uuid,uuid,uuid,uuid,text,text,uuid)') IS NOT NULL
+ AND to_regprocedure('photo.commit_v27_semantic_assembly(uuid,uuid,uuid,uuid,uuid,jsonb,jsonb,jsonb,text,jsonb)') IS NOT NULL`).Scan(&semanticAssemblyInstalled)
+	if err != nil {
+		return errors.New("scheduler V27 assembly capability check unavailable")
 	}
 	var sceneMaterializationInstalled bool
 	err = pool.QueryRow(ctx, `SELECT
@@ -213,10 +376,20 @@ func RunScheduler(ctx context.Context, dsn, listen string, storageConfig objects
 	}
 	captureState := new(ExpansionLoopState)
 	var ready atomic.Bool
+	semanticAssemblyState := new(ExpansionLoopState)
+	learningEvaluateState := new(ExpansionLoopState)
 	sessionPlanState := new(ExpansionLoopState)
 	sceneMaterializationState := new(ExpansionLoopState)
 	expansionState := new(ExpansionLoopState)
 	ingestState := new(ExpansionLoopState)
+	interchangeCollectionState := new(ExpansionLoopState)
+	interchangeImportState := new(ExpansionLoopState)
+	archiveCompletionState := new(ExpansionLoopState)
+	archiveExpiryState := new(ExpansionLoopState)
+	archiveCleanupState := new(ExpansionLoopState)
+	archiveRecoveryState := new(ExpansionLoopState)
+	archiveRevocationState := new(ExpansionLoopState)
+	archiveInvalidationState := new(ExpansionLoopState)
 	uploadState := new(ExpansionLoopState)
 	downloadState := new(ExpansionLoopState)
 	bulkState := new(ExpansionLoopState)
@@ -226,7 +399,17 @@ func RunScheduler(ctx context.Context, dsn, listen string, storageConfig objects
 	embeddingState := new(ExpansionLoopState)
 	exportBatchState := new(ExpansionLoopState)
 	renderBatchState := new(ExpansionLoopState)
+	renderDerivativeCleanupState := new(ExpansionLoopState)
+	renderDerivativeState := new(ExpansionLoopState)
+	restorationPreviewState := new(ExpansionLoopState)
+	perspectivePreviewState := new(ExpansionLoopState)
+	multiPreviewState := new(ExpansionLoopState)
+	multiQualityState := new(ExpansionLoopState)
+	perspectiveQualityState := new(ExpansionLoopState)
 	renderRecoveryState := new(ExpansionLoopState)
+	nativeRecoveryState := new(ExpansionLoopState)
+	perspectiveLinesRecoveryState := new(ExpansionLoopState)
+	perspectiveLinesLifecycleState := new(ExpansionLoopState)
 	interactiveState := new(ExpansionLoopState)
 	interactiveFinalizeState := new(ExpansionLoopState)
 	applyState := new(ExpansionLoopState)
@@ -236,12 +419,85 @@ func RunScheduler(ctx context.Context, dsn, listen string, storageConfig objects
 	publisher := artifactjson.Publisher{Repository: artifactjson.SQLRepository{DB: pool, Bucket: storageConfig.Bucket}, Objects: storage}
 	originals := OriginalRepository{DB: pool, Bucket: storageConfig.Bucket}
 	ingestRunner := IngestRunner{
-		Catalog:    IngestCatalogCoordinator{Source: IngestCatalogLoader{DB: pool, Objects: storage, Bucket: storageConfig.Bucket, WorkICCSHA: workSHA}, Originals: OriginalCoordinator{Reservations: originals, Sources: originals, Objects: storage}, Catalog: IngestCatalogRepository{DB: pool, WorkICCSHA: workSHA}},
+		Catalog:    IngestCatalogRouter{DB: pool, Source: IngestCatalogLoader{DB: pool, Objects: storage, Bucket: storageConfig.Bucket, WorkICCSHA: workSHA}, WorkICCSHA: workSHA, Legacy: IngestCatalogCoordinator{Source: IngestCatalogLoader{DB: pool, Objects: storage, Bucket: storageConfig.Bucket, WorkICCSHA: workSHA}, Originals: OriginalCoordinator{Reservations: originals, Sources: originals, Objects: storage}, Catalog: IngestCatalogRepository{DB: pool, WorkICCSHA: workSHA}}},
 		Runs:       IngestRunReader{DB: pool},
 		Inspection: IngestInspectionCoordinator{Documents: IngestDocumentBuilder{Plans: plans, Publisher: publisher}, Tasks: plans},
 		Decode:     IngestDecodeAdvancer{Documents: IngestPublishedReader{DB: pool}, Outcomes: IngestOutcomeReader{DB: pool, Objects: storage, Bucket: storageConfig.Bucket}, Builder: IngestDecodeCoordinator{Tasks: plans}},
 	}
 	ingestProcessor := IngestProcessor{Leases: SQLIngestLeases{DB: pool}, Runner: ingestRunner}
+	var archiveCompletionProcessor ExpansionJob
+	var archiveExpiryProcessor ExpansionJob
+	var archiveCleanupProcessor ExpansionJob
+	var archiveRecoveryProcessor ExpansionJob
+	var archiveRevocationProcessor ExpansionJob
+	var archiveInvalidationProcessor ExpansionJob
+	if archiveFactory != nil {
+		archiveCompletionProcessor, err = archiveFactory.BuildArchiveCompletion(ctx, pool, storage, storageConfig.Bucket)
+		if err != nil {
+			return err
+		}
+		if archiveCompletionProcessor == nil {
+			return errors.New("archive completion processor unavailable")
+		}
+	}
+	if expiryFactory, ok := archiveFactory.(SchedulerArchiveExpiryFactory); ok {
+		archiveExpiryProcessor, err = expiryFactory.BuildArchiveExpiry(ctx, pool)
+		if err != nil {
+			return err
+		}
+		if archiveExpiryProcessor == nil {
+			return errors.New("archive expiry processor unavailable")
+		}
+	}
+	if cleanupFactory, ok := archiveFactory.(SchedulerArchiveCleanupFactory); ok {
+		archiveCleanupProcessor, err = cleanupFactory.BuildArchiveCleanup(ctx, pool, storage, storageConfig.Bucket)
+		if err != nil {
+			return err
+		}
+		if archiveCleanupProcessor == nil {
+			return errors.New("archive cleanup processor unavailable")
+		}
+	}
+	if recoveryFactory, ok := archiveFactory.(SchedulerArchiveRecoveryFactory); ok {
+		archiveRecoveryProcessor, err = recoveryFactory.BuildArchiveRecovery(ctx, pool, storage, storageConfig.Bucket)
+		if err != nil {
+			return err
+		}
+		if archiveRecoveryProcessor == nil {
+			return errors.New("archive recovery processor unavailable")
+		}
+	}
+	if revocationFactory, ok := archiveFactory.(SchedulerArchiveRevocationFactory); ok {
+		archiveRevocationProcessor, err = revocationFactory.BuildArchiveRevocation(ctx, pool, storage, storageConfig.Bucket)
+		if err != nil {
+			return err
+		}
+		if archiveRevocationProcessor == nil {
+			return errors.New("archive revocation processor unavailable")
+		}
+	}
+	if invalidationFactory, ok := archiveFactory.(SchedulerArchiveInvalidationFactory); ok {
+		archiveInvalidationProcessor, err = invalidationFactory.BuildArchiveInvalidation(ctx, pool)
+		if err != nil {
+			return err
+		}
+		if archiveInvalidationProcessor == nil {
+			return errors.New("archive invalidation processor unavailable")
+		}
+	}
+	interchangeCollectionProcessor := InterchangeCollectionProcessor{Store: SQLInterchangeCollectionStore{DB: pool}, Objects: storage, Bucket: storageConfig.Bucket}
+	var interchangeImportProcessor *InterchangeImportProcessor
+	if len(importFactories) == 1 {
+		continuation, buildErr := importFactories[0].BuildSchedulerInterchangeImport(ctx, pool, storage, storageConfig.Bucket)
+		if buildErr != nil {
+			return buildErr
+		}
+		if continuation == nil {
+			return errors.New("interchange import continuation unavailable")
+		}
+		interchangeImportProcessor = &InterchangeImportProcessor{Store: SQLInterchangeImportStore{DB: pool}, Objects: storage, Continuation: continuation, Bucket: storageConfig.Bucket, Timeout: 10 * time.Minute}
+	}
+
 	downloadPlans := DownloadExportPlanRepository{DB: pool}
 	downloadExports := DownloadExportCoordinator{
 		Source:  DownloadExportLoader{DB: pool, Objects: storage, Bucket: storageConfig.Bucket, WorkICCSHA256: workSHA, TargetICCs: profileSHAs},
@@ -260,6 +516,14 @@ func RunScheduler(ctx context.Context, dsn, listen string, storageConfig objects
 	embeddingProcessor := AssetEmbeddingMaterializer{Repository: SQLAssetEmbeddingRepository{DB: pool, Bucket: storageConfig.Bucket}, Objects: storage}
 	exportBatchProcessor := ExportBatchFinalizer{DB: pool}
 	renderBatchProcessor := RenderBatchFinalizer{DB: pool}
+	renderDerivativeCleanupProcessor := RenderDerivativeCleanup{DB: pool}
+	renderDerivativeProcessor := &RenderDerivativeCoordinator{DB: pool, Objects: storage, Bucket: storageConfig.Bucket, WorkSHA: workSHA, SRGBSHA: profileSHAs["srgb_v1"]}
+	perspectiveQualityProcessor := &PerspectiveQualityProcessor{Source: SQLPerspectiveQualityProducers{DB: pool},
+		Preparer: PerspectiveQualityCoordinator{DB: pool, Objects: storage, Bucket: storageConfig.Bucket, WorkingSHA: workSHA}}
+	perspectivePreviewProcessor := &PerspectivePreviewProcessor{Source: SQLPerspectivePreviewProducers{DB: pool},
+		Preparer: PerspectivePreviewCoordinator{DB: pool, Objects: storage, Bucket: storageConfig.Bucket, WorkingSHA: workSHA, SRGBSHA: profileSHAs["srgb_v1"]}, SRGBSHA: profileSHAs["srgb_v1"]}
+	multiPreviewProcessor := &MultiPreviewProcessor{Source: SQLMultiPreviewProducers{DB: pool}, Preparer: MultiPreviewCoordinator{DB: pool, Objects: storage, Bucket: storageConfig.Bucket, WorkingSHA: workSHA, SRGBSHA: profileSHAs["srgb_v1"]}, SRGBSHA: profileSHAs["srgb_v1"]}
+	multiQualityProcessor := &MultiQualityProcessor{Source: SQLMultiQualityProducers{DB: pool}, Preparer: MultiQualityCoordinator{DB: pool, Objects: storage, Bucket: storageConfig.Bucket, WorkingSHA: workSHA}}
 	sourceDSN := os.Getenv("RENDER_SOURCE_DATABASE_URL")
 	if sourceDSN == "" {
 		sourceDSN = dsn
@@ -271,6 +535,135 @@ func RunScheduler(ctx context.Context, dsn, listen string, storageConfig objects
 		return err
 	}
 	defer closeRenderSources()
+	nativeStartup, stopNativeStartup := context.WithTimeout(ctx, 10*time.Second)
+	nativeRecoveryProcessor, closeNativeRecovery, err := newSchedulerNativeRecovery(nativeStartup, nativeFactory, pool, storage, storageConfig.Bucket)
+	if err == nil && nativeRecoveryProcessor != nil {
+		err = verifyNativeRecoveryInstallation(nativeStartup, pool)
+		if err != nil && closeNativeRecovery != nil {
+			closeNativeRecovery()
+			closeNativeRecovery = nil
+		}
+	}
+	stopNativeStartup()
+	if err != nil {
+		return err
+	}
+	if closeNativeRecovery != nil {
+		defer closeNativeRecovery()
+	}
+
+	linesConfig, linesEnabled, err := PerspectiveLinesRecoveryFromEnvironment(os.Getenv)
+	if err != nil {
+		return err
+	}
+	var linesRecoveryProcessor *PerspectiveLinesRecoveryDispatcher
+	if linesEnabled {
+		linesStartup, stopLinesStartup := context.WithTimeout(ctx, 10*time.Second)
+		linesRecoveryProcessor, err = NewPerspectiveLinesRecoveryProcessor(linesStartup, pool, storage, storageConfig.Bucket, workSHA, linesConfig)
+		stopLinesStartup()
+		if err != nil {
+			return err
+		}
+	}
+
+	replacementAdoptionRunner, replacementAdoptionEnabled, err := ReplacementDetectionAdoptionFromEnvironment(os.Getenv)
+	if err != nil {
+		return err
+	}
+	var replacementAdoptionProcessor *ReplacementDetectionAdoptionDispatcher
+	replacementAdoptionState := new(ExpansionLoopState)
+	if replacementAdoptionEnabled {
+		replacementAdoptionProcessor, err = NewReplacementDetectionAdoptionProcessor(ctx, pool, storage, storageConfig.Bucket, replacementAdoptionRunner)
+		if err != nil {
+			return err
+		}
+	}
+
+	restorationConfig, restorationEnabled, err := RestorationAdoptionFromEnvironment(os.Getenv)
+	if err != nil {
+		return err
+	}
+	var restorationAdoptionProcessor ExpansionJob
+	restorationAdoptionState := new(ExpansionLoopState)
+	if restorationEnabled {
+		restorationStartup, stopRestorationStartup := context.WithTimeout(ctx, 10*time.Second)
+		var closeRestoration func()
+		restorationAdoptionProcessor, closeRestoration, err = NewRestorationAdoptionProcessor(
+			restorationStartup, pool, storage, storageConfig.Bucket, restorationConfig)
+		stopRestorationStartup()
+		if err != nil {
+			return err
+		}
+		defer closeRestoration()
+	}
+	restorationPreviewEnabled, err := RestorationPreviewFromEnvironment(os.Getenv)
+	if err != nil {
+		return err
+	}
+	renderBatchProcessor.Restoration = restorationPreviewEnabled
+	var restorationPreviewProcessor *RestorationPreviewProcessor
+	if restorationPreviewEnabled {
+		previewStartup, stopPreviewStartup := context.WithTimeout(ctx, 10*time.Second)
+		restorationPreviewProcessor, err = NewRestorationPreviewProcessor(previewStartup,
+			pool, storage, storageConfig.Bucket, workSHA, profileSHAs["srgb_v1"])
+		stopPreviewStartup()
+		if err != nil {
+			return err
+		}
+	}
+
+	deliveryConfig, err := DeliveryRuntimeFromEnvironment(os.Getenv)
+	if err != nil {
+		return err
+	}
+	deliveryState := new(ExpansionLoopState)
+	var deliveryProcessor DeliveryExpansionJob
+	if deliveryConfig.Enabled {
+		deliveryRegistry, registryErr := LoadRegistry()
+		if registryErr != nil {
+			return registryErr
+		}
+		deliveryProcessor, err = NewDeliveryExpansionJob(pool, storage, storage, storageConfig.Bucket, workSHA, profileSHAs, deliveryRegistry, deliveryConfig)
+		if err != nil {
+			return err
+		}
+	}
+	if signingFactory != nil {
+		if !deliveryConfig.Enabled {
+			return errors.New("delivery signing requires delivery scheduler")
+		}
+		startup, cancel := context.WithTimeout(ctx, 30*time.Second)
+		signingRuntime, closeSigning, signingErr := signingFactory(startup, dsn,
+			pool, storage, storageConfig.Bucket, workSHA)
+		cancel()
+		if signingErr != nil {
+			return signingErr
+		}
+		if closeSigning == nil {
+			return errors.New("delivery signing lifecycle missing")
+		}
+		defer closeSigning()
+		deliveryProcessor, err = InstallDeliverySigningStage(deliveryProcessor, signingRuntime)
+		if err != nil {
+			return err
+		}
+	}
+
+	metadataAdoptionRunner, metadataAdoptionEnabled, err := MetadataAdoptionFromEnvironment(os.Getenv)
+	if err != nil {
+		return err
+	}
+	metadataAdoptionState := new(ExpansionLoopState)
+	var metadataAdoptionProcessor *MetadataAdoptionDispatcher
+	if metadataAdoptionEnabled {
+		if !deliveryConfig.Enabled {
+			return fmt.Errorf("metadata adoption requires delivery scheduler")
+		}
+		metadataAdoptionProcessor, err = NewMetadataAdoptionProcessor(ctx, pool, storageConfig.Bucket, metadataAdoptionRunner)
+		if err != nil {
+			return err
+		}
+	}
 
 	interactiveProcessor := InteractiveCoordinator{Store: InteractiveStore{DB: pool}, Publisher: artifactjson.Publisher{Repository: InteractiveDocuments{DB: pool, Bucket: storageConfig.Bucket}, Objects: storage}, Objects: storage, Bucket: storageConfig.Bucket}
 	interactiveFinalizer := InteractiveFinalizer{DB: pool}
@@ -286,6 +679,22 @@ func RunScheduler(ctx context.Context, dsn, listen string, storageConfig objects
 			return v2input.ScopedPublisher{Documents: publisher, Tenant: lease.TenantID, Run: lease.RunID}
 		},
 	}
+	var semanticAssemblyProcessor v2input.SemanticAssemblyOrchestrator
+	if semanticAssemblyInstalled {
+		semanticAssemblyProcessor, err = (v2input.SemanticAssemblyRuntime{DB: pool, Objects: storage, Bucket: storageConfig.Bucket}).Orchestrator()
+		if err != nil {
+			return err
+		}
+	}
+	var learningEvaluateProcessor v2learning.LearningEvaluateOrchestrator
+	if learningEvaluateInstalled {
+		learningEvaluateProcessor, err = (v2learning.TrainingFitRuntime{
+			DB: pool, Objects: storage, Bucket: storageConfig.Bucket,
+		}).EvaluateOrchestrator()
+		if err != nil {
+			return err
+		}
+	}
 	sceneMaterializer := v2sessions.PlanMaterializer{DB: pool, Objects: storage,
 		Bucket: storageConfig.Bucket}
 	builder := DefectBranchBuilder{Artifacts: ExpansionArtifacts{DB: pool, Objects: storage, Bucket: storageConfig.Bucket}, Publisher: artifactjson.Publisher{Repository: artifactjson.SQLRepository{DB: pool, Bucket: storageConfig.Bucket}, Objects: storage}}
@@ -300,7 +709,7 @@ func RunScheduler(ctx context.Context, dsn, listen string, storageConfig objects
 		w.Header().Set("Content-Type", "application/json")
 		ping, cancel := context.WithTimeout(r.Context(), time.Second)
 		defer cancel()
-		if !ready.Load() || (captureEnabled && !captureState.Ready.Load()) || (sessionPlanInstalled && !sessionPlanState.Ready.Load()) || (sceneMaterializationInstalled && !sceneMaterializationState.Ready.Load()) || !expansionState.Ready.Load() || !ingestState.Ready.Load() || !uploadState.Ready.Load() || !downloadState.Ready.Load() || !bulkState.Ready.Load() || !styleState.Ready.Load() || !styleAnalysisState.Ready.Load() || !styleImportState.Ready.Load() || !embeddingState.Ready.Load() || !exportBatchState.Ready.Load() || !renderBatchState.Ready.Load() || !renderRecoveryState.Ready.Load() || !interactiveState.Ready.Load() || !interactiveFinalizeState.Ready.Load() || !applyState.Ready.Load() || !mediaRetryState.Ready.Load() || !mediaFinalizeState.Ready.Load() || pool.Ping(ping) != nil || storage.Ready(ping) != nil {
+		if (learningEvaluateInstalled && !learningEvaluateState.Ready.Load()) || (restorationEnabled && !restorationAdoptionState.Ready.Load()) || (restorationPreviewEnabled && !restorationPreviewState.Ready.Load()) || (metadataAdoptionEnabled && !metadataAdoptionState.Ready.Load()) || (replacementAdoptionEnabled && !replacementAdoptionState.Ready.Load()) || !ready.Load() || (deliveryConfig.Enabled && !deliveryState.Ready.Load()) || (captureEnabled && !captureState.Ready.Load()) || (sessionPlanInstalled && !sessionPlanState.Ready.Load()) || (semanticAssemblyInstalled && !semanticAssemblyState.Ready.Load()) || (sceneMaterializationInstalled && !sceneMaterializationState.Ready.Load()) || !expansionState.Ready.Load() || !ingestState.Ready.Load() || !interchangeCollectionState.Ready.Load() || (interchangeImportProcessor != nil && !interchangeImportState.Ready.Load()) || (archiveInvalidationProcessor != nil && !archiveInvalidationState.Ready.Load()) || (archiveRevocationProcessor != nil && !archiveRevocationState.Ready.Load()) || (archiveRecoveryProcessor != nil && !archiveRecoveryState.Ready.Load()) || (archiveCleanupProcessor != nil && !archiveCleanupState.Ready.Load()) || (archiveExpiryProcessor != nil && !archiveExpiryState.Ready.Load()) || (archiveCompletionProcessor != nil && !archiveCompletionState.Ready.Load()) || !uploadState.Ready.Load() || !downloadState.Ready.Load() || !bulkState.Ready.Load() || !styleState.Ready.Load() || !styleAnalysisState.Ready.Load() || !styleImportState.Ready.Load() || !embeddingState.Ready.Load() || !exportBatchState.Ready.Load() || !renderBatchState.Ready.Load() || !renderDerivativeCleanupState.Ready.Load() || !renderDerivativeState.Ready.Load() || !perspectivePreviewState.Ready.Load() || !multiQualityState.Ready.Load() || !multiPreviewState.Ready.Load() || !perspectiveQualityState.Ready.Load() || !renderRecoveryState.Ready.Load() || (nativeRecoveryProcessor != nil && !nativeRecoveryState.Ready.Load()) || (linesEnabled && (!perspectiveLinesRecoveryState.Ready.Load() || !perspectiveLinesLifecycleState.Ready.Load())) || !interactiveState.Ready.Load() || !interactiveFinalizeState.Ready.Load() || !applyState.Ready.Load() || !mediaRetryState.Ready.Load() || !mediaFinalizeState.Ready.Load() || pool.Ping(ping) != nil || storage.Ready(ping) != nil {
 			w.WriteHeader(http.StatusServiceUnavailable)
 			w.Write([]byte(`{"status":"unavailable"}`))
 			return
@@ -308,7 +717,19 @@ func RunScheduler(ctx context.Context, dsn, listen string, storageConfig objects
 		w.Write([]byte(`{"status":"ready"}`))
 	})
 	mux.HandleFunc("GET /metrics", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "# TYPE photo_scheduler_v28_restoration_previews_total counter\nphoto_scheduler_v28_restoration_previews_total %d\n# TYPE photo_scheduler_v28_restoration_preview_failures_total counter\nphoto_scheduler_v28_restoration_preview_failures_total %d\n", restorationPreviewState.Materialized.Load(), restorationPreviewState.Failures.Load())
+		fmt.Fprintf(w, "# TYPE photo_scheduler_v28_restoration_adoptions_total counter\nphoto_scheduler_v28_restoration_adoptions_total %d\n# TYPE photo_scheduler_v28_restoration_adoption_failures_total counter\nphoto_scheduler_v28_restoration_adoption_failures_total %d\n", restorationAdoptionState.Materialized.Load(), restorationAdoptionState.Failures.Load())
+		fmt.Fprintf(w, "# TYPE photo_scheduler_archive_invalidated_total counter\nphoto_scheduler_archive_invalidated_total %d\n# TYPE photo_scheduler_archive_invalidation_failures_total counter\nphoto_scheduler_archive_invalidation_failures_total %d\n", archiveInvalidationState.Materialized.Load(), archiveInvalidationState.Failures.Load())
+		fmt.Fprintf(w, "# TYPE photo_scheduler_archive_revoked_total counter\nphoto_scheduler_archive_revoked_total %d\n# TYPE photo_scheduler_archive_revocation_failures_total counter\nphoto_scheduler_archive_revocation_failures_total %d\n", archiveRevocationState.Materialized.Load(), archiveRevocationState.Failures.Load())
+		fmt.Fprintf(w, "# TYPE photo_scheduler_archive_recovered_total counter\nphoto_scheduler_archive_recovered_total %d\n# TYPE photo_scheduler_archive_recovery_failures_total counter\nphoto_scheduler_archive_recovery_failures_total %d\n", archiveRecoveryState.Materialized.Load(), archiveRecoveryState.Failures.Load())
+		fmt.Fprintf(w, "# TYPE photo_scheduler_archive_cleaned_total counter\nphoto_scheduler_archive_cleaned_total %d\n# TYPE photo_scheduler_archive_cleanup_failures_total counter\nphoto_scheduler_archive_cleanup_failures_total %d\n", archiveCleanupState.Materialized.Load(), archiveCleanupState.Failures.Load())
+		fmt.Fprintf(w, "# TYPE photo_scheduler_archive_expired_total counter\nphoto_scheduler_archive_expired_total %d\n# TYPE photo_scheduler_archive_expiry_failures_total counter\nphoto_scheduler_archive_expiry_failures_total %d\n", archiveExpiryState.Materialized.Load(), archiveExpiryState.Failures.Load())
+		fmt.Fprintf(w, "# TYPE photo_scheduler_archive_completion_handled_total counter\nphoto_scheduler_archive_completion_handled_total %d\n# TYPE photo_scheduler_archive_completion_failures_total counter\nphoto_scheduler_archive_completion_failures_total %d\n", archiveCompletionState.Materialized.Load(), archiveCompletionState.Failures.Load())
 		w.Header().Set("Content-Type", "text/plain; version=0.0.4")
+		fmt.Fprintf(w, "# TYPE photo_scheduler_perspective_quality_materialized_total counter\nphoto_scheduler_perspective_quality_materialized_total %d\n# TYPE photo_scheduler_perspective_quality_failures_total counter\nphoto_scheduler_perspective_quality_failures_total %d\n", perspectiveQualityState.Materialized.Load(), perspectiveQualityState.Failures.Load())
+		fmt.Fprintf(w, "# TYPE photo_scheduler_multi_preview_materialized_total counter\nphoto_scheduler_multi_preview_materialized_total %d\n# TYPE photo_scheduler_multi_preview_failures_total counter\nphoto_scheduler_multi_preview_failures_total %d\n", multiPreviewState.Materialized.Load(), multiPreviewState.Failures.Load())
+		fmt.Fprintf(w, "# TYPE photo_scheduler_multi_quality_materialized_total counter\nphoto_scheduler_multi_quality_materialized_total %d\n# TYPE photo_scheduler_multi_quality_failures_total counter\nphoto_scheduler_multi_quality_failures_total %d\n", multiQualityState.Materialized.Load(), multiQualityState.Failures.Load())
+		fmt.Fprintf(w, "# TYPE photo_scheduler_perspective_preview_materialized_total counter\nphoto_scheduler_perspective_preview_materialized_total %d\n# TYPE photo_scheduler_perspective_preview_failures_total counter\nphoto_scheduler_perspective_preview_failures_total %d\n", perspectivePreviewState.Materialized.Load(), perspectivePreviewState.Failures.Load())
 		fmt.Fprintf(w, "# TYPE photo_scheduler_ingest_build_transitions_total counter\nphoto_scheduler_ingest_build_transitions_total %d\n# TYPE photo_scheduler_ingest_build_failures_total counter\nphoto_scheduler_ingest_build_failures_total %d\n", ingestState.Materialized.Load(), ingestState.Failures.Load())
 		fmt.Fprintf(w, "# TYPE photo_scheduler_download_build_transitions_total counter\nphoto_scheduler_download_build_transitions_total %d\n# TYPE photo_scheduler_download_build_failures_total counter\nphoto_scheduler_download_build_failures_total %d\n", downloadState.Materialized.Load(), downloadState.Failures.Load())
 		fmt.Fprintf(w, "# TYPE photo_scheduler_bulk_chunks_total counter\nphoto_scheduler_bulk_chunks_total %d\n# TYPE photo_scheduler_bulk_failures_total counter\nphoto_scheduler_bulk_failures_total %d\n", bulkState.Materialized.Load(), bulkState.Failures.Load())
@@ -324,6 +745,10 @@ func RunScheduler(ctx context.Context, dsn, listen string, storageConfig objects
 		fmt.Fprintf(w, "# TYPE photo_scheduler_capture_transitions_total counter\nphoto_scheduler_capture_transitions_total %d\n# TYPE photo_scheduler_capture_failures_total counter\nphoto_scheduler_capture_failures_total %d\n", captureState.Materialized.Load(), captureState.Failures.Load())
 		fmt.Fprintf(w, "# TYPE photo_scheduler_v22_session_plans_total counter\nphoto_scheduler_v22_session_plans_total %d\n# TYPE photo_scheduler_v22_session_plan_failures_total counter\nphoto_scheduler_v22_session_plan_failures_total %d\n", sessionPlanState.Materialized.Load(), sessionPlanState.Failures.Load())
 		fmt.Fprintf(w, "# TYPE photo_scheduler_v22_scene_materializations_total counter\nphoto_scheduler_v22_scene_materializations_total %d\n# TYPE photo_scheduler_v22_scene_materialization_failures_total counter\nphoto_scheduler_v22_scene_materialization_failures_total %d\n", sceneMaterializationState.Materialized.Load(), sceneMaterializationState.Failures.Load())
+		fmt.Fprintf(w, "# TYPE photo_scheduler_v27_assemblies_total counter\nphoto_scheduler_v27_assemblies_total %d\n# TYPE photo_scheduler_v27_assembly_failures_total counter\nphoto_scheduler_v27_assembly_failures_total %d\n", semanticAssemblyState.Materialized.Load(), semanticAssemblyState.Failures.Load())
+		fmt.Fprintf(w, "# TYPE photo_scheduler_v23_evaluations_total counter\nphoto_scheduler_v23_evaluations_total %d\n# TYPE photo_scheduler_v23_evaluation_failures_total counter\nphoto_scheduler_v23_evaluation_failures_total %d\n", learningEvaluateState.Materialized.Load(), learningEvaluateState.Failures.Load())
+		fmt.Fprintf(w, "# TYPE photo_scheduler_v30_delivery_pages_total counter\nphoto_scheduler_v30_delivery_pages_total %d\n# TYPE photo_scheduler_v30_delivery_failures_total counter\nphoto_scheduler_v30_delivery_failures_total %d\n", deliveryState.Materialized.Load(), deliveryState.Failures.Load())
+		fmt.Fprintf(w, "# TYPE photo_scheduler_v30_metadata_adoptions_total counter\nphoto_scheduler_v30_metadata_adoptions_total %d\n# TYPE photo_scheduler_v30_metadata_adoption_failures_total counter\nphoto_scheduler_v30_metadata_adoption_failures_total %d\n", metadataAdoptionState.Materialized.Load(), metadataAdoptionState.Failures.Load())
 		fmt.Fprintf(w, "# TYPE photo_scheduler_dispatched_total counter\nphoto_scheduler_dispatched_total %d\n# TYPE photo_scheduler_recovered_transitions_total counter\nphoto_scheduler_recovered_transitions_total %d\n", dispatched.Load(), recovered.Load())
 	})
 	listener, err := net.Listen("tcp", listen)
@@ -338,6 +763,20 @@ func RunScheduler(ctx context.Context, dsn, listen string, storageConfig objects
 	expansionDone := make(chan error, 1)
 	go func() { expansionDone <- RunExpansionLoop(expansionCtx, processor, expansionState, 5*time.Second) }()
 	defer func() { stopExpansions(); <-expansionDone }()
+	if deliveryConfig.Enabled {
+		deliveryCtx, stopDelivery := context.WithCancel(ctx)
+		deliveryDone := make(chan error, 1)
+		go func() { deliveryDone <- RunExpansionLoop(deliveryCtx, deliveryProcessor, deliveryState, 5*time.Second) }()
+		defer func() { stopDelivery(); <-deliveryDone }()
+	}
+	if metadataAdoptionEnabled {
+		metadataCtx, stopMetadata := context.WithCancel(ctx)
+		metadataDone := make(chan error, 1)
+		go func() {
+			metadataDone <- RunExpansionLoop(metadataCtx, metadataAdoptionProcessor, metadataAdoptionState, 5*time.Second)
+		}()
+		defer func() { stopMetadata(); <-metadataDone }()
+	}
 	if captureEnabled {
 		captureCtx, stopCapture := context.WithCancel(ctx)
 		captureDone := make(chan error, 1)
@@ -352,6 +791,23 @@ func RunScheduler(ctx context.Context, dsn, listen string, storageConfig objects
 		}()
 		defer func() { stopSessions(); <-sessionDone }()
 	}
+	if semanticAssemblyInstalled {
+		semanticCtx, stopSemantic := context.WithCancel(ctx)
+		semanticDone := make(chan error, 1)
+		go func() {
+			semanticDone <- RunExpansionLoop(semanticCtx, semanticAssemblyProcessor, semanticAssemblyState, 5*time.Second)
+		}()
+		defer func() { stopSemantic(); <-semanticDone }()
+	}
+	if learningEvaluateInstalled {
+		learningCtx, stopLearning := context.WithCancel(ctx)
+		learningDone := make(chan error, 1)
+		go func() {
+			learningDone <- RunExpansionLoop(learningCtx, learningEvaluateProcessor,
+				learningEvaluateState, 5*time.Second)
+		}()
+		defer func() { stopLearning(); <-learningDone }()
+	}
 	if sceneMaterializationInstalled {
 		sceneCtx, stopScenes := context.WithCancel(ctx)
 		sceneDone := make(chan error, 1)
@@ -365,6 +821,69 @@ func RunScheduler(ctx context.Context, dsn, listen string, storageConfig objects
 	ingestDone := make(chan error, 1)
 	go func() { ingestDone <- RunExpansionLoop(ingestCtx, ingestProcessor, ingestState, 5*time.Second) }()
 	defer func() { stopIngest(); <-ingestDone }()
+	collectionCtx, stopCollections := context.WithCancel(ctx)
+	collectionDone := make(chan error, 1)
+	go func() {
+		collectionDone <- RunExpansionLoop(collectionCtx, interchangeCollectionProcessor, interchangeCollectionState, 5*time.Second)
+	}()
+	defer func() { stopCollections(); <-collectionDone }()
+	if interchangeImportProcessor != nil {
+		importCtx, stopImport := context.WithCancel(ctx)
+		importDone := make(chan error, 1)
+		go func() {
+			importDone <- RunExpansionLoop(importCtx, interchangeImportProcessor, interchangeImportState, 5*time.Second)
+		}()
+		defer func() { stopImport(); <-importDone }()
+	}
+
+	if archiveInvalidationProcessor != nil {
+		invalidationCtx, stopInvalidation := context.WithCancel(ctx)
+		invalidationDone := make(chan error, 1)
+		go func() {
+			invalidationDone <- RunExpansionLoop(invalidationCtx, archiveInvalidationProcessor, archiveInvalidationState, 5*time.Second)
+		}()
+		defer func() { stopInvalidation(); <-invalidationDone }()
+	}
+	if archiveRevocationProcessor != nil {
+		revokeCtx, stopRevoke := context.WithCancel(ctx)
+		revokeDone := make(chan error, 1)
+		go func() {
+			revokeDone <- RunExpansionLoop(revokeCtx, archiveRevocationProcessor, archiveRevocationState, 5*time.Second)
+		}()
+		defer func() { stopRevoke(); <-revokeDone }()
+	}
+	if archiveRecoveryProcessor != nil {
+		recoveryCtx, stopRecovery := context.WithCancel(ctx)
+		recoveryDone := make(chan error, 1)
+		go func() {
+			recoveryDone <- RunExpansionLoop(recoveryCtx, archiveRecoveryProcessor, archiveRecoveryState, 5*time.Second)
+		}()
+		defer func() { stopRecovery(); <-recoveryDone }()
+	}
+	if archiveCleanupProcessor != nil {
+		cleanupCtx, stopCleanup := context.WithCancel(ctx)
+		cleanupDone := make(chan error, 1)
+		go func() {
+			cleanupDone <- RunExpansionLoop(cleanupCtx, archiveCleanupProcessor, archiveCleanupState, 5*time.Second)
+		}()
+		defer func() { stopCleanup(); <-cleanupDone }()
+	}
+	if archiveExpiryProcessor != nil {
+		expiryCtx, stopExpiry := context.WithCancel(ctx)
+		expiryDone := make(chan error, 1)
+		go func() {
+			expiryDone <- RunExpansionLoop(expiryCtx, archiveExpiryProcessor, archiveExpiryState, 5*time.Second)
+		}()
+		defer func() { stopExpiry(); <-expiryDone }()
+	}
+	if archiveCompletionProcessor != nil {
+		archiveCtx, stopArchives := context.WithCancel(ctx)
+		archiveDone := make(chan error, 1)
+		go func() {
+			archiveDone <- RunExpansionLoop(archiveCtx, archiveCompletionProcessor, archiveCompletionState, 5*time.Second)
+		}()
+		defer func() { stopArchives(); <-archiveDone }()
+	}
 	uploadCtx, stopUploads := context.WithCancel(ctx)
 	uploadDone := make(chan error, 1)
 	go func() { uploadDone <- RunExpansionLoop(uploadCtx, uploadProcessor, uploadState, 5*time.Second) }()
@@ -411,12 +930,73 @@ func RunScheduler(ctx context.Context, dsn, listen string, storageConfig objects
 		renderBatchDone <- RunExpansionLoop(renderBatchCtx, renderBatchProcessor, renderBatchState, 5*time.Second)
 	}()
 	defer func() { stopRenderBatch(); <-renderBatchDone }()
+	qualityCtx, stopPerspectiveQuality := context.WithCancel(ctx)
+	qualityDone := make(chan error, 1)
+	go func() {
+		qualityDone <- RunExpansionLoop(qualityCtx, perspectiveQualityProcessor, perspectiveQualityState, 5*time.Second)
+	}()
+	defer func() { stopPerspectiveQuality(); <-qualityDone }()
+	perspectiveCtx, stopPerspectivePreview := context.WithCancel(ctx)
+	perspectiveDone := make(chan error, 1)
+	go func() {
+		perspectiveDone <- RunExpansionLoop(perspectiveCtx, perspectivePreviewProcessor, perspectivePreviewState, 5*time.Second)
+	}()
+	defer func() { stopPerspectivePreview(); <-perspectiveDone }()
+	multiPreviewCtx, stopMultiPreview := context.WithCancel(ctx)
+	multiPreviewDone := make(chan error, 1)
+	go func() {
+		multiPreviewDone <- RunExpansionLoop(multiPreviewCtx, multiPreviewProcessor, multiPreviewState, 5*time.Second)
+	}()
+	defer func() { stopMultiPreview(); <-multiPreviewDone }()
+	multiQualityCtx, stopMultiQuality := context.WithCancel(ctx)
+	multiQualityDone := make(chan error, 1)
+	go func() {
+		multiQualityDone <- RunExpansionLoop(multiQualityCtx, multiQualityProcessor, multiQualityState, 5*time.Second)
+	}()
+	defer func() { stopMultiQuality(); <-multiQualityDone }()
+
+	derivativeCtx, stopDerivative := context.WithCancel(ctx)
+	derivativeDone := make(chan error, 1)
+	go func() {
+		derivativeDone <- RunExpansionLoop(derivativeCtx, renderDerivativeProcessor, renderDerivativeState, 5*time.Second)
+	}()
+	defer func() { stopDerivative(); <-derivativeDone }()
+	derivativeCleanupCtx, stopDerivativeCleanup := context.WithCancel(ctx)
+	derivativeCleanupDone := make(chan error, 1)
+	go func() {
+		derivativeCleanupDone <- RunExpansionLoop(derivativeCleanupCtx, renderDerivativeCleanupProcessor, renderDerivativeCleanupState, 5*time.Second)
+	}()
+	defer func() { stopDerivativeCleanup(); <-derivativeCleanupDone }()
 	renderRecoveryCtx, stopRenderRecovery := context.WithCancel(ctx)
 	renderRecoveryDone := make(chan error, 1)
 	go func() {
 		renderRecoveryDone <- RunExpansionLoop(renderRecoveryCtx, renderRecoveryProcessor, renderRecoveryState, 5*time.Second)
 	}()
 	defer func() { stopRenderRecovery(); <-renderRecoveryDone }()
+
+	if nativeRecoveryProcessor != nil {
+		nativeCtx, stopNative := context.WithCancel(ctx)
+		nativeDone := make(chan error, 1)
+		go func() {
+			nativeDone <- RunExpansionLoop(nativeCtx, nativeRecoveryProcessor, nativeRecoveryState, 5*time.Second)
+		}()
+		defer func() { stopNative(); <-nativeDone }()
+	}
+
+	if linesRecoveryProcessor != nil {
+		linesCtx, stopLines := context.WithCancel(ctx)
+		linesDone := make(chan error, 1)
+		go func() {
+			linesDone <- RunExpansionLoop(linesCtx, linesRecoveryProcessor, perspectiveLinesRecoveryState, 5*time.Second)
+		}()
+		defer func() { stopLines(); <-linesDone }()
+		lifecycleCtx, stopLifecycle := context.WithCancel(ctx)
+		lifecycleDone := make(chan error, 1)
+		go func() {
+			lifecycleDone <- RunExpansionLoop(lifecycleCtx, PerspectiveLinesLifecycle{DB: pool}, perspectiveLinesLifecycleState, 5*time.Second)
+		}()
+		defer func() { stopLifecycle(); <-lifecycleDone }()
+	}
 
 	interactiveCtx, stopInteractive := context.WithCancel(ctx)
 	interactiveDone := make(chan error, 1)
@@ -446,10 +1026,59 @@ func RunScheduler(ctx context.Context, dsn, listen string, storageConfig objects
 		mediaFinalizeDone <- RunExpansionLoop(mediaFinalizeCtx, mediaFinalizer, mediaFinalizeState, 5*time.Second)
 	}()
 	defer func() { stopMediaFinalize(); <-mediaFinalizeDone }()
-	recovery, dispatcher := Recovery{DB: pool}, Dispatcher{DB: pool}
+	// Independent from lease recovery/dispatch. Configured replacement work reads
+	// original object versions; qualification evidence is never synthesized.
+	negativeCtx, stopNegative := context.WithCancel(ctx)
+	negativeDone := make(chan error, 1)
+	negativeState := new(ExpansionLoopState)
+	negativeProcessor := &v2optical.NegativeScheduler{Backend: negativeBackend}
+	go func() { negativeDone <- RunExpansionLoop(negativeCtx, negativeProcessor, negativeState, 5*time.Second) }()
+	defer func() { stopNegative(); <-negativeDone }()
+	if replacementAdoptionProcessor != nil {
+		adoptionCtx, stopAdoption := context.WithCancel(ctx)
+		adoptionDone := make(chan error, 1)
+		go func() {
+			adoptionDone <- RunExpansionLoop(adoptionCtx, replacementAdoptionProcessor, replacementAdoptionState, 5*time.Second)
+		}()
+		defer func() { stopAdoption(); <-adoptionDone }()
+	}
+	if restorationAdoptionProcessor != nil {
+		restorationCtx, stopRestoration := context.WithCancel(ctx)
+		restorationDone := make(chan error, 1)
+		go func() {
+			restorationDone <- RunExpansionLoop(restorationCtx, restorationAdoptionProcessor,
+				restorationAdoptionState, 5*time.Second)
+		}()
+		defer func() { stopRestoration(); <-restorationDone }()
+	}
+	if restorationPreviewProcessor != nil {
+		previewCtx, stopPreview := context.WithCancel(ctx)
+		previewDone := make(chan error, 1)
+		go func() {
+			previewDone <- RunExpansionLoop(previewCtx, restorationPreviewProcessor,
+				restorationPreviewState, 5*time.Second)
+		}()
+		defer func() { stopPreview(); <-previewDone }()
+	}
+	detectorQuotaCtx, stopDetectorQuota := context.WithCancel(ctx)
+	detectorQuotaDone := make(chan error, 1)
+	detectorQuotaState := new(ExpansionLoopState)
+	go func() {
+		detectorQuotaDone <- RunExpansionLoop(detectorQuotaCtx, ReplacementDetectorQuotaCleanup{DB: pool}, detectorQuotaState, 5*time.Second)
+	}()
+	defer func() { stopDetectorQuota(); <-detectorQuotaDone }()
+	negativeQuotaCtx, stopNegativeQuota := context.WithCancel(ctx)
+	negativeQuotaDone := make(chan error, 1)
+	negativeQuotaState := new(ExpansionLoopState)
+	go func() {
+		negativeQuotaDone <- RunExpansionLoop(negativeQuotaCtx, NegativeCancellationQuota{DB: pool}, negativeQuotaState, 5*time.Second)
+	}()
+	defer func() { stopNegativeQuota(); <-negativeQuotaDone }()
+	recovery, dispatcher := Recovery{DB: pool}, Dispatcher{DB: pool, LegacyOnly: capacityRuntime != nil}
 	ingest := IngestActivator{Source: IngestActivationSource{DB: pool}, Tasks: AdvancementRepository{DB: pool}}
 	tick := time.NewTicker(500 * time.Millisecond)
 	defer tick.Stop()
+	var nextLocalCapacityObservation time.Time
 	for {
 		select {
 		case <-ctx.Done():
@@ -464,6 +1093,7 @@ func RunScheduler(ctx context.Context, dsn, listen string, storageConfig objects
 			return e
 		case <-tick.C:
 			cycle, cancel := context.WithTimeout(ctx, 10*time.Second)
+			capacityFailed := false
 			n, e := recovery.Recover(cycle, 20)
 			if n > 0 {
 				recovered.Add(uint64(n))
@@ -480,6 +1110,28 @@ func RunScheduler(ctx context.Context, dsn, listen string, storageConfig objects
 					ingestActivated.Add(uint64(n))
 				}
 			}
+			if e == nil && capacityRuntime != nil {
+				n, e = capacityRuntime.Dispatch(cycle, 20)
+				if n > 0 {
+					dispatched.Add(uint64(n))
+				}
+				capacityFailed = e != nil
+			}
+			if e == nil && localCapacityMonitor != nil && !time.Now().Before(nextLocalCapacityObservation) {
+				alerts, observationErr := localCapacityMonitor.Tick(cycle)
+				nextLocalCapacityObservation = time.Now().Add(10 * time.Second)
+				if observationErr != nil {
+					slog.Warn("local capacity observation deferred")
+				}
+				for _, alert := range alerts {
+					if alert.Active {
+						slog.Warn("local capacity pressure", "pool", alert.Pool, "reason", alert.Reason)
+					}
+					if !alert.Active {
+						slog.Info("local capacity pressure cleared", "pool", alert.Pool, "reason", alert.Reason)
+					}
+				}
+			}
 			if e == nil {
 				n, e = dispatcher.Dispatch(cycle, 20)
 				if n > 0 {
@@ -489,6 +1141,9 @@ func RunScheduler(ctx context.Context, dsn, listen string, storageConfig objects
 			cancel()
 			if e != nil {
 				ready.Store(false)
+				if capacityFailed && ctx.Err() == nil {
+					return fmt.Errorf("V32 capacity dispatcher stopped: %w", e)
+				}
 				if ctx.Err() == nil {
 					slog.Warn("scheduler cycle deferred")
 				}

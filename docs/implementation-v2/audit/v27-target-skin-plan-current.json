@@ -1,0 +1,45 @@
+{
+  "generated_at": "2026-10-08T17:13:17.830398+00:00",
+  "status": "implementing",
+  "module": "V27",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 58.965
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/v2input",
+      "photoeditor/backend/internal/v2draft",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "dedicated target skin Params publication with bracketed full physical parser proofs",
+    "CPU task compiled from exact parser manifest and label pixel sizes",
+    "deterministic target namespace plan and immutable config with original lineage",
+    "full result/object fingerprints and tested namespace/actor/Params/parser/pixels/result/budget/body substitutions",
+    "memory transport binding; no persistence or activation"
+  ],
+  "limitations": [
+    "Target skin blocked persistence/registration/admission/seal/worker/result/finalization/recovery/advancement remain open",
+    "Target defects/transfer and whole V27 acceptance remain open",
+    "No GPU/photo-quality qualification; ML doubles/shared WorkingImage",
+    "No SQL changes or production migration"
+  ],
+  "sha256": {
+    "docs/implementation-v2/audit/v27-target-skin-plan-wire-current.xml": "0afcf48e6b7725db27b47deb475613366d0f0bcf6bc9a2618e6e7221ed04f0d3",
+    "docs/implementation-v2/audit/v27-target-skin-plan-go-current.jsonl": "66a5ff3ddf49d1d8cadf94dd21c6c7dfdc728724b8fe58ed9a8921afa15ebf80",
+    "backend/internal/semanticproposal/native_target_skin_transport.go": "392f8002babaea30937f93d05ee69d87bc3b2b5ee5429ad77f6e48c02c027ad3",
+    "backend/internal/semanticproposal/native_target_skin_task.go": "a6601163c0b791e6a15f5cdf00461c0a349c04f294a43c3383c0240a0965fd5f",
+    "backend/internal/semanticproposal/native_target_skin_plan.go": "8ec2ce6ad0c1ea3ade1600b9cd93d77a92fb8152f4d6b023b4636506fa625294",
+    "backend/internal/semanticproposal/native_target_skin_wire_probe_test.go": "2c04fe0e71d50636f9d42a8da3c313cbead33eac944f8e9c072096fb0ebcd7c5",
+    "backend/internal/semanticproposal/native_target_face_wire_probe_test.go": "233d036ad0d696a56757459561c3fddb4ac749f46744740eeba192d97378d527",
+    "tests/integration/test_v27_semantic_intent_publication.py": "cdef437b06e61743f34b1f5b2196580cf3fdeeac7ec69cc0c5fa50b8ff4af76b",
+    "docs/implementation-v2/15-execution-contracts.md": "27a0ef7d0e1349b138fcae02273c77fc9ca6d11c09f7dc1f949943fbe0e0f40f"
+  }
+}

@@ -104,6 +104,242 @@
         "state"
       ]
     },
+    "RenderBatchSubmission": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "input_snapshot_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "policy_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "selection": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "source": {
+                "$ref": "#/$defs/VersionBinding"
+              },
+              "recipe": {
+                "$ref": "#/$defs/ArtifactRef"
+              }
+            },
+            "required": [
+              "source",
+              "recipe"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 5000
+        }
+      },
+      "required": [
+        "input_snapshot_id",
+        "policy_sha",
+        "selection"
+      ]
+    },
+    "RenderWorkflowPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "renderer_version": {
+          "type": "string",
+          "enum": [
+            "v2.2"
+          ]
+        },
+        "workflow_type": {
+          "type": "string",
+          "enum": [
+            "preview"
+          ]
+        },
+        "child_failure_policy": {
+          "type": "string",
+          "enum": [
+            "fail_fast"
+          ]
+        },
+        "max_frames": {
+          "type": "integer",
+          "minimum": 5000,
+          "maximum": 5000
+        }
+      },
+      "required": [
+        "schema_version",
+        "renderer_version",
+        "workflow_type",
+        "child_failure_policy",
+        "max_frames"
+      ]
+    },
+    "RenderPolicySnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "policy_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "policy": {
+          "$ref": "#/$defs/RenderWorkflowPolicy"
+        }
+      },
+      "required": [
+        "policy_sha",
+        "policy"
+      ]
+    },
+    "RenderInputSnapshotRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/VersionBinding"
+          },
+          "minItems": 1,
+          "maxItems": 5000
+        }
+      },
+      "required": [
+        "sources"
+      ]
+    },
+    "RenderInputSnapshotResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "item_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5000
+        }
+      },
+      "required": [
+        "id",
+        "digest",
+        "item_count"
+      ]
+    },
+    "RenderFreezeRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "document_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "expected_revision": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,18}$"
+        },
+        "assume_profile": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "srgb_v1",
+                "linear_srgb_v1",
+                "work_rec2020_gamma24_v1"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "document_id",
+        "expected_revision",
+        "assume_profile"
+      ]
+    },
+    "RenderFreezeResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "document_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "draft_document_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "draft_revision": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,18}$"
+        },
+        "source": {
+          "$ref": "#/$defs/VersionBinding"
+        },
+        "recipe": {
+          "$ref": "#/$defs/ArtifactRef"
+        }
+      },
+      "required": [
+        "document_id",
+        "draft_document_id",
+        "draft_revision",
+        "source",
+        "recipe"
+      ]
+    },
+    "RenderBatchTicket": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "waiting_review"
+          ]
+        },
+        "child_run_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 1,
+          "maxItems": 5000
+        }
+      },
+      "required": [
+        "run_id",
+        "state",
+        "child_run_ids"
+      ]
+    },
     "Resource": {
       "type": "object",
       "additionalProperties": false,
@@ -849,6 +1085,17 @@
               "type": "null"
             }
           ]
+        },
+        "portrait_detail_producer": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "run_id": {"type": "string", "format": "uuid"},
+            "task_id": {"type": "string", "format": "uuid"},
+            "result_id": {"type": "string", "format": "uuid"},
+            "attempt_id": {"type": "string", "format": "uuid"}
+          },
+          "required": ["run_id", "task_id", "result_id", "attempt_id"]
         }
       },
       "required": [
@@ -893,6 +1140,15 @@
               "consent_epoch": {
                 "type": "null"
               }
+            }
+          }
+        },
+        {
+          "if": {"required": ["portrait_detail_producer"]},
+          "then": {
+            "properties": {
+              "learn": {"const": true},
+              "reason": {"const": "retouch"}
             }
           }
         }
@@ -2567,27 +2823,68 @@
         "calibration"
       ]
     },
+    "DeliverySigningPolicyChoice": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,18}$"
+        }
+      },
+      "required": [
+        "id",
+        "sha256",
+        "revision"
+      ]
+    },
+    "DeliverySigningPolicyPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DeliverySigningPolicyChoice"
+          },
+          "maxItems": 256
+        }
+      },
+      "required": [
+        "items"
+      ]
+    },
     "DeliveryPolicy": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "required_presets": {
           "type": "array",
+          "uniqueItems": true,
           "items": {
             "type": "string",
             "format": "uuid"
           },
           "minItems": 1,
-          "maxItems": 8
+          "maxItems": 16
         },
         "optional_presets": {
           "type": "array",
+          "uniqueItems": true,
           "items": {
             "type": "string",
             "format": "uuid"
           },
           "minItems": 0,
-          "maxItems": 8
+          "maxItems": 16
         },
         "require_review": {
           "type": "boolean"
@@ -2607,8 +2904,33 @@
             "required"
           ]
         },
+        "signing_policy_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "signing_policy_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
         "allow_omitted": {
           "type": "boolean"
+        },
+        "approved_fields": {
+          "type": "array",
+          "maxItems": 7,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "author",
+              "copyright",
+              "camera_make",
+              "camera_model",
+              "lens",
+              "datetime_original",
+              "gps"
+            ]
+          }
         }
       },
       "required": [
@@ -2618,6 +2940,365 @@
         "metadata_policy",
         "provenance",
         "allow_omitted"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "required_presets": {
+                "minItems": 1
+              }
+            },
+            "required": [
+              "required_presets"
+            ]
+          },
+          "then": {
+            "properties": {
+              "optional_presets": {
+                "maxItems": 15
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "required_presets": {
+                "minItems": 2
+              }
+            },
+            "required": [
+              "required_presets"
+            ]
+          },
+          "then": {
+            "properties": {
+              "optional_presets": {
+                "maxItems": 14
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "required_presets": {
+                "minItems": 3
+              }
+            },
+            "required": [
+              "required_presets"
+            ]
+          },
+          "then": {
+            "properties": {
+              "optional_presets": {
+                "maxItems": 13
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "required_presets": {
+                "minItems": 4
+              }
+            },
+            "required": [
+              "required_presets"
+            ]
+          },
+          "then": {
+            "properties": {
+              "optional_presets": {
+                "maxItems": 12
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "required_presets": {
+                "minItems": 5
+              }
+            },
+            "required": [
+              "required_presets"
+            ]
+          },
+          "then": {
+            "properties": {
+              "optional_presets": {
+                "maxItems": 11
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "required_presets": {
+                "minItems": 6
+              }
+            },
+            "required": [
+              "required_presets"
+            ]
+          },
+          "then": {
+            "properties": {
+              "optional_presets": {
+                "maxItems": 10
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "required_presets": {
+                "minItems": 7
+              }
+            },
+            "required": [
+              "required_presets"
+            ]
+          },
+          "then": {
+            "properties": {
+              "optional_presets": {
+                "maxItems": 9
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "required_presets": {
+                "minItems": 8
+              }
+            },
+            "required": [
+              "required_presets"
+            ]
+          },
+          "then": {
+            "properties": {
+              "optional_presets": {
+                "maxItems": 8
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "required_presets": {
+                "minItems": 9
+              }
+            },
+            "required": [
+              "required_presets"
+            ]
+          },
+          "then": {
+            "properties": {
+              "optional_presets": {
+                "maxItems": 7
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "required_presets": {
+                "minItems": 10
+              }
+            },
+            "required": [
+              "required_presets"
+            ]
+          },
+          "then": {
+            "properties": {
+              "optional_presets": {
+                "maxItems": 6
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "required_presets": {
+                "minItems": 11
+              }
+            },
+            "required": [
+              "required_presets"
+            ]
+          },
+          "then": {
+            "properties": {
+              "optional_presets": {
+                "maxItems": 5
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "required_presets": {
+                "minItems": 12
+              }
+            },
+            "required": [
+              "required_presets"
+            ]
+          },
+          "then": {
+            "properties": {
+              "optional_presets": {
+                "maxItems": 4
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "required_presets": {
+                "minItems": 13
+              }
+            },
+            "required": [
+              "required_presets"
+            ]
+          },
+          "then": {
+            "properties": {
+              "optional_presets": {
+                "maxItems": 3
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "required_presets": {
+                "minItems": 14
+              }
+            },
+            "required": [
+              "required_presets"
+            ]
+          },
+          "then": {
+            "properties": {
+              "optional_presets": {
+                "maxItems": 2
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "required_presets": {
+                "minItems": 15
+              }
+            },
+            "required": [
+              "required_presets"
+            ]
+          },
+          "then": {
+            "properties": {
+              "optional_presets": {
+                "maxItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "required_presets": {
+                "minItems": 16
+              }
+            },
+            "required": [
+              "required_presets"
+            ]
+          },
+          "then": {
+            "properties": {
+              "optional_presets": {
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "provenance": {
+                "const": "required"
+              }
+            },
+            "required": [
+              "provenance"
+            ]
+          },
+          "then": {
+            "required": [
+              "signing_policy_id",
+              "signing_policy_sha"
+            ]
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "signing_policy_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "signing_policy_sha"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "metadata_policy": {
+                "enum": [
+                  "strip",
+                  "copyright"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "approved_fields": {
+                "maxItems": 0
+              }
+            }
+          }
+        }
       ]
     },
     "InterchangeRequest": {
@@ -4443,13 +5124,17 @@
         },
         "max_report_bytes": {
           "const": 8388608
+        },
+        "evidence": {
+          "$ref": "#/$defs/ArtifactRef"
         }
       },
       "required": [
         "schema_version",
         "parsed",
         "plan",
-        "max_report_bytes"
+        "max_report_bytes",
+        "evidence"
       ]
     },
     "V2InterchangeExportParams": {
@@ -6132,6 +6817,54 @@
         "registrations"
       ]
     },
+    "SemanticRunIntent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "workflow_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "intent_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,18}$"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "waiting_review",
+            "cancelling",
+            "cancelled",
+            "completed",
+            "failed"
+          ]
+        }
+      },
+      "required": [
+        "run_id",
+        "workflow_id",
+        "intent_id",
+        "revision",
+        "state"
+      ]
+    },
     "FrozenRecipe": {
       "type": "object",
       "additionalProperties": false,
@@ -6202,6 +6935,82 @@
         "ordinal"
       ]
     },
+    "FrozenBackgroundAsset": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "portable_asset_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "style_version_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "style": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "source": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "expected_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 536870912
+        },
+        "media_type": {
+          "type": "string",
+          "enum": [
+            "image/jpeg",
+            "image/png",
+            "image/tiff"
+          ]
+        },
+        "suffix": {
+          "type": "string",
+          "enum": [
+            ".jpg",
+            ".png",
+            ".tiff"
+          ]
+        },
+        "assume_profile": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "srgb_v1",
+                "linear_srgb_v1",
+                "work_rec2020_gamma24_v1"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "work_icc_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "schema_version",
+        "portable_asset_id",
+        "style_version_id",
+        "style",
+        "source",
+        "expected_bytes",
+        "media_type",
+        "suffix",
+        "assume_profile",
+        "work_icc_sha"
+      ]
+    },
     "FrozenRenderRecipe": {
       "type": "object",
       "additionalProperties": false,
@@ -6228,6 +7037,9 @@
               "type": "null"
             }
           ]
+        },
+        "background_asset": {
+          "$ref": "#/$defs/FrozenBackgroundAsset"
         }
       },
       "required": [
@@ -6260,6 +7072,18 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "background_asset": {
+          "$ref": "#/$defs/FrozenBackgroundAsset"
+        },
+        "defect_evidence": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "dust_evidence": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "detail_evidence": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
         "binding": {
           "$ref": "#/$defs/VersionBinding"
         },
@@ -6528,6 +7352,10 @@
                 "minimum": 0,
                 "maximum": 4999
               },
+              "asset_id": {
+                "type": "string",
+                "format": "uuid"
+              },
               "version_id": {
                 "type": "string",
                 "format": "uuid"
@@ -6539,6 +7367,7 @@
             },
             "required": [
               "ordinal",
+              "asset_id",
               "version_id",
               "source_sha"
             ]
@@ -6738,6 +7567,60 @@
         "shards"
       ]
     },
+    "SignedDeliveryAssemblyEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": { "const": 2 },
+        "assembly": { "$ref": "#/$defs/ArtifactRef" },
+        "signing_closure": { "$ref": "#/$defs/ArtifactRef" }
+      },
+      "required": ["schema_version", "assembly", "signing_closure"]
+    },
+    "SignedDeliveryAssemblyEntry": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "ordinal": {"type": "integer", "minimum": 0, "maximum": 4999},
+        "preset_id": {"type": "string", "format": "uuid"},
+        "export_id": {"type": "string", "format": "uuid"},
+        "export": {"$ref": "#/$defs/ArtifactRef"},
+        "signing_key": {"type": "string", "format": "uuid"},
+        "task_id": {"type": "string", "format": "uuid"},
+        "result_id": {"type": "string", "format": "uuid"},
+        "signed": {"$ref": "#/$defs/ArtifactRef"},
+        "manifest": {"$ref": "#/$defs/ArtifactRef"},
+        "validation_sha": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      },
+      "required": ["ordinal", "preset_id", "export_id", "export", "signing_key", "task_id", "result_id", "signed", "manifest", "validation_sha"]
+    },
+    "SignedDeliveryAssemblyClosure": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "schema_version": {"const": 1},
+        "tenant_id": {"type": "string", "format": "uuid"},
+        "actor_id": {"type": "string", "format": "uuid"},
+        "parent_id": {"type": "string", "format": "uuid"},
+        "policy_id": {"type": "string", "format": "uuid"},
+        "policy_sha": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "entries": {"type": "array", "items": {"$ref": "#/$defs/SignedDeliveryAssemblyEntry"}, "minItems": 1, "maxItems": 80000}
+      },
+      "required": ["schema_version", "tenant_id", "actor_id", "parent_id", "policy_id", "policy_sha", "entries"]
+    },
+    "SignedDeliveryManifest": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "schema_version": {"const": 2},
+        "envelope_sha": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "assembly": {"$ref": "#/$defs/ArtifactRef"},
+        "signing_closure": {"$ref": "#/$defs/ArtifactRef"},
+        "snapshot_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "slot_count": {"type": "integer", "minimum": 1, "maximum": 80000},
+        "ready_count": {"type": "integer", "minimum": 1, "maximum": 80000},
+        "omitted_count": {"type": "integer", "minimum": 0, "maximum": 80000},
+        "shards": {"type": "array", "items": {"$ref": "#/$defs/ArtifactRef"}, "minItems": 1, "maxItems": 160}
+      },
+      "required": ["schema_version", "envelope_sha", "assembly", "signing_closure", "snapshot_digest", "slot_count", "ready_count", "omitted_count", "shards"]
+    },
     "MappingEntry": {
       "type": "object",
       "additionalProperties": false,
@@ -6865,10 +7748,24 @@
           "$ref": "#/$defs/ArtifactRef"
         },
         "binding": {
-          "$ref": "#/$defs/VersionBinding"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VersionBinding"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "recipe": {
-          "$ref": "#/$defs/ArtifactRef"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "rating": {
           "type": "integer",
@@ -6904,6 +7801,27 @@
         "rating",
         "pick",
         "crop"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "binding": {
+                "type": "null"
+              }
+            },
+            "required": [
+              "binding"
+            ]
+          },
+          "then": {
+            "properties": {
+              "recipe": {
+                "type": "null"
+              }
+            }
+          }
+        }
       ]
     },
     "InterchangePlan": {
@@ -6970,6 +7888,36 @@
         "max_archive_bytes",
         "max_expanded_bytes",
         "max_files"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "direction": {
+                "const": "export"
+              }
+            },
+            "required": [
+              "direction"
+            ]
+          },
+          "then": {
+            "properties": {
+              "entries": {
+                "items": {
+                  "properties": {
+                    "binding": {
+                      "$ref": "#/$defs/VersionBinding"
+                    },
+                    "recipe": {
+                      "$ref": "#/$defs/ArtifactRef"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       ]
     },
     "ImportReviewClose": {
@@ -8157,7 +9105,7 @@
         "heartbeat_seconds": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 9007199254740991
+          "maximum": 10
         },
         "offline_seconds": {
           "type": "integer",
@@ -8172,7 +9120,7 @@
         "renew_seconds": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 9007199254740991
+          "maximum": 10
         },
         "unknown_cost_seconds": {
           "type": "integer",
@@ -8554,6 +9502,14 @@
           },
           "minItems": 1,
           "maxItems": 30000
+        },
+        "backgrounds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BundleBackground"
+          },
+          "minItems": 1,
+          "maxItems": 5000
         }
       },
       "required": [
@@ -9221,6 +10177,2197 @@
         "render_order",
         "inputs"
       ]
+    },
+    "ApprovedSemanticEdit": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "integer",
+          "const": 1
+        },
+        "target_id": {
+          "type": "string",
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          }
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "asset_version_id": {
+              "type": "string",
+              "format": "uuid",
+              "not": {
+                "const": "00000000-0000-0000-0000-000000000000"
+              }
+            },
+            "source": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "artifact_id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "not": {
+                    "const": "00000000-0000-0000-0000-000000000000"
+                  }
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              },
+              "required": [
+                "artifact_id",
+                "sha256"
+              ]
+            },
+            "canvas_hash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "asset_version_id",
+            "source",
+            "canvas_hash"
+          ]
+        },
+        "intent": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "artifact_id": {
+              "type": "string",
+              "format": "uuid",
+              "not": {
+                "const": "00000000-0000-0000-0000-000000000000"
+              }
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "artifact_id",
+            "sha256"
+          ]
+        },
+        "candidate": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "artifact_id": {
+              "type": "string",
+              "format": "uuid",
+              "not": {
+                "const": "00000000-0000-0000-0000-000000000000"
+              }
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "artifact_id",
+            "sha256"
+          ]
+        },
+        "mask": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "artifact_id": {
+              "type": "string",
+              "format": "uuid",
+              "not": {
+                "const": "00000000-0000-0000-0000-000000000000"
+              }
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "artifact_id",
+            "sha256"
+          ]
+        },
+        "transform": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "artifact_id": {
+              "type": "string",
+              "format": "uuid",
+              "not": {
+                "const": "00000000-0000-0000-0000-000000000000"
+              }
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "artifact_id",
+            "sha256"
+          ]
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "remove_object",
+            "local_exposure",
+            "background_cleanup",
+            "retouch_region"
+          ]
+        },
+        "strength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "ev": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": -1,
+              "maximum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "prompt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "preserve_persons": {
+          "const": true
+        }
+      },
+      "required": [
+        "schema_version",
+        "target_id",
+        "source",
+        "intent",
+        "candidate",
+        "mask",
+        "transform",
+        "kind",
+        "strength",
+        "ev",
+        "prompt",
+        "preserve_persons"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "local_exposure"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "ev": {
+                "type": "number",
+                "minimum": -1,
+                "maximum": 1
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "ev": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "RelightDraftIntent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "snapshot_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "ordinal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4999
+        },
+        "subject_kind": {
+          "type": "string",
+          "enum": [
+            "person",
+            "manual"
+          ]
+        },
+        "params": {
+          "$ref": "#/$defs/ImageRelightParams"
+        }
+      },
+      "required": [
+        "schema_version",
+        "snapshot_id",
+        "ordinal",
+        "subject_kind",
+        "params"
+      ]
+    },
+    "RelightAnalysisIntent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "snapshot_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "base": {
+          "$ref": "#/$defs/VersionBinding"
+        },
+        "operation": {
+          "type": "string",
+          "enum": [
+            "depth.predict",
+            "mask.person"
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "snapshot_id",
+        "base",
+        "operation"
+      ]
+    },
+    "RelightPreparationRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "snapshot_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "base": {
+          "$ref": "#/$defs/VersionBinding"
+        },
+        "depth": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "subject": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "protected": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "subject_kind": {
+          "type": "string",
+          "enum": [
+            "person",
+            "manual"
+          ]
+        },
+        "ordinal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4999
+        }
+      },
+      "required": [
+        "schema_version",
+        "snapshot_id",
+        "base",
+        "depth",
+        "subject",
+        "protected",
+        "subject_kind",
+        "ordinal"
+      ]
+    },
+    "RelightCandidateQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "snapshot_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "base": {
+          "$ref": "#/$defs/VersionBinding"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "depth",
+            "person",
+            "manual_target",
+            "manual_guard"
+          ]
+        },
+        "after": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "snapshot_id",
+        "base",
+        "kind",
+        "after"
+      ]
+    },
+    "RelightCandidatePage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "ref": {
+                "$ref": "#/$defs/ArtifactRef"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "depth",
+                  "person",
+                  "manual_target",
+                  "manual_guard"
+                ]
+              }
+            },
+            "required": [
+              "ref",
+              "kind"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "items",
+        "next_cursor"
+      ]
+    },
+    "PerspectiveLineDetectionParams": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "type": "integer"
+        },
+        "base": {
+          "$ref": "#/$defs/VersionBinding"
+        }
+      },
+      "required": [
+        "schema_version",
+        "base"
+      ]
+    },
+    "PerspectiveLineDetectionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "type": "integer"
+        },
+        "base": {
+          "$ref": "#/$defs/VersionBinding"
+        },
+        "status": {
+          "enum": [
+            "available",
+            "unsupported"
+          ]
+        },
+        "lines": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LineSegments"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "base",
+        "status",
+        "lines"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "available"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "lines": {
+                "$ref": "#/$defs/LineSegments"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "lines": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "InterchangeImportSourceEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ordinal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4999
+        },
+        "entry_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "state": {
+          "enum": [
+            "adopted",
+            "rejected",
+            "unsupported"
+          ]
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "asset_version_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "master": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "ordinal",
+        "entry_id",
+        "state",
+        "reason",
+        "asset_version_id",
+        "master"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "adopted"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "reason": {
+                "type": "null"
+              },
+              "asset_version_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "master": {
+                "$ref": "#/$defs/ArtifactRef"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "asset_version_id": {
+                "type": "null"
+              },
+              "master": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "InterchangeImportSources": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "workflow_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "project_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "parsed": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "ingest_run_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "entries": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5000,
+          "items": {
+            "$ref": "#/$defs/InterchangeImportSourceEntry"
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "workflow_id",
+        "project_id",
+        "parsed",
+        "ingest_run_id",
+        "entries"
+      ]
+    },
+    "InterchangeMetadataReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entry_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "asset_version_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "master": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "item_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "rating": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "flag": {
+          "enum": [
+            "pick",
+            "reject",
+            "none"
+          ]
+        }
+      },
+      "required": [
+        "entry_id",
+        "asset_version_id",
+        "master",
+        "item_id",
+        "rating",
+        "flag"
+      ]
+    },
+    "InterchangeMetadataReceipts": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "workflow_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "project_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "parsed": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "collection_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "entries": {
+          "type": "array",
+          "maxItems": 5000,
+          "items": {
+            "$ref": "#/$defs/InterchangeMetadataReceipt"
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "workflow_id",
+        "project_id",
+        "parsed",
+        "collection_id",
+        "entries"
+      ]
+    },
+    "InterchangeRecipeDiagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entry_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "entry_id",
+        "reason"
+      ]
+    },
+    "FrozenInterchangeImportEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "workflow_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "project_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "plan": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "parsed": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "sources": {
+          "$ref": "#/$defs/InterchangeImportSources"
+        },
+        "metadata": {
+          "$ref": "#/$defs/InterchangeMetadataReceipts"
+        },
+        "recipe_diagnostics": {
+          "type": "array",
+          "maxItems": 5000,
+          "items": {
+            "$ref": "#/$defs/InterchangeRecipeDiagnostic"
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "workflow_id",
+        "project_id",
+        "plan",
+        "parsed",
+        "sources",
+        "metadata",
+        "recipe_diagnostics"
+      ]
+    },
+    "BundleBackground": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "style": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "portable_asset_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "style",
+        "portable_asset_id",
+        "path",
+        "sha256"
+      ]
+    },
+    "ReviewPreviewLink": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "artifact": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 54525952
+        },
+        "media_type": {
+          "type": "string",
+          "enum": [
+            "application/json",
+            "image/jpeg",
+            "image/webp"
+          ]
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "artifact",
+        "bytes",
+        "media_type",
+        "url",
+        "expires_at"
+      ]
+    },
+    "ReviewPreview": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "review_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "side": {
+          "type": "string",
+          "enum": [
+            "before",
+            "after"
+          ]
+        },
+        "source": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "profile_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2560
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2560
+        },
+        "manifest": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ReviewPreviewLink"
+            },
+            {
+              "properties": {
+                "media_type": {
+                  "const": "application/json"
+                },
+                "bytes": {
+                  "maximum": 1048576
+                }
+              }
+            }
+          ]
+        },
+        "image": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ReviewPreviewLink"
+            },
+            {
+              "properties": {
+                "media_type": {
+                  "enum": [
+                    "image/jpeg",
+                    "image/webp"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "review_id",
+        "side",
+        "source",
+        "profile_hash",
+        "width",
+        "height",
+        "manifest",
+        "image"
+      ]
+    },
+    "NegativeIntent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "snapshot_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "params": {
+          "$ref": "#/$defs/OpticalNegativeParams"
+        }
+      },
+      "required": [
+        "schema_version",
+        "snapshot_id",
+        "params"
+      ]
+    },
+    "NegativeCapabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Configured input choices after current project/catalogue authorization; not physical qualification or admission evidence.",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "tenant_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "project_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "calibration": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "max_pixels": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200000000
+        }
+      },
+      "required": [
+        "schema_version",
+        "tenant_id",
+        "project_id",
+        "calibration",
+        "max_pixels"
+      ]
+    },
+    "PerspectiveReplacementReviewScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "project_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "review_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "original_run_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "original_task_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "run_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "workflow_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "task_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "decision_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "base": {
+          "$ref": "#/$defs/VersionBinding"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "project_id",
+        "review_id",
+        "original_run_id",
+        "original_task_id",
+        "run_id",
+        "workflow_id",
+        "task_id",
+        "decision_hash",
+        "base"
+      ]
+    },
+    "PerspectiveReplacementReviewItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "original_task_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "project_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PerspectiveReplacementReviewScope"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "original_task_id",
+        "project_id",
+        "scope"
+      ]
+    },
+    "PerspectiveReplacementReviewPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "review_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "decision_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/PerspectiveReplacementReviewItem"
+          }
+        },
+        "next_after": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "review_id",
+        "decision_hash",
+        "items",
+        "next_after"
+      ]
+    },
+    "MultiReplacementReviewScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "project_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "review_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "original_run_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "original_task_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "run_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "workflow_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "task_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "decision_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "operation": {
+          "enum": [
+            "optical.panorama",
+            "optical.focus_stack"
+          ]
+        },
+        "intent": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schema_version": {
+              "const": 1
+            },
+            "snapshot_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "params": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/OpticalPanoramaParams"
+                },
+                {
+                  "$ref": "#/$defs/OpticalFocus_StackParams"
+                }
+              ]
+            }
+          },
+          "required": [
+            "schema_version",
+            "snapshot_id",
+            "params"
+          ]
+        }
+      },
+      "required": [
+        "tenant_id",
+        "project_id",
+        "review_id",
+        "original_run_id",
+        "original_task_id",
+        "run_id",
+        "workflow_id",
+        "task_id",
+        "decision_hash",
+        "operation",
+        "intent"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "operation": {
+                "const": "optical.panorama"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "intent": {
+                "properties": {
+                  "params": {
+                    "$ref": "#/$defs/OpticalPanoramaParams"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "operation": {
+                "const": "optical.focus_stack"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "intent": {
+                "properties": {
+                  "params": {
+                    "$ref": "#/$defs/OpticalFocus_StackParams"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "MultiReplacementReviewItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "original_task_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "project_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MultiReplacementReviewScope"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "enum": [
+            "optical.panorama",
+            "optical.focus_stack"
+          ]
+        }
+      },
+      "required": [
+        "original_task_id",
+        "project_id",
+        "scope",
+        "operation"
+      ]
+    },
+    "MultiReplacementReviewPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "review_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "decision_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/MultiReplacementReviewItem"
+          }
+        },
+        "next_after": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "review_id",
+        "decision_hash",
+        "items",
+        "next_after"
+      ]
+    },
+    "ArchiveUploadBegin": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "filename": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 240,
+          "pattern": "^[^\\\\/:\\u0000-\\u001f\\u007f-\\u009f]+\\.[zZ][iI][pP]$",
+          "description": "NFC normalized; Unicode scalar length 5..240; server validates normalization."
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 22,
+          "maximum": 68719476736
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "filename",
+        "bytes",
+        "sha256"
+      ]
+    },
+    "ArchiveUploadReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "upload_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "uploading",
+            "completing",
+            "verified"
+          ]
+        },
+        "part_bytes": {
+          "const": 16777216
+        },
+        "parts_total": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        },
+        "request_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "upload_id",
+        "state",
+        "part_bytes",
+        "parts_total",
+        "request_sha256"
+      ]
+    },
+    "ArchiveUploadPartsRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "request_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "parts": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4096
+          },
+          "minItems": 1,
+          "maxItems": 100,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "request_sha256",
+        "parts"
+      ]
+    },
+    "ArchiveUploadPartsResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "parts": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "part_no": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4096
+              },
+              "url": {
+                "type": "string",
+                "format": "uri"
+              },
+              "expires_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "part_no",
+              "url",
+              "expires_at"
+            ]
+          }
+        }
+      },
+      "required": [
+        "parts"
+      ]
+    },
+    "ArchiveUploadComplete": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "request_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "parts": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4096,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "part_no": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4096
+              },
+              "etag": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "pattern": "^[^\\r\\n\\u0000]+$"
+              }
+            },
+            "required": [
+              "part_no",
+              "etag"
+            ]
+          },
+          "description": "Exact contiguous ordered coverage 1..parts_total, no duplicate parts."
+        }
+      },
+      "required": [
+        "request_sha256",
+        "parts"
+      ]
+    },
+    "ArchiveUploadAccepted": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "upload_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "accepted": {
+          "const": true
+        }
+      },
+      "required": [
+        "upload_id",
+        "accepted"
+      ]
+    },
+    "ArchiveUploadAbort": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "request_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "request_sha256"
+      ]
+    },
+    "ArchiveUploadAbortAccepted": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "upload_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "accepted": {
+          "const": true
+        },
+        "cleanup_pending": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "upload_id",
+        "accepted",
+        "cleanup_pending"
+      ]
+    },
+    "ArchiveUploadStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "upload_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "reserved",
+            "uploading",
+            "completing",
+            "verified",
+            "aborting",
+            "aborted",
+            "failed"
+          ]
+        },
+        "request_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "error_code": {
+          "type": "string",
+          "enum": [
+            "ARCHIVE_INTEGRITY",
+            "UPLOAD_ABORTED",
+            "UPLOAD_EXPIRED"
+          ]
+        },
+        "ready": {
+          "type": "boolean"
+        },
+        "begin_recovery": {
+          "type": "string",
+          "enum": ["none", "reconciliation_required", "receipt_pending_bind", "resolved"]
+        },
+        "artifact": {
+          "$ref": "#/$defs/ArtifactRef"
+        }
+      },
+      "required": [
+        "upload_id",
+        "state",
+        "request_sha256",
+        "expires_at",
+        "ready",
+        "begin_recovery"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "ready": {
+                "const": true
+              }
+            },
+            "required": [
+              "ready"
+            ]
+          },
+          "then": {
+            "properties": {
+              "state": {
+                "const": "verified"
+              }
+            },
+            "required": [
+              "artifact"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "artifact"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "RAWDevelopment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "demosaic": {
+          "type": "string",
+          "enum": [
+            "ahd",
+            "dcb"
+          ]
+        },
+        "wb_source": {
+          "type": "string",
+          "enum": [
+            "camera",
+            "daylight",
+            "auto"
+          ]
+        },
+        "exposure_ev": {
+          "type": "number",
+          "minimum": -2,
+          "maximum": 3
+        },
+        "highlight_policy": {
+          "type": "string",
+          "enum": [
+            "clip",
+            "blend",
+            "reconstruct"
+          ]
+        },
+        "decoder_version": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^rawpy-[0-9]+\\.[0-9]+\\.[0-9]+/libraw-[0-9]+\\.[0-9]+\\.[0-9]+$"
+        }
+      },
+      "required": [
+        "schema_version",
+        "demosaic",
+        "wb_source",
+        "exposure_ev",
+        "highlight_policy",
+        "decoder_version"
+      ]
+    },
+    "V25UploadBegin": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "project_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "collection_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "filename": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 536870912
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "jpg",
+            "jpeg",
+            "png",
+            "tif",
+            "tiff",
+            "dng",
+            "cr2",
+            "nef",
+            "arw",
+            "raf",
+            "orf",
+            "rw2"
+          ]
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "assume_profile": {
+          "type": "string",
+          "enum": [
+            "srgb_v1",
+            "linear_srgb_v1",
+            "work_rec2020_gamma24_v1"
+          ]
+        },
+        "raw_development": {
+          "$ref": "#/$defs/RAWDevelopment"
+        }
+      },
+      "required": [
+        "project_id",
+        "filename",
+        "bytes",
+        "format"
+      ]
+    },
+    "RAWCapabilityView": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "decoder_version": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^rawpy-[0-9]+\\.[0-9]+\\.[0-9]+/libraw-[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "demosaic": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "ahd",
+              "dcb"
+            ]
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "uniqueItems": true
+        },
+        "wb_source": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "camera",
+              "daylight",
+              "auto"
+            ]
+          },
+          "minItems": 3,
+          "maxItems": 3,
+          "uniqueItems": true
+        },
+        "highlight_policy": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "clip",
+              "blend",
+              "reconstruct"
+            ]
+          },
+          "minItems": 3,
+          "maxItems": 3,
+          "uniqueItems": true
+        },
+        "exposure_min": {
+          "const": -2
+        },
+        "exposure_max": {
+          "const": 3
+        }
+      },
+      "required": [
+        "decoder_version",
+        "demosaic",
+        "wb_source",
+        "highlight_policy",
+        "exposure_min",
+        "exposure_max"
+      ]
+    },
+    "RAWCapabilities": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "project_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "available": {
+              "const": false
+            }
+          },
+          "required": [
+            "project_id",
+            "available"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "project_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "available": {
+              "const": true
+            },
+            "development": {
+              "$ref": "#/$defs/RAWCapabilityView"
+            }
+          },
+          "required": [
+            "project_id",
+            "available",
+            "development"
+          ]
+        }
+      ]
+    },
+    "DeliveryMetadataDocument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "author",
+        "copyright",
+        "camera_make",
+        "camera_model",
+        "lens",
+        "datetime_original",
+        "gps"
+      ],
+      "properties": {
+        "author": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "copyright": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "camera_make": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "camera_model": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lens": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "datetime_original": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\d{4}:\\d{2}:\\d{2} \\d{2}:\\d{2}:\\d{2}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "gps": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "latitude",
+                "longitude",
+                "altitude_m"
+              ],
+              "properties": {
+                "latitude": {
+                  "type": "number",
+                  "minimum": -90,
+                  "maximum": 90
+                },
+                "longitude": {
+                  "type": "number",
+                  "minimum": -180,
+                  "maximum": 180
+                },
+                "altitude_m": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "minimum": -1000,
+                      "maximum": 100000
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "FrozenDeliveryMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "binding",
+        "metadata_source",
+        "policy",
+        "approved_fields",
+        "projection"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "type": "integer"
+        },
+        "binding": {
+          "$ref": "#/$defs/VersionBinding"
+        },
+        "metadata_source": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "policy": {
+          "enum": [
+            "strip",
+            "copyright",
+            "approved_exif"
+          ]
+        },
+        "approved_fields": {
+          "type": "array",
+          "maxItems": 7,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "author",
+              "copyright",
+              "camera_make",
+              "camera_model",
+              "lens",
+              "datetime_original",
+              "gps"
+            ]
+          }
+        },
+        "projection": {
+          "$ref": "#/$defs/DeliveryMetadataDocument"
+        }
+      }
+    },
+    "ExportPresetMetadataPolicyChange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "revision",
+        "metadata_policy"
+      ],
+      "properties": {
+        "revision": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,15}$",
+          "description": "Canonical decimal integer 1..9007199254740990; server rejects larger values."
+        },
+        "metadata_policy": {
+          "type": "string",
+          "enum": [
+            "strip",
+            "copyright",
+            "approved_exif"
+          ]
+        }
+      }
+    },
+    "ExportPresetResource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "revision",
+        "config",
+        "config_hash",
+        "created_at"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "config_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "config": {
+          "type": "object",
+          "required": [
+            "metadata_policy"
+          ],
+          "properties": {
+            "metadata_policy": {
+              "type": "string",
+              "enum": [
+                "strip",
+                "copyright",
+                "approved_exif"
+              ]
+            }
+          },
+          "additionalProperties": true,
+          "description": "Existing complete export configuration; all non-metadata fields are retained by this endpoint."
+        }
+      }
+    },
+    "CandidateReviewResultSelection": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "review_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "decision_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "route": {
+          "type": "string",
+          "enum": [
+            "candidate",
+            "base",
+            "skip"
+          ]
+        },
+        "image": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "review_id",
+        "decision_hash",
+        "route",
+        "image"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "route": {
+                "const": "skip"
+              }
+            },
+            "required": [
+              "route"
+            ]
+          },
+          "then": {
+            "properties": {
+              "image": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "route": {
+                "enum": [
+                  "candidate",
+                  "base"
+                ]
+              }
+            },
+            "required": [
+              "route"
+            ]
+          },
+          "then": {
+            "properties": {
+              "image": {
+                "$ref": "#/$defs/ArtifactRef"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "RenderResultSelection": {
+      "$ref": "#/$defs/CandidateReviewResultSelection"
+    },
+    "NegativeResultSelection": {
+      "$ref": "#/$defs/CandidateReviewResultSelection"
     }
   }
 }

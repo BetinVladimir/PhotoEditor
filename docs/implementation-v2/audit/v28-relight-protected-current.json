@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 relight positive protected support invariant",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "tests": {
+    "passed": 93,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 2.66,
+    "xml": "v28-relight-protected-current.xml"
+  },
+  "source_sha256": {
+    "workers/photo_worker/operations/portrait/prepare_relight.py": "2c2a84580fc04b379f447d74fdf33271460560b43b0343a63b582d7400153071",
+    "tests/platform/test_relight_prepare.py": "1690acf6e17e04ba6b55584be466eda33eea344190f024578469632d34f39a7f",
+    "docs/implementation-v2/16-imaging-algorithms.md": "de29e4fc5514d9adfa45e8068e9ee0f96832aebbc0546341cf1a37d49f7d100f"
+  },
+  "limitations": [
+    "Component tests; no full physical worker/adoption/UI or actual image qualification",
+    "Installed runtime hash changes with relight implementation; previous runtime locks cannot authorize changed bytes"
+  ]
+}

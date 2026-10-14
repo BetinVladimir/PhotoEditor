@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-08",
+  "module": "V27",
+  "module_accepted": false,
+  "scope": "Editor-integrated semantic batch create form using canonical mask document output, original V2 source binding, frozen target collection and immutable snapshot/proposal retries; real OwnerAPI/SDK transport test and complete current photographer Vitest/typecheck.",
+  "vitest": {
+    "passed": 401,
+    "skipped": 7,
+    "files_passed": 84,
+    "files_skipped": 5,
+    "seconds": 7.27,
+    "command": "scripts/run-platform.sh npm --prefix apps/photographer run test"
+  },
+  "typecheck": {
+    "exit_code": 0,
+    "command": "scripts/run-platform.sh npm --prefix apps/photographer run typecheck"
+  },
+  "inventory": {
+    "modules": 13,
+    "screens": 28,
+    "components": 68,
+    "state_candidates": 611,
+    "api_declarations": 316,
+    "planned_entrypoints": 87,
+    "operations": 29
+  },
+  "source_sha256": {
+    "apps/photographer/src/semantic-create.tsx": "dab41b5960df01506bf6df233346b18a2d5c0345c7c748d45dc294a54eb92b1a",
+    "apps/photographer/src/semantic-create.test.tsx": "02cdb8518c6b5662250fd4781f640c873951bd195ca877b4b9a29fd858bebef1",
+    "apps/photographer/src/semantic-create-wire.test.ts": "220b50ca9216223a41a2b889f44a349303ee9edc668d81cec6d4f93712fc807a",
+    "apps/photographer/src/owner-api.ts": "25ff7350078a0bdf563c17a03be8f73f34948ce96058eecafc98519697d1681e",
+    "apps/photographer/app/editor/[version].tsx": "f1014da3712c3c736b913ae4a8c177a195e793db85a0d763a4c0cea0542eebad",
+    "packages/api-client/src/semantic-propose.ts": "ad9c2f2b6ae709d91e57b7cd9e8c14c72ebe721757d60495d6a341def52b1525",
+    "locales/en/common.json": "f42fde87077081b317dfdb62f120cda345fdf34ab7447f69520d9e5a13ef6927",
+    "locales/ru/common.json": "c1b1c170e52741133bba26f82874f15cd05a0010ccfb446cda41dea4ed291d64",
+    "locales/bg/common.json": "4e813bf584301ff9c73278ca4c94c6946b529cd3e1c0161f2d9cd5a407229984"
+  },
+  "remaining": [
+    "real browser/native mask-to-worker-to-review acceptance",
+    "unknown-attempt durable recovery across full app restart",
+    "automatic missing-producer public initiation",
+    "complete V27 real photo/model/hardware/security/lifecycle cycle"
+  ]
+}

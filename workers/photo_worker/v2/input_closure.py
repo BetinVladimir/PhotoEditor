@@ -14,8 +14,8 @@ from typing import Annotated
 from photo_worker.contracts.base import ArtifactRef, Contract, SHA256, canonical_bytes
 from photo_worker.runtime.parameters import read_contract
 from photo_worker.runtime.scratch import Reservation, ScratchSpace
-from .contract_lock import (SCHEMAS_SHA256, REPORT_PREVIOUS_SCHEMAS_SHA256, LENS_PREVIOUS_SCHEMAS_SHA256, INTERMEDIATE_SCHEMAS_SHA256,
-                            PREVIOUS_SCHEMAS_SHA256)
+from .contract_lock import (SCHEMAS_SHA256, DETAIL_MANIFEST_PREVIOUS_SCHEMAS_SHA256, DETAIL_LINK_PREVIOUS_SCHEMAS_SHA256, HOLDOUT_EVIDENCE_PREVIOUS_SCHEMAS_SHA256, PERSPECTIVE_LINES_PREVIOUS_SCHEMAS_SHA256, SCENE_BOARD_PREVIOUS_SCHEMAS_SHA256, SQL_TRANSPORT_SCHEMAS_SHA256, EXPOSURE_PREVIOUS_SCHEMAS_SHA256, WORKFLOW_PREVIOUS_SCHEMAS_SHA256, FROZEN_BACKGROUND_PREVIOUS_SCHEMAS_SHA256, BACKGROUND_PREVIOUS_SCHEMAS_SHA256, RENDER_PREVIOUS_SCHEMAS_SHA256, REPORT_PREVIOUS_SCHEMAS_SHA256, LENS_PREVIOUS_SCHEMAS_SHA256, INTERMEDIATE_SCHEMAS_SHA256,
+                            PREVIOUS_SCHEMAS_SHA256, RUN_INTENT_PREVIOUS_SCHEMAS_SHA256)
 
 
 class V2InputsInvalid(ValueError):
@@ -52,8 +52,8 @@ class V2InputIndex:
               open_stream: Callable, check_active: Callable[[], None]) -> "V2InputIndex":
         if (execution_profile.get("renderer_version") != "v2.2"
                 or execution_profile.get("contracts_sha") not in (
-                    SCHEMAS_SHA256, REPORT_PREVIOUS_SCHEMAS_SHA256, LENS_PREVIOUS_SCHEMAS_SHA256, INTERMEDIATE_SCHEMAS_SHA256,
-                    PREVIOUS_SCHEMAS_SHA256)
+                    SCHEMAS_SHA256, DETAIL_MANIFEST_PREVIOUS_SCHEMAS_SHA256, DETAIL_LINK_PREVIOUS_SCHEMAS_SHA256, HOLDOUT_EVIDENCE_PREVIOUS_SCHEMAS_SHA256, PERSPECTIVE_LINES_PREVIOUS_SCHEMAS_SHA256, SCENE_BOARD_PREVIOUS_SCHEMAS_SHA256, SQL_TRANSPORT_SCHEMAS_SHA256, EXPOSURE_PREVIOUS_SCHEMAS_SHA256, WORKFLOW_PREVIOUS_SCHEMAS_SHA256, FROZEN_BACKGROUND_PREVIOUS_SCHEMAS_SHA256, BACKGROUND_PREVIOUS_SCHEMAS_SHA256, RENDER_PREVIOUS_SCHEMAS_SHA256, REPORT_PREVIOUS_SCHEMAS_SHA256, LENS_PREVIOUS_SCHEMAS_SHA256, INTERMEDIATE_SCHEMAS_SHA256,
+                    PREVIOUS_SCHEMAS_SHA256, RUN_INTENT_PREVIOUS_SCHEMAS_SHA256)
                 or not 1 <= len(inputs) <= 128):
             raise V2InputsInvalid("TASK_INPUTS_INVALID")
         try:
@@ -141,6 +141,17 @@ class V2InputIndex:
                                  (str(ref.artifact_id),)).fetchone()
         return row is not None and row[0] == ref.sha256
 
+    def require_entry(self, ref: ArtifactRef, contract: str) -> None:
+        """Check one exact typed closure entry without enumerating the index."""
+        if (self._closed or not isinstance(ref, ArtifactRef) or
+                not isinstance(contract, str) or not 1 <= len(contract) <= 120):
+            raise V2InputsInvalid("TASK_INPUTS_INVALID")
+        row = self._conn.execute(
+            "SELECT sha,contract,is_entry FROM allowed WHERE artifact_id=?",
+            (str(ref.artifact_id),)).fetchone()
+        if row is None or row != (ref.sha256, contract, 1):
+            raise V2InputsInvalid("TASK_INPUT_CONTRACT_MISMATCH")
+
     def refs_for_contract(self, contract: str, maximum: int = 1) -> tuple[ArtifactRef, ...]:
         """Bounded typed discovery from the verified immutable closure only."""
         if self._closed or not isinstance(contract, str) or not 1 <= len(contract) <= 120 or type(maximum) is not int or not 1 <= maximum <= 512:
@@ -150,6 +161,36 @@ class V2InputIndex:
         if len(rows) > maximum:
             raise V2InputsInvalid("TASK_INPUTS_INVALID")
         return tuple(ArtifactRef(artifact_id=UUID(row[0]), sha256=row[1]) for row in rows)
+
+    def allowed_refs(self, maximum: int = 512) -> tuple[ArtifactRef, ...]:
+        """Owned bounded snapshot including closure entries and transport refs.
+
+        The limit refuses overflow; it never truncates the authorization set.
+        """
+        if self._closed or type(maximum) is not int or not 1 <= maximum <= 512:
+            raise V2InputsInvalid("TASK_INPUTS_INVALID")
+        rows = self._conn.execute("SELECT artifact_id,sha FROM allowed ORDER BY artifact_id LIMIT ?",
+                                  (maximum + 1,)).fetchall()
+        if len(rows) > maximum:
+            raise V2InputsInvalid("TASK_INPUTS_INVALID")
+        return tuple(ArtifactRef(artifact_id=UUID(row[0]), sha256=row[1]) for row in rows)
+
+    def declared_entries(self, maximum: int = 30000) -> tuple[InputClosureEntry, ...]:
+        """Owned typed entry snapshot for bounded recipe qualification.
+
+        Transport metadata/Params added solely to the allowlist are excluded.
+        Overflow fails rather than returning an incomplete recipe inventory.
+        No media type, byte size or object-version authority is inferred here.
+        """
+        if self._closed or type(maximum) is not int or not 1 <= maximum <= 30000:
+            raise V2InputsInvalid("TASK_INPUTS_INVALID")
+        rows = self._conn.execute(
+            "SELECT artifact_id,sha,contract FROM allowed WHERE is_entry=1 ORDER BY artifact_id LIMIT ?",
+            (maximum + 1,)).fetchall()
+        if len(rows) > maximum:
+            raise V2InputsInvalid("TASK_INPUTS_INVALID")
+        return tuple(InputClosureEntry(ref=ArtifactRef(artifact_id=UUID(row[0]), sha256=row[1]),
+                                       contract=row[2]) for row in rows)
 
     def close(self) -> None:
         if not self._closed:

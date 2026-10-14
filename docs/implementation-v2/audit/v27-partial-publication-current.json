@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 interrupted all-native transfer publication recovery",
+  "whole_module_accepted": false,
+  "migration_head": "00966",
+  "new_migration": "00966_v27_native_transfer_repair_state.sql",
+  "production_migrations_applied": false,
+  "checks": {
+    "go_five_packages": [
+      {
+        "package": "photoeditor/backend/internal/v2qualification",
+        "elapsed": 1.7970000000000002
+      },
+      {
+        "package": "photoeditor/backend/internal/workflow",
+        "elapsed": 2.327
+      },
+      {
+        "package": "photoeditor/backend/internal/v2draft",
+        "elapsed": 3.191
+      },
+      {
+        "package": "photoeditor/backend/internal/semanticproposal",
+        "elapsed": 4.135
+      },
+      {
+        "package": "photoeditor/backend/internal/v2input",
+        "elapsed": 5.588
+      }
+    ],
+    "native_wire": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "1",
+      "time": "415.814",
+      "timestamp": "2026-10-09T05:07:43.208091+03:00",
+      "hostname": "Mac"
+    },
+    "sql_upgrade_roles_and_handoff": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "21",
+      "time": "20.081",
+      "timestamp": "2026-10-09T05:06:09.458748+03:00",
+      "hostname": "Mac"
+    },
+    "documentation": "PASS55 tests/2267 static checks",
+    "diff_check": "PASS"
+  },
+  "source_manifest": "v27-partial-publication-source-current.json",
+  "source_manifest_sha256": "ab9c1ba19e6fe6fb2247be466ab7383d55c609e2b8766e262b1e3c2440007cd5",
+  "source_files": 4814,
+  "quality_preservation": {
+    "workers_src_baseline_files": 544,
+    "changed": 0,
+    "real_photo_quality_accepted": false
+  },
+  "verified": [
+    "Second publication deliberately fails after first ready closure document; no prepared graph returned.",
+    "Blocked saved parent, missing registration, one ready transport document and original reservation observed before recovery.",
+    "Actual ProcessOne reconstructs saved plan, repairs publication/registration, seals and records handoff; second ProcessOne finds no work.",
+    "Initial artifact ID/SHA/object version and original quota bytes retained despite doubled current ReservedBytes.",
+    "Independent Python verifies sealed queued parent, ready tasks and exactly one queued event/outbox.",
+    "Lifecycle/source/producer/TTL/policy/upstream qualification and concurrent writer probes rerun.",
+    "Fresh migration and00899\u219200966 upgrade preserve tenant metadata/OID/ACL invariants; new repair-state helper scheduler-only."
+  ],
+  "remaining": [
+    "Expired reservation and every chunk/manifest interruption boundary.",
+    "Mixture of registered and missing tasks, corrupt sealed transport, GC/purge during publication, unknown PUT/SQL commit and restart.",
+    "Independent target qualification imports, original reference locator versions and pending stage advancement.",
+    "5000 scale, browser/native full flows, real-photo/GPU quality and whole V27/V20\u2013V32 acceptance."
+  ],
+  "limitations": [
+    "Fixture uses upstream ML doubles; no real-photo/GPU qualification.",
+    "Concrete second-publication interruption only; no claim of full crash matrix.",
+    "Other native scenario branches not executed this step.",
+    "Initial Go link failed due disk exhaustion; retained v27-partial-publication-go-no-space.jsonl. Only repository Go build cache cleaned; rerun passed.",
+    "No production migrations or runtime data cleanup performed."
+  ]
+}

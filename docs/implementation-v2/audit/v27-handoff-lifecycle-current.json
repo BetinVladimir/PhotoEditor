@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 target handoff liveness",
+  "whole_module_accepted": false,
+  "migration_head": "00963",
+  "new_migrations": [
+    "00963_v27_target_handoff_liveness.sql"
+  ],
+  "production_migrations_applied": false,
+  "checks": {
+    "go_four_packages": [
+      {
+        "package": "photoeditor/backend/internal/v2qualification",
+        "elapsed": 0.001
+      },
+      {
+        "package": "photoeditor/backend/internal/v2input",
+        "elapsed": 0.009
+      },
+      {
+        "package": "photoeditor/backend/internal/v2draft",
+        "elapsed": 0.009
+      },
+      {
+        "package": "photoeditor/backend/internal/semanticproposal",
+        "elapsed": 3.282
+      }
+    ],
+    "sql": "15 PASS12.61s; v27-handoff-lifecycle-sql-current.xml",
+    "native_wire": "1 PASS446.79s; v27-handoff-lifecycle-wire-current.xml",
+    "documentation": "PASS55 tests/2267 static checks",
+    "diff_check": "PASS"
+  },
+  "source_manifest": "v27-handoff-lifecycle-source-current.json",
+  "source_manifest_sha256": "665daba167b74ad5e7fe6ad9e26b24e08640a254af0bdd32e1f4927ef01ad943",
+  "quality_preservation": {
+    "workers_src_baseline_files": 544,
+    "changed": 0,
+    "real_photo_quality_accepted": false
+  },
+  "native_verified": [
+    "Checkpoint job creates absent parent and records handoff; forged token refused and no repeated claim.",
+    "Positive handoff readiness baseline.",
+    "Post-admission target root expiry, target asset deletion and producer cancellation each refused.",
+    "Actual completed recorder refuses each mutation with valid owned lease.",
+    "Rollback restores positive readiness; Python graph/tasks/event/outbox invariants remain valid."
+  ],
+  "remaining": [
+    "Concurrent writer/lease/clock-expiry and policy/qualification revocation races.",
+    "Original reference locator-version scenarios; pending target job progression.",
+    "Partial publication repair/unknown commit/replay/GC/purge/deadletter/scale.",
+    "Whole V27 and V20–V32 acceptance."
+  ],
+  "limitations": [
+    "Sequential rollback mutation tests, not concurrent race acceptance.",
+    "Original/source qualification packet authority is not newly reimplemented by this recorder gate.",
+    "Other native scenario branches not executed.",
+    "Upstream ML doubles; no real-photo/GPU qualification."
+  ]
+}

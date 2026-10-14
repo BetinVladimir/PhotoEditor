@@ -1,0 +1,60 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "recorded_at": "2026-10-08T02:02:58.104204+00:00",
+  "scope": "actual adopted assembly and committed initialization to API-role non-null intent resolution",
+  "sources": {
+    "backend/internal/semanticreview/run_intent.go": "3221d449c3900456f25694db29621960d2f3df8a0ba0d4d7f0c11181a96cc6c4",
+    "backend/internal/semanticreview/read_integration_test.go": "67abd371f982f645285d154ac376f037b0bff4aa6072b40849d12bf1155bfbbb",
+    "backend/internal/semanticreview/run_intent_integration_probe_test.go": "4c39d8ee99bf2b6861a0371489f98799920ed3d7a1633e1e2c38182520dab3df",
+    "tests/integration/test_v27_semantic_qualification_objectstore.py": "19b64fe380cd2a4aba0cb4a641f9ab773aed31ded53a738768a8438cf89db8c8",
+    "docs/implementation-v2/spec_v22.py": "5992fb883b053f791888b64afd0328d7b566da6e51f888bbe02bf84b7a03acab",
+    "docs/implementation-v2/semantic-spec.py": "c87b4b3cfd6b93e0419a586ef677b01a8cd0f4ab0f3439bcc508ac30e0ff46eb",
+    "docs/implementation-v2/contracts/schemas.json": "4092c7b6caacbfc2e6552f73a8e31a4cd53de3d5ca4ab165625d8423748d1d71",
+    "docs/implementation-v2/contracts/endpoints.json": "578d9559d7e5fd29918fef4b7445d27f3a7a04e8af44a79a551d36c0fa94ffc8",
+    "docs/implementation-v2/contracts/openapi.json": "f6433b4af9dc0cc750108016fd25ccb65a9e47a74a35dd23b702ca66f830d690",
+    "docs/implementation-v2/contracts/function-index.json": "8aef67fd4b603d9592507e0166fe553b99133613a161dcaacc6834ca6bf87c78"
+  },
+  "checks": [
+    {
+      "command": "PHOTO_TEST_NATIVE_INFRA=1 pytest tests/integration/test_v27_semantic_qualification_objectstore.py -k \"fresh-assembly or fresh-unsupported\" -q --tb=short",
+      "exit_code": 0,
+      "passed": 2,
+      "deselected": 11,
+      "seconds": 98.62
+    },
+    {
+      "command": "go -C backend test ./internal/semanticreview",
+      "exit_code": 0
+    },
+    {
+      "command": "python docs/implementation-v2/build-spec.py",
+      "exit_code": 0,
+      "schemas": 185,
+      "endpoints": 60,
+      "operations": 29
+    },
+    {
+      "command": "python docs/implementation-v2/build-indexes.py",
+      "exit_code": 0,
+      "entrypoints": 89
+    },
+    {
+      "command": "python docs/implementation-v2/semantic-spec.py",
+      "exit_code": 0,
+      "passed": 55
+    },
+    {
+      "command": "python docs/implementation-v2/check-docs.py",
+      "exit_code": 1,
+      "error": "BASELINE_DRIFT: re-review workers/photo_worker/contracts/images.py"
+    }
+  ],
+  "limitations": [
+    "complete documentation gate blocked by baseline drift; baseline not overwritten",
+    "full existing foreign tenant/restricted ACL matrix unverified",
+    "real browser/native full flow unverified",
+    "generic run link semantic discovery missing",
+    "producer orchestration/restart persistence/full module acceptance remain open"
+  ]
+}

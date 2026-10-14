@@ -1,0 +1,57 @@
+# Explicit opt-in. Requires physically accepted donor migrations/qualification.
+# Scratch host directories must exist; worker and adopter use separate mounts.
+x-donor-env: &donor-env
+  PHOTO_DONOR_RUNTIME_LOCK: /run/photo/donor/runtime-lock.json
+  PHOTO_DONOR_RUNTIME_SHA: ${PHOTO_DONOR_RUNTIME_SHA:?pinned runtime SHA required}
+  PHOTO_DONOR_MASK_SCRATCH_ROOT: /scratch/donor
+  PHOTO_DONOR_MATERIAL_SCRATCH_ROOT: /scratch/donor
+  PHOTO_DONOR_MASK_MAX_BYTES: ${PHOTO_DONOR_MASK_MAX_BYTES:?mask budget required}
+  PHOTO_DONOR_MATERIAL_MAX_BYTES: ${PHOTO_DONOR_MATERIAL_MAX_BYTES:?material budget required}
+  PHOTO_DONOR_ALPHA_MODE: ${PHOTO_DONOR_ALPHA_MODE:-require_float32}
+x-donor-lock: &donor-lock
+  type: bind
+  source: ${PHOTO_DONOR_RUNTIME_HOST_FILE:?absolute runtime lock path required}
+  target: /run/photo/donor/runtime-lock.json
+  read_only: true
+  bind:
+    create_host_path: false
+services:
+  worker-cpu:
+    environment:
+      <<: *donor-env
+      PHOTO_DONOR_ENABLED: "true"
+      S3_ENDPOINT: ${S3_ENDPOINT:?required}
+      S3_BUCKET: ${S3_BUCKET:?required}
+      S3_ACCESS_KEY: ${PHOTO_DONOR_READER_ACCESS_KEY:?original-version reader key required}
+      S3_SECRET_KEY: ${PHOTO_DONOR_READER_SECRET_KEY:?original-version reader secret required}
+    volumes:
+      - *donor-lock
+      - type: bind
+        source: ${PHOTO_DONOR_WORKER_SCRATCH_HOST_DIR:?existing worker donor scratch directory required}
+        target: /scratch/donor
+        bind:
+          create_host_path: false
+  v2-adopter:
+    environment:
+      <<: *donor-env
+      DATABASE_URL: ${PHOTO_DONOR_SCHEDULER_DATABASE_URL:?scheduler database URL required}
+      PHOTO_ADOPTER_DONOR_ENABLED: "true"
+      PHOTO_ADOPTER_DONOR_OUTPUT_SCRATCH_ROOT: /scratch/donor
+      PHOTO_ADOPTER_DONOR_OUTPUT_MAX_BYTES: ${PHOTO_ADOPTER_DONOR_OUTPUT_MAX_BYTES:?output budget required}
+      PHOTO_ADOPTER_DONOR_TOTAL_SCRATCH_BYTES: ${PHOTO_ADOPTER_DONOR_TOTAL_SCRATCH_BYTES:?aggregate scratch budget required}
+      PHOTO_ADOPTER_DONOR_RAM_MAX_BYTES: ${PHOTO_ADOPTER_DONOR_RAM_MAX_BYTES:?RAM budget required}
+      PHOTO_ADOPTER_DONOR_POLICY: /run/photo/donor/policy.json
+      PHOTO_ADOPTER_DONOR_POLICY_SHA: ${PHOTO_ADOPTER_DONOR_POLICY_SHA:?pinned policy SHA required}
+    volumes:
+      - *donor-lock
+      - type: bind
+        source: ${PHOTO_ADOPTER_DONOR_POLICY_HOST_FILE:?absolute policy path required}
+        target: /run/photo/donor/policy.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${PHOTO_DONOR_ADOPTER_SCRATCH_HOST_DIR:?existing adopter donor scratch directory required}
+        target: /scratch/donor
+        bind:
+          create_host_path: false

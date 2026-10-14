@@ -1,4 +1,7 @@
-"""Real wire mTLS, SQL output repository and versioned S3 upload/replay."""
+"""Real mTLS/SQL/S3 upload, replay and declared-input download transport.
+
+This legacy-task transport fixture does not prove typed Render cache adoption.
+"""
 from pathlib import Path
 import os
 import subprocess
@@ -32,10 +35,10 @@ def run_wire(database,lens_objects,large=False):
     assert result.returncode==0,result.stdout+result.stderr
 
 
-def test_wire_sql_s3_upload(database,lens_objects):
+def test_wire_sql_s3_upload(lens_objects,database):
     run_wire(database,lens_objects)
 
 
 @pytest.mark.skipif(os.environ.get('PHOTO_RUN_GATEWAY_WIRE_LARGE_IO')!='1',reason='opt-in >4GiB real mTLS/SQL/S3')
-def test_large_wire_sql_s3_upload(database,lens_objects):
+def test_large_wire_sql_s3_upload(lens_objects,database):
     run_wire(database,lens_objects,large=True)

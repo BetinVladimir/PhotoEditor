@@ -1,0 +1,10 @@
+{
+  "recorded_at": "2026-10-08T08:36:51.270087+00:00",
+  "sources": {
+    "backend/internal/semanticproposal/native_input_saved_anchor.go": "bb2aef7b0cd8804cb143b22efd7e59a644bf08b09ae8ac72e6bf47d56ba4ed19",
+    "backend/internal/semanticproposal/native_input_saved_anchor_test.go": "c49fe3f1dc94101323001edb1eca7efee11d0e841ba086089dde2630ef2f934f",
+    "backend/internal/semanticproposal/native_bootstrap_integration_test.go": "554a8d1e3e5783f041336336e3ac23980dae36a44100d1273679015eb49ce7fc",
+    "backend/db/migrations/00898_v27_person_anchor_documents.sql": "46cff3195baa83a485fcc16a89b0e108dd6d76f5bb8353dfb650d591363f7bd1",
+    "tests/integration/test_v27_semantic_intent_publication.py": "2602e0a2d9eadb01e48ea6cb028dffd0a3c511769ba8320344a8dcafa5930dfc"
+  }
+}

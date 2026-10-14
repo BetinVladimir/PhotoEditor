@@ -1,0 +1,32 @@
+{
+  "recorded_at": "2026-10-07T23:30:05.999582+00:00",
+  "package": "V27",
+  "status": "awaiting_evidence",
+  "command": "PHOTO_TEST_NATIVE_INFRA=1 .venv-platform/bin/python -m pytest tests/integration/test_v27_native_protection_gc.py -q",
+  "exit_code": 0,
+  "passed": 2,
+  "skipped": 0,
+  "duration_seconds": 6.58,
+  "source_sha256": {
+    "tests/integration/conftest.py": "5fd92aedc52afc90f6e58d3f76f90875a2587af1c7813fe55208204f3d8e4da7",
+    "tests/integration/test_v25_lens_objectstore.py": "1dd3bcdcb3e58db8083764517cb47e44e99ba28409c0caa545c2ede149834c0d",
+    "tests/integration/test_v27_native_protection_gc.py": "af97f76b804b10c7ad7c51a8c1797d50496a66995bc58147a25332d90cc98677",
+    "backend/internal/maintenance/native_tenant_purge_integration_test.go": "f90bcc5be16c81e948e0ed85b98607b7095d35c9e45a23f4299279ace8983012",
+    "backend/internal/maintenance/tenants.go": "99aa13e5d9bfee1ca43ab902ed440c915e624ca26ca373710d56b72e1e5e99f6"
+  },
+  "runtime": "Postgres18.4 isolated fresh per-test databases migrated current chain; source-pinned native MinIO with versioned fresh per-test buckets",
+  "requirements_verified": [
+    "Registry child retention and release follows root retirement",
+    "Cross-tenant reference lookup refused",
+    "Maintenance GC retention respected",
+    "Real TenantCleaner bounded cleanup precedes physical metadata purge",
+    "Neighbor tenant version survives",
+    "Deleted tenant prefix has no object versions",
+    "Registry and artifact metadata removed after cleanup"
+  ],
+  "limitations": [
+    "Registry contents owner-seeded synthetic metadata; no native inference/scientific qualification",
+    "Not all v2 artifact registries purge proof",
+    "No complete public semantic creation or browser/native module acceptance"
+  ]
+}

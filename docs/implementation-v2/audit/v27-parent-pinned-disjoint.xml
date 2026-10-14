@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="110.435" timestamp="2026-10-08T15:41:35.711421+03:00" hostname="Mac"><testcase classname="tests.integration.test_v27_semantic_intent_publication" name="test_semantic_intent_publication_old_version_and_replay[native-person-defect-wire]" time="109.877"><failure message="AssertionError: === RUN   TestIntegrationNativePreparationBootstrap&#10;      native_bootstrap_integration_test.go:167: V27_ORIGINAL_PERSON_INPUT_AUTHORITY_OK&#10;      native_bootstrap_integration_test.go:313: V27_NATIVE_DEFECT_PERSON_DEPENDENCIES_OK&#10;      native_bootstrap_integration_test.go:389: V27_NATIVE_PARENT_AMBIGUOUS_TARGET_REFUSED_OK&#10;      native_bootstrap_integration_test.go:398: automatic native parent admission initial native parent prepare/activate: ERROR: permission denied for table semantic_native_protections (SQLSTATE 42501)&#10;  --- FAIL: TestIntegrationNativePreparationBootstrap (106.15s)&#10;  FAIL&#10;  FAIL&#09;photoeditor/backend/internal/semanticproposal&#09;106.774s&#10;  FAIL&#10;  &#10;assert 1 == 0&#10; +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationNativePreparationBootstra...reparationBootstrap (106.15s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t106.774s\nFAIL\n', stderr='').returncode">tests/integration/test_v27_semantic_intent_publication.py:742: in test_semantic_intent_publication_old_version_and_replay
+    assert result.returncode==0,result.stdout+result.stderr
+E   AssertionError: === RUN   TestIntegrationNativePreparationBootstrap
+E         native_bootstrap_integration_test.go:167: V27_ORIGINAL_PERSON_INPUT_AUTHORITY_OK
+E         native_bootstrap_integration_test.go:313: V27_NATIVE_DEFECT_PERSON_DEPENDENCIES_OK
+E         native_bootstrap_integration_test.go:389: V27_NATIVE_PARENT_AMBIGUOUS_TARGET_REFUSED_OK
+E         native_bootstrap_integration_test.go:398: automatic native parent admission initial native parent prepare/activate: ERROR: permission denied for table semantic_native_protections (SQLSTATE 42501)
+E     --- FAIL: TestIntegrationNativePreparationBootstrap (106.15s)
+E     FAIL
+E     FAIL	photoeditor/backend/internal/semanticproposal	106.774s
+E     FAIL
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationNativePreparationBootstra...reparationBootstrap (106.15s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t106.774s\nFAIL\n', stderr='').returncode</failure></testcase></testsuite></testsuites>

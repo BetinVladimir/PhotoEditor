@@ -1,0 +1,52 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "generated_at": "2026-10-08T13:51:26.932182+00:00",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "source_scope": {
+    "backend/internal/semanticproposal/native_bootstrap_integration_test.go": "b84ed564c94a15e98c72241a3ea05c2e0472697d01f52f81f63a562b7a6ea285",
+    "backend/internal/semanticproposal/native_initial_pipeline_recovery_job.go": "7111c9c9ecca17c63b849b694d39b3793a1a1bbc935e0a273e24745092852ec1",
+    "backend/internal/semanticproposal/native_initial_person_result.go": "66aa40ca94b7f295a7f3760a99b968100483b79d379998a01c1e8fdb32b46dff",
+    "backend/internal/semanticproposal/native_initial_parent_admit.go": "ce01916faefa6858bb5a548d64ec38a123135d47b91517a00b40443526ecd247",
+    "backend/db/migrations/00911_v27_automatic_initial_handoff.sql": "9d4e9e5e376399002de310b40ae3a561fe9e8b079f92650a216e1c81e4226108",
+    "tests/integration/test_v27_semantic_intent_publication.py": "53788ef5c98a193ffda850b9619e4bb1e408ea532f1ea16501e3d2012607e947",
+    "tests/integration/v27_person_wire_probe.py": "64247a9e0244e788cb2e33d4585635a5e290032f65f18df63542fcc40e2e3186",
+    "tests/integration/v27_face_wire_probe.py": "8b65f410b1cae8a7a9f74e006d4ceea74184fcf6deaf5868339e4617aa1c7675"
+  },
+  "checks": [
+    {
+      "command": "PHOTO_TEST_V27_INITIAL_PROCESS_ONE=1 PHOTO_TEST_V27_ORIGINAL_PERSON_RECOVER=1 PHOTO_TEST_V27_ORIGINAL_PERSON=1 PHOTO_TEST_V27_PERSON_DEFECT_PARENT=1 PHOTO_TEST_V27_PERSON_DEFECT_FRESH=1 PHOTO_TEST_NATIVE_INFRA=1 PYTHONPATH=workers:src:tests/integration PYTHONDONTWRITEBYTECODE=1 .venv-platform/bin/python -m pytest tests/integration/test_v27_semantic_intent_publication.py -k native-person-defect-wire -q --tb=short --junitxml=docs/implementation-v2/audit/v27-initial-process-one-current.xml",
+      "exit_code": 0,
+      "passed": 1,
+      "deselected": 21,
+      "seconds": 677.1,
+      "evidence": "docs/implementation-v2/audit/v27-initial-process-one-current.xml",
+      "evidence_sha": "9811583afad9577faf84c36994a5b53cc5326c601e2bbcd04a4e2e1a7c92ff70"
+    },
+    {
+      "command": "scripts/run-platform.sh go -C backend test ./internal/semanticproposal ./internal/v2input ./internal/review",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "verified": [
+    "Original person/face adapters, canonical results, fresh defects and parent admission/replay on real PostgreSQL/MinIO/mTLS fixtures",
+    "Old scheduler lease expiry simulated through owner-only fixture metadata; expired token cannot complete",
+    "Production ProcessOne claims replacement lease, invokes full Recover and records completed handoff",
+    "Repeated ProcessOne returns no work; replaced old token remains refused",
+    "Independent outer verification proves original person/defect dependencies and done=true with lease/schedule cleared",
+    "Parent closure/object hashes/quota/exactly-one receipt/event/outbox preserved"
+  ],
+  "limitations": [
+    "Actual process kill/restart not simulated; lease expiry is metadata-only elapsed-time simulation",
+    "ProcessOne begins with saved succeeded producers and already-admitted parent; cold recovery at every interrupted boundary remains required",
+    "Concurrent revocation/substitution/purge and parallel scheduler contention remain open",
+    "Deterministic model inference and imported test qualification; no real GPU/corpus quality acceptance",
+    "Target producer creation still incomplete",
+    "677-second fixture is not production SLA acceptance",
+    "No whole V27 or V20–V32 acceptance; scoped source pins are not whole-repository dirty-tree acceptance"
+  ]
+}

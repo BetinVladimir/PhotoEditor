@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 relight accepted source authority",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "production_migration_applied": false,
+  "checks": {
+    "native_sql": {
+      "passed": 7,
+      "seconds": 12.21,
+      "xml": "v28-relight-source-current.xml"
+    },
+    "components": {
+      "passed": 31,
+      "xml": "v28-relight-source-components-current.xml"
+    }
+  },
+  "source_sha256": {
+    "backend/db/migrations/00983_v28_worker_relight_source.sql": "06807cacf8af8e6ecf58ab9d0607bcd8ffbe0c5b3a1276ea0e55a5ec4af731a7",
+    "workers/photo_worker/runtime/database.py": "413aac64bec78fe4c22fcbad78e08a53d241d7816ea0d08cad8c078ec5561877",
+    "workers/photo_worker/operations/portrait/relight_admission.py": "b0704d42fdc77dc79a135f470de98cfaf4930522fd66edd2e0a5a1362bfdf15b",
+    "tests/integration/test_v28_relight_source.py": "57f3e3f9378be346d227d2b87e54f01b0903fcd3af10104326f3b66715c7992d",
+    "tests/platform/test_relight_admission.py": "ba07022d03e13772d14bbd6ad8edcb3a01a41d86268a8fc1548d6071fd2310ca"
+  },
+  "limitations": [
+    "Owner-seeded source/lease metadata and partial Params base fixture; no physical source replay or actual graph activation",
+    "Depth and subject/guard producer authority, full execution/adoption/UI and real qualification pending"
+  ]
+}

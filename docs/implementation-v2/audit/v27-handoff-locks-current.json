@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 concurrent handoff locks and expired lease",
+  "whole_module_accepted": false,
+  "migration_head": "00963",
+  "new_migrations": false,
+  "production_migrations_applied": false,
+  "checks": {
+    "go_four_packages": [
+      {
+        "package": "photoeditor/backend/internal/v2qualification",
+        "elapsed": 0
+      },
+      {
+        "package": "photoeditor/backend/internal/v2draft",
+        "elapsed": 0.008
+      },
+      {
+        "package": "photoeditor/backend/internal/v2input",
+        "elapsed": 0.008
+      },
+      {
+        "package": "photoeditor/backend/internal/semanticproposal",
+        "elapsed": 3.342
+      }
+    ],
+    "native_wire": "1 PASS432.68s; v27-handoff-locks-wire-current.xml",
+    "documentation": "PASS55 tests/2267 static checks",
+    "diff_check": "PASS"
+  },
+  "source_manifest": "v27-handoff-locks-source-current.json",
+  "source_manifest_sha256": "e80d60f39fc3faf92c210ac94d3e1fbbc8f565e26f113e10b26af3f8878a741e",
+  "quality_preservation": {
+    "workers_src_baseline_files": 544,
+    "changed": 0,
+    "real_photo_quality_accepted": false
+  },
+  "native_verified": [
+    "Actual checkpoint-job handoff and existing sequential lifecycle refusal probes.",
+    "Distinct writer backend sessions get55P03 for root expiry/asset deletion/producer cancellation while readiness transaction open.",
+    "Identical writes succeed after readiness rollback, under same1s lock timeout.",
+    "Expired owned lease cannot complete; done=false and token unchanged after refusal.",
+    "Independent queued sealed graph, ready tasks and single queued event/outbox."
+  ],
+  "remaining": [
+    "Natural clock expiry, policy/qualification revoke races and mixed-operation deadlock analysis.",
+    "Original reference locator-version cases; pending target job progression.",
+    "Partial publication repair/commit ambiguity/replay/GC/purge/deadletter/scale.",
+    "Whole V27 and V20–V32 acceptance."
+  ],
+  "limitations": [
+    "Concrete concurrent writer cases only, not every lifecycle interleaving.",
+    "SQL upgrade suite not rerun this step.",
+    "Other native scenario branches not executed.",
+    "Upstream ML doubles; no real-photo/GPU qualification."
+  ]
+}

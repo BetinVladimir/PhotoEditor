@@ -1,0 +1,23 @@
+{
+  "recorded_at": "2026-10-08T00:09:47.025286+00:00",
+  "package": "V27",
+  "module_accepted": false,
+  "tests": 118,
+  "passed": 118,
+  "failed": 0,
+  "skipped": 0,
+  "seconds": 624.71,
+  "source_scope_sha256": "55dce7f6b7abb639ba9bdbdfd07a299cef729ee50e4ad64d9c4ba37867722249",
+  "unchanged_pinned_files": 3610,
+  "evidence": {
+    "v27-integration-recheck.xml": "c4c7a7f544fc9ca006904e80f850b68e3b932eddd13869327c93fc64ea878692",
+    "v27-integration-recheck.log": "069efe70805c1e2db4c900f9a2d1fe45088538a923b2f6a0dbf19cf5a6aa9bb3",
+    "v27-integration-recheck-source.json": "d182219d75034da60d60375087d42c87286c4233a51e6ed6b96c8051c6a60392"
+  },
+  "limitations": [
+    "local PostgreSQL18/MinIO CPU synthetic fixtures;not RTX3060 real-model/real-photo quality",
+    "public SemanticPropose composition missing",
+    "browser/native full module acceptance missing",
+    "ensureSkin admitted replay coverage gap still open"
+  ]
+}

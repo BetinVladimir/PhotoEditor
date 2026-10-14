@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="53.241" timestamp="2026-10-08T15:33:41.693720+03:00" hostname="Mac"><testcase classname="tests.integration.test_v27_semantic_intent_publication" name="test_semantic_intent_publication_old_version_and_replay[native-person-defect-wire]" time="52.713"><failure message="AssertionError: === RUN   TestIntegrationNativePreparationBootstrap&#10;      native_bootstrap_integration_test.go:166: V27_ORIGINAL_PERSON_INPUT_AUTHORITY_OK&#10;      native_bootstrap_integration_test.go:312: V27_NATIVE_DEFECT_PERSON_DEPENDENCIES_OK&#10;      native_bootstrap_integration_test.go:382: automatic native parent admission initial native parent target protection selection: V2 admission idempotency conflict&#10;  --- FAIL: TestIntegrationNativePreparationBootstrap (45.31s)&#10;  FAIL&#10;  FAIL&#09;photoeditor/backend/internal/semanticproposal&#09;45.947s&#10;  FAIL&#10;  &#10;assert 1 == 0&#10; +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationNativePreparationBootstra...ePreparationBootstrap (45.31s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t45.947s\nFAIL\n', stderr='').returncode">tests/integration/test_v27_semantic_intent_publication.py:737: in test_semantic_intent_publication_old_version_and_replay
+    assert result.returncode==0,result.stdout+result.stderr
+E   AssertionError: === RUN   TestIntegrationNativePreparationBootstrap
+E         native_bootstrap_integration_test.go:166: V27_ORIGINAL_PERSON_INPUT_AUTHORITY_OK
+E         native_bootstrap_integration_test.go:312: V27_NATIVE_DEFECT_PERSON_DEPENDENCIES_OK
+E         native_bootstrap_integration_test.go:382: automatic native parent admission initial native parent target protection selection: V2 admission idempotency conflict
+E     --- FAIL: TestIntegrationNativePreparationBootstrap (45.31s)
+E     FAIL
+E     FAIL	photoeditor/backend/internal/semanticproposal	45.947s
+E     FAIL
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationNativePreparationBootstra...ePreparationBootstrap (45.31s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t45.947s\nFAIL\n', stderr='').returncode</failure></testcase></testsuite></testsuites>

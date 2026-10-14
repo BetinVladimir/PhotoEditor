@@ -1,0 +1,5 @@
+# V30 import review source reconciliation — 2026-10-12
+
+`DecideImport` and `CloseImportReview` are registered under authenticated tenant routes in `backend/internal/httpapi/interchange.go`. The services freeze the request, read replay authority, publish an immutable review-selection document through `artifactjson.Publisher`, and commit through `photo.commit_v30_interchange_decisions` or `photo.commit_v30_interchange_review_close`. `SQLReviewDocumentRepository` checks the current workflow run before reserve and complete; the SQL functions remain the final CAS/authorization authority. The current source contains an execution path for both handlers, so a static `partial_runtime_path` label alone does not identify an absent method.
+
+The source does not prove end-to-end completion. Required deferred evidence includes a migrated PostgreSQL run, real object-store publication, concurrent revision changes, approval/rejection batches, idempotent replay, denied tenant/role matrix, and API/client round trips. No tests, builds, formatters or migrations were run during this reconciliation. Keep both operations incomplete until that evidence exists.

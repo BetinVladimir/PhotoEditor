@@ -1,0 +1,107 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "generated_at": "2026-10-08T15:08:24.923205+00:00",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "dirty_tree_hash": "225ec8ad43423fe82ea86be2b9d9e2b2bf670b67cf3ec9dccdb08cac5a61b5a2",
+  "dirty_tree_hash_scope": {
+    "roots": [
+      "backend/",
+      "workers/",
+      "src/",
+      "apps/",
+      "packages/",
+      "tests/",
+      "scripts/",
+      "deploy/",
+      "docs/implementation-v2/contracts/"
+    ],
+    "paths": 4749,
+    "algorithm": "sorted git tracked+untracked nonignored names NUL sha256(bytes) newline; MISSING marker; excludes generated audit evidence"
+  },
+  "contracts_hash": "bedf81fee94e5e75a78db7d8fc942cdc67d7fb580301c33071233e3abf357b38",
+  "source_scope": {
+    "backend/db/migrations/00918_v27_target_person_claim_start.sql": "4cc931d7b274921c3d22c3f6c640dcdcb67cd59a4a4102f3f79bf03db4f49b9a",
+    "backend/db/migrations/00919_v27_target_person_result_guard.sql": "14015388215b4eca9822966d9d5da488566da2b2e792063d8576ecc8c1b78afb",
+    "backend/internal/semanticproposal/native_target_person_wire_probe_test.go": "27515043dbb106f19100a15598d91f21c6ee13904a6e487c80e5b63807e5271c",
+    "tests/integration/test_v27_person_migration_upgrade.py": "04895adcffa95de8dceb88666dcd852979817f4671e7e52044dd8449753277ca",
+    "tests/integration/test_v27_semantic_intent_publication.py": "554da3bf22fe3ce1c5ca784ba8c052b05ba6f53bff60aa406b1c31f4971060f6",
+    "tests/integration/v27_face_wire_probe.py": "4473a26ddb8c68bf5c8ee2bd96e3152e751408330c56ba2ab0b100267b269fbf",
+    "tests/integration/v27_person_wire_probe.py": "c8210bf0b07ad05c284aec570316c8980521c4c127dc4b1e97dbeba3abb14b86"
+  },
+  "checks": [
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-execution-sql-current.xml",
+      "evidence_sha": "00cc6aa2d3c7c7b3dfaa7a0e56709083aeb4adc476695b5a6f1239d04c08063d",
+      "exit_code": 0,
+      "tests": 19,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 19.98
+    },
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-execution-wire-current.xml",
+      "evidence_sha": "a45a1b42acef45480e60e60689c567b4ace7ae36dac4f5f2a8e571701e2e9225",
+      "exit_code": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 43.01
+    },
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-execution-go-current.jsonl",
+      "evidence_sha": "5694632a093c48aa45da36f61be4ccc5ed241f7a385d1114791f97b7f6b7c96b",
+      "exit_code": 0,
+      "packages_passed": [
+        "photoeditor/backend/internal/v2input",
+        "photoeditor/backend/internal/review",
+        "photoeditor/backend/internal/semanticproposal",
+        "photoeditor/backend/internal/gateway"
+      ]
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "requirements": [
+    {
+      "id": "target-person-resource-dispatch-qualified-claim-atomic-run-start",
+      "status": "physical_fixture_verified"
+    },
+    {
+      "id": "target-person-mtls-adapter-uploads-canonical-commit-replay",
+      "status": "physical_fixture_verified"
+    },
+    {
+      "id": "target-output-wrong-attempt-fence-order-count-duplicate-refusal",
+      "status": "physical_fixture_verified"
+    },
+    {
+      "id": "sealed-replay-after-target-canonical-commit",
+      "status": "physical_fixture_verified"
+    },
+    {
+      "id": "00899-00919-forward-upgrade-preserves-data-and-existing-function-identities",
+      "status": "sql_verified"
+    },
+    {
+      "id": "whole-V27-module",
+      "status": "not_accepted"
+    }
+  ],
+  "limitations": [
+    "Automatic Recover still checkpoints and waits; target orchestration/result adoption and remaining five stages are required",
+    "Target task canonical success is verified; standalone target run remains running until orchestration finalizes it",
+    "Distinct accepted version/recipe shares immutable WorkingImage bytes; deterministic ML double is not real GPU/image-quality qualification",
+    "No complete cold restart/parallel/cancel/purge or whole module/browser/capacity acceptance",
+    "Only isolated databases migrated; production DB unchanged"
+  ],
+  "corrected_failures": [
+    "First Go gateway run lacked local listener permission; rerun with local networking passed",
+    "First physical execution hit generic V2_ROOT_REQUIRED; dedicated target guard00919 fixed the missing contract",
+    "New negative-output probe initially used lease.attempt; corrected to lease.command.attempt before final passing run"
+  ]
+}

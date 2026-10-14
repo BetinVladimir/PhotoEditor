@@ -1,0 +1,142 @@
+package interchange
+
+import (
+	"context"
+	"photoeditor/backend/internal/v2input"
+	"sync"
+)
+
+// A workflow-local dispatch index, never an authorization cache. Every lookup
+// delegates to the original scoped SQL/physical resolver again.
+type ImportPreparedNodeRegistry struct {
+	mu    sync.RWMutex
+	nodes map[v2input.Entry]ImportClosureNodeResolver
+}
+
+func (r *ImportPreparedNodeRegistry) Contains(entry v2input.Entry) bool {
+	if r == nil {
+		return false
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.nodes[entry] != nil
+}
+func (r *ImportPreparedNodeRegistry) ResolveImportNode(ctx context.Context, entry v2input.Entry) (ImportClosureNode, error) {
+	if err := ctx.Err(); err != nil {
+		return ImportClosureNode{}, err
+	}
+	if r == nil {
+		return ImportClosureNode{}, v2input.ErrInvalid
+	}
+	r.mu.RLock()
+	resolver := r.nodes[entry]
+	r.mu.RUnlock()
+	if resolver == nil {
+		return ImportClosureNode{}, v2input.ErrInvalid
+	}
+	node, err := resolver.ResolveImportNode(ctx, entry)
+	if err != nil {
+		return ImportClosureNode{}, err
+	}
+	if node.Entry != entry {
+		return ImportClosureNode{}, v2input.ErrInvalid
+	}
+	return node, ctx.Err()
+}
+func (r *ImportPreparedNodeRegistry) register(nodes map[v2input.Entry]ImportClosureNodeResolver) error {
+	if r == nil || len(nodes) < 1 || len(nodes) > 30000 {
+		return v2input.ErrInvalid
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	identities := map[[16]byte]v2input.Entry{}
+	for old := range r.nodes {
+		identities[old.Ref.ArtifactID] = old
+	}
+	for entry, resolver := range nodes {
+		if resolver == nil || !validImportRef(entry.Ref) {
+			return v2input.ErrInvalid
+		}
+		switch entry.Contract {
+		case "EditingRecipeV3", "StyleV2", "CorrectionPlan", "Override", "LayerStack", "MaskRef", "Params", "Stats20", "ResolvedStyle", "DefectCandidates", "DefectReview", "DustCandidates", "MaskPixels", "DenseWarpField", "AbsoluteLUTArray", "DefectLabelMap", "StyleBackgroundAsset":
+		default:
+			return v2input.ErrInvalid
+		}
+		if old, ok := identities[entry.Ref.ArtifactID]; ok && old != entry {
+			return v2input.ErrInvalid
+		}
+		identities[entry.Ref.ArtifactID] = entry
+	}
+	if len(identities) > 30000 {
+		return v2input.ErrInvalid
+	}
+	if r.nodes == nil {
+		r.nodes = map[v2input.Entry]ImportClosureNodeResolver{}
+	}
+	// Repeated qualification cannot replace the authority installed for a pin.
+	for entry, resolver := range nodes {
+		if r.nodes[entry] == nil {
+			r.nodes[entry] = resolver
+		}
+	}
+	return nil
+}
+
+type recordingPreparedImportResolver struct {
+	base  ImportClosureNodeResolver
+	nodes map[v2input.Entry]ImportClosureNodeResolver
+}
+
+func (r *recordingPreparedImportResolver) ResolveImportNode(ctx context.Context, entry v2input.Entry) (ImportClosureNode, error) {
+	node, err := r.base.ResolveImportNode(ctx, entry)
+	if err != nil {
+		return ImportClosureNode{}, err
+	}
+	if node.Entry != entry {
+		return ImportClosureNode{}, v2input.ErrInvalid
+	}
+	switch entry.Contract {
+	case "StyleV2", "CorrectionPlan", "Override", "LayerStack", "MaskRef", "Params", "Stats20", "ResolvedStyle", "DefectCandidates", "DefectReview", "DustCandidates", "MaskPixels", "DenseWarpField", "AbsoluteLUTArray", "DefectLabelMap", "StyleBackgroundAsset":
+		r.nodes[entry] = r.base
+	}
+	return node, nil
+}
+
+type registeredPreparedImportRecipeQualifier struct {
+	Scope    ImportPreparedScope
+	Resolver ImportClosureNodeResolver
+	Catalog  ImportDocumentCatalog
+	Objects  ImportDocumentObjects
+	Registry *ImportPreparedNodeRegistry
+}
+
+func (q registeredPreparedImportRecipeQualifier) QualifyPreparedImportRecipe(ctx context.Context, ref v2input.Ref, raw []byte, binding v2input.SessionVersionBinding) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if q.Registry == nil || q.Resolver == nil || q.Catalog == nil || q.Objects == nil {
+		return v2input.ErrInvalid
+	}
+	recorder := &recordingPreparedImportResolver{base: q.Resolver, nodes: map[v2input.Entry]ImportClosureNodeResolver{}}
+	if err := (BoundImportPreparedRecipeQualifier{Scope: q.Scope, Resolver: recorder}).QualifyPreparedImportRecipe(ctx, ref, raw, binding); err != nil {
+		return err
+	}
+	root := v2input.Entry{Ref: ref, Contract: "EditingRecipeV3"}
+	recorder.nodes[root] = ImportJSONNodeResolver{Catalog: q.Catalog, Objects: q.Objects, Validator: pinnedPreparedRecipeValidator{Ref: ref, Binding: binding}}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	return q.Registry.register(recorder.nodes)
+}
+
+type pinnedPreparedRecipeValidator struct {
+	Ref     v2input.Ref
+	Binding v2input.SessionVersionBinding
+}
+
+func (v pinnedPreparedRecipeValidator) ImportDocumentChildren(ctx context.Context, entry v2input.Entry, raw []byte) ([]v2input.Entry, error) {
+	if entry.Contract != "EditingRecipeV3" || entry.Ref != v.Ref || rawSHA(raw) != v.Ref.SHA256 {
+		return nil, v2input.ErrInvalid
+	}
+	return interchangeRecipeChildren(ctx, append([]byte(nil), raw...), v.Binding)
+}

@@ -1,49 +1,25 @@
 // @vitest-environment jsdom
 import {afterEach,expect,it,vi} from 'vitest';
-import {act,cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
-import {APIError} from '@photoeditor/api-client';
-import en from '../../../locales/en/common.json';
-import type {SceneBoard} from './scene-board';
-const mocks=vi.hoisted(()=>({params:{id:'session',tenant:'tenant',analysis:'first'},read:vi.fn(),session:vi.fn(),collection:vi.fn(),snapshot:vi.fn(),analyze:vi.fn(),push:vi.fn()}));
+import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
+import type {SceneReferenceAttempt} from './scene-reference-attempt-store';
+import type {SceneApplyAttempt} from './scene-apply-attempt-store';
+const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+const mocks=vi.hoisted(()=>({storage:new Map<string,string>(),auth:{client:()=>({})},push:vi.fn(),me:vi.fn(),sceneBoard:vi.fn(),analyzeSession:vi.fn(),applySceneAnalysis:vi.fn(),shootSession:vi.fn(),collection:vi.fn(),selectionSnapshot:vi.fn()}));
 vi.mock('react-native',async()=>import('react-native-web'));
-vi.mock('expo-router',()=>({useLocalSearchParams:()=>mocks.params,router:{push:mocks.push}}));
-const auth={client:()=>({})};vi.mock('./auth-context',()=>({useAuth:()=>auth}));
-vi.mock('./locale-context',()=>({useLocale:()=>({t:(key:keyof typeof en)=>en[key]})}));
+vi.mock('expo-router',()=>({router:{push:mocks.push},useLocalSearchParams:()=>({id:'00000000-0000-4000-8000-000000000004',tenant:'00000000-0000-4000-8000-000000000002',analysis:'00000000-0000-4000-8000-000000000005'})}));
+vi.mock('@react-native-async-storage/async-storage',()=>({default:{getItem:async(k:string)=>mocks.storage.get(k)??null,setItem:async(k:string,v:string)=>{mocks.storage.set(k,v);},removeItem:async(k:string)=>{mocks.storage.delete(k);},getAllKeys:async()=>[...mocks.storage.keys()]}}));
+vi.mock('./auth-context',()=>({useAuth:()=>mocks.auth}));
+vi.mock('./owner-api',()=>({OwnerAPI:class {tenant=id(2);me=mocks.me;sceneBoard=mocks.sceneBoard;analyzeSession=mocks.analyzeSession;applySceneAnalysis=mocks.applySceneAnalysis;shootSession=mocks.shootSession;collection=mocks.collection;selectionSnapshot=mocks.selectionSnapshot;}}));
+vi.mock('./locale-context',()=>({useLocale:()=>({t:(key:string)=>key})}));
 vi.mock('./locale-picker',()=>({LocalePicker:()=>null}));
-vi.mock('./owner-api',()=>({OwnerAPI:class{tenant:string;constructor(_client:unknown,tenant:string){this.tenant=tenant;}sceneBoard=mocks.read;shootSession=mocks.session;collection=mocks.collection;selectionSnapshot=mocks.snapshot;analyzeSession=mocks.analyze;}}));
+vi.mock('./scene-board-view',()=>({SceneBoardView:()=>null}));
+vi.mock('./scene-apply-panel',()=>({SceneApplyPanel:()=>null}));
 import SessionScenes from '../app/sessions/[id]/scenes';
-afterEach(()=>{cleanup();vi.clearAllMocks();mocks.params={id:'session',tenant:'tenant',analysis:'first'};});
-const board:SceneBoard={snapshotId:'snapshot',snapshotDigest:'a'.repeat(64),policySha:'b'.repeat(64),groups:[]};
-it('does not display a late board after navigating to another analysis',async()=>{
- let release!:(value:SceneBoard)=>void;const late=new Promise<SceneBoard>(resolve=>release=resolve);mocks.read.mockReturnValueOnce(late).mockRejectedValueOnce(new Error('denied'));
- const view=render(<SessionScenes/>);await waitFor(()=>expect(mocks.read).toHaveBeenCalledTimes(1));const signal=mocks.read.mock.calls[0][2] as AbortSignal;
- mocks.params={...mocks.params,analysis:'second'};view.rerender(<SessionScenes/>);await screen.findByText(en.scene_load_failed);expect(signal.aborted).toBe(true);
- await act(async()=>release(board));expect(screen.queryByText(en.scene_board_title)).toBeNull();
-});
-it('renders a loaded board only for the current authorized scope',async()=>{
- mocks.read.mockResolvedValue(board);render(<SessionScenes/>);await screen.findByText(en.scene_board_title);expect(mocks.read).toHaveBeenCalledWith('first','session',expect.any(AbortSignal));
-});
-
-const frame={ordinal:0,versionId:'version',sourceSha:'a'.repeat(64)};
-const selectable:SceneBoard={...board,groups:[{id:'group',ordinals:[0],frames:[frame],reference:frame,confidence:1,corrections:{artifact_id:'correction',sha256:'a'.repeat(64)},outliers:null}]};
-function preparation(){mocks.read.mockResolvedValue(selectable);mocks.session.mockResolvedValue({state:'open',revision:'2',collection_id:'collection',policy:{schema_version:1,camera_offsets:[]}});mocks.collection.mockResolvedValue({id:'collection',revision:'3'});mocks.snapshot.mockResolvedValue({id:'snapshot'});}
-it('retries the same admitted request/key without creating a second snapshot',async()=>{
- preparation();mocks.analyze.mockRejectedValueOnce(new Error('lost response')).mockResolvedValueOnce({run_id:'new-run'});
- render(<SessionScenes/>);await screen.findByText(en.scene_board_title);fireEvent.click(screen.getByLabelText(en.scene_reference_select+' 1'));
- await screen.findByText(en.scene_retry_analysis);const first=mocks.analyze.mock.calls[0];fireEvent.click(screen.getByText(en.scene_retry_analysis));await waitFor(()=>expect(mocks.push).toHaveBeenCalledTimes(1));
- const second=mocks.analyze.mock.calls[1];expect(second[1]).toEqual(first[1]);expect(second[2]).toBe(first[2]);expect(mocks.snapshot).toHaveBeenCalledTimes(1);expect(mocks.session).toHaveBeenCalledTimes(1);
-});
-it('ignores a late admission ticket from a previous analysis scope',async()=>{
- preparation();let release!:(value:unknown)=>void;mocks.analyze.mockReturnValue(new Promise(resolve=>release=resolve));
- const view=render(<SessionScenes/>);await screen.findByText(en.scene_board_title);fireEvent.click(screen.getByLabelText(en.scene_reference_select+' 1'));await waitFor(()=>expect(mocks.analyze).toHaveBeenCalledTimes(1));
- mocks.params={...mocks.params,analysis:'second'};view.rerender(<SessionScenes/>);await act(async()=>release({run_id:'old-run'}));expect(mocks.push).not.toHaveBeenCalled();expect((mocks.analyze.mock.calls[0][3] as AbortSignal).aborted).toBe(true);
-});
-it('clears displayed metadata when a reference mutation reveals revoked access',async()=>{
- preparation();mocks.analyze.mockRejectedValue(new APIError(403,'FORBIDDEN'));
- render(<SessionScenes/>);await screen.findByText(en.scene_board_title);fireEvent.click(screen.getByLabelText(en.scene_reference_select+' 1'));await screen.findByText(en.scene_access_denied);expect(screen.queryByText(en.scene_board_title)).toBeNull();expect(screen.queryByText(en.scene_retry_analysis)).toBeNull();
-});
-it('releases a definitively rejected request so the user can reload before a new choice',async()=>{
- preparation();mocks.analyze.mockRejectedValue(new APIError(409,'ANALYSIS_CONFLICT'));
- render(<SessionScenes/>);await screen.findByText(en.scene_board_title);fireEvent.click(screen.getByLabelText(en.scene_reference_select+' 1'));await screen.findByText(en.scene_reference_conflict);
- expect(screen.queryByText(en.scene_retry_analysis)).toBeNull();expect(screen.getByText(en.scene_reload).closest('[role="button"]')?.getAttribute('aria-disabled')).not.toBe('true');expect(mocks.analyze).toHaveBeenCalledTimes(1);
-});
+function saved(ticket:SceneReferenceAttempt['ticket']=null):SceneReferenceAttempt{return {schema_version:1,session_id:id(4),analysis_id:id(5),key:id(6),request:{expected_revision:'3',selection_snapshot_id:id(7),policy:{schema_version:1,time_gap_seconds:60,neighbor_count:4,protect_manual_picks:true,camera_offsets:[],calibration:{artifact_id:id(8),sha256:'a'.repeat(64)}},manual_references:[{previous_analysis_id:id(5),group_id:id(9),asset_version_id:id(10)}]},ticket};}
+function install(record:SceneReferenceAttempt){mocks.storage.set('photo.scene-reference-attempt.v1:'+JSON.stringify(['https://api.example',id(1),id(2),id(4),id(5)]),JSON.stringify(record));vi.stubEnv('EXPO_PUBLIC_API_ORIGIN','https://api.example');mocks.me.mockResolvedValue({id:id(1)});}
+function installApply(ticket:SceneApplyAttempt['ticket']={run_id:id(17)}):SceneApplyAttempt{const record:SceneApplyAttempt={schema_version:1,session_id:id(4),analysis_id:id(5),key:id(15),body:{plan_sha:'a'.repeat(64),approved_groups:[id(9)],recipe:{artifact_id:id(16),sha256:'b'.repeat(64)},expected_revision:'1'},ticket};mocks.storage.set('photo.scene-apply-attempt.v1:'+JSON.stringify(['https://api.example',id(1),id(2),id(4),id(5)]),JSON.stringify(record));vi.stubEnv('EXPO_PUBLIC_API_ORIGIN','https://api.example');mocks.me.mockResolvedValue({id:id(1)});return record;}
+afterEach(()=>{cleanup();vi.clearAllMocks();vi.unstubAllEnvs();mocks.storage.clear();});
+it('opens an acknowledged run without needing the old scene board',async()=>{install(saved({run_id:id(11)}));mocks.sceneBoard.mockRejectedValue(new Error('gone'));render(<SessionScenes/>);await waitFor(()=>expect(mocks.push).toHaveBeenCalledWith({pathname:'/runs/[id]',params:{id:id(11),tenant:id(2)}}));expect(mocks.sceneBoard).not.toHaveBeenCalled();expect(mocks.analyzeSession).not.toHaveBeenCalled();});
+it('opens an acknowledged Apply child without needing the old scene board',async()=>{installApply();mocks.sceneBoard.mockRejectedValue(new Error('gone'));render(<SessionScenes/>);await waitFor(()=>expect(mocks.push).toHaveBeenCalledWith({pathname:'/runs/[id]',params:{id:id(17),tenant:id(2)}}));expect(mocks.sceneBoard).not.toHaveBeenCalled();expect(mocks.analyzeSession).not.toHaveBeenCalled();});
+it('retries a pending Apply with exact saved request when the board is unavailable',async()=>{const record=installApply(null);mocks.sceneBoard.mockRejectedValue(new Error('gone'));mocks.applySceneAnalysis.mockResolvedValue({run_id:id(18)});render(<SessionScenes/>);const retry=await screen.findByText('scene_apply_retry');await waitFor(()=>expect(retry.closest('[role="button"]')?.getAttribute('aria-disabled')).not.toBe('true'));fireEvent.click(retry);await waitFor(()=>expect(mocks.applySceneAnalysis).toHaveBeenCalledTimes(1));expect(mocks.applySceneAnalysis.mock.calls[0].slice(0,3)).toEqual([id(5),record.body,id(15)]);await waitFor(()=>expect(mocks.push).toHaveBeenCalledWith({pathname:'/runs/[id]',params:{id:id(18),tenant:id(2)}}));expect(mocks.analyzeSession).not.toHaveBeenCalled();});
+it('retries a pending reference with its saved key when board loading fails',async()=>{const record=saved();install(record);mocks.sceneBoard.mockRejectedValue(new Error('gone'));mocks.analyzeSession.mockResolvedValue({run_id:id(12)});render(<SessionScenes/>);fireEvent.click(await screen.findByText('scene_retry_analysis'));await waitFor(()=>expect(mocks.analyzeSession).toHaveBeenCalledTimes(1));expect(mocks.analyzeSession.mock.calls[0].slice(0,3)).toEqual([id(4),record.request,id(6)]);await waitFor(()=>expect(mocks.push).toHaveBeenCalledWith({pathname:'/runs/[id]',params:{id:id(12),tenant:id(2)}}));});

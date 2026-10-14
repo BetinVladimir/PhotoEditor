@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-08",
+  "module": "V27",
+  "module_accepted": false,
+  "scope": "Actual cmd/photo main/run binary with environment-driven deployment, verified ICC, ephemeral real auth keys and DB roles; readiness, two authenticated original-parent replay requests and clean SIGTERM exit; independent physical closure/effects verification afterward.",
+  "physical": {
+    "passed": 1,
+    "deselected": 16,
+    "seconds": 25.16,
+    "command": "PHOTO_TEST_NATIVE_INFRA=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=workers:src:tests/integration .venv-platform/bin/python -m pytest tests/integration/test_v27_semantic_intent_publication.py -k create-service -q --tb=short"
+  },
+  "packages": {
+    "semanticproposal": "PASS 2.456s",
+    "cmd/photo": "PASS 0.492s"
+  },
+  "source_sha256": {
+    "backend/cmd/photo/semantic_create_executable_test.go": "9b214b8ca58c5dd0b6a826861182abe4876717326d25afe33670ac34190a1033",
+    "backend/cmd/photo/semantic_create_integration_test.go": "1a4997faacc81a48eb034661057686048f47d2b11de92b9c6ca043ad37076a72",
+    "backend/cmd/photo/semantic_create.go": "62d69416a276837ceaee092566d43ab468a630b8851174d28b7a9329c0beddf2",
+    "backend/cmd/photo/main.go": "ace19e0cc799a4dc31a6a0b57fdcbc64e77719a95ec3ce487e166ec3f9daddf9",
+    "backend/internal/semanticproposal/create_integration_probe_test.go": "0e2810af0c041d1a7f7ce3209d2a3dbcc0f95e17ff2a27a413f74886de8ece72",
+    "backend/internal/semanticproposal/create_http_probe_test.go": "647d9dd56316d41041fd026d0b9b75348956b925dc8e7273412a8a92fbe7a7f3",
+    "backend/internal/semanticproposal/create_deployment_probe_test.go": "76d16e4ca74db22e43dae121112da02e69bb2e62b503acc5a5eaa78bb72ffbae",
+    "backend/internal/semanticproposal/create_service.go": "c1e1219efb4ca3a16e253e0dd30bd5af7fa979f14f7c3dd9dea5b673099b65c5",
+    "backend/internal/semanticproposal/project_create_service.go": "ffea3dc690c6d1b2ef632403b97895e51a0d7481f87f94b6fc6d3afa467ba6a0",
+    "tests/integration/test_v27_semantic_intent_publication.py": "b60db71c92f2410fb25193328d7ea2b11fa7c488d7ddf4705a475daee12fdb33",
+    "tests/integration/v27_create_probe.py": "9ff1803d9293679d0cd27247feb93aa1d4e771be39181a0f8df6c74d1e892a1b"
+  },
+  "remaining": [
+    "native missing-producer public initiation with independent original manual selection authority",
+    "actual model/photo/parallax/occlusion/protected quality evidence",
+    "current complete security/lifecycle/client/hardware module cycle"
+  ],
+  "limitations": [
+    "executable requests replay an already admitted parent; first creation is covered by a separately listening production HTTP handler",
+    "synthetic qualified producer metadata does not prove real inference or RTX3060 performance"
+  ]
+}

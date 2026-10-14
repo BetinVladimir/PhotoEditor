@@ -1,5 +1,5 @@
 from typing import Annotated,Literal
-from pydantic import Field,model_validator
+from pydantic import Field,model_validator,model_serializer
 from .base import Contract,ArtifactRef,SHA256,Unit,canonical_hash
 from .images import Canvas,TransformChain,Rect,WorkingImage
 
@@ -110,10 +110,19 @@ from uuid import UUID
 from .beauty import BeautyFace
 
 class DefectProposeParams(Contract):
+    protections:Annotated[list[MaskRef],Field(max_length=64)]=Field(default_factory=list)
     image:ArtifactRef
     faces:Annotated[list[BeautyFace],Field(max_length=64)]
     permanent:MaskRef|None=None
     diameter_face_fraction:Annotated[list[float],Field(min_length=2,max_length=2)]=Field(default_factory=lambda:[.002,.012])
+
+    @model_serializer(mode='wrap')
+    def preserve_protection_field_presence(self,handler):
+        result=handler(self)
+        # Reports bind to the exact original task Params. Old tasks have no
+        # protections key; an explicitly supplied empty list must remain [] .
+        if 'protections' not in self.model_fields_set:result.pop('protections',None)
+        return result
 
     @model_validator(mode='after')
     def coherent(self):
@@ -122,6 +131,10 @@ class DefectProposeParams(Contract):
         keys=[(f.landmarks.artifact_id,f.object_id) for f in self.faces]
         if len(set(keys))!=len(keys):raise ValueError('Duplicate face refs')
         if self.permanent is not None and not self.permanent.protected:raise ValueError('Expected permanent protection')
+        if any(not mask.protected for mask in self.protections):raise ValueError('Expected protection inputs')
+        ids=[mask.artifact.artifact_id for mask in self.protections]
+        if self.permanent is not None:ids.append(self.permanent.artifact.artifact_id)
+        if len(set(ids))!=len(ids):raise ValueError('Duplicate protection inputs')
         return self
 
 class DefectProposalFaceReport(Contract):

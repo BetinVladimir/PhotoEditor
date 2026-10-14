@@ -1,0 +1,30 @@
+import {expect,it,vi} from 'vitest';
+import {ApiClient,type SemanticEditIntent} from '@photoeditor/api-client';
+import {OwnerAPI} from './owner-api';
+import type {Collection} from './catalog-types';
+it('checks recovered parent through the real SDK and propagates cancellation to identity reads',async()=>{
+ const tenant='11111111-1111-4111-8111-111111111111',run='22222222-2222-4222-8222-222222222222';
+ const identity={run_id:run,workflow_id:tenant,intent_id:null,revision:'2',state:'queued'};
+ const transport=vi.fn().mockResolvedValueOnce(new Response(JSON.stringify(identity),{status:200})).mockResolvedValueOnce(new Response(JSON.stringify({id:tenant}),{status:200}));
+ const client=new ApiClient('http://localhost',{principal:()=>({kind:'owner',accessToken:'fixture'}),refresh:async()=>'',clear:()=>{},csrfToken:()=> 'csrf',clientHeaders:()=>({'X-Photo-Client':'native'})},transport),api=new OwnerAPI(client,tenant),signal=new AbortController().signal;
+ expect(await api.semanticRunIntent(run,signal)).toEqual(identity);await api.me(signal);
+ expect(transport.mock.calls[0][0]).toBe(`http://localhost/api/v1/tenants/${tenant}/runs/${run}/semantic-intent`);
+ expect(transport.mock.calls[0][1].signal).toBe(signal);expect(transport.mock.calls[1][1].signal).toBe(signal);
+});
+it('uses the owner API and real SDK to preserve immutable snapshot/proposal keys on the wire',async()=>{
+ const id='11111111-1111-4111-8111-111111111111';
+ const transport=vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({id,digest:'d'.repeat(64),item_count:1,expires_at:'2099-01-01T00:00:00Z'}),{status:200})).mockResolvedValueOnce(new Response(JSON.stringify({run_id:id,workflow_id:id,state:'queued'}),{status:202}));
+ const client=new ApiClient('http://localhost',{principal:()=>({kind:'owner',accessToken:'fixture'}),refresh:async()=>'',clear:()=>{},csrfToken:()=> 'csrf',clientHeaders:()=>({'X-Photo-Client':'native'})},transport);
+ const api=new OwnerAPI(client,id),signal=new AbortController().signal;
+ const snapshot=await api.selectionSnapshot({id,revision:'9007199254740993'} as Collection,'snapshot-key',signal);
+ const body:SemanticEditIntent={schema_version:1,kind:'remove_object',reference:{asset_version_id:id,source:{artifact_id:id,sha256:'a'.repeat(64)},canvas_hash:'b'.repeat(64)},reference_mask:{artifact_id:id,sha256:'c'.repeat(64)},target_snapshot_id:snapshot.id,strength:.5,ev:null,preserve_persons:true,prompt:null};
+ const result=await api.proposeSemanticIntent(body,'proposal-key',signal);
+ expect(result.state).toBe('queued');
+ expect(transport.mock.calls[0][0]).toBe(`http://localhost/api/v1/tenants/${id}/collections/${id}/selection-snapshots`);
+ expect(JSON.parse(transport.mock.calls[0][1].body)).toEqual({collection_revision:'9007199254740993',scope:'all'});
+ expect(transport.mock.calls[0][1].headers.get('Idempotency-Key')).toBe('snapshot-key');
+ expect(transport.mock.calls[1][0]).toBe(`http://localhost/api/v1/tenants/${id}/semantic-intents`);
+ expect(transport.mock.calls[1][1].headers.get('Idempotency-Key')).toBe('proposal-key');
+ expect(transport.mock.calls[1][1].signal).toBe(signal);
+ expect(JSON.parse(transport.mock.calls[1][1].body)).toEqual(body);
+});

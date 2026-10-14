@@ -303,8 +303,10 @@ def test_render_task_stage_registered_root_style_snapshot_and_replay(db,valid_ta
     assert db.execute('SELECT sealed,manifest,entries_sha,entry_count,chunks FROM photo.v26_render_input_state(%s,%s,%s)',(tid,run,task)).fetchone()==(True,manifest,entries_sha,str(entry_count),[chunk])
     assert db.execute(query,stage).fetchone()==(True,)
     db.execute('RESET ROLE')
-    from photo_worker.v2.contract_lock import SCHEMAS_SHA256
-    assert db.execute("SELECT execution_profile->>'contracts_sha' FROM photo.tasks WHERE id=%s",(task,)).fetchone()==(SCHEMAS_SHA256,)
+    from photo_worker.v2.contract_lock import RENDER_PREVIOUS_SCHEMAS_SHA256
+    # Migration00403 pins this baseline; additive generated schemas do not
+    # authorize changing an admitted SQL profile or operation activation.
+    assert db.execute("SELECT execution_profile->>'contracts_sha' FROM photo.tasks WHERE id=%s",(task,)).fetchone()==(RENDER_PREVIOUS_SCHEMAS_SHA256,)
     assert db.execute('SELECT photo.v2_input_closure_ready(%s)',(task,)).fetchone()==(True,)
     assert db.execute('SELECT photo.v26_render_activation_ready(%s,%s)',(tid,run)).fetchone()==(True,)
     assert db.execute("SELECT resource_class,routing_key,v2_enabled FROM photo.operation_registry WHERE operation='render.compose' AND version='1'").fetchone()==('gpu','gpu.render_compose',False)

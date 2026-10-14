@@ -2,6 +2,7 @@ package v2learning
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -83,6 +84,25 @@ func (s TrainingInputStager) Stage(ctx context.Context,
 		return result, ErrInvalidTrainingDraft
 	}
 	seen := make(map[uuid.UUID]bool, len(draft.Manifest.Examples))
+	var recovery trainingDraftRecovery
+	if json.Unmarshal(draft.RecoveryBody, &recovery) != nil {
+		return result, ErrInvalidTrainingDraft
+	}
+	reviewedDefects, err := reviewedDefectsFromRecovery(draft,
+		[]byte(recovery.DefectJCS))
+	if err != nil {
+		return result, err
+	}
+	reviewedDust, err := reviewedDustFromRecovery(draft,
+		[]byte(recovery.DustJCS))
+	if err != nil {
+		return result, err
+	}
+	portraitDetail, err := portraitDetailFromRecovery(draft,
+		[]byte(recovery.DetailJCS))
+	if err != nil {
+		return result, err
+	}
 	for _, example := range draft.Manifest.Examples {
 		pair, okay := s.FrozenRecipes[example.EventID]
 		if !okay || seen[example.EventID] {
@@ -94,7 +114,7 @@ func (s TrainingInputStager) Stage(ctx context.Context,
 			return result, err
 		}
 	}
-	err := database.InTransaction(ctx, s.DB, func(tx pgx.Tx) error {
+	err = database.InTransaction(ctx, s.DB, func(tx pgx.Tx) error {
 		var err error
 		result.Outcome, err = BeginTrainingDraftInTransaction(ctx, tx, draft)
 		return err
@@ -130,6 +150,24 @@ func (s TrainingInputStager) Stage(ctx context.Context,
 		if _, _, err := PublishTrainingFrozenPair(ctx, s.Publisher,
 			draft, example.EventID, pair); err != nil {
 			return TrainingStageResult{}, err
+		}
+		if evidence, present := reviewedDefects[example.EventID]; present {
+			if _, err := PublishReviewedDefectHoldout(ctx, s.Publisher,
+				draft, evidence); err != nil {
+				return TrainingStageResult{}, err
+			}
+		}
+		if evidence, present := reviewedDust[example.EventID]; present {
+			if _, err := PublishReviewedDustHoldout(ctx, s.Publisher,
+				draft, evidence); err != nil {
+				return TrainingStageResult{}, err
+			}
+		}
+		if evidence, present := portraitDetail[example.EventID]; present {
+			if _, err := PublishPortraitDetailHoldout(ctx, s.Publisher,
+				draft, evidence); err != nil {
+				return TrainingStageResult{}, err
+			}
 		}
 	}
 	manifestScope := artifactjson.Scope{Tenant: draft.TenantID,

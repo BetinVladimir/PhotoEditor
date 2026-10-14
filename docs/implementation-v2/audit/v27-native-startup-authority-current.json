@@ -1,0 +1,18 @@
+{
+  "package": "V27",
+  "module_accepted": false,
+  "command": "PHOTO_TEST_DATABASE_URL=<repository PostgreSQL audit fixture> scripts/run-platform.sh go -C backend test ./internal/workflow -run 'TestIntegrationNativeRecoveryInstallationRoles|TestNativeRecovery' -count=1 -v",
+  "result": "PASS",
+  "top_level_tests": 6,
+  "subtests": 4,
+  "skips": 0,
+  "source_files": {
+    "backend/internal/workflow/native_recovery_installation_integration_test.go": "8d7cd258ccc2433b56b15ea1e30929b48df7573bfe3f301dcf1c834c1baaf48e",
+    "backend/internal/workflow/native_recovery_runtime.go": "a6326f52ec7f4e5c9847ba2e0524ab1a69f6a37ddbdc5f0f1196e5ebe91eb8a7",
+    "backend/internal/workflow/native_recovery_config.go": "d2f9f2b9bd48cf56eb3955428eed63c3cadc43399c437607da0db8c06aede72f",
+    "backend/internal/semanticproposal/native_initial_recovery_dispatcher.go": "fe1157355da015cb4ad0fbc3f1cf02c8677a54ef8ddc0ccc44a7edd6e26f58d3",
+    "backend/internal/semanticproposal/native_parent_recovery_dispatcher.go": "9abf4667964626294b3a6108d8c82f4b813c67d1a1bddba8a1d158df5e9e042d",
+    "backend/cmd/photo/main.go": "65149af553abaa3a87d84bc55d1a6ccf64584935a72df09c5271633df81fb0b2"
+  },
+  "scope": "real role-separated PostgreSQL installation gates and runtime configuration/lifetime tests;not full scheduler process/worker/parent-create E2E"
+}

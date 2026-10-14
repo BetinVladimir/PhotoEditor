@@ -1,0 +1,84 @@
+{
+  "recorded_at": "2026-10-08T11:19:48.909551+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "source_manifest": "v27-person-input-source.json",
+  "source_pins": 8186,
+  "checks": [
+    {
+      "evidence": "v27-person-input-wire.xml",
+      "sha256": "9c41baaa7a395ec75ec66cf04a6ca095cafc11f3d1fe5a894c62a2c88f0f0601",
+      "exit_code": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "evidence": "v27-person-input-upgrade.xml",
+      "sha256": "23644ccbc4a78395861a74605130defd65354bf73ebc11bd2146cca023551156",
+      "exit_code": 0,
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "evidence": "v27-person-input-go.log",
+      "sha256": "7550b673a4c319c219e0633ce54439d5402c509b07ee59634cc76a8daecc889d",
+      "exit_code": 0
+    },
+    {
+      "evidence": "v27-person-input-contracts.log",
+      "sha256": "b5c4d32522a51871300893150dc4b4a76ab436c586cca66fd76f404a4de0253d",
+      "exit_code": 0
+    }
+  ],
+  "changes": [
+    "Independent original qualified person input reader and sealed exact scoped byte/catalog proof.",
+    "Scheduler SQL-only policy/inventory/producer/evidence/qualification/object-version/candidate locking; forward-only00907 scheduler-only function.",
+    "Consistent valid-uncovered person dependency classification in ordinary and three native readers; corruption/IO/cancellation unchanged.",
+    "Actual native coverage exposed function-closure reflect equality defect; typed registered protection comparison retains exact revalidated semantic seals/shell/result/document/object pins."
+  ],
+  "requirements": [
+    {
+      "id": "independent-original-person-input-authority",
+      "status": "passed_original_imported_fixture_physical_and_sql_scope"
+    },
+    {
+      "id": "00899-00907-populated-forward-upgrade",
+      "status": "passed_metadata_scope"
+    },
+    {
+      "id": "native-input-valid-uncovered-person-refusal",
+      "status": "passed_actual_physical_path_no_admission"
+    },
+    {
+      "id": "additional-protection-compilation-recovery-and-admission",
+      "status": "open"
+    },
+    {
+      "id": "transitive-native-input-manual-closure-equality-audit",
+      "status": "open"
+    },
+    {
+      "id": "new-person-result-covering-protection-parent",
+      "status": "open"
+    },
+    {
+      "id": "whole-V27-acceptance",
+      "status": "open"
+    }
+  ],
+  "limitations": [
+    "Original person authority in this wire fixture is imported canonical evidence; no newly inferred person positive parent continuation claim.",
+    "Only native-input registered protection comparison repaired; nested/reference/manual comparisons require audit.",
+    "GPU inference/qualification doubles and scoped integration do not establish GPU/corpus quality, browser/native UI, crash/rollout or full V20\u2013V32 acceptance."
+  ],
+  "retained_discovery_evidence": [
+    "v27-person-input-wire-authority.xml",
+    "v27-person-input-wire-coverage-before.xml",
+    "v27-person-input-wire-proof-before.xml",
+    "v27-person-input-wire-closure-before.xml"
+  ]
+}

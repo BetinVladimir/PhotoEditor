@@ -1,0 +1,52 @@
+{
+  "recorded_at": "2026-10-08T10:12:17.081270+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "dirty_tree_hash": "2121820da78c8366afa9a5014b02212443148a24395ea54c5cb648df92d34eb5",
+  "source_manifest": "v27-person-upgrade-source.json",
+  "contracts_hash": "92ddfafe39999507863bb9782553bbbd084ae71bab515f0a29ff596707285a22",
+  "checks": [
+    {
+      "evidence": "v27-person-upgrade-regression.xml",
+      "evidence_sha": "acfd08f35761323fe5d6ba3200821f1cf59a5bc0bbafd391f1724dfb9745c19f",
+      "exit_code": 0,
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "evidence": "v27-person-upgrade-http.xml",
+      "evidence_sha": "fecd3433473f90addc7dc752969dab3f315a9af19147331db32169becbc33e2d",
+      "exit_code": 0,
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "source_pins_rechecked": 8171,
+  "requirements": [
+    {
+      "id": "00900-00903-populated-forward-upgrade",
+      "status": "passed_metadata_scope",
+      "evidence": "v27-person-upgrade-regression.xml"
+    },
+    {
+      "id": "new-person-output-covering-protection-parent",
+      "status": "open"
+    },
+    {
+      "id": "whole-V27-acceptance",
+      "status": "open"
+    }
+  ],
+  "limitations": [
+    "Upgrade test preserves existing Apply metadata; it does not execute an old Apply to completion.",
+    "No production GPU/model/real-photo or browser qualification.",
+    "No crash/restart/rollout upgrade evidence.",
+    "Positive new-person-result through covering canonical protection to ordinary parent remains open.",
+    "Historical full-suite results are not current full-module acceptance."
+  ]
+}

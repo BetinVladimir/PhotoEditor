@@ -32,3 +32,15 @@ it('rejects a source change before writing',async()=>{
  const baseline=await loadEditorV2Layers(api(),'asset',state(),new AbortController().signal);
  expect(()=>prepareV2LayerSave(baseline,{...state(),sourceSha:'b'.repeat(64)},'key')).toThrow('EDITOR_V2_SOURCE_CHANGED');
 });
+
+import {prepareEditorRenderFreeze,freezeEditorRender} from './editor-render-freeze';
+it('prepares the saved V2 revision and verifies server source before accepting freeze',async()=>{
+ const editor=state(),baseline=await loadEditorV2Layers(api(),'asset',editor,new AbortController().signal);
+ const attempt=prepareEditorRenderFreeze(baseline,editor,'freeze-key');
+ expect(attempt.request).toEqual({document_id:id(6),expected_revision:'2',assume_profile:null});
+ const response={document_id:id(8),draft_document_id:id(6),draft_revision:'2',source:structuredClone(binding),recipe:{artifact_id:id(9),sha256:sha}};
+ const transport={freezeRenderDraft:vi.fn(async()=>response)};
+ expect(await freezeEditorRender(transport,'asset',attempt,new AbortController().signal)).toEqual(response);
+ response.source.canvas_hash='b'.repeat(64);
+ await expect(freezeEditorRender(transport,'asset',attempt,new AbortController().signal)).rejects.toThrow('EDITOR_V2_SOURCE_CHANGED');
+});

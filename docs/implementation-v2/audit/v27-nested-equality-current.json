@@ -1,0 +1,62 @@
+{
+  "recorded_at": "2026-10-08T11:30:23.658504+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "source_manifest": "v27-nested-equality-source.json",
+  "source_pins": 8188,
+  "checks": [
+    {
+      "evidence": "v27-nested-equality-final.xml",
+      "sha256": "443535d1fa5033a665ea8c7c0bad91f967f92efc2cc892e18e6e58158c3059e8",
+      "exit_code": 0,
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "evidence": "v27-nested-equality-go.log",
+      "sha256": "9fb408857d3e7d12bf7d3d88049dcffeef1753ceaec961c51d3675c261b0f17f",
+      "exit_code": 0
+    },
+    {
+      "evidence": "v27-nested-equality-contracts.log",
+      "sha256": "cf372ab1ceb0a71a735974e78d3d8fcf5ec3bee8aae9ab8daaa85189b36eacf4",
+      "exit_code": 0
+    }
+  ],
+  "changes": [
+    "Typed semantic equality for original native face producers, native/manual registered protection, reference-person, selection, transfer documents and manual initial stage.",
+    "Repaired affected readers/locks/prepare/validation/plan/physical and manual initial rechecks; function-free data equality retained.",
+    "Actual independent producer restore, populated closure comparisons and substituted key/count/version rejection; unit mutation matrix retains all ordinary fields."
+  ],
+  "audit_inventory": "v27-nested-equality-reflect-inventory.json",
+  "requirements": [
+    {
+      "id": "transitive-native-input-manual-closure-equality-audit",
+      "status": "implemented_and_scoped_checks_passed_full_manual_runtime_open"
+    },
+    {
+      "id": "actual-native-input-five-stage-wire-and-original-restore",
+      "status": "passed_with_explicit_model_and_qualification_doubles"
+    },
+    {
+      "id": "additional-protection-compilation-recovery-and-admission",
+      "status": "open"
+    },
+    {
+      "id": "new-person-result-covering-protection-parent",
+      "status": "open"
+    },
+    {
+      "id": "whole-V27-acceptance",
+      "status": "open"
+    }
+  ],
+  "limitations": [
+    "Equality-only nested/manual-stage wrappers are not accepted manual authority, coverage or parent admission.",
+    "Current wire retains original imported person evidence and intentionally refuses uncovered support; parent remains absent.",
+    "Actual full manual runtime, newly inferred person positive union/parent, GPU/corpus quality, browser/native UI, crash/rollout and whole V20\u2013V32 acceptance remain open.",
+    "Final11 scoped integration checks do not replace current full-module acceptance."
+  ]
+}

@@ -165,6 +165,7 @@ def resample_lens_tiles(profile: LensProfile, rgb: np.ndarray, alpha: np.ndarray
     for top in range(0,height,tile):
         check_active()
         for left in range(0,width,tile):
+            check_active()
             colors=rgb[top:top+tile,left:left+tile];opacity=alpha[top:top+tile,left:left+tile]
             if not np.isfinite(colors).all() or not np.isfinite(opacity).all() or np.any((opacity<0)|(opacity>1)):
                 raise ValueError('LENS_IMAGE_INVALID')

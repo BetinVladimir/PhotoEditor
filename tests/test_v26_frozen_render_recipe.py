@@ -53,3 +53,31 @@ def test_learning_provenance_is_pinned_to_authored_version():
     for patch in (dict(version_id=str(uuid4())),dict(ordinal=5000),dict(analysis_id='00000000-0000-0000-0000-000000000000')):
         altered=deepcopy(value);altered['learning'].update(patch)
         with pytest.raises(ValueError):decode_frozen_render_recipe(canonical_bytes(altered))
+
+
+def test_frozen_background_params_bind_effective_module_and_owned_recipe():
+    from types import SimpleNamespace
+    from photo_worker.v2.render_background import render_frozen_compose_params
+    from photo_worker.contracts.images import MaskRef
+    value=fixture()
+    pin=dict(schema_version=1,portable_asset_id='studio',style_version_id=str(uuid4()),
+        style=value['recipe']['base_style'],source=dict(artifact_id=str(uuid4()),sha256='e'*64),
+        expected_bytes=123,media_type='image/png',suffix='.png',assume_profile=None,
+        work_icc_sha=value['scalars']['icc_lock_sha'])
+    value['background_asset']=pin
+    frozen=decode_frozen_render_recipe(canonical_bytes(value))
+    subject=MaskRef.model_validate_json(canonical_bytes(dict(artifact=dict(artifact_id=str(uuid4()),sha256='f'*64),
+        canvas=dict(width=2,height=2,orientation=1,space_id='work',source_sha256='a'*64),
+        transform_chain=dict(steps=[],hash=canonical_hash({'steps':[]})),selector='subject',confidence=1,
+        protected=False,object_id=None,model_lock_id=None)))
+    style=SimpleNamespace(effective=SimpleNamespace(extensions=SimpleNamespace(
+        background=SimpleNamespace(mode='asset',asset_id='studio'))))
+    params=render_frozen_compose_params(style,frozen,subject,tile_size=256)
+    assert params.image==frozen.recipe.source.source and params.background==frozen.background_asset.source
+    assert params.asset_scale==1 and params.position_x==params.position_y==.5 and params.shadow_opacity==0
+    style.effective.extensions.background.asset_id='other'
+    with pytest.raises(ValueError,match='RENDER_BACKGROUND_PIN_CHANGED'):
+        render_frozen_compose_params(style,frozen,subject)
+    style.effective.extensions.background.asset_id='studio'
+    frozen.background_asset.work_icc_sha='f'*64
+    with pytest.raises(ValueError):render_frozen_compose_params(style,frozen,subject)

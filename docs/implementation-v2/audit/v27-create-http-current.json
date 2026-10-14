@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-08",
+  "module": "V27",
+  "module_accepted": false,
+  "scope": "First ordinary semantic parent admission through listening loopback HTTP server, real Ed25519 bearer verification and photo_auth database session; independent physical PostgreSQL/MinIO closure/quota/effects verification.",
+  "physical": {
+    "passed": 1,
+    "deselected": 16,
+    "seconds": 18.66,
+    "command": "PHOTO_TEST_NATIVE_INFRA=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=workers:src:tests/integration .venv-platform/bin/python -m pytest tests/integration/test_v27_semantic_intent_publication.py -k create-service -q --tb=short"
+  },
+  "packages": {
+    "semanticproposal": "PASS 1.950s",
+    "cmd/photo": "PASS 0.926s"
+  },
+  "source_sha256": {
+    "backend/internal/semanticproposal/create_http_probe_test.go": "647d9dd56316d41041fd026d0b9b75348956b925dc8e7273412a8a92fbe7a7f3",
+    "backend/internal/semanticproposal/create_integration_probe_test.go": "7682f6b3736fcb3be5b6b29a08093652e4214c2fd9c3650504cad3ab219382fe",
+    "backend/internal/semanticproposal/create_deployment.go": "99929f56952f8f7c02bc39ec4b790e2c72d9a7f1d16389cabee6dbf2d6ae4dda",
+    "backend/internal/semanticproposal/project_create_service.go": "ffea3dc690c6d1b2ef632403b97895e51a0d7481f87f94b6fc6d3afa467ba6a0",
+    "backend/internal/semanticproposal/create_service.go": "c1e1219efb4ca3a16e253e0dd30bd5af7fa979f14f7c3dd9dea5b673099b65c5",
+    "backend/internal/httpapi/semantic_propose.go": "80049e3d5f0851ebe664bcf5a920271d97ad7277c689e9a5cad74869e999da60",
+    "backend/internal/httpapi/auth.go": "14b926ba216ce492d74a254c3e9000458a54c9f517eb1f0fa6d9b126cb6d386d",
+    "backend/cmd/photo/semantic_create.go": "62d69416a276837ceaee092566d43ab468a630b8851174d28b7a9329c0beddf2",
+    "backend/cmd/photo/main.go": "ace19e0cc799a4dc31a6a0b57fdcbc64e77719a95ec3ce487e166ec3f9daddf9",
+    "tests/integration/test_v27_semantic_intent_publication.py": "ad29caf219afc922af98c6fd222050842a1de641528a9677c98090d9ff0b8ea9",
+    "tests/integration/v27_create_probe.py": "9ff1803d9293679d0cd27247feb93aa1d4e771be39181a0f8df6c74d1e892a1b"
+  },
+  "remaining": [
+    "actual executable startup and environment-driven builder end-to-end",
+    "native missing-producer public initiation",
+    "real-model/photo/protected/parallax/occlusion acceptance",
+    "current full module security/lifecycle/client/hardware acceptance"
+  ]
+}

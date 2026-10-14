@@ -110,17 +110,26 @@ func (c RenderBatchCoordinator) Prepare(ctx context.Context, batch, project, sna
 		owned[i].SourceRaw = append([]byte(nil), owned[i].SourceRaw...)
 		owned[i].LayerRaw = append([]byte(nil), owned[i].LayerRaw...)
 		owned[i].ProtectionRaw = append([]byte(nil), owned[i].ProtectionRaw...)
+		owned[i].LayerDocuments = append([]RenderLayerDocument(nil), owned[i].LayerDocuments...)
 	}
 	inventories := make([][]v2input.Entry, len(owned))
 	for i, r := range owned {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		entries, err := ResolveRenderInputs(ctx, r.Actor, r.Tenant, r.Binding, r.RecipeRef, r.RecipeRaw, r.SourceRaw, c.Inputs.Resolver)
+		evidence, err := resolveRenderClosureEvidence(ctx, r, c.Inputs.Resolver)
 		if err != nil {
 			return nil, err
 		}
-		inventories[i] = entries
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		owned[i].ClosureDocuments = evidence.Documents
+		owned[i].ClosureOccurrences = evidence.Occurrences
+		inventories[i] = evidence.Entries
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 	plans, err := CompileRenderBatchPlans(batch, project, snapshot, owned, inventories)
 	if err != nil {

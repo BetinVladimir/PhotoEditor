@@ -33,7 +33,7 @@ def prepare_render_pixels(artifacts,inputs,layers,render_base,render_proposal,*,
     if not isinstance(layers,tuple) or tuple(item.layer for item in layers)!=authored:
         raise ValueError('RENDER_PREPARED_LAYER_INVENTORY_CHANGED')
     if not callable(render_base):raise ValueError('RENDER_BASE_PROVIDER_INVALID')
-    geometry={'optical.lens','optical.perspective','optical.panorama','optical.focus_stack'}
+    geometry={'optical.lens','optical.perspective','optical.panorama','optical.focus_stack','image.upscale'}
     if any(layer.enabled and layer.opacity>0 and layer.operation in geometry for layer in authored):
         raise ValueError('RENDER_GEOMETRY_STAGE_REQUIRED')
     if execution_profile is not None:
@@ -56,6 +56,10 @@ def prepare_render_pixels(artifacts,inputs,layers,render_base,render_proposal,*,
                 with compose_render_pixels(source.pixels,base,layers,masks,artifacts.scratch,render_proposal,
                         color=inputs.source.color,max_tile_bytes=max_tile_bytes,tile_size=tile_size,
                         check_active=check_active) as composition:
+                    if composition.pixels.effects:
+                        from .render_effects import RenderCombinedEffects,effect_review_required
+                        effect_evidence=RenderCombinedEffects(effect_evidence,composition.pixels.effects)
+                        effect_review_required(effect_evidence)
                     yield PreparedRender(composition,source.alpha_requires_new_reference,reports,effect_evidence)
                     check_active()
 

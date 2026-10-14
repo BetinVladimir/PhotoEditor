@@ -14,7 +14,10 @@ export function watchRun(reader:RunWatchReader,id:string,signal:AbortSignal,rece
  let latest:RunStatus|undefined,cursor:string|undefined,flight:Promise<void>|undefined,pending=false,reconnectDelay=2000,lastPoll=Date.now();
  const accept=(value:RunStatus)=>{
   if(inactive()||value.id!==id||!/^[1-9][0-9]{0,15}$/.test(value.revision)||BigInt(value.revision)>9007199254740991n)return;
-  if(latest&&BigInt(value.revision)<BigInt(latest.revision))return;
+  if(latest){
+   const incoming=BigInt(value.revision),current=BigInt(latest.revision);
+   if(incoming<current||incoming===current&&terminal.has(latest.status)&&value.status!==latest.status)return;
+  }
   latest=value;lastPoll=Date.now();receive(value);
  };
  const refresh=():Promise<void>=>{

@@ -1,0 +1,29 @@
+{
+  "module_accepted": false,
+  "physical_ordinary": {
+    "passed": 1,
+    "deselected": 15,
+    "seconds": 24.85
+  },
+  "package": {
+    "status": "PASS",
+    "seconds": 1.858
+  },
+  "source_sha256": {
+    "backend/internal/semanticproposal/transfer_target_selection.go": "3dcebf2f65a45413fb3d48e03a066f48773afcead55dc0f9e0be29e2f7f93be8",
+    "backend/internal/semanticproposal/transfer_policy_selection.go": "2dd87ef2a9f8ad34fb31d0f5196878b8d63dca3bd78ce3fc855a7f6488260e33",
+    "backend/internal/semanticproposal/publication_integration_test.go": "30bdd19a5040851120e122d2c8768c4d7e2e73f0bd313f6f3aa2ae41f30411e3",
+    "tests/integration/test_v27_semantic_intent_publication.py": "3c3946a6733b0391abd38817568354329893f7add52e84bd3fe205b6c0db727a"
+  },
+  "scope": "unique canonical root selects exact byte-verified child; multiple roots refuse; final ordinary commit/reconstruction/replay retained",
+  "limitations": [
+    "positive CreateService admission not proven",
+    "configuration loader and HTTP installation incomplete",
+    "full module acceptance not proven"
+  ],
+  "physical_native_bootstrap": {
+    "passed": 1,
+    "deselected": 15,
+    "seconds": 29.77
+  }
+}

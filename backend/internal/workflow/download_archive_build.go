@@ -26,6 +26,7 @@ type downloadArchiveRow struct {
 }
 
 func (s DownloadArchiveContextSource) Load(ctx context.Context, tenant, run uuid.UUID) (DownloadArchiveSpec, error) {
+	if err := ctx.Err(); err != nil { return DownloadArchiveSpec{}, err }
 	if s.DB == nil || tenant == uuid.Nil || run == uuid.Nil {
 		return DownloadArchiveSpec{}, errors.New("invalid archive context source")
 	}
@@ -38,16 +39,20 @@ func (s DownloadArchiveContextSource) Load(ctx context.Context, tenant, run uuid
 	byVolume := map[int][]DownloadArchiveEntry{}
 	seen := map[int64]bool{}
 	for rows.Next() {
+		if err := ctx.Err(); err != nil { return DownloadArchiveSpec{}, err }
 		var r downloadArchiveRow
 		if err = rows.Scan(&r.snapshot, &r.snapshotDigest, &r.volume, &r.kind, &r.ordinal, &r.artifact, &r.sha, &r.bytes, &r.name, &r.producer); err != nil {
 			return DownloadArchiveSpec{}, err
 		}
+        if err := ctx.Err(); err != nil { return DownloadArchiveSpec{}, err }
 		if spec.SnapshotID == uuid.Nil {
 			spec.SnapshotID, spec.SnapshotDigest = r.snapshot, r.snapshotDigest
 		} else if spec.SnapshotID != r.snapshot || spec.SnapshotDigest != r.snapshotDigest {
 			return DownloadArchiveSpec{}, errors.New("archive snapshot changed")
 		}
-		if seen[r.ordinal] || r.ordinal < 0 || r.volume < 1 || (r.kind != "zip" && r.kind != "single") {
+		if len(seen) >= MaxDownloadItems || seen[r.ordinal] || r.ordinal < 0 || r.ordinal >= MaxDownloadItems || r.volume < 1 || r.volume > MaxDownloadItems ||
+            r.snapshot == uuid.Nil || domainDigestInvalid(r.snapshotDigest) || !validExpansionRef(review.ArtifactRef{ID: r.artifact, SHA256: r.sha}) ||
+            r.bytes < 1 || !validArchiveEntryName(r.name) || r.producer == uuid.Nil || (r.kind != "zip" && r.kind != "single") {
 			return DownloadArchiveSpec{}, errors.New("invalid archive context row")
 		}
 		seen[r.ordinal] = true
@@ -58,6 +63,7 @@ func (s DownloadArchiveContextSource) Load(ctx context.Context, tenant, run uuid
 	if err = rows.Err(); err != nil {
 		return DownloadArchiveSpec{}, err
 	}
+	if err := ctx.Err(); err != nil { return DownloadArchiveSpec{}, err }
 	if spec.SnapshotID == uuid.Nil {
 		return DownloadArchiveSpec{}, errors.New("empty archive context")
 	}
@@ -67,6 +73,7 @@ func (s DownloadArchiveContextSource) Load(ctx context.Context, tenant, run uuid
 	}
 	sort.Ints(volumes)
 	for _, number := range volumes {
+        sort.Slice(byVolume[number], func(i, j int) bool { return byVolume[number][i].Ordinal < byVolume[number][j].Ordinal })
 		spec.Volumes = append(spec.Volumes, DownloadArchiveVolume{Number: number, Entries: byVolume[number]})
 	}
 	registry, err := LoadRegistry()
@@ -82,6 +89,7 @@ func (s DownloadArchiveContextSource) Load(ctx context.Context, tenant, run uuid
 type DownloadArchiveTaskRepository struct{ DB artifactjson.RowQuerier }
 
 func (r DownloadArchiveTaskRepository) Materialize(ctx context.Context, tenant, run uuid.UUID, task PreparedTask) (bool, error) {
+	if err := ctx.Err(); err != nil { return false, err }
 	if r.DB == nil || tenant == uuid.Nil || run == uuid.Nil || task.Operation != "archive.build" || !validExpansionRef(task.Params) || len(task.Inputs) < 1 {
 		return false, errors.New("invalid archive task materialization")
 	}
@@ -97,16 +105,22 @@ func (r DownloadArchiveTaskRepository) Materialize(ctx context.Context, tenant, 
 		return false, err
 	}
 	var ok bool
+	if err := ctx.Err(); err != nil { return false, err }
 	err = r.DB.QueryRow(ctx, "SELECT photo.materialize_download_archive_task($1,$2,$3)", tenant, run, raw).Scan(&ok)
-	return ok, err
+	if err != nil { return false, err }
+	if err := ctx.Err(); err != nil { return false, err }
+	return ok, nil
 }
 func (r DownloadArchiveTaskRepository) Seal(ctx context.Context, tenant, run uuid.UUID) (bool, error) {
+	if err := ctx.Err(); err != nil { return false, err }
 	if r.DB == nil || tenant == uuid.Nil || run == uuid.Nil {
 		return false, errors.New("invalid archive seal")
 	}
 	var ok bool
 	err := r.DB.QueryRow(ctx, "SELECT photo.seal_download_archives($1,$2)", tenant, run).Scan(&ok)
-	return ok, err
+	if err != nil { return false, err }
+	if err := ctx.Err(); err != nil { return false, err }
+	return ok, nil
 }
 
 type DownloadArchiveCoordinator struct {

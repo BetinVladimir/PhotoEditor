@@ -1,0 +1,47 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "generated_at": "2026-10-08T13:55:02.338498+00:00",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "source_scope": {
+    "tests/integration/test_v27_automatic_initial_handoff.py": "27fb8f8d0fa82f2f544c11ae27f247181d97b981506fcff12f3664df848ebd07",
+    "tests/integration/test_v27_person_migration_upgrade.py": "39232e46b00239c183ddb56b275c808ac27784936cba28ee333a0f9fc60825bb",
+    "backend/db/migrations/00810_v27_native_initial_pipeline_scheduling.sql": "782b290272915c79731e384a18712f939472aac5ca6f5e7f34558468a4d8d2db",
+    "backend/db/migrations/00911_v27_automatic_initial_handoff.sql": "9d4e9e5e376399002de310b40ae3a561fe9e8b079f92650a216e1c81e4226108",
+    "backend/internal/semanticproposal/native_initial_pipeline_recovery_job.go": "00ad883dc43a13b7798c3c84853cc312f0b100d52edb9bf51dc3cfb35969ee10"
+  },
+  "checks": [
+    {
+      "command": "PHOTO_TEST_NATIVE_INFRA=1 PYTHONPATH=workers:src:tests/integration PYTHONDONTWRITEBYTECODE=1 .venv-platform/bin/python -m pytest tests/integration/test_v27_automatic_initial_handoff.py tests/integration/test_v27_person_migration_upgrade.py tests/platform/test_goose_markers.py -q --tb=short --junitxml=docs/implementation-v2/audit/v27-claim-concurrency-current.xml",
+      "exit_code": 0,
+      "passed": 13,
+      "seconds": 9.66,
+      "evidence": "docs/implementation-v2/audit/v27-claim-concurrency-current.xml",
+      "evidence_sha": "3eaab68ba525f5b213f0fb3a3544ff25f0d5de5a521c0f3ecb27d19ae11715b4"
+    },
+    {
+      "command": "scripts/run-platform.sh go -C backend test ./internal/semanticproposal ./internal/v2input ./internal/review",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "verified": [
+    "An uncommitted scheduler claim locks the original row; another connection skips it within2s without a second token",
+    "After commit a live lease cannot be claimed again",
+    "Expiry produces a distinct replacement token; stale and consumed writers refuse",
+    "Separate interpreter commits a real scheduler claim then os._exit(23); committed lease survives process disappearance",
+    "Another fresh process cannot claim before expiry; fresh process after owner-only elapsed-time simulation obtains replacement token",
+    "Disabled user, revoked session and archived project each prevent claim without mutating recovery metadata; restoration makes the same candidate eligible",
+    "Forward upgrade and handoff refusal/privilege regression preserved"
+  ],
+  "limitations": [
+    "Metadata-only detector fixtures; no model/source bytes/whole Recover claimed by these tests",
+    "Abrupt exit occurs after lease commit, not during Go ProcessOne/inference/object upload/adoption",
+    "No claim of parallel whole Recover, concurrent revocation during handoff, or all crash boundaries",
+    "ProcessOne positive chain has separate scoped evidence; historical results are not treated as whole-module acceptance",
+    "No real GPU/corpus/capacity acceptance or complete V27/V20–V32 status"
+  ]
+}

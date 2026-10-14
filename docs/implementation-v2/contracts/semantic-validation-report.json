@@ -1,6 +1,6 @@
 {
   "scope": "Executable documentation reference rules; not application or PostgreSQL verification",
-  "tests_run": 54,
+  "tests_run": 55,
   "failures": 0,
   "errors": 0,
   "result": "passed",
@@ -51,6 +51,7 @@
     "test_runtime_manifest_sharding",
     "test_runtime_task_scoped_refs_persisted",
     "test_schema_nullable_capture_and_donor",
+    "test_semantic_run_intent_resolution_contract",
     "test_strength_zero_exact",
     "test_training_complete",
     "test_training_lineage_leakage",

@@ -1,0 +1,25 @@
+{
+  "module_accepted": false,
+  "scope": "automatic independent protection selection followed by complete PrepareTransferInputs and retained source/target person coverage; ordinary commit/reconstruction/replay regression retained",
+  "physical": {
+    "passed": 1,
+    "deselected": 15,
+    "seconds": 21.39
+  },
+  "package": {
+    "status": "PASS",
+    "seconds": 1.931,
+    "default_fixture_skips_not_physical_evidence": true
+  },
+  "source_sha256": {
+    "backend/internal/semanticproposal/publication_integration_test.go": "7e12543f2784c3ba965ee7e8a0f8b351399b70a1e27abd041b9a21497512a0e3",
+    "backend/internal/semanticproposal/transfer_target_selection.go": "3dcebf2f65a45413fb3d48e03a066f48773afcead55dc0f9e0be29e2f7f93be8",
+    "backend/internal/semanticproposal/transfer_policy_selection.go": "2dd87ef2a9f8ad34fb31d0f5196878b8d63dca3bd78ce3fc855a7f6488260e33",
+    "backend/internal/semanticproposal/create_service.go": "207bc867c9f0ee8b072b02a50837a44064286bb34c6ecb7adfdddf1b25413670"
+  },
+  "remaining": [
+    "full positive CreateService committed admission",
+    "server configuration selection and HTTP installation",
+    "whole-module acceptance"
+  ]
+}

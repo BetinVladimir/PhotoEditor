@@ -11,9 +11,10 @@ from photo_worker.contracts.face import FaceBoxes,FaceDetectParams
 from photo_worker.contracts.images import FaceBox,NormalizedRect,WorkingImage
 from photo_worker.models.install import ModelError
 from photo_worker.models.pool import ModelPool
-from photo_worker.runtime.arrays import read_array
+from photo_worker.runtime.arrays import read_array,read_alpha_array
 from photo_worker.runtime.artifacts import ArtifactConfig,TaskArtifacts
 from photo_worker.runtime.executor import ExecutionContext,Operation,OperationFailure,OperationResult
+from .resources import required_face_analysis_ram
 
 
 class SFDEngine(Protocol):
@@ -46,6 +47,25 @@ def _nms(candidates:np.ndarray,threshold:float,maximum:int):
     return value[keep],len(keep)>=maximum and len(order)>1
 
 
+def _validated_candidates(raw:object,width:int,height:int)->np.ndarray:
+    """Reject the entire native SFD response before score filtering."""
+    if (not isinstance(raw,np.ndarray) or raw.ndim!=2 or
+            raw.shape[1]!=5 or len(raw)>100000):
+        raise ValueError('MODEL_OUTPUT_INVALID')
+    try:
+        value=np.asarray(raw,dtype=np.float32)
+    except (TypeError,ValueError,OverflowError):
+        raise ValueError('MODEL_OUTPUT_INVALID') from None
+    if (value.ndim!=2 or value.shape[1]!=5 or len(value)>100000 or
+            not np.isfinite(value).all() or np.any(value[:,4]<0) or
+            np.any(value[:,4]>1) or np.any(value[:,:2]<0) or
+            np.any(value[:,2]>width) or np.any(value[:,3]>height) or
+            np.any(value[:,2]<=value[:,0]) or
+            np.any(value[:,3]<=value[:,1])):
+        raise ValueError('MODEL_OUTPUT_INVALID')
+    return value
+
+
 def execute(ctx:ExecutionContext,artifacts:TaskArtifacts,pool:ModelPool,backend:str)->OperationResult:
     profile=ctx.lease.execution_profile;estimate=profile.get('resource_estimate');ram=estimate.get('ram_bytes') if isinstance(estimate,dict) else None
     if profile.get('backend')!=backend or backend not in ('cpu','cuda','mps') or type(ram) is not int or ram<1073741824:raise OperationFailure('CONFIG_INVALID')
@@ -53,9 +73,12 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts,pool:ModelPool,backend:
         params=artifacts.params(FaceDetectParams)
         if params.model_lock_id!=pool.lock.lock_id:raise ModelError('MODEL_LOCK_MISMATCH')
         image=artifacts.contract(params.image,WorkingImage)
-        if image.dtype!='float32' or image.color.profile_id!='work_rec2020_gamma24_v1':raise ValueError('FACE_IMAGE_INVALID')
-        if image.pixels not in ctx.lease.command.inputs or image.alpha is not None and image.alpha not in ctx.lease.command.inputs:raise ValueError('FACE_INPUT_UNDECLARED')
+        if (image.dtype!='float32' or image.color.profile_id!='work_rec2020_gamma24_v1'
+                or image.color.encoding!='gamma24' or image.canvas.width*image.canvas.height>200000000):raise ValueError('FACE_IMAGE_INVALID')
+        artifacts.require_declared_input(image.pixels)
+        if image.alpha is not None:artifacts.require_declared_input(image.alpha)
         h,w=image.canvas.height,image.canvas.width
+        if ram<required_face_analysis_ram(h,w,image.alpha is not None):raise OperationFailure('RESOURCE_OOM')
     except ModelError as exc:raise OperationFailure(str(exc)) from exc
     except ValueError as exc:raise OperationFailure('INPUT_INVALID') from exc
     ctx.progress(0,3)
@@ -66,16 +89,16 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts,pool:ModelPool,backend:
             alpha=None
             if image.alpha is not None:
                 local=stack.enter_context(artifacts.input(image.alpha,suffix='.npy'))
-                alpha=stack.enter_context(read_array(local.path,(h,w),'uint16',ctx.check_active))
+                alpha=stack.enter_context(read_alpha_array(local.path,(h,w),ctx.check_active))
             srgb,clipped=work_to_model(rgb)
             if alpha is not None:srgb=np.where((alpha>0)[...,None],srgb,0).astype(np.float32)
             alpha_excluded=float(np.count_nonzero(alpha==0)/(h*w)) if alpha is not None else 0.
             preview=_preview(srgb,params.long_side);ph,pw=preview.shape[:2]
             model_input=preview[...,::-1]*np.float32(255)-SFD_MEAN;ctx.progress(1,3)
-            with pool.acquire(params.model_id,backend) as engine:candidates=np.asarray(engine.infer(model_input),np.float32)
-            if candidates.ndim!=2 or candidates.shape[1]!=5:raise ValueError('MODEL_OUTPUT_INVALID')
+            with pool.acquire(params.model_id,backend) as engine:raw_candidates=engine.infer(model_input)
+            ctx.check_active()
+            candidates=_validated_candidates(raw_candidates,pw,ph)
             candidates=candidates[candidates[:,4]>=params.score_threshold]
-            if len(candidates) and (np.any(candidates[:,:2]<0) or np.any(candidates[:,2]>pw) or np.any(candidates[:,3]>ph) or np.any(candidates[:,2]<=candidates[:,0]) or np.any(candidates[:,3]<=candidates[:,1])):raise ValueError('MODEL_OUTPUT_INVALID')
             kept,truncated=_nms(candidates,params.nms_iou,params.max_faces)
     except ModelError as exc:raise OperationFailure(str(exc)) from exc
     except ValueError as exc:raise OperationFailure('MODEL_OUTPUT_INVALID') from exc
@@ -92,7 +115,7 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts,pool:ModelPool,backend:
     if np.count_nonzero(clipped):warnings.append('source_srgb_clipped')
     result=FaceBoxes(image=params.image,faces=faces,model_id=params.model_id,model_lock_id=params.model_lock_id,backend=backend,
         preprocessing_id=params.preprocessing_id,preview_width=pw,preview_height=ph,candidate_count=len(candidates),accepted_count=len(faces),alpha_excluded_fraction=alpha_excluded,warnings=warnings)
-    ref=artifacts.stage_contract(result,'face_boxes');ctx.progress(3,3)
+    ctx.check_active();ref=artifacts.stage_contract(result,'face_boxes');ctx.progress(3,3)
     return OperationResult(outputs=[ref],review_required=bool(warnings))
 
 

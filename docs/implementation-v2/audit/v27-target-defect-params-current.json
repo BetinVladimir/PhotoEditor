@@ -1,0 +1,62 @@
+{
+  "generated_at": "2026-10-08T17:57:07.762320+00:00",
+  "status": "implementing",
+  "module": "V27",
+  "package_id": "V27",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 64.378
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/v2input",
+      "photoeditor/backend/internal/v2draft",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "Dedicated target person/landmarks/skin physical preparation; original public intent/reference preserved",
+    "Exact qualified person pixels projected as permanent protection without altering processing",
+    "Canonical Params published under namespace UUID and accepted target version fencing/quota",
+    "Repeat publication and physical Params read; six substituted evidence classes rejected; revoked/restored session",
+    "Independent SQL/S3 verifier confirms target refs, canonical completed producers, exact namespace ownership, no defect task activation"
+  ],
+  "limitations": [
+    "Target defect task/inventory/qualification/admission/worker/result/finish/recovery remain required",
+    "No fresh-process Recover or whole V27 acceptance",
+    "Upstream ML doubles; no GPU/photo-quality qualification",
+    "No SQL changes or production migration"
+  ],
+  "sha256": {
+    "backend/internal/semanticproposal/native_target_defect_preparation.go": "6b42d04c2c49b3d4b764e3595a9b8b458b1130e01a95314faa8c4a538eabb54a",
+    "backend/internal/semanticproposal/native_target_defect_wire_probe_test.go": "1ad4f705d4d83fc632add87c6c07e690c23c70be8ca52f969e988ce837b4cd58",
+    "backend/internal/semanticproposal/native_target_skin_wire_probe_test.go": "74f5306386b972ae898ef41512393954eccb9e8de7a9fd4d9bcee25873e9a7fa",
+    "tests/integration/test_v27_semantic_intent_publication.py": "ea77fbc7d3528d5c0b1fb797d090e20a55d115004f996b338419c56512744fb4",
+    "tests/integration/v27_face_wire_probe.py": "4225c9f470ed9fc820ced2a748dac38bdab43b7ebf3babefe1a114aba257e320",
+    "docs/implementation-v2/15-execution-contracts.md": "45cb4d4d1feb397ca29912df3f3d89f5f6c92812256b9335b54bd5aed1b419ed",
+    "docs/implementation-v2/audit/v27-target-defect-params-wire-current.xml": "c4ccbc1d9e8eaef2b8f60f59d6771c4be737dbe58cc55f1cb155007c46c6ff94",
+    "docs/implementation-v2/audit/v27-target-defect-params-go-current.jsonl": "f7b5f546d197c3a22115963e65c106ae1fded9d354aec5d9e176fa6e1c96517f"
+  },
+  "requirements": [
+    {
+      "id": "target-defect-physical-params",
+      "status": "verified",
+      "evidence": "docs/implementation-v2/audit/v27-target-defect-params-wire-current.xml"
+    },
+    {
+      "id": "target-defect-execution",
+      "status": "incomplete",
+      "evidence": null
+    },
+    {
+      "id": "V27-full-module-acceptance",
+      "status": "incomplete",
+      "evidence": null
+    }
+  ]
+}

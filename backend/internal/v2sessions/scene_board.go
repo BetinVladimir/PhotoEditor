@@ -14,6 +14,7 @@ import (
 
 type SceneBoardFrame struct {
 	Ordinal   int       `json:"ordinal"`
+	AssetID   uuid.UUID `json:"asset_id"`
 	VersionID uuid.UUID `json:"version_id"`
 	SourceSHA string    `json:"source_sha"`
 }
@@ -67,7 +68,7 @@ func (s Service) GetSceneBoard(ctx context.Context, who auth.Identity, tid, anal
 		if count < 1 || count > 5000 {
 			return domain.NewError("ANALYSIS_CONFLICT", 409)
 		}
-		rows, err := tx.Query(ctx, `SELECT ordinal,asset_version_id,sha256 FROM photo.snapshot_items WHERE tenant_id=$1 AND snapshot_id=$2 ORDER BY ordinal`, tid, out.SnapshotID)
+		rows, err := tx.Query(ctx, `SELECT si.ordinal,si.asset_version_id,si.sha256,v.asset_id FROM photo.snapshot_items si JOIN photo.asset_versions v ON v.tenant_id=si.tenant_id AND v.id=si.asset_version_id JOIN photo.assets a ON a.tenant_id=v.tenant_id AND a.id=v.asset_id AND a.project_id=$3 WHERE si.tenant_id=$1 AND si.snapshot_id=$2 ORDER BY si.ordinal`, tid, out.SnapshotID, projectID)
 		if err != nil {
 			return err
 		}
@@ -75,10 +76,10 @@ func (s Service) GetSceneBoard(ctx context.Context, who auth.Identity, tid, anal
 		seen := map[uuid.UUID]bool{}
 		for rows.Next() {
 			var frame SceneBoardFrame
-			if err = rows.Scan(&frame.Ordinal, &frame.VersionID, &frame.SourceSHA); err != nil {
+			if err = rows.Scan(&frame.Ordinal, &frame.VersionID, &frame.SourceSHA, &frame.AssetID); err != nil {
 				return err
 			}
-			if frame.Ordinal != len(out.Frames) || frame.VersionID == uuid.Nil || seen[frame.VersionID] || !digestPattern.MatchString(frame.SourceSHA) || len(out.Frames) >= count {
+			if frame.Ordinal != len(out.Frames) || frame.VersionID == uuid.Nil || frame.AssetID == uuid.Nil || seen[frame.VersionID] || !digestPattern.MatchString(frame.SourceSHA) || len(out.Frames) >= count {
 				return domain.NewError("ANALYSIS_CONFLICT", 409)
 			}
 			seen[frame.VersionID] = true

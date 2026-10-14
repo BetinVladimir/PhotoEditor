@@ -1,0 +1,36 @@
+// @vitest-environment jsdom
+import React from 'react';
+import {readFileSync} from 'node:fs';
+import {render,screen,waitFor,cleanup,fireEvent} from '@testing-library/react';
+import {it,expect,vi,afterEach} from 'vitest';
+import {decodeSemanticTargets,decodeSemanticReviewStatus,decodeSemanticReviewClosed,decodeSemanticChildStatus} from '@photoeditor/api-client';
+vi.mock('react-native',async()=>import('react-native-web'));
+import {SemanticTargetScreen} from './semantic-target-screen';
+import {SemanticChildProgress} from './semantic-child-progress';
+const captured=process.env.PHOTO_TEST_V27_TARGETS_RESPONSE_FILE;
+afterEach(cleanup);
+it.skipIf(!captured)('renders the actual completed Apply target HTTP projection',async()=>{
+ const fixture=JSON.parse(readFileSync(captured!,'utf8')) as {tenant:string;intent:string;response:unknown;review_status:unknown;close_response:unknown;child_status:unknown};
+ const page=decodeSemanticTargets(fixture.response,fixture.tenant,fixture.intent);
+ const semanticTargets=vi.fn().mockResolvedValue(page);
+ const state=decodeSemanticReviewStatus(fixture.review_status),closed=decodeSemanticReviewClosed(fixture.close_response);
+ const semanticReviewStatus=vi.fn().mockResolvedValue(state),closeSemanticReview=vi.fn().mockResolvedValue(closed);
+ render(<SemanticTargetScreen client={{semanticTargets,semanticReviewStatus,closeSemanticReview}} tenant={fixture.tenant} intent={fixture.intent}/>);
+ await waitFor(()=>expect(screen.getByText('Applied')).toBeTruthy());
+ expect(screen.getByText('Photo '+page.items[0].data.asset_version_id.slice(0,8))).toBeTruthy();
+ expect(semanticTargets.mock.calls[0][0]).toBe(fixture.tenant);
+ expect(semanticTargets.mock.calls[0][1]).toBe(fixture.intent);
+ expect(screen.queryByText(/Unable to load/)).toBeNull();
+ await waitFor(()=>expect(screen.getByText('Close review')).toBeTruthy());
+ fireEvent.click(screen.getByText('Close review'));
+ await waitFor(()=>expect(screen.getByText(/Review closed/)).toBeTruthy());
+ expect(closeSemanticReview.mock.calls[0].slice(0,3)).toEqual([fixture.tenant,fixture.intent,{expected_revision:state.revision,plan_sha:state.plan_sha}]);
+ const child=page.items[0].data.child_run_id;
+ expect(child).toBeTruthy();
+ const childStatus=decodeSemanticChildStatus(fixture.child_status,child!);
+ const semanticChildStatus=vi.fn().mockResolvedValue(childStatus),onTerminal=vi.fn();
+ render(<SemanticChildProgress client={{semanticChildStatus}} tenant={fixture.tenant} run={child!} onTerminal={onTerminal}/>);
+ await waitFor(()=>expect(screen.getByText('Processing: Completed · 100%')).toBeTruthy());
+ expect(onTerminal).toHaveBeenCalledOnce();
+ expect(semanticChildStatus.mock.calls[0].slice(0,2)).toEqual([fixture.tenant,child]);
+});

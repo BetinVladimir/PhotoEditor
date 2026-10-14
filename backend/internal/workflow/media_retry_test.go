@@ -144,3 +144,41 @@ func TestMediaRetryCoordinatorReleasesLeaseOnObjectFailure(t *testing.T) {
 		t.Fatal(done, err, p.released, p.sealed)
 	}
 }
+
+func TestMediaRetryPresentationResourcesCoverWorkerAdmission(t *testing.T) {
+	for _, alpha := range []bool{false, true} {
+		image := review.WorkingImage{Pixels: review.ArtifactRef{ID: uuid.New(), SHA256: strings.Repeat("a", 64)}, DType: "float32", Canvas: review.Canvas{Width: 64, Height: 32}}
+		if alpha {
+			ref := review.ArtifactRef{ID: uuid.New(), SHA256: strings.Repeat("b", 64)}
+			image.Alpha = &ref
+		}
+		master := MediaMaster{Artifact: review.ArtifactRef{ID: uuid.New(), SHA256: strings.Repeat("c", 64)}, Working: &image}
+		doc := MediaRetryDocument{ID: uuid.New(), EventID: uuid.New(), AssetVersionID: uuid.New(), Variant: "preview1600", Operation: "media.preview", Inputs: workingInputs(master.Artifact, image)}
+		task, err := PrepareMediaRetryTask(PublishedMediaRetry{Document: doc, Params: review.ArtifactRef{ID: uuid.New(), SHA256: strings.Repeat("d", 64)}}, master)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var profile struct {
+			Resources ResourceEstimate `json:"resource_estimate"`
+		}
+		if err = json.Unmarshal(task.ExecutionProfile, &profile); err != nil {
+			t.Fatal(err)
+		}
+		// Independent small-canvas worker formula: source transfer + target buffers +128MiB.
+		sourceBytes := int64(64 * 32 * 24)
+		if alpha {
+			sourceBytes = 64 * 32 * 96
+		}
+		required := sourceBytes + 64*32*96 + 128*1024*1024
+		minimumScratch := int64(64*1024*1024 + 64*32*12)
+		if alpha {
+			minimumScratch += 64 * 32 * 4
+		}
+		if profile.Resources.ScratchBytes < minimumScratch {
+			t.Fatal("scratch omits downloaded source arrays")
+		}
+		if profile.Resources.RAMBytes < required {
+			t.Fatal("profile cannot pass worker memory admission", profile.Resources.RAMBytes, required)
+		}
+	}
+}

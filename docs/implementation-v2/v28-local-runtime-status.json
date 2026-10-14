@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-07",
+  "package": "V28",
+  "status": "in_progress",
+  "production_ready": false,
+  "implemented_local_operations": [
+    "portrait.hair",
+    "portrait.clothing"
+  ],
+  "verified": {
+    "backend_command": "go test ./...",
+    "backend_result": "PASS; conditional physical integration fixtures are not proven by this run",
+    "worker_result": "151 passed",
+    "worker_scope": "portrait/manual-mask/region-runtime/optical-alpha regression subset",
+    "latest_backend_increment": "v2portrait/gateway/v2draft/v2input Go tests PASS; physical worker/gateway ACL/wire test explicitly SKIP without PHOTO_TEST_DATABASE_URL",
+    "latest_worker_increment": "120 passed: local portrait/manual/lease/runtime regression subset; SQL report revocation acceptance not executed"
+  },
+  "migrations": {
+    "range": "00822-00841",
+    "applied_by_this_work": false,
+    "physical_postgresql_verification": false
+  },
+  "remaining": [
+    "physical acceptance of V28 draft owner, scoped Params publication, task staging and SQL graph registration authority",
+    "physical verification and production installation of scoped V28 SQL catalog and worker canonical producer-lineage transport",
+    "production graph installation and client API/UI path",
+    "output adoption, orphan Params/output GC and tenant purge integration",
+    "physical PostgreSQL/object-store denied-role, cross-tenant, cancellation and race acceptance",
+    "target RTX3060/Ryzen5600/32GB runtime and visual/memory qualification",
+    "remaining V28 operations including portrait.open_eyes and portrait.glare"
+  ],
+  "completion_claim": "Component tests and builds only; V28 and full V20–V32 goal remain incomplete.",
+  "implemented_backend_bridge": "Frozen V28 hair/clothing DraftTask, deterministic input digest and retry-owned input closure GraphTask transport; no durable SQL owner or production registration yet",
+  "engineering_completion_estimate": {
+    "percent": 55,
+    "range": [
+      50,
+      60
+    ],
+    "scope": "overall V20–V32",
+    "method": "engineering judgement; not a requirement acceptance metric"
+  },
+  "implemented_worker_lineage": "SQLManualPairAuthority + TaskDatabase transport + forward-only 00830 canonical producer locator; mandatory live attempt gate, pinned original Params read and repeated origin/vector scope query",
+  "implemented_backend_recovery": "Canonical saved compiler intent, exact reconstruction and RestoreVerifiedLocalPortraitTask with current scoped occurrence traversal and exact inventory equality; durable SQL owner/fence still required",
+  "implemented_sql_resource_gate": "00831 pure exact resource/profile predicates, shared-fixture physical PostgreSQL parity integration test prepared",
+  "implemented_prepublication_intent": "CompileLocalPortraitIntent performs current manual scope preflight without publication; FreezePublishedLocalPortraitIntent binds actual published Params/fresh evidence to saved compiler intent",
+  "implemented_owner_request": "CompileLocalPortraitOwnerRequest canonical JCS/SHA envelope binds tenant/project/snapshot/actor/session/run/workflow/ordinal/source dimensions/manual root/original Params/pixels/optional vectors and checked intent; SQL persistence not implemented",
+  "implemented_owner_scope": "00832 scheduler-only prepublication request scope + bounded SQLLocalPortraitOwnerScope.Check; durable creation/locked recheck not implemented",
+  "implemented_owner_draft": "00833 atomic intent/run/workflow/quota draft begin plus bounded scheduler Go adapter; unapplied and physically unverified, no task/publication/dispatch activation",
+  "implemented_params_publication": "00834 saved-intent reserve/complete SQL; explicit LocalPortrait scope routing and PublishLocalPortraitOwnerParams adapter; physical acceptance pending",
+  "implemented_task_stage": "00835 exact saved final plan + ready scoped Params + independently reconstructed inventory digest + blocked task insert; scheduler Go Stage adapter; unapplied/unverified SQL",
+  "implemented_transport": "00836 exact staged local transport scope preserves previous V2/semantic guards; PublishStagedLocalPortraitInputs stages before external scoped chunk/manifest IO; no final registration/activation yet",
+  "implemented_input_registration": "00837 exact staged batch/registered-inventory/direct-root/count/entries-SHA wrappers around V2 registration and task-input seal; physical SQL unverified",
+  "implemented_runtime_qualification": "00838 current trusted DBA-policy/imported-report/lifecycle locks, exact CPU runtime pin, ambiguous-policy rejection; transaction-bound Go LockLocalRuntimeQualification; no reports manufactured/imported",
+  "implemented_graph_admission": "00839 final V28 one-task/inventory/closure/trusted runtime qualification seal guard with persisted policy/report/device/dataset pin; bounded scheduler Go Admit reconstructs compiler-owned cursor; physical acceptance pending",
+  "implemented_worker_qualification": "00840 live lease gate requires exact frozen policy SHA/report/model/runtime/device/dataset/issuer pins and current trusted report; revoked prior gate direct worker execute",
+  "implemented_output_qualification": "00841 gateway output authorization and running canonical-success commit repeat frozen qualification under acceptance transaction; existing succeeded-result replay preserved",
+  "qualification_fingerprint_fix": "Dedicated v28_local_policy_sha supports local CPU operations and optional empty calibration refs; no semantic.transfer/CUDA-only fingerprint dependency",
+  "current_review_2026_10_09": {
+    "evidence": "audit/v28-local-installed-current.json",
+    "migration_head": "00974",
+    "physical_installed_contracts": "4PASS, zero outer/inner skips",
+    "coordinator_recovery_present": true,
+    "positive_owner_execution_acceptance": false,
+    "whole_module_accepted": false,
+    "note": "Prior field-level limitations are historical and not a current absence inventory; coordinator/recovery/Admit exist in current code."
+  }
+}

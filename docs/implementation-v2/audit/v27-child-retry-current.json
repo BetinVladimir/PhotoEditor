@@ -1,0 +1,253 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "Semantic child shared status explicit manual retry",
+  "whole_module_accepted": false,
+  "migration_head": "00974",
+  "production_code_changed": true,
+  "frontend_changed": true,
+  "backend_worker_migrations_changed": false,
+  "production_migrations_applied": false,
+  "source_manifest": "v27-child-retry-source-current.json",
+  "source_manifest_sha256": "a17d68563d64b92316eb1ee8e8ce3fe3bb107401a5212cbc0d2d788b410bcdd0",
+  "source_files": 4850,
+  "changed_since_gc_source": [
+    "apps/photographer/src/semantic-child-channel.test.ts",
+    "apps/photographer/src/semantic-child-channel.ts",
+    "apps/photographer/src/semantic-child-progress.test.tsx",
+    "apps/photographer/src/semantic-child-progress.tsx",
+    "docs/implementation-v2/15-execution-contracts.md",
+    "docs/implementation-v2/runtime-verification.md"
+  ],
+  "locales_source_sha256": {
+    "locales/bg/common.json": "644056f1d5b5d7fb5f7c8efdf4a6c110ec9a4d2cdeca4660e36922e98cbb01a3",
+    "locales/en/common.json": "dace976f062e544eaebcc5ab677359b4cbb399db87bb1646e6def4ca64ce5b1c",
+    "locales/ru/common.json": "b9209ea9b830dca5f713ff3fb8fff4217ad049a17fb47f31a1306cc9cc6ae9f3"
+  },
+  "checks": {
+    "photographer": {
+      "passed": 451,
+      "skipped": 7,
+      "failed": 0,
+      "evidence": "v27-child-retry-photographer-current.json"
+    },
+    "typecheck": "passed",
+    "producer_backed_bootstrap": {
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "102.807",
+      "evidence": "v27-child-retry-live-client-current.xml",
+      "children": [
+        {
+          "outer": "test_leased_qualification_reads_old_version_and_rechecks_revocation[fresh-exposure-bootstrap]",
+          "gate": "apply_sdk-vitest",
+          "cases": [
+            "submits the real native HTTP Apply request and decodes its admitted child"
+          ],
+          "passed": 1,
+          "skipped": 0
+        },
+        {
+          "outer": "test_leased_qualification_reads_old_version_and_rechecks_revocation[fresh-exposure-bootstrap]",
+          "gate": "apply_ui-vitest",
+          "cases": [
+            "submits a decision from actual proposed review HTTP projections"
+          ],
+          "passed": 1,
+          "skipped": 0
+        },
+        {
+          "outer": "test_leased_qualification_reads_old_version_and_rechecks_revocation[fresh-exposure-bootstrap]",
+          "gate": "sdk-vitest",
+          "cases": [
+            "decodes the completed target HTTP response from the real Apply fixture"
+          ],
+          "passed": 1,
+          "skipped": 0
+        },
+        {
+          "outer": "test_leased_qualification_reads_old_version_and_rechecks_revocation[fresh-exposure-bootstrap]",
+          "gate": "ui-vitest",
+          "cases": [
+            "renders the actual completed Apply target HTTP projection"
+          ],
+          "passed": 1,
+          "skipped": 0
+        },
+        {
+          "outer": "test_leased_qualification_reads_old_version_and_rechecks_revocation[fresh-exposure-bootstrap]",
+          "gate": "output_sdk-vitest",
+          "cases": [
+            "decodes real accepted Apply preview HTTP outputs"
+          ],
+          "passed": 1,
+          "skipped": 0
+        },
+        {
+          "outer": "test_leased_qualification_reads_old_version_and_rechecks_revocation[fresh-exposure-bootstrap]",
+          "gate": "output_ui-vitest",
+          "cases": [
+            "renders an accepted preview from the real output response"
+          ],
+          "passed": 1,
+          "skipped": 0
+        },
+        {
+          "outer": "test_leased_qualification_reads_old_version_and_rechecks_revocation[fresh-exposure-bootstrap-alpha]",
+          "gate": "apply_sdk-vitest",
+          "cases": [
+            "submits the real native HTTP Apply request and decodes its admitted child"
+          ],
+          "passed": 1,
+          "skipped": 0
+        },
+        {
+          "outer": "test_leased_qualification_reads_old_version_and_rechecks_revocation[fresh-exposure-bootstrap-alpha]",
+          "gate": "apply_ui-vitest",
+          "cases": [
+            "submits a decision from actual proposed review HTTP projections"
+          ],
+          "passed": 1,
+          "skipped": 0
+        },
+        {
+          "outer": "test_leased_qualification_reads_old_version_and_rechecks_revocation[fresh-exposure-bootstrap-alpha]",
+          "gate": "sdk-vitest",
+          "cases": [
+            "decodes the completed target HTTP response from the real Apply fixture"
+          ],
+          "passed": 1,
+          "skipped": 0
+        },
+        {
+          "outer": "test_leased_qualification_reads_old_version_and_rechecks_revocation[fresh-exposure-bootstrap-alpha]",
+          "gate": "ui-vitest",
+          "cases": [
+            "renders the actual completed Apply target HTTP projection"
+          ],
+          "passed": 1,
+          "skipped": 0
+        },
+        {
+          "outer": "test_leased_qualification_reads_old_version_and_rechecks_revocation[fresh-exposure-bootstrap-alpha]",
+          "gate": "output_sdk-vitest",
+          "cases": [
+            "decodes real accepted Apply preview HTTP outputs"
+          ],
+          "passed": 1,
+          "skipped": 0
+        },
+        {
+          "outer": "test_leased_qualification_reads_old_version_and_rechecks_revocation[fresh-exposure-bootstrap-alpha]",
+          "gate": "output_ui-vitest",
+          "cases": [
+            "renders an accepted preview from the real output response"
+          ],
+          "passed": 1,
+          "skipped": 0
+        },
+        {
+          "outer": "test_leased_qualification_reads_old_version_and_rechecks_revocation[fresh-exposure-bootstrap-alpha-float32]",
+          "gate": "apply_sdk-vitest",
+          "cases": [
+            "submits the real native HTTP Apply request and decodes its admitted child"
+          ],
+          "passed": 1,
+          "skipped": 0
+        },
+        {
+          "outer": "test_leased_qualification_reads_old_version_and_rechecks_revocation[fresh-exposure-bootstrap-alpha-float32]",
+          "gate": "apply_ui-vitest",
+          "cases": [
+            "submits a decision from actual proposed review HTTP projections"
+          ],
+          "passed": 1,
+          "skipped": 0
+        },
+        {
+          "outer": "test_leased_qualification_reads_old_version_and_rechecks_revocation[fresh-exposure-bootstrap-alpha-float32]",
+          "gate": "sdk-vitest",
+          "cases": [
+            "decodes the completed target HTTP response from the real Apply fixture"
+          ],
+          "passed": 1,
+          "skipped": 0
+        },
+        {
+          "outer": "test_leased_qualification_reads_old_version_and_rechecks_revocation[fresh-exposure-bootstrap-alpha-float32]",
+          "gate": "ui-vitest",
+          "cases": [
+            "renders the actual completed Apply target HTTP projection"
+          ],
+          "passed": 1,
+          "skipped": 0
+        },
+        {
+          "outer": "test_leased_qualification_reads_old_version_and_rechecks_revocation[fresh-exposure-bootstrap-alpha-float32]",
+          "gate": "output_sdk-vitest",
+          "cases": [
+            "decodes real accepted Apply preview HTTP outputs"
+          ],
+          "passed": 1,
+          "skipped": 0
+        },
+        {
+          "outer": "test_leased_qualification_reads_old_version_and_rechecks_revocation[fresh-exposure-bootstrap-alpha-float32]",
+          "gate": "output_ui-vitest",
+          "cases": [
+            "renders an accepted preview from the real output response"
+          ],
+          "passed": 1,
+          "skipped": 0
+        }
+      ],
+      "child_passed": 18,
+      "child_skipped": 0
+    },
+    "docs": {
+      "semantic_tests": 55,
+      "static_checks": 2267,
+      "deterministic_regeneration": "passed"
+    }
+  },
+  "imaging_preservation": {
+    "files": 544,
+    "changed": 0
+  },
+  "backend_retry_success_matrix": {
+    "session_id": 57692,
+    "status": "running",
+    "expected_cases": 6,
+    "accepted": false,
+    "backend_worker_test_sources_unchanged_during_ui_work": true,
+    "last_observed_at": "2026-10-09T07:15:35.329227+00:00"
+  },
+  "inventory": {
+    "modules": 13,
+    "screens": 28,
+    "component_files": 72,
+    "state_candidates": 638,
+    "api_declarations": 317,
+    "static_only": true
+  },
+  "evidence_sha256": {
+    "v27-child-retry-photographer-current.json": "ad655f4d3b49b049ca1366de63f0d2fb26678c9c05bbc73b792bc21efb5e11f3",
+    "v27-child-retry-live-client-current.xml": "9d6abe70ca9e8919716acd2ba01cd69e1d4c38d39f135cccdfc720c851473da1",
+    "work/v27-child-retry-typecheck-current.log": "035d8f1a06400a0c9cf49779b441baeb539bf5dde2495c3717d7ea900e5cbd69",
+    "work/v27-child-retry-docs-current.log": "be4e4a7da5d3f38833ffd09769f5d99ac3b57d7480cdd286bfd431b5c9c80343"
+  },
+  "diagnostics": [
+    "Initial edit attempted from app cwd, changed no files; old unit run is superseded by final full451PASS/7SKIP.",
+    "TypeScript caught an over-narrow test callback type; replaced it with SemanticChildStatus and repeated full client/typecheck successfully."
+  ],
+  "limitations": [
+    "No automatic retry of denied/failed reads; explicit action always makes a new server-authorized read.",
+    "Unit/DOM tests and producer-backed HTTP/worker composition are not actual full browser/native acceptance.",
+    "Seven fixture-dependent plain Vitest cases remain skipped in that invocation; producer-backed semantic cases are separate evidence.",
+    "Backend six-operation retry-to-success process still running; no full six-case PASS claimed.",
+    "No GPU/photo-quality, independent qualification, OOM/fallback, restart/redelivery, admitted-result GC retirement or5000-target acceptance.",
+    "Whole V27 and V20-V32 remain unaccepted."
+  ]
+}

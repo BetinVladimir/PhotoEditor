@@ -26,7 +26,17 @@ class Runner:
             except APIError as error:
                 if error.status in (401, 403):
                     raise RuntimeError("device authorization unavailable; operator action required") from None
-                if error.status == 429 or error.status >= 500:
+                if error.status == 409 and error.code == "CAPTURE_BEGIN_RECONCILIATION_REQUIRED":
+                    journal.hold_for_reconciliation(entry.device_id, entry.sequence,
+                                                    self.clock() + 300)
+                    processed += 1
+                    continue
+                if error.status == 503 and error.code == "QUALIFICATION_UNAVAILABLE":
+                    journal.hold_for_qualification(entry.device_id, entry.sequence,
+                                                   self.clock() + 300)
+                    processed += 1
+                    continue
+                if error.status in (408, 425, 429) or error.status >= 500:
                     self._retry(entry, "api_retry")
                 else:
                     self._fail(entry, "api_rejected")

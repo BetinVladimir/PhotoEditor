@@ -1,0 +1,75 @@
+{
+  "recorded_at": "2026-10-08T11:03:15.801930+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "source_manifest": "v27-defect-runtime-source.json",
+  "source_pins": 8180,
+  "checks": [
+    {
+      "evidence": "v27-defect-wire.xml",
+      "sha256": "c00c07ee77de6c1a23bd0c8ad06ed7829b6b0af2b023e03c96925ee020b814f1",
+      "exit_code": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "evidence": "v27-defect-upgrade.xml",
+      "sha256": "9bd93d6fb344ce8886154533470317c10dd36b62ffd2473a70f2bc322dbe910c",
+      "exit_code": 0,
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "evidence": "v27-defect-go.log",
+      "sha256": "5ea38131dc58a216f2477fc2c4e45d430e7031997226f1d96aef823fd775c002",
+      "exit_code": 0
+    },
+    {
+      "evidence": "v27-defect-contracts.log",
+      "sha256": "945ea71acd1674e3e2b5dc1411e584ea56a0a3f932d50e1e1e96d42ca3f158ac",
+      "exit_code": 0
+    }
+  ],
+  "changes": [
+    "00906 atomically starts exact native-input defect runs on successful original claim; prior guards preserved.",
+    "Five-stage actual worker/mTLS/canonical commit chain plus registered private protection provenance.",
+    "Independent SQL/MinIO output-byte/source/result checks and nonempty feature protection at actual eye/nose/mouth centroids.",
+    "Anatomical landmark double replaces undersized fixture; no production image algorithm changes."
+  ],
+  "requirements": [
+    {
+      "id": "native-skin-defect-full-runtime",
+      "status": "passed_with_explicit_model_and_qualification_doubles"
+    },
+    {
+      "id": "00899-00906-populated-forward-upgrade",
+      "status": "passed_metadata_scope"
+    },
+    {
+      "id": "independent-extra-protection-manual-input-authority",
+      "status": "open"
+    },
+    {
+      "id": "new-person-result-covering-protection-parent",
+      "status": "open"
+    },
+    {
+      "id": "whole-V27-acceptance",
+      "status": "open"
+    }
+  ],
+  "limitations": [
+    "Private registered protection is not parent admission or candidate approval.",
+    "Actual GPU/model/corpus quality, browser/native UI, rollout/crash gates and whole V20\u2013V32 acceptance remain open.",
+    "Earlier26-test full publication regression predates00906; only current scoped checks listed above establish current evidence."
+  ],
+  "retained_discovery_evidence": [
+    "v27-defect-wire-before.xml",
+    "v27-defect-wire-small-face.xml",
+    "v27-defect-wire-inner.xml"
+  ]
+}

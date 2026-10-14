@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 live manual SQL and original-version physical raster replay",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "production_migration_applied": false,
+  "checks": {
+    "postgres_minio_and_sql": {
+      "passed": 6,
+      "seconds": 8.77,
+      "xml": "v28-relight-manual-physical-current.xml"
+    },
+    "components": {
+      "passed": 53,
+      "seconds": 3.91,
+      "xml": "v28-relight-manual-physical-components.xml"
+    }
+  },
+  "source_sha256": {
+    "tests/integration/test_v28_relight_manual.py": "92d8727d001924a9bd01f83992aa90c95aa912b2695542ac6eb690b0b8c1748b",
+    "tests/integration/test_v28_relight_manual_physical.py": "42768a464275c3bb8ac0167c1ac5fd0cad16e46c316aa2a140600ac2884ec630",
+    "workers/photo_worker/operations/portrait/relight_manual_authority.py": "d708cae0a82cac272e8fcb81cdafbeec4598695ca7038ff7a66dd800faedd84d",
+    "backend/db/migrations/00986_v28_worker_relight_manual.sql": "da410be614ab0a1f77598b5cfb626078bad74d2b76e4fe040a243fd9c984ff6f"
+  },
+  "limitations": [
+    "Task/result/lease/source and closure metadata are owner-seeded; transport locator map and source WorkingImage are fixture supplied, not public gateway authority",
+    "Physical replay covers inline vectors; external vectors remain component-tested only",
+    "No complete input/source/depth closure, worker execution/staging/adoption/UI or actual photo/model/device qualification"
+  ]
+}

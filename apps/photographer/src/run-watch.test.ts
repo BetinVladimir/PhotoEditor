@@ -28,6 +28,20 @@ it('polls after transient load failure and reconnects with the last stream curso
  stop.abort();const before=load.mock.calls.length;await vi.advanceTimersByTimeAsync(5000);expect(load.mock.calls.length).toBe(before);
 });
 
+it('keeps terminal status against a contradictory response at the same revision',async()=>{
+ vi.useFakeTimers();const stop=new AbortController(),receive=vi.fn();
+ const load=vi.fn().mockResolvedValue(value('7','completed'));
+ const stream=vi.fn((_cursor,_callback,signal)=>new Promise<void>(resolve=>signal.addEventListener('abort',()=>resolve(),{once:true})));
+ const watch=watchRun({load,stream},'run',stop.signal,receive,vi.fn());
+ await watch.refresh();
+ receive.mockClear();
+ watch.accept(value('7','running'));
+ expect(receive).not.toHaveBeenCalled();
+ watch.accept(value('8','running'));
+ expect(receive.mock.lastCall?.[0].status).toBe('running');
+ stop.abort();
+});
+
 it('reduces terminal polling while detecting a retry without streaming',async()=>{
  vi.useFakeTimers();const stop=new AbortController(),receive=vi.fn();
  const load=vi.fn().mockResolvedValue(value('1','failed'));

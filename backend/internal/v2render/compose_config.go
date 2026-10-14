@@ -28,6 +28,7 @@ type CompositionDocumentPlan struct {
 }
 
 type CompositionDraftConfig struct {
+ QueueClass string `json:"queue_class,omitempty"`
 	ProjectID   uuid.UUID             `json:"project_id"`
 	SnapshotID  uuid.UUID             `json:"input_snapshot_id"`
 	Composition CompositionDraftNodes `json:"v25_composition"`
@@ -65,7 +66,7 @@ func CompileCompositionDraftConfig(ctx context.Context, project, snapshot, sessi
 	}
 	ordered := append([]CompositionDraftRequest(nil), requests...)
 	sort.Slice(ordered, func(i, j int) bool { return ordered[i].Ordinal < ordered[j].Ordinal })
-	result := CompiledCompositionDraft{Config: CompositionDraftConfig{ProjectID: project, SnapshotID: snapshot, Composition: CompositionDraftNodes{AuthSessionID: session, Nodes: make([]CompositionDocumentPlan, 0, len(ordered))}}, Tasks: make([]v2input.DraftTask, 0, len(ordered)), Inputs: make([]FrozenCompositionInputs, 0, len(ordered))}
+	result := CompiledCompositionDraft{Config: CompositionDraftConfig{QueueClass:"batch",ProjectID: project, SnapshotID: snapshot, Composition: CompositionDraftNodes{AuthSessionID: session, Nodes: make([]CompositionDocumentPlan, 0, len(ordered))}}, Tasks: make([]v2input.DraftTask, 0, len(ordered)), Inputs: make([]FrozenCompositionInputs, 0, len(ordered))}
 	tenant, actor := ordered[0].Preparation.Tenant, ordered[0].Preparation.Actor.UserID
 	for i, item := range ordered {
 		if err := ctx.Err(); err != nil {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/google/uuid"
 	"photoeditor/backend/internal/auth"
+	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/v2input"
 )
 
@@ -47,19 +48,53 @@ func (c RenderDraftCoordinator) Prepare(ctx context.Context, run, project, snaps
 		owned[i].SourceRaw = append([]byte(nil), owned[i].SourceRaw...)
 		owned[i].LayerRaw = append([]byte(nil), owned[i].LayerRaw...)
 		owned[i].ProtectionRaw = append([]byte(nil), owned[i].ProtectionRaw...)
+		owned[i].LayerDocuments = append([]RenderLayerDocument(nil), owned[i].LayerDocuments...)
 	}
 	resolved := make([][]v2input.Entry, len(owned))
+	evidenceBytes := 0
 	for i, r := range owned {
 		if err := ctx.Err(); err != nil {
 			return CompiledRenderRun{}, err
 		}
-		entries, err := ResolveRenderInputs(ctx, r.Actor, r.Tenant, r.Binding, r.RecipeRef, r.RecipeRaw, r.SourceRaw, c.Resolver)
+		evidence, err := resolveRenderClosureEvidence(ctx, r, c.Resolver)
 		if err != nil {
 			return CompiledRenderRun{}, err
 		}
-		resolved[i] = entries
+		if err := ctx.Err(); err != nil {
+			return CompiledRenderRun{}, err
+		}
+		// These payloads alone are a lower bound on the inline config size.
+		// Stop before resolving the rest of a selection that cannot persist.
+		for _, document := range evidence.Documents {
+			if err := ctx.Err(); err != nil {
+				return CompiledRenderRun{}, err
+			}
+			if len(document.JCS) > 1048576-evidenceBytes {
+				return CompiledRenderRun{}, v2input.ErrInvalid
+			}
+			evidenceBytes += len(document.JCS)
+		}
+		for _, occurrence := range evidence.Occurrences {
+			if err := ctx.Err(); err != nil {
+				return CompiledRenderRun{}, err
+			}
+			encoded, encodeErr := canonical.Marshal(occurrence)
+			if encodeErr != nil {
+				return CompiledRenderRun{}, encodeErr
+			}
+			if len(encoded) > 1048576-evidenceBytes {
+				return CompiledRenderRun{}, v2input.ErrInvalid
+			}
+			evidenceBytes += len(encoded)
+		}
+		owned[i].ClosureDocuments = evidence.Documents
+		owned[i].ClosureOccurrences = evidence.Occurrences
+		resolved[i] = evidence.Entries
 	}
-	plan, err := CompileRenderRunPlan(run, project, snapshot, owned, resolved)
+	if err := ctx.Err(); err != nil {
+		return CompiledRenderRun{}, err
+	}
+	plan, err := compileRenderRunPlanForQueue(run, project, snapshot, owned, resolved,"interactive")
 	if err != nil {
 		return CompiledRenderRun{}, err
 	}

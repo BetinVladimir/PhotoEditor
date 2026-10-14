@@ -13,8 +13,9 @@ export async function prepareRegionDisplay(manifest:VerifiedRegionManifest,encod
  const expected=structuredClone(manifest);
  const active=()=>{if(signal.aborted)throw new Error('REGION_PREVIEW_ABORTED');};active();
  const scale=regionRenderedScale(expected.geometry);
- if(encodedBytes.length!==expected.bytes||encodedBytes.length<2||encodedBytes.length>16777216||!['image/jpeg','image/webp'].includes(expected.mediaType)||bytesToHex(sha256(encodedBytes))!==expected.derivative.sha256)throw new Error('REGION_DISPLAY_BYTES_INVALID');
+ if(encodedBytes.length!==expected.bytes||encodedBytes.length<2||encodedBytes.length>16777216||!['image/jpeg','image/webp'].includes(expected.mediaType))throw new Error('REGION_DISPLAY_BYTES_INVALID');
  const owned=new Uint8Array(encodedBytes.length);owned.set(encodedBytes);
+ if(bytesToHex(sha256(owned))!==expected.derivative.sha256)throw new Error('REGION_DISPLAY_BYTES_INVALID');
  const blob=new Blob([owned],{type:expected.mediaType});
  const image=await decoder.decode(blob);
  try{

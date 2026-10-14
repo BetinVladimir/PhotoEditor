@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 real seal COMMIT with lost acknowledgement and durable recovery replay",
+  "whole_module_accepted": false,
+  "migration_head": "00966",
+  "new_migrations": false,
+  "production_code_changed": false,
+  "production_migrations_applied": false,
+  "checks": {
+    "go_five_packages": [
+      {
+        "package": "photoeditor/backend/internal/v2qualification",
+        "elapsed": 0
+      },
+      {
+        "package": "photoeditor/backend/internal/v2input",
+        "elapsed": 0.009
+      },
+      {
+        "package": "photoeditor/backend/internal/v2draft",
+        "elapsed": 0.011
+      },
+      {
+        "package": "photoeditor/backend/internal/workflow",
+        "elapsed": 0.012
+      },
+      {
+        "package": "photoeditor/backend/internal/semanticproposal",
+        "elapsed": 3.41
+      }
+    ],
+    "sql_upgrade_roles_and_handoff": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "21",
+      "time": "17.218",
+      "timestamp": "2026-10-09T05:28:21.378436+03:00",
+      "hostname": "Mac"
+    },
+    "native_committed_seal_replay": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "1",
+      "time": "449.845",
+      "timestamp": "2026-10-09T05:29:19.364283+03:00",
+      "hostname": "Mac"
+    },
+    "documentation": "PASS55 tests/2267 static checks",
+    "diff_check": "PASS"
+  },
+  "source_manifest": "v27-seal-commit-ack-source-current.json",
+  "source_manifest_sha256": "2a161acb138cbbadf74a314d4c49ffe7ef5865697bd3e705b7aff59ecc4e7cc6",
+  "source_files": 4816,
+  "quality_preservation": {
+    "workers_src_baseline_files": 544,
+    "changed": 0,
+    "real_photo_quality_accepted": false
+  },
+  "verified": [
+    "Real scheduler transaction commits seal and receipt; wrapper then returns acknowledgement-loss error. Caller receives no ticket and transaction is not automatically retried.",
+    "Independent owner observes sealed queued parent, ready tasks, exact 202 receipt and one queued event/outbox before recovery.",
+    "Actual ProcessOne reconstructs saved parent and returns stored receipt through sealed replay; refusing TransportDocuments publisher receives zero calls.",
+    "Complete parent run/workflow/tasks/inputs/documents/receipt/events/outbox/quota/usage snapshot remains identical after replay.",
+    "Handoff completes and second ProcessOne finds no work; lifecycle, policy, qualification and TTL probes pass."
+  ],
+  "remaining": [
+    "Unknown registration COMMIT, raw PUT ambiguity, separate OS process restart and broker redelivery.",
+    "Mixed registered/missing tasks, GC/purge races and 5000-target scale.",
+    "Independent target qualification imports, reference locator-version and pending stage progression.",
+    "Complete browser/native product flows, real-photo/GPU quality and whole V27/V20–V32 acceptance."
+  ],
+  "limitations": [
+    "Acknowledgement loss injected after successful real PostgreSQL Commit; not a TCP fault.",
+    "Upstream ML remains fixture doubles. Parent snapshot equality is checked without concurrent task dispatch.",
+    "No production code or migration changed in this step."
+  ]
+}

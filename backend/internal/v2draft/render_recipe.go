@@ -15,11 +15,12 @@ import (
 // Rendering applies Scalars.EffectiveDelta once; recipe.parameter_delta and
 // correction refs are retained as provenance and must not be applied again.
 type FrozenRenderRecipe struct {
-	SchemaVersion int                   `json:"schema_version"`
-	Recipe        json.RawMessage       `json:"recipe"`
-	RecipeSHA256  string                `json:"recipe_sha256"`
-	Scalars       FrozenRecipe          `json:"scalars"`
-	Learning      *FrozenRenderLearning `json:"learning"`
+	SchemaVersion   int                    `json:"schema_version"`
+	Recipe          json.RawMessage        `json:"recipe"`
+	RecipeSHA256    string                 `json:"recipe_sha256"`
+	Scalars         FrozenRecipe           `json:"scalars"`
+	Learning        *FrozenRenderLearning  `json:"learning"`
+	BackgroundAsset *FrozenBackgroundAsset `json:"background_asset,omitempty"`
 }
 type FrozenRenderLearning struct {
 	VersionID  uuid.UUID   `json:"version_id"`
@@ -33,6 +34,10 @@ type FrozenRenderLearning struct {
 // current ACL, accepted source/style, immutable versions and the full closure.
 // A referenced layer body must be independently verified before this compiler.
 func BuildFrozenRenderRecipe(raw []byte, inputs ResolvedRecipeInputs, layerBody []byte) ([]byte, error) {
+	return BuildFrozenRenderRecipeWithBackground(raw, inputs, layerBody, nil)
+}
+
+func BuildFrozenRenderRecipeWithBackground(raw []byte, inputs ResolvedRecipeInputs, layerBody, backgroundBody []byte) ([]byte, error) {
 	canonicalRecipe, err := canonical.Bytes(raw)
 	if err != nil || !bytes.Equal(canonicalRecipe, raw) {
 		return nil, v2input.ErrInvalid
@@ -73,8 +78,16 @@ func BuildFrozenRenderRecipe(raw []byte, inputs ResolvedRecipeInputs, layerBody 
 	} else if inputs.LearningModelRef != (v2input.Ref{}) || inputs.LearningDescriptorRef != (v2input.Ref{}) || inputs.LearningAnalysisID != uuid.Nil || inputs.LearningDescriptorOrdinal != 0 {
 		return nil, v2input.ErrInvalid
 	}
+	var background *FrozenBackgroundAsset
+	if len(backgroundBody) > 0 {
+		pin, err := DecodeFrozenBackgroundAsset(backgroundBody)
+		if err != nil || pin.Style != scalars.BaseStyle || pin.WorkICCSHA != scalars.ICCLockSHA {
+			return nil, v2input.ErrInvalid
+		}
+		background = &pin
+	}
 	digest := sha256.Sum256(raw)
-	out, err := canonical.Marshal(FrozenRenderRecipe{1, append(json.RawMessage(nil), raw...), hex.EncodeToString(digest[:]), scalars, learning})
+	out, err := canonical.Marshal(FrozenRenderRecipe{1, append(json.RawMessage(nil), raw...), hex.EncodeToString(digest[:]), scalars, learning, background})
 	if err != nil || len(out) > 1048576 {
 		return nil, v2input.ErrInvalid
 	}
@@ -110,6 +123,16 @@ func DecodeFrozenRenderRecipe(raw []byte) (FrozenRenderRecipe, error) {
 	}
 	if learning := frozen.Learning; learning != nil {
 		if learning.VersionID == uuid.Nil || learning.VersionID != *recipe.LearningVersionID || learning.AnalysisID == uuid.Nil || learning.Ordinal < 0 || learning.Ordinal > 4999 || !isDocumentRef(learning.Model) || !isDocumentRef(learning.Descriptor) {
+			return invalid()
+		}
+	}
+	if frozen.BackgroundAsset != nil {
+		raw, err := canonical.Marshal(frozen.BackgroundAsset)
+		if err != nil {
+			return invalid()
+		}
+		pin, err := DecodeFrozenBackgroundAsset(raw)
+		if err != nil || pin.Style != scalars.BaseStyle || pin.WorkICCSHA != scalars.ICCLockSHA {
 			return invalid()
 		}
 	}

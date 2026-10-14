@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 completed canonical person-mask origin",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "production_migration_applied": false,
+  "checks": {
+    "native_sql_goose": {
+      "passed": 4,
+      "seconds": 12.74,
+      "xml": "v28-relight-adoption-person-current.xml"
+    },
+    "relight_components": {
+      "passed": 178,
+      "seconds": 2.64,
+      "xml": "v28-relight-adoption-person-components.xml"
+    }
+  },
+  "source_sha256": {
+    "backend/db/migrations/00989_v28_relight_adoption_person.sql": "3a6168b687a2ab00179d8331fcf5e772f38e989b50fba1843450e1c8a81f2b72",
+    "workers/photo_worker/v2/relight_adoption_person.py": "52c8dd390adeb4c2c4daf872c30e84be021e577459feb2ecc6814ed5792aa445",
+    "tests/integration/test_v28_relight_adoption_person.py": "b9e271078ec0ab0c25381740b9e3c575e599afade55ec55a0f0c44184384c9f2",
+    "tests/platform/test_relight_adoption_person.py": "8fabf7716e89f9e11ce1cdca2cbfc2d39790ac1d3938e211e0ebe54c1b5cb8a8"
+  },
+  "limitations": [
+    "Positive SQL uses partial Params and owner-seeded completed producer/result/source/upload/qualification; pixels placeholders",
+    "Python original PersonParams replay/source checkpoints use DB/reader doubles; physical completed integration pending",
+    "Completed manual masks, transactional commit, public workflow and actual image/device qualification pending"
+  ]
+}

@@ -11,6 +11,7 @@ import (
 	"photoeditor/backend/internal/objectstore"
 	"photoeditor/backend/internal/review"
 	"sort"
+	"time"
 )
 
 type InteractiveLease struct {
@@ -132,34 +133,54 @@ func (c InteractiveCoordinator) ProcessOne(ctx context.Context) (bool, error) {
 		working = &value
 	}
 	if l.Kind == "mask_manual" {
-		var t struct {
-			ObjectID  *uuid.UUID      `json:"object_id"`
-			SourceSHA string          `json:"source_sha256"`
-			Shapes    json.RawMessage `json:"shapes"`
+		planned, err := verifyPlannedInteractiveManual(l.Params, l.ParamsSHA, l.TaskID, source.ref(), *working)
+		if err != nil {
+			return c.failInvalidManual(ctx, *l, "MANUAL_TEMPLATE_INVALID", err)
 		}
-		if json.Unmarshal(l.Params, &t) != nil || t.SourceSHA != working.Canvas.SourceSHA256 {
-			return false, errors.New("invalid manual mask template")
-		}
-		vectors := struct {
-			Version   string          `json:"version"`
-			SourceSHA string          `json:"source_sha256"`
-			Canvas    review.Canvas   `json:"canvas"`
-			Shapes    json.RawMessage `json:"shapes"`
-		}{"manual_mask_v1", t.SourceSHA, working.Canvas, t.Shapes}
-		params, x := canonical.Marshal(struct {
-			Image    review.ArtifactRef `json:"image"`
-			Vectors  any                `json:"inline_vectors"`
-			ObjectID *uuid.UUID         `json:"object_id,omitempty"`
-		}{source.ref(), vectors, t.ObjectID})
-		if x != nil {
-			return false, x
-		}
-		ok, x := c.Store.Plan(ctx, l, params)
-		if x != nil || !ok {
-			if x == nil {
-				x = errors.New("manual mask planning rejected")
+		if !planned {
+			var t struct {
+				ObjectID  *uuid.UUID      `json:"object_id"`
+				SourceSHA string          `json:"source_sha256"`
+				Shapes    json.RawMessage `json:"shapes"`
 			}
-			return false, x
+			if json.Unmarshal(l.Params, &t) != nil || t.SourceSHA != working.Canvas.SourceSHA256 {
+				return c.failInvalidManual(ctx, *l, "MANUAL_TEMPLATE_INVALID", errors.New("invalid manual mask template"))
+			}
+			vectors := struct {
+				Version   string          `json:"version"`
+				SourceSHA string          `json:"source_sha256"`
+				Canvas    review.Canvas   `json:"canvas"`
+				Shapes    json.RawMessage `json:"shapes"`
+			}{"manual_mask_v1", t.SourceSHA, working.Canvas, t.Shapes}
+			vectorsBody, x := canonical.Marshal(vectors)
+			if x != nil {
+				return false, x
+			}
+			vectorsSHA, x := canonical.Hash(vectors)
+			if x != nil {
+				return false, x
+			}
+			// Local validation identity only, never published or used as artifact
+			// authority. Geometry/source checks use the independently read image.
+			vectorsRef := review.ArtifactRef{ID: uuid.NewSHA1(l.TaskID, []byte("interactive.manual.vectors.validation")), SHA256: vectorsSHA}
+			if x := review.VerifyManualVectorsDocument(vectorsBody, vectorsRef, working.Source(source.ref())); x != nil {
+				return c.failInvalidManual(ctx, *l, "MANUAL_GEOMETRY_INVALID", x)
+			}
+			params, x := canonical.Marshal(struct {
+				Image    review.ArtifactRef `json:"image"`
+				Vectors  any                `json:"inline_vectors"`
+				ObjectID *uuid.UUID         `json:"object_id,omitempty"`
+			}{source.ref(), vectors, t.ObjectID})
+			if x != nil {
+				return false, x
+			}
+			ok, x := c.Store.Plan(ctx, l, params)
+			if x != nil || !ok {
+				if x == nil {
+					x = errors.New("manual mask planning rejected")
+				}
+				return false, x
+			}
 		}
 	}
 	var declared []review.ArtifactRef
@@ -246,4 +267,21 @@ func (c InteractiveCoordinator) ProcessOne(ctx context.Context) (bool, error) {
 		return false, errors.New("interactive task materialization rejected")
 	}
 	return true, nil
+}
+
+func (c InteractiveCoordinator) failInvalidManual(ctx context.Context, l InteractiveLease, code string, cause error) (bool, error) {
+	if err := ctx.Err(); err != nil {
+		return true, err
+	}
+	finish, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	var recorded bool
+	err := c.Store.DB.QueryRow(finish, "SELECT photo.fail_interactive_manual_preflight($1,$2,$3,$4,$5,$6::jsonb,$7)", l.TenantID, l.RunID, l.TaskID, l.Token, l.ParamsSHA, string(l.Params), code).Scan(&recorded)
+	if err != nil {
+		return true, errors.Join(cause, err)
+	}
+	if !recorded {
+		return true, errors.Join(cause, artifactjson.ErrStale)
+	}
+	return true, cause
 }

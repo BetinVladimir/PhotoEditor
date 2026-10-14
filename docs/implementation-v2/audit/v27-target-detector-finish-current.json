@@ -1,0 +1,89 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "generated_at": "2026-10-08T16:04:41.494974+00:00",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "source_scope": {
+    "backend/db/migrations/00929_v27_target_detector_finalization.sql": "b655c62b4ba2df96c17db4ce2519c7d134f34e246cd0128a295d25c2fc2cdc2f",
+    "backend/internal/semanticproposal/native_target_detector_result.go": "3910a41e342c86fe7dfb264790cb75673a2bf92e048b5f313087bf1cbd111d0c",
+    "backend/internal/semanticproposal/native_target_detector_wire_probe_test.go": "4641e271403861b9e462d3361af58df0d4900eecb2db20336361ffd1c82b7db1",
+    "tests/integration/test_v27_person_migration_upgrade.py": "5029f9731609dd2c94e67b092c88ea0fc1e7bca0b40a53dd4faae61438b3dc5b",
+    "tests/integration/test_v27_semantic_intent_publication.py": "05f18043ea12589552c04b7841243b177d8a5f71403850207b4a1154a188ad70",
+    "tests/integration/v27_face_wire_probe.py": "d822b98a58e908aa503a2f100a29887744c7978d189c6749352160c46048d589"
+  },
+  "checks": [
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-detector-finish-sql-current.xml",
+      "sha256": "b2836c2fe0b94c3df48404b6f823a84a560fa6d5ab3f361390004f6bcb061b05",
+      "exit_code": 0,
+      "tests": 21,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "seconds": 31.546
+    },
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-detector-finish-wire-current.xml",
+      "sha256": "6eb9a08ef4ba949b7a546054dcc6ae9c25583775c5a2aaf6d7f801d3cae64caa",
+      "exit_code": 0,
+      "tests": 1,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "seconds": 95.115
+    },
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-detector-finish-go-current.jsonl",
+      "sha256": "774aa5cd7d2c5572dbf3742773f888e84988ec24317beec802c7c6188a09043c",
+      "exit_code": 0,
+      "packages_passed": [
+        "photoeditor/backend/internal/gateway",
+        "photoeditor/backend/internal/v2input",
+        "photoeditor/backend/internal/review",
+        "photoeditor/backend/internal/semanticproposal"
+      ]
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "requirements": [
+    {
+      "id": "target-detector-completed-finalization-with-current-canonical-authority",
+      "status": "physical_helper_verified"
+    },
+    {
+      "id": "expired-reservation-first-finish-refusal",
+      "status": "physical_helper_verified"
+    },
+    {
+      "id": "residual-quota-exact-once-release-and-one-completion-event-outbox",
+      "status": "physical_fixture_verified"
+    },
+    {
+      "id": "completed-reader-consumer-lock-seal-and-finish-replay-with-revocation-refusal",
+      "status": "physical_helper_verified"
+    },
+    {
+      "id": "00899-00929-upgrade-data-function-identity-owner-ACL-preservation",
+      "status": "sql_verified"
+    },
+    {
+      "id": "target-detector-automatic-saved-recovery-and-advance",
+      "status": "not_implemented"
+    },
+    {
+      "id": "whole-V27",
+      "status": "not_accepted"
+    }
+  ],
+  "limitations": [
+    "Standalone target detector helpers are not yet wired to automatic Recover/advance",
+    "Four remaining target producer stages and original semantic parent orchestration still required",
+    "No full Recover/ProcessOne cold restart or failure/dead-letter lifecycle proof",
+    "Deterministic ML double/shared immutable WorkingImage; no actual GPU/photo-quality qualification",
+    "No full parallel/cancel/purge/browser/5000-target/capacity or whole-module acceptance",
+    "Only isolated databases migrated; production DB unchanged"
+  ]
+}

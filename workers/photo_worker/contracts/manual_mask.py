@@ -64,3 +64,10 @@ class RasterizedMask(Contract):
     target_png:ArtifactRef
     protected_png:ArtifactRef
     algorithm:Literal['manual_mask_v1']='manual_mask_v1'
+
+    @model_validator(mode='after')
+    def distinct_output_artifacts(self):
+        refs=(self.target.artifact,self.protected.artifact,self.target_png,self.protected_png)
+        if len({ref.artifact_id for ref in refs})!=4:
+            raise ValueError('Rasterized mask outputs must have distinct artifact IDs')
+        return self

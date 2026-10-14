@@ -1,0 +1,65 @@
+{
+  "recorded_at": "2026-10-08T11:36:38.361303+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "scope": "Original qualified person protection input preparation; no defect admission activation",
+  "source_pins_scope": "Selected changed files and runtime test entry points only; not a whole-repository build manifest",
+  "source_pins": [
+    {
+      "path": "backend/internal/semanticproposal/native_person_protection_input.go",
+      "sha256": "c49327d31ae6ff78ee132e27f59e95a8957261923f2b8870f8389320a41329a0"
+    },
+    {
+      "path": "backend/internal/semanticproposal/native_person_protection_input_test.go",
+      "sha256": "072bb618b51874aafba0c94f270d055d9aeb9a181279b983af0d34ad3b6473c5"
+    },
+    {
+      "path": "backend/internal/semanticproposal/native_person_input_authority.go",
+      "sha256": "50bf92c1fe626d560ef23025f1c6a81f4217d64b97220eff112cb1655b948471"
+    },
+    {
+      "path": "backend/internal/semanticproposal/native_bootstrap_integration_test.go",
+      "sha256": "7d010ea6fe46f4d39135ef1eed1e570e28d0312dfd67a31fd052b0e1341b1bb6"
+    },
+    {
+      "path": "tests/integration/test_v27_semantic_intent_publication.py",
+      "sha256": "1cac4f08026961e056f52104111f9138aba3bb590cc59f9eb32942658625bd01"
+    },
+    {
+      "path": "tests/integration/v27_face_wire_probe.py",
+      "sha256": "4f86074436d4c8e53bf2ba76ae6f1732954023a88a05821823f8487f07104cf2"
+    },
+    {
+      "path": "tests/integration/v27_defect_wire_probe.py",
+      "sha256": "930ba7d0ec27e4ced323bce60670c0a7c4f8ae57075f0455914523a5fe6b5f7c"
+    },
+    {
+      "path": "docs/implementation-v2/audit/v27-module-cycle.md",
+      "sha256": "fe594e9cb4916001dfa60b5cab1ab9fbd1a38d3b45ac2747fd044ad410513bf5"
+    }
+  ],
+  "checks": [
+    {
+      "evidence": "v27-person-projection-go.log",
+      "sha256": "2ff0f67da274b8162783898fcea8f9b109cbba3a6f8be2296381270f71d9ad25",
+      "exit_code": 0
+    },
+    {
+      "evidence": "v27-person-projection-wire.log",
+      "sha256": "846240020a6bfd83e53d051060d6cac2722dbd51cb1ccbb7fcfeaef24f3fb2d8",
+      "exit_code": 0
+    },
+    {
+      "evidence": "v27-person-projection-contracts.log",
+      "sha256": "17e49a73d8565a37165b07a25174c9d23e89fe66b76e206447f0c24475da38c4",
+      "exit_code": 0
+    }
+  ],
+  "module_accepted": false,
+  "limitations": [
+    "Native wire uses explicit GPU model and qualification doubles and imported original person evidence",
+    "Person projection is exercised but not passed into native defect task; unsupported-authority gate remains",
+    "Dependency/config/admission/recovery and output magnitude checks remain open",
+    "Positive newly inferred person-to-parent, real GPU/corpus/browser/native and whole-module acceptance remain open"
+  ]
+}

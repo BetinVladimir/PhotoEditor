@@ -49,6 +49,27 @@ func TestCalibrationContractAndSessionPolicy(t *testing.T) {
 	}
 	sum := sha256.Sum256(canonicalBody)
 	digest := hex.EncodeToString(sum[:])
+	if edge, err := CalibrationMinFaceEdge(canonicalBody, digest, lock, strings.Repeat("b", 64)); err != nil || edge != 64 {
+		t.Fatalf("pinned face threshold: %d, %v", edge, err)
+	}
+	for _, pins := range [][3]string{{strings.Repeat("f", 64), lock, strings.Repeat("b", 64)}, {digest, "invalid", strings.Repeat("b", 64)}, {digest, lock, strings.Repeat("c", 64)}} {
+		if edge, err := CalibrationMinFaceEdge(canonicalBody, pins[0], pins[1], pins[2]); err == nil || edge != 0 {
+			t.Fatal("exposed threshold with invalid pins")
+		}
+	}
+	unqualified := make(map[string]any)
+	for k, v := range value {
+		unqualified[k] = v
+	}
+	unqualified["qualified"] = false
+	badBody, err := canonical.Marshal(unqualified)
+	if err != nil {
+		t.Fatal(err)
+	}
+	badSum := sha256.Sum256(badBody)
+	if edge, err := CalibrationMinFaceEdge(badBody, hex.EncodeToString(badSum[:]), lock, strings.Repeat("b", 64)); err == nil || edge != 0 {
+		t.Fatal("exposed unqualified threshold")
+	}
 	if err = verifyCalibrationBytes(canonicalBody, digest, lock, strings.Repeat("b", 64)); err != nil {
 		t.Fatal("valid pinned calibration", err)
 	}

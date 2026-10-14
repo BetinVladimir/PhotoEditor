@@ -30,7 +30,17 @@ def read_style(ref:ArtifactRef,open_stream:Callable[[ArtifactRef],BinaryIO],chec
     return _read(ref,StyleV2,open_stream,check_active,STYLE_DOCUMENT_LIMIT)
 
 
-def _read(ref,model,open_stream,check_active,max_bytes):
+def read_contract_bytes(ref:ArtifactRef,model:type[T],open_stream:Callable[[ArtifactRef],BinaryIO],
+                        check_active:Callable[[],None],*,max_bytes:int=1048576)->bytes:
+    """Return exact pinned JSON bytes after full strict contract validation."""
+    if type(max_bytes) is not int or not 1<=max_bytes<=8*1024*1024:
+        raise ValueError('Typed document limit must be 1..8388608 bytes')
+    if not isinstance(model,type) or not issubclass(model,Contract):
+        raise TypeError('Expected a strict task contract')
+    return _read(ref,model,open_stream,check_active,max_bytes,return_bytes=True)
+
+
+def _read(ref,model,open_stream,check_active,max_bytes,*,return_bytes=False):
     check_active()
     data=bytearray();digest=hashlib.sha256()
     with closing(open_stream(ref)) as stream:
@@ -50,4 +60,4 @@ def _read(ref,model,open_stream,check_active,max_bytes):
     except ValueError as exc:raise ArtifactTransferError('ARTIFACT_JSON_INVALID') from exc
     result=model.model_validate_json(raw)
     check_active()
-    return result
+    return raw if return_bytes else result

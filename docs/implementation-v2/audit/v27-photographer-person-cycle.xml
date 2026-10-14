@@ -1,0 +1,1099 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="448" failures="0" errors="0" time="23.561802367">
+    <testsuite name="src/auth.test.ts" timestamp="2026-10-08T09:29:59.540Z" hostname="Mac" tests="2" failures="0" errors="0" skipped="0" time="0.02935375">
+        <testcase classname="src/auth.test.ts" name="OwnerAuth web restore &gt; bootstraps CSRF then rotates HttpOnly-cookie refresh" time="0.025678208">
+        </testcase>
+        <testcase classname="src/auth.test.ts" name="clears local drafts when owner credentials are cleared" time="0.002251">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/capture-alert-merge.test.ts" timestamp="2026-10-08T09:29:59.542Z" hostname="Mac" tests="5" failures="0" errors="0" skipped="0" time="0.01162625">
+        <testcase classname="src/capture-alert-merge.test.ts" name="Capture alert refresh &gt; retains loaded history while adding new reports in descending order" time="0.009981334">
+        </testcase>
+        <testcase classname="src/capture-alert-merge.test.ts" name="Capture alert refresh &gt; cannot overwrite a completed acknowledgement with an older read" time="0.000272458">
+        </testcase>
+        <testcase classname="src/capture-alert-merge.test.ts" name="Capture alert refresh &gt; compares revision strings without losing integer precision" time="0.000095708">
+        </testcase>
+        <testcase classname="src/capture-alert-merge.test.ts" name="Capture alert refresh &gt; deduplicates equal revisions and orders same-time reports by ID" time="0.000142458">
+        </testcase>
+        <testcase classname="src/capture-alert-merge.test.ts" name="Capture alert refresh &gt; restores immutable confirmation at an unchanged alert revision and retains it through stale reads" time="0.000184958">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/capture-alert-refresh.test.ts" timestamp="2026-10-08T09:29:59.543Z" hostname="Mac" tests="5" failures="0" errors="0" skipped="0" time="0.004030083">
+        <testcase classname="src/capture-alert-refresh.test.ts" name="Capture delta pagination &gt; fetches an entire burst through the previous window" time="0.001398166">
+        </testcase>
+        <testcase classname="src/capture-alert-refresh.test.ts" name="Capture delta pagination &gt; leaves initial history for explicit pagination" time="0.000337">
+        </testcase>
+        <testcase classname="src/capture-alert-refresh.test.ts" name="Capture delta pagination &gt; rejects a looping cursor instead of endlessly fetching" time="0.000639292">
+        </testcase>
+        <testcase classname="src/capture-alert-refresh.test.ts" name="Capture delta pagination &gt; discards a late response after session cancellation" time="0.0003375">
+        </testcase>
+        <testcase classname="src/capture-alert-refresh.test.ts" name="Capture delta pagination &gt; reads updates through the oldest displayed alert instead of stopping at the first overlap" time="0.000375875">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/capture-draft-store.test.ts" timestamp="2026-10-08T09:29:59.546Z" hostname="Mac" tests="6" failures="0" errors="0" skipped="0" time="0.009410541">
+        <testcase classname="src/capture-draft-store.test.ts" name="Capture device draft storage &gt; validates bounds, version, expiry and duplicate bindings" time="0.002894375">
+        </testcase>
+        <testcase classname="src/capture-draft-store.test.ts" name="Capture device draft storage &gt; isolates origin, user, tenant and session" time="0.000460958">
+        </testcase>
+        <testcase classname="src/capture-draft-store.test.ts" name="Capture device draft storage &gt; serializes a discard after an in-flight write across store instances" time="0.000887542">
+        </testcase>
+        <testcase classname="src/capture-draft-store.test.ts" name="Capture device draft storage &gt; removes invalid data instead of restoring it" time="0.000307541">
+        </testcase>
+        <testcase classname="src/capture-draft-store.test.ts" name="Capture device draft storage &gt; purges only the signed-out server and fences stale writers" time="0.0006415">
+        </testcase>
+        <testcase classname="src/capture-draft-store.test.ts" name="Capture device draft storage &gt; invalidates only the denied session while preserving other sessions" time="0.001802375">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/capture-session-create.dom.test.tsx" timestamp="2026-10-08T09:29:59.548Z" hostname="Mac" tests="2" failures="0" errors="0" skipped="0" time="0.662849166">
+        <testcase classname="src/capture-session-create.dom.test.tsx" name="Capture creation rendered web flow &gt; retains admission body/key after a lost response and reads policies from the V2 envelope" time="0.499436667">
+        </testcase>
+        <testcase classname="src/capture-session-create.dom.test.tsx" name="Capture creation rendered web flow &gt; refuses a template with no Capture policy before submitting a session" time="0.162520125">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/capture-session.dom.test.tsx" timestamp="2026-10-08T09:29:59.549Z" hostname="Mac" tests="2" failures="0" errors="0" skipped="0" time="1.256749958">
+        <testcase classname="src/capture-session.dom.test.tsx" name="Rendered Capture draft/CAS flow &gt; preserves edits through locale change and refresh, then requires explicit conflict resolution" time="1.025211375">
+        </testcase>
+        <testcase classname="src/capture-session.dom.test.tsx" name="Rendered Capture draft/CAS flow &gt; restores a device draft after remount and compares a changed server revision before saving" time="0.230687167">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/capture-shot-load.test.ts" timestamp="2026-10-08T09:29:59.549Z" hostname="Mac" tests="4" failures="0" errors="0" skipped="0" time="0.004495958">
+        <testcase classname="src/capture-shot-load.test.ts" name="capture ShotList consent recovery &gt; keeps valid lists and never fetches a replacement revision" time="0.001246167">
+        </testcase>
+        <testcase classname="src/capture-shot-load.test.ts" name="capture ShotList consent recovery &gt; returns only an empty blocked replacement with the authoritative revision" time="0.000639083">
+        </testcase>
+        <testcase classname="src/capture-shot-load.test.ts" name="capture ShotList consent recovery &gt; does not recover other errors or incorrect status" time="0.000732542">
+        </testcase>
+        <testcase classname="src/capture-shot-load.test.ts" name="capture ShotList consent recovery &gt; rejects invalid CAS revisions" time="0.000815292">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/coalesced-refresh.test.ts" timestamp="2026-10-08T09:29:59.551Z" hostname="Mac" tests="2" failures="0" errors="0" skipped="0" time="0.001880458">
+        <testcase classname="src/coalesced-refresh.test.ts" name="coalesces a burst into one trailing refresh" time="0.000906541">
+        </testcase>
+        <testcase classname="src/coalesced-refresh.test.ts" name="drops queued work after cancellation" time="0.000193584">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/collection-pages.test.ts" timestamp="2026-10-08T09:29:59.552Z" hostname="Mac" tests="3" failures="0" errors="0" skipped="0" time="0.0174165">
+        <testcase classname="src/collection-pages.test.ts" name="loads all 5000 metadata rows through bounded revision-consistent pages" time="0.003390334">
+        </testcase>
+        <testcase classname="src/collection-pages.test.ts" name="rejects changed revisions, duplicate IDs and repeated cursors" time="0.000767334">
+        </testcase>
+        <testcase classname="src/collection-pages.test.ts" name="does not fetch another page after cancellation" time="0.000320292">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/collection-scope.dom.test.tsx" timestamp="2026-10-08T09:29:59.552Z" hostname="Mac" tests="4" failures="0" errors="0" skipped="0" time="0.608463916">
+        <testcase classname="src/collection-scope.dom.test.tsx" name="changing collections suppresses late previews and resets visible collection" time="0.103376583">
+        </testcase>
+        <testcase classname="src/collection-scope.dom.test.tsx" name="a late snapshot cannot submit a contact sheet for the previous collection" time="0.078688166">
+        </testcase>
+        <testcase classname="src/collection-scope.dom.test.tsx" name="a committed old contact sheet cannot navigate the new collection" time="0.164173042">
+        </testcase>
+        <testcase classname="src/collection-scope.dom.test.tsx" name="reloads authoritative metadata after failed moderation without retrying the mutation" time="0.2605345">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/commands.test.ts" timestamp="2026-10-08T09:29:59.554Z" hostname="Mac" tests="3" failures="0" errors="0" skipped="0" time="0.002088542">
+        <testcase classname="src/commands.test.ts" name="shared command dispatch &gt; recognizes save and refresh on Windows and macOS" time="0.000841">
+        </testcase>
+        <testcase classname="src/commands.test.ts" name="shared command dispatch &gt; does not dispatch unmodified keys, repeats, composition or handled events" time="0.000263042">
+        </testcase>
+        <testcase classname="src/commands.test.ts" name="comparison shortcuts do not intercept editing or repeat/composition" time="0.00018875">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/compare-decisions-save.test.ts" timestamp="2026-10-08T09:29:59.555Z" hostname="Mac" tests="4" failures="0" errors="0" skipped="0" time="0.007363209">
+        <testcase classname="src/compare-decisions-save.test.ts" name="saves sequentially with CAS and frozen decisions" time="0.003269875">
+        </testcase>
+        <testcase classname="src/compare-decisions-save.test.ts" name="stops new writes after an uncertain failure" time="0.000726458">
+        </testcase>
+        <testcase classname="src/compare-decisions-save.test.ts" name="acknowledges an in-flight commit before stopping after cancellation" time="0.000690209">
+        </testcase>
+        <testcase classname="src/compare-decisions-save.test.ts" name="rejects ineligible frames before any mutation" time="0.001647084">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/compare-frames-view.dom.test.tsx" timestamp="2026-10-08T09:29:59.557Z" hostname="Mac" tests="1" failures="0" errors="0" skipped="0" time="0.572342083">
+        <testcase classname="src/compare-frames-view.dom.test.tsx" name="buttons and keyboard share selection/decision and viewport state" time="0.570394042">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/compare-frames.test.ts" timestamp="2026-10-08T09:29:59.558Z" hostname="Mac" tests="3" failures="0" errors="0" skipped="0" time="0.0030415">
+        <testcase classname="src/compare-frames.test.ts" name="freezes preview descriptors and requires the same preview ICC" time="0.001722042">
+        </testcase>
+        <testcase classname="src/compare-frames.test.ts" name="shares normalized pan/zoom across different display sizes" time="0.000401667">
+        </testcase>
+        <testcase classname="src/compare-frames.test.ts" name="selects and records decisions without modifying image sources" time="0.000221">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/compare-preview.test.ts" timestamp="2026-10-08T09:29:59.559Z" hostname="Mac" tests="2" failures="0" errors="0" skipped="0" time="0.003442291">
+        <testcase classname="src/compare-preview.test.ts" name="binds an authorized preview to its version and server profile policy" time="0.001295833">
+        </testcase>
+        <testcase classname="src/compare-preview.test.ts" name="rejects missing evidence, stale links and altered policy or scope" time="0.001408083">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/editor-batch-save.test.ts" timestamp="2026-10-08T09:29:59.559Z" hostname="Mac" tests="4" failures="0" errors="0" skipped="0" time="0.003952792">
+        <testcase classname="src/editor-batch-save.test.ts" name="preserves local edits while accepting each independent server revision" time="0.001850625">
+        </testcase>
+        <testcase classname="src/editor-batch-save.test.ts" name="separates CAS conflict from successful frames" time="0.000446542">
+        </testcase>
+        <testcase classname="src/editor-batch-save.test.ts" name="acknowledges a commit after cancellation but starts no further writes" time="0.000514958">
+        </testcase>
+        <testcase classname="src/editor-batch-save.test.ts" name="does not save a selection changed after preparation" time="0.000281541">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/editor-batch.test.ts" timestamp="2026-10-08T09:29:59.560Z" hostname="Mac" tests="3" failures="0" errors="0" skipped="0" time="0.002809875">
+        <testcase classname="src/editor-batch.test.ts" name="creates per-source history edits without losing other overrides" time="0.001475917">
+        </testcase>
+        <testcase classname="src/editor-batch.test.ts" name="reports each source or revision conflict and missing parameters separately" time="0.000265875">
+        </testcase>
+        <testcase classname="src/editor-batch.test.ts" name="rejects duplicate frozen versions, unsafe values and prototype paths" time="0.000487917">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/editor-draft-cache.test.ts" timestamp="2026-10-08T09:29:59.561Z" hostname="Mac" tests="4" failures="0" errors="0" skipped="0" time="0.004155958">
+        <testcase classname="src/editor-draft-cache.test.ts" name="scopes drafts to user tenant server and version" time="0.001602">
+        </testcase>
+        <testcase classname="src/editor-draft-cache.test.ts" name="rejects stale malformed or cross-version data" time="0.000274083">
+        </testcase>
+        <testcase classname="src/editor-draft-cache.test.ts" name="logout prevents old stores from resurrecting drafts and preserves other servers" time="0.00069025">
+        </testcase>
+        <testcase classname="src/editor-draft-cache.test.ts" name="restores only the same source and compares a changed server revision" time="0.000171875">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/editor-draft-conflict.dom.test.tsx" timestamp="2026-10-08T09:29:59.564Z" hostname="Mac" tests="2" failures="0" errors="0" skipped="0" time="0.384090666">
+        <testcase classname="src/editor-draft-conflict.dom.test.tsx" name="shows both snapshots without choosing or writing automatically" time="0.323543333">
+        </testcase>
+        <testcase classname="src/editor-draft-conflict.dom.test.tsx" name="blocks both choices while a save is still pending" time="0.059842875">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/editor-layer-commands.test.ts" timestamp="2026-10-08T09:29:59.565Z" hostname="Mac" tests="3" failures="0" errors="0" skipped="0" time="0.004117542">
+        <testcase classname="src/editor-layer-commands.test.ts" name="uses the same undo/redo history and invalidates an old preview" time="0.001916542">
+        </testcase>
+        <testcase classname="src/editor-layer-commands.test.ts" name="rejects rebinding and records explicit layer removal as an undoable command" time="0.000992416">
+        </testcase>
+        <testcase classname="src/editor-layer-commands.test.ts" name="retains cached layers and rejects a changed cached source binding" time="0.000471625">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/editor-layer-panel.dom.test.tsx" timestamp="2026-10-08T09:29:59.566Z" hostname="Mac" tests="1" failures="0" errors="0" skipped="0" time="0.086814958">
+        <testcase classname="src/editor-layer-panel.dom.test.tsx" name="routes controls through shared history and refuses an invalid geometry move" time="0.086171083">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/editor-layers.test.ts" timestamp="2026-10-08T09:29:59.566Z" hostname="Mac" tests="5" failures="0" errors="0" skipped="0" time="0.011480209">
+        <testcase classname="src/editor-layers.test.ts" name="snapshots valid layers and edits only the chosen layer" time="0.001531917">
+        </testcase>
+        <testcase classname="src/editor-layers.test.ts" name="rejects geometry after photometric layers and wrong-canvas masks" time="0.000721208">
+        </testcase>
+        <testcase classname="src/editor-layers.test.ts" name="enforces mask depth and a shared node budget over the whole stack" time="0.004027666">
+        </testcase>
+        <testcase classname="src/editor-layers.test.ts" name="rejects duplicate IDs, unknown patches and invalid opacity" time="0.000911625">
+        </testcase>
+        <testcase classname="src/editor-layers.test.ts" name="verifies the pinned immutable layer document SHA before presentation" time="0.003365125">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/editor-mask.test.ts" timestamp="2026-10-08T09:29:59.567Z" hostname="Mac" tests="4" failures="0" errors="0" skipped="0" time="0.003884459">
+        <testcase classname="src/editor-mask.test.ts" name="editor mask points &gt; normalizes taps and preserves positive/negative intent" time="0.001121833">
+        </testcase>
+        <testcase classname="src/editor-mask.test.ts" name="editor mask points &gt; bounds the server contract to 128 immutable points" time="0.000842333">
+        </testcase>
+        <testcase classname="src/editor-mask.test.ts" name="editor mask points &gt; builds bounded immutable freehand strokes and drops duplicate samples" time="0.000334333">
+        </testcase>
+        <testcase classname="src/editor-mask.test.ts" name="editor mask points &gt; requires at least three immutable polygon vertices" time="0.000244375">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/editor-params.test.ts" timestamp="2026-10-08T09:29:59.568Z" hostname="Mac" tests="7" failures="0" errors="0" skipped="0" time="0.004711333">
+        <testcase classname="src/editor-params.test.ts" name="typed editor params &gt; updates modules and extensions without dropping siblings" time="0.001547834">
+        </testcase>
+        <testcase classname="src/editor-params.test.ts" name="typed editor params &gt; rejects invalid numeric values" time="0.000601042">
+        </testcase>
+        <testcase classname="src/editor-params.test.ts" name="typed editor params &gt; updates every beauty field immutably" time="0.0003365">
+        </testcase>
+        <testcase classname="src/editor-params.test.ts" name="typed editor params &gt; enforces ordered defect diameters" time="0.000252292">
+        </testcase>
+        <testcase classname="src/editor-params.test.ts" name="typed editor params &gt; updates geometry and restoration without dropping extension siblings" time="0.000167208">
+        </testcase>
+        <testcase classname="src/editor-params.test.ts" name="typed editor params &gt; requires explicit bounded outpaint configuration" time="0.000321541">
+        </testcase>
+        <testcase classname="src/editor-params.test.ts" name="typed editor params &gt; keeps background modes explicit and RGB bounded" time="0.000231542">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/editor-render-cache.test.ts" timestamp="2026-10-08T09:29:59.570Z" hostname="Mac" tests="7" failures="0" errors="0" skipped="0" time="0.012516791">
+        <testcase classname="src/editor-render-cache.test.ts" name="restores detached admission identifiers within the exact account scope" time="0.003149417">
+        </testcase>
+        <testcase classname="src/editor-render-cache.test.ts" name="purges malformed and expired persisted values" time="0.000607167">
+        </testcase>
+        <testcase classname="src/editor-render-cache.test.ts" name="logout prevents delayed cache owners from recreating history" time="0.000616417">
+        </testcase>
+        <testcase classname="src/editor-render-cache.test.ts" name="restores an uncertain command with its original keys and refuses replacement" time="0.005332667">
+        </testcase>
+        <testcase classname="src/editor-render-cache.test.ts" name="clears pending commands at logout and prevents a stale owner writing them" time="0.000418958">
+        </testcase>
+        <testcase classname="src/editor-render-cache.test.ts" name="removes only the exact selected pending command and keeps accepted history" time="0.000730792">
+        </testcase>
+        <testcase classname="src/editor-render-cache.test.ts" name="retains a retryable command if accepted-ticket cleanup fails" time="0.000718042">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/editor-render-cancel.test.ts" timestamp="2026-10-08T09:29:59.572Z" hostname="Mac" tests="3" failures="0" errors="0" skipped="0" time="0.004257458">
+        <testcase classname="src/editor-render-cancel.test.ts" name="calls tenant-scoped cancellation and retains the server state" time="0.001894208">
+        </testcase>
+        <testcase classname="src/editor-render-cancel.test.ts" name="rejects a response for another run" time="0.000686958">
+        </testcase>
+        <testcase classname="src/editor-render-cancel.test.ts" name="ignores a late response after scope abort" time="0.000391084">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/editor-render-results.test.ts" timestamp="2026-10-08T09:29:59.573Z" hostname="Mac" tests="4" failures="0" errors="0" skipped="0" time="0.05116875">
+        <testcase classname="src/editor-render-results.test.ts" name="uses only the owned child ticket and detaches encoded image metadata" time="0.001772917">
+        </testcase>
+        <testcase classname="src/editor-render-results.test.ts" name="rejects another child and aborts before outputs after cancellation" time="0.000964333">
+        </testcase>
+        <testcase classname="src/editor-render-results.test.ts" name="excludes expired or master artifacts and rejects malformed signed output metadata" time="0.000675416">
+        </testcase>
+        <testcase classname="src/editor-render-results.test.ts" name="formats presentation counters through the selected locale catalog" time="0.045392417">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/editor-render-submit.test.ts" timestamp="2026-10-08T09:29:59.575Z" hostname="Mac" tests="5" failures="0" errors="0" skipped="0" time="0.0077345">
+        <testcase classname="src/editor-render-submit.test.ts" name="retries both stages with the same inventory/recipe and keys after lost queue response" time="0.004496292">
+        </testcase>
+        <testcase classname="src/editor-render-submit.test.ts" name="does not queue after cancellation between inventory and render" time="0.000632417">
+        </testcase>
+        <testcase classname="src/editor-render-submit.test.ts" name="rejects an unfrozen source document before preparing either transport stage" time="0.000187208">
+        </testcase>
+        <testcase classname="src/editor-render-submit.test.ts" name="discards a late queue ticket and retries the uncertain server outcome with the same keys" time="0.000757458">
+        </testcase>
+        <testcase classname="src/editor-render-submit.test.ts" name="refuses mismatched persisted inventory/source binding before either server mutation" time="0.000766541">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/editor-route.dom.test.tsx" timestamp="2026-10-08T09:29:59.576Z" hostname="Mac" tests="9" failures="0" errors="0" skipped="0" time="2.898023459">
+        <testcase classname="src/editor-route.dom.test.tsx" name="compares a CAS conflict and retries local edits with the fetched revision" time="0.678790375">
+        </testcase>
+        <testcase classname="src/editor-route.dom.test.tsx" name="keeps a newer recipe while a save response is pending" time="0.212148959">
+        </testcase>
+        <testcase classname="src/editor-route.dom.test.tsx" name="restores cached local edits against an original base and compares newer server revision" time="0.291700708">
+        </testcase>
+        <testcase classname="src/editor-route.dom.test.tsx" name="refuses a cached snapshot from a changed source without a server write" time="0.063507">
+        </testcase>
+        <testcase classname="src/editor-route.dom.test.tsx" name="retries the same V2 layer request and key after losing the response" time="0.412852833">
+        </testcase>
+        <testcase classname="src/editor-route.dom.test.tsx" name="preserves recipe edits made while the V2 layer save is pending" time="0.352425208">
+        </testcase>
+        <testcase classname="src/editor-route.dom.test.tsx" name="ignores a late V2 save acknowledgement after switching photos" time="0.224016458">
+        </testcase>
+        <testcase classname="src/editor-route.dom.test.tsx" name="requires refresh rather than another write after an acknowledged but unreadable commit" time="0.292541625">
+        </testcase>
+        <testcase classname="src/editor-route.dom.test.tsx" name="clears the stale V2 baseline after a CAS rejection" time="0.36788675">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/editor-store.test.ts" timestamp="2026-10-08T09:29:59.578Z" hostname="Mac" tests="8" failures="0" errors="0" skipped="0" time="0.007779917">
+        <testcase classname="src/editor-store.test.ts" name="EditorStore &gt; keeps immutable history and monotonic request revisions" time="0.001260833">
+        </testcase>
+        <testcase classname="src/editor-store.test.ts" name="EditorStore &gt; accepts only the exact latest source and draft preview" time="0.00025475">
+        </testcase>
+        <testcase classname="src/editor-store.test.ts" name="EditorStore &gt; inverts zoom and pan into oriented source coordinates" time="0.0005345">
+        </testcase>
+        <testcase classname="src/editor-store.test.ts" name="compacts history to full checkpoints and preserves branching undo" time="0.0033605">
+        </testcase>
+        <testcase classname="src/editor-store.test.ts" name="saves the selected mask checkpoint without changing CAS authority" time="0.000324125">
+        </testcase>
+        <testcase classname="src/editor-store.test.ts" name="preserves newer edits when a save response arrives late" time="0.00028975">
+        </testcase>
+        <testcase classname="src/editor-store.test.ts" name="resolves conflicts only by explicit source-bound choice" time="0.000564417">
+        </testcase>
+        <testcase classname="src/editor-store.test.ts" name="keeps local masks until an explicit choice after a late mask save" time="0.000285333">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/editor-v2-load.test.ts" timestamp="2026-10-08T09:29:59.579Z" hostname="Mac" tests="3" failures="0" errors="0" skipped="0" time="0.005703833">
+        <testcase classname="src/editor-v2-load.test.ts" name="loads the exact pinned recipe and represents a missing stack as empty without master IO" time="0.003243">
+        </testcase>
+        <testcase classname="src/editor-v2-load.test.ts" name="rejects a changed recipe digest before loading layer dependencies" time="0.001178792">
+        </testcase>
+        <testcase classname="src/editor-v2-load.test.ts" name="does not load the recipe after cancellation during initial reads" time="0.000675709">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/editor-v2-save.test.ts" timestamp="2026-10-08T09:29:59.579Z" hostname="Mac" tests="4" failures="0" errors="0" skipped="0" time="0.0324825">
+        <testcase classname="src/editor-v2-save.test.ts" name="freezes the request and verifies the committed recipe without changing legacy revision" time="0.018051792">
+        </testcase>
+        <testcase classname="src/editor-v2-save.test.ts" name="marks an acknowledged but unreadable commit as refresh required" time="0.004277208">
+        </testcase>
+        <testcase classname="src/editor-v2-save.test.ts" name="rejects a source change before writing" time="0.0013785">
+        </testcase>
+        <testcase classname="src/editor-v2-save.test.ts" name="prepares the saved V2 revision and verifies server source before accepting freeze" time="0.000717416">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/gallery-comparison.dom.test.tsx" timestamp="2026-10-08T09:29:59.580Z" hostname="Mac" tests="4" failures="0" errors="0" skipped="0" time="0.668039417">
+        <testcase classname="src/gallery-comparison.dom.test.tsx" name="loads two authorized previews and hides them immediately on clear" time="0.263004458">
+        </testcase>
+        <testcase classname="src/gallery-comparison.dom.test.tsx" name="ignores late previews after selection change even if transport ignores abort" time="0.107424792">
+        </testcase>
+        <testcase classname="src/gallery-comparison.dom.test.tsx" name="rejects changed version binding and enforces six frame selection limit" time="0.141344667">
+        </testcase>
+        <testcase classname="src/gallery-comparison.dom.test.tsx" name="removes comparison when the earliest authorized preview expires" time="0.155020042">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/locales.test.ts" timestamp="2026-10-08T09:29:59.581Z" hostname="Mac" tests="1" failures="0" errors="0" skipped="0" time="0.004790125">
+        <testcase classname="src/locales.test.ts" name="locale catalogs &gt; have exact shared keys and edited translations" time="0.003571625">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/owner-api.test.ts" timestamp="2026-10-08T09:29:59.581Z" hostname="Mac" tests="23" failures="0" errors="0" skipped="0" time="0.024085125">
+        <testcase classname="src/owner-api.test.ts" name="OwnerAPI contracts &gt; applies an accepted style to an immutable collection revision" time="0.004038917">
+        </testcase>
+        <testcase classname="src/owner-api.test.ts" name="OwnerAPI contracts &gt; binds review decisions to revision and candidate hash" time="0.000344583">
+        </testcase>
+        <testcase classname="src/owner-api.test.ts" name="OwnerAPI contracts &gt; uses an If-Match precondition when saving a draft" time="0.000270834">
+        </testcase>
+        <testcase classname="src/owner-api.test.ts" name="OwnerAPI contracts &gt; renders and retrieves an immutable editor preview" time="0.000279917">
+        </testcase>
+        <testcase classname="src/owner-api.test.ts" name="OwnerAPI contracts &gt; creates a source-bound override and starts identity SaveEdits" time="0.000248">
+        </testcase>
+        <testcase classname="src/owner-api.test.ts" name="OwnerAPI contracts &gt; creates a prompt mask and an explicitly confirmed generation" time="0.001222916">
+        </testcase>
+        <testcase classname="src/owner-api.test.ts" name="OwnerAPI contracts &gt; submits bounded manual strokes to the rasterizer" time="0.000761542">
+        </testcase>
+        <testcase classname="src/owner-api.test.ts" name="OwnerAPI contracts &gt; carries persisted protected brush masks into generation" time="0.00036125">
+        </testcase>
+        <testcase classname="src/owner-api.test.ts" name="OwnerAPI contracts &gt; pins a nonempty protected mask output to the exact current V2 recipe" time="0.002033875">
+        </testcase>
+        <testcase classname="src/owner-api.test.ts" name="OwnerAPI contracts &gt; refuses to bind protection after the current V2 document changes" time="0.001845792">
+        </testcase>
+        <testcase classname="src/owner-api.test.ts" name="OwnerAPI contracts &gt; creates the initial V2 recipe from a verified binding and accepted style artifact" time="0.000405833">
+        </testcase>
+        <testcase classname="src/owner-api.test.ts" name="OwnerAPI contracts &gt; pins protection in the initial recipe so its base checkpoint inherits it" time="0.000116541">
+        </testcase>
+        <testcase classname="src/owner-api.test.ts" name="OwnerAPI contracts &gt; rejects an unaccepted style before requesting a V2 binding" time="0.000489958">
+        </testcase>
+        <testcase classname="src/owner-api.test.ts" name="OwnerAPI contracts &gt; freezes a collection before creating a contact sheet" time="0.0002435">
+        </testcase>
+        <testcase classname="src/owner-api.test.ts" name="OwnerAPI contracts &gt; starts a download only from an explicit frozen snapshot" time="0.00010025">
+        </testcase>
+        <testcase classname="src/owner-api.test.ts" name="OwnerAPI contracts &gt; requests an approved derivative and never a master object" time="0.000166208">
+        </testcase>
+        <testcase classname="src/owner-api.test.ts" name="OwnerAPI contracts &gt; moderates the exact Apply item at the current collection revision" time="0.000090542">
+        </testcase>
+        <testcase classname="src/owner-api.test.ts" name="OwnerAPI capture &gt; keeps ShotList CAS revisions as decimal strings and reuses the supplied retry key" time="0.000149541">
+        </testcase>
+        <testcase classname="src/owner-api.test.ts" name="OwnerAPI capture &gt; confirms only the explicitly selected receipt and alert" time="0.000089">
+        </testcase>
+        <testcase classname="src/owner-api.test.ts" name="creates and updates a shooting session with explicit calibration and stable caller keys" time="0.000335">
+        </testcase>
+        <testcase classname="src/owner-api.test.ts" name="preserves the verified layer stack when pinning protection" time="0.001838958">
+        </testcase>
+        <testcase classname="src/owner-api.test.ts" name="does not write protection if the pinned layer document fails verification" time="0.000418917">
+        </testcase>
+        <testcase classname="src/owner-api.test.ts" name="reads an admitted region descriptor against captured request/source evidence" time="0.006024083">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/persistent-semantic-create.test.tsx" timestamp="2026-10-08T09:29:59.584Z" hostname="Mac" tests="11" failures="0" errors="0" skipped="0" time="0.982538958">
+        <testcase classname="src/persistent-semantic-create.test.tsx" name="recovers unknown admission without the old live mask and reuses exact body/key" time="0.244747334">
+        </testcase>
+        <testcase classname="src/persistent-semantic-create.test.tsx" name="recovers unknown snapshot with the original key and frozen revision" time="0.050290292">
+        </testcase>
+        <testcase classname="src/persistent-semantic-create.test.tsx" name="hides an accepted journal after current parent authority returns 401" time="0.146755709">
+        </testcase>
+        <testcase classname="src/persistent-semantic-create.test.tsx" name="hides an accepted journal after current parent authority returns 403" time="0.064115083">
+        </testcase>
+        <testcase classname="src/persistent-semantic-create.test.tsx" name="hides an accepted journal after current parent authority returns 404" time="0.081144708">
+        </testcase>
+        <testcase classname="src/persistent-semantic-create.test.tsx" name="rejects substituted parent workflow before displaying saved request fields" time="0.055765875">
+        </testcase>
+        <testcase classname="src/persistent-semantic-create.test.tsx" name="keeps frozen body after current source version advances, without replacing its binding" time="0.041675542">
+        </testcase>
+        <testcase classname="src/persistent-semantic-create.test.tsx" name="hides uncertain request after source editor permission is revoked" time="0.136964834">
+        </testcase>
+        <testcase classname="src/persistent-semantic-create.test.tsx" name="hides restored fields in background and rechecks authority on foreground" time="0.020459583">
+        </testcase>
+        <testcase classname="src/persistent-semantic-create.test.tsx" name="aborts foreground authority flight and ignores a late response while backgrounded" time="0.069467792">
+        </testcase>
+        <testcase classname="src/persistent-semantic-create.test.tsx" name="does not reveal a new form when accepted-receipt clearing completes in background" time="0.070065667">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/persistent-session-policy-editor.dom.test.tsx" timestamp="2026-10-08T09:29:59.587Z" hostname="Mac" tests="11" failures="0" errors="0" skipped="0" time="1.155310584">
+        <testcase classname="src/persistent-session-policy-editor.dom.test.tsx" name="authenticates the user scope, persists partial fields and restores only after an explicit decision" time="0.24040125">
+        </testcase>
+        <testcase classname="src/persistent-session-policy-editor.dom.test.tsx" name="removes cached session records when authenticated user lookup denies access" time="0.074701292">
+        </testcase>
+        <testcase classname="src/persistent-session-policy-editor.dom.test.tsx" name="retries a persisted uncertain save after restart with the original immutable body and key" time="0.14891075">
+        </testcase>
+        <testcase classname="src/persistent-session-policy-editor.dom.test.tsx" name="reviews changed-revision fields explicitly then saves current revision and calibration" time="0.125328959">
+        </testcase>
+        <testcase classname="src/persistent-session-policy-editor.dom.test.tsx" name="releases definitive rejection after restart and exposes the retained draft for review" time="0.094525417">
+        </testcase>
+        <testcase classname="src/persistent-session-policy-editor.dom.test.tsx" name="does not let a late replay result change a new authenticated editor scope" time="0.114613042">
+        </testcase>
+        <testcase classname="src/persistent-session-policy-editor.dom.test.tsx" name="does not send admission when persisting its immutable request fails" time="0.08241075">
+        </testcase>
+        <testcase classname="src/persistent-session-policy-editor.dom.test.tsx" name="retains a rejected draft through parent revision remount and saves a newly reviewed request" time="0.076545584">
+        </testcase>
+        <testcase classname="src/persistent-session-policy-editor.dom.test.tsx" name="permits local discard in closed state while keeping policy fields read-only" time="0.017054417">
+        </testcase>
+        <testcase classname="src/persistent-session-policy-editor.dom.test.tsx" name="permits local discard in archived state while keeping policy fields read-only" time="0.138611166">
+        </testcase>
+        <testcase classname="src/persistent-session-policy-editor.dom.test.tsx" name="permits exact replay in an archived session while keeping new policy edits disabled" time="0.041161792">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/region-loupe-loader.test.ts" timestamp="2026-10-08T09:29:59.589Z" hostname="Mac" tests="3" failures="0" errors="0" skipped="0" time="0.004645083">
+        <testcase classname="src/region-loupe-loader.test.ts" name="retries admission with the captured body/key and reuses the admitted ticket after a download failure" time="0.002732875">
+        </testcase>
+        <testcase classname="src/region-loupe-loader.test.ts" name="does not download outputs or decode when descriptor authorization fails" time="0.000654292">
+        </testcase>
+        <testcase classname="src/region-loupe-loader.test.ts" name="does not continue after an aborted admission whose transport ignores cancellation" time="0.00038175">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/region-loupe.dom.test.tsx" timestamp="2026-10-08T09:29:59.589Z" hostname="Mac" tests="5" failures="0" errors="0" skipped="0" time="0.510740292">
+        <testcase classname="src/region-loupe.dom.test.tsx" name="shows actual rendered scale and disposes the owned result on unmount" time="0.095844667">
+        </testcase>
+        <testcase classname="src/region-loupe.dom.test.tsx" name="hides an old image immediately and disposes a late response after scope change" time="0.080052833">
+        </testcase>
+        <testcase classname="src/region-loupe.dom.test.tsx" name="shows localized failure without retaining a previous result" time="0.126376333">
+        </testcase>
+        <testcase classname="src/region-loupe.dom.test.tsx" name="does not start deferred IO after immediate unmount" time="0.005443791">
+        </testcase>
+        <testcase classname="src/region-loupe.dom.test.tsx" name="retries the same loader explicitly after failure and disposes its verified result" time="0.201037875">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/region-preview-descriptor.test.ts" timestamp="2026-10-08T09:29:59.590Z" hostname="Mac" tests="2" failures="0" errors="0" skipped="0" time="0.005862083">
+        <testcase classname="src/region-preview-descriptor.test.ts" name="binds the admitted request and returns copied manifest evidence" time="0.003065583">
+        </testcase>
+        <testcase classname="src/region-preview-descriptor.test.ts" name="rejects substituted request, source, asset, geometry and unexpected fields" time="0.00207425">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/region-preview-display.test.ts" timestamp="2026-10-08T09:29:59.590Z" hostname="Mac" tests="4" failures="0" errors="0" skipped="0" time="0.006551959">
+        <testcase classname="src/region-preview-display.test.ts" name="closes decoded bitmap and revokes owned URL once on disposal or abort" time="0.003020958">
+        </testcase>
+        <testcase classname="src/region-preview-display.test.ts" name="does not expose a URL after decoder dimension mismatch" time="0.001157417">
+        </testcase>
+        <testcase classname="src/region-preview-display.test.ts" name="rejects mutated bytes before invoking the decoder" time="0.000485875">
+        </testcase>
+        <testcase classname="src/region-preview-display.test.ts" name="closes a bitmap received after abort even when decoder ignores cancellation" time="0.000472167">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/region-preview-download.test.ts" timestamp="2026-10-08T09:29:59.591Z" hostname="Mac" tests="5" failures="0" errors="0" skipped="0" time="0.081422">
+        <testcase classname="src/region-preview-download.test.ts" name="streams verified bytes without forwarding API credentials" time="0.023607625">
+        </testcase>
+        <testcase classname="src/region-preview-download.test.ts" name="rejects oversized declarations and expired/invalid links before fetching" time="0.003618042">
+        </testcase>
+        <testcase classname="src/region-preview-download.test.ts" name="rejects length mismatch, truncation, extra bytes and wrong SHA" time="0.00309225">
+        </testcase>
+        <testcase classname="src/region-preview-download.test.ts" name="cancels the reader on overflow and abort during stalled input" time="0.049381542">
+        </testcase>
+        <testcase classname="src/region-preview-download.test.ts" name="rejects empty stream blocks and releases the reader after cancellation" time="0.000427959">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/region-preview-load.test.ts" timestamp="2026-10-08T09:29:59.592Z" hostname="Mac" tests="1" failures="0" errors="0" skipped="0" time="0.021117209">
+        <testcase classname="src/region-preview-load.test.ts" name="never requests image bytes after an invalid manifest" time="0.020560833">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/region-preview-manifest.test.ts" timestamp="2026-10-08T09:29:59.592Z" hostname="Mac" tests="3" failures="0" errors="0" skipped="0" time="0.012111958">
+        <testcase classname="src/region-preview-manifest.test.ts" name="binds a canonical region document to all requested evidence" time="0.003122708">
+        </testcase>
+        <testcase classname="src/region-preview-manifest.test.ts" name="rejects substituted source, recipe, canvas, profile, size and cache evidence even with valid document hash" time="0.006761083">
+        </testcase>
+        <testcase classname="src/region-preview-manifest.test.ts" name="rejects noncanonical and duplicate JSON and mismatched catalog derivative" time="0.001606292">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/region-preview-outputs.test.ts" timestamp="2026-10-08T09:29:59.592Z" hostname="Mac" tests="8" failures="0" errors="0" skipped="0" time="0.014288334">
+        <testcase classname="src/region-preview-outputs.test.ts" name="Region output polling &gt; waits for completion and returns independent bounded catalog references" time="0.005391375">
+        </testcase>
+        <testcase classname="src/region-preview-outputs.test.ts" name="Region output polling &gt; does not load outputs after cancellation during an ignored transport abort" time="0.002214083">
+        </testcase>
+        <testcase classname="src/region-preview-outputs.test.ts" name="Region output polling &gt; rejects failed" time="0.000462917">
+        </testcase>
+        <testcase classname="src/region-preview-outputs.test.ts" name="Region output polling &gt; rejects cancelled" time="0.000948375">
+        </testcase>
+        <testcase classname="src/region-preview-outputs.test.ts" name="Region output polling &gt; rejects completed_with_errors" time="0.000599041">
+        </testcase>
+        <testcase classname="src/region-preview-outputs.test.ts" name="Region output polling &gt; rejects waiting_review" time="0.000311125">
+        </testcase>
+        <testcase classname="src/region-preview-outputs.test.ts" name="Region output polling &gt; rejects wrong run identity and ambiguous or oversized outputs" time="0.001854458">
+        </testcase>
+        <testcase classname="src/region-preview-outputs.test.ts" name="Region output polling &gt; bounds polling and cancels the actual delay" time="0.001347167">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/region-preview-session.test.ts" timestamp="2026-10-08T09:29:59.593Z" hostname="Mac" tests="9" failures="0" errors="0" skipped="0" time="0.010974458">
+        <testcase classname="src/region-preview-session.test.ts" name="RegionPreviewSession &gt; ignores late replies when transport ignores abort" time="0.004485709">
+        </testcase>
+        <testcase classname="src/region-preview-session.test.ts" name="RegionPreviewSession &gt; invalidates on origin change" time="0.000643583">
+        </testcase>
+        <testcase classname="src/region-preview-session.test.ts" name="RegionPreviewSession &gt; invalidates on user change" time="0.000387334">
+        </testcase>
+        <testcase classname="src/region-preview-session.test.ts" name="RegionPreviewSession &gt; invalidates on tenant change" time="0.000255042">
+        </testcase>
+        <testcase classname="src/region-preview-session.test.ts" name="RegionPreviewSession &gt; invalidates on asset change" time="0.000360084">
+        </testcase>
+        <testcase classname="src/region-preview-session.test.ts" name="RegionPreviewSession &gt; invalidates on revision change" time="0.0002425">
+        </testcase>
+        <testcase classname="src/region-preview-session.test.ts" name="RegionPreviewSession &gt; preserves active errors and discards failures after logout" time="0.001960209">
+        </testcase>
+        <testcase classname="src/region-preview-session.test.ts" name="RegionPreviewSession &gt; copies scope, request and ticket" time="0.000275625">
+        </testcase>
+        <testcase classname="src/region-preview-session.test.ts" name="drops derivative metadata loaded after the selection changes" time="0.000543208">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/region-preview-view.test.ts" timestamp="2026-10-08T09:29:59.594Z" hostname="Mac" tests="4" failures="0" errors="0" skipped="0" time="0.004074">
+        <testcase classname="src/region-preview-view.test.ts" name="Region view contracts &gt; uses outward crop rounding and bounded output without upscaling" time="0.001367209">
+        </testcase>
+        <testcase classname="src/region-preview-view.test.ts" name="Region view contracts &gt; never claims full source scale for a reduced image" time="0.000676291">
+        </testcase>
+        <testcase classname="src/region-preview-view.test.ts" name="Region view contracts &gt; rejects invalid canvas and region sizes" time="0.000462042">
+        </testcase>
+        <testcase classname="src/region-preview-view.test.ts" name="Region view contracts &gt; invalidates an in-flight ticket after a local edit and undo" time="0.000752625">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/region-preview-worker.test.ts" timestamp="2026-10-08T09:29:59.595Z" hostname="Mac" tests="2" failures="0" errors="0" skipped="2" time="0">
+        <testcase classname="src/region-preview-worker.test.ts" name="accepts actual worker JPEG outputs" time="0">
+            <skipped/>
+        </testcase>
+        <testcase classname="src/region-preview-worker.test.ts" name="accepts actual worker WebP alpha outputs" time="0">
+            <skipped/>
+        </testcase>
+    </testsuite>
+    <testsuite name="src/region-preview.test.ts" timestamp="2026-10-08T09:29:59.596Z" hostname="Mac" tests="2" failures="0" errors="0" skipped="0" time="0.003822875">
+        <testcase classname="src/region-preview.test.ts" name="RegionPreview client &gt; freezes nested request before async transport and forwards cancellation/key" time="0.001822333">
+        </testcase>
+        <testcase classname="src/region-preview.test.ts" name="RegionPreview client &gt; rejects invalid ROI, missing fields, runtime injection and invalid ticket" time="0.00124575">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/render-batch.test.ts" timestamp="2026-10-08T09:29:59.596Z" hostname="Mac" tests="3" failures="0" errors="0" skipped="0" time="0.003401958">
+        <testcase classname="src/render-batch.test.ts" name="queues owned frozen refs with a stable key and cancellation" time="0.001976917">
+        </testcase>
+        <testcase classname="src/render-batch.test.ts" name="retains snapshot order and denies duplicate versions/client runtime" time="0.000652959">
+        </testcase>
+        <testcase classname="src/render-batch.test.ts" name="rejects source artifact reused as frozen recipe, matching Go admission" time="0.000170084">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/render-freeze.test.ts" timestamp="2026-10-08T09:29:59.597Z" hostname="Mac" tests="2" failures="0" errors="0" skipped="0" time="0.011218208">
+        <testcase classname="src/render-freeze.test.ts" name="snapshots intent and retains server pins, retry key and cancellation" time="0.007847583">
+        </testcase>
+        <testcase classname="src/render-freeze.test.ts" name="rejects invalid intent and mismatched server replies" time="0.000791125">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/render-input-snapshot.test.ts" timestamp="2026-10-08T09:29:59.597Z" hostname="Mac" tests="3" failures="0" errors="0" skipped="0" time="0.006235417">
+        <testcase classname="src/render-input-snapshot.test.ts" name="pins exact source inventory and validates returned digest/count" time="0.003098209">
+        </testcase>
+        <testcase classname="src/render-input-snapshot.test.ts" name="rejects duplicate versions, extra fields and mismatched snapshot evidence" time="0.000801875">
+        </testcase>
+        <testcase classname="src/render-input-snapshot.test.ts" name="matches the independent Python canonical digest and normalizes Go UUID encoding" time="0.001205292">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/render-policy.test.ts" timestamp="2026-10-08T09:29:59.598Z" hostname="Mac" tests="4" failures="0" errors="0" skipped="0" time="0.00495375">
+        <testcase classname="src/render-policy.test.ts" name="reads the server policy with independent canonical digest and detached fields" time="0.002162958">
+        </testcase>
+        <testcase classname="src/render-policy.test.ts" name="denies unsupported semantics and digest/shape substitution" time="0.000714083">
+        </testcase>
+        <testcase classname="src/render-policy.test.ts" name="pins the server policy and frozen recipe before asynchronous discovery" time="0.000688917">
+        </testcase>
+        <testcase classname="src/render-policy.test.ts" name="rejects a policy response arriving after scope cancellation" time="0.000668541">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/render-poll.test.ts" timestamp="2026-10-08T09:29:59.598Z" hostname="Mac" tests="4" failures="0" errors="0" skipped="0" time="0.030713583">
+        <testcase classname="src/render-poll.test.ts" name="serializes reads and stops after a terminal observation" time="0.004072209">
+        </testcase>
+        <testcase classname="src/render-poll.test.ts" name="aborts in-flight work and ignores its late success" time="0.001208375">
+        </testcase>
+        <testcase classname="src/render-poll.test.ts" name="backs off transient failures, preserves newer observations and stops on authority denial" time="0.021699292">
+        </testcase>
+        <testcase classname="src/render-poll.test.ts" name="keeps review observable and rejects a foreign run without installing it" time="0.002531208">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/render-preview-worker.test.ts" timestamp="2026-10-08T09:29:59.599Z" hostname="Mac" tests="2" failures="0" errors="0" skipped="2" time="0">
+        <testcase classname="src/render-preview-worker.test.ts" name="loads actual Render worker JPEG presentation" time="0">
+            <skipped/>
+        </testcase>
+        <testcase classname="src/render-preview-worker.test.ts" name="loads actual Render worker WebP alpha presentation" time="0">
+            <skipped/>
+        </testcase>
+    </testsuite>
+    <testsuite name="src/render-results-poll.test.ts" timestamp="2026-10-08T09:29:59.599Z" hostname="Mac" tests="6" failures="0" errors="0" skipped="0" time="0.051033458">
+        <testcase classname="src/render-results-poll.test.ts" name="keeps observing after Render completion while derivatives arrive and URLs renew" time="0.024429083">
+        </testcase>
+        <testcase classname="src/render-results-poll.test.ts" name="serializes requests and discards late responses after background/scope stop" time="0.0031245">
+        </testcase>
+        <testcase classname="src/render-results-poll.test.ts" name="backs off outages and removes observations when authority is denied" time="0.011519666">
+        </testcase>
+        <testcase classname="src/render-results-poll.test.ts" name="stops empty terminal presentation observations but keeps waiting for pending frames" time="0.00398775">
+        </testcase>
+        <testcase classname="src/render-results-poll.test.ts" name="reobserves ready presentation when the separately read output list is empty" time="0.004693416">
+        </testcase>
+        <testcase classname="src/render-results-poll.test.ts" name="clears authority-denied images before reporting the terminal error" time="0.001801167">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/render-status.test.ts" timestamp="2026-10-08T09:29:59.600Z" hostname="Mac" tests="4" failures="0" errors="0" skipped="0" time="0.005897">
+        <testcase classname="src/render-status.test.ts" name="accepts current parent progress and detaches transport data" time="0.001073416">
+        </testcase>
+        <testcase classname="src/render-status.test.ts" name="rejects another run, child kind and malformed revision/counts/progress" time="0.00071325">
+        </testcase>
+        <testcase classname="src/render-status.test.ts" name="keeps the latest observation including revisions above JS safe integer" time="0.000351208">
+        </testcase>
+        <testcase classname="src/render-status.test.ts" name="validates independent child presentation counters without changing the run revision" time="0.002796375">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/routes.test.ts" timestamp="2026-10-08T09:29:59.620Z" hostname="Mac" tests="2" failures="0" errors="0" skipped="0" time="0.00386475">
+        <testcase classname="src/routes.test.ts" name="photographer route contract &gt; covers every required route on web and native" time="0.001945791">
+        </testcase>
+        <testcase classname="src/routes.test.ts" name="photographer route contract &gt; binds only declared endpoint contracts" time="0.000699958">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/run-route.dom.test.tsx" timestamp="2026-10-08T09:29:59.634Z" hostname="Mac" tests="6" failures="0" errors="0" skipped="0" time="0.108243291">
+        <testcase classname="src/run-route.dom.test.tsx" name="opens semantic review using resolved intent instead of workflow route ID" time="0.042308458">
+        </testcase>
+        <testcase classname="src/run-route.dom.test.tsx" name="mounts stream refresh and preserves a newer retry response against an older GET" time="0.017750291">
+        </testcase>
+        <testcase classname="src/run-route.dom.test.tsx" name="aborts the old stream and ignores a late mutation after changing tenant/run scope" time="0.018194708">
+        </testcase>
+        <testcase classname="src/run-route.dom.test.tsx" name="clears displayed run metadata and stops monitoring when access is revoked" time="0.009617">
+        </testcase>
+        <testcase classname="src/run-route.dom.test.tsx" name="clears the run when cancellation reports revoked access" time="0.010933084">
+        </testcase>
+        <testcase classname="src/run-route.dom.test.tsx" name="clears displayed metadata on stream access denial before a catalog retry" time="0.008504792">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/run-watch.test.ts" timestamp="2026-10-08T09:29:59.649Z" hostname="Mac" tests="5" failures="0" errors="0" skipped="0" time="0.032565709">
+        <testcase classname="src/run-watch.test.ts" name="refreshes matching phase events, ignores unrelated runs and refuses older mutation races" time="0.007169083">
+        </testcase>
+        <testcase classname="src/run-watch.test.ts" name="polls after transient load failure and reconnects with the last stream cursor" time="0.005330583">
+        </testcase>
+        <testcase classname="src/run-watch.test.ts" name="reduces terminal polling while detecting a retry without streaming" time="0.003845833">
+        </testcase>
+        <testcase classname="src/run-watch.test.ts" name="backs off repeated stream failures and cancels the pending reconnect delay" time="0.012743416">
+        </testcase>
+        <testcase classname="src/run-watch.test.ts" name="stops requests on stream access denial even when its failure callback does not abort" time="0.001087542">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/scene-analysis-request.test.ts" timestamp="2026-10-08T09:29:59.650Z" hostname="Mac" tests="2" failures="0" errors="0" skipped="0" time="0.0028595">
+        <testcase classname="src/scene-analysis-request.test.ts" name="preserves other references and freezes the session policy" time="0.001360209">
+        </testcase>
+        <testcase classname="src/scene-analysis-request.test.ts" name="rejects references outside a group and closed sessions" time="0.000461459">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/scene-apply-panel.dom.test.tsx" timestamp="2026-10-08T09:29:59.655Z" hostname="Mac" tests="16" failures="0" errors="0" skipped="0" time="1.921733333">
+        <testcase classname="src/scene-apply-panel.dom.test.tsx" name="requires explicit group approval and renders only accepted project recipes" time="0.317199">
+        </testcase>
+        <testcase classname="src/scene-apply-panel.dom.test.tsx" name="keeps an uncertain decision locked and retries the same request/key" time="0.315567209">
+        </testcase>
+        <testcase classname="src/scene-apply-panel.dom.test.tsx" name="ignores a late ticket after unmount and aborts its scope" time="0.166004">
+        </testcase>
+        <testcase classname="src/scene-apply-panel.dom.test.tsx" name="clears private metadata through the parent when mutation reveals revoked access" time="0.1357565">
+        </testcase>
+        <testcase classname="src/scene-apply-panel.dom.test.tsx" name="rejects a plan rebound before offering any styles" time="0.0223615">
+        </testcase>
+        <testcase classname="src/scene-apply-panel.dom.test.tsx" name="allows closing after a definitive conflict without replaying the rejected request" time="0.156815041">
+        </testcase>
+        <testcase classname="src/scene-apply-panel.dom.test.tsx" name="rejects a cyclic style cursor rather than silently displaying a partial recipe list" time="0.03405475">
+        </testcase>
+        <testcase classname="src/scene-apply-panel.dom.test.tsx" name="prevents double submission while the child admission is pending" time="0.046894292">
+        </testcase>
+        <testcase classname="src/scene-apply-panel.dom.test.tsx" name="does not continue analysis discovery after a cancelled session read" time="0.011467541">
+        </testcase>
+        <testcase classname="src/scene-apply-panel.dom.test.tsx" name="does not fetch another page after unmount during pagination" time="0.128496375">
+        </testcase>
+        <testcase classname="src/scene-apply-panel.dom.test.tsx" name="refuses an unbounded cursor before requesting another page" time="0.059042958">
+        </testcase>
+        <testcase classname="src/scene-apply-panel.dom.test.tsx" name="cannot admit a second child while navigation after acceptance is pending" time="0.087975583">
+        </testcase>
+        <testcase classname="src/scene-apply-panel.dom.test.tsx" name="reopens after discovery failure with fresh analysis context and no previous selections" time="0.139405833">
+        </testcase>
+        <testcase classname="src/scene-apply-panel.dom.test.tsx" name="changing styles removes the previously selected recipe even if the new version list fails" time="0.141116667">
+        </testcase>
+        <testcase classname="src/scene-apply-panel.dom.test.tsx" name="clears all decisions on analysis scope change and releases the parent reference lock" time="0.035827959">
+        </testcase>
+        <testcase classname="src/scene-apply-panel.dom.test.tsx" name="aborts an uncertain admission when tenant/API changes and cannot replay it into the new tenant" time="0.121758166">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/scene-apply.test.ts" timestamp="2026-10-08T09:29:59.657Z" hostname="Mac" tests="4" failures="0" errors="0" skipped="0" time="0.010540792">
+        <testcase classname="src/scene-apply.test.ts" name="owns the exact decision before caller data changes" time="0.005289292">
+        </testcase>
+        <testcase classname="src/scene-apply.test.ts" name="refuses duplicate groups, overflow revisions and missing verified plan SHA" time="0.000804291">
+        </testcase>
+        <testcase classname="src/scene-apply.test.ts" name="submits to the analysis scope with the caller retry key and abort signal" time="0.001064791">
+        </testcase>
+        <testcase classname="src/scene-apply.test.ts" name="rejects invalid decisions and keys before network I/O" time="0.000466625">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/scene-board-document.test.ts" timestamp="2026-10-08T09:29:59.658Z" hostname="Mac" tests="3" failures="0" errors="0" skipped="0" time="0.007137833">
+        <testcase classname="src/scene-board-document.test.ts" name="checks the exact plan digest and route session/analysis before creating a board" time="0.003147541">
+        </testcase>
+        <testcase classname="src/scene-board-document.test.ts" name="rejects a rebound route and modified plan before display" time="0.00102">
+        </testcase>
+        <testcase classname="src/scene-board-document.test.ts" name="rejects invalid asset identity in the media projection" time="0.000248375">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/scene-board.test.ts" timestamp="2026-10-08T09:29:59.658Z" hostname="Mac" tests="3" failures="0" errors="0" skipped="0" time="0.018200584">
+        <testcase classname="src/scene-board.test.ts" name="builds stable groups and references without claiming unavailable outliers" time="0.004036">
+        </testcase>
+        <testcase classname="src/scene-board.test.ts" name="rejects changed snapshot, incomplete or overlapping partitions and invalid references" time="0.0018265">
+        </testcase>
+        <testcase classname="src/scene-board.test.ts" name="handles all 5000 frozen frame bindings without fetching image data" time="0.008715875">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/scene-frame-preview.dom.test.tsx" timestamp="2026-10-08T09:29:59.659Z" hostname="Mac" tests="6" failures="0" errors="0" skipped="0" time="0.37462475">
+        <testcase classname="src/scene-frame-preview.dom.test.tsx" name="loads only the frozen version thumbnail and removes its expired URL" time="0.270263459">
+        </testcase>
+        <testcase classname="src/scene-frame-preview.dom.test.tsx" name="refuses rebound, expired and active-content URLs" time="0.063379291">
+        </testcase>
+        <testcase classname="src/scene-frame-preview.dom.test.tsx" name="aborts unmounted cells and suppresses late links" time="0.007271625">
+        </testcase>
+        <testcase classname="src/scene-frame-preview.dom.test.tsx" name="reports revoked access to the board owner" time="0.007703459">
+        </testcase>
+        <testcase classname="src/scene-frame-preview.dom.test.tsx" name="drops the old image and aborts its link when a virtual cell changes version" time="0.021738291">
+        </testcase>
+        <testcase classname="src/scene-frame-preview.dom.test.tsx" name="removes scheduled expiry timers on unmount" time="0.00280725">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/scene-route.dom.test.tsx" timestamp="2026-10-08T09:29:59.659Z" hostname="Mac" tests="6" failures="0" errors="0" skipped="0" time="0.442093">
+        <testcase classname="src/scene-route.dom.test.tsx" name="does not display a late board after navigating to another analysis" time="0.143281583">
+        </testcase>
+        <testcase classname="src/scene-route.dom.test.tsx" name="renders a loaded board only for the current authorized scope" time="0.033153792">
+        </testcase>
+        <testcase classname="src/scene-route.dom.test.tsx" name="retries the same admitted request/key without creating a second snapshot" time="0.084673">
+        </testcase>
+        <testcase classname="src/scene-route.dom.test.tsx" name="ignores a late admission ticket from a previous analysis scope" time="0.112658667">
+        </testcase>
+        <testcase classname="src/scene-route.dom.test.tsx" name="clears displayed metadata when a reference mutation reveals revoked access" time="0.027049209">
+        </testcase>
+        <testcase classname="src/scene-route.dom.test.tsx" name="releases a definitively rejected request so the user can reload before a new choice" time="0.040475792">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/semantic-attempt-store.test.ts" timestamp="2026-10-08T09:29:59.660Z" hostname="Mac" tests="6" failures="0" errors="0" skipped="0" time="0.011447958">
+        <testcase classname="src/semantic-attempt-store.test.ts" name="recovers original keys/revision across store instances and isolates principals" time="0.004116125">
+        </testcase>
+        <testcase classname="src/semantic-attempt-store.test.ts" name="refuses replacing keys or rolling back pinned stages" time="0.004344708">
+        </testcase>
+        <testcase classname="src/semantic-attempt-store.test.ts" name="fails closed for corrupt/oversized storage" time="0.000452208">
+        </testcase>
+        <testcase classname="src/semantic-attempt-store.test.ts" name="logout fences old stores and retains only its cross-context generation token" time="0.000583458">
+        </testcase>
+        <testcase classname="src/semantic-attempt-store.test.ts" name="does not erase a different uncertain request" time="0.000296208">
+        </testcase>
+        <testcase classname="src/semantic-attempt-store.test.ts" name="propagates logout storage failure while fencing stale writers" time="0.000551125">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/semantic-child-channel.test.ts" timestamp="2026-10-08T09:29:59.660Z" hostname="Mac" tests="9" failures="0" errors="0" skipped="0" time="0.013148542">
+        <testcase classname="src/semantic-child-channel.test.ts" name="shares pending IO, owns subscriber values and cancels only after the last subscriber" time="0.0020255">
+        </testcase>
+        <testcase classname="src/semantic-child-channel.test.ts" name="polls once per interval and notifies a shared terminal callback once" time="0.002000083">
+        </testcase>
+        <testcase classname="src/semantic-child-channel.test.ts" name="isolates authenticated clients, tenants and runs" time="0.000449916">
+        </testcase>
+        <testcase classname="src/semantic-child-channel.test.ts" name="starts fresh after all subscribers dispose and suppresses a late old response" time="0.000336375">
+        </testcase>
+        <testcase classname="src/semantic-child-channel.test.ts" name="clears shared status on HTTP 401 and requires a fresh subscription scope to retry" time="0.00279625">
+        </testcase>
+        <testcase classname="src/semantic-child-channel.test.ts" name="clears shared status on HTTP 403 and requires a fresh subscription scope to retry" time="0.000856584">
+        </testcase>
+        <testcase classname="src/semantic-child-channel.test.ts" name="clears shared status on HTTP 404 and requires a fresh subscription scope to retry" time="0.001177042">
+        </testcase>
+        <testcase classname="src/semantic-child-channel.test.ts" name="clears shared status on HTTP 500 and requires a fresh subscription scope to retry" time="0.001489208">
+        </testcase>
+        <testcase classname="src/semantic-child-channel.test.ts" name="last unsubscribe clears the scheduled timer and ignores late rejection" time="0.000920292">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/semantic-child-progress.test.tsx" timestamp="2026-10-08T09:29:59.661Z" hostname="Mac" tests="7" failures="0" errors="0" skipped="0" time="0.302079375">
+        <testcase classname="src/semantic-child-progress.test.tsx" name="does not start another read while the previous request is pending" time="0.0531335">
+        </testcase>
+        <testcase classname="src/semantic-child-progress.test.tsx" name="polls without overlap and stops after terminal status" time="0.057352333">
+        </testcase>
+        <testcase classname="src/semantic-child-progress.test.tsx" name="aborts outstanding reads on unmount" time="0.005297792">
+        </testcase>
+        <testcase classname="src/semantic-child-progress.test.tsx" name="clears stale progress when access is lost" time="0.156613208">
+        </testcase>
+        <testcase classname="src/semantic-child-progress.test.tsx" name="replaces authenticated scope, aborts old IO and ignores its late terminal response" time="0.013538584">
+        </testcase>
+        <testcase classname="src/semantic-child-progress.test.tsx" name="uses the latest terminal callback without restarting shared polling" time="0.0121585">
+        </testcase>
+        <testcase classname="src/semantic-child-progress.test.tsx" name="suspends shared polling in background and revalidates after foreground return" time="0.003154416">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/semantic-create-wire.test.ts" timestamp="2026-10-08T09:29:59.662Z" hostname="Mac" tests="2" failures="0" errors="0" skipped="0" time="0.039455333">
+        <testcase classname="src/semantic-create-wire.test.ts" name="checks recovered parent through the real SDK and propagates cancellation to identity reads" time="0.035808375">
+        </testcase>
+        <testcase classname="src/semantic-create-wire.test.ts" name="uses the owner API and real SDK to preserve immutable snapshot/proposal keys on the wire" time="0.002707375">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/semantic-create.test.tsx" timestamp="2026-10-08T09:29:59.662Z" hostname="Mac" tests="8" failures="0" errors="0" skipped="0" time="0.818850875">
+        <testcase classname="src/semantic-create.test.tsx" name="does not perform network IO when the original journal cannot be saved" time="0.093721917">
+        </testcase>
+        <testcase classname="src/semantic-create.test.tsx" name="does not repeat accepted admission when navigation throws" time="0.180912459">
+        </testcase>
+        <testcase classname="src/semantic-create.test.tsx" name="keeps immutable intent and proposal key after unavailable/uncertain admission" time="0.125347459">
+        </testcase>
+        <testcase classname="src/semantic-create.test.tsx" name="retries an uncertain snapshot with its original key before creating intent" time="0.075360292">
+        </testcase>
+        <testcase classname="src/semantic-create.test.tsx" name="refuses a changed asset version before freezing target collection" time="0.018379292">
+        </testcase>
+        <testcase classname="src/semantic-create.test.tsx" name="aborts stale source lookup when editor scope changes without sending it to the new collection" time="0.112350625">
+        </testcase>
+        <testcase classname="src/semantic-create.test.tsx" name="keeps uncertain request intact while switching locale to ru" time="0.070928375">
+        </testcase>
+        <testcase classname="src/semantic-create.test.tsx" name="keeps uncertain request intact while switching locale to bg" time="0.1404325">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/semantic-decision-selection.test.ts" timestamp="2026-10-08T09:29:59.663Z" hostname="Mac" tests="1" failures="0" errors="0" skipped="0" time="0.00470075">
+        <testcase classname="src/semantic-decision-selection.test.ts" name="bounds queued selections to100 while preserving existing decisions" time="0.003149542">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/semantic-journal-lock.test.ts" timestamp="2026-10-08T09:29:59.663Z" hostname="Mac" tests="3" failures="0" errors="0" skipped="0" time="0.014391416">
+        <testcase classname="src/semantic-journal-lock.test.ts" name="serializes two independent tab queues so only one original request wins" time="0.010482041">
+        </testcase>
+        <testcase classname="src/semantic-journal-lock.test.ts" name="fences a previously opened tab after logout in another module instance" time="0.001923334">
+        </testcase>
+        <testcase classname="src/semantic-journal-lock.test.ts" name="refuses browser storage IO without Web Locks instead of using a racy fallback" time="0.001307084">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/semantic-parent-progress.test.tsx" timestamp="2026-10-08T09:29:59.663Z" hostname="Mac" tests="5" failures="0" errors="0" skipped="0" time="0.409008333">
+        <testcase classname="src/semantic-parent-progress.test.tsx" name="refreshes targets once when original parent becomes reviewable and stops polling" time="0.106719667">
+        </testcase>
+        <testcase classname="src/semantic-parent-progress.test.tsx" name="cancels background IO and resumes in the foreground" time="0.015219042">
+        </testcase>
+        <testcase classname="src/semantic-parent-progress.test.tsx" name="pins returned workflow independently of intent ID and rejects substitution on retry" time="0.2130745">
+        </testcase>
+        <testcase classname="src/semantic-parent-progress.test.tsx" name="retains original run and rejects a revision regression after refresh" time="0.049267042">
+        </testcase>
+        <testcase classname="src/semantic-parent-progress.test.tsx" name="clears retained display on access loss and notifies the screen to remove private results" time="0.022300625">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/semantic-preview.integration.test.tsx" timestamp="2026-10-08T09:29:59.664Z" hostname="Mac" tests="1" failures="0" errors="0" skipped="1" time="0">
+        <testcase classname="src/semantic-preview.integration.test.tsx" name="renders an accepted preview from the real output response" time="0">
+            <skipped/>
+        </testcase>
+    </testsuite>
+    <testsuite name="src/semantic-preview.test.tsx" timestamp="2026-10-08T09:29:59.664Z" hostname="Mac" tests="6" failures="0" errors="0" skipped="0" time="0.600817208">
+        <testcase classname="src/semantic-preview.test.tsx" name="loads accepted image and clears it when access fails" time="0.380736125">
+        </testcase>
+        <testcase classname="src/semantic-preview.test.tsx" name="aborts request on unmount" time="0.008790416">
+        </testcase>
+        <testcase classname="src/semantic-preview.test.tsx" name="hides image when its signed link expires" time="0.008229042">
+        </testcase>
+        <testcase classname="src/semantic-preview.test.tsx" name="hides a previous signed preview immediately when authenticated client changes" time="0.021110291">
+        </testcase>
+        <testcase classname="src/semantic-preview.test.tsx" name="drops signed image in background and requires a fresh authorized preview read" time="0.026912333">
+        </testcase>
+        <testcase classname="src/semantic-preview.test.tsx" name="aborts a backgrounded preview and ignores late signed output" time="0.1324195">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/semantic-review-close.test.tsx" timestamp="2026-10-08T09:29:59.664Z" hostname="Mac" tests="9" failures="0" errors="0" skipped="0" time="0.963514041">
+        <testcase classname="src/semantic-review-close.test.tsx" name="retries an uncertain closure with the original fence and key" time="0.342309166">
+        </testcase>
+        <testcase classname="src/semantic-review-close.test.tsx" name="requires a fresh fence after revision conflict" time="0.026931042">
+        </testcase>
+        <testcase classname="src/semantic-review-close.test.tsx" name="does not close unresolved targets and aborts state lookup on unmount" time="0.008161417">
+        </testcase>
+        <testcase classname="src/semantic-review-close.test.tsx" name="discards old uncertain close authority on client replacement" time="0.075456667">
+        </testcase>
+        <testcase classname="src/semantic-review-close.test.tsx" name="does not mark the new scope completed from a late old close response" time="0.155814375">
+        </testcase>
+        <testcase classname="src/semantic-review-close.test.tsx" name="drops uncertain close after authority refresh refuses HTTP401" time="0.148528125">
+        </testcase>
+        <testcase classname="src/semantic-review-close.test.tsx" name="drops uncertain close after authority refresh refuses HTTP403" time="0.077029125">
+        </testcase>
+        <testcase classname="src/semantic-review-close.test.tsx" name="drops uncertain close after authority refresh refuses HTTP404" time="0.095507125">
+        </testcase>
+        <testcase classname="src/semantic-review-close.test.tsx" name="retains exact uncertain close through a transient authority-read failure" time="0.031265667">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/semantic-review-decisions.integration.test.tsx" timestamp="2026-10-08T09:29:59.666Z" hostname="Mac" tests="1" failures="0" errors="0" skipped="1" time="0">
+        <testcase classname="src/semantic-review-decisions.integration.test.tsx" name="submits a decision from actual proposed review HTTP projections" time="0">
+            <skipped/>
+        </testcase>
+    </testsuite>
+    <testsuite name="src/semantic-review-decisions.test.tsx" timestamp="2026-10-08T09:29:59.666Z" hostname="Mac" tests="12" failures="0" errors="0" skipped="0" time="1.24452325">
+        <testcase classname="src/semantic-review-decisions.test.tsx" name="uses refreshed parent revision and only explicit selected targets" time="0.108732458">
+        </testcase>
+        <testcase classname="src/semantic-review-decisions.test.tsx" name="retains the batch and key after an uncertain response" time="0.374366959">
+        </testcase>
+        <testcase classname="src/semantic-review-decisions.test.tsx" name="removes stale authority and decisions after conflict" time="0.018969125">
+        </testcase>
+        <testcase classname="src/semantic-review-decisions.test.tsx" name="clears uncertain decisions when authenticated client is replaced in the same tenant/intent" time="0.119370083">
+        </testcase>
+        <testcase classname="src/semantic-review-decisions.test.tsx" name="aborts pending old-client admission and ignores its late success" time="0.107249875">
+        </testcase>
+        <testcase classname="src/semantic-review-decisions.test.tsx" name="mounts a bounded initial decision window for5000 proposed targets" time="0.018076584">
+        </testcase>
+        <testcase classname="src/semantic-review-decisions.test.tsx" name="drops uncertain batch after authority refresh refuses HTTP401" time="0.125852">
+        </testcase>
+        <testcase classname="src/semantic-review-decisions.test.tsx" name="drops uncertain batch after authority refresh refuses HTTP403" time="0.060667542">
+        </testcase>
+        <testcase classname="src/semantic-review-decisions.test.tsx" name="drops uncertain batch after authority refresh refuses HTTP404" time="0.069437834">
+        </testcase>
+        <testcase classname="src/semantic-review-decisions.test.tsx" name="retains exact uncertain batch through a transient authority-read failure" time="0.162211041">
+        </testcase>
+        <testcase classname="src/semantic-review-decisions.test.tsx" name="does not submit targets removed while fresh authority lookup is pending" time="0.046230125">
+        </testcase>
+        <testcase classname="src/semantic-review-decisions.test.tsx" name="retains immutable uncertain batch when refreshed targets remove its selections" time="0.031358292">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/semantic-review-locale.dom.test.tsx" timestamp="2026-10-08T09:29:59.667Z" hostname="Mac" tests="2" failures="0" errors="0" skipped="0" time="0.648774833">
+        <testcase classname="src/semantic-review-locale.dom.test.tsx" name="keeps immutable close attempt while translating its retry/error to ru" time="0.449101375">
+        </testcase>
+        <testcase classname="src/semantic-review-locale.dom.test.tsx" name="keeps immutable close attempt while translating its retry/error to bg" time="0.195276583">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/semantic-run-link.test.tsx" timestamp="2026-10-08T09:29:59.667Z" hostname="Mac" tests="9" failures="0" errors="0" skipped="0" time="0.500845708">
+        <testcase classname="src/semantic-run-link.test.tsx" name="opens actual independent intent after pending processing" time="0.107526875">
+        </testcase>
+        <testcase classname="src/semantic-run-link.test.tsx" name="rejects changed workflow without exposing navigation" time="0.205912292">
+        </testcase>
+        <testcase classname="src/semantic-run-link.test.tsx" name="rejects changed run without exposing navigation" time="0.123087209">
+        </testcase>
+        <testcase classname="src/semantic-run-link.test.tsx" name="rejects changed revision without exposing navigation" time="0.010976458">
+        </testcase>
+        <testcase classname="src/semantic-run-link.test.tsx" name="rejects changed intent without exposing navigation" time="0.012088917">
+        </testcase>
+        <testcase classname="src/semantic-run-link.test.tsx" name="aborts background reads and ignores late results on scope change" time="0.007828625">
+        </testcase>
+        <testcase classname="src/semantic-run-link.test.tsx" name="removes private link on access loss and retries reads only" time="0.0118985">
+        </testcase>
+        <testcase classname="src/semantic-run-link.test.tsx" name="stops terminal polling and does not display preparation after failure" time="0.003199209">
+        </testcase>
+        <testcase classname="src/semantic-run-link.test.tsx" name="keeps immutable intent identity across denial and explicit refresh" time="0.017362916">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/semantic-target-screen.dom.test.tsx" timestamp="2026-10-08T09:29:59.668Z" hostname="Mac" tests="15" failures="0" errors="0" skipped="0" time="1.389158166">
+        <testcase classname="src/semantic-target-screen.dom.test.tsx" name="refreshes initial empty targets when original parent becomes reviewable" time="0.075017834">
+        </testcase>
+        <testcase classname="src/semantic-target-screen.dom.test.tsx" name="removes loaded targets when parent status loses access" time="0.100704959">
+        </testcase>
+        <testcase classname="src/semantic-target-screen.dom.test.tsx" name="shows completion and clears results when refresh loses access" time="0.210291792">
+        </testcase>
+        <testcase classname="src/semantic-target-screen.dom.test.tsx" name="cancels an outstanding request on unmount" time="0.013734042">
+        </testcase>
+        <testcase classname="src/semantic-target-screen.dom.test.tsx" name="merges overlapping pages without regressing a target state or revision" time="0.037467666">
+        </testcase>
+        <testcase classname="src/semantic-target-screen.dom.test.tsx" name="clears earlier pages when continuation loses authorization" time="0.025435292">
+        </testcase>
+        <testcase classname="src/semantic-target-screen.dom.test.tsx" name="serializes duplicate continuation clicks while the page is pending" time="0.130459625">
+        </testcase>
+        <testcase classname="src/semantic-target-screen.dom.test.tsx" name="refreshes completed processing after an in-flight continuation instead of dropping the notification" time="0.100451083">
+        </testcase>
+        <testcase classname="src/semantic-target-screen.dom.test.tsx" name="drops old results immediately when authenticated client changes and replacement fails" time="0.086717792">
+        </testcase>
+        <testcase classname="src/semantic-target-screen.dom.test.tsx" name="refuses self pagination continuation and clears exposed rows" time="0.046339792">
+        </testcase>
+        <testcase classname="src/semantic-target-screen.dom.test.tsx" name="refuses empty pagination continuation and clears exposed rows" time="0.125833334">
+        </testcase>
+        <testcase classname="src/semantic-target-screen.dom.test.tsx" name="refuses cycle pagination continuation and clears exposed rows" time="0.220133875">
+        </testcase>
+        <testcase classname="src/semantic-target-screen.dom.test.tsx" name="refuses oversized pagination continuation and clears exposed rows" time="0.10307">
+        </testcase>
+        <testcase classname="src/semantic-target-screen.dom.test.tsx" name="limits initial child polling to mounted cells for5000 queued targets and aborts them on disposal" time="0.078005375">
+        </testcase>
+        <testcase classname="src/semantic-target-screen.dom.test.tsx" name="shares one child request across mounted targets from the same Apply batch" time="0.034301542">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/semantic-target-screen.integration.test.tsx" timestamp="2026-10-08T09:29:59.669Z" hostname="Mac" tests="1" failures="0" errors="0" skipped="1" time="0">
+        <testcase classname="src/semantic-target-screen.integration.test.tsx" name="renders the actual completed Apply target HTTP projection" time="0">
+            <skipped/>
+        </testcase>
+    </testsuite>
+    <testsuite name="src/semantic-targets.test.ts" timestamp="2026-10-08T09:29:59.669Z" hostname="Mac" tests="2" failures="0" errors="0" skipped="0" time="0.0060405">
+        <testcase classname="src/semantic-targets.test.ts" name="overlapping pages cannot replace a newer target with stale revision above safe integer range" time="0.001223083">
+        </testcase>
+        <testcase classname="src/semantic-targets.test.ts" name="supports exactly5000 distinct targets including overlapping updates and refuses overflow" time="0.003158">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/session-analysis-list.test.ts" timestamp="2026-10-08T09:29:59.669Z" hostname="Mac" tests="2" failures="0" errors="0" skipped="0" time="0.005647583">
+        <testcase classname="src/session-analysis-list.test.ts" name="decodes immutable resources without requiring a nonexistent row revision" time="0.002806875">
+        </testcase>
+        <testcase classname="src/session-analysis-list.test.ts" name="rejects rebound resources, duplicate IDs and malformed artifact pins" time="0.001474125">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/session-lifecycle.dom.test.tsx" timestamp="2026-10-08T09:29:59.669Z" hostname="Mac" tests="4" failures="0" errors="0" skipped="0" time="0.463380291">
+        <testcase classname="src/session-lifecycle.dom.test.tsx" name="closes with CAS and preserves the exact state request/key after a lost response" time="0.373064666">
+        </testcase>
+        <testcase classname="src/session-lifecycle.dom.test.tsx" name="requires explicit confirmation before terminal archival" time="0.016655166">
+        </testcase>
+        <testcase classname="src/session-lifecycle.dom.test.tsx" name="does not offer transitions from an archived session" time="0.001414666">
+        </testcase>
+        <testcase classname="src/session-lifecycle.dom.test.tsx" name="cannot restore the parent lock from a late failure after unmount" time="0.071046958">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/session-policy-draft.test.ts" timestamp="2026-10-08T09:29:59.669Z" hostname="Mac" tests="7" failures="0" errors="0" skipped="0" time="0.020218958">
+        <testcase classname="src/session-policy-draft.test.ts" name="preserves unfinished editor fields without treating them as valid policy" time="0.0029275">
+        </testcase>
+        <testcase classname="src/session-policy-draft.test.ts" name="round-trips an owned draft while separating user and tenant scope" time="0.000457709">
+        </testcase>
+        <testcase classname="src/session-policy-draft.test.ts" name="rejects expired, rebound, overflowing and malformed payloads" time="0.00026125">
+        </testcase>
+        <testcase classname="src/session-policy-draft.test.ts" name="logout prevents queued and future old-store writes from resurrecting drafts" time="0.000315709">
+        </testcase>
+        <testcase classname="src/session-policy-draft.test.ts" name="clearing another origin leaves this origin intact" time="0.000534542">
+        </testcase>
+        <testcase classname="src/session-policy-draft.test.ts" name="revoked session deletes all its users and fences queued writes without touching another tenant" time="0.000395083">
+        </testcase>
+        <testcase classname="src/session-policy-draft.test.ts" name="rejects malformed immutable attempt contracts and owns accepted capture policy" time="0.012908125">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/session-policy-editor.dom.test.tsx" timestamp="2026-10-08T09:29:59.670Z" hostname="Mac" tests="11" failures="0" errors="0" skipped="0" time="1.644769375">
+        <testcase classname="src/session-policy-editor.dom.test.tsx" name="does not reuse stale conflict data after failed current-policy read" time="0.410628917">
+        </testcase>
+        <testcase classname="src/session-policy-editor.dom.test.tsx" name="renames a session without changing its policy" time="0.023566833">
+        </testcase>
+        <testcase classname="src/session-policy-editor.dom.test.tsx" name="does not silently drop an unfinished camera entry when saving policy" time="0.074217375">
+        </testcase>
+        <testcase classname="src/session-policy-editor.dom.test.tsx" name="explains the camera limit and permits another entry after explicit removal" time="0.510825792">
+        </testcase>
+        <testcase classname="src/session-policy-editor.dom.test.tsx" name="adds a validated camera to the draft and rejects duplicate identifiers" time="0.143799833">
+        </testcase>
+        <testcase classname="src/session-policy-editor.dom.test.tsx" name="removes an existing camera offset and replays the same removal after response loss" time="0.1087455">
+        </testcase>
+        <testcase classname="src/session-policy-editor.dom.test.tsx" name="revert restores a removed camera without submitting a write" time="0.090409958">
+        </testcase>
+        <testcase classname="src/session-policy-editor.dom.test.tsx" name="saves an explicit manual-protection choice without changing grouping or calibration" time="0.094725833">
+        </testcase>
+        <testcase classname="src/session-policy-editor.dom.test.tsx" name="lets the user explicitly accept current server policy without another write" time="0.076643">
+        </testcase>
+        <testcase classname="src/session-policy-editor.dom.test.tsx" name="resolves local edits against current revision while retaining current calibration" time="0.086292834">
+        </testcase>
+        <testcase classname="src/session-policy-editor.dom.test.tsx" name="exposes owned partial fields for persistence and clears them on explicit revert" time="0.023715708">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/session-policy-persistence.test.ts" timestamp="2026-10-08T09:29:59.671Z" hostname="Mac" tests="8" failures="0" errors="0" skipped="0" time="0.03792425">
+        <testcase classname="src/session-policy-persistence.test.ts" name="preserves partial input across a reload and refuses edits before explicit restore" time="0.004830125">
+        </testcase>
+        <testcase classname="src/session-policy-persistence.test.ts" name="requires comparison when the server revision changed and supports explicit discard" time="0.001063584">
+        </testcase>
+        <testcase classname="src/session-policy-persistence.test.ts" name="ignores edits after scope disposal without erasing the stored draft" time="0.001259833">
+        </testcase>
+        <testcase classname="src/session-policy-persistence.test.ts" name="persists uncertain admission before transport and forbids raw-field restoration after restart" time="0.000804083">
+        </testcase>
+        <testcase classname="src/session-policy-persistence.test.ts" name="durably owns exact request/key and refuses a different attempt" time="0.001073458">
+        </testcase>
+        <testcase classname="src/session-policy-persistence.test.ts" name="clears confirmed attempt after disposal while retaining a newer attempt under the same scope" time="0.022913458">
+        </testcase>
+        <testcase classname="src/session-policy-persistence.test.ts" name="explicit comparison preserves untouched current fields and retains partial local changes without writing" time="0.002994916">
+        </testcase>
+        <testcase classname="src/session-policy-persistence.test.ts" name="rejects invalid attempts before pinning so corrected input can be admitted" time="0.001008542">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/session-policy.test.ts" timestamp="2026-10-08T09:29:59.672Z" hostname="Mac" tests="5" failures="0" errors="0" skipped="0" time="0.00729275">
+        <testcase classname="src/session-policy.test.ts" name="bounds names by Unicode code points and rejects malformed Unicode" time="0.003691167">
+        </testcase>
+        <testcase classname="src/session-policy.test.ts" name="updates grouping controls while preserving quality/calibration settings" time="0.000566375">
+        </testcase>
+        <testcase classname="src/session-policy.test.ts" name="rejects malformed and out-of-range grouping values" time="0.000419417">
+        </testcase>
+        <testcase classname="src/session-policy.test.ts" name="changes manual protection only with an explicit boolean choice" time="0.000283291">
+        </testcase>
+        <testcase classname="src/session-policy.test.ts" name="validates explicit camera offsets and retains omitted server offsets" time="0.000458584">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/session-route.dom.test.tsx" timestamp="2026-10-08T09:29:59.672Z" hostname="Mac" tests="6" failures="0" errors="0" skipped="0" time="1.074009042">
+        <testcase classname="src/session-route.dom.test.tsx" name="starts analysis and retries with the exact key/body and one selection snapshot" time="0.19744475">
+        </testcase>
+        <testcase classname="src/session-route.dom.test.tsx" name="does not navigate to a late result from the previous session" time="0.08278225">
+        </testcase>
+        <testcase classname="src/session-route.dom.test.tsx" name="opens an analysis with the exact session and tenant scope" time="0.046936833">
+        </testcase>
+        <testcase classname="src/session-route.dom.test.tsx" name="saves grouping policy with CAS and exact retry key while blocking analysis for unsaved edits" time="0.076144667">
+        </testcase>
+        <testcase classname="src/session-route.dom.test.tsx" name="shows local/server grouping after conflict and saves only after explicit resolution" time="0.211596">
+        </testcase>
+        <testcase classname="src/session-route.dom.test.tsx" name="does not replace a newer authorized session with an older idempotent response" time="0.457495292">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/use-commands.dom.test.tsx" timestamp="2026-10-08T09:29:59.673Z" hostname="Mac" tests="1" failures="0" errors="0" skipped="0" time="0.071788291">
+        <testcase classname="src/use-commands.dom.test.tsx" name="uses actual editable targets and latest handlers without leaking listeners" time="0.069786375">
+            <system-err>
+A component is `contentEditable` and contains `children` managed by React. It is now your responsibility to guarantee that none of those nodes are unexpectedly modified or duplicated. This is probably not intentional.
+A component is `contentEditable` and contains `children` managed by React. It is now your responsibility to guarantee that none of those nodes are unexpectedly modified or duplicated. This is probably not intentional.
+
+            </system-err>
+        </testcase>
+    </testsuite>
+    <testsuite name="src/v2-resource.test.ts" timestamp="2026-10-08T09:29:59.673Z" hostname="Mac" tests="2" failures="0" errors="0" skipped="0" time="0.004084958">
+        <testcase classname="src/v2-resource.test.ts" name="V2 resource envelope bindings &gt; returns the row while retaining decimal revisions and policy fields" time="0.001527833">
+        </testcase>
+        <testcase classname="src/v2-resource.test.ts" name="V2 resource envelope bindings &gt; rejects flat rows, mismatched identities, kinds and revisions" time="0.001294541">
+        </testcase>
+    </testsuite>
+</testsuites>

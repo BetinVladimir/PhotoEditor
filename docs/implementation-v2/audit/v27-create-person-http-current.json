@@ -1,0 +1,64 @@
+{
+  "recorded_at": "2026-10-08T09:00:38.734423+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "scope": "Public HTTP standalone person preparation and exact pending replay; not whole module acceptance",
+  "sources": {
+    "backend/internal/semanticproposal/publication_integration_test.go": "2fc75d24b1d82241f776b821fcce286b4f6b40b8a5a498e79d277cdf3a17e116",
+    "backend/internal/semanticproposal/create_integration_probe_test.go": "4a83689136e0be2fc6d8ddd9c9ccbea45ca026cfaa76494d6291a2ff9c585961",
+    "backend/internal/semanticproposal/create_http_probe_test.go": "69c1bc83703bc68a23dbaa312fa109886e60ef6d44a73d403982347beac65297",
+    "tests/integration/test_v27_semantic_intent_publication.py": "e1739aa58bf1cb018946c337e781598b1efab722226f9b94453f6a7b28c99ee5",
+    "tests/integration/v27_create_probe.py": "c5cf1498dfbcf7651c9950573a4f404aca5288e306a58422ab1da1173f8c9a16",
+    "backend/internal/semanticproposal/create_person_preparation.go": "4dbf39e5564ff1283228c60454a5ebf8539ee0f141b33c452c0a63a61cb878e9",
+    "backend/internal/semanticproposal/create_service.go": "b643521eb90c9e13f63ca20367d6ac9ad7666cd31bf762afc5c4375d330f94e6",
+    "backend/internal/semanticproposal/transfer_policy_selection.go": "3da443f165c41ea862869b114960274264e6fcd569ec5e161558c752162527fa",
+    "backend/db/migrations/00900_v27_create_person_presence.sql": "5af6c977271e7545a27659fa896b6a1df731baaddd693420656b5a3940f05dcc",
+    "backend/internal/semanticproposal/native_input_saved_anchor.go": "5842b104c81b24ec0a8f1607d8425eeafec3ad9cb29782b460236b3b90ad5e90"
+  },
+  "source_manifest_unchanged_after_checks": true,
+  "checks": [
+    {
+      "command": "scripts/run-platform.sh go -C backend test ./internal/semanticproposal ./internal/v2input ./internal/httpapi ./cmd/photo",
+      "exit_code": 0,
+      "semanticproposal_seconds": 2.052
+    },
+    {
+      "command": "PHOTO_TEST_NATIVE_INFRA=1 pytest tests/integration/test_v27_semantic_intent_publication.py -k create-person -q --tb=short",
+      "exit_code": 0,
+      "passed": 1,
+      "deselected": 17,
+      "seconds": 26.32,
+      "required_marker": "V27_CREATE_HTTP_MEASURED_PERSON_QUEUED_REPLAY_OK"
+    },
+    {
+      "command": "PHOTO_TEST_NATIVE_INFRA=1 pytest tests/integration/test_v27_semantic_intent_publication.py -k \"native-bootstrap or create-service\" -q --tb=short",
+      "exit_code": 0,
+      "passed": 2,
+      "deselected": 16,
+      "seconds": 54.69
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "fixed": "Standalone person anchor incorrectly used detector-specific saved-intent SQL and returned no rows on repeated public POST. Person now uses its physically pinned intent plus live project inventory.",
+  "evidence": [
+    "Fresh isolated PostgreSQL applies all migrations; versioned MinIO objects physically verified.",
+    "No detector graph; one queued/sealed deterministic person child with original parent key, measured VRAM128MiB, one admission receipt/event/outbox.",
+    "Pending identical HTTP replay503; changed body409; canonical original fixture restoration permits parent202/replay.",
+    "Independent closure/digest/document/storage and reservation checks for both workflows."
+  ],
+  "prior_failures": [
+    "Repeated HTTP POST500: no rows in result set; fixed person loader dependency.",
+    "Verifier found extra defect workflow in oriented fixture; separated transformed unit-RGB person fixture and retained exact workflow count.",
+    "Legacy fixture conflated orientation with HDR; unit-RGB assertions now explicitly include person fixture, geometry assertions retained."
+  ],
+  "limitations": [
+    "Synthetic imported qualification; no real GPU inference or new person output adoption.",
+    "Parent202 follows restoration of original fixture canonical result.",
+    "Dedicated person-only durable scheduling before seal remains incomplete.",
+    "Target prerequisite orchestration and full V27/browser/native/quality acceptance remain open.",
+    "Full V20\u2013V32 objective active; no whole-module acceptance."
+  ]
+}

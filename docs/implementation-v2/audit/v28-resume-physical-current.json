@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 durable unqualified draft recovery through actual Resume",
+  "migration_head": "00979",
+  "whole_module_accepted": false,
+  "production_code_changed": false,
+  "checks": {
+    "tests": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 27.13,
+    "xml": "v28-resume-physical-current.xml"
+  },
+  "assertions": [
+    "Actual SQL owner Load, factory/material loader, restore of saved plan and coordinator recovery run twice per hair/clothing draft in inline/external modes",
+    "Each Resume returns zero admission and graph-not-sealed while runtime qualification remains absent",
+    "Independent owner SQL snapshot of usage, document refs/SHA/versions/bytes/state, quota, task state/attempt/fence and saved plan stays exactly equal after each retry",
+    "Foreign tenant/actor/session Resume refuse without changing same SQL snapshot",
+    "Physical missing/corrupt producer document scenarios remain refused"
+  ],
+  "source_sha256": {
+    "backend/internal/v2draft/local_portrait_material_physical_integration_test.go": "cb73a415d32a93503bcdee3ac26294c373cadf135deb7a552729be4a627e3253",
+    "backend/internal/v2draft/local_portrait_recovery_service.go": "17f6cd5de0088da7de64e60c906b9e5b2daa64788fdd9ff38c65c95bd5777965",
+    "backend/internal/v2draft/local_portrait_owner_load.go": "4643430af6b40bca03ee7445ad72d38ff93ab18300ddddb44840bb32feca12c5",
+    "tests/integration/test_v28_manual_documents_physical.py": "d5615bd2e922013eb4b9f0eef0f15f9413bfe3de92137b9c788ebc2d389a5df2"
+  },
+  "limitations": [
+    "No qualified positive admission, execution or adoption",
+    "Seeded producer/source metadata and binary placeholders",
+    "No pixel/model/quality qualification or full HTTP/UI/module cycle"
+  ]
+}

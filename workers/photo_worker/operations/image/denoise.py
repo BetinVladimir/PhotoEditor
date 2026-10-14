@@ -5,7 +5,7 @@ from contextlib import ExitStack
 from typing import Protocol
 import numpy as np
 
-from photo_worker.algorithms.model_delta import transfer_model_delta, work_to_model
+from .prepare_denoise import prepare_denoise,infer as _infer
 from photo_worker.contracts.base import canonical_bytes
 from photo_worker.contracts.images import WorkingImage
 from photo_worker.contracts.restoration import DenoiseParams, DenoiseReport
@@ -18,13 +18,6 @@ from photo_worker.runtime.executor import ExecutionContext, Operation, Operation
 
 class DenoiseEngine(Protocol):
     def infer(self, rgb: np.ndarray) -> np.ndarray: ...
-
-
-def _infer(engine: DenoiseEngine, value: np.ndarray) -> np.ndarray:
-    result = np.asarray(engine.infer(value), np.float32)
-    if result.shape != value.shape or not np.isfinite(result).all() or np.any(result < 0) or np.any(result > 1):
-        raise ValueError("MODEL_OUTPUT_INVALID")
-    return result
 
 
 def execute(ctx: ExecutionContext, artifacts: TaskArtifacts, pool: ModelPool, backend: str) -> OperationResult:
@@ -53,30 +46,11 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts, pool: ModelPool, ba
         with pool.acquire(params.model_id, backend) as engine, ExitStack() as stack:
             local = stack.enter_context(artifacts.input(image.pixels, suffix=".npy"))
             source = stack.enter_context(read_array(local.path, (height, width, 3), "float32", ctx.check_active, unit_interval=True))
-            with artifacts.scratch.reserve(height * width * 12 + 16384) as reservation:
-                output_path = reservation.path("denoised-rgb", ".npy")
-                output = np.lib.format.open_memmap(output_path, mode="w+", dtype="<f4", shape=(height, width, 3))
-                try:
-                    for y in range(0, height, params.tile):
-                        for x in range(0, width, params.tile):
-                            ctx.check_active(); y1 = min(y + params.tile, height); x1 = min(x + params.tile, width)
-                            hy0 = max(0, y - params.overlap); hx0 = max(0, x - params.overlap)
-                            hy1 = min(height, y1 + params.overlap); hx1 = min(width, x1 + params.overlap)
-                            work = np.asarray(source[hy0:hy1, hx0:hx1], np.float32)
-                            model_input, _ = work_to_model(work)
-                            model_output = _infer(engine, model_input)
-                            restored, evidence = transfer_model_delta(work, model_input, model_output, params.strength)
-                            core = (slice(y - hy0, y1 - hy0), slice(x - hx0, x1 - hx0))
-                            output[y:y1, x:x1] = restored[core]
-                            source_clip += int(np.count_nonzero(evidence.source_clipped[core]))
-                            gamut_excess += int(np.count_nonzero(evidence.gamut_excess[core]))
-                            disabled += int(np.count_nonzero(evidence.disabled[core]))
-                            done += 1; ctx.progress(done, total)
-                    output.flush(); reservation.validate()
-                finally:
-                    output._mmap.close()
-                pixel_ref = artifacts.stage(output_path, reservation, "working_rgb", "application/octet-stream")
-                written = output_path.stat().st_size
+            with prepare_denoise(source,params,engine,artifacts.scratch,check_active=ctx.check_active,
+                    progress=ctx.progress) as prepared:
+                pixel_ref=artifacts.stage(prepared.path,prepared.reservation,'working_rgb','application/octet-stream')
+                written=prepared.path.stat().st_size
+                source_clip,gamut_excess,disabled=prepared.source_clip,prepared.gamut_excess,prepared.disabled
     except ModelError as exc:
         raise OperationFailure(str(exc)) from exc
     except ValueError as exc:

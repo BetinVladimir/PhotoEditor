@@ -1,0 +1,74 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "generated_at": "2026-10-08T13:38:31.464104+00:00",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "source_scope": {
+    "backend/internal/semanticproposal/native_bootstrap_integration_test.go": "66085b0a30504563873bdfd5508a46f3640592c465770b40c13655aaf69a247a",
+    "backend/internal/semanticproposal/native_initial_pipeline_recovery_job.go": "7111c9c9ecca17c63b849b694d39b3793a1a1bbc935e0a273e24745092852ec1",
+    "backend/internal/semanticproposal/native_initial_person_result.go": "66aa40ca94b7f295a7f3760a99b968100483b79d379998a01c1e8fdb32b46dff",
+    "backend/internal/semanticproposal/native_initial_parent_admit.go": "ce01916faefa6858bb5a548d64ec38a123135d47b91517a00b40443526ecd247",
+    "backend/db/migrations/00909_v27_original_person_result.sql": "5db09af186b65b8076e897b18f63b1cd504c15b3211a7dce6e96cfc83c57f9ab",
+    "backend/db/migrations/00910_v27_native_protection_row_lock.sql": "0e78234477b04ea02e1e7996cfba1cb26c9b903b9ce3942e530c9b0cd45ad652",
+    "backend/db/migrations/00911_v27_automatic_initial_handoff.sql": "9d4e9e5e376399002de310b40ae3a561fe9e8b079f92650a216e1c81e4226108",
+    "tests/integration/v27_person_wire_probe.py": "64247a9e0244e788cb2e33d4585635a5e290032f65f18df63542fcc40e2e3186",
+    "tests/integration/v27_face_wire_probe.py": "8b65f410b1cae8a7a9f74e006d4ceea74184fcf6deaf5868339e4617aa1c7675",
+    "tests/integration/test_v27_semantic_intent_publication.py": "794c3e2fd5237e5735c31a9e88519da2a31835fb83d50fa2d448bd367a3dcf43",
+    "tests/integration/test_v27_automatic_initial_handoff.py": "7dee24a1a4defefd73278833d6d40c208fe87f6f80e49812e12c66e4bf3f31f4"
+  },
+  "checks": [
+    {
+      "command": "PHOTO_TEST_V27_ORIGINAL_PERSON_RECOVER=1 PHOTO_TEST_V27_ORIGINAL_PERSON=1 PHOTO_TEST_V27_PERSON_DEFECT_PARENT=1 PHOTO_TEST_V27_PERSON_DEFECT_FRESH=1 PHOTO_TEST_NATIVE_INFRA=1 PYTHONPATH=workers:src:tests/integration PYTHONDONTWRITEBYTECODE=1 .venv-platform/bin/python -m pytest tests/integration/test_v27_semantic_intent_publication.py -k native-person-defect-wire -q --tb=short --junitxml=docs/implementation-v2/audit/v27-original-person-full-recover-current.xml",
+      "exit_code": 0,
+      "passed": 1,
+      "deselected": 21,
+      "seconds": 548.05,
+      "evidence": "docs/implementation-v2/audit/v27-original-person-full-recover-current.xml",
+      "evidence_sha": "d32f2e3577ce454061edeb65e8238550ad992a790c599b3b4532f40790f478ac"
+    },
+    {
+      "name": "handoff refusal/forward upgrade/goose regression",
+      "exit_code": 0,
+      "passed": 8,
+      "seconds": 5.01,
+      "evidence": "docs/implementation-v2/audit/v27-handoff-guard-regression.xml",
+      "evidence_sha": "f3c18dcd8dfb8a7ee2d496a1a8492720308ef5fbdedf492b4a890066bb24c4cf"
+    },
+    {
+      "command": "scripts/run-platform.sh go -C backend test ./internal/semanticproposal ./internal/v2input ./internal/review",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "verified": [
+    "Actual mask.person adapter/mTLS/upload/canonical commit on original saved task; no imported source person mask seeded",
+    "Original person task-qualified physical authority accepted by readOriginalNativePersonInput",
+    "Nonempty spatial test person mask retained through permanent projection and defect protection",
+    "Parent target ambiguity refused; explicit trusted pins admit queued parent and original ticket replay",
+    "Whole production Recover invoked on saved succeeded producer chain and already-admitted parent; outcome completed",
+    "Real scheduler lease records durable completion; consumed lease refuses replay",
+    "Independent outer verifier proves original person output task/attempt/fence, root/pixel dependency equality, one canonical result and detector done with all lease/schedule columns null",
+    "Parent closure/object hashes/quota/exactly-one receipt/event/outbox independently checked"
+  ],
+  "limitations": [
+    "Deterministic LRASPP/face inference and imported qualification fixture; no real GPU/model/corpus quality acceptance",
+    "Recover is tested on saved succeeded stages and already-admitted parent; this does not prove cold recovery from every interruption point",
+    "Direct scheduler claim/record surrounds Recover; ProcessOne whole-cycle acceptance remains separate",
+    "Crash/restart, concurrent revocation/substitution/purge through the entire positive chain remain required",
+    "548-second fixture is not production SLA acceptance",
+    "No whole V27 or V20–V32 acceptance; scoped source pins are not a full repository dirty-tree acceptance hash"
+  ],
+  "retained_diagnostics": [
+    {
+      "path": "docs/implementation-v2/audit/v27-original-person-handoff.xml",
+      "classification": "fixture UnboundLocalError, fixed before successful runs"
+    },
+    {
+      "path": "docs/implementation-v2/audit/v27-original-person-full-recover.xml",
+      "classification": "deliberately stopped specific test binary after detecting inherited420s Go timeout; not a product failure or PASS"
+    }
+  ]
+}

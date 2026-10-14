@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 physical relight adapter preparation and MinIO staging",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "production_migration_applied": false,
+  "checks": {
+    "postgres_minio_execution_and_regressions": {
+      "passed": 7,
+      "seconds": 22.84,
+      "xml": "v28-relight-execute-physical-current.xml"
+    },
+    "relight_components": {
+      "passed": 134,
+      "seconds": 2.58,
+      "xml": "v28-relight-execute-components.xml"
+    }
+  },
+  "source_sha256": {
+    "tests/integration/test_v28_relight_resolver_physical.py": "241e4d5eb75e5d16b4dc8351fc4281794cfedccf74a8bd403411d8c10d2fc175",
+    "tests/integration/test_v28_relight_depth.py": "7ee6674dda1be1d2176d36acbca945be0b98f89d387c7331f5eb4c3172d50d10",
+    "tests/integration/test_v28_relight_lease.py": "d98373b30507afd2b16ca1ec2ac235332582a35d0260fa274c79b7cc90699907"
+  },
+  "limitations": [
+    "Producer/task/result/lease/closure and trusted qualification metadata are synthetic owner-seeded fixtures",
+    "Artifact transport and stage publisher are test implementations; installed-runtime factory/public gateway/adoption not exercised",
+    "5x5 synthetic RGB/depth/manual arrays, no learned depth/person inference or actual photo/device quality qualification"
+  ]
+}

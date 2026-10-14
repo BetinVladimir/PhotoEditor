@@ -15,10 +15,22 @@ def ref(n):return {'$ref':'#/$defs/'+n}
 def null(s):return {'anyOf':[s,{'type':'null'}]}
 U={'type':'string','format':'uuid'};SHA={'type':'string','pattern':'^[0-9a-f]{64}$'};REV={'type':'string','pattern':'^[1-9][0-9]{0,18}$'};T={'type':'string','format':'date-time'};B={'type':'boolean'};N=number(0,1)
 D={}
+D['RAWDevelopment']=obj({'schema_version':{'const':1},'demosaic':enum('ahd','dcb'),'wb_source':enum('camera','daylight','auto'),'exposure_ev':number(-2,3),'highlight_policy':enum('clip','blend','reconstruct'),'decoder_version':{'type':'string','maxLength':128,'pattern':r'^rawpy-[0-9]+\.[0-9]+\.[0-9]+/libraw-[0-9]+\.[0-9]+\.[0-9]+$'}})
+D['RAWCapabilityView']={'type': 'object', 'additionalProperties': False, 'properties': {'decoder_version': {'type': 'string', 'maxLength': 128, 'pattern': '^rawpy-[0-9]+\\.[0-9]+\\.[0-9]+/libraw-[0-9]+\\.[0-9]+\\.[0-9]+$'}, 'demosaic': {'type': 'array', 'items': {'type': 'string', 'enum': ['ahd', 'dcb']}, 'minItems': 2, 'maxItems': 2, 'uniqueItems': True}, 'wb_source': {'type': 'array', 'items': {'type': 'string', 'enum': ['camera', 'daylight', 'auto']}, 'minItems': 3, 'maxItems': 3, 'uniqueItems': True}, 'highlight_policy': {'type': 'array', 'items': {'type': 'string', 'enum': ['clip', 'blend', 'reconstruct']}, 'minItems': 3, 'maxItems': 3, 'uniqueItems': True}, 'exposure_min': {'const': -2}, 'exposure_max': {'const': 3}}, 'required': ['decoder_version', 'demosaic', 'wb_source', 'highlight_policy', 'exposure_min', 'exposure_max']}
+D['RAWCapabilities']={'oneOf': [{'type': 'object', 'additionalProperties': False, 'properties': {'project_id': {'type': 'string', 'format': 'uuid'}, 'available': {'const': False}}, 'required': ['project_id', 'available']}, {'type': 'object', 'additionalProperties': False, 'properties': {'project_id': {'type': 'string', 'format': 'uuid'}, 'available': {'const': True}, 'development': {'$ref': '#/$defs/RAWCapabilityView'}}, 'required': ['project_id', 'available', 'development']}]}
+D['V25UploadBegin']=obj({'project_id':U,'collection_id':U,'filename':string(255),'bytes':integer(1,536870912),'format':enum('jpg','jpeg','png','tif','tiff','dng','cr2','nef','arw','raf','orf','rw2'),'sha256':SHA,'assume_profile':enum('srgb_v1','linear_srgb_v1','work_rec2020_gamma24_v1'),'raw_development':ref('RAWDevelopment')},optional=('collection_id','sha256','assume_profile','raw_development'))
 D['ArtifactRef']=obj({'artifact_id':U,'sha256':SHA})
 D['VersionBinding']=obj({'asset_version_id':U,'source':ref('ArtifactRef'),'canvas_hash':SHA})
 D['Error']=obj({'code':string(80),'message_key':string(120),'args':{'type':'object','additionalProperties':{'type':['string','number','boolean','null']}},'request_id':U})
 D['JobTicket']=obj({'run_id':U,'workflow_id':U,'state':enum('queued')})
+D['RenderBatchSubmission']=obj({'input_snapshot_id':U,'policy_sha':SHA,'selection':arr(obj({'source':ref('VersionBinding'),'recipe':ref('ArtifactRef')}),1,5000)})
+D['RenderWorkflowPolicy']=obj({'schema_version':integer(1,1),'renderer_version':enum('v2.2'),'workflow_type':enum('preview'),'child_failure_policy':enum('fail_fast'),'max_frames':integer(5000,5000)})
+D['RenderPolicySnapshot']=obj({'policy_sha':SHA,'policy':ref('RenderWorkflowPolicy')})
+D['RenderInputSnapshotRequest']=obj({'sources':arr(ref('VersionBinding'),1,5000)})
+D['RenderInputSnapshotResult']=obj({'id':U,'digest':SHA,'item_count':integer(1,5000)})
+D['RenderFreezeRequest']=obj({'document_id':U,'expected_revision':REV,'assume_profile':null(enum('srgb_v1','linear_srgb_v1','work_rec2020_gamma24_v1'))})
+D['RenderFreezeResult']=obj({'document_id':U,'draft_document_id':U,'draft_revision':REV,'source':ref('VersionBinding'),'recipe':ref('ArtifactRef')})
+D['RenderBatchTicket']=obj({'run_id':U,'state':enum('queued','running','waiting_review'),'child_run_ids':arr(U,1,5000)})
 D['Resource']=obj({'id':U,'revision':REV,'document':null(ref('ArtifactRef'))})
 D['ResourcePage']=obj({'items':arr(ref('Resource'),0,100),'next_cursor':null(string(2048))})
 D['JobStatus']=obj({'run_id':U,'workflow_id':U,'revision':REV,'state':enum('queued','running','waiting_review','cancelling','cancelled','completed','failed'),'outputs':arr(ref('ArtifactRef'),0,128),'error_code':null(string(80))})
@@ -58,6 +70,11 @@ D['EditIntent']=obj({'schema_version':{'const':1},'kind':enum('remove_object','l
 D['TransferCandidate']=obj({'schema_version':{'const':1},'target':ref('VersionBinding'),'mask':null(ref('ArtifactRef')),'transform':null(ref('ArtifactRef')),'confidence':N,'state':enum('proposed','unsupported','rejected'),'reason':null(string(80))})
 D['SemanticPlan']=obj({'schema_version':{'const':1},'intent_sha':SHA,'snapshot_digest':SHA,'candidates':arr(ref('TransferCandidate'),1,5000),'model_lock_sha':SHA,'calibration':ref('ArtifactRef')})
 D['DeliveryPolicy']=obj({'required_presets':arr(U,1,8),'optional_presets':arr(U,0,8),'require_review':B,'metadata_policy':enum('strip','copyright','approved_exif'),'provenance':enum('off','required'),'allow_omitted':B})
+D['DeliveryPolicy']['properties'].update({'signing_policy_id':U,'signing_policy_sha':SHA,'approved_fields':{'type':'array','maxItems':7,'uniqueItems':True,'items':enum('author','copyright','camera_make','camera_model','lens','datetime_original','gps')}})
+D['DeliveryPolicy']['allOf']=[
+ {'if':{'properties':{'provenance':{'const':'required'}},'required':['provenance']},'then':{'required':['signing_policy_id','signing_policy_sha']},'else':{'not':{'anyOf':[{'required':['signing_policy_id']},{'required':['signing_policy_sha']}]}}},
+ {'if':{'properties':{'metadata_policy':enum('strip','copyright')}},'then':{'properties':{'approved_fields':{'maxItems':0}}}},
+]
 D['InterchangeRequest']={'oneOf':[obj({'project_id':U,'direction':enum('import'),'format':enum('xmp','photoeditor_bundle','captureone_sidecar'),'bundle':ref('ArtifactRef')}),obj({'project_id':U,'direction':enum('export'),'format':enum('xmp','photoeditor_bundle','captureone_sidecar'),'snapshot_id':U})]}
 D['MappingReport']=obj({'schema_version':{'const':1},'items':arr(obj({'external_id':string(240),'asset_version_id':null(U),'fields':arr(obj({'name':string(80),'status':enum('exact','unsupported','rejected'),'reason':null(string(200))}),0,128)}),0,5000)})
 # Explicit endpoint body models.
@@ -151,13 +168,24 @@ D['CorrectionCreate']['allOf']=[{'if':{'properties':{'learn':{'const':True}}},'t
 D['CorrectionEvent']['allOf']=D['CorrectionCreate']['allOf']
 from spec_v22 import extend, endpoints as extend_endpoints
 D,ops=extend(D,ops,globals())
+D['RelightDraftIntent']=obj({'schema_version':{'const':1},'snapshot_id':U,'ordinal':integer(0,4999),'subject_kind':enum('person','manual'),'params':ref('ImageRelightParams')})
 
+D['RelightAnalysisIntent']=obj({'schema_version':{'const':1},'snapshot_id':U,'base':ref('VersionBinding'),'operation':enum('depth.predict','mask.person')})
+D['RelightPreparationRequest']=obj({'schema_version':{'const':1},'snapshot_id':U,'base':ref('VersionBinding'),'depth':ref('ArtifactRef'),'subject':ref('ArtifactRef'),'protected':ref('ArtifactRef'),'subject_kind':enum('person','manual'),'ordinal':integer(0,4999)})
+D['RelightCandidateQuery']=obj({'snapshot_id':U,'base':ref('VersionBinding'),'kind':enum('depth','person','manual_target','manual_guard'),'after':null(U)})
+D['RelightCandidatePage']=obj({'items':arr(obj({'ref':ref('ArtifactRef'),'kind':enum('depth','person','manual_target','manual_guard')}),0,100),'next_cursor':null(U)})
+from spec_v29_replacement import extend_schemas as replacement_schemas, extend_endpoints as replacement_endpoints, query_parameters as replacement_queries
+replacement_schemas(D)
+archive_contracts=json.loads((ROOT/'archive-upload-contracts.json').read_text())
+review_media_contracts=json.loads((ROOT/'review-media-contracts.json').read_text())
+D.update(archive_contracts['schemas'])
 write('schemas.json',{'$schema':'https://json-schema.org/draft/2020-12/schema','$id':'https://photoeditor.invalid/spec/v2/schemas.json','$defs':D})
 write('operations.json',{'schema_version':1,'operations':ops})
 # Every endpoint has one strict request and response; resource documents are separately schema-checked.
 E=[]
 def endpoint(method,path,req,response,pkg,handler,role='editor',status=200):
  E.append({'method':method,'path':'/api/v1/tenants/{t}'+path,'request_schema':req,'response_schema':response,'package':pkg,'handler':handler,'role':role,'success_status':status})
+endpoint('GET','/projects/{id}/raw-capabilities',None,'RAWCapabilities','V25','GetRAWCapabilities')
 endpoint('POST','/shoot-sessions','SessionCreate','Resource','V22','CreateSession',status=201)
 endpoint('GET','/shoot-sessions/{id}',None,'Resource','V22','GetSession','viewer')
 endpoint('GET','/shoot-sessions',None,'ResourcePage','V22','ListSessions','viewer')
@@ -192,7 +220,15 @@ endpoint('GET','/assets/{id}/v2-draft',None,'Resource','V21','GetDraft','viewer'
 endpoint('GET','/assets/{id}/v2-binding',None,'VersionBinding','V21','GetDraftBinding')
 endpoint('GET','/assets/{id}/v2-draft/history',None,'ResourcePage','V21','ListDraftHistory','viewer')
 endpoint('POST','/assets/{id}/v2-draft/approve','DraftApproval','Resource','V21','ApproveDraft')
+endpoint('POST','/assets/{id}/v2-draft/freeze','RenderFreezeRequest','RenderFreezeResult','V26','FreezeRenderDraft')
+endpoint('POST','/projects/{id}/render-input-snapshots','RenderInputSnapshotRequest','RenderInputSnapshotResult','V26','CreateRenderInputSnapshot',status=201)
+endpoint('GET','/projects/{id}/render-policy',None,'RenderPolicySnapshot','V26','GetRenderPolicy')
 endpoint('POST','/assets/{id}/region-previews','RegionPreview','JobTicket','V26','PreviewRegion',status=202)
+endpoint('POST','/projects/{id}/render-batches','RenderBatchSubmission','RenderBatchTicket','V26','QueueRenderBatch',status=202)
+endpoint('POST','/projects/{id}/relight-analyses','RelightAnalysisIntent','JobTicket','V28','SubmitRelightAnalysis',status=202)
+endpoint('POST','/projects/{id}/relight-preparation','RelightPreparationRequest','RelightDraftIntent','V28','PrepareRelightIntent')
+endpoint('POST','/projects/{id}/relight-candidates','RelightCandidateQuery','RelightCandidatePage','V28','ListRelightCandidates')
+endpoint('POST','/projects/{id}/relight-intents','RelightDraftIntent','JobTicket','V28','SubmitRelight',status=202)
 endpoint('POST','/semantic-intents','EditIntent','JobTicket','V27','Propose',status=202)
 endpoint('GET','/semantic-intents/{id}/targets',None,'ResourcePage','V27','ListTargets','viewer')
 endpoint('POST','/semantic-intents/{id}/apply','SemanticApply','JobTicket','V27','ApplyApproved',status=202)
@@ -206,17 +242,28 @@ endpoint('GET','/v2-documents/{id}',None,'DocumentBody','V21','GetDocument','vie
 endpoint('GET','/v2-workflows/{id}',None,'JobStatus','V21','GetWorkflow','viewer')
 endpoint('POST','/v2-workflows/{id}/cancel','CAS','JobStatus','V21','CancelWorkflow')
 extend_endpoints(E,endpoint)
+replacement_endpoints(E)
+E.extend(archive_contracts['endpoints'])
+for media_path, media_methods in review_media_contracts['paths'].items():
+ for media_method, media_operation in media_methods.items():
+  E.append({'method':media_method.upper(),'path':media_path,'request_schema':None,
+   'response_schema':None,'package':media_operation['x-package'],
+   'handler':media_operation['operationId'],'role':'capability','success_status':200})
 write('endpoints.json',{'schema_version':1,'endpoints':E})
 paths={}
 for e in E:
+ if e['role']=='capability':continue # Binary, token-authorized routes are supplied by review-media-contracts.json.
  params=[{'name':name,'in':'path','required':True,'schema':U} for name in __import__('re').findall(r'{([^}]+)}',e['path'])]
+ params += replacement_queries(e['handler'])
+ if e['handler']=='GetInterchangeArchiveUpload':params += [{'name':'request_sha256','in':'query','required':True,'schema':SHA}]
  if e['handler']=='ListSessions':params += [{'name':'project_id','in':'query','required':True,'schema':U}]
  if e['method']=='GET' and e['response_schema'] in ('ResourcePage','LearningVersionPage','CaptureAlertPage'):params += [{'name':'limit','in':'query','schema':integer(1,100)},{'name':'cursor','in':'query','schema':string(2048)}]
  public=e['role']=='device_public'
- if e['method']!='GET' and not public:params += [{'name':'Idempotency-Key','in':'header','required':True,'schema':string(128)}]
+ if e['method']!='GET' and not public and e['handler'] not in ('SignInterchangeArchiveParts','CompleteInterchangeArchiveUpload','AbortInterchangeArchiveUpload'):params += [{'name':'Idempotency-Key','in':'header','required':True,'schema':string(128)}]
  auth=[] if public else [{'deviceBearer':[]}] if e['role']=='device' else [{'userBearer':[]}]
  operation={'operationId':e['handler'],'x-role':e['role'],'x-package':e['package'],'parameters':params,'security':auth,'x-web-mutation-csrf':e['method']!='GET' and not public and e['role']!='device','responses':{str(e['success_status']):{'description':'Success','content':{'application/json':{'schema':{'$ref':'schemas.json#/$defs/'+e['response_schema']}}}},**{str(x):{'description':'Domain error','content':{'application/json':{'schema':{'$ref':'schemas.json#/$defs/Error'}}}} for x in [400,401,403,404,409,410,413,422,428,429,503]}}}
  if e['request_schema']:operation['requestBody']={'required':True,'content':{'application/json':{'schema':{'$ref':'schemas.json#/$defs/'+e['request_schema']}}}}
  paths.setdefault(e['path'],{})[e['method'].lower()]=operation
+paths.update(review_media_contracts['paths'])
 write('openapi.json',{'openapi':'3.1.0','info':{'title':'PhotoEditor v2 additions','version':'2.2.0'},'paths':paths,'components':{'securitySchemes':{'userBearer':{'type':'http','scheme':'bearer'},'deviceBearer':{'type':'http','scheme':'bearer'},'sessionCookie':{'type':'apiKey','in':'cookie','name':'__Host-photo_refresh'},'csrfHeader':{'type':'apiKey','in':'header','name':'X-CSRF-Token'}}}})
 print(len(D),'schemas',len(E),'endpoints',len(ops),'operations')

@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-08",
+  "module": "V27",
+  "module_accepted": false,
+  "scope": "Complete current physical semantic intent publication test file: publisher/wrapper/revocation/source races/batch/preparer partial recovery/orientation/external storage/manual locks/disjoint locks/manual races/native bootstrap/ordinary admission/real HTTP create+actual API executable replay/shutdown.",
+  "command": "PHOTO_TEST_NATIVE_INFRA=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=workers:src:tests/integration .venv-platform/bin/python -m pytest tests/integration/test_v27_semantic_intent_publication.py -q --tb=short",
+  "result": {
+    "passed": 17,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 335.74
+  },
+  "source_manifest": "v27-publication-suite-source-start.json",
+  "source_files": 11707,
+  "changed_since_pin": [],
+  "remaining": [
+    "native automatic missing-producer public initiation",
+    "real inference/photo/parallax/occlusion/protected quality gates",
+    "whole-module current client/hardware/security/lifecycle acceptance"
+  ]
+}

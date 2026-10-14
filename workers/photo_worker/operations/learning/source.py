@@ -35,13 +35,20 @@ def open_holdout_source(artifacts: TaskArtifacts, case: RenderCase,
     TaskArtifacts verifies artifact identity and SHA before read_array checks
     exact NPY layout and bounded values. Mappings cannot escape this scope.
     """
+    check_active()
     if case.binding.source != case.working_image:
         raise ValueError('HOLDOUT_SOURCE_BINDING_MISMATCH')
-    image = artifacts.contract(case.working_image, WorkingImage)
-    protected = artifacts.contract(case.protected, MaskRef)
-    effective = (artifacts.contract(case.effective_mask, MaskRef)
+    def contract(ref, model):
+        check_active()
+        result = artifacts.contract(ref, model)
+        check_active()
+        return result
+
+    image = contract(case.working_image, WorkingImage)
+    protected = contract(case.protected, MaskRef)
+    effective = (contract(case.effective_mask, MaskRef)
                  if case.effective_mask is not None else None)
-    regions = {binding.region_id: artifacts.contract(binding.mask, MaskRef)
+    regions = {binding.region_id: contract(binding.mask, MaskRef)
                for binding in case.region_masks}
     if len(regions) != len(case.region_masks):
         raise ValueError('DUPLICATE_HOLDOUT_REGION_MASK')
@@ -66,19 +73,28 @@ def open_holdout_source(artifacts: TaskArtifacts, case: RenderCase,
     height, width = image.canvas.height, image.canvas.width
     with ExitStack() as stack:
         def mapped(ref, shape, dtype, unit):
+            check_active()
             local = stack.enter_context(artifacts.input(ref, suffix='.npy'))
-            return stack.enter_context(read_array(local.path, shape, dtype,
-                                                  check_active,
-                                                  unit_interval=unit))
+            check_active()
+            result = stack.enter_context(read_array(local.path, shape, dtype,
+                                                    check_active,
+                                                    unit_interval=unit))
+            check_active()
+            return result
         rgb = mapped(image.pixels, (height, width, 3), 'float32', True)
         alpha=None
         if image.alpha is not None:
+            check_active()
             local=stack.enter_context(artifacts.input(image.alpha,suffix='.npy'))
+            check_active()
             alpha=stack.enter_context(read_alpha_array(local.path,(height,width),check_active))
+            check_active()
         guard = mapped(protected.artifact, (height, width), 'float32', True)
         editable = (mapped(effective.artifact, (height, width), 'float32', True)
                     if effective is not None else None)
         region_pixels = {name: (mask, mapped(mask.artifact,
                          (height, width), 'float32', True))
                          for name, mask in regions.items()}
+        check_active()
         yield HoldoutSource(image, rgb, alpha, guard, editable, region_pixels)
+        check_active()

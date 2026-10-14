@@ -12,6 +12,12 @@ from photo_worker.models.pool import ModelPool
 from photo_worker.runtime.arrays import read_array
 from photo_worker.runtime.artifacts import ArtifactConfig,TaskArtifacts
 from photo_worker.runtime.executor import ExecutionContext,Operation,OperationFailure,OperationResult
+from .inpaint import _blend_selected
+
+def _required_outpaint_ram(height:int,width:int)->int:
+    """Reserve full-frame model, color-transfer and blend temporaries."""
+    if type(height) is not int or type(width) is not int or height<1 or width<1:raise ValueError('OUTPAINT_SIZE_INVALID')
+    return 512*1024**2+height*width*160
 
 def execute(ctx:ExecutionContext,artifacts:TaskArtifacts,pool:ModelPool,backend:str)->OperationResult:
     profile=ctx.lease.execution_profile;estimate=profile.get('resource_estimate');ram=estimate.get('ram_bytes') if isinstance(estimate,dict) else None
@@ -26,6 +32,7 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts,pool:ModelPool,backend:
         h,w=image.canvas.height,image.canvas.width
         ow=w+params.pixels if params.side in ('left','right') else w;oh=h+params.pixels if params.side in ('top','bottom') else h
         if ow*oh>200000000:raise ValueError('OUTPAINT_PIXEL_LIMIT')
+        if ram<_required_outpaint_ram(oh,ow):raise OperationFailure('RESOURCE_OOM')
     except ModelError as exc:raise OperationFailure(str(exc)) from exc
     except ValueError as exc:raise OperationFailure('INPUT_INVALID') from exc
     dx=params.pixels if params.side=='left' else 0;dy=params.pixels if params.side=='top' else 0;source_rect=[dx,dy,w,h]
@@ -49,15 +56,22 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts,pool:ModelPool,backend:
             if generated.shape!=(512,512,3) or not np.isfinite(generated).all() or np.any(generated<0) or np.any(generated>1):raise ValueError('MODEL_OUTPUT_INVALID')
             model_output=cv2.resize(generated,(ow,oh),interpolation=cv2.INTER_CUBIC).clip(0,1).astype(np.float32)
             restored,_=transfer_model_delta(initial,model_input,model_output,1.);distance=cv2.distanceTransform(mask.astype(np.uint8),cv2.DIST_L2,3)
-            weight=np.minimum(distance/params.feather_pixels,1).astype(np.float32);result=initial+(restored-initial)*weight[...,None]
-            result[dy:dy+h,dx:dx+w]=source;ctx.progress(1,5)
+            weight=np.minimum(distance/params.feather_pixels,1).astype(np.float32);ctx.progress(1,5)
             reserve=oh*ow*(12+(2 if alpha is not None else 0))+32768
             with artifacts.scratch.reserve(reserve) as reservation:
-                path=reservation.path('outpaint-rgb','.npy');output=np.lib.format.open_memmap(path,mode='w+',dtype='<f4',shape=(oh,ow,3));output[:]=result;output.flush();output._mmap.close()
+                path=reservation.path('outpaint-rgb','.npy');output=np.lib.format.open_memmap(path,mode='w+',dtype='<f4',shape=(oh,ow,3))
+                try:
+                    for row in range(0,oh,256):ctx.check_active();output[row:row+256]=initial[row:row+256]
+                    _blend_selected(output,initial,restored,weight,0,0,ctx.check_active)
+                    output.flush();reservation.validate();ctx.check_active()
+                finally:output._mmap.close()
                 alpha_path=None;out_alpha=None
                 if alpha is not None:
-                    alpha_path=reservation.path('outpaint-alpha','.npy');out_alpha=np.lib.format.open_memmap(alpha_path,mode='w+',dtype='<u2',shape=(oh,ow));out_alpha[:]=65535;out_alpha[dy:dy+h,dx:dx+w]=alpha;out_alpha.flush();out_alpha._mmap.close()
-                reservation.validate();pixel_ref=artifacts.stage(path,reservation,'working_rgb','application/octet-stream');alpha_ref=artifacts.stage(alpha_path,reservation,'working_alpha','application/octet-stream') if alpha_path else None
+                    alpha_path=reservation.path('outpaint-alpha','.npy');out_alpha=np.lib.format.open_memmap(alpha_path,mode='w+',dtype='<u2',shape=(oh,ow))
+                    try:
+                        out_alpha[:]=65535;out_alpha[dy:dy+h,dx:dx+w]=alpha;out_alpha.flush();reservation.validate();ctx.check_active()
+                    finally:out_alpha._mmap.close()
+                ctx.check_active();pixel_ref=artifacts.stage(path,reservation,'working_rgb','application/octet-stream');alpha_ref=artifacts.stage(alpha_path,reservation,'working_alpha','application/octet-stream') if alpha_path else None
                 written=path.stat().st_size+(alpha_path.stat().st_size if alpha_path else 0)
     except ModelError as exc:raise OperationFailure(str(exc)) from exc
     except ValueError as exc:raise OperationFailure('MODEL_OUTPUT_INVALID') from exc

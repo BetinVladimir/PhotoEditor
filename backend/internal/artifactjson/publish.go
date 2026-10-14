@@ -19,6 +19,20 @@ import (
 type Scope struct {
 	Tenant, Run, Owner uuid.UUID
 	Purpose            string
+	// Project binds producer-linked learning evidence to its source project.
+	Project uuid.UUID
+	// Reviewed holdout publication reauthorizes the exact review and
+	// live editor session on both sides of immutable object IO.
+	Review, Actor, AuthSession uuid.UUID
+	DecisionHash               string
+	// AssemblyLease fences expansion params and task-owned input transport.
+	AssemblyLease uuid.UUID
+	// LocalPortrait routes task_params through the saved V28 intent authority.
+	LocalPortrait bool
+	// DonorPortrait routes Params through the separate saved donor intent.
+	DonorPortrait bool
+	// RestorationPortrait routes Params through the saved restoration intent.
+	RestorationPortrait bool
 }
 type Ref struct {
 	ID     uuid.UUID `json:"artifact_id"`
@@ -46,15 +60,40 @@ type Publisher struct {
 }
 
 func DocumentKey(s Scope, id uuid.UUID) (string, error) {
-	if s.Tenant == uuid.Nil || s.Run == uuid.Nil || s.Owner == uuid.Nil || id == uuid.Nil ||
-		(s.Purpose != "task_params" && s.Purpose != "review_selection" &&
+	if s.Purpose == "v23_detail_holdout" &&
+		(s.Project == uuid.Nil || s.Actor == uuid.Nil ||
+			s.AuthSession == uuid.Nil) {
+		return "", objectstore.ErrInvalid
+	}
+	if (s.Purpose == "v23_defect_holdout" || s.Purpose == "v23_dust_holdout") &&
+		(s.Review == uuid.Nil || s.Actor == uuid.Nil || s.AuthSession == uuid.Nil ||
+			len(s.DecisionHash) != 64) {
+		return "", objectstore.ErrInvalid
+	}
+	if v30DeliveryPurpose(s.Purpose) && s.AssemblyLease == uuid.Nil {
+		return "", objectstore.ErrInvalid
+	}
+	portraitRoutes := 0
+	for _, enabled := range []bool{s.LocalPortrait, s.DonorPortrait, s.RestorationPortrait} {
+		if enabled {
+			portraitRoutes++
+		}
+	}
+	if portraitRoutes > 1 || portraitRoutes == 1 &&
+		(s.Purpose != "task_params" || s.AssemblyLease != uuid.Nil) {
+		return "", objectstore.ErrInvalid
+	}
+	if (s.AssemblyLease != uuid.Nil && s.Purpose != "task_params" && !v2InputPurpose(s.Purpose) && !v30DeliveryPurpose(s.Purpose)) || s.Tenant == uuid.Nil || s.Run == uuid.Nil || s.Owner == uuid.Nil || id == uuid.Nil ||
+		(s.Purpose != "task_params" && s.Purpose != "review_selection" && s.Purpose != "v30_metadata_source" &&
 			s.Purpose != "v2_session_plan_params" && s.Purpose != "v23_evaluate_params" &&
 			s.Purpose != "v23_training_manifest" && !v24CapturePurpose(s.Purpose) && !v25LensPurpose(s.Purpose) &&
 			s.Purpose != "v23_training_snapshot" && s.Purpose != "v23_fit_params" &&
 			s.Purpose != "v23_zero_profile" &&
 			s.Purpose != "v23_frozen_base" &&
 			s.Purpose != "v23_frozen_approved" &&
-			!v2InputPurpose(s.Purpose) && !v22AnalysisPurpose(s.Purpose)) {
+			s.Purpose != "v23_defect_holdout" && s.Purpose != "v23_dust_holdout" &&
+			s.Purpose != "v23_detail_holdout" &&
+			!v2InputPurpose(s.Purpose) && !v22AnalysisPurpose(s.Purpose) && !v30DeliveryPurpose(s.Purpose)) {
 		return "", objectstore.ErrInvalid
 	}
 	return objectstore.DocumentKey(s.Tenant, s.Run, id)
@@ -77,6 +116,12 @@ func maxDocumentBytes(purpose string) int {
 	if purpose == "v2_analysis_input_snapshot" || purpose == "v2_analysis_consents" || purpose == "v23_training_manifest" || purpose == "v24_capture_context" || purpose == "v24_capture_consents" {
 		return 8 * 1048576
 	}
+	if purpose == "v30_delivery_signed_closure" {
+		return 8 * 1048576
+	}
+	if purpose == "v30_delivery_signed_envelope" {
+		return 65536
+	}
 	return 1048576
 }
 
@@ -98,7 +143,7 @@ func v2InputPurpose(purpose string) bool {
 // ready state. Cancellation/unknown completion retains the same reservation
 // for retry; neither overwriting nor deleting shared keys is permitted.
 func (p Publisher) Publish(ctx context.Context, scope Scope, raw []byte) (Ref, error) {
-	if p.Repository == nil || p.Objects == nil || len(raw) > maxDocumentBytes(scope.Purpose) {
+	if p.Repository == nil || p.Objects == nil || len(raw) > maxScopeDocumentBytes(scope) {
 		return Ref{}, objectstore.ErrInvalid
 	}
 	if _, err := DocumentKey(scope, scope.Owner); err != nil {
@@ -108,7 +153,7 @@ func (p Publisher) Publish(ctx context.Context, scope Scope, raw []byte) (Ref, e
 		return Ref{}, err
 	}
 	body, err := canonical.Bytes(raw)
-	if err != nil || len(body) == 0 || body[0] != '{' || len(body) > maxDocumentBytes(scope.Purpose) {
+	if err != nil || len(body) == 0 || body[0] != '{' || len(body) > maxScopeDocumentBytes(scope) {
 		return Ref{}, objectstore.ErrInvalid
 	}
 	digest := sha256.Sum256(body)
@@ -166,4 +211,38 @@ func v24CapturePurpose(purpose string) bool {
 
 func v25LensPurpose(purpose string) bool {
 	return purpose == "v25_lens_params" || purpose == "v25_lens_original_binding"
+}
+
+func maxScopeDocumentBytes(s Scope) int {
+	if s.LocalPortrait || s.DonorPortrait || s.RestorationPortrait {
+		return 65536
+	}
+	if s.AssemblyLease != uuid.Nil && s.Purpose == "task_params" {
+		return 8 * 1048576
+	}
+	return maxDocumentBytes(s.Purpose)
+}
+
+// V30 documents require a dedicated lease-fenced repository. This allowlist
+// only permits object-key construction; it grants no SQL publication authority.
+func v30DeliveryPurpose(purpose string) bool {
+	if purpose == "v30_delivery_assembly" || purpose == "v30_metadata_projection" ||
+		purpose == "v30_delivery_signed_closure" || purpose == "v30_delivery_signed_envelope" {
+		return true
+	}
+	const prefix = "v30_delivery_slots_"
+	if !strings.HasPrefix(purpose, prefix) {
+		return false
+	}
+	suffix := strings.TrimPrefix(purpose, prefix)
+	if len(suffix) != 3 {
+		return false
+	}
+	for _, ch := range suffix {
+		if ch < '0' || ch > '9' {
+			return false
+		}
+	}
+	ordinal, err := strconv.Atoi(suffix)
+	return err == nil && ordinal >= 0 && ordinal < 160
 }

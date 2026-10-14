@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 positive canonical depth producer SQL",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "tests": {
+    "passed": 8,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 10.72,
+    "xml": "v28-relight-depth-positive-current.xml"
+  },
+  "source_sha256": {
+    "tests/integration/test_v28_relight_depth.py": "0a2aa6fdcb01a31d4d387bf0cac3082156158e98a30d124f553d494635fdf5c3",
+    "tests/integration/test_v28_relight_lease.py": "8537f66dd41a1fb66d7731d9bb854ebdf36ca6a7a18ebe09bc761760fd0cf34b"
+  },
+  "limitations": [
+    "Owner-seeded completed depth task/result; no actual depth inference or physical pixel/document IO",
+    "Partial relight Params and synthetic closure metadata; no full runtime graph/adoption/UI or real qualification"
+  ]
+}

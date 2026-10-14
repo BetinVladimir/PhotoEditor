@@ -49,7 +49,7 @@ func TestCompositionDraftConfigStableAndOwnsPlan(t *testing.T) {
 		t.Fatal("unstable ordinal order", err)
 	}
 	hash, err := canonical.Hash(first.Config)
-	if err != nil || hash != first.SHA256 || len(first.Tasks) != 2 || len(first.Inputs) != 2 || first.OutputBytes != 2*(24*25+32*1024*1024) {
+	if err != nil || first.Config.QueueClass!="batch" || hash != first.SHA256 || len(first.Tasks) != 2 || len(first.Inputs) != 2 || first.OutputBytes != 2*(24*25+32*1024*1024) {
 		t.Fatal("invalid frozen plan", err)
 	}
 	requests[0].Preparation.Layer.Mask[0] = ' '

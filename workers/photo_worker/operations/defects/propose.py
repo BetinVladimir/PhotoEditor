@@ -9,6 +9,7 @@ from photo_worker.runtime.artifacts import TaskArtifacts,ArtifactConfig
 from photo_worker.runtime.executor import ExecutionContext,Operation,OperationResult,OperationFailure
 from photo_worker.operations.portrait.prepare import FaceInput
 from .propose_prepare import prepare_proposals
+from .protection import verify_proposal_protection
 
 
 def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
@@ -23,7 +24,11 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
             if mask is None:return
             if mask.canvas!=image.canvas or mask.transform_chain!=image.transform_chain:raise ValueError('Proposal mask geometry mismatch')
             if object_id is not None and mask.object_id is not None and mask.object_id!=object_id:raise ValueError('Proposal mask object mismatch')
-        validate_mask(params.permanent);faces=[]
+        validate_mask(params.permanent)
+        for protection in params.protections:
+            validate_mask(protection)
+            artifacts.require_declared_input(protection.artifact)
+        faces=[]
         for binding in params.faces:
             if binding.object_id is None:
                 face=artifacts.contract(binding.landmarks,Face68)
@@ -48,9 +53,13 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
                 return inputs.enter_context(read_array(path,shape,'float32',ctx.check_active,unit_interval=True))
             rgb=mapped(image.pixels,(h,w,3))
             permanent=None if params.permanent is None else mapped(params.permanent.artifact,(h,w))
+            protections=tuple(mapped(mask.artifact,(h,w)) for mask in params.protections)
             prepared=[FaceInput(face,None if b.skin is None else mapped(b.skin.artifact,(h,w)),None if b.manual is None else mapped(b.manual.artifact,(h,w)),b.manual_mode) for b,face in faces]
-            with prepare_proposals(rgb,image,prepared,artifacts.scratch,permanent=permanent,
+            with prepare_proposals(rgb,image,prepared,artifacts.scratch,permanent=permanent,protections=protections,
                 diameter_fraction=tuple(params.diameter_face_fraction),max_roi_pixels=min(4194304,ram//256),check_active=ctx.check_active) as files:
+                with read_array(files.protection,(h,w),'float32',ctx.check_active,unit_interval=True) as output_protection, read_array(files.labels,(h,w),'uint16',ctx.check_active) as output_labels:
+                    verify_proposal_protection(image,prepared,output_protection,output_labels,
+                        permanent=permanent,protections=protections,max_roi_pixels=min(4194304,ram//256),check_active=ctx.check_active)
                 labels=artifacts.stage(files.labels,files.reservation,'defect_labels','application/octet-stream')
                 protected=artifacts.stage(files.protection,files.reservation,'defect_protection','application/octet-stream')
                 png=artifacts.stage(files.png,files.reservation,'defect_labels_png','image/png')

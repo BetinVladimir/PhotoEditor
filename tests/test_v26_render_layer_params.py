@@ -50,3 +50,55 @@ def test_wrong_source_and_aggregate_document_budget_fail():
     with pytest.raises(ValueError,match='SOURCE_CHANGED'):load_render_layer_params(artifacts,inputs,(operator,),max_document_bytes=size)
     artifacts,inputs,operator,events,size=fixture()
     with pytest.raises(ValueError,match='DOCUMENT_BUDGET'):load_render_layer_params(artifacts,inputs,(operator,),max_document_bytes=size-1)
+
+
+@pytest.mark.parametrize('field,value',[
+    ('operation',None),('operation',''),('operation','я'*41),
+    ('operation','\ud800'),('operation','test\x00adjust'),
+    ('version',[]),('version',''),('version','я'*11),
+    ('runtime_sha256',None),('runtime_sha256','B'*64),
+    ('verify_runtime',None),('validate_binding',False),('params_model',dict),
+])
+def test_invalid_installed_handler_refuses_before_callbacks_and_document_io(field,value):
+    from dataclasses import replace
+    artifacts,inputs,operator,events,size=fixture()
+    invalid=replace(operator,**{field:value})
+    with pytest.raises(ValueError,match='INVENTORY_INVALID'):
+        load_render_layer_params(artifacts,inputs,(invalid,),max_document_bytes=size)
+    assert events==[]
+
+
+@pytest.mark.parametrize('kind',['mutable','untyped','duplicate'])
+def test_inventory_shape_and_duplicate_handlers_refuse_before_io(kind):
+    artifacts,inputs,operator,events,size=fixture()
+    inventory=[operator] if kind=='mutable' else (object(),) if kind=='untyped' else (operator,operator)
+    with pytest.raises(ValueError,match='INVENTORY_INVALID'):
+        load_render_layer_params(artifacts,inputs,inventory,max_document_bytes=size)
+    assert events==[]
+
+
+def test_binding_callback_cannot_replace_params_or_mutate_caller_source():
+    from dataclasses import replace
+    artifacts,inputs,operator,events,size=fixture()
+    original=inputs.layers.layers[0].params
+    def binding(params,owned):
+        owned.canvas_hash='c'*64
+        owned.layers.layers.clear()
+        params.canvas_hash='c'*64
+    operator=replace(operator,validate_binding=binding)
+    with pytest.raises(ValueError,match='BINDING_CHANGED'):
+        load_render_layer_params(artifacts,inputs,(operator,),max_document_bytes=size)
+    assert inputs.canvas_hash=='a'*64 and len(inputs.layers.layers)==1
+    assert inputs.layers.layers[0].params==original
+
+
+def test_runtime_callback_cannot_change_snapshotted_layer_selection():
+    from dataclasses import replace
+    artifacts,inputs,operator,events,size=fixture()
+    original=inputs.layers.layers[0].id
+    def verify():
+        inputs.layers.layers.clear()
+    operator=replace(operator,verify_runtime=verify)
+    result=load_render_layer_params(artifacts,inputs,(operator,),max_document_bytes=size)
+    assert len(result)==1 and result[0].layer.id==original
+    assert events==['read','binding']

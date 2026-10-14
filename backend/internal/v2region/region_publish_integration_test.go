@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"io"
 	"os"
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/canonical"
@@ -51,11 +52,15 @@ func TestIntegrationRegionParamsPublication(t *testing.T) {
 	var source, frozen RegionSourceMetadata
 	var evidence CompiledRegionEvidence
 	var plan FrozenRegionPlan
+	checked := &regionPreparationReader{API: api, Objects: objects}
 	if f.Request != nil {
 		req = *f.Request
-		prepared, prepareErr := (Service{DB: api, Objects: objects, Bucket: f.Objects.Bucket}).Prepare(ctx, f.Tenant, f.Asset, f.Actor, f.Session, req)
+		prepared, prepareErr := (SQLRegionPreparation{API: api, Objects: checked, Bucket: f.Objects.Bucket}).Prepare(ctx, f.Tenant, f.Asset, f.Actor, f.Session, req)
 		if prepareErr != nil {
 			t.Fatal("live source/recipe preparation", prepareErr)
+		}
+		if checked.opens != 2 {
+			t.Fatal("missing scoped preparation object reads", checked.opens)
 		}
 		plan, source, frozen, evidence = prepared.Plan, prepared.SourceMetadata, prepared.RecipeMetadata, prepared.Evidence
 
@@ -82,7 +87,7 @@ func TestIntegrationRegionParamsPublication(t *testing.T) {
 		}
 		wrong := req
 		wrong.VersionID = uuid.New()
-		if _, err := (Service{DB: api, Objects: objects, Bucket: f.Objects.Bucket}).Prepare(ctx, f.Tenant, f.Asset, f.Actor, f.Session, wrong); err == nil {
+		if _, err := (SQLRegionPreparation{API: api, Objects: checked, Bucket: f.Objects.Bucket}).Prepare(ctx, f.Tenant, f.Asset, f.Actor, f.Session, wrong); err == nil {
 			t.Fatal("foreign source version accepted")
 		}
 	} else {
@@ -134,11 +139,11 @@ func TestIntegrationRegionParamsPublication(t *testing.T) {
 	if err != nil || replay != first {
 		t.Fatal("replay", err)
 	}
-	profile, err := canonical.Marshal(map[string]any{"renderer_version": "v2.2", "backend": "cuda",
-		"icc_lock_sha": evidence.Recipe.ICCLockSHA, "model_lock_sha": evidence.Recipe.ModelLockSHA, "region_runtime_sha256": regionSHA})
+	policy, err := CompileRegionExecutionPolicy(plan, regionCostFixture(t, plan))
 	if err != nil {
 		t.Fatal(err)
 	}
+	profile := policy.Profile
 	node, err := plan.CompileNode(task, first, plan.InputRequirements(), profile)
 	if err != nil {
 		t.Fatal(err)
@@ -162,4 +167,19 @@ func TestIntegrationRegionParamsPublication(t *testing.T) {
 	if _, err := changed.PublishParams(ctx, who, task, publisher); err == nil || domain.AsError(err).Code != "REVISION_CONFLICT" {
 		t.Fatal("same task must reject changed Params with revision conflict", err)
 	}
+}
+
+// Actual object reads must observe a released API transaction/connection.
+type regionPreparationReader struct {
+	API     *pgxpool.Pool
+	Objects *objectstore.Store
+	opens   int
+}
+
+func (r *regionPreparationReader) Open(ctx context.Context, obj objectstore.Object) (io.ReadCloser, error) {
+	if r.API.Stat().AcquiredConns() != 0 {
+		return nil, errors.New("object IO retained an API transaction")
+	}
+	r.opens++
+	return r.Objects.Open(ctx, obj)
 }

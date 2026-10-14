@@ -171,3 +171,21 @@ func decodeScenePlan(raw []byte, planSHA string, snapshotID uuid.UUID,
 	}
 	return plan, nil
 }
+
+// ValidateSceneCorrectionEdge reuses the complete ScenePlan partition validator
+// for immutable export provenance. SQL must independently prove producer scope.
+func ValidateSceneCorrectionEdge(raw []byte, planSHA string, snapshotID uuid.UUID,
+ snapshotDigest, policySHA string, itemCount int, groupID uuid.UUID,
+ correction ArtifactRef, ordinals []int) error {
+ if snapshotID==uuid.Nil||groupID==uuid.Nil||!refValid(correction)||len(ordinals)<1||len(ordinals)>5000 {
+  return domain.NewError("ANALYSIS_CONFLICT",409)
+ }
+ plan,err:=decodeScenePlan(raw,planSHA,snapshotID,snapshotDigest,policySHA,itemCount);if err!=nil{return err}
+ encoded,err:=canonical.Marshal(plan);if err!=nil||!bytes.Equal(encoded,raw){return domain.NewError("ANALYSIS_CONFLICT",409)}
+ for _,group:=range plan.Groups{if group.ID==groupID{
+  if group.Corrections!=correction||len(group.Ordinals)!=len(ordinals){return domain.NewError("ANALYSIS_CONFLICT",409)}
+  for index,ordinal:=range ordinals{if group.Ordinals[index]!=ordinal{return domain.NewError("ANALYSIS_CONFLICT",409)}}
+  return nil
+ }}
+ return domain.NewError("ANALYSIS_CONFLICT",409)
+}

@@ -416,6 +416,73 @@ func applyProfile(pixels, inputBytes int64) (json.RawMessage, error) {
 		Estimate  ResourceEstimate `json:"resource_estimate"`
 	}{"cpu", "float32", 512, ResourceEstimate{RAMBytes: 3 << 30, ScratchBytes: inputBytes + out, OutputBytes: out, PixelCount: pixels}})
 }
+
+// applyDustDetectionProfile admits one sequential native detector frame at a time.
+func applyDustDetectionProfile(pixels, maxFramePixels, documentBytes int64, frames int) (json.RawMessage, error) {
+	if frames < 5 || frames > 64 || maxFramePixels < 64 || maxFramePixels > 200000000 ||
+		pixels != maxFramePixels*int64(frames) || documentBytes < 0 || documentBytes > int64(frames)*1048576 {
+		return nil, errors.New("invalid dust detection resource dimensions")
+	}
+	ram := maxFramePixels*192 + 256*1048576
+	if ram < 3<<30 {
+		ram = 3 << 30
+	}
+	out := int64(2 * 1048576)
+	scratch := pixels*12 + int64(frames)*8192 + documentBytes + out + 65536
+	return canonical.Marshal(struct {
+		Backend   string           `json:"backend"`
+		Precision string           `json:"precision"`
+		Tile      int              `json:"tile_size"`
+		Estimate  ResourceEstimate `json:"resource_estimate"`
+	}{"cpu", "float32", 512, ResourceEstimate{RAMBytes: ram, ScratchBytes: scratch, OutputBytes: out, PixelCount: pixels}})
+}
+
+// applyDustRepairProfile matches the full-frame CPU worker admission and owns
+// downloaded source plus staged RGB, image/report contracts and NPY overhead.
+func applyDustRepairProfile(pixels, documentBytes int64) (json.RawMessage, error) {
+	if pixels < 1 || pixels > 200000000 || documentBytes < 0 || documentBytes > 1048576 {
+		return nil, errors.New("invalid dust repair resource dimensions")
+	}
+	ram := pixels*128 + 256*1048576
+	if ram < 3<<30 {
+		ram = 3 << 30
+	}
+	out := pixels*12 + 2*1048576
+	scratch := pixels*12 + 8192 + documentBytes + out + 65536
+	return canonical.Marshal(struct {
+		Backend   string           `json:"backend"`
+		Precision string           `json:"precision"`
+		Tile      int              `json:"tile_size"`
+		Estimate  ResourceEstimate `json:"resource_estimate"`
+	}{"cpu", "float32", 512, ResourceEstimate{RAMBytes: ram, ScratchBytes: scratch, OutputBytes: out, PixelCount: pixels}})
+}
+
+// applyCropProfile accounts for full source conversion and transformed output,
+// including downloaded input arrays and uint16 alpha. Native math is unchanged.
+func applyCropProfile(sourcePixels, outputPixels, documentBytes int64, hasAlpha bool) (json.RawMessage, error) {
+	if sourcePixels < 1 || sourcePixels > 200000000 || outputPixels < 1 || outputPixels > 200000000 || documentBytes < 0 || documentBytes > 1048576 {
+		return nil, errors.New("invalid crop resource dimensions")
+	}
+	sourceRAM, outputRAM, bpp := int64(64), int64(96), int64(12)
+	if hasAlpha {
+		sourceRAM += 8
+		outputRAM += 24
+		bpp += 2
+	}
+	ram := sourceRAM*sourcePixels + outputRAM*outputPixels + 128*1048576
+	if ram < 3<<30 {
+		ram = 3 << 30
+	}
+	output := bpp*outputPixels + 2*1048576
+	scratch := bpp*sourcePixels + 8192 + documentBytes + output + 65536
+	return canonical.Marshal(struct {
+		Backend   string           `json:"backend"`
+		Precision string           `json:"precision"`
+		Tile      int              `json:"tile_size"`
+		Estimate  ResourceEstimate `json:"resource_estimate"`
+	}{"cpu", "float32", 512, ResourceEstimate{RAMBytes: ram, ScratchBytes: scratch, OutputBytes: output, PixelCount: outputPixels}})
+}
+
 func applyModelProfile(backend, lock string, pixels, inputBytes int64) (json.RawMessage, error) {
 	out := pixels*4 + 2*1048576
 	return canonical.Marshal(struct {
@@ -813,7 +880,7 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 			frames := make([]review.ArtifactRef, len(group.Items))
 			inputs := make([]review.ArtifactRef, 0, len(group.Items)*2)
 			prereq := make([]uuid.UUID, len(group.Items))
-			var pixels, inputBytes int64
+			var pixels, maxFramePixels, inputBytes int64
 			for i, item := range group.Items {
 				out, found := byItem[item.ItemID]
 				if !found {
@@ -826,7 +893,11 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 				frames[i] = out.Artifact.ref()
 				inputs = append(inputs, refsForImage(frames[i], working)...)
 				prereq[i] = out.TaskID
-				pixels += int64(working.Canvas.Width * working.Canvas.Height)
+				framePixels := int64(working.Canvas.Width) * int64(working.Canvas.Height)
+				pixels += framePixels
+				if framePixels > maxFramePixels {
+					maxFramePixels = framePixels
+				}
 				inputBytes += out.Artifact.Bytes
 			}
 			s := group.Items[0].Sensor
@@ -853,7 +924,7 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 			id := nodeID(l.RunID, key)
 			sum := sha256.Sum256(params)
 			first := group.Items[0]
-			profile, er := applyProfile(pixels, inputBytes)
+			profile, er := applyDustDetectionProfile(pixels, maxFramePixels, inputBytes, len(frames))
 			if er != nil {
 				return false, er
 			}
@@ -928,7 +999,7 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 			id := nodeID(l.RunID, key)
 			sum := sha256.Sum256(params)
 			plan := applyNodePlan{id, l.Phase, item.Ordinal, item.ItemID, item.AssetID, item.VersionID, key, "sensor.dust_repair", inputs, prereq, hex.EncodeToString(sum[:]), params}
-			profile, er := applyProfile(int64(working.Canvas.Width*working.Canvas.Height), out.Artifact.Bytes)
+			profile, er := applyDustRepairProfile(int64(working.Canvas.Width*working.Canvas.Height), out.Artifact.Bytes)
 			if er != nil {
 				return false, er
 			}
@@ -1190,6 +1261,7 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 		op := map[string]string{"mask": "mask.person", "stats": "color.stats", "resolve": "style.resolve", "denoise": "image.denoise", "pose": "pose.detect", "geometry": "geometry.body", "mask_transform": "mask.transform", "color": "image.color", "series_measure": "series.measure", "local": "image.local", "face_detect": "face.detect", "face_landmarks": "face.landmarks", "face_parse": "face.parse", "face_skin": "mask.face_skin", "beauty": "portrait.beauty", "portrait_detail": "portrait.detail", "defects_propose": "defects.propose", "depth": "depth.predict", "background": backgroundOp, "inpaint": "image.inpaint", "generate": "image.generate", "composition_structure": "composition.structure", "composition": "composition.plan", "composition_render": "geometry.crop", "upscale": "image.upscale", "quality": "quality.check"}[l.Phase]
 		manifest := item.Image.ref()
 		p := byItem[item.ItemID]
+		var cropProfile json.RawMessage
 		profilePixels, profileBytes := item.Working.Canvas.Width*item.Working.Canvas.Height, item.Image.Bytes
 		switch l.Phase {
 		case "mask":
@@ -2268,7 +2340,7 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 				OutputWidth  int                `json:"output_width"`
 				OutputHeight int                `json:"output_height"`
 			}
-			if json.Unmarshal(raw, &plan) != nil || plan.Image.ID == uuid.Nil {
+			if json.Unmarshal(raw, &plan) != nil || plan.Image.ID == uuid.Nil || plan.OutputWidth < 1 || plan.OutputHeight < 1 || plan.OutputWidth > 200000000 || plan.OutputHeight > 200000000 || int64(plan.OutputWidth)*int64(plan.OutputHeight) > 200000000 {
 				return false, errors.New("invalid composition render plan")
 			}
 			imageArtifact, er := c.Store.Artifact(ctx, l.TenantID, plan.Image)
@@ -2302,6 +2374,10 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 				profilePixels, profileBytes = int64(plan.OutputWidth)*int64(plan.OutputHeight), imageArtifact.Bytes
 			} else if plan.Disposition == "apply" || plan.Disposition == "review" {
 				op = "geometry.crop"
+				cropProfile, er = applyCropProfile(working.Canvas.Width*working.Canvas.Height, int64(plan.OutputWidth)*int64(plan.OutputHeight), imageArtifact.Bytes, working.Alpha != nil)
+				if er != nil {
+					return false, er
+				}
 				params, _ = canonical.Marshal(struct {
 					Image         review.ArtifactRef `json:"image"`
 					Plan          review.ArtifactRef `json:"plan"`
@@ -2413,6 +2489,8 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 				return false, profileErr
 			}
 			profile, e2 = applyBackgroundProfile(working.Canvas.Width*working.Canvas.Height, p.Artifact.Bytes, cfg.StyleConfig.Extensions.Background.Mode == "transparent")
+		} else if l.Phase == "composition_render" && op == "geometry.crop" {
+			profile = cropProfile
 		} else if l.Phase == "composition_render" && op == "image.outpaint" {
 			profile, e2 = applyModelProfile(cfg.CreativeBackend, cfg.CreativeLock, profilePixels, profileBytes)
 		} else if l.Phase == "background" || l.Phase == "inpaint" || l.Phase == "generate" {

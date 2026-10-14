@@ -1,5 +1,6 @@
 /** Shared web command bindings. Native actions use the same command IDs. */
 export const commands = {
+ 'multi.submit': {label:'multi_submit',key:'enter',shift:true,allowInText:false},
  'capture.refresh': {label:'capture_refresh', key:'r', shift:true, allowInText:true},
  'capture.save': {label:'capture_save', key:'s', shift:false, allowInText:true},
  'compare.previous': {label:'compare_previous',key:'arrowleft',shift:false,allowInText:false},

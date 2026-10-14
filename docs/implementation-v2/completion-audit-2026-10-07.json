@@ -1,0 +1,894 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-07",
+  "scope": "V20-V32",
+  "source_snapshot_sha256": "e565600677c950d480ebc1c7ea6a9c08b7849d80695579a738b2d9021468c097",
+  "method": "Full package/entrypoint/acceptance catalogue enumerated; requirement-by-requirement physical completion remains unproven. No claim of complete detailed audit.",
+  "accepted_packages": 0,
+  "total_packages": 13,
+  "verified_package_completion_percent": 0,
+  "engineering_completion_percent": null,
+  "previous_55_percent": "withdrawn as a calculated metric; informal estimate only",
+  "checks": [
+    {
+      "command": "go test ./internal/...",
+      "result": "passed; real DB conditional fixtures not established"
+    },
+    {
+      "command": "pytest tests/platform",
+      "result": "2323 passed,2 skipped,7 loopback sandbox errors; all7 rerun passed"
+    },
+    {
+      "command": "photographer npm run typecheck",
+      "result": "passed before test fixture change; final repeat pending"
+    },
+    {
+      "command": "photographer npm test",
+      "result": "first:280 passed,1 failed,7 skipped; unchanged repeat:281 passed,7 skipped"
+    },
+    {
+      "command": "studio-agent pytest",
+      "result": "22 passed,9 subtests passed"
+    },
+    {
+      "command": "pytest tests/integration/test_v29_negative_resources.py",
+      "result": "PostgreSQL connection refused; no migrations executed"
+    }
+  ],
+  "requirements": [
+    {
+      "kind": "function",
+      "package": "V22",
+      "name": "CreateSession",
+      "http": "POST /api/v1/tenants/{t}/shoot-sessions",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V22",
+      "name": "GetSession",
+      "http": "GET /api/v1/tenants/{t}/shoot-sessions/{id}",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V22",
+      "name": "ListSessions",
+      "http": "GET /api/v1/tenants/{t}/shoot-sessions",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V22",
+      "name": "UpdateSession",
+      "http": "PATCH /api/v1/tenants/{t}/shoot-sessions/{id}",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V22",
+      "name": "AnalyzeSession",
+      "http": "POST /api/v1/tenants/{t}/shoot-sessions/{id}/analyses",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V22",
+      "name": "GetAnalysis",
+      "http": "GET /api/v1/tenants/{t}/session-analyses/{id}",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V22",
+      "name": "ApplyAnalysis",
+      "http": "POST /api/v1/tenants/{t}/session-analyses/{id}/apply",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V23",
+      "name": "RecordCorrection",
+      "http": "POST /api/v1/tenants/{t}/corrections",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V23",
+      "name": "CreateProfile",
+      "http": "POST /api/v1/tenants/{t}/learning-profiles",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V23",
+      "name": "GetProfile",
+      "http": "GET /api/v1/tenants/{t}/learning-profiles/{id}",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V23",
+      "name": "TrainProfile",
+      "http": "POST /api/v1/tenants/{t}/learning-profiles/{id}/train",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V23",
+      "name": "ListVersions",
+      "http": "GET /api/v1/tenants/{t}/learning-profiles/{id}/versions",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V23",
+      "name": "ActivateProfile",
+      "http": "POST /api/v1/tenants/{t}/learning-profiles/{id}/activate",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V22",
+      "name": "ChangeConsent",
+      "http": "POST /api/v1/tenants/{t}/projects/{id}/consents",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V22",
+      "name": "ListConsents",
+      "http": "GET /api/v1/tenants/{t}/projects/{id}/consents",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V22",
+      "name": "CreatePerson",
+      "http": "POST /api/v1/tenants/{t}/project-persons",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V22",
+      "name": "ListPersons",
+      "http": "GET /api/v1/tenants/{t}/projects/{id}/persons",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V22",
+      "name": "ConfirmObservation",
+      "http": "POST /api/v1/tenants/{t}/project-persons/{id}/observations",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V22",
+      "name": "RevokePerson",
+      "http": "POST /api/v1/tenants/{t}/project-persons/{id}/revoke",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V24",
+      "name": "ReplaceShotList",
+      "http": "PUT /api/v1/tenants/{t}/shoot-sessions/{id}/shot-list",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V24",
+      "name": "GetShotList",
+      "http": "GET /api/v1/tenants/{t}/shoot-sessions/{id}/shot-list",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V24",
+      "name": "RegisterDevice",
+      "http": "POST /api/v1/tenants/{t}/capture-devices",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V24",
+      "name": "RevokeDevice",
+      "http": "POST /api/v1/tenants/{t}/capture-devices/{id}/revoke",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V24",
+      "name": "CreateChallenge",
+      "http": "POST /api/v1/tenants/{t}/capture-devices/{id}/challenges",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V24",
+      "name": "ExchangeChallenge",
+      "http": "POST /api/v1/tenants/{t}/capture-devices/{id}/token",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V24",
+      "name": "AcceptReceipt",
+      "http": "POST /api/v1/tenants/{t}/shoot-sessions/{id}/capture-receipts",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V24",
+      "name": "ListAlerts",
+      "http": "GET /api/v1/tenants/{t}/shoot-sessions/{id}/alerts",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V24",
+      "name": "ConfirmFrame",
+      "http": "POST /api/v1/tenants/{t}/capture-receipts/{id}/confirm",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V24",
+      "name": "Acknowledge",
+      "http": "POST /api/v1/tenants/{t}/capture-alerts/{id}/ack",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V21",
+      "name": "ReplaceDraft",
+      "http": "PUT /api/v1/tenants/{t}/assets/{id}/v2-draft",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V21",
+      "name": "GetDraft",
+      "http": "GET /api/v1/tenants/{t}/assets/{id}/v2-draft",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V21",
+      "name": "GetDraftBinding",
+      "http": "GET /api/v1/tenants/{t}/assets/{id}/v2-binding",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V21",
+      "name": "ListDraftHistory",
+      "http": "GET /api/v1/tenants/{t}/assets/{id}/v2-draft/history",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V21",
+      "name": "ApproveDraft",
+      "http": "POST /api/v1/tenants/{t}/assets/{id}/v2-draft/approve",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V26",
+      "name": "FreezeRenderDraft",
+      "http": "POST /api/v1/tenants/{t}/assets/{id}/v2-draft/freeze",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V26",
+      "name": "CreateRenderInputSnapshot",
+      "http": "POST /api/v1/tenants/{t}/projects/{id}/render-input-snapshots",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V26",
+      "name": "GetRenderPolicy",
+      "http": "GET /api/v1/tenants/{t}/projects/{id}/render-policy",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V26",
+      "name": "PreviewRegion",
+      "http": "POST /api/v1/tenants/{t}/assets/{id}/region-previews",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V26",
+      "name": "QueueRenderBatch",
+      "http": "POST /api/v1/tenants/{t}/projects/{id}/render-batches",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V27",
+      "name": "Propose",
+      "http": "POST /api/v1/tenants/{t}/semantic-intents",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V27",
+      "name": "ListTargets",
+      "http": "GET /api/v1/tenants/{t}/semantic-intents/{id}/targets",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V27",
+      "name": "ApplyApproved",
+      "http": "POST /api/v1/tenants/{t}/semantic-intents/{id}/apply",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V30",
+      "name": "CreateDelivery",
+      "http": "POST /api/v1/tenants/{t}/delivery-packages",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V30",
+      "name": "GetDelivery",
+      "http": "GET /api/v1/tenants/{t}/delivery-packages/{id}",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V30",
+      "name": "PublishDelivery",
+      "http": "POST /api/v1/tenants/{t}/delivery-packages/{id}/publish",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V30",
+      "name": "CreateInterchange",
+      "http": "POST /api/v1/tenants/{t}/interchange-jobs",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V30",
+      "name": "GetInterchange",
+      "http": "GET /api/v1/tenants/{t}/interchange-jobs/{id}",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V31",
+      "name": "SignExport",
+      "http": "POST /api/v1/tenants/{t}/exports/{id}/provenance",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V21",
+      "name": "GetDocument",
+      "http": "GET /api/v1/tenants/{t}/v2-documents/{id}",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V21",
+      "name": "GetWorkflow",
+      "http": "GET /api/v1/tenants/{t}/v2-workflows/{id}",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V21",
+      "name": "CancelWorkflow",
+      "http": "POST /api/v1/tenants/{t}/v2-workflows/{id}/cancel",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V26",
+      "name": "GetRegionPreviewDescriptor",
+      "http": "GET /api/v1/tenants/{t}/assets/{id}/region-previews/{run}/descriptor",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V26",
+      "name": "GetLayerStack",
+      "http": "GET /api/v1/tenants/{t}/assets/{id}/v2-layers/{artifact}",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V26",
+      "name": "ListSessionAnalyses",
+      "http": "GET /api/v1/tenants/{t}/shoot-sessions/{id}/analyses",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V26",
+      "name": "GetSceneBoard",
+      "http": "GET /api/v1/tenants/{t}/session-analyses/{id}/scene-board",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V27",
+      "name": "CloseSemanticReview",
+      "http": "POST /api/v1/tenants/{t}/semantic-intents/{id}/close-review",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V30",
+      "name": "DecideImport",
+      "http": "POST /api/v1/tenants/{t}/interchange-jobs/{id}/decisions",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V30",
+      "name": "CloseImportReview",
+      "http": "POST /api/v1/tenants/{t}/interchange-jobs/{id}/close-review",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V23",
+      "name": "ReviewLearningSafety",
+      "http": "POST /api/v1/tenants/{t}/learning-versions/{id}/safety-review",
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V25",
+      "name": "layer.compose.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V22",
+      "name": "session.describe.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V22",
+      "name": "session.plan.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V23",
+      "name": "learning.fit.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V23",
+      "name": "learning.evaluate.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V24",
+      "name": "capture.assess.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V23",
+      "name": "identity.compare.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V27",
+      "name": "semantic.transfer.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V28",
+      "name": "portrait.open_eyes.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V28",
+      "name": "portrait.glare.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V28",
+      "name": "image.reflection.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V28",
+      "name": "portrait.hair.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V28",
+      "name": "portrait.clothing.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V28",
+      "name": "image.relight.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V25",
+      "name": "optical.lens.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V29",
+      "name": "optical.perspective.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V29",
+      "name": "optical.negative.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V29",
+      "name": "optical.panorama.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V29",
+      "name": "optical.focus_stack.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V31",
+      "name": "provenance.sign.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V30",
+      "name": "v2.delivery.assemble.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V30",
+      "name": "v2.interchange.import.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V30",
+      "name": "v2.interchange.export.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V27",
+      "name": "v2.semantic.assemble.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V30",
+      "name": "v2.interchange.parse.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V30",
+      "name": "v2.delivery.prepare.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V26",
+      "name": "region.preview.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "function",
+      "package": "V26",
+      "name": "render.compose.execute",
+      "http": null,
+      "status": "not_proven",
+      "reason": "Exact end-to-end implementation and physical acceptance not established by component regression tests."
+    },
+    {
+      "kind": "package_acceptance",
+      "package": "V20",
+      "requirement": "каждый existing operation имеет ready/unqualified/unsupported и evidence; legacy hashes сохранены; own registry/output policy, GC/purge integration and denied-role tests",
+      "status": "not_proven"
+    },
+    {
+      "kind": "package_acceptance",
+      "package": "V21",
+      "requirement": "cross-tenant, fence, cancel-before-commit, quota/replay, GC race; own registry/output policy, GC/purge integration and denied-role tests",
+      "status": "not_proven"
+    },
+    {
+      "kind": "package_acceptance",
+      "package": "V22",
+      "requirement": "5000 frames bounded memory; deterministic groups; manual refs; unknown time; no skin homogenization; own registry/output policy, GC/purge integration and denied-role tests",
+      "status": "not_proven"
+    },
+    {
+      "kind": "package_acceptance",
+      "package": "V23",
+      "requirement": "leakage-free sessions; small data reject; explicit activation; rollback; revoke consent; own registry/output policy, GC/purge integration and denied-role tests",
+      "status": "not_proven"
+    },
+    {
+      "kind": "package_acceptance",
+      "package": "V24",
+      "requirement": "crash/restart dedup, rotated credentials, queue lag, real camera/watch-folder fixture; own registry/output policy, GC/purge integration and denied-role tests",
+      "status": "not_proven"
+    },
+    {
+      "kind": "package_acceptance",
+      "package": "V25",
+      "requirement": "supported camera matrix, ICC RGB16, alpha, HDR limits, ZIP64 >4GiB real IO; own registry/output policy, GC/purge integration and denied-role tests",
+      "status": "not_proven"
+    },
+    {
+      "kind": "package_acceptance",
+      "package": "V26",
+      "requirement": "real browser+native, stale response, offline CAS, RU/BG/EN, 5000 gallery; own registry/output policy, GC/purge integration and denied-role tests",
+      "status": "not_proven"
+    },
+    {
+      "kind": "package_acceptance",
+      "package": "V27",
+      "requirement": "parallax/occlusion fallback, per-target decisions, no extra target mutation; own registry/output policy, GC/purge integration and denied-role tests",
+      "status": "not_proven"
+    },
+    {
+      "kind": "package_acceptance",
+      "package": "V28",
+      "requirement": "real model and donor corpus, protected unchanged, human approval, unavailable state; own registry/output policy, GC/purge integration and denied-role tests",
+      "status": "not_proven"
+    },
+    {
+      "kind": "package_acceptance",
+      "package": "V29",
+      "requirement": "multi-source lineage, moving objects,200MP cap, color/geometry QA; own registry/output policy, GC/purge integration and denied-role tests",
+      "status": "not_proven"
+    },
+    {
+      "kind": "package_acceptance",
+      "package": "V30",
+      "requirement": "full required bundle atomic, revoked share, XMP hostile input, unsupported fields visible; own registry/output policy, GC/purge integration and denied-role tests",
+      "status": "not_proven"
+    },
+    {
+      "kind": "package_acceptance",
+      "package": "V31",
+      "requirement": "valid/invalid signature, key rotation, privacy redaction, actual SDK export verification; own registry/output policy, GC/purge integration and denied-role tests",
+      "status": "not_proven"
+    },
+    {
+      "kind": "package_acceptance",
+      "package": "V32",
+      "requirement": "mixed workloads on3060, restore, role matrix, actual end-to-end acceptance; own registry/output policy, GC/purge integration and denied-role tests",
+      "status": "not_proven"
+    },
+    {
+      "kind": "end_to_end",
+      "id": "A01",
+      "status": "not_proven",
+      "specification": "07-execution-acceptance.md"
+    },
+    {
+      "kind": "end_to_end",
+      "id": "A02",
+      "status": "not_proven",
+      "specification": "07-execution-acceptance.md"
+    },
+    {
+      "kind": "end_to_end",
+      "id": "A03",
+      "status": "not_proven",
+      "specification": "07-execution-acceptance.md"
+    },
+    {
+      "kind": "end_to_end",
+      "id": "A04",
+      "status": "not_proven",
+      "specification": "07-execution-acceptance.md"
+    },
+    {
+      "kind": "end_to_end",
+      "id": "A05",
+      "status": "not_proven",
+      "specification": "07-execution-acceptance.md"
+    },
+    {
+      "kind": "end_to_end",
+      "id": "A06",
+      "status": "not_proven",
+      "specification": "07-execution-acceptance.md"
+    },
+    {
+      "kind": "end_to_end",
+      "id": "A07",
+      "status": "not_proven",
+      "specification": "07-execution-acceptance.md"
+    },
+    {
+      "kind": "end_to_end",
+      "id": "A08",
+      "status": "not_proven",
+      "specification": "07-execution-acceptance.md"
+    },
+    {
+      "kind": "end_to_end",
+      "id": "A09",
+      "status": "not_proven",
+      "specification": "07-execution-acceptance.md"
+    },
+    {
+      "kind": "end_to_end",
+      "id": "A10",
+      "status": "not_proven",
+      "specification": "07-execution-acceptance.md"
+    },
+    {
+      "kind": "end_to_end",
+      "id": "A11",
+      "status": "not_proven",
+      "specification": "07-execution-acceptance.md"
+    },
+    {
+      "kind": "end_to_end",
+      "id": "A12",
+      "status": "not_proven",
+      "specification": "07-execution-acceptance.md"
+    }
+  ],
+  "limitations": [
+    "No complete real PostgreSQL fresh/upgrade/ACL/concurrency run",
+    "No real browser/native full user flow",
+    "No RTX3060 full workload and8h memory benchmark",
+    "No complete real-photo blind/human qualification",
+    "No full restore and tenant-purge acceptance",
+    "Function catalogue is an entrypoint index, not all helper-level requirements; detailed tracing still required"
+  ]
+}

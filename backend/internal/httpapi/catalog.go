@@ -1,8 +1,10 @@
 package httpapi
 
 import (
+	"context"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"io"
 	"net"
 	"net/http"
 	adminservice "photoeditor/backend/internal/admin"
@@ -103,12 +105,16 @@ func (s *Server) catalogRoutes(r chi.Router) {
 	projects := project.Service{DB: s.DB, Cursors: tenants.Cursors}
 	collections := collectionservice.Service{DB: s.DB, Cursors: tenants.Cursors, Pepper: s.Auth.Pepper}
 	var runObjects runservice.OutputSigner
+	var runReadObjects runservice.OutputReader
 	var runBucket string
 	if s.Media != nil {
 		runObjects, _ = s.Media.Objects.(runservice.OutputSigner)
+		runReadObjects, _ = s.Media.Objects.(runservice.OutputReader)
 		runBucket = s.Media.Bucket
 	}
-	runs := runservice.Service{DB: s.DB, Cursors: tenants.Cursors, Objects: runObjects, Bucket: runBucket}
+	runs := runservice.Service{DB: s.DB, Cursors: tenants.Cursors, Objects: runObjects,
+		ReadObjects: runReadObjects, OutputKey: auth.MAC(s.Auth.Pepper, "v26-run-output-capability"),
+		PublicOrigin: s.Config.APIPublicOrigin, Bucket: runBucket}
 	downloads := downloadservice.Service{DB: s.DB, Pepper: s.Auth.Pepper}
 	assets := assetservice.Service{DB: s.DB, Cursors: tenants.Cursors}
 	capabilities := capability.Service{DB: s.DB}
@@ -1502,6 +1508,86 @@ func (s *Server) catalogRoutes(r chi.Router) {
 		}
 		writeJSON(w, 200, out)
 	})
+	r.Get("/api/v1/tenants/{t}/reviews/{id}/previews/{side}/{variant}", s.serveReviewPreview)
+	r.Get("/api/v1/media/review-pending", s.servePendingReviewMedia)
+	r.Get("/api/v1/tenants/{t}/reviews/{id}/selected-preview/{variant}", s.serveSelectedRenderPreview)
+	r.Get("/api/v1/media/render-selected", s.serveSelectedRenderMedia)
+	r.Get("/api/v1/media/restoration-selected", s.serveSelectedRestorationMedia)
+	r.Get("/api/v1/tenants/{t}/reviews/{id}/restoration-selected-preview/{variant}", s.serveSelectedRestorationPreview)
+	r.Get("/api/v1/tenants/{t}/reviews/{id}/restoration-result-selection", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "private, no-store")
+		who, tid, err := s.tenantRequest(r, false)
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		id, err := routeID(r, "id")
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		if s.Reviews == nil {
+			writeError(w, r, domain.NewError("DEPENDENCY_UNAVAILABLE", 503))
+			return
+		}
+		out, err := s.Reviews.ReadRestorationResultSelection(r.Context(), who, tid, id)
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		if r.Context().Err() != nil {
+			return
+		}
+		writeJSON(w, http.StatusOK, out)
+	})
+	r.Get("/api/v1/tenants/{t}/reviews/{id}/render-result-selection", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "private, no-store")
+		who, tid, err := s.tenantRequest(r, false)
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		id, err := routeID(r, "id")
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		if s.Reviews == nil {
+			writeError(w, r, domain.NewError("DEPENDENCY_UNAVAILABLE", 503))
+			return
+		}
+		out, err := s.Reviews.ReadRenderResultSelection(r.Context(), who, tid, id)
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		if r.Context().Err() != nil {
+			return
+		}
+		writeJSON(w, http.StatusOK, out)
+	})
+	r.Get("/api/v1/tenants/{t}/reviews/{id}/result-selection", func(w http.ResponseWriter, r *http.Request) {
+		who, tid, err := s.tenantRequest(r, false)
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		id, err := routeID(r, "id")
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		if s.Reviews == nil {
+			writeError(w, r, domain.NewError("DEPENDENCY_UNAVAILABLE", 503))
+			return
+		}
+		out, err := s.Reviews.ReadNegativeResultSelection(r.Context(), who, tid, id)
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, out)
+	})
 	r.Get("/api/v1/tenants/{t}/reviews/{id}", func(w http.ResponseWriter, r *http.Request) {
 		who, tid, err := s.tenantRequest(r, false)
 		if err != nil {
@@ -1747,6 +1833,67 @@ func (s *Server) catalogRoutes(r chi.Router) {
 			writeError(w, r, err)
 			return
 		}
+		writeJSON(w, 200, out)
+	})
+	r.Put("/api/v1/tenants/{t}/collections/{id}/items/{item}/version", func(w http.ResponseWriter, r *http.Request) {
+		who, tid, err := s.tenantRequest(r, true)
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		id, err := routeID(r, "id")
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		itemID, err := routeID(r, "item")
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		expected, err := revision(r)
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		var request collectionservice.ItemVersionReplace
+		if err = decodeJSON(r, &request); err != nil {
+			writeError(w, r, err)
+			return
+		}
+		if request.ExpectedRevision != strconv.FormatInt(expected, 10) {
+			writeError(w, r, domain.NewError("REVISION_CONFLICT", 409))
+			return
+		}
+		out, err := collections.ReplaceItemVersion(r.Context(), who, tid, id, itemID, request)
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		writeJSON(w, 200, out)
+	})
+	r.Get("/api/v1/tenants/{t}/collections/{id}/items/{item}/version", func(w http.ResponseWriter, r *http.Request) {
+		who, tid, err := s.tenantRequest(r, false)
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		id, err := routeID(r, "id")
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		itemID, err := routeID(r, "item")
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		out, err := collections.ItemVersionState(r.Context(), who, tid, id, itemID)
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		w.Header().Set("Cache-Control", "no-store")
 		writeJSON(w, 200, out)
 	})
 	r.Post("/api/v1/tenants/{t}/collections/{id}/items/{item}/moderation", func(w http.ResponseWriter, r *http.Request) {
@@ -3201,6 +3348,43 @@ func (s *Server) catalogRoutes(r chi.Router) {
 		}
 		writeJSON(w, 200, map[string]any{"items": out})
 	})
+	r.Get("/api/v1/media/run-output", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "private, no-store")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		query := r.URL.Query()
+		if len(query) != 2 || len(query["token"]) != 1 || len(query["versionId"]) != 1 ||
+			query.Get("token") == "" || query.Get("versionId") == "" || r.Header.Get("Range") != "" {
+			writeError(w, r, domain.NewError("NOT_FOUND", 404))
+			return
+		}
+		now := time.Now()
+		grant, err := runservice.OpenOutputGrant(runs.OutputKey, query.Get("token"), now)
+		if err != nil || grant.ObjectVersion != query.Get("versionId") {
+			writeError(w, r, domain.NewError("NOT_FOUND", 404))
+			return
+		}
+		if err := http.NewResponseController(w).SetWriteDeadline(time.Now().Add(20 * time.Minute)); err != nil {
+			writeError(w, r, domain.NewError("DEPENDENCY_UNAVAILABLE", 503))
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 20*time.Minute)
+		defer cancel()
+		verified, err := runs.ReadRevocableOutput(ctx, runs.OutputKey, query.Get("token"), now)
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		defer verified.Close()
+		if err := ctx.Err(); err != nil {
+			writeError(w, r, err)
+			return
+		}
+		w.Header().Set("Content-Type", verified.Output.MediaType)
+		w.Header().Set("Content-Length", strconv.FormatInt(verified.Output.Bytes, 10))
+		w.Header().Set("Content-Disposition", `inline; filename="`+verified.Output.ArtifactID.String()+`"`)
+		w.WriteHeader(http.StatusOK)
+		_, _ = io.Copy(w, verified.File)
+	})
 	r.Get("/api/v1/tenants/{t}/runs", func(w http.ResponseWriter, r *http.Request) {
 		who, tid, err := s.tenantRequest(r, false)
 		if err != nil {
@@ -3261,6 +3445,23 @@ func (s *Server) catalogRoutes(r chi.Router) {
 		}
 		w.Header().Set("ETag", `"`+out.Revision+`"`)
 		writeJSON(w, http.StatusOK, out)
+	})
+	r.Get("/api/v1/tenants/{t}/projects/{id}/raw-capabilities", func(w http.ResponseWriter, r *http.Request) {
+		who, tid, err := s.tenantRequest(r, false)
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		if s.Uploads == nil {
+			writeError(w, r, domain.NewError("DEPENDENCY_UNAVAILABLE", 503))
+			return
+		}
+		projectID, err := uuid.Parse(chi.URLParam(r, "id"))
+		if err != nil || projectID == uuid.Nil {
+			writeError(w, r, domain.NewError("VALIDATION_FAILED", 422))
+			return
+		}
+		serveRAWCapabilities(w, r, who, tid, projectID, s.Uploads)
 	})
 	r.Post("/api/v1/tenants/{t}/uploads", func(w http.ResponseWriter, r *http.Request) {
 		who, tid, err := s.tenantRequest(r, true)
@@ -3535,6 +3736,34 @@ func (s *Server) catalogRoutes(r chi.Router) {
 			return
 		}
 		out, err := presets.Create(r.Context(), who, tid, r.Header.Get("Idempotency-Key"), request)
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		if out.Replayed {
+			w.Header().Set("Idempotency-Replayed", "true")
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(out.Status)
+		_, _ = w.Write(out.Body)
+	})
+	r.Patch("/api/v1/tenants/{t}/export-presets/{preset}/metadata-policy", func(w http.ResponseWriter, r *http.Request) {
+		who, tid, err := s.tenantRequest(r, true)
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		id, err := uuid.Parse(chi.URLParam(r, "preset"))
+		if err != nil {
+			writeError(w, r, domain.NewError("VALIDATION_FAILED", 422))
+			return
+		}
+		var request exportpreset.MetadataPolicyChange
+		if err = decodeJSON(r, &request); err != nil {
+			writeError(w, r, err)
+			return
+		}
+		out, err := presets.ChangeMetadataPolicy(r.Context(), who, tid, id, r.Header.Get("Idempotency-Key"), request)
 		if err != nil {
 			writeError(w, r, err)
 			return

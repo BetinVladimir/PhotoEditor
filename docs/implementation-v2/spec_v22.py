@@ -2,6 +2,7 @@
 def extend(D, ops, h):
  obj,arr,enum,string,number,integer,ref,null=[h[x] for x in ('obj','arr','enum','string','number','integer','ref','null')]
  U,SHA,REV,T,B,N=[h[x] for x in ('U','SHA','REV','T','B','N')]
+ D['SemanticRunIntent']=obj({'run_id':U,'workflow_id':U,'intent_id':null(U),'revision':REV,'state':enum('queued','running','waiting_review','cancelling','cancelled','completed','failed')})
  def add_fields(name, fields):
   D[name]['properties'].update(fields);D[name]['required']=list(D[name]['properties'])
  def params(opid,fields,replace=False):
@@ -11,11 +12,12 @@ def extend(D, ops, h):
   return o
  D['FrozenRecipe']=obj({'schema_version':{'const':1},'source':ref('VersionBinding'),'base_style':ref('ArtifactRef'),'effective_delta':ref('CorrectionVector'),'renderer_version':{'const':'v2.2'},'icc_lock_sha':SHA,'model_lock_sha':SHA})
  D['FrozenRenderLearning']=obj({'version_id':U,'model':ref('ArtifactRef'),'descriptor':ref('ArtifactRef'),'analysis_id':U,'ordinal':integer(0,4999)})
- D['FrozenRenderRecipe']=obj({'schema_version':{'const':1},'recipe':ref('EditingRecipeV3'),'recipe_sha256':SHA,'scalars':ref('FrozenRecipe'),'learning':null(ref('FrozenRenderLearning'))})
+ D['FrozenBackgroundAsset']=obj({'schema_version':{'const':1},'portable_asset_id':string(120),'style_version_id':U,'style':ref('ArtifactRef'),'source':ref('ArtifactRef'),'expected_bytes':integer(1,536870912),'media_type':enum('image/jpeg','image/png','image/tiff'),'suffix':enum('.jpg','.png','.tiff'),'assume_profile':null(enum('srgb_v1','linear_srgb_v1','work_rec2020_gamma24_v1')),'work_icc_sha':SHA})
+ D['FrozenRenderRecipe']=obj({'schema_version':{'const':1},'recipe':ref('EditingRecipeV3'),'recipe_sha256':SHA,'scalars':ref('FrozenRecipe'),'learning':null(ref('FrozenRenderLearning')),'background_asset':ref('FrozenBackgroundAsset')},optional=('background_asset',))
  add_fields('EditingRecipeV3',{'parameter_delta':ref('CorrectionVector')})
  D['EditingRecipeV3']['properties']['renderer_version']={'const':'v2.2'}
  D['HoldoutRegionMask']=obj({'region_id':string(120),'mask':ref('ArtifactRef')})
- D['RenderCase']=obj({'binding':ref('VersionBinding'),'working_image':ref('ArtifactRef'),'base_recipe':ref('ArtifactRef'),'approved_recipe':ref('ArtifactRef'),'base_document':ref('ArtifactRef'),'approved_document':ref('ArtifactRef'),'descriptor_shard':ref('ArtifactRef'),'descriptor_analysis_id':U,'descriptor_ordinal':integer(0,4999),'protected':ref('ArtifactRef'),'faces':ref('ArtifactRef'),'effective_mask':ref('ArtifactRef'),'consent_snapshot':ref('ArtifactRef'),'region_masks':arr(ref('HoldoutRegionMask'),0,128),'approval_id':U,'source_lineage_sha':SHA},optional=('effective_mask','consent_snapshot','region_masks'))
+ D['RenderCase']=obj({'binding':ref('VersionBinding'),'working_image':ref('ArtifactRef'),'base_recipe':ref('ArtifactRef'),'approved_recipe':ref('ArtifactRef'),'base_document':ref('ArtifactRef'),'approved_document':ref('ArtifactRef'),'descriptor_shard':ref('ArtifactRef'),'descriptor_analysis_id':U,'descriptor_ordinal':integer(0,4999),'protected':ref('ArtifactRef'),'faces':ref('ArtifactRef'),'effective_mask':ref('ArtifactRef'),'consent_snapshot':ref('ArtifactRef'),'defect_evidence':ref('ArtifactRef'),'region_masks':arr(ref('HoldoutRegionMask'),0,128),'approval_id':U,'source_lineage_sha':SHA},optional=('effective_mask','consent_snapshot','defect_evidence','region_masks'))
  add_fields('TrainingManifest',{'baseline':ref('ArtifactRef'),'renderer_version':{'const':'v2.2'},'icc_lock_sha':SHA,'model_lock_sha':SHA,'calibration':ref('ArtifactRef')})
  ex=D['TrainingManifest']['properties']['examples']['items']
  ex['properties']['render_case']=ref('RenderCase');ex['required'].append('render_case')
@@ -30,11 +32,15 @@ def extend(D, ops, h):
  D['ReviewClose']=obj({'expected_revision':REV,'plan_sha':SHA})
  D['ImportReview']=obj({'expected_revision':REV,'report_sha':SHA,'decisions':arr(obj({'entry_id':U,'decision':enum('approve','reject')}),1,100)})
  add_fields('AnalysisApply',{'expected_revision':REV})
- D['SceneBoardDocument']=obj({'session_id':U,'analysis_id':U,'snapshot_id':U,'snapshot_digest':SHA,'policy_sha':SHA,'plan_sha':SHA,'plan':ref('ScenePlan'),'frames':arr(obj({'ordinal':integer(0,4999),'version_id':U,'source_sha':SHA}),1,5000)})
+ D['SceneBoardDocument']=obj({'session_id':U,'analysis_id':U,'snapshot_id':U,'snapshot_digest':SHA,'policy_sha':SHA,'plan_sha':SHA,'plan':ref('ScenePlan'),'frames':arr(obj({'ordinal':integer(0,4999),'asset_id':U,'version_id':U,'source_sha':SHA}),1,5000)})
  D['FrozenPreset']=obj({'preset_id':U,'preset_sha':SHA,'config':ref('ArtifactRef'),'required':B})
  D['DeliverySlot']=obj({'ordinal':integer(0,4999),'binding':ref('VersionBinding'),'preset_id':U,'preset_sha':SHA,'required':B,'state':enum('ready','omitted','failed'),'export_id':null(U),'export':null(ref('ArtifactRef')),'reason':null(string(200))})
  D['DeliverySlotShard']=obj({'schema_version':{'const':1},'snapshot_digest':SHA,'items':arr(ref('DeliverySlot'),1,500)})
  D['DeliveryAssemblyInput']=obj({'schema_version':{'const':1},'snapshot_digest':SHA,'item_count':integer(1,5000),'slot_count':integer(1,80000),'policy':ref('DeliveryPolicy'),'presets':arr(ref('FrozenPreset'),1,16),'shards':arr(ref('ArtifactRef'),1,160)})
+ D['SignedDeliveryAssemblyEnvelope']=obj({'schema_version':{'const':2},'assembly':ref('ArtifactRef'),'signing_closure':ref('ArtifactRef')})
+ D['SignedDeliveryAssemblyEntry']=obj({'ordinal':integer(0,4999),'preset_id':U,'export_id':U,'export':ref('ArtifactRef'),'signing_key':U,'task_id':U,'result_id':U,'signed':ref('ArtifactRef'),'manifest':ref('ArtifactRef'),'validation_sha':SHA})
+ D['SignedDeliveryAssemblyClosure']=obj({'schema_version':{'const':1},'tenant_id':U,'actor_id':U,'parent_id':U,'policy_id':U,'policy_sha':SHA,'entries':arr(ref('SignedDeliveryAssemblyEntry'),1,80000)})
+ D['SignedDeliveryManifest']=obj({'schema_version':{'const':2},'envelope_sha':SHA,'assembly':ref('ArtifactRef'),'signing_closure':ref('ArtifactRef'),'snapshot_digest':SHA,'slot_count':integer(1,80000),'ready_count':integer(1,80000),'omitted_count':integer(0,80000),'shards':arr(ref('ArtifactRef'),1,160)})
  D['DeliveryManifest']=obj({'schema_version':{'const':1},'assembly_sha':SHA,'snapshot_digest':SHA,'slot_count':integer(1,80000),'ready_count':integer(1,80000),'omitted_count':integer(0,80000),'shards':arr(ref('ArtifactRef'),1,160)})
  params('v2.delivery.assemble',{'assembly':ref('ArtifactRef')},True)
  D['MappingEntry']=obj({'entry_id':U,'external_id':string(240),'asset_version_id':null(U),'proposed_document':null(ref('ArtifactRef')),'fields':arr(obj({'name':string(80),'status':enum('exact','unsupported','rejected'),'reason':null(string(200))}),0,128)})
@@ -94,10 +100,13 @@ def extend(D, ops, h):
  params('image.relight',{'calibration':ref('ArtifactRef')})
  D['ResourceBudget']=obj({k:integer(0,9007199254740991) for k in ('host_bytes','gpu_bytes','scratch_bytes','output_bytes','cost_seconds')})
  D['CapacityPolicy']=obj({'schema_version':{'const':1},**{k:integer(1,9007199254740991) for k in ('gpu_concurrency','cpu_concurrency','cpu_threads_per_task','heavy_admission_inflight','tenant_heavy_queued','gpu_budget_bytes','photo_ram_budget_bytes','control_ram_budget_bytes','tile_edge','heartbeat_seconds','offline_seconds','lease_seconds','renew_seconds','unknown_cost_seconds')},'scratch_free_floor_fraction':number(.05,.5),'scratch_multiplier':number(1,4),'queue_weights':obj({k:integer(1,100) for k in ('interactive','capture','batch','training')}),'max_retries_after_oom':integer(0,1)})
+ D['CapacityPolicy']['properties']['heartbeat_seconds']=integer(1,10)
  D['QualificationReport']=obj({'schema_version':{'const':1},'operation':string(80),'version':string(20),'model_lock_sha':SHA,'runtime_lock_sha':SHA,'device_profile_sha':SHA,'dataset_sha':SHA,'input_fixture_shas':arr(SHA,1,10000),'checks':arr(obj({'id':string(100),'passed':B,'evidence_sha':SHA}),1,1000),'metrics':obj({k:number(0,9007199254740991) for k in ('p50_ms','p95_ms','peak_vram_bytes','peak_rss_bytes','scratch_bytes')}),'status':enum('passed','failed'),'issuer_id':U,'created_at':T})
  D['BundleInventoryEntry']=obj({'artifact_id':U,'path':string(240),'sha256':SHA,'contract':string(120)})
  D['BundleEntry']=obj({'entry_id':U,'external_id':string(240),'image_path':string(240),'image_sha256':SHA,'recipe_path':null(string(240)),'recipe_sha256':null(SHA),'rating':integer(-1,5),'pick':enum('picked','rejected','unmarked'),'crop':null(ref('Rect'))})
  D['BundleManifest']=obj({'schema_version':{'const':1},'renderer_version':{'const':'v2.2'},'entries':arr(ref('BundleEntry'),1,5000),'masks':arr(obj({'path':string(240),'sha256':SHA,'canvas_hash':SHA}),0,5000),'inventory':arr(ref('BundleInventoryEntry'),1,30000)})
+ D['BundleBackground']=obj({'style':ref('ArtifactRef'),'portable_asset_id':string(120),'path':string(240),'sha256':SHA})
+ D['BundleManifest']['properties']['backgrounds']=arr(ref('BundleBackground'),1,5000)
  D['ParsedFile']=obj({'path':string(240),'content':ref('ArtifactRef'),'contract':string(120)})
  D['ParsedInterchange']=obj({'schema_version':{'const':1},'manifest':ref('BundleManifest'),'files':arr(ref('ParsedFile'),1,30000)})
  # Parsing before existing canonical ingest; resolving after it avoids future refs.
@@ -132,6 +141,20 @@ def extend(D, ops, h):
  D['RegionDerivativeManifest']=obj({'schema_version':{'const':1},'params_sha256':SHA,'asset_version_id':U,'source':ref('ArtifactRef'),'recipe':ref('ArtifactRef'),'rect':ref('Rect'),'geometry':ref('RegionGeometry'),'derivative':ref('ArtifactRef'),'bytes':integer(2,16777216),'icc_sha256':SHA,'cache_key':SHA,'media_type':enum('image/jpeg','image/webp'),'alpha':B,'metadata_policy':{'const':'stripped'},'quality':{'const':88}})
  h['op']('region.preview','V26',{'tenant_id':U,'project_id':U,'asset_id':U,'request':ref('RegionPreview'),'source':ref('RegionObjectPin'),'recipe':ref('RegionObjectPin'),'frozen_recipe':ref('FrozenRecipe'),'geometry':ref('RegionGeometry'),'render_order':{'const':'full_canvas_then_crop_then_downscale'},'inputs':arr(ref('RegionInput'),4,133)},'RegionDerivativeManifest','gpu')
  ops[-1]['execution_pool']='gpu'
+ h['op']('render.compose','V26',{k:v for k,v in D['FrozenRenderRecipe']['properties'].items() if k!='schema_version'},'ImageResult','gpu')
+ ops[-1]['params']='FrozenRenderRecipe'
+ del D['RenderComposeParams']
+ ops[-1]['execution_pool']='gpu'
+ # Approved local exposure is an existing CPU operation; retain it on regeneration.
+ nonzero={**U,'not':{'const':'00000000-0000-0000-0000-000000000000'}}
+ approved_ref=obj({'artifact_id':nonzero,'sha256':SHA})
+ approved_source=obj({'asset_version_id':nonzero,'source':approved_ref,'canvas_hash':SHA})
+ D['ApprovedSemanticEdit']=obj({'schema_version':{'type':'integer','const':1},'target_id':nonzero,'source':approved_source,'intent':approved_ref,'candidate':approved_ref,'mask':approved_ref,'transform':approved_ref,'kind':enum('remove_object','local_exposure','background_cleanup','retouch_region'),'strength':N,'ev':null(number(-1,1)),'prompt':null(string(1024)),'preserve_persons':{'const':True}})
+ D['ApprovedSemanticEdit']['allOf']=[{'if':{'properties':{'kind':{'const':'local_exposure'}}},'then':{'properties':{'ev':number(-1,1)}},'else':{'properties':{'ev':{'type':'null'}}}}]
+ h['op']('semantic.local_exposure','V27',{},'ImageResult','cpu')
+ del D[ops[-1]['params']]
+ ops[-1]['params']='ApprovedSemanticEdit'
+ ops[-1]['execution_pool']='cpu'
  # Root output role document always stores the operation's envelope.
  def role(contract,count=1,required=True,bytecap=8388608,mime=None):
   return {'contract':contract,'max_count':count,'required':required,'max_bytes':bytecap,'media_types':mime or ['application/json']}
@@ -143,6 +166,7 @@ def extend(D, ops, h):
    roles['registration']=role('RegisteredTransform',30,False)
    roles['alpha']=role('MaskArray',required=False,bytecap=800004096,mime=['application/x-npy'])
    roles['warp_field']=role('DenseWarpArray',32,False,1600004096,['application/x-npy'])
+  if o['id']=='semantic.local_exposure':roles={'document':role('ImageResult'),'working_image':role('WorkingImage'),'pixels':role('PixelArray',bytecap=2400016384,mime=['application/x-npy']),'report':role('ImageReport')}
   if o['id']=='session.describe':roles['faces']=role('FaceObservations',128)
   if o['id']=='session.plan':roles['correction_plan']=role('CorrectionPlan',5000)
   if o['id']=='semantic.transfer':roles.update(mask=role('MaskRef',required=False),mask_pixels=role('MaskArray',required=False,bytecap=800004096,mime=['application/x-npy']),transform=role('ResolvedTransform',required=False))
@@ -155,7 +179,9 @@ def extend(D, ops, h):
   if o['id']=='provenance.sign':roles.update(signed_export=role('QualifiedExport',bytecap=2400004096,mime=['image/jpeg','image/png']),manifest=role('C2PAManifest',mime=['application/c2pa']))
   if o['id']=='region.preview':
    roles['derivative']=role('RegionEncodedDerivative',bytecap=16777216,mime=['image/jpeg','image/webp'])
-  if o['id']=='layer.compose':
+  if o['id']=='render.compose':
+   for name in ('transform','registration','warp_field'):roles.pop(name)
+  if o['id'] in ('layer.compose','render.compose'):
    roles['working_image']['required']=False
    roles['pixels']['required']=False
   o['role_policies']=roles;o['output_roles']=list(roles);o['max_output_count']=sum(x['max_count'] for x in roles.values())
@@ -165,6 +191,7 @@ def extend(D, ops, h):
  return D,ops
 
 def endpoints(E,endpoint):
+ endpoint('GET','/runs/{id}/semantic-intent',None,'SemanticRunIntent','V27','ReadRunIntent','editor')
  endpoint('GET','/assets/{id}/region-previews/{run}/descriptor',None,'RegionPreviewDescriptor','V26','GetRegionPreviewDescriptor','editor')
  endpoint('GET','/assets/{id}/v2-layers/{artifact}',None,'LayerStack','V26','GetLayerStack','editor')
  endpoint('GET','/shoot-sessions/{id}/analyses',None,'ResourcePage','V26','ListSessionAnalyses','viewer')

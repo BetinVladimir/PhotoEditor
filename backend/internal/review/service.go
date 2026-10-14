@@ -44,16 +44,20 @@ type View struct {
 	CandidateHash string          `json:"candidate_hash"`
 	Decision      *string         `json:"decision,omitempty"`
 	DecisionRoute *string         `json:"decision_route,omitempty"`
+	DecisionHash  *string         `json:"decision_hash,omitempty"`
 	Reasons       json.RawMessage `json:"reasons"`
 	CreatedAt     time.Time       `json:"created_at"`
 }
 type DetailView struct {
 	View
-	CandidateIDs []string `json:"candidate_ids,omitempty"`
+	CandidateIDs []string     `json:"candidate_ids,omitempty"`
+	Candidate    *ArtifactRef `json:"candidate,omitempty"`
+	Base         *ArtifactRef `json:"base,omitempty"`
 }
 
 func (s *Service) Detail(ctx context.Context, who auth.Identity, tid, reviewID uuid.UUID) (DetailView, error) {
 	var out DetailView
+	ctx = context.WithValue(ctx, allowDecidedReviewContextKey{}, true)
 	if s == nil || s.DB == nil || s.Objects == nil {
 		return out, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
 	}
@@ -67,7 +71,7 @@ func (s *Service) Detail(ctx context.Context, who auth.Identity, tid, reviewID u
 		if _, e = project.Authorize(ctx, tx, tid, loaded.ProjectID, who.UserID, role, domain.Editor, false); e != nil {
 			return e
 		}
-		return tx.QueryRow(ctx, `SELECT id,run_id,kind,state,revision,candidate_hash,decision,decision_route,reasons,created_at FROM photo.reviews WHERE tenant_id=$1 AND id=$2`, tid, reviewID).Scan(&out.ID, &out.RunID, &out.Kind, &out.State, &out.Revision, &out.CandidateHash, &out.Decision, &out.DecisionRoute, &out.Reasons, &out.CreatedAt)
+		return tx.QueryRow(ctx, `SELECT id,run_id,kind,state,revision,candidate_hash,decision,decision_route,decision_hash,reasons,created_at FROM photo.reviews WHERE tenant_id=$1 AND id=$2`, tid, reviewID).Scan(&out.ID, &out.RunID, &out.Kind, &out.State, &out.Revision, &out.CandidateHash, &out.Decision, &out.DecisionRoute, &out.DecisionHash, &out.Reasons, &out.CreatedAt)
 	})
 	if err != nil {
 		return out, err
@@ -104,16 +108,49 @@ func (s *Service) Detail(ctx context.Context, who auth.Identity, tid, reviewID u
 			out.CandidateIDs[i] = c.ID
 		}
 	}
+	if loaded.Kind != "defects" && loaded.Kind != "sensor_dust" {
+		baseRaw, e := readObject(ctx, s.Objects, loaded.ImageObject)
+		if e != nil {
+			return DetailView{}, e
+		}
+		if e := validateCandidatePair(loaded.Kind, raw, baseRaw); e != nil {
+			return DetailView{}, e
+		}
+		candidate, base := loaded.Proposal, loaded.Image
+		if out.CandidateHash != candidate.SHA256 {
+			return DetailView{}, domain.NewError("STALE_CANDIDATE_REVIEW", 409)
+		}
+		out.Candidate, out.Base = &candidate, &base
+	}
+	err = tenant.WithTenant(ctx, s.DB, who, tid, domain.Editor, func(tx pgx.Tx, role domain.Role) error {
+		current, e := loadDecisionContext(ctx, tx, tid, reviewID, s.Bucket)
+		if e != nil {
+			return e
+		}
+		if !sameContext(loaded, current) {
+			return domain.NewError("STALE_CANDIDATE_REVIEW", 409)
+		}
+		_, e = project.Authorize(ctx, tx, tid, current.ProjectID, who.UserID, role, domain.Editor, false)
+		return e
+	})
+	if err != nil {
+		return DetailView{}, err
+	}
+	if err := ctx.Err(); err != nil {
+		return DetailView{}, err
+	}
 	return out, nil
 }
 
 type decisionContext struct {
-	ProjectID      uuid.UUID
-	Kind           string
-	Proposal       ArtifactRef
-	Image          ArtifactRef
-	ProposalObject objectstore.Object
-	ImageObject    objectstore.Object
+	NegativeParams       ArtifactRef
+	NegativeParamsObject objectstore.Object
+	ProjectID            uuid.UUID
+	Kind                 string
+	Proposal             ArtifactRef
+	Image                ArtifactRef
+	ProposalObject       objectstore.Object
+	ImageObject          objectstore.Object
 }
 
 func artifactObject(id uuid.UUID, bucket, key, version, sha, media string, size int64) (ArtifactRef, objectstore.Object, error) {
@@ -127,24 +164,44 @@ func artifactObject(id uuid.UUID, bucket, key, version, sha, media string, size 
 	return ref, objectstore.Object{Key: key, VersionID: version, SHA256: sha, ContentType: media, Bytes: size}, nil
 }
 
+// Only detail and selected-result readers may resolve a decided candidate.
+// The ordinary before/after preview and decision paths keep pending-only access.
+type allowDecidedReviewContextKey struct{}
+
 func loadDecisionContext(ctx context.Context, tx pgx.Tx, tid, reviewID uuid.UUID, expectedBucket string) (decisionContext, error) {
 	var c decisionContext
 	var proposalID, imageID uuid.UUID
 	var pb, pk, pv, ps, pm, ib, ik, iv, is, im string
 	var pn, in int64
-	err := tx.QueryRow(ctx, `SELECT coalesce(src.project_id,dst.project_id),v.kind,v.candidate_artifact_id,v.base_artifact_id,
+	err := tx.QueryRow(ctx, `SELECT CASE WHEN r.kind='v2' THEN workflow.project_id ELSE coalesce(src.project_id,dst.project_id) END,v.kind,v.candidate_artifact_id,v.base_artifact_id,
  p.bucket,p.object_key,p.object_version,p.sha256,p.media_type,p.bytes,
  i.bucket,i.object_key,i.object_version,i.sha256,i.media_type,i.bytes
  FROM photo.reviews v JOIN photo.runs r ON r.tenant_id=v.tenant_id AND r.id=v.run_id
  JOIN photo.snapshots s ON s.tenant_id=r.tenant_id AND s.id=r.input_snapshot_id
  LEFT JOIN photo.collections src ON src.tenant_id=s.tenant_id AND src.id=s.collection_id
  LEFT JOIN photo.collections dst ON dst.tenant_id=r.tenant_id AND dst.id=r.output_collection_id
+ LEFT JOIN photo.v2_workflows workflow ON workflow.tenant_id=r.tenant_id AND workflow.run_id=r.id
  JOIN photo.artifacts p ON p.tenant_id=v.tenant_id AND p.id=v.candidate_artifact_id
  JOIN photo.artifacts i ON i.tenant_id=v.tenant_id AND i.id=v.base_artifact_id
- WHERE v.tenant_id=$1 AND v.id=$2 AND v.state='pending'
+ WHERE v.tenant_id=$1 AND v.id=$2 AND (v.state='pending'
+  OR ($3::boolean AND v.kind IN ('render.compose','optical.negative','portrait.glare','portrait.open_eyes','image.reflection') AND v.state='decided' AND v.revision=2))
+ AND (v.kind NOT IN ('portrait.glare','image.reflection') OR EXISTS(
+  SELECT 1 FROM photo.tasks restoration_task
+  JOIN photo.task_results restoration_result ON restoration_result.tenant_id=restoration_task.tenant_id
+   AND restoration_result.id=restoration_task.canonical_result_id
+   AND restoration_result.task_id=restoration_task.id
+  WHERE restoration_task.tenant_id=v.tenant_id AND restoration_task.id=v.task_id
+   AND restoration_task.run_id=v.run_id AND restoration_task.operation=v.kind
+   AND restoration_task.state='succeeded' AND restoration_result.review_required
+   AND r.v28_restoration_adoption_receipt->>'task'=restoration_task.id::text
+   AND r.v28_restoration_adoption_receipt->>'result'=restoration_result.id::text
+   AND r.v28_restoration_adoption_receipt->'evidence'->'candidate'->'image'=
+    jsonb_build_object('artifact_id',p.id,'sha256',p.sha256)
+   AND (r.v28_restoration_descriptor_jcs::jsonb)->'params'->'base'->'source'=
+    jsonb_build_object('artifact_id',i.id,'sha256',i.sha256)))
  AND p.state='ready' AND i.state='ready'
  AND (p.expires_at IS NULL OR p.expires_at>clock_timestamp())
-	AND (i.expires_at IS NULL OR i.expires_at>clock_timestamp())`, tid, reviewID).Scan(&c.ProjectID, &c.Kind, &proposalID, &imageID,
+	AND (i.expires_at IS NULL OR i.expires_at>clock_timestamp())`, tid, reviewID, ctx.Value(allowDecidedReviewContextKey{}) == true).Scan(&c.ProjectID, &c.Kind, &proposalID, &imageID,
 		&pb, &pk, &pv, &ps, &pm, &pn, &ib, &ik, &iv, &is, &im, &in)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return c, domain.NewError("NOT_FOUND", 404)
@@ -160,6 +217,29 @@ func loadDecisionContext(ctx context.Context, tx pgx.Tx, tid, reviewID uuid.UUID
 		return c, err
 	}
 	c.Image, c.ImageObject, err = artifactObject(imageID, ib, ik, iv, is, im, in)
+	if err != nil {
+		return c, err
+	}
+	if c.Kind == "optical.negative" {
+		var id uuid.UUID
+		var bucket, key, version, sha, media string
+		var size int64
+		err = tx.QueryRow(ctx, `SELECT a.id,a.bucket,a.object_key,a.object_version,a.sha256,a.media_type,a.bytes
+   FROM photo.reviews v JOIN photo.tasks t ON t.tenant_id=v.tenant_id AND t.id=v.task_id AND t.run_id=v.run_id
+   JOIN photo.artifacts a ON a.tenant_id=t.tenant_id AND a.id=t.params_artifact_id
+   JOIN photo.v2_workflows w ON w.tenant_id=t.tenant_id AND w.run_id=t.run_id
+   JOIN photo.v2_task_inputs i ON i.tenant_id=t.tenant_id AND i.task_id=t.id AND i.project_id=w.project_id AND i.artifact_id=a.id AND i.sha256=a.sha256 AND i.contract='Params'
+   WHERE v.tenant_id=$1 AND v.id=$2 AND v.kind='optical.negative' AND t.operation=v.kind AND t.operation_version='1'
+   AND t.state='succeeded' AND NOT t.cancel_requested AND a.state='ready' AND a.verified_at IS NOT NULL
+   AND a.bytes BETWEEN 2 AND 65536 AND (a.expires_at IS NULL OR a.expires_at>clock_timestamp())`, tid, reviewID).Scan(&id, &bucket, &key, &version, &sha, &media, &size)
+		if err != nil {
+			return c, err
+		}
+		if bucket != expectedBucket {
+			return c, domain.NewError("ARTIFACT_MISSING", 409)
+		}
+		c.NegativeParams, c.NegativeParamsObject, err = artifactObject(id, bucket, key, version, sha, media, size)
+	}
 	return c, err
 }
 
@@ -184,11 +264,38 @@ func readObject(ctx context.Context, objects Objects, object objectstore.Object)
 }
 
 func sameContext(a, b decisionContext) bool {
-	return a.ProjectID == b.ProjectID && a.Kind == b.Kind && a.Proposal == b.Proposal && a.Image == b.Image &&
+	return a.NegativeParams == b.NegativeParams && a.NegativeParamsObject == b.NegativeParamsObject && a.ProjectID == b.ProjectID && a.Kind == b.Kind && a.Proposal == b.Proposal && a.Image == b.Image &&
 		a.ProposalObject == b.ProposalObject && a.ImageObject == b.ImageObject
 }
 
 func compatibleCandidate(kind string, candidate, base WorkingImage) bool {
+	if kind == "portrait.glare" || kind == "portrait.open_eyes" || kind == "image.reflection" {
+		if candidate.DType != "float32" || base.DType != "float32" ||
+			candidate.Pixels.ID == base.Pixels.ID || candidate.Pixels.SHA256 == base.Pixels.SHA256 {
+			return false
+		}
+		expected := base
+		expected.Pixels = candidate.Pixels
+		expectedRaw, err := canonical.Marshal(expected)
+		if err != nil {
+			return false
+		}
+		actualRaw, err := canonical.Marshal(candidate)
+		return err == nil && bytes.Equal(expectedRaw, actualRaw)
+	}
+	if kind == "optical.negative" {
+		if candidate.DType != "float32" || base.DType != "float32" {
+			return false
+		}
+		expected := base
+		expected.Pixels = candidate.Pixels
+		expectedRaw, err := canonical.Marshal(expected)
+		if err != nil {
+			return false
+		}
+		actualRaw, err := canonical.Marshal(candidate)
+		return err == nil && bytes.Equal(expectedRaw, actualRaw)
+	}
 	if candidate.Color != base.Color || candidate.DType != base.DType || candidate.Canvas.SourceSHA256 != base.Canvas.SourceSHA256 {
 		return false
 	}
@@ -236,6 +343,17 @@ func (s *Service) Decide(ctx context.Context, who auth.Identity, tid, reviewID, 
 	if err != nil {
 		return out, domain.NewError("INPUT_INVALID", 422)
 	}
+	var negativeBinding *negativeCandidateBinding
+	if loaded.Kind == "optical.negative" {
+		paramsRaw, readErr := readObject(ctx, s.Objects, loaded.NegativeParamsObject)
+		if readErr != nil {
+			return out, readErr
+		}
+		if bindErr := verifyNegativeReviewBase(paramsRaw, imageRaw, loaded.Image); bindErr != nil {
+			return out, bindErr
+		}
+		negativeBinding = &negativeCandidateBinding{params: loaded.NegativeParams, base: loaded.Image, candidate: loaded.Proposal}
+	}
 	proposalRaw, err := readObject(ctx, s.Objects, loaded.ProposalObject)
 	if err != nil {
 		return out, err
@@ -280,7 +398,7 @@ func (s *Service) Decide(ctx context.Context, who auth.Identity, tid, reviewID, 
 			}
 			out = View{ID: reviewID, Kind: loaded.Kind, State: "decided", Revision: plan.Revision, CandidateHash: loaded.Proposal.SHA256, Decision: &req.Decision, DecisionRoute: &plan.Route}
 		} else {
-			plan, persistErr := PersistCandidateAuthorized(ctx, tx, tid, reviewID, who.UserID, requestID, req)
+			plan, persistErr := persistCandidateAuthorized(ctx, tx, tid, reviewID, who.UserID, who.SessionID, requestID, req, negativeBinding)
 			if persistErr != nil {
 				return persistErr
 			}
@@ -328,14 +446,15 @@ func (s *Service) List(ctx context.Context, who auth.Identity, tid uuid.UUID, li
 		afterID, afterTime = &id, &position
 	}
 	err = tenant.WithTenant(ctx, s.DB, who, tid, domain.Editor, func(tx pgx.Tx, role domain.Role) error {
-		rows, err := tx.Query(ctx, `SELECT v.id,v.run_id,v.kind,v.state,v.revision,v.candidate_hash,v.decision,v.decision_route,v.reasons,v.created_at
+		rows, err := tx.Query(ctx, `SELECT v.id,v.run_id,v.kind,v.state,v.revision,v.candidate_hash,v.decision,v.decision_route,v.decision_hash,v.reasons,v.created_at
  FROM photo.reviews v JOIN photo.runs r ON r.tenant_id=v.tenant_id AND r.id=v.run_id
  JOIN photo.snapshots s ON s.tenant_id=r.tenant_id AND s.id=r.input_snapshot_id
  LEFT JOIN photo.collections src ON src.tenant_id=s.tenant_id AND src.id=s.collection_id
  LEFT JOIN photo.collections dst ON dst.tenant_id=r.tenant_id AND dst.id=r.output_collection_id
- JOIN photo.projects p ON p.tenant_id=v.tenant_id AND p.id=coalesce(src.project_id,dst.project_id) AND p.archived_at IS NULL
+ LEFT JOIN photo.v2_workflows workflow ON workflow.tenant_id=r.tenant_id AND workflow.run_id=r.id
+ JOIN photo.projects p ON p.tenant_id=v.tenant_id AND p.id=CASE WHEN r.kind='v2' THEN workflow.project_id ELSE coalesce(src.project_id,dst.project_id) END AND p.archived_at IS NULL
  WHERE v.tenant_id=$1 AND ($2::uuid IS NULL OR v.run_id=$2) AND ($3='' OR v.state=$3) AND ($4='' OR v.kind=$4)
- AND ($5 OR p.visibility='workspace' OR EXISTS(SELECT FROM photo.project_acl a WHERE a.tenant_id=p.tenant_id AND a.project_id=p.id AND a.user_id=$6 AND a.role='editor'))
+ AND ($5 OR p.visibility='workspace' OR EXISTS(SELECT FROM photo.project_acl a WHERE a.tenant_id=p.tenant_id AND a.project_id=p.id AND a.user_id=$6 AND a.role IN('owner','admin','editor')))
  AND ($7::uuid IS NULL OR (v.created_at,v.id)>($8::timestamptz,$7::uuid))
  ORDER BY v.created_at,v.id LIMIT $9`, tid, runID, state, kind, role.Allows(domain.Admin), who.UserID, afterID, afterTime, limit+1)
 		if err != nil {
@@ -344,7 +463,7 @@ func (s *Service) List(ctx context.Context, who auth.Identity, tid uuid.UUID, li
 		defer rows.Close()
 		for rows.Next() {
 			var item View
-			if err = rows.Scan(&item.ID, &item.RunID, &item.Kind, &item.State, &item.Revision, &item.CandidateHash, &item.Decision, &item.DecisionRoute, &item.Reasons, &item.CreatedAt); err != nil {
+			if err = rows.Scan(&item.ID, &item.RunID, &item.Kind, &item.State, &item.Revision, &item.CandidateHash, &item.Decision, &item.DecisionRoute, &item.DecisionHash, &item.Reasons, &item.CreatedAt); err != nil {
 				return err
 			}
 			out.Items = append(out.Items, item)
@@ -365,4 +484,16 @@ func (s *Service) List(ctx context.Context, who auth.Identity, tid uuid.UUID, li
 		out.NextCursor = &cursor
 	}
 	return out, nil
+}
+
+func validateCandidatePair(kind string, candidateRaw, baseRaw []byte) error {
+	candidate, err := ParseWorkingImage(candidateRaw)
+	if err != nil {
+		return domain.NewError("INPUT_INVALID", 422)
+	}
+	base, err := ParseWorkingImage(baseRaw)
+	if err != nil || !compatibleCandidate(kind, candidate, base) {
+		return domain.NewError("INPUT_INVALID", 422)
+	}
+	return nil
 }

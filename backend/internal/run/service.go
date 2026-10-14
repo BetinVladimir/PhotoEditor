@@ -3,6 +3,7 @@ package run
 import (
 	"context"
 	"errors"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -20,10 +21,13 @@ import (
 )
 
 type Service struct {
-	DB      *pgxpool.Pool
-	Cursors pagination.Codec
-	Objects OutputSigner
-	Bucket  string
+	DB           *pgxpool.Pool
+	Cursors      pagination.Codec
+	Objects      OutputSigner
+	ReadObjects  OutputReader
+	OutputKey    []byte
+	PublicOrigin string
+	Bucket       string
 }
 
 type OutputSigner interface {
@@ -48,16 +52,26 @@ type Counts struct {
 	Review    int64 `json:"review"`
 }
 
+type PresentationStatus struct {
+	Total       int64 `json:"total"`
+	Pending     int64 `json:"pending"`
+	Ready       int64 `json:"ready"`
+	Failed      int64 `json:"failed"`
+	Cancelled   int64 `json:"cancelled"`
+	Unavailable int64 `json:"unavailable"`
+}
+
 type Status struct {
-	ID                 uuid.UUID  `json:"id"`
-	Kind               string     `json:"kind"`
-	State              string     `json:"status"`
-	Revision           string     `json:"revision"`
-	Counts             Counts     `json:"counts"`
-	OutputCollectionID *uuid.UUID `json:"output_collection_id,omitempty"`
-	Stage              string     `json:"stage"`
-	Progress           float64    `json:"progress"`
-	Errors             []string   `json:"errors"`
+	ID                 uuid.UUID           `json:"id"`
+	Kind               string              `json:"kind"`
+	State              string              `json:"status"`
+	Revision           string              `json:"revision"`
+	Counts             Counts              `json:"counts"`
+	OutputCollectionID *uuid.UUID          `json:"output_collection_id,omitempty"`
+	Stage              string              `json:"stage"`
+	Progress           float64             `json:"progress"`
+	Errors             []string            `json:"errors"`
+	Presentation       *PresentationStatus `json:"presentation,omitempty"`
 	createdAt          time.Time
 }
 type RetryRequest struct {
@@ -225,26 +239,47 @@ func (s Service) List(ctx context.Context, who auth.Identity, tenantID uuid.UUID
 
 func (s Service) Get(ctx context.Context, who auth.Identity, tenantID, id uuid.UUID) (Status, error) {
 	var out Status
-	err := tenant.WithTenant(ctx, s.DB, who, tenantID, domain.Viewer, func(tx pgx.Tx, _ domain.Role) error {
+	err := tenant.WithTenant(ctx, s.DB, who, tenantID, domain.Viewer, func(tx pgx.Tx, role domain.Role) error {
+		// An admitted semantic Apply has a project even without an output collection.
+		// Repeat project authority before exposing child progress or task counts.
+		var semanticProject uuid.UUID
+		e := tx.QueryRow(ctx, `SELECT project_id FROM photo.semantic_targets WHERE tenant_id=$1 AND child_run_id=$2 LIMIT 1`, tenantID, id).Scan(&semanticProject)
+		if e == nil {
+			if _, e = project.Authorize(ctx, tx, tenantID, semanticProject, who.UserID, role, domain.Viewer, false); e != nil {
+				return e
+			}
+		} else if !errors.Is(e, pgx.ErrNoRows) {
+			return e
+		}
 		var err error
 		out, err = readStatus(ctx, tx, tenantID, id, false)
+		if err != nil || out.Kind != "v2" {
+			return err
+		}
+		var presentation PresentationStatus
+		err = tx.QueryRow(ctx, `SELECT * FROM photo.v26_render_presentation_status($1,$2,$3,$4)`, who.UserID, who.SessionID, tenantID, id).Scan(&presentation.Total, &presentation.Pending, &presentation.Ready, &presentation.Failed, &presentation.Cancelled, &presentation.Unavailable)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil
+		}
+		if err == nil {
+			out.Presentation = &presentation
+		}
 		return err
 	})
 	return out, err
 }
 
-func (s Service) Outputs(ctx context.Context, who auth.Identity, tenantID, id uuid.UUID) ([]Output, error) {
-	if s.Objects == nil || s.Bucket == "" {
-		return nil, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
-	}
-	type pending struct {
-		Output
-		Object objectstore.Object
-	}
-	items := []pending{}
+type pendingOutput struct {
+	Output
+	Object    objectstore.Object
+	Revocable bool
+}
+
+func (s Service) readOutputCandidates(ctx context.Context, who auth.Identity, tenantID, id uuid.UUID) ([]pendingOutput, error) {
+	items := []pendingOutput{}
 	err := tenant.WithTenant(ctx, s.DB, who, tenantID, domain.Viewer, func(tx pgx.Tx, role domain.Role) error {
 		var projectID uuid.UUID
-		e := tx.QueryRow(ctx, `SELECT COALESCE(c.project_id,a.project_id,sc.project_id) FROM photo.runs r LEFT JOIN photo.collections c ON c.tenant_id=r.tenant_id AND c.id=r.output_collection_id LEFT JOIN photo.asset_versions v ON v.tenant_id=r.tenant_id AND v.id=NULLIF(r.config_snapshot->>'asset_version_id','')::uuid LEFT JOIN photo.assets a ON a.tenant_id=v.tenant_id AND a.id=v.asset_id LEFT JOIN photo.snapshots s ON s.tenant_id=r.tenant_id AND s.id=r.input_snapshot_id LEFT JOIN photo.collections sc ON sc.tenant_id=s.tenant_id AND sc.id=s.collection_id WHERE r.tenant_id=$1 AND r.id=$2`, tenantID, id).Scan(&projectID)
+		e := tx.QueryRow(ctx, `SELECT COALESCE(st.project_id,w.project_id,c.project_id,a.project_id,sc.project_id) FROM photo.runs r LEFT JOIN photo.semantic_targets st ON st.tenant_id=r.tenant_id AND st.child_run_id=r.id AND r.kind='apply' LEFT JOIN photo.v2_workflows w ON w.tenant_id=r.tenant_id AND w.run_id=r.id AND r.kind='v2' LEFT JOIN photo.collections c ON c.tenant_id=r.tenant_id AND c.id=r.output_collection_id LEFT JOIN photo.asset_versions v ON v.tenant_id=r.tenant_id AND v.id=NULLIF(r.config_snapshot->>'asset_version_id','')::uuid LEFT JOIN photo.assets a ON a.tenant_id=v.tenant_id AND a.id=v.asset_id LEFT JOIN photo.snapshots s ON s.tenant_id=r.tenant_id AND s.id=r.input_snapshot_id LEFT JOIN photo.collections sc ON sc.tenant_id=s.tenant_id AND sc.id=s.collection_id WHERE r.tenant_id=$1 AND r.id=$2`, tenantID, id).Scan(&projectID)
 		if errors.Is(e, pgx.ErrNoRows) {
 			return domain.NewError("NOT_FOUND", 404)
 		}
@@ -257,24 +292,33 @@ func (s Service) Outputs(ctx context.Context, who auth.Identity, tenantID, id uu
 		if _, e = project.Authorize(ctx, tx, tenantID, projectID, who.UserID, role, domain.Viewer, false); e != nil {
 			return e
 		}
-		rows, e := tx.Query(ctx, `SELECT a.id,a.output_role,a.sha256,a.bytes,a.media_type,a.bucket,a.object_key,a.object_version FROM photo.tasks t JOIN photo.task_results z ON z.tenant_id=t.tenant_id AND z.id=t.canonical_result_id JOIN photo.artifacts a ON a.tenant_id=t.tenant_id AND a.created_by_task_id=t.id AND a.produced_attempt=z.attempt AND a.produced_fence=z.fencing_token AND z.outputs @> jsonb_build_array(jsonb_build_object('artifact_id',a.id,'sha256',a.sha256)) WHERE t.tenant_id=$1 AND t.run_id=$2 AND t.state='succeeded' AND a.state='ready' AND a.object_version IS NOT NULL AND a.output_role IN('derivative','derivative_manifest','prompt_mask_png','prompt_mask_ref','working_image','generation_report','contact_page','contact_sheet') ORDER BY t.node_key,a.output_role,a.id`, tenantID, id)
+		rows, e := tx.Query(ctx, `SELECT a.id,a.output_role,a.sha256,a.bytes,a.media_type,a.bucket,a.object_key,a.object_version,(t.operation IN ('render.compose','optical.negative') AND z.review_required) FROM photo.tasks t JOIN photo.task_results z ON z.tenant_id=t.tenant_id AND z.id=t.canonical_result_id JOIN photo.artifacts a ON a.tenant_id=t.tenant_id AND a.created_by_task_id=t.id AND a.produced_attempt=z.attempt AND a.produced_fence=z.fencing_token AND z.outputs @> jsonb_build_array(jsonb_build_object('artifact_id',a.id,'sha256',a.sha256)) WHERE t.tenant_id=$1 AND t.run_id=$2 AND t.state='succeeded' AND NOT t.cancel_requested AND z.attempt=t.attempt AND z.fencing_token=t.fencing_token AND a.state='ready' AND a.verified_at IS NOT NULL AND a.object_version IS NOT NULL AND a.object_version NOT IN('','null') AND (a.expires_at IS NULL OR a.expires_at>clock_timestamp()) AND a.output_role IN('derivative','derivative_manifest','prompt_mask_png','prompt_mask_ref','working_image','generation_report','contact_page','contact_sheet') AND photo.v26_render_preview_output_allowed($3,$4,$1,t.run_id) AND photo.candidate_review_canonical_output_allowed($3,$4,$1,t.id) UNION ALL SELECT artifact_id,output_role,sha256,bytes,media_type,bucket,object_key,object_version,true FROM photo.v26_render_derivative_outputs($3,$4,$1,$2) UNION ALL SELECT artifact_id,output_role,sha256,bytes,media_type,bucket,object_key,object_version,false FROM photo.v30_interchange_export_download($3,$4,$1,$2)`, tenantID, id, who.UserID, who.SessionID)
 		if e != nil {
 			return e
 		}
 		defer rows.Close()
 		for rows.Next() {
-			var v pending
+			var v pendingOutput
 			var bucket string
-			if e = rows.Scan(&v.ArtifactID, &v.Role, &v.SHA256, &v.Bytes, &v.MediaType, &bucket, &v.Object.Key, &v.Object.VersionID); e != nil {
+			if e = rows.Scan(&v.ArtifactID, &v.Role, &v.SHA256, &v.Bytes, &v.MediaType, &bucket, &v.Object.Key, &v.Object.VersionID, &v.Revocable); e != nil {
 				return e
 			}
 			if bucket != s.Bucket {
 				return errors.New("run output bucket mismatch")
 			}
+			v.Object.SHA256, v.Object.Bytes, v.Object.ContentType = v.SHA256, v.Bytes, v.MediaType
 			items = append(items, v)
 		}
 		return rows.Err()
 	})
+	return items, err
+}
+
+func (s Service) Outputs(ctx context.Context, who auth.Identity, tenantID, id uuid.UUID) ([]Output, error) {
+	if s.Objects == nil || s.Bucket == "" {
+		return nil, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
+	}
+	items, err := s.readOutputCandidates(ctx, who, tenantID, id)
 	if err != nil {
 		return nil, err
 	}
@@ -282,6 +326,24 @@ func (s Service) Outputs(ctx context.Context, who auth.Identity, tenantID, id uu
 	for _, item := range items {
 		// Bucket is never exposed and must match the configured storage boundary.
 		item.Object.SHA256, item.Object.Bytes, item.Object.ContentType = item.SHA256, item.Bytes, item.MediaType
+		if item.Revocable {
+			if s.ReadObjects == nil || len(s.OutputKey) < 32 || s.PublicOrigin == "" || item.Object.Key == "" {
+				return nil, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
+			}
+			now := time.Now()
+			grant := OutputGrant{Version: 1, Tenant: tenantID, Run: id, User: who.UserID,
+				Session: who.SessionID, Artifact: item.ArtifactID, Role: item.Role,
+				SHA256: item.SHA256, ObjectKeySHA: outputObjectKeySHA(item.Object.Key), ObjectVersion: item.Object.VersionID,
+				MediaType: item.MediaType, Bytes: item.Bytes, ExpiresUnix: now.Add(10 * time.Minute).Unix()}
+			token, e := SealOutputGrant(s.OutputKey, grant, now)
+			if e != nil {
+				return nil, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
+			}
+			item.Output.URL = s.PublicOrigin + "/api/v1/media/run-output?token=" + url.QueryEscape(token) + "&versionId=" + url.QueryEscape(item.Object.VersionID)
+			item.Output.ExpiresAt = time.Unix(grant.ExpiresUnix, 0).UTC()
+			result = append(result, item.Output)
+			continue
+		}
 		name := item.ArtifactID.String()
 		signed, e := s.Objects.SignDownload(ctx, item.Object, name, 10*time.Minute)
 		if e != nil {
@@ -289,6 +351,27 @@ func (s Service) Outputs(ctx context.Context, who auth.Identity, tenantID, id uu
 		}
 		item.Output.URL, item.Output.ExpiresAt = signed.URL, signed.ExpiresAt
 		result = append(result, item.Output)
+	}
+	// Signing performs external I/O after the SQL authority snapshot. Re-read the
+	// exact authorized output set before returning any of those signed links.
+	current, err := s.readOutputCandidates(ctx, who, tenantID, id)
+	if err != nil {
+		return nil, err
+	}
+	before := make(map[pendingOutput]int, len(items))
+	for _, item := range items {
+		before[item]++
+	}
+	for _, item := range current {
+		before[item]--
+	}
+	for _, count := range before {
+		if count != 0 {
+			return nil, domain.NewError("STALE_CANDIDATE_REVIEW", 409)
+		}
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 	return result, nil
 }

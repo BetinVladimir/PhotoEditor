@@ -1,0 +1,726 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="8" skipped="0" tests="10" time="163.090" timestamp="2026-10-09T07:01:17.741957+03:00" hostname="Mac"><testcase classname="tests.integration.test_v27_semantic_intent_publication" name="test_semantic_intent_publication_old_version_and_replay[transfer-batch]" time="9.957"><failure message="AssertionError: === RUN   TestIntegrationProposalIntentPublication&#10;      publication_integration_test.go:181: V27_PROPOSAL_SNAPSHOT_PUBLICATION_OK&#10;      publication_integration_test.go:200: V27_PROPOSAL_SOURCE_READ_OK&#10;      publication_integration_test.go:205: V27_PROPOSAL_SOURCE_PIXELS_OK&#10;      publication_integration_test.go:229: V27_PROPOSAL_QUALIFIED_COLOR_OK&#10;      publication_integration_test.go:235: V27_PROPOSAL_MASK_READ_OK&#10;      publication_integration_test.go:240: V27_PROPOSAL_MASK_PIXELS_OK&#10;      publication_integration_test.go:253: V27_PROPOSAL_MANUAL_PERSON_DENIED_OK&#10;      publication_integration_test.go:266: V27_PROPOSAL_PERSON_EVIDENCE_OK&#10;      publication_integration_test.go:275: V27_PROPOSAL_PERSON_COVERAGE_OK&#10;      publication_integration_test.go:318: V27_PROTECTION_PREPARATION_RETAINED_PROOF_OK&#10;      publication_integration_test.go:325: V27_PERSON_COVERAGE_PROTECTION_PROOF_OK&#10;      publication_integration_test.go:344: V27_PROPOSAL_PERSON_COVERAGE_REPORT_RACE_OK&#10;      publication_integration_test.go:345: V27_PROPOSAL_PERSON_REPORT_REQUIRED_OK&#10;      publication_integration_test.go:346: V27_PROPOSAL_PERSON_MASK_READ_OK&#10;      publication_integration_test.go:351: V27_DEFECT_PERSON_PRODUCER_DENIED_OK&#10;      publication_integration_test.go:367: V27_DEFECT_CANONICAL_ORIGIN_OK&#10;      publication_integration_test.go:451: V27_DEFECT_ORIGINAL_EVIDENCE_OK&#10;      publication_integration_test.go:459: V27_DEFECT_LANDMARK_PERSON_DENIED_OK&#10;      publication_integration_test.go:460: V27_DEFECT_EMPTY_FACES_READ_OK&#10;      publication_integration_test.go:499: V27_DEFECT_FINISHED_ATTEMPT_BACKEND_REQUIRED_OK&#10;      publication_integration_test.go:532: V27_DEFECT_FACE_PROFILES_MATCH_REQUIRED_OK&#10;      publication_integration_test.go:588: V27_DEFECT_TRUSTED_FACE_QUALIFICATION_READ_OK&#10;      publication_integration_test.go:4188: V27_DEFECT_QUALIFIED_MULTI_COLLECTION_OK&#10;      publication_integration_test.go:4202: V27_DEFECT_FACE_QUALIFICATION_POLICY_DISABLED_DENIED_OK&#10;      publication_integration_test.go:4241: V27_DEFECT_FACE_QUALIFICATION_READ_REVOCATION_DENIED_OK&#10;      publication_integration_test.go:4275: V27_DEFECT_FACE_PARAMS_EXPIRY_CORRUPTION_DENIED_OK&#10;      publication_integration_test.go:4296: V27_DEFECT_DETECTION_ORIGIN_AND_READ_OK&#10;      publication_integration_test.go:4297: V27_DEFECT_DETECTION_EXPIRY_CORRUPTION_DENIED_OK&#10;      publication_integration_test.go:4309: V27_DEFECT_LANDMARK_CORRUPTION_DENIED_OK&#10;      publication_integration_test.go:4323: V27_DEFECT_NONEMPTY_FACES_READ_OK&#10;      publication_integration_test.go:4324: V27_DEFECT_LANDMARK_UNDECLARED_DENIED_OK&#10;      publication_integration_test.go:4325: V27_DEFECT_LANDMARK_READ_RACE_DENIED_OK&#10;      publication_integration_test.go:4335: V27_DEFECT_PERMANENT_COVERAGE_OK&#10;      publication_integration_test.go:4350: V27_DEFECT_CORRUPT_PIXELS_DENIED_OK&#10;      publication_integration_test.go:4367: V27_DEFECT_OBJECT_VERSION_IMMUTABLE_OK&#10;      publication_integration_test.go:4382: V27_DEFECT_PERMANENT_COVERAGE_RACE_DENIED_OK&#10;      publication_integration_test.go:4397: V27_DEFECT_REPORT_READ_RACE_DENIED_OK&#10;      publication_integration_test.go:4399: V27_PROPOSAL_PROTECTION_READ_OK&#10;      publication_integration_test.go:4412: V27_PROPOSAL_COVERAGE_REQUIRED_OK&#10;      publication_integration_test.go:4417: V27_PROPOSAL_MASK_SEPARATION_OK&#10;      publication_integration_test.go:4429: V27_PROPOSAL_PERSON_QUALIFICATION_SEPARATE_OK&#10;      publication_integration_test.go:4452: V27_PROPOSAL_PERSON_DISCOVERY_OK&#10;      publication_integration_test.go:4467: V27_PROPOSAL_PERSON_AMBIGUITY_OK&#10;      publication_integration_test.go:4476: person ambiguity during coverage accepted 0 multiple qualified person producers for source: V2 admission idempotency conflict true&#10;      publication_integration_test.go:95: V27_TEST_DURATION_SECONDS 3.691&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=transaction count=4268 total_seconds=0.077 max_seconds=0.000&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=tenant_authorization count=2134 total_seconds=0.089 max_seconds=0.002&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=defect_origin count=609 total_seconds=0.187 max_seconds=0.012&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=saved_config count=0 total_seconds=0.000 max_seconds=0.000&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=qualification count=88 total_seconds=0.019 max_seconds=0.002&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=catalog count=4114 total_seconds=1.639 max_seconds=0.051&#10;  --- FAIL: TestIntegrationProposalIntentPublication (3.69s)&#10;  FAIL&#10;  FAIL&#09;photoeditor/backend/internal/semanticproposal&#09;4.370s&#10;  FAIL&#10;  &#10;assert 1 == 0&#10; +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationProposalIntentPublication...oposalIntentPublication (3.69s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t4.370s\nFAIL\n', stderr='').returncode">tests/integration/test_v27_semantic_intent_publication.py:769: in test_semantic_intent_publication_old_version_and_replay
+    assert result.returncode==0,result.stdout+result.stderr
+E   AssertionError: === RUN   TestIntegrationProposalIntentPublication
+E         publication_integration_test.go:181: V27_PROPOSAL_SNAPSHOT_PUBLICATION_OK
+E         publication_integration_test.go:200: V27_PROPOSAL_SOURCE_READ_OK
+E         publication_integration_test.go:205: V27_PROPOSAL_SOURCE_PIXELS_OK
+E         publication_integration_test.go:229: V27_PROPOSAL_QUALIFIED_COLOR_OK
+E         publication_integration_test.go:235: V27_PROPOSAL_MASK_READ_OK
+E         publication_integration_test.go:240: V27_PROPOSAL_MASK_PIXELS_OK
+E         publication_integration_test.go:253: V27_PROPOSAL_MANUAL_PERSON_DENIED_OK
+E         publication_integration_test.go:266: V27_PROPOSAL_PERSON_EVIDENCE_OK
+E         publication_integration_test.go:275: V27_PROPOSAL_PERSON_COVERAGE_OK
+E         publication_integration_test.go:318: V27_PROTECTION_PREPARATION_RETAINED_PROOF_OK
+E         publication_integration_test.go:325: V27_PERSON_COVERAGE_PROTECTION_PROOF_OK
+E         publication_integration_test.go:344: V27_PROPOSAL_PERSON_COVERAGE_REPORT_RACE_OK
+E         publication_integration_test.go:345: V27_PROPOSAL_PERSON_REPORT_REQUIRED_OK
+E         publication_integration_test.go:346: V27_PROPOSAL_PERSON_MASK_READ_OK
+E         publication_integration_test.go:351: V27_DEFECT_PERSON_PRODUCER_DENIED_OK
+E         publication_integration_test.go:367: V27_DEFECT_CANONICAL_ORIGIN_OK
+E         publication_integration_test.go:451: V27_DEFECT_ORIGINAL_EVIDENCE_OK
+E         publication_integration_test.go:459: V27_DEFECT_LANDMARK_PERSON_DENIED_OK
+E         publication_integration_test.go:460: V27_DEFECT_EMPTY_FACES_READ_OK
+E         publication_integration_test.go:499: V27_DEFECT_FINISHED_ATTEMPT_BACKEND_REQUIRED_OK
+E         publication_integration_test.go:532: V27_DEFECT_FACE_PROFILES_MATCH_REQUIRED_OK
+E         publication_integration_test.go:588: V27_DEFECT_TRUSTED_FACE_QUALIFICATION_READ_OK
+E         publication_integration_test.go:4188: V27_DEFECT_QUALIFIED_MULTI_COLLECTION_OK
+E         publication_integration_test.go:4202: V27_DEFECT_FACE_QUALIFICATION_POLICY_DISABLED_DENIED_OK
+E         publication_integration_test.go:4241: V27_DEFECT_FACE_QUALIFICATION_READ_REVOCATION_DENIED_OK
+E         publication_integration_test.go:4275: V27_DEFECT_FACE_PARAMS_EXPIRY_CORRUPTION_DENIED_OK
+E         publication_integration_test.go:4296: V27_DEFECT_DETECTION_ORIGIN_AND_READ_OK
+E         publication_integration_test.go:4297: V27_DEFECT_DETECTION_EXPIRY_CORRUPTION_DENIED_OK
+E         publication_integration_test.go:4309: V27_DEFECT_LANDMARK_CORRUPTION_DENIED_OK
+E         publication_integration_test.go:4323: V27_DEFECT_NONEMPTY_FACES_READ_OK
+E         publication_integration_test.go:4324: V27_DEFECT_LANDMARK_UNDECLARED_DENIED_OK
+E         publication_integration_test.go:4325: V27_DEFECT_LANDMARK_READ_RACE_DENIED_OK
+E         publication_integration_test.go:4335: V27_DEFECT_PERMANENT_COVERAGE_OK
+E         publication_integration_test.go:4350: V27_DEFECT_CORRUPT_PIXELS_DENIED_OK
+E         publication_integration_test.go:4367: V27_DEFECT_OBJECT_VERSION_IMMUTABLE_OK
+E         publication_integration_test.go:4382: V27_DEFECT_PERMANENT_COVERAGE_RACE_DENIED_OK
+E         publication_integration_test.go:4397: V27_DEFECT_REPORT_READ_RACE_DENIED_OK
+E         publication_integration_test.go:4399: V27_PROPOSAL_PROTECTION_READ_OK
+E         publication_integration_test.go:4412: V27_PROPOSAL_COVERAGE_REQUIRED_OK
+E         publication_integration_test.go:4417: V27_PROPOSAL_MASK_SEPARATION_OK
+E         publication_integration_test.go:4429: V27_PROPOSAL_PERSON_QUALIFICATION_SEPARATE_OK
+E         publication_integration_test.go:4452: V27_PROPOSAL_PERSON_DISCOVERY_OK
+E         publication_integration_test.go:4467: V27_PROPOSAL_PERSON_AMBIGUITY_OK
+E         publication_integration_test.go:4476: person ambiguity during coverage accepted 0 multiple qualified person producers for source: V2 admission idempotency conflict true
+E         publication_integration_test.go:95: V27_TEST_DURATION_SECONDS 3.691
+E         publication_integration_test.go:96: V27_SQL_TIMING group=transaction count=4268 total_seconds=0.077 max_seconds=0.000
+E         publication_integration_test.go:96: V27_SQL_TIMING group=tenant_authorization count=2134 total_seconds=0.089 max_seconds=0.002
+E         publication_integration_test.go:96: V27_SQL_TIMING group=defect_origin count=609 total_seconds=0.187 max_seconds=0.012
+E         publication_integration_test.go:96: V27_SQL_TIMING group=saved_config count=0 total_seconds=0.000 max_seconds=0.000
+E         publication_integration_test.go:96: V27_SQL_TIMING group=qualification count=88 total_seconds=0.019 max_seconds=0.002
+E         publication_integration_test.go:96: V27_SQL_TIMING group=catalog count=4114 total_seconds=1.639 max_seconds=0.051
+E     --- FAIL: TestIntegrationProposalIntentPublication (3.69s)
+E     FAIL
+E     FAIL	photoeditor/backend/internal/semanticproposal	4.370s
+E     FAIL
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationProposalIntentPublication...oposalIntentPublication (3.69s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t4.370s\nFAIL\n', stderr='').returncode</failure></testcase><testcase classname="tests.integration.test_v27_semantic_intent_publication" name="test_semantic_intent_publication_old_version_and_replay[transfer-batch-oriented]" time="29.940"><failure message="AssertionError: === RUN   TestIntegrationProposalIntentPublication&#10;      publication_integration_test.go:181: V27_PROPOSAL_SNAPSHOT_PUBLICATION_OK&#10;      publication_integration_test.go:200: V27_PROPOSAL_SOURCE_READ_OK&#10;      publication_integration_test.go:205: V27_PROPOSAL_SOURCE_PIXELS_OK&#10;      publication_integration_test.go:229: V27_PROPOSAL_QUALIFIED_COLOR_OK&#10;      publication_integration_test.go:235: V27_PROPOSAL_MASK_READ_OK&#10;      publication_integration_test.go:240: V27_PROPOSAL_MASK_PIXELS_OK&#10;      publication_integration_test.go:253: V27_PROPOSAL_MANUAL_PERSON_DENIED_OK&#10;      publication_integration_test.go:266: V27_PROPOSAL_PERSON_EVIDENCE_OK&#10;      publication_integration_test.go:275: V27_PROPOSAL_PERSON_COVERAGE_OK&#10;      publication_integration_test.go:318: V27_PROTECTION_PREPARATION_RETAINED_PROOF_OK&#10;      publication_integration_test.go:325: V27_PERSON_COVERAGE_PROTECTION_PROOF_OK&#10;      publication_integration_test.go:344: V27_PROPOSAL_PERSON_COVERAGE_REPORT_RACE_OK&#10;      publication_integration_test.go:345: V27_PROPOSAL_PERSON_REPORT_REQUIRED_OK&#10;      publication_integration_test.go:346: V27_PROPOSAL_PERSON_MASK_READ_OK&#10;      publication_integration_test.go:351: V27_DEFECT_PERSON_PRODUCER_DENIED_OK&#10;      publication_integration_test.go:367: V27_DEFECT_CANONICAL_ORIGIN_OK&#10;      publication_integration_test.go:451: V27_DEFECT_ORIGINAL_EVIDENCE_OK&#10;      publication_integration_test.go:459: V27_DEFECT_LANDMARK_PERSON_DENIED_OK&#10;      publication_integration_test.go:460: V27_DEFECT_EMPTY_FACES_READ_OK&#10;      publication_integration_test.go:499: V27_DEFECT_FINISHED_ATTEMPT_BACKEND_REQUIRED_OK&#10;      publication_integration_test.go:532: V27_DEFECT_FACE_PROFILES_MATCH_REQUIRED_OK&#10;      publication_integration_test.go:588: V27_DEFECT_TRUSTED_FACE_QUALIFICATION_READ_OK&#10;      publication_integration_test.go:743: V27_SOURCE_PREPARATION_RETAINED_PROOF_OK&#10;      publication_integration_test.go:747: V27_SOURCE_AUTHORIZED_INPUT_SIZES_OK&#10;      publication_integration_test.go:762: V27_FACE_PREPARATION_DISCOVERY_OK&#10;      publication_integration_test.go:777: V27_FACE_PREPARATION_INVENTORY_CONTENT_OK&#10;      publication_integration_test.go:800: V27_FACE_PREPARATION_RETAINED_PROOF_OK&#10;      publication_integration_test.go:809: V27_FACE_PREPARATION_QUALIFIED_OK&#10;      publication_integration_test.go:810: V27_FACE_PREPARATION_CONTENT_OK&#10;      publication_integration_test.go:824: V27_FACE_PARSE_PREPARATION_CONTENT_OK&#10;      publication_integration_test.go:836: V27_FACE_PARSE_PREPARATION_PROFILES_OK&#10;      publication_integration_test.go:843: V27_FACE_PARSE_PREPARATION_DISCOVERY_OK&#10;      publication_integration_test.go:856: V27_FACE_PARSE_DISCOVERY_EXPIRY_OK&#10;      publication_integration_test.go:866: V27_FACE_PARSE_PREPARATION_INVENTORY_CONTENT_OK&#10;      publication_integration_test.go:875: V27_FACE_PARSE_PREPARATION_QUALIFIED_OK&#10;      publication_integration_test.go:898: V27_FACE_PARSE_PREPARATION_RETAINED_PROOF_OK&#10;      publication_integration_test.go:916: V27_DEFECT_MANUAL_EXECUTION_ORIGINAL_PROOFS_OK&#10;      publication_integration_test.go:937: V27_DEFECT_QUALIFICATION_RESOURCE_METRICS_OK&#10;      publication_integration_test.go:949: V27_DEFECT_MEASURED_COST_DENIAL_OK&#10;      publication_integration_test.go:969: V27_DEFECT_ORIGINAL_QUALIFIED_PROFILE_OK&#10;      publication_integration_test.go:981: V27_DEFECT_AUTHORIZED_PROFILE_CATALOG_OK&#10;      publication_integration_test.go:997: V27_DEFECT_PROFILE_LANDMARK_CATALOG_OK&#10;      publication_integration_test.go:1023: V27_DEFECT_PROFILE_ORIGINAL_LANDMARK_BYTES_OK&#10;      publication_integration_test.go:1039: V27_PROTECTION_ROOT_DISCOVERY_OK&#10;      publication_integration_test.go:1057: V27_DEFECT_SOURCE_EXECUTION_RETAINED_PROOFS_OK&#10;      publication_integration_test.go:1071: V27_DEFECT_SOURCE_EXECUTION_FILE_PINS_OK&#10;      publication_integration_test.go:1100: V27_DEFECT_SOURCE_EXECUTION_FILE_PIN_MUTATION_DENIED_OK&#10;      publication_integration_test.go:1113: V27_DEFECT_SOURCE_DERIVED_PROFILE_OK&#10;      publication_integration_test.go:1134: V27_DEFECT_PROFILE_MULTIFACE_SOURCE_OK&#10;      publication_integration_test.go:1148: V27_DEFECT_FACE_ORIGINAL_PRODUCER_PROOFS_OK&#10;      publication_integration_test.go:1177: V27_DEFECT_FACE_EXECUTION_RETAINED_PROOFS_OK&#10;      publication_integration_test.go:1183: V27_DEFECT_PROFILE_FACE_QUALIFIED_OK&#10;      publication_integration_test.go:1203: V27_DEFECT_PROFILE_FINAL_FACE_REVOCATION_OK&#10;      publication_integration_test.go:1228: V27_DEFECT_PROFILE_FINAL_FACE_SOURCE_EXPIRY_OK&#10;      publication_integration_test.go:1259: V27_DEFECT_MASK_EXECUTION_RETAINED_PROOFS_OK&#10;      publication_integration_test.go:1274: V27_DEFECT_MASK_ORIGINAL_PARSER_PROOFS_OK&#10;      publication_integration_test.go:1275: V27_DEFECT_PROFILE_SKIN_QUALIFIED_OK&#10;      publication_integration_test.go:1291: V27_DEFECT_PROFILE_SKIN_ROOT_REQUIRED_OK&#10;      publication_integration_test.go:1310: V27_DEFECT_PROFILE_FINAL_MASK_FACE_REVOCATION_OK&#10;      publication_integration_test.go:1311: V27_DEFECT_PROFILE_FINAL_MASK_PARSER_DETECTOR_REVOCATION_OK&#10;      publication_integration_test.go:1328: V27_DEFECT_PROFILE_FINAL_MASK_PRODUCER_CHANGE_OK&#10;      publication_integration_test.go:1360: V27_DEFECT_PROFILE_REQUIRED_PROTECTION_OK&#10;      publication_integration_test.go:1375: V27_DEFECT_PROFILE_ORIGINAL_PARAMS_BYTES_OK&#10;      publication_integration_test.go:1386: V27_DEFECT_PROFILE_ORIGINAL_MASK_BYTES_OK&#10;      publication_integration_test.go:1393: V27_DEFECT_PROFILE_CAPACITY_BEFORE_MASK_IO_OK&#10;      publication_integration_test.go:1408: V27_DEFECT_PROFILE_CATALOG_REVOCATION_OK&#10;      publication_integration_test.go:1432: V27_DEFECT_ORIGINAL_QUALIFICATION_PREPARATION_OK&#10;      publication_integration_test.go:1436: V27_DEFECT_QUALIFICATION_FINAL_RECHECK_OK&#10;      publication_integration_test.go:1466: V27_DEFECT_ORIGINAL_QUALIFICATION_LOCK_OK&#10;      publication_integration_test.go:1501: V27_DEFECT_QUALIFICATION_AUTHORITY_LOCK_OK&#10;      publication_integration_test.go:1504: V27_TRANSFER_QUALIFICATION_IMPORT_LOCK_OK&#10;      publication_integration_test.go:1515: V27_TRANSFER_QUALIFICATION_RETAINED_LOCK_OK&#10;      publication_integration_test.go:1539: V27_TRANSFER_QUALIFICATION_REVOKE_LOCK_OK&#10;      publication_integration_test.go:1556: V27_TRANSFER_QUALIFICATION_LOCK_ACL_OK&#10;      publication_integration_test.go:1573: V27_DEFECT_QUALIFICATION_LOCK_ACL_OK&#10;      publication_integration_test.go:1601: V27_DEFECT_EXECUTION_LOCK_ACL_OK&#10;      publication_integration_test.go:1602: V27_DEFECT_NATIVE_PARAMS_REGISTRATION_ACL_OK&#10;      publication_integration_test.go:1633: V27_PERSON_RETAINED_PROTECTION_LOCK_OK&#10;      publication_integration_test.go:1672: V27_PROTECTION_EVIDENCE_LOCK_OK&#10;      publication_integration_test.go:1699: V27_PROTECTION_BATCH_DECLARATION_LOCK_OK&#10;      publication_integration_test.go:1740: V27_DEFECT_EXECUTION_SOURCE_TRANSACTION_OK&#10;      publication_integration_test.go:1751: V27_DEFECT_FACE_EXECUTION_TRANSACTION_OK&#10;      publication_integration_test.go:1761: V27_DEFECT_PARSER_EXECUTION_TRANSACTION_OK&#10;      publication_integration_test.go:1837: V27_DEFECT_DISCOVERY_SQL_ACL_OK&#10;      publication_integration_test.go:1838: V27_DEFECT_REPORT_DISCOVERY_OK&#10;      publication_integration_test.go:1839: V27_DEFECT_SERVER_POLICY_SELECTION_OK&#10;      publication_integration_test.go:1857: V27_DEFECT_MANUAL_PARAMS_RETAINED_OK&#10;      publication_integration_test.go:1858: V27_DEFECT_MANUAL_PARAMS_RECHECK_OK&#10;      publication_integration_test.go:1874: V27_DEFECT_NATIVE_PARAMS_OWNER_DENIED_OK&#10;      publication_integration_test.go:1884: V27_DEFECT_VERSION_PARAMS_PUBLICATION_OK&#10;      publication_integration_test.go:1902: V27_DEFECT_VERSION_PARAMS_PROOF_LOCK_OK&#10;      publication_integration_test.go:1903: V27_DEFECT_PUBLISHED_EXECUTION_LOCKS_OK&#10;      publication_integration_test.go:1946: V27_DEFECT_PUBLISHED_TASK_COMPILE_OK&#10;      publication_integration_test.go:1963: V27_DEFECT_FIRST_PLAN_RECONSTRUCTION_OK&#10;      publication_integration_test.go:2003: V27_DEFECT_AUTHORITY_PACKETS_ROUNDTRIP_OK&#10;      publication_integration_test.go:2035: V27_DEFECT_BLOCKED_DRAFT_CREATE_REPLAY_OK&#10;      publication_integration_test.go:2054: V27_DEFECT_INPUT_REGISTRATION_REPLAY_OK&#10;      publication_integration_test.go:2071: V27_DEFECT_INPUT_DURABLE_REPLAY_OK&#10;      publication_integration_test.go:2088: V27_DEFECT_INPUT_MANIFEST_SUBSTITUTION_DENIED_OK&#10;      publication_integration_test.go:2093: V27_DEFECT_PERSISTENCE_COORDINATOR_OK&#10;      publication_integration_test.go:2131: V27_DEFECT_UNIFIED_ADMISSION_PACKET_OK&#10;      publication_integration_test.go:2230: V27_DEFECT_SQL_POLICY_EXPECTATIONS_OK&#10;      publication_integration_test.go:2250: V27_DEFECT_SQL_INTENT_SNAPSHOT_ANCHOR_OK&#10;      publication_integration_test.go:2277: V27_DEFECT_SQL_GRAPH_BUDGET_OK&#10;      publication_integration_test.go:2287: V27_DEFECT_NATIVE_DRAFT_RESULT_DENIED_OK&#10;      publication_integration_test.go:2291: V27_DEFECT_SKIN_ROOT_LINEAGE_DENIED_OK&#10;      publication_integration_test.go:2319: V27_DEFECT_SQL_MASK_ROOT_INVENTORY_OK&#10;      publication_integration_test.go:2342: V27_DEFECT_SQL_LANDMARK_INVENTORY_OK&#10;      publication_integration_test.go:2387: V27_DEFECT_SQL_CLOSURE_MATCH_OK&#10;      publication_integration_test.go:2423: V27_DEFECT_COMPOSED_ADMISSION_ACL_OK&#10;      publication_integration_test.go:2684: V27_DEFECT_NATIVE_RESULT_CATALOG_OK&#10;      publication_integration_test.go:2685: V27_DEFECT_NATIVE_TASK_RESULT_METADATA_OK&#10;      publication_integration_test.go:2686: V27_DEFECT_NATIVE_GATEWAY_OUTPUT_METADATA_OK&#10;      publication_integration_test.go:2687: V27_DEFECT_NATIVE_GATEWAY_INPUTS_OK&#10;      publication_integration_test.go:2688: V27_DEFECT_NATIVE_DISPATCH_CLAIM_OK&#10;      publication_integration_test.go:2699: V27_DEFECT_NATIVE_SEAL_REPLAY_OK&#10;      publication_integration_test.go:2701: V27_DEFECT_COMPOSED_ADMISSION_SUBSTITUTION_DENIED_OK&#10;      publication_integration_test.go:2702: V27_DEFECT_PERSON_ADMISSION_PREPARATION_LOCK_OK&#10;      publication_integration_test.go:2712: V27_DEFECT_REGISTERED_PERSON_ADMISSION_OK&#10;      publication_integration_test.go:2741: V27_DEFECT_SQL_CONTENT_HASH_MATCH_OK&#10;      publication_integration_test.go:2772: V27_DEFECT_GENERIC_SEAL_RUN_FENCE_OK&#10;      publication_integration_test.go:2783: V27_DEFECT_GENERIC_SEAL_BYPASS_DENIED_OK&#10;      publication_integration_test.go:2820: V27_DEFECT_REGISTRATION_STATE_SUBSTITUTION_DENIED_OK&#10;      publication_integration_test.go:2851: V27_DEFECT_EXECUTION_SCOPE_SUBSTITUTION_DENIED_OK&#10;      publication_integration_test.go:2865: V27_DEFECT_DECLARED_EXECUTION_FILE_LOCKS_OK&#10;      publication_integration_test.go:2866: V27_DEFECT_EXECUTION_INVENTORY_TRANSACTION_OK&#10;      publication_integration_test.go:2867: V27_DEFECT_ORIGIN_EXECUTION_TRANSACTION_OK&#10;      publication_integration_test.go:2868: V27_DEFECT_POLICY_EXECUTION_TRANSACTION_OK&#10;      publication_integration_test.go:2869: V27_DEFECT_AUTHORIZED_EXECUTION_TRANSACTION_OK&#10;      publication_integration_test.go:2921: V27_DEFECT_ORIGIN_CONCURRENT_WRITE_DENIED_OK&#10;      publication_integration_test.go:2922: V27_DEFECT_AUTHORITY_CONCURRENT_WRITE_DENIED_OK&#10;      publication_integration_test.go:2928: V27_DEFECT_MANUAL_EXECUTION_TRANSACTION_OK&#10;      publication_integration_test.go:2975: V27_SOURCE_EVIDENCE_LOCK_OK&#10;      publication_integration_test.go:3003: V27_SOURCE_EVIDENCE_SHAPE_OK&#10;      publication_integration_test.go:3042: V27_FACE_PARSE_EVIDENCE_LOCK_OK&#10;      publication_integration_test.go:3081: V27_FACE_PARSE_QUALIFICATION_LOCK_OK&#10;      publication_integration_test.go:3102: V27_FACE_PARSE_BATCH_TRANSACTION_LOCK_OK&#10;      publication_integration_test.go:3131: V27_FACE_PARSE_INVENTORY_EXACT_PINS_OK&#10;      publication_integration_test.go:3133: V27_FACE_PARSE_INVENTORY_TRANSACTION_LOCK_OK&#10;      publication_integration_test.go:3177: V27_FACE_PARSE_INVENTORY_PHANTOM_WRITER_OK&#10;      publication_integration_test.go:3201: V27_FACE_PARSE_INVENTORY_WRITER_RELEASE_OK&#10;      publication_integration_test.go:3202: V27_FACE_PARSE_SOURCE_INVENTORY_LOCK_OK&#10;      publication_integration_test.go:3215: V27_FACE_PARSE_SOURCE_TRANSACTION_LOCK_OK&#10;      publication_integration_test.go:3261: V27_FACE_EVIDENCE_LOCK_OK&#10;      publication_integration_test.go:3304: V27_FACE_QUALIFICATION_LOCK_OK&#10;      publication_integration_test.go:3345: V27_FACE_BATCH_TRANSACTION_LOCK_OK&#10;      publication_integration_test.go:3394: V27_FACE_INVENTORY_TRANSACTION_LOCK_OK&#10;      publication_integration_test.go:3395: V27_FACE_INVENTORY_PHANTOM_WRITER_OK&#10;      publication_integration_test.go:3396: V27_FACE_SOURCE_INVENTORY_LOCK_OK&#10;      publication_integration_test.go:3419: V27_FACE_AND_PARSE_INVENTORY_REJECTION_OK&#10;      publication_integration_test.go:3420: V27_FACE_AND_PARSE_SOURCE_INVENTORY_LOCK_OK&#10;      publication_integration_test.go:3452: V27_FACE_PARSE_MANUAL_REJECTION_OK&#10;      publication_integration_test.go:3453: V27_FACE_PARSE_MANUAL_SOURCE_LOCK_OK&#10;      publication_integration_test.go:3489: V27_PERSON_SHARED_QUALIFICATION_REJECTION_OK&#10;      publication_integration_test.go:3490: V27_PERSON_SHARED_SOURCE_INVENTORY_LOCK_OK&#10;      publication_integration_test.go:3517: V27_GLOBAL_POLICY_SNAPSHOT_OK&#10;      publication_integration_test.go:3559: V27_GLOBAL_POLICY_PHANTOM_AND_RELEASE_OK&#10;      publication_integration_test.go:3560: V27_GLOBAL_QUALIFICATION_POLICY_BARRIER_OK&#10;      publication_integration_test.go:3586: V27_GLOBAL_POLICY_STALE_SNAPSHOT_OK&#10;      publication_integration_test.go:3599: V27_REQUIRED_POLICY_SELECTION_OK&#10;      publication_integration_test.go:3606: V27_SELECTED_EVIDENCE_POLICY_MATCH_OK&#10;      publication_integration_test.go:3620: V27_POLICY_SHARED_SOURCE_INVENTORY_LOCK_OK&#10;      publication_integration_test.go:3621: V27_TRANSFER_QUALIFIED_SHARED_SOURCE_LOCK_OK&#10;      publication_integration_test.go:3622: V27_EXECUTION_QUALIFIED_SHARED_SOURCE_LOCK_OK&#10;      publication_integration_test.go:3634: V27_REQUIRED_POLICY_PREFLIGHT_DENIAL_OK&#10;      publication_integration_test.go:3880: V27_DEFECT_MANUAL_PARAMS_RETAINED_OK&#10;      publication_integration_test.go:4188: V27_DEFECT_QUALIFIED_MULTI_COLLECTION_OK&#10;      publication_integration_test.go:4202: V27_DEFECT_FACE_QUALIFICATION_POLICY_DISABLED_DENIED_OK&#10;      publication_integration_test.go:4241: V27_DEFECT_FACE_QUALIFICATION_READ_REVOCATION_DENIED_OK&#10;      publication_integration_test.go:4275: V27_DEFECT_FACE_PARAMS_EXPIRY_CORRUPTION_DENIED_OK&#10;      publication_integration_test.go:4296: V27_DEFECT_DETECTION_ORIGIN_AND_READ_OK&#10;      publication_integration_test.go:4297: V27_DEFECT_DETECTION_EXPIRY_CORRUPTION_DENIED_OK&#10;      publication_integration_test.go:4309: V27_DEFECT_LANDMARK_CORRUPTION_DENIED_OK&#10;      publication_integration_test.go:4323: V27_DEFECT_NONEMPTY_FACES_READ_OK&#10;      publication_integration_test.go:4324: V27_DEFECT_LANDMARK_UNDECLARED_DENIED_OK&#10;      publication_integration_test.go:4325: V27_DEFECT_LANDMARK_READ_RACE_DENIED_OK&#10;      publication_integration_test.go:4335: V27_DEFECT_PERMANENT_COVERAGE_OK&#10;      publication_integration_test.go:4350: V27_DEFECT_CORRUPT_PIXELS_DENIED_OK&#10;      publication_integration_test.go:4367: V27_DEFECT_OBJECT_VERSION_IMMUTABLE_OK&#10;      publication_integration_test.go:4382: V27_DEFECT_PERMANENT_COVERAGE_RACE_DENIED_OK&#10;      publication_integration_test.go:4397: V27_DEFECT_REPORT_READ_RACE_DENIED_OK&#10;      publication_integration_test.go:4399: V27_PROPOSAL_PROTECTION_READ_OK&#10;      publication_integration_test.go:4412: V27_PROPOSAL_COVERAGE_REQUIRED_OK&#10;      publication_integration_test.go:4417: V27_PROPOSAL_MASK_SEPARATION_OK&#10;      publication_integration_test.go:4429: V27_PROPOSAL_PERSON_QUALIFICATION_SEPARATE_OK&#10;      publication_integration_test.go:4452: V27_PROPOSAL_PERSON_DISCOVERY_OK&#10;      publication_integration_test.go:4467: V27_PROPOSAL_PERSON_AMBIGUITY_OK&#10;      publication_integration_test.go:4476: person ambiguity during coverage accepted 0 multiple qualified person producers for source: V2 admission idempotency conflict true&#10;      publication_integration_test.go:95: V27_TEST_DURATION_SECONDS 27.272&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=transaction count=18361 total_seconds=0.311 max_seconds=0.002&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=tenant_authorization count=9100 total_seconds=0.349 max_seconds=0.002&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=defect_origin count=1722 total_seconds=0.411 max_seconds=0.013&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=saved_config count=2 total_seconds=0.000 max_seconds=0.000&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=qualification count=2444 total_seconds=0.382 max_seconds=0.004&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=catalog count=23807 total_seconds=8.475 max_seconds=0.073&#10;  --- FAIL: TestIntegrationProposalIntentPublication (27.27s)&#10;  FAIL&#10;  FAIL&#09;photoeditor/backend/internal/semanticproposal&#09;27.840s&#10;  FAIL&#10;  &#10;assert 1 == 0&#10; +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationProposalIntentPublication...osalIntentPublication (27.27s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t27.840s\nFAIL\n', stderr='').returncode">tests/integration/test_v27_semantic_intent_publication.py:769: in test_semantic_intent_publication_old_version_and_replay
+    assert result.returncode==0,result.stdout+result.stderr
+E   AssertionError: === RUN   TestIntegrationProposalIntentPublication
+E         publication_integration_test.go:181: V27_PROPOSAL_SNAPSHOT_PUBLICATION_OK
+E         publication_integration_test.go:200: V27_PROPOSAL_SOURCE_READ_OK
+E         publication_integration_test.go:205: V27_PROPOSAL_SOURCE_PIXELS_OK
+E         publication_integration_test.go:229: V27_PROPOSAL_QUALIFIED_COLOR_OK
+E         publication_integration_test.go:235: V27_PROPOSAL_MASK_READ_OK
+E         publication_integration_test.go:240: V27_PROPOSAL_MASK_PIXELS_OK
+E         publication_integration_test.go:253: V27_PROPOSAL_MANUAL_PERSON_DENIED_OK
+E         publication_integration_test.go:266: V27_PROPOSAL_PERSON_EVIDENCE_OK
+E         publication_integration_test.go:275: V27_PROPOSAL_PERSON_COVERAGE_OK
+E         publication_integration_test.go:318: V27_PROTECTION_PREPARATION_RETAINED_PROOF_OK
+E         publication_integration_test.go:325: V27_PERSON_COVERAGE_PROTECTION_PROOF_OK
+E         publication_integration_test.go:344: V27_PROPOSAL_PERSON_COVERAGE_REPORT_RACE_OK
+E         publication_integration_test.go:345: V27_PROPOSAL_PERSON_REPORT_REQUIRED_OK
+E         publication_integration_test.go:346: V27_PROPOSAL_PERSON_MASK_READ_OK
+E         publication_integration_test.go:351: V27_DEFECT_PERSON_PRODUCER_DENIED_OK
+E         publication_integration_test.go:367: V27_DEFECT_CANONICAL_ORIGIN_OK
+E         publication_integration_test.go:451: V27_DEFECT_ORIGINAL_EVIDENCE_OK
+E         publication_integration_test.go:459: V27_DEFECT_LANDMARK_PERSON_DENIED_OK
+E         publication_integration_test.go:460: V27_DEFECT_EMPTY_FACES_READ_OK
+E         publication_integration_test.go:499: V27_DEFECT_FINISHED_ATTEMPT_BACKEND_REQUIRED_OK
+E         publication_integration_test.go:532: V27_DEFECT_FACE_PROFILES_MATCH_REQUIRED_OK
+E         publication_integration_test.go:588: V27_DEFECT_TRUSTED_FACE_QUALIFICATION_READ_OK
+E         publication_integration_test.go:743: V27_SOURCE_PREPARATION_RETAINED_PROOF_OK
+E         publication_integration_test.go:747: V27_SOURCE_AUTHORIZED_INPUT_SIZES_OK
+E         publication_integration_test.go:762: V27_FACE_PREPARATION_DISCOVERY_OK
+E         publication_integration_test.go:777: V27_FACE_PREPARATION_INVENTORY_CONTENT_OK
+E         publication_integration_test.go:800: V27_FACE_PREPARATION_RETAINED_PROOF_OK
+E         publication_integration_test.go:809: V27_FACE_PREPARATION_QUALIFIED_OK
+E         publication_integration_test.go:810: V27_FACE_PREPARATION_CONTENT_OK
+E         publication_integration_test.go:824: V27_FACE_PARSE_PREPARATION_CONTENT_OK
+E         publication_integration_test.go:836: V27_FACE_PARSE_PREPARATION_PROFILES_OK
+E         publication_integration_test.go:843: V27_FACE_PARSE_PREPARATION_DISCOVERY_OK
+E         publication_integration_test.go:856: V27_FACE_PARSE_DISCOVERY_EXPIRY_OK
+E         publication_integration_test.go:866: V27_FACE_PARSE_PREPARATION_INVENTORY_CONTENT_OK
+E         publication_integration_test.go:875: V27_FACE_PARSE_PREPARATION_QUALIFIED_OK
+E         publication_integration_test.go:898: V27_FACE_PARSE_PREPARATION_RETAINED_PROOF_OK
+E         publication_integration_test.go:916: V27_DEFECT_MANUAL_EXECUTION_ORIGINAL_PROOFS_OK
+E         publication_integration_test.go:937: V27_DEFECT_QUALIFICATION_RESOURCE_METRICS_OK
+E         publication_integration_test.go:949: V27_DEFECT_MEASURED_COST_DENIAL_OK
+E         publication_integration_test.go:969: V27_DEFECT_ORIGINAL_QUALIFIED_PROFILE_OK
+E         publication_integration_test.go:981: V27_DEFECT_AUTHORIZED_PROFILE_CATALOG_OK
+E         publication_integration_test.go:997: V27_DEFECT_PROFILE_LANDMARK_CATALOG_OK
+E         publication_integration_test.go:1023: V27_DEFECT_PROFILE_ORIGINAL_LANDMARK_BYTES_OK
+E         publication_integration_test.go:1039: V27_PROTECTION_ROOT_DISCOVERY_OK
+E         publication_integration_test.go:1057: V27_DEFECT_SOURCE_EXECUTION_RETAINED_PROOFS_OK
+E         publication_integration_test.go:1071: V27_DEFECT_SOURCE_EXECUTION_FILE_PINS_OK
+E         publication_integration_test.go:1100: V27_DEFECT_SOURCE_EXECUTION_FILE_PIN_MUTATION_DENIED_OK
+E         publication_integration_test.go:1113: V27_DEFECT_SOURCE_DERIVED_PROFILE_OK
+E         publication_integration_test.go:1134: V27_DEFECT_PROFILE_MULTIFACE_SOURCE_OK
+E         publication_integration_test.go:1148: V27_DEFECT_FACE_ORIGINAL_PRODUCER_PROOFS_OK
+E         publication_integration_test.go:1177: V27_DEFECT_FACE_EXECUTION_RETAINED_PROOFS_OK
+E         publication_integration_test.go:1183: V27_DEFECT_PROFILE_FACE_QUALIFIED_OK
+E         publication_integration_test.go:1203: V27_DEFECT_PROFILE_FINAL_FACE_REVOCATION_OK
+E         publication_integration_test.go:1228: V27_DEFECT_PROFILE_FINAL_FACE_SOURCE_EXPIRY_OK
+E         publication_integration_test.go:1259: V27_DEFECT_MASK_EXECUTION_RETAINED_PROOFS_OK
+E         publication_integration_test.go:1274: V27_DEFECT_MASK_ORIGINAL_PARSER_PROOFS_OK
+E         publication_integration_test.go:1275: V27_DEFECT_PROFILE_SKIN_QUALIFIED_OK
+E         publication_integration_test.go:1291: V27_DEFECT_PROFILE_SKIN_ROOT_REQUIRED_OK
+E         publication_integration_test.go:1310: V27_DEFECT_PROFILE_FINAL_MASK_FACE_REVOCATION_OK
+E         publication_integration_test.go:1311: V27_DEFECT_PROFILE_FINAL_MASK_PARSER_DETECTOR_REVOCATION_OK
+E         publication_integration_test.go:1328: V27_DEFECT_PROFILE_FINAL_MASK_PRODUCER_CHANGE_OK
+E         publication_integration_test.go:1360: V27_DEFECT_PROFILE_REQUIRED_PROTECTION_OK
+E         publication_integration_test.go:1375: V27_DEFECT_PROFILE_ORIGINAL_PARAMS_BYTES_OK
+E         publication_integration_test.go:1386: V27_DEFECT_PROFILE_ORIGINAL_MASK_BYTES_OK
+E         publication_integration_test.go:1393: V27_DEFECT_PROFILE_CAPACITY_BEFORE_MASK_IO_OK
+E         publication_integration_test.go:1408: V27_DEFECT_PROFILE_CATALOG_REVOCATION_OK
+E         publication_integration_test.go:1432: V27_DEFECT_ORIGINAL_QUALIFICATION_PREPARATION_OK
+E         publication_integration_test.go:1436: V27_DEFECT_QUALIFICATION_FINAL_RECHECK_OK
+E         publication_integration_test.go:1466: V27_DEFECT_ORIGINAL_QUALIFICATION_LOCK_OK
+E         publication_integration_test.go:1501: V27_DEFECT_QUALIFICATION_AUTHORITY_LOCK_OK
+E         publication_integration_test.go:1504: V27_TRANSFER_QUALIFICATION_IMPORT_LOCK_OK
+E         publication_integration_test.go:1515: V27_TRANSFER_QUALIFICATION_RETAINED_LOCK_OK
+E         publication_integration_test.go:1539: V27_TRANSFER_QUALIFICATION_REVOKE_LOCK_OK
+E         publication_integration_test.go:1556: V27_TRANSFER_QUALIFICATION_LOCK_ACL_OK
+E         publication_integration_test.go:1573: V27_DEFECT_QUALIFICATION_LOCK_ACL_OK
+E         publication_integration_test.go:1601: V27_DEFECT_EXECUTION_LOCK_ACL_OK
+E         publication_integration_test.go:1602: V27_DEFECT_NATIVE_PARAMS_REGISTRATION_ACL_OK
+E         publication_integration_test.go:1633: V27_PERSON_RETAINED_PROTECTION_LOCK_OK
+E         publication_integration_test.go:1672: V27_PROTECTION_EVIDENCE_LOCK_OK
+E         publication_integration_test.go:1699: V27_PROTECTION_BATCH_DECLARATION_LOCK_OK
+E         publication_integration_test.go:1740: V27_DEFECT_EXECUTION_SOURCE_TRANSACTION_OK
+E         publication_integration_test.go:1751: V27_DEFECT_FACE_EXECUTION_TRANSACTION_OK
+E         publication_integration_test.go:1761: V27_DEFECT_PARSER_EXECUTION_TRANSACTION_OK
+E         publication_integration_test.go:1837: V27_DEFECT_DISCOVERY_SQL_ACL_OK
+E         publication_integration_test.go:1838: V27_DEFECT_REPORT_DISCOVERY_OK
+E         publication_integration_test.go:1839: V27_DEFECT_SERVER_POLICY_SELECTION_OK
+E         publication_integration_test.go:1857: V27_DEFECT_MANUAL_PARAMS_RETAINED_OK
+E         publication_integration_test.go:1858: V27_DEFECT_MANUAL_PARAMS_RECHECK_OK
+E         publication_integration_test.go:1874: V27_DEFECT_NATIVE_PARAMS_OWNER_DENIED_OK
+E         publication_integration_test.go:1884: V27_DEFECT_VERSION_PARAMS_PUBLICATION_OK
+E         publication_integration_test.go:1902: V27_DEFECT_VERSION_PARAMS_PROOF_LOCK_OK
+E         publication_integration_test.go:1903: V27_DEFECT_PUBLISHED_EXECUTION_LOCKS_OK
+E         publication_integration_test.go:1946: V27_DEFECT_PUBLISHED_TASK_COMPILE_OK
+E         publication_integration_test.go:1963: V27_DEFECT_FIRST_PLAN_RECONSTRUCTION_OK
+E         publication_integration_test.go:2003: V27_DEFECT_AUTHORITY_PACKETS_ROUNDTRIP_OK
+E         publication_integration_test.go:2035: V27_DEFECT_BLOCKED_DRAFT_CREATE_REPLAY_OK
+E         publication_integration_test.go:2054: V27_DEFECT_INPUT_REGISTRATION_REPLAY_OK
+E         publication_integration_test.go:2071: V27_DEFECT_INPUT_DURABLE_REPLAY_OK
+E         publication_integration_test.go:2088: V27_DEFECT_INPUT_MANIFEST_SUBSTITUTION_DENIED_OK
+E         publication_integration_test.go:2093: V27_DEFECT_PERSISTENCE_COORDINATOR_OK
+E         publication_integration_test.go:2131: V27_DEFECT_UNIFIED_ADMISSION_PACKET_OK
+E         publication_integration_test.go:2230: V27_DEFECT_SQL_POLICY_EXPECTATIONS_OK
+E         publication_integration_test.go:2250: V27_DEFECT_SQL_INTENT_SNAPSHOT_ANCHOR_OK
+E         publication_integration_test.go:2277: V27_DEFECT_SQL_GRAPH_BUDGET_OK
+E         publication_integration_test.go:2287: V27_DEFECT_NATIVE_DRAFT_RESULT_DENIED_OK
+E         publication_integration_test.go:2291: V27_DEFECT_SKIN_ROOT_LINEAGE_DENIED_OK
+E         publication_integration_test.go:2319: V27_DEFECT_SQL_MASK_ROOT_INVENTORY_OK
+E         publication_integration_test.go:2342: V27_DEFECT_SQL_LANDMARK_INVENTORY_OK
+E         publication_integration_test.go:2387: V27_DEFECT_SQL_CLOSURE_MATCH_OK
+E         publication_integration_test.go:2423: V27_DEFECT_COMPOSED_ADMISSION_ACL_OK
+E         publication_integration_test.go:2684: V27_DEFECT_NATIVE_RESULT_CATALOG_OK
+E         publication_integration_test.go:2685: V27_DEFECT_NATIVE_TASK_RESULT_METADATA_OK
+E         publication_integration_test.go:2686: V27_DEFECT_NATIVE_GATEWAY_OUTPUT_METADATA_OK
+E         publication_integration_test.go:2687: V27_DEFECT_NATIVE_GATEWAY_INPUTS_OK
+E         publication_integration_test.go:2688: V27_DEFECT_NATIVE_DISPATCH_CLAIM_OK
+E         publication_integration_test.go:2699: V27_DEFECT_NATIVE_SEAL_REPLAY_OK
+E         publication_integration_test.go:2701: V27_DEFECT_COMPOSED_ADMISSION_SUBSTITUTION_DENIED_OK
+E         publication_integration_test.go:2702: V27_DEFECT_PERSON_ADMISSION_PREPARATION_LOCK_OK
+E         publication_integration_test.go:2712: V27_DEFECT_REGISTERED_PERSON_ADMISSION_OK
+E         publication_integration_test.go:2741: V27_DEFECT_SQL_CONTENT_HASH_MATCH_OK
+E         publication_integration_test.go:2772: V27_DEFECT_GENERIC_SEAL_RUN_FENCE_OK
+E         publication_integration_test.go:2783: V27_DEFECT_GENERIC_SEAL_BYPASS_DENIED_OK
+E         publication_integration_test.go:2820: V27_DEFECT_REGISTRATION_STATE_SUBSTITUTION_DENIED_OK
+E         publication_integration_test.go:2851: V27_DEFECT_EXECUTION_SCOPE_SUBSTITUTION_DENIED_OK
+E         publication_integration_test.go:2865: V27_DEFECT_DECLARED_EXECUTION_FILE_LOCKS_OK
+E         publication_integration_test.go:2866: V27_DEFECT_EXECUTION_INVENTORY_TRANSACTION_OK
+E         publication_integration_test.go:2867: V27_DEFECT_ORIGIN_EXECUTION_TRANSACTION_OK
+E         publication_integration_test.go:2868: V27_DEFECT_POLICY_EXECUTION_TRANSACTION_OK
+E         publication_integration_test.go:2869: V27_DEFECT_AUTHORIZED_EXECUTION_TRANSACTION_OK
+E         publication_integration_test.go:2921: V27_DEFECT_ORIGIN_CONCURRENT_WRITE_DENIED_OK
+E         publication_integration_test.go:2922: V27_DEFECT_AUTHORITY_CONCURRENT_WRITE_DENIED_OK
+E         publication_integration_test.go:2928: V27_DEFECT_MANUAL_EXECUTION_TRANSACTION_OK
+E         publication_integration_test.go:2975: V27_SOURCE_EVIDENCE_LOCK_OK
+E         publication_integration_test.go:3003: V27_SOURCE_EVIDENCE_SHAPE_OK
+E         publication_integration_test.go:3042: V27_FACE_PARSE_EVIDENCE_LOCK_OK
+E         publication_integration_test.go:3081: V27_FACE_PARSE_QUALIFICATION_LOCK_OK
+E         publication_integration_test.go:3102: V27_FACE_PARSE_BATCH_TRANSACTION_LOCK_OK
+E         publication_integration_test.go:3131: V27_FACE_PARSE_INVENTORY_EXACT_PINS_OK
+E         publication_integration_test.go:3133: V27_FACE_PARSE_INVENTORY_TRANSACTION_LOCK_OK
+E         publication_integration_test.go:3177: V27_FACE_PARSE_INVENTORY_PHANTOM_WRITER_OK
+E         publication_integration_test.go:3201: V27_FACE_PARSE_INVENTORY_WRITER_RELEASE_OK
+E         publication_integration_test.go:3202: V27_FACE_PARSE_SOURCE_INVENTORY_LOCK_OK
+E         publication_integration_test.go:3215: V27_FACE_PARSE_SOURCE_TRANSACTION_LOCK_OK
+E         publication_integration_test.go:3261: V27_FACE_EVIDENCE_LOCK_OK
+E         publication_integration_test.go:3304: V27_FACE_QUALIFICATION_LOCK_OK
+E         publication_integration_test.go:3345: V27_FACE_BATCH_TRANSACTION_LOCK_OK
+E         publication_integration_test.go:3394: V27_FACE_INVENTORY_TRANSACTION_LOCK_OK
+E         publication_integration_test.go:3395: V27_FACE_INVENTORY_PHANTOM_WRITER_OK
+E         publication_integration_test.go:3396: V27_FACE_SOURCE_INVENTORY_LOCK_OK
+E         publication_integration_test.go:3419: V27_FACE_AND_PARSE_INVENTORY_REJECTION_OK
+E         publication_integration_test.go:3420: V27_FACE_AND_PARSE_SOURCE_INVENTORY_LOCK_OK
+E         publication_integration_test.go:3452: V27_FACE_PARSE_MANUAL_REJECTION_OK
+E         publication_integration_test.go:3453: V27_FACE_PARSE_MANUAL_SOURCE_LOCK_OK
+E         publication_integration_test.go:3489: V27_PERSON_SHARED_QUALIFICATION_REJECTION_OK
+E         publication_integration_test.go:3490: V27_PERSON_SHARED_SOURCE_INVENTORY_LOCK_OK
+E         publication_integration_test.go:3517: V27_GLOBAL_POLICY_SNAPSHOT_OK
+E         publication_integration_test.go:3559: V27_GLOBAL_POLICY_PHANTOM_AND_RELEASE_OK
+E         publication_integration_test.go:3560: V27_GLOBAL_QUALIFICATION_POLICY_BARRIER_OK
+E         publication_integration_test.go:3586: V27_GLOBAL_POLICY_STALE_SNAPSHOT_OK
+E         publication_integration_test.go:3599: V27_REQUIRED_POLICY_SELECTION_OK
+E         publication_integration_test.go:3606: V27_SELECTED_EVIDENCE_POLICY_MATCH_OK
+E         publication_integration_test.go:3620: V27_POLICY_SHARED_SOURCE_INVENTORY_LOCK_OK
+E         publication_integration_test.go:3621: V27_TRANSFER_QUALIFIED_SHARED_SOURCE_LOCK_OK
+E         publication_integration_test.go:3622: V27_EXECUTION_QUALIFIED_SHARED_SOURCE_LOCK_OK
+E         publication_integration_test.go:3634: V27_REQUIRED_POLICY_PREFLIGHT_DENIAL_OK
+E         publication_integration_test.go:3880: V27_DEFECT_MANUAL_PARAMS_RETAINED_OK
+E         publication_integration_test.go:4188: V27_DEFECT_QUALIFIED_MULTI_COLLECTION_OK
+E         publication_integration_test.go:4202: V27_DEFECT_FACE_QUALIFICATION_POLICY_DISABLED_DENIED_OK
+E         publication_integration_test.go:4241: V27_DEFECT_FACE_QUALIFICATION_READ_REVOCATION_DENIED_OK
+E         publication_integration_test.go:4275: V27_DEFECT_FACE_PARAMS_EXPIRY_CORRUPTION_DENIED_OK
+E         publication_integration_test.go:4296: V27_DEFECT_DETECTION_ORIGIN_AND_READ_OK
+E         publication_integration_test.go:4297: V27_DEFECT_DETECTION_EXPIRY_CORRUPTION_DENIED_OK
+E         publication_integration_test.go:4309: V27_DEFECT_LANDMARK_CORRUPTION_DENIED_OK
+E         publication_integration_test.go:4323: V27_DEFECT_NONEMPTY_FACES_READ_OK
+E         publication_integration_test.go:4324: V27_DEFECT_LANDMARK_UNDECLARED_DENIED_OK
+E         publication_integration_test.go:4325: V27_DEFECT_LANDMARK_READ_RACE_DENIED_OK
+E         publication_integration_test.go:4335: V27_DEFECT_PERMANENT_COVERAGE_OK
+E         publication_integration_test.go:4350: V27_DEFECT_CORRUPT_PIXELS_DENIED_OK
+E         publication_integration_test.go:4367: V27_DEFECT_OBJECT_VERSION_IMMUTABLE_OK
+E         publication_integration_test.go:4382: V27_DEFECT_PERMANENT_COVERAGE_RACE_DENIED_OK
+E         publication_integration_test.go:4397: V27_DEFECT_REPORT_READ_RACE_DENIED_OK
+E         publication_integration_test.go:4399: V27_PROPOSAL_PROTECTION_READ_OK
+E         publication_integration_test.go:4412: V27_PROPOSAL_COVERAGE_REQUIRED_OK
+E         publication_integration_test.go:4417: V27_PROPOSAL_MASK_SEPARATION_OK
+E         publication_integration_test.go:4429: V27_PROPOSAL_PERSON_QUALIFICATION_SEPARATE_OK
+E         publication_integration_test.go:4452: V27_PROPOSAL_PERSON_DISCOVERY_OK
+E         publication_integration_test.go:4467: V27_PROPOSAL_PERSON_AMBIGUITY_OK
+E         publication_integration_test.go:4476: person ambiguity during coverage accepted 0 multiple qualified person producers for source: V2 admission idempotency conflict true
+E         publication_integration_test.go:95: V27_TEST_DURATION_SECONDS 27.272
+E         publication_integration_test.go:96: V27_SQL_TIMING group=transaction count=18361 total_seconds=0.311 max_seconds=0.002
+E         publication_integration_test.go:96: V27_SQL_TIMING group=tenant_authorization count=9100 total_seconds=0.349 max_seconds=0.002
+E         publication_integration_test.go:96: V27_SQL_TIMING group=defect_origin count=1722 total_seconds=0.411 max_seconds=0.013
+E         publication_integration_test.go:96: V27_SQL_TIMING group=saved_config count=2 total_seconds=0.000 max_seconds=0.000
+E         publication_integration_test.go:96: V27_SQL_TIMING group=qualification count=2444 total_seconds=0.382 max_seconds=0.004
+E         publication_integration_test.go:96: V27_SQL_TIMING group=catalog count=23807 total_seconds=8.475 max_seconds=0.073
+E     --- FAIL: TestIntegrationProposalIntentPublication (27.27s)
+E     FAIL
+E     FAIL	photoeditor/backend/internal/semanticproposal	27.840s
+E     FAIL
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationProposalIntentPublication...osalIntentPublication (27.27s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t27.840s\nFAIL\n', stderr='').returncode</failure></testcase><testcase classname="tests.integration.test_v27_semantic_intent_publication" name="test_semantic_intent_publication_old_version_and_replay[transfer-batch-external]" time="30.774"><failure message="AssertionError: === RUN   TestIntegrationProposalIntentPublication&#10;      publication_integration_test.go:181: V27_PROPOSAL_SNAPSHOT_PUBLICATION_OK&#10;      publication_integration_test.go:200: V27_PROPOSAL_SOURCE_READ_OK&#10;      publication_integration_test.go:205: V27_PROPOSAL_SOURCE_PIXELS_OK&#10;      publication_integration_test.go:229: V27_PROPOSAL_QUALIFIED_COLOR_OK&#10;      publication_integration_test.go:235: V27_PROPOSAL_MASK_READ_OK&#10;      publication_integration_test.go:240: V27_PROPOSAL_MASK_PIXELS_OK&#10;      publication_integration_test.go:253: V27_PROPOSAL_MANUAL_PERSON_DENIED_OK&#10;      publication_integration_test.go:266: V27_PROPOSAL_PERSON_EVIDENCE_OK&#10;      publication_integration_test.go:275: V27_PROPOSAL_PERSON_COVERAGE_OK&#10;      publication_integration_test.go:318: V27_PROTECTION_PREPARATION_RETAINED_PROOF_OK&#10;      publication_integration_test.go:325: V27_PERSON_COVERAGE_PROTECTION_PROOF_OK&#10;      publication_integration_test.go:344: V27_PROPOSAL_PERSON_COVERAGE_REPORT_RACE_OK&#10;      publication_integration_test.go:345: V27_PROPOSAL_PERSON_REPORT_REQUIRED_OK&#10;      publication_integration_test.go:346: V27_PROPOSAL_PERSON_MASK_READ_OK&#10;      publication_integration_test.go:351: V27_DEFECT_PERSON_PRODUCER_DENIED_OK&#10;      publication_integration_test.go:367: V27_DEFECT_CANONICAL_ORIGIN_OK&#10;      publication_integration_test.go:451: V27_DEFECT_ORIGINAL_EVIDENCE_OK&#10;      publication_integration_test.go:459: V27_DEFECT_LANDMARK_PERSON_DENIED_OK&#10;      publication_integration_test.go:460: V27_DEFECT_EMPTY_FACES_READ_OK&#10;      publication_integration_test.go:499: V27_DEFECT_FINISHED_ATTEMPT_BACKEND_REQUIRED_OK&#10;      publication_integration_test.go:532: V27_DEFECT_FACE_PROFILES_MATCH_REQUIRED_OK&#10;      publication_integration_test.go:588: V27_DEFECT_TRUSTED_FACE_QUALIFICATION_READ_OK&#10;      publication_integration_test.go:743: V27_SOURCE_PREPARATION_RETAINED_PROOF_OK&#10;      publication_integration_test.go:747: V27_SOURCE_AUTHORIZED_INPUT_SIZES_OK&#10;      publication_integration_test.go:762: V27_FACE_PREPARATION_DISCOVERY_OK&#10;      publication_integration_test.go:777: V27_FACE_PREPARATION_INVENTORY_CONTENT_OK&#10;      publication_integration_test.go:800: V27_FACE_PREPARATION_RETAINED_PROOF_OK&#10;      publication_integration_test.go:809: V27_FACE_PREPARATION_QUALIFIED_OK&#10;      publication_integration_test.go:810: V27_FACE_PREPARATION_CONTENT_OK&#10;      publication_integration_test.go:824: V27_FACE_PARSE_PREPARATION_CONTENT_OK&#10;      publication_integration_test.go:836: V27_FACE_PARSE_PREPARATION_PROFILES_OK&#10;      publication_integration_test.go:843: V27_FACE_PARSE_PREPARATION_DISCOVERY_OK&#10;      publication_integration_test.go:856: V27_FACE_PARSE_DISCOVERY_EXPIRY_OK&#10;      publication_integration_test.go:866: V27_FACE_PARSE_PREPARATION_INVENTORY_CONTENT_OK&#10;      publication_integration_test.go:875: V27_FACE_PARSE_PREPARATION_QUALIFIED_OK&#10;      publication_integration_test.go:898: V27_FACE_PARSE_PREPARATION_RETAINED_PROOF_OK&#10;      publication_integration_test.go:916: V27_DEFECT_MANUAL_EXECUTION_ORIGINAL_PROOFS_OK&#10;      publication_integration_test.go:937: V27_DEFECT_QUALIFICATION_RESOURCE_METRICS_OK&#10;      publication_integration_test.go:949: V27_DEFECT_MEASURED_COST_DENIAL_OK&#10;      publication_integration_test.go:969: V27_DEFECT_ORIGINAL_QUALIFIED_PROFILE_OK&#10;      publication_integration_test.go:981: V27_DEFECT_AUTHORIZED_PROFILE_CATALOG_OK&#10;      publication_integration_test.go:997: V27_DEFECT_PROFILE_LANDMARK_CATALOG_OK&#10;      publication_integration_test.go:1023: V27_DEFECT_PROFILE_ORIGINAL_LANDMARK_BYTES_OK&#10;      publication_integration_test.go:1039: V27_PROTECTION_ROOT_DISCOVERY_OK&#10;      publication_integration_test.go:1057: V27_DEFECT_SOURCE_EXECUTION_RETAINED_PROOFS_OK&#10;      publication_integration_test.go:1071: V27_DEFECT_SOURCE_EXECUTION_FILE_PINS_OK&#10;      publication_integration_test.go:1100: V27_DEFECT_SOURCE_EXECUTION_FILE_PIN_MUTATION_DENIED_OK&#10;      publication_integration_test.go:1113: V27_DEFECT_SOURCE_DERIVED_PROFILE_OK&#10;      publication_integration_test.go:1134: V27_DEFECT_PROFILE_MULTIFACE_SOURCE_OK&#10;      publication_integration_test.go:1148: V27_DEFECT_FACE_ORIGINAL_PRODUCER_PROOFS_OK&#10;      publication_integration_test.go:1177: V27_DEFECT_FACE_EXECUTION_RETAINED_PROOFS_OK&#10;      publication_integration_test.go:1183: V27_DEFECT_PROFILE_FACE_QUALIFIED_OK&#10;      publication_integration_test.go:1203: V27_DEFECT_PROFILE_FINAL_FACE_REVOCATION_OK&#10;      publication_integration_test.go:1228: V27_DEFECT_PROFILE_FINAL_FACE_SOURCE_EXPIRY_OK&#10;      publication_integration_test.go:1259: V27_DEFECT_MASK_EXECUTION_RETAINED_PROOFS_OK&#10;      publication_integration_test.go:1274: V27_DEFECT_MASK_ORIGINAL_PARSER_PROOFS_OK&#10;      publication_integration_test.go:1275: V27_DEFECT_PROFILE_SKIN_QUALIFIED_OK&#10;      publication_integration_test.go:1291: V27_DEFECT_PROFILE_SKIN_ROOT_REQUIRED_OK&#10;      publication_integration_test.go:1310: V27_DEFECT_PROFILE_FINAL_MASK_FACE_REVOCATION_OK&#10;      publication_integration_test.go:1311: V27_DEFECT_PROFILE_FINAL_MASK_PARSER_DETECTOR_REVOCATION_OK&#10;      publication_integration_test.go:1328: V27_DEFECT_PROFILE_FINAL_MASK_PRODUCER_CHANGE_OK&#10;      publication_integration_test.go:1360: V27_DEFECT_PROFILE_REQUIRED_PROTECTION_OK&#10;      publication_integration_test.go:1375: V27_DEFECT_PROFILE_ORIGINAL_PARAMS_BYTES_OK&#10;      publication_integration_test.go:1386: V27_DEFECT_PROFILE_ORIGINAL_MASK_BYTES_OK&#10;      publication_integration_test.go:1393: V27_DEFECT_PROFILE_CAPACITY_BEFORE_MASK_IO_OK&#10;      publication_integration_test.go:1408: V27_DEFECT_PROFILE_CATALOG_REVOCATION_OK&#10;      publication_integration_test.go:1432: V27_DEFECT_ORIGINAL_QUALIFICATION_PREPARATION_OK&#10;      publication_integration_test.go:1436: V27_DEFECT_QUALIFICATION_FINAL_RECHECK_OK&#10;      publication_integration_test.go:1466: V27_DEFECT_ORIGINAL_QUALIFICATION_LOCK_OK&#10;      publication_integration_test.go:1501: V27_DEFECT_QUALIFICATION_AUTHORITY_LOCK_OK&#10;      publication_integration_test.go:1504: V27_TRANSFER_QUALIFICATION_IMPORT_LOCK_OK&#10;      publication_integration_test.go:1515: V27_TRANSFER_QUALIFICATION_RETAINED_LOCK_OK&#10;      publication_integration_test.go:1539: V27_TRANSFER_QUALIFICATION_REVOKE_LOCK_OK&#10;      publication_integration_test.go:1556: V27_TRANSFER_QUALIFICATION_LOCK_ACL_OK&#10;      publication_integration_test.go:1573: V27_DEFECT_QUALIFICATION_LOCK_ACL_OK&#10;      publication_integration_test.go:1601: V27_DEFECT_EXECUTION_LOCK_ACL_OK&#10;      publication_integration_test.go:1602: V27_DEFECT_NATIVE_PARAMS_REGISTRATION_ACL_OK&#10;      publication_integration_test.go:1633: V27_PERSON_RETAINED_PROTECTION_LOCK_OK&#10;      publication_integration_test.go:1672: V27_PROTECTION_EVIDENCE_LOCK_OK&#10;      publication_integration_test.go:1699: V27_PROTECTION_BATCH_DECLARATION_LOCK_OK&#10;      publication_integration_test.go:1740: V27_DEFECT_EXECUTION_SOURCE_TRANSACTION_OK&#10;      publication_integration_test.go:1751: V27_DEFECT_FACE_EXECUTION_TRANSACTION_OK&#10;      publication_integration_test.go:1761: V27_DEFECT_PARSER_EXECUTION_TRANSACTION_OK&#10;      publication_integration_test.go:1837: V27_DEFECT_DISCOVERY_SQL_ACL_OK&#10;      publication_integration_test.go:1838: V27_DEFECT_REPORT_DISCOVERY_OK&#10;      publication_integration_test.go:1839: V27_DEFECT_SERVER_POLICY_SELECTION_OK&#10;      publication_integration_test.go:1857: V27_DEFECT_MANUAL_PARAMS_RETAINED_OK&#10;      publication_integration_test.go:1858: V27_DEFECT_MANUAL_PARAMS_RECHECK_OK&#10;      publication_integration_test.go:1874: V27_DEFECT_NATIVE_PARAMS_OWNER_DENIED_OK&#10;      publication_integration_test.go:1884: V27_DEFECT_VERSION_PARAMS_PUBLICATION_OK&#10;      publication_integration_test.go:1902: V27_DEFECT_VERSION_PARAMS_PROOF_LOCK_OK&#10;      publication_integration_test.go:1903: V27_DEFECT_PUBLISHED_EXECUTION_LOCKS_OK&#10;      publication_integration_test.go:1946: V27_DEFECT_PUBLISHED_TASK_COMPILE_OK&#10;      publication_integration_test.go:1963: V27_DEFECT_FIRST_PLAN_RECONSTRUCTION_OK&#10;      publication_integration_test.go:2003: V27_DEFECT_AUTHORITY_PACKETS_ROUNDTRIP_OK&#10;      publication_integration_test.go:2035: V27_DEFECT_BLOCKED_DRAFT_CREATE_REPLAY_OK&#10;      publication_integration_test.go:2054: V27_DEFECT_INPUT_REGISTRATION_REPLAY_OK&#10;      publication_integration_test.go:2071: V27_DEFECT_INPUT_DURABLE_REPLAY_OK&#10;      publication_integration_test.go:2088: V27_DEFECT_INPUT_MANIFEST_SUBSTITUTION_DENIED_OK&#10;      publication_integration_test.go:2093: V27_DEFECT_PERSISTENCE_COORDINATOR_OK&#10;      publication_integration_test.go:2131: V27_DEFECT_UNIFIED_ADMISSION_PACKET_OK&#10;      publication_integration_test.go:2230: V27_DEFECT_SQL_POLICY_EXPECTATIONS_OK&#10;      publication_integration_test.go:2250: V27_DEFECT_SQL_INTENT_SNAPSHOT_ANCHOR_OK&#10;      publication_integration_test.go:2277: V27_DEFECT_SQL_GRAPH_BUDGET_OK&#10;      publication_integration_test.go:2287: V27_DEFECT_NATIVE_DRAFT_RESULT_DENIED_OK&#10;      publication_integration_test.go:2291: V27_DEFECT_SKIN_ROOT_LINEAGE_DENIED_OK&#10;      publication_integration_test.go:2319: V27_DEFECT_SQL_MASK_ROOT_INVENTORY_OK&#10;      publication_integration_test.go:2342: V27_DEFECT_SQL_LANDMARK_INVENTORY_OK&#10;      publication_integration_test.go:2387: V27_DEFECT_SQL_CLOSURE_MATCH_OK&#10;      publication_integration_test.go:2423: V27_DEFECT_COMPOSED_ADMISSION_ACL_OK&#10;      publication_integration_test.go:2684: V27_DEFECT_NATIVE_RESULT_CATALOG_OK&#10;      publication_integration_test.go:2685: V27_DEFECT_NATIVE_TASK_RESULT_METADATA_OK&#10;      publication_integration_test.go:2686: V27_DEFECT_NATIVE_GATEWAY_OUTPUT_METADATA_OK&#10;      publication_integration_test.go:2687: V27_DEFECT_NATIVE_GATEWAY_INPUTS_OK&#10;      publication_integration_test.go:2688: V27_DEFECT_NATIVE_DISPATCH_CLAIM_OK&#10;      publication_integration_test.go:2699: V27_DEFECT_NATIVE_SEAL_REPLAY_OK&#10;      publication_integration_test.go:2701: V27_DEFECT_COMPOSED_ADMISSION_SUBSTITUTION_DENIED_OK&#10;      publication_integration_test.go:2702: V27_DEFECT_PERSON_ADMISSION_PREPARATION_LOCK_OK&#10;      publication_integration_test.go:2712: V27_DEFECT_REGISTERED_PERSON_ADMISSION_OK&#10;      publication_integration_test.go:2741: V27_DEFECT_SQL_CONTENT_HASH_MATCH_OK&#10;      publication_integration_test.go:2772: V27_DEFECT_GENERIC_SEAL_RUN_FENCE_OK&#10;      publication_integration_test.go:2783: V27_DEFECT_GENERIC_SEAL_BYPASS_DENIED_OK&#10;      publication_integration_test.go:2820: V27_DEFECT_REGISTRATION_STATE_SUBSTITUTION_DENIED_OK&#10;      publication_integration_test.go:2851: V27_DEFECT_EXECUTION_SCOPE_SUBSTITUTION_DENIED_OK&#10;      publication_integration_test.go:2865: V27_DEFECT_DECLARED_EXECUTION_FILE_LOCKS_OK&#10;      publication_integration_test.go:2866: V27_DEFECT_EXECUTION_INVENTORY_TRANSACTION_OK&#10;      publication_integration_test.go:2867: V27_DEFECT_ORIGIN_EXECUTION_TRANSACTION_OK&#10;      publication_integration_test.go:2868: V27_DEFECT_POLICY_EXECUTION_TRANSACTION_OK&#10;      publication_integration_test.go:2869: V27_DEFECT_AUTHORIZED_EXECUTION_TRANSACTION_OK&#10;      publication_integration_test.go:2921: V27_DEFECT_ORIGIN_CONCURRENT_WRITE_DENIED_OK&#10;      publication_integration_test.go:2922: V27_DEFECT_AUTHORITY_CONCURRENT_WRITE_DENIED_OK&#10;      publication_integration_test.go:2928: V27_DEFECT_MANUAL_EXECUTION_TRANSACTION_OK&#10;      publication_integration_test.go:2975: V27_SOURCE_EVIDENCE_LOCK_OK&#10;      publication_integration_test.go:3003: V27_SOURCE_EVIDENCE_SHAPE_OK&#10;      publication_integration_test.go:3042: V27_FACE_PARSE_EVIDENCE_LOCK_OK&#10;      publication_integration_test.go:3081: V27_FACE_PARSE_QUALIFICATION_LOCK_OK&#10;      publication_integration_test.go:3102: V27_FACE_PARSE_BATCH_TRANSACTION_LOCK_OK&#10;      publication_integration_test.go:3131: V27_FACE_PARSE_INVENTORY_EXACT_PINS_OK&#10;      publication_integration_test.go:3133: V27_FACE_PARSE_INVENTORY_TRANSACTION_LOCK_OK&#10;      publication_integration_test.go:3177: V27_FACE_PARSE_INVENTORY_PHANTOM_WRITER_OK&#10;      publication_integration_test.go:3201: V27_FACE_PARSE_INVENTORY_WRITER_RELEASE_OK&#10;      publication_integration_test.go:3202: V27_FACE_PARSE_SOURCE_INVENTORY_LOCK_OK&#10;      publication_integration_test.go:3215: V27_FACE_PARSE_SOURCE_TRANSACTION_LOCK_OK&#10;      publication_integration_test.go:3261: V27_FACE_EVIDENCE_LOCK_OK&#10;      publication_integration_test.go:3304: V27_FACE_QUALIFICATION_LOCK_OK&#10;      publication_integration_test.go:3345: V27_FACE_BATCH_TRANSACTION_LOCK_OK&#10;      publication_integration_test.go:3394: V27_FACE_INVENTORY_TRANSACTION_LOCK_OK&#10;      publication_integration_test.go:3395: V27_FACE_INVENTORY_PHANTOM_WRITER_OK&#10;      publication_integration_test.go:3396: V27_FACE_SOURCE_INVENTORY_LOCK_OK&#10;      publication_integration_test.go:3419: V27_FACE_AND_PARSE_INVENTORY_REJECTION_OK&#10;      publication_integration_test.go:3420: V27_FACE_AND_PARSE_SOURCE_INVENTORY_LOCK_OK&#10;      publication_integration_test.go:3452: V27_FACE_PARSE_MANUAL_REJECTION_OK&#10;      publication_integration_test.go:3453: V27_FACE_PARSE_MANUAL_SOURCE_LOCK_OK&#10;      publication_integration_test.go:3489: V27_PERSON_SHARED_QUALIFICATION_REJECTION_OK&#10;      publication_integration_test.go:3490: V27_PERSON_SHARED_SOURCE_INVENTORY_LOCK_OK&#10;      publication_integration_test.go:3517: V27_GLOBAL_POLICY_SNAPSHOT_OK&#10;      publication_integration_test.go:3559: V27_GLOBAL_POLICY_PHANTOM_AND_RELEASE_OK&#10;      publication_integration_test.go:3560: V27_GLOBAL_QUALIFICATION_POLICY_BARRIER_OK&#10;      publication_integration_test.go:3586: V27_GLOBAL_POLICY_STALE_SNAPSHOT_OK&#10;      publication_integration_test.go:3599: V27_REQUIRED_POLICY_SELECTION_OK&#10;      publication_integration_test.go:3606: V27_SELECTED_EVIDENCE_POLICY_MATCH_OK&#10;      publication_integration_test.go:3620: V27_POLICY_SHARED_SOURCE_INVENTORY_LOCK_OK&#10;      publication_integration_test.go:3621: V27_TRANSFER_QUALIFIED_SHARED_SOURCE_LOCK_OK&#10;      publication_integration_test.go:3622: V27_EXECUTION_QUALIFIED_SHARED_SOURCE_LOCK_OK&#10;      publication_integration_test.go:3634: V27_REQUIRED_POLICY_PREFLIGHT_DENIAL_OK&#10;      publication_integration_test.go:3880: V27_DEFECT_MANUAL_PARAMS_RETAINED_OK&#10;      publication_integration_test.go:4188: V27_DEFECT_QUALIFIED_MULTI_COLLECTION_OK&#10;      publication_integration_test.go:4202: V27_DEFECT_FACE_QUALIFICATION_POLICY_DISABLED_DENIED_OK&#10;      publication_integration_test.go:4241: V27_DEFECT_FACE_QUALIFICATION_READ_REVOCATION_DENIED_OK&#10;      publication_integration_test.go:4275: V27_DEFECT_FACE_PARAMS_EXPIRY_CORRUPTION_DENIED_OK&#10;      publication_integration_test.go:4296: V27_DEFECT_DETECTION_ORIGIN_AND_READ_OK&#10;      publication_integration_test.go:4297: V27_DEFECT_DETECTION_EXPIRY_CORRUPTION_DENIED_OK&#10;      publication_integration_test.go:4309: V27_DEFECT_LANDMARK_CORRUPTION_DENIED_OK&#10;      publication_integration_test.go:4323: V27_DEFECT_NONEMPTY_FACES_READ_OK&#10;      publication_integration_test.go:4324: V27_DEFECT_LANDMARK_UNDECLARED_DENIED_OK&#10;      publication_integration_test.go:4325: V27_DEFECT_LANDMARK_READ_RACE_DENIED_OK&#10;      publication_integration_test.go:4335: V27_DEFECT_PERMANENT_COVERAGE_OK&#10;      publication_integration_test.go:4350: V27_DEFECT_CORRUPT_PIXELS_DENIED_OK&#10;      publication_integration_test.go:4367: V27_DEFECT_OBJECT_VERSION_IMMUTABLE_OK&#10;      publication_integration_test.go:4382: V27_DEFECT_PERMANENT_COVERAGE_RACE_DENIED_OK&#10;      publication_integration_test.go:4397: V27_DEFECT_REPORT_READ_RACE_DENIED_OK&#10;      publication_integration_test.go:4399: V27_PROPOSAL_PROTECTION_READ_OK&#10;      publication_integration_test.go:4412: V27_PROPOSAL_COVERAGE_REQUIRED_OK&#10;      publication_integration_test.go:4417: V27_PROPOSAL_MASK_SEPARATION_OK&#10;      publication_integration_test.go:4429: V27_PROPOSAL_PERSON_QUALIFICATION_SEPARATE_OK&#10;      publication_integration_test.go:4452: V27_PROPOSAL_PERSON_DISCOVERY_OK&#10;      publication_integration_test.go:4467: V27_PROPOSAL_PERSON_AMBIGUITY_OK&#10;      publication_integration_test.go:4476: person ambiguity during coverage accepted 0 multiple qualified person producers for source: V2 admission idempotency conflict true&#10;      publication_integration_test.go:95: V27_TEST_DURATION_SECONDS 27.965&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=transaction count=18821 total_seconds=0.316 max_seconds=0.001&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=tenant_authorization count=9330 total_seconds=0.360 max_seconds=0.002&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=defect_origin count=1760 total_seconds=0.412 max_seconds=0.013&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=saved_config count=2 total_seconds=0.000 max_seconds=0.000&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=qualification count=2444 total_seconds=0.450 max_seconds=0.005&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=catalog count=24253 total_seconds=8.964 max_seconds=0.088&#10;  --- FAIL: TestIntegrationProposalIntentPublication (27.97s)&#10;  FAIL&#10;  FAIL&#09;photoeditor/backend/internal/semanticproposal&#09;28.594s&#10;  FAIL&#10;  &#10;assert 1 == 0&#10; +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationProposalIntentPublication...osalIntentPublication (27.97s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t28.594s\nFAIL\n', stderr='').returncode">tests/integration/test_v27_semantic_intent_publication.py:769: in test_semantic_intent_publication_old_version_and_replay
+    assert result.returncode==0,result.stdout+result.stderr
+E   AssertionError: === RUN   TestIntegrationProposalIntentPublication
+E         publication_integration_test.go:181: V27_PROPOSAL_SNAPSHOT_PUBLICATION_OK
+E         publication_integration_test.go:200: V27_PROPOSAL_SOURCE_READ_OK
+E         publication_integration_test.go:205: V27_PROPOSAL_SOURCE_PIXELS_OK
+E         publication_integration_test.go:229: V27_PROPOSAL_QUALIFIED_COLOR_OK
+E         publication_integration_test.go:235: V27_PROPOSAL_MASK_READ_OK
+E         publication_integration_test.go:240: V27_PROPOSAL_MASK_PIXELS_OK
+E         publication_integration_test.go:253: V27_PROPOSAL_MANUAL_PERSON_DENIED_OK
+E         publication_integration_test.go:266: V27_PROPOSAL_PERSON_EVIDENCE_OK
+E         publication_integration_test.go:275: V27_PROPOSAL_PERSON_COVERAGE_OK
+E         publication_integration_test.go:318: V27_PROTECTION_PREPARATION_RETAINED_PROOF_OK
+E         publication_integration_test.go:325: V27_PERSON_COVERAGE_PROTECTION_PROOF_OK
+E         publication_integration_test.go:344: V27_PROPOSAL_PERSON_COVERAGE_REPORT_RACE_OK
+E         publication_integration_test.go:345: V27_PROPOSAL_PERSON_REPORT_REQUIRED_OK
+E         publication_integration_test.go:346: V27_PROPOSAL_PERSON_MASK_READ_OK
+E         publication_integration_test.go:351: V27_DEFECT_PERSON_PRODUCER_DENIED_OK
+E         publication_integration_test.go:367: V27_DEFECT_CANONICAL_ORIGIN_OK
+E         publication_integration_test.go:451: V27_DEFECT_ORIGINAL_EVIDENCE_OK
+E         publication_integration_test.go:459: V27_DEFECT_LANDMARK_PERSON_DENIED_OK
+E         publication_integration_test.go:460: V27_DEFECT_EMPTY_FACES_READ_OK
+E         publication_integration_test.go:499: V27_DEFECT_FINISHED_ATTEMPT_BACKEND_REQUIRED_OK
+E         publication_integration_test.go:532: V27_DEFECT_FACE_PROFILES_MATCH_REQUIRED_OK
+E         publication_integration_test.go:588: V27_DEFECT_TRUSTED_FACE_QUALIFICATION_READ_OK
+E         publication_integration_test.go:743: V27_SOURCE_PREPARATION_RETAINED_PROOF_OK
+E         publication_integration_test.go:747: V27_SOURCE_AUTHORIZED_INPUT_SIZES_OK
+E         publication_integration_test.go:762: V27_FACE_PREPARATION_DISCOVERY_OK
+E         publication_integration_test.go:777: V27_FACE_PREPARATION_INVENTORY_CONTENT_OK
+E         publication_integration_test.go:800: V27_FACE_PREPARATION_RETAINED_PROOF_OK
+E         publication_integration_test.go:809: V27_FACE_PREPARATION_QUALIFIED_OK
+E         publication_integration_test.go:810: V27_FACE_PREPARATION_CONTENT_OK
+E         publication_integration_test.go:824: V27_FACE_PARSE_PREPARATION_CONTENT_OK
+E         publication_integration_test.go:836: V27_FACE_PARSE_PREPARATION_PROFILES_OK
+E         publication_integration_test.go:843: V27_FACE_PARSE_PREPARATION_DISCOVERY_OK
+E         publication_integration_test.go:856: V27_FACE_PARSE_DISCOVERY_EXPIRY_OK
+E         publication_integration_test.go:866: V27_FACE_PARSE_PREPARATION_INVENTORY_CONTENT_OK
+E         publication_integration_test.go:875: V27_FACE_PARSE_PREPARATION_QUALIFIED_OK
+E         publication_integration_test.go:898: V27_FACE_PARSE_PREPARATION_RETAINED_PROOF_OK
+E         publication_integration_test.go:916: V27_DEFECT_MANUAL_EXECUTION_ORIGINAL_PROOFS_OK
+E         publication_integration_test.go:937: V27_DEFECT_QUALIFICATION_RESOURCE_METRICS_OK
+E         publication_integration_test.go:949: V27_DEFECT_MEASURED_COST_DENIAL_OK
+E         publication_integration_test.go:969: V27_DEFECT_ORIGINAL_QUALIFIED_PROFILE_OK
+E         publication_integration_test.go:981: V27_DEFECT_AUTHORIZED_PROFILE_CATALOG_OK
+E         publication_integration_test.go:997: V27_DEFECT_PROFILE_LANDMARK_CATALOG_OK
+E         publication_integration_test.go:1023: V27_DEFECT_PROFILE_ORIGINAL_LANDMARK_BYTES_OK
+E         publication_integration_test.go:1039: V27_PROTECTION_ROOT_DISCOVERY_OK
+E         publication_integration_test.go:1057: V27_DEFECT_SOURCE_EXECUTION_RETAINED_PROOFS_OK
+E         publication_integration_test.go:1071: V27_DEFECT_SOURCE_EXECUTION_FILE_PINS_OK
+E         publication_integration_test.go:1100: V27_DEFECT_SOURCE_EXECUTION_FILE_PIN_MUTATION_DENIED_OK
+E         publication_integration_test.go:1113: V27_DEFECT_SOURCE_DERIVED_PROFILE_OK
+E         publication_integration_test.go:1134: V27_DEFECT_PROFILE_MULTIFACE_SOURCE_OK
+E         publication_integration_test.go:1148: V27_DEFECT_FACE_ORIGINAL_PRODUCER_PROOFS_OK
+E         publication_integration_test.go:1177: V27_DEFECT_FACE_EXECUTION_RETAINED_PROOFS_OK
+E         publication_integration_test.go:1183: V27_DEFECT_PROFILE_FACE_QUALIFIED_OK
+E         publication_integration_test.go:1203: V27_DEFECT_PROFILE_FINAL_FACE_REVOCATION_OK
+E         publication_integration_test.go:1228: V27_DEFECT_PROFILE_FINAL_FACE_SOURCE_EXPIRY_OK
+E         publication_integration_test.go:1259: V27_DEFECT_MASK_EXECUTION_RETAINED_PROOFS_OK
+E         publication_integration_test.go:1274: V27_DEFECT_MASK_ORIGINAL_PARSER_PROOFS_OK
+E         publication_integration_test.go:1275: V27_DEFECT_PROFILE_SKIN_QUALIFIED_OK
+E         publication_integration_test.go:1291: V27_DEFECT_PROFILE_SKIN_ROOT_REQUIRED_OK
+E         publication_integration_test.go:1310: V27_DEFECT_PROFILE_FINAL_MASK_FACE_REVOCATION_OK
+E         publication_integration_test.go:1311: V27_DEFECT_PROFILE_FINAL_MASK_PARSER_DETECTOR_REVOCATION_OK
+E         publication_integration_test.go:1328: V27_DEFECT_PROFILE_FINAL_MASK_PRODUCER_CHANGE_OK
+E         publication_integration_test.go:1360: V27_DEFECT_PROFILE_REQUIRED_PROTECTION_OK
+E         publication_integration_test.go:1375: V27_DEFECT_PROFILE_ORIGINAL_PARAMS_BYTES_OK
+E         publication_integration_test.go:1386: V27_DEFECT_PROFILE_ORIGINAL_MASK_BYTES_OK
+E         publication_integration_test.go:1393: V27_DEFECT_PROFILE_CAPACITY_BEFORE_MASK_IO_OK
+E         publication_integration_test.go:1408: V27_DEFECT_PROFILE_CATALOG_REVOCATION_OK
+E         publication_integration_test.go:1432: V27_DEFECT_ORIGINAL_QUALIFICATION_PREPARATION_OK
+E         publication_integration_test.go:1436: V27_DEFECT_QUALIFICATION_FINAL_RECHECK_OK
+E         publication_integration_test.go:1466: V27_DEFECT_ORIGINAL_QUALIFICATION_LOCK_OK
+E         publication_integration_test.go:1501: V27_DEFECT_QUALIFICATION_AUTHORITY_LOCK_OK
+E         publication_integration_test.go:1504: V27_TRANSFER_QUALIFICATION_IMPORT_LOCK_OK
+E         publication_integration_test.go:1515: V27_TRANSFER_QUALIFICATION_RETAINED_LOCK_OK
+E         publication_integration_test.go:1539: V27_TRANSFER_QUALIFICATION_REVOKE_LOCK_OK
+E         publication_integration_test.go:1556: V27_TRANSFER_QUALIFICATION_LOCK_ACL_OK
+E         publication_integration_test.go:1573: V27_DEFECT_QUALIFICATION_LOCK_ACL_OK
+E         publication_integration_test.go:1601: V27_DEFECT_EXECUTION_LOCK_ACL_OK
+E         publication_integration_test.go:1602: V27_DEFECT_NATIVE_PARAMS_REGISTRATION_ACL_OK
+E         publication_integration_test.go:1633: V27_PERSON_RETAINED_PROTECTION_LOCK_OK
+E         publication_integration_test.go:1672: V27_PROTECTION_EVIDENCE_LOCK_OK
+E         publication_integration_test.go:1699: V27_PROTECTION_BATCH_DECLARATION_LOCK_OK
+E         publication_integration_test.go:1740: V27_DEFECT_EXECUTION_SOURCE_TRANSACTION_OK
+E         publication_integration_test.go:1751: V27_DEFECT_FACE_EXECUTION_TRANSACTION_OK
+E         publication_integration_test.go:1761: V27_DEFECT_PARSER_EXECUTION_TRANSACTION_OK
+E         publication_integration_test.go:1837: V27_DEFECT_DISCOVERY_SQL_ACL_OK
+E         publication_integration_test.go:1838: V27_DEFECT_REPORT_DISCOVERY_OK
+E         publication_integration_test.go:1839: V27_DEFECT_SERVER_POLICY_SELECTION_OK
+E         publication_integration_test.go:1857: V27_DEFECT_MANUAL_PARAMS_RETAINED_OK
+E         publication_integration_test.go:1858: V27_DEFECT_MANUAL_PARAMS_RECHECK_OK
+E         publication_integration_test.go:1874: V27_DEFECT_NATIVE_PARAMS_OWNER_DENIED_OK
+E         publication_integration_test.go:1884: V27_DEFECT_VERSION_PARAMS_PUBLICATION_OK
+E         publication_integration_test.go:1902: V27_DEFECT_VERSION_PARAMS_PROOF_LOCK_OK
+E         publication_integration_test.go:1903: V27_DEFECT_PUBLISHED_EXECUTION_LOCKS_OK
+E         publication_integration_test.go:1946: V27_DEFECT_PUBLISHED_TASK_COMPILE_OK
+E         publication_integration_test.go:1963: V27_DEFECT_FIRST_PLAN_RECONSTRUCTION_OK
+E         publication_integration_test.go:2003: V27_DEFECT_AUTHORITY_PACKETS_ROUNDTRIP_OK
+E         publication_integration_test.go:2035: V27_DEFECT_BLOCKED_DRAFT_CREATE_REPLAY_OK
+E         publication_integration_test.go:2054: V27_DEFECT_INPUT_REGISTRATION_REPLAY_OK
+E         publication_integration_test.go:2071: V27_DEFECT_INPUT_DURABLE_REPLAY_OK
+E         publication_integration_test.go:2088: V27_DEFECT_INPUT_MANIFEST_SUBSTITUTION_DENIED_OK
+E         publication_integration_test.go:2093: V27_DEFECT_PERSISTENCE_COORDINATOR_OK
+E         publication_integration_test.go:2131: V27_DEFECT_UNIFIED_ADMISSION_PACKET_OK
+E         publication_integration_test.go:2230: V27_DEFECT_SQL_POLICY_EXPECTATIONS_OK
+E         publication_integration_test.go:2250: V27_DEFECT_SQL_INTENT_SNAPSHOT_ANCHOR_OK
+E         publication_integration_test.go:2277: V27_DEFECT_SQL_GRAPH_BUDGET_OK
+E         publication_integration_test.go:2287: V27_DEFECT_NATIVE_DRAFT_RESULT_DENIED_OK
+E         publication_integration_test.go:2291: V27_DEFECT_SKIN_ROOT_LINEAGE_DENIED_OK
+E         publication_integration_test.go:2319: V27_DEFECT_SQL_MASK_ROOT_INVENTORY_OK
+E         publication_integration_test.go:2342: V27_DEFECT_SQL_LANDMARK_INVENTORY_OK
+E         publication_integration_test.go:2387: V27_DEFECT_SQL_CLOSURE_MATCH_OK
+E         publication_integration_test.go:2423: V27_DEFECT_COMPOSED_ADMISSION_ACL_OK
+E         publication_integration_test.go:2684: V27_DEFECT_NATIVE_RESULT_CATALOG_OK
+E         publication_integration_test.go:2685: V27_DEFECT_NATIVE_TASK_RESULT_METADATA_OK
+E         publication_integration_test.go:2686: V27_DEFECT_NATIVE_GATEWAY_OUTPUT_METADATA_OK
+E         publication_integration_test.go:2687: V27_DEFECT_NATIVE_GATEWAY_INPUTS_OK
+E         publication_integration_test.go:2688: V27_DEFECT_NATIVE_DISPATCH_CLAIM_OK
+E         publication_integration_test.go:2699: V27_DEFECT_NATIVE_SEAL_REPLAY_OK
+E         publication_integration_test.go:2701: V27_DEFECT_COMPOSED_ADMISSION_SUBSTITUTION_DENIED_OK
+E         publication_integration_test.go:2702: V27_DEFECT_PERSON_ADMISSION_PREPARATION_LOCK_OK
+E         publication_integration_test.go:2712: V27_DEFECT_REGISTERED_PERSON_ADMISSION_OK
+E         publication_integration_test.go:2741: V27_DEFECT_SQL_CONTENT_HASH_MATCH_OK
+E         publication_integration_test.go:2772: V27_DEFECT_GENERIC_SEAL_RUN_FENCE_OK
+E         publication_integration_test.go:2783: V27_DEFECT_GENERIC_SEAL_BYPASS_DENIED_OK
+E         publication_integration_test.go:2820: V27_DEFECT_REGISTRATION_STATE_SUBSTITUTION_DENIED_OK
+E         publication_integration_test.go:2851: V27_DEFECT_EXECUTION_SCOPE_SUBSTITUTION_DENIED_OK
+E         publication_integration_test.go:2865: V27_DEFECT_DECLARED_EXECUTION_FILE_LOCKS_OK
+E         publication_integration_test.go:2866: V27_DEFECT_EXECUTION_INVENTORY_TRANSACTION_OK
+E         publication_integration_test.go:2867: V27_DEFECT_ORIGIN_EXECUTION_TRANSACTION_OK
+E         publication_integration_test.go:2868: V27_DEFECT_POLICY_EXECUTION_TRANSACTION_OK
+E         publication_integration_test.go:2869: V27_DEFECT_AUTHORIZED_EXECUTION_TRANSACTION_OK
+E         publication_integration_test.go:2921: V27_DEFECT_ORIGIN_CONCURRENT_WRITE_DENIED_OK
+E         publication_integration_test.go:2922: V27_DEFECT_AUTHORITY_CONCURRENT_WRITE_DENIED_OK
+E         publication_integration_test.go:2928: V27_DEFECT_MANUAL_EXECUTION_TRANSACTION_OK
+E         publication_integration_test.go:2975: V27_SOURCE_EVIDENCE_LOCK_OK
+E         publication_integration_test.go:3003: V27_SOURCE_EVIDENCE_SHAPE_OK
+E         publication_integration_test.go:3042: V27_FACE_PARSE_EVIDENCE_LOCK_OK
+E         publication_integration_test.go:3081: V27_FACE_PARSE_QUALIFICATION_LOCK_OK
+E         publication_integration_test.go:3102: V27_FACE_PARSE_BATCH_TRANSACTION_LOCK_OK
+E         publication_integration_test.go:3131: V27_FACE_PARSE_INVENTORY_EXACT_PINS_OK
+E         publication_integration_test.go:3133: V27_FACE_PARSE_INVENTORY_TRANSACTION_LOCK_OK
+E         publication_integration_test.go:3177: V27_FACE_PARSE_INVENTORY_PHANTOM_WRITER_OK
+E         publication_integration_test.go:3201: V27_FACE_PARSE_INVENTORY_WRITER_RELEASE_OK
+E         publication_integration_test.go:3202: V27_FACE_PARSE_SOURCE_INVENTORY_LOCK_OK
+E         publication_integration_test.go:3215: V27_FACE_PARSE_SOURCE_TRANSACTION_LOCK_OK
+E         publication_integration_test.go:3261: V27_FACE_EVIDENCE_LOCK_OK
+E         publication_integration_test.go:3304: V27_FACE_QUALIFICATION_LOCK_OK
+E         publication_integration_test.go:3345: V27_FACE_BATCH_TRANSACTION_LOCK_OK
+E         publication_integration_test.go:3394: V27_FACE_INVENTORY_TRANSACTION_LOCK_OK
+E         publication_integration_test.go:3395: V27_FACE_INVENTORY_PHANTOM_WRITER_OK
+E         publication_integration_test.go:3396: V27_FACE_SOURCE_INVENTORY_LOCK_OK
+E         publication_integration_test.go:3419: V27_FACE_AND_PARSE_INVENTORY_REJECTION_OK
+E         publication_integration_test.go:3420: V27_FACE_AND_PARSE_SOURCE_INVENTORY_LOCK_OK
+E         publication_integration_test.go:3452: V27_FACE_PARSE_MANUAL_REJECTION_OK
+E         publication_integration_test.go:3453: V27_FACE_PARSE_MANUAL_SOURCE_LOCK_OK
+E         publication_integration_test.go:3489: V27_PERSON_SHARED_QUALIFICATION_REJECTION_OK
+E         publication_integration_test.go:3490: V27_PERSON_SHARED_SOURCE_INVENTORY_LOCK_OK
+E         publication_integration_test.go:3517: V27_GLOBAL_POLICY_SNAPSHOT_OK
+E         publication_integration_test.go:3559: V27_GLOBAL_POLICY_PHANTOM_AND_RELEASE_OK
+E         publication_integration_test.go:3560: V27_GLOBAL_QUALIFICATION_POLICY_BARRIER_OK
+E         publication_integration_test.go:3586: V27_GLOBAL_POLICY_STALE_SNAPSHOT_OK
+E         publication_integration_test.go:3599: V27_REQUIRED_POLICY_SELECTION_OK
+E         publication_integration_test.go:3606: V27_SELECTED_EVIDENCE_POLICY_MATCH_OK
+E         publication_integration_test.go:3620: V27_POLICY_SHARED_SOURCE_INVENTORY_LOCK_OK
+E         publication_integration_test.go:3621: V27_TRANSFER_QUALIFIED_SHARED_SOURCE_LOCK_OK
+E         publication_integration_test.go:3622: V27_EXECUTION_QUALIFIED_SHARED_SOURCE_LOCK_OK
+E         publication_integration_test.go:3634: V27_REQUIRED_POLICY_PREFLIGHT_DENIAL_OK
+E         publication_integration_test.go:3880: V27_DEFECT_MANUAL_PARAMS_RETAINED_OK
+E         publication_integration_test.go:4188: V27_DEFECT_QUALIFIED_MULTI_COLLECTION_OK
+E         publication_integration_test.go:4202: V27_DEFECT_FACE_QUALIFICATION_POLICY_DISABLED_DENIED_OK
+E         publication_integration_test.go:4241: V27_DEFECT_FACE_QUALIFICATION_READ_REVOCATION_DENIED_OK
+E         publication_integration_test.go:4275: V27_DEFECT_FACE_PARAMS_EXPIRY_CORRUPTION_DENIED_OK
+E         publication_integration_test.go:4296: V27_DEFECT_DETECTION_ORIGIN_AND_READ_OK
+E         publication_integration_test.go:4297: V27_DEFECT_DETECTION_EXPIRY_CORRUPTION_DENIED_OK
+E         publication_integration_test.go:4309: V27_DEFECT_LANDMARK_CORRUPTION_DENIED_OK
+E         publication_integration_test.go:4323: V27_DEFECT_NONEMPTY_FACES_READ_OK
+E         publication_integration_test.go:4324: V27_DEFECT_LANDMARK_UNDECLARED_DENIED_OK
+E         publication_integration_test.go:4325: V27_DEFECT_LANDMARK_READ_RACE_DENIED_OK
+E         publication_integration_test.go:4335: V27_DEFECT_PERMANENT_COVERAGE_OK
+E         publication_integration_test.go:4350: V27_DEFECT_CORRUPT_PIXELS_DENIED_OK
+E         publication_integration_test.go:4367: V27_DEFECT_OBJECT_VERSION_IMMUTABLE_OK
+E         publication_integration_test.go:4382: V27_DEFECT_PERMANENT_COVERAGE_RACE_DENIED_OK
+E         publication_integration_test.go:4397: V27_DEFECT_REPORT_READ_RACE_DENIED_OK
+E         publication_integration_test.go:4399: V27_PROPOSAL_PROTECTION_READ_OK
+E         publication_integration_test.go:4412: V27_PROPOSAL_COVERAGE_REQUIRED_OK
+E         publication_integration_test.go:4417: V27_PROPOSAL_MASK_SEPARATION_OK
+E         publication_integration_test.go:4429: V27_PROPOSAL_PERSON_QUALIFICATION_SEPARATE_OK
+E         publication_integration_test.go:4452: V27_PROPOSAL_PERSON_DISCOVERY_OK
+E         publication_integration_test.go:4467: V27_PROPOSAL_PERSON_AMBIGUITY_OK
+E         publication_integration_test.go:4476: person ambiguity during coverage accepted 0 multiple qualified person producers for source: V2 admission idempotency conflict true
+E         publication_integration_test.go:95: V27_TEST_DURATION_SECONDS 27.965
+E         publication_integration_test.go:96: V27_SQL_TIMING group=transaction count=18821 total_seconds=0.316 max_seconds=0.001
+E         publication_integration_test.go:96: V27_SQL_TIMING group=tenant_authorization count=9330 total_seconds=0.360 max_seconds=0.002
+E         publication_integration_test.go:96: V27_SQL_TIMING group=defect_origin count=1760 total_seconds=0.412 max_seconds=0.013
+E         publication_integration_test.go:96: V27_SQL_TIMING group=saved_config count=2 total_seconds=0.000 max_seconds=0.000
+E         publication_integration_test.go:96: V27_SQL_TIMING group=qualification count=2444 total_seconds=0.450 max_seconds=0.005
+E         publication_integration_test.go:96: V27_SQL_TIMING group=catalog count=24253 total_seconds=8.964 max_seconds=0.088
+E     --- FAIL: TestIntegrationProposalIntentPublication (27.97s)
+E     FAIL
+E     FAIL	photoeditor/backend/internal/semanticproposal	28.594s
+E     FAIL
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationProposalIntentPublication...osalIntentPublication (27.97s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t28.594s\nFAIL\n', stderr='').returncode</failure></testcase><testcase classname="tests.integration.test_v27_semantic_intent_publication" name="test_semantic_intent_publication_old_version_and_replay[native-bootstrap]" time="13.433"><failure message="AssertionError: === RUN   TestIntegrationNativePreparationBootstrap&#10;      native_bootstrap_integration_test.go:836: V27_INITIAL_PERSON_ORDINARY_CONTINUATION_DENIED_OK&#10;      native_bootstrap_integration_test.go:867: V27_PERSON_DURABLE_ADMISSION_RECOVERY_OK&#10;      native_bootstrap_integration_test.go:880: V27_CREATE_PERSON_PREPARATION_REPLAY_OK&#10;      native_bootstrap_integration_test.go:892: V27_PERSON_PRODUCTION_INTERRUPTED_TRANSPORT_OK&#10;      native_bootstrap_integration_test.go:906: V27_PERSON_PRODUCTION_INITIAL_ENSURE_OK&#10;      native_bootstrap_integration_test.go:933: V27_PERSON_SAVED_ANCHOR_RECONSTRUCTED_OK&#10;      native_bootstrap_integration_test.go:942: V27_PERSON_SAVED_PLAN_RECONSTRUCTED_OK&#10;      native_bootstrap_integration_test.go:2110: terminal original pipeline failure recording &lt;nil&gt;&#10;  --- FAIL: TestIntegrationNativePreparationBootstrap (10.71s)&#10;  FAIL&#10;  FAIL&#09;photoeditor/backend/internal/semanticproposal&#09;11.347s&#10;  FAIL&#10;  &#10;assert 1 == 0&#10; +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationNativePreparationBootstra...ePreparationBootstrap (10.71s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t11.347s\nFAIL\n', stderr='').returncode">tests/integration/test_v27_semantic_intent_publication.py:769: in test_semantic_intent_publication_old_version_and_replay
+    assert result.returncode==0,result.stdout+result.stderr
+E   AssertionError: === RUN   TestIntegrationNativePreparationBootstrap
+E         native_bootstrap_integration_test.go:836: V27_INITIAL_PERSON_ORDINARY_CONTINUATION_DENIED_OK
+E         native_bootstrap_integration_test.go:867: V27_PERSON_DURABLE_ADMISSION_RECOVERY_OK
+E         native_bootstrap_integration_test.go:880: V27_CREATE_PERSON_PREPARATION_REPLAY_OK
+E         native_bootstrap_integration_test.go:892: V27_PERSON_PRODUCTION_INTERRUPTED_TRANSPORT_OK
+E         native_bootstrap_integration_test.go:906: V27_PERSON_PRODUCTION_INITIAL_ENSURE_OK
+E         native_bootstrap_integration_test.go:933: V27_PERSON_SAVED_ANCHOR_RECONSTRUCTED_OK
+E         native_bootstrap_integration_test.go:942: V27_PERSON_SAVED_PLAN_RECONSTRUCTED_OK
+E         native_bootstrap_integration_test.go:2110: terminal original pipeline failure recording &lt;nil&gt;
+E     --- FAIL: TestIntegrationNativePreparationBootstrap (10.71s)
+E     FAIL
+E     FAIL	photoeditor/backend/internal/semanticproposal	11.347s
+E     FAIL
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationNativePreparationBootstra...ePreparationBootstrap (10.71s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t11.347s\nFAIL\n', stderr='').returncode</failure></testcase><testcase classname="tests.integration.test_v27_semantic_intent_publication" name="test_semantic_intent_publication_old_version_and_replay[ordinary-admission]" time="6.292"><failure message="AssertionError: === RUN   TestIntegrationProposalIntentPublication&#10;      publication_integration_test.go:181: V27_PROPOSAL_SNAPSHOT_PUBLICATION_OK&#10;      publication_integration_test.go:200: V27_PROPOSAL_SOURCE_READ_OK&#10;      publication_integration_test.go:205: V27_PROPOSAL_SOURCE_PIXELS_OK&#10;      publication_integration_test.go:229: V27_PROPOSAL_QUALIFIED_COLOR_OK&#10;      publication_integration_test.go:235: V27_PROPOSAL_MASK_READ_OK&#10;      publication_integration_test.go:240: V27_PROPOSAL_MASK_PIXELS_OK&#10;      publication_integration_test.go:253: V27_PROPOSAL_MANUAL_PERSON_DENIED_OK&#10;      publication_integration_test.go:266: V27_PROPOSAL_PERSON_EVIDENCE_OK&#10;      publication_integration_test.go:275: V27_PROPOSAL_PERSON_COVERAGE_OK&#10;      publication_integration_test.go:318: V27_PROTECTION_PREPARATION_RETAINED_PROOF_OK&#10;      publication_integration_test.go:325: V27_PERSON_COVERAGE_PROTECTION_PROOF_OK&#10;      publication_integration_test.go:344: V27_PROPOSAL_PERSON_COVERAGE_REPORT_RACE_OK&#10;      publication_integration_test.go:345: V27_PROPOSAL_PERSON_REPORT_REQUIRED_OK&#10;      publication_integration_test.go:346: V27_PROPOSAL_PERSON_MASK_READ_OK&#10;      publication_integration_test.go:351: V27_DEFECT_PERSON_PRODUCER_DENIED_OK&#10;      publication_integration_test.go:367: V27_DEFECT_CANONICAL_ORIGIN_OK&#10;      publication_integration_test.go:451: V27_DEFECT_ORIGINAL_EVIDENCE_OK&#10;      publication_integration_test.go:459: V27_DEFECT_LANDMARK_PERSON_DENIED_OK&#10;      publication_integration_test.go:460: V27_DEFECT_EMPTY_FACES_READ_OK&#10;      publication_integration_test.go:499: V27_DEFECT_FINISHED_ATTEMPT_BACKEND_REQUIRED_OK&#10;      publication_integration_test.go:532: V27_DEFECT_FACE_PROFILES_MATCH_REQUIRED_OK&#10;      publication_integration_test.go:588: V27_DEFECT_TRUSTED_FACE_QUALIFICATION_READ_OK&#10;      publication_integration_test.go:4188: V27_DEFECT_QUALIFIED_MULTI_COLLECTION_OK&#10;      publication_integration_test.go:4202: V27_DEFECT_FACE_QUALIFICATION_POLICY_DISABLED_DENIED_OK&#10;      publication_integration_test.go:4241: V27_DEFECT_FACE_QUALIFICATION_READ_REVOCATION_DENIED_OK&#10;      publication_integration_test.go:4275: V27_DEFECT_FACE_PARAMS_EXPIRY_CORRUPTION_DENIED_OK&#10;      publication_integration_test.go:4296: V27_DEFECT_DETECTION_ORIGIN_AND_READ_OK&#10;      publication_integration_test.go:4297: V27_DEFECT_DETECTION_EXPIRY_CORRUPTION_DENIED_OK&#10;      publication_integration_test.go:4309: V27_DEFECT_LANDMARK_CORRUPTION_DENIED_OK&#10;      publication_integration_test.go:4323: V27_DEFECT_NONEMPTY_FACES_READ_OK&#10;      publication_integration_test.go:4324: V27_DEFECT_LANDMARK_UNDECLARED_DENIED_OK&#10;      publication_integration_test.go:4325: V27_DEFECT_LANDMARK_READ_RACE_DENIED_OK&#10;      publication_integration_test.go:4335: V27_DEFECT_PERMANENT_COVERAGE_OK&#10;      publication_integration_test.go:4350: V27_DEFECT_CORRUPT_PIXELS_DENIED_OK&#10;      publication_integration_test.go:4367: V27_DEFECT_OBJECT_VERSION_IMMUTABLE_OK&#10;      publication_integration_test.go:4382: V27_DEFECT_PERMANENT_COVERAGE_RACE_DENIED_OK&#10;      publication_integration_test.go:4397: V27_DEFECT_REPORT_READ_RACE_DENIED_OK&#10;      publication_integration_test.go:4399: V27_PROPOSAL_PROTECTION_READ_OK&#10;      publication_integration_test.go:4412: V27_PROPOSAL_COVERAGE_REQUIRED_OK&#10;      publication_integration_test.go:4417: V27_PROPOSAL_MASK_SEPARATION_OK&#10;      publication_integration_test.go:4429: V27_PROPOSAL_PERSON_QUALIFICATION_SEPARATE_OK&#10;      publication_integration_test.go:4452: V27_PROPOSAL_PERSON_DISCOVERY_OK&#10;      publication_integration_test.go:4467: V27_PROPOSAL_PERSON_AMBIGUITY_OK&#10;      publication_integration_test.go:4476: person ambiguity during coverage accepted 0 multiple qualified person producers for source: V2 admission idempotency conflict true&#10;      publication_integration_test.go:95: V27_TEST_DURATION_SECONDS 3.642&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=transaction count=4268 total_seconds=0.081 max_seconds=0.001&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=tenant_authorization count=2134 total_seconds=0.091 max_seconds=0.002&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=defect_origin count=609 total_seconds=0.186 max_seconds=0.013&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=saved_config count=0 total_seconds=0.000 max_seconds=0.000&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=qualification count=88 total_seconds=0.019 max_seconds=0.002&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=catalog count=4114 total_seconds=1.613 max_seconds=0.052&#10;  --- FAIL: TestIntegrationProposalIntentPublication (3.64s)&#10;  FAIL&#10;  FAIL&#09;photoeditor/backend/internal/semanticproposal&#09;4.190s&#10;  FAIL&#10;  &#10;assert 1 == 0&#10; +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationProposalIntentPublication...oposalIntentPublication (3.64s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t4.190s\nFAIL\n', stderr='').returncode">tests/integration/test_v27_semantic_intent_publication.py:769: in test_semantic_intent_publication_old_version_and_replay
+    assert result.returncode==0,result.stdout+result.stderr
+E   AssertionError: === RUN   TestIntegrationProposalIntentPublication
+E         publication_integration_test.go:181: V27_PROPOSAL_SNAPSHOT_PUBLICATION_OK
+E         publication_integration_test.go:200: V27_PROPOSAL_SOURCE_READ_OK
+E         publication_integration_test.go:205: V27_PROPOSAL_SOURCE_PIXELS_OK
+E         publication_integration_test.go:229: V27_PROPOSAL_QUALIFIED_COLOR_OK
+E         publication_integration_test.go:235: V27_PROPOSAL_MASK_READ_OK
+E         publication_integration_test.go:240: V27_PROPOSAL_MASK_PIXELS_OK
+E         publication_integration_test.go:253: V27_PROPOSAL_MANUAL_PERSON_DENIED_OK
+E         publication_integration_test.go:266: V27_PROPOSAL_PERSON_EVIDENCE_OK
+E         publication_integration_test.go:275: V27_PROPOSAL_PERSON_COVERAGE_OK
+E         publication_integration_test.go:318: V27_PROTECTION_PREPARATION_RETAINED_PROOF_OK
+E         publication_integration_test.go:325: V27_PERSON_COVERAGE_PROTECTION_PROOF_OK
+E         publication_integration_test.go:344: V27_PROPOSAL_PERSON_COVERAGE_REPORT_RACE_OK
+E         publication_integration_test.go:345: V27_PROPOSAL_PERSON_REPORT_REQUIRED_OK
+E         publication_integration_test.go:346: V27_PROPOSAL_PERSON_MASK_READ_OK
+E         publication_integration_test.go:351: V27_DEFECT_PERSON_PRODUCER_DENIED_OK
+E         publication_integration_test.go:367: V27_DEFECT_CANONICAL_ORIGIN_OK
+E         publication_integration_test.go:451: V27_DEFECT_ORIGINAL_EVIDENCE_OK
+E         publication_integration_test.go:459: V27_DEFECT_LANDMARK_PERSON_DENIED_OK
+E         publication_integration_test.go:460: V27_DEFECT_EMPTY_FACES_READ_OK
+E         publication_integration_test.go:499: V27_DEFECT_FINISHED_ATTEMPT_BACKEND_REQUIRED_OK
+E         publication_integration_test.go:532: V27_DEFECT_FACE_PROFILES_MATCH_REQUIRED_OK
+E         publication_integration_test.go:588: V27_DEFECT_TRUSTED_FACE_QUALIFICATION_READ_OK
+E         publication_integration_test.go:4188: V27_DEFECT_QUALIFIED_MULTI_COLLECTION_OK
+E         publication_integration_test.go:4202: V27_DEFECT_FACE_QUALIFICATION_POLICY_DISABLED_DENIED_OK
+E         publication_integration_test.go:4241: V27_DEFECT_FACE_QUALIFICATION_READ_REVOCATION_DENIED_OK
+E         publication_integration_test.go:4275: V27_DEFECT_FACE_PARAMS_EXPIRY_CORRUPTION_DENIED_OK
+E         publication_integration_test.go:4296: V27_DEFECT_DETECTION_ORIGIN_AND_READ_OK
+E         publication_integration_test.go:4297: V27_DEFECT_DETECTION_EXPIRY_CORRUPTION_DENIED_OK
+E         publication_integration_test.go:4309: V27_DEFECT_LANDMARK_CORRUPTION_DENIED_OK
+E         publication_integration_test.go:4323: V27_DEFECT_NONEMPTY_FACES_READ_OK
+E         publication_integration_test.go:4324: V27_DEFECT_LANDMARK_UNDECLARED_DENIED_OK
+E         publication_integration_test.go:4325: V27_DEFECT_LANDMARK_READ_RACE_DENIED_OK
+E         publication_integration_test.go:4335: V27_DEFECT_PERMANENT_COVERAGE_OK
+E         publication_integration_test.go:4350: V27_DEFECT_CORRUPT_PIXELS_DENIED_OK
+E         publication_integration_test.go:4367: V27_DEFECT_OBJECT_VERSION_IMMUTABLE_OK
+E         publication_integration_test.go:4382: V27_DEFECT_PERMANENT_COVERAGE_RACE_DENIED_OK
+E         publication_integration_test.go:4397: V27_DEFECT_REPORT_READ_RACE_DENIED_OK
+E         publication_integration_test.go:4399: V27_PROPOSAL_PROTECTION_READ_OK
+E         publication_integration_test.go:4412: V27_PROPOSAL_COVERAGE_REQUIRED_OK
+E         publication_integration_test.go:4417: V27_PROPOSAL_MASK_SEPARATION_OK
+E         publication_integration_test.go:4429: V27_PROPOSAL_PERSON_QUALIFICATION_SEPARATE_OK
+E         publication_integration_test.go:4452: V27_PROPOSAL_PERSON_DISCOVERY_OK
+E         publication_integration_test.go:4467: V27_PROPOSAL_PERSON_AMBIGUITY_OK
+E         publication_integration_test.go:4476: person ambiguity during coverage accepted 0 multiple qualified person producers for source: V2 admission idempotency conflict true
+E         publication_integration_test.go:95: V27_TEST_DURATION_SECONDS 3.642
+E         publication_integration_test.go:96: V27_SQL_TIMING group=transaction count=4268 total_seconds=0.081 max_seconds=0.001
+E         publication_integration_test.go:96: V27_SQL_TIMING group=tenant_authorization count=2134 total_seconds=0.091 max_seconds=0.002
+E         publication_integration_test.go:96: V27_SQL_TIMING group=defect_origin count=609 total_seconds=0.186 max_seconds=0.013
+E         publication_integration_test.go:96: V27_SQL_TIMING group=saved_config count=0 total_seconds=0.000 max_seconds=0.000
+E         publication_integration_test.go:96: V27_SQL_TIMING group=qualification count=88 total_seconds=0.019 max_seconds=0.002
+E         publication_integration_test.go:96: V27_SQL_TIMING group=catalog count=4114 total_seconds=1.613 max_seconds=0.052
+E     --- FAIL: TestIntegrationProposalIntentPublication (3.64s)
+E     FAIL
+E     FAIL	photoeditor/backend/internal/semanticproposal	4.190s
+E     FAIL
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationProposalIntentPublication...oposalIntentPublication (3.64s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t4.190s\nFAIL\n', stderr='').returncode</failure></testcase><testcase classname="tests.integration.test_v27_semantic_intent_publication" name="test_semantic_intent_publication_old_version_and_replay[create-service]" time="6.486"><failure message="AssertionError: === RUN   TestIntegrationProposalIntentPublication&#10;      publication_integration_test.go:181: V27_PROPOSAL_SNAPSHOT_PUBLICATION_OK&#10;      publication_integration_test.go:200: V27_PROPOSAL_SOURCE_READ_OK&#10;      publication_integration_test.go:205: V27_PROPOSAL_SOURCE_PIXELS_OK&#10;      publication_integration_test.go:229: V27_PROPOSAL_QUALIFIED_COLOR_OK&#10;      publication_integration_test.go:235: V27_PROPOSAL_MASK_READ_OK&#10;      publication_integration_test.go:240: V27_PROPOSAL_MASK_PIXELS_OK&#10;      publication_integration_test.go:253: V27_PROPOSAL_MANUAL_PERSON_DENIED_OK&#10;      publication_integration_test.go:266: V27_PROPOSAL_PERSON_EVIDENCE_OK&#10;      publication_integration_test.go:275: V27_PROPOSAL_PERSON_COVERAGE_OK&#10;      publication_integration_test.go:318: V27_PROTECTION_PREPARATION_RETAINED_PROOF_OK&#10;      publication_integration_test.go:325: V27_PERSON_COVERAGE_PROTECTION_PROOF_OK&#10;      publication_integration_test.go:344: V27_PROPOSAL_PERSON_COVERAGE_REPORT_RACE_OK&#10;      publication_integration_test.go:345: V27_PROPOSAL_PERSON_REPORT_REQUIRED_OK&#10;      publication_integration_test.go:346: V27_PROPOSAL_PERSON_MASK_READ_OK&#10;      publication_integration_test.go:351: V27_DEFECT_PERSON_PRODUCER_DENIED_OK&#10;      publication_integration_test.go:367: V27_DEFECT_CANONICAL_ORIGIN_OK&#10;      publication_integration_test.go:451: V27_DEFECT_ORIGINAL_EVIDENCE_OK&#10;      publication_integration_test.go:459: V27_DEFECT_LANDMARK_PERSON_DENIED_OK&#10;      publication_integration_test.go:460: V27_DEFECT_EMPTY_FACES_READ_OK&#10;      publication_integration_test.go:499: V27_DEFECT_FINISHED_ATTEMPT_BACKEND_REQUIRED_OK&#10;      publication_integration_test.go:532: V27_DEFECT_FACE_PROFILES_MATCH_REQUIRED_OK&#10;      publication_integration_test.go:588: V27_DEFECT_TRUSTED_FACE_QUALIFICATION_READ_OK&#10;      publication_integration_test.go:4188: V27_DEFECT_QUALIFIED_MULTI_COLLECTION_OK&#10;      publication_integration_test.go:4202: V27_DEFECT_FACE_QUALIFICATION_POLICY_DISABLED_DENIED_OK&#10;      publication_integration_test.go:4241: V27_DEFECT_FACE_QUALIFICATION_READ_REVOCATION_DENIED_OK&#10;      publication_integration_test.go:4275: V27_DEFECT_FACE_PARAMS_EXPIRY_CORRUPTION_DENIED_OK&#10;      publication_integration_test.go:4296: V27_DEFECT_DETECTION_ORIGIN_AND_READ_OK&#10;      publication_integration_test.go:4297: V27_DEFECT_DETECTION_EXPIRY_CORRUPTION_DENIED_OK&#10;      publication_integration_test.go:4309: V27_DEFECT_LANDMARK_CORRUPTION_DENIED_OK&#10;      publication_integration_test.go:4323: V27_DEFECT_NONEMPTY_FACES_READ_OK&#10;      publication_integration_test.go:4324: V27_DEFECT_LANDMARK_UNDECLARED_DENIED_OK&#10;      publication_integration_test.go:4325: V27_DEFECT_LANDMARK_READ_RACE_DENIED_OK&#10;      publication_integration_test.go:4335: V27_DEFECT_PERMANENT_COVERAGE_OK&#10;      publication_integration_test.go:4350: V27_DEFECT_CORRUPT_PIXELS_DENIED_OK&#10;      publication_integration_test.go:4367: V27_DEFECT_OBJECT_VERSION_IMMUTABLE_OK&#10;      publication_integration_test.go:4382: V27_DEFECT_PERMANENT_COVERAGE_RACE_DENIED_OK&#10;      publication_integration_test.go:4397: V27_DEFECT_REPORT_READ_RACE_DENIED_OK&#10;      publication_integration_test.go:4399: V27_PROPOSAL_PROTECTION_READ_OK&#10;      publication_integration_test.go:4412: V27_PROPOSAL_COVERAGE_REQUIRED_OK&#10;      publication_integration_test.go:4417: V27_PROPOSAL_MASK_SEPARATION_OK&#10;      publication_integration_test.go:4429: V27_PROPOSAL_PERSON_QUALIFICATION_SEPARATE_OK&#10;      publication_integration_test.go:4452: V27_PROPOSAL_PERSON_DISCOVERY_OK&#10;      publication_integration_test.go:4467: V27_PROPOSAL_PERSON_AMBIGUITY_OK&#10;      publication_integration_test.go:4476: person ambiguity during coverage accepted 0 multiple qualified person producers for source: V2 admission idempotency conflict true&#10;      publication_integration_test.go:95: V27_TEST_DURATION_SECONDS 3.668&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=transaction count=4268 total_seconds=0.074 max_seconds=0.000&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=tenant_authorization count=2134 total_seconds=0.088 max_seconds=0.002&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=defect_origin count=609 total_seconds=0.189 max_seconds=0.013&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=saved_config count=0 total_seconds=0.000 max_seconds=0.000&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=qualification count=88 total_seconds=0.019 max_seconds=0.002&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=catalog count=4114 total_seconds=1.642 max_seconds=0.053&#10;  --- FAIL: TestIntegrationProposalIntentPublication (3.67s)&#10;  FAIL&#10;  FAIL&#09;photoeditor/backend/internal/semanticproposal&#09;4.219s&#10;  FAIL&#10;  &#10;assert 1 == 0&#10; +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationProposalIntentPublication...oposalIntentPublication (3.67s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t4.219s\nFAIL\n', stderr='').returncode">tests/integration/test_v27_semantic_intent_publication.py:769: in test_semantic_intent_publication_old_version_and_replay
+    assert result.returncode==0,result.stdout+result.stderr
+E   AssertionError: === RUN   TestIntegrationProposalIntentPublication
+E         publication_integration_test.go:181: V27_PROPOSAL_SNAPSHOT_PUBLICATION_OK
+E         publication_integration_test.go:200: V27_PROPOSAL_SOURCE_READ_OK
+E         publication_integration_test.go:205: V27_PROPOSAL_SOURCE_PIXELS_OK
+E         publication_integration_test.go:229: V27_PROPOSAL_QUALIFIED_COLOR_OK
+E         publication_integration_test.go:235: V27_PROPOSAL_MASK_READ_OK
+E         publication_integration_test.go:240: V27_PROPOSAL_MASK_PIXELS_OK
+E         publication_integration_test.go:253: V27_PROPOSAL_MANUAL_PERSON_DENIED_OK
+E         publication_integration_test.go:266: V27_PROPOSAL_PERSON_EVIDENCE_OK
+E         publication_integration_test.go:275: V27_PROPOSAL_PERSON_COVERAGE_OK
+E         publication_integration_test.go:318: V27_PROTECTION_PREPARATION_RETAINED_PROOF_OK
+E         publication_integration_test.go:325: V27_PERSON_COVERAGE_PROTECTION_PROOF_OK
+E         publication_integration_test.go:344: V27_PROPOSAL_PERSON_COVERAGE_REPORT_RACE_OK
+E         publication_integration_test.go:345: V27_PROPOSAL_PERSON_REPORT_REQUIRED_OK
+E         publication_integration_test.go:346: V27_PROPOSAL_PERSON_MASK_READ_OK
+E         publication_integration_test.go:351: V27_DEFECT_PERSON_PRODUCER_DENIED_OK
+E         publication_integration_test.go:367: V27_DEFECT_CANONICAL_ORIGIN_OK
+E         publication_integration_test.go:451: V27_DEFECT_ORIGINAL_EVIDENCE_OK
+E         publication_integration_test.go:459: V27_DEFECT_LANDMARK_PERSON_DENIED_OK
+E         publication_integration_test.go:460: V27_DEFECT_EMPTY_FACES_READ_OK
+E         publication_integration_test.go:499: V27_DEFECT_FINISHED_ATTEMPT_BACKEND_REQUIRED_OK
+E         publication_integration_test.go:532: V27_DEFECT_FACE_PROFILES_MATCH_REQUIRED_OK
+E         publication_integration_test.go:588: V27_DEFECT_TRUSTED_FACE_QUALIFICATION_READ_OK
+E         publication_integration_test.go:4188: V27_DEFECT_QUALIFIED_MULTI_COLLECTION_OK
+E         publication_integration_test.go:4202: V27_DEFECT_FACE_QUALIFICATION_POLICY_DISABLED_DENIED_OK
+E         publication_integration_test.go:4241: V27_DEFECT_FACE_QUALIFICATION_READ_REVOCATION_DENIED_OK
+E         publication_integration_test.go:4275: V27_DEFECT_FACE_PARAMS_EXPIRY_CORRUPTION_DENIED_OK
+E         publication_integration_test.go:4296: V27_DEFECT_DETECTION_ORIGIN_AND_READ_OK
+E         publication_integration_test.go:4297: V27_DEFECT_DETECTION_EXPIRY_CORRUPTION_DENIED_OK
+E         publication_integration_test.go:4309: V27_DEFECT_LANDMARK_CORRUPTION_DENIED_OK
+E         publication_integration_test.go:4323: V27_DEFECT_NONEMPTY_FACES_READ_OK
+E         publication_integration_test.go:4324: V27_DEFECT_LANDMARK_UNDECLARED_DENIED_OK
+E         publication_integration_test.go:4325: V27_DEFECT_LANDMARK_READ_RACE_DENIED_OK
+E         publication_integration_test.go:4335: V27_DEFECT_PERMANENT_COVERAGE_OK
+E         publication_integration_test.go:4350: V27_DEFECT_CORRUPT_PIXELS_DENIED_OK
+E         publication_integration_test.go:4367: V27_DEFECT_OBJECT_VERSION_IMMUTABLE_OK
+E         publication_integration_test.go:4382: V27_DEFECT_PERMANENT_COVERAGE_RACE_DENIED_OK
+E         publication_integration_test.go:4397: V27_DEFECT_REPORT_READ_RACE_DENIED_OK
+E         publication_integration_test.go:4399: V27_PROPOSAL_PROTECTION_READ_OK
+E         publication_integration_test.go:4412: V27_PROPOSAL_COVERAGE_REQUIRED_OK
+E         publication_integration_test.go:4417: V27_PROPOSAL_MASK_SEPARATION_OK
+E         publication_integration_test.go:4429: V27_PROPOSAL_PERSON_QUALIFICATION_SEPARATE_OK
+E         publication_integration_test.go:4452: V27_PROPOSAL_PERSON_DISCOVERY_OK
+E         publication_integration_test.go:4467: V27_PROPOSAL_PERSON_AMBIGUITY_OK
+E         publication_integration_test.go:4476: person ambiguity during coverage accepted 0 multiple qualified person producers for source: V2 admission idempotency conflict true
+E         publication_integration_test.go:95: V27_TEST_DURATION_SECONDS 3.668
+E         publication_integration_test.go:96: V27_SQL_TIMING group=transaction count=4268 total_seconds=0.074 max_seconds=0.000
+E         publication_integration_test.go:96: V27_SQL_TIMING group=tenant_authorization count=2134 total_seconds=0.088 max_seconds=0.002
+E         publication_integration_test.go:96: V27_SQL_TIMING group=defect_origin count=609 total_seconds=0.189 max_seconds=0.013
+E         publication_integration_test.go:96: V27_SQL_TIMING group=saved_config count=0 total_seconds=0.000 max_seconds=0.000
+E         publication_integration_test.go:96: V27_SQL_TIMING group=qualification count=88 total_seconds=0.019 max_seconds=0.002
+E         publication_integration_test.go:96: V27_SQL_TIMING group=catalog count=4114 total_seconds=1.642 max_seconds=0.053
+E     --- FAIL: TestIntegrationProposalIntentPublication (3.67s)
+E     FAIL
+E     FAIL	photoeditor/backend/internal/semanticproposal	4.219s
+E     FAIL
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationProposalIntentPublication...oposalIntentPublication (3.67s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t4.219s\nFAIL\n', stderr='').returncode</failure></testcase><testcase classname="tests.integration.test_v27_semantic_intent_publication" name="test_semantic_intent_publication_old_version_and_replay[create-person]" time="6.471"><failure message="AssertionError: === RUN   TestIntegrationProposalIntentPublication&#10;      publication_integration_test.go:181: V27_PROPOSAL_SNAPSHOT_PUBLICATION_OK&#10;      publication_integration_test.go:200: V27_PROPOSAL_SOURCE_READ_OK&#10;      publication_integration_test.go:205: V27_PROPOSAL_SOURCE_PIXELS_OK&#10;      publication_integration_test.go:229: V27_PROPOSAL_QUALIFIED_COLOR_OK&#10;      publication_integration_test.go:235: V27_PROPOSAL_MASK_READ_OK&#10;      publication_integration_test.go:240: V27_PROPOSAL_MASK_PIXELS_OK&#10;      publication_integration_test.go:253: V27_PROPOSAL_MANUAL_PERSON_DENIED_OK&#10;      publication_integration_test.go:266: V27_PROPOSAL_PERSON_EVIDENCE_OK&#10;      publication_integration_test.go:275: V27_PROPOSAL_PERSON_COVERAGE_OK&#10;      publication_integration_test.go:318: V27_PROTECTION_PREPARATION_RETAINED_PROOF_OK&#10;      publication_integration_test.go:325: V27_PERSON_COVERAGE_PROTECTION_PROOF_OK&#10;      publication_integration_test.go:344: V27_PROPOSAL_PERSON_COVERAGE_REPORT_RACE_OK&#10;      publication_integration_test.go:345: V27_PROPOSAL_PERSON_REPORT_REQUIRED_OK&#10;      publication_integration_test.go:346: V27_PROPOSAL_PERSON_MASK_READ_OK&#10;      publication_integration_test.go:351: V27_DEFECT_PERSON_PRODUCER_DENIED_OK&#10;      publication_integration_test.go:367: V27_DEFECT_CANONICAL_ORIGIN_OK&#10;      publication_integration_test.go:451: V27_DEFECT_ORIGINAL_EVIDENCE_OK&#10;      publication_integration_test.go:459: V27_DEFECT_LANDMARK_PERSON_DENIED_OK&#10;      publication_integration_test.go:460: V27_DEFECT_EMPTY_FACES_READ_OK&#10;      publication_integration_test.go:499: V27_DEFECT_FINISHED_ATTEMPT_BACKEND_REQUIRED_OK&#10;      publication_integration_test.go:532: V27_DEFECT_FACE_PROFILES_MATCH_REQUIRED_OK&#10;      publication_integration_test.go:588: V27_DEFECT_TRUSTED_FACE_QUALIFICATION_READ_OK&#10;      publication_integration_test.go:4188: V27_DEFECT_QUALIFIED_MULTI_COLLECTION_OK&#10;      publication_integration_test.go:4202: V27_DEFECT_FACE_QUALIFICATION_POLICY_DISABLED_DENIED_OK&#10;      publication_integration_test.go:4241: V27_DEFECT_FACE_QUALIFICATION_READ_REVOCATION_DENIED_OK&#10;      publication_integration_test.go:4275: V27_DEFECT_FACE_PARAMS_EXPIRY_CORRUPTION_DENIED_OK&#10;      publication_integration_test.go:4296: V27_DEFECT_DETECTION_ORIGIN_AND_READ_OK&#10;      publication_integration_test.go:4297: V27_DEFECT_DETECTION_EXPIRY_CORRUPTION_DENIED_OK&#10;      publication_integration_test.go:4309: V27_DEFECT_LANDMARK_CORRUPTION_DENIED_OK&#10;      publication_integration_test.go:4323: V27_DEFECT_NONEMPTY_FACES_READ_OK&#10;      publication_integration_test.go:4324: V27_DEFECT_LANDMARK_UNDECLARED_DENIED_OK&#10;      publication_integration_test.go:4325: V27_DEFECT_LANDMARK_READ_RACE_DENIED_OK&#10;      publication_integration_test.go:4335: V27_DEFECT_PERMANENT_COVERAGE_OK&#10;      publication_integration_test.go:4350: V27_DEFECT_CORRUPT_PIXELS_DENIED_OK&#10;      publication_integration_test.go:4367: V27_DEFECT_OBJECT_VERSION_IMMUTABLE_OK&#10;      publication_integration_test.go:4382: V27_DEFECT_PERMANENT_COVERAGE_RACE_DENIED_OK&#10;      publication_integration_test.go:4397: V27_DEFECT_REPORT_READ_RACE_DENIED_OK&#10;      publication_integration_test.go:4399: V27_PROPOSAL_PROTECTION_READ_OK&#10;      publication_integration_test.go:4412: V27_PROPOSAL_COVERAGE_REQUIRED_OK&#10;      publication_integration_test.go:4417: V27_PROPOSAL_MASK_SEPARATION_OK&#10;      publication_integration_test.go:4429: V27_PROPOSAL_PERSON_QUALIFICATION_SEPARATE_OK&#10;      publication_integration_test.go:4452: V27_PROPOSAL_PERSON_DISCOVERY_OK&#10;      publication_integration_test.go:4467: V27_PROPOSAL_PERSON_AMBIGUITY_OK&#10;      publication_integration_test.go:4476: person ambiguity during coverage accepted 0 multiple qualified person producers for source: V2 admission idempotency conflict true&#10;      publication_integration_test.go:95: V27_TEST_DURATION_SECONDS 3.777&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=transaction count=4372 total_seconds=0.080 max_seconds=0.000&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=tenant_authorization count=2186 total_seconds=0.094 max_seconds=0.002&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=defect_origin count=615 total_seconds=0.189 max_seconds=0.012&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=saved_config count=0 total_seconds=0.000 max_seconds=0.000&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=qualification count=92 total_seconds=0.020 max_seconds=0.002&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=catalog count=4208 total_seconds=1.706 max_seconds=0.053&#10;  --- FAIL: TestIntegrationProposalIntentPublication (3.78s)&#10;  FAIL&#10;  FAIL&#09;photoeditor/backend/internal/semanticproposal&#09;4.355s&#10;  FAIL&#10;  &#10;assert 1 == 0&#10; +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationProposalIntentPublication...oposalIntentPublication (3.78s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t4.355s\nFAIL\n', stderr='').returncode">tests/integration/test_v27_semantic_intent_publication.py:769: in test_semantic_intent_publication_old_version_and_replay
+    assert result.returncode==0,result.stdout+result.stderr
+E   AssertionError: === RUN   TestIntegrationProposalIntentPublication
+E         publication_integration_test.go:181: V27_PROPOSAL_SNAPSHOT_PUBLICATION_OK
+E         publication_integration_test.go:200: V27_PROPOSAL_SOURCE_READ_OK
+E         publication_integration_test.go:205: V27_PROPOSAL_SOURCE_PIXELS_OK
+E         publication_integration_test.go:229: V27_PROPOSAL_QUALIFIED_COLOR_OK
+E         publication_integration_test.go:235: V27_PROPOSAL_MASK_READ_OK
+E         publication_integration_test.go:240: V27_PROPOSAL_MASK_PIXELS_OK
+E         publication_integration_test.go:253: V27_PROPOSAL_MANUAL_PERSON_DENIED_OK
+E         publication_integration_test.go:266: V27_PROPOSAL_PERSON_EVIDENCE_OK
+E         publication_integration_test.go:275: V27_PROPOSAL_PERSON_COVERAGE_OK
+E         publication_integration_test.go:318: V27_PROTECTION_PREPARATION_RETAINED_PROOF_OK
+E         publication_integration_test.go:325: V27_PERSON_COVERAGE_PROTECTION_PROOF_OK
+E         publication_integration_test.go:344: V27_PROPOSAL_PERSON_COVERAGE_REPORT_RACE_OK
+E         publication_integration_test.go:345: V27_PROPOSAL_PERSON_REPORT_REQUIRED_OK
+E         publication_integration_test.go:346: V27_PROPOSAL_PERSON_MASK_READ_OK
+E         publication_integration_test.go:351: V27_DEFECT_PERSON_PRODUCER_DENIED_OK
+E         publication_integration_test.go:367: V27_DEFECT_CANONICAL_ORIGIN_OK
+E         publication_integration_test.go:451: V27_DEFECT_ORIGINAL_EVIDENCE_OK
+E         publication_integration_test.go:459: V27_DEFECT_LANDMARK_PERSON_DENIED_OK
+E         publication_integration_test.go:460: V27_DEFECT_EMPTY_FACES_READ_OK
+E         publication_integration_test.go:499: V27_DEFECT_FINISHED_ATTEMPT_BACKEND_REQUIRED_OK
+E         publication_integration_test.go:532: V27_DEFECT_FACE_PROFILES_MATCH_REQUIRED_OK
+E         publication_integration_test.go:588: V27_DEFECT_TRUSTED_FACE_QUALIFICATION_READ_OK
+E         publication_integration_test.go:4188: V27_DEFECT_QUALIFIED_MULTI_COLLECTION_OK
+E         publication_integration_test.go:4202: V27_DEFECT_FACE_QUALIFICATION_POLICY_DISABLED_DENIED_OK
+E         publication_integration_test.go:4241: V27_DEFECT_FACE_QUALIFICATION_READ_REVOCATION_DENIED_OK
+E         publication_integration_test.go:4275: V27_DEFECT_FACE_PARAMS_EXPIRY_CORRUPTION_DENIED_OK
+E         publication_integration_test.go:4296: V27_DEFECT_DETECTION_ORIGIN_AND_READ_OK
+E         publication_integration_test.go:4297: V27_DEFECT_DETECTION_EXPIRY_CORRUPTION_DENIED_OK
+E         publication_integration_test.go:4309: V27_DEFECT_LANDMARK_CORRUPTION_DENIED_OK
+E         publication_integration_test.go:4323: V27_DEFECT_NONEMPTY_FACES_READ_OK
+E         publication_integration_test.go:4324: V27_DEFECT_LANDMARK_UNDECLARED_DENIED_OK
+E         publication_integration_test.go:4325: V27_DEFECT_LANDMARK_READ_RACE_DENIED_OK
+E         publication_integration_test.go:4335: V27_DEFECT_PERMANENT_COVERAGE_OK
+E         publication_integration_test.go:4350: V27_DEFECT_CORRUPT_PIXELS_DENIED_OK
+E         publication_integration_test.go:4367: V27_DEFECT_OBJECT_VERSION_IMMUTABLE_OK
+E         publication_integration_test.go:4382: V27_DEFECT_PERMANENT_COVERAGE_RACE_DENIED_OK
+E         publication_integration_test.go:4397: V27_DEFECT_REPORT_READ_RACE_DENIED_OK
+E         publication_integration_test.go:4399: V27_PROPOSAL_PROTECTION_READ_OK
+E         publication_integration_test.go:4412: V27_PROPOSAL_COVERAGE_REQUIRED_OK
+E         publication_integration_test.go:4417: V27_PROPOSAL_MASK_SEPARATION_OK
+E         publication_integration_test.go:4429: V27_PROPOSAL_PERSON_QUALIFICATION_SEPARATE_OK
+E         publication_integration_test.go:4452: V27_PROPOSAL_PERSON_DISCOVERY_OK
+E         publication_integration_test.go:4467: V27_PROPOSAL_PERSON_AMBIGUITY_OK
+E         publication_integration_test.go:4476: person ambiguity during coverage accepted 0 multiple qualified person producers for source: V2 admission idempotency conflict true
+E         publication_integration_test.go:95: V27_TEST_DURATION_SECONDS 3.777
+E         publication_integration_test.go:96: V27_SQL_TIMING group=transaction count=4372 total_seconds=0.080 max_seconds=0.000
+E         publication_integration_test.go:96: V27_SQL_TIMING group=tenant_authorization count=2186 total_seconds=0.094 max_seconds=0.002
+E         publication_integration_test.go:96: V27_SQL_TIMING group=defect_origin count=615 total_seconds=0.189 max_seconds=0.012
+E         publication_integration_test.go:96: V27_SQL_TIMING group=saved_config count=0 total_seconds=0.000 max_seconds=0.000
+E         publication_integration_test.go:96: V27_SQL_TIMING group=qualification count=92 total_seconds=0.020 max_seconds=0.002
+E         publication_integration_test.go:96: V27_SQL_TIMING group=catalog count=4208 total_seconds=1.706 max_seconds=0.053
+E     --- FAIL: TestIntegrationProposalIntentPublication (3.78s)
+E     FAIL
+E     FAIL	photoeditor/backend/internal/semanticproposal	4.355s
+E     FAIL
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationProposalIntentPublication...oposalIntentPublication (3.78s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t4.355s\nFAIL\n', stderr='').returncode</failure></testcase><testcase classname="tests.integration.test_v27_semantic_intent_publication" name="test_semantic_intent_publication_old_version_and_replay[create-person-uncovered]" time="6.418"><failure message="AssertionError: === RUN   TestIntegrationProposalIntentPublication&#10;      publication_integration_test.go:181: V27_PROPOSAL_SNAPSHOT_PUBLICATION_OK&#10;      publication_integration_test.go:200: V27_PROPOSAL_SOURCE_READ_OK&#10;      publication_integration_test.go:205: V27_PROPOSAL_SOURCE_PIXELS_OK&#10;      publication_integration_test.go:229: V27_PROPOSAL_QUALIFIED_COLOR_OK&#10;      publication_integration_test.go:235: V27_PROPOSAL_MASK_READ_OK&#10;      publication_integration_test.go:240: V27_PROPOSAL_MASK_PIXELS_OK&#10;      publication_integration_test.go:253: V27_PROPOSAL_MANUAL_PERSON_DENIED_OK&#10;      publication_integration_test.go:266: V27_PROPOSAL_PERSON_EVIDENCE_OK&#10;      publication_integration_test.go:275: V27_PROPOSAL_PERSON_COVERAGE_OK&#10;      publication_integration_test.go:318: V27_PROTECTION_PREPARATION_RETAINED_PROOF_OK&#10;      publication_integration_test.go:325: V27_PERSON_COVERAGE_PROTECTION_PROOF_OK&#10;      publication_integration_test.go:344: V27_PROPOSAL_PERSON_COVERAGE_REPORT_RACE_OK&#10;      publication_integration_test.go:345: V27_PROPOSAL_PERSON_REPORT_REQUIRED_OK&#10;      publication_integration_test.go:346: V27_PROPOSAL_PERSON_MASK_READ_OK&#10;      publication_integration_test.go:351: V27_DEFECT_PERSON_PRODUCER_DENIED_OK&#10;      publication_integration_test.go:367: V27_DEFECT_CANONICAL_ORIGIN_OK&#10;      publication_integration_test.go:451: V27_DEFECT_ORIGINAL_EVIDENCE_OK&#10;      publication_integration_test.go:459: V27_DEFECT_LANDMARK_PERSON_DENIED_OK&#10;      publication_integration_test.go:460: V27_DEFECT_EMPTY_FACES_READ_OK&#10;      publication_integration_test.go:499: V27_DEFECT_FINISHED_ATTEMPT_BACKEND_REQUIRED_OK&#10;      publication_integration_test.go:532: V27_DEFECT_FACE_PROFILES_MATCH_REQUIRED_OK&#10;      publication_integration_test.go:588: V27_DEFECT_TRUSTED_FACE_QUALIFICATION_READ_OK&#10;      publication_integration_test.go:4188: V27_DEFECT_QUALIFIED_MULTI_COLLECTION_OK&#10;      publication_integration_test.go:4202: V27_DEFECT_FACE_QUALIFICATION_POLICY_DISABLED_DENIED_OK&#10;      publication_integration_test.go:4241: V27_DEFECT_FACE_QUALIFICATION_READ_REVOCATION_DENIED_OK&#10;      publication_integration_test.go:4275: V27_DEFECT_FACE_PARAMS_EXPIRY_CORRUPTION_DENIED_OK&#10;      publication_integration_test.go:4296: V27_DEFECT_DETECTION_ORIGIN_AND_READ_OK&#10;      publication_integration_test.go:4297: V27_DEFECT_DETECTION_EXPIRY_CORRUPTION_DENIED_OK&#10;      publication_integration_test.go:4309: V27_DEFECT_LANDMARK_CORRUPTION_DENIED_OK&#10;      publication_integration_test.go:4323: V27_DEFECT_NONEMPTY_FACES_READ_OK&#10;      publication_integration_test.go:4324: V27_DEFECT_LANDMARK_UNDECLARED_DENIED_OK&#10;      publication_integration_test.go:4325: V27_DEFECT_LANDMARK_READ_RACE_DENIED_OK&#10;      publication_integration_test.go:4335: V27_DEFECT_PERMANENT_COVERAGE_OK&#10;      publication_integration_test.go:4350: V27_DEFECT_CORRUPT_PIXELS_DENIED_OK&#10;      publication_integration_test.go:4367: V27_DEFECT_OBJECT_VERSION_IMMUTABLE_OK&#10;      publication_integration_test.go:4382: V27_DEFECT_PERMANENT_COVERAGE_RACE_DENIED_OK&#10;      publication_integration_test.go:4397: V27_DEFECT_REPORT_READ_RACE_DENIED_OK&#10;      publication_integration_test.go:4399: V27_PROPOSAL_PROTECTION_READ_OK&#10;      publication_integration_test.go:4412: V27_PROPOSAL_COVERAGE_REQUIRED_OK&#10;      publication_integration_test.go:4417: V27_PROPOSAL_MASK_SEPARATION_OK&#10;      publication_integration_test.go:4429: V27_PROPOSAL_PERSON_QUALIFICATION_SEPARATE_OK&#10;      publication_integration_test.go:4452: V27_PROPOSAL_PERSON_DISCOVERY_OK&#10;      publication_integration_test.go:4467: V27_PROPOSAL_PERSON_AMBIGUITY_OK&#10;      publication_integration_test.go:4476: person ambiguity during coverage accepted 0 multiple qualified person producers for source: V2 admission idempotency conflict true&#10;      publication_integration_test.go:95: V27_TEST_DURATION_SECONDS 3.728&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=transaction count=4372 total_seconds=0.079 max_seconds=0.001&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=tenant_authorization count=2186 total_seconds=0.090 max_seconds=0.002&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=defect_origin count=615 total_seconds=0.188 max_seconds=0.013&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=saved_config count=0 total_seconds=0.000 max_seconds=0.000&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=qualification count=92 total_seconds=0.020 max_seconds=0.002&#10;      publication_integration_test.go:96: V27_SQL_TIMING group=catalog count=4208 total_seconds=1.672 max_seconds=0.053&#10;  --- FAIL: TestIntegrationProposalIntentPublication (3.73s)&#10;  FAIL&#10;  FAIL&#09;photoeditor/backend/internal/semanticproposal&#09;4.286s&#10;  FAIL&#10;  &#10;assert 1 == 0&#10; +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationProposalIntentPublication...oposalIntentPublication (3.73s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t4.286s\nFAIL\n', stderr='').returncode">tests/integration/test_v27_semantic_intent_publication.py:769: in test_semantic_intent_publication_old_version_and_replay
+    assert result.returncode==0,result.stdout+result.stderr
+E   AssertionError: === RUN   TestIntegrationProposalIntentPublication
+E         publication_integration_test.go:181: V27_PROPOSAL_SNAPSHOT_PUBLICATION_OK
+E         publication_integration_test.go:200: V27_PROPOSAL_SOURCE_READ_OK
+E         publication_integration_test.go:205: V27_PROPOSAL_SOURCE_PIXELS_OK
+E         publication_integration_test.go:229: V27_PROPOSAL_QUALIFIED_COLOR_OK
+E         publication_integration_test.go:235: V27_PROPOSAL_MASK_READ_OK
+E         publication_integration_test.go:240: V27_PROPOSAL_MASK_PIXELS_OK
+E         publication_integration_test.go:253: V27_PROPOSAL_MANUAL_PERSON_DENIED_OK
+E         publication_integration_test.go:266: V27_PROPOSAL_PERSON_EVIDENCE_OK
+E         publication_integration_test.go:275: V27_PROPOSAL_PERSON_COVERAGE_OK
+E         publication_integration_test.go:318: V27_PROTECTION_PREPARATION_RETAINED_PROOF_OK
+E         publication_integration_test.go:325: V27_PERSON_COVERAGE_PROTECTION_PROOF_OK
+E         publication_integration_test.go:344: V27_PROPOSAL_PERSON_COVERAGE_REPORT_RACE_OK
+E         publication_integration_test.go:345: V27_PROPOSAL_PERSON_REPORT_REQUIRED_OK
+E         publication_integration_test.go:346: V27_PROPOSAL_PERSON_MASK_READ_OK
+E         publication_integration_test.go:351: V27_DEFECT_PERSON_PRODUCER_DENIED_OK
+E         publication_integration_test.go:367: V27_DEFECT_CANONICAL_ORIGIN_OK
+E         publication_integration_test.go:451: V27_DEFECT_ORIGINAL_EVIDENCE_OK
+E         publication_integration_test.go:459: V27_DEFECT_LANDMARK_PERSON_DENIED_OK
+E         publication_integration_test.go:460: V27_DEFECT_EMPTY_FACES_READ_OK
+E         publication_integration_test.go:499: V27_DEFECT_FINISHED_ATTEMPT_BACKEND_REQUIRED_OK
+E         publication_integration_test.go:532: V27_DEFECT_FACE_PROFILES_MATCH_REQUIRED_OK
+E         publication_integration_test.go:588: V27_DEFECT_TRUSTED_FACE_QUALIFICATION_READ_OK
+E         publication_integration_test.go:4188: V27_DEFECT_QUALIFIED_MULTI_COLLECTION_OK
+E         publication_integration_test.go:4202: V27_DEFECT_FACE_QUALIFICATION_POLICY_DISABLED_DENIED_OK
+E         publication_integration_test.go:4241: V27_DEFECT_FACE_QUALIFICATION_READ_REVOCATION_DENIED_OK
+E         publication_integration_test.go:4275: V27_DEFECT_FACE_PARAMS_EXPIRY_CORRUPTION_DENIED_OK
+E         publication_integration_test.go:4296: V27_DEFECT_DETECTION_ORIGIN_AND_READ_OK
+E         publication_integration_test.go:4297: V27_DEFECT_DETECTION_EXPIRY_CORRUPTION_DENIED_OK
+E         publication_integration_test.go:4309: V27_DEFECT_LANDMARK_CORRUPTION_DENIED_OK
+E         publication_integration_test.go:4323: V27_DEFECT_NONEMPTY_FACES_READ_OK
+E         publication_integration_test.go:4324: V27_DEFECT_LANDMARK_UNDECLARED_DENIED_OK
+E         publication_integration_test.go:4325: V27_DEFECT_LANDMARK_READ_RACE_DENIED_OK
+E         publication_integration_test.go:4335: V27_DEFECT_PERMANENT_COVERAGE_OK
+E         publication_integration_test.go:4350: V27_DEFECT_CORRUPT_PIXELS_DENIED_OK
+E         publication_integration_test.go:4367: V27_DEFECT_OBJECT_VERSION_IMMUTABLE_OK
+E         publication_integration_test.go:4382: V27_DEFECT_PERMANENT_COVERAGE_RACE_DENIED_OK
+E         publication_integration_test.go:4397: V27_DEFECT_REPORT_READ_RACE_DENIED_OK
+E         publication_integration_test.go:4399: V27_PROPOSAL_PROTECTION_READ_OK
+E         publication_integration_test.go:4412: V27_PROPOSAL_COVERAGE_REQUIRED_OK
+E         publication_integration_test.go:4417: V27_PROPOSAL_MASK_SEPARATION_OK
+E         publication_integration_test.go:4429: V27_PROPOSAL_PERSON_QUALIFICATION_SEPARATE_OK
+E         publication_integration_test.go:4452: V27_PROPOSAL_PERSON_DISCOVERY_OK
+E         publication_integration_test.go:4467: V27_PROPOSAL_PERSON_AMBIGUITY_OK
+E         publication_integration_test.go:4476: person ambiguity during coverage accepted 0 multiple qualified person producers for source: V2 admission idempotency conflict true
+E         publication_integration_test.go:95: V27_TEST_DURATION_SECONDS 3.728
+E         publication_integration_test.go:96: V27_SQL_TIMING group=transaction count=4372 total_seconds=0.079 max_seconds=0.001
+E         publication_integration_test.go:96: V27_SQL_TIMING group=tenant_authorization count=2186 total_seconds=0.090 max_seconds=0.002
+E         publication_integration_test.go:96: V27_SQL_TIMING group=defect_origin count=615 total_seconds=0.188 max_seconds=0.013
+E         publication_integration_test.go:96: V27_SQL_TIMING group=saved_config count=0 total_seconds=0.000 max_seconds=0.000
+E         publication_integration_test.go:96: V27_SQL_TIMING group=qualification count=92 total_seconds=0.020 max_seconds=0.002
+E         publication_integration_test.go:96: V27_SQL_TIMING group=catalog count=4208 total_seconds=1.672 max_seconds=0.053
+E     --- FAIL: TestIntegrationProposalIntentPublication (3.73s)
+E     FAIL
+E     FAIL	photoeditor/backend/internal/semanticproposal	4.286s
+E     FAIL
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationProposalIntentPublication...oposalIntentPublication (3.73s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t4.286s\nFAIL\n', stderr='').returncode</failure></testcase><testcase classname="tests.integration.test_v27_semantic_intent_publication" name="test_semantic_intent_publication_old_version_and_replay[native-person-defect-recovery]" time="18.799" /><testcase classname="tests.integration.test_v27_semantic_intent_publication" name="test_semantic_intent_publication_old_version_and_replay[native-person-defect-wire]" time="33.747" /></testsuite></testsuites>

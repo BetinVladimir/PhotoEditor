@@ -69,7 +69,7 @@ func TestRepairDocumentPythonParityAndDeclaredInputs(t *testing.T) {
 	}
 }
 func TestRepairDocumentRejectsUnboundSelections(t *testing.T) {
-	for _, variant := range []string{"sha", "proposal", "unknown", "duplicate", "conflict", "empty", "mask", "geometry", "colliding-ref"} {
+	for _, variant := range []string{"sha", "proposal", "unknown", "duplicate", "conflict", "empty", "mask", "geometry", "colliding-ref", "nil-rejected", "revision-one", "revision-overflow", "invalid-id"} {
 		t.Run(variant, func(t *testing.T) {
 			p, s, r, resolved, mask, _ := repairFixture(t)
 			switch variant {
@@ -89,6 +89,14 @@ func TestRepairDocumentRejectsUnboundSelections(t *testing.T) {
 				mask.Protected = false
 			case "geometry":
 				mask.Canvas.Width++
+   case "nil-rejected":
+    s.Rejected = nil
+   case "revision-one":
+    s.Revision = 1
+   case "revision-overflow":
+    s.Revision = maxRevision+1
+   case "invalid-id":
+    s.Accepted = []string{"not-a-hash"}
 			case "colliding-ref":
 				resolved.ID = p.ref.ID
 			}

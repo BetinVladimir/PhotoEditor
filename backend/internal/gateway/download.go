@@ -2,6 +2,8 @@ package gateway
 
 import (
 	"context"
+ "crypto/sha256"
+ "encoding/hex"
 	"crypto/x509"
 	"errors"
 	"github.com/google/uuid"
@@ -72,6 +74,11 @@ func (h *HTTP) download(w http.ResponseWriter, r *http.Request) {
 		gatewayError(w, 413, "DISK_QUOTA")
 		return
 	}
+ // A metadata version digest must never certify an absent/null version.
+ if object.VersionID == "" || object.VersionID == "null" || object.ContentType == "" {
+  downloadError(w, objectstore.ErrIntegrity)
+  return
+ }
 	status := http.StatusOK
 	length := object.Bytes
 	var body io.ReadCloser
@@ -107,6 +114,10 @@ func (h *HTTP) download(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("X-Photo-SHA256", object.SHA256)
 	w.Header().Set("X-Photo-Artifact-ID", artifact.String())
+ // Expose immutable metadata without disclosing storage keys or version IDs.
+ w.Header().Set("X-Photo-Media-Type", object.ContentType)
+ versionDigest := sha256.Sum256([]byte(object.VersionID))
+ w.Header().Set("X-Photo-Object-Version-SHA256", hex.EncodeToString(versionDigest[:]))
 	w.Header().Set("Accept-Ranges", "bytes")
 	// Revalidate live DB state while streaming, without keeping a SQL transaction
 	// open over network IO. Token expiry gates new requests; the DB lease gates this stream.

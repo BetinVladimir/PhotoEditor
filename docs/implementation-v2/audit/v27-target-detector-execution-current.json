@@ -1,0 +1,88 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "generated_at": "2026-10-08T15:56:54.155123+00:00",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "source_scope": {
+    "backend/db/migrations/00926_v27_target_detector_worker_start.sql": "8b5a896ac9125e077064c3f6d870a5230db4ee961ead414eee5f1b8747cf8ea4",
+    "backend/db/migrations/00927_v27_target_detector_canonical_outputs.sql": "4582950d3f63903dabbe3e648287b7037393d35e30a65a63ba97f5cb546ef6ec",
+    "backend/internal/semanticproposal/native_target_detector_wire_probe_test.go": "a66b6994dcf60188233e65be0e79553ba1a560dca696de99691cd0fffef457ad",
+    "tests/integration/test_v27_person_migration_upgrade.py": "52a7f95468dd6056f9e0209e363d42cb1bce30bcf1670f85b30ed4dfad2f7c2e",
+    "tests/integration/test_v27_semantic_intent_publication.py": "02b86072aafdc3038c9ae544511920b8c168bc364a7907009bcb43794089f3d8",
+    "tests/integration/v27_face_wire_probe.py": "8c1f902d69cfabbf8bfcd05fbc7e3c508f52c7fdbe7a57eb682e3b71ebc9189a"
+  },
+  "checks": [
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-detector-execution-sql-current.xml",
+      "sha256": "7076cb2301c1be3aabf1f5e2ac591187ded0c62cd534aee1f864326b15708e9d",
+      "exit_code": 0,
+      "tests": 21,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "seconds": 24.464
+    },
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-detector-execution-wire-current.xml",
+      "sha256": "9e66dfc3b7c35c36d354a5c22b8f428eb87f5d7e2e91747bb3a6367492d07bc5",
+      "exit_code": 0,
+      "tests": 1,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "seconds": 52.398
+    },
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-detector-execution-go-current.jsonl",
+      "sha256": "51384e526986adc445e088e328c8b8ba31a3486b75a47c43e164f5b626863a5a",
+      "exit_code": 0,
+      "packages_passed": [
+        "photoeditor/backend/internal/gateway",
+        "photoeditor/backend/internal/review",
+        "photoeditor/backend/internal/v2input",
+        "photoeditor/backend/internal/semanticproposal"
+      ]
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "requirements": [
+    {
+      "id": "target-detector-qualified-fenced-claim-and-atomic-run-start",
+      "status": "physical_fixture_verified"
+    },
+    {
+      "id": "target-detector-real-mTLS-adapter-immutable-output-commit-and-replay",
+      "status": "physical_fixture_verified"
+    },
+    {
+      "id": "wrong-attempt-fence-SHA-input-substitution-and-output-cardinality-refusals",
+      "status": "physical_fixture_verified"
+    },
+    {
+      "id": "task-resource-release-and-seal-replay-after-canonical-commit",
+      "status": "physical_fixture_verified"
+    },
+    {
+      "id": "00899-00927-upgrade-data-function-identity-owner-ACL-preservation",
+      "status": "sql_verified"
+    },
+    {
+      "id": "target-detector-result-reader-consumer-finalization-and-recovery",
+      "status": "not_implemented"
+    },
+    {
+      "id": "whole-V27",
+      "status": "not_accepted"
+    }
+  ],
+  "limitations": [
+    "Target task succeeded/canonical but target run remains running until dedicated producer finalization",
+    "Physical target result discovery/consumer locks, completed lifecycle and automatic saved recovery/advance still required",
+    "Deterministic ML double/shared immutable WorkingImage; no actual GPU/photo-quality qualification",
+    "No full Recover/ProcessOne cold-restart, parallel/cancel/purge/browser/5000-target/capacity or whole-module acceptance",
+    "Only isolated databases migrated; production DB unchanged"
+  ]
+}

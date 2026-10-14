@@ -117,3 +117,22 @@ def test_cancel_removes_blur_output(tmp_path):
         with pytest.raises(RuntimeError, match="cancelled"):
             execute(ctx, artifacts)
         assert not list(scratch.directory.iterdir()) and not artifacts.uploads
+
+
+def test_prepared_blur_matches_full_frame_across_tile_boundaries(tmp_path):
+    from photo_worker.operations.background.prepare_blur import prepare_blur
+    height,width=273,519
+    rng=np.random.default_rng(17)
+    rgb=rng.random((height,width,3),dtype=np.float32)
+    subject=np.zeros((height,width),np.float32);subject[90:190,230:290]=1
+    depth=np.broadcast_to(np.linspace(0,1,width,dtype=np.float32),(height,width)).copy()
+    subject_depth=float(np.sum(depth[subject>=.5],dtype=np.float64))/int(np.count_nonzero(subject>=.5))
+    radii=depth_layer_radii(max(height,width),.7,subject_depth)
+    expected=blur_background_tile(rgb,subject,depth,radii,(slice(None),slice(None)))
+    with ScratchSpace(tmp_path,uuid4(),uuid4(),1,4_000_000,min_free_bytes=0) as scratch:
+        with prepare_blur(rgb,subject,depth,scratch,strength=.7,tile=256) as prepared:
+            path=prepared.rgb
+            np.testing.assert_allclose(np.load(path),expected,atol=3e-6,rtol=0)
+            assert prepared.radii==radii
+            assert prepared.subject_depth==subject_depth
+        assert not path.exists()

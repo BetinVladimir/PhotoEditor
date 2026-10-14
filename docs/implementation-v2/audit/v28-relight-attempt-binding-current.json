@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 relight complete command identity within admission",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "tests": {
+    "passed": 70,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 2.2,
+    "xml": "v28-relight-attempt-binding-current.xml"
+  },
+  "source_sha256": {
+    "workers/photo_worker/operations/portrait/relight_admission.py": "0a68845d12c2e4155a9712e3b65f6627ace2616fed0ae39c6253598036dab3e9",
+    "tests/platform/test_relight_admission.py": "5fd10374ba4efaa0e94329cf1df4e27db5e65df9f01eaf8de17788789870298e"
+  },
+  "limitations": [
+    "Resolver remains a declared double; no concrete SQL lease/producer authority",
+    "No production installation/adoption/UI or real qualification"
+  ]
+}

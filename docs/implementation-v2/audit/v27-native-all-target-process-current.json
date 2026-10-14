@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 separate-process registered all-native recovery",
+  "whole_module_accepted": false,
+  "migration_head": "00961",
+  "new_migrations": false,
+  "production_migrations_applied": false,
+  "checks": {
+    "go_four_packages": [
+      {
+        "package": "photoeditor/backend/internal/v2qualification",
+        "elapsed": 0
+      },
+      {
+        "package": "photoeditor/backend/internal/v2draft",
+        "elapsed": 0.009
+      },
+      {
+        "package": "photoeditor/backend/internal/v2input",
+        "elapsed": 0.01
+      },
+      {
+        "package": "photoeditor/backend/internal/semanticproposal",
+        "elapsed": 3.4050000000000002
+      }
+    ],
+    "native_wire": "1 PASS438.09s; v27-native-all-target-process-wire-current.xml",
+    "documentation": "PASS55 tests/2267 static checks",
+    "diff_check": "PASS"
+  },
+  "source_manifest": "v27-native-all-target-process-source-current.json",
+  "source_manifest_sha256": "0be5d5b17ea94228741e25e425f8de3fa00a364bbb284af3a78f686633617e53",
+  "quality_preservation": {
+    "workers_src_baseline_files": 544,
+    "changed": 0,
+    "real_photo_quality_accepted": false
+  },
+  "native_verified": [
+    "Separate Go OS process, fresh DB pools and object client.",
+    "Loader receives request/identity/configuration only, no private proof or graph arguments.",
+    "Complete queued ticket equality including workflow ID.",
+    "Independent sealed queued parent, ready tasks, exactly one queued event/outbox."
+  ],
+  "remaining": [
+    "Automatic recovery dispatch, all-native/legacy saved parent routing and verified handoff.",
+    "Restart sealed replay, abrupt termination, partial publication and unknown commit.",
+    "Cancel/revoke/GC/purge/deadletter/5000-scale and full module acceptance."
+  ],
+  "limitations": [
+    "Parent process remains alive; not crash recovery acceptance.",
+    "Inherited fixture contains other fields but child decodes only object connection configuration.",
+    "Explicit task/capacity comparison and repeated replay branch not run.",
+    "Upstream ML doubles; no real-photo/GPU qualification."
+  ]
+}

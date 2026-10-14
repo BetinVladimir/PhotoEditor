@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 composed live relight admission",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "production_migration_applied": false,
+  "checks": {
+    "postgres_minio": {
+      "passed": 3,
+      "seconds": 9.2,
+      "xml": "v28-relight-resolver-physical-current.xml"
+    }
+  },
+  "source_sha256": {
+    "tests/integration/test_v28_relight_resolver_physical.py": "238c1ec0092d85d1911fa4e23747e0c147c376b904ae30f250cc99c5f9cecf93",
+    "tests/integration/test_v28_relight_lease.py": "9c2ab01eac36d9fcea2e70dcf8ea12998bfe89ab6eda48a2f138f46d6a458bd7",
+    "workers/photo_worker/operations/portrait/relight_resolver.py": "7b917e88c4ee512fcee4d3e96f4cdfcf2bba50cd90fd4a590246818d3d931b69"
+  },
+  "limitations": [
+    "Producer/task/result/source/lease/closure metadata and trusted qualification are synthetic owner-seeded fixtures",
+    "Transport map is fixture-supplied; source/depth pixel contents placeholders; no model execution or complete image preparation",
+    "No factory/gateway/staging/adoption/public UI or real photo/device qualification"
+  ]
+}

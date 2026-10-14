@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 physical source/manual closure owner request compilation",
+  "migration_head": "00977",
+  "whole_module_accepted": false,
+  "production_code_changed": true,
+  "production_migrations_applied": false,
+  "root_cause": "Pre-owner API artifact scope rejects canonical MaskRef children from actual mask producer runs (which have no project_id config); physical material read succeeds but owner request compilation fails at TaskInputs.target.",
+  "fix": "Forward-only00977 preserves existing scope and adds canonical manual child scope for MaskRef, MaskPixels and PNG artifacts bound to accepted source version/project, finished canonical task attempt/result, exact role, live objects and parent relationship. No new table grants.",
+  "checks": {
+    "tests": 12,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 40.89,
+    "xml": "v28-owner-compile-current.xml"
+  },
+  "assertions": [
+    "Hair and clothing owner requests compile via actual photo_api SQLArtifactCatalog and physical original JSON documents, in inline/external vector modes",
+    "Actual SQL scope rejects wrong parents for mask docs/pixels/PNG, foreign session and modified produced fence",
+    "Existing corrupt-root/missing-Params refusal remains",
+    "Installed V28 contracts, canonical origin and actual Goose migrations pass"
+  ],
+  "initial_failure": "v28-owner-compile-initial-failed.xml",
+  "source_sha256": {
+    "backend/db/migrations/00977_v28_manual_closure_catalog_scope.sql": "fed72267b1cb74cf58411984efce68a43689ad0054fc55d2e115267996503268",
+    "backend/internal/v2draft/local_portrait_material_physical_integration_test.go": "0e8009637bf2224d284a9f3bfae12d2e4bc0b253dca1ae36b65639c5850575ed",
+    "tests/integration/test_v28_manual_documents_physical.py": "25b1fa8ab3f9b0554c0632d3778e0970c63b4c03ef2a159914fd7902c31ad16f"
+  },
+  "limitations": [
+    "Producer and source ingest metadata owner-seeded",
+    "Binary pixels and PNG placeholders; compiler collects locators but does not decode/raster replay",
+    "No live graph admission, scheduler dispatch, worker execution or result adoption in this increment",
+    "No model/ICC/image quality, HTTP/browser or whole V28 acceptance"
+  ]
+}

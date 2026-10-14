@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 serialized all-native transfer config and exact saved capacity",
+  "whole_module_accepted": false,
+  "migration_head": "00959",
+  "new_migrations": false,
+  "production_migrations_applied": false,
+  "checks": {
+    "go_four_packages": [
+      {
+        "package": "photoeditor/backend/internal/v2qualification",
+        "elapsed": 0
+      },
+      {
+        "package": "photoeditor/backend/internal/v2input",
+        "elapsed": 0.029
+      },
+      {
+        "package": "photoeditor/backend/internal/v2draft",
+        "elapsed": 0.03
+      },
+      {
+        "package": "photoeditor/backend/internal/semanticproposal",
+        "elapsed": 4.373
+      }
+    ],
+    "sql": "23 PASS, 28.05s",
+    "native_wire": "1 PASS, 230.35s, unchanged600s context",
+    "documentation": "2267 static checks +55 tests PASS; deterministic regeneration",
+    "diff_check": "PASS"
+  },
+  "implemented": [
+    "Separate v27_native_targets_transfer marker/hash binds original and target locators, exact manifest/namespace/input digest and saved qualification/costs/limits.",
+    "Strict detached bounded decoder and independent plan scope recompilation; legacy saved decoder refusal.",
+    "Exact original-reference/snapshot/manifest bound saved-capacity restoration; identical full recompile without current capacity defaults.",
+    "Cumulative retained metadata budget and8MiB config limit."
+  ],
+  "native_checks": [
+    "Previous physical target restoration/frozen closure/deterministic graph/substitution/shared-source ambiguity/exact original recovery/revocation checks.",
+    "Persisted marker roundtrip and9 malformed-field substitutions.",
+    "Semantically foreign manifest with recomputed config SHA refused by plan scope and capacity restore.",
+    "Saved capacity recompile reproduces config hash and tasks."
+  ],
+  "limitations": [
+    "Serialized contract is not DB persistence or authority. No parent draft or admission ticket created.",
+    "Native fixture includes upstream ML doubles and actual CPU defects; no real-photo/GPU qualification.",
+    "Prerequisite readiness fixture does not replace exhaustive queued/completed/revoked prerequisite advance regression."
+  ],
+  "remaining": [
+    "Dedicated SQL exact-original-reference continuation and saved config lookup.",
+    "Atomic Begin/register/seal/replay with reference and all target00959 locks.",
+    "Saved full graph/process recovery and original parent handoff.",
+    "Fresh-process crash recovery and complete V27 module/browser/native/quality/GPU/scale/cancel/purge/GC/deadletter acceptance.",
+    "Whole V20–V32 acceptance remains unproved."
+  ],
+  "source_manifest": "v27-native-all-target-transfer-config-source-current.json",
+  "source_manifest_sha256": "ccb07f6e165e610e5e6480a493fc8922f835cac9d940fcb51417d0a153171b55",
+  "source_sha256": {
+    "backend/internal/semanticproposal/native_all_target_transfer_capacity.go": "dc2d4a2025bba5235b9856d87ceba0d4bf9f8c5d469e4f207db1014f1bcadeb6",
+    "backend/internal/semanticproposal/native_all_target_transfer_config.go": "250b214aba5cebe990618adb7c02df43d6477666a60e52072b95df89e57af5cc",
+    "backend/internal/semanticproposal/native_all_target_transfer_plan.go": "6b2ddc03af8fa71fe7ee0d707a54ac24bab73f8a01c14b473edb994936639198",
+    "backend/internal/semanticproposal/native_all_target_transfer_probe_test.go": "c8369be0590fc02e1a6b2f237df46e48ca3dac20fcd73c60a9f37069db2e856f",
+    "backend/internal/semanticproposal/native_all_target_transfer_target.go": "7b01bb430e55720a550b77de4e174ba43e881f06f315b3dff1c82bd7e0ea66f3",
+    "backend/internal/semanticproposal/native_all_target_transfer_test.go": "4e986e0a9c095bccd2c9cfbd7866504e15d13159e2c2a026de876df9f9d50659",
+    "tests/integration/test_v27_semantic_intent_publication.py": "1ec5799808160be49c3953f53b7e718abb86523b24ce239580d5f8b6d380b685"
+  },
+  "evidence_sha256": {
+    "v27-native-all-target-transfer-config-go-current.jsonl": "943f759cc4ecb14db600bb1ac62b5673250110c0c6c14ab163e91a09b9225409",
+    "v27-native-all-target-transfer-config-sql-current.xml": "7e6001a10d9dbba42911232e2936d75297c898681a8167b7db3c8b1175ae9a4b",
+    "v27-native-all-target-transfer-config-wire-current.xml": "7bef8ac443f201759176dffbdd6624b871f702346957af8e1b76a5c27799ea2b"
+  },
+  "image_source_preservation": {
+    "compared_to": "v27-target-defect-protection-source-current.json",
+    "files": 544,
+    "changes": [],
+    "real_photo_quality_verified": false
+  }
+}

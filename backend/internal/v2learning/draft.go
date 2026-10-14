@@ -18,8 +18,9 @@ var ErrInvalidTrainingDraft = errors.New("INVALID_TRAINING_DRAFT")
 var ErrTrainingDraftConflict = errors.New("TRAINING_DRAFT_CONFLICT")
 
 type trainingDraftConfig struct {
-	ProjectID uuid.UUID `json:"project_id"`
-	Training  struct {
+	QueueClass string    `json:"queue_class,omitempty"`
+	ProjectID  uuid.UUID `json:"project_id"`
+	Training   struct {
 		SchemaVersion    int       `json:"schema_version"`
 		ProfileID        uuid.UUID `json:"profile_id"`
 		ExpectedRevision string    `json:"expected_revision"`
@@ -30,6 +31,7 @@ type trainingDraftConfig struct {
 }
 
 type trainingDraftRecovery struct {
+	QueueClass       string    `json:"queue_class,omitempty"`
 	SchemaVersion    int       `json:"schema_version"`
 	ManifestJCS      string    `json:"manifest_jcs"`
 	ManifestSHA      string    `json:"manifest_sha"`
@@ -39,6 +41,9 @@ type trainingDraftRecovery struct {
 	PolicyJCS        string    `json:"policy_jcs"`
 	PolicySHA        string    `json:"policy_sha"`
 	FrozenJCS        string    `json:"frozen_jcs,omitempty"`
+	DefectJCS        string    `json:"defect_jcs,omitempty"`
+	DustJCS          string    `json:"dust_jcs,omitempty"`
+	DetailJCS        string    `json:"detail_jcs,omitempty"`
 	ReservedBytes    string    `json:"reserved_bytes"`
 	ExpectedRevision string    `json:"expected_revision"`
 	ProfileID        uuid.UUID `json:"profile_id"`
@@ -64,7 +69,15 @@ type TrainingDraftPrepared struct {
 func PrepareTrainingDraft(tenantID, actorID, authSessionID, projectID,
 	profileID uuid.UUID, key string, reservedBytes int64,
 	request TrainCreate, manifest TrainingManifest) (TrainingDraftPrepared, error) {
+	return prepareTrainingDraftForQueue(tenantID, actorID, authSessionID, projectID, profileID, key, reservedBytes, request, manifest, "training")
+}
+
+// Empty queue is reserved for exact replay of historical recovery receipts.
+func prepareTrainingDraftForQueue(tenantID, actorID, authSessionID, projectID, profileID uuid.UUID, key string, reservedBytes int64, request TrainCreate, manifest TrainingManifest, queue string) (TrainingDraftPrepared, error) {
 	var empty TrainingDraftPrepared
+	if queue != "" && queue != "training" {
+		return empty, ErrInvalidTrainingDraft
+	}
 	revision, err := ValidateTrainCreate(request)
 	if err != nil || tenantID == uuid.Nil || actorID == uuid.Nil ||
 		authSessionID == uuid.Nil || projectID == uuid.Nil ||
@@ -92,6 +105,29 @@ func PrepareTrainingDraft(tenantID, actorID, authSessionID, projectID,
 	if err != nil {
 		return empty, ErrInvalidTrainingDraft
 	}
+	for _, example := range manifest.Examples {
+		if example.RenderCase.DefectEvidence != nil {
+			ref, err := ReviewedDefectHoldoutRef(runID, example.EventID,
+				example.RenderCase.DefectEvidence.SHA256)
+			if err != nil || ref != *example.RenderCase.DefectEvidence {
+				return empty, ErrInvalidTrainingDraft
+			}
+		}
+		if example.RenderCase.DustEvidence != nil {
+			ref, err := ReviewedDustHoldoutRef(runID, example.EventID,
+				example.RenderCase.DustEvidence.SHA256)
+			if err != nil || ref != *example.RenderCase.DustEvidence {
+				return empty, ErrInvalidTrainingDraft
+			}
+		}
+		if example.RenderCase.DetailEvidence != nil {
+			ref, err := PortraitDetailHoldoutRef(runID, example.EventID,
+				example.RenderCase.DetailEvidence.SHA256)
+			if err != nil || ref != *example.RenderCase.DetailEvidence {
+				return empty, ErrInvalidTrainingDraft
+			}
+		}
+	}
 	workflowID, err := v2input.WorkflowID(runID)
 	if err != nil {
 		return empty, ErrInvalidTrainingDraft
@@ -115,7 +151,7 @@ func PrepareTrainingDraft(tenantID, actorID, authSessionID, projectID,
 	if err != nil {
 		return empty, ErrInvalidTrainingDraft
 	}
-	config := trainingDraftConfig{ProjectID: projectID}
+	config := trainingDraftConfig{QueueClass: queue, ProjectID: projectID}
 	config.Training.SchemaVersion = 1
 	config.Training.ProfileID = profileID
 	config.Training.ExpectedRevision = strconv.FormatInt(revision, 10)
@@ -134,7 +170,7 @@ func PrepareTrainingDraft(tenantID, actorID, authSessionID, projectID,
 	if err != nil {
 		return empty, ErrInvalidTrainingDraft
 	}
-	recovery := trainingDraftRecovery{SchemaVersion: 1,
+	recovery := trainingDraftRecovery{QueueClass: queue, SchemaVersion: 1,
 		ManifestJCS: string(manifestBody), ManifestSHA: manifestSHA,
 		SnapshotJCS: string(snapshotBody), SnapshotBodySHA: snapshotBodySHA,
 		SnapshotDigest: snapshot.SnapshotDigest, PolicyJCS: string(policyBody),
@@ -291,8 +327,8 @@ func ResumeTrainingDraft(tenantID, actorID, authSessionID, projectID,
 	if json.Unmarshal([]byte(saved.ManifestJCS), &manifest) != nil {
 		return empty, ErrInvalidTrainingDraft
 	}
-	prepared, err := PrepareTrainingDraft(tenantID, actorID, authSessionID,
-		projectID, profileID, key, bytes, request, manifest)
+	prepared, err := prepareTrainingDraftForQueue(tenantID, actorID, authSessionID,
+		projectID, profileID, key, bytes, request, manifest, saved.QueueClass)
 	if err != nil {
 		return empty, err
 	}
@@ -301,15 +337,30 @@ func ResumeTrainingDraft(tenantID, actorID, authSessionID, projectID,
 			[]byte(saved.FrozenJCS)); err != nil {
 			return empty, err
 		}
-		var expected trainingDraftRecovery
-		if json.Unmarshal(prepared.RecoveryBody, &expected) != nil {
-			return empty, ErrInvalidTrainingDraft
-		}
-		expected.FrozenJCS = saved.FrozenJCS
-		prepared.RecoveryBody, err = canonical.Marshal(expected)
-		if err != nil || len(prepared.RecoveryBody) > 33554432 {
-			return empty, ErrInvalidTrainingDraft
-		}
+	}
+	if _, err = reviewedDefectsFromRecovery(prepared,
+		[]byte(saved.DefectJCS)); err != nil {
+		return empty, err
+	}
+	if _, err = reviewedDustFromRecovery(prepared,
+		[]byte(saved.DustJCS)); err != nil {
+		return empty, err
+	}
+	if _, err = portraitDetailFromRecovery(prepared,
+		[]byte(saved.DetailJCS)); err != nil {
+		return empty, err
+	}
+	var expected trainingDraftRecovery
+	if json.Unmarshal(prepared.RecoveryBody, &expected) != nil {
+		return empty, ErrInvalidTrainingDraft
+	}
+	expected.FrozenJCS = saved.FrozenJCS
+	expected.DefectJCS = saved.DefectJCS
+	expected.DustJCS = saved.DustJCS
+	expected.DetailJCS = saved.DetailJCS
+	prepared.RecoveryBody, err = canonical.Marshal(expected)
+	if err != nil || len(prepared.RecoveryBody) > 33554432 {
+		return empty, ErrInvalidTrainingDraft
 	}
 	canonicalRecovery, err := canonical.Bytes(recoveryBody)
 	if err != nil || string(canonicalRecovery) != string(prepared.RecoveryBody) ||

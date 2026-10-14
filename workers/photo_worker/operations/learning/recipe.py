@@ -27,6 +27,10 @@ def validate_frozen_render_case(case: RenderCase, baseline: FrozenRecipe,
             raise ValueError('FROZEN_RECIPE_BINDING_MISMATCH')
     if baseline.base_style != approved.base_style:
         raise ValueError('FROZEN_RECIPE_STYLE_MISMATCH')
+    if (case.background_asset is not None and
+            (case.background_asset.style != baseline.base_style or
+             case.background_asset.work_icc_sha != manifest.icc_lock_sha)):
+        raise ValueError('FROZEN_RECIPE_BACKGROUND_MISMATCH')
 
 
 def materialize_frozen_style(recipe: FrozenRecipe, base: StyleV2,

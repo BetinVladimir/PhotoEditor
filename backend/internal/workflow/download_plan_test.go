@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"photoeditor/backend/internal/review"
 )
 
 func downloadSource(ordinal int64, bytes int64, name, hash string) DownloadSource {
@@ -92,4 +93,59 @@ func TestPlanDownloadVolumesMaximumCardinalityHasNoOmissionsOrDuplicates(t *test
 	if _, err = PlanDownloadVolumes(append(items, downloadSource(MaxDownloadItems, 1, "overflow.jpg", strings.Repeat("f", 64))), 10*1024*1024); err == nil {
 		t.Fatal("snapshot cardinality limit bypassed")
 	}
+}
+
+func TestDownloadPlanLongNamesSplitByParameterBudgetWithoutLosingInventory(t *testing.T) {
+    items := make([]DownloadSource, MaxDownloadItems)
+    for index := range items {
+        items[index] = downloadSource(int64(index), 1,
+            fmt.Sprintf("%04d_%s.jpg", index, strings.Repeat("x", 171)), strings.Repeat("a", 64))
+    }
+    plan, err := PlanDownloadVolumes(items, DefaultVolumeByteLimit)
+    if err != nil { t.Fatal(err) }
+    repeated, err := PlanDownloadVolumes(items, DefaultVolumeByteLimit)
+    if err != nil || len(plan) != len(items) { t.Fatal("inventory lost", err) }
+    volumes := []DownloadArchiveVolume{}
+    for index, item := range plan {
+        if item.Volume != repeated[index].Volume || item.EntryName != repeated[index].EntryName ||
+            item.Ordinal != int64(index) || item.ArtifactID != items[index].ArtifactID || item.DeliveryKind != "zip" {
+            t.Fatal("unstable or reordered plan", index)
+        }
+        if len(volumes) == 0 || volumes[len(volumes)-1].Number != item.Volume {
+            volumes = append(volumes, DownloadArchiveVolume{Number: item.Volume})
+        }
+        last := &volumes[len(volumes)-1]
+        last.Entries = append(last.Entries, DownloadArchiveEntry{Ordinal: item.Ordinal,
+            Artifact: review.ArtifactRef{ID: item.ArtifactID, SHA256: item.SHA256},
+            Bytes: item.Bytes, EntryName: item.EntryName, ProducerTask: uuid.New()})
+    }
+    if len(volumes) < 2 { t.Fatal("long names did not split") }
+    registry, err := LoadRegistry()
+    if err != nil { t.Fatal(err) }
+    nodes, err := CompileDownloadArchives(DownloadArchiveSpec{RunID: uuid.New(), SnapshotID: uuid.New(),
+        SnapshotDigest: strings.Repeat("b", 64), Volumes: volumes}, registry)
+    if err != nil { t.Fatal("planned volumes exceed transport budget", err) }
+    count := 0
+    for _, node := range nodes {
+        count += len(node.Inputs)
+        if len(node.Params) > 1048576 { t.Fatal("oversized archive params") }
+    }
+    if count != MaxDownloadItems { t.Fatal("compiled inventory lost", count) }
+}
+
+func TestDownloadPlanAlsoBoundsLargerExternalArchiveManifest(t *testing.T) {
+    items:=make([]DownloadSource,MaxDownloadItems)
+    for index:=range items { items[index]=downloadSource(int64(index),1,fmt.Sprintf("%04d.jpg",index),strings.Repeat("a",64)) }
+    plan,err:=PlanDownloadVolumes(items,DefaultVolumeByteLimit)
+    if err!=nil { t.Fatal(err) }
+    volumes:=map[int]int{}
+    for _,item:=range plan {
+        entry,err:=archiveManifestEntryBytes(review.ArtifactRef{ID:item.ArtifactID,SHA256:item.SHA256},item.Bytes,item.EntryName)
+        if err!=nil { t.Fatal(err) }
+        if volumes[item.Volume]==0 { volumes[item.Volume]=512 }
+        volumes[item.Volume]+=len(entry)+1
+    }
+    if len(volumes)<2 { t.Fatal("5000 short names did not split for manifest limit") }
+    for _,bytes:=range volumes { if bytes>1048576 { t.Fatal("external manifest would exceed output staging",bytes) } }
+    if len(plan)!=MaxDownloadItems { t.Fatal("inventory truncated") }
 }

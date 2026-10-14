@@ -20,6 +20,7 @@ type IngestItem struct {
 	AssumeProfile *string
 	Analyze       bool
 	Tile          int
+	RAWDevelopment *RAWDevelopment
 }
 type IngestSpec struct {
 	RunID uuid.UUID
@@ -46,6 +47,7 @@ type ingestDecodeParams struct {
 	AssumeProfile *string `json:"assume_profile"`
 	Analyze       bool    `json:"analyze"`
 	Tile          int     `json:"tile"`
+	RAWDevelopment *RAWDevelopment `json:"raw_development,omitempty"`
 }
 
 // CompileIngest emits the complete verify/inspect/decode DAG for a snapshot
@@ -82,12 +84,19 @@ func CompileIngest(spec IngestSpec, registry Registry) (IngestPlan, error) {
 		if tile != 256 && tile != 512 && tile != 1024 {
 			return fail()
 		}
+        if !validRAWDevelopment(item.RAWDevelopment) { return fail() }
+        var development *RAWDevelopment
+        if item.RAWDevelopment != nil {
+            if item.Suffix == ".jpg" || item.Suffix == ".jpeg" || item.Suffix == ".png" || item.Suffix == ".tif" || item.Suffix == ".tiff" { return fail() }
+            copy := *item.RAWDevelopment
+            development = &copy
+        }
 		source := ingestSourceParams{Source: item.Source, Bytes: item.Bytes, Suffix: item.Suffix}
 		sourceRaw, err := canonical.Marshal(source)
 		if err != nil {
 			return fail()
 		}
-		decodeRaw, err := canonical.Marshal(ingestDecodeParams{source, item.AssumeProfile, item.Analyze, tile})
+		decodeRaw, err := canonical.Marshal(ingestDecodeParams{source, item.AssumeProfile, item.Analyze, tile, development})
 		if err != nil {
 			return fail()
 		}

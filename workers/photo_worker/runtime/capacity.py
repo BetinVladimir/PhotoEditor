@@ -60,7 +60,7 @@ class CapacityReporter:
         self.failed=Event()
 
     def report_once(self):
-        if not self.report(self.sample()):raise RuntimeError('Worker registration rejected')
+        if self.report(self.sample()) is not True:raise RuntimeError('Worker registration rejected')
 
     def run(self,stop:Event):
         # Startup executes report_once synchronously before consuming any message.

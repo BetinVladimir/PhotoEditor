@@ -84,7 +84,8 @@ def _plan(artifacts: TaskArtifacts, backend: str) -> tuple[ScenePlan, int]:
             reference_ordinal = choose_reference(group_frames, calibrated, selected)
         else:
             reference_ordinal = group.reference_ordinal
-        corrections = solve_consistency(group_frames, reference_ordinal, locks)
+        corrections = solve_consistency(group_frames, reference_ordinal,
+                                        locks.intersection(group.ordinals))
         document = CorrectionPlan(schema_version=1, snapshot_digest=context.snapshot_digest,
                                   items=[CorrectionItem(binding=by_ordinal[c.ordinal].binding,
                                                         ordinal=c.ordinal,

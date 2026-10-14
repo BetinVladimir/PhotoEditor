@@ -36,50 +36,16 @@ func (j *SQLRenderBatchRecovery) Recover(ctx context.Context, tenant, batch, pro
 	if err != nil {
 		return false, err
 	}
-	conn, err := j.Factory.Scheduler.Acquire(work)
-	if err != nil {
-		return false, err
-	}
-	// Namespace collisions can only serialize unrelated work, never grant scope.
-	key := "v26-render-recovery:" + tenant.String() + ":" + batch.String()
-	var locked bool
-	if err = conn.QueryRow(work, "SELECT pg_try_advisory_lock(hashtextextended($1,0))", key).Scan(&locked); err != nil {
-		// An unknown lock outcome must never return this session to the pool.
-		isolated := conn.Hijack()
-		cleanup, stop := context.WithTimeout(context.Background(), 5*time.Second)
-		defer stop()
-		_ = isolated.Close(cleanup)
-		return false, err
-	}
-	if !locked {
-		conn.Release()
-		return false, nil
-	}
-	defer func() {
-		cleanup, stop := context.WithTimeout(context.Background(), 5*time.Second)
-		defer stop()
-		var released bool
-		cleanupErr := conn.QueryRow(cleanup, "SELECT pg_advisory_unlock(hashtextextended($1,0))", key).Scan(&released)
-		if cleanupErr != nil || !released {
-			if cleanupErr == nil {
-				cleanupErr = errors.New("render recovery lock release failed")
+	return withRenderBatchLock(work, j.Factory.Scheduler, tenant, batch, func(work context.Context) error {
+		if err := coordinator.RecoverInputs(work, tenant, batch, who); err != nil {
+			var scoped *domain.Error
+			if errors.Is(err, v2input.ErrInvalid) || errors.Is(err, v2input.ErrExpired) || (errors.As(err, &scoped) && (scoped.HTTPStatus == 401 || scoped.HTTPStatus == 403 || scoped.HTTPStatus == 404)) {
+				return renderRecoveryInputError{err}
 			}
-			isolated := conn.Hijack()
-			_ = isolated.Close(cleanup)
-			err = errors.Join(err, cleanupErr)
-			done = false
-		} else {
-			conn.Release()
+			return err
 		}
-	}()
-	if err = coordinator.RecoverInputs(work, tenant, batch, who); err != nil {
-		var scoped *domain.Error
-		if errors.Is(err, v2input.ErrInvalid) || errors.Is(err, v2input.ErrExpired) || (errors.As(err, &scoped) && (scoped.HTTPStatus == 401 || scoped.HTTPStatus == 403 || scoped.HTTPStatus == 404)) {
-			return false, renderRecoveryInputError{err}
-		}
-		return false, err
-	}
-	return true, nil
+		return nil
+	})
 }
 
 // ProcessOne rotates through candidate UUIDs, including after a failed recovery,

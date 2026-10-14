@@ -62,6 +62,10 @@ class Reservation:
             self.validate()
             if path.parent!=self.owner.directory or path.name not in self._names:
                 raise ScratchError('File is not owned by reservation')
+            st=os.stat(path.name,dir_fd=self.owner._fd,follow_symlinks=False)
+            if not stat.S_ISREG(st.st_mode) or st.st_nlink!=1:
+                raise ScratchError('Scratch file was replaced')
+            return st.st_dev,st.st_ino
 
     def release(self):
         self.owner._release(self)

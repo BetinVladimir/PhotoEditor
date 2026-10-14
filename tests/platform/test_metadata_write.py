@@ -1,3 +1,4 @@
+import pytest
 from pathlib import Path
 from uuid import uuid4
 from photo_worker.contracts.base import ArtifactRef
@@ -34,3 +35,31 @@ def test_runtime_does_not_advertise_metadata_without_exiftool(tmp_path):
     assert metadata_operations(object(),str(tmp_path/'missing-exiftool'))==[]
     tool=tmp_path/'exiftool';tool.write_text('#!/bin/sh\nexit 0\n');tool.chmod(0o700)
     assert len(metadata_operations(object(),str(tool)))==1
+
+
+@pytest.mark.parametrize('latitude,longitude,altitude,lat_ref,lon_ref,alt_ref',[
+    (-42.1,-23.2,-20,'S','W',1),
+    (42.1,23.2,20,'N','E',0),
+    (-90,180,None,'S','E',None),
+    (0,0,0,'N','E',0),
+])
+def test_gps_exif_magnitudes_have_explicit_signed_references(latitude,longitude,altitude,lat_ref,lon_ref,alt_ref):
+    encoded,document,params=values(copy_gps=True)
+    document.gps=GPSMetadata(latitude=latitude,longitude=longitude,altitude_m=altitude)
+    args,copied=build_args('exiftool',Path('/x.jpg'),encoded,document,params)
+    assert f'-GPSLatitude#={abs(document.gps.latitude)}' in args
+    assert f'-GPSLongitude#={abs(document.gps.longitude)}' in args
+    assert f'-GPSLatitudeRef={lat_ref}' in args and f'-GPSLongitudeRef={lon_ref}' in args
+    if altitude is None:
+        assert not any(value.startswith('-GPSAltitude') for value in args)
+    else:
+        assert f'-GPSAltitude#={abs(document.gps.altitude_m)}' in args
+        assert f'-GPSAltitudeRef#={alt_ref}' in args
+    assert copied.count('gps')==1
+
+
+def test_gps_opt_out_emits_no_coordinate_or_reference_tags():
+    encoded,document,params=values(copy_gps=False)
+    args,copied=build_args('exiftool',Path('/x.jpg'),encoded,document,params)
+    assert not any(value.startswith('-GPS') for value in args)
+    assert 'gps' not in copied

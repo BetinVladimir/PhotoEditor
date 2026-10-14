@@ -2,8 +2,10 @@ package workflow
 
 import (
 	"context"
+ "bytes"
 	"crypto/sha256"
 	"encoding/hex"
+ "encoding/json"
 	"errors"
 
 	"github.com/google/uuid"
@@ -86,14 +88,20 @@ func (b DownloadExportBuilder) Publish(ctx context.Context, tenant uuid.UUID, ba
 func PrepareDownloadExportTask(entry PublishedDownloadExport, sizes map[uuid.UUID]int64, item DownloadExportItem) (PreparedTask, error) {
 	fail := func() (PreparedTask, error) { return PreparedTask{}, errors.New("invalid download export task") }
 	n := entry.Node
-	if n.Operation != "export.encode" || n.ResourceClass != "cpu" || n.Ordinal != item.Ordinal || !validExpansionRef(entry.Params) || len(n.Inputs) < 2 || len(n.Inputs) > 3 {
+	if n.Operation != "export.encode" || n.Version != "1" || n.ResourceClass != "cpu" || n.Ordinal != item.Ordinal || !validExpansionRef(entry.Params) || len(n.Inputs) < 2 || len(n.Inputs) > 3 {
 		return fail()
 	}
 	sum := sha256.Sum256(n.Params)
 	if entry.Params.SHA256 != hex.EncodeToString(sum[:]) {
 		return fail()
 	}
-	pixels := item.Image.Canvas.Width * item.Image.Canvas.Height
+ if item.Image.Canvas.Width<1 || item.Image.Canvas.Height<1 || item.Image.Canvas.Width>200000000 || item.Image.Canvas.Height>200000000 || item.Image.DType!="float32" { return fail() }
+ if !validExpansionRef(item.Manifest) || !validExpansionRef(item.Image.Pixels) || item.Manifest==item.Image.Pixels { return fail() }
+ if item.Image.Color.ProfileID!="work_rec2020_gamma24_v1" || item.Image.Color.Encoding!="gamma24" { return fail() }
+ if item.Image.Alpha!=nil && (!validExpansionRef(*item.Image.Alpha) || *item.Image.Alpha==item.Manifest || *item.Image.Alpha==item.Image.Pixels) { return fail() }
+ if n.Inputs[0]!=item.Manifest || n.Inputs[1]!=item.Image.Pixels || len(n.Inputs)!=2+boolInt(item.Image.Alpha!=nil) { return fail() }
+ if item.Image.Alpha!=nil && n.Inputs[2]!=*item.Image.Alpha { return fail() }
+ pixels := item.Image.Canvas.Width * item.Image.Canvas.Height
 	if pixels < 1 || pixels > 200000000 {
 		return fail()
 	}
@@ -105,14 +113,24 @@ func PrepareDownloadExportTask(entry PublishedDownloadExport, sizes map[uuid.UUI
 		}
 		inputBytes += value
 	}
-	output := pixels*8 + 2*1048576
+ var params encodeParams
+ if len(n.Params)<2 || len(n.Params)>1048576 || json.Unmarshal(n.Params, &params) != nil || params.Image!=item.Manifest || domainDigestInvalid(params.ICCSHA256) { return fail() }
+ canonicalParams,err:=canonical.Marshal(params)
+ if err!=nil || !bytes.Equal(canonicalParams,n.Params) { return fail() }
+ preset := DownloadPreset{Format:params.Format, ICCID:params.ICCID, Size:params.Size, Quality:params.Quality, Subsampling:params.Subsampling, Alpha:params.Alpha, MatteRGB:params.MatteRGB, MetadataPolicy:params.MetadataPolicy}
+ if !validDownloadPreset(preset) { return fail() }
+ width,height := encodeDimensions(item.Image.Canvas.Width,item.Image.Canvas.Height,params.Size)
+ targetPixels := width*height
+ if width<1 || height<1 || targetPixels<1 || targetPixels>200000000 { return fail() }
+ ram := encodeRAMBytes(pixels,targetPixels,item.Image.Alpha!=nil)
+ output := targetPixels*8 + 2*1048576
 	scratch := inputBytes + int64(len(n.Params)) + output*2
 	profile, err := canonical.Marshal(struct {
 		Backend   string           `json:"backend"`
 		Precision string           `json:"precision"`
 		MaxPixels int64            `json:"max_pixels"`
 		Estimate  ResourceEstimate `json:"resource_estimate"`
-	}{"cpu", "float32", 200000000, ResourceEstimate{RAMBytes: 2 * 1024 * 1024 * 1024, ScratchBytes: scratch, OutputBytes: output, PixelCount: pixels}})
+	}{"cpu", "float32", 200000000, ResourceEstimate{RAMBytes: ram, ScratchBytes: scratch, OutputBytes: output, PixelCount: targetPixels}})
 	if err != nil {
 		return fail()
 	}

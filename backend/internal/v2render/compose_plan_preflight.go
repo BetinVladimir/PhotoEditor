@@ -20,7 +20,7 @@ func (s SQLOriginalCompositionPreflight) CheckDraft(ctx context.Context, tenant,
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if s.DB == nil || tenant == uuid.Nil || run == uuid.Nil || who.UserID == uuid.Nil || who.SessionID == uuid.Nil || len(draft.Body) < 2 || len(draft.Body) > 1048576 || draft.OutputBytes < 1 || draft.OutputBytes > 9007199254740991 {
+	if (draft.Config.QueueClass!=""&&draft.Config.QueueClass!="batch") || s.DB == nil || tenant == uuid.Nil || run == uuid.Nil || who.UserID == uuid.Nil || who.SessionID == uuid.Nil || len(draft.Body) < 2 || len(draft.Body) > 1048576 || draft.OutputBytes < 1 || draft.OutputBytes > 9007199254740991 {
 		return v2input.ErrInvalid
 	}
 	body, err := canonical.Marshal(draft.Config)

@@ -1,0 +1,85 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "generated_at": "2026-10-08T15:51:12.683992+00:00",
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "source_scope": {
+    "backend/db/migrations/00923_v27_target_detector_registration.sql": "90607777997b97361a97ebef738e4441e5cf47ef3ca36f8eebf22f1b73808ef0",
+    "backend/internal/semanticproposal/native_target_detector_transport.go": "06a0cdd1d9b65c36a198cc24e390f4c2a2ab0421bf827cb1fac2a867a8fec02f",
+    "backend/internal/semanticproposal/native_target_detector_wire_probe_test.go": "6eb988a5b0da0f2528ae570c26e47dfc71cd49ad4f4ef59c74efd03f684b5a81",
+    "tests/integration/test_v27_target_detector_registration.py": "68826853c491bf3e6e75050e56e39a5a88acfffe36d1c44079f4bfe2651eda13",
+    "tests/integration/test_v27_person_migration_upgrade.py": "7064d06c41393229d2624949bd79f236ae068a2ef934e714949e4ad03e84d072",
+    "tests/integration/test_v27_semantic_intent_publication.py": "302911ceabd1d71fe18e901d7c2563a61071d2b6e887dc60c82a15aabea89916",
+    "tests/integration/v27_face_wire_probe.py": "5cd320006fa4fdfc2cb21425acb34a53a42737f155e0b9dcfeddd9c9f877d1e5"
+  },
+  "checks": [
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-detector-registration-sql-current.xml",
+      "sha256": "8cde40102e69492c3a6717ab3206f3c55a991fba441c5e5cd16ae468f0b107d6",
+      "exit_code": 0,
+      "tests": 19,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "seconds": 31.119
+    },
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-detector-registration-wire-current.xml",
+      "sha256": "b763132c6c3cd3a65d52ef463581fe83d0a3ceb94fcb255486c7e8e7c0caf92c",
+      "exit_code": 0,
+      "tests": 1,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "seconds": 58.195
+    },
+    {
+      "evidence": "docs/implementation-v2/audit/v27-target-detector-registration-go-current.jsonl",
+      "sha256": "009b00ba2aa3322ea98c8f19d7ccd05d2811cfdf8417bb359b15bed8506e2ffc",
+      "exit_code": 0,
+      "packages_passed": [
+        "photoeditor/backend/internal/gateway",
+        "photoeditor/backend/internal/review",
+        "photoeditor/backend/internal/v2input",
+        "photoeditor/backend/internal/semanticproposal"
+      ]
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "requirements": [
+    {
+      "id": "target-detector-scoped-full-registration-and-exact-replay",
+      "status": "physical_helper_verified"
+    },
+    {
+      "id": "revoked-registration-refusal-without-partial-inputs",
+      "status": "physical_helper_verified"
+    },
+    {
+      "id": "target-source-namespace-stage-manifest-and-partial-registration-refusals",
+      "status": "sql_verified"
+    },
+    {
+      "id": "00899-00923-forward-upgrade-data-OID-owner-ACL-preservation",
+      "status": "sql_verified"
+    },
+    {
+      "id": "target-detector-admission-seal-execution-result-recovery",
+      "status": "not_implemented"
+    },
+    {
+      "id": "whole-V27",
+      "status": "not_accepted"
+    }
+  ],
+  "limitations": [
+    "Registered target detector remains draft/blocked with no admission receipt or canonical result",
+    "Dedicated admission/seal, worker output guards, result lifecycle and automatic saved restore/advance still required",
+    "Deterministic ML doubles/shared immutable WorkingImage; no actual GPU/photo-quality qualification",
+    "No full Recover/ProcessOne cold-restart, parallel/cancel/purge/browser/5000-target/capacity or whole-module acceptance",
+    "Only isolated databases migrated; production DB unchanged"
+  ]
+}

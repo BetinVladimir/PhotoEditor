@@ -1,9 +1,9 @@
 import {canonicalJSON} from '@photoeditor/api-client';
 import {sha256} from '@noble/hashes/sha2.js';
 import {bytesToHex} from '@noble/hashes/utils.js';
-export type SceneFrameBinding={ordinal:number;versionId:string;sourceSha:string};
+export type SceneFrameBinding={assetId?:string;ordinal:number;versionId:string;sourceSha:string};
 export type SceneBoardGroup={id:string;ordinals:number[];frames:SceneFrameBinding[];reference:SceneFrameBinding;confidence:number;corrections:{artifact_id:string;sha256:string};outliers:null};
-export type SceneBoard={snapshotId:string;snapshotDigest:string;policySha:string;groups:SceneBoardGroup[]};
+export type SceneBoard={planSha?:string;snapshotId:string;snapshotDigest:string;policySha:string;groups:SceneBoardGroup[]};
 const uuid=(value:unknown):value is string=>typeof value==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value)&&value!=='00000000-0000-0000-0000-000000000000';
 const hash=(value:unknown):value is string=>typeof value==='string'&&/^[0-9a-f]{64}$/.test(value);
 function object(value:unknown,keys:string[]):Record<string,unknown>{if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).length!==keys.length||keys.some(key=>!Object.hasOwn(value,key)))throw new Error('SCENE_BOARD_INVALID');return value as Record<string,unknown>;}
@@ -12,7 +12,7 @@ export function buildSceneBoard(analysis:unknown,binding:{snapshotId:string;snap
  const plan=object(analysis,['schema_version','snapshot_id','snapshot_digest','policy_sha','groups']);
  if(plan.schema_version!==1||!uuid(binding.snapshotId)||!hash(binding.snapshotDigest)||!hash(binding.policySha)||plan.snapshot_id!==binding.snapshotId||plan.snapshot_digest!==binding.snapshotDigest||plan.policy_sha!==binding.policySha||!Array.isArray(plan.groups)||plan.groups.length<1||plan.groups.length>5000||binding.frames.length<1||binding.frames.length>5000)throw new Error('SCENE_BOARD_INVALID');
  const frames=new Map<number,SceneFrameBinding>(),versions=new Set<string>();
- for(const frame of binding.frames){if(!Number.isInteger(frame.ordinal)||frame.ordinal<0||frame.ordinal>=binding.frames.length||frames.has(frame.ordinal)||!uuid(frame.versionId)||versions.has(frame.versionId)||!hash(frame.sourceSha))throw new Error('SCENE_BOARD_INVALID');frames.set(frame.ordinal,{...frame});versions.add(frame.versionId);}
+ for(const frame of binding.frames){if((frame.assetId!==undefined&&!uuid(frame.assetId))||!Number.isInteger(frame.ordinal)||frame.ordinal<0||frame.ordinal>=binding.frames.length||frames.has(frame.ordinal)||!uuid(frame.versionId)||versions.has(frame.versionId)||!hash(frame.sourceSha))throw new Error('SCENE_BOARD_INVALID');frames.set(frame.ordinal,{...frame});versions.add(frame.versionId);}
  const observed=new Set<number>(),ids=new Set<string>();
  const groups=plan.groups.map(value=>{
   const group=object(value,['id','ordinals','reference_ordinal','confidence','corrections']);
@@ -35,6 +35,6 @@ export function readSceneBoardDocument(value:unknown,analysisId:string,sessionId
  if(!uuid(analysisId)||!uuid(sessionId)||document.analysis_id!==analysisId||document.session_id!==sessionId||!hash(document.plan_sha)||!Array.isArray(document.frames)||document.frames.length<1||document.frames.length>5000)throw new Error('SCENE_BOARD_INVALID');
  const bytes=new TextEncoder().encode(canonicalJSON(document.plan));
  if(bytes.byteLength>8388608||bytesToHex(sha256(bytes))!==document.plan_sha)throw new Error('SCENE_BOARD_INVALID');
- const frames=document.frames.map(value=>{const frame=object(value,['ordinal','version_id','source_sha']);return {ordinal:frame.ordinal,versionId:frame.version_id,sourceSha:frame.source_sha} as SceneFrameBinding;});
- return buildSceneBoard(document.plan,{snapshotId:document.snapshot_id as string,snapshotDigest:document.snapshot_digest as string,policySha:document.policy_sha as string,frames});
+ const frames=document.frames.map(value=>{const frame=object(value,['ordinal','version_id','source_sha','asset_id']);return {ordinal:frame.ordinal,versionId:frame.version_id,sourceSha:frame.source_sha,assetId:frame.asset_id} as SceneFrameBinding;});
+ return {...buildSceneBoard(document.plan,{snapshotId:document.snapshot_id as string,snapshotDigest:document.snapshot_digest as string,policySha:document.policy_sha as string,frames}),planSha:document.plan_sha};
 }

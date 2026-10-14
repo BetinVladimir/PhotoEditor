@@ -20,7 +20,7 @@ def test_actual_runtime_bytes_match_operator_pin():
 
 
 @pytest.mark.parametrize('change,code', [('pin','RUNTIME_LOCK_MISMATCH'),
-    ('package','RUNTIME_UNQUALIFIED'),('machine','RUNTIME_UNQUALIFIED'),('component','RUNTIME_BYTES_MISMATCH')])
+    ('package','RUNTIME_UNQUALIFIED'),('machine','RUNTIME_UNQUALIFIED'),('component','RUNTIME_BYTES_MISMATCH'),('contract_component','RUNTIME_BYTES_MISMATCH')])
 def test_changed_runtime_is_rejected(change,code):
     pinned=lock();expected=canonical_hash(pinned)
     if change=='pin':expected='0'*64
@@ -28,7 +28,7 @@ def test_changed_runtime_is_rejected(change,code):
         data=pinned.model_dump()
         if change=='package':data['packages']['numpy']='0.0.0'
         elif change=='machine':data['machine']='other-machine'
-        else:data['components']['layer_prepare']='0'*64
+        else:data['components']['contract_lock' if change=='contract_component' else 'layer_prepare']='0'*64
         pinned=runtime.LayerRuntimeLock.model_validate(data);expected=canonical_hash(pinned)
     with pytest.raises(OperationFailure) as caught:runtime.verify_installed_runtime(pinned,expected)
     assert caught.value.error.code==code

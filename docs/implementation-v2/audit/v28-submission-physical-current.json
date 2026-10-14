@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 physical Submit staging with absent qualification",
+  "migration_head": "00979",
+  "whole_module_accepted": false,
+  "production_code_changed": true,
+  "production_migrations_applied": false,
+  "fixes": [
+    "00978 aligns owner mandatory binary inventory contracts with compiler NpyArray while retaining exact target/guard refs and all original scope checks",
+    "00979 permits nested MaskRef reads only through exact ready published local Params, authenticated saved owner, draft/quota scope and canonical original producer"
+  ],
+  "checks": {
+    "tests": 12,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 34.75,
+    "xml": "v28-submission-physical-current.xml"
+  },
+  "assertions": [
+    "Actual service Submit runs owner preflight/Begin, SQL document reservations, immutable object publication, fresh closure resolution and task staging for hair/clothing in inline/external modes",
+    "Outer SQL confirms two durable drafts, unsealed graphs, saved task plans, absent qualification pins, each task blocked at attempt0 without lease and three ready backend documents",
+    "Seal refuses without runtime qualification; no synthetic report or operation enabling installed",
+    "Corrupt root/missing Params refusals and prior parent/session/fence catalog denials preserved",
+    "Installed V28 contracts, canonical origin and actual Goose migrations pass"
+  ],
+  "initial_failure": "v28-submission-physical-initial-failed.xml",
+  "source_sha256": {
+    "backend/db/migrations/00978_v28_owner_binary_inventory_contract.sql": "a59f39577288cb2ace474ecec768af3f28021beea6c3e47d38b4a067392fce7c",
+    "backend/db/migrations/00979_v28_local_params_mask_children.sql": "aa1b1a3c5f836f35eb49252071bfe0570066a6357fb5a379b3a4b94a5f3bc837",
+    "backend/internal/v2draft/local_portrait_material_physical_integration_test.go": "371e5ba408aa3e312abbe4ff0db8faf332ae7a7b8e25219e05a2c937c9989df8",
+    "tests/integration/test_v28_manual_documents_physical.py": "d5615bd2e922013eb4b9f0eef0f15f9413bfe3de92137b9c788ebc2d389a5df2"
+  },
+  "limitations": [
+    "Positive qualified admission remains unproven; missing qualification is a confirmed gate, not proof all later gates would pass",
+    "Source/producer metadata seeded; pixels and PNGs placeholders, no raster replay/quality qualification",
+    "No live scheduler dispatch, worker execution or output adoption",
+    "No HTTP/UI full V28 cycle"
+  ]
+}

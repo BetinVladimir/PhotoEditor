@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 expired repair reservation and lost DocumentPublisher acknowledgement",
+  "whole_module_accepted": false,
+  "migration_head": "00966",
+  "new_migrations": false,
+  "production_code_changed": false,
+  "production_migrations_applied": false,
+  "checks": {
+    "go_five_packages": [
+      {
+        "package": "photoeditor/backend/internal/v2qualification",
+        "elapsed": 0.001
+      },
+      {
+        "package": "photoeditor/backend/internal/v2input",
+        "elapsed": 0.01
+      },
+      {
+        "package": "photoeditor/backend/internal/v2draft",
+        "elapsed": 0.011
+      },
+      {
+        "package": "photoeditor/backend/internal/workflow",
+        "elapsed": 0.012
+      },
+      {
+        "package": "photoeditor/backend/internal/semanticproposal",
+        "elapsed": 3.332
+      }
+    ],
+    "native_wire": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "1",
+      "time": "412.009",
+      "timestamp": "2026-10-09T05:18:31.344659+03:00",
+      "hostname": "Mac"
+    },
+    "sql_upgrade_roles_and_handoff": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "21",
+      "time": "16.988",
+      "timestamp": "2026-10-09T05:17:54.238000+03:00",
+      "hostname": "Mac"
+    },
+    "documentation": "PASS55 tests/2267 static checks",
+    "diff_check": "PASS"
+  },
+  "source_manifest": "v27-publication-ack-source-current.json",
+  "source_manifest_sha256": "68b063c9263ad8cb568fc94c923a891b2f82e538e7bbfad6e9eecb5e8cab2ed3",
+  "source_files": 4815,
+  "quality_preservation": {
+    "workers_src_baseline_files": 544,
+    "changed": 0,
+    "real_photo_quality_accepted": false
+  },
+  "verified": [
+    "Actual repair rejects committed fixture reservation expiry before any DocumentPublisher call.",
+    "Refused attempt preserves full run/tasks/backend_documents/tenant_usage/idempotency receipt JSON; exact original expiry restored for successful retry.",
+    "Real scoped second publication completes verified adoption; wrapper discards ref and returns error. Coordinator returns no graph.",
+    "Owner observes two ready documents and missing registration; ProcessOne repairs, registers, seals and records handoff.",
+    "Every observed artifact ID/SHA/object version and original run reservation bytes retained despite doubled current ReservedBytes.",
+    "Second ProcessOne finds no work; independent Python verifies ready tasks, sealed queued graph and one queued event/outbox.",
+    "Existing lifecycle/TTL/policy/upstream qualification and concurrent writer probes rerun; fresh SQL/upgrade/ACL suite passed."
+  ],
+  "remaining": [
+    "Unknown SQL COMMIT, raw PUT timeout, process restart and every chunk/manifest boundary.",
+    "Mixed registered/missing tasks, corrupt sealed transport and GC/purge during publication.",
+    "Independent target qualification imports, reference locator-version and pending stage progression.",
+    "5000 scale, complete browser/native flows, real-photo/GPU and whole V27/V20\u2013V32 acceptance."
+  ],
+  "limitations": [
+    "Lost acknowledgement injected at the DocumentPublisher caller boundary after verified adoption; not a raw network or SQL COMMIT fault.",
+    "Fixture expiry modified/restored by isolated owner; production code does not renew expired reservation.",
+    "Before-second-publication mode not executed this step.",
+    "Upstream ML doubles; no real-photo/GPU qualification.",
+    "No new production code/migration; this step adds test evidence and documentation."
+  ]
+}

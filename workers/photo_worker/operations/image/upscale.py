@@ -5,7 +5,7 @@ from contextlib import ExitStack
 import cv2
 import numpy as np
 
-from photo_worker.algorithms.model_delta import resize_work_linear, transfer_model_delta, work_to_model
+from .prepare_upscale import prepare_upscale,upscale_geometry,infer as _infer
 from photo_worker.contracts.base import canonical_bytes
 from photo_worker.contracts.images import Canvas, Rect, ResizeTransform, TransformChain, WorkingImage
 from photo_worker.contracts.restoration import UpscaleParams, UpscaleReport
@@ -16,12 +16,13 @@ from photo_worker.runtime.artifacts import ArtifactConfig, TaskArtifacts
 from photo_worker.runtime.executor import ExecutionContext, Operation, OperationFailure, OperationResult
 
 
-def _infer(engine, value, scale):
-    result = np.asarray(engine.infer(value), np.float32)
-    expected = (value.shape[0] * scale, value.shape[1] * scale, 3)
-    if result.shape != expected or not np.isfinite(result).all() or np.any(result < 0) or np.any(result > 1):
-        raise ValueError("MODEL_OUTPUT_INVALID")
-    return result
+def _required_upscale_ram(height: int, width: int, scale: int, has_alpha: bool) -> int:
+    """Reserve native tile/model headroom plus the full-frame alpha resize temporaries."""
+    if (type(height) is not int or type(width) is not int or type(scale) is not int
+            or type(has_alpha) is not bool or height < 1 or width < 1 or scale < 1):
+        raise ValueError("UPSCALE_SIZE_INVALID")
+    pixels = height * width * scale * scale
+    return 768 * 1024**2 + (pixels * 8 if has_alpha else 0)
 
 
 def execute(ctx: ExecutionContext, artifacts: TaskArtifacts, pool: ModelPool, backend: str) -> OperationResult:
@@ -39,6 +40,8 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts, pool: ModelPool, ba
         if any(ref not in ctx.lease.command.inputs for ref in required): raise ValueError("UPSCALE_INPUT_UNDECLARED")
         height, width = image.canvas.height, image.canvas.width; oh, ow = height * params.scale, width * params.scale
         if oh * ow > 200_000_000: raise ValueError("UPSCALE_PIXEL_LIMIT")
+        if ram < _required_upscale_ram(height, width, params.scale, image.alpha is not None):
+            raise OperationFailure("RESOURCE_OOM")
     except ModelError as exc: raise OperationFailure(str(exc)) from exc
     except ValueError as exc: raise OperationFailure("INPUT_INVALID") from exc
     tiles = ((height + 255) // 256) * ((width + 255) // 256); total = tiles + 3; ctx.progress(0, total)
@@ -51,45 +54,15 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts, pool: ModelPool, ba
             if image.alpha:
                 alpha_local = stack.enter_context(artifacts.input(image.alpha, suffix=".npy"))
                 alpha = stack.enter_context(read_array(alpha_local.path, (height, width), "uint16", ctx.check_active))
-            reserve_bytes = oh * ow * (12 + (2 if alpha is not None else 0)) + 32768
-            with artifacts.scratch.reserve(reserve_bytes) as reservation:
-                rgb_path = reservation.path("upscaled-rgb", ".npy")
-                output = np.lib.format.open_memmap(rgb_path, mode="w+", dtype="<f4", shape=(oh, ow, 3))
-                alpha_path = reservation.path("upscaled-alpha", ".npy") if alpha is not None else None
-                out_alpha = np.lib.format.open_memmap(alpha_path, mode="w+", dtype="<u2", shape=(oh, ow)) if alpha_path else None
-                try:
-                    for y in range(0, height, 256):
-                        for x in range(0, width, 256):
-                            ctx.check_active(); y1 = min(y + 256, height); x1 = min(x + 256, width)
-                            hy0 = max(0, y - 32); hx0 = max(0, x - 32); hy1 = min(height, y1 + 32); hx1 = min(width, x1 + 32)
-                            work = np.asarray(source[hy0:hy1, hx0:hx1], np.float32); model_in, _ = work_to_model(work)
-                            model_out = _infer(engine, model_in, params.scale)
-                            base_work = resize_work_linear(work, (work.shape[1] * params.scale, work.shape[0] * params.scale))
-                            model_base = cv2.resize(model_in, (model_out.shape[1], model_out.shape[0]), interpolation=cv2.INTER_CUBIC)
-                            model_base = np.clip(model_base, 0, 1).astype(np.float32)
-                            restored, evidence = transfer_model_delta(base_work, model_base, model_out, 1.)
-                            cy0 = (y - hy0) * params.scale; cx0 = (x - hx0) * params.scale
-                            cy1 = cy0 + (y1 - y) * params.scale; cx1 = cx0 + (x1 - x) * params.scale
-                            core = (slice(cy0, cy1), slice(cx0, cx1)); oy = slice(y * params.scale, y1 * params.scale); ox = slice(x * params.scale, x1 * params.scale)
-                            output[oy, ox] = restored[core]
-                            source_clip += int(np.count_nonzero(evidence.source_clipped[core])); gamut_excess += int(np.count_nonzero(evidence.gamut_excess[core])); disabled += int(np.count_nonzero(evidence.disabled[core]))
-                            done += 1; ctx.progress(done, total)
-                    if out_alpha is not None:
-                        out_alpha[:] = cv2.resize(np.asarray(alpha), (ow, oh), interpolation=cv2.INTER_LINEAR).astype(np.uint16)
-                        out_alpha.flush()
-                    output.flush(); reservation.validate()
-                finally:
-                    output._mmap.close()
-                    if out_alpha is not None: out_alpha._mmap.close()
-                pixel_ref = artifacts.stage(rgb_path, reservation, "working_rgb", "application/octet-stream")
-                alpha_ref = artifacts.stage(alpha_path, reservation, "working_alpha", "application/octet-stream") if alpha_path else None
-                written = rgb_path.stat().st_size + (alpha_path.stat().st_size if alpha_path else 0)
+            with prepare_upscale(source,alpha,params,engine,artifacts.scratch,check_active=ctx.check_active,
+                    progress=ctx.progress) as prepared:
+                pixel_ref=artifacts.stage(prepared.rgb_path,prepared.reservation,'working_rgb','application/octet-stream')
+                alpha_ref=artifacts.stage(prepared.alpha_path,prepared.reservation,'working_alpha','application/octet-stream') if prepared.alpha_path else None
+                written=prepared.rgb_path.stat().st_size+(prepared.alpha_path.stat().st_size if prepared.alpha_path else 0)
+                source_clip,gamut_excess,disabled=prepared.source_clip,prepared.gamut_excess,prepared.disabled
     except ModelError as exc: raise OperationFailure(str(exc)) from exc
     except ValueError as exc: raise OperationFailure("MODEL_OUTPUT_INVALID") from exc
-    canvas = Canvas(width=ow, height=oh, orientation=1, space_id=f"up{params.scale}-{image.canvas.source_sha256[:16]}", source_sha256=image.canvas.source_sha256)
-    step = ResizeTransform(kind="resize", from_canvas=image.canvas, to_canvas=canvas, invertibility="invertible",
-                           valid_region=Rect(x=0, y=0, width=ow, height=oh), pixel_centers="half_pixel")
-    chain = TransformChain.create([*image.transform_chain.steps, step])
+    canvas,chain=upscale_geometry(image,params)
     output_image = WorkingImage(pixels=pixel_ref, canvas=canvas, color=image.color, dtype="float32", alpha=alpha_ref, transform_chain=chain)
     pixels = oh * ow; warnings = []
     if source_clip: warnings.append("source_srgb_clipped")

@@ -86,6 +86,20 @@ def test_session_adapter_rejects_rebound_snapshot_before_stage():
     assert artifacts.staged == []
 
 
+def test_manual_lock_is_applied_only_to_its_scene_group():
+    artifacts = Artifacts()
+    artifacts.context = artifacts.context.model_copy(update={'manual_locked_ordinals': [0]})
+    later = frame(1, 11)
+    later['captured_at'] = datetime(2026, 1, 2, tzinfo=timezone.utc)
+    artifacts.shard = DescriptorShard.model_validate(dict(schema_version=1,
+        snapshot_digest='c'*64, frames=[later, frame(0, 10)]))
+    plan, _ = _plan(artifacts, 'cpu')
+    assert len(plan.groups) == 2
+    assert [role for role, _ in artifacts.staged] == ['correction_plan', 'correction_plan']
+    assert artifacts.staged[0][1].items[0].disposition == 'manual_locked'
+    assert artifacts.staged[1][1].items[0].disposition == 'no_change'
+
+
 def test_session_plan_requires_review_before_parent_finalization():
     artifacts = Artifacts()
     ctx = SimpleNamespace(lease=SimpleNamespace(execution_profile={

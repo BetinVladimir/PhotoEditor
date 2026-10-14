@@ -1,0 +1,14 @@
+{
+  "date": "2026-10-10",
+  "method": "Static registry recount; no tests, builds, validators, migrations or native qualification executed. Existing classifications retained; no new semantic completion credit.",
+  "total_entrypoints": 91,
+  "status_counts": {
+    "requires_semantic_review": 74,
+    "partial_runtime_path": 16,
+    "missing_runtime_path": 1
+  },
+  "entrypoint_code_presence_percent": 98.9,
+  "whole_product_implementation_percent": null,
+  "reason": "Entrypoint presence is not complete normative requirement coverage; semantic review and partial runtime paths remain.",
+  "continued_work": "V31 native delegate policy integrity at context/signer open and close, and reader verification; unit tests authored, NOT RUN."
+}

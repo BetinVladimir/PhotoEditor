@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 real admitted/claimed target worker failure matrix and CPU skin terminal correction",
+  "whole_module_accepted": false,
+  "migration_head": "00973",
+  "production_code_changed": true,
+  "production_sql_changed": true,
+  "production_go_changed": false,
+  "production_go_files_unchanged": 1357,
+  "production_migrations_applied": false,
+  "old_migration_00972_unchanged": true,
+  "source_manifest": "v27-target-worker-matrix-source-current.json",
+  "source_manifest_sha256": "6d2618afb1cd7dbd3f4f5c0520fb8156be6234d24888f8e133d4f2b5b3903d9b",
+  "source_files": 4837,
+  "checks": {
+    "real_target_worker_matrix_and_success": {
+      "tests": 7.0,
+      "failures": 0.0,
+      "errors": 0.0,
+      "skipped": 0.0,
+      "time": 475.25,
+      "evidence": "v27-target-worker-matrix-final-current.xml"
+    },
+    "metadata_checkpoint_upgrade_goose": {
+      "tests": 110.0,
+      "failures": 0.0,
+      "errors": 0.0,
+      "skipped": 0.0,
+      "time": 140.229,
+      "evidence": "v27-target-worker-terminal-current.xml"
+    },
+    "original_bootstrap_cancel_failure": {
+      "tests": 6.0,
+      "failures": 0.0,
+      "errors": 0.0,
+      "skipped": 0.0,
+      "time": 50.1,
+      "evidence": "v27-target-worker-original-current.xml"
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/gateway",
+      "photoeditor/backend/internal/run",
+      "photoeditor/backend/internal/httpapi",
+      "photoeditor/backend/internal/semanticreview",
+      "photoeditor/backend/internal/workflow",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "docs": {
+      "semantic_tests": 55,
+      "static_checks": 2267,
+      "deterministic_regeneration": "passed"
+    }
+  },
+  "imaging_preservation": {
+    "files": 544,
+    "changed": 0,
+    "baseline": "v27-target-defect-protection-source-current.json"
+  },
+  "diagnostics": [
+    "00972 real worker matrix failed CPU mask.face_skin after four operations passed. Earlier metadata skin fixture incorrectly used GPU.00973 fixes observer CPU class and metadata fixtures, with opposite-class refusal checks.",
+    "Initial positive verifier mistook automatic person advance for a draft; it now requires sealed/completed/succeeded state, canonical result, receipt, released quota and exactly one queued/completed event/outbox.",
+    "Initial test-only wiring/import failures were fixed before final runs."
+  ],
+  "limitations": [
+    "Worker error is injected through actual TaskDatabase.commit_failure after production preparation, registration, seal, resource dispatch and claim; not actual model failure or HTTP/mTLS failure request.",
+    "Successful prerequisites and positive chain use declared inference/qualification doubles; no real GPU/photo-quality acceptance.",
+    "Recorder concurrency uses rollback-only metadata writer, not actual retry/GC operation.",
+    "Target retry/fallback progression, process restart/broker redelivery/upload ambiguity, GC/purge/object deletion, independent qualification, full UI and 5000-target performance remain open.",
+    "Previous00972 metadata PASS is not proof of actual CPU skin terminal behavior; earlier full native parent handoff evidence is historical and not relabelled as00973."
+  ],
+  "evidence_sha256": {
+    "v27-target-worker-matrix-final-current.xml": "3cbbbffff7865ec58e78c17deec4e173d4a143f68b71bbabd413c494693cebef",
+    "v27-target-worker-terminal-current.xml": "d635d6b8981bc29c83c7952f8a85dca441f77ea949f2fdfd41e48b38014667d8",
+    "v27-target-worker-original-current.xml": "7eb1746bf8d2b40f3c8b3dffd818e20d12ac776ec3ea289f6b9a91ad59f9c2ed",
+    "v27-target-worker-matrix-go-final-current.jsonl": "c949dc3051ee676a8db211345746b52a2787ebffc5cc23c104edd001d827d080"
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "recorded_at": "2026-10-08T09:39:24.133520+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "source_manifest": "v27-integration-person-cycle-source.json",
+  "pinned_source_count": 8163,
+  "changed_sources": [],
+  "checks": [
+    {
+      "evidence": "docs/implementation-v2/audit/v27-worker-person-cycle.xml",
+      "evidence_sha": "01b6e1822636451023bf3a6164b4e00c260e1115cf8efe52f4a232c55b02e30d",
+      "tests": 530,
+      "failures": 0,
+      "errors": 0,
+      "skipped": [],
+      "log_sha": "5c2ad8d5dcd3b0986a4eaf9cd3f83b1f675f2ac5d33f74e66c39252a63195bc5"
+    },
+    {
+      "evidence": "docs/implementation-v2/audit/v27-photographer-person-cycle.xml",
+      "evidence_sha": "9819b39ea31e8edd971b9151aaefe4ee1904ed0cbb77c1385028f9f9afa249de",
+      "tests": 448,
+      "failures": 0,
+      "errors": 0,
+      "skipped": [
+        {
+          "file": "src/region-preview-worker.test.ts",
+          "name": "accepts actual worker JPEG outputs"
+        },
+        {
+          "file": "src/region-preview-worker.test.ts",
+          "name": "accepts actual worker WebP alpha outputs"
+        },
+        {
+          "file": "src/render-preview-worker.test.ts",
+          "name": "loads actual Render worker JPEG presentation"
+        },
+        {
+          "file": "src/render-preview-worker.test.ts",
+          "name": "loads actual Render worker WebP alpha presentation"
+        },
+        {
+          "file": "src/semantic-preview.integration.test.tsx",
+          "name": "renders an accepted preview from the real output response"
+        },
+        {
+          "file": "src/semantic-review-decisions.integration.test.tsx",
+          "name": "submits a decision from actual proposed review HTTP projections"
+        },
+        {
+          "file": "src/semantic-target-screen.integration.test.tsx",
+          "name": "renders the actual completed Apply target HTTP projection"
+        }
+      ],
+      "log_sha": "083317a37bd4c772e99db01fb222d01998259d7e617863e99046ddca71d79ca2"
+    }
+  ],
+  "typecheck": {
+    "command": "scripts/run-platform.sh npm --prefix apps/photographer run typecheck",
+    "exit_code": 0
+  },
+  "worker_collection_failure": {
+    "reason": "Initial worker command omitted tests root in PYTHONPATH, causing three fixture import errors; repeated with workers:src:tests passed530.",
+    "log": "v27-worker-person-cycle-collection-failed.log"
+  },
+  "integration": {
+    "status": "passed",
+    "exit_code": 0,
+    "tests": 122,
+    "seconds": 732.17,
+    "source_manifest": "v27-integration-person-cycle-source.json",
+    "sources_verified_before_fix": 8163,
+    "evidence": "v27-integration-person-cycle.xml",
+    "evidence_sha": "0709d8bdd0a40262ecf4606bcaec59a9780f8a4f068e212965a54a998a760f8e"
+  },
+  "limitations": [
+    "No whole-module acceptance from unit/DOM suites.",
+    "Four client skips still require V26 actual preview worker outputs; three semantic DOM tests were invoked in the passing integration harness using actual HTTP projections. Browser/native acceptance remains open.",
+    "Real browser/native/GPU/model/photo corpus and new person-result-to-parent chain remain unfinished.",
+    "Full V20\u2013V32 objective active.",
+    "Passing integration snapshot predates nested-alpha adapter fix; separate current regression evidence required."
+  ]
+}

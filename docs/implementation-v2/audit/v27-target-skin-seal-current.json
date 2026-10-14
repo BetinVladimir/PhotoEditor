@@ -1,0 +1,54 @@
+{
+  "generated_at": "2026-10-08T17:32:28.762324+00:00",
+  "status": "implementing",
+  "module": "V27",
+  "whole_module_accepted": false,
+  "source_commit": "89d8dbf748ef3973b694f22b53310a3a574fb7ee",
+  "checks": {
+    "sql": {
+      "result": "PASS",
+      "tests": 23,
+      "seconds": 45.788
+    },
+    "wire": {
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 85.048
+    },
+    "go_packages": [
+      "photoeditor/backend/internal/v2qualification",
+      "photoeditor/backend/internal/v2input",
+      "photoeditor/backend/internal/v2draft",
+      "photoeditor/backend/internal/semanticproposal"
+    ],
+    "git_diff_check": "PASS"
+  },
+  "scope": [
+    "dedicated target skin private sealed scope/registration/evidence validators",
+    "production Go wrapper atomically seals/queues target skin CPU task",
+    "exact queued receipt replay repeats current original/target/parser authority",
+    "revoked session refuses sealed replay; restored authority permits it",
+    "one queue event/outbox after retries",
+    "independent SQL/S3 verifier confirms queued/sealed/ready task and exact indexed closure/Params",
+    "00899\u219200943 metadata and existing function identity/security preserved"
+  ],
+  "limitations": [
+    "Target skin worker claim/output/result/finalization/saved recovery/automatic advancement remain open",
+    "Target defects/transfer and full V27 acceptance remain open",
+    "ML doubles/shared WorkingImage; no GPU/photo-quality qualification",
+    "No production migration"
+  ],
+  "sha256": {
+    "docs/implementation-v2/audit/v27-target-skin-seal-sql-current.xml": "878438f1ebcf4ca48b512d888033710e28ba5cc776ebd6ea8b593062fdc8dd89",
+    "docs/implementation-v2/audit/v27-target-skin-seal-wire-current.xml": "4131ddc5cd9c5a2877cea104926e1bedfc7a686b0ba6732f30d3923f127aa5bb",
+    "docs/implementation-v2/audit/v27-target-skin-seal-go-current.jsonl": "622248d90318038fb5fd09debd935779810081629b7cf7669b3ab4347ea08f96",
+    "backend/db/migrations/00943_v27_target_skin_atomic_seal.sql": "cf8487fb46b66e34152bc84d9376675fe771c8fc4f087add33590472299ec04b",
+    "backend/internal/semanticproposal/native_target_skin_seal.go": "0a069bfd12de89c2e9333cf38f95fda17488eabf47d2dfc3cd775ac5e88744f0",
+    "backend/internal/semanticproposal/native_target_skin_wire_probe_test.go": "7c80443c45d7985989ff38510fb14dd076d7e9a8d8ec5aec53801a369376fce1",
+    "tests/integration/test_v27_semantic_intent_publication.py": "579298267e7f397ee56a4d2990e90cf795ea344448c38e30ee43b7ebeec5f0f3",
+    "tests/integration/v27_face_wire_probe.py": "142c6ed3a4d05463ddb00636e17ae6ffb46bf0c4d6c8e3210d6cd2d31e367242",
+    "tests/integration/test_v27_person_migration_upgrade.py": "4484c3e6680474265595a9adc98e207519959dbceb13bb8eca7583e83bf7e19b",
+    "docs/implementation-v2/03-database.md": "26efca4eb601d3ffb1ac05211e373dc9dbc643e1d29227b015e30634bf32bd21",
+    "docs/implementation-v2/15-execution-contracts.md": "91696ea5b4c75027eb28e08269a499ba8ec23e9055281e3c962d4a107b40993b"
+  }
+}

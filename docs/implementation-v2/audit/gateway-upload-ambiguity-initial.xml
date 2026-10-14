@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="1.622" timestamp="2026-10-09T10:32:15.840499+03:00" hostname="Mac"><testcase classname="tests.platform.test_gateway" name="test_unknown_upload_outcome_is_retryable_without_automatic_reupload[before-headers]" time="0.725" /><testcase classname="tests.platform.test_gateway" name="test_unknown_upload_outcome_is_retryable_without_automatic_reupload[partial-body]" time="0.479"><failure message="json.decoder.JSONDecodeError: Expecting value: line 1 column 67 (char 66)">tests/platform/test_gateway.py:216: in test_unknown_upload_outcome_is_retryable_without_automatic_reupload
+    g.upload(path,'verified','application/octet-stream')
+workers/photo_worker/runtime/gateway.py:179: in upload
+    parse_json(body,max_bytes=65536)
+workers/photo_worker/contracts/base.py:43: in parse_json
+    value = json.loads(data.decode("utf-8"), object_pairs_hook=_unique_pairs,
+/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/__init__.py:359: in loads
+    return cls(**kw).decode(s)
+           ^^^^^^^^^^^^^^^^^^^
+/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/decoder.py:337: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/decoder.py:355: in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+E   json.decoder.JSONDecodeError: Expecting value: line 1 column 67 (char 66)</failure></testcase></testsuite></testsuites>

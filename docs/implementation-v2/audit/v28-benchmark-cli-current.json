@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 pinned fixture actual CLI integration",
+  "whole_module_accepted": false,
+  "production_code_changed": false,
+  "checks": {
+    "tests": 13,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 3.22,
+    "xml": "v28-benchmark-cli-current.xml"
+  },
+  "assertions": [
+    "Actual CLI runs pinned corpus fixtures in separate processes twice for each hair/clothing operation",
+    "Each JSON report carries exact fixture SHA, dimensions and pinned_fixture scope with production_acceptance=false",
+    "Repeated processes produce identical output pixel digest",
+    "Source file bytes remain unchanged",
+    "Existing binding refusal and deliberate output corruption tests pass"
+  ],
+  "source_sha256": {
+    "tools/benchmark_v28_local.py": "150f119f22442ddbe627b594bc3057e9bc410d11b175048cc208e6207b417138",
+    "tests/platform/test_v28_local_benchmark.py": "10ce8d2c132e4a22f13a8695b97c5dd09457ff15066c3380e71c5a6316f34eee"
+  },
+  "limitations": [
+    "Synthetic float32 fixture and mask documents; no real-photo/human qualification",
+    "No trusted qualification import, admission/execution/adoption cycle or hardware acceptance"
+  ],
+  "next_corpus_candidates": [
+    "e2e/input/01_window_overexposure.jpg",
+    "e2e/input/02_low_light.jpg",
+    "e2e/input/03_family_backlight.jpg",
+    "e2e/input/04_harsh_sun_shadows.jpg",
+    "e2e/input/05_mixed_light_flash.jpg",
+    "e2e/input/06_seaside_sun_dress.jpg"
+  ],
+  "candidate_note": "Discovered paths only; photographic provenance, masks, color preparation and suitability not yet verified."
+}

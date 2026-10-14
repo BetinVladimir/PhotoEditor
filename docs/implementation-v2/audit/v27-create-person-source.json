@@ -1,0 +1,12 @@
+{
+  "recorded_at": "2026-10-08T08:48:16.910729+00:00",
+  "sources": {
+    "backend/db/migrations/00900_v27_create_person_presence.sql": "5af6c977271e7545a27659fa896b6a1df731baaddd693420656b5a3940f05dcc",
+    "backend/internal/semanticproposal/create_person_preparation.go": "4dbf39e5564ff1283228c60454a5ebf8539ee0f141b33c452c0a63a61cb878e9",
+    "backend/internal/semanticproposal/create_person_preparation_test.go": "a4989e20942e5ec963d6e1841726966b86827c2437393d27e162076633c4e76f",
+    "backend/internal/semanticproposal/create_service.go": "b643521eb90c9e13f63ca20367d6ac9ad7666cd31bf762afc5c4375d330f94e6",
+    "backend/internal/semanticproposal/transfer_policy_selection.go": "3da443f165c41ea862869b114960274264e6fcd569ec5e161558c752162527fa",
+    "backend/internal/semanticproposal/native_bootstrap_integration_test.go": "cfcf2df2d92c7fa70bfabad6ae90e839222dc05a5f91157672d5da99821ade4e",
+    "tests/integration/test_v27_semantic_intent_publication.py": "ad8dc8963dd6c39679e1badde5a49238c4e11b2961d6f3ecc66b4090d8551542"
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "package_id": "V27",
+  "status": "implementing",
+  "generated_at": "2026-10-08T13:00:06.640684+00:00",
+  "source_scope": {
+    "backend/internal/semanticproposal/native_initial_parent_admit.go": "ce01916faefa6858bb5a548d64ec38a123135d47b91517a00b40443526ecd247",
+    "backend/internal/semanticproposal/native_input_transfer_request.go": "326332163930431e7030622633f6708d960a0e80353e84c5bcccaa52202f64bb",
+    "backend/internal/semanticproposal/native_input_transfer_seal.go": "7a7376d654f3c412e8294bcf661b774c0e73f573bdd3a326697f1c6e64354daa",
+    "backend/internal/semanticproposal/native_bootstrap_integration_test.go": "8d657247fcf40b3621de636ce13e64af68fed70942a059a95412738d11d61753",
+    "backend/db/migrations/00910_v27_native_protection_row_lock.sql": "0e78234477b04ea02e1e7996cfba1cb26c9b903b9ce3942e530c9b0cd45ad652",
+    "tests/integration/test_v27_person_migration_upgrade.py": "98f85ce8fb99a6a9873d254817ef68b4eafb7758d9a2d3ff4fb90e7349350a28",
+    "tests/integration/test_v27_semantic_intent_publication.py": "f958bb1555b84ddbb238c5391d8df295444a36808c8f98fd3aab5670b43ef429",
+    "tests/integration/v27_face_wire_probe.py": "d309ba4870bcc5ce85939e82a8609998a5a6aae23412976bce1cba407d4debae",
+    "docs/implementation-v2/v27-cpu-assembly-runtime.md": "f9a96eeacc1f5e0e3a8df4fe51167ee9f17e879e40a03072fe9759ef8a22ddf6"
+  },
+  "checks": [
+    {
+      "name": "forward upgrade 00899 through 00910",
+      "status": "passed",
+      "evidence": "docs/implementation-v2/audit/v27-parent-observed.xml"
+    },
+    {
+      "name": "native parent positive admission",
+      "status": "failed",
+      "evidence": "docs/implementation-v2/audit/v27-parent-activation-diagnostic.xml",
+      "finding": "Preparation and registration completed; photo.seal_v2_graph returned false. Exact refusing SQL invariant remains to be diagnosed."
+    },
+    {
+      "name": "Go semanticproposal/v2input/review",
+      "status": "passed"
+    },
+    {
+      "name": "goose marker tests",
+      "status": "passed",
+      "passed": 6
+    },
+    {
+      "name": "git diff --check",
+      "status": "passed"
+    }
+  ],
+  "evidence_sha256": {
+    "docs/implementation-v2/audit/v27-parent-observed.xml": "a4eb093df4aa24e3e3e3d1df0c5ae9360acba3338db7afe28b20bcd340459178",
+    "docs/implementation-v2/audit/v27-parent-activation-diagnostic.xml": "e24056a8a2c7f3f7f9f821df1d9b5cba1e8d2aa58007c95347bde13809f9c26f"
+  },
+  "limitations": [
+    "No whole-module acceptance",
+    "No actual newly inferred original-person end-to-end acceptance",
+    "No durable initial completion after parent handoff",
+    "No model/GPU/real-photo quality acceptance",
+    "No production SLA inference from increased fixture timeout"
+  ]
+}

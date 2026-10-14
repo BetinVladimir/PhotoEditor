@@ -1,0 +1,3290 @@
+{
+  "date": "2026-10-13",
+  "scope": "V20-V32 normative entrypoint catalogue only; not all normative requirements",
+  "method": "Static source presence only; 77 entries require semantic review, 22 have partial runtime paths, and two V28 worker execution paths are absent. The catalogue upper bound is not implementation completion or acceptance. Tests/builds/migrations not run.",
+  "total_entrypoints": 101,
+  "missing_runtime_entrypoints": 2,
+  "unreviewed_or_partial_entrypoints": 99,
+  "catalogue_completion_upper_bound_percent": 98.02,
+  "whole_product_implementation_percent": null,
+  "rows": [
+    {
+      "name": "CreateSession",
+      "layer": "http_service",
+      "package": "V22",
+      "input": "SessionCreate",
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/shoot-sessions",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "GetSession",
+      "layer": "http_service",
+      "package": "V22",
+      "input": null,
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/shoot-sessions/{id}",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "ListSessions",
+      "layer": "http_service",
+      "package": "V22",
+      "input": null,
+      "output": "ResourcePage",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/shoot-sessions",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "UpdateSession",
+      "layer": "http_service",
+      "package": "V22",
+      "input": "SessionUpdate",
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "PATCH /api/v1/tenants/{t}/shoot-sessions/{id}",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "AnalyzeSession",
+      "layer": "http_service",
+      "package": "V22",
+      "input": "AnalysisCreate",
+      "output": "JobTicket",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/shoot-sessions/{id}/analyses",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "GetAnalysis",
+      "layer": "http_service",
+      "package": "V22",
+      "input": null,
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/session-analyses/{id}",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "ApplyAnalysis",
+      "layer": "http_service",
+      "package": "V22",
+      "input": "AnalysisApply",
+      "output": "JobTicket",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/session-analyses/{id}/apply",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "RecordCorrection",
+      "layer": "http_service",
+      "package": "V23",
+      "input": "CorrectionCreate",
+      "output": "CorrectionEvent",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/corrections",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "CreateProfile",
+      "layer": "http_service",
+      "package": "V23",
+      "input": "ProfileCreate",
+      "output": "ProfileGet",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/learning-profiles",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "GetProfile",
+      "layer": "http_service",
+      "package": "V23",
+      "input": null,
+      "output": "ProfileGet",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/learning-profiles/{id}",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "TrainProfile",
+      "layer": "http_service",
+      "package": "V23",
+      "input": "TrainCreate",
+      "output": "JobTicket",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/learning-profiles/{id}/train",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "ListVersions",
+      "layer": "http_service",
+      "package": "V23",
+      "input": null,
+      "output": "LearningVersionPage",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/learning-profiles/{id}/versions",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "ActivateProfile",
+      "layer": "http_service",
+      "package": "V23",
+      "input": "Activate",
+      "output": "ProfileGet",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/learning-profiles/{id}/activate",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "ChangeConsent",
+      "layer": "http_service",
+      "package": "V22",
+      "input": "ConsentChange",
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/projects/{id}/consents",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "ListConsents",
+      "layer": "http_service",
+      "package": "V22",
+      "input": null,
+      "output": "ResourcePage",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/projects/{id}/consents",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "CreatePerson",
+      "layer": "http_service",
+      "package": "V22",
+      "input": "PersonCreate",
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/project-persons",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "ListPersons",
+      "layer": "http_service",
+      "package": "V22",
+      "input": null,
+      "output": "ResourcePage",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/projects/{id}/persons",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "ConfirmObservation",
+      "layer": "http_service",
+      "package": "V22",
+      "input": "ObservationConfirm",
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/project-persons/{id}/observations",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "RevokePerson",
+      "layer": "http_service",
+      "package": "V22",
+      "input": "CAS",
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/project-persons/{id}/revoke",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "ReplaceShotList",
+      "layer": "http_service",
+      "package": "V24",
+      "input": "ShotListReplace",
+      "output": "ShotListView",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "PUT /api/v1/tenants/{t}/shoot-sessions/{id}/shot-list",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "GetShotList",
+      "layer": "http_service",
+      "package": "V24",
+      "input": null,
+      "output": "ShotListView",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/shoot-sessions/{id}/shot-list",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "RegisterDevice",
+      "layer": "http_service",
+      "package": "V24",
+      "input": "DeviceCreate",
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/capture-devices",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "RevokeDevice",
+      "layer": "http_service",
+      "package": "V24",
+      "input": "CAS",
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/capture-devices/{id}/revoke",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "CreateChallenge",
+      "layer": "http_service",
+      "package": "V24",
+      "input": "ChallengeCreate",
+      "output": "Challenge",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/capture-devices/{id}/challenges",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "ExchangeChallenge",
+      "layer": "http_service",
+      "package": "V24",
+      "input": "TokenCreate",
+      "output": "Token",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/capture-devices/{id}/token",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "AcceptReceipt",
+      "layer": "http_service",
+      "package": "V24",
+      "input": "CaptureReceipt",
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/shoot-sessions/{id}/capture-receipts",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "ListAlerts",
+      "layer": "http_service",
+      "package": "V24",
+      "input": null,
+      "output": "CaptureAlertPage",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/shoot-sessions/{id}/alerts",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "ConfirmFrame",
+      "layer": "http_service",
+      "package": "V24",
+      "input": "CaptureFrameConfirm",
+      "output": "CaptureFrameConfirmation",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/capture-receipts/{id}/confirm",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "Acknowledge",
+      "layer": "http_service",
+      "package": "V24",
+      "input": "CAS",
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/capture-alerts/{id}/ack",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "ReplaceDraft",
+      "layer": "http_service",
+      "package": "V21",
+      "input": "DraftReplace",
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "PUT /api/v1/tenants/{t}/assets/{id}/v2-draft",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "GetDraft",
+      "layer": "http_service",
+      "package": "V21",
+      "input": null,
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/assets/{id}/v2-draft",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "GetDraftBinding",
+      "layer": "http_service",
+      "package": "V21",
+      "input": null,
+      "output": "VersionBinding",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/assets/{id}/v2-binding",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "ListDraftHistory",
+      "layer": "http_service",
+      "package": "V21",
+      "input": null,
+      "output": "ResourcePage",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/assets/{id}/v2-draft/history",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "ApproveDraft",
+      "layer": "http_service",
+      "package": "V21",
+      "input": "DraftApproval",
+      "output": "DraftApprovalResult",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/assets/{id}/v2-draft/approve",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "FreezeRenderDraft",
+      "layer": "http_service",
+      "package": "V26",
+      "input": "RenderFreezeRequest",
+      "output": "RenderFreezeResult",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/assets/{id}/v2-draft/freeze",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "CreateRenderInputSnapshot",
+      "layer": "http_service",
+      "package": "V26",
+      "input": "RenderInputSnapshotRequest",
+      "output": "RenderInputSnapshotResult",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/projects/{id}/render-input-snapshots",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "GetRenderPolicy",
+      "layer": "http_service",
+      "package": "V26",
+      "input": null,
+      "output": "RenderPolicySnapshot",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/projects/{id}/render-policy",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "PreviewRegion",
+      "layer": "http_service",
+      "package": "V26",
+      "input": "RegionPreview",
+      "output": "JobTicket",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/assets/{id}/region-previews",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "QueueRenderBatch",
+      "layer": "http_service",
+      "package": "V26",
+      "input": "RenderBatchSubmission",
+      "output": "RenderBatchTicket",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/projects/{id}/render-batches",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "SubmitRelight",
+      "layer": "http_service",
+      "package": "V28",
+      "input": "RelightDraftIntent",
+      "output": "JobTicket",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/projects/{id}/relight-intents",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "Propose",
+      "layer": "http_service",
+      "package": "V27",
+      "input": "EditIntent",
+      "output": "JobTicket",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/semantic-intents",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "ListTargets",
+      "layer": "http_service",
+      "package": "V27",
+      "input": null,
+      "output": "ResourcePage",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/semantic-intents/{id}/targets",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "ApplyApproved",
+      "layer": "http_service",
+      "package": "V27",
+      "input": "SemanticApply",
+      "output": "ReviewBatchResult",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/semantic-intents/{id}/apply",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "CreateDelivery",
+      "layer": "http_service",
+      "package": "V30",
+      "input": "DeliveryCreate",
+      "output": "JobTicket",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/delivery-packages",
+      "status": "partial_runtime_path",
+      "evidence": [
+        "backend/cmd/photo/main.go",
+        "backend/cmd/photo/delivery_create.go",
+        "backend/internal/delivery/create_pipeline.go",
+        "backend/internal/httpapi/delivery_create.go"
+      ],
+      "implementation_credit": null,
+      "review_note": "Current source inspection2026-10-11: main.go wires buildDeliveryCreate/buildInterchangeCreate with dedicated scheduler pools. Startup installation coverage extended. Full normative/runtime lifecycle unverified; tests NOT RUN.",
+      "limitations": [
+        "Current source2026-10-12: required provenance explicitly returns DELIVERY_PROVENANCE_UNAVAILABLE in create_intent.go and assembly.go. This is missing functionality, not only missing execution evidence.",
+        "Current source2026-10-12: copyright/approved_exif and watermark have dedicated compiler/worker/adoption paths; ordinary child ExportRequest intentionally remains watermark-closed. Complete mixed ordinary/watermark/metadata SQL and physical lifecycle remains unqualified. This supersedes the earlier unsupported-mode classification; no completion credit."
+      ]
+    },
+    {
+      "name": "GetDelivery",
+      "layer": "http_service",
+      "package": "V30",
+      "input": null,
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/delivery-packages/{id}",
+      "status": "partial_runtime_path",
+      "evidence": [
+        "backend/internal/httpapi/delivery.go",
+        "backend/internal/httpapi/server.go",
+        "backend/internal/delivery/read.go",
+        "backend/db/migrations/01222_v30_delivery_read.sql"
+      ],
+      "implementation_credit": null,
+      "limitations": [
+        "Tenant-scoped route/reader and bounded public resource identity validation authored; migrations not applied, tests not run.",
+        "Creation/publication orchestration exists and is wired from main; full physical lifecycle, race and native acceptance remain unqualified."
+      ]
+    },
+    {
+      "name": "PublishDelivery",
+      "layer": "http_service",
+      "package": "V30",
+      "input": "CAS",
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/delivery-packages/{id}/publish",
+      "status": "partial_runtime_path",
+      "evidence": [
+        "backend/internal/httpapi/server.go",
+        "workers/photo_worker/runtime/service.py",
+        "backend/internal/",
+        "workers/photo_worker/operations/"
+      ],
+      "implementation_credit": null,
+      "review_note": "Current source inspection2026-10-11: main.go wires buildDeliveryCreate/buildInterchangeCreate with dedicated scheduler pools. Startup installation coverage extended. Full normative/runtime lifecycle unverified; tests NOT RUN."
+    },
+    {
+      "name": "CreateInterchange",
+      "layer": "http_service",
+      "package": "V30",
+      "input": "InterchangeRequest",
+      "output": "JobTicket",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/interchange-jobs",
+      "status": "partial_runtime_path",
+      "evidence": [
+        "backend/internal/httpapi/interchange.go",
+        "backend/internal/httpapi/server.go",
+        "workers/photo_worker/runtime/service.py",
+        "workers/photo_worker/operations/interchange/parse.py",
+        "backend/cmd/photo/interchange_export_installation.go",
+        "backend/cmd/photo/interchange_create.go",
+        "docs/implementation-v2/interchange-export-api-installation.md"
+      ],
+      "implementation_credit": null,
+      "review_note": "Current source inspection: main.go prepares pinned interchange export deployment and passes factory into buildInterchangeCreateWithFactory; service installs Export preparer when trusted native authority is supplied. Explicit operator authority/provisioning and full normative/native lifecycle remain open. Historical note that main builder never supplies Export is superseded. No tests run; no semantic completion credit."
+    },
+    {
+      "name": "GetInterchange",
+      "layer": "http_service",
+      "package": "V30",
+      "input": null,
+      "output": "Resource",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/interchange-jobs/{id}",
+      "status": "partial_runtime_path",
+      "evidence": [
+        "backend/internal/httpapi/interchange.go",
+        "backend/internal/interchange/read.go",
+        "backend/db/migrations/01326_v30_interchange_read.sql"
+      ],
+      "implementation_credit": null
+    },
+    {
+      "name": "SignExport",
+      "layer": "http_service",
+      "package": "V31",
+      "input": "SignCreate",
+      "output": "JobTicket",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/exports/{id}/provenance",
+      "status": "partial_runtime_path",
+      "evidence": [
+        "backend/internal/httpapi/provenance.go",
+        "backend/internal/provenance/sign_service.go"
+      ],
+      "implementation_credit": null
+    },
+    {
+      "name": "GetDocument",
+      "layer": "http_service",
+      "package": "V21",
+      "input": null,
+      "output": "DocumentBody",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/v2-documents/{id}",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "GetWorkflow",
+      "layer": "http_service",
+      "package": "V21",
+      "input": null,
+      "output": "JobStatus",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/v2-workflows/{id}",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "CancelWorkflow",
+      "layer": "http_service",
+      "package": "V21",
+      "input": "CAS",
+      "output": "JobStatus",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/v2-workflows/{id}/cancel",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "ReadRunIntent",
+      "layer": "http_service",
+      "package": "V27",
+      "input": null,
+      "output": "SemanticRunIntent",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/runs/{id}/semantic-intent",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "GetRegionPreviewDescriptor",
+      "layer": "http_service",
+      "package": "V26",
+      "input": null,
+      "output": "RegionPreviewDescriptor",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/assets/{id}/region-previews/{run}/descriptor",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "GetLayerStack",
+      "layer": "http_service",
+      "package": "V26",
+      "input": null,
+      "output": "LayerStack",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/assets/{id}/v2-layers/{artifact}",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "ListSessionAnalyses",
+      "layer": "http_service",
+      "package": "V26",
+      "input": null,
+      "output": "ResourcePage",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/shoot-sessions/{id}/analyses",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "GetSceneBoard",
+      "layer": "http_service",
+      "package": "V26",
+      "input": null,
+      "output": "SceneBoardDocument",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/session-analyses/{id}/scene-board",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "CloseSemanticReview",
+      "layer": "http_service",
+      "package": "V27",
+      "input": "ReviewClose",
+      "output": "JobStatus",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/semantic-intents/{id}/close-review",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "DecideImport",
+      "layer": "http_service",
+      "package": "V30",
+      "input": "ImportReview",
+      "output": "ReviewBatchResult",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/interchange-jobs/{id}/decisions",
+      "status": "partial_runtime_path",
+      "evidence": [
+        "backend/internal/httpapi/interchange_decide.go",
+        "backend/internal/interchange/review_decide_service.go",
+        "apps/photographer/src/interchange-job-screen.tsx"
+      ],
+      "implementation_credit": null
+    },
+    {
+      "name": "CloseImportReview",
+      "layer": "http_service",
+      "package": "V30",
+      "input": "ImportReviewClose",
+      "output": "JobStatus",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/interchange-jobs/{id}/close-review",
+      "status": "partial_runtime_path",
+      "evidence": [
+        "backend/internal/httpapi/interchange_close.go",
+        "backend/internal/interchange/review_close_service.go",
+        "apps/photographer/src/owner-api.ts"
+      ],
+      "implementation_credit": null
+    },
+    {
+      "name": "ReviewLearningSafety",
+      "layer": "http_service",
+      "package": "V23",
+      "input": "LearningSafetyReview",
+      "output": "LearningVersionView",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/learning-versions/{id}/safety-review",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "layer.compose.execute",
+      "layer": "worker",
+      "package": "V25",
+      "input": "LayerComposeParams",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "session.describe.execute",
+      "layer": "worker",
+      "package": "V22",
+      "input": "SessionDescribeParams",
+      "output": "DescriptorShard",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "gpu",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "session.plan.execute",
+      "layer": "worker",
+      "package": "V22",
+      "input": "SessionPlanParams",
+      "output": "ScenePlan",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "learning.fit.execute",
+      "layer": "worker",
+      "package": "V23",
+      "input": "LearningFitParams",
+      "output": "CandidateProfile",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "learning.evaluate.execute",
+      "layer": "worker",
+      "package": "V23",
+      "input": "LearningEvaluateParams",
+      "output": "Evaluation",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "gpu",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "capture.assess.execute",
+      "layer": "worker",
+      "package": "V24",
+      "input": "CaptureAssessParams",
+      "output": "QAReport",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "gpu",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "identity.compare.execute",
+      "layer": "worker",
+      "package": "V23",
+      "input": "IdentityCompareParams",
+      "output": "IdentityReport",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "gpu",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "semantic.transfer.execute",
+      "layer": "worker",
+      "package": "V27",
+      "input": "SemanticTransferParams",
+      "output": "TransferCandidate",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "gpu",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "portrait.open_eyes.execute",
+      "layer": "worker",
+      "package": "V28",
+      "input": "PortraitOpen_EyesParams",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "portrait.glare.execute",
+      "layer": "worker",
+      "package": "V28",
+      "input": "PortraitGlareParams",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "gpu",
+      "status": "missing_runtime_path",
+      "evidence": [],
+      "implementation_credit": null,
+      "review_note": "2026-10-13 source inspection: no production worker execution or backend registration; see audit/v28-glare-reflection-gap-2026-10-13.md."
+    },
+    {
+      "name": "image.reflection.execute",
+      "layer": "worker",
+      "package": "V28",
+      "input": "ImageReflectionParams",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "gpu",
+      "status": "missing_runtime_path",
+      "evidence": [],
+      "implementation_credit": null,
+      "review_note": "2026-10-13 source inspection: no production worker execution or backend registration; see audit/v28-glare-reflection-gap-2026-10-13.md."
+    },
+    {
+      "name": "portrait.hair.execute",
+      "layer": "worker",
+      "package": "V28",
+      "input": "PortraitHairParams",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "portrait.clothing.execute",
+      "layer": "worker",
+      "package": "V28",
+      "input": "PortraitClothingParams",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "image.relight.execute",
+      "layer": "worker",
+      "package": "V28",
+      "input": "ImageRelightParams",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "optical.lens.execute",
+      "layer": "worker",
+      "package": "V25",
+      "input": "OpticalLensParams",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "optical.perspective.execute",
+      "layer": "worker",
+      "package": "V29",
+      "input": "OpticalPerspectiveParams",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu",
+      "status": "partial_runtime_path",
+      "evidence": [
+        "workers/photo_worker/runtime/service.py:324",
+        "workers/photo_worker/operations/optical/perspective_installation.py:27",
+        "workers/photo_worker/operations/optical/perspective_adapter.py",
+        "workers/photo_worker/algorithms/perspective_lines.py",
+        "workers/photo_worker/operations/optical/perspective_line_detection.py"
+      ],
+      "implementation_credit": null,
+      "review_note": "2026-10-12 current source: automatic LSD detector exists in workers/photo_worker/algorithms/perspective_lines.py with CPU runtime adapter operations/optical/perspective_line_detection.py and qualification/source/resource gates. Historical absence note superseded. Complete automatic/manual/replacement lifecycle and normative semantics remain unverified; tests NOT RUN, no completion credit."
+    },
+    {
+      "name": "optical.negative.execute",
+      "layer": "worker",
+      "package": "V29",
+      "input": "OpticalNegativeParams",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "optical.panorama.execute",
+      "layer": "worker",
+      "package": "V29",
+      "input": "OpticalPanoramaParams",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu",
+      "status": "partial_runtime_path",
+      "evidence": [
+        "workers/photo_worker/runtime/service.py:345",
+        "workers/photo_worker/operations/optical/multi_installation.py:28",
+        "workers/photo_worker/operations/optical/multi_adapter.py",
+        "backend/internal/v2optical/multi_service.go",
+        "apps/photographer/src/multi-preparation.ts",
+        "apps/photographer/src/multi-review-view.tsx",
+        "apps/photographer/src/multi-apply-view.tsx",
+        "apps/photographer/app/collections/[id]/multi.tsx"
+      ],
+      "implementation_credit": null,
+      "review_note": "Current source inspection2026-10-12: collection multi route wires preparation, review, apply inbox and recovery; former uncertainty about route presence is superseded. Worker qualification, full normative semantics and real lifecycle acceptance remain unverified. No completion credit; tests NOT RUN."
+    },
+    {
+      "name": "optical.focus_stack.execute",
+      "layer": "worker",
+      "package": "V29",
+      "input": "OpticalFocus_StackParams",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu",
+      "status": "partial_runtime_path",
+      "evidence": [
+        "workers/photo_worker/runtime/service.py:345",
+        "workers/photo_worker/operations/optical/multi_installation.py:28",
+        "workers/photo_worker/operations/optical/multi_adapter.py",
+        "backend/internal/v2optical/multi_service.go",
+        "apps/photographer/src/multi-preparation.ts",
+        "apps/photographer/src/multi-review-view.tsx",
+        "apps/photographer/src/multi-apply-view.tsx",
+        "apps/photographer/app/collections/[id]/multi.tsx"
+      ],
+      "implementation_credit": null,
+      "review_note": "Current source inspection2026-10-12: collection multi route wires preparation, review, apply inbox and recovery; former uncertainty about route presence is superseded. Worker qualification, full normative semantics and real lifecycle acceptance remain unverified. No completion credit; tests NOT RUN."
+    },
+    {
+      "name": "provenance.sign.execute",
+      "layer": "worker",
+      "package": "V31",
+      "input": "ProvenanceSignParams",
+      "output": "SignedResult",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "signer",
+      "status": "partial_runtime_path",
+      "evidence": [
+        "backend/cmd/photo/main.go",
+        "backend/internal/httpapi/provenance.go",
+        "workers/photo_worker/runtime/signer_service.py",
+        "workers/photo_worker/runtime/signer_deployment.py"
+      ],
+      "implementation_credit": null,
+      "review_note": "2026-10-13 source reconciliation: callable conditional API and isolated signer worker path exists. Native qualified SDK, certificate/HSM/timestamp/revocation installation and sign→adopt→read lifecycle remain unverified; no completion credit."
+    },
+    {
+      "name": "v2.delivery.assemble.execute",
+      "layer": "worker",
+      "package": "V30",
+      "input": "V2DeliveryAssembleParams",
+      "output": "DeliveryManifest",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu",
+      "status": "partial_runtime_path",
+      "evidence": [
+        "workers/photo_worker/operations/delivery/adapter.py",
+        "workers/photo_worker/runtime/service.py",
+        "workers/photo_worker/v2/delivery_assembly_adoption.py"
+      ],
+      "implementation_credit": null,
+      "review_note": "Conditional CPU runtime, scheduler assembly and dedicated adoption authored; complete CreateDelivery admission and end-to-end semantics remain open. Tests NOT RUN.",
+      "limitations": [
+        "Current source2026-10-12: required provenance explicitly returns DELIVERY_PROVENANCE_UNAVAILABLE in create_intent.go and assembly.go. This is missing functionality, not only missing execution evidence.",
+        "Current source2026-10-12: copyright/approved_exif and watermark have dedicated compiler/worker/adoption paths; ordinary child ExportRequest intentionally remains watermark-closed. Complete mixed ordinary/watermark/metadata SQL and physical lifecycle remains unqualified. This supersedes the earlier unsupported-mode classification; no completion credit."
+      ]
+    },
+    {
+      "name": "v2.interchange.import.execute",
+      "layer": "worker",
+      "package": "V30",
+      "input": "V2InterchangeImportParams",
+      "output": "InterchangeResult",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu",
+      "status": "partial_runtime_path",
+      "evidence": [
+        "workers/photo_worker/operations/interchange/import_adapter.py",
+        "workers/photo_worker/operations/interchange/installation.py",
+        "workers/photo_worker/v2/interchange_import_adoption.py",
+        "workers/photo_worker/runtime/service.py"
+      ],
+      "implementation_credit": null
+    },
+    {
+      "name": "v2.interchange.export.execute",
+      "layer": "worker",
+      "package": "V30",
+      "input": "V2InterchangeExportParams",
+      "output": "InterchangeResult",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu",
+      "status": "partial_runtime_path",
+      "evidence": [
+        "workers/photo_worker/runtime/service.py: explicit interchange_export_installation registers operation; qualified production wiring and end-to-end lifecycle remain open"
+      ],
+      "implementation_credit": null
+    },
+    {
+      "name": "v2.semantic.assemble.execute",
+      "layer": "worker",
+      "package": "V27",
+      "input": "V2SemanticAssembleParams",
+      "output": "SemanticPlan",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "v2.interchange.parse.execute",
+      "layer": "worker",
+      "package": "V30",
+      "input": "V2InterchangeParseParams",
+      "output": "ParsedInterchange",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu",
+      "status": "partial_runtime_path",
+      "evidence": [
+        "backend/internal/httpapi/interchange.go",
+        "backend/internal/httpapi/server.go",
+        "workers/photo_worker/runtime/service.py",
+        "workers/photo_worker/operations/interchange/parse.py"
+      ],
+      "implementation_credit": null
+    },
+    {
+      "name": "v2.delivery.prepare.execute",
+      "layer": "worker",
+      "package": "V30",
+      "input": "V2DeliveryPrepareParams",
+      "output": "DeliveryPreparation",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu",
+      "status": "partial_runtime_path",
+      "evidence": [
+        "workers/photo_worker/operations/delivery/installation.py",
+        "workers/photo_worker/runtime/service.py",
+        "workers/photo_worker/v2/delivery_prepare_adoption.py",
+        "workers/photo_worker/v2/adoption_service.py"
+      ],
+      "implementation_credit": null,
+      "review_note": "Conditional CPU runtime and dedicated adoption authored; initial package API/coordinator and full integration remain open. Tests not run, migrations not applied. No full semantic credit.",
+      "limitations": [
+        "Current source2026-10-12: required provenance explicitly returns DELIVERY_PROVENANCE_UNAVAILABLE in create_intent.go and assembly.go. This is missing functionality, not only missing execution evidence.",
+        "Current source2026-10-12: copyright/approved_exif and watermark have dedicated compiler/worker/adoption paths; ordinary child ExportRequest intentionally remains watermark-closed. Complete mixed ordinary/watermark/metadata SQL and physical lifecycle remains unqualified. This supersedes the earlier unsupported-mode classification; no completion credit."
+      ]
+    },
+    {
+      "name": "region.preview.execute",
+      "layer": "worker",
+      "package": "V26",
+      "input": "RegionPreviewParams",
+      "output": "RegionDerivativeManifest",
+      "behavior": [
+        "15-execution-contracts.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "gpu",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "render.compose.execute",
+      "layer": "worker",
+      "package": "V26",
+      "input": "FrozenRenderRecipe",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "gpu",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "semantic.local_exposure.execute",
+      "layer": "worker",
+      "package": "V27",
+      "input": "ApprovedSemanticEdit",
+      "output": "ImageResult",
+      "behavior": [
+        "16-imaging-algorithms.md",
+        "19-runtime-protocol.md"
+      ],
+      "pool": "cpu",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "GetReviewPreview",
+      "layer": "http_service",
+      "package": "V26",
+      "input": null,
+      "output": "ReviewPreview",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md",
+        "21-render-review-preview.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/reviews/{id}/previews/{side}/{variant}",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    },
+    {
+      "name": "GetPerspectiveReplacementReviewScope",
+      "layer": "http_service",
+      "package": "V29",
+      "input": null,
+      "output": "PerspectiveReplacementReviewScope",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/projects/{id}/reviews/{review}/perspective-replacements/{original}",
+      "status": "requires_semantic_review",
+      "implementation_credit": null,
+      "evidence": [
+        "backend/internal/httpapi/perspective_replacement_review.go",
+        "backend/internal/v2render/perspective_replacement_review_scope.go",
+        "backend/internal/v2render/perspective_replacement_review_list.go"
+      ],
+      "review_note": "Authored SQL/service/API and mounted client path. Tests NOT RUN, migrations NOT APPLIED; no completion credit."
+    },
+    {
+      "name": "ListPerspectiveReplacementReviews",
+      "layer": "http_service",
+      "package": "V29",
+      "input": null,
+      "output": "PerspectiveReplacementReviewPage",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/reviews/{review}/perspective-replacements",
+      "status": "requires_semantic_review",
+      "implementation_credit": null,
+      "evidence": [
+        "backend/internal/httpapi/perspective_replacement_review.go",
+        "backend/internal/v2render/perspective_replacement_review_scope.go",
+        "backend/internal/v2render/perspective_replacement_review_list.go"
+      ],
+      "review_note": "Authored SQL/service/API and mounted client path. Tests NOT RUN, migrations NOT APPLIED; no completion credit."
+    },
+    {
+      "name": "GetMultiReplacementReviewScope",
+      "layer": "http_service",
+      "package": "V29",
+      "input": null,
+      "output": "MultiReplacementReviewScope",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/projects/{id}/reviews/{review}/multi-replacements/{original}",
+      "status": "requires_semantic_review",
+      "implementation_credit": null,
+      "evidence": [
+        "backend/internal/httpapi/multi_replacement_review.go",
+        "backend/internal/v2render/multi_replacement_review_scope.go",
+        "backend/internal/v2render/multi_replacement_review_list.go"
+      ],
+      "review_note": "Current source route/service authored; tests NOT RUN, migrations NOT APPLIED; no semantic completion credit."
+    },
+    {
+      "name": "ListMultiReplacementReviews",
+      "layer": "http_service",
+      "package": "V29",
+      "input": null,
+      "output": "MultiReplacementReviewPage",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/reviews/{review}/multi-replacements",
+      "status": "requires_semantic_review",
+      "implementation_credit": null,
+      "evidence": [
+        "backend/internal/httpapi/multi_replacement_review.go",
+        "backend/internal/v2render/multi_replacement_review_scope.go",
+        "backend/internal/v2render/multi_replacement_review_list.go"
+      ],
+      "review_note": "Current source route/service authored; tests NOT RUN, migrations NOT APPLIED; no semantic completion credit."
+    },
+    {
+      "name": "BeginInterchangeArchiveUpload",
+      "layer": "http_service",
+      "package": "V30",
+      "input": "ArchiveUploadBegin",
+      "output": "ArchiveUploadReceipt",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads",
+      "status": "partial_runtime_path",
+      "implementation_credit": null,
+      "evidence": [
+        "backend/internal/httpapi/interchange.go",
+        "backend/cmd/photo/main.go",
+        "backend/internal/interchange/archive_upload_begin.go",
+        "backend/internal/interchange/archive_upload_actions.go",
+        "backend/internal/interchange/archive_upload_status.go",
+        "backend/cmd/photo/archive_completion_installation.go"
+      ],
+      "limitations": [
+        "Source wiring inspected; no build, tests or migrations executed.",
+        "Open Begin unknown outcome reconciliation remains unresolved.",
+        "Full native multipart completion, revocation, purge/quota and authorization races unqualified."
+      ],
+      "review_note": "2026-10-11: API/worker/client code authored; partial module status retained; not accepted as complete."
+    },
+    {
+      "name": "SignInterchangeArchiveParts",
+      "layer": "http_service",
+      "package": "V30",
+      "input": "ArchiveUploadPartsRequest",
+      "output": "ArchiveUploadPartsResponse",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/{upload}/parts",
+      "status": "partial_runtime_path",
+      "implementation_credit": null,
+      "evidence": [
+        "backend/internal/httpapi/interchange.go",
+        "backend/cmd/photo/main.go",
+        "backend/internal/interchange/archive_upload_begin.go",
+        "backend/internal/interchange/archive_upload_actions.go",
+        "backend/internal/interchange/archive_upload_status.go",
+        "backend/cmd/photo/archive_completion_installation.go"
+      ],
+      "limitations": [
+        "Source wiring inspected; no build, tests or migrations executed.",
+        "Open Begin unknown outcome reconciliation remains unresolved.",
+        "Full native multipart completion, revocation, purge/quota and authorization races unqualified."
+      ],
+      "review_note": "2026-10-11: API/worker/client code authored; partial module status retained; not accepted as complete."
+    },
+    {
+      "name": "CompleteInterchangeArchiveUpload",
+      "layer": "http_service",
+      "package": "V30",
+      "input": "ArchiveUploadComplete",
+      "output": "ArchiveUploadAccepted",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/{upload}/complete",
+      "status": "partial_runtime_path",
+      "implementation_credit": null,
+      "evidence": [
+        "backend/internal/httpapi/interchange.go",
+        "backend/cmd/photo/main.go",
+        "backend/internal/interchange/archive_upload_begin.go",
+        "backend/internal/interchange/archive_upload_actions.go",
+        "backend/internal/interchange/archive_upload_status.go",
+        "backend/cmd/photo/archive_completion_installation.go"
+      ],
+      "limitations": [
+        "Source wiring inspected; no build, tests or migrations executed.",
+        "Open Begin unknown outcome reconciliation remains unresolved.",
+        "Full native multipart completion, revocation, purge/quota and authorization races unqualified."
+      ],
+      "review_note": "2026-10-11: API/worker/client code authored; partial module status retained; not accepted as complete."
+    },
+    {
+      "name": "AbortInterchangeArchiveUpload",
+      "layer": "http_service",
+      "package": "V30",
+      "input": "ArchiveUploadAbort",
+      "output": "ArchiveUploadAbortAccepted",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "POST /api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/{upload}/abort",
+      "status": "partial_runtime_path",
+      "implementation_credit": null,
+      "evidence": [
+        "backend/internal/httpapi/interchange.go",
+        "backend/cmd/photo/main.go",
+        "backend/internal/interchange/archive_upload_begin.go",
+        "backend/internal/interchange/archive_upload_actions.go",
+        "backend/internal/interchange/archive_upload_status.go",
+        "backend/cmd/photo/archive_completion_installation.go"
+      ],
+      "limitations": [
+        "Source wiring inspected; no build, tests or migrations executed.",
+        "Open Begin unknown outcome reconciliation remains unresolved.",
+        "Full native multipart completion, revocation, purge/quota and authorization races unqualified."
+      ],
+      "review_note": "2026-10-11: API/worker/client code authored; partial module status retained; not accepted as complete."
+    },
+    {
+      "name": "GetInterchangeArchiveUpload",
+      "layer": "http_service",
+      "package": "V30",
+      "input": null,
+      "output": "ArchiveUploadStatus",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/{upload}",
+      "status": "partial_runtime_path",
+      "implementation_credit": null,
+      "evidence": [
+        "backend/internal/httpapi/interchange.go",
+        "backend/cmd/photo/main.go",
+        "backend/internal/interchange/archive_upload_begin.go",
+        "backend/internal/interchange/archive_upload_actions.go",
+        "backend/internal/interchange/archive_upload_status.go",
+        "backend/cmd/photo/archive_completion_installation.go"
+      ],
+      "limitations": [
+        "Source wiring inspected; no build, tests or migrations executed.",
+        "Open Begin unknown outcome reconciliation remains unresolved.",
+        "Full native multipart completion, revocation, purge/quota and authorization races unqualified."
+      ],
+      "review_note": "2026-10-11: API/worker/client code authored; partial module status retained; not accepted as complete."
+    },
+    {
+      "name": "GetRAWCapabilities",
+      "layer": "http_service",
+      "package": "V25",
+      "input": null,
+      "output": "RAWCapabilities",
+      "behavior": [
+        "13-api-behavior.md",
+        "15-execution-contracts.md",
+        "17-integration-security.md"
+      ],
+      "http": "GET /api/v1/tenants/{t}/projects/{id}/raw-capabilities",
+      "status": "requires_semantic_review",
+      "evidence": [],
+      "implementation_credit": null
+    }
+  ],
+  "latest_recalculation": {
+    "date": "2026-10-10",
+    "catalogue_entries": 90,
+    "status_counts": {
+      "requires_semantic_review": 73,
+      "partial_runtime_path": 11,
+      "missing_runtime_path": 6
+    },
+    "catalogue_upper_bound_percent": 93.33,
+    "whole_product_implementation_percent": null,
+    "new_full_semantic_credits": 0,
+    "method": "Static catalogue recount only; no whole-product semantic completion credit.",
+    "verification": "Tests/build/typecheck NOT RUN; migrations NOT APPLIED."
+  },
+  "latest_static_recalculation": {
+    "date": "2026-10-10",
+    "scope": "Current catalogue recount plus scoped delivery source review; NOT exhaustive semantic audit",
+    "catalogue_entries": 90,
+    "current_ledger_status_counts": {
+      "requires_semantic_review": 73,
+      "partial_runtime_path": 11,
+      "missing_runtime_path": 6
+    },
+    "catalogue_upper_bound_percent": 93.33,
+    "whole_product_implementation_percent": null,
+    "tests_run": false,
+    "latest_authored_migration": "01327",
+    "migration_applied": false,
+    "status_counts": {
+      "requires_semantic_review": 73,
+      "partial_runtime_path": 11,
+      "missing_runtime_path": 6
+    },
+    "method": "Static catalogue recount only; no whole-product semantic completion credit."
+  },
+  "latest_v29_increment": {
+    "date": "2026-10-10",
+    "scope": "Dedicated immutable multi-quality Params pin/reserve/complete and object publisher",
+    "migrations_authored": [
+      "01190",
+      "01191",
+      "01192"
+    ],
+    "migration_applied": false,
+    "tests_authored": [
+      "backend/internal/workflow/multi_quality_documents_test.go"
+    ],
+    "tests_run": false,
+    "whole_module_credit": false,
+    "limitation": "Foreign-scope and publisher preflight only; positive multi SQL/publication evidence absent. Quality materialization/seal/adoption/review/Apply remain open."
+  },
+  "latest_migration": "01355_v30_interchange_warp_occurrence.sql",
+  "latest_increment": "V30 Go scoped export document store/publisher composed with new reserve/complete SQL, exact frozen plan/Params validation, immutable PUT/recovery, ready replay and object key/SHA/size/media/version receipt checks. Unit scenarios NOT RUN.",
+  "latest_static_recount": {
+    "date": "2026-10-10",
+    "counts": {
+      "requires_semantic_review": 73,
+      "partial_runtime_path": 14,
+      "missing_runtime_path": 3
+    },
+    "total": 90,
+    "presence_ceiling_percent": 96.67,
+    "whole_product_implementation_percent": null,
+    "method": "Recount of current ledger plus scoped source inspection of prepared storage; not an exhaustive semantic audit. No new whole-module credit.",
+    "tests_run": false,
+    "migrations_applied": false
+  },
+  "latest_runtime_installation_increment": {
+    "date": "2026-10-10",
+    "counts": {
+      "requires_semantic_review": 73,
+      "partial_runtime_path": 11,
+      "missing_runtime_path": 6
+    },
+    "total_entrypoints": 90,
+    "presence_ceiling_percent": 93.33,
+    "whole_product_implementation_percent": null,
+    "reason": "Catalogue presence does not establish complete module semantics. No current execution evidence; tests deferred by user.",
+    "changes": [
+      "Explicit CPU import installation in build_worker and run_worker; default disabled.",
+      "SQL installation requires recipe qualifier factory; installation port validation and authored unit tests."
+    ],
+    "remaining": [
+      "Production recipe qualification factory and prepared dependency publication",
+      "Import final adoption and recovery",
+      "Activation and scheduler orchestration",
+      "Review actions and export/signing completion"
+    ],
+    "tests": "authored, not executed",
+    "migrations": "not applied"
+  },
+  "latest_import_adoption_preparation": {
+    "date": "2026-10-10",
+    "implementation": "scheduler authority before/after independent object reconstruction",
+    "tests": "authored, not run",
+    "migration": "not applied",
+    "final_commit": "pending",
+    "whole_product_implementation_percent": null
+  },
+  "latest_import_commit_increment": {
+    "date": "2026-10-10",
+    "implementation": "dedicated artifact commit, historical recovery and AdoptionCoordinator routing",
+    "tests": "authored, not run",
+    "migrations": "01341-01342 not applied",
+    "review_lifecycle": "pending",
+    "whole_product_implementation_percent": null
+  },
+  "latest_draft_review_increment": {
+    "date": "2026-10-10",
+    "implementation": "exact recipe closure receipts; atomic draft rows/GC refs/waiting_review/outbox",
+    "tests": "authored, not run",
+    "migration": "not applied",
+    "remaining": [
+      "DecideImport and CloseReview",
+      "API and client actions",
+      "production recipe factory",
+      "compiler activation"
+    ],
+    "whole_product_implementation_percent": null
+  },
+  "latest_execution_compiler_increment": {
+    "date": "2026-10-10",
+    "implementation": "Compile plan, read current SQL metadata receipts, freeze diagnostics/evidence in executable Params, recheck metadata and sources after IO",
+    "sources": [
+      "backend/internal/interchange/import_execution_compile.go",
+      "backend/internal/interchange/import_execution_compile_test.go"
+    ],
+    "tests_run": false,
+    "migrations_applied": false,
+    "whole_module_credit": false
+  },
+  "latest_recipe_diagnostics_increment": {
+    "date": "2026-10-10",
+    "implementation": "Capture typed recipe unsupported outcomes in manifest order and automatically freeze them into executable evidence; preserve transport/authority/cancellation errors",
+    "files": [
+      "backend/internal/interchange/import_plan_compile.go",
+      "backend/internal/interchange/import_execution_compile.go",
+      "backend/internal/interchange/import_recipe_diagnostics_test.go"
+    ],
+    "tests_run": false,
+    "whole_module_credit": false
+  },
+  "latest_prepared_recipe_root_increment": {
+    "date": "2026-10-10",
+    "implementation": "Root EditingRecipeV3 archive hash validation, ordered dependency remapping ports, source qualification, full prepared qualifier and exact deterministic publication receipt; bounded opaque archive reader",
+    "files": [
+      "backend/internal/interchange/import_recipe_resolver.go",
+      "backend/internal/interchange/import_recipe_resolver_test.go"
+    ],
+    "tests_run": false,
+    "production_recursive_dependency_ports": "pending",
+    "whole_module_credit": false
+  },
+  "latest_recipe_source_increment": {
+    "date": "2026-10-10",
+    "implementation": "Concrete archived inventory→staged WorkingImage and current ingest master source qualification with hash/canvas/original checks",
+    "files": [
+      "backend/internal/interchange/import_recipe_source.go",
+      "backend/internal/interchange/import_recipe_source_test.go"
+    ],
+    "tests_run": false,
+    "whole_module_credit": false
+  },
+  "latest_dependency_graph_increment": {
+    "date": "2026-10-10",
+    "implementation": "Bounded recursive inventory-backed dependency remapping and child-before-parent deterministic publication with independent typed codec qualification",
+    "files": [
+      "backend/internal/interchange/import_dependency_remap.go",
+      "backend/internal/interchange/import_dependency_remap_test.go"
+    ],
+    "tests_run": false,
+    "concrete_typed_codecs_and_sql_publishers": "pending",
+    "whole_module_credit": false
+  },
+  "latest_correction_codec_increment": {
+    "date": "2026-10-10",
+    "implementation": "Concrete full CorrectionPlan source binding remap, preserving all rows and authored deltas with per-source requalification and pinned current snapshot",
+    "files": [
+      "backend/internal/interchange/import_correction_codec.go",
+      "backend/internal/interchange/import_correction_codec_test.go"
+    ],
+    "tests_run": false,
+    "whole_module_credit": false
+  },
+  "latest_mask_codec_increment": {
+    "date": "2026-10-10",
+    "implementation": "Concrete MaskRef remapping of mask/warp dependencies and object UUID, transform hash regeneration, authored metadata preservation and mandatory physical/model qualifier",
+    "files": [
+      "backend/internal/interchange/import_mask_codec.go",
+      "backend/internal/interchange/import_mask_codec_test.go"
+    ],
+    "tests_run": false,
+    "physical_binary_codec_and_qualifier": "pending",
+    "whole_module_credit": false
+  },
+  "latest_layer_codec_increment": {
+    "date": "2026-10-10",
+    "implementation": "Concrete LayerStack source/layer UUID remap, ordered Params and complete recursive mask expression remap, authored values preservation with mandatory operator/Params qualification",
+    "files": [
+      "backend/internal/interchange/import_layer_codec.go",
+      "backend/internal/interchange/import_layer_codec_test.go"
+    ],
+    "tests_run": false,
+    "whole_module_credit": false
+  },
+  "latest_override_codec_increment": {
+    "date": "2026-10-10",
+    "implementation": "Concrete Override source SHA/master verification, whole-module/manual-value preservation, object UUID and inline mask remap; explicit unsupported foreign review authority",
+    "files": [
+      "backend/internal/interchange/import_override_codec.go",
+      "backend/internal/interchange/import_override_codec_test.go"
+    ],
+    "tests_run": false,
+    "whole_module_credit": false
+  },
+  "latest_style_codec_increment": {
+    "date": "2026-10-10",
+    "implementation": "StyleV2 rendering-field preservation, deterministic style ID, explicit background remap and separate archived validation/current qualification; imported quality claims require local review",
+    "files": [
+      "backend/internal/interchange/import_style_codec.go",
+      "backend/internal/interchange/import_style_codec_test.go"
+    ],
+    "tests_run": false,
+    "whole_module_credit": false
+  },
+  "latest_mask_binary_increment": {
+    "date": "2026-10-10",
+    "implementation": "Recursive binary branch plus streaming exact-canvas float32 MaskPixels NPY verification, pinned copy receipt and post-IO source/object rechecks",
+    "files": [
+      "backend/internal/interchange/import_binary_remap.go",
+      "backend/internal/interchange/import_dependency_remap.go",
+      "backend/internal/interchange/import_binary_remap_test.go"
+    ],
+    "tests_run": false,
+    "whole_module_credit": false
+  },
+  "latest_physical_mask_qualification_increment": {
+    "date": "2026-10-10",
+    "implementation": "Concrete current-master/canvas and installed-model mask qualification with streaming mask and occurrence-shaped warp arrays, aggregate budget and post-IO authority rechecks",
+    "files": [
+      "backend/internal/interchange/import_mask_qualification.go",
+      "backend/internal/interchange/import_mask_qualification_test.go"
+    ],
+    "tests_run": false,
+    "prepared_sql_catalog_and_production_wiring": "pending",
+    "whole_module_credit": false
+  },
+  "latest_warp_remap_increment": {
+    "date": "2026-10-10",
+    "implementation": "Occurrence-shaped DenseWarpField streaming verification and immutable remap, wired to MaskRef transform step from/to canvases",
+    "files": [
+      "backend/internal/interchange/import_warp_remap.go",
+      "backend/internal/interchange/import_warp_remap_test.go",
+      "backend/internal/interchange/import_mask_codec.go"
+    ],
+    "tests_run": false,
+    "whole_module_credit": false
+  },
+  "latest_prepared_publisher_increment": {
+    "date": "2026-10-10",
+    "implementation": "Prepared root/dependency JSON and binary immutable publication, independent streamed hash/size verification, recovery and fenced store ports",
+    "files": [
+      "backend/internal/interchange/import_prepared_publish.go",
+      "backend/internal/interchange/import_prepared_publish_test.go"
+    ],
+    "tests_run": false,
+    "concrete_sql_store": "pending",
+    "whole_module_credit": false
+  },
+  "current_status_counts": {
+    "requires_semantic_review": 76,
+    "partial_runtime_path": 16,
+    "missing_runtime_path": 1
+  },
+  "latest_recount": {
+    "date": "2026-10-10",
+    "status_counts": {
+      "requires_semantic_review": 73,
+      "partial_runtime_path": 16,
+      "missing_runtime_path": 1
+    },
+    "whole_product_implementation_percent": null,
+    "reason": "90 entrypoints are not a complete requirement denominator. Source presence cannot establish complete semantic implementation or production installation. Tests intentionally not executed in implementation-first phase.",
+    "tests_executed": false,
+    "migrations_applied": false
+  },
+  "latest_override_review_increment": {
+    "date": "2026-10-10",
+    "files": [
+      "workers/photo_worker/v2/interchange_recipe_semantics.py",
+      "workers/tests/test_interchange_recipe_semantics.py"
+    ],
+    "tests_run": false,
+    "whole_module_credit": false,
+    "remaining": [
+      "Production runtime qualifier and import activation",
+      "Complete manual geometry/landmark semantics",
+      "End-to-end import/adoption and output resource accounting"
+    ]
+  },
+  "latest_read_budget_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "workers/photo_worker/v2/interchange_read_budget.py",
+      "workers/photo_worker/v2/interchange_input_reader.py",
+      "workers/photo_worker/operations/interchange/recipe_factory.py",
+      "workers/photo_worker/operations/interchange/import_adapter.py"
+    ],
+    "scope": "Shared execution JSON budget, aggregate 128GiB physical read cap, streamed accounting, metadata preflight, no factory accounting bypass"
+  },
+  "latest_export_prepare_increment": {
+    "date": "2026-10-10",
+    "files": [
+      "workers/photo_worker/v2/interchange_export_prepare.py",
+      "workers/tests/test_interchange_export_prepare.py"
+    ],
+    "tests_run": false,
+    "whole_module_credit": false,
+    "remaining": [
+      "Concrete recipe and mask export qualification",
+      "Export SQL admission and frozen authority",
+      "Leased adapter and production dispatch",
+      "XMP/captureone sidecars and mapping report",
+      "Result publication and adoption"
+    ]
+  },
+  "latest_export_sidecar_increment": {
+    "date": "2026-10-10",
+    "files": [
+      "workers/photo_worker/v2/interchange_export_sidecars.py",
+      "workers/tests/test_interchange_export_sidecars.py"
+    ],
+    "tests_run": false,
+    "whole_module_credit": false,
+    "remaining": [
+      "Concrete encoded image qualification",
+      "Archive packaging and result/report publication",
+      "SQL admission and runtime dispatch",
+      "Export adoption and recovery"
+    ]
+  },
+  "latest_export_result_increment": {
+    "date": "2026-10-10",
+    "change": "Canonical result/report/shard validation against frozen export entry inventory; unit cases authored, not executed. Physical ZIP/task output scope/current SQL adoption remain mandatory and open.",
+    "whole_module_credit": false
+  },
+  "latest_sidecar_archive_increment": {
+    "date": "2026-10-10",
+    "files": [
+      "workers/photo_worker/v2/interchange_sidecar_archive.py",
+      "workers/tests/test_interchange_sidecar_archive.py"
+    ],
+    "tests_run": false,
+    "whole_module_credit": false,
+    "remaining": [
+      "Concrete source/recipe/mask qualification",
+      "SQL export admission",
+      "Leased export adapter/dispatch",
+      "Export adoption and recovery"
+    ]
+  },
+  "latest_export_adapter_increment": {
+    "date": "2026-10-10",
+    "files": [
+      "workers/photo_worker/operations/interchange/export_adapter.py",
+      "workers/tests/test_interchange_export_adapter.py"
+    ],
+    "tests_run": false,
+    "whole_module_credit": false,
+    "remaining": [
+      "Concrete SQL export admission",
+      "Concrete export preparation factory",
+      "Prepared bundle/plan correspondence hardening",
+      "Production dispatch activation",
+      "Export adoption and recovery",
+      "Full positive adapter unit scenarios"
+    ]
+  },
+  "latest_export_binding_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "workers/photo_worker/v2/interchange_export_prepare.py",
+      "workers/photo_worker/v2/interchange_export_sidecars.py",
+      "workers/photo_worker/v2/interchange_sidecar_archive.py",
+      "workers/photo_worker/operations/interchange/export_adapter.py",
+      "workers/tests/test_interchange_export_prepare.py"
+    ],
+    "remaining": [
+      "Concrete export qualification factory",
+      "SQL admission/dispatch",
+      "Adoption/recovery",
+      "Complete positive adapter tests"
+    ]
+  },
+  "latest_export_positive_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "workers/photo_worker/operations/interchange/export_adapter.py",
+      "workers/tests/test_interchange_export_adapter.py"
+    ],
+    "remaining": [
+      "Concrete SQL admission and preparation qualification",
+      "Production dispatch",
+      "Export adoption/recovery",
+      "Execution of authored tests in deferred testing phase"
+    ]
+  },
+  "latest_export_images_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "workers/photo_worker/operations/interchange/export_images.py",
+      "workers/photo_worker/operations/interchange/export_sidecar_factory.py",
+      "workers/photo_worker/operations/asset/verify.py",
+      "workers/tests/test_interchange_export_images.py"
+    ],
+    "remaining": [
+      "Bundle recipe/mask preparation factory",
+      "Concrete SQL export admission and source provenance",
+      "Production dispatch",
+      "Adoption/recovery",
+      "Native real-image qualification in deferred testing phase"
+    ]
+  },
+  "latest_export_admission_client_increment": {
+    "date": "2026-10-10",
+    "files": [
+      "workers/photo_worker/operations/interchange/export_admission.py",
+      "workers/photo_worker/runtime/database.py",
+      "workers/tests/test_interchange_export_admission.py"
+    ],
+    "tests_run": false,
+    "whole_module_credit": false,
+    "server_sql_implemented": false,
+    "remaining": [
+      "Export freeze/ledger and server v30_interchange_export_ready",
+      "Bundle qualification factory",
+      "Production dispatch",
+      "Adoption/recovery"
+    ]
+  },
+  "latest_export_plan_increment": {
+    "date": "2026-10-10",
+    "files": [
+      "backend/internal/interchange/export_plan_compile.go",
+      "backend/internal/interchange/export_plan_compile_test.go"
+    ],
+    "tests_run": false,
+    "whole_module_credit": false,
+    "remaining": [
+      "Concrete server snapshot/encoded/portable-recipe resolver",
+      "Export freeze/ledger migrations and SQL admission",
+      "Scoped document publication and task seal",
+      "Dispatch and adoption/recovery"
+    ]
+  },
+  "latest_export_validator_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "backend/internal/interchange/export_plan_validator.go",
+      "backend/internal/interchange/export_plan_validator_test.go"
+    ],
+    "remaining": [
+      "Complete authorized dependency resolver and closure publication",
+      "Export ledger/SQL admission",
+      "Task sealing/dispatch",
+      "Adoption/recovery"
+    ]
+  },
+  "latest_export_closure_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "backend/internal/interchange/export_closure.go",
+      "backend/internal/interchange/export_closure_test.go"
+    ],
+    "remaining": [
+      "Concrete authorized typed node resolver",
+      "Export ledger/admission",
+      "Transport publication/task seal",
+      "Dispatch/adoption/recovery"
+    ]
+  },
+  "latest_export_transport_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "backend/internal/interchange/export_closure.go",
+      "backend/internal/interchange/export_transport.go",
+      "backend/internal/interchange/export_transport_test.go"
+    ],
+    "remaining": [
+      "Scoped export document publisher",
+      "Authorized node/frame resolver",
+      "Export ledger/admission/task activation",
+      "Dispatch/adoption/recovery"
+    ]
+  },
+  "latest_export_freeze_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "backend/internal/interchange/export_freeze.go",
+      "backend/internal/interchange/export_freeze_test.go"
+    ],
+    "persistent_ledger_implemented": false,
+    "remaining": [
+      "Scoped persistent storage/migration",
+      "Authorized frame/node resolvers",
+      "SQL admission and task seal/dispatch",
+      "Adoption/recovery activation"
+    ]
+  },
+  "latest_export_pending_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "backend/internal/interchange/export_pending_ledger.go",
+      "backend/internal/interchange/export_recovery_decode.go",
+      "backend/internal/interchange/export_pending_ledger_test.go",
+      "backend/internal/interchange/export_freeze_test.go"
+    ],
+    "remaining": [
+      "Service/API integration and completed ticket recovery",
+      "Scoped document storage/materialization",
+      "Authorized resolvers",
+      "SQL worker admission/seal/dispatch",
+      "Adoption/recovery activation"
+    ]
+  },
+  "latest_export_recovery_service_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "backend/internal/interchange/export_pending_ledger.go",
+      "backend/internal/interchange/export_recovery.go",
+      "backend/internal/interchange/export_recovery_test.go"
+    ],
+    "remaining": [
+      "HTTP creation orchestration and ticket recovery",
+      "Scoped object publication/materialization",
+      "Concrete resolvers",
+      "SQL worker admission/sealing/dispatch",
+      "Export result adoption/recovery"
+    ]
+  },
+  "latest_export_scope_increment": {
+    "date": "2026-10-10",
+    "files": [
+      "backend/db/migrations/01356_v30_interchange_export_document_scope.sql",
+      "backend/internal/interchange/export_scope_sql_integration_test.go"
+    ],
+    "tests_run": false,
+    "migration_applied": false,
+    "whole_module_credit": false,
+    "remaining": [
+      "Export draft run/workflow materialization",
+      "Document reserve/complete functions and publisher",
+      "Authorized resolvers",
+      "Worker admission/seal/dispatch",
+      "Adoption/recovery"
+    ]
+  },
+  "latest_export_storage_increment": {
+    "date": "2026-10-10",
+    "files": [
+      "backend/db/migrations/01356_v30_interchange_export_document_scope.sql",
+      "backend/db/migrations/01357_v30_interchange_export_document_storage.sql",
+      "backend/internal/interchange/export_storage_sql_integration_test.go"
+    ],
+    "tests_run": false,
+    "migration_applied": false,
+    "whole_module_credit": false,
+    "remaining": [
+      "Go scoped publisher/store",
+      "Draft run materialization",
+      "Concrete resolvers",
+      "Worker admission/seal/dispatch",
+      "Adoption/recovery"
+    ]
+  },
+  "latest_export_storage_go_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "backend/internal/interchange/export_storage.go",
+      "backend/internal/interchange/export_storage_test.go"
+    ],
+    "remaining": [
+      "Draft materialization and service orchestration",
+      "Concrete resolvers",
+      "Transport scoped publisher and SQL worker admission/seal",
+      "Dispatch/adoption/recovery"
+    ]
+  },
+  "latest_export_draft_increment": {
+    "date": "2026-10-10",
+    "files": [
+      "backend/db/migrations/01358_v30_interchange_export_draft_run.sql",
+      "backend/internal/interchange/export_run.go",
+      "backend/internal/interchange/export_run_test.go"
+    ],
+    "tests_run": false,
+    "migration_applied": false,
+    "whole_module_credit": false,
+    "remaining": [
+      "Service/API orchestration",
+      "Concrete authorized frame/node resolvers",
+      "Transport scoped publication",
+      "SQL worker admission and sealing",
+      "Dispatch and result adoption/recovery"
+    ]
+  },
+  "latest_export_draft_service_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "migration_applied": false,
+    "whole_module_credit": false,
+    "files": [
+      "backend/internal/interchange/export_draft_service.go",
+      "backend/internal/interchange/export_draft_service_test.go",
+      "backend/internal/interchange/export_run_sql_integration_test.go"
+    ],
+    "behavior": [
+      "Pin pending evidence and begin draft in one tenant Editor transaction",
+      "Replay uses original frozen evidence",
+      "Return no draft on transaction failure, including commit failure"
+    ],
+    "remaining": [
+      "HTTP orchestration",
+      "Concrete authorized frame/node resolvers",
+      "Transport scoped publication",
+      "SQL worker admission/sealing",
+      "Production dispatch",
+      "Result adoption and completed-ticket recovery"
+    ],
+    "evidence_limit": "Unit tests and negative privilege/absent-ledger integration test authored only. Positive SQL lifecycle and rollback coverage still required."
+  },
+  "latest_export_scoped_transport_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "backend/internal/interchange/export_scoped_transport.go",
+      "backend/internal/interchange/export_scoped_transport_test.go"
+    ],
+    "behavior": [
+      "Reuses v2input.ScopedPublisher with tenant/run/task/assembly lease",
+      "Binds frozen request identity and all compiled roots before publication",
+      "Rejects missing roots, duplicate inventory IDs, task mismatch and invalid digest before object IO"
+    ],
+    "remaining": [
+      "Blocked export task materialization before actual publication",
+      "Concrete authorized resolvers",
+      "Production orchestration",
+      "SQL worker admission and sealing",
+      "Dispatch and adoption/recovery"
+    ],
+    "evidence_limit": "Authored tests use storage stub and synthetic root inventory; no production qualification or execution evidence."
+  },
+  "latest_export_task_compiler_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "backend/internal/interchange/export_task.go",
+      "backend/internal/interchange/export_task_test.go"
+    ],
+    "behavior": [
+      "CPU/v2.2 export DraftTask with zero VRAM",
+      "Frozen Params and sorted unique closure digest binding",
+      "Safe integer resource bounds and protocol output floor"
+    ],
+    "evidence_limit": "Resources are trusted installer input; these floors do not prove complete native resource qualification. No task materialization or activation implemented here.",
+    "remaining": [
+      "Qualified export resource derivation and SQL revalidation",
+      "Blocked task materialization",
+      "Concrete resolvers and HTTP orchestration",
+      "SQL admission/seal",
+      "Production dispatch and adoption/recovery"
+    ]
+  },
+  "latest_export_sidecar_factory_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "workers/photo_worker/operations/interchange/export_sidecar_factory.py",
+      "workers/tests/test_interchange_export_sidecar_factory.py"
+    ],
+    "behavior": [
+      "Own canonical plan before callbacks",
+      "Require export direction/project/snapshot/archive bound matching ExportAuthority before input IO",
+      "Qualify canonical WorkingImage/ICC/canvas then physical encoded image"
+    ],
+    "evidence_limit": "Unit tests authored with physical image qualifier mocked; native decode and end-to-end production lineage remain unverified.",
+    "remaining": [
+      "SQL blocked task materialization and qualified resource admission",
+      "Concrete server frame/node resolvers",
+      "Bundle recipe/mask factory",
+      "HTTP orchestration and dispatch",
+      "Result adoption/recovery"
+    ]
+  },
+  "latest_shared_export_recipe_qualification_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "workers/photo_worker/operations/interchange/recipe_factory.py",
+      "workers/tests/test_interchange_recipe_factory.py"
+    ],
+    "behavior": [
+      "Shared build_for_plan for import/export recipe qualifier",
+      "Copies canonical plan and checks schema/project/snapshot/shared JSON budget before IO",
+      "Reuses existing source semantics and physical arrays qualifier"
+    ],
+    "remaining": [
+      "Bundle inventory from successful closure receipts",
+      "Bundle mask manifest compilation",
+      "SQL blocked task materialization/admission",
+      "Production resolvers/orchestration/dispatch/adoption"
+    ]
+  },
+  "latest_export_inventory_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "workers/photo_worker/v2/interchange_export_inventory.py",
+      "workers/tests/test_interchange_export_inventory.py"
+    ],
+    "behavior": [
+      "Compile portable inventory from successful exact recipe closure receipts",
+      "Deterministic dependency paths and immutable closure pins",
+      "Exclude unrelated declared inputs and reject aliases/unqualified receipts"
+    ],
+    "evidence_limit": "Tests authored using real closure walker with mocked semantic/binary qualification. Not native/end-to-end evidence.",
+    "remaining": [
+      "Bundle masks and concrete factory integration",
+      "SQL materialization/resource admission",
+      "Production resolver/orchestration/dispatch/adoption/recovery"
+    ]
+  },
+  "latest_export_bundle_factory_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "workers/photo_worker/v2/interchange_export_masks.py",
+      "workers/photo_worker/operations/interchange/export_bundle_factory.py",
+      "workers/tests/test_interchange_export_masks.py"
+    ],
+    "behavior": [
+      "Compile bundle masks from exact qualified MaskRef witnesses and binary refs",
+      "Reject missing mask witnesses, changed refs/type/canvas conflicts",
+      "Bundle factory composes shared recipe qualifier, receipt inventory, physical images and manifest preparation"
+    ],
+    "evidence_limit": "Mask/compiler and installation tests authored only. Full factory positive orchestration tests and native execution pending.",
+    "remaining": [
+      "Full factory positive orchestration tests",
+      "SQL task materialization/resource qualification/admission",
+      "Server concrete resolvers",
+      "Production orchestration/dispatch/adoption/recovery"
+    ]
+  },
+  "latest_export_installation_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "workers/photo_worker/operations/interchange/export_factory.py",
+      "workers/photo_worker/operations/interchange/installation.py",
+      "workers/tests/test_interchange_export_factory.py"
+    ],
+    "behavior": [
+      "Explicit concrete format routing with owned plan",
+      "SQL prepared export installation composition",
+      "Port completeness guards and no parser-driven export activation"
+    ],
+    "evidence_limit": "Authored format/installation/composition tests; bundle composition uses mocked qualification with real manifest preparation. SQL admission function and production runtime wiring still absent.",
+    "remaining": [
+      "SQL blocked task materialization/resource admission",
+      "Concrete server resolvers",
+      "Production runtime dispatch and HTTP orchestration",
+      "Result adoption and recovery",
+      "Deep/native testing after implementation"
+    ]
+  },
+  "latest_export_task_preparation_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "backend/internal/interchange/export_task.go",
+      "backend/internal/interchange/export_task_test.go",
+      "backend/internal/interchange/export_prepare_task.go",
+      "backend/internal/interchange/export_prepare_task_test.go"
+    ],
+    "behavior": [
+      "Pin contracts_sha and max_input_json_bytes in CPU task profile",
+      "Publish plan then Params before calling materializer",
+      "Exact publication receipts and callback buffer ownership"
+    ],
+    "evidence_limit": "Materializer interface only; SQL implementation/admission and production wiring still required. Tests authored, not run.",
+    "remaining": [
+      "SQL blocked task materializer with quota/resource authority",
+      "Worker SQL admission",
+      "Concrete server resolvers/orchestration",
+      "Production dispatch/adoption/recovery"
+    ]
+  },
+  "latest_export_materialization_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "migration_applied": false,
+    "whole_module_credit": false,
+    "files": [
+      "backend/db/migrations/01359_v30_interchange_export_materialization.sql",
+      "backend/internal/interchange/export_materialization.go",
+      "backend/internal/interchange/export_materialization_sql_integration_test.go"
+    ],
+    "behavior": [
+      "Blocked task creation with exact pending/draft/document scope",
+      "Physical plan/Params receipts and quota reservation",
+      "Replay with matching profile/digest/quota",
+      "Go recompiles exact task and uses tenant Editor transaction"
+    ],
+    "evidence_limit": "Protocol resource floors only. Qualification and sealing/admission still required. Positive SQL lifecycle/concurrency/rollback tests pending; authored negative tests not run.",
+    "remaining": [
+      "Native resource qualification and SQL worker admission",
+      "Concrete server resolvers",
+      "Closure registration/sealing",
+      "Production HTTP/dispatch",
+      "Adoption/recovery"
+    ]
+  },
+  "latest_export_registration_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "backend/internal/interchange/export_registration.go",
+      "backend/internal/interchange/export_registration_test.go"
+    ],
+    "behavior": [
+      "Register exact frozen export closure and transport receipts through shared scheduler transaction helper",
+      "Verify full compiled roots while keeping direct roots to Params/Plan/Snapshot",
+      "No graph seal or activation"
+    ],
+    "evidence_limit": "Unit registration SQL stub only. Generic SQL registration compatibility, scoped publication and full physical qualification require positive integration tests.",
+    "remaining": [
+      "Dedicated export graph admission with native resource qualification",
+      "Worker SQL admission",
+      "Concrete server resolvers and HTTP orchestration",
+      "Production dispatch/adoption/recovery",
+      "Positive SQL lifecycle tests"
+    ]
+  },
+  "latest_export_execution_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "backend/internal/interchange/export_execution.go",
+      "backend/internal/interchange/export_execution_test.go"
+    ],
+    "behavior": [
+      "Draft export orchestration: plan/Params publication, closure resolution, blocked materialization, scoped transport publication and transactional registration",
+      "Scheduler SQL registrar recomputes expected tenant/actor/key identity",
+      "No graph sealing/activation/public ticket"
+    ],
+    "evidence_limit": "Dependency/cancellation/missing DB unit guards authored. Full positive orchestration/failure matrix and SQL compatibility not yet covered.",
+    "remaining": [
+      "Full orchestration tests",
+      "Concrete server resolvers",
+      "Native qualification/graph and worker admission",
+      "HTTP dispatch/adoption/recovery"
+    ]
+  },
+  "latest_export_orchestration_coverage_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "backend/internal/interchange/export_execution.go",
+      "backend/internal/interchange/export_execution_test.go",
+      "backend/internal/interchange/export_prepare_task.go"
+    ],
+    "behavior": [
+      "Owned CreateIntent callback pointers/buffers for materializer and registrar",
+      "Full staged unit scenario with real closure/compiler/transport construction",
+      "Failure matrix for root publication/resolver/materializer/transport/registrar"
+    ],
+    "evidence_limit": "Synthetic typed closure nodes and stub IO/SQL; authored tests not run, no production or native qualification evidence.",
+    "remaining": [
+      "Concrete authorized frame/node resolvers",
+      "SQL graph/worker admission and qualified resource calibration",
+      "HTTP/runtime dispatch/adoption/recovery",
+      "Deep tests after implementation"
+    ]
+  },
+  "latest_export_json_reader_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "backend/internal/interchange/export_document_reader.go",
+      "backend/internal/interchange/export_document_reader_test.go"
+    ],
+    "behavior": [
+      "Export typed catalog/validator bridges into bounded immutable JSON reader",
+      "Mandatory current catalog lookup and post-validation recheck",
+      "Reject binary contracts before object IO"
+    ],
+    "evidence_limit": "Catalog and general schema/source validator still require production SQL/qualification installation. Tests authored with stubs, not run.",
+    "remaining": [
+      "SQL export catalog and full typed/schema validator",
+      "Encoded/canonical binary leaf readers",
+      "Frame provenance resolver",
+      "Graph/worker admission and production integration"
+    ]
+  },
+  "latest_export_binary_reader_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "backend/internal/interchange/export_binary_reader.go",
+      "backend/internal/interchange/export_binary_reader_test.go"
+    ],
+    "behavior": [
+      "Bounded 256KiB streaming SHA/size verification",
+      "Role-specific encoded-image versus array MIME guards",
+      "Mandatory physical qualifier and post-qualification catalog pin recheck",
+      "JSON/binary resolver router"
+    ],
+    "evidence_limit": "Physical qualifier is required port, not concrete native implementation; scoped SQL catalog still absent. Authored tests use stubs and were not run.",
+    "remaining": [
+      "SQL export catalog",
+      "Concrete schema/source and binary qualifiers",
+      "Frame resolver",
+      "Graph/worker admission",
+      "HTTP/dispatch/adoption/recovery"
+    ]
+  },
+  "latest_export_catalog_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "migration_applied": false,
+    "whole_module_credit": false,
+    "files": [
+      "backend/db/migrations/01360_v30_interchange_export_read_catalog.sql",
+      "backend/internal/interchange/export_document_catalog.go",
+      "backend/internal/interchange/export_catalog_sql_integration_test.go"
+    ],
+    "behavior": [
+      "Current frozen draft/snapshot/ACL authority for export reads",
+      "Exact plan/Params backend document receipts",
+      "Project-linked or exact frozen snapshot immutable input reads",
+      "API-only EXECUTE and Editor tenant client"
+    ],
+    "evidence_limit": "Read authority does not prove requested contract or frozen encoded lineage. Full typed/source validators and positive SQL lifecycle still required. Tests not run.",
+    "remaining": [
+      "Typed/schema and physical qualifier installation",
+      "Frame provenance resolver",
+      "Qualified graph/worker admission",
+      "HTTP/runtime/adoption/recovery"
+    ]
+  },
+  "latest_export_scoped_validator_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "backend/internal/interchange/export_scoped_validator.go",
+      "backend/internal/interchange/export_scoped_validator_test.go",
+      "backend/internal/interchange/export_resolver_installation.go"
+    ],
+    "behavior": [
+      "Exact frozen Plan/Params/Snapshot authority and typed snapshot children",
+      "Recompile snapshot digest and reject role aliases",
+      "SQL export resolver composition requires dependency semantics and binary qualifier"
+    ],
+    "evidence_limit": "Root unit tests authored only. General dependency and native binary qualification implementations still need installation/coverage.",
+    "remaining": [
+      "Complete schema/source and native qualifier implementation",
+      "Frame lineage resolver",
+      "Qualified graph/worker admission",
+      "Production HTTP/dispatch/adoption/recovery"
+    ]
+  },
+  "latest_export_recipe_validator_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "backend/internal/interchange/export_recipe_validator.go",
+      "backend/internal/interchange/export_recipe_validator_test.go"
+    ],
+    "behavior": [
+      "Frozen portable recipe/source binding registry",
+      "Existing ValidateEditingRecipeV3 structural semantics and exact child roles",
+      "Reject foreign learning and cross-role identity aliases"
+    ],
+    "evidence_limit": "Recipe root only. Source/runtime/native semantics for remaining JSON/binaries still require concrete installation. Tests authored not run.",
+    "remaining": [
+      "Remaining typed dependency validators and physical qualifier",
+      "Frame encoded lineage",
+      "Graph/worker admission",
+      "Production orchestration/adoption/recovery"
+    ]
+  },
+  "latest_export_working_validator_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "backend/internal/interchange/export_working_validator.go",
+      "backend/internal/interchange/export_working_validator_test.go"
+    ],
+    "behavior": [
+      "Frozen WorkingImage ref/canvas binding with installed work ICC",
+      "Reuse existing image/transform validation",
+      "Typed WorkingPixels/WorkingAlpha/DenseWarpField children and role alias rejection"
+    ],
+    "evidence_limit": "Canonical source document semantics only; physical array/encoded lineage/runtime qualification still mandatory. Authored tests not run.",
+    "remaining": [
+      "Frozen render/Style/Mask/Layer/Params dependency validators",
+      "Concrete binary qualifier and frame lineage",
+      "Graph/worker admission",
+      "Production integration/adoption/recovery"
+    ]
+  },
+  "latest_export_frozen_validator_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "migration_applied": false,
+    "whole_module_credit": false,
+    "files": [
+      "backend/internal/interchange/export_frozen_validator.go",
+      "backend/internal/interchange/export_frozen_validator_test.go",
+      "backend/db/migrations/01360_v30_interchange_export_read_catalog.sql"
+    ],
+    "behavior": [
+      "Frozen snapshot recipe ref/source binding registry",
+      "Existing FrozenRenderRecipe decoder and typed child extraction",
+      "ICC/model pins and no silent learning/background dependency omission",
+      "Project-scoped catalog supports linked learning/background JSON dependencies"
+    ],
+    "evidence_limit": "Structural frozen/source pins only. Child learning/background consent/runtime qualification still required; no tests run.",
+    "remaining": [
+      "Remaining dependency semantics and physical qualifiers",
+      "Encoded frame lineage resolver",
+      "Graph/worker admission",
+      "Production HTTP/dispatch/adoption/recovery"
+    ]
+  },
+  "latest_export_dependency_validator_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "backend/internal/interchange/export_dependency_validator.go",
+      "backend/internal/interchange/export_dependency_validator_test.go"
+    ],
+    "behavior": [
+      "Existing typed DocumentChildren for LayerStack/Params/CorrectionPlan/MaskRef/learning documents",
+      "Mandatory semantic qualifier receives deep-owned parent context hints",
+      "Canonical/hash/typed alias checks and separate unsupported-contract delegation"
+    ],
+    "evidence_limit": "Semantic qualifier required interface; concrete source/runtime/consent installation still incomplete. Unit tests authored not run.",
+    "remaining": [
+      "Concrete dependency semantics and Style/Override/background schema validators",
+      "Physical qualifiers/frame lineage",
+      "Graph/worker admission",
+      "Production integration/adoption/recovery"
+    ]
+  },
+  "latest_export_validator_installation_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "backend/internal/interchange/export_validator_installation.go",
+      "backend/internal/interchange/export_validator_installation_test.go"
+    ],
+    "behavior": [
+      "Fixed chain root/working/frozen/portable/dependency validators",
+      "Mandatory semantics and unsupported schema validators",
+      "Reject missing pins/qualification dependencies/corrupt frozen payload before installation"
+    ],
+    "evidence_limit": "Composition only; unsupported schema and concrete runtime/native semantics still require implementation. Tests authored not run.",
+    "remaining": [
+      "Concrete Style/Override/background schema validation and semantic qualification",
+      "Native binary qualifier and frame lineage",
+      "Graph/worker admission",
+      "Production integration/adoption/recovery"
+    ]
+  },
+  "latest_export_worker_profile_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "whole_module_credit": false,
+    "files": [
+      "workers/photo_worker/operations/interchange/export_adapter.py",
+      "workers/tests/test_interchange_export_adapter.py"
+    ],
+    "behavior": [
+      "Own execution profile before callbacks",
+      "Validate contracts_sha, safe positive resource fields, CPU VRAM0 and bounded JSON budget before IO",
+      "Match admitted JSON budget and archive/output limits against task profile"
+    ],
+    "evidence_limit": "Protocol guards only; independent measured native resource qualification and SQL admission still required. Unit tests authored not run.",
+    "remaining": [
+      "Concrete dependency/native qualification",
+      "Frame lineage",
+      "Graph/worker SQL admission",
+      "Production integration/adoption/recovery"
+    ]
+  },
+  "latest_export_worker_sql_increment": {
+    "date": "2026-10-10",
+    "tests_run": false,
+    "migration_applied": false,
+    "whole_module_credit": false,
+    "files": [
+      "backend/db/migrations/01359_v30_interchange_export_materialization.sql",
+      "backend/db/migrations/01361_v30_interchange_export_worker_admission.sql",
+      "backend/internal/interchange/export_admission_sql_integration_test.go"
+    ],
+    "behavior": [
+      "Export auth-session proof saved during new blocked task materialization",
+      "Worker-only SQL lease/fence/slot/closure authority",
+      "Exact frozen Params/Plan/direct roots/current snapshot ACL and ready artifacts",
+      "Quota and protocol resource bounds matched to worker receipt"
+    ],
+    "evidence_limit": "No positive SQL lifecycle or concurrency coverage yet. Independent native qualification and dedicated graph admission still pending. Migrations unexecuted.",
+    "remaining": [
+      "Qualified dedicated graph admission/sealing",
+      "Frame lineage and complete dependency/native qualifiers",
+      "HTTP/runtime dispatch/adoption/recovery",
+      "Positive SQL lifecycle/lease revocation tests"
+    ]
+  },
+  "latest_runtime_export_increment": {
+    "date": "2026-10-10",
+    "change": "Explicit export installation forwarded by run_worker, CPU guarded and registered by build_worker. Unit cases authored; not executed. Graph admission/native qualification and HTTP orchestration remain open.",
+    "catalogue_status_counts": {
+      "requires_semantic_review": 73,
+      "partial_runtime_path": 14,
+      "missing_runtime_path": 3
+    },
+    "whole_product_implementation_percent": null
+  },
+  "latest_export_result_reader_increment": {
+    "date": "2026-10-10",
+    "change": "ExportResultReader reads canonical hash-pinned bounded output JSON with final catalogue rechecks. Dedicated output catalogue interface requires task/attempt/current ACL; concrete SQL installation and ZIP/adoption remain open. Unit tests authored, not run.",
+    "whole_module_credit": false
+  },
+  "latest_export_output_catalog_increment": {
+    "date": "2026-10-10",
+    "change": "01362 API-only canonical succeeded export output catalogue and SQLExportOutputCatalog. Current snapshot/project/download ACL, exact task canonical attempt/fence/output role and input alias refusal. Tests authored, not executed; migration not applied. Positive lifecycle/revocation/concurrency and ZIP/adoption remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_bundle_bytes_increment": {
+    "date": "2026-10-10",
+    "change": "Bounded streaming physical export bundle SHA/length verification, frozen archive quota, exact output catalogue pin recheck, cancellation/no-progress/close handling. Tests authored, not run. ZIP directory/member/manifest/native semantic proof and final adoption still open.",
+    "whole_module_credit": false
+  },
+  "latest_export_zip_inventory_increment": {
+    "date": "2026-10-10",
+    "change": "Concrete Go ZIP/ZIP64 central metadata budget preflight, deterministic paths/order/timestamp/compression classes, bounded CRC/SHA decompression and inventory. Tests authored, not run. ReaderAt staging/manifest/source/native qualification/final adoption remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_manifest_increment": {
+    "date": "2026-10-10",
+    "change": "Canonical manifest physical inventory and frozen entry binding, images/recipes or deterministic XMP sidecar IDs, masks witnesses and no unlisted files. Tests authored, not run. Bundle dependency semantic/native closure, actual XMP metadata, object staging and final adoption remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_archive_reader_increment": {
+    "date": "2026-10-10",
+    "change": "Concrete archive object staging joins SHA, ZIP CRC/inventory and frozen manifest validation with shared process scratch budget and cleanup/current pin recheck. Tests authored, not run. XMP/native dependencies/atomic adoption remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_xmp_increment": {
+    "date": "2026-10-10",
+    "change": "Strict bounded generated XMP namespace/shape/metadata parser, original-axis crop recheck for EXIF1..8, wired into archive reader. Tests authored, not run. Orientation still requires independent encoded metadata qualification; bundle dependency semantics/atomic adoption remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_orientation_increment": {
+    "date": "2026-10-10",
+    "change": "Independent bounded TIFF/BigTIFF/JPEG EXIF/PNG eXIf orientation parser, XMP orientation matching integrated into archive reader. Tests authored, not run. Native full raster/ICC and bundle dependency/adoption remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_orientation_boundary_increment": {
+    "date": "2026-10-10",
+    "change": "PNG eXIf CRC streaming, TIFF IFD/header/table bounds, nil/size guard. Authored BigTIFF both-endian and PNG orientations1..8/refusal tests plus all-eight XMP crop axis cases. Not executed. Native raster/ICC/dependency semantics/final adoption remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_bundle_closure_increment": {
+    "date": "2026-10-10",
+    "change": "Portable image/recipe-only typed closure compiler and exact manifest inventory/ref/contract/path matching. Fixed nested operation Params root confusion in closure walk. Tests authored, not run. Qualified resolver installation/current adoption-phase authority and persistence/native gates remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_result_input_catalog_increment": {
+    "date": "2026-10-10",
+    "change": "01363 API-only canonical-root gated registered typed input catalogue, Go adapter and mandatory semantics/native resolver installation. Tests authored, not run; migration not applied. Positive lifecycle/races, qualified production installation/evidence persistence/atomic adoption remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_result_preparation_increment": {
+    "date": "2026-10-10",
+    "change": "ExportResultPreparation composes SQL-scoped result JSON, archive verification and qualified portable bundle closure; re-reads result JSON and freezes owned identity/object/inventory evidence. Tests authored, not run. Atomic SQL adoption, persistence/replay, HTTP and qualified production installation remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_evidence_persistence_increment": {
+    "date": "2026-10-10",
+    "change": "01364 immutable per-run canonical-result evidence store, API-only save with current authority/output/source pin rechecks and exact replay. Go Save and PrepareAndSave added. Corrected output catalogue terminal run state to completed. Tests authored, not run; migrations not applied. No finalization/adoption state transition yet.",
+    "whole_module_credit": false
+  },
+  "latest_export_adoption_guard_purge_increment": {
+    "date": "2026-10-10",
+    "change": "01365 blocks generic export adoption bypass, preserving predecessor behavior for other tasks. 01366 explicit tenant purge allowlist for export evidence and previously omitted ingest outcomes, existing cleanup preconditions retained. Tests authored, not run; migrations not applied. Dedicated final export adoption remains open.",
+    "whole_module_credit": false
+  },
+  "latest_export_dedicated_adoption_increment": {
+    "date": "2026-10-10",
+    "change": "01367 dedicated API export adoption revalidates saved evidence/current receipts, commits exact output+portable-source links, inbox and events/outbox atomically, idempotent marker replay. Go Adopt and PrepareAndAdopt added. Tests authored, not run; migration not applied. Success finalizer barrier/completed recovery/production integration remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_finalization_increment": {
+    "date": "2026-10-10",
+    "change": "01368 internal committed export proof checks immutable evidence/canonical result/markers/events and exact ready output/source links. Scheduler finalizer skips only interchange success barrier when proof holds; existing lifecycle/quota chain retained. Tests authored, not run; migration not applied. Positive lifecycle/races, completed recovery/HTTP/production qualifiers remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_adoption_recovery_increment": {
+    "date": "2026-10-10",
+    "change": "01369 API recovery rechecks current ACL and dedicated committed export proof; distinguishes adopted vs actual completed run, no object locators or ZIP IO. Go strict identity/ref/status receipt decoding and Service wrapper. Tests authored, not run; migration not applied. HTTP/create idempotency integration and positive lifecycle/races remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_job_projection_increment": {
+    "date": "2026-10-10",
+    "change": "01370 export get/inspect projections retain import branch and current read ACL; adopted report/bundle refs require markers/current output pins/download permission. Format persisted in owned evidence (01364 schema now17keys). Photographer client accepts exporting/finalizing with mixed-state guards and labels. Tests authored, not run; migrations not applied. Mapping artifact field remains null pending defined projection semantics.",
+    "whole_module_credit": false
+  },
+  "latest_export_snapshot_consistency_increment": {
+    "date": "2026-10-10",
+    "change": "Export adoption increments run revision exactly once under safe-integer guard; client same-revision snapshots additionally bind direction/stage/ref availability and reject mixed import/export states. Unit/API-boundary and migration installation cases authored, not run. Full concurrent lifecycle still open.",
+    "whole_module_credit": false
+  },
+  "latest_export_download_increment": {
+    "date": "2026-10-10",
+    "change": "01371 API-only adopted archive download projection reuses current job ACL/download visibility and committed proof, immutable ready bundle pins. Run Outputs signs through existing configured bucket/version path. SQL privilege/absent-scope tests authored, not executed; migration not applied. Positive lifecycle, UI and production integration remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_download_client_increment": {
+    "date": "2026-10-10",
+    "change": "Photographer completed export archive action uses fresh consistent snapshot, current signed run outputs, repeat snapshot scope/revision/run/ref comparison, bounded ZIP metadata and URL expiry validation. Abort/scope cleanup and owned receipts; no full archive buffering. Unit cases authored, not run. SQL01371 positive lifecycle, DOM coverage and production export orchestration still open.",
+    "whole_module_credit": false
+  },
+  "latest_export_download_dom_increment": {
+    "date": "2026-10-10",
+    "change": "Authored seven DOM scenarios: exact completed signed download, pending/import concealment, forbidden outputs and refresh, revoked bundle visibility after output read, duplicate/unmount, job navigation late-response suppression, opener failure retry. Refresh now clears stale download error. Not executed. ExportExecutionPreparation still registers inputs only; dedicated qualified graph activation remains open.",
+    "whole_module_credit": false
+  },
+  "latest_export_draft_admission_increment": {
+    "date": "2026-10-10",
+    "change": "01372 API-only draft-ready authority check locks active tenant, pending ledger, draft run/task and exact input object pins; validates current document scope, proof/session, graph shape, transport roots/closure and quota. Go preflight binds owned frozen docs and inventory digest before SQL. Unit and SQL privileges/absence cases authored, not run; migration not applied. Native resource qualification, atomic graph activation/ticket/recovery and production HTTP integration remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_activation_preparation_increment": {
+    "date": "2026-10-10",
+    "change": "01373 denies generic export seal and revokes predecessor execution from app roles. ExportActivationPreparation freshly resolves typed closure, requires trusted native/resource qualifier and exact recompiled task match; keeps owned private receipt. Unit boundary and SQL privilege/installation tests authored, not run. Concrete production qualifier and atomic activation/ticket remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_atomic_activation_increment": {
+    "date": "2026-10-10",
+    "change": "01374 API-only dedicated activation rechecks current tenant/project/snapshot authority and draft-ready closure/quota, exact qualified task profile, then previous seal chain and atomic ticket/replay. Private PreparedExportActivation.Activate and Service transaction wrapper added. Primitive unit and SQL privilege/installation tests authored, not run; migration not applied. Production native/resource qualifier, HTTP create orchestration/recovery, positive lifecycle/concurrency/rollback remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_ticket_recovery_increment": {
+    "date": "2026-10-10",
+    "change": "RecoverExportTicket primitive and Service wrapper replay committed creation ticket independently of pending ledger or source expiration, requiring current project download/editor access and exact sealed run/workflow/task/backend proof. Strict request hash/expiry/status/resource/ticket checks. Unit cases authored, not run. Ticket recovery does not assert export completion. Production qualifier, HTTP create coordinator and lifecycle SQL testing remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_create_coordinator_increment": {
+    "date": "2026-10-10",
+    "change": "Service.CreateExport coordinates authorized ticket recovery before preparation, after preparation and after uncertain activation; copies frozen request for callbacks, preserves errors/cancellation, requires installed ExportCreatePreparer for fresh work. HTTP InterchangeCreateService dispatches export to the new service, preserves parse import path. Unit concurrency/refusal/cancellation cases authored, not run. Concrete production preparer/resource qualifier and main installation remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_creation_preparation_increment": {
+    "date": "2026-10-10",
+    "change": "Concrete ExportCreationPreparation composes frozen proposal validation, committed draft/ledger winner, scope-bound installation, document/task/transport preparation and freshly qualified exact activation receipt. Requires complete IO/native/resource adapters before publication. Stage failure/ownership tests authored, not run. Production snapshot/frame proposal source and native/resource installation remain open; no automatic capability enablement.",
+    "whole_module_credit": false
+  },
+  "latest_export_sql_installation_increment": {
+    "date": "2026-10-10",
+    "change": "SQLExportExecutionInstaller composes API-scoped object catalog, SQL Plan/Params store/publisher, qualified resolver, scheduler transport publisher/registrar, and activation preparation. SQLResolvedExportTaskMaterializer resolves the actual typed closure after document publication and checks digest before SQL materialization. Construction performs no IO and requires explicit semantics/native/resource dependencies. Boundary tests authored, not run. Production proposal/source semantics/native qualification and main installation remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_proposal_source_increment": {
+    "date": "2026-10-10",
+    "change": "ExportProposalSource compiles frozen Plan/Params from scoped immutable snapshot inputs: exact SHA, canonical pinned snapshot ID, bounds, mandatory frame resolver, owned request/body buffers. Boundary/mutation/refusal tests authored, not run. Concrete SQL/object-store snapshot source and encoded/portable frame lineage resolver, production qualification/main wiring remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_proposal_sql_increment": {
+    "date": "2026-10-10",
+    "change": "SQLExportProposalInputs authorizes current project/snapshot through existing scope, reads pinned bounded canonical SHA-verified JSON outside DB transactions, obtains scoped mandatory frame resolver, rechecks exact physical pin and snapshot-item ordinal/version/source binding. Preflight tests authored, not run. Positive SQL/object IO/revocation coverage, concrete encoded/portable frame factory, production qualification/main wiring remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_frame_lineage_increment": {
+    "date": "2026-10-10",
+    "change": "ExportLineageFrameResolver binds exact snapshot item, immutable FrozenRenderRecipe hash/source and portable EditingRecipeV3 bytes exactly to frozen authored recipe; rejects aliases, substitution and unsupported learning rather than dropping edits. Mandatory evidence source remains responsible for encoded physical/native lineage and current authority. Unit cases authored, not run. Concrete SQL/object evidence source and native qualification/main wiring remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_frame_metadata_increment": {
+    "date": "2026-10-10",
+    "change": "Found snapshot wire/payload lacks rating/pick. Added revision-bound collection-item metadata reader with exact snapshot ordinal/version/source and current ACL, explicit flag mapping and rating bounds; no invented defaults. Non-collection snapshot metadata provenance remains open. Unit boundary tests authored, not run. Full frame evidence composition/encoded native lineage and production installation remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_recipe_evidence_increment": {
+    "date": "2026-10-10",
+    "change": "SQLExportRecipeEvidenceSource reads immutable frozen recipe via render scope and portable recipe via same-version document stream, current snapshot/project access, exact authored bytes and post-read pin rechecks. Physical-reader and metadata positive/refusal tests authored, not run. Full SQL/object lifecycle, encoded provenance/native source and complete frame factory remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_original_source_increment": {
+    "date": "2026-10-10",
+    "change": "SQLExportOriginalSource binds encoded TIFF/JPEG/PNG original to exact selected asset version/source and current ACL; streams physical SHA through existing binary resolver with mandatory native qualifier and repeats exact object pins. Deterministic media-correct path; unsupported formats not renamed. Boundary tests authored, not run. RAW/replayed encoded producer, CaptureOne TIFF conversion, full frame evidence factory and production qualification remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_frame_factory_increment": {
+    "date": "2026-10-10",
+    "change": "SQLExportRecipeEvidenceSource.Resolve selects same-version portable document by exact frozen SHA, then fully revalidates recipe evidence. SQLExportProposalFrameFactory composes recipes, encoded original/native qualification, collection metadata and exact snapshot lineage resolver. Construction boundary tests authored, not run. Positive SQL lifecycle, RAW/replayed producer, CaptureOne conversion, non-collection metadata and concrete native/resource installation remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_catalog_roots_increment": {
+    "date": "2026-10-10",
+    "change": "01375 extends draft read catalog to selected original/master roots, exact frozen snapshot recipe under render scope and same-version portable document stream before export workflow links exist. Keeps pending/draft/current snapshot/project authorization and physical pins; grants read only, not contract/native qualification. SQL installation/privilege tests authored, not run; migration not applied. Positive lifecycle/cross-tenant/revocation tests and production native/resource wiring remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_native_file_qualification_increment": {
+    "date": "2026-10-10",
+    "change": "Worker export image qualification now calls shared qualify_export_image_file: bounded physical SHA/size, regular non-symlink file, magic/suffix/media, existing ICC/metadata and full native raster decode, before/after inode/size/mtime pin. Authored mocked-native filesystem boundary tests, not run; they do not prove installed native decoding. Go admission bridge and qualified runtime/resource binding remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_native_probe_increment": {
+    "date": "2026-10-10",
+    "change": "Added bounded stdin/stdout Python local probe invoking real shared native decoder, emitting object-bound image metadata and Python/pyvips/libvips runtime fingerprint; sanitized failure. Go strict canonical receipt decoder binds object, runtime pin and pixel/ICC/type limits. Contract tests authored with mocked native, not run; no installed decoder qualification claimed. Go process/scratch bridge and independently qualified runtime/resource installation remain open.",
+    "whole_module_credit": false
+  },
+  "latest_export_native_process_increment": {
+    "date": "2026-10-10",
+    "change": "NativeExportImageQualifier stages bounded immutable object bytes under shared scratch budget, hashes/cleans and validates native receipt/runtime. PythonExportNativeProbe launches explicit module without shell/inherited credentials, timeout and bounded stdout, stderr discarded. Unit staging/refusal/cleanup tests use mock probe, authored not run. Real process/native environment qualification, arrays/masks/resource estimator and production installation remain open.",
+    "whole_module_credit": false
+  },
+  "latest_signer_worker_adapter_increment": {
+    "date": "2026-10-10",
+    "change": "Added isolated signer-pool execute adapter with exact typed input/policy/profile binding, bounded scratch, SDK signing bridge, independent upload receipt hashes and three reachable output roles. Boundary unit tests authored, NOT RUN. No main registration, qualified operator/SDK installation, process isolation, fenced adoption or public SignExport lifecycle proved. Missing runtime catalogue classification retained until production wiring exists.",
+    "whole_module_credit": false
+  },
+  "latest_signer_worker_binding_increment": {
+    "date": "2026-10-10",
+    "change": "V31 worker adapter now pins authoritative gateway export MIME/size/object version before signing and repeats metadata before uploads; magic and materialized size must match. Receipt streaming hash checks task cancellation/lease between blocks. Added whole adapter coordination unit cases: success and no-upload refusal on wrong typed input, policy, MIME, changed object version, corrupt receipt and cancellation; real ScratchSpace and doubled SDK bridge. Tests NOT RUN; SDK/operator cryptographic qualification and production dispatch/adoption/SignExport remain open. No whole-module credit or product percent increase.",
+    "whole_module_credit": false
+  },
+  "latest_signer_operator_binding_increment": {
+    "date": "2026-10-10",
+    "change": "V31: InstalledSigningOperator owns 1..256 strict pinned canonical policy bodies; refuses duplicate identity/revision or substituted body. Requires strict live authority before/after delegate checks, context/signer handles and certificate-reader verification; dependencies receive owned policy/lineage buffers. signer_operations refuses unbound arbitrary operators. Authored installation ownership, truthy-attestation refusal and handle revocation/cleanup unit tests, NOT RUN. This is policy binding, not a concrete qualified SDK/key/trust implementation. SQL dispatcher registration still lacks signer-specific installed qualification and exact SDK/cert/trust matching; production wiring, process isolation, result adoption and public SignExport remain open. No whole-module credit; catalogue count unchanged.",
+    "whole_module_credit": false
+  },
+  "latest_signer_worker_qualification_increment": {
+    "date": "2026-10-10",
+    "change": "V31: forward-only01399 adds operator-provisioned signer worker pool, exact SDK/certificate/trust and qualification-report hashes plus finite qualification expiry. Registration constraint isolates signer to CPU/provenance.sign only. Private matcher is inserted into current eligible-node/resource-reservation/target-worker selection using asserted single freshness predicate, preserving existing model/V2/resource definitions and failing closed on schema drift. Dedicated claim wrapper repeats exact profile/worker pins; worker_authorized wrapper repeats pool/expiry for lease/commit authority. Authenticated read-only signer_runtime_ready and Python TaskDatabase probe never provision/refresh authority. SQL registration/profile-substitution/cross-tenant/expiry/disabled/privilege tests and Python request-boundary tests authored NOT RUN; migration NOT APPLIED. Real full dispatch/fencing/adoption lifecycle, operator report provisioning and qualified SDK/key/trust installation remain unproved/open. No whole-module credit or product percentage increase.",
+    "whole_module_credit": false
+  },
+  "latest_signer_process_composition_increment": {
+    "date": "2026-10-10",
+    "change": "V31: build_signer_executor composes exclusively provenance.sign with InstalledSigningOperator, exact installed-policy bodies (aggregate <=8MiB), fixed operator qualification-report SHA and authenticated TaskDatabase registration probe before/after independent native qualification. Mixed SDK/cert/trust installations and general operations refused. Dependency doubles cover expired/absent registration, revocation during native probe, native denied/truthy response, duplicate policy and mixed installation; tests NOT RUN. 01399 dedicated claim now validates sealed v2 provenance workflow and starts queued run only after actual successful claim, preserving generic claim delegate. Migration NOT APPLIED; full dispatch/claim/heartbeat/commit/adoption and real operator qualification remain unproved. Factory not yet production CLI-wired because concrete qualified native signer is still missing; no whole-module/product completion credit.",
+    "whole_module_credit": false
+  },
+  "latest_signer_independent_verification_increment": {
+    "date": "2026-10-10",
+    "change": "V31: fixed SDK bridge/operator type mismatch: policies and lineage remain strict models at operator boundary; only SDK assertion/status JSON uses model_dump. Added independent verify_signed_files for adoption-side regular non-symlink/single-link bounded physical inputs, exact source/signed/manifest SHA, decoded raster/ICC/metadata equality, actual SDK Reader hard binding/trust/lineage verification and required operator embedded-binary-manifest/certificate-chain verification, with before/after byte pins and activity checks. Physical PNG unit cases with fake SDK cover success/hash/pixels/manifest/trust/mutation/symlink, authored NOT RUN. This helper does not grant SQL result/adoption authority or install qualified native operator; generic adoption coordinator integration and fenced provenance publication remain open. No whole-module credit.",
+    "whole_module_credit": false
+  },
+  "latest_signer_adoption_verification_increment": {
+    "date": "2026-10-10",
+    "change": "V31: verify_signing_result independently reads canonical pinned Params/policy/lineage/SignedResult, exact authoritative evidence roles/MIME/byte limits, distinct inputs/outputs and exactly three staged outputs. Streams and hashes original/signed/manifest under bounded scratch, invokes independent signed-file native verification, repeats all evidence and closure after IO. prepare_signing_adoption builds existing deterministic three-member PreparedAdoption inventory only after physical verification. Authored unit coordination cases success/extra outputs/corrupt bytes/wrong roles/input alias/MIME/evidence change/native rejection, with explicit native double; NOT RUN. Caller must still scope EvidenceReader to current canonical result/attempt/fence. Dedicated SQL preparation/current-authority/final commit and provenance metadata insertion remain open; no adoption publication or whole-module credit claimed.",
+    "whole_module_credit": false
+  },
+  "latest_signer_adoption_authority_increment": {
+    "date": "2026-10-10",
+    "change": "V31: corrected worker canonical result to one SignedResult root, with three staged reachable outputs. Forward-only01400 records immutable first activation session on task_params backend document (no backfill authority); wraps dedicated activation atomically, adds scheduler-only v31_signing_adoption_params bound to current canonical result/attempt/fence, running sealed provenance workflow, current actor/session/project download authority and exact ready versioned Params. Generic adopt_v2_plan refuses signer until dedicated verified commit exists. prepare_current_signing checks SQL Params before/after physical verification outside TX. Authored preparation authority change/revocation/cancellation tests plus SQL missing-result/denied-bypass assertions; NOT RUN, migrations NOT APPLIED. Historical signer activations without receipt intentionally require explicit authorized recovery design; no invented session backfill. Final adoption transaction/provenance insertion/coordinator wiring remain open; no whole-module credit.",
+    "whole_module_credit": false
+  },
+  "latest_signer_atomic_commit_increment": {
+    "date": "2026-10-10",
+    "change": "V31: forward-only01401 adopt_v31_signed repeats current tenant/run/task/canonical result/attempt/fence/session authority, exact supplied Params/root/policy/lineage SHA, policy SDK/cert/trust profile pins, ready declared inputs, source ready export/project, live qualified signer, output roles/MIME/producer attempt/fence and exact deterministic three-entry inventory. Inserts immutable provenance then invokes private previous generic adoption in one TX; false adoption raises rollback, conflicts refuse. Python signing_commit_statement binds verified bytes and exact attempt/fence. Unit argument/refusal and SQL missing-task negative assertions authored NOT RUN; migration NOT APPLIED. Positive atomic lifecycle/concurrency/GC/replay/role qualification unverified; generic coordinator wiring, final workflow completion and recovery remain open. No full-module credit.",
+    "whole_module_credit": false
+  },
+  "latest_signer_coordinator_recovery_increment": {
+    "date": "2026-10-10",
+    "change": "V31: AdoptionCoordinator accepts only explicit InstalledSigningOperator, runs prepare_current_signing with bounded scratch outside TX and calls dedicated signing_commit_statement/adopt_v31_signed inside existing transaction/retry protocol. Forward-only01402 adds current canonical signer commit acknowledgement bound to provenance, exact three producer links and inbox; independent of live SDK/key availability. Finalize wrapper requires committed provenance for successful active signer workflow while preserving failure/cancellation/terminal generic behavior. Coordinator and recovery unit cases plus SQL missing-ack negative authored NOT RUN; migrations NOT APPLIED. Production service configuration/qualified operator, positive SQL atomic/retry/GC/complete lifecycle and public SignExport remain open; no whole-module credit.",
+    "whole_module_credit": false
+  },
+  "latest_sign_export_service_increment": {
+    "date": "2026-10-10",
+    "change": "V31: SQLSignExportService composes exact ticket recovery, pending restore/new immutable intent, qualified resource/task preparation, current export catalogue, API draft/Params/materialization stages, scheduler transport publication, repeated source/operator/resource preparation and scheduler activation transaction. Returns ticket only after commit; attempts exact acknowledgement after ambiguous activation error. Distinct API/scheduler pools required. Forward-only01403 current-authority draft-present probe allows exact pending/blocked draft resume rather than empty-draft reconstruction. Unit draft stage/order/conflict and pre-IO cancellation/configuration tests authored NOT RUN; migration NOT APPLIED. HTTP route/production factory and tenant policy publication/qualified operator installation remain open. Service full SQL/object/race/recovery lifecycle unverified; catalogue missing SignExport classification retained pending actual routing. No whole-product completion credit.",
+    "whole_module_credit": false
+  },
+  "latest_sign_export_http_increment": {
+    "date": "2026-10-10",
+    "change": "V31: registered authenticated/CSRF existing tenantRequest mutation POST exports/{id}/provenance route with explicit ExportSigner injection, strict 4KiB SignCreate, valid UUID/idempotency key, domain error mapping and exact deterministic ticket verification. Unconfigured signer returns503; no general CPU or unsigned fallback. Authored HTTP success/malformed/null/zero/duplicate/unknown/trailing/oversize/media/key/unconfigured/foreign-ticket/conflict and no-session tests, NOT RUN. SQLSignExportService production composition/tenant policy publication/native installation and full lifecycle remain open. SignExport catalogue moves missing_runtime_path -> partial_runtime_path based on actual registered handler/service source only; no semantic or tested completion claim.",
+    "whole_module_credit": false
+  },
+  "latest_sign_export_client_increment": {
+    "date": "2026-10-10",
+    "change": "V31: shared api-client exports SignCreate/SigningJobTicket, strict owned request/ticket decoding and signExport with exact caller-owned idempotency key, canonical tenant/export UUID scope and pre/post-response cancellation. Added ApiClient and photographer OwnerAPI methods. Queued acknowledgement is not signing success; no unsigned fallback or invented private key fields. Unit request/response ownership, malformed/expanded/null policy/ticket, ambiguous caller retry key/body equality, cancellation and bad-key cases authored NOT RUN. Public signing UI, production signer/policy installation and full backend/worker lifecycle remain open; catalogue/product percentage unchanged.",
+    "whole_module_credit": false
+  },
+  "latest_signing_attempt_journal_increment": {
+    "date": "2026-10-10",
+    "change": "V31: photographer SigningAttemptStore persists immutable policy/key/ticket scoped by origin/user/tenant/export with existing cross-tab journal lock, origin generation and mounted writer logout fencing. Auth logout now clears signing journals. submitSigning persists before network, restores original saved key across ambiguous retries/remounts, refuses policy replacement, reuses acknowledged ticket without new submission and persists ticket before returning. Unit network ambiguity/remount/ownership/scope/replacement/ticket regression/logout/storage-before-network cases authored NOT RUN. No signing screen route or installed-policy catalogue claimed; production backend/policy/operator/full lifecycle still open. No percentage increase.",
+    "whole_module_credit": false
+  },
+  "latest_signing_submit_failure_boundaries_increment": {
+    "date": "2026-10-10",
+    "change": "V31: submitSigning now passes an owned SignCreate to API callback so callback mutation cannot replace durable pending policy. Added unit cancellation-at-response, ticket-storage failure with exact-key retry, cancellation-after-ticket-persistence with acknowledgement reuse, in-flight logout late-response refusal and callback mutation cases. Tests authored NOT RUN. Existing durable journal is preserved across ambiguity; no UI or native production qualification completion claimed. Whole-product percentage unchanged/unknown.",
+    "whole_module_credit": false
+  },
+  "latest_signing_policy_choices_increment": {
+    "date": "2026-10-10",
+    "change": "V31: available SigningPolicyChoice projection exposes only policy UUID/revision, filters installed validity/MIME and live operator authority and returns sorted owned entries. SQLSignExportService.AvailableSigningPolicies repeats current authorized ready export pins before/after operator probe. Registered auxiliary GET /api/v1/tenants/{t}/exports/{id}/signing-policies, authenticated through existing tenantRequest and catalogue editor/download checks; unconfigured provider503, unavailable policies produce empty list. Authored redaction/validity/denial/cancellation/mutation unit tests NOT RUN. Endpoint advisory only; SignExport repeats all authority. Auxiliary route added to module inventory; original90 normative-entrypoint accounting unchanged. Public signing screen, policy tenant publication and production installation remain open.",
+    "whole_module_credit": false
+  },
+  "latest_signing_policy_client_increment": {
+    "date": "2026-10-10",
+    "change": "V31: shared api-client/photographer OwnerAPI signingPolicies GET method uses exact tenant/export UUID scope, cancellation before/after response and strict owned SigningPolicyChoice[] decoding. Accepts <=256 unique policy UUIDs, canonical positive decimal int64 revision and exactly id/revision fields; rejects key/SDK fields and malformed/duplicate/oversize catalogues. Unit owned/max-int64/empty/malformed/duplicate/redaction/cancellation cases authored NOT RUN. Policy availability is advisory, never signing admission. Screen route, production policy publication/operator setup and full lifecycle remain open; no completion percentage change.",
+    "whole_module_credit": false
+  },
+  "latest_signing_screen_increment": {
+    "date": "2026-10-10",
+    "change": "V31: photographer SigningScreen and /exports/sign route restore origin/user/tenant/export-scoped journal after current me(), load server-only policies, freeze choice after pending submission, reuse original retry key, persist acknowledgement before navigation, open saved job without re-querying live operator, block access-loss retries and abort/ignore unmounted requests. Ready delivery item gains signing navigation. Added English/Russian/Bulgarian messages and DOM unit cases success-after-ambiguity/exact key/saved job/empty catalogue/access loss/unmount. Tests authored NOT RUN. New UI inventory: /exports/sign; states loading, available selection, empty/unavailable, pending retry, busy, saved ticket, denied/error; route loading/auth failure. Production signer/policy publication and full SQL/native/UI acceptance remain open; no whole-module credit.",
+    "whole_module_credit": false
+  },
+  "latest_signing_screen_authority_increment": {
+    "date": "2026-10-10",
+    "change": "V31 UI: saved-ticket Open action now goes through submitSigning/journal authority instead of navigating from rendered cached ticket, so expired/logout-cleared mounted journals refuse navigation. Policy refresh immediately clears prior choices to avoid presenting stale policies after failure. Added DOM expired-journal/open refusal, failed-refresh stale-choice removal and rotated-policy pending retry preserving original policy/key cases; authored NOT RUN. Current public UI/state coverage updated; production operator/tenant policy publication and full SQL/native acceptance remain open. No whole-module or percentage credit.",
+    "whole_module_credit": false
+  },
+  "latest_capacity_alignment": {
+    "date": "2026-10-10",
+    "change": "Signing registry installation limited to256 policies, matching isolated worker and API client; boundary unit tests authored, NOT RUN. No module completion credit.",
+    "whole_module_credit": false
+  },
+  "latest_tenant_policy_projection": {
+    "date": "2026-10-10",
+    "change": "V31: added owned tenant policy projection with deterministic UUIDv5(tenant, signing:policy:policyID:SHA), stable within tenant and isolated across tenants. Rebinding to another tenant refused. PolicyDocument requires projected tenant and current MIME/validity/operator checks; returns expected identity and owned bytes, never a ready artifact receipt. Preparation, compilation/pending recompilation and catalogue reject foreign bound registries. Unit tests for identity stability/isolation, owned buffers, foreign scope, revoked operator and cancellation authored NOT RUN. This is publication preparation only: dedicated SQL reserve/complete, quota/GC/purge lifecycle, physical object publication and production wiring remain open. No percentage/module completion credit.",
+    "whole_module_credit": false
+  },
+  "latest_policy_service_integration": {
+    "date": "2026-10-10",
+    "change": "V31: SQLSignExportService now derives invocation-local tenant policy registry after exact committed-ticket recovery, uses it for pending restore/preparation/compilation and publishes policy through SQLSigningPolicyStore+ImmutableSigningPolicyPublisher before draft admission. Advisory catalogue projects the same tenant.01404 completion additionally checks supplied immutable storage-owner run; Go adapter binds it. Authored policy SQL adapter source-pin/foreign-identity/content/size/session/bucket/version/cancellation unit cases; NOT RUN. Migration NOT APPLIED. Production factory/native signer and full positive SQL lifecycle still open; no percentage credit.",
+    "whole_module_credit": false
+  },
+  "latest_resource_policy_projection_alignment": {
+    "date": "2026-10-10",
+    "change": "V31: aligned MeasuredSigningResourceQualifier with tenant policy projection introduced in service; qualifier derives invocation-local registry from immutable template and keeps exact workload report SHA lookup (no cross-tenant interpolation or invented resource measurements). Updated unit fixture to projected intent with template-backed qualifier; added foreign bound registry and changed intent tenant refusal cases, NOT RUN. Corrected01404 regexp replacement SQL escape so function body retains SELECT capture rather than literal backreference. SQL lock-path inspection did not establish a reproduced deadlock; no concurrency PASS claimed. Migrations NOT APPLIED; full positive lifecycle/native runtime still open.",
+    "whole_module_credit": false
+  },
+  "latest_policy_sql_lifecycle_test_authored": {
+    "date": "2026-10-10",
+    "change": "V31: authored positive isolated SQL policy lifecycle fixture using canonical export/task/result authority. Covers created->resumed new token, stale-token and foreign storage-owner completion refusal, exact completion/replay, policy-ready binding, GC retention, single quota conversion and wrong-role refusal. Entire fixture rolls back; NOT RUN, migrations NOT APPLIED. This is authored test coverage, not current SQL/object/native lifecycle evidence. Cross-export reuse, pending cleanup/purge, concurrency, full signing dispatch/adoption and production native installation remain open.",
+    "whole_module_credit": false
+  }
+}

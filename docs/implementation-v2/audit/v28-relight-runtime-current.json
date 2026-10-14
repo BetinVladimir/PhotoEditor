@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 installed relight runtime identity",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "checks": {
+    "passed": 61,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 1.28,
+    "xml": "v28-relight-runtime-current.xml"
+  },
+  "source_sha256": {
+    "workers/photo_worker/operations/portrait/relight_runtime_lock.py": "068c164f77b8fb4b2f6fbad045bc4f406ecfefc53da99220f6c6a48f93cbbf81",
+    "workers/photo_worker/operations/portrait/relight_adapter.py": "303a8b7f7d5af8b432fe6780b1ffbdb48a53eda022212a95a34cfe4d2bcf56d9",
+    "tests/platform/test_relight_runtime_lock.py": "55273da619c77a9da30da9b9961fe1f542f68a94ef5d2b09868d4cc305b04e92"
+  },
+  "limitations": [
+    "Real local installed build hashes; test doubles for admission/installer execution",
+    "No trusted SQL qualification authority or automatic runtime installation",
+    "No physical gateway/adoption/UI or actual RTX/model/photo quality qualification"
+  ]
+}

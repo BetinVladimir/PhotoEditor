@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import numpy as np
 from uuid import UUID
+from typing import Callable
 
 from photo_worker.operations.identity.metrics import (
     compare_identity_observations, measure_pixel_guards,
@@ -81,12 +82,14 @@ def measure_holdout_identity(*, before: FaceObservations,
                              detector_qualified: bool,
                              detector_succeeded: bool,
                              consent_valid: bool,
-                             aligned_canvas: bool) -> str:
+                             aligned_canvas: bool,
+                             check_active: Callable[[], None] = lambda: None) -> str:
     """Return pass/fail/not_measurable/no_person from measured evidence.
 
     Consent and alignment are externally fenced facts. An absent proof is a
     non-measurable case, never a successful identity comparison.
     """
+    check_active()
     if (type(detector_qualified) is not bool or
             type(detector_succeeded) is not bool or
             type(consent_valid) is not bool or
@@ -97,7 +100,8 @@ def measure_holdout_identity(*, before: FaceObservations,
             source_rgb.ndim != 3):
         raise ValueError('INVALID_HOLDOUT_IDENTITY_BINDING')
     guards = measure_pixel_guards(source_rgb, candidate_rgb,
-                                  effective_mask, protected)
+                                  effective_mask, protected,
+                                  check_active=check_active)
     if guards.outside_mask_max_error > 0 or guards.protected_max_error > 0:
         return 'fail'
     if not detector_qualified or not detector_succeeded or not aligned_canvas:
@@ -111,4 +115,5 @@ def measure_holdout_identity(*, before: FaceObservations,
         canvas_size=(source_rgb.shape[1], source_rgb.shape[0]),
         outside_mask_max_error=guards.outside_mask_max_error,
         protected_max_error=guards.protected_max_error)
+    check_active()
     return 'not_measurable' if metrics.status == 'review' else metrics.status

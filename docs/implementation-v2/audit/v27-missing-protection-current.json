@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-08",
+  "module": "V27",
+  "module_accepted": false,
+  "scope": "Absent authorized protection producer is dependency unavailable, distinct from invalid/ambiguous existing evidence; real HTTP503 with zero admission effects and exact fixture expiry restoration, followed by successful create and actual binary replay/shutdown. Shared ordinary/native regression.",
+  "physical": {
+    "passed": 3,
+    "deselected": 14,
+    "seconds": 68.37,
+    "command": "PHOTO_TEST_NATIVE_INFRA=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=workers:src:tests/integration .venv-platform/bin/python -m pytest tests/integration/test_v27_semantic_intent_publication.py -k 'create-service or native-bootstrap or ordinary-admission' -q --tb=short"
+  },
+  "packages": {
+    "semanticproposal": "PASS 2.537s",
+    "httpapi": "PASS 0.621s",
+    "cmd/photo": "PASS 1.611s"
+  },
+  "source_sha256": {
+    "backend/internal/semanticproposal/transfer_target_selection.go": "781b895164c180c224e05fce08206776d22096a829195e5d4933f8fd85168914",
+    "backend/internal/semanticproposal/transfer_target_selection_test.go": "4a938615cd871e5932badf96a8c6f6bde8d9be476f0bfab3d7c5e2cd8012ea67",
+    "backend/internal/semanticproposal/create_http_probe_test.go": "92170d9dc1dacc2c81f0075b8fcb71eb725eeda15dc0964aac3951b3dcef33b8",
+    "backend/internal/semanticproposal/create_integration_probe_test.go": "01363a78fcfdc2c84312c314bba3f2db0b736d8401314d24ed50ed5378ea65dd",
+    "backend/internal/httpapi/semantic_proposal_errors.go": "fcb306f1e26548ba88b1f27d0e7da492720350761c4ccd1f5558a74c277076db",
+    "backend/internal/httpapi/semantic_proposal_errors_test.go": "5026820a90d89c54e716feed14741d2d41d9e99ba3a3db025aa29a76c01b1507",
+    "tests/integration/test_v27_semantic_intent_publication.py": "b60db71c92f2410fb25193328d7ea2b11fa7c488d7ddf4705a475daee12fdb33"
+  },
+  "previous_full_publication_suite": "17PASS belongs to prior selector source pin; not counted as a full current-suite rerun",
+  "remaining": [
+    "automatic missing-producer creation and original manual selection contract",
+    "complete current module/photo/model/client/hardware/lifecycle acceptance"
+  ]
+}

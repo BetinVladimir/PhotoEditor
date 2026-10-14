@@ -1,0 +1,51 @@
+{
+  "recorded_at": "2026-10-08T09:43:29.472919+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "change": "Person, detector and landmarks consume strict uint16/float32 alpha through existing read_alpha_array, matching admitted server source contract. No conversion or output math change.",
+  "sources": {
+    "workers/photo_worker/operations/mask/person.py": "a46dcda679bf31f6d2a30674068a108e69751a9c9e20df224ce90050f9066d03",
+    "workers/photo_worker/operations/face/detect.py": "05e5ff5d199f8c604e0c3280b6278e5e704e8edabfc7209101d47245fbd779ec",
+    "workers/photo_worker/operations/face/landmarks.py": "66194aead0210752c50569e0a0e1ac247cf59f4eed284ef038cc73ca38e3fe3f",
+    "workers/photo_worker/runtime/arrays.py": "c69ba605617092c865398932396d7be83bb9ed74fc68ed29df1391e818d0b1d8",
+    "workers/photo_worker/runtime/artifacts.py": "24e012bc898449ecbc142db97d91f1496f1380f66d26fc1d4add1a5e5d112d65",
+    "workers/photo_worker/v2/input_closure.py": "fd038a1a29779ed5ab9debe10080dd41c3626bc7724a0bbb6b60b52852e67384",
+    "backend/internal/masknpy/verify.go": "91e986efb03b6d116ae7a3c33b35149c104ff768839f8c444578f33b106e0525",
+    "backend/internal/masknpy/array_test.go": "add03415a0950ce320e099a708d3a82c5e37b6c9e7ec4586e7b5a4e2b47fe32a",
+    "backend/internal/semanticproposal/source_pixels.go": "501c6da60d80e2d10d49d322b2be26bc5177101abc3782a3fae321dc364458d7",
+    "tests/platform/test_native_model_nested_inputs.py": "9040e17fb02a2b189fadd224b988eb84f81f35f6ce8793f135ad142bd9483462"
+  },
+  "checks": [
+    {
+      "evidence": "v27-alpha-encoding-targeted.xml",
+      "sha256": "29ef62485994bcdd91c22f8a3697365978b0a828bff17c953accee9da527c0c6",
+      "tests": 112,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "evidence": "v27-alpha-encoding-worker.xml",
+      "sha256": "c4cf02b36bc7da8649673a47bcc99df52d4229d8d4093a297c5ad91ccf55402c",
+      "tests": 630,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "before_fix": {
+    "evidence": "v27-alpha-encoding-before.log",
+    "failures": 3,
+    "passed": 81,
+    "reason": "All three allowed float32 cases failed at strict uint16-only reads."
+  },
+  "go": {
+    "command": "scripts/run-platform.sh go -C backend test ./internal/masknpy ./internal/v2input ./internal/semanticproposal",
+    "exit_code": 0
+  },
+  "limitations": [
+    "Tests exercise production adapters with deterministic fake model engines and actual input-closure authority. Scientific/GPU qualification remains open.",
+    "Complete122 integration snapshot precedes adapter changes; do not count it as complete current-source module acceptance.",
+    "Newly computed worker result through canonical adoption to ordinary parent and other whole-module gates remain unfinished."
+  ]
+}

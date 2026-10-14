@@ -26,6 +26,7 @@ func TestCompositionDraftPreflightRejectsMutationBeforeDatabaseIO(t *testing.T) 
 	// must occur before transaction creation, rather than a database fallback.
 	store := SQLOriginalCompositionPreflight{DB: &pgxpool.Pool{}}
 	changes := []func(*CompiledCompositionDraft){
+  func(d *CompiledCompositionDraft){d.Config.QueueClass="interactive";d.Body,_=canonical.Marshal(d.Config);d.SHA256,_=canonical.Hash(d.Config)},
 		func(d *CompiledCompositionDraft) { d.Body = append(d.Body, ' ') },
 		func(d *CompiledCompositionDraft) { d.SHA256 = "invalid" },
 		func(d *CompiledCompositionDraft) { d.Config.ProjectID = uuid.New() },

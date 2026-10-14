@@ -514,6 +514,16 @@ def test_training_freeze_happy_path_and_consent_pin(db):
                                        auth_session)).fetchone()[0] is None
             assert db.execute(activate, (tenant, profile, 1, version, 'rollback',
                                          actor, auth_session)).fetchone()[0] is False
+            with pytest.raises(RuntimeError, match='discard purpose mutation'):
+                with db.transaction():
+                    db.execute("UPDATE photo.consent_grants SET purpose='learning_person' "
+                               'WHERE id=%s', (matching,))
+                    assert db.execute('SELECT photo.v23_learning_version_consents_live('
+                                      '%s,%s)', (tenant, version)).fetchone()[0] is False
+                    assert db.execute(activate, (tenant, profile, 1, version,
+                                                 'promote', actor,
+                                                 auth_session)).fetchone()[0] is False
+                    raise RuntimeError('discard purpose mutation')
             assert db.execute(activate, (tenant, profile, 1, version, 'promote',
                                          actor, auth_session)).fetchone()[0] is True
             db.execute('RESET ROLE')

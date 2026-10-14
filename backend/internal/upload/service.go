@@ -19,6 +19,8 @@ import (
 	"photoeditor/backend/internal/idempotency"
 	"photoeditor/backend/internal/objectstore"
 	"photoeditor/backend/internal/project"
+ "photoeditor/backend/internal/rawdevelopment"
+ "photoeditor/backend/internal/v2qualification"
 	"photoeditor/backend/internal/tenant"
 )
 
@@ -28,13 +30,21 @@ type MultipartStore interface {
 	SignUploadParts(context.Context, string, string, []int, time.Duration) ([]objectstore.PartURL, error)
 }
 
+// RAWAdmission must resolve current physical qualification using this transaction.
+// rawdevelopment.Source implements this interface; HTTP input never supplies it.
+type RAWAdmission interface {
+ Admit(context.Context,rawdevelopment.ReportRows,uuid.UUID,uuid.UUID,uuid.UUID,uuid.UUID,*rawdevelopment.Policy)(*rawdevelopment.Policy,error)
+}
+
 type Service struct {
+ RAWAdmission RAWAdmission
 	DB      *pgxpool.Pool
 	Objects MultipartStore
 	Now     func() time.Time
 }
 
 type BeginRequest struct {
+ RAWDevelopment *rawdevelopment.Policy `json:"raw_development,omitempty"`
 	ProjectID     uuid.UUID  `json:"project_id"`
 	CollectionID  *uuid.UUID `json:"collection_id,omitempty"`
 	Filename      string     `json:"filename"`
@@ -131,6 +141,12 @@ func normalize(request BeginRequest) (BeginRequest, string, error) {
 	if request.CollectionID != nil && *request.CollectionID == uuid.Nil {
 		return request, "", domain.NewError("VALIDATION_FAILED", 422)
 	}
+    if !rawdevelopment.Valid(request.RAWDevelopment) { return request,"",domain.NewError("VALIDATION_FAILED",422) }
+    if request.RAWDevelopment != nil {
+        if request.Format=="jpeg" || request.Format=="jpg" || request.Format=="png" || request.Format=="tiff" || request.Format=="tif" { return request,"",domain.NewError("VALIDATION_FAILED",422) }
+        copy:=*request.RAWDevelopment
+        request.RAWDevelopment=&copy
+    }
 	if request.AssumeProfile != nil {
 		profile := strings.ToLower(strings.TrimSpace(*request.AssumeProfile))
 		switch profile {
@@ -203,6 +219,14 @@ func (s Service) Begin(ctx context.Context, who auth.Identity, tenantID uuid.UUI
 	}
 	var uploadID uuid.UUID
 	err = tenant.WithTenant(ctx, s.DB, who, tenantID, domain.Editor, func(tx pgx.Tx, role domain.Role) error {
+        // Qualification is deliberately outside the idempotency factory:
+        // a stored receipt cannot bypass a revoked qualification on replay.
+        if request.RAWDevelopment!=nil {
+            if _,err:=project.Authorize(ctx,tx,tenantID,request.ProjectID,who.UserID,role,domain.Editor,true);err!=nil{return err}
+            admitted,err:=s.admitRAW(ctx,tx,who,tenantID,request.ProjectID,request.RAWDevelopment)
+            if err!=nil{return err}
+            request.RAWDevelopment=admitted
+        }
 		response, err := idempotency.Use(ctx, tx, idempotency.Scope{Tenant: tenantID, Principal: who.UserID, PrincipalType: "user", Route: "Upload.Begin", Key: key}, request, s.now().Add(30*24*time.Hour), func() (idempotency.Response, error) {
 			if _, err := project.Authorize(ctx, tx, tenantID, request.ProjectID, who.UserID, role, domain.Editor, true); err != nil {
 				return idempotency.Response{}, err
@@ -232,8 +256,8 @@ func (s Service) Begin(ctx context.Context, who auth.Identity, tenantID uuid.UUI
 			}
 			expires := s.now().Add(24 * time.Hour)
 			if _, err = tx.Exec(ctx, `INSERT INTO photo.upload_sessions(id,tenant_id,project_id,collection_id,principal_type,principal_id,
-			 expected_size,filename,assume_profile,object_key,state,expires_at,reservation_id,media_type,expected_sha256)
-			 VALUES($1,$2,$3,$4,'user',$5,$6,$7,$8,$9,'initializing',$10,$11,$12,$13)`, uploadID, tenantID, request.ProjectID, request.CollectionID, who.UserID, request.Bytes, request.Filename, request.AssumeProfile, objectKey, expires, reservationID, mediaType, request.SHA256); err != nil {
+			 expected_size,filename,assume_profile,object_key,state,expires_at,reservation_id,media_type,expected_sha256,raw_development)
+			 VALUES($1,$2,$3,$4,'user',$5,$6,$7,$8,$9,'initializing',$10,$11,$12,$13,$14)`, uploadID, tenantID, request.ProjectID, request.CollectionID, who.UserID, request.Bytes, request.Filename, request.AssumeProfile, objectKey, expires, reservationID, mediaType, request.SHA256, rawPolicyValue(request.RAWDevelopment)); err != nil {
 				return idempotency.Response{}, err
 			}
 			if _, err = tx.Exec(ctx, `INSERT INTO photo.quota_reservations(id,tenant_id,principal_type,principal_id,holder_type,holder_id,bytes,files,state,expires_at)
@@ -586,4 +610,25 @@ func (s Service) Moderate(ctx context.Context, who auth.Identity, tenantID, id u
 func (s Session) MarshalJSON() ([]byte, error) {
 	type public Session
 	return json.Marshal(struct{ public }{public(s)})
+}
+
+// Preserve SQL NULL for legacy uploads rather than the JSON null literal.
+func rawPolicyValue(p *rawdevelopment.Policy) any {
+ if p==nil {return nil}
+ return p
+}
+
+func (s Service) admitRAW(ctx context.Context,tx rawdevelopment.ReportRows,who auth.Identity,tenantID,projectID uuid.UUID,policy *rawdevelopment.Policy)(*rawdevelopment.Policy,error){
+ if err:=ctx.Err();err!=nil{return nil,err}
+ if policy==nil{return nil,nil}
+ if s.RAWAdmission==nil{return nil,domain.NewError("QUALIFICATION_UNAVAILABLE",503)}
+ expected:=*policy
+ input:=expected
+ admitted,err:=s.RAWAdmission.Admit(ctx,tx,tenantID,projectID,who.UserID,who.SessionID,&input)
+ if errors.Is(err,v2qualification.ErrUnqualified){failure:=domain.NewError("QUALIFICATION_UNAVAILABLE",503);failure.Cause=err;return nil,failure}
+ if err!=nil{return nil,err}
+ if admitted==nil || !rawdevelopment.Valid(admitted) || *admitted!=expected{return nil,domain.NewError("QUALIFICATION_UNAVAILABLE",503)}
+ if err=ctx.Err();err!=nil{return nil,err}
+ owned:=*admitted
+ return &owned,nil
 }

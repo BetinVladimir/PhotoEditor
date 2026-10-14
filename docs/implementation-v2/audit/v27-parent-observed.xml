@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="306.782" timestamp="2026-10-08T15:48:45.011552+03:00" hostname="Mac"><testcase classname="tests.integration.test_v27_person_migration_upgrade" name="test_person_forward_upgrade_preserves_existing_work" time="6.230" /><testcase classname="tests.integration.test_v27_semantic_intent_publication" name="test_semantic_intent_publication_old_version_and_replay[native-person-defect-wire]" time="298.221"><failure message="AssertionError: === RUN   TestIntegrationNativePreparationBootstrap&#10;      native_bootstrap_integration_test.go:171: V27_ORIGINAL_PERSON_INPUT_AUTHORITY_OK&#10;      native_bootstrap_integration_test.go:317: V27_NATIVE_DEFECT_PERSON_DEPENDENCIES_OK&#10;      native_bootstrap_integration_test.go:393: V27_NATIVE_PARENT_AMBIGUOUS_TARGET_REFUSED_OK&#10;      native_bootstrap_integration_test.go:402: automatic native parent admission initial native parent prepare/activate: V2 admission idempotency conflict&#10;  --- FAIL: TestIntegrationNativePreparationBootstrap (284.77s)&#10;  FAIL&#10;  FAIL&#09;photoeditor/backend/internal/semanticproposal&#09;285.457s&#10;  FAIL&#10;  &#10;assert 1 == 0&#10; +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationNativePreparationBootstra...reparationBootstrap (284.77s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t285.457s\nFAIL\n', stderr='').returncode">tests/integration/test_v27_semantic_intent_publication.py:743: in test_semantic_intent_publication_old_version_and_replay
+    assert result.returncode==0,result.stdout+result.stderr
+E   AssertionError: === RUN   TestIntegrationNativePreparationBootstrap
+E         native_bootstrap_integration_test.go:171: V27_ORIGINAL_PERSON_INPUT_AUTHORITY_OK
+E         native_bootstrap_integration_test.go:317: V27_NATIVE_DEFECT_PERSON_DEPENDENCIES_OK
+E         native_bootstrap_integration_test.go:393: V27_NATIVE_PARENT_AMBIGUOUS_TARGET_REFUSED_OK
+E         native_bootstrap_integration_test.go:402: automatic native parent admission initial native parent prepare/activate: V2 admission idempotency conflict
+E     --- FAIL: TestIntegrationNativePreparationBootstrap (284.77s)
+E     FAIL
+E     FAIL	photoeditor/backend/internal/semanticproposal	285.457s
+E     FAIL
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['go', 'test', './internal/semanticproposal', '-run', '^TestIntegrationNativePreparationBootstra...reparationBootstrap (284.77s)\nFAIL\nFAIL\tphotoeditor/backend/internal/semanticproposal\t285.457s\nFAIL\n', stderr='').returncode</failure></testcase></testsuite></testsuites>

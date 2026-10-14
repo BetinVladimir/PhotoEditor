@@ -1,0 +1,78 @@
+{
+  "recorded_at": "2026-10-07T23:28:33.701941+00:00",
+  "status": "awaiting_evidence",
+  "native_minio": {
+    "module": "github.com/minio/minio",
+    "version": "v0.0.0-20251015172955-9e49d5e7a648",
+    "release": "RELEASE.2025-10-15T17-29-55Z",
+    "commit": "9e49d5e7a648f00e26f2246f4dc28e6b07f8c84a",
+    "sum": "h1:6TdolSCLSs2nwm8i0PpWDqf9iX2Ty9WQK8wmr7dCnUM=",
+    "go_mod_sum": "h1:yCWDkwWO9IWpGsT4mreDDN/B/QVmK2zC666uInRAcqE=",
+    "base_image": "quay.io/minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e",
+    "license": "AGPL-3.0",
+    "scope": "Source-pinned local development build; production qualification remains required",
+    "os": "darwin",
+    "architecture": "arm64",
+    "go_version": "go1.26.3",
+    "binary_sha256": "b49660cf81e6c53eef8285f07b818780eae4e2449c1a23d363515ff120c0a1b1"
+  },
+  "endpoint": "http://127.0.0.1:59010",
+  "volume": "repository-owned 2GiB APFS sparse image",
+  "checks": [
+    {
+      "evidence": "native-objectstore-current.jsonl",
+      "sha256": "9d36fab36870f8b69a6999c802b66b92cc9a6f7fb14dc0b5f45ce42840ef6868",
+      "counts": {
+        "pass": 34,
+        "fail": 0,
+        "skip": 1
+      }
+    },
+    {
+      "evidence": "native-upload-current.jsonl",
+      "sha256": "bb1714c5149016d87f60d8100c4944621abfc7a1176ddd8a59d72a4cea5192f4",
+      "counts": {
+        "pass": 9,
+        "fail": 3,
+        "skip": 0
+      }
+    },
+    {
+      "evidence": "native-upload-clean-current.jsonl",
+      "sha256": "5e6ba87e987f8f2f98126c831a3ebd9d9d9eecc454afc1b31d0656388cfd1955",
+      "counts": {
+        "pass": 12,
+        "fail": 0,
+        "skip": 0
+      }
+    }
+  ],
+  "limitations": [
+    ">4GiB S3 IO not run on2GiB volume",
+    "Initial upload run on reused DB failed object missing; clean isolated DB rerun passed. Original claim identity not captured, so exact root cause not proven",
+    "No production/full module image quality/native/browser/adopted semantic proof"
+  ],
+  "source_sha256": {
+    "backend/internal/objectstore/config.go": "eb1d9f7bf5a7ae05069e44bed37827137f716d79b77d3b2abf418ddade792948",
+    "backend/internal/objectstore/download_integration_test.go": "9a34db4cc03e9944b81db71c5889805166be551c3a37a9640383d0d1b18bb250",
+    "backend/internal/objectstore/large_io_test.go": "f500f7a106233b0a5399ff52a09635b7864e5a74b174a242095bed65fa9a4785",
+    "backend/internal/objectstore/minio.go": "b2858b44e0a372ce924f6e94d92cb66498a2341d940e756d2e0e17749e2ea7b5",
+    "backend/internal/objectstore/minio_test.go": "2dae0e5b77a18c5b774fc5647741e73369e8d4ea9924fea367d01c6c64f061be",
+    "backend/internal/objectstore/multipart.go": "8522d9bf873ab5b96470195d4d7597ed557fc054afdf890b61768b09c6e12084",
+    "backend/internal/objectstore/multipart_test.go": "220a13d8e6978a88d836ec952f4571320d6be7d72666f29253affb9d85634ebe",
+    "backend/internal/objectstore/original.go": "b1d085a2371d3ddfec1827c6ee52d5e7a64033fbe1e8e3228b987133a0fcc09f",
+    "backend/internal/objectstore/original_test.go": "060062192a4ab44d50811e370ccbec14edc16c2a09a94cd55e3983333b7633f2",
+    "backend/internal/objectstore/recover.go": "fdecaf4dc1b67cb252654352105fa346e88eec137a5f3ae03c65a16c7a8ff6fe",
+    "backend/internal/objectstore/recover_test.go": "53e30da13069c05b38fc42dcba575718a7e99312b4e148e4d558b7e991287234",
+    "backend/internal/objectstore/remove_confirmed.go": "1647c1d855792d5ce2e1c0d76c7558a746d25dca8422ce2f7b9d9bd69b39194c",
+    "backend/internal/objectstore/remove_confirmed_test.go": "c55ee18c554f7c1d2db225adac41850b1321af93fbb443a00c4c4cc3b0d1a688",
+    "backend/internal/upload/completion.go": "97f1ef214713260bcc296cb5b7bdfe72a84562d8a41c68cffb2e7857b664dddd",
+    "backend/internal/upload/completion_integration_test.go": "0641812f1766d267345210b14d37e4b92ef1d549f90e5c4ed219f1c5351c8b4a",
+    "backend/internal/upload/completion_test.go": "c997f3358ade08a2cd0d50224c9f10fc375cca6b5fddee5c64d27b12ee1216d8",
+    "backend/internal/upload/device.go": "f292083b5f3b8fb19bfdc617d2e261a908de6f17c0e97858ac19eadbdd65632f",
+    "backend/internal/upload/device_integration_test.go": "85931836630a8597487a2b2572afbb18b5f00afe695d738dffa8d795ded08899",
+    "backend/internal/upload/service.go": "a5a02f0f68925e36ca871c420f12cb7bc80894925fa39790bbb145b8484a2a3d",
+    "backend/internal/upload/service_integration_test.go": "8e80d782230b154d0744f55dd2d932e9e1f51adac90d7d5010f827392585382a",
+    "backend/internal/upload/service_test.go": "266b9e74f889ff774c3d5329aeee552630be7ac8f70a0cf7b5fc01512ea02db3"
+  }
+}

@@ -73,7 +73,7 @@ func PrepareIngestTask(node CompiledIngestNode, params review.ArtifactRef, sourc
 	if err != nil {
 		return PreparedTask{}, err
 	}
-	check, err := CompileIngest(IngestSpec{RunID: node.ID, Items: []IngestItem{{Ordinal: ordinal, Source: source.Source, Bytes: source.Bytes, Suffix: source.Suffix, AssumeProfile: decode.AssumeProfile, Analyze: decode.Analyze, Tile: decode.Tile}}}, registry)
+	check, err := CompileIngest(IngestSpec{RunID: node.ID, Items: []IngestItem{{Ordinal: ordinal, Source: source.Source, Bytes: source.Bytes, Suffix: source.Suffix, AssumeProfile: decode.AssumeProfile, Analyze: decode.Analyze, Tile: decode.Tile, RAWDevelopment: decode.RAWDevelopment}}}, registry)
 	if err != nil {
 		return fail()
 	}

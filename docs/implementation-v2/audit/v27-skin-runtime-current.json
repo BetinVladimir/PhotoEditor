@@ -1,0 +1,72 @@
+{
+  "recorded_at": "2026-10-08T10:42:04.610008+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "source_manifest": "v27-skin-runtime-source.json",
+  "source_pins": 8179,
+  "checks": [
+    {
+      "evidence": "v27-skin-wire.xml",
+      "sha256": "91e99de9e5f0c42804f07495a8d2e5d45785be695a8134dde7ddcacbf66ea599",
+      "exit_code": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "evidence": "v27-skin-upgrade.xml",
+      "sha256": "8d80b40aada3ee527d24973898c0ae819b82cee6363aa9944149d0359cce3695",
+      "exit_code": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "evidence": "v27-skin-runtime-go.log",
+      "sha256": "6c2fe42f4d484b676f94aca46ede734b603a2f30797c69ee074da25a314e4cc5",
+      "exit_code": 0
+    },
+    {
+      "evidence": "v27-skin-contracts.log",
+      "sha256": "ae090b2c0775defc958cd540b0579481c52695e3403ff594434e927b40e9a3af",
+      "exit_code": 0
+    },
+    {
+      "evidence": "v27-skin-regression.xml",
+      "sha256": "cbda714dde112460127d9af6b820bf23fceda8e9050a707d98557b01af76a805",
+      "exit_code": 0,
+      "tests": 26,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "evidence": "v27-skin-anchor.xml",
+      "sha256": "8f2fce42a6ed674789bdc313ad59c7707423e57371725bf9a259d8f60e36dff7",
+      "exit_code": 0,
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "correction": "Prior native-face runtime selection bypassed the nonempty branch. Only corrected v27-skin-wire.xml establishes the actual four-stage wire scenario.",
+  "changes": [
+    "Versioned CPU skin input-index scratch with exact legacy recovery and capacity validation.",
+    "00905 atomically starts the sealed original skin run on successful validated claim; existing guards retained.",
+    "Corrected test selection and independent four-stage SQL/MinIO lineage, output-byte, replay and reservation checks."
+  ],
+  "limitations": [
+    "Inference and qualification doubles; no actual GPU/scientific qualification.",
+    "Parent remains absent; defects/protection authority and positive new-person-output parent continuation open.",
+    "Whole V27 and V20\u2013V32 acceptance, browser/native/corpus/rollout gates open."
+  ],
+  "retained_discovery_failures": [
+    "v27-skin-wire-selector-bypass.xml",
+    "v27-skin-wire-before.xml",
+    "v27-skin-wire-budget.xml"
+  ],
+  "regression_status": "passed: 26 publication/admission/source-authority checks, 2 native-anchor checks"
+}

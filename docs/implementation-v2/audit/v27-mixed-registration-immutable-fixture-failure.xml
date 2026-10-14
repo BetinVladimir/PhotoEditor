@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="1.533" timestamp="2026-10-09T06:00:50.807931+03:00" hostname="Mac"><testcase classname="tests.integration.test_v27_semantic_intent_publication" name="test_semantic_intent_publication_old_version_and_replay[native-person-defect-wire]" time="1.076"><failure message="psycopg.errors.CheckViolation: immutable field snapshots.item_count&#10;CONTEXT:  PL/pgSQL function reject_content_update() line 2 at RAISE">tests/integration/test_v27_semantic_intent_publication.py:133: in test_semantic_intent_publication_old_version_and_replay
+    db.execute('UPDATE photo.snapshots SET item_count=2 WHERE id=%s',(case['Snapshot'],))
+.venv-platform/lib/python3.11/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.CheckViolation: immutable field snapshots.item_count
+E   CONTEXT:  PL/pgSQL function reject_content_update() line 2 at RAISE</failure></testcase></testsuite></testsuites>

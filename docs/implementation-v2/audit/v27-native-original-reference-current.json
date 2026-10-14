@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "component": "V27 exact original-person SQL consumer",
+  "whole_module_accepted": false,
+  "component_accepted": true,
+  "migration_head": "00960",
+  "production_migrations_applied": false,
+  "checks": {
+    "go": "4 packages PASS; v27-native-original-reference-go-current.jsonl",
+    "sql": "23 PASS25.14s; v27-native-original-reference-sql-current.xml",
+    "native_wire": "1 PASS280.16s; v27-native-original-reference-wire-current.xml",
+    "diff_check": "PASS"
+  },
+  "remaining": [
+    "Dedicated saved lookup and atomic Begin/register/seal/replay with target00959 locks.",
+    "Original parent handoff and fresh-process recovery.",
+    "Whole-module acceptance for V27 and V20\u2013V32."
+  ],
+  "source_sha256": {
+    "backend/db/migrations/00960_v27_original_person_completed_consumer.sql": "586f66a2288052623d0406771923a06a09ca32b628894b29290b13899efdd22a",
+    "backend/internal/semanticproposal/native_original_defect_completed_lock.go": "4d156892e4215ebf9c5c82e8966dd0e517f732e3f56ed3b35b5927c8615da2e8",
+    "backend/internal/semanticproposal/native_original_protection_lock.go": "6cdbdc94f071ce3c5551a11a4b5d90244c5afae2dbae50bd7534ffb34a79d0e8",
+    "backend/internal/semanticproposal/native_all_target_transfer_reference_lock.go": "95cfc14245f8edfc11d56e39dcbdd63841faaa0c04d75a693fa5e8552bb47d5f",
+    "backend/internal/semanticproposal/native_original_reference_consumer_probe_test.go": "64f34d4f92228bf5d1d312a417ebce3e360f4ec7ea1ed24a8eda8f43ed8ba69d",
+    "tests/integration/test_v27_person_migration_upgrade.py": "ed201ad3d7282b09f27a6b3d366ecbd42cd9fe2e23e7487363c0ed63bdd5f276"
+  },
+  "resolved": "Completed-result continuation follows existing sealed run lifecycle running/waiting_review/completed, while requiring succeeded canonical task and full exact original proof checks.",
+  "source_manifest": "v27-native-original-reference-source-current.json",
+  "source_manifest_sha256": "2838046403a0ed577b35fb4a47b8cbd246bd01a95904d929214762510b777533",
+  "native_checks": [
+    "positive replay twice",
+    "legacy ambiguity refusal",
+    "seven foreign scope substitutions",
+    "seven packet substitutions",
+    "person root substitution",
+    "cancel refusal",
+    "revoked session refusal and restored replay"
+  ],
+  "quality_preservation": {
+    "baseline": "v27-target-defect-protection-source-current.json",
+    "workers_src_files": 544,
+    "changed": 0,
+    "real_photo_quality_accepted": false
+  }
+}

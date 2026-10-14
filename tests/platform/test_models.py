@@ -116,3 +116,48 @@ def test_identity512_factory_requires_exact_onnx_contract(tmp_path,monkeypatch):
         factories()['identity512'](base,{'identity.onnx':path},'cuda')
     with pytest.raises(ValueError,match='MODEL_INPUT_INVALID'):
         model.infer(np.zeros((112,112,3),np.float32)-1)
+
+
+def test_pool_residency_reports_only_loaded_qualified_models(monkeypatch,tmp_path):
+    from dataclasses import FrozenInstanceError
+    from photo_worker.models.pool import ModelPool
+    import photo_worker.models.pool as pool_module
+    payload=lock_for(b'residency').model_dump(mode='json',exclude={'lock_id'})
+    payload['models'][0]['backends']['cpu']={'status':'passed','reason':'fixture','report_sha256':'b'*64}
+    lock=ModelLock.model_validate({**payload,'lock_id':canonical_hash(payload)})
+    monkeypatch.setattr(pool_module,'verify_model',lambda *args:{})
+    monkeypatch.setitem(sys.modules,'torch',SimpleNamespace(cuda=SimpleNamespace(is_available=lambda:False),backends=SimpleNamespace(mps=SimpleNamespace(is_available=lambda:False))))
+    calls=[]
+    def factory(entry,files,backend):
+        assert pool.residency_snapshot()==()  # loading is not resident
+        calls.append(backend)
+        return object()
+    pool=ModelPool(tmp_path,lock,{lock.models[0].id:factory})
+    assert pool.residency_snapshot()==()
+    with pool.acquire(lock.models[0].id,'cpu'):
+        resident=pool.residency_snapshot()[0]
+        assert (resident.model_lock_sha,resident.model_id,resident.backend,resident.qualification_report_sha)==(lock.lock_id,lock.models[0].id,'cpu','b'*64)
+        with pytest.raises(FrozenInstanceError):resident.backend='cuda'
+    with pool.acquire(lock.models[0].id,'cpu'):
+        assert pool.residency_snapshot()==(resident,)
+    assert calls==['cpu']
+    with pytest.raises(RuntimeError):
+        with pool.acquire(lock.models[0].id,'cpu'):
+            raise RuntimeError('inference failed')
+    assert pool.residency_snapshot()==()
+    with pool.acquire(lock.models[0].id,'cpu'):
+        assert pool.residency_snapshot()[0].generation>resident.generation
+    pool.close()
+    assert pool.residency_snapshot()==()
+
+
+def test_doctor_unqualified_model_is_not_advertised_resident(monkeypatch,tmp_path):
+    from photo_worker.models.pool import ModelPool
+    import photo_worker.models.pool as pool_module
+    lock=lock_for(b'doctor')
+    monkeypatch.setattr(pool_module,'verify_model',lambda *args:{})
+    monkeypatch.setitem(sys.modules,'torch',SimpleNamespace(cuda=SimpleNamespace(is_available=lambda:False),backends=SimpleNamespace(mps=SimpleNamespace(is_available=lambda:False))))
+    pool=ModelPool(tmp_path,lock,{lock.models[0].id:lambda *args:object()})
+    with pool.acquire(lock.models[0].id,'cpu',allow_unqualified=True):
+        assert pool.residency_snapshot()==()
+    pool.close()

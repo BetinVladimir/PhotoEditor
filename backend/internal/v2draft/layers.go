@@ -23,6 +23,7 @@ type RenderFrameAuthority struct {
 }
 
 type LayerRef struct {
+	ManualVectors        *ManualRasterVectors
 	Path                 string
 	Contract             string
 	Ref                  v2input.Ref
@@ -31,6 +32,7 @@ type LayerRef struct {
 	ExpectedBinding      *v2input.SessionVersionBinding
 	ExpectedLearning     *FrozenRenderLearning
 	ExpectedModelLockSHA string
+	ExpectedBackground   *FrozenBackgroundAsset
 	RenderFrame          *RenderFrameAuthority
 }
 

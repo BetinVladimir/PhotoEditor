@@ -2,6 +2,7 @@ package upload
 
 import (
 	"context"
+	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -11,7 +12,9 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"photoeditor/backend/internal/domain"
 	"photoeditor/backend/internal/objectstore"
+	"photoeditor/backend/internal/rawdevelopment"
 	"photoeditor/backend/internal/v2capture"
+	"photoeditor/backend/internal/v2qualification"
 )
 
 func TestIntegrationCaptureDeviceUpload(t *testing.T) {
@@ -60,6 +63,16 @@ func TestIntegrationCaptureDeviceUpload(t *testing.T) {
 	service := Service{DB: api, Objects: objects}
 	sha := strings.Repeat("a", 64)
 	request := DeviceBeginRequest{SessionID: session, BeginRequest: BeginRequest{ProjectID: project, CollectionID: &collection, Filename: "frame.jpg", Bytes: 1024, Format: "jpg", SHA256: &sha}}
+	service.Objects = legacyDeviceMultipartStore{MultipartStore: objects}
+	if _, err := service.BeginDevice(ctx, principal, "unsupported-starter", request); err == nil || err.Error() != "capture multipart starter unavailable" {
+		t.Fatal("missing capture starter accepted", err)
+	}
+	var preflightRows int
+	scan(`SELECT count(*) FROM photo.upload_sessions WHERE tenant_id=$1 AND filename='frame.jpg'`, &preflightRows, tenant)
+	if preflightRows != 0 || objects.begins != 0 {
+		t.Fatal("missing capture starter persisted a reservation or called storage", preflightRows, objects.begins)
+	}
+	service.Objects = objects
 	first, err := service.BeginDevice(ctx, principal, "device-begin", request)
 	if err != nil || first.State != "uploading" || objects.begins != 1 {
 		t.Fatal("device begin", first, err)
@@ -98,6 +111,98 @@ func TestIntegrationCaptureDeviceUpload(t *testing.T) {
 	if partCount != 1 {
 		t.Fatal("completion replay duplicated parts", partCount)
 	}
+	// RAW admission rollback/replay is exercised with a named synthetic
+	// qualification adapter. Native/report SQL qualification is a separate gate.
+	rawRequest := request
+	rawRequest.Filename = "frame.nef"
+	rawRequest.Format = "nef"
+	rawRequest.RAWDevelopment = &rawdevelopment.Policy{SchemaVersion: 1, Demosaic: "ahd", WBSource: "camera", ExposureEV: 1, HighlightPolicy: "blend", DecoderVersion: "rawpy-0.27.1/libraw-0.21.4"}
+	beforeBegins := objects.begins
+	if _, err = service.BeginDevice(ctx, principal, "raw-missing", rawRequest); domain.AsError(err).Code != "QUALIFICATION_UNAVAILABLE" {
+		t.Fatal("RAW without installed source accepted", err)
+	}
+	if objects.begins != beforeBegins {
+		t.Fatal("unqualified RAW reached multipart storage")
+	}
+	var failedRows int
+	scan(`SELECT count(*) FROM photo.upload_sessions WHERE tenant_id=$1 AND filename='frame.nef'`, &failedRows, tenant)
+	if failedRows != 0 {
+		t.Fatal("unqualified RAW persisted admission")
+	}
+	adapter := &deviceRAWAdmissionFixture{principal: principal, shoot: session, collection: collection}
+	service.RAWAdmission = adapter
+	rawUpload, err := service.BeginDevice(ctx, principal, "raw-begin", rawRequest)
+	if err != nil || rawUpload.ID == uuid.Nil {
+		t.Fatal("RAW admission fixture", err)
+	}
+	rawReplay, err := service.BeginDevice(ctx, principal, "raw-begin", rawRequest)
+	if err != nil || rawReplay.ID != rawUpload.ID || adapter.calls != 2 {
+		t.Fatal("RAW replay skipped qualification", err)
+	}
+	beforeBegins = objects.begins
+	adapter.revoked = true
+	if _, err = service.BeginDevice(ctx, principal, "raw-begin", rawRequest); !errors.Is(err, v2qualification.ErrUnqualified) {
+		t.Fatal("RAW replay bypassed revoked qualification", err)
+	}
+	if objects.begins != beforeBegins {
+		t.Fatal("revoked RAW replay touched multipart storage")
+	}
+	var rawRows, rawReservations int
+	scan(`SELECT count(*) FROM photo.upload_sessions WHERE tenant_id=$1 AND filename='frame.nef'`, &rawRows, tenant)
+	scan(`SELECT count(*) FROM photo.quota_reservations WHERE tenant_id=$1 AND holder_id=$2`, &rawReservations, tenant, rawUpload.ID)
+	if rawRows != 1 || rawReservations != 1 {
+		t.Fatal("RAW replay duplicated admission", rawRows, rawReservations)
+	}
+	service.RAWAdmission = nil
+	// A lost object-store Begin response may mean a remote multipart exists.
+	// The persisted writer fence must prevent a second external Begin.
+	objects.beginErr = errors.New("lost begin response")
+	ambiguous := request
+	ambiguous.Filename = "ambiguous.jpg"
+	if _, err = service.BeginDevice(ctx, principal, "ambiguous-begin", ambiguous); err == nil {
+		t.Fatal("ambiguous object-store begin accepted")
+	}
+	beginCount := objects.begins
+	objects.beginErr = nil
+	if _, err = service.BeginDevice(ctx, principal, "ambiguous-begin", ambiguous); domain.AsError(err).Code != "CAPTURE_BEGIN_RECONCILIATION_REQUIRED" {
+		t.Fatal("ambiguous begin replay bypassed reconciliation fence", err)
+	}
+	if objects.begins != beginCount {
+		t.Fatal("ambiguous begin replay created a second remote writer")
+	}
+	var ambiguousID, claim uuid.UUID
+	scan(`SELECT id,device_begin_token FROM photo.upload_sessions
+		WHERE tenant_id=$1 AND filename='ambiguous.jpg'`, &ambiguousID, &claim, tenant)
+	var reconciled bool
+	scan(`SELECT photo.reconcile_device_begin($1,$2,$3,'bind','multipart-token',true,$4)`,
+		&reconciled, tenant, ambiguousID, uuid.New(), strings.Repeat("a", 64))
+	if reconciled {
+		t.Fatal("wrong writer claim reconciled")
+	}
+	scan(`SELECT photo.reconcile_device_begin($1,$2,$3,'bind','multipart-token',true,$4)`,
+		&reconciled, tenant, ambiguousID, claim, strings.Repeat("a", 64))
+	if !reconciled {
+		t.Fatal("operator could not bind observed writer")
+	}
+	recovered, err := service.BeginDevice(ctx, principal, "ambiguous-begin", ambiguous)
+	if err != nil || recovered.ID != ambiguousID || recovered.State != "uploading" || objects.begins != beginCount {
+		t.Fatal("reconciled begin replay created new writer", recovered, err)
+	}
+	objects.beginID = "bad\nreceipt"
+	abortCount := objects.aborts
+	invalidReceipt := request
+	invalidReceipt.Filename = "bad-receipt.jpg"
+	if _, err = service.BeginDevice(ctx, principal, "bad-receipt-begin", invalidReceipt); !errors.Is(err, objectstore.ErrIntegrity) {
+		t.Fatal("malformed storage receipt was attached", err)
+	}
+	beginCount = objects.begins
+	objects.beginID = ""
+	if _, err = service.BeginDevice(ctx, principal, "bad-receipt-begin", invalidReceipt); domain.AsError(err).Code != "CAPTURE_BEGIN_RECONCILIATION_REQUIRED" || objects.begins != beginCount {
+		t.Fatal("malformed receipt replay started another writer", err)
+	}
+	if objects.aborts != abortCount {
+		t.Fatal("ambiguous capture writer was aborted without reconciliation")
+	}
 	exec(`UPDATE photo.shoot_sessions SET state='closed' WHERE id=$1`, session)
 	if _, err = service.BeginDevice(ctx, principal, "closed-begin", request); domain.AsError(err).Code != "NOT_FOUND" {
 		t.Fatal("closed session admitted new upload", err)
@@ -117,4 +222,37 @@ func TestIntegrationCaptureDeviceUpload(t *testing.T) {
 	if _, err = service.GetDevice(ctx, principal, first.ID); domain.AsError(err).Code != "NOT_FOUND" {
 		t.Fatal("new epoch adopted old upload", err)
 	}
+}
+
+// Deliberately exposes only the legacy multipart interface; its embedded
+// implementation must not promote BeginCaptureMultipart into the method set.
+type legacyDeviceMultipartStore struct{ MultipartStore }
+
+// Explicit fixture for upload transaction/replay tests, never production wiring.
+type deviceRAWAdmissionFixture struct {
+	principal         v2capture.DevicePrincipal
+	shoot, collection uuid.UUID
+	calls             int
+	revoked           bool
+}
+
+func (a *deviceRAWAdmissionFixture) Admit(ctx context.Context, tx rawdevelopment.ReportRows, tenantID, projectID, actor, session uuid.UUID, p *rawdevelopment.Policy) (*rawdevelopment.Policy, error) {
+	return nil, v2qualification.ErrUnqualified
+}
+func (a *deviceRAWAdmissionFixture) AdmitDevice(ctx context.Context, tx rawdevelopment.ReportRows, principal v2capture.DevicePrincipal, shoot, collection uuid.UUID, p *rawdevelopment.Policy) (*rawdevelopment.Policy, error) {
+	a.calls++
+	if principal != a.principal || shoot != a.shoot || collection != a.collection || a.revoked {
+		return nil, v2qualification.ErrUnqualified
+	}
+	// Verify the adapter is inside the authenticated transaction, not invoked
+	// through an autocommit pool or before the tenant context is installed.
+	var tenantSetting string
+	if err := tx.QueryRow(ctx, `SELECT current_setting('app.tenant_id',true)`).Scan(&tenantSetting); err != nil {
+		return nil, err
+	}
+	if tenantSetting != principal.TenantID.String() {
+		return nil, v2qualification.ErrUnqualified
+	}
+	owned := *p
+	return &owned, nil
 }

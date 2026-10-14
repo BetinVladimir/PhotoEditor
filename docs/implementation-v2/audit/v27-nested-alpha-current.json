@@ -1,0 +1,40 @@
+{
+  "recorded_at": "2026-10-08T09:40:40.835023+00:00",
+  "package_id": "V27",
+  "status": "implementing",
+  "change": "Native model adapters use exact TaskArtifacts closure authority for nested inputs, retaining legacy allowlist checks and image processing math.",
+  "sources": {
+    "workers/photo_worker/operations/mask/person.py": "14c49b0e4dad369b3c565937dd3aa30cbebabf48b7b5b3a9ceb4912704c1ded7",
+    "workers/photo_worker/operations/face/detect.py": "fbe48c3d00531e8c79b8f4da13b15b1429f767dabf13101d592172f30b68ca87",
+    "workers/photo_worker/operations/face/landmarks.py": "9e1eb2db2308b4b5d353ec557f413d4bedf311da2fd17de67eb740d2ae6083d9",
+    "workers/photo_worker/runtime/artifacts.py": "24e012bc898449ecbc142db97d91f1496f1380f66d26fc1d4add1a5e5d112d65",
+    "workers/photo_worker/v2/input_closure.py": "fd038a1a29779ed5ab9debe10080dd41c3626bc7724a0bbb6b60b52852e67384",
+    "tests/platform/test_person_mask_adapter.py": "ffc0f92b296df8f0d8cb738786e4d15014ddf1a3b3684ef8eb5dccb6f550510b",
+    "tests/platform/test_face_detect_adapter.py": "a1d17e5679781b396b4a0aa81b7827b377c48e213c2c60a07485be999e11f766",
+    "tests/platform/test_face_landmarks_adapter.py": "716897d82ccf4dc833c6b60ff089673ed24f1ba97347234ba5df2de1c24e13b5",
+    "tests/platform/test_native_model_nested_inputs.py": "d6ad321833fe7a80f6c15691a33b6a59a8aaa069ed5c00da64e13b63e0afbe90"
+  },
+  "checks": [
+    {
+      "evidence": "v27-nested-alpha-fix.xml",
+      "sha256": "c637726c35db2b343c1bf6026badd51788c5ccdb1c3ebaf05972c3f81a710b3e",
+      "tests": 40,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "evidence": "v27-nested-alpha-worker.xml",
+      "sha256": "01ef0ec66cf022734c1b9253b5b20b3313ea6f3033226c0262c5112ce70db738",
+      "tests": 558,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "limitations": [
+    "The full integration122 PASS snapshot precedes this worker-only change. Its8163 pinned sources were unchanged at completion.",
+    "Regression uses fake model engines and actual V2InputIndex/TaskArtifacts membership; does not establish real GPU model qualification or photo corpus quality.",
+    "No full V27 acceptance; new worker-result-to-parent chain, real browser/native, incremental deployment and remaining module acceptance gates are open."
+  ]
+}

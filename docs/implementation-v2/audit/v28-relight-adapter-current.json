@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-09",
+  "component": "V28 CPU relight adapter execution hook",
+  "whole_module_accepted": false,
+  "operation_enabled": false,
+  "checks": {
+    "passed": 30,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 1.89,
+    "xml": "v28-relight-adapter-current.xml"
+  },
+  "source_sha256": {
+    "workers/photo_worker/operations/portrait/relight_adapter.py": "a3d4d266359fee6fa6ff1cf35127d27d7a4bae6b7b2f3eb967c806d31e2d34d4",
+    "tests/platform/test_relight_adapter.py": "d86fb40bc3deaa457a47895877c6a2de1e66550c0f624fedd015d94726dbe63a"
+  },
+  "limitations": [
+    "Injected admission and artifact publication doubles; no concrete current SQL qualification authority",
+    "No default worker installation/registry enablement, physical gateway/adoption/UI or real model/photo/device qualification"
+  ]
+}

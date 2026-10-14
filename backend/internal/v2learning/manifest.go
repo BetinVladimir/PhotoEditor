@@ -28,22 +28,26 @@ type TrainingRegionMask struct {
 }
 
 type TrainingRenderCase struct {
-	Binding              v2input.SessionVersionBinding `json:"binding"`
-	WorkingImage         v2input.Ref                   `json:"working_image"`
-	BaseRecipe           v2input.Ref                   `json:"base_recipe"`
-	ApprovedRecipe       v2input.Ref                   `json:"approved_recipe"`
-	BaseDocument         v2input.Ref                   `json:"base_document"`
-	ApprovedDocument     v2input.Ref                   `json:"approved_document"`
-	DescriptorShard      v2input.Ref                   `json:"descriptor_shard"`
-	DescriptorAnalysisID uuid.UUID                     `json:"descriptor_analysis_id"`
-	DescriptorOrdinal    int                           `json:"descriptor_ordinal"`
-	Protected            v2input.Ref                   `json:"protected"`
-	Faces                v2input.Ref                   `json:"faces"`
-	EffectiveMask        *v2input.Ref                  `json:"effective_mask,omitempty"`
-	ConsentSnapshot      *v2input.Ref                  `json:"consent_snapshot,omitempty"`
-	RegionMasks          []TrainingRegionMask          `json:"region_masks,omitempty"`
-	ApprovalID           uuid.UUID                     `json:"approval_id"`
-	SourceLineageSHA     string                        `json:"source_lineage_sha"`
+	BackgroundAsset      *v2draft.FrozenBackgroundAsset `json:"background_asset,omitempty"`
+	DefectEvidence       *v2input.Ref                   `json:"defect_evidence,omitempty"`
+	DustEvidence         *v2input.Ref                   `json:"dust_evidence,omitempty"`
+	DetailEvidence       *v2input.Ref                   `json:"detail_evidence,omitempty"`
+	Binding              v2input.SessionVersionBinding  `json:"binding"`
+	WorkingImage         v2input.Ref                    `json:"working_image"`
+	BaseRecipe           v2input.Ref                    `json:"base_recipe"`
+	ApprovedRecipe       v2input.Ref                    `json:"approved_recipe"`
+	BaseDocument         v2input.Ref                    `json:"base_document"`
+	ApprovedDocument     v2input.Ref                    `json:"approved_document"`
+	DescriptorShard      v2input.Ref                    `json:"descriptor_shard"`
+	DescriptorAnalysisID uuid.UUID                      `json:"descriptor_analysis_id"`
+	DescriptorOrdinal    int                            `json:"descriptor_ordinal"`
+	Protected            v2input.Ref                    `json:"protected"`
+	Faces                v2input.Ref                    `json:"faces"`
+	EffectiveMask        *v2input.Ref                   `json:"effective_mask,omitempty"`
+	ConsentSnapshot      *v2input.Ref                   `json:"consent_snapshot,omitempty"`
+	RegionMasks          []TrainingRegionMask           `json:"region_masks,omitempty"`
+	ApprovalID           uuid.UUID                      `json:"approval_id"`
+	SourceLineageSHA     string                         `json:"source_lineage_sha"`
 }
 
 type ManifestExample struct {
@@ -110,6 +114,25 @@ func sortTrainingConsents(consents []TrainingConsent) {
 func validResolvedTrainingCase(source EligibleTrainingExample,
 	item ResolvedTrainingCase) bool {
 	candidate, render := item.Candidate, item.Render
+	if render.DefectEvidence != nil &&
+		(!validManifestRef(*render.DefectEvidence) ||
+			render.DefectEvidence.ArtifactID == render.WorkingImage.ArtifactID ||
+			render.DefectEvidence.ArtifactID == render.Protected.ArtifactID) {
+		return false
+	}
+	if render.DustEvidence != nil &&
+		(render.DefectEvidence != nil || render.DetailEvidence != nil || !validManifestRef(*render.DustEvidence) ||
+			render.DustEvidence.ArtifactID == render.WorkingImage.ArtifactID ||
+			render.DustEvidence.ArtifactID == render.Protected.ArtifactID) {
+		return false
+	}
+	if render.DetailEvidence != nil &&
+		(render.DefectEvidence != nil || render.DustEvidence != nil ||
+			!validManifestRef(*render.DetailEvidence) ||
+			render.DetailEvidence.ArtifactID == render.WorkingImage.ArtifactID ||
+			render.DetailEvidence.ArtifactID == render.Protected.ArtifactID) {
+		return false
+	}
 	if candidate.EventID != source.EventID ||
 		candidate.SessionID != source.SessionID ||
 		candidate.BaseDocumentID == uuid.Nil ||
@@ -141,6 +164,9 @@ func validResolvedTrainingCase(source EligibleTrainingExample,
 		render.BaseRecipe.ArtifactID == render.ApprovedRecipe.ArtifactID ||
 		candidate.ConsentID == uuid.Nil || candidate.ConsentEpoch < 1 ||
 		len(candidate.ChangedPaths) < 1 {
+		return false
+	}
+	if !validTrainingBackgroundPin(render.BackgroundAsset, "", v2input.Ref{}) {
 		return false
 	}
 	if len(render.RegionMasks) > 128 {

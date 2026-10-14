@@ -11,6 +11,9 @@ import (
 )
 
 type Config struct {
+	RegionCalibrationFile string
+	RegionCalibrationSHA  string
+	RegionEvidenceSHA     string
 	RenderCalibrationFile string
 	RenderCalibrationSHA  string
 	AMQPURL               string
@@ -23,6 +26,7 @@ type Config struct {
 	DatabaseURL           string
 	Environment           string
 	AppOrigin             string
+	APIPublicOrigin       string
 	CaptureOrigin         string
 	PortalOrigin          string
 	RegistrationEnabled   bool
@@ -44,7 +48,28 @@ func Load() (Config, error) {
 			return c, fmt.Errorf("render calibration SHA256 invalid")
 		}
 	}
+	c.RegionCalibrationFile = os.Getenv("PHOTO_REGION_CALIBRATION_FILE")
+	c.RegionCalibrationSHA = os.Getenv("PHOTO_REGION_CALIBRATION_SHA256")
+	c.RegionEvidenceSHA = os.Getenv("PHOTO_REGION_EVIDENCE_SHA256")
+	if c.RegionCalibrationFile != "" || c.RegionCalibrationSHA != "" || c.RegionEvidenceSHA != "" {
+		if !filepath.IsAbs(c.RegionCalibrationFile) {
+			return c, fmt.Errorf("region calibration file must be absolute")
+		}
+		if _, err := domain.ParseDigest(c.RegionCalibrationSHA); err != nil {
+			return c, fmt.Errorf("region calibration SHA256 invalid")
+		}
+		if _, err := domain.ParseDigest(c.RegionEvidenceSHA); err != nil {
+			return c, fmt.Errorf("region evidence SHA256 invalid")
+		}
+	}
 	c.CaptureOrigin = env("CAPTURE_ORIGIN", c.AppOrigin)
+	c.APIPublicOrigin = os.Getenv("API_PUBLIC_ORIGIN")
+	if c.APIPublicOrigin == "" {
+		if c.Environment == "production" && c.Role == "api" {
+			return c, fmt.Errorf("API_PUBLIC_ORIGIN is required for production API")
+		}
+		c.APIPublicOrigin = "http://localhost:8080"
+	}
 	c.AMQPURL = os.Getenv("AMQP_URL")
 	c.AuthDatabaseURL = os.Getenv("AUTH_DATABASE_URL")
 	c.AuthKeysFile = os.Getenv("AUTH_KEYS_FILE")
@@ -61,7 +86,7 @@ func Load() (Config, error) {
 	if c.Environment != "development" && c.Environment != "production" {
 		return c, fmt.Errorf("APP_ENV must be development or production")
 	}
-	for _, raw := range []string{c.AppOrigin, c.PortalOrigin, c.CaptureOrigin} {
+	for _, raw := range []string{c.AppOrigin, c.PortalOrigin, c.CaptureOrigin, c.APIPublicOrigin} {
 		u, e := url.Parse(raw)
 		if e != nil || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || u.Path != "" || (u.Scheme != "https" && u.Scheme != "http") {
 			return c, fmt.Errorf("origins must be exact HTTP(S) origins without path")
