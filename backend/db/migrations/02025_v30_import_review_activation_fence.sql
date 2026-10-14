@@ -7,6 +7,7 @@
 CREATE FUNCTION photo.activate_v30_interchange_import_review_fenced(
  p_tenant uuid,p_workflow uuid,p_parsed text,p_plan text,p_params text,p_task jsonb,p_reviews jsonb)
 RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,photo AS $$
+#variable_conflict use_variable
 DECLARE w photo.v2_workflows%ROWTYPE;t photo.tasks%ROWTYPE;witness jsonb;
  entry_id uuid;target_id uuid;proposal_id uuid;base_id uuid;label_id uuid;
  kind text;proposal_sha text;base_sha text;label_sha text;

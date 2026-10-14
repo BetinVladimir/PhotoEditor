@@ -106,3 +106,25 @@ func TestPreparedSchemaChildrenProjectsStatsAndResolvedRoles(t *testing.T) {
 		t.Fatal("resolved child relabel", children)
 	}
 }
+
+func TestPreparedSchemaChildrenIncludesInlineDustReviewProposal(t *testing.T) {
+	image := v2input.Ref{ArtifactID: uuid.New(), SHA256: rawSHA([]byte("image"))}
+	proposal := v2input.Ref{ArtifactID: uuid.New(), SHA256: rawSHA([]byte("dust proposal"))}
+	selection := review.DustSelection{
+		Version:  "sensor_dust_review_v1",
+		Proposal: review.ArtifactRef{ID: proposal.ArtifactID, SHA256: proposal.SHA256},
+		Base:     review.ArtifactRef{ID: image.ArtifactID, SHA256: image.SHA256},
+		Revision: 1,
+		Accepted: []string{},
+		Rejected: []string{},
+	}
+	raw, err := canonical.Marshal(importDustRepairParams{Image: image, Proposal: &proposal, Review: &selection})
+	if err != nil {
+		t.Fatal(err)
+	}
+	entry := v2input.Entry{Ref: v2input.Ref{ArtifactID: uuid.New(), SHA256: rawSHA(raw)}, Contract: "Params"}
+	children, err := (ImportPreparedSchemaChildren{}).ImportDocumentChildren(context.Background(), entry, raw)
+	if err != nil || len(children) != 2 || children[0] != (v2input.Entry{Ref: image, Contract: "WorkingImage"}) || children[1] != (v2input.Entry{Ref: proposal, Contract: "DustCandidates"}) {
+		t.Fatal("inline dust review proposal absent from activation closure", children, err)
+	}
+}

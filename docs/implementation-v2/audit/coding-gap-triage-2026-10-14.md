@@ -611,3 +611,11 @@ ACL/absent-scope сценарий. Миграция, тесты и сборка 
 закрытия V30 нужны current-build интеграция на базе и физическое E2E; отдельно
 проверить, что все review proposal действительно присутствуют в input closure
 с контрактами DefectCandidates/DustCandidates, особенно для inline dust Params.
+
+После push `4f3522f` проверена структурная проекция inline dust Params:
+`v2draft.dustRepairParamRefs` выдаёт дочерний `DustCandidates`, а
+`ImportPreparedSchemaChildren` переносит эту роль в подготовленную closure.
+Добавлен прямой unit-сценарий этой связи; он ещё не запускался. В SQL fence
+явно задано разрешение совпадающих имён PL/pgSQL-переменных и столбцов.
+Физическую полноту input closure и атомарный отзыв grant всё ещё нужно
+подтвердить current-build интеграционным тестом после кодового этапа.
