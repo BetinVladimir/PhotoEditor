@@ -33,6 +33,11 @@ func TestTenantPurgeDeleteGrantsMatchFunctionAllowlist(t *testing.T) {
 		t.Fatal("tenant purge allowlist missing")
 	}
 	allowed := map[string]bool{"audit_log": true}
+	// These rows survive tenant deletion by contract; the V22 lock is deleted
+	// by the v2_workflows foreign key, so granting direct DELETE would widen
+	// photo_fn_owner beyond the explicit function allowlist.
+	retained := map[string]bool{"memberships": true, "deletion_jobs": true}
+	cascaded := map[string]string{"v22_analysis_locks": "v2_workflows"}
 	for _, match := range regexp.MustCompile(`'([a-z][a-z0-9_]*)'`).FindAllStringSubmatch(array[1], -1) {
 		if allowed[match[1]] {
 			t.Fatal("duplicate tenant purge entry", match[1])
@@ -65,6 +70,12 @@ func TestTenantPurgeDeleteGrantsMatchFunctionAllowlist(t *testing.T) {
 		if allowed[table] && !tenantScoped {
 			t.Fatalf("purge allowlist includes non-tenant table %s", table)
 		}
+		if (retained[table] || cascaded[table] != "") && !tenantScoped {
+			t.Fatalf("tenant lifecycle exception lost tenant_id: %s", table)
+		}
+		if tenantScoped && !allowed[table] && !retained[table] && cascaded[table] == "" {
+			t.Fatalf("tenant-scoped table is neither purged nor retained by contract: %s", table)
+		}
 		seen[table] = true
 	}
 	if err := rows.Err(); err != nil {
@@ -73,6 +84,28 @@ func TestTenantPurgeDeleteGrantsMatchFunctionAllowlist(t *testing.T) {
 	for table := range allowed {
 		if !seen[table] {
 			t.Fatal("purge allowlist table missing", table)
+		}
+	}
+	for table := range retained {
+		if !seen[table] {
+			t.Fatal("retained tenant lifecycle table missing", table)
+		}
+	}
+	for table, parent := range cascaded {
+		if !seen[table] || !allowed[parent] {
+			t.Fatal("cascaded tenant table or purge parent missing", table, parent)
+		}
+		var cascade bool
+		err := db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_constraint c
+  JOIN pg_class child ON child.oid=c.conrelid
+  JOIN pg_namespace ns ON ns.oid=child.relnamespace AND ns.nspname='photo'
+  JOIN pg_class parent ON parent.oid=c.confrelid
+  WHERE child.relname=$1 AND parent.relname=$2 AND c.contype='f'
+   AND c.confdeltype='c' AND EXISTS(SELECT 1 FROM pg_attribute a
+    WHERE a.attrelid=child.oid AND a.attname='tenant_id'
+     AND a.attnum=ANY(c.conkey)))`, table, parent).Scan(&cascade)
+		if err != nil || !cascade {
+			t.Fatal("tenant purge cascade is missing", table, parent, err)
 		}
 	}
 }
