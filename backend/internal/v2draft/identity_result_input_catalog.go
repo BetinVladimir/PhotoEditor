@@ -43,8 +43,12 @@ func (c SQLIdentityResultCatalog) ResolveIdentityResultInput(ctx context.Context
 		return zero, v2input.ErrInvalid
 	}
 	var raw []byte
-	if role == "consents" {
-		err = tx.QueryRow(bounded, `SELECT photo.v23_identity_consent_result_input($1,$2,$3,$4,$5,$6,$7,$8)`,
+	if role == "consents" || role == "calibration" {
+		function := "photo.v23_identity_consent_result_input"
+		if role == "calibration" {
+			function = "photo.v23_identity_calibration_result_input"
+		}
+		err = tx.QueryRow(bounded, "SELECT "+function+"($1,$2,$3,$4,$5,$6,$7,$8)",
 			scope.Tenant, scope.Task, scope.Result, scope.Root.ArtifactID, scope.Root.SHA256,
 			ref.ArtifactID, ref.SHA256, c.Bucket).Scan(&raw)
 	} else {
@@ -86,7 +90,7 @@ func (c SQLIdentityResultCatalog) ResolveIdentityResultInput(ctx context.Context
 
 func identityInputRole(role string) bool {
 	switch role {
-	case "params", "before", "after", "effective", "protected", "consents",
+	case "params", "before", "after", "effective", "protected", "consents", "calibration",
 		"before_pixels", "after_pixels", "before_alpha", "after_alpha",
 		"effective_pixels", "protected_pixels":
 		return true

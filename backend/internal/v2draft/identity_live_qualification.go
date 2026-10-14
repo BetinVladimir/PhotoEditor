@@ -21,6 +21,11 @@ func CheckIdentityLiveQualificationInTx(ctx context.Context, tx pgx.Tx,
 		evidence.Scope.Task == uuid.Nil || evidence.Scope.Result == uuid.Nil ||
 		!isDocumentRef(evidence.Inputs.ParamsRef) ||
 		!isDocumentRef(params.Calibration) ||
+		evidence.Calibration.Ref != params.Calibration ||
+		evidence.Calibration.Object.SHA256 != params.Calibration.SHA256 ||
+		v2input.VerifySemanticCalibration(evidence.Calibration.Ref,
+			evidence.Calibration.Raw, params.ModelLockSHA,
+			evidence.Calibration.DatasetSHA) != nil ||
 		!isDocumentRef(v2input.Ref{ArtifactID: params.Calibration.ArtifactID,
 			SHA256: params.ModelLockSHA}) {
 		return "", v2input.ErrInvalid
@@ -46,7 +51,7 @@ func CheckIdentityLiveQualificationInTx(ctx context.Context, tx pgx.Tx,
 		return "", err
 	}
 	if dataset == nil || !isDocumentRef(v2input.Ref{ArtifactID: params.Calibration.ArtifactID,
-		SHA256: *dataset}) {
+		SHA256: *dataset}) || *dataset != evidence.Calibration.DatasetSHA {
 		return "", v2input.ErrInvalid
 	}
 	return *dataset, ctx.Err()

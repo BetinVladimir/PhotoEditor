@@ -9,7 +9,7 @@ import (
 )
 
 func TestIdentityPixelInputRoleAllowlist(t *testing.T) {
-	for _, role := range []string{"params", "before", "after", "effective", "protected", "consents"} {
+	for _, role := range []string{"params", "before", "after", "effective", "protected", "consents", "calibration"} {
 		if !identityInputRole(role) || identityArrayRole(role) {
 			t.Fatalf("document role %q", role)
 		}
@@ -19,7 +19,7 @@ func TestIdentityPixelInputRoleAllowlist(t *testing.T) {
 			t.Fatalf("array role %q", role)
 		}
 	}
-	for _, role := range []string{"", "pixels", "changed", "report", "calibration", "../before"} {
+	for _, role := range []string{"", "pixels", "changed", "report", "../before"} {
 		if identityInputRole(role) || identityArrayRole(role) {
 			t.Fatalf("unauthorized role %q", role)
 		}
