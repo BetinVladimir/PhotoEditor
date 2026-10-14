@@ -4,9 +4,11 @@ import (
 	"context"
 	"os"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -107,5 +109,62 @@ func TestTenantPurgeDeleteGrantsMatchFunctionAllowlist(t *testing.T) {
 		if err != nil || !cascade {
 			t.Fatal("tenant purge cascade is missing", table, parent, err)
 		}
+	}
+}
+
+func TestTenantPurgeRemovesHistoricalDeliverySigningPins(t *testing.T) {
+	dsn := os.Getenv("PHOTO_TEST_DATABASE_URL")
+	if dsn == "" {
+		t.Skip("isolated fully migrated PostgreSQL required")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	db, err := pgxpool.New(ctx, dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	var purge, announce string
+	if err = db.QueryRow(ctx, `SELECT pg_get_functiondef('photo.finish_tenant_deletion(uuid,uuid)'::regprocedure)`).Scan(&purge); err != nil {
+		t.Fatal(err)
+	}
+	if err = db.QueryRow(ctx, `SELECT pg_get_functiondef('photo.announce_v30_delivery_runtime_pinned(uuid,text,uuid[],jsonb)'::regprocedure)`).Scan(&announce); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(purge, "UPDATE photo.v30_delivery_runtime_leases SET") ||
+		!strings.Contains(purge, "array_remove(signing_tenants,j.tenant_id)") ||
+		!strings.Contains(purge, "jsonb_agg(pin.value ORDER BY pin.ordinal)") ||
+		!strings.Contains(announce, "status='active' FOR SHARE") {
+		t.Fatal("delivery signing tenant pins can survive metadata purge or be reannounced")
+	}
+	var schedulerDelete, updateGranted, schedulerPinned, schedulerWindowed bool
+	if err = db.QueryRow(ctx, `SELECT
+  has_table_privilege('photo_scheduler','photo.v30_delivery_runtime_leases','DELETE'),
+  has_table_privilege('photo_fn_owner','photo.v30_delivery_runtime_leases','UPDATE'),
+  has_function_privilege('photo_scheduler','photo.announce_v30_delivery_runtime_pinned(uuid,text,uuid[],jsonb)','EXECUTE'),
+  has_function_privilege('photo_scheduler','photo.announce_v30_delivery_runtime_windowed(uuid,text,uuid[],jsonb)','EXECUTE')`).
+		Scan(&schedulerDelete, &updateGranted, &schedulerPinned, &schedulerWindowed); err != nil {
+		t.Fatal(err)
+	}
+	if schedulerDelete || !updateGranted || schedulerPinned || !schedulerWindowed {
+		t.Fatal("delivery runtime purge ACL drift")
+	}
+	tx, err := db.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback(context.Background())
+	if _, err = tx.Exec(ctx, "SET LOCAL ROLE photo_scheduler"); err != nil {
+		t.Fatal(err)
+	}
+	var accepted bool
+	err = tx.QueryRow(ctx, `SELECT photo.announce_v30_delivery_runtime_windowed(
+  $1,'photo',ARRAY[$2]::uuid[],jsonb_build_array(jsonb_build_object(
+   'tenant_id',$2::text,'policy_id',$3::text,'policy_sha',$4::text,
+   'not_before',(clock_timestamp()-interval '1 day')::text,
+   'not_after',(clock_timestamp()+interval '1 day')::text)))`,
+		uuid.New(), uuid.New(), uuid.New(), strings.Repeat("a", 64)).Scan(&accepted)
+	if err != nil || accepted {
+		t.Fatal("unknown tenant signing runtime accepted", err, accepted)
 	}
 }
