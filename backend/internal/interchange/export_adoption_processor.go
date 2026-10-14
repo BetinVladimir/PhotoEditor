@@ -63,6 +63,17 @@ func (p SchedulerExportAdoptionProcessor) ProcessOne(ctx context.Context) (bool,
 	if err := claim.validate(); err != nil {
 		return false, err
 	}
+	// A claim can become stale between discovery and the first object read.
+	// Renew here so the handler cannot start with an already revoked fence.
+	check, stop := context.WithTimeout(ctx, 30*time.Second)
+	current, err := p.Claims.RenewExportAdoptionClaim(check, *claim)
+	stop()
+	if err != nil {
+		return false, err
+	}
+	if !current {
+		return false, ErrExportAdoptionLeaseLost
+	}
 	work, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
 	done := make(chan struct{})

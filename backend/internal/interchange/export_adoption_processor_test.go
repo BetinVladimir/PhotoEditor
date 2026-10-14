@@ -12,9 +12,10 @@ import (
 )
 
 type adoptionClaimStub struct {
-	claim *ExportAdoptionClaim
-	renew bool
-	calls int
+	claim          *ExportAdoptionClaim
+	renew          bool
+	loseAfterFirst bool
+	calls          int
 }
 
 func (s *adoptionClaimStub) NextExportAdoption(context.Context) (*ExportAdoptionClaim, error) {
@@ -22,6 +23,9 @@ func (s *adoptionClaimStub) NextExportAdoption(context.Context) (*ExportAdoption
 }
 func (s *adoptionClaimStub) RenewExportAdoptionClaim(context.Context, ExportAdoptionClaim) (bool, error) {
 	s.calls++
+	if s.loseAfterFirst && s.calls > 1 {
+		return false, nil
+	}
 	return s.renew, nil
 }
 
@@ -60,20 +64,34 @@ func TestSchedulerExportAdoptionProcessorNoClaimAndSuccess(t *testing.T) {
 	}
 	claims.claim = validProcessorClaim(t)
 	processed, err = processor.ProcessOne(context.Background())
-	if err != nil || !processed || handled != 1 {
+	if err != nil || !processed || handled != 1 || claims.calls != 1 {
 		t.Fatal("valid claim was not adopted", processed, handled, err)
 	}
 }
 
-func TestSchedulerExportAdoptionProcessorCancelsLostLease(t *testing.T) {
+func TestSchedulerExportAdoptionProcessorRejectsStaleClaimBeforeObjectIO(t *testing.T) {
 	claims := &adoptionClaimStub{claim: validProcessorClaim(t)}
+	handled := false
+	processor := SchedulerExportAdoptionProcessor{Claims: claims,
+		Handler: adoptionHandlerFunc(func(context.Context, ExportAdoptionClaim) error {
+			handled = true
+			return nil
+		}), HeartbeatInterval: time.Minute}
+	processed, err := processor.ProcessOne(context.Background())
+	if processed || !errors.Is(err, ErrExportAdoptionLeaseLost) || handled || claims.calls != 1 {
+		t.Fatal("stale discovery reached object IO", processed, handled, claims.calls, err)
+	}
+}
+
+func TestSchedulerExportAdoptionProcessorCancelsLostLease(t *testing.T) {
+	claims := &adoptionClaimStub{claim: validProcessorClaim(t), renew: true, loseAfterFirst: true}
 	processor := SchedulerExportAdoptionProcessor{Claims: claims,
 		Handler: adoptionHandlerFunc(func(ctx context.Context, _ ExportAdoptionClaim) error {
 			<-ctx.Done()
 			return ctx.Err()
 		}), HeartbeatInterval: time.Millisecond}
 	processed, err := processor.ProcessOne(context.Background())
-	if processed || !errors.Is(err, ErrExportAdoptionLeaseLost) || claims.calls != 1 {
+	if processed || !errors.Is(err, ErrExportAdoptionLeaseLost) || claims.calls != 2 {
 		t.Fatal("lost lease did not stop handler", processed, claims.calls, err)
 	}
 }
