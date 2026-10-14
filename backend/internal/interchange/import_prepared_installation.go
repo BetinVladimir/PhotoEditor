@@ -52,6 +52,7 @@ type PreparedImportResolverDependencies struct {
 	Scratch         *ExportArchiveScratch
 	Probe           ExportNativeProbe
 	ArrayRuntimeSHA string
+	Composition     *NativeExportStyleValidator
 	MaxBytes        int64
 }
 

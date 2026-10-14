@@ -238,6 +238,15 @@ func (f SQLImportEntryRecipeAuthorityFactory) BuildImportEntryRecipeAuthority(ct
 		assets = ImportPreparedBackgroundNodeResolver{Catalog: SQLPreparedImportBackgroundCatalog{Catalog: SQLPreparedImportCatalog{Store: store, Scope: scope}}, Native: NativeExportImageQualifier{Objects: objects, Scratch: f.Native.WarpScratch, Probe: f.Native.WarpProbe, RuntimeSHA: f.ImageRuntimeSHA}}
 	}
 	deps := PreparedImportResolverDependencies{Registry: f.Registry, Catalog: SQLPreparedImportCatalog{Store: store, Scope: scope, BackgroundMedia: f.BackgroundMedia}, Objects: objects, Masters: masters, Working: working, Assets: assets, Canonical: witnesses, Documents: f.Documents, MaskSemantics: maskSemantics, ModelLocks: append([]string(nil), f.ModelLocks...), Scratch: f.Native.WarpScratch, Probe: f.Native.WarpProbe, ArrayRuntimeSHA: f.Native.WarpRuntimeSHA, MaxBytes: f.Native.MaxFileBytes}
+	if f.StyleInstallation != nil {
+		installation := f.StyleInstallation.owned()
+		composition, err := NewNativeExportStyleValidator(f.Native.WarpScratch, f.Native.WarpProbe, installation.Models, installation.StyleRuntimeSHA, exportCompositionStagingValidator{})
+		if err != nil {
+			return nil, nil, err
+		}
+		composition.contract = "RenderComposition"
+		deps.Composition = composition
+	}
 	return NewSQLImportEntryRecipeAuthority(ctx, deps, codecs)
 }
 

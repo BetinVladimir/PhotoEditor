@@ -103,11 +103,13 @@ func (r *recordingPreparedImportResolver) ResolveImportNode(ctx context.Context,
 }
 
 type registeredPreparedImportRecipeQualifier struct {
-	Scope    ImportPreparedScope
-	Resolver ImportClosureNodeResolver
-	Catalog  ImportDocumentCatalog
-	Objects  ImportDocumentObjects
-	Registry *ImportPreparedNodeRegistry
+	Scope       ImportPreparedScope
+	Resolver    ImportClosureNodeResolver
+	Catalog     ImportDocumentCatalog
+	Objects     ImportDocumentObjects
+	Registry    *ImportPreparedNodeRegistry
+	Composition *NativeExportStyleValidator
+	Masters     ImportMasterReader
 }
 
 func (q registeredPreparedImportRecipeQualifier) QualifyPreparedImportRecipe(ctx context.Context, ref v2input.Ref, raw []byte, binding v2input.SessionVersionBinding) error {
@@ -120,6 +122,12 @@ func (q registeredPreparedImportRecipeQualifier) QualifyPreparedImportRecipe(ctx
 	recorder := &recordingPreparedImportResolver{base: q.Resolver, nodes: map[v2input.Entry]ImportClosureNodeResolver{}}
 	if err := (BoundImportPreparedRecipeQualifier{Scope: q.Scope, Resolver: recorder}).QualifyPreparedImportRecipe(ctx, ref, raw, binding); err != nil {
 		return err
+	}
+	if q.Composition != nil {
+		composition := ImportPreparedCompositionQualifier{Scope: q.Scope, Resolver: recorder, Masters: q.Masters, Native: q.Composition}
+		if err := composition.qualifyComposition(ctx, ref, raw, binding); err != nil {
+			return err
+		}
 	}
 	root := v2input.Entry{Ref: ref, Contract: "EditingRecipeV3"}
 	recorder.nodes[root] = ImportJSONNodeResolver{Catalog: q.Catalog, Objects: q.Objects, Validator: pinnedPreparedRecipeValidator{Ref: ref, Binding: binding}}

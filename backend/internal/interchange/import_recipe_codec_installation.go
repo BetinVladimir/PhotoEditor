@@ -257,8 +257,11 @@ func NewSQLImportEntryRecipeAuthority(ctx context.Context, resolverDeps Prepared
 	if err != nil {
 		return nil, nil, err
 	}
+	var qualifier ImportPreparedRecipeQualifier = BoundImportPreparedRecipeQualifier{Scope: scope, Resolver: resolver}
 	if resolverDeps.Registry != nil {
-		return codecs, registeredPreparedImportRecipeQualifier{Scope: scope, Resolver: resolver, Catalog: catalog, Objects: resolverDeps.Objects, Registry: resolverDeps.Registry}, ctx.Err()
+		qualifier = registeredPreparedImportRecipeQualifier{Scope: scope, Resolver: resolver, Catalog: catalog, Objects: resolverDeps.Objects, Registry: resolverDeps.Registry, Composition: resolverDeps.Composition, Masters: resolverDeps.Masters}
+	} else if resolverDeps.Composition != nil {
+		qualifier = ImportPreparedCompositionQualifier{Inner: qualifier, Scope: scope, Resolver: resolver, Masters: resolverDeps.Masters, Native: resolverDeps.Composition}
 	}
-	return codecs, BoundImportPreparedRecipeQualifier{Scope: scope, Resolver: resolver}, ctx.Err()
+	return codecs, qualifier, ctx.Err()
 }

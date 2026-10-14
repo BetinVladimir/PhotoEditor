@@ -14,10 +14,11 @@ func TestImportOverrideStyleSourceBindsExactArchivedRecipe(t *testing.T) {
 	old := v2input.SessionVersionBinding{AssetVersionID: uuid.New(), Source: v2input.Ref{ArtifactID: uuid.New(), SHA256: rawSHA([]byte("working"))}, CanvasHash: rawSHA([]byte("canvas"))}
 	style := v2input.Ref{ArtifactID: uuid.New(), SHA256: rawSHA([]byte("style"))}
 	override := v2input.Ref{ArtifactID: uuid.New(), SHA256: rawSHA([]byte("override"))}
+	second := v2input.Ref{ArtifactID: uuid.New(), SHA256: rawSHA([]byte("second override"))}
 	recipe, err := canonical.Marshal(map[string]any{
 		"schema_version": 3, "source": old, "base_style": style,
 		"session_corrections": nil, "learning_version_id": nil,
-		"overrides": []v2input.Ref{override}, "layer_stack": nil,
+		"overrides": []v2input.Ref{override, second}, "layer_stack": nil,
 		"renderer_version": "v2.2", "parameter_delta": map[string]any{
 			"ev": 0, "log_r": 0, "log_g": 0, "log_b": 0,
 			"saturation_delta": 0, "retouch_delta": 0,
@@ -34,12 +35,14 @@ func TestImportOverrideStyleSourceBindsExactArchivedRecipe(t *testing.T) {
 		importBundleInventory{ID: uuid.New(), Path: path, SHA: recipeSHA, Contract: "EditingRecipeV3"},
 		importBundleInventory{ID: style.ArtifactID, Path: "dependencies/" + style.ArtifactID.String() + ".json", SHA: style.SHA256, Contract: "StyleV2"},
 		importBundleInventory{ID: override.ArtifactID, Path: "dependencies/" + override.ArtifactID.String() + ".json", SHA: override.SHA256, Contract: "Override"},
+		importBundleInventory{ID: second.ArtifactID, Path: "dependencies/" + second.ArtifactID.String() + ".json", SHA: second.SHA256, Contract: "Override"},
 	)
 	stagedRecipe := v2input.Ref{ArtifactID: uuid.New(), SHA256: recipeSHA}
 	parsed.Files = append(parsed.Files,
 		importParsedFile{Path: path, Content: stagedRecipe, Contract: "EditingRecipeV3"},
 		importParsedFile{Path: "dependencies/" + style.ArtifactID.String() + ".json", Content: v2input.Ref{ArtifactID: uuid.New(), SHA256: style.SHA256}, Contract: "StyleV2"},
 		importParsedFile{Path: "dependencies/" + override.ArtifactID.String() + ".json", Content: v2input.Ref{ArtifactID: uuid.New(), SHA256: override.SHA256}, Contract: "Override"},
+		importParsedFile{Path: "dependencies/" + second.ArtifactID.String() + ".json", Content: v2input.Ref{ArtifactID: uuid.New(), SHA256: second.SHA256}, Contract: "Override"},
 	)
 	parsedRaw, err := canonical.Marshal(parsed)
 	if err != nil {
@@ -52,7 +55,7 @@ func TestImportOverrideStyleSourceBindsExactArchivedRecipe(t *testing.T) {
 		t.Fatal("exact override/base-style relation unavailable", actual, err)
 	}
 	base, ordered, err := source.ReadComposition(context.Background(), override)
-	if err != nil || base != style || len(ordered) != 1 || ordered[0] != override || archive.calls != 4 {
+	if err != nil || base != style || len(ordered) != 2 || ordered[0] != override || ordered[1] != second || archive.calls != 4 {
 		t.Fatal("archived override order unavailable", base, ordered, err)
 	}
 	if actual, err := source.ReadBaseStyle(context.Background(), v2input.Ref{ArtifactID: uuid.New(), SHA256: override.SHA256}); err == nil || actual != (v2input.Ref{}) || archive.calls != 4 {

@@ -132,7 +132,10 @@ func (s ImportOverrideStyleSource) ReadComposition(ctx context.Context, override
 		}
 	}
 	for _, item := range parsed.Manifest.Inventory {
-		if item.ID == recipe.BaseStyle.ArtifactID && item.SHA == recipe.BaseStyle.SHA256 && item.Contract == "StyleV2" {
+		if item.ID == recipe.BaseStyle.ArtifactID {
+			if styleFound || item.SHA != recipe.BaseStyle.SHA256 || item.Contract != "StyleV2" {
+				return zero, nil, v2input.ErrInvalid
+			}
 			styleFound = true
 		}
 	}
