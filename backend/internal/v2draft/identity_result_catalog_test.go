@@ -216,3 +216,37 @@ func TestIntegrationIdentityLiveSourceGateRoleScope(t *testing.T) {
 		t.Fatal("source gate role exposure")
 	}
 }
+
+func TestIntegrationIdentityLiveQualificationGateRoleScope(t *testing.T) {
+	dsn := os.Getenv("PHOTO_TEST_DATABASE_URL")
+	if dsn == "" {
+		t.Skip("isolated migrated PostgreSQL required")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	pool, err := pgxpool.New(ctx, dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+	var definition string
+	var scheduler, api, worker bool
+	err = pool.QueryRow(ctx, `SELECT pg_get_functiondef('photo.v23_identity_live_qualification(uuid,uuid,uuid,uuid,text,text,uuid,text)'::regprocedure),
+ has_function_privilege('photo_scheduler','photo.v23_identity_live_qualification(uuid,uuid,uuid,uuid,text,text,uuid,text)','EXECUTE'),
+ has_function_privilege('photo_api','photo.v23_identity_live_qualification(uuid,uuid,uuid,uuid,text,text,uuid,text)','EXECUTE'),
+ has_function_privilege('photo_worker','photo.v23_identity_live_qualification(uuid,uuid,uuid,uuid,text,text,uuid,text)','EXECUTE')`).Scan(&definition, &scheduler, &api, &worker)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{"FOR UPDATE", "policy.admission_enabled",
+		"qualified.trusted_import", "qualified.status='passed'", "attempt.finished_at IS NOT NULL",
+		"attempt.profile->>'runtime_lock_sha'", "p_calibration_sha=ANY(policy.calibration_shas)",
+		"task_row.execution_profile->'qualification_report'"} {
+		if !strings.Contains(definition, required) {
+			t.Fatal("missing qualification gate", required)
+		}
+	}
+	if !scheduler || api || worker {
+		t.Fatal("qualification gate role exposure")
+	}
+}
