@@ -93,6 +93,9 @@ Scheduler runtime теперь имеет `RunSchedulerWithInterchangeExport` и
 
 ## Граница первого MVP
 
+Миграция `02067_v30_export_adoption_learning_occurrence.sql` и `SQLSchedulerExportInputCatalog.QualifyExportLearningOccurrence` добавляют scheduler-claim проверку registered `FrozenRenderRecipe`→`CandidateProfile`/`DescriptorShard`. SQL привязывает root и child к sealed task inputs, принятой версии из frozen snapshot и pinned object versions; для модели повторяет active/eligible version и live training consent, для descriptor — session analysis/model lock, ordinal и canonical `session.describe` output. Go проверяет exact node, body SHA и object pins до/после SQL. Parent reader сохраняет проверку физических bytes и frozen edge. Startup inventory включает `02067`; миграция и unit-сценарии написаны, не запускались. Полный scheduler validator пока не установлен: остаются render-frame authority и scheduler policy factories.
+
+
 Миграция `02066_v30_export_adoption_correction_evidence.sql` и `SQLSchedulerExportInputCatalog.LookupExportCorrectionEvidence` переносят полный session.plan→CorrectionPlan/ScenePlan producer proof на scheduler claim: уникальная группа, snapshot digest/policy, review/inbox/artifact link и точное соответствие каждого участника группы. Вход CorrectionPlan и его object version запечатаны в claimed task; Go проверяет canonical bytes и повторяет pin после SQL. Caller по-прежнему физически читает ScenePlan и валидирует точный correction edge. Startup SQL inventory включает `02066`; миграция и unit-сценарии написаны, не запускались.
 
 
