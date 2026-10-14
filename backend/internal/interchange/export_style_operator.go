@@ -111,7 +111,8 @@ func LoadExportStyleOperatorAuthority(ctx context.Context, path, pin string,
 	}
 	styleWeights := make(map[string]string, len(wire.StyleWeights))
 	for name, weight := range wire.StyleWeights {
-		if !exportModelIDs[name] || len(weight) < 1 || len(weight) > 240 {
+		if !exportModelIDs[name] || len(weight) < 1 || len(weight) > 240 ||
+			base.ModelWeights == nil || base.ModelWeights[name] != weight {
 			return zero, v2input.ErrInvalid
 		}
 		styleWeights[name] = weight

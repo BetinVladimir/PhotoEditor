@@ -59,65 +59,76 @@ var exportModelHosts = map[string]bool{
 // pin authenticates the complete file; the returned lock_id is the canonical
 // payload digest referenced by frozen render recipes and worker ModelLock.
 func LoadExportModelLockSHA(ctx context.Context, path, pin string) (string, error) {
+	lockID, _, err := LoadExportModelLockWeights(ctx, path, pin)
+	return lockID, err
+}
+
+// LoadExportModelLockWeights returns an owned model-ID/weight-ID inventory from
+// the same authenticated bytes used to establish the canonical lock ID.
+func LoadExportModelLockWeights(ctx context.Context, path, pin string) (string, map[string]string, error) {
 	if err := ctx.Err(); err != nil {
-		return "", err
+		return "", nil, err
 	}
 	if !validImportRefForSHA(pin) {
-		return "", v2input.ErrInvalid
+		return "", nil, v2input.ErrInvalid
 	}
 	raw, err := readExportPolicyFile(ctx, path, 1<<20)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	if rawSHA(raw) != pin {
-		return "", v2input.ErrInvalid
+		return "", nil, v2input.ErrInvalid
 	}
 	var lock exportModelLock
 	if decodeImportDocument(raw, &lock) != nil || lock.Schema != 1 || !validImportRefForSHA(lock.LockID) || len(lock.Models) > 64 {
-		return "", v2input.ErrInvalid
+		return "", nil, v2input.ErrInvalid
 	}
 	seen := map[string]bool{}
+	weights := map[string]string{}
 	for _, model := range lock.Models {
-		if !exportModelIDs[model.ID] || seen[model.ID] || model.Architecture == "" || model.WeightID == "" || model.Repository == "" || len(model.Revision) < 7 || len(model.Revision) > 128 || model.PreprocessingID == "" || !validImportRefForSHA(model.PackagesLockHash) || model.CodeLicense == "" || model.WeightsLicense == "" || model.Notices == nil || len(model.Files) < 1 || len(model.Files) > 256 || len(model.Backends) != 3 {
-			return "", v2input.ErrInvalid
+		if !exportModelIDs[model.ID] || seen[model.ID] || model.Architecture == "" || model.WeightID == "" || len(model.WeightID) > 240 || model.Repository == "" || len(model.Revision) < 7 || len(model.Revision) > 128 || model.PreprocessingID == "" || !validImportRefForSHA(model.PackagesLockHash) || model.CodeLicense == "" || model.WeightsLicense == "" || model.Notices == nil || len(model.Files) < 1 || len(model.Files) > 256 || len(model.Backends) != 3 {
+			return "", nil, v2input.ErrInvalid
 		}
 		seen[model.ID] = true
+		if model.ApprovedForInstall {
+			weights[model.ID] = model.WeightID
+		}
 		switch model.RedistributionPolicy {
 		case "allowed", "restricted", "unresolved":
 		default:
-			return "", v2input.ErrInvalid
+			return "", nil, v2input.ErrInvalid
 		}
 		if model.ApprovedForInstall && (model.RedistributionPolicy == "unresolved" || strings.EqualFold(model.CodeLicense, "unresolved") || strings.EqualFold(model.WeightsLicense, "unresolved")) {
-			return "", v2input.ErrInvalid
+			return "", nil, v2input.ErrInvalid
 		}
 		paths := map[string]bool{}
 		for _, file := range model.Files {
 			if len(file.Path) < 1 || len(file.Path) > 240 || strings.Contains(file.Path, "\\") || strings.ContainsRune(file.Path, 0) || strings.HasPrefix(file.Path, "/") || strings.Contains(file.Path, "//") || strings.HasSuffix(file.Path, "/") || paths[file.Path] || !validImportRefForSHA(file.SHA) || file.Bytes < 1 || file.Bytes > 8<<30 {
-				return "", v2input.ErrInvalid
+				return "", nil, v2input.ErrInvalid
 			}
 			for _, part := range strings.Split(file.Path, "/") {
 				if part == "" || part == "." || part == ".." {
-					return "", v2input.ErrInvalid
+					return "", nil, v2input.ErrInvalid
 				}
 			}
 			paths[file.Path] = true
 			parsed, e := url.Parse(file.URL)
 			if e != nil || parsed.Scheme != "https" || !exportModelHosts[parsed.Hostname()] || (parsed.Port() != "" && parsed.Port() != "443") || parsed.User != nil || parsed.Fragment != "" {
-				return "", v2input.ErrInvalid
+				return "", nil, v2input.ErrInvalid
 			}
 		}
 		for _, backend := range []string{"cpu", "cuda", "mps"} {
 			evidence, ok := model.Backends[backend]
 			if !ok {
-				return "", v2input.ErrInvalid
+				return "", nil, v2input.ErrInvalid
 			}
 			switch evidence.Status {
 			case "unsupported", "untested", "passed":
 			default:
-				return "", v2input.ErrInvalid
+				return "", nil, v2input.ErrInvalid
 			}
 			if evidence.ReportSHA != nil && !validImportRefForSHA(*evidence.ReportSHA) || evidence.Status == "passed" && evidence.ReportSHA == nil {
-				return "", v2input.ErrInvalid
+				return "", nil, v2input.ErrInvalid
 			}
 		}
 	}
@@ -127,7 +138,7 @@ func LoadExportModelLockSHA(ctx context.Context, path, pin string) (string, erro
 	}{lock.Schema, lock.Models}
 	actual, err := canonical.Hash(payload)
 	if err != nil || actual != lock.LockID {
-		return "", v2input.ErrInvalid
+		return "", nil, v2input.ErrInvalid
 	}
-	return lock.LockID, ctx.Err()
+	return lock.LockID, weights, ctx.Err()
 }

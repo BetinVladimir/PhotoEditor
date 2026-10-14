@@ -85,7 +85,8 @@ func TestExportStyleOperatorPinsPoliciesBeforeNativeBuild(t *testing.T) {
 	}
 	base := ExportDocumentValidatorInstallation{
 		ICCSHA: wire.ICCSHA, ModelSHA: wire.ModelSHA,
-		Other: exportReaderValidator{&importValidatorStub{}}, Semantics: &exportSemanticsStub{},
+		ModelWeights: map[string]string{"mobilesam": "MobileSAM/mobile_sam.pt.torchscript"},
+		Other:        exportReaderValidator{&importValidatorStub{}}, Semantics: &exportSemanticsStub{},
 	}
 	manifest := write("operator.json", wire)
 	authority, err := LoadExportStyleOperatorAuthority(context.Background(), manifest.Path,
@@ -95,6 +96,12 @@ func TestExportStyleOperatorPinsPoliciesBeforeNativeBuild(t *testing.T) {
 	}
 	if authority.StyleWeights["mobilesam"] != "MobileSAM/mobile_sam.pt.torchscript" {
 		t.Fatal("style weight policy was not pinned separately")
+	}
+	foreignWeights := base
+	foreignWeights.ModelWeights = map[string]string{"mobilesam": "different-weight.pt"}
+	if _, err := LoadExportStyleOperatorAuthority(context.Background(), manifest.Path,
+		manifest.SHA, foreignWeights, exportOperatorBackgroundFactoryStub{}); err == nil {
+		t.Fatal("operator style weight disagrees with authenticated model lock")
 	}
 	structural := base
 	structural.Other = nil

@@ -75,7 +75,7 @@ func TestLocalInterchangeExportBaseRequiresIndependentLocks(t *testing.T) {
 	installed, err := installLocalInterchangeExportBase(context.Background(),
 		"/operator.json", operatorSHA, "../../../resources/icc", path, pin, base)
 	if err != nil || installed.InterchangeExportBase == nil || installed.InterchangeBackgroundFactory == nil ||
-		installed.InterchangeExportBase.ModelSHA != lockID {
+		installed.InterchangeExportBase.ModelSHA != lockID || installed.InterchangeExportBase.ModelWeights["mobilesam"] != "weights" {
 		t.Fatal("qualified export base unavailable", err)
 	}
 	if duplicate, err := installLocalInterchangeExportBase(context.Background(),

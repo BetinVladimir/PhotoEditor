@@ -87,7 +87,8 @@ func (s ExportStyleDeploymentAuthority) BuildNativeExportAuthority(ctx context.C
 	}
 	styleModels := map[string]string{}
 	for name, weight := range s.StyleWeights {
-		if !exportModelIDs[name] || len(weight) < 1 || len(weight) > 240 {
+		if !exportModelIDs[name] || len(weight) < 1 || len(weight) > 240 ||
+			s.Base.ModelWeights == nil || s.Base.ModelWeights[name] != weight {
 			return nil, v2input.ErrInvalid
 		}
 		styleModels[name] = weight

@@ -47,6 +47,9 @@ func TestExportModelLockRequiresPinnedCanonicalFileAndInternalID(t *testing.T) {
 	if got, err := LoadExportModelLockSHA(context.Background(), path, rawSHA(raw)); err != nil || got != lockID || got == rawSHA(raw) {
 		t.Fatal("model lock ID unavailable", err)
 	}
+	if got, weights, err := LoadExportModelLockWeights(context.Background(), path, rawSHA(raw)); err != nil || got != lockID || weights["mobilesam"] != "weights" {
+		t.Fatal("authenticated model weight inventory unavailable", err)
+	}
 	if got, err := LoadExportModelLockSHA(context.Background(), path, rawSHA([]byte("foreign"))); err == nil || got != "" {
 		t.Fatal("foreign file pin accepted")
 	}

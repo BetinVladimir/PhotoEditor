@@ -14,6 +14,7 @@ type ExportDocumentValidatorFactory interface {
 // source/model/consent/operation checks for dependency documents.
 type ExportDocumentValidatorInstallation struct {
 	ICCSHA, ModelSHA string
+	ModelWeights     map[string]string
 	MaskModelLocks   []string
 	Semantics        ExportDependencySemantics
 	SemanticsFactory ExportDependencySemanticsFactory

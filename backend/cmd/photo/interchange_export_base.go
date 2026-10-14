@@ -45,12 +45,12 @@ func installLocalInterchangeExportBase(ctx context.Context, operatorPath, operat
 	if err != nil {
 		return dependencies, err
 	}
-	verifiedModelSHA, err := interchange.LoadExportModelLockSHA(ctx, modelPath, modelSHA)
+	verifiedModelSHA, modelWeights, err := interchange.LoadExportModelLockWeights(ctx, modelPath, modelSHA)
 	if err != nil {
 		return dependencies, err
 	}
 	dependencies.InterchangeExportBase = &interchange.ExportDocumentValidatorInstallation{
-		ICCSHA: iccSHA, ModelSHA: verifiedModelSHA,
+		ICCSHA: iccSHA, ModelSHA: verifiedModelSHA, ModelWeights: modelWeights,
 	}
 	dependencies.InterchangeBackgroundFactory = interchange.SQLExportStyleBackgroundFactory{}
 	return dependencies, nil
