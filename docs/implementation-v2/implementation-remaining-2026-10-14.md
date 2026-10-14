@@ -339,6 +339,8 @@ Startup-инвентарь API import creator теперь требует SECURI
 
 P0 delivery scheduler больше не прекращает проход после каждой успешной metadata-задачи: `DeliveryExpansionJob.ProcessOne` допускает один metadata шаг, затем bounded quota cleanup и обычный child/assembly driver. Так непрерывная metadata-очередь не блокирует публикацию обычных required bundles. Ошибка metadata по-прежнему останавливает проход; unit-сценарии фиксируют progress/empty/error и порядок вызовов. Они не запускались.
 
+P0 tenant purge: добавлен real-role интеграционный сценарий, который извлекает текущий `tables_to_purge` из `finish_tenant_deletion` и сверяет его со всеми фактическими `DELETE`-правами `photo_fn_owner` на таблицах `photo`. Он также требует `tenant_id` у каждой разрешённой таблицы и учитывает отдельный `audit_log` с сохраняемыми lifecycle-записями. Это покрывает добавления V30–V32 и ловит лишний grant или пропущенное расширение allowlist; сценарий написан, не запускался.
+
 Миграция `02109_v23_series_heartbeat_device_fence.sql` прекращает продление lease квалифицированного `series.balance` после отзыва или ротации операторской привязки. Worker остановит текущий расчёт на следующем heartbeat; `02107` независимо отвергает поздний success. Написан интеграционный сценарий `claim → rotation → heartbeat=false → commit=stale`; миграция и сценарий не выполнялись.
 
 `series.balance` теперь оставляет identity-коррекцию с review warning, если численный solver не завершился успешно, вернул нечетырёхмерный, нечисловой либо экстремальный вектор параметров. Успешный алгоритм и его ограничители EV/gain остаются прежними. Unit-сценарии для четырёх отказов написаны, не запускались.
