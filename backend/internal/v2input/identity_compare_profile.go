@@ -9,11 +9,13 @@ import (
 // CompileIdentityCompareProfile reserves the two full-resolution images,
 // guards, changed-mask output, bounded face previews and exact input bytes.
 // Qualified costs are installed operator peaks, never client-provided values.
-func CompileIdentityCompareProfile(width, height, inputBytes int64, qualified SemanticQualifiedCosts,
+func CompileIdentityCompareProfile(backend string, width, height, inputBytes int64, qualified SemanticQualifiedCosts,
 	ramLimit, vramLimit, scratchLimit, outputLimit int64) (json.RawMessage, error) {
 	const safe int64 = 9007199254740991
-	if width < 8 || height < 8 || width > 200000000 || height > 200000000 ||
-		width*height > 200000000 || inputBytes <= 0 || qualified.VRAMBytes <= 0 {
+	if (backend != "cpu" && backend != "cuda") || width < 8 || height < 8 || width > 200000000 || height > 200000000 ||
+		width*height > 200000000 || inputBytes <= 0 ||
+		(backend == "cpu" && qualified.VRAMBytes != 0) ||
+		(backend == "cuda" && qualified.VRAMBytes <= 0) {
 		return nil, ErrInvalid
 	}
 	for _, value := range []int64{inputBytes, qualified.RAMBytes, qualified.VRAMBytes, qualified.ScratchBytes,
@@ -43,18 +45,18 @@ func CompileIdentityCompareProfile(width, height, inputBytes int64, qualified Se
 	if ram > ramLimit || qualified.VRAMBytes > vramLimit || scratch > scratchLimit || output > outputLimit {
 		return nil, ErrInvalid
 	}
-	return canonical.Marshal(sessionDescribeExecutionProfile{Backend: "cuda", RendererVersion: "v2.2",
+	return canonical.Marshal(sessionDescribeExecutionProfile{Backend: backend, RendererVersion: "v2.2",
 		ResourceEstimate: sessionDescribeEstimate{RAMBytes: ram, VRAMBytes: qualified.VRAMBytes,
 			ScratchBytes: scratch, OutputBytes: output, PixelCount: pixels}})
 }
 
 // Every closure artifact, including Params, must have a trusted bounded size.
-func CompileIdentityCompareProfileFromInputs(width, height int64, params Ref, inputs []Ref,
+func CompileIdentityCompareProfileFromInputs(backend string, width, height int64, params Ref, inputs []Ref,
 	sizes []SemanticInputSize, qualified SemanticQualifiedCosts,
 	ramLimit, vramLimit, scratchLimit, outputLimit int64) (json.RawMessage, error) {
 	total, err := exactSemanticInputBytes(params, inputs, sizes)
 	if err != nil {
 		return nil, err
 	}
-	return CompileIdentityCompareProfile(width, height, total, qualified, ramLimit, vramLimit, scratchLimit, outputLimit)
+	return CompileIdentityCompareProfile(backend, width, height, total, qualified, ramLimit, vramLimit, scratchLimit, outputLimit)
 }

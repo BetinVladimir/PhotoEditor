@@ -18,7 +18,7 @@ type FrozenIdentityCompareTask struct {
 	closure CaptureClosure
 }
 
-func CompileIdentityCompareTask(ctx context.Context, workflow uuid.UUID, ordinal int,
+func CompileIdentityCompareTask(ctx context.Context, workflow uuid.UUID, ordinal int, backend string,
 	params IdentityCompareParams, paramsRef Ref, documents IdentityCompareDocuments,
 	expectedDatasetSHA string, sizes []SemanticInputSize, qualified SemanticQualifiedCosts,
 	ramLimit, vramLimit, scratchLimit, outputLimit int64) (FrozenIdentityCompareTask, error) {
@@ -37,7 +37,7 @@ func CompileIdentityCompareTask(ctx context.Context, workflow uuid.UUID, ordinal
 			refs = append(refs, ref)
 		}
 	}
-	profile, err := CompileIdentityCompareProfileFromInputs(image.Canvas.Width, image.Canvas.Height,
+	profile, err := CompileIdentityCompareProfileFromInputs(backend, image.Canvas.Width, image.Canvas.Height,
 		paramsRef, refs, sizes, qualified, ramLimit, vramLimit, scratchLimit, outputLimit)
 	if err != nil {
 		return zero, err

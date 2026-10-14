@@ -175,6 +175,10 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts,
 
 def identity_compare_operations(config: ArtifactConfig, pool: ModelPool,
                                 backend: str) -> list[Operation]:
+    # identity512 has exact CPU/CUDA ONNX providers; MPS has no native
+    # provider and must not be advertised through a lock entry alone.
+    if backend not in ('cpu', 'cuda'):
+        return []
     entries = {entry.id: entry for entry in pool.lock.models}
     for model in REQUIRED_MODELS:
         entry = entries.get(model)
