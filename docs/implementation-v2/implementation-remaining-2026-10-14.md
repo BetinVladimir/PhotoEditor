@@ -255,6 +255,8 @@ Worker Evaluate повторно вычисляет весь `SeriesCorrections`
 
 В `series.balance` и Evaluate replay callback активности теперь проверяется перед вычислением, периодически в medoid-поиске и во время fit каждого item. Это позволяет прервать долгую CPU-операцию при потере lease или отмене без изменения порядка суммирования и численной формулы. Unit-сценарии на прерывание и идентичность canonical bytes написаны, но не запускались.
 
+Evaluate replay теперь дополнительно проверяет lease перед чтением каждого элемента полного `SeriesStats` inventory и после его чтения. Отмена во время обработки набора до 2000 статистик не откладывается до завершения всего IO. Unit-сценарий на потерю lease внутри inventory написан, но не запускался.
+
 Контракт `SeriesStats` у worker теперь требует уникальные region ID, допустимый ASCII-формат ID, компоненты mean RGB в `[0,1]` и уникальные warnings. Backend-валидатор запечатанного агрегата использует тот же формат ID и отказывает повторным warnings; Go/Python unit-сценарии покрывают эти границы. Код написан, тесты не запускались.
 
 Миграция `02101_v23_series_frozen_readiness.sql` добавляет закрытый для service roles предикат `v23_series_frozen_ready`: без пользовательской сессии он повторно проверяет текущий Apply/consent source, опубликованный immutable evidence document и полный ordered inventory `SeriesStats` из recovery против Params исходного `series.balance` и каждого текущего producer. Это подготовка к будущему снятию freeze gate, а не его снятие: `02093` всё ещё запрещает series manifest. Negative real-role fixture написан, но не выполнялся; положительный физический lifecycle и quality qualification обязательны до подключения предиката к admission.

@@ -30,6 +30,7 @@ def _same_series_styles(styles):
 
 def _frozen_series_correction(artifacts, case, item, workspace, styles,
                               training_run_id, tenant_id, check_active=lambda: None):
+    check_active()
     style = _same_series_styles(styles)
     if case.series_evidence is None:
         raise ValueError('HOLDOUT_SERIES_EVIDENCE_REQUIRED')
@@ -79,8 +80,10 @@ def _frozen_series_correction(artifacts, case, item, workspace, styles,
         raise ValueError('HOLDOUT_SERIES_MATERIAL_MISMATCH')
     stats = []
     for ref in params.stats:
+        check_active()
         artifacts.require_declared_contract(ref, 'SeriesStats')
         stats.append(artifacts.contract(ref, SeriesStats).model_copy(deep=True))
+    check_active()
     by_item = {value.item_id: value for value in stats}
     if (len(by_item) != len(stats) or set(by_item) != set(items) or
             by_item[evidence.item_id].image != evidence.stage_image or

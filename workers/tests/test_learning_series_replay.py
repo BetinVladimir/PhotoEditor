@@ -102,6 +102,16 @@ def test_series_replay_selects_exact_item_from_pinned_aggregate():
         workspace, _styles(), run, tenant)
     assert chosen == next(value for value in corrections.items
                           if value.item_id == selected_item)
+    calls = 0
+    def check_active():
+        nonlocal calls
+        calls += 1
+        if calls == 3:
+            raise RuntimeError('lease lost')
+    with pytest.raises(RuntimeError, match='lease lost'):
+        _frozen_series_correction(Artifacts(), case, item,
+            workspace, _styles(), run, tenant, check_active)
+    assert calls == 3
     tampered = corrections.model_copy(deep=True)
     replacement = tampered.items[0].model_copy(update={'confidence': .1})
     tampered.items[0] = replacement
