@@ -24,6 +24,14 @@ func analysisMemory(name string, fallback int64) (int64, error) {
 	return value, nil
 }
 
+func analysisDefaultVRAM(backend string) int64 {
+	if backend == "mps" {
+		// Match the 10 GB Metal verification policy; 10 GiB exceeds it.
+		return 10_000_000_000
+	}
+	return 10 << 30
+}
+
 // The V22 SQL slice is forward-only and may not be installed in older
 // deployments. The route remains unavailable until its complete admission
 // boundary is present; no API-role connection receives scheduler privileges.
@@ -82,7 +90,7 @@ func buildAnalysisAdmission(ctx context.Context, api *pgxpool.Pool, dsn string,
 		scheduler.Close()
 		return nil, noop, err
 	}
-	vram, err := analysisMemory("PHOTO_V22_VRAM_BYTES", 10<<30)
+	vram, err := analysisMemory("PHOTO_V22_VRAM_BYTES", analysisDefaultVRAM(backend))
 	if err != nil {
 		scheduler.Close()
 		return nil, noop, err
