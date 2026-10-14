@@ -1,23 +1,48 @@
 package interchange
 
 import (
- "context"
- "github.com/jackc/pgx/v5"
- "photoeditor/backend/internal/domain"
- "photoeditor/backend/internal/tenant"
- "photoeditor/backend/internal/v2input"
+	"context"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"photoeditor/backend/internal/auth"
+	"photoeditor/backend/internal/domain"
+	"photoeditor/backend/internal/tenant"
+	"photoeditor/backend/internal/v2input"
 )
 
-func(s SQLExportDocumentCatalog)LookupExportSeriesMeasureOrigin(ctx context.Context,balance ExportSeriesOriginEvidence,entry v2input.Entry,raw []byte)(ExportSeriesMeasureOrigin,error){
- var zero,out ExportSeriesMeasureOrigin
- if err:=ctx.Err();err!=nil{return zero,err}
- if s.DB==nil||entry.Contract!="SeriesStats"||!validImportRef(entry.Ref)||len(raw)<2||len(raw)>1<<20||rawSHA(raw)!=entry.Ref.SHA256{return zero,v2input.ErrInvalid}
- body:=append([]byte(nil),raw...)
- if err:=s.QualifyExportSeriesStatImage(ctx,balance,entry,body);err!=nil{return zero,err}
- stats,err:=s.LookupExportSeriesOriginDocument(ctx,balance,entry);if err!=nil{return zero,err}
- err=tenant.WithTenant(ctx,s.DB,s.Who,s.Tenant,domain.Editor,func(tx pgx.Tx,_ domain.Role)error{
-  var bucket string
-  err:=tx.QueryRow(ctx,`SELECT measure.id,measure.attempt,measure.fencing_token,params.id,params.sha256,params.bucket,params.object_key,params.object_version,params.sha256,params.bytes,params.media_type
+func (s SQLExportDocumentCatalog) LookupExportSeriesMeasureOrigin(ctx context.Context, balance ExportSeriesOriginEvidence, entry v2input.Entry, raw []byte) (ExportSeriesMeasureOrigin, error) {
+	return lookupExportSeriesMeasureOrigin(ctx, s, s.DB, s.Tenant, s.Who, s.Request.ProjectID, s.Bucket, balance, entry, raw)
+}
+func (s SQLExportResultInputCatalog) LookupExportSeriesMeasureOrigin(ctx context.Context, balance ExportSeriesOriginEvidence, entry v2input.Entry, raw []byte) (ExportSeriesMeasureOrigin, error) {
+	config := s.Export
+	return lookupExportSeriesMeasureOrigin(ctx, s, config.DB, config.Tenant, config.Who, config.Request.ProjectID, config.Bucket, balance, entry, raw)
+}
+
+type exportSeriesMeasureOriginCatalog interface {
+	ExportSeriesStatImageAuthority
+	ExportSeriesOriginSource
+}
+
+func lookupExportSeriesMeasureOrigin(ctx context.Context, catalog exportSeriesMeasureOriginCatalog, db *pgxpool.Pool, tenantID uuid.UUID, who auth.Identity, project uuid.UUID, bucketName string, balance ExportSeriesOriginEvidence, entry v2input.Entry, raw []byte) (ExportSeriesMeasureOrigin, error) {
+	var zero, out ExportSeriesMeasureOrigin
+	if err := ctx.Err(); err != nil {
+		return zero, err
+	}
+	if catalog == nil || db == nil || tenantID == uuid.Nil || project == uuid.Nil || len(bucketName) < 3 || entry.Contract != "SeriesStats" || !validImportRef(entry.Ref) || len(raw) < 2 || len(raw) > 1<<20 || rawSHA(raw) != entry.Ref.SHA256 {
+		return zero, v2input.ErrInvalid
+	}
+	body := append([]byte(nil), raw...)
+	if err := catalog.QualifyExportSeriesStatImage(ctx, balance, entry, body); err != nil {
+		return zero, err
+	}
+	stats, err := catalog.LookupExportSeriesOriginDocument(ctx, balance, entry)
+	if err != nil {
+		return zero, err
+	}
+	err = tenant.WithTenant(ctx, db, who, tenantID, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
+		var bucket string
+		err := tx.QueryRow(ctx, `SELECT measure.id,measure.attempt,measure.fencing_token,params.id,params.sha256,params.bucket,params.object_key,params.object_version,params.sha256,params.bytes,params.media_type
    FROM photo.artifacts stats
    JOIN photo.tasks measure ON measure.tenant_id=stats.tenant_id AND measure.id=stats.created_by_task_id
    JOIN photo.artifacts params ON params.tenant_id=measure.tenant_id AND params.id=measure.params_artifact_id
@@ -35,11 +60,30 @@ func(s SQLExportDocumentCatalog)LookupExportSeriesMeasureOrigin(ctx context.Cont
    AND photo.v2_editor_authorized($1,$8,$9,$10)
    AND params.bucket=$4 AND params.media_type='application/json' AND params.bytes BETWEEN 2 AND 1048576
    AND params.state='ready' AND params.verified_at IS NOT NULL AND params.object_version IS NOT NULL AND params.object_version NOT IN('','null')
-   AND (params.expires_at IS NULL OR params.expires_at>clock_timestamp())`,s.Tenant,entry.Ref.ArtifactID,entry.Ref.SHA256,s.Bucket,stats.Key,stats.VersionID,stats.Bytes,s.Request.ProjectID,s.Who.UserID,s.Who.SessionID).Scan(&out.Task,&out.Attempt,&out.Fence,&out.Params.ArtifactID,&out.Params.SHA256,&bucket,&out.Object.Key,&out.Object.VersionID,&out.Object.SHA256,&out.Object.Bytes,&out.Object.ContentType)
-  if err!=nil{return err};if bucket!=s.Bucket||!validImportRef(out.Params)||out.Object.SHA256!=out.Params.SHA256||out.Object.Key==""{return v2input.ErrInvalid};return ctx.Err()
- })
- if err!=nil{return zero,err}
- if err:=s.QualifyExportSeriesStatImage(ctx,balance,entry,body);err!=nil{return zero,err}
- current,err:=s.LookupExportSeriesOriginDocument(ctx,balance,entry);if err!=nil{return zero,err};if current!=stats{return zero,v2input.ErrInvalid};return out,ctx.Err()
+   AND (params.expires_at IS NULL OR params.expires_at>clock_timestamp())`, tenantID, entry.Ref.ArtifactID, entry.Ref.SHA256, bucketName, stats.Key, stats.VersionID, stats.Bytes, project, who.UserID, who.SessionID).Scan(&out.Task, &out.Attempt, &out.Fence, &out.Params.ArtifactID, &out.Params.SHA256, &bucket, &out.Object.Key, &out.Object.VersionID, &out.Object.SHA256, &out.Object.Bytes, &out.Object.ContentType)
+		if err != nil {
+			return err
+		}
+		if bucket != bucketName || !validImportRef(out.Params) || out.Object.SHA256 != out.Params.SHA256 || out.Object.Key == "" {
+			return v2input.ErrInvalid
+		}
+		return ctx.Err()
+	})
+	if err != nil {
+		return zero, err
+	}
+	if err := catalog.QualifyExportSeriesStatImage(ctx, balance, entry, body); err != nil {
+		return zero, err
+	}
+	current, err := catalog.LookupExportSeriesOriginDocument(ctx, balance, entry)
+	if err != nil {
+		return zero, err
+	}
+	if current != stats {
+		return zero, v2input.ErrInvalid
+	}
+	return out, ctx.Err()
 }
-var _ ExportSeriesMeasureOriginSource=SQLExportDocumentCatalog{}
+
+var _ ExportSeriesMeasureOriginSource = SQLExportDocumentCatalog{}
+var _ ExportSeriesMeasureOriginSource = SQLExportResultInputCatalog{}
