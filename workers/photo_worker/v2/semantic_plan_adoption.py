@@ -17,7 +17,12 @@ def _load_validated_snapshot(load_snapshot, reader, intent):
     snapshot_value = load_snapshot(reader, deepcopy(intent))
     if not isinstance(snapshot_value, InputSnapshot):
         raise AdoptionInvalid('SEMANTIC_PLAN_SNAPSHOT_INVALID')
-    snapshot_bytes = canonical_bytes(snapshot_value)
+    try:
+        snapshot_bytes = canonical_bytes(snapshot_value)
+    except Exception as error:
+        # A model instance can still be mutated after validation or built with
+        # model_construct; an invalid value must not escape as a worker crash.
+        raise AdoptionInvalid('SEMANTIC_PLAN_SNAPSHOT_INVALID') from error
     if len(snapshot_bytes) > MAX_JSON_BYTES:
         raise AdoptionInvalid('SEMANTIC_PLAN_SNAPSHOT_LIMIT')
     try:

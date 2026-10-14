@@ -441,6 +441,8 @@ P1 V27 semantic assembly: scheduler orchestrator теперь ограничив
 
 V27 semantic plan adoption дополнительно принимает от snapshot authority только типизированный `InputSnapshot`, ограничивает его canonical размер общим JSON-лимитом и превращает невалидный результат в контролируемый отказ. Явный `False` от provenance authority теперь отклоняет adoption; штатный callback с успешным завершением без return по-прежнему допустим. Unit-сценарии некорректного результата snapshot написаны, не запускались. Полный физический end-to-end и role/SQL/объектные проверки остаются до тестовой фазы.
 
+V27 snapshot adoption теперь также превращает ошибку canonical сериализации типизированного, но повреждённого после создания `InputSnapshot` в `SEMANTIC_PLAN_SNAPSHOT_INVALID`, до size/reassembly и без падения worker. Unit-сценарий для `model_construct` с несериализуемым item написан, не запускался.
+
 V30 signed delivery assembly: повторная проверка сохранённых slot shards теперь, как и первичная сборка, запрещает повтор `ExportID` и требует UTF-8, непустую после trim причину `omitted` длиной не более 200 Unicode-символов. Unit-сценарии replay этих границ написаны, не запускались. Это усиливает verifier сохранённого документа, но не подтверждает сквозную публикацию/скачивание подписанного bundle.
 
 V30 required-provenance envelope теперь повторяет primary policy gate для сохранённого assembly root: наличие хотя бы одного required preset, лимиты и канонический порядок списков presets, допустимый signing mode и нормализованное разрешение полей metadata. Некорректный root отклоняется до проверки closure и task activation. Unit-сценарии подменённой policy и нарушенного порядка написаны, не запускались.
