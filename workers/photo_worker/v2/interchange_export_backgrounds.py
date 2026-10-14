@@ -59,6 +59,8 @@ def resolve_export_background_pins(plan, reader, *, active=lambda: None):
             if sha256(source_raw).hexdigest() != entry.binding.source.sha256 or canonical_bytes(parse_json(source_raw)) != source_raw:
                 raise ValueError('INTERCHANGE_EXPORT_BACKGROUND_SOURCE_CHANGED')
             source = WorkingImage.model_validate_json(source_raw)
+            if canonical_hash(source.canvas) != entry.binding.canvas_hash:
+                raise ValueError('INTERCHANGE_EXPORT_BACKGROUND_CANVAS_CHANGED')
             for override_ref in frozen.recipe.overrides:
                 declared = reader.entries.get((override_ref.artifact_id, override_ref.sha256))
                 if declared is None or declared.contract != 'Override':

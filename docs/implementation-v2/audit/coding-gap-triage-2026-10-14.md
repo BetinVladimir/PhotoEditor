@@ -1,5 +1,18 @@
 # Текущий triage кодирования V20–V32 — 2026-10-14
 
+## Уточнение V30 export background
+
+Export теперь вычисляет итоговый фон по порядку Override из pinned
+`FrozenRenderRecipe`, сверяет переносимый ID с frozen asset pin и физически
+проверяет источник. Для bundle closure строковый portable ID разрешается через
+проверенный `(BaseStyle ref, portable ID) → StyleBackgroundAsset ref`, поэтому
+допустимые не-UUID ID экспортируются без подмены идентичности. В замыкание
+включается только выбранный после Override фон; замена extensions без фона
+сбрасывает прежний asset. Исходный `WorkingImage` при таком экспорте сверяется
+с binding canvas hash. Unit-сценарии для строкового ID, замены, сброса и
+отсутствующего mapping написаны, но пока не запускались. Это не отменяет
+оставшийся разрыв production import и отложенную физическую проверку.
+
 ## Уточнение после process-owned Override и mask-scope работ
 
 Ниже сохранена хронология промежуточного анализа; её прежние формулировки о
