@@ -26,8 +26,8 @@ class PortablePersonOriginClaim(Contract):
     mask_ref: ArtifactRef
     mask_pixels: ArtifactRef
     producer_task_id: UUID
-    producer_attempt: Annotated[int, Field(strict=True, ge=1)]
-    producer_fence: Annotated[int, Field(strict=True, ge=1)]
+    producer_attempt: Annotated[int, Field(strict=True, ge=1, le=9007199254740991)]
+    producer_fence: Annotated[int, Field(strict=True, ge=1, le=9007199254740991)]
     operation: Literal['mask.person']
     operation_version: Literal['1']
     model_lock_sha: SHA256

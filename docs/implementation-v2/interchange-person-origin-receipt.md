@@ -9,6 +9,9 @@ The verifier takes a process-owned `(issuer_id, SHA256(public key)) → 32-byte
 Ed25519 public key` trust map and independently supplied expected refs. Archive
 inventory, parsed JSON and HTTP payload may not add trusted keys or expected
 values. Signature verification alone never grants import admission.
+`backend/internal/interchange/import_person_origin_receipt.go` provides the
+matching Go verifier for the import service. Both decoders reject unknown or
+noncanonical fields, changed expected refs and untrusted signatures.
 The eventual verifier deployment must include the existing `signer-key` worker
 extra, which supplies `cryptography`; a missing crypto runtime fails closed.
 
@@ -26,7 +29,8 @@ user grant/epoch before and after IO and at activation. Revocation of either
 authority must fail closed. The existing SQL grant remains only the consent
 half; it cannot be reused as producer evidence.
 
-The pure contract and negative unit scenarios are authored but not executed.
+The Python and Go pure contracts and negative unit scenarios are authored but
+not executed.
 No exporter signer, archive mapping, SQL receipt authority, process trust
 bootstrap or end-to-end verification has been installed yet. Production
 person-mask import remains unavailable.
