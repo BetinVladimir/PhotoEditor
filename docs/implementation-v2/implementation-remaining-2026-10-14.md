@@ -93,6 +93,9 @@ Scheduler runtime теперь имеет `RunSchedulerWithInterchangeExport` и
 
 ## Граница первого MVP
 
+Миграция `02062_v30_export_adoption_operation_params.sql` и `SQLSchedulerExportInputCatalog.LookupExportParamsOperation` дают точный task/attempt/fence для поддерживаемых Params-операций из sealed export input inventory. SQL требует accepted frozen source, completed producer, текущие consent grants всех workflow dependencies и дополнительный body input inventory; два producer для общего Params отвергаются. Go проверяет canonical bytes и object pins, затем повторяет SQL authority. Native `OperationParams` остаётся обязательным для семантики. Startup inventory включает `02062`; миграция и unit-сценарии написаны, не запускались.
+
+
 Миграция `02061_v30_export_adoption_resolved_origin.sql` и `SQLSchedulerExportInputCatalog.LookupExportResolvedOrigin` добавляют sessionless Params origin для `ResolvedStyle`: точный claimed document, accepted WorkingImage из frozen snapshot, все original child refs в producer.inputs, canonical `style.resolve` result и версии объектов. AbsoluteLUT остаётся output, а не producer input; native schema/Params equivalence и model/consent policy остаются отдельными барьерами. Startup SQL inventory включает `02061`; миграция и unit-сценарии написаны, не запускались.
 
 
