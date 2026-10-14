@@ -59,8 +59,10 @@ function SemanticCreateScope({api,asset,version,mask,collection,disabled,onSubmi
   }catch(cause){
    if(controller.signal.aborted)return;
    if(cause instanceof APIError&&[400,401,403,404,409,410,422].includes(cause.status)||cause instanceof Error&&cause.message==='SEMANTIC_PROPOSE_REQUEST_INVALID'){
-    if(store)await store.clear(current.proposalKey).catch(()=>{});
-    attempt.current=null;setRetry(false);setRejected(true);setError('semantic_create_rejected');
+    let cleared=true;
+    if(store)cleared=await store.clear(current.proposalKey).then(()=>true,()=>false);
+    if(cleared)attempt.current=null;
+    setRetry(false);setRejected(!(cause instanceof APIError&&cause.status===410&&cleared));setError('semantic_create_rejected');
    }else{setRetry(true);setError('semantic_create_unknown')}
   }finally{if(flight.current===controller){flight.current=null;if(!controller.signal.aborted)setBusy(false)}}
  }

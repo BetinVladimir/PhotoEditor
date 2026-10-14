@@ -61,6 +61,29 @@ it('retries an uncertain snapshot with its original key before creating intent',
  await waitFor(()=>expect(api.proposeSemanticIntent).toHaveBeenCalledTimes(1));
  expect(api.selectionSnapshot.mock.calls[0].slice(0,2)).toEqual(api.selectionSnapshot.mock.calls[1].slice(0,2));
 });
+it('starts a fresh journal after a confirmed expired semantic snapshot',async()=>{
+ const api=fixture(),onSubmitted=vi.fn(),store={write:vi.fn().mockResolvedValue(undefined),clear:vi.fn().mockResolvedValue(undefined)} as unknown as SemanticAttemptStore;
+ api.proposeSemanticIntent.mockRejectedValueOnce(new APIError(410,'SNAPSHOT_EXPIRED')).mockResolvedValueOnce(ticket);
+ render(<SemanticCreate api={api} store={store} tenant={id} asset={id} version={id} mask={mask} collection={collection} onSubmitted={onSubmitted}/>);
+ fireEvent.click(screen.getByText('Prepare batch review'));
+ await waitFor(()=>expect(store.clear).toHaveBeenCalledTimes(1));
+ const retryButton=screen.getByRole('button',{name:'Prepare batch review'});
+ await waitFor(()=>expect(retryButton.hasAttribute('disabled')).toBe(false));
+ fireEvent.click(retryButton);
+ await waitFor(()=>expect(onSubmitted).toHaveBeenCalledWith(ticket));
+ expect(api.selectionSnapshot).toHaveBeenCalledTimes(2);
+ expect(api.selectionSnapshot.mock.calls[0][1]).not.toBe(api.selectionSnapshot.mock.calls[1][1]);
+ expect(api.proposeSemanticIntent.mock.calls[0][1]).not.toBe(api.proposeSemanticIntent.mock.calls[1][1]);
+});
+it('blocks a new semantic attempt when the expired journal cannot be cleared',async()=>{
+ const api=fixture(),store={write:vi.fn().mockResolvedValue(undefined),clear:vi.fn().mockRejectedValue(new Error('storage unavailable'))} as unknown as SemanticAttemptStore;
+ api.proposeSemanticIntent.mockRejectedValueOnce(new APIError(410,'SNAPSHOT_EXPIRED'));
+ render(<SemanticCreate api={api} store={store} tenant={id} asset={id} version={id} mask={mask} collection={collection} onSubmitted={vi.fn()}/>);
+ fireEvent.click(screen.getByText('Prepare batch review'));
+ await waitFor(()=>expect(store.clear).toHaveBeenCalledTimes(1));
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Prepare batch review'}).hasAttribute('disabled')).toBe(true));
+ expect(api.selectionSnapshot).toHaveBeenCalledTimes(1);
+});
 it('refuses a changed asset version before freezing target collection',async()=>{
  const api=fixture();api.v2Binding.mockResolvedValue({...binding,asset_version_id:other});
  render(<SemanticCreate api={api} tenant={id} asset={id} version={id} mask={mask} collection={collection} onSubmitted={vi.fn()}/>);

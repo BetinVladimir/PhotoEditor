@@ -18,6 +18,8 @@ AppState background скрывает форму, отменяет authority flig
 
 «Начать другую серию» разрешено только для подтверждённого сохранённого ticket; удаляется соответствующая запись, форма получает новый scope. При отсутствии текущей маски новая серия остаётся недоступной до её создания. Неизвестный admission нельзя отбросить этой кнопкой.
 
+Отдельный случай — подтверждённый сервером HTTP 410 для истёкшего target snapshot. После успешного exact-key удаления журнала форма допускает новую явную отправку с новыми snapshot/proposal keys; неопределённый сетевой исход продолжает повторяться со старыми ключами. Если удаление журнала не удалось, новая отправка блокируется, чтобы не создать конкурирующую попытку. Component unit-сценарий написан, но не запускался в implementation-first фазе.
+
 Проверки: journal restore/principal isolation, immutable keys/stages, corruption/size, origin logout fencing и ошибка очистки, exact-key clearing; component remount после неизвестного snapshot/admission без live mask, frozen revision, receipt-only navigation при disabled capability, отсутствие IO до успешной записи, отсутствие повторного POST при ошибке navigation.
 
 Отдельные независимые module instances проверяют конкурентные initial writes (ровно один winner), cross-context generation logout fence и browser без Web Locks (нет storage IO). Настоящий browser probe собирает production semantic-attempt-store.ts через Vite и загружает его в два независимых iframe contexts с настоящими localStorage/Web Locks; подтверждены один winner, один conflict и logout fence. Probe не использует React form/API admission и не доказывает полный пользовательский сценарий.
