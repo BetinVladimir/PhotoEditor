@@ -3,6 +3,8 @@ package interchange
 import (
 	"context"
 	"encoding/json"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"photoeditor/backend/internal/canonical"
@@ -17,6 +19,17 @@ type ImportOverrideQualifier interface {
 	QualifyImportedOverride(context.Context, []byte, v2input.SessionVersionBinding) error
 }
 
+type ImportOverrideArchiveQualifier interface {
+	ValidateArchivedImportOverride(context.Context, []byte) error
+}
+
+// An Override background has its own archived occurrence. The implementation
+// must qualify and publish that exact image for the target before returning a
+// newly registered portable ID; the StyleV2 occurrence is not interchangeable.
+type ImportOverrideBackgroundRemapper interface {
+	RemapImportedOverrideBackground(context.Context, v2input.Ref, string, v2input.SessionVersionBinding) (string, error)
+}
+
 // Confirmation is independent of the archived flag. Implementations must bind
 // their evidence to the new asset version and recheck current consent.
 type ImportConfirmedMaskAuthority interface {
@@ -25,11 +38,14 @@ type ImportConfirmedMaskAuthority interface {
 	QualifyPreparedMaskConfirmation(context.Context, review.MaskRef, v2input.SessionVersionBinding) error
 }
 type ImportOverrideCodec struct {
-	Masters   ImportMasterReader
-	Masks     ImportDependencyCodec
-	Confirmed ImportConfirmedMaskAuthority
-	Qualifier ImportOverrideQualifier
-	Fallback  ImportDependencyCodec
+	Source      v2input.Ref
+	Masters     ImportMasterReader
+	Masks       ImportDependencyCodec
+	Confirmed   ImportConfirmedMaskAuthority
+	Archive     ImportOverrideArchiveQualifier
+	Backgrounds ImportOverrideBackgroundRemapper
+	Qualifier   ImportOverrideQualifier
+	Fallback    ImportDependencyCodec
 }
 
 func (c ImportOverrideCodec) sourceSHA(ctx context.Context, binding v2input.SessionVersionBinding) (string, error) {
@@ -95,6 +111,66 @@ func (c ImportOverrideCodec) RemapImportDocument(ctx context.Context, contract s
 			}
 			if len(ids) > 0 {
 				return nil, &ImportRecipeUnsupported{Reason: "foreign_candidate_review_requires_remap"}
+			}
+		}
+	}
+	if rawModules, exists := fields["modules"]; exists {
+		var modules map[string]json.RawMessage
+		if err := json.Unmarshal(rawModules, &modules); err != nil || modules == nil {
+			return nil, v2input.ErrInvalid
+		}
+		if rawExtensions, exists := modules["extensions"]; exists && string(rawExtensions) != "null" {
+			var extensions map[string]json.RawMessage
+			if err := json.Unmarshal(rawExtensions, &extensions); err != nil || extensions == nil {
+				return nil, v2input.ErrInvalid
+			}
+			if rawBackground, exists := extensions["background"]; exists && string(rawBackground) != "null" {
+				var background map[string]json.RawMessage
+				if err := json.Unmarshal(rawBackground, &background); err != nil || background == nil {
+					return nil, v2input.ErrInvalid
+				}
+				var mode string
+				if err := json.Unmarshal(background["mode"], &mode); err != nil {
+					return nil, v2input.ErrInvalid
+				}
+				if mode == "asset" {
+					if c.Archive == nil {
+						return nil, &ImportRecipeUnsupported{Reason: "override_archive_qualifier_not_installed"}
+					}
+					if err := c.Archive.ValidateArchivedImportOverride(ctx, append([]byte(nil), raw...)); err != nil {
+						return nil, err
+					}
+					if c.Backgrounds == nil {
+						return nil, &ImportRecipeUnsupported{Reason: "override_background_remapper_not_installed"}
+					}
+					var portable string
+					if err := json.Unmarshal(background["asset_id"], &portable); err != nil || portable == "" || !validImportRef(c.Source) || c.Source.SHA256 != rawSHA(raw) {
+						return nil, v2input.ErrInvalid
+					}
+					mapped, err := c.Backgrounds.RemapImportedOverrideBackground(ctx, c.Source, portable, target)
+					if err != nil {
+						return nil, err
+					}
+					if mapped == portable || mapped == "" || len(mapped) > 120 || !utf8.ValidString(mapped) || strings.TrimSpace(mapped) != mapped {
+						return nil, v2input.ErrInvalid
+					}
+					background["asset_id"], err = canonical.Marshal(mapped)
+					if err != nil {
+						return nil, err
+					}
+					extensions["background"], err = canonical.Marshal(background)
+					if err != nil {
+						return nil, err
+					}
+					modules["extensions"], err = canonical.Marshal(extensions)
+					if err != nil {
+						return nil, err
+					}
+					fields["modules"], err = canonical.Marshal(modules)
+					if err != nil {
+						return nil, err
+					}
+				}
 			}
 		}
 	}
@@ -212,6 +288,7 @@ func (c ImportOverrideCodec) QualifyRemappedImportDocument(ctx context.Context, 
 }
 
 func (c ImportOverrideCodec) BindImportDocumentSource(source v2input.Ref) ImportDependencyCodec {
+	c.Source = source
 	if binder, ok := c.Fallback.(ImportDocumentSourceBinder); ok {
 		c.Fallback = binder.BindImportDocumentSource(source)
 	}

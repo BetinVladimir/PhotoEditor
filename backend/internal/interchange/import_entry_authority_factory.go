@@ -198,6 +198,11 @@ func (f SQLImportEntryRecipeAuthorityFactory) BuildImportEntryRecipeAuthority(ct
 		codecs.Resolved = resolved
 		f.ImageRuntimeSHA = installation.ImageRuntimeSHA
 		codecs.OperationSchema = &ImportNativeOperationInstallation{Scratch: f.Native.WarpScratch, Probe: f.Native.WarpProbe, Models: installation.Models, RuntimeSHA: installation.StyleRuntimeSHA}
+		archiveOverride, err := NewNativeImportOverrideArchiveQualifier(f.Native.WarpScratch, f.Native.WarpProbe, installation.Models, installation.StyleRuntimeSHA)
+		if err != nil {
+			return nil, nil, err
+		}
+		codecs.OverrideArchive = archiveOverride
 		override, err := NewNativeImportOverrideContent(f.Native.WarpScratch, f.Native.WarpProbe, installation.Models, installation.StyleRuntimeSHA, codecs.OverrideContent)
 		if err != nil {
 			return nil, nil, err

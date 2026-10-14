@@ -24,6 +24,8 @@ type ImportRecipeCodecDependencies struct {
 	Style                 ImportStyleQualifier
 	Resolved              ImportResolvedQualifier
 	Backgrounds           ImportStyleBackgroundRemapper
+	OverrideBackgrounds   ImportOverrideBackgroundRemapper
+	OverrideArchive       ImportOverrideArchiveQualifier
 	Masks                 ImportMaskQualifier
 	ConfirmedMasks        ImportConfirmedMaskAuthority
 	ConfirmedRegions      ImportPortraitRegionConfirmation
@@ -58,7 +60,7 @@ func NewImportRecipeCodecGraph(ctx context.Context, d ImportRecipeCodecDependenc
 		return nil, err
 	}
 	masks := ImportMaskCodec{Qualifier: d.Masks, Warps: d.Warps}
-	overrides := ImportOverrideCodec{Masters: d.Masters, Masks: masks, Confirmed: d.ConfirmedMasks, Qualifier: ImportPreparedOverrideQualifier{Masters: d.Masters, Masks: d.Masks, Content: d.OverrideContent, Confirmed: d.ConfirmedMasks}}
+	overrides := ImportOverrideCodec{Masters: d.Masters, Masks: masks, Confirmed: d.ConfirmedMasks, Archive: d.OverrideArchive, Backgrounds: d.OverrideBackgrounds, Qualifier: ImportPreparedOverrideQualifier{Masters: d.Masters, Masks: d.Masks, Content: d.OverrideContent, Confirmed: d.ConfirmedMasks}}
 	layers := ImportLayerStackCodec{Qualifier: ImportPreparedLayerQualifier{Documents: d.Documents, Masks: d.Masks, Operations: d.Operations}}
 	params := ImportLocalPortraitParamsCodec{Qualifier: d.Operations, Fallback: ImportDenoiseParamsCodec{Qualifier: d.Operations, Fallback: ImportUpscaleParamsCodec{Qualifier: d.Operations, Fallback: ImportStatsParamsCodec{Qualifier: d.Operations, Masks: masks, Fallback: ImportPortraitDetailParamsCodec{Qualifier: d.Operations, Masks: masks, Confirmed: d.ConfirmedRegions, Fallback: ImportDefectRepairParamsCodec{Qualifier: d.Operations, Masks: masks, Fallback: ImportDustRepairParamsCodec{Qualifier: d.Operations, Authority: d.DustReview, Fallback: d.Params}}}}}}}
 	router, err := NewImportRecipeCodecRouter(ImportStyleCodec{Qualifier: d.Style, Backgrounds: d.Backgrounds}, corrections, overrides, layers, masks, params)

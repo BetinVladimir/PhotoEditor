@@ -38,6 +38,19 @@ Override и совпадение runtime receipt проверяются как �
 Это частичная защита model admission: live portable asset authority, проверка
 полного слияния модулей и production `Codecs.OverrideContent` ещё нужны.
 
+Override codec больше не переносит архивный
+`modules.extensions.background.asset_id` в целевую версию. Для `mode=asset`
+он требует отдельный `ImportOverrideBackgroundRemapper`, передаёт точный
+архивный Override ref и target binding и принимает только новый portable ID;
+перед вызовом remapper обязательна архивная native-проверка полной схемы и
+операторских model pins. `SQLImportEntryRecipeAuthorityFactory` строит её из
+закреплённого style runtime; без port или при неизменном ID отказывает до
+подготовки документа. Unit-сценарий
+на отказ и remap написан, не запускался. StyleV2 background remapper нельзя
+использовать автоматически: его индекс и SQL authority привязаны к StyleV2
+occurrence. Физический Override-specific publisher/SQL registration и live
+prepared-asset admission остаются кодовым разрывом.
+
 Это трассировка исходников для выбора следующей разработки. Она не является
 процентом реализации, результатом тестирования или приёмкой модулей. Текущий
 этап по согласованному порядку — дописать код и unit-тесты; запуск тестов,
