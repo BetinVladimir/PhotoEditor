@@ -1,27 +1,59 @@
 package interchange
 
 import (
- "context"
- "encoding/json"
- "github.com/jackc/pgx/v5"
- "photoeditor/backend/internal/domain"
- "photoeditor/backend/internal/review"
- "photoeditor/backend/internal/tenant"
- "photoeditor/backend/internal/v2input"
+	"context"
+	"encoding/json"
+	"github.com/jackc/pgx/v5"
+	"photoeditor/backend/internal/domain"
+	"photoeditor/backend/internal/review"
+	"photoeditor/backend/internal/tenant"
+	"photoeditor/backend/internal/v2input"
 )
 
-func(s SQLExportDocumentCatalog)LookupExportBodyFitPersonOrigin(ctx context.Context,parent v2input.Entry,raw []byte,fit ExportClosureNode,side string,image ExportClosureNode)(ExportStatsPersonOrigin,error){
- var zero,out ExportStatsPersonOrigin
- if err:=ctx.Err();err!=nil{return zero,err};if s.DB==nil{return zero,v2input.ErrInvalid}
- projected,err:=exportBodyFitPersonProjection(fit,side,image);if err!=nil{return zero,err}
- body:=append([]byte(nil),raw...);mask:=projected.Person
- fit=ExportClosureNode{Entry:fit.Entry,Body:append([]byte(nil),fit.Body...)}
- if err:=s.QualifyExportBodyFitInputInventory(ctx,parent,body,fit);err!=nil{return zero,err}
- consumer,err:=s.LookupExportBodyDependencyOrigin(ctx,parent,body,fit.Entry);if err!=nil{return zero,err}
- if consumer.Producer.Operation!="pair.fit.body"||consumer.Producer.Version!="1"{return zero,v2input.ErrInvalid}
- err=tenant.WithTenant(ctx,s.DB,s.Who,s.Tenant,domain.Editor,func(tx pgx.Tx,_ domain.Role)error{
-  var bucket string
-  err:=tx.QueryRow(ctx,`SELECT root.id,root.sha256,original.id,original.sha256,report.id,report.sha256,
+func (s SQLExportDocumentCatalog) LookupExportBodyFitPersonOrigin(ctx context.Context, parent v2input.Entry, raw []byte, fit ExportClosureNode, side string, image ExportClosureNode) (ExportStatsPersonOrigin, error) {
+	return lookupExportBodyFitPersonOrigin(ctx, s, s, parent, raw, fit, side, image)
+}
+func (s SQLExportResultInputCatalog) LookupExportBodyFitPersonOrigin(ctx context.Context, parent v2input.Entry, raw []byte, fit ExportClosureNode, side string, image ExportClosureNode) (ExportStatsPersonOrigin, error) {
+	config, err := exportPolicyCatalogConfig(s)
+	if err != nil {
+		return ExportStatsPersonOrigin{}, err
+	}
+	return lookupExportBodyFitPersonOrigin(ctx, s, config, parent, raw, fit, side, image)
+}
+
+type exportBodyFitPersonOriginCatalog interface {
+	ExportBodyFitInventoryAuthority
+	ExportBodyDependencyOriginSource
+}
+
+func lookupExportBodyFitPersonOrigin(ctx context.Context, source exportBodyFitPersonOriginCatalog, s SQLExportDocumentCatalog, parent v2input.Entry, raw []byte, fit ExportClosureNode, side string, image ExportClosureNode) (ExportStatsPersonOrigin, error) {
+	var zero, out ExportStatsPersonOrigin
+	if err := ctx.Err(); err != nil {
+		return zero, err
+	}
+	if source == nil || s.DB == nil {
+		return zero, v2input.ErrInvalid
+	}
+	projected, err := exportBodyFitPersonProjection(fit, side, image)
+	if err != nil {
+		return zero, err
+	}
+	body := append([]byte(nil), raw...)
+	mask := projected.Person
+	fit = ExportClosureNode{Entry: fit.Entry, Body: append([]byte(nil), fit.Body...)}
+	if err := source.QualifyExportBodyFitInputInventory(ctx, parent, body, fit); err != nil {
+		return zero, err
+	}
+	consumer, err := source.LookupExportBodyDependencyOrigin(ctx, parent, body, fit.Entry)
+	if err != nil {
+		return zero, err
+	}
+	if consumer.Producer.Operation != "pair.fit.body" || consumer.Producer.Version != "1" {
+		return zero, v2input.ErrInvalid
+	}
+	err = tenant.WithTenant(ctx, s.DB, s.Who, s.Tenant, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
+		var bucket string
+		err := tx.QueryRow(ctx, `SELECT root.id,root.sha256,original.id,original.sha256,report.id,report.sha256,
    mask.bucket,mask.object_key,mask.object_version,mask.sha256,mask.bytes,mask.media_type
    FROM photo.artifacts mask
    JOIN photo.tasks producer ON producer.tenant_id=mask.tenant_id AND producer.id=mask.created_by_task_id
@@ -46,26 +78,72 @@ func(s SQLExportDocumentCatalog)LookupExportBodyFitPersonOrigin(ctx context.Cont
    AND mask.bucket=$9 AND root.bucket=$9 AND report.bucket=$9 AND original.bucket=$9
    AND root.media_type='application/json' AND root.bytes BETWEEN 2 AND 1048576
    AND original.media_type='application/json' AND original.bytes BETWEEN 2 AND 65536
-   AND report.media_type='application/json' AND report.bytes BETWEEN 2 AND 8388608`,s.Tenant,mask.Artifact.ID,mask.Artifact.SHA256,s.Request.ProjectID,projected.Image.ID,projected.Image.SHA256,s.Who.UserID,s.Who.SessionID,s.Bucket).Scan(&out.Root.ArtifactID,&out.Root.SHA256,&out.Params.ArtifactID,&out.Params.SHA256,&out.Report.ArtifactID,&out.Report.SHA256,&bucket,&out.Mask.Key,&out.Mask.VersionID,&out.Mask.SHA256,&out.Mask.Bytes,&out.Mask.ContentType)
-  if err!=nil{return err};if bucket!=s.Bucket||!validImportRef(out.Root)||!validImportRef(out.Params)||!validImportRef(out.Report)||out.Mask.Key==""||out.Mask.SHA256!=mask.Artifact.SHA256{return v2input.ErrInvalid};return ctx.Err()
- });if err!=nil{return zero,err}
- final,err:=s.LookupExportBodyDependencyOrigin(ctx,parent,body,fit.Entry);if err!=nil{return zero,err};if consumer!=final{return zero,v2input.ErrInvalid}
- if err:=s.QualifyExportBodyFitInputInventory(ctx,parent,body,fit);err!=nil{return zero,err}
- if err:=ctx.Err();err!=nil{return zero,err};return out,nil
+   AND report.media_type='application/json' AND report.bytes BETWEEN 2 AND 8388608`, s.Tenant, mask.Artifact.ID, mask.Artifact.SHA256, s.Request.ProjectID, projected.Image.ID, projected.Image.SHA256, s.Who.UserID, s.Who.SessionID, s.Bucket).Scan(&out.Root.ArtifactID, &out.Root.SHA256, &out.Params.ArtifactID, &out.Params.SHA256, &out.Report.ArtifactID, &out.Report.SHA256, &bucket, &out.Mask.Key, &out.Mask.VersionID, &out.Mask.SHA256, &out.Mask.Bytes, &out.Mask.ContentType)
+		if err != nil {
+			return err
+		}
+		if bucket != s.Bucket || !validImportRef(out.Root) || !validImportRef(out.Params) || !validImportRef(out.Report) || out.Mask.Key == "" || out.Mask.SHA256 != mask.Artifact.SHA256 {
+			return v2input.ErrInvalid
+		}
+		return ctx.Err()
+	})
+	if err != nil {
+		return zero, err
+	}
+	final, err := source.LookupExportBodyDependencyOrigin(ctx, parent, body, fit.Entry)
+	if err != nil {
+		return zero, err
+	}
+	if consumer != final {
+		return zero, v2input.ErrInvalid
+	}
+	if err := source.QualifyExportBodyFitInputInventory(ctx, parent, body, fit); err != nil {
+		return zero, err
+	}
+	if err := ctx.Err(); err != nil {
+		return zero, err
+	}
+	return out, nil
 }
 
-var _ ExportBodyFitPersonOriginSource=SQLExportDocumentCatalog{}
+var _ ExportBodyFitPersonOriginSource = SQLExportDocumentCatalog{}
+var _ ExportBodyFitPersonOriginSource = SQLExportResultInputCatalog{}
 
-func exportBodyFitPersonProjection(fit ExportClosureNode,side string,image ExportClosureNode)(review.StatsParams,error){
- var zero review.StatsParams
- inventory,err:=exportBodyFitInputInventory(fit);if err!=nil{return zero,err}
- var ref v2input.Ref
- switch side{case "before":ref=inventory.Before;case "after":ref=inventory.After;default:return zero,v2input.ErrInvalid}
- if image.Entry!=(v2input.Entry{Contract:"WorkingImage",Ref:ref})||len(image.Body)<2||len(image.Body)>2<<20||rawSHA(image.Body)!=ref.SHA256{return zero,v2input.ErrInvalid}
- var fields struct{Params map[string]json.RawMessage `json:"params"`}
- if json.Unmarshal(fit.Body,&fields)!=nil{return zero,v2input.ErrInvalid}
- mask,err:=review.ParseMaskRef(fields.Params[side+"_person"]);if err!=nil{return zero,err}
- working,err:=review.ParseWorkingImage(image.Body);if err!=nil{return zero,err}
- projection:=review.StatsParams{Image:review.ArtifactRef{ID:ref.ArtifactID,SHA256:ref.SHA256},Person:mask}
- if err:=projection.ValidateSource(working,projection.Image);err!=nil{return zero,err};return projection,nil
+func exportBodyFitPersonProjection(fit ExportClosureNode, side string, image ExportClosureNode) (review.StatsParams, error) {
+	var zero review.StatsParams
+	inventory, err := exportBodyFitInputInventory(fit)
+	if err != nil {
+		return zero, err
+	}
+	var ref v2input.Ref
+	switch side {
+	case "before":
+		ref = inventory.Before
+	case "after":
+		ref = inventory.After
+	default:
+		return zero, v2input.ErrInvalid
+	}
+	if image.Entry != (v2input.Entry{Contract: "WorkingImage", Ref: ref}) || len(image.Body) < 2 || len(image.Body) > 2<<20 || rawSHA(image.Body) != ref.SHA256 {
+		return zero, v2input.ErrInvalid
+	}
+	var fields struct {
+		Params map[string]json.RawMessage `json:"params"`
+	}
+	if json.Unmarshal(fit.Body, &fields) != nil {
+		return zero, v2input.ErrInvalid
+	}
+	mask, err := review.ParseMaskRef(fields.Params[side+"_person"])
+	if err != nil {
+		return zero, err
+	}
+	working, err := review.ParseWorkingImage(image.Body)
+	if err != nil {
+		return zero, err
+	}
+	projection := review.StatsParams{Image: review.ArtifactRef{ID: ref.ArtifactID, SHA256: ref.SHA256}, Person: mask}
+	if err := projection.ValidateSource(working, projection.Image); err != nil {
+		return zero, err
+	}
+	return projection, nil
 }
