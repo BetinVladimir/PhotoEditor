@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// Requires an isolated database migrated through 02127 and a test owner that
+// Requires an isolated database migrated through 02128 and a test owner that
 // may SET ROLE. The lease is written only inside a rolled-back transaction.
 func TestDeliveryRuntimeBucketLeaseAndRoleBoundary(t *testing.T) {
 	dsn := os.Getenv("PHOTO_TEST_DATABASE_URL")
@@ -33,8 +33,10 @@ func TestDeliveryRuntimeBucketLeaseAndRoleBoundary(t *testing.T) {
   AND NOT has_function_privilege('photo_scheduler','photo.announce_v30_delivery_runtime(uuid,text)','EXECUTE')
   AND has_function_privilege('photo_scheduler','photo.withdraw_v30_delivery_runtime(uuid)','EXECUTE')
   AND has_function_privilege('photo_scheduler','photo.claim_v30_delivery_expansion_bound(uuid,text)','EXECUTE')
+  AND has_function_privilege('photo_scheduler','photo.fail_v31_delivery_expired_policy(uuid,uuid,uuid)','EXECUTE')
   AND NOT has_function_privilege('photo_scheduler','photo.claim_v30_delivery_expansion()','EXECUTE')
   AND NOT has_function_privilege('photo_scheduler','photo.v30_delivery_expansion_instance_ready(uuid,text,uuid)','EXECUTE')
+  AND NOT has_function_privilege('photo_api','photo.fail_v31_delivery_expired_policy(uuid,uuid,uuid)','EXECUTE')
   AND NOT has_function_privilege('photo_api','photo.announce_v30_delivery_runtime(uuid,text)','EXECUTE')
   AND NOT has_function_privilege('photo_worker','photo.announce_v30_delivery_runtime(uuid,text)','EXECUTE')
   AND has_function_privilege('photo_api','photo.v30_delivery_runtime_ready(text)','EXECUTE')
@@ -68,6 +70,10 @@ func TestDeliveryRuntimeBucketLeaseAndRoleBoundary(t *testing.T) {
 	pins := window(now.Add(-time.Hour), now.Add(time.Hour))
 	if err = tx.QueryRow(ctx, `SELECT photo.announce_v30_delivery_runtime_complete($1,$2,$3,$4::jsonb,$5)`, instance, "photos-a", []uuid.UUID{signingTenant}, pins, true).Scan(&announced); err != nil || !announced {
 		t.Fatal("scheduler lease refused", err)
+	}
+	var finalized bool
+	if err = tx.QueryRow(ctx, `SELECT photo.fail_v31_delivery_expired_policy($1,$2,$3)`, uuid.New(), uuid.New(), instance).Scan(&finalized); err != nil || finalized {
+		t.Fatal("unknown delivery expansion reached expiry finalization", err)
 	}
 	if _, err = tx.Exec(ctx, `SET LOCAL ROLE photo_api`); err != nil {
 		t.Fatal(err)

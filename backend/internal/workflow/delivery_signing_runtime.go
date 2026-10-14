@@ -15,20 +15,21 @@ import (
 // DeliverySigningRuntime contains trusted deployment handles installed by the
 // scheduler process. None of these may be inferred from a Delivery request.
 type DeliverySigningRuntime struct {
-	DB *pgxpool.Pool
-	Reads provenance.SigningObjects
-	Writes artifactjson.Objects
+	Instance      uuid.UUID
+	DB            *pgxpool.Pool
+	Reads         provenance.SigningObjects
+	Writes        artifactjson.Objects
 	SignedObjects delivery.SignedDependencyObjectReader
-	Bucket string
-	WorkICCSHA string
-	Tenants map[uuid.UUID]DeliverySigningTenantRuntime
-	Clock func() time.Time
+	Bucket        string
+	WorkICCSHA    string
+	Tenants       map[uuid.UUID]DeliverySigningTenantRuntime
+	Clock         func() time.Time
 }
 
 type DeliverySigningTenantRuntime struct {
-	Policies *provenance.SigningPolicyRegistry
+	Policies         *provenance.SigningPolicyRegistry
 	NegativePolicies *provenance.SigningNegativePolicyRegistry
-	Resources delivery.DelegatedSigningResources
+	Resources        delivery.DelegatedSigningResources
 }
 
 // DeliverySigningRuntimeFromDeployment transfers only live, pinned per-tenant
@@ -43,13 +44,15 @@ func DeliverySigningRuntimeFromDeployment(db *pgxpool.Pool,
 		return DeliverySigningRuntime{}, v2input.ErrInvalid
 	}
 	handles, err := deployment.TenantHandles()
-	if err != nil || len(handles) == 0 { return DeliverySigningRuntime{}, v2input.ErrInvalid }
+	if err != nil || len(handles) == 0 {
+		return DeliverySigningRuntime{}, v2input.ErrInvalid
+	}
 	tenants := make(map[uuid.UUID]DeliverySigningTenantRuntime, len(handles))
 	for id, installed := range handles {
 		tenants[id] = DeliverySigningTenantRuntime{
-			Policies: installed.Policies,
+			Policies:         installed.Policies,
 			NegativePolicies: installed.NegativePolicies,
-			Resources: installed.Resources,
+			Resources:        installed.Resources,
 		}
 	}
 	return DeliverySigningRuntime{DB: db, Reads: reads, Writes: writes,
@@ -57,7 +60,7 @@ func DeliverySigningRuntimeFromDeployment(db *pgxpool.Pool,
 		Tenants: tenants, Clock: clock}, nil
 }
 
-type deliverySigningObservations struct { db *pgxpool.Pool }
+type deliverySigningObservations struct{ db *pgxpool.Pool }
 
 func (o deliverySigningObservations) Renew(ctx context.Context,
 	lease delivery.ExpansionLease) error {
@@ -72,17 +75,22 @@ func (o deliverySigningObservations) ReadObservationPage(ctx context.Context,
 		db: o.db, lease: lease}}).ReadObservationPage(ctx, lease, plan, cursor, limit)
 }
 
-type tenantDeliverySigningProcessor struct { runtime DeliverySigningRuntime; pageSize int }
+type tenantDeliverySigningProcessor struct {
+	runtime  DeliverySigningRuntime
+	pageSize int
+}
 
 func (p tenantDeliverySigningProcessor) ProcessSigning(ctx context.Context,
 	lease delivery.ExpansionLease, plan delivery.PreparePlan) (string, error) {
 	stage, _, err := p.runtime.forTenant(lease, p.pageSize)
-	if err != nil { return "", err }
+	if err != nil {
+		return "", err
+	}
 	return stage.ProcessSigning(ctx, lease, plan)
 }
 
 type tenantDeliverySignedAssemblyProcessor struct {
-	runtime DeliverySigningRuntime
+	runtime  DeliverySigningRuntime
 	pipeline DeliveryAssemblyPipeline
 	pageSize int
 }
@@ -90,7 +98,9 @@ type tenantDeliverySignedAssemblyProcessor struct {
 func (p tenantDeliverySignedAssemblyProcessor) ProcessAssembly(ctx context.Context,
 	lease delivery.ExpansionLease, plan delivery.PreparePlan) (string, error) {
 	_, closure, err := p.runtime.forTenant(lease, p.pageSize)
-	if err != nil { return "", err }
+	if err != nil {
+		return "", err
+	}
 	return (SignedDeliveryAssemblyProcessor{Pipeline: p.pipeline,
 		Verifier: closure}).ProcessAssembly(ctx, lease, plan)
 }
@@ -111,13 +121,14 @@ func (r DeliverySigningRuntime) forTenant(lease delivery.ExpansionLease,
 	}
 	stage := DeliverySigningStage{
 		Store: store, Observations: observations, PageSize: pageSize,
-		Failure: SQLDeliveryAssemblyStore{DB: r.DB},
-		SignedFailure: SQLDeliverySignedFailureStore{DB: r.DB},
+		Failure:       SQLDeliveryAssemblyStore{DB: r.DB},
+		SignedFailure: SQLDeliverySignedFailureStore{DB: r.DB, Instance: r.Instance},
+		ExpiredPolicy: SQLDeliverySignedFailureStore{DB: r.DB, Instance: r.Instance},
 		Dispatcher: delivery.DelegatedSigningSlotDispatcher{
 			DB: r.DB, Reads: r.Reads, Writes: r.Writes, Bucket: r.Bucket,
 			WorkICCSHA: r.WorkICCSHA, Policies: tenant.Policies,
 			NegativePolicies: tenant.NegativePolicies,
-			Resources: tenant.Resources, Clock: r.Clock,
+			Resources:        tenant.Resources, Clock: r.Clock,
 		}, Closure: closure,
 	}
 	return stage, closure, nil
@@ -140,6 +151,11 @@ func InstallDeliverySigningStage(job DeliveryExpansionJob,
 	if !ok || assembly.DB != runtime.DB || assembly.Bucket != runtime.Bucket {
 		return DeliveryExpansionJob{}, v2input.ErrInvalid
 	}
+	claimStore, ok := job.Driver.Store.(DeliveryRuntimePlanStore)
+	if !ok || claimStore.Instance == uuid.Nil || claimStore.Bucket != runtime.Bucket {
+		return DeliveryExpansionJob{}, v2input.ErrInvalid
+	}
+	runtime.Instance = claimStore.Instance
 	assembly.Objects = runtime.Writes
 	assembly.SignedObjects = runtime.SignedObjects
 	ownedTenants := make(map[uuid.UUID]DeliverySigningTenantRuntime, len(runtime.Tenants))
@@ -149,7 +165,9 @@ func InstallDeliverySigningStage(job DeliveryExpansionJob,
 			return DeliveryExpansionJob{}, v2input.ErrInvalid
 		}
 		projected, err := tenant.Policies.ForTenant(id)
-		if err != nil { return DeliveryExpansionJob{}, err }
+		if err != nil {
+			return DeliveryExpansionJob{}, err
+		}
 		tenant.Policies = projected
 		ownedTenants[id] = tenant
 	}
