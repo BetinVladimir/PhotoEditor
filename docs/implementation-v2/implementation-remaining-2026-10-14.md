@@ -79,6 +79,8 @@
 
 Scheduler runtime теперь имеет `RunSchedulerWithInterchangeExport` и `SchedulerInterchangeExportFactory`: установленный job включён в bounded loop, readiness, метрики и shutdown. Startup отвергает nil-job и ошибку фабрики. Executable пока не передаёт конкретную фабрику, так как scheduler native bundle authority ещё не полна; поэтому эта wiring-ветка не считается включённым export lifecycle. Unit-сценарии написаны, не запускались.
 
+Миграция `02049_v30_scheduler_working_warp.sql` и `SQLSchedulerExportInputCatalog.QualifyExportDenseWarpOccurrence` добавляют scheduler authority для `WorkingImage` transform-chain → `DenseWarpField`: sealed inputs, frozen snapshot, собственный текущий canonical producer поля и повторная проверка object pins. Поле может быть переиспользовано последующей операцией, поэтому совпадение producer с WorkingImage не требуется. Ветка `MaskRef` пока явно отклоняется до отдельного provenance-контракта. Миграция и unit/role-сценарии написаны, не выполнялись.
+
 `SchedulerExportClosureReader` соединяет проверку канонического result/ZIP с существующим полным обходом portable source inventory и manifest validation; он требует process-installed `SchedulerExportNativeResolverFactory`, возвращающий graph-bound native resolver, и после физического IO повторяет result, bundle object и person-origin проверки. Он формирует sessionless immutable evidence для `AdoptScheduler`. Поскольку native factory и оставшиеся SQL authority ещё не установлены, bundle путь по-прежнему fail-closed. Unit-сценарии написаны, не выполнялись.
 
 ## Граница первого MVP
