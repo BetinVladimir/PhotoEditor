@@ -8,6 +8,7 @@ REQUIRED_FUNCTIONS = (
     'photo.v30_import_adoption_schema_pin(uuid,uuid,integer,bigint,uuid)',
     'photo.v30_import_adoption_input_inventory(uuid,uuid,integer,bigint,uuid)',
     'photo.v30_import_adoption_person_mask_live(uuid,uuid,integer,bigint,uuid,uuid,uuid,text)',
+    'photo.v30_import_adoption_qualification_object(uuid,uuid,integer,bigint,uuid,text,jsonb,uuid,text)',
     'photo.adopt_v30_interchange_import(uuid,uuid,integer,bigint,uuid,jsonb,text,text,text,text,jsonb,jsonb)',
 )
 
