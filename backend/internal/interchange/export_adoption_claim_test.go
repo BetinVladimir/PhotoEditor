@@ -61,4 +61,10 @@ func TestExportAdoptionClaimStoreFailsClosedWithoutDatabase(t *testing.T) {
 	if current, err := store.CurrentExportAdoptionClaim(ctx, ExportAdoptionClaim{}); current || err != context.Canceled {
 		t.Fatal("cancelled current-claim queried", current, err)
 	}
+	if _, _, err := store.RootExportAdoption(context.Background(), ExportAdoptionClaim{}, "photos"); err != v2input.ErrInvalid {
+		t.Fatal("root read without installation accepted", err)
+	}
+	if _, _, err := store.RootExportAdoption(ctx, ExportAdoptionClaim{}, "photos"); err != context.Canceled {
+		t.Fatal("cancelled root read queried", err)
+	}
 }

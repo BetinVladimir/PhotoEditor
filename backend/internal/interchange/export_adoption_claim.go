@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/idempotency"
+	"photoeditor/backend/internal/objectstore"
 	"photoeditor/backend/internal/v2input"
 )
 
@@ -44,6 +45,53 @@ func (s SQLExportAdoptionClaimStore) CurrentExportAdoptionClaim(ctx context.Cont
 		return false, err
 	}
 	return current, nil
+}
+
+// RootExportAdoption pins only the first canonical output and repeats the
+// claim fence around its SQL lookup. Callers must still independently qualify
+// the root bytes and all transitive outputs before any adoption transaction.
+func (s SQLExportAdoptionClaimStore) RootExportAdoption(ctx context.Context, c ExportAdoptionClaim, bucket string) (v2input.Ref, objectstore.Object, error) {
+	var noRef v2input.Ref
+	var noObject objectstore.Object
+	if err := ctx.Err(); err != nil {
+		return noRef, noObject, err
+	}
+	if s.DB == nil || c.validate() != nil || len(bucket) < 3 || len(bucket) > 63 {
+		return noRef, noObject, v2input.ErrInvalid
+	}
+	current, err := s.CurrentExportAdoptionClaim(ctx, c)
+	if err != nil {
+		return noRef, noObject, err
+	}
+	if !current {
+		return noRef, noObject, v2input.ErrInvalid
+	}
+	var ref v2input.Ref
+	var object objectstore.Object
+	var foundBucket string
+	err = s.DB.QueryRow(ctx, `SELECT artifact_id,sha256,bucket,object_key,object_version,bytes,media_type FROM photo.v30_export_adoption_root_output($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+		c.Tenant, c.Workflow, c.Run, c.Task, c.Result, c.Actor, c.Key, c.RequestSHA, c.Token).
+		Scan(&ref.ArtifactID, &ref.SHA256, &foundBucket, &object.Key, &object.VersionID, &object.Bytes, &object.ContentType)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return noRef, noObject, v2input.ErrInvalid
+	}
+	if err != nil {
+		return noRef, noObject, err
+	}
+	object.SHA256 = ref.SHA256
+	if !validImportRef(ref) || foundBucket != bucket || object.Key == "" ||
+		object.VersionID == "" || object.VersionID == "null" ||
+		object.Bytes < 2 || object.Bytes > 65536 || object.ContentType != "application/json" {
+		return noRef, noObject, v2input.ErrInvalid
+	}
+	current, err = s.CurrentExportAdoptionClaim(ctx, c)
+	if err != nil {
+		return noRef, noObject, err
+	}
+	if !current {
+		return noRef, noObject, v2input.ErrInvalid
+	}
+	return ref, object, ctx.Err()
 }
 
 func (s SQLExportAdoptionClaimStore) NextExportAdoption(ctx context.Context) (*ExportAdoptionClaim, error) {
