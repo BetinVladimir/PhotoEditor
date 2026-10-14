@@ -110,7 +110,20 @@ func TestAPIInterchangeExportPinnedNativeFactory(t *testing.T) {
 	if err = os.WriteFile(path, raw, 0600); err != nil {
 		t.Fatal(err)
 	}
-	factory, err := prepareAPIInterchangeExport(context.Background(), path, hash(raw), apiProcessDependencies{InterchangeExportAuthority: &apiExportAuthority{}})
+	public, _, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	trusted := map[interchange.PortablePersonOriginKey]ed25519.PublicKey{
+		{IssuerID: uuid.New(), KeyID: hash(public)}: public,
+	}
+	deps := apiProcessDependencies{InterchangeExportAuthority: &apiExportAuthority{},
+		InterchangePersonOrigins: personOriginFactoryStub{}, InterchangePersonOriginTrust: trusted}
+	if incomplete, err := prepareAPIInterchangeExport(context.Background(), path, hash(raw),
+		apiProcessDependencies{InterchangeExportAuthority: &apiExportAuthority{}}); err == nil || incomplete != nil {
+		t.Fatal("export accepted without person-origin issuer and trust")
+	}
+	factory, err := prepareAPIInterchangeExport(context.Background(), path, hash(raw), deps)
 	if err != nil || factory == nil {
 		t.Fatal("pinned native factory unavailable", err)
 	}
@@ -124,7 +137,7 @@ func TestAPIInterchangeExportPinnedNativeFactory(t *testing.T) {
 	if err != context.Canceled || preparer != nil {
 		t.Fatal("cancelled native factory performed installation", err)
 	}
-	if _, err = prepareAPIInterchangeExport(context.Background(), path, hash(raw), apiProcessDependencies{InterchangeExportAuthority: &apiExportAuthority{}}); err == nil {
+	if _, err = prepareAPIInterchangeExport(context.Background(), path, hash(raw), deps); err == nil {
 		t.Fatal("changed deployment accepted")
 	}
 }

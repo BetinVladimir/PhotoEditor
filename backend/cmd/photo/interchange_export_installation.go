@@ -47,8 +47,8 @@ func prepareAPIInterchangeExport(ctx context.Context, path, pin string, dependen
 	if !filepath.IsAbs(path) || filepath.Clean(path) != path || err != nil || len(hash) != 32 || hex.EncodeToString(hash) != pin {
 		return nil, errors.New("interchange export requires absolute deployment file and lowercase SHA256")
 	}
-	if authority == nil || dependencies.InterchangeExport != nil {
-		return nil, errors.New("interchange export requires one installed native authority")
+	if authority == nil || origins == nil || len(trusted) == 0 || dependencies.InterchangeExport != nil {
+		return nil, errors.New("interchange export requires native authority and person-origin issuer/trust")
 	}
 	deployment, err := interchange.LoadNativeExportDeployment(ctx, path, pin)
 	if err != nil {
