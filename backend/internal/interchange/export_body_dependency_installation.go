@@ -42,6 +42,28 @@ func (s SQLExportBodyDependencyInstallation) BuildExportBodyDependencyQualifier(
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	if scheduler, ok := catalog.(SQLSchedulerExportInputCatalog); ok {
+		if objects == nil || s.Scratch == nil || s.Probe == nil {
+			return nil, v2input.ErrInvalid
+		}
+		if _, err := schedulerExportPolicyBindings(ctx, intent, frozen, scheduler); err != nil {
+			return nil, err
+		}
+		if err := SchedulerExportAdoptionSQLReady(ctx, scheduler.Claims.DB); err != nil {
+			return nil, err
+		}
+		models, err := exportBodyDependencyNativeModels(s.Configs)
+		if err != nil {
+			return nil, err
+		}
+		profile, err := NewExportBodyDependencyPolicy(scheduler, objects, s.Configs)
+		if err != nil {
+			return nil, err
+		}
+		return NewNativeExportBodyDependencyQualifier(
+			ExportBodyDependencyParamsReader{Source: scheduler, Objects: objects},
+			profile, s.Scratch, s.Probe, models, s.RuntimeSHA)
+	}
 	scoped, err := exportPolicyCatalogConfig(catalog)
 	if err != nil || scoped.DB == nil || objects == nil || s.Scratch == nil || s.Probe == nil {
 		return nil, v2input.ErrInvalid

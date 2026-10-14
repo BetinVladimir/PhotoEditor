@@ -93,6 +93,9 @@ Scheduler runtime теперь имеет `RunSchedulerWithInterchangeExport` и
 
 ## Граница первого MVP
 
+Миграции `02074–02076` и scheduler-методы `ReadExportBodyDependencyQualification`, `LookupExportBodyDependencyOrigin`, `MatchExportBodyDependencyProfile` переносят V30 body dependency (`pose.detect`, `face.landmarks`, `pair.fit.body`) на exact export claim. Report проверяется по операторской политике и физическим bytes до/после IO; origin связывает sealed geometry.body Params, accepted source, canonical child producer и original Params; профиль повторяет текущие execution locks после origin recheck. `SQLExportBodyDependencyInstallation` теперь строит этот native qualifier для scheduler без HTTP-сессии. Startup inventory включает три SQL-функции; миграции и unit-сценарии написаны, не запускались. Вложенные fit/alignment/feature/detector установщики ещё требуют отдельного переноса.
+
+
 Миграции `02072_v30_export_adoption_person_qualification.sql` и `02073_v30_export_adoption_person_profile.sql` добавляют scheduler-claim operator qualification report и текущий `mask.person` producer profile. `ReadExportPersonQualification` проверяет pinned report bytes и `v2qualification.Verify` до/после policy lookup; `QualifyExportPersonProfile` сверяет source с frozen snapshot, canonical producer/attempt, model/runtime/device locks и consent epochs. `SchedulerExportStatsPersonPolicy` хранит только operator-selected expected и frozen bindings, повторяет qualification/profile после IO; существующие typed readers и native mask verifier продолжают проверять root/Params/report и бинарную геометрию. Фабрика `SQLExportStatsPersonPolicyInstallation` теперь имеет scheduler-ветку без HTTP-сессии. Startup inventory включает `02072–02073`; миграции и unit-сценарии написаны, не запускались. Вложенные body installers и executable native installation path ещё не готовы.
 
 
