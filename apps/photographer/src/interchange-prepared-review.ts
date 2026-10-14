@@ -7,6 +7,7 @@ export type SavedPreparedReview={entry_id:string;target_version_id:string;kind:'
 export type DustCrop={x:number;y:number;width:number;height:number};
 export type DustCropMarker={left:number;top:number;width:number;height:number};
 export type SavedPreparedReviewPage={items:SavedPreparedReview[];next_after?:string};
+export type PreparedReviewPage={items:PreparedReviewItem[];next_after?:string};
 
 const uuid=(v:unknown):v is string=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(v)&&v!=='00000000-0000-0000-0000-000000000000';
 const sha=(v:unknown):v is string=>typeof v==='string'&&/^[0-9a-f]{64}$/.test(v);
@@ -74,6 +75,18 @@ export function readPreparedReviews(value:unknown,workflow:string):PreparedRevie
   items.push({...raw,document:{...raw.document,candidates}} as PreparedReviewItem);
  }
  return items;
+}
+
+export function preparedReviewCursor(row:PreparedReviewItem):string{
+ return `${row.entry_id}.${row.target_version_id}.${row.kind}.${row.proposal.artifact_id}`;
+}
+
+export function readPreparedReviewPage(value:unknown,workflow:string):PreparedReviewPage{
+ const items=readPreparedReviews(value,workflow);
+ if(!record(value)||(value.next_after!==undefined&&(typeof value.next_after!=='string'||items.length!==50||
+  value.next_after!==preparedReviewCursor(items[items.length-1]))))throw invalid();
+ for(let i=1;i<items.length;i++)if(preparedReviewCursor(items[i-1])>=preparedReviewCursor(items[i]))throw invalid();
+ return {items,...(value.next_after===undefined?{}:{next_after:value.next_after as string})};
 }
 
 export function freezePreparedReviewDecision(item:PreparedReviewItem,action:'grant'|'revoke',decision:'accept'|'reject'|'skip'='accept',accepted:readonly string[]=[],rejected:readonly string[]=[]):PreparedReviewDecision{

@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {freezePreparedReviewDecision,freezeSavedPreparedRevoke,projectDustCandidateToCrop,readPreparedReviewReceipt,readPreparedReviews,readSavedPreparedReviewPage,readSavedPreparedReviews,savedPreparedReviewCursor} from './interchange-prepared-review';
+import {freezePreparedReviewDecision,freezeSavedPreparedRevoke,preparedReviewCursor,projectDustCandidateToCrop,readPreparedReviewPage,readPreparedReviewReceipt,readPreparedReviews,readSavedPreparedReviewPage,readSavedPreparedReviews,savedPreparedReviewCursor} from './interchange-prepared-review';
 
 const id=(n:number)=>`00000000-0000-0000-0000-${String(n).padStart(12,'0')}`;
 const ref=(n:number)=>({artifact_id:id(n),sha256:String(n).padStart(64,'a')});
@@ -56,5 +56,12 @@ describe('prepared import review contract',()=>{
   expect(readSavedPreparedReviewPage({workflow_id:id(9),items,next_after},id(9)).next_after).toBe(next_after);
   expect(()=>readSavedPreparedReviewPage({workflow_id:id(9),items,next_after:'foreign'},id(9))).toThrow();
   expect(()=>readSavedPreparedReviewPage({workflow_id:id(9),items:items.slice(0,1),next_after},id(9))).toThrow();
+ });
+ it('requires the 50th prepared proposal to match its page cursor',()=>{
+  const items=Array.from({length:50},(_,i)=>({...item,entry_id:id(i+1),proposal:ref(600+i)}));
+  const next_after=preparedReviewCursor(items[49] as never);
+  expect(readPreparedReviewPage({workflow_id:id(9),items,next_after},id(9)).next_after).toBe(next_after);
+  expect(()=>readPreparedReviewPage({workflow_id:id(9),items,next_after:'foreign'},id(9))).toThrow();
+  expect(()=>readPreparedReviewPage({workflow_id:id(9),items:items.slice(0,1),next_after},id(9))).toThrow();
  });
 });

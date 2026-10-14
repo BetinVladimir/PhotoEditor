@@ -13,6 +13,7 @@ import (
 
 type InterchangeImportReviewProposalLister interface {
 	List(context.Context, auth.Identity, uuid.UUID, uuid.UUID, uuid.UUID) ([]interchange.ImportReviewProposalItem, error)
+	ListPage(context.Context, auth.Identity, uuid.UUID, uuid.UUID, uuid.UUID, string) (interchange.ImportReviewProposalPage, error)
 }
 
 func (s *Server) importReviewDecisionRoutes(router chi.Router) {
@@ -80,18 +81,28 @@ func (s *Server) importReviewDecisionRoutes(router chi.Router) {
 			writeError(w, r, domain.NewError("INTERCHANGE_UNAVAILABLE", 503))
 			return
 		}
-		items, err := s.InterchangeImportReviewProposals.List(r.Context(), who, tenantID, projectID, workflowID)
+		values := r.URL.Query()["after"]
+		if len(values) > 1 || len(values) == 1 && values[0] == "" {
+			writeError(w, r, domain.NewError("VALIDATION_FAILED", 422))
+			return
+		}
+		after := ""
+		if len(values) == 1 {
+			after = values[0]
+		}
+		page, err := s.InterchangeImportReviewProposals.ListPage(r.Context(), who, tenantID, projectID, workflowID, after)
 		if err != nil {
 			writeError(w, r, err)
 			return
 		}
-		if items == nil {
-			items = []interchange.ImportReviewProposalItem{}
+		if page.Items == nil {
+			page.Items = []interchange.ImportReviewProposalItem{}
 		}
 		writeJSON(w, http.StatusOK, struct {
 			WorkflowID uuid.UUID                              `json:"workflow_id"`
 			Items      []interchange.ImportReviewProposalItem `json:"items"`
-		}{workflowID, items})
+			NextAfter  string                                 `json:"next_after,omitempty"`
+		}{workflowID, page.Items, page.NextAfter})
 	})
 	router.Post(base, func(w http.ResponseWriter, r *http.Request) {
 		who, tenantID, err := s.tenantRequest(r, true)

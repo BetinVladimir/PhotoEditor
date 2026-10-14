@@ -23,3 +23,12 @@ func TestImportReviewProposalListRequiresInstalledDependencies(t *testing.T) {
 		t.Fatalf("canceled list: %v", err)
 	}
 }
+
+func TestImportReviewProposalCursorUsesExactCompositeIdentity(t *testing.T) {
+	item := ImportReviewProposalItem{EntryID: uuid.New(), TargetVersionID: uuid.New(), Kind: "defects"}
+	item.Proposal.ArtifactID = uuid.New()
+	entry, target, kind, proposal, err := parseImportReviewSavedCursor(importReviewProposalCursor(item))
+	if err != nil || entry != item.EntryID || target != item.TargetVersionID || kind != item.Kind || proposal != item.Proposal.ArtifactID {
+		t.Fatal("proposal page cursor lost exact identity", err)
+	}
+}

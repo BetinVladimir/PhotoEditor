@@ -33,63 +33,91 @@ type ImportReviewProposalListService struct {
 	Bucket  string
 }
 
+type ImportReviewProposalPage struct {
+	Items     []ImportReviewProposalItem `json:"items"`
+	NextAfter string                     `json:"next_after,omitempty"`
+}
+
+func importReviewProposalCursor(item ImportReviewProposalItem) string {
+	return item.EntryID.String() + "." + item.TargetVersionID.String() + "." + item.Kind + "." + item.Proposal.ArtifactID.String()
+}
+
 func (s ImportReviewProposalListService) List(ctx context.Context, who auth.Identity, tenantID, projectID, workflowID uuid.UUID) ([]ImportReviewProposalItem, error) {
+	page, err := s.ListPage(ctx, who, tenantID, projectID, workflowID, "")
+	return page.Items, err
+}
+
+func (s ImportReviewProposalListService) ListPage(ctx context.Context, who auth.Identity, tenantID, projectID, workflowID uuid.UUID, after string) (ImportReviewProposalPage, error) {
+	var zero ImportReviewProposalPage
 	if err := ctx.Err(); err != nil {
-		return nil, err
+		return zero, err
 	}
 	if s.DB == nil || s.Objects == nil || s.Bucket == "" {
-		return nil, domain.NewError("INTERCHANGE_UNAVAILABLE", 503)
+		return zero, domain.NewError("INTERCHANGE_UNAVAILABLE", 503)
 	}
 	if tenantID == uuid.Nil || projectID == uuid.Nil || workflowID == uuid.Nil || who.UserID == uuid.Nil || who.SessionID == uuid.Nil {
-		return nil, domain.NewError("VALIDATION_FAILED", 422)
+		return zero, domain.NewError("VALIDATION_FAILED", 422)
+	}
+	if _, _, _, _, err := parseImportReviewSavedCursor(after); err != nil {
+		return zero, err
 	}
 	parsedSource := SQLImportMaskCandidateParsedSource{DB: s.DB, Tenant: tenantID, Workflow: workflowID, Who: who, Bucket: s.Bucket}
 	parsed, err := ReadImportReviewParsed(ctx, parsedSource, s.Objects)
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
-	items, err := s.listMetadata(ctx, who, tenantID, projectID, workflowID, parsed)
+	metadata, err := s.listMetadata(ctx, who, tenantID, projectID, workflowID, parsed, after)
 	if err != nil {
-		return nil, err
+		return zero, err
+	}
+	items := metadata
+	nextAfter := ""
+	if len(metadata) == 51 {
+		items = metadata[:50]
+		nextAfter = importReviewProposalCursor(items[49])
 	}
 	for i := range items {
 		item := &items[i]
 		source := SQLImportReviewProposalSource{DB: s.DB, Tenant: tenantID, Workflow: workflowID, Who: who, Entry: item.EntryID, Target: item.TargetVersionID, Kind: item.Kind, Proposal: item.Proposal.ArtifactID, Parsed: parsed, Bucket: s.Bucket}
 		raw, proposal, base, readErr := ReadImportReviewProposal(ctx, source, s.Objects, item.Kind)
 		if readErr != nil {
-			return nil, readErr
+			return zero, readErr
 		}
 		if proposal != item.Proposal || base != item.Base {
-			return nil, artifactjson.ErrStale
+			return zero, artifactjson.ErrStale
 		}
 		item.Document = append(json.RawMessage(nil), raw...)
 	}
 	currentParsed, err := ReadImportReviewParsed(ctx, parsedSource, s.Objects)
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
 	if !bytes.Equal(parsed, currentParsed) {
-		return nil, artifactjson.ErrStale
+		return zero, artifactjson.ErrStale
 	}
-	current, err := s.listMetadata(ctx, who, tenantID, projectID, workflowID, currentParsed)
+	current, err := s.listMetadata(ctx, who, tenantID, projectID, workflowID, currentParsed, after)
+	if err != nil {
+		return zero, err
+	}
+	if len(current) != len(metadata) {
+		return zero, artifactjson.ErrStale
+	}
+	for i := range metadata {
+		if current[i].EntryID != metadata[i].EntryID || current[i].TargetVersionID != metadata[i].TargetVersionID || current[i].Kind != metadata[i].Kind ||
+			current[i].Proposal != metadata[i].Proposal || current[i].Base != metadata[i].Base || current[i].DecisionStatus != metadata[i].DecisionStatus || current[i].DecisionEpoch != metadata[i].DecisionEpoch {
+			return zero, artifactjson.ErrStale
+		}
+	}
+	return ImportReviewProposalPage{Items: items, NextAfter: nextAfter}, ctx.Err()
+}
+
+func (s ImportReviewProposalListService) listMetadata(ctx context.Context, who auth.Identity, tenantID, projectID, workflowID uuid.UUID, parsed []byte, after string) ([]ImportReviewProposalItem, error) {
+	entry, target, kind, proposal, err := parseImportReviewSavedCursor(after)
 	if err != nil {
 		return nil, err
 	}
-	if len(current) != len(items) {
-		return nil, artifactjson.ErrStale
-	}
-	for i := range items {
-		if current[i].EntryID != items[i].EntryID || current[i].TargetVersionID != items[i].TargetVersionID || current[i].Kind != items[i].Kind ||
-			current[i].Proposal != items[i].Proposal || current[i].Base != items[i].Base || current[i].DecisionStatus != items[i].DecisionStatus || current[i].DecisionEpoch != items[i].DecisionEpoch {
-			return nil, artifactjson.ErrStale
-		}
-	}
-	return items, ctx.Err()
-}
-
-func (s ImportReviewProposalListService) listMetadata(ctx context.Context, who auth.Identity, tenantID, projectID, workflowID uuid.UUID, parsed []byte) ([]ImportReviewProposalItem, error) {
 	items := make([]ImportReviewProposalItem, 0)
-	err := database.TenantTransaction(ctx, s.DB, tenantID, func(tx pgx.Tx) error {
+	err = database.TenantTransaction(ctx, s.DB, tenantID, func(tx pgx.Tx) error {
 		var actual uuid.UUID
 		if err := tx.QueryRow(ctx, `SELECT project_id FROM photo.v2_workflows WHERE tenant_id=$1 AND id=$2 AND workflow_type='interchange'`, tenantID, workflowID).Scan(&actual); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
@@ -100,7 +128,12 @@ func (s ImportReviewProposalListService) listMetadata(ctx context.Context, who a
 		if actual != projectID {
 			return domain.NewError("NOT_FOUND", 404)
 		}
-		rows, err := tx.Query(ctx, `SELECT entry_id,target_version_id,kind,proposal_id,proposal_sha,base_id,base_sha,decision_status,decision_epoch FROM photo.v30_import_review_proposal_list($1,$2,$3,$4,$5)`, tenantID, who.UserID, who.SessionID, workflowID, string(parsed))
+		var afterEntry, afterTarget, afterProposal *uuid.UUID
+		var afterKind *string
+		if after != "" {
+			afterEntry, afterTarget, afterKind, afterProposal = &entry, &target, &kind, &proposal
+		}
+		rows, err := tx.Query(ctx, `SELECT entry_id,target_version_id,kind,proposal_id,proposal_sha,base_id,base_sha,decision_status,decision_epoch FROM photo.v30_import_review_proposal_page($1,$2,$3,$4,$5,$6,$7,$8,$9)`, tenantID, who.UserID, who.SessionID, workflowID, string(parsed), afterEntry, afterTarget, afterKind, afterProposal)
 		if err != nil {
 			return err
 		}
@@ -113,7 +146,7 @@ func (s ImportReviewProposalListService) listMetadata(ctx context.Context, who a
 				&item.Base.ArtifactID, &item.Base.SHA256, &status, &epoch); err != nil {
 				return err
 			}
-			if len(items) >= 50 || item.EntryID == uuid.Nil || item.TargetVersionID == uuid.Nil ||
+			if len(items) >= 51 || item.EntryID == uuid.Nil || item.TargetVersionID == uuid.Nil ||
 				(item.Kind != "defects" && item.Kind != "dust") || !validImportRef(item.Proposal) || !validImportRef(item.Base) {
 				return domain.NewError("INTERCHANGE_PROPOSAL_LIST_INVALID", 503)
 			}

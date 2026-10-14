@@ -16,7 +16,7 @@ import {assertInterchangeSnapshot,assertInterchangeScope,readInterchangeJob,read
 import {freezeImportPersonMaskDecision,readImportPersonMaskDecision,type ImportPersonMaskDecision} from './interchange-person-mask-decision';
 import {readImportPersonMaskCandidates,readImportPersonMaskEntries} from './interchange-person-mask-candidates';
 import {readImportPersonMaskStatuses} from './interchange-person-mask-status';
-import {readPreparedReviews,readPreparedReviewReceipt,readSavedPreparedReviewPage,savedPreparedReviewCursor,type PreparedReviewDecision,type SavedPreparedReview} from './interchange-prepared-review';
+import {preparedReviewCursor,readPreparedReviewPage,readPreparedReviewReceipt,readSavedPreparedReviewPage,savedPreparedReviewCursor,type PreparedReviewDecision,type PreparedReviewItem,type SavedPreparedReview} from './interchange-prepared-review';
 import {readDeliveryInspection} from './delivery-inspection';
 import {deliveryDownloadTarget,readDeliveryDownloadIntent,readDeliveryDownloadLink} from './delivery-download';
 import {readDeliveryPage,type DeliverySummary} from './delivery-list';
@@ -120,8 +120,16 @@ export class OwnerAPI {
   }
   async preparedImportReviews(project:string,workflow:string,signal?:AbortSignal){
     assertInterchangeScope(this.tenant,project,workflow);signal?.throwIfAborted();
-    const value=await this.client.request<unknown>(this.path(`/api/v1/tenants/{t}/projects/${encodeURIComponent(project)}/interchange-jobs/${encodeURIComponent(workflow)}/prepared-reviews`),{method:'GET',signal});
-    signal?.throwIfAborted();return readPreparedReviews(value,workflow);
+    const items:PreparedReviewItem[]=[],seen=new Set<string>();let after='';
+    for(let pageNumber=0;pageNumber<250;pageNumber++){
+      const path=`/api/v1/tenants/{t}/projects/${encodeURIComponent(project)}/interchange-jobs/${encodeURIComponent(workflow)}/prepared-reviews${after?`?after=${encodeURIComponent(after)}`:''}`;
+      const value=await this.client.request<unknown>(this.path(path),{method:'GET',signal});signal?.throwIfAborted();
+      const page=readPreparedReviewPage(value,workflow);
+      for(const row of page.items){const cursor=preparedReviewCursor(row);if(seen.has(cursor)||after&&cursor<=after)throw new Error('INTERCHANGE_PREPARED_REVIEW_INVALID');seen.add(cursor);items.push(row);}
+      if(!page.next_after)return items;
+      if(page.next_after===after)throw new Error('INTERCHANGE_PREPARED_REVIEW_INVALID');after=page.next_after;
+    }
+    throw new Error('INTERCHANGE_PREPARED_REVIEW_INVALID');
   }
   async savedPreparedImportReviews(project:string,workflow:string,signal?:AbortSignal){
     assertInterchangeScope(this.tenant,project,workflow);signal?.throwIfAborted();
