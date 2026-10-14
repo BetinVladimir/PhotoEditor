@@ -33,3 +33,20 @@ func installLocalInterchangePersonKey(ctx context.Context, path, publicSHA, issu
 	dependencies.InterchangePersonIssuerID = id
 	return dependencies, nil
 }
+
+// The scheduler may verify person-origin signatures using the pinned public
+// manifest, but must never receive the API's signing secret declaration.
+func installRoleInterchangePersonKey(ctx context.Context, role, path, publicSHA, issuer string,
+	dependencies apiProcessDependencies) (apiProcessDependencies, error) {
+	if err := ctx.Err(); err != nil {
+		return dependencies, err
+	}
+	if role == "api" {
+		return installLocalInterchangePersonKey(ctx, path, publicSHA, issuer, dependencies)
+	}
+	if path != "" || publicSHA != "" || issuer != "" || dependencies.InterchangePersonOriginKey != nil ||
+		dependencies.InterchangePersonIssuerID != uuid.Nil || dependencies.InterchangePersonProcess != nil {
+		return dependencies, errors.New("person-origin private signer is restricted to API process")
+	}
+	return dependencies, nil
+}

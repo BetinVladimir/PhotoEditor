@@ -36,3 +36,18 @@ func TestInstallLocalInterchangePersonKey(t *testing.T) {
 		t.Fatal("duplicate signer declaration accepted")
 	}
 }
+
+func TestPersonOriginPrivateKeyIsAPIOnly(t *testing.T) {
+	base := apiProcessDependencies{}
+	if _, err := installRoleInterchangePersonKey(context.Background(), "scheduler", "", "", "", base); err != nil {
+		t.Fatal("public scheduler role rejected", err)
+	}
+	for _, field := range []struct{ path, pin, issuer string }{
+		{path: "/secret"}, {pin: "public-digest"}, {issuer: uuid.NewString()},
+	} {
+		if _, err := installRoleInterchangePersonKey(context.Background(), "scheduler",
+			field.path, field.pin, field.issuer, base); err == nil {
+			t.Fatal("scheduler accepted private signer declaration")
+		}
+	}
+}
