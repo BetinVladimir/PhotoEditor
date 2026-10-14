@@ -8,6 +8,7 @@ from photo_worker.operations.learning.series_evidence import (
     FrozenSeriesHoldoutEvidence, decode_frozen_series_holdout_evidence,
 )
 from photo_worker.operations.learning.contracts import RenderCase
+from photo_worker.operations.learning.fit import validate_fit_series_inputs
 from photo_worker.operations.session.contracts import VersionBinding
 
 
@@ -59,3 +60,46 @@ def test_series_render_ref_is_distinct_and_exclusive():
     with pytest.raises(ValueError, match='INVALID_HOLDOUT_(DUST|SERIES)_EVIDENCE'):
         RenderCase.model_validate(render.model_dump() | {
             'dust_evidence': ref('5').model_dump()})
+
+
+def test_fit_series_inputs_require_exact_manifest_binding_and_contracts():
+    evidence = _fixture()
+    raw = canonical_bytes(evidence)
+    artifact = ArtifactRef(artifact_id=uuid4(), sha256=sha256(raw).hexdigest())
+    def ref(char):
+        return ArtifactRef(artifact_id=uuid4(), sha256=char * 64)
+    case = RenderCase(
+        series_evidence=artifact,
+        binding=VersionBinding(asset_version_id=evidence.asset_version_id,
+            source=evidence.source_image, canvas_hash='f' * 64),
+        working_image=evidence.source_image, base_recipe=ref('a'),
+        approved_recipe=ref('b'), base_document=ref('c'),
+        approved_document=ref('d'), descriptor_shard=ref('1'),
+        descriptor_analysis_id=uuid4(), descriptor_ordinal=0,
+        protected=ref('2'), faces=ref('3'), approval_id=uuid4(),
+        source_lineage_sha='4' * 64)
+    declared = {
+        artifact.artifact_id: 'FrozenSeriesHoldoutEvidence',
+        evidence.source_image.artifact_id: 'WorkingImage',
+        evidence.stage_image.artifact_id: 'WorkingImage',
+        evidence.params.artifact_id: 'SeriesParams',
+        evidence.series.artifact_id: 'SeriesCorrections',
+    }
+
+    class Artifacts:
+        def contract_bytes(self, value, model):
+            assert value == artifact and model is FrozenSeriesHoldoutEvidence
+            return raw
+
+        def require_declared_contract(self, value, contract):
+            if declared.get(value.artifact_id) != contract:
+                raise ValueError('TASK_INPUT_CONTRACT_MISMATCH')
+
+    validate_fit_series_inputs(Artifacts(), case, evidence.event_id,
+                               evidence.tenant_id)
+    declared[evidence.params.artifact_id] = 'Params'
+    with pytest.raises(ValueError, match='TASK_INPUT_CONTRACT_MISMATCH'):
+        validate_fit_series_inputs(Artifacts(), case, evidence.event_id,
+                                   evidence.tenant_id)
+    with pytest.raises(ValueError, match='INVALID_HOLDOUT_SERIES_EVIDENCE'):
+        validate_fit_series_inputs(Artifacts(), case, uuid4(), evidence.tenant_id)

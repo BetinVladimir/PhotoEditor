@@ -136,6 +136,81 @@ func TestFitClosureDeclaresReviewedDefectDocument(t *testing.T) {
 	}
 }
 
+func TestFitClosureDeclaresExactSeriesRecoveryInputs(t *testing.T) {
+	project, profile, request, manifest := compiledTrainingDraftFixture(t)
+	tenant, actor, key := uuid.New(), uuid.New(), "series-fit-closure"
+	runID, err := v2input.RunID(tenant, actor, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	example := manifest.Examples[0]
+	document := seriesHoldoutFixture()
+	document.TenantID = tenant
+	document.EventID = example.EventID
+	document.AssetVersionID = example.RenderCase.Binding.AssetVersionID
+	document.SourceImage = example.RenderCase.WorkingImage
+	value, sha, err := CompileFrozenSeriesHoldoutEvidence(document)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref, err := SeriesHoldoutRef(runID, example.EventID, sha)
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest.Examples[0].RenderCase.SeriesEvidence = &ref
+	draft, err := PrepareTrainingDraft(tenant, actor, uuid.New(), project,
+		profile, key, 4096, request, manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	draft, err = AttachSeriesHoldoutRecovery(draft,
+		map[uuid.UUID]PreparedSeriesHoldout{example.EventID: {
+			Document: document, Body: value, SHA256: sha}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	paramsBody, err := CompileFitParams(draft, request.Policy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256(paramsBody)
+	params := artifactjson.Ref{ID: uuid.New(), SHA256: hex.EncodeToString(sum[:])}
+	closure, err := CompileFitClosure(draft, request.Policy, params)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cursor, err := closure.Open(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	seen := make(map[uuid.UUID]string)
+	for {
+		entry, okay, err := cursor.Next(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !okay {
+			break
+		}
+		seen[entry.Ref.ArtifactID] = entry.Contract
+	}
+	for _, want := range []v2input.Entry{
+		{Ref: ref, Contract: "FrozenSeriesHoldoutEvidence"},
+		{Ref: document.StageImage, Contract: "WorkingImage"},
+		{Ref: document.Params, Contract: "SeriesParams"},
+		{Ref: document.Series, Contract: "SeriesCorrections"},
+	} {
+		if seen[want.Ref.ArtifactID] != want.Contract {
+			t.Fatalf("missing series input %s", want.Contract)
+		}
+	}
+	missing := draft
+	missing.RecoveryBody = nil
+	if _, err := CompileFitClosure(missing, request.Policy, params); err == nil {
+		t.Fatal("series evidence admitted without recovery bytes")
+	}
+}
+
 func TestFitClosureDeclaresPairedIdentityEvidence(t *testing.T) {
 	project, profile, request, manifest := compiledTrainingDraftFixture(t)
 	effective := v2input.Ref{ArtifactID: uuid.New(), SHA256: manifest.Baseline.SHA256}

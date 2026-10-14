@@ -19,6 +19,35 @@ from .detail_evidence import (FrozenPortraitDetailHoldoutEvidence,
                               PortraitDetailHoldoutExpected,
                               decode_frozen_detail_evidence,
                               validate_holdout_detail_binding)
+from .series_evidence import (FrozenSeriesHoldoutEvidence,
+                              decode_frozen_series_holdout_evidence)
+
+
+def validate_fit_series_inputs(artifacts: TaskArtifacts, case,
+                               event_id, tenant_id) -> None:
+    """Bind declared series inputs to the frozen manifest row."""
+    if case.series_evidence is None:
+        return
+    artifacts.require_declared_contract(case.series_evidence,
+                                        'FrozenSeriesHoldoutEvidence')
+    raw = artifacts.contract_bytes(case.series_evidence,
+                                   FrozenSeriesHoldoutEvidence)
+    parsed = FrozenSeriesHoldoutEvidence.model_validate_json(raw)
+    evidence = decode_frozen_series_holdout_evidence(
+        raw, case.series_evidence, parsed)
+    if (evidence.tenant_id != tenant_id or evidence.event_id != event_id or
+            evidence.asset_version_id != case.binding.asset_version_id or
+            evidence.source_image != case.working_image or
+            any(ref is not None for ref in (
+                case.defect_evidence, case.dust_evidence,
+                case.detail_evidence))):
+        raise ValueError('INVALID_HOLDOUT_SERIES_EVIDENCE')
+    for ref, contract in (
+            (evidence.source_image, 'WorkingImage'),
+            (evidence.stage_image, 'WorkingImage'),
+            (evidence.params, 'SeriesParams'),
+            (evidence.series, 'SeriesCorrections')):
+        artifacts.require_declared_contract(ref, contract)
 
 
 def validate_fit_detail_inputs(artifacts: TaskArtifacts, case,
@@ -139,6 +168,8 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts) -> OperationResult:
             validate_frozen_render_case(case, base_recipe, approved_recipe, manifest)
             validate_fit_detail_inputs(artifacts, case, item.event_id,
                 ctx.lease.command.run_id, ctx.lease.command.tenant_id)
+            validate_fit_series_inputs(artifacts, case, item.event_id,
+                                       ctx.lease.command.tenant_id)
         result = fit_candidate(params, manifest, baseline, calibration,
                                check_active=ctx.check_active)
     except ValueError as exc:

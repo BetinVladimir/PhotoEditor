@@ -99,14 +99,30 @@ func CompileFitClosure(draft TrainingDraftPrepared, policy LearningPolicy,
 		{Ref: draft.Manifest.Calibration, Contract: "Calibration"},
 	}
 	var detailRecovery map[uuid.UUID]PreparedPortraitDetailHoldout
+	var seriesRecovery map[uuid.UUID]PreparedSeriesHoldout
+	var savedRecovery trainingDraftRecovery
 	for _, example := range draft.Manifest.Examples {
-		if example.RenderCase.DetailEvidence != nil {
-			var saved trainingDraftRecovery
-			if json.Unmarshal(draft.RecoveryBody, &saved) != nil {
+		if example.RenderCase.DetailEvidence != nil || example.RenderCase.SeriesEvidence != nil {
+			if json.Unmarshal(draft.RecoveryBody, &savedRecovery) != nil {
 				return FitClosure{}, ErrInvalidTrainingDraft
 			}
+			break
+		}
+	}
+	for _, example := range draft.Manifest.Examples {
+		if example.RenderCase.DetailEvidence != nil {
 			detailRecovery, err = portraitDetailFromRecovery(draft,
-				[]byte(saved.DetailJCS))
+				[]byte(savedRecovery.DetailJCS))
+			if err != nil {
+				return FitClosure{}, err
+			}
+			break
+		}
+	}
+	for _, example := range draft.Manifest.Examples {
+		if example.RenderCase.SeriesEvidence != nil {
+			seriesRecovery, err = seriesHoldoutFromRecovery(draft,
+				[]byte(savedRecovery.SeriesJCS))
 			if err != nil {
 				return FitClosure{}, err
 			}
@@ -156,6 +172,26 @@ func CompileFitClosure(draft TrainingDraftPrepared, policy LearningPolicy,
 				entries = append(entries, v2input.Entry{Ref: mask,
 					Contract: "NpyArray"})
 			}
+		}
+		if c.SeriesEvidence != nil {
+			origin, found := seriesRecovery[example.EventID]
+			if !found || origin.Document.TenantID != draft.TenantID ||
+				origin.Document.EventID != example.EventID ||
+				origin.Document.AssetVersionID != c.Binding.AssetVersionID ||
+				origin.Document.SourceImage != c.WorkingImage ||
+				c.DefectEvidence != nil || c.DustEvidence != nil || c.DetailEvidence != nil {
+				return FitClosure{}, ErrInvalidTrainingDraft
+			}
+			expected, err := SeriesHoldoutRef(draft.RunID,
+				example.EventID, origin.SHA256)
+			if err != nil || expected != *c.SeriesEvidence {
+				return FitClosure{}, ErrInvalidTrainingDraft
+			}
+			entries = append(entries,
+				v2input.Entry{Ref: expected, Contract: "FrozenSeriesHoldoutEvidence"},
+				v2input.Entry{Ref: origin.Document.StageImage, Contract: "WorkingImage"},
+				v2input.Entry{Ref: origin.Document.Params, Contract: "SeriesParams"},
+				v2input.Entry{Ref: origin.Document.Series, Contract: "SeriesCorrections"})
 		}
 		entries = append(entries,
 			v2input.Entry{Ref: c.WorkingImage, Contract: "WorkingImage"},
