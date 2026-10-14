@@ -1,4 +1,5 @@
 import numpy as np
+from collections.abc import Callable
 from scipy.optimize import least_squares
 from photo_worker.contracts.base import canonical_bytes
 from photo_worker.contracts.series import ItemCorrection,SeriesCorrections,SeriesParams,SeriesStats
@@ -10,7 +11,9 @@ def _vector(stats,ids):
     by={r.region_id:r for r in stats.regions};return np.concatenate([np.log(np.maximum(by[i].mean_rgb,1e-6)) for i in ids])
 
 
-def compute_series_corrections(p:SeriesParams,values:list[SeriesStats])->SeriesCorrections:
+def compute_series_corrections(p:SeriesParams,values:list[SeriesStats],check_active:Callable[[],None]|None=None)->SeriesCorrections:
+    if check_active is None:check_active=lambda:None
+    check_active()
     if len(values) < 2 or len(values) > 2000:
         raise ValueError('Invalid series size')
     by={v.item_id:v for v in values}
@@ -20,10 +23,18 @@ def compute_series_corrections(p:SeriesParams,values:list[SeriesStats])->SeriesC
     if p.reference_item_id is None:
         candidates=[v for v in values if min(r.confidence for r in v.regions)>=p.min_confidence]
         if not candidates:candidates=values
-        vectors={v.item_id:_vector(v,common) if common else np.zeros(1) for v in candidates};reference=min(candidates,key=lambda v:(sum(np.linalg.norm(vectors[v.item_id]-vectors[x.item_id]) for x in candidates),str(v.item_id)))
+        vectors={v.item_id:_vector(v,common) if common else np.zeros(1) for v in candidates}
+        def reference_distance(value):
+            total=0
+            for index,other in enumerate(candidates):
+                if index%32==0:check_active()
+                total+=np.linalg.norm(vectors[value.item_id]-vectors[other.item_id])
+            return total
+        reference=min(candidates,key=lambda v:(reference_distance(v),str(v.item_id)))
     else:reference=by[p.reference_item_id]
     corrections=[];skipped=False
     for value in sorted(values,key=lambda v:str(v.item_id)):
+        check_active()
         if value.item_id==reference.item_id:corrections.append(ItemCorrection(item_id=value.item_id,raw_ev=0,raw_gains=[1.,1.,1.],applied_ev=0,applied_gains=[1.,1.,1.],confidence=1,accepted=True,reason='reference'));continue
         if not common:
             corrections.append(ItemCorrection(item_id=value.item_id,raw_ev=0,raw_gains=[1.,1.,1.],applied_ev=0,applied_gains=[1.,1.,1.],confidence=0,accepted=False,reason='no_common_regions'));skipped=True;continue
@@ -31,6 +42,7 @@ def compute_series_corrections(p:SeriesParams,values:list[SeriesStats])->SeriesC
         src=np.asarray([left[i].mean_rgb for i in common]);dst=np.asarray([right[i].mean_rgb for i in common]);scale=np.maximum(dst,.05)
         def residual(x):return np.r_[((src*(2**x[0])*np.exp(x[1:])-dst)/scale).reshape(-1),x]
         fit=least_squares(residual,np.zeros(4),loss='soft_l1',max_nfev=200)
+        check_active()
         if (not fit.success or np.shape(fit.x)!=(4,) or
                 not np.isfinite(fit.x).all() or np.max(np.abs(fit.x))>20):
             corrections.append(ItemCorrection(item_id=value.item_id,raw_ev=0,raw_gains=[1.,1.,1.],applied_ev=0,applied_gains=[1.,1.,1.],confidence=confidence,accepted=False,reason='residual_not_improved'))
@@ -62,7 +74,7 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts,runtime_locks:tuple[str
     require_series_runtime(ctx,runtime_locks)
     try:
         p=artifacts.params(SeriesParams);values=[artifacts.contract(r,SeriesStats) for r in p.stats]
-        result=compute_series_corrections(p,values)
+        result=compute_series_corrections(p,values,ctx.check_active)
     except ValueError as exc:raise OperationFailure('INPUT_INVALID') from exc
     ref=artifacts.stage_contract(result,'series_corrections');return OperationResult(outputs=[ref],review_required=bool(result.warnings),bytes_written=len(canonical_bytes(result)))
 

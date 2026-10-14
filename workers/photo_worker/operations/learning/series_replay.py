@@ -29,7 +29,7 @@ def _same_series_styles(styles):
 
 
 def _frozen_series_correction(artifacts, case, item, workspace, styles,
-                              training_run_id, tenant_id):
+                              training_run_id, tenant_id, check_active=lambda: None):
     style = _same_series_styles(styles)
     if case.series_evidence is None:
         raise ValueError('HOLDOUT_SERIES_EVIDENCE_REQUIRED')
@@ -92,7 +92,7 @@ def _frozen_series_correction(artifacts, case, item, workspace, styles,
         raise ValueError('HOLDOUT_SERIES_MATERIAL_MISMATCH')
     # Source provenance pins the result bytes; replay the exact producer
     # algorithm so those bytes also have to follow from the sealed Stats.
-    expected = compute_series_corrections(params, stats)
+    expected = compute_series_corrections(params, stats, check_active)
     if canonical_bytes(expected) != canonical_bytes(series):
         raise ValueError('HOLDOUT_SERIES_CORRECTION_MISMATCH')
     selected = items[evidence.item_id]
@@ -106,7 +106,7 @@ def open_holdout_series(artifacts, item, workspace, styles, *,
     """Keep one immutable selected correction for the three color renders."""
     check_active()
     correction = _frozen_series_correction(artifacts, item.render_case,
-        item, workspace, styles, training_run_id, tenant_id)
+        item, workspace, styles, training_run_id, tenant_id, check_active)
     frozen = canonical_bytes(correction)
     check_active()
     yield correction
