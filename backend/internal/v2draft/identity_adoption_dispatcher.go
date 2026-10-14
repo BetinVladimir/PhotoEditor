@@ -101,6 +101,12 @@ func (d *IdentityAdoptionDispatcher) ProcessOne(ctx context.Context) (bool, erro
 		d.after = uuid.Nil
 		return false, nil
 	}
+	if candidate.Scope.Tenant == uuid.Nil || candidate.Scope.Task == uuid.Nil ||
+		candidate.Scope.Result == uuid.Nil || !isDocumentRef(candidate.Scope.Root) ||
+		!isDocumentRef(candidate.Params) || candidate.Attempt < 1 || candidate.Fence < 1 ||
+		(d.after != uuid.Nil && bytes.Compare(candidate.Scope.Task[:], d.after[:]) <= 0) {
+		return false, v2input.ErrInvalid
+	}
 	d.after = candidate.Scope.Task
 	work, stop := context.WithTimeout(ctx, d.Timeout)
 	defer stop()

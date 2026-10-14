@@ -50,3 +50,20 @@ func TestIdentityAdoptionDispatcherRevisitsFailedCandidateAfterWrap(t *testing.T
 		t.Fatal("candidate cursor not advanced and wrapped")
 	}
 }
+
+func TestIdentityAdoptionDispatcherRejectsUntrustedCandidateBeforeObjectIO(t *testing.T) {
+	job := &IdentityAdoptionCandidate{Scope: IdentityResultScope{Tenant: uuid.New(), Task: uuid.New(), Result: uuid.New(),
+		Root: v2input.Ref{ArtifactID: uuid.New(), SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}},
+		Params: v2input.Ref{ArtifactID: uuid.New(), SHA256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}, Attempt: 1, Fence: 1}
+	queue := &identityCandidateQueueFixture{candidate: job}
+	adopter := &identityCandidateAdopterFixture{}
+	d := &IdentityAdoptionDispatcher{Candidates: queue, Adopter: adopter, Timeout: time.Minute}
+	job.Scope.Root.SHA256 = "invalid"
+	if ok, err := d.ProcessOne(context.Background()); ok || !errors.Is(err, v2input.ErrInvalid) || adopter.calls != 0 || d.after != uuid.Nil {
+		t.Fatal("untrusted candidate reached adopter", err)
+	}
+	job.Scope.Root.SHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	if ok, err := d.ProcessOne(context.Background()); ok || err != nil || adopter.calls != 0 {
+		t.Fatal("invalid candidate advanced cursor", err)
+	}
+}
