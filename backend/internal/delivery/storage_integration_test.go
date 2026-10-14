@@ -151,6 +151,12 @@ func TestDeliveryIntentRedemptionRetainsLiveTargetAndObjectVersion(t *testing.T)
 		"i.delivery_session_id", "i.delivery_sha", "i.delivery_object_version", "consumed_at=clock_timestamp()"} {
 		if !strings.Contains(definition, required) { t.Fatal("Delivery redemption authority missing", required) }
 	}
+	if strings.Contains(definition, "l.permissions->'download'<>'true'::jsonb") ||
+		!strings.Contains(definition, "l.permissions->'download' IS DISTINCT FROM 'true'::jsonb") ||
+		!strings.Contains(definition, "jsonb_typeof(l.allowed_presets) IS DISTINCT FROM 'array'") ||
+		!strings.Contains(definition, "jsonb_array_elements(CASE WHEN jsonb_typeof(l.allowed_presets)='array'") {
+		t.Fatal("legacy download redemption must fail closed on absent permission")
+	}
 	var outcome string
 	err = db.QueryRow(ctx, `SELECT outcome FROM photo.redeem_download_intent($1,'photo')`,
 		[]byte(strings.Repeat("x",32))).Scan(&outcome)
