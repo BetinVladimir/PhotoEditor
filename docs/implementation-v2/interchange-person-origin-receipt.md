@@ -76,8 +76,14 @@ The service now requires `StagedImportPersonOriginScope` before receipt IO and
 again before SQL. It physically reads the staged portable recipe, WorkingImage,
 MaskRef and Override, validates their source/canvas/transform chain and exact
 confirmed `person_subject` occurrence, and rechecks each object locator.
-Production installation and live receipt plus user-grant checks at every
-admission/activation boundary remain outstanding.
+Production installation and a full audit of every later activation boundary
+remain outstanding.
+Migration 02030 makes the existing prepared-mask live function require both
+the current confirmation epoch and a matching current origin-receipt row. The
+leased worker entry point already calls this function, so worker admission
+inherits the new gate. `SQLImportConfirmedMaskAuthority.live` also checks that
+joint gate for the exact archived mask before remapping it. Production
+installation of the recorder and archive publication remains outstanding.
 
 The bundle schema now has an optional `person_origins` mapping. Its entry ID,
 recipe, Override, MaskRef, MaskPixels and receipt path/SHA must all resolve to

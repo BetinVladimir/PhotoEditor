@@ -40,10 +40,26 @@ func (a SQLImportConfirmedMaskAuthority) live(ctx context.Context, scope ImportM
 		if role != "photo_scheduler" {
 			return v2input.ErrInvalid
 		}
-		return tx.QueryRow(ctx, `SELECT photo.v30_import_person_mask_confirmation_live($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+		if err := tx.QueryRow(ctx, `SELECT photo.v30_import_person_mask_confirmation_live($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
 			a.Store.Tenant, scope.Workflow, scope.Entry, scope.Recipe.ArtifactID, scope.Recipe.SHA256,
 			scope.Override.ArtifactID, scope.Override.SHA256, archived.Artifact.ID, archived.Artifact.SHA256,
-			old.AssetVersionID, target.AssetVersionID, string(a.Store.Parsed)).Scan(&epoch)
+			old.AssetVersionID, target.AssetVersionID, string(a.Store.Parsed)).Scan(&epoch); err != nil {
+			return err
+		}
+		if epoch == nil || *epoch < 1 {
+			return nil
+		}
+		prepared := uuid.NewSHA1(scope.Workflow, []byte("interchange:dependency:"+scope.Entry.String()+":MaskPixels:"+archived.Artifact.ID.String()))
+		var originEpoch *int64
+		if err := tx.QueryRow(ctx, `SELECT photo.v30_import_person_mask_prepared_live($1,$2,$3,$4,$5,$6)`,
+			a.Store.Tenant, scope.Workflow, target.AssetVersionID, prepared,
+			archived.Artifact.SHA256, string(a.Store.Parsed)).Scan(&originEpoch); err != nil {
+			return err
+		}
+		if originEpoch == nil || *originEpoch != *epoch {
+			return &ImportRecipeUnsupported{Reason: "imported_mask_origin_missing_or_changed"}
+		}
+		return nil
 	})
 	if err != nil {
 		return 0, err

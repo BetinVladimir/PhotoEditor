@@ -3,6 +3,7 @@ package interchange
 import (
 	"context"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -50,5 +51,16 @@ func TestIntegrationPersonOriginReceiptStorageIsNotUserGrant(t *testing.T) {
 	}
 	if recorded {
 		t.Fatal("unverified receipt recorded")
+	}
+	var predecessorAllowed bool
+	var definition string
+	if err := db.QueryRow(ctx, `SELECT has_function_privilege('photo_scheduler',
+ 'photo.v30_import_person_mask_prepared_live_pre_origin(uuid,uuid,uuid,uuid,text,text)','EXECUTE'),
+ pg_get_functiondef('photo.v30_import_person_mask_prepared_live(uuid,uuid,uuid,uuid,text,text)'::regprocedure)`).Scan(&predecessorAllowed, &definition); err != nil {
+		t.Fatal(err)
+	}
+	if predecessorAllowed || !strings.Contains(definition, "v30_import_person_origin_receipt_live") ||
+		!strings.Contains(definition, "v30_import_person_mask_prepared_live_pre_origin") {
+		t.Fatal("prepared person mask does not require live origin and consent")
 	}
 }
