@@ -40,6 +40,13 @@ nonempty `person_origins` until a qualified issuer and source-inventory
 receipt path are installed; this prevents an untrusted file from being
 published as provenance by the existing exporter.
 
+`VerifyImportedPersonOriginFile` now joins the validated parsed manifest to
+the exact staged `PersonOriginReceipt` file and its SHA, requires one mapping
+for the caller's expected entry/refs, then invokes the process-trust Ed25519
+verifier over the actual receipt bytes. It returns the staged file ref for
+later version-pinned object and SQL checks. A parsed mapping or valid signature
+alone remains insufficient for origin acceptance or user consent.
+
 The Python and Go pure contracts and negative unit scenarios are authored but
 not executed.
 No exporter signer, qualified receipt publisher, SQL receipt authority, process trust
