@@ -178,8 +178,9 @@ func TestDeliveryIntentRedemptionRetainsLiveTargetAndObjectVersion(t *testing.T)
 	if strings.Contains(definition, "l.permissions->'download'<>'true'::jsonb") ||
 		!strings.Contains(definition, "l.permissions->'download' IS DISTINCT FROM 'true'::jsonb") ||
 		!strings.Contains(definition, "jsonb_typeof(l.allowed_presets) IS DISTINCT FROM 'array'") ||
-		!strings.Contains(definition, "jsonb_array_elements(CASE WHEN jsonb_typeof(l.allowed_presets)='array'") {
-		t.Fatal("legacy download redemption must fail closed on absent permission")
+		!strings.Contains(definition, "jsonb_array_elements(CASE WHEN jsonb_typeof(l.allowed_presets)='array'") ||
+		!strings.Contains(definition, "s.collection_id IS DISTINCT FROM j.collection_id") {
+		t.Fatal("legacy download redemption must fail closed on absent permission or mismatched guest collection")
 	}
 	var outcome string
 	err = db.QueryRow(ctx, `SELECT outcome FROM photo.redeem_download_intent($1,'photo')`,
@@ -220,7 +221,8 @@ func TestDeliveryDownloadPostSigningAuthorityRejectsUnknownBearer(t *testing.T) 
 	for _, required := range []string{"photo.share_sessions", "photo.share_links",
 		"photo.publications", "photo.asset_versions", "photo.export_presets",
 		"photo.download_volumes", "photo.download_jobs", "photo.memberships",
-		"photo.project_acl", "photo.snapshot_items"} {
+		"photo.project_acl", "photo.snapshot_items",
+		"s.collection_id IS DISTINCT FROM j.collection_id"} {
 		if !strings.Contains(definition, required) {
 			t.Fatal("legacy download post-signing policy recheck missing", required)
 		}
