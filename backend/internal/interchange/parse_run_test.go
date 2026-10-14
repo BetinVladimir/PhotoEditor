@@ -3,6 +3,7 @@ package interchange
 import (
  "context"
  "encoding/json"
+ "photoeditor/backend/internal/domain"
  "testing"
  "github.com/google/uuid"
 )
@@ -17,6 +18,8 @@ func TestBeginParseRunScopesAndBindsSnapshotConfig(t *testing.T){
  if err:=plan.BeginParseRun(context.Background(),tx,who,uuid.New(),request,"key");err==nil||tx.args!=nil{t.Fatal("foreign run queried")}
  tx.accepted=false
  if err:=plan.BeginParseRun(context.Background(),tx,who,tid,request,"key");err==nil{t.Fatal("SQL refusal ignored")}
+ tx.runtimeUnavailable=true
+ if err:=plan.BeginParseRun(context.Background(),tx,who,tid,request,"key");domain.AsError(err)==nil||domain.AsError(err).Code!="INTERCHANGE_UNAVAILABLE"{t.Fatal("missing scheduler runtime was not reported as unavailable",err)}
 }
 
 func TestParseQueuePendingHistoricalReplay(t *testing.T){

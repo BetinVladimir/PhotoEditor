@@ -4,6 +4,7 @@ import (
  "context"
  "crypto/sha256"
  "encoding/hex"
+ "strings"
  "testing"
  "github.com/google/uuid"
  "github.com/jackc/pgx/v5"
@@ -12,8 +13,11 @@ import (
 )
 type proofRow bool
 func(r proofRow)Scan(dest ...any)error{*dest[0].(*bool)=bool(r);return nil}
-type proofTx struct{args []any;accepted bool}
-func(tx *proofTx)QueryRow(_ context.Context,_ string,args ...any)pgx.Row{tx.args=args;return proofRow(tx.accepted)}
+type proofTx struct{args []any;accepted bool;runtimeUnavailable bool}
+func(tx *proofTx)QueryRow(_ context.Context,query string,args ...any)pgx.Row{
+ if strings.Contains(query,"v30_import_runtime_ready"){return proofRow(!tx.runtimeUnavailable)}
+ tx.args=args;return proofRow(tx.accepted)
+}
 func TestParseProofExactParamsAndIdentity(t *testing.T){
  params:=ParseParams{1,ImportRequest{uuid.New(),"import","photoeditor_bundle",v2input.Ref{ArtifactID:uuid.New(),SHA256:"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}},1024,10}
  raw,err:=CompileParseParams(params);if err!=nil{t.Fatal(err)};sum:=sha256.Sum256(raw)

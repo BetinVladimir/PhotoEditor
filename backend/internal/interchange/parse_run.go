@@ -25,5 +25,10 @@ func(p ParsePlan)BeginParseRun(ctx context.Context,tx ProofTransaction,who auth.
  }{p.queueClass,1,request.ProjectID,p.identity.Snapshot,"interchange",intent.RequestSHA,document.Snapshot.SnapshotDigest,document.Ref});if err!=nil{return err}
  var accepted bool
  err=tx.QueryRow(ctx,`SELECT photo.begin_v30_interchange_parse_run($1,$2,$3,$4,$5,$6,$7,$8)`,tenant,who.UserID,who.SessionID,key,intent.RequestSHA,string(config),string(document.Body),string(unsigned)).Scan(&accepted)
- if err!=nil{return err};if !accepted{return domain.NewError("INTERCHANGE_CREATE_STALE",409)};return nil
+ if err!=nil{return err};if !accepted{
+  var runtimeReady bool
+  if err=tx.QueryRow(ctx,`SELECT photo.v30_import_runtime_ready()`).Scan(&runtimeReady);err!=nil{return err}
+  if !runtimeReady{return domain.NewError("INTERCHANGE_UNAVAILABLE",503)}
+  return domain.NewError("INTERCHANGE_CREATE_STALE",409)
+ };return nil
 }
