@@ -755,5 +755,21 @@
   "interchange_mask_entries_error": "Unable to load imported photos for mask review.",
   "interchange_mask_candidates_error": "Unable to load masks for this photo.",
   "interchange_mask_preview_error": "Unable to verify the photo and mask preview.",
-  "interchange_mask_decision_error": "Unable to save the mask decision. Refresh and try again."
+  "interchange_mask_decision_error": "Unable to save the mask decision. Refresh and try again.",
+  "interchange_prepared_open": "Review imported defects and dust",
+  "interchange_prepared_title": "Imported defects and sensor dust",
+  "interchange_prepared_loading": "Loading prepared reviews",
+  "interchange_prepared_error": "Unable to load or save this review. Refresh and try again.",
+  "interchange_prepared_empty": "No prepared defect or dust reviews are ready.",
+  "interchange_prepared_defects": "Defect candidates",
+  "interchange_prepared_dust": "Sensor dust candidates",
+  "interchange_prepared_candidates": "candidates",
+  "interchange_prepared_photo": "Imported photo",
+  "interchange_prepared_accept": "Accept",
+  "interchange_prepared_reject": "Reject",
+  "interchange_prepared_explain": "Review the photo and each candidate before saving. Unselected candidates remain pending. Dust coordinates refer to the sensor crop.",
+  "interchange_prepared_save": "Save selected decisions",
+  "interchange_prepared_skip": "Skip this proposal",
+  "interchange_prepared_revoke": "Revoke this decision",
+  "interchange_prepared_saved": "Saved decision"
 }

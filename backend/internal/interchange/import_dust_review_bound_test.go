@@ -50,12 +50,41 @@ func TestBoundDustReviewRejectsUnknownCandidate(t *testing.T) {
 	proposal := review.ArtifactRef{ID: uuid.New(), SHA256: rawSHA(raw)}
 	selection := review.DustSelection{Version: "sensor_dust_review_v1", Proposal: proposal, Base: frames[0], Revision: 2, Accepted: []string{id}, Rejected: []string{}}
 	target := v2input.SessionVersionBinding{AssetVersionID: uuid.New(), Source: v2input.Ref{ArtifactID: frames[0].ID, SHA256: frames[0].SHA256}, CanvasHash: rawSHA([]byte("canvas"))}
+	old := target
+	old.AssetVersionID = uuid.New()
+	old.Source.ArtifactID = uuid.New()
+	archived := selection
+	archived.Base.ID = old.Source.ArtifactID
+	archived.Proposal.ID = uuid.New()
 	authority := BoundImportDustReviewAuthority{Documents: dustReviewReader{raw: raw}, Series: dustSeriesAuthorityStub{}, Current: dustReviewCurrentStub{}, Target: target}
-	if _, err := authority.ReissueImportedDustReview(context.Background(), selection, selection, target, target); err != nil {
+	if _, err := authority.ReissueImportedDustReview(context.Background(), archived, selection, old, target); err != nil {
 		t.Fatal("known candidate rejected", err)
 	}
+	wrongOld := old
+	wrongOld.Source.ArtifactID = uuid.New()
+	if _, err := authority.ReissueImportedDustReview(context.Background(), archived, selection, wrongOld, target); err == nil {
+		t.Fatal("review with mismatched archived base was accepted")
+	}
+	wrongProvisional := selection
+	wrongProvisional.Base.ID = uuid.New()
+	if _, err := authority.ReissueImportedDustReview(context.Background(), archived, wrongProvisional, old, target); err == nil {
+		t.Fatal("review with mismatched target base was accepted")
+	}
+	if _, err := authority.ReissueImportedDustReview(context.Background(), archived, selection, target, target); err == nil {
+		t.Fatal("review reissued without a distinct target version")
+	}
+	missingOld := old
+	missingOld.AssetVersionID = uuid.Nil
+	if _, err := authority.ReissueImportedDustReview(context.Background(), archived, selection, missingOld, target); err == nil {
+		t.Fatal("review reissued without a valid archived version")
+	}
+	wrongProposal := archived
+	wrongProposal.Proposal.ID = selection.Proposal.ID
+	if _, err := authority.ReissueImportedDustReview(context.Background(), wrongProposal, selection, old, target); err == nil {
+		t.Fatal("unremapped proposal was accepted")
+	}
 	authority.Current = dustReviewCurrentStub{forged: true}
-	if _, err := authority.ReissueImportedDustReview(context.Background(), selection, selection, target, target); err == nil {
+	if _, err := authority.ReissueImportedDustReview(context.Background(), archived, selection, old, target); err == nil {
 		t.Fatal("unknown candidate accepted")
 	}
 }

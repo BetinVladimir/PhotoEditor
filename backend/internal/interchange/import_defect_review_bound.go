@@ -3,6 +3,7 @@ package interchange
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"photoeditor/backend/internal/review"
 	"photoeditor/backend/internal/v2input"
 )
@@ -45,7 +46,12 @@ func (a BoundImportDefectReviewAuthority) validate(ctx context.Context, selectio
 }
 
 func (a BoundImportDefectReviewAuthority) ReissueImportedDefectReview(ctx context.Context, archived, provisional review.DefectSelection, old, target v2input.SessionVersionBinding) (review.DefectSelection, error) {
-	if a.Current == nil || target != a.Target {
+	if a.Current == nil || target != a.Target || old.AssetVersionID == uuid.Nil || target.AssetVersionID == uuid.Nil ||
+		!validImportRef(old.Source) || !validImportRef(target.Source) || !validImportRefForSHA(old.CanvasHash) ||
+		old.AssetVersionID == target.AssetVersionID || old.Source.ArtifactID == target.Source.ArtifactID || old.CanvasHash != target.CanvasHash ||
+		archived.Image.ID != old.Source.ArtifactID || archived.Image.SHA256 != old.Source.SHA256 ||
+		provisional.Image.ID != target.Source.ArtifactID || provisional.Image.SHA256 != target.Source.SHA256 ||
+		archived.Proposal.ID == provisional.Proposal.ID || archived.LabelMap.ID == provisional.LabelMap.ID {
 		return review.DefectSelection{}, v2input.ErrInvalid
 	}
 	issued, err := a.Current.ReissueImportedDefectReview(ctx, archived, provisional, old, target)

@@ -7,6 +7,7 @@ import (
 )
 
 func (s *Server) interchangeRoutes(router chi.Router) {
+	s.importReviewDecisionRoutes(router)
 	router.Get("/api/v1/tenants/{t}/projects/{id}/interchange-jobs/{workflow}/person-mask-confirmations", func(w http.ResponseWriter, r *http.Request) {
 		who, tid, err := s.tenantRequest(r, false)
 		if err != nil {

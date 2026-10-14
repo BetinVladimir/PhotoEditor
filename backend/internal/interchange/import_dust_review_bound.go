@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 
+	"github.com/google/uuid"
 	"photoeditor/backend/internal/review"
 	"photoeditor/backend/internal/v2input"
 )
@@ -43,7 +44,12 @@ func (a BoundImportDustReviewAuthority) validate(ctx context.Context, selection 
 }
 
 func (a BoundImportDustReviewAuthority) ReissueImportedDustReview(ctx context.Context, archived, provisional review.DustSelection, old, target v2input.SessionVersionBinding) (review.DustSelection, error) {
-	if a.Current == nil || target != a.Target {
+	if a.Current == nil || target != a.Target || old.AssetVersionID == uuid.Nil || target.AssetVersionID == uuid.Nil ||
+		!validImportRef(old.Source) || !validImportRef(target.Source) || !validImportRefForSHA(old.CanvasHash) ||
+		old.AssetVersionID == target.AssetVersionID || old.Source.ArtifactID == target.Source.ArtifactID || old.CanvasHash != target.CanvasHash ||
+		archived.Base.ID != old.Source.ArtifactID || archived.Base.SHA256 != old.Source.SHA256 ||
+		provisional.Base.ID != target.Source.ArtifactID || provisional.Base.SHA256 != target.Source.SHA256 ||
+		archived.Proposal.ID == provisional.Proposal.ID {
 		return review.DustSelection{}, v2input.ErrInvalid
 	}
 	issued, err := a.Current.ReissueImportedDustReview(ctx, archived, provisional, old, target)

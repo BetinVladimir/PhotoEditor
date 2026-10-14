@@ -16,6 +16,7 @@ import {assertInterchangeSnapshot,assertInterchangeScope,readInterchangeJob,read
 import {freezeImportPersonMaskDecision,readImportPersonMaskDecision,type ImportPersonMaskDecision} from './interchange-person-mask-decision';
 import {readImportPersonMaskCandidates,readImportPersonMaskEntries} from './interchange-person-mask-candidates';
 import {readImportPersonMaskStatuses} from './interchange-person-mask-status';
+import {readPreparedReviews,readPreparedReviewReceipt,readSavedPreparedReviews,type PreparedReviewDecision} from './interchange-prepared-review';
 import {readDeliveryInspection} from './delivery-inspection';
 import {deliveryDownloadTarget,readDeliveryDownloadIntent,readDeliveryDownloadLink} from './delivery-download';
 import {readDeliveryPage,type DeliverySummary} from './delivery-list';
@@ -116,6 +117,21 @@ export class OwnerAPI {
     const body=freezeImportPersonMaskDecision(request);signal?.throwIfAborted();
     const value=await this.client.request<unknown>(this.path(`/api/v1/tenants/{t}/projects/${encodeURIComponent(project)}/interchange-jobs/${encodeURIComponent(workflow)}/person-mask-confirmations`),{method:'POST',body,signal});
     signal?.throwIfAborted();return readImportPersonMaskDecision(value,workflow,body);
+  }
+  async preparedImportReviews(project:string,workflow:string,signal?:AbortSignal){
+    assertInterchangeScope(this.tenant,project,workflow);signal?.throwIfAborted();
+    const value=await this.client.request<unknown>(this.path(`/api/v1/tenants/{t}/projects/${encodeURIComponent(project)}/interchange-jobs/${encodeURIComponent(workflow)}/prepared-reviews`),{method:'GET',signal});
+    signal?.throwIfAborted();return readPreparedReviews(value,workflow);
+  }
+  async savedPreparedImportReviews(project:string,workflow:string,signal?:AbortSignal){
+    assertInterchangeScope(this.tenant,project,workflow);signal?.throwIfAborted();
+    const value=await this.client.request<unknown>(this.path(`/api/v1/tenants/{t}/projects/${encodeURIComponent(project)}/interchange-jobs/${encodeURIComponent(workflow)}/prepared-reviews/saved`),{method:'GET',signal});
+    signal?.throwIfAborted();return readSavedPreparedReviews(value,workflow);
+  }
+  async decidePreparedImportReview(project:string,workflow:string,body:PreparedReviewDecision,key:string,signal?:AbortSignal){
+    assertInterchangeScope(this.tenant,project,workflow);if(!archiveUUID(key))throw new Error('INTERCHANGE_PREPARED_REVIEW_INVALID');signal?.throwIfAborted();
+    const value=await this.client.request<unknown>(this.path(`/api/v1/tenants/{t}/projects/${encodeURIComponent(project)}/interchange-jobs/${encodeURIComponent(workflow)}/prepared-reviews`),{method:'POST',body,idempotencyKey:key,signal});
+    signal?.throwIfAborted();return readPreparedReviewReceipt(value,workflow,body);
   }
   async importPersonMaskStatuses(project:string,workflow:string,signal?:AbortSignal){
     assertInterchangeScope(this.tenant,project,workflow);signal?.throwIfAborted();

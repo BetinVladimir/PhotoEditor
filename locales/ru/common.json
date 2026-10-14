@@ -755,5 +755,21 @@
   "interchange_mask_entries_error": "Не удалось загрузить фотографии для проверки масок.",
   "interchange_mask_candidates_error": "Не удалось загрузить маски этой фотографии.",
   "interchange_mask_preview_error": "Не удалось проверить превью фотографии и маски.",
-  "interchange_mask_decision_error": "Не удалось сохранить решение по маске. Обновите данные и повторите попытку."
+  "interchange_mask_decision_error": "Не удалось сохранить решение по маске. Обновите данные и повторите попытку.",
+  "interchange_prepared_open": "Проверить дефекты и пыль",
+  "interchange_prepared_title": "Импортированные дефекты и пыль на сенсоре",
+  "interchange_prepared_loading": "Загрузка предложений для проверки",
+  "interchange_prepared_error": "Не удалось загрузить или сохранить проверку. Обновите данные и повторите попытку.",
+  "interchange_prepared_empty": "Подготовленных предложений по дефектам и пыли пока нет.",
+  "interchange_prepared_defects": "Кандидаты на удаление дефектов",
+  "interchange_prepared_dust": "Кандидаты пыли на сенсоре",
+  "interchange_prepared_candidates": "кандидатов",
+  "interchange_prepared_photo": "Импортированная фотография",
+  "interchange_prepared_accept": "Принять",
+  "interchange_prepared_reject": "Отклонить",
+  "interchange_prepared_explain": "Проверьте фото и каждого кандидата перед сохранением. Невыбранные останутся без решения. Координаты пыли относятся к области сенсора.",
+  "interchange_prepared_save": "Сохранить выбранные решения",
+  "interchange_prepared_skip": "Пропустить предложение",
+  "interchange_prepared_revoke": "Отозвать решение",
+  "interchange_prepared_saved": "Сохранённое решение"
 }

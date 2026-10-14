@@ -24,6 +24,9 @@ type apiProcessDependencies struct {
 	InterchangeExport          interchangeExportFactory
 	InterchangeExportAuthority interchange.ExportNativeAuthorityFactory
 	InterchangeImport          workflow.SchedulerInterchangeImportFactory
+	ImportOperatorFiles        *interchange.ImportSchedulerOperatorFiles
+	ImportEntryBase            *interchange.SQLImportEntryRecipeAuthorityFactory
+	ImportPersonAcceptance     interchange.ImportMaskQualifier
 	SigningTenants             map[uuid.UUID]provenance.SigningAPITenantRuntime
 }
 

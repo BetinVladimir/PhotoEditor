@@ -174,6 +174,15 @@ func (f SQLImportEntryRecipeAuthorityFactory) BuildImportEntryRecipeAuthority(ct
 		}
 		codecs.DustSeries = BoundImportDustSeriesAuthority{Entry: scope.Entry, Old: matched.Old, Target: matched.New, Bindings: append([]ImportCorrectionBinding(nil), codecs.Bindings...), Parsed: parsed, Reader: archive, Sources: sources, Semantic: codecs.DustSeries}
 	}
+	// A newly authored tenant decision, read by the scheduler against the exact
+	// prepared target, replaces every archived defect/dust review selection.
+	currentReviews := SQLImportLiveReviewReader{DB: store.DB, Tenant: scope.Tenant, Workflow: scope.Workflow, Parsed: append([]byte(nil), parsed...), Witnesses: f.Native.Reviews}
+	if codecs.DefectCandidates != nil {
+		codecs.DefectReview = SQLImportDefectReviewIssuer{Entry: scope.Entry, Target: scope.Binding, Decisions: currentReviews, Additional: codecs.DefectReview}
+	}
+	if codecs.DustSeries != nil {
+		codecs.DustReview = SQLImportDustReviewIssuer{Entry: scope.Entry, Target: scope.Binding, Decisions: currentReviews, Additional: codecs.DustReview}
+	}
 	if f.StyleInstallation != nil {
 		installation := f.StyleInstallation.owned()
 		style, backgrounds, err := installation.Build(ctx, parsed, codecs.Bindings, sources, masters, publisher, f.Native)

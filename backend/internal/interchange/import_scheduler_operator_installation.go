@@ -17,22 +17,11 @@ type ImportSchedulerOperatorFiles struct {
 	Limits                ImportPlanLimits
 }
 
-func (f ImportSchedulerOperatorFiles) Install(ctx context.Context, base SQLImportEntryRecipeAuthorityFactory, personAcceptance ImportMaskQualifier) (NativeImportSchedulerFactory, error) {
-	var zero NativeImportSchedulerFactory
-	if err := ctx.Err(); err != nil {
-		return zero, err
-	}
-	if f.NativePath == "" || f.NativeSHA == "" || f.StylePath == "" || f.StyleSHA == "" ||
-		f.Recipes.Restoration.DenoiseFile == "" || f.Recipes.Restoration.DenoiseSHA == "" ||
-		f.Recipes.Restoration.UpscaleFile == "" || f.Recipes.Restoration.UpscaleSHA == "" ||
-		f.Recipes.Stats.Path == "" || f.Recipes.Stats.SHA == "" ||
-		f.Recipes.Person.Path == "" || f.Recipes.Person.SHA == "" ||
-		personAcceptance == nil || base.StyleInstallation != nil || base.PersonMaskQualification != nil ||
-		base.Codecs.Params == nil || base.Codecs.OverrideContent == nil ||
-		f.Limits.ArchiveBytes < 1 || f.Limits.ArchiveBytes > 64<<30 ||
+func (f ImportSchedulerOperatorFiles) ValidateDeclaration() error {
+	if f.Limits.ArchiveBytes < 1 || f.Limits.ArchiveBytes > 64<<30 ||
 		f.Limits.ExpandedBytes < 1 || f.Limits.ExpandedBytes > 128<<30 ||
 		f.Limits.Files < 1 || f.Limits.Files > 30000 {
-		return zero, v2input.ErrInvalid
+		return v2input.ErrInvalid
 	}
 	for _, pair := range [][2]string{
 		{f.NativePath, f.NativeSHA}, {f.StylePath, f.StyleSHA},
@@ -41,9 +30,24 @@ func (f ImportSchedulerOperatorFiles) Install(ctx context.Context, base SQLImpor
 		{f.Recipes.Stats.Path, f.Recipes.Stats.SHA},
 		{f.Recipes.Person.Path, f.Recipes.Person.SHA},
 	} {
-		if !filepath.IsAbs(pair[0]) || !validImportRefForSHA(pair[1]) {
-			return zero, v2input.ErrInvalid
+		if !filepath.IsAbs(pair[0]) || filepath.Clean(pair[0]) != pair[0] || !validImportRefForSHA(pair[1]) {
+			return v2input.ErrInvalid
 		}
+	}
+	return nil
+}
+
+func (f ImportSchedulerOperatorFiles) Install(ctx context.Context, base SQLImportEntryRecipeAuthorityFactory, personAcceptance ImportMaskQualifier) (NativeImportSchedulerFactory, error) {
+	var zero NativeImportSchedulerFactory
+	if err := ctx.Err(); err != nil {
+		return zero, err
+	}
+	if personAcceptance == nil || base.StyleInstallation != nil || base.PersonMaskQualification != nil ||
+		base.Codecs.Params == nil || base.Codecs.OverrideContent == nil {
+		return zero, v2input.ErrInvalid
+	}
+	if err := f.ValidateDeclaration(); err != nil {
+		return zero, err
 	}
 	// Load before composition; no partially installed factory escapes on a
 	// missing file, invalid digest, duplicate policy, or cancelled request.

@@ -427,3 +427,187 @@ Scheduler dust sensor read теперь отделён от editor ACL: мигр
 import dust при отсутствии другой доверенной semantic authority. Миграция
 и сквозная SQL-проверка не запускались. Production review issuer и общий
 operator bootstrap V30 всё ещё открыты.
+
+После коммита `fb5bff5` bound issuer для импортируемых `DefectReview` и
+`DustRepairParams` дополнительно проверяет до вызова независимого issuer,
+что archived image/base принадлежит старому source, provisional image/base —
+target source, версии и source artifact различаются, canvas hash совпадает,
+а proposal (и defect label map) действительно получили новый artifact ID.
+Unit-тесты описывают отказ при подмене каждого source, повторной выдаче на
+ту же версию и оставленном архивном proposal; они пока не запускались. Это
+ограничение входа в issuer не заменяет самостоятельное текущее решение
+пользователя: production issuer остаётся открытым.
+
+Структурный preflight `SQLImportEntryRecipeAuthorityFactory` теперь
+отклоняет установленный defect review без defect-candidate authority,
+dust review без series/sensor authority и конфликт двух способов задания
+dust series. Для каждого случая написаны отрицательные unit-тесты; три
+полных сочетания имеют положительные unit-сценарии. Это переносит отказ
+с обработки конкретной entry на startup operator factory. Тесты пока не
+запускались. Само подключение factory из доверенной runtime-конфигурации
+и production issuer всё ещё открыты.
+
+`backend/cmd/photo` теперь умеет собрать `ImportSchedulerOperatorFiles` в
+scheduler startup из process-owned файлов, base semantic ports и независимого
+person acceptance. Неполная или конфликтующая установка (включая
+одновременную прямую factory injection) останавливает startup; ошибка pin
+проверки не превращается в silent disabled import. Unit-тесты описывают
+отсутствие установки, прежнюю прямую injection, отказ при неполной установке
+и cancellation; не запускались. Обычный `run()` всё ещё создаёт пустые
+process dependencies: ему нужны реальные operator config и semantic ports,
+а также production issuer для дефектов и пыли. Поэтому этот bridge сам по
+себе не включает импорт в production.
+
+Для scheduler добавлена process-owned декларация
+`PHOTO_V30_IMPORT_OPERATOR_CONFIG` + `PHOTO_V30_IMPORT_OPERATOR_CONFIG_SHA256`.
+Файл имеет строгую canonical JSON schema
+`interchange-import-scheduler-operator/v1`, лимит 64 KiB, точный SHA256,
+проверку inode/size/mode/mtime до и после чтения, абсолютные пути и SHA всех
+шести subordinate deployments, а также bounded archive/expanded/file limits.
+Непарные env-переменные, конфликт с прямой декларацией и отсутствие
+доверенных semantic ports останавливают scheduler startup. Unit-тесты
+для decoder/file loader/env-path написаны, но не запускались. Обычный
+`run()` пока не устанавливает необходимые semantic ports самостоятельно;
+production import поэтому остаётся выключенным без доверенного process
+bootstrap.
+
+Добавлен unit-сценарий полного env → pinned declaration loader → operator
+installer: корректная верхняя декларация достигает проверки subordinate
+deployments, но отсутствующий native файл не создаёт scheduler factory;
+одновременная env и injected декларация отвергается. Сценарий не запускался
+и не заменяет положительную проверку реальных operator файлов.
+Декларационный loader дополнительно покрыт unit-отказами для canonical JSON
+с неизвестным полем, symlink, group/world-writable файла и отменённого
+контекста; эти тесты также не запускались.
+
+Для будущего отдельного пользовательского решения по импортированным
+`DefectReview`/`DustRepairParams` добавлен `ImportReviewDecisionRequest`.
+Он задаёт target version/base/proposal, для defect также label map,
+отдельные grant/revoke и expected epoch; архивное решение в request не
+входит. Валидатор отвергает чужие/пустые refs, несогласованные kind,
+несортированные/повторные candidate IDs, отзыв без текущего epoch и
+непредусмотренную передачу selection при revoke. Unit-тесты написаны,
+не запускались. Это только входной контракт: отдельные SQL decision store,
+API/UI и production issuer ещё нужны; существующий live-run review persist
+не подходит без новой транзакционной authority.
+
+Forward-only миграция `02018` создаёт отдельное tenant-scoped хранилище
+`v30_import_review_decisions` для target proposal/base/label map, решения,
+актора, request ID и epoch. Включены forced RLS, закрытые прямые права и
+явный purge allowlist в `finish_tenant_deletion`; SQL integration test
+проверяет эту изоляцию. Миграция не применялась, тест не запускался.
+Таблица намеренно инертна до появления функций grant/revoke и issuer:
+архивный review не получает путь прямой записи в неё. Необходимы также
+пауза/возобновление import continuation для нового пользовательского
+решения и экран просмотра подготовленного proposal.
+
+Миграция `02019` добавляет первый mutation path:
+`photo.grant_v30_import_review` доступна только API и перед записью проверяет
+текущего editor, активный workflow/run, точные import sources и base,
+опубликованный prepared `DefectCandidates`/`DustCandidates`, SHA реальных
+байтов proposal и принадлежность выбранных candidate ID его массиву.
+Запись сравнивает expected epoch; точный retry по request ID и digest
+возвращает прежний receipt. Невалидная/чужая область возвращает NULL.
+Написан SQL integration test для ACL и отсутствующей области; миграция и
+тест не запускались. Для завершения контура ещё требуются revoke/status,
+API-загрузка реальных proposal bytes, UI, ожидание нового решения в
+continuation и scheduler issuer с повторной live-проверкой epoch.
+
+Миграция `02020` добавляет API-only `revoke_v30_import_review` и точечное
+чтение `v30_import_review_status`. Отзыв допускается после остановки run,
+но требует текущего editor ACL, точного ключа proposal/base/label map и
+expected epoch; точный повтор request ID с сохранённым request hash
+идемпотентен. Status возвращает только одну запись после проверки проекта.
+`02018` хранит отдельный `request_hash`, чтобы revoke не перезаписывал hash
+исходного grant. Unit/SQL integration сценарии ACL и отсутствующего scope
+написаны, но не запускались; миграции не применялись. Scheduler live reader,
+Go API и экран всё ещё открыты.
+
+Миграция `02021` добавляет API-only чтение одного опубликованного prepared
+`DefectCandidates`/`DustCandidates` по точным workflow/entry/target/proposal.
+Она повторяет текущие source и editor gates, сверяет сохранённый scope
+`backend_documents` с master и immutable artifact metadata. Go reader читает
+не более 1 MiB versioned object bytes, проверяет SHA и структуру proposal,
+после IO повторяет SQL resolution, чтобы не принять заменённый объект или
+scope. Написаны unit-тесты для успешного чтения, смены версии и порчи байтов,
+а также SQL ACL/absent-scope тест; не запускались. API endpoint и grant
+service должны вызывать этот reader и SQL mutation вместе с повторными
+проверками; сам reader не выдаёт review approval.
+
+Go `ImportReviewDecisionService` теперь выполняет grant/revoke/status через API-only
+SQL. Для grant он сам загружает текущий parsed import и versioned prepared
+proposal, сверяет exact proposal/base/label-map refs и повторно читает parsed
+перед SQL CAS; revoke использует сохранённый точный ключ. HTTP-маршруты
+`/projects/{id}/interchange-jobs/{workflow}/prepared-reviews` подключены к
+tenant/session auth и основному серверу; POST требует UUID Idempotency-Key,
+GET читает точный status. Добавлены unit-сценарии валидации сервиса и HTTP
+request ID. Исправлена неоднозначность имён PL/pgSQL переменных в grant/revoke
+UPDATE. Всё это написано, но тесты/сборка/миграции не запускались. Открыты
+выдача proposal/candidate списка для экрана, UI, scheduler live issuer и
+continuation ожидания нового решения.
+
+Миграция `02022` добавляет API-only каталог до 50 текущих подготовленных
+DefectCandidates/DustCandidates на import workflow. SQL требует editor ACL,
+текущий parsed/source и ready versioned artifact; сохранённый decision status
+присоединяется только по точным proposal/base refs. Go list service читает
+каждый JSON через двукратно проверяемый proposal reader, повторно проверяет
+parsed import и каталог после IO. GET `prepared-reviews` подключён к серверу.
+Добавлены unit/SQL ACL тесты, но они и миграция ещё не запускались. Следующий
+разрыв — полноценный UI review и scheduler continuation/issuer; каталог
+ограничен 50 proposal, превышение даёт ошибку, а не усечённый ответ.
+
+Клиентский `interchange-prepared-review.ts` теперь строго читает proposal list,
+проверяет exact image/base или dust frames/base, candidate IDs, строит
+отдельный CAS grant/revoke request только из отображённого item и сверяет
+receipt. `OwnerAPI` подключил GET/POST `prepared-reviews`; написаны unit-тесты
+контракта. Экран визуальной проверки ещё не подключён. Тесты/typecheck не
+запускались согласно этапу кодирования.
+
+Клиентский экран `/interchange/prepared/[id]` теперь доступен из import job.
+Он загружает список proposal и adopted entry, получает preview целевой версии,
+для defects рисует bbox только при совпадении aspect ratio с canvas, для dust
+показывает сенсорные координаты текстом (проекция crop на display без
+подтверждённой геометрии не выполняется). Grant требует загруженное фото и
+явный выбор кандидатов; поддержаны skip, revoke и повтор того же CAS body с
+тем же Idempotency-Key при неопределённом ответе. Добавлены локализации
+EN/RU/BG и DOM-unit сценарий; тесты/typecheck не запускались. Остаётся
+физическая dust-preview геометрия и возможность UI revoke после остановки run:
+текущий каталог показывает только running workflow, хотя SQL revoke/status
+разрешает отзыв после run.
+
+Миграция `02023` и API GET `prepared-reviews/saved` дают отдельный список
+сохранённых grant/revoke после остановки import run. Он не читает архив,
+prepared proposal или object storage, требует текущий editor ACL и точный
+project/workflow. Экран загружает его независимо от live proposal-каталога и
+строит revoke из сохранённых refs и epoch; добавлены unit/DOM/SQL ACL тесты.
+Тесты/typecheck/миграции не запускались. Scheduler continuation/issuer и
+физически точная dust-preview проекция остаются открытыми.
+
+Миграция `02024` добавляет scheduler-only `v30_import_review_live_decision`:
+текущий running import, parsed sources, entry/target/base, опубликованный
+proposal и сохранённый granted epoch проверяются по точным refs. Go reader
+возвращает типизированное `ErrImportReviewAwaitingDecision` при отсутствии
+текущего grant. Defect/Dust codec теперь получает IDs и revision из этого
+reader, архивные selection IDs заменяются, а Bound-слой повторно проверяет
+физический proposal и candidate membership. Дополнительный operator authority,
+если установлен, может только отклонить результат. Scheduler processor
+считает ожидание успешной обработкой claim с SQL cooldown, новый grant
+сбрасывает retry_after. Unit/SQL ACL сценарии написаны, но не запускались,
+миграции не применялись. Остаточный риск: финальная activation TX пока не
+проверяет, что grant epoch не был отозван после последнего codec-read;
+необходим отдельный activation fence. Также нужно проверить полный запуск
+scheduler с настоящими semantic ports и реальным import workflow.
+
+Миграция `02025` добавляет финальный review activation fence. Внутренний
+`ImportReviewWitnesses` собирает только успешно прочитанные scheduler-only
+решения с epoch, IDs и точными refs; снимок передаётся в закрытую
+`QualifiedImportActivation`. Новый SQL wrapper выполняет существующую
+активацию и в той же TX сверяет все DefectCandidates/DustCandidates из
+фактической `v2_task_inputs` closure с witness и заблокированным текущим
+`granted` решением. Несовпадение бросает исключение и откатывает ready
+transition. Scheduler лишён EXECUTE старой нефенсированной функции; startup
+installation проверяет новый ACL. Написан unit-сценарий снимка и обновлён SQL
+ACL/absent-scope сценарий. Миграция, тесты и сборка не запускались. До
+закрытия V30 нужны current-build интеграция на базе и физическое E2E; отдельно
+проверить, что все review proposal действительно присутствуют в input closure
+с контрактами DefectCandidates/DustCandidates, особенно для inline dust Params.
