@@ -138,7 +138,7 @@ func TestSemanticAssemblyLeaseLossCancelsLongSourceResolution(t *testing.T) {
 	run := uuid.New()
 	workflow, _ := WorkflowID(run)
 	task, _ := TaskID(workflow, "semantic.transfer", 0)
-	store := &assemblyStoreFake{lease: SemanticAssemblyLease{ExpansionID: uuid.New(), Token: uuid.New(), Until: time.Now().Add(time.Minute), TenantID: uuid.New(), RunID: run, WorkflowID: workflow}, inputs: []SemanticTransferResult{{Ordinal: 0, TaskID: task, Candidate: Ref{ArtifactID: uuid.New(), SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}}, failRenew: 1}
+	store := &assemblyStoreFake{lease: SemanticAssemblyLease{ExpansionID: uuid.New(), Token: uuid.New(), Until: time.Now().Add(time.Minute), TenantID: uuid.New(), RunID: run, WorkflowID: workflow}, inputs: []SemanticTransferResult{{Ordinal: 0, TaskID: task, Candidate: Ref{ArtifactID: uuid.New(), SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}}, failRenew: 2}
 	docs := &scopedDocuments{}
 	commit := &assemblyCommitFake{}
 	o := SemanticAssemblyOrchestrator{Store: store, Source: waitingAssemblySource{}, Documents: docs, TransportForLease: func(SemanticAssemblyLease) Publisher { return &memoryPublisher{bodies: make(map[uuid.UUID][]byte)} }, Committer: commit, RenewEvery: time.Millisecond}
@@ -147,5 +147,25 @@ func TestSemanticAssemblyLeaseLossCancelsLongSourceResolution(t *testing.T) {
 	processed, err := o.RunOnce(ctx)
 	if processed || !errors.Is(err, ErrExpired) || store.releases != 1 || store.stages != 0 || commit.calls != 0 || len(docs.scopes) != 0 {
 		t.Fatal("lease loss did not cancel before IO publication", processed, err, store, commit)
+	}
+}
+
+func TestSemanticAssemblyWorkTimeoutStopsLongSourceResolution(t *testing.T) {
+	run := uuid.New()
+	workflow, _ := WorkflowID(run)
+	task, _ := TaskID(workflow, "semantic.transfer", 0)
+	store := &assemblyStoreFake{lease: SemanticAssemblyLease{ExpansionID: uuid.New(), Token: uuid.New(), Until: time.Now().Add(time.Minute), TenantID: uuid.New(), RunID: run, WorkflowID: workflow}, inputs: []SemanticTransferResult{{Ordinal: 0, TaskID: task, Candidate: Ref{ArtifactID: uuid.New(), SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}}}
+	docs := &scopedDocuments{}
+	commit := &assemblyCommitFake{}
+	orchestrator := SemanticAssemblyOrchestrator{Store: store, Source: waitingAssemblySource{}, Documents: docs,
+		TransportForLease: func(SemanticAssemblyLease) Publisher { return &memoryPublisher{bodies: make(map[uuid.UUID][]byte)} },
+		Committer:         commit, RenewEvery: time.Second, WorkTimeout: 20 * time.Millisecond}
+	processed, err := orchestrator.RunOnce(context.Background())
+	if processed || !errors.Is(err, context.DeadlineExceeded) || store.renews < 1 || store.releases != 1 || store.stages != 0 || commit.calls != 0 || len(docs.scopes) != 0 {
+		t.Fatal("semantic assembly exceeded work budget", processed, err, store, commit)
+	}
+	orchestrator.WorkTimeout = 2*time.Hour + time.Nanosecond
+	if processed, err = orchestrator.RunOnce(context.Background()); processed || !errors.Is(err, ErrInvalid) {
+		t.Fatal("unbounded semantic work accepted", processed, err)
 	}
 }

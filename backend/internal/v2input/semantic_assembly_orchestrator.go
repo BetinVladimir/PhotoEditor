@@ -41,6 +41,7 @@ type SemanticAssemblyOrchestrator struct {
 	TransportForLease func(SemanticAssemblyLease) Publisher
 	Committer         SemanticAssemblyCommitter
 	RenewEvery        time.Duration
+	WorkTimeout       time.Duration
 }
 
 func (o SemanticAssemblyOrchestrator) ProcessOne(ctx context.Context) (bool, error) {
@@ -51,7 +52,17 @@ func (o SemanticAssemblyOrchestrator) RunOnce(ctx context.Context) (processed bo
 	if o.Store == nil || o.Source == nil || o.Documents == nil || o.TransportForLease == nil || o.Committer == nil {
 		return false, ErrInvalid
 	}
-	lease, err := o.Store.Claim(ctx)
+	workTimeout := o.WorkTimeout
+	if workTimeout == 0 {
+		workTimeout = 2 * time.Hour
+	}
+	if workTimeout < 0 || workTimeout > 2*time.Hour {
+		return false, ErrInvalid
+	}
+	claimCtx, cancelClaim := context.WithTimeout(ctx, 5*time.Second)
+	lease, err := o.Store.Claim(claimCtx)
+	claimErr := claimCtx.Err()
+	cancelClaim()
 	if err != nil || lease == nil {
 		return false, err
 	}
@@ -63,12 +74,15 @@ func (o SemanticAssemblyOrchestrator) RunOnce(ctx context.Context) (processed bo
 			_, _ = o.Store.Release(cleanup, *lease)
 		}
 	}()
+	if claimErr != nil {
+		return false, claimErr
+	}
 	if !validSemanticAssemblyLease(*lease) {
 		return false, ErrInvalid
 	}
 	// Long document resolution/publication needs renewal throughout IO, not
 	// only between phases. Losing authority cancels ongoing source/object work.
-	workCtx, stop := context.WithCancel(ctx)
+	workCtx, stop := context.WithTimeout(ctx, workTimeout)
 	done := make(chan struct{})
 	lost := make(chan error, 1)
 	every := o.RenewEvery
@@ -119,6 +133,9 @@ func (o SemanticAssemblyOrchestrator) RunOnce(ctx context.Context) (processed bo
 			return ErrExpired
 		}
 		return nil
+	}
+	if err := renew(); err != nil {
+		return false, err
 	}
 	results, err := o.Store.Inputs(ctx, *lease)
 	if err != nil {
@@ -190,6 +207,9 @@ func (o SemanticAssemblyOrchestrator) RunOnce(ctx context.Context) (processed bo
 		return false, err
 	}
 	if err := o.Committer.CommitSemanticAssembly(ctx, lease.TenantID, lease.RunID, lease.ExpansionID, lease.Token, prepared.Graph); err != nil {
+		return false, err
+	}
+	if err := ctx.Err(); err != nil {
 		return false, err
 	}
 	complete = true
