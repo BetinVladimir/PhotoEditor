@@ -27,10 +27,10 @@ def verify_adopted_semantic_producers(connection,objects,allowed_bucket,tenant_i
     candidates=[TransferCandidate.model_validate_json(canonical_bytes(value)) for value in candidates]
     for candidate_ref,candidate in zip(assembly.candidates,candidates):
         check_active()
-        rows=connection.execute(
-            'SELECT * FROM photo.v27_semantic_assembly_producer(%s,%s,%s,%s,%s,%s,%s)',
-            (tenant_id,task_id,context.attempt,context.fence,context.result_id,
-             candidate_ref.artifact_id,candidate_ref.sha256)).fetchall()
+        query='SELECT * FROM photo.v27_semantic_assembly_producer(%s,%s,%s,%s,%s,%s,%s)'
+        args=(tenant_id,task_id,context.attempt,context.fence,context.result_id,
+              candidate_ref.artifact_id,candidate_ref.sha256)
+        rows=connection.execute(query,args).fetchall()
         if len(rows)!=1:
             raise AdoptionInvalid('SEMANTIC_PRODUCER_SCOPE_STALE')
         producer,attempt,fence,result_id,params_id,params_sha=rows[0]
@@ -53,6 +53,9 @@ def verify_adopted_semantic_producers(connection,objects,allowed_bucket,tenant_i
             verify_candidate_bindings(assembly,intent,candidate_ref,candidate,transfer,check_active=check_active)
         except ValueError as error:
             raise AdoptionInvalid('SEMANTIC_PRODUCER_BINDING_INVALID') from error
+        check_active()
+        if connection.execute(query,args).fetchall()!=rows:
+            raise AdoptionInvalid('SEMANTIC_PRODUCER_SCOPE_STALE')
     check_active()
 
 

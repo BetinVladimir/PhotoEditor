@@ -12,7 +12,7 @@ from test_semantic_transfer_contracts import transfer_documents
 
 
 @pytest.mark.parametrize('variant',['valid','missing','ambiguous','intent','model','target','calibration',
-                                     'bytes','source','mutate','cancel','transaction'])
+                                     'bytes','source','mutate','rotate','cancel','transaction'])
 def test_adopted_semantic_producer_scoped_params_and_content(monkeypatch,variant):
     transfer,intent,_=transfer_documents()
     transfer.intent=ArtifactRef(artifact_id=uuid4(),sha256=canonical_hash(intent))
@@ -39,6 +39,8 @@ def test_adopted_semantic_producer_scoped_params_and_content(monkeypatch,variant
                 assembly.model_lock_sha='f'*64
                 candidate.reason='MUTATED'
             rows=[] if variant=='missing' else [row,row] if variant=='ambiguous' else [row]
+            if variant=='rotate' and events.count('query')==2:
+                rows=[(producer,2,4,producer_result,params_id,sha256(body).hexdigest())]
             return SimpleNamespace(fetchall=lambda:rows)
     class Reader:
         def __init__(self,connection,objects,**kwargs):
@@ -63,11 +65,12 @@ def test_adopted_semantic_producer_scoped_params_and_content(monkeypatch,variant
         with pytest.raises(InterruptedError):run()
         assert events==[]
     elif variant in ('valid','mutate'):
-        run();assert events==['query','evidence','object']
+        run();assert events==['query','evidence','object','query']
     else:
         with pytest.raises(AdoptionInvalid,match='SEMANTIC_PRODUCER_'):run()
         if variant in ('missing','ambiguous'):assert events==['query']
         if variant=='source':assert events==['query','evidence']
+        if variant=='rotate':assert events==['query','evidence','object','query']
 
 
 def test_semantic_producer_authority_factory_preserves_coordinator_context(monkeypatch):

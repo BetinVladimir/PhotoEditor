@@ -445,6 +445,8 @@ V27 snapshot adoption теперь также превращает ошибку 
 
 V27 `semantic.transfer` geometry adopter теперь требует точные output roles из зарегистрированного контракта: candidate=`document`, MaskRef=`mask`, ResolvedTransform=`transform`. Совпадение SHA, JSON MIME и source само по себе больше не допускает документ в чужой slot. Unit-сценарии для каждой подменённой роли написаны, не запускались; полная квалификация маски, модели и происхождения остаётся отдельной обязательной стадией.
 
+V27 assembly producer authority после физического чтения и проверки каждого `semantic.transfer` Params повторяет тот же SQL lookup по claimed assembly result и candidate ref. Смена producer attempt/fence/result/Params в промежутке возвращает `SEMANTIC_PRODUCER_SCOPE_STALE` до принятия plan; финальный SQL adoption сохраняет собственный независимый fence. Unit-сценарий rotation во время object IO написан, не запускался.
+
 V30 signed delivery assembly: повторная проверка сохранённых slot shards теперь, как и первичная сборка, запрещает повтор `ExportID` и требует UTF-8, непустую после trim причину `omitted` длиной не более 200 Unicode-символов. Unit-сценарии replay этих границ написаны, не запускались. Это усиливает verifier сохранённого документа, но не подтверждает сквозную публикацию/скачивание подписанного bundle.
 
 V30 required-provenance envelope теперь повторяет primary policy gate для сохранённого assembly root: наличие хотя бы одного required preset, лимиты и канонический порядок списков presets, допустимый signing mode и нормализованное разрешение полей metadata. Некорректный root отклоняется до проверки closure и task activation. Unit-сценарии подменённой policy и нарушенного порядка написаны, не запускались.
