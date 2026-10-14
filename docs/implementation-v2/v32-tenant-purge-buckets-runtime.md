@@ -25,8 +25,10 @@ tenant and configured bucket, all three ordered tenant prefixes, two passes,
 and an observation time from the current call. The caller still has to supply
 the authoritative writer-destination inventory and an independent fixture /
 paused-writer guard; this helper does not infer either. Unit scenarios are
-authored but not run, and no production restore-acceptance caller is installed
-by this change.
+authored but not run. The composer checks that guard before any bucket IO and
+again after the last result; an intervening revocation returns no proof. The
+Python restore-acceptance dispatcher has its own complete-bucket MinIO purge
+probe; this Go helper is not part of that Python call chain.
 
 Before `finish_tenant_deletion`, maintenance records the independent requested-deletion history, renews the live deletion token through migration 01886, performs a first all-bucket purge/absence pass, settles archive generations under that token, renews it again, and performs a second all-bucket purge/absence pass. A remnant in either pass checkpoints the job; a failed or expired renewal refuses the next physical pass and metadata deletion. `TenantCleaner` has a bounded 120-second cycle to accommodate both 40-second scans and the two renewals, while other maintenance jobs retain 50 seconds. Deploy migration 01886 before this maintenance binary: startup checks the function's owner, `SECURITY DEFINER` mode, search path, and maintenance-only execution grant. The migration is authored but not applied; unit and physical acceptance are not run under the implementation-first plan.
 

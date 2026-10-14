@@ -69,6 +69,14 @@ func ObservePurgedTenantBuckets(ctx context.Context, tenant uuid.UUID, targets [
 		}
 		seen[target.Name] = true
 	}
+	// Refuse before starting any storage scan when the fixture or writer fence
+	// has already been revoked. Individual stores also recheck during IO.
+	if err := guard(ctx, tenant); err != nil {
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	scoped, cancel := context.WithCancel(ctx)
 	defer cancel()
 	started := time.Now().UTC()
