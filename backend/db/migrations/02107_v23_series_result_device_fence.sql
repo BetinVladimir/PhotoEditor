@@ -15,6 +15,14 @@ BEGIN
  t:=photo.lock_task(p_task);
  IF t.id IS NOT NULL AND t.operation='series.balance' AND
   t.execution_profile->>'device_profile_sha' IS NOT NULL AND
+  t.state='running' THEN
+  -- Serialize operator rotation with result publication. A concurrent
+  -- UPDATE/DELETE of this registration completes before or after commit.
+  PERFORM 1 FROM photo.worker_registrations w
+   WHERE w.tenant_id=t.tenant_id AND w.worker_id=p_worker FOR SHARE;
+ END IF;
+ IF t.id IS NOT NULL AND t.operation='series.balance' AND
+  t.execution_profile->>'device_profile_sha' IS NOT NULL AND
   t.state='running' AND
   (t.worker_id IS DISTINCT FROM p_worker OR
    t.attempt IS DISTINCT FROM p_attempt OR
