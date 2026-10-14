@@ -16,9 +16,11 @@ type adoptionClaimStub struct {
 	renew          bool
 	loseAfterFirst bool
 	calls          int
+	claimDeadline  time.Time
 }
 
-func (s *adoptionClaimStub) NextExportAdoption(context.Context) (*ExportAdoptionClaim, error) {
+func (s *adoptionClaimStub) NextExportAdoption(ctx context.Context) (*ExportAdoptionClaim, error) {
+	s.claimDeadline, _ = ctx.Deadline()
 	return s.claim, nil
 }
 func (s *adoptionClaimStub) RenewExportAdoptionClaim(context.Context, ExportAdoptionClaim) (bool, error) {
@@ -61,6 +63,10 @@ func TestSchedulerExportAdoptionProcessorNoClaimAndSuccess(t *testing.T) {
 	processed, err := processor.ProcessOne(context.Background())
 	if err != nil || processed || handled != 0 {
 		t.Fatal("empty queue invoked handler", processed, handled, err)
+	}
+	if claims.claimDeadline.IsZero() || time.Until(claims.claimDeadline) > 5*time.Second ||
+		time.Until(claims.claimDeadline) <= 0 {
+		t.Fatal("export claim discovery is not bounded")
 	}
 	claims.claim = validProcessorClaim(t)
 	processed, err = processor.ProcessOne(context.Background())
@@ -106,5 +112,25 @@ func TestSchedulerExportAdoptionProcessorRejectsInvalidInstallation(t *testing.T
 	processor.Handler = adoptionHandlerFunc(func(context.Context, ExportAdoptionClaim) error { return nil })
 	if processed, err := processor.ProcessOne(context.Background()); processed || !errors.Is(err, v2input.ErrInvalid) {
 		t.Fatal("unbounded heartbeat accepted", processed, err)
+	}
+	processor.HeartbeatInterval = time.Minute
+	for _, budget := range []time.Duration{-time.Second, 2*time.Hour + time.Second} {
+		processor.WorkTimeout = budget
+		if processed, err := processor.ProcessOne(context.Background()); processed || !errors.Is(err, v2input.ErrInvalid) {
+			t.Fatal("invalid export work budget accepted", budget, processed, err)
+		}
+	}
+}
+
+func TestSchedulerExportAdoptionProcessorBoundsPhysicalWork(t *testing.T) {
+	claims := &adoptionClaimStub{claim: validProcessorClaim(t), renew: true}
+	processor := SchedulerExportAdoptionProcessor{Claims: claims,
+		Handler: adoptionHandlerFunc(func(ctx context.Context, _ ExportAdoptionClaim) error {
+			<-ctx.Done()
+			return nil // Even an incorrect handler cannot turn deadline into success.
+		}), HeartbeatInterval: time.Minute, WorkTimeout: 10 * time.Millisecond}
+	processed, err := processor.ProcessOne(context.Background())
+	if processed || !errors.Is(err, context.DeadlineExceeded) || claims.calls != 1 {
+		t.Fatal("export physical work exceeded deadline", processed, claims.calls, err)
 	}
 }

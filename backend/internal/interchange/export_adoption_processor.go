@@ -44,6 +44,9 @@ type SchedulerExportAdoptionProcessor struct {
 	Handler ExportAdoptionHandler
 	// HeartbeatInterval must stay well below the SQL claim's 31-minute lease.
 	HeartbeatInterval time.Duration
+	// WorkTimeout bounds the entire physical preparation and SQL adoption after
+	// claim admission. Zero selects the maximum production budget.
+	WorkTimeout time.Duration
 }
 
 // ProcessOne performs one bounded scheduler claim. A lost lease cancels all
@@ -53,10 +56,21 @@ func (p SchedulerExportAdoptionProcessor) ProcessOne(ctx context.Context) (bool,
 		return false, err
 	}
 	if p.Claims == nil || p.Handler == nil || p.HeartbeatInterval <= 0 ||
-		p.HeartbeatInterval > 10*time.Minute {
+		p.HeartbeatInterval > 10*time.Minute || p.WorkTimeout < 0 ||
+		p.WorkTimeout > 2*time.Hour {
 		return false, v2input.ErrInvalid
 	}
-	claim, err := p.Claims.NextExportAdoption(ctx)
+	budget := p.WorkTimeout
+	if budget == 0 {
+		budget = 2 * time.Hour
+	}
+	claimContext, stopClaim := context.WithTimeout(ctx, 5*time.Second)
+	claim, err := p.Claims.NextExportAdoption(claimContext)
+	claimErr := claimContext.Err()
+	stopClaim()
+	if claimErr != nil {
+		return false, claimErr
+	}
 	if err != nil || claim == nil {
 		return false, err
 	}
@@ -74,7 +88,9 @@ func (p SchedulerExportAdoptionProcessor) ProcessOne(ctx context.Context) (bool,
 	if !current {
 		return false, ErrExportAdoptionLeaseLost
 	}
-	work, cancel := context.WithCancelCause(ctx)
+	bounded, stopWork := context.WithTimeout(ctx, budget)
+	defer stopWork()
+	work, cancel := context.WithCancelCause(bounded)
 	defer cancel(nil)
 	done := make(chan struct{})
 	go func() {
