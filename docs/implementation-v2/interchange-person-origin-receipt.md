@@ -72,9 +72,12 @@ the current parsed source and exact staged receipt bytes through versioned
 object locators, verifies Ed25519 against process-owned keys and expected refs,
 then repeats both locators before calling that recorder. SQL repeats the
 manifest/file mapping and current adopted-source gate in its transaction.
-The service still needs production installation with expected scope derived
-from the typed archived recipe, plus live receipt and user-grant checks at
-every admission/activation boundary.
+The service now requires `StagedImportPersonOriginScope` before receipt IO and
+again before SQL. It physically reads the staged portable recipe, WorkingImage,
+MaskRef and Override, validates their source/canvas/transform chain and exact
+confirmed `person_subject` occurrence, and rechecks each object locator.
+Production installation and live receipt plus user-grant checks at every
+admission/activation boundary remain outstanding.
 
 The bundle schema now has an optional `person_origins` mapping. Its entry ID,
 recipe, Override, MaskRef, MaskPixels and receipt path/SHA must all resolve to

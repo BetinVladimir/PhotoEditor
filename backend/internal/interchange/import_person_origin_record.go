@@ -22,6 +22,13 @@ type ImportPersonOriginReceiptWriter interface {
 	RecordPersonOriginReceipt(context.Context, []byte, v2input.Ref, []byte) error
 }
 
+// Scope must read the staged recipe, Override, original MaskRef and source
+// image, then prove the exact authored person_subject edge independently of
+// the receipt claim and manifest declaration.
+type ImportPersonOriginScope interface {
+	QualifyImportedPersonOriginScope(context.Context, []byte, PortablePersonOriginExpectation) error
+}
+
 type SQLImportPersonOriginReceiptSource struct {
 	DB               *pgxpool.Pool
 	Tenant, Workflow uuid.UUID
@@ -66,6 +73,7 @@ type ImportPersonOriginRecordService struct {
 	Source  ImportPersonOriginReceiptSource
 	Objects ImportDocumentObjects
 	Writer  ImportPersonOriginReceiptWriter
+	Scope   ImportPersonOriginScope
 	Trusted map[PortablePersonOriginKey]ed25519.PublicKey
 }
 
@@ -99,11 +107,14 @@ func (s ImportPersonOriginRecordService) Record(ctx context.Context, expected Po
 	if err := ctx.Err(); err != nil {
 		return zero, err
 	}
-	if s.Parsed == nil || s.Source == nil || s.Objects == nil || s.Writer == nil || len(s.Trusted) == 0 {
+	if s.Parsed == nil || s.Source == nil || s.Objects == nil || s.Writer == nil || s.Scope == nil || len(s.Trusted) == 0 {
 		return zero, v2input.ErrInvalid
 	}
 	parsed, err := ReadImportReviewParsed(ctx, s.Parsed, s.Objects)
 	if err != nil {
+		return zero, err
+	}
+	if err := s.Scope.QualifyImportedPersonOriginScope(ctx, append([]byte(nil), parsed...), expected); err != nil {
 		return zero, err
 	}
 	ref, err := selectedPersonOriginReceiptRef(parsed, expected)
@@ -150,6 +161,9 @@ func (s ImportPersonOriginRecordService) Record(ctx context.Context, expected Po
 	currentObject, err := s.Source.LookupPersonOriginReceipt(ctx, parsed, ref)
 	if err != nil || currentObject != object {
 		return zero, v2input.ErrInvalid
+	}
+	if err := s.Scope.QualifyImportedPersonOriginScope(ctx, append([]byte(nil), parsed...), expected); err != nil {
+		return zero, err
 	}
 	if err := s.Writer.RecordPersonOriginReceipt(ctx, append([]byte(nil), parsed...), ref, append([]byte(nil), raw...)); err != nil {
 		return zero, err

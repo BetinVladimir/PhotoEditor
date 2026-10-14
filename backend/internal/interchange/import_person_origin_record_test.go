@@ -37,6 +37,19 @@ type personOriginRecordWriter struct {
 	ref          v2input.Ref
 }
 
+type personOriginRecordScope struct {
+	calls int
+	deny  bool
+}
+
+func (s *personOriginRecordScope) QualifyImportedPersonOriginScope(_ context.Context, _ []byte, _ PortablePersonOriginExpectation) error {
+	s.calls++
+	if s.deny {
+		return v2input.ErrInvalid
+	}
+	return nil
+}
+
 func (w *personOriginRecordWriter) RecordPersonOriginReceipt(_ context.Context, parsed []byte, ref v2input.Ref, body []byte) error {
 	w.calls++
 	w.parsed = append([]byte(nil), parsed...)
@@ -46,7 +59,7 @@ func (w *personOriginRecordWriter) RecordPersonOriginReceipt(_ context.Context, 
 }
 
 func TestPersonOriginRecorderVerifiesPhysicalReceiptBeforeSQL(t *testing.T) {
-	for _, mode := range []string{"valid", "tampered", "changed_object", "no_trust"} {
+	for _, mode := range []string{"valid", "tampered", "changed_object", "no_trust", "scope"} {
 		t.Run(mode, func(t *testing.T) {
 			parsed, raw, expected, keys, staged := importedPersonOriginSelectionFixture(t)
 			parsedRef := v2input.Ref{ArtifactID: expected.EntryID, SHA256: rawSHA(parsed)}
@@ -55,6 +68,7 @@ func TestPersonOriginRecorderVerifiesPhysicalReceiptBeforeSQL(t *testing.T) {
 			receiptObject := objectstore.Object{Key: "receipt", VersionID: "v1", SHA256: staged.SHA256, Bytes: int64(len(raw)), ContentType: "application/octet-stream"}
 			receiptSource := &personOriginRecordSource{object: receiptObject, change: mode == "changed_object"}
 			writer := &personOriginRecordWriter{}
+			scope := &personOriginRecordScope{deny: mode == "scope"}
 			body := append([]byte(nil), raw...)
 			if mode == "tampered" {
 				body[0] = '!'
@@ -63,11 +77,11 @@ func TestPersonOriginRecorderVerifiesPhysicalReceiptBeforeSQL(t *testing.T) {
 				keys = nil
 			}
 			service := ImportPersonOriginRecordService{Parsed: parsedSource, Source: receiptSource,
-				Objects: personOriginRecordObjects{"parsed": parsed, "receipt": body}, Writer: writer, Trusted: keys}
+				Objects: personOriginRecordObjects{"parsed": parsed, "receipt": body}, Writer: writer, Trusted: keys, Scope: scope}
 			result, err := service.Record(context.Background(), expected)
 			if mode == "valid" {
 				if err != nil || writer.calls != 1 || writer.ref != staged || result.ReceiptFile != staged ||
-					!bytes.Equal(writer.body, raw) || !bytes.Equal(writer.parsed, parsed) || receiptSource.calls != 2 {
+					!bytes.Equal(writer.body, raw) || !bytes.Equal(writer.parsed, parsed) || receiptSource.calls != 2 || scope.calls != 2 {
 					t.Fatal("qualified receipt not recorded", err)
 				}
 			} else if err == nil || writer.calls != 0 {
