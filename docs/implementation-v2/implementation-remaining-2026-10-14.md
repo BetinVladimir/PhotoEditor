@@ -55,6 +55,8 @@
 
 `SchedulerExportArchiveReader` переиспользует bounded ZIP/manifest/XMP reader и повторно квалифицирует JSON результат после физического IO. Для `photoeditor_bundle` он требует отдельную scheduler-owned person-origin фабрику; session-bound фабрика API не подставляется. Пока такая фабрика не установлена, bundle путь закрыт. Portable source closure, commit и runtime loop ещё не реализованы; сценарии не запускались.
 
+Миграция `02039_v30_export_adoption_person_origin_inputs.sql` и `SchedulerExportPersonOriginInputs` дают scheduler только точные `PersonOriginReceipt`, запечатанные во входах claimed task, с проверкой canonical result и lease до/после чтения. Код сверяет bucket, версию, размер, SHA и тип объекта; unit-сценарии написаны, не запускались. Это источник для будущей фабрики, но ещё не сама фабрика: в ней нужно переиспользовать проверку подписи, маски и текущего producer authority без пользовательской сессии, затем снова сверить object pins перед adoption.
+
 ## Граница первого MVP
 
 Обязательны пункты 1–5 на выбранной и явно опубликованной матрице камер/форматов/операций. V23 learning, V24 on-set, V27 semantic, расширенные V28/V29, interchange и V31 C2PA желательны после первого MVP, если продукт не обещает их пользователю. Любая включённая в интерфейсе или маркетинговом обещании функция сразу получает полный P0-критерий своей сквозной трассы. Такое разделение определяет релизную очередь, но не сокращает цель V20–V32.
