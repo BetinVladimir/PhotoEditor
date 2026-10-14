@@ -69,7 +69,7 @@ func (s SQLCompletionLeases) Claim(ctx context.Context) (*CompletionLease, error
 	if err != nil {
 		return nil, err
 	}
-	if lease.UploadID == uuid.Nil || lease.Token == uuid.Nil || lease.TenantID == uuid.Nil || lease.ArtifactID == uuid.Nil || lease.SnapshotID == uuid.Nil || lease.RunID == uuid.Nil || lease.ArtifactID == lease.SnapshotID || lease.ArtifactID == lease.RunID || lease.SnapshotID == lease.RunID || lease.ExpectedBytes < 1 || lease.ExpectedBytes > objectstore.MaxUploadBytes {
+	if lease.UploadID == uuid.Nil || lease.Token == uuid.Nil || lease.TenantID == uuid.Nil || lease.ArtifactID == uuid.Nil || lease.SnapshotID == uuid.Nil || lease.RunID == uuid.Nil || lease.ArtifactID == lease.SnapshotID || lease.ArtifactID == lease.RunID || lease.SnapshotID == lease.RunID || lease.ExpectedBytes < 1 || lease.ExpectedBytes > objectstore.MaxUploadBytes || !validCompletionSource(*lease) {
 		return nil, errors.New("invalid upload completion lease")
 	}
 	decoder := json.NewDecoder(bytes.NewReader(raw))
@@ -123,6 +123,9 @@ type CompletionProcessor struct {
 }
 
 func completionDocuments(lease CompletionLease, sha string) (json.RawMessage, string, json.RawMessage, string, error) {
+	if !validCompletionSource(lease) {
+		return nil, "", nil, "", errors.New("invalid upload completion source")
+	}
 	suffix := strings.ToLower(filepath.Ext(lease.Filename))
     if !rawdevelopment.Valid(lease.RAWDevelopment) {return nil,"",nil,"",errors.New("invalid RAW policy")}
     version:=1
@@ -183,8 +186,8 @@ func (p CompletionProcessor) ProcessOne(ctx context.Context) (bool, error) {
 		defer done()
 		_, _ = p.Leases.Release(release, *lease)
 	}()
-	if !rawdevelopment.Valid(lease.RAWDevelopment) {
-		return false, errors.New("invalid persisted RAW policy")
+	if !validCompletionSource(*lease) {
+		return false, errors.New("invalid upload completion source")
 	}
 	work, stopWork := context.WithTimeout(ctx, workTimeout)
 	defer stopWork()

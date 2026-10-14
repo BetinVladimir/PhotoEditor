@@ -16,7 +16,7 @@ func TestRAWUploadNormalizationAndCompletionSnapshot(t *testing.T) {
  if err!=nil{t.Fatal(err)}
  policy.ExposureEV=2
  if normalized.RAWDevelopment.ExposureEV!=1.5{t.Fatal("normalization retained mutable caller policy")}
- lease:=CompletionLease{Filename:"frame.nef",ArtifactID:uuid.New(),RAWDevelopment:normalized.RAWDevelopment}
+ lease:=CompletionLease{Filename:"frame.nef",MediaType:formats["nef"],ArtifactID:uuid.New(),RAWDevelopment:normalized.RAWDevelopment}
  raw,digest,_,_,err:=completionDocuments(lease,"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
  if err!=nil || digest==""{t.Fatal(err)}
  var payload struct {Version int `json:"schema_version"`; Policy *rawdevelopment.Policy `json:"raw_development"`}
