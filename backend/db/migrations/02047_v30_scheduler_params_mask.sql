@@ -72,7 +72,7 @@ ALTER FUNCTION photo.v30_export_adoption_params_mask(uuid,uuid,uuid,uuid,uuid,uu
  OWNER TO photo_fn_owner;
 REVOKE ALL ON FUNCTION photo.v30_export_adoption_params_mask(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,text,text,uuid,text,uuid,text)
  FROM PUBLIC,photo_api,photo_worker,photo_gateway,photo_portal;
-GRANT EXECUTE ON FUNCTION photo.v30_export_adoption_params_mask(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,text,text,uuid,text)
+GRANT EXECUTE ON FUNCTION photo.v30_export_adoption_params_mask(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,text,text,uuid,text,uuid,text)
  TO photo_scheduler;
 -- +goose StatementEnd
 -- +goose Down

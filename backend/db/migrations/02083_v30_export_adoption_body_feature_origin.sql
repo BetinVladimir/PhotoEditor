@@ -106,7 +106,7 @@ ALTER FUNCTION photo.v30_export_adoption_body_feature_origin(uuid,uuid,uuid,uuid
  OWNER TO photo_fn_owner;
 REVOKE ALL ON FUNCTION photo.v30_export_adoption_body_feature_origin(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,text,uuid,text,uuid,text,text,text,uuid,text,text,text,text,bigint)
  FROM PUBLIC,photo_api,photo_worker,photo_gateway,photo_portal;
-GRANT EXECUTE ON FUNCTION photo.v30_export_adoption_body_feature_origin(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,text,uuid,text,text,uuid,text,text,text,text,bigint)
+GRANT EXECUTE ON FUNCTION photo.v30_export_adoption_body_feature_origin(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,text,uuid,text,uuid,text,text,text,uuid,text,text,text,text,bigint)
  TO photo_scheduler;
 -- +goose StatementEnd
 -- +goose Down

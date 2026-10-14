@@ -115,7 +115,7 @@ EXCEPTION WHEN invalid_text_representation OR numeric_value_out_of_range OR inva
 END $$;
 ALTER FUNCTION photo.v30_export_adoption_prompt_profile(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,integer,bigint,uuid,text,uuid,text,uuid,text,text,text,bigint,text,text,bigint,text,uuid,text,uuid,jsonb,text)
  OWNER TO photo_fn_owner;
-REVOKE ALL ON FUNCTION photo.v30_export_adoption_prompt_profile(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,integer,bigint,uuid,text,uuid,text,text,text,bigint,text,text,bigint,text,uuid,text,uuid,jsonb,text)
+REVOKE ALL ON FUNCTION photo.v30_export_adoption_prompt_profile(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,integer,bigint,uuid,text,uuid,text,uuid,text,text,text,bigint,text,text,bigint,text,uuid,text,uuid,jsonb,text)
  FROM PUBLIC,photo_api,photo_worker,photo_gateway,photo_portal;
 GRANT EXECUTE ON FUNCTION photo.v30_export_adoption_prompt_profile(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,integer,bigint,uuid,text,uuid,text,uuid,text,text,text,bigint,text,text,bigint,text,uuid,text,uuid,jsonb,text)
  TO photo_scheduler;
