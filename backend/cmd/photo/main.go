@@ -68,6 +68,16 @@ func runWithAPIDependencies(dependencies apiProcessDependencies) error {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	if cfg.Role == "api" || cfg.Role == "scheduler" {
+		var closeSigning func()
+		dependencies, closeSigning, err = installProcessSigningRuntime(ctx,
+			os.Getenv("PHOTO_SIGNING_DEPLOYMENT_FILE"), os.Getenv("PHOTO_SIGNING_DEPLOYMENT_SHA"),
+			os.Getenv("PHOTO_SIGNING_API_CERT_FILE"), os.Getenv("PHOTO_SIGNING_API_KEY_FILE"), dependencies)
+		if err != nil {
+			return err
+		}
+		defer closeSigning()
+	}
 	dependencies, err = installRoleInterchangePersonKey(ctx, cfg.Role,
 		os.Getenv("V30_PERSON_ORIGIN_SIGNER_FILE"),
 		os.Getenv("V30_PERSON_ORIGIN_PUBLIC_SHA"),
