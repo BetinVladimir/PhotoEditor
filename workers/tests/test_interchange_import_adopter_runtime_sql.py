@@ -18,6 +18,9 @@ def test_import_readiness_requires_scheduler_and_adopter_leases():
                 options='-c role=photo_api -c statement_timeout=3000') as api:
             def ready():
                 return api.execute('SELECT photo.v30_import_runtime_ready()').fetchone()[0]
+            def ready_for(bucket):
+                return api.execute('SELECT photo.v30_import_runtime_ready(%s)',
+                                   (bucket,)).fetchone()[0]
             try:
                 assert ready() is False
                 assert scheduler.execute('SELECT photo.announce_v30_import_runtime_bound(%s,%s)',
@@ -31,6 +34,8 @@ def test_import_readiness_requires_scheduler_and_adopter_leases():
                     'SELECT photo.announce_v30_import_adopter_runtime_bound(%s,%s)',
                     (adopter_id, 'photo')).fetchone() == (True,)
                 assert ready() is True
+                assert ready_for('photo') is True
+                assert ready_for('different-photo') is False
                 scheduler.execute('SELECT photo.withdraw_v30_import_adopter_runtime(%s)',
                                   (adopter_id,))
                 assert ready() is False
