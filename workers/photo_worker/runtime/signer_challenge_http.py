@@ -1,4 +1,4 @@
-"""Private, pinned-mTLS operator possession endpoint; no image/task signing API."""
+"""Private, pinned-mTLS operator possession and native checks; no image/task signing API."""
 from hashlib import sha256
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from http.client import LineTooLong
@@ -67,6 +67,33 @@ class SigningChallengeApplication:
         check_signing_active()
         return canonical_bytes({'schema_version': 1, 'signature_hex': signature.hex()})
 
+    def check_native(self, raw, peer_certificate):
+        """Check the installed SDK/key against one pinned policy over the same mTLS boundary."""
+        check_signing_active()
+        if (not isinstance(peer_certificate, bytes) or not 1 <= len(peer_certificate) <= 1 << 20
+                or sha256(peer_certificate).hexdigest() not in self._clients):
+            raise PermissionError('SIGNER_CHALLENGE_CLIENT')
+        if not isinstance(raw, bytes) or not 2 <= len(raw) <= 9216:
+            raise ValueError('SIGNER_NATIVE_CHECK_REQUEST')
+        request = parse_json(raw, max_bytes=9216)
+        if (not isinstance(request, dict)
+                or set(request) != {'schema_version', 'policy_sha256', 'certificate_chain_sha256'}
+                or type(request['schema_version']) is not int or request['schema_version'] != 1
+                or canonical_bytes(request) != raw
+                or any(not isinstance(request[key], str) or re.fullmatch('[0-9a-f]{64}', request[key]) is None
+                       for key in ('policy_sha256', 'certificate_chain_sha256'))):
+            raise ValueError('SIGNER_NATIVE_CHECK_REQUEST')
+        installed = self._policies.get(request['policy_sha256'])
+        if installed is None:
+            raise ValueError('SIGNER_NATIVE_CHECK_POLICY')
+        policy = decode_provenance(installed, SigningPolicy, 1 << 20)
+        if policy.certificate_chain_sha != request['certificate_chain_sha256']:
+            raise ValueError('SIGNER_NATIVE_CHECK_CERTIFICATE')
+        self._operator.check_installation(policy)
+        check_signing_active()
+        return canonical_bytes({'schema_version': 1, 'policy_sha256': request['policy_sha256'],
+                                'certificate_chain_sha256': request['certificate_chain_sha256']})
+
 
 def build_signer_challenge_server(address, application, tls_context, *, timeout=10, concurrency=4):
     if (not isinstance(application, SigningChallengeApplication)
@@ -120,7 +147,7 @@ def build_signer_challenge_server(address, application, tls_context, *, timeout=
             pass  # Never log key handles, challenges, certificates or exceptions.
         def do_POST(self):
             self.close_connection = True
-            if (self.path != '/internal/v1/operator-challenge'
+            if (self.path not in ('/internal/v1/operator-challenge', '/internal/v1/operator-native-check')
                     or self.headers.get_all('Transfer-Encoding') is not None
                     or self.headers.get_all('Expect') is not None
                     or self.headers.get_all('Content-Encoding') is not None
@@ -139,7 +166,9 @@ def build_signer_challenge_server(address, application, tls_context, *, timeout=
                 raw = self.rfile.read(int(length))
                 if len(raw) != int(length):raise ValueError('SIGNER_CHALLENGE_REQUEST')
                 with signing_task_scope(active):
-                    response = application.handle(raw, self.connection.getpeercert(binary_form=True))
+                    peer = self.connection.getpeercert(binary_form=True)
+                    response = (application.handle(raw, peer) if self.path == '/internal/v1/operator-challenge'
+                                else application.check_native(raw, peer))
                 active()
             except PermissionError:
                 self.send_error(403);return

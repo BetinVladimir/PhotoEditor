@@ -39,6 +39,27 @@ def test_challenge_endpoint_requires_pinned_client_and_installed_policy(mode):
         with pytest.raises((ValueError, PermissionError)):app.handle(raw, peer)
 
 
+@pytest.mark.parametrize('mode', ['valid', 'client', 'policy', 'certificate', 'schema', 'noncanonical', 'revoked'])
+def test_private_native_check_requires_live_installed_policy(mode):
+    live = mode != 'revoked'
+    delegate, policy, _, _, _ = setup_delegate(inspect=lambda *args: live)
+    installed = InstalledSigningOperator([canonical_bytes(policy)], lambda *args: True, delegate)
+    peer = b'unit-only-peer-certificate'
+    app = SigningChallengeApplication([canonical_bytes(policy)], installed, [sha256(peer).hexdigest()])
+    request = {'schema_version': 1, 'policy_sha256': sha256(canonical_bytes(policy)).hexdigest(),
+               'certificate_chain_sha256': policy.certificate_chain_sha}
+    if mode == 'client':peer = b'foreign-client'
+    if mode == 'policy':request['policy_sha256'] = 'a' * 64
+    if mode == 'certificate':request['certificate_chain_sha256'] = 'b' * 64
+    if mode == 'schema':request['schema_version'] = True
+    raw = canonical_bytes(request)
+    if mode == 'noncanonical':raw += b' '
+    if mode == 'valid':
+        assert parse_json(app.check_native(raw, peer)) == request
+    else:
+        with pytest.raises((ValueError, PermissionError)):app.check_native(raw, peer)
+
+
 def test_challenge_server_refuses_non_mtls_and_weak_tls_before_binding():
     delegate, policy, _, _, _ = setup_delegate()
     installed = InstalledSigningOperator([canonical_bytes(policy)], lambda *args: True, delegate)
