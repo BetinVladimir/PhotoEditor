@@ -36,6 +36,10 @@ recipe/Override occurrence authority and a process-owned Ed25519 signer. It
 checks pinned object metadata, typed MaskRef/canvas/pixels/model lock, repeats
 the occurrence and locator after evidence IO and again after signing, verifies
 its own signature against the configured public key and emits canonical bytes.
+`ProcessPersonOriginSigner` now accepts only a process-provisioned Ed25519
+`crypto.Signer` whose public key matches the issuer configuration. It signs
+owned, bounded bytes and verifies the returned signature against that pinned
+public key. Provisioning and startup installation remain outstanding.
 The occurrence authority and production signer installation are not yet wired;
 the issuer is not reachable from the export API.
 The current `mask.person` worker emits `selector: "person", protected: false`,
