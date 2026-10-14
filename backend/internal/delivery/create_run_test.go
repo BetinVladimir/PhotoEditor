@@ -13,6 +13,7 @@ import (
 type signingReadinessTx struct {
 	queries      []string
 	signingReady bool
+	signingArgs  []any
 }
 
 func (t *signingReadinessTx) QueryRow(_ context.Context, query string, args ...any) pgx.Row {
@@ -21,6 +22,7 @@ func (t *signingReadinessTx) QueryRow(_ context.Context, query string, args ...a
 		return proofRow{false}
 	}
 	if strings.Contains(query, "v30_delivery_signing_runtime_ready") {
+		t.signingArgs = append([]any(nil), args...)
 		return proofRow{t.signingReady}
 	}
 	return proofRow{true}
@@ -143,7 +145,7 @@ func TestCreateRunRequiresTenantSigningRuntimeForRequiredPolicy(t *testing.T) {
 	}
 	tx := &signingReadinessTx{}
 	err = intent.BeginRun(context.Background(), tx, who, intent.tenant, pending, "photos")
-	if err == nil || len(tx.queries) != 3 || !strings.Contains(tx.queries[2], "v30_delivery_signing_runtime_ready") {
+	if err == nil || len(tx.queries) != 3 || !strings.Contains(tx.queries[2], "v30_delivery_signing_runtime_ready") || len(tx.signingArgs) != 4 || tx.signingArgs[0] != "photos" || tx.signingArgs[1] != intent.tenant || tx.signingArgs[2] != request.Policy.SigningPolicyID || tx.signingArgs[3] != request.Policy.SigningPolicySHA {
 		t.Fatal("missing signing readiness classification", err, tx.queries)
 	}
 }

@@ -69,7 +69,7 @@ func (i CreateIntent) beginRun(ctx context.Context, tx ProofTransaction, who aut
 		}
 		if i.request.Policy.Provenance == "required" {
 			var signingReady bool
-			if err := tx.QueryRow(ctx, `SELECT photo.v30_delivery_signing_runtime_ready($1,$2)`, bucket, tid).Scan(&signingReady); err != nil {
+			if err := tx.QueryRow(ctx, `SELECT photo.v30_delivery_signing_runtime_ready($1,$2,$3,$4)`, bucket, tid, i.request.Policy.SigningPolicyID, i.request.Policy.SigningPolicySHA).Scan(&signingReady); err != nil {
 				return err
 			}
 			if !signingReady {

@@ -647,6 +647,7 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 	deliveryState := new(ExpansionLoopState)
 	var deliveryRuntimeReady atomic.Bool
 	signingDeliveryTenants := []uuid.UUID{}
+	signingDeliveryPins := []DeliverySigningLeasePin{}
 	var deliveryProcessor DeliveryExpansionJob
 	if deliveryConfig.Enabled {
 		if err := validateDeliveryRuntimeSQL(ctx, pool); err != nil {
@@ -680,8 +681,18 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 		if err != nil {
 			return err
 		}
-		for id := range signingRuntime.Tenants {
+		for id, installed := range signingRuntime.Tenants {
 			signingDeliveryTenants = append(signingDeliveryTenants, id)
+			pins, pinErr := installed.Policies.InstalledPolicyPins()
+			if pinErr != nil {
+				return pinErr
+			}
+			for _, pin := range pins {
+				signingDeliveryPins = append(signingDeliveryPins, DeliverySigningLeasePin{Tenant: id, Policy: pin.PolicyID, SHA: pin.PolicySHA})
+			}
+		}
+		if len(signingDeliveryPins) > 4096 {
+			return errors.New("delivery signing runtime policy limit exceeded")
 		}
 	}
 
@@ -807,7 +818,7 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 		instance := uuid.New()
 		go func() { deliveryDone <- RunExpansionLoop(deliveryCtx, deliveryProcessor, deliveryState, 5*time.Second) }()
 		go func() {
-			maintainDeliveryRuntime(deliveryCtx, pool, deliveryState, &deliveryRuntimeReady, instance, storageConfig.Bucket, signingDeliveryTenants)
+			maintainDeliveryRuntime(deliveryCtx, pool, deliveryState, &deliveryRuntimeReady, instance, storageConfig.Bucket, signingDeliveryTenants, signingDeliveryPins)
 			close(runtimeDone)
 		}()
 		defer func() { stopDelivery(); <-deliveryDone; <-runtimeDone }()
