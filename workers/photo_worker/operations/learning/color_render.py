@@ -7,31 +7,34 @@ be compared with an approved image as if it were the complete pipeline.
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+from uuid import UUID
 
 import numpy as np
 
 from photo_worker.algorithms.color import (
-    apply_global, apply_local, apply_strength, trilinear,
+    apply_global, apply_local, apply_series, apply_strength, trilinear,
 )
 from photo_worker.algorithms.regions import apply_regions
 from photo_worker.algorithms.style import ResolvedColor, resolve_style
 from photo_worker.contracts.resolved import ResolvedStyle
 from photo_worker.contracts.style import StyleV2
+from photo_worker.contracts.series import ItemCorrection
 
 
 def render_resolved_color(source: np.ndarray, target: np.ndarray,
                           resolved: ResolvedStyle | ResolvedColor, *,
                           style: StyleV2 | None = None,
                           absolute_lut: np.ndarray | None = None,
+                          series_correction: ItemCorrection | None = None,
+                          series_item_id: UUID | None = None,
                           person_mask: np.ndarray | None = None,
                           region_masks: Mapping[str, np.ndarray] | None = None,
                           tile: int = 512,
                           check_active: Callable[[], None] = lambda: None) -> None:
-    """Write global → local → regions → one strength blend, tile by tile.
+    """Write global → series → local → regions → one strength blend, tile by tile.
 
-    This follows image.color and image.local with no series correction. The
-    output is intentionally separate from the source so identity guards can
-    compare unchanged input pixels with the rendered candidate.
+    A series correction is accepted only for the exact frozen item. The
+    outer holdout pipeline still requires its own SQL-authorized evidence.
     """
     if (not isinstance(resolved, (ResolvedStyle, ResolvedColor)) or
             not isinstance(source, np.ndarray) or
@@ -62,11 +65,19 @@ def render_resolved_color(source: np.ndarray, target: np.ndarray,
         extension = style.extensions
         lut = resolved.absolute_lut
         lut_size = lut.shape[0] if isinstance(lut, np.ndarray) else None
+    series_enabled = extension.series is not None and extension.series.enabled
+    if series_enabled:
+        if (not isinstance(series_correction, ItemCorrection) or
+                type(series_item_id) is not UUID or series_item_id.int == 0 or
+                series_correction.item_id != series_item_id):
+            raise ValueError('HOLDOUT_SERIES_EVIDENCE_REQUIRED')
+    elif series_correction is not None or series_item_id is not None:
+        raise ValueError('HOLDOUT_SERIES_EVIDENCE_UNEXPECTED')
     unsupported = (beauty.enabled or defects.enabled or
                    geometry.enabled or extension.restoration is not None or
                    extension.background is not None or
                    any(value is not None and getattr(value, 'enabled', False)
-                       for value in (extension.culling, extension.series,
+                       for value in (extension.culling,
                                      extension.composition, extension.portrait_detail,
                                      extension.inpainting, extension.generation)))
     if unsupported:
@@ -101,6 +112,9 @@ def render_resolved_color(source: np.ndarray, target: np.ndarray,
             base = source[sl]
             colored = (apply_global(base, resolved.fixed) if resolved.fixed is not None
                        else np.clip(trilinear(lut, base), 0, 1).astype(np.float32))
+            if series_enabled:
+                colored = apply_series(colored, series_correction.applied_ev,
+                                       series_correction.applied_gains)
             local = apply_local(colored,
                                 person_mask[sl] if resolved.local.enabled else None,
                                 resolved.local)
@@ -118,6 +132,8 @@ def render_materialized_style(source: np.ndarray, target: np.ndarray,
                               features: np.ndarray | None = None,
                               coverage_counts: np.ndarray | None = None,
                               person_mask: np.ndarray | None = None,
+                              series_correction: ItemCorrection | None = None,
+                              series_item_id: UUID | None = None,
                               region_masks: Mapping[str, np.ndarray] | None = None,
                               tile: int = 512,
                               check_active: Callable[[], None] = lambda: None,
@@ -132,6 +148,8 @@ def render_materialized_style(source: np.ndarray, target: np.ndarray,
                            person_reliable=person_reliable,
                            strict_ood=False)
     render_resolved_color(source, target, result, style=style,
+                          series_correction=series_correction,
+                          series_item_id=series_item_id,
                           person_mask=person_mask if result.local.enabled else None,
                           region_masks=region_masks, tile=tile,
                           check_active=check_active)

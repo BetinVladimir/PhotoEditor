@@ -1,14 +1,16 @@
 import numpy as np
 import pytest
+from uuid import uuid4
 
 from photo_worker.algorithms.color import (
-    apply_global, apply_local, apply_strength, identity_lut, trilinear,
+    apply_global, apply_local, apply_series, apply_strength, identity_lut, trilinear,
 )
 from photo_worker.algorithms.statistics import coverage_counts_bounded
 from photo_worker.contracts.resolved import ResolvedStyle
 from photo_worker.contracts.style import (
-    Adaptation, LocalColor, LUT, ModelReference, Prototype, RegionAdjustment,
+    Adaptation, LocalColor, LUT, ModelReference, Prototype, RegionAdjustment, Series,
 )
+from photo_worker.contracts.series import ItemCorrection
 from photo_worker.operations.learning.color_render import (
     render_materialized_style, render_resolved_color,
 )
@@ -76,6 +78,37 @@ def test_holdout_color_refuses_missing_masks_and_unsupported_effects(tmp_path):
     resolved = _resolved(fixture.resolved, modules=modules)
     with pytest.raises(ValueError, match='HOLDOUT_REGION_MASK_MISSING'):
         render_resolved_color(fixture.rgb, target, resolved)
+
+
+def test_holdout_series_uses_pinned_item_and_production_stage_order(tmp_path):
+    fixture = Artifacts(tmp_path, False)
+    style = profile().model_copy(deep=True)
+    style.extensions.series = Series(
+        enabled=True, algorithm='seriesmatch_v1', reference='studio',
+        ev_limit=.35, rgb_gain_limits=[.95, 1.05])
+    item_id = uuid4()
+    correction = ItemCorrection(
+        item_id=item_id, raw_ev=.1, raw_gains=[1.01, 1., 1.],
+        applied_ev=.1, applied_gains=[1.01, 1., 1.], confidence=1.,
+        accepted=True, reason='applied')
+    target = np.empty_like(fixture.rgb)
+    render_materialized_style(
+        fixture.rgb, target, style, person_reliable=False,
+        series_correction=correction, series_item_id=item_id, tile=256)
+    global_rgb = apply_global(fixture.rgb, style.global_)
+    series_rgb = apply_series(global_rgb, correction.applied_ev,
+                              correction.applied_gains)
+    expected = apply_strength(fixture.rgb,
+                              apply_local(series_rgb, None, style.local),
+                              style.strength)
+    np.testing.assert_array_equal(target, expected)
+    with pytest.raises(ValueError, match='HOLDOUT_SERIES_EVIDENCE_REQUIRED'):
+        render_materialized_style(
+            fixture.rgb, target, style, person_reliable=False,
+            series_correction=correction, series_item_id=uuid4(), tile=256)
+    with pytest.raises(ValueError, match='HOLDOUT_SERIES_EVIDENCE_REQUIRED'):
+        render_materialized_style(
+            fixture.rgb, target, style, person_reliable=False, tile=256)
 
 
 def test_materialized_fixed_and_adaptive_styles_use_pinned_resolution(tmp_path):
