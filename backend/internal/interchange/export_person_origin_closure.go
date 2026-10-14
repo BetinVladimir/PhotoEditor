@@ -8,8 +8,9 @@ import (
 )
 
 // ValidateExportPersonOriginSourceClosure joins signed-receipt expectations to
-// the frozen plan and independently qualified portable source inventory. It
-// supplements, rather than replaces, the physical receipt and signature gate.
+// the frozen plan and independently qualified portable source inventory. The
+// MaskRef is inline in Override, so its separate archive source is qualified
+// by the issuer/physical-receipt gate, not invented as a closure child here.
 func ValidateExportPersonOriginSourceClosure(ctx context.Context, intent CreateIntent,
 	frozen FrozenExportDocuments, raw []byte, inventory ExportInputInventory,
 	expected map[string]PortablePersonOriginExpectation,
@@ -73,7 +74,7 @@ func ValidateExportPersonOriginSourceClosure(ctx context.Context, intent CreateI
 			ref      v2input.Ref
 			contract string
 		}{{scope.Recipe, "EditingRecipeV3"}, {scope.Override, "Override"},
-			{scope.MaskRef, "MaskRef"}, {scope.MaskPixels, "MaskPixels"}} {
+			{scope.MaskPixels, "MaskPixels"}} {
 			actual, present := entries[child.ref.ArtifactID]
 			if !present || actual.Ref != child.ref || actual.Contract != child.contract {
 				return v2input.ErrInvalid

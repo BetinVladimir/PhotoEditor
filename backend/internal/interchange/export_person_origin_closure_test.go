@@ -2,6 +2,7 @@ package interchange
 
 import (
 	"context"
+	"sort"
 	"testing"
 
 	"github.com/google/uuid"
@@ -58,7 +59,6 @@ func TestExportPersonOriginRequiresFrozenEntryAndQualifiedSourceClosure(t *testi
 	inventory := ExportInputInventory{task: compiled.task, entries: []v2input.Entry{
 		{Ref: scope.Recipe, Contract: "EditingRecipeV3"},
 		{Ref: scope.Override, Contract: "Override"},
-		{Ref: scope.MaskRef, Contract: "MaskRef"},
 		{Ref: scope.MaskPixels, Contract: "MaskPixels"},
 	}}
 	expected := map[string]PortablePersonOriginExpectation{path: scope}
@@ -66,7 +66,7 @@ func TestExportPersonOriginRequiresFrozenEntryAndQualifiedSourceClosure(t *testi
 		t.Fatalf("qualified closure refused: %v", err)
 	}
 	missing := inventory
-	missing.entries = append([]v2input.Entry(nil), inventory.entries[:3]...)
+	missing.entries = append([]v2input.Entry(nil), inventory.entries[:2]...)
 	if err := ValidateExportPersonOriginSourceClosure(context.Background(), intent, frozen, body, missing, expected); err == nil {
 		t.Fatal("missing mask pixels accepted")
 	}
@@ -75,5 +75,37 @@ func TestExportPersonOriginRequiresFrozenEntryAndQualifiedSourceClosure(t *testi
 	if err := ValidateExportPersonOriginSourceClosure(context.Background(), intent, frozen, body, inventory,
 		map[string]PortablePersonOriginExpectation{path: foreign}); err == nil {
 		t.Fatal("foreign source binding accepted")
+	}
+	complete := inventory
+	complete.entries = append([]v2input.Entry{{Ref: want.Content, Contract: "EncodedImage"}}, inventory.entries...)
+	complete.digest, err = canonical.Hash(complete.entries)
+	if err != nil {
+		t.Fatal(err)
+	}
+	receiptID := uuid.NewSHA1(scope.EntryID, []byte("v30:person-origin:"+scope.MaskRef.ArtifactID.String()))
+	receiptSHA := manifest.PersonOrigins[0].SHA
+	manifest.Inventory = []exportBundleInventoryEntry{
+		{ID: want.Content.ArtifactID, Path: want.Path, SHA: want.Content.SHA256, Contract: "EncodedImage"},
+		{ID: scope.Recipe.ArtifactID, Path: "recipes/" + scope.Recipe.ArtifactID.String() + ".json", SHA: scope.Recipe.SHA256, Contract: "EditingRecipeV3"},
+		{ID: scope.Override.ArtifactID, Path: "dependencies/" + scope.Override.ArtifactID.String() + ".json", SHA: scope.Override.SHA256, Contract: "Override"},
+		{ID: scope.MaskPixels.ArtifactID, Path: "dependencies/" + scope.MaskPixels.ArtifactID.String() + ".bin", SHA: scope.MaskPixels.SHA256, Contract: "MaskPixels"},
+		{ID: scope.MaskRef.ArtifactID, Path: "dependencies/" + scope.MaskRef.ArtifactID.String() + ".json", SHA: scope.MaskRef.SHA256, Contract: "MaskRef"},
+		{ID: receiptID, Path: path, SHA: receiptSHA, Contract: "PersonOriginReceipt"},
+	}
+	sort.Slice(manifest.Inventory, func(i, j int) bool { return manifest.Inventory[i].Path < manifest.Inventory[j].Path })
+	manifest.Entries = []exportBundleEntry{{ID: want.ID, External: want.External, ImagePath: want.Path,
+		ImageSHA: want.Content.SHA256, Rating: want.Rating, Pick: want.Pick, Crop: want.Crop}}
+	recipePath := "recipes/" + scope.Recipe.ArtifactID.String() + ".json"
+	recipeSHA := scope.Recipe.SHA256
+	manifest.Entries[0].RecipePath, manifest.Entries[0].RecipeSHA = &recipePath, &recipeSHA
+	full, err := canonical.Marshal(manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateExportBundleSourceInventoryWithPersonOrigins(context.Background(), intent, frozen, full, complete, expected); err != nil {
+		t.Fatalf("qualified portable inventory refused: %v", err)
+	}
+	if err := ValidateExportBundleSourceInventory(context.Background(), intent, frozen, full, complete); err == nil {
+		t.Fatal("legacy validator admitted unverified origins")
 	}
 }
