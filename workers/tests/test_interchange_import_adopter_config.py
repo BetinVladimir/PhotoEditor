@@ -10,7 +10,8 @@ from photo_worker.contracts.base import canonical_bytes
 from photo_worker.operations.semantic.exposure_color import WORKING_PROFILE_SHA
 from photo_worker.v2 import interchange_import_adopter_config as config_module
 from photo_worker.v2.interchange_import_adoption_runtime import SchedulerImportAdoptionRuntimeAuthority
-from photo_worker.v2.interchange_import_adopter_config import qualified_import_adopter_builder
+from photo_worker.v2.interchange_import_adopter_config import (
+    qualified_import_adopter_builder, import_adopter_operator_from_environment)
 from test_interchange_import_adoption_qualification_report import fixture as report_fixture
 from photo_worker.v2.interchange_import_adoption_runtime import ImportAdoptionQualification
 from uuid import uuid4
@@ -97,3 +98,31 @@ def test_import_adopter_qualified_builder_binds_sql_object_and_person_authority(
     assert installed.runtime.person_current.connection is connection
     with pytest.raises(ValueError, match='OPERATOR_INSTALLATION'):
         qualified_import_adopter_builder(resources, selected, objects, 'photo', None)
+
+
+def test_import_adopter_operator_environment_requires_both_pins(tmp_path, monkeypatch):
+    values, _ = environment(tmp_path)
+    monkeypatch.setattr(config_module, 'ICCRegistry', lambda _root: SimpleNamespace(
+        resolve=lambda _name: SimpleNamespace(sha256=WORKING_PROFILE_SHA)))
+    with pytest.raises(ValueError, match='PARTIAL_CONFIG'):
+        import_adopter_operator_from_environment(values.get)
+    expected, _ = report_fixture()
+    manifest = canonical_bytes({'schema_version': 1, 'qualifications': [{
+        'operation': 'image.denoise', 'scale': None, 'expected': expected,
+        'report_id': str(uuid4()), 'report_sha': 'a' * 64}]})
+    path = tmp_path / 'qualifications.json'
+    path.write_bytes(manifest)
+    values['PHOTO_ADOPTER_INTERCHANGE_IMPORT_QUALIFICATIONS_FILE'] = str(path)
+    values['PHOTO_ADOPTER_INTERCHANGE_IMPORT_QUALIFICATIONS_SHA'] = sha256(manifest).hexdigest()
+    operator = import_adopter_operator_from_environment(values.get)
+    objects = SimpleNamespace(get_object=lambda *_args, **_kwargs: None)
+    builder = operator(objects, 'photo')
+    installed = builder(SimpleNamespace(autocommit=True), Event())
+    assert installed.runtime.objects is objects
+    assert installed.runtime.policies['image.denoise'].expected == expected
+    values['PHOTO_ADOPTER_INTERCHANGE_IMPORT_ENABLED'] = 'false'
+    for key in ('SCHEMAS_FILE', 'SCHEMAS_SHA', 'SCRATCH_ROOT',
+                'SCRATCH_BYTES', 'MAX_FILE_BYTES'):
+        values.pop('PHOTO_ADOPTER_INTERCHANGE_IMPORT_' + key)
+    with pytest.raises(ValueError, match='PARTIAL_CONFIG'):
+        import_adopter_operator_from_environment(values.get)

@@ -202,6 +202,10 @@ def v2_adopter():
         multi=tuple(item for operation in ('optical.panorama','optical.focus_stack')
             if (item:=multi_adopter_from_environment(operation)) is not None)
         if multi:options['multi_installations']=multi
+        from photo_worker.v2.interchange_import_adopter_config import import_adopter_operator_from_environment
+        import_operator=import_adopter_operator_from_environment()
+        if import_operator is not None:
+            options['interchange_recipe_operator_factory']=import_operator
         run_adopter(AdopterConfig.from_env(),stop,**options)
     except ValueError:
         typer.echo('V2 adopter configuration invalid',err=True);raise typer.Exit(2)

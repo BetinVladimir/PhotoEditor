@@ -501,7 +501,7 @@ def run_adopter(config: AdopterConfig, stop: Event | None = None, *,
     stop = Event() if stop is None else stop
     endpoint = urlsplit(config.endpoint)
     object_options={}
-    if config.delivery_encode_max_pixels is not None or donor_installation is not None or negative_installation is not None or relight_installation is not None or perspective_installation is not None or perspective_lines_installation is not None or multi_installations or config.restoration_preview_enabled:
+    if config.delivery_encode_max_pixels is not None or donor_installation is not None or negative_installation is not None or relight_installation is not None or perspective_installation is not None or perspective_lines_installation is not None or multi_installations or config.restoration_preview_enabled or interchange_recipe_operator_factory is not None:
         import certifi
         import urllib3
         object_options['http_client']=urllib3.PoolManager(
