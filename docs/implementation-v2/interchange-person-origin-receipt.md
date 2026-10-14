@@ -63,10 +63,16 @@ Migration 02032 and `SQLExportPersonOriginArchiveInstallation` now reconstruct
 that authority from the sealed export task's versioned receipt inputs after a
 restart. They verify the signed physical receipt, declared original `MaskRef`,
 frozen entry/recipe/source binding and current producer before reading the ZIP.
+The reconstructed authority also pins each ZIP receipt member's physical SHA256
+to the exact `PersonOriginReceipt` task input; a different signed serialization
+cannot replace the sealed document. The archive reader checks this binding
+before accepting the embedded signature and current producer.
 `ExportResultPreparation` accepts this factory and rechecks the producer again
 after archive/source closure, before freezing adoption evidence. Deployment
 still must install the process-owned trusted issuer keys and result-preparation
-factory; a full adoption run remains unverified until the deferred test phase.
+factory. The current API process constructs export creation but does not call
+`PrepareAndAdopt`; production result adoption, finalizer recovery and a full
+adoption run remain open until they are installed and later verified.
 `ExportPersonOriginAttachmentPublisher` now implements signed-byte validation,
 fenced reservation, immutable object write/recovery, physical reread and
 current-producer recheck against an explicit repository interface.
