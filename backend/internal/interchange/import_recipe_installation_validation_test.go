@@ -81,7 +81,7 @@ func TestImportRecipeStartupRequiresCompleteNonconflictingConfiguration(t *testi
 				cancel()
 			}
 			err = (SQLImportSchedulerRecipeFactory{Authority: factory}).ValidateImportRecipeInstallation(ctx)
-			valid := mode == "valid" || mode == "valid_defect_review" || mode == "valid_dust_series" || mode == "valid_dust_sensor"
+			valid := mode == "valid" || mode == "valid_defect_review" || mode == "valid_dust_series" || mode == "valid_dust_sensor" || mode == "override"
 			if (err == nil) != valid {
 				t.Fatal("unexpected installation result", mode, err)
 			}

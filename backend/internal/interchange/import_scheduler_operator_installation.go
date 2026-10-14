@@ -42,8 +42,7 @@ func (f ImportSchedulerOperatorFiles) Install(ctx context.Context, base SQLImpor
 	if err := ctx.Err(); err != nil {
 		return zero, err
 	}
-	if personAcceptance == nil || base.StyleInstallation != nil || base.PersonMaskQualification != nil ||
-		base.Codecs.OverrideContent == nil {
+	if personAcceptance == nil || base.StyleInstallation != nil || base.PersonMaskQualification != nil {
 		return zero, v2input.ErrInvalid
 	}
 	// Known Params contracts are handled by typed branches of the recipe graph.

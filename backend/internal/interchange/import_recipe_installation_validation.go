@@ -24,7 +24,7 @@ func (f SQLImportEntryRecipeAuthorityFactory) ValidateImportRecipeInstallation(c
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if f.Codecs.Params == nil || f.Codecs.OverrideContent == nil {
+	if f.Codecs.Params == nil || (f.StyleInstallation == nil && f.Codecs.OverrideContent == nil) {
 		return v2input.ErrInvalid
 	}
 	if f.StyleInstallation == nil {

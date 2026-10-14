@@ -59,6 +59,12 @@ func TestImportSchedulerOperatorFilesComposeCompletePinnedFactory(t *testing.T) 
 	if _, ok := authority.Codecs.Params.(RejectUnsupportedImportDependency); !ok || withoutFallback.Codecs.Params != nil {
 		t.Fatal("unknown Params fallback was not isolated to installed factory")
 	}
+	withoutContent := base
+	withoutContent.Codecs.OverrideContent = nil
+	processOwned, err := files.Install(context.Background(), withoutContent, &importMaskQualifierStub{})
+	if err != nil || processOwned.Recipes == nil {
+		t.Fatal("process-owned Override content installation unavailable", err)
+	}
 	files.StyleSHA = sha("foreign")
 	if broken, err := files.Install(context.Background(), base, &importMaskQualifierStub{}); err == nil || broken.Recipes != nil {
 		t.Fatal("foreign style pin produced a partial factory", err)
@@ -92,10 +98,6 @@ func TestImportSchedulerOperatorFilesValidateAllPinsAndPortsBeforeIO(t *testing.
 	}
 	files.StyleSHA = sha
 	base.Codecs.OverrideContent = nil
-	if _, err := files.Install(context.Background(), base, &importMaskQualifierStub{}); !errors.Is(err, v2input.ErrInvalid) {
-		t.Fatal("missing semantic port reached native file IO", err)
-	}
-	base.Codecs.OverrideContent = installationOnlyImportPort{}
 	files.Recipes.Stats.Path = "relative.json"
 	if _, err := files.Install(context.Background(), base, &importMaskQualifierStub{}); !errors.Is(err, v2input.ErrInvalid) {
 		t.Fatal("relative operator path reached native file IO", err)

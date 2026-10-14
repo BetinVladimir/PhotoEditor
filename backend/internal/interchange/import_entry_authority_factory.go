@@ -236,7 +236,11 @@ func (f SQLImportEntryRecipeAuthorityFactory) BuildImportEntryRecipeAuthority(ct
 	}
 	if f.StyleInstallation != nil {
 		installation := f.StyleInstallation.owned()
-		current := ImportOverrideCurrentAssetPolicy{Other: codecs.OverrideContent, Binding: scope.Binding, Witnesses: backgroundWitnesses, Assets: assets}
+		var content ImportOverrideContentQualifier = ImportProcessOverrideEnvelope{Masters: masters, Binding: scope.Binding}
+		if codecs.OverrideContent != nil {
+			content = ImportOverrideContentChain{First: content, Second: codecs.OverrideContent}
+		}
+		current := ImportOverrideCurrentAssetPolicy{Other: content, Binding: scope.Binding, Witnesses: backgroundWitnesses, Assets: assets}
 		override, err := NewNativeImportOverrideContent(f.Native.WarpScratch, f.Native.WarpProbe, installation.Models, installation.StyleRuntimeSHA, current)
 		if err != nil {
 			return nil, nil, err
