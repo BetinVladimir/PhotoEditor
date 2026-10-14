@@ -47,17 +47,28 @@ Override codec больше не переносит архивный
 закреплённого style runtime; без port или при неизменном ID отказывает до
 подготовки документа. Unit-сценарий
 на отказ и remap написан, не запускался. StyleV2 background remapper нельзя
-использовать автоматически: его индекс и SQL authority привязаны к StyleV2
-occurrence. Физический Override-specific publisher/SQL registration и live
+использовать автоматически: сначала надо доказать, что Override входит в
+точный archived recipe и извлечь его BaseStyle. Публикация и live
 prepared-asset admission остаются кодовым разрывом.
 
 Финальная prepared closure теперь отдельно отказывает для Override с
 `modules.extensions.background.mode=asset`: portable ID не является
 `ArtifactRef`, а готового `OverrideBackgroundAsset` child и SQL authority пока
 нет. Одного remapper callback недостаточно для активации. Unit-сценарий
-отказа написан, не запускался. Для полного включения нужны экспортное
-occurrence в bundle manifest, физическая публикация, typed child, SQL
-регистрация и повторная live-проверка в activation TX.
+отказа написан, не запускался. Для полного включения нужны физическая
+публикация, typed child и повторная live-проверка в activation TX.
+
+Уточнение source-аудита: frozen render background pin уже указывает на
+`BaseStyle` и выбранный portable asset даже тогда, когда выбор сделан модулем
+Override. Существующий `backgrounds` индекс содержит `(base StyleV2 ref,
+portable ID)` и физический publisher. Новый
+`ImportOverrideStyleSource.ReadBaseStyle` читает точный архивный
+`EditingRecipeV3` текущего entry через parsed inventory, проверяет старый
+source binding, участие данного Override и наличие BaseStyle в инвентаре,
+затем перечитывает recipe для защиты от изменения во время IO. Unit-сценарий
+написан, не запускался. Следующая связка — адаптер к StyleV2 publisher с
+повторной проверкой recipe после публикации и typed child в closure; отказ
+activation пока сохраняется.
 
 Это трассировка исходников для выбора следующей разработки. Она не является
 процентом реализации, результатом тестирования или приёмкой модулей. Текущий
