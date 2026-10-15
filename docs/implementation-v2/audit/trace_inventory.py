@@ -7,6 +7,7 @@ independent review. This script never reads historical PASS as current proof.
 import hashlib
 import json
 import re
+import subprocess
 from pathlib import Path
 
 
@@ -42,6 +43,7 @@ def is_test(path):
 
 
 def inventory():
+    commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     operation_contract = CONTRACTS / "operations.json"
     endpoint_contract = CONTRACTS / "endpoints.json"
     operations = json.loads(operation_contract.read_text())["operations"]
@@ -82,6 +84,7 @@ def inventory():
             row[stage + "_candidates"] = matches(literal, source)
         row["unit_candidates"] = matches(literal, unit_files)
         row["trace_status"] = "not_verified"
+        row["review_gate"] = "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
         operation_rows.append(row)
 
     endpoint_rows = []
@@ -107,9 +110,11 @@ def inventory():
                                    "static_dynamic_table_candidate" if dynamic_route_files else
                                    "not_found_by_static_scan"),
             "trace_status": "not_verified",
+            "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation",
         })
     return {
         "schema_version": 1,
+        "source_commit": commit,
         "scope": "current source candidates for all V20–V32 operations and endpoint contracts",
         "contract_sha256": {
             relative(path): hashlib.sha256(path.read_bytes()).hexdigest()

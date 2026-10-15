@@ -1,5 +1,6 @@
 {
   "schema_version": 1,
+  "source_commit": "8d663b162dee3dfbfc0b84e8398df0f8bdf09f30",
   "scope": "current source candidates for all V20–V32 operations and endpoint contracts",
   "contract_sha256": {
     "docs/implementation-v2/contracts/operations.json": "35ca9a8987d30076269617ef92d466933e316dd9bdb805fe2eba5bc374349075",
@@ -96,7 +97,8 @@
         ],
         "truncated": false
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "session.describe",
@@ -167,7 +169,8 @@
         ],
         "truncated": false
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "session.plan",
@@ -227,7 +230,8 @@
         ],
         "truncated": false
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "learning.fit",
@@ -295,7 +299,8 @@
         ],
         "truncated": false
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "learning.evaluate",
@@ -363,7 +368,8 @@
         ],
         "truncated": false
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "capture.assess",
@@ -386,7 +392,7 @@
         "truncated": false
       },
       "sql_candidates": {
-        "count": 12,
+        "count": 13,
         "files": [
           "backend/db/migrations/00268_v24_capture_adoption.sql",
           "backend/db/migrations/00271_v24_capture_graph_commit.sql",
@@ -401,7 +407,7 @@
           "backend/db/migrations/00307_v24_adoption_live_consent.sql",
           "backend/db/migrations/00308_v24_rejected_admission.sql"
         ],
-        "truncated": false
+        "truncated": true
       },
       "worker_candidates": {
         "count": 2,
@@ -430,7 +436,8 @@
         ],
         "truncated": false
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "identity.compare",
@@ -442,21 +449,40 @@
         "truncated": false
       },
       "service_candidates": {
-        "count": 0,
-        "files": [],
-        "truncated": false
-      },
-      "sql_candidates": {
-        "count": 1,
+        "count": 5,
         "files": [
-          "backend/db/migrations/00223_v23_identity_operation_catalog.sql"
+          "backend/internal/v2input/admission.go",
+          "backend/internal/v2input/identity_compare_closure.go",
+          "backend/internal/v2input/identity_compare_consent_pin.go",
+          "backend/internal/v2input/identity_compare_task.go",
+          "backend/internal/v2input/identity_qualification_resolver.go"
         ],
         "truncated": false
       },
-      "worker_candidates": {
-        "count": 1,
+      "sql_candidates": {
+        "count": 20,
         "files": [
-          "workers/photo_worker/operations/identity/adapter.py"
+          "backend/db/migrations/00223_v23_identity_operation_catalog.sql",
+          "backend/db/migrations/02149_v23_identity_cpu_backend.sql",
+          "backend/db/migrations/02150_v23_identity_compare_consent_pin.sql",
+          "backend/db/migrations/02151_v23_identity_compare_activation.sql",
+          "backend/db/migrations/02152_v23_identity_snapshot_relations.sql",
+          "backend/db/migrations/02153_v23_identity_adoption_guard.sql",
+          "backend/db/migrations/02154_v23_identity_result_object.sql",
+          "backend/db/migrations/02155_v23_identity_result_inputs.sql",
+          "backend/db/migrations/02156_v23_identity_pixel_inputs.sql",
+          "backend/db/migrations/02157_v23_identity_consent_result_input.sql",
+          "backend/db/migrations/02158_v23_identity_live_consents.sql",
+          "backend/db/migrations/02159_v23_identity_live_sources.sql"
+        ],
+        "truncated": true
+      },
+      "worker_candidates": {
+        "count": 3,
+        "files": [
+          "workers/photo_worker/operations/identity/adapter.py",
+          "workers/photo_worker/operations/identity/measurement.py",
+          "workers/photo_worker/v2/adoption_service.py"
         ],
         "truncated": false
       },
@@ -466,22 +492,33 @@
         "truncated": false
       },
       "platform_tests_candidates": {
-        "count": 2,
+        "count": 3,
         "files": [
           "tests/integration/test_v23_fit_catalog.py",
-          "tests/integration/test_v23_qualification_import.py"
+          "tests/integration/test_v23_qualification_import.py",
+          "tests/platform/test_v23_identity_adoption_routing.py"
         ],
         "truncated": false
       },
       "unit_candidates": {
-        "count": 2,
+        "count": 11,
         "files": [
+          "backend/internal/v2draft/identity_adoption_queue_integration_test.go",
+          "backend/internal/v2draft/identity_dispatch_activation_integration_test.go",
+          "backend/internal/v2draft/identity_result_catalog_test.go",
+          "backend/internal/v2input/admission_test.go",
+          "backend/internal/v2input/identity_adoption_guard_integration_test.go",
+          "backend/internal/v2input/identity_compare_consent_pin_test.go",
+          "backend/internal/v2input/identity_compare_task_test.go",
+          "backend/internal/v2input/identity_qualification_resolver_test.go",
+          "backend/internal/v2input/identity_qualification_source_integration_test.go",
           "backend/internal/v2qualification/locks_test.go",
           "backend/internal/v2qualification/report_test.go"
         ],
         "truncated": false
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "semantic.transfer",
@@ -580,7 +617,8 @@
         ],
         "truncated": true
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "portrait.open_eyes",
@@ -689,7 +727,8 @@
         ],
         "truncated": true
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "portrait.glare",
@@ -779,7 +818,8 @@
         ],
         "truncated": true
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "image.reflection",
@@ -868,7 +908,8 @@
         ],
         "truncated": true
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "portrait.hair",
@@ -960,7 +1001,8 @@
         ],
         "truncated": true
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "portrait.clothing",
@@ -1052,7 +1094,8 @@
         ],
         "truncated": true
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "image.relight",
@@ -1144,7 +1187,8 @@
         ],
         "truncated": false
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "optical.lens",
@@ -1241,7 +1285,8 @@
         ],
         "truncated": false
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "optical.perspective",
@@ -1347,7 +1392,8 @@
         ],
         "truncated": true
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "optical.negative",
@@ -1455,7 +1501,8 @@
         ],
         "truncated": true
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "optical.panorama",
@@ -1574,7 +1621,8 @@
         ],
         "truncated": true
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "optical.focus_stack",
@@ -1686,7 +1734,8 @@
         ],
         "truncated": true
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "provenance.sign",
@@ -1762,7 +1811,8 @@
         ],
         "truncated": false
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "v2.delivery.assemble",
@@ -1845,7 +1895,8 @@
         ],
         "truncated": false
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "v2.interchange.import",
@@ -1922,7 +1973,8 @@
         ],
         "truncated": false
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "v2.interchange.export",
@@ -1993,7 +2045,8 @@
         ],
         "truncated": false
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "v2.semantic.assemble",
@@ -2068,7 +2121,8 @@
         ],
         "truncated": false
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "v2.interchange.parse",
@@ -2137,7 +2191,8 @@
         ],
         "truncated": false
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "v2.delivery.prepare",
@@ -2211,7 +2266,8 @@
         ],
         "truncated": false
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "region.preview",
@@ -2290,7 +2346,8 @@
         ],
         "truncated": false
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "render.compose",
@@ -2400,7 +2457,8 @@
         ],
         "truncated": true
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "semantic.local_exposure",
@@ -2488,7 +2546,8 @@
         ],
         "truncated": false
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
       "id": "optical.perspective_lines",
@@ -2557,7 +2616,8 @@
         ],
         "truncated": false
       },
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     }
   ],
   "endpoints": [
@@ -2594,7 +2654,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -2629,7 +2690,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -2669,7 +2731,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "PATCH",
@@ -2706,7 +2769,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -2739,7 +2803,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -2777,7 +2842,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -2818,7 +2884,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -2856,7 +2923,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -2896,7 +2964,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -2936,7 +3005,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -2976,7 +3046,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -3018,7 +3089,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -3056,7 +3128,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -3094,7 +3167,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -3127,7 +3201,8 @@
         "truncated": false
       },
       "route_mount_status": "static_dynamic_table_candidate",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -3164,7 +3239,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -3199,7 +3275,8 @@
         "truncated": false
       },
       "route_mount_status": "static_dynamic_table_candidate",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -3234,7 +3311,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -3269,7 +3347,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "PUT",
@@ -3310,7 +3389,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -3351,7 +3431,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -3386,7 +3467,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -3421,7 +3503,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -3459,7 +3542,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -3497,7 +3581,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -3535,7 +3620,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -3575,7 +3661,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -3615,7 +3702,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -3655,7 +3743,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "PUT",
@@ -3688,7 +3777,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -3726,7 +3816,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -3759,7 +3850,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -3792,7 +3884,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -3825,7 +3918,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -3858,7 +3952,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -3891,7 +3986,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -3924,7 +4020,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -3957,7 +4054,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -3990,7 +4088,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -4023,7 +4122,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -4056,7 +4156,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -4089,7 +4190,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -4125,7 +4227,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -4170,7 +4273,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -4203,7 +4307,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -4236,7 +4341,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -4281,7 +4387,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -4314,7 +4421,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -4347,7 +4455,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -4386,7 +4495,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -4419,7 +4529,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -4444,11 +4555,12 @@
         "files": []
       },
       "service_candidates": {
-        "count": 6,
+        "count": 7,
         "files": [
           "backend/internal/delivery/provenance_signing_start.go",
           "backend/internal/httpapi/provenance.go",
           "backend/internal/provenance/operator_installation.go",
+          "backend/internal/provenance/policy_choices.go",
           "backend/internal/provenance/presentation_installation.go",
           "backend/internal/provenance/sign_service.go",
           "backend/internal/provenance/signing_tenant_router.go"
@@ -4467,7 +4579,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -4509,7 +4622,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -4542,7 +4656,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -4575,7 +4690,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -4616,7 +4732,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -4649,7 +4766,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -4689,7 +4807,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -4722,7 +4841,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -4763,7 +4883,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -4796,7 +4917,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -4837,7 +4959,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -4875,7 +4998,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -4913,7 +5037,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -4946,7 +5071,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -4979,7 +5105,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -5012,7 +5139,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -5045,7 +5173,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -5078,7 +5207,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -5111,7 +5241,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -5144,7 +5275,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -5177,7 +5309,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "POST",
@@ -5210,7 +5343,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -5243,7 +5377,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -5276,7 +5411,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -5309,7 +5445,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -5342,7 +5479,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -5375,7 +5513,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
       "method": "GET",
@@ -5408,7 +5547,8 @@
         "truncated": false
       },
       "route_mount_status": "static_declaration_only",
-      "trace_status": "not_verified"
+      "trace_status": "not_verified",
+      "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     }
   ]
 }
