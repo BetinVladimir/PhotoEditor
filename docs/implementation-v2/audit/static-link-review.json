@@ -1,0 +1,3344 @@
+{
+  "schema_version": 1,
+  "source_commit": "9785352a8fcb628361881595df51aa5f7158ffd6",
+  "method": "source inspection only; no tests, migrations, builds or runtime calls",
+  "status_semantics": "declaration presence and known defects; all other behavioral links remain unproven",
+  "operations": [
+    {
+      "id": "layer.compose",
+      "package": "V25",
+      "worker_registration_kind": "direct_literal",
+      "worker_registration_files": [
+        "workers/photo_worker/operations/layers/adapter.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/v2render/compose_admission.go",
+        "backend/internal/v2render/compose_draft.go",
+        "backend/internal/v2render/compose_inputs.go",
+        "backend/internal/v2render/compose_inventory.go",
+        "backend/internal/v2render/compose_scoped_transport.go",
+        "backend/internal/v2render/compose_stage.go"
+      ],
+      "service_literal_file_count": 6,
+      "sql_literal_files": [
+        "backend/db/migrations/00342_v25_original_composition_task_stage.sql",
+        "backend/db/migrations/00343_v25_composition_transport_scope.sql",
+        "backend/db/migrations/00355_v25_composition_input_state.sql",
+        "backend/db/migrations/00356_v25_layer_worker_admission.sql",
+        "backend/db/migrations/00358_v25_layer_adoption_params.sql",
+        "backend/db/migrations/00359_v25_layer_adoption_authority.sql",
+        "backend/db/migrations/00360_v25_layer_operation_catalog.sql",
+        "backend/db/migrations/00361_v25_layer_authority_row_locks.sql",
+        "backend/db/migrations/00400_v26_render_transport_scope.sql"
+      ],
+      "sql_literal_file_count": 9,
+      "worker_literal_files": [
+        "workers/photo_worker/operations/layers/adapter.py",
+        "workers/photo_worker/operations/layers/admission.py",
+        "workers/photo_worker/operations/layers/output_validation.py",
+        "workers/photo_worker/operations/layers/result.py",
+        "workers/photo_worker/v2/adoption.py",
+        "workers/photo_worker/v2/adoption_service.py"
+      ],
+      "adoption_literal_files": [
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/adoption.py"
+      ],
+      "unit_literal_files": [
+        "backend/internal/provenance/render_report_evidence_test.go",
+        "backend/internal/v2draft/image_report_test.go",
+        "backend/internal/v2render/adopted_lens_integration_test.go",
+        "backend/internal/v2render/compose_config_test.go",
+        "backend/internal/v2render/compose_draft_test.go",
+        "backend/internal/v2render/compose_publish_integration_test.go",
+        "backend/internal/v2render/compose_wire_test.go",
+        "backend/internal/v2render/render_admission_test.go",
+        "backend/internal/v2render/user_mask_pixels_publish_integration_test.go"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": null,
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "session.describe",
+      "package": "V22",
+      "worker_registration_kind": "direct_literal",
+      "worker_registration_files": [
+        "workers/photo_worker/operations/session/describe.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/interchange/review_approval.go",
+        "backend/internal/provenance/render_closure_catalog.go",
+        "backend/internal/v2draft/approve.go",
+        "backend/internal/v2draft/learning_descriptor.go",
+        "backend/internal/v2input/session_analysis_stage.go",
+        "backend/internal/v2input/session_describe_source.go",
+        "backend/internal/v2input/session_plan.go",
+        "backend/internal/v2input/session_plan_store.go",
+        "backend/internal/v2sessions/service.go"
+      ],
+      "service_literal_file_count": 9,
+      "sql_literal_files": [
+        "backend/db/migrations/00198_v22_session_foundation.sql",
+        "backend/db/migrations/00232_v23_approval_resolution_refs.sql",
+        "backend/db/migrations/00253_v23_training_calibration_source.sql",
+        "backend/db/migrations/00257_v23_training_model_lock.sql",
+        "backend/db/migrations/00388_v26_render_descriptor_scope.sql",
+        "backend/db/migrations/01857_v31_delivery_render_descriptor_live.sql",
+        "backend/db/migrations/02067_v30_export_adoption_learning_occurrence.sql"
+      ],
+      "sql_literal_file_count": 7,
+      "worker_literal_files": [
+        "workers/photo_worker/operations/session/describe.py"
+      ],
+      "adoption_literal_files": [],
+      "unit_literal_files": [
+        "backend/internal/v2draft/approval_read_integration_test.go",
+        "backend/internal/v2input/ids_test.go",
+        "backend/internal/v2input/session_plan_test.go",
+        "backend/internal/v2sessions/service_integration_test.go"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": null,
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "session.plan",
+      "package": "V22",
+      "worker_registration_kind": "direct_literal",
+      "worker_registration_files": [
+        "workers/photo_worker/operations/session/adapter.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/v2input/session_plan_orchestrator.go",
+        "backend/internal/v2input/session_plan_source.go",
+        "backend/internal/v2input/session_plan_store.go"
+      ],
+      "service_literal_file_count": 3,
+      "sql_literal_files": [
+        "backend/db/migrations/00197_v21_foundation.sql",
+        "backend/db/migrations/00198_v22_session_foundation.sql",
+        "backend/db/migrations/00199_v22_scene_plan_materialization.sql",
+        "backend/db/migrations/01555_v30_export_correction_producer.sql",
+        "backend/db/migrations/02066_v30_export_adoption_correction_evidence.sql"
+      ],
+      "sql_literal_file_count": 5,
+      "worker_literal_files": [
+        "workers/photo_worker/operations/session/adapter.py"
+      ],
+      "adoption_literal_files": [],
+      "unit_literal_files": [
+        "backend/internal/v2input/session_plan_orchestrator_test.go"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": null,
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "learning.fit",
+      "package": "V23",
+      "worker_registration_kind": "direct_literal",
+      "worker_registration_files": [
+        "workers/photo_worker/operations/learning/fit.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/provenance/render_closure_catalog.go",
+        "backend/internal/v2learning/fit.go",
+        "backend/internal/v2learning/fit_orchestrator.go",
+        "backend/internal/v2learning/stage.go"
+      ],
+      "service_literal_file_count": 4,
+      "sql_literal_files": [
+        "backend/db/migrations/00214_v23_fit_operation_catalog.sql",
+        "backend/db/migrations/00215_v23_fit_stage.sql",
+        "backend/db/migrations/00216_v23_fit_evaluate_barrier.sql",
+        "backend/db/migrations/00217_v23_evaluate_claim.sql",
+        "backend/db/migrations/00224_v23_learning_version_adoption.sql",
+        "backend/db/migrations/00237_v23_evaluate_frozen_roots.sql",
+        "backend/db/migrations/00238_v23_evaluate_image_children.sql",
+        "backend/db/migrations/00239_v23_evaluate_protected_mask_child.sql",
+        "backend/db/migrations/00241_v23_evaluate_consent_snapshot_root.sql",
+        "backend/db/migrations/00242_v23_evaluate_effective_mask_child.sql",
+        "backend/db/migrations/00243_v23_evaluate_identity_consent_pin.sql",
+        "backend/db/migrations/01773_v23_evaluate_background_source.sql"
+      ],
+      "sql_literal_file_count": 20,
+      "worker_literal_files": [
+        "workers/photo_worker/operations/learning/fit.py"
+      ],
+      "adoption_literal_files": [],
+      "unit_literal_files": [
+        "backend/internal/provenance/render_learning_binding_sql_test.go",
+        "backend/internal/v2learning/fit_orchestrator_test.go"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": null,
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "learning.evaluate",
+      "package": "V23",
+      "worker_registration_kind": "direct_literal",
+      "worker_registration_files": [
+        "workers/photo_worker/operations/learning/evaluate_adapter.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/provenance/render_closure_catalog.go",
+        "backend/internal/v2learning/evaluate_claim.go",
+        "backend/internal/v2learning/evaluate_orchestrator.go"
+      ],
+      "service_literal_file_count": 3,
+      "sql_literal_files": [
+        "backend/db/migrations/00220_v23_evaluate_operation_catalog.sql",
+        "backend/db/migrations/00221_v23_evaluate_stage.sql",
+        "backend/db/migrations/00222_v23_evaluate_close.sql",
+        "backend/db/migrations/00224_v23_learning_version_adoption.sql",
+        "backend/db/migrations/00235_v23_evaluate_frozen_recipe_contract.sql",
+        "backend/db/migrations/01973_v23_evaluate_defect_commit_gate.sql",
+        "backend/db/migrations/01987_v23_evaluate_dust_commit_gate.sql",
+        "backend/db/migrations/01997_v23_evaluate_detail_commit_gate.sql",
+        "backend/db/migrations/02100_v23_evaluate_series_commit_gate.sql"
+      ],
+      "sql_literal_file_count": 9,
+      "worker_literal_files": [
+        "workers/photo_worker/operations/learning/evaluate_adapter.py",
+        "workers/photo_worker/operations/learning/qualification.py"
+      ],
+      "adoption_literal_files": [],
+      "unit_literal_files": [
+        "backend/internal/provenance/render_learning_binding_sql_test.go",
+        "backend/internal/v2learning/evaluate_orchestrator_test.go",
+        "workers/tests/test_learning_qualification.py",
+        "workers/tests/test_learning_qualified_installation.py"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": null,
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "capture.assess",
+      "package": "V24",
+      "worker_registration_kind": "direct_literal",
+      "worker_registration_files": [
+        "workers/photo_worker/operations/capture/adapter.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/v2input/capture_admission.go",
+        "backend/internal/v2input/capture_closure.go",
+        "backend/internal/v2input/capture_commit.go",
+        "backend/internal/v2input/capture_graph_preparer.go",
+        "backend/internal/v2sessions/service.go"
+      ],
+      "service_literal_file_count": 5,
+      "sql_literal_files": [
+        "backend/db/migrations/00268_v24_capture_adoption.sql",
+        "backend/db/migrations/00271_v24_capture_graph_commit.sql",
+        "backend/db/migrations/00278_v24_capture_expansion_commit.sql",
+        "backend/db/migrations/00295_v24_capture_quality.sql",
+        "backend/db/migrations/00299_v24_assessment_stage.sql",
+        "backend/db/migrations/00301_v24_commit_live_consent.sql",
+        "backend/db/migrations/00302_v24_qa_stale.sql",
+        "backend/db/migrations/00303_v24_adoption_binding.sql",
+        "backend/db/migrations/00304_v24_alert_receipt_binding.sql",
+        "backend/db/migrations/00306_v24_operation_startup_gate.sql",
+        "backend/db/migrations/00307_v24_adoption_live_consent.sql",
+        "backend/db/migrations/00308_v24_rejected_admission.sql"
+      ],
+      "sql_literal_file_count": 13,
+      "worker_literal_files": [
+        "workers/photo_worker/operations/capture/adapter.py",
+        "workers/photo_worker/v2/adoption_service.py"
+      ],
+      "adoption_literal_files": [
+        "workers/photo_worker/v2/adoption_service.py"
+      ],
+      "unit_literal_files": [
+        "backend/internal/v2capture/live_evidence_integration_test.go",
+        "backend/internal/v2sessions/service_integration_test.go",
+        "backend/internal/workflow/capture_scheduler_integration_test.go"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": null,
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "identity.compare",
+      "package": "V23",
+      "worker_registration_kind": "direct_literal",
+      "worker_registration_files": [
+        "workers/photo_worker/operations/identity/adapter.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/v2input/admission.go",
+        "backend/internal/v2input/identity_compare_closure.go",
+        "backend/internal/v2input/identity_compare_consent_pin.go",
+        "backend/internal/v2input/identity_compare_task.go",
+        "backend/internal/v2input/identity_qualification_resolver.go"
+      ],
+      "service_literal_file_count": 5,
+      "sql_literal_files": [
+        "backend/db/migrations/00223_v23_identity_operation_catalog.sql",
+        "backend/db/migrations/02149_v23_identity_cpu_backend.sql",
+        "backend/db/migrations/02150_v23_identity_compare_consent_pin.sql",
+        "backend/db/migrations/02151_v23_identity_compare_activation.sql",
+        "backend/db/migrations/02152_v23_identity_snapshot_relations.sql",
+        "backend/db/migrations/02153_v23_identity_adoption_guard.sql",
+        "backend/db/migrations/02154_v23_identity_result_object.sql",
+        "backend/db/migrations/02155_v23_identity_result_inputs.sql",
+        "backend/db/migrations/02156_v23_identity_pixel_inputs.sql",
+        "backend/db/migrations/02157_v23_identity_consent_result_input.sql",
+        "backend/db/migrations/02158_v23_identity_live_consents.sql",
+        "backend/db/migrations/02159_v23_identity_live_sources.sql"
+      ],
+      "sql_literal_file_count": 20,
+      "worker_literal_files": [
+        "workers/photo_worker/operations/identity/adapter.py",
+        "workers/photo_worker/operations/identity/measurement.py",
+        "workers/photo_worker/v2/adoption_service.py"
+      ],
+      "adoption_literal_files": [
+        "workers/photo_worker/v2/adoption_service.py"
+      ],
+      "unit_literal_files": [
+        "backend/internal/v2draft/identity_adoption_queue_integration_test.go",
+        "backend/internal/v2draft/identity_dispatch_activation_integration_test.go",
+        "backend/internal/v2draft/identity_result_catalog_test.go",
+        "backend/internal/v2input/admission_test.go",
+        "backend/internal/v2input/identity_adoption_guard_integration_test.go",
+        "backend/internal/v2input/identity_compare_consent_pin_test.go",
+        "backend/internal/v2input/identity_compare_task_test.go",
+        "backend/internal/v2input/identity_qualification_resolver_test.go",
+        "backend/internal/v2input/identity_qualification_source_integration_test.go",
+        "backend/internal/v2qualification/locks_test.go",
+        "backend/internal/v2qualification/report_test.go"
+      ],
+      "confirmed_code_gaps": [
+        "D-02: learning/identity report client route and review are absent"
+      ],
+      "platform_qualification_blocker": null,
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "semantic.transfer",
+      "package": "V27",
+      "worker_registration_kind": "direct_literal",
+      "worker_registration_files": [
+        "workers/photo_worker/operations/semantic/adapter.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/semanticproposal/configuration.go",
+        "backend/internal/semanticproposal/face_and_parse_inventory_locks.go",
+        "backend/internal/semanticproposal/native_all_target_transfer_config.go",
+        "backend/internal/semanticproposal/native_initial_pipeline_recovery_job.go",
+        "backend/internal/semanticproposal/native_input_manual_transfer_validation.go",
+        "backend/internal/semanticproposal/native_input_transfer_saved_config.go",
+        "backend/internal/semanticproposal/native_input_transfer_validation.go",
+        "backend/internal/semanticproposal/native_target_checkpoint_recovery.go",
+        "backend/internal/semanticproposal/native_target_defect_advance.go",
+        "backend/internal/semanticproposal/native_target_detector_advance.go",
+        "backend/internal/semanticproposal/native_target_face_advance.go",
+        "backend/internal/semanticproposal/native_target_person_advance.go"
+      ],
+      "service_literal_file_count": 26,
+      "sql_literal_files": [
+        "backend/db/migrations/00492_v27_semantic_candidate_scope.sql",
+        "backend/db/migrations/00493_v27_semantic_adoption_params.sql",
+        "backend/db/migrations/00496_v27_semantic_producer_evidence.sql",
+        "backend/db/migrations/00500_v27_semantic_assembly_inputs.sql",
+        "backend/db/migrations/00502_v27_semantic_assembly_lease.sql",
+        "backend/db/migrations/00503_v27_semantic_adoption_barrier.sql",
+        "backend/db/migrations/00506_v27_semantic_assembly_stage.sql",
+        "backend/db/migrations/00510_v27_semantic_assembly_qualification.sql",
+        "backend/db/migrations/00511_v27_semantic_policy_fingerprint.sql",
+        "backend/db/migrations/00512_v27_semantic_frozen_qualification.sql",
+        "backend/db/migrations/00513_v27_semantic_frozen_assembly_qualification.sql",
+        "backend/db/migrations/00515_v27_semantic_qualification_pin_types.sql"
+      ],
+      "sql_literal_file_count": 42,
+      "worker_literal_files": [
+        "workers/photo_worker/operations/semantic/adapter.py",
+        "workers/photo_worker/operations/semantic/provenance.py",
+        "workers/photo_worker/v2/adoption.py",
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/semantic_qualification_report.py"
+      ],
+      "adoption_literal_files": [
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/adoption.py"
+      ],
+      "unit_literal_files": [
+        "backend/internal/gateway/v27_wire_integration_test.go",
+        "backend/internal/semanticproposal/defect_native_result_integration_test.go",
+        "backend/internal/semanticproposal/defect_qualification_preparation_test.go",
+        "backend/internal/semanticproposal/face_parse_preparation_locks_test.go",
+        "backend/internal/semanticproposal/native_all_target_handoff_policy_probe_test.go",
+        "backend/internal/semanticproposal/native_all_target_transfer_probe_test.go",
+        "backend/internal/semanticproposal/native_initial_pipeline_recovery_job_test.go",
+        "backend/internal/semanticproposal/native_input_transfer_saved_config_test.go",
+        "backend/internal/semanticproposal/native_person_policy_selection_test.go",
+        "backend/internal/semanticproposal/native_target_defect_advance_probe_test.go",
+        "backend/internal/semanticproposal/native_target_detector_wire_probe_test.go",
+        "backend/internal/semanticproposal/native_target_face_wire_probe_test.go"
+      ],
+      "confirmed_code_gaps": [
+        "D-01: proposed target lacks pre-Apply candidate/evidence presentation"
+      ],
+      "platform_qualification_blocker": "D-04: semantic installation requires CUDA; no MPS positive path",
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "portrait.open_eyes",
+      "package": "V28",
+      "worker_registration_kind": "direct_literal",
+      "worker_registration_files": [
+        "workers/photo_worker/operations/portrait/donor_adapter.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/review/negative_selection.go",
+        "backend/internal/review/persist.go",
+        "backend/internal/review/preview_source.go",
+        "backend/internal/review/restoration_selection_reader.go",
+        "backend/internal/review/service.go",
+        "backend/internal/v2draft/donor_loaded_session.go",
+        "backend/internal/v2draft/donor_params_intent.go",
+        "backend/internal/v2draft/donor_params_publish.go",
+        "backend/internal/v2draft/donor_queued_ticket.go",
+        "backend/internal/v2draft/open_eyes_client_intent.go",
+        "backend/internal/v2draft/open_eyes_client_preparation.go",
+        "backend/internal/v2draft/open_eyes_draft_begin.go"
+      ],
+      "service_literal_file_count": 17,
+      "sql_literal_files": [
+        "backend/db/migrations/00853_v28_donor_qualification.sql",
+        "backend/db/migrations/00856_v28_donor_portrait_lease.sql",
+        "backend/db/migrations/00860_v28_donor_inventory_digest.sql",
+        "backend/db/migrations/00861_v28_donor_descriptor_store.sql",
+        "backend/db/migrations/00862_v28_donor_task_stage.sql",
+        "backend/db/migrations/00863_v28_donor_transport_scope.sql",
+        "backend/db/migrations/00864_v28_donor_input_registration.sql",
+        "backend/db/migrations/00870_v28_donor_original_params_inventory.sql",
+        "backend/db/migrations/00873_v28_donor_graph_admission.sql",
+        "backend/db/migrations/00876_v28_donor_queued_receipt_read.sql",
+        "backend/db/migrations/00878_v28_donor_adoption_evidence.sql",
+        "backend/db/migrations/00880_v28_donor_adoption_commit.sql"
+      ],
+      "sql_literal_file_count": 21,
+      "worker_literal_files": [
+        "workers/photo_worker/operations/portrait/donor_adapter.py",
+        "workers/photo_worker/operations/portrait/donor_result.py",
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/portrait_donor_adopter_config.py",
+        "workers/photo_worker/v2/portrait_donor_adoption.py",
+        "workers/photo_worker/v2/portrait_donor_attempt.py",
+        "workers/photo_worker/v2/portrait_donor_manual_authority.py",
+        "workers/photo_worker/v2/portrait_donor_qualification.py",
+        "workers/photo_worker/v2/portrait_donor_qualification_loader.py",
+        "workers/photo_worker/v2/portrait_donor_source.py",
+        "workers/photo_worker/v2/portrait_open_eyes_manual_stage.py"
+      ],
+      "adoption_literal_files": [
+        "workers/photo_worker/v2/portrait_donor_adoption.py",
+        "workers/photo_worker/v2/portrait_donor_adopter_config.py",
+        "workers/photo_worker/v2/adoption_service.py"
+      ],
+      "unit_literal_files": [
+        "backend/internal/review/open_eyes_decision_test.go",
+        "backend/internal/review/restoration_candidate_pair_test.go",
+        "backend/internal/review/restoration_preview_scope_test.go",
+        "backend/internal/review/restoration_selection_test.go",
+        "backend/internal/v2draft/donor_image_objects_test.go",
+        "backend/internal/v2draft/donor_params_intent_test.go",
+        "backend/internal/v2draft/donor_qualified_inputs_test.go",
+        "backend/internal/v2draft/donor_queued_receipt_test.go",
+        "backend/internal/v2draft/open_eyes_client_intent_test.go",
+        "backend/internal/v2draft/open_eyes_draft_begin_test.go",
+        "backend/internal/v2portrait/donor_profile_test.go",
+        "backend/internal/v2portrait/donor_qualification_evidence_test.go"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": null,
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "portrait.glare",
+      "package": "V28",
+      "worker_registration_kind": "direct_literal",
+      "worker_registration_files": [
+        "workers/photo_worker/runtime/v28_installation.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/review/negative_selection.go",
+        "backend/internal/review/preview_catalog.go",
+        "backend/internal/review/preview_source.go",
+        "backend/internal/review/restoration_selection_reader.go",
+        "backend/internal/review/service.go",
+        "backend/internal/v2draft/glare_donor_coordinator.go",
+        "backend/internal/v2draft/glare_donor_preparation.go",
+        "backend/internal/v2draft/glare_donor_submission_service.go",
+        "backend/internal/v2draft/glare_donor_submitter.go",
+        "backend/internal/v2draft/restoration_admission_ticket.go",
+        "backend/internal/v2draft/restoration_adoption_queue.go",
+        "backend/internal/v2draft/restoration_bootstrap.go"
+      ],
+      "service_literal_file_count": 22,
+      "sql_literal_files": [
+        "backend/db/migrations/01895_v28_restoration_lease.sql",
+        "backend/db/migrations/01896_v28_restoration_qualification.sql",
+        "backend/db/migrations/01897_v28_restoration_scheduler_lock.sql",
+        "backend/db/migrations/01898_v28_restoration_descriptor_store.sql",
+        "backend/db/migrations/01899_v28_restoration_task_stage.sql",
+        "backend/db/migrations/01900_v28_restoration_transport_scope.sql",
+        "backend/db/migrations/01901_v28_restoration_graph_admission.sql",
+        "backend/db/migrations/01902_v28_restoration_result_array.sql",
+        "backend/db/migrations/01903_v28_restoration_result_document.sql",
+        "backend/db/migrations/01904_v28_restoration_review_barrier.sql",
+        "backend/db/migrations/01905_v28_restoration_adoption_receipt.sql",
+        "backend/db/migrations/01906_v28_restoration_adoption_queue.sql"
+      ],
+      "sql_literal_file_count": 25,
+      "worker_literal_files": [
+        "workers/photo_worker/operations/portrait/glare.py",
+        "workers/photo_worker/operations/portrait/glare_donor_admission.py",
+        "workers/photo_worker/operations/portrait/glare_generative_result.py",
+        "workers/photo_worker/operations/portrait/glare_result.py",
+        "workers/photo_worker/runtime/v28_installation.py"
+      ],
+      "adoption_literal_files": [],
+      "unit_literal_files": [
+        "backend/internal/review/open_eyes_decision_test.go",
+        "backend/internal/review/restoration_candidate_pair_test.go",
+        "backend/internal/review/restoration_preview_scope_test.go",
+        "backend/internal/review/restoration_selection_test.go",
+        "backend/internal/v2draft/glare_donor_coordinator_test.go",
+        "backend/internal/v2draft/glare_donor_submitter_test.go",
+        "backend/internal/v2draft/restoration_adoption_queue_test.go",
+        "backend/internal/v2draft/restoration_descriptor_store_test.go",
+        "backend/internal/v2draft/restoration_draft_begin_test.go",
+        "backend/internal/v2draft/restoration_result_pixels_test.go",
+        "backend/internal/v2draft/restoration_result_test.go",
+        "backend/internal/v2portrait/restoration_draft_test.go"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": "D-04: model installation permits CPU/CUDA GPU-class backend, not MPS",
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "image.reflection",
+      "package": "V28",
+      "worker_registration_kind": "direct_literal",
+      "worker_registration_files": [
+        "workers/photo_worker/runtime/v28_installation.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/review/negative_selection.go",
+        "backend/internal/review/preview_catalog.go",
+        "backend/internal/review/preview_source.go",
+        "backend/internal/review/restoration_selection_reader.go",
+        "backend/internal/review/service.go",
+        "backend/internal/v2draft/reflection_admission_ticket.go",
+        "backend/internal/v2draft/reflection_coordinator.go",
+        "backend/internal/v2draft/reflection_draft_begin.go",
+        "backend/internal/v2draft/reflection_preparation.go",
+        "backend/internal/v2draft/reflection_submission_service.go",
+        "backend/internal/v2draft/reflection_submitter.go",
+        "backend/internal/v2draft/restoration_adoption_queue.go"
+      ],
+      "service_literal_file_count": 21,
+      "sql_literal_files": [
+        "backend/db/migrations/01895_v28_restoration_lease.sql",
+        "backend/db/migrations/01896_v28_restoration_qualification.sql",
+        "backend/db/migrations/01897_v28_restoration_scheduler_lock.sql",
+        "backend/db/migrations/01898_v28_restoration_descriptor_store.sql",
+        "backend/db/migrations/01899_v28_restoration_task_stage.sql",
+        "backend/db/migrations/01900_v28_restoration_transport_scope.sql",
+        "backend/db/migrations/01901_v28_restoration_graph_admission.sql",
+        "backend/db/migrations/01902_v28_restoration_result_array.sql",
+        "backend/db/migrations/01903_v28_restoration_result_document.sql",
+        "backend/db/migrations/01904_v28_restoration_review_barrier.sql",
+        "backend/db/migrations/01905_v28_restoration_adoption_receipt.sql",
+        "backend/db/migrations/01906_v28_restoration_adoption_queue.sql"
+      ],
+      "sql_literal_file_count": 24,
+      "worker_literal_files": [
+        "workers/photo_worker/operations/image/reflection.py",
+        "workers/photo_worker/operations/image/reflection_admission.py",
+        "workers/photo_worker/operations/image/reflection_result.py",
+        "workers/photo_worker/runtime/v28_installation.py"
+      ],
+      "adoption_literal_files": [],
+      "unit_literal_files": [
+        "backend/internal/review/open_eyes_decision_test.go",
+        "backend/internal/review/restoration_candidate_pair_test.go",
+        "backend/internal/review/restoration_preview_scope_test.go",
+        "backend/internal/review/restoration_selection_test.go",
+        "backend/internal/v2draft/reflection_admission_ticket_test.go",
+        "backend/internal/v2draft/reflection_coordinator_test.go",
+        "backend/internal/v2draft/reflection_draft_begin_test.go",
+        "backend/internal/v2draft/reflection_submission_service_test.go",
+        "backend/internal/v2draft/reflection_submitter_test.go",
+        "backend/internal/v2draft/restoration_adoption_material_test.go",
+        "backend/internal/v2draft/restoration_adoption_queue_test.go",
+        "backend/internal/v2draft/restoration_adoption_service_test.go"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": "D-04: model installation permits CPU/CUDA GPU-class backend, not MPS",
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "portrait.hair",
+      "package": "V28",
+      "worker_registration_kind": "direct_literal",
+      "worker_registration_files": [
+        "workers/photo_worker/operations/portrait/local_adapter.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/interchange/export_adoption_operation_params.go",
+        "backend/internal/interchange/export_operation_params_source.go",
+        "backend/internal/interchange/export_operation_params_validator.go",
+        "backend/internal/interchange/import_local_installation.go",
+        "backend/internal/interchange/import_local_params_codec.go",
+        "backend/internal/interchange/import_local_qualification.go",
+        "backend/internal/interchange/import_operation_native.go",
+        "backend/internal/interchange/import_recipe_installation_validation.go",
+        "backend/internal/v2draft/local_portrait_client_selection.go",
+        "backend/internal/v2draft/local_portrait_restore_scope.go",
+        "backend/internal/v2portrait/local_plan.go",
+        "backend/internal/v2portrait/local_policy.go"
+      ],
+      "service_literal_file_count": 13,
+      "sql_literal_files": [
+        "backend/db/migrations/00828_v28_local_portrait_lease_ready.sql",
+        "backend/db/migrations/00829_v28_local_portrait_registry.sql",
+        "backend/db/migrations/00832_v28_owner_request_scope.sql",
+        "backend/db/migrations/00835_v28_local_task_stage.sql",
+        "backend/db/migrations/00836_v28_local_transport_scope.sql",
+        "backend/db/migrations/00837_v28_local_input_registration.sql",
+        "backend/db/migrations/00838_v28_local_runtime_qualification.sql",
+        "backend/db/migrations/00839_v28_local_graph_admission.sql",
+        "backend/db/migrations/00841_v28_output_result_qualification.sql",
+        "backend/db/migrations/00978_v28_owner_binary_inventory_contract.sql",
+        "backend/db/migrations/02062_v30_export_adoption_operation_params.sql"
+      ],
+      "sql_literal_file_count": 11,
+      "worker_literal_files": [
+        "workers/photo_worker/operations/portrait/local_adapter.py",
+        "workers/photo_worker/operations/portrait/local_result.py",
+        "workers/photo_worker/v2/interchange_export_style.py",
+        "workers/photo_worker/v2/interchange_operator_schemas.py"
+      ],
+      "adoption_literal_files": [],
+      "unit_literal_files": [
+        "backend/internal/interchange/export_operation_params_validator_test.go",
+        "backend/internal/interchange/import_local_installation_test.go",
+        "backend/internal/interchange/import_local_params_codec_test.go",
+        "backend/internal/interchange/import_local_qualification_test.go",
+        "backend/internal/interchange/import_native_style_deployment_test.go",
+        "backend/internal/interchange/import_operation_native_test.go",
+        "backend/internal/v2draft/local_portrait_client_selection_test.go",
+        "backend/internal/v2draft/local_portrait_digest_integration_test.go",
+        "backend/internal/v2draft/local_portrait_material_physical_integration_test.go",
+        "backend/internal/v2draft/manual_raster_context_test.go",
+        "backend/internal/v2portrait/donor_qualification_evidence_test.go",
+        "backend/internal/v2portrait/local_plan_test.go"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": null,
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "portrait.clothing",
+      "package": "V28",
+      "worker_registration_kind": "direct_literal",
+      "worker_registration_files": [
+        "workers/photo_worker/operations/portrait/local_adapter.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/interchange/export_adoption_operation_params.go",
+        "backend/internal/interchange/export_operation_params_source.go",
+        "backend/internal/interchange/export_operation_params_validator.go",
+        "backend/internal/interchange/import_local_installation.go",
+        "backend/internal/interchange/import_local_params_codec.go",
+        "backend/internal/interchange/import_local_qualification.go",
+        "backend/internal/interchange/import_operation_native.go",
+        "backend/internal/interchange/import_recipe_installation_validation.go",
+        "backend/internal/v2draft/local_portrait_client_selection.go",
+        "backend/internal/v2draft/local_portrait_restore_scope.go",
+        "backend/internal/v2portrait/local_plan.go",
+        "backend/internal/v2portrait/local_policy.go"
+      ],
+      "service_literal_file_count": 13,
+      "sql_literal_files": [
+        "backend/db/migrations/00828_v28_local_portrait_lease_ready.sql",
+        "backend/db/migrations/00829_v28_local_portrait_registry.sql",
+        "backend/db/migrations/00832_v28_owner_request_scope.sql",
+        "backend/db/migrations/00835_v28_local_task_stage.sql",
+        "backend/db/migrations/00836_v28_local_transport_scope.sql",
+        "backend/db/migrations/00837_v28_local_input_registration.sql",
+        "backend/db/migrations/00838_v28_local_runtime_qualification.sql",
+        "backend/db/migrations/00839_v28_local_graph_admission.sql",
+        "backend/db/migrations/00841_v28_output_result_qualification.sql",
+        "backend/db/migrations/00978_v28_owner_binary_inventory_contract.sql",
+        "backend/db/migrations/02062_v30_export_adoption_operation_params.sql"
+      ],
+      "sql_literal_file_count": 11,
+      "worker_literal_files": [
+        "workers/photo_worker/operations/portrait/local_adapter.py",
+        "workers/photo_worker/operations/portrait/local_result.py",
+        "workers/photo_worker/v2/interchange_export_style.py",
+        "workers/photo_worker/v2/interchange_operator_schemas.py"
+      ],
+      "adoption_literal_files": [],
+      "unit_literal_files": [
+        "backend/internal/interchange/export_operation_params_validator_test.go",
+        "backend/internal/interchange/import_local_installation_test.go",
+        "backend/internal/interchange/import_local_params_codec_test.go",
+        "backend/internal/interchange/import_local_qualification_test.go",
+        "backend/internal/v2draft/local_portrait_client_selection_test.go",
+        "backend/internal/v2draft/local_portrait_digest_integration_test.go",
+        "backend/internal/v2draft/local_portrait_material_physical_integration_test.go",
+        "backend/internal/v2draft/manual_raster_context_test.go",
+        "backend/internal/v2portrait/local_plan_test.go",
+        "workers/tests/test_interchange_export_style_probe.py",
+        "workers/tests/test_interchange_recipe_closure.py",
+        "workers/tests/test_local_portrait_installation.py"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": null,
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "image.relight",
+      "package": "V28",
+      "worker_registration_kind": "direct_literal",
+      "worker_registration_files": [
+        "workers/photo_worker/operations/portrait/relight_adapter.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/v2portrait/relight_deployment.go",
+        "backend/internal/v2portrait/relight_evidence.go",
+        "backend/internal/v2portrait/relight_frozen.go",
+        "backend/internal/v2portrait/relight_plan.go",
+        "backend/internal/v2portrait/relight_submission_service.go"
+      ],
+      "service_literal_file_count": 5,
+      "sql_literal_files": [
+        "backend/db/migrations/00980_v28_relight_lease_ready.sql",
+        "backend/db/migrations/00981_v28_relight_qualification.sql",
+        "backend/db/migrations/00987_v28_relight_adoption_source.sql",
+        "backend/db/migrations/00993_v28_relight_adoption_commit.sql",
+        "backend/db/migrations/00994_v28_relight_adoption_params.sql",
+        "backend/db/migrations/01004_v28_relight_task_stage.sql",
+        "backend/db/migrations/01006_v28_relight_transport_registration.sql",
+        "backend/db/migrations/01008_v28_relight_graph_admission.sql",
+        "backend/db/migrations/01009_v28_relight_queued_receipt.sql"
+      ],
+      "sql_literal_file_count": 9,
+      "worker_literal_files": [
+        "workers/photo_worker/operations/portrait/relight_adapter.py",
+        "workers/photo_worker/operations/portrait/relight_admission.py",
+        "workers/photo_worker/operations/portrait/relight_result.py",
+        "workers/photo_worker/v2/adoption.py",
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/relight_adoption.py",
+        "workers/photo_worker/v2/relight_adoption_prepare.py",
+        "workers/photo_worker/v2/relight_qualification.py",
+        "workers/photo_worker/v2/relight_qualification_loader.py"
+      ],
+      "adoption_literal_files": [
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/relight_adoption.py",
+        "workers/photo_worker/v2/relight_adoption_prepare.py",
+        "workers/photo_worker/v2/adoption.py"
+      ],
+      "unit_literal_files": [
+        "backend/internal/v2input/delivery_child_closure_test.go",
+        "backend/internal/v2portrait/relight_analysis_coordinator_test.go",
+        "backend/internal/v2portrait/relight_analysis_deployment_test.go",
+        "backend/internal/v2portrait/relight_analysis_descriptor_test.go",
+        "backend/internal/v2portrait/relight_analysis_qualification_catalog_test.go",
+        "backend/internal/v2portrait/relight_analysis_service_test.go",
+        "backend/internal/v2portrait/relight_bootstrap_integration_test.go",
+        "backend/internal/v2portrait/relight_evidence_test.go",
+        "backend/internal/v2portrait/relight_frozen_test.go",
+        "backend/internal/v2portrait/relight_profile_test.go",
+        "apps/photographer/src/relight-analysis.test.ts"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": null,
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "optical.lens",
+      "package": "V25",
+      "worker_registration_kind": "direct_literal",
+      "worker_registration_files": [
+        "workers/photo_worker/operations/optical/adapter.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/v2draft/layers.go",
+        "backend/internal/v2input/lens_closure.go",
+        "backend/internal/v2input/lens_selection_compile.go",
+        "backend/internal/v2input/lens_stage.go",
+        "backend/internal/v2input/lens_task.go"
+      ],
+      "service_literal_file_count": 5,
+      "sql_literal_files": [
+        "backend/db/migrations/00311_v25_lens_adoption_params.sql",
+        "backend/db/migrations/00314_v25_lens_operation_catalog.sql",
+        "backend/db/migrations/00318_v25_lens_task_stage.sql",
+        "backend/db/migrations/00319_v25_lens_stage_transport_replay.sql",
+        "backend/db/migrations/00320_v25_lens_registered_inputs.sql",
+        "backend/db/migrations/00324_v25_lens_graph_authority.sql",
+        "backend/db/migrations/00325_v25_lens_adoption_authority.sql",
+        "backend/db/migrations/00326_v25_lens_adoption_rejection.sql",
+        "backend/db/migrations/00329_v25_adopted_lens_binding.sql",
+        "backend/db/migrations/00344_v25_layer_lens_proposal_scope.sql",
+        "backend/db/migrations/00405_v26_render_graph_authority.sql",
+        "backend/db/migrations/00435_v26_render_activation_qualification.sql"
+      ],
+      "sql_literal_file_count": 13,
+      "worker_literal_files": [
+        "workers/photo_worker/operations/optical/adapter.py",
+        "workers/photo_worker/operations/optical/result.py",
+        "workers/photo_worker/v2/adoption.py",
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/lens_adoption.py",
+        "workers/photo_worker/v2/lens_bypass.py",
+        "workers/photo_worker/v2/render_adjustments.py",
+        "workers/photo_worker/v2/render_layers.py",
+        "workers/photo_worker/v2/render_prepare.py"
+      ],
+      "adoption_literal_files": [
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/lens_adoption.py",
+        "workers/photo_worker/v2/adoption.py"
+      ],
+      "unit_literal_files": [
+        "backend/internal/httpapi/multi_submit_test.go",
+        "backend/internal/httpapi/negative_submit_test.go",
+        "backend/internal/httpapi/perspective_submit_test.go",
+        "backend/internal/v2draft/layers_test.go",
+        "backend/internal/v2input/lens_task_test.go",
+        "backend/internal/v2optical/perspective_qualification_test.go",
+        "backend/internal/v2render/compose_stage_test.go",
+        "backend/internal/v2render/plan_test.go",
+        "apps/photographer/src/editor-layer-panel.dom.test.tsx",
+        "apps/photographer/src/editor-layers.test.ts",
+        "apps/photographer/src/multi-proposal.test.ts"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": null,
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "optical.perspective",
+      "package": "V29",
+      "worker_registration_kind": "direct_literal",
+      "worker_registration_files": [
+        "workers/photo_worker/operations/optical/perspective_installation.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/httpapi/perspective_submit.go",
+        "backend/internal/v2draft/layers.go",
+        "backend/internal/v2optical/negative_adopted_parent.go",
+        "backend/internal/v2optical/negative_affected_sources.go",
+        "backend/internal/v2optical/negative_draft.go",
+        "backend/internal/v2optical/negative_frozen_intent.go",
+        "backend/internal/v2optical/negative_replacement_compile.go",
+        "backend/internal/v2optical/negative_replacement_inputs.go",
+        "backend/internal/v2optical/negative_replacement_intent.go",
+        "backend/internal/v2optical/negative_replacement_mapped_rebind.go",
+        "backend/internal/v2optical/perspective_deployment.go",
+        "backend/internal/v2optical/perspective_descriptor.go"
+      ],
+      "service_literal_file_count": 30,
+      "sql_literal_files": [
+        "backend/db/migrations/01026_v29_perspective_policy_sha.sql",
+        "backend/db/migrations/01027_v29_perspective_qualification_lock.sql",
+        "backend/db/migrations/01028_v29_perspective_lease.sql",
+        "backend/db/migrations/01032_v29_perspective_adoption_evidence.sql",
+        "backend/db/migrations/01033_v29_perspective_adoption_params.sql",
+        "backend/db/migrations/01034_v29_perspective_adoption_commit.sql",
+        "backend/db/migrations/01040_v29_perspective_task_stage.sql",
+        "backend/db/migrations/01043_v29_perspective_input_registration.sql",
+        "backend/db/migrations/01045_v29_perspective_graph_admission.sql",
+        "backend/db/migrations/01046_v29_perspective_queued_receipt.sql",
+        "backend/db/migrations/01052_v29_perspective_auto_inputs.sql",
+        "backend/db/migrations/01053_v29_adopted_perspective_read.sql"
+      ],
+      "sql_literal_file_count": 39,
+      "worker_literal_files": [
+        "workers/photo_worker/operations/optical/perspective_adapter.py",
+        "workers/photo_worker/operations/optical/perspective_admission.py",
+        "workers/photo_worker/operations/optical/perspective_evidence.py",
+        "workers/photo_worker/operations/optical/perspective_installation.py",
+        "workers/photo_worker/operations/optical/perspective_result.py",
+        "workers/photo_worker/runtime/perspective_config.py",
+        "workers/photo_worker/v2/adoption.py",
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/perspective_adoption.py",
+        "workers/photo_worker/v2/perspective_derivative.py",
+        "workers/photo_worker/v2/render_adjustments.py",
+        "workers/photo_worker/v2/render_layers.py"
+      ],
+      "adoption_literal_files": [
+        "workers/photo_worker/v2/perspective_adoption.py",
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/adoption.py"
+      ],
+      "unit_literal_files": [
+        "backend/internal/httpapi/multi_replacement_review_test.go",
+        "backend/internal/httpapi/perspective_submit_test.go",
+        "backend/internal/v2draft/layers_test.go",
+        "backend/internal/v2optical/multi_accepted_parent_sql_integration_test.go",
+        "backend/internal/v2optical/multi_coordinator_test.go",
+        "backend/internal/v2optical/multi_deployment_test.go",
+        "backend/internal/v2optical/multi_receipt_test.go",
+        "backend/internal/v2optical/negative_affected_sources_test.go",
+        "backend/internal/v2optical/negative_frozen_intent_test.go",
+        "backend/internal/v2optical/negative_ready_sources_loader_test.go",
+        "backend/internal/v2optical/negative_receipt_test.go",
+        "backend/internal/v2optical/negative_replacement_inputs_test.go"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": null,
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "optical.negative",
+      "package": "V29",
+      "worker_registration_kind": "direct_literal",
+      "worker_registration_files": [
+        "workers/photo_worker/operations/optical/negative_adapter.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/delivery/provenance_delegated_adopted_producer.go",
+        "backend/internal/delivery/provenance_delegated_adopted_result.go",
+        "backend/internal/delivery/provenance_delegated_candidate_review.go",
+        "backend/internal/delivery/provenance_delegated_negative_mask.go",
+        "backend/internal/delivery/provenance_delegated_negative_pixels.go",
+        "backend/internal/delivery/provenance_delegated_negative_qualification.go",
+        "backend/internal/delivery/provenance_delegated_negative_source_array.go",
+        "backend/internal/delivery/provenance_delegated_review_adapters.go",
+        "backend/internal/httpapi/negative_submit.go",
+        "backend/internal/provenance/delegated_negative_evidence.go",
+        "backend/internal/provenance/delegated_negative_graph_claims.go",
+        "backend/internal/provenance/delegated_negative_mask.go"
+      ],
+      "service_literal_file_count": 69,
+      "sql_literal_files": [
+        "backend/db/migrations/00881_v29_negative_policy_sha.sql",
+        "backend/db/migrations/00882_v29_negative_qualification_lock.sql",
+        "backend/db/migrations/00884_v29_negative_lease.sql",
+        "backend/db/migrations/00890_v29_negative_adoption_evidence.sql",
+        "backend/db/migrations/00891_v29_negative_adoption_commit.sql",
+        "backend/db/migrations/00892_v29_negative_adoption_params.sql",
+        "backend/db/migrations/00893_v29_negative_registry.sql",
+        "backend/db/migrations/01411_v29_adopted_negative_review.sql",
+        "backend/db/migrations/01412_v29_negative_review_candidates.sql",
+        "backend/db/migrations/01413_v29_negative_review_finalization.sql",
+        "backend/db/migrations/01414_v29_negative_review_before_media.sql",
+        "backend/db/migrations/01415_v29_negative_after_preview.sql"
+      ],
+      "sql_literal_file_count": 50,
+      "worker_literal_files": [
+        "workers/photo_worker/operations/optical/negative_adapter.py",
+        "workers/photo_worker/operations/optical/negative_result.py",
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/negative_adopter_config.py",
+        "workers/photo_worker/v2/negative_attempt.py",
+        "workers/photo_worker/v2/negative_execute.py",
+        "workers/photo_worker/v2/negative_qualification.py",
+        "workers/photo_worker/v2/negative_qualification_loader.py",
+        "workers/photo_worker/v2/negative_source.py"
+      ],
+      "adoption_literal_files": [
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/negative_adopter_config.py"
+      ],
+      "unit_literal_files": [
+        "backend/internal/delivery/provenance_delegated_candidate_review_test.go",
+        "backend/internal/httpapi/negative_submit_test.go",
+        "backend/internal/provenance/delegated_complex_claims_test.go",
+        "backend/internal/provenance/delegated_negative_mask_counter_test.go",
+        "backend/internal/provenance/delegated_negative_mask_test.go",
+        "backend/internal/provenance/delegated_negative_pixel_ancestry_test.go",
+        "backend/internal/provenance/delegated_negative_pixel_evidence_test.go",
+        "backend/internal/provenance/delegated_negative_pixels_test.go",
+        "backend/internal/provenance/delegated_negative_policy_content_test.go",
+        "backend/internal/provenance/delegated_negative_qualification_test.go",
+        "backend/internal/provenance/delegated_negative_report_test.go",
+        "backend/internal/provenance/delegated_negative_source_arrays_test.go"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": null,
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "optical.panorama",
+      "package": "V29",
+      "worker_registration_kind": "dynamic_named_dispatch",
+      "worker_registration_files": [
+        "workers/photo_worker/operations/optical/multi_installation.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/httpapi/multi_proposal.go",
+        "backend/internal/httpapi/multi_replacement_review.go",
+        "backend/internal/httpapi/multi_submit.go",
+        "backend/internal/v2draft/layers.go",
+        "backend/internal/v2optical/multi_coordinator.go",
+        "backend/internal/v2optical/multi_deployment.go",
+        "backend/internal/v2optical/multi_image_inputs.go",
+        "backend/internal/v2optical/multi_plan.go",
+        "backend/internal/v2optical/multi_policy.go",
+        "backend/internal/v2optical/multi_qualification.go",
+        "backend/internal/v2optical/multi_qualification_catalog.go",
+        "backend/internal/v2optical/multi_qualification_lock.go"
+      ],
+      "service_literal_file_count": 42,
+      "sql_literal_files": [
+        "backend/db/migrations/01139_v29_multi_qualification_authority.sql",
+        "backend/db/migrations/01140_v29_multi_adoption_evidence.sql",
+        "backend/db/migrations/01141_v29_multi_adoption_commit.sql",
+        "backend/db/migrations/01142_v29_multi_array_source.sql",
+        "backend/db/migrations/01143_v29_multi_draft.sql",
+        "backend/db/migrations/01144_v29_multi_resource_estimate.sql",
+        "backend/db/migrations/01146_v29_multi_task_stage.sql",
+        "backend/db/migrations/01149_v29_multi_stage_replay.sql",
+        "backend/db/migrations/01151_v29_multi_graph_admission.sql",
+        "backend/db/migrations/01152_v29_multi_queued_receipt.sql",
+        "backend/db/migrations/01153_v29_multi_registry.sql",
+        "backend/db/migrations/01156_v29_multi_intent_claim.sql"
+      ],
+      "sql_literal_file_count": 34,
+      "worker_literal_files": [
+        "workers/photo_worker/cli.py",
+        "workers/photo_worker/operations/optical/multi_adapter.py",
+        "workers/photo_worker/operations/optical/multi_admission.py",
+        "workers/photo_worker/operations/optical/multi_admitted_prepare.py",
+        "workers/photo_worker/operations/optical/multi_evidence.py",
+        "workers/photo_worker/operations/optical/multi_lineage.py",
+        "workers/photo_worker/operations/optical/multi_request.py",
+        "workers/photo_worker/runtime/multi_config.py",
+        "workers/photo_worker/runtime/service.py",
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/multi_adopter_config.py",
+        "workers/photo_worker/v2/multi_adoption.py"
+      ],
+      "adoption_literal_files": [
+        "workers/photo_worker/v2/multi_adopter_config.py",
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/multi_adoption_prepare.py",
+        "workers/photo_worker/v2/multi_adoption_evidence.py",
+        "workers/photo_worker/v2/multi_adoption.py"
+      ],
+      "unit_literal_files": [
+        "backend/internal/httpapi/multi_replacement_review_test.go",
+        "backend/internal/httpapi/multi_submit_test.go",
+        "backend/internal/v2draft/layers_test.go",
+        "backend/internal/v2optical/multi_accepted_parent_sql_integration_test.go",
+        "backend/internal/v2optical/multi_admission_test.go",
+        "backend/internal/v2optical/multi_capabilities_test.go",
+        "backend/internal/v2optical/multi_coordinator_test.go",
+        "backend/internal/v2optical/multi_deployment_test.go",
+        "backend/internal/v2optical/multi_draft_test.go",
+        "backend/internal/v2optical/multi_intent_claim_test.go",
+        "backend/internal/v2optical/multi_intent_identity_integration_test.go",
+        "backend/internal/v2optical/multi_intent_identity_test.go"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": null,
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "optical.focus_stack",
+      "package": "V29",
+      "worker_registration_kind": "dynamic_named_dispatch",
+      "worker_registration_files": [
+        "workers/photo_worker/operations/optical/multi_installation.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/httpapi/multi_proposal.go",
+        "backend/internal/httpapi/multi_replacement_review.go",
+        "backend/internal/httpapi/multi_submit.go",
+        "backend/internal/v2draft/layers.go",
+        "backend/internal/v2optical/multi_capabilities.go",
+        "backend/internal/v2optical/multi_coordinator.go",
+        "backend/internal/v2optical/multi_deployment.go",
+        "backend/internal/v2optical/multi_policy.go",
+        "backend/internal/v2optical/multi_qualification.go",
+        "backend/internal/v2optical/multi_qualification_catalog.go",
+        "backend/internal/v2optical/multi_qualification_lock.go",
+        "backend/internal/v2optical/multi_replacement_draft.go"
+      ],
+      "service_literal_file_count": 38,
+      "sql_literal_files": [
+        "backend/db/migrations/01139_v29_multi_qualification_authority.sql",
+        "backend/db/migrations/01140_v29_multi_adoption_evidence.sql",
+        "backend/db/migrations/01141_v29_multi_adoption_commit.sql",
+        "backend/db/migrations/01142_v29_multi_array_source.sql",
+        "backend/db/migrations/01143_v29_multi_draft.sql",
+        "backend/db/migrations/01144_v29_multi_resource_estimate.sql",
+        "backend/db/migrations/01146_v29_multi_task_stage.sql",
+        "backend/db/migrations/01149_v29_multi_stage_replay.sql",
+        "backend/db/migrations/01151_v29_multi_graph_admission.sql",
+        "backend/db/migrations/01152_v29_multi_queued_receipt.sql",
+        "backend/db/migrations/01153_v29_multi_registry.sql",
+        "backend/db/migrations/01156_v29_multi_intent_claim.sql"
+      ],
+      "sql_literal_file_count": 34,
+      "worker_literal_files": [
+        "workers/photo_worker/cli.py",
+        "workers/photo_worker/operations/optical/multi_adapter.py",
+        "workers/photo_worker/operations/optical/multi_admission.py",
+        "workers/photo_worker/operations/optical/multi_evidence.py",
+        "workers/photo_worker/operations/optical/multi_lineage.py",
+        "workers/photo_worker/operations/optical/multi_request.py",
+        "workers/photo_worker/runtime/multi_config.py",
+        "workers/photo_worker/runtime/service.py",
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/multi_adopter_config.py",
+        "workers/photo_worker/v2/multi_adoption.py",
+        "workers/photo_worker/v2/multi_adoption_evidence.py"
+      ],
+      "adoption_literal_files": [
+        "workers/photo_worker/v2/multi_adopter_config.py",
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/multi_adoption_evidence.py",
+        "workers/photo_worker/v2/multi_adoption.py"
+      ],
+      "unit_literal_files": [
+        "backend/internal/httpapi/multi_replacement_review_test.go",
+        "backend/internal/v2draft/layers_test.go",
+        "backend/internal/v2optical/multi_accepted_parent_sql_integration_test.go",
+        "backend/internal/v2optical/multi_capabilities_test.go",
+        "backend/internal/v2optical/multi_deployment_test.go",
+        "backend/internal/v2optical/multi_draft_test.go",
+        "backend/internal/v2optical/multi_intent_claim_test.go",
+        "backend/internal/v2optical/multi_intent_identity_integration_test.go",
+        "backend/internal/v2optical/multi_intent_identity_test.go",
+        "backend/internal/v2optical/multi_params_repository_test.go",
+        "backend/internal/v2optical/multi_plan_test.go",
+        "backend/internal/v2optical/multi_qualification_loader_test.go"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": null,
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "provenance.sign",
+      "package": "V31",
+      "worker_registration_kind": "direct_literal",
+      "worker_registration_files": [
+        "workers/photo_worker/operations/provenance/execute.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/delivery/provenance_delegated_draft_documents.go",
+        "backend/internal/provenance/admission_authority.go",
+        "backend/internal/provenance/pending.go",
+        "backend/internal/provenance/task_plan.go"
+      ],
+      "service_literal_file_count": 4,
+      "sql_literal_files": [
+        "backend/db/migrations/01392_v31_signing_pending.sql",
+        "backend/db/migrations/01395_v31_signing_materialization.sql",
+        "backend/db/migrations/01396_v31_signing_transport_authority.sql",
+        "backend/db/migrations/01397_v31_signing_activation.sql",
+        "backend/db/migrations/01398_v31_signing_ticket_recovery.sql",
+        "backend/db/migrations/01399_v31_signer_worker_qualification.sql",
+        "backend/db/migrations/01400_v31_signing_adoption_authority.sql",
+        "backend/db/migrations/01402_v31_signing_completion_recovery.sql",
+        "backend/db/migrations/01585_v31_api_signer_registration.sql",
+        "backend/db/migrations/01623_v32_capacity_policy_task_authority.sql",
+        "backend/db/migrations/01626_v32_capacity_policy_timing_consumers.sql",
+        "backend/db/migrations/01812_v30_delivery_signed_receipt_read.sql"
+      ],
+      "sql_literal_file_count": 21,
+      "worker_literal_files": [
+        "workers/photo_worker/operations/provenance/execute.py",
+        "workers/photo_worker/runtime/signer_installation.py",
+        "workers/photo_worker/runtime/signer_service.py",
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/provenance_adoption_commit.py",
+        "workers/photo_worker/v2/provenance_adoption_prepare.py"
+      ],
+      "adoption_literal_files": [
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/provenance_adoption_prepare.py",
+        "workers/photo_worker/v2/provenance_adoption_commit.py"
+      ],
+      "unit_literal_files": [
+        "backend/internal/provenance/operator_registration_sql_integration_test.go",
+        "backend/internal/provenance/signer_worker_sql_integration_test.go",
+        "backend/internal/provenance/task_plan_test.go",
+        "backend/internal/v2optical/optical_draft_input_digest_test.go",
+        "workers/tests/test_provenance_adoption_commit.py",
+        "workers/tests/test_provenance_adoption_prepare.py",
+        "workers/tests/test_signer_installation.py",
+        "workers/tests/test_signer_service.py",
+        "workers/tests/test_signing_adoption_coordinator.py"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": null,
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "v2.delivery.assemble",
+      "package": "V30",
+      "worker_registration_kind": "dynamic_named_dispatch",
+      "worker_registration_files": [
+        "workers/photo_worker/operations/delivery/adapter.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/delivery/assembly_task.go",
+        "backend/internal/v2input/delivery_assembly_closure.go",
+        "backend/internal/v2input/delivery_signed_assembly_closure.go",
+        "backend/internal/workflow/delivery_assembly_params_publish.go",
+        "backend/internal/workflow/delivery_assembly_pipeline.go",
+        "backend/internal/workflow/delivery_assembly_task.go",
+        "backend/internal/workflow/delivery_assembly_transport_queries.go",
+        "backend/internal/workflow/delivery_shard_publish.go",
+        "backend/internal/workflow/delivery_signed_assembly_activation.go",
+        "backend/internal/workflow/delivery_signed_assembly_registration.go",
+        "backend/internal/workflow/delivery_signed_assembly_task.go",
+        "backend/internal/workflow/delivery_signed_document_publish.go"
+      ],
+      "service_literal_file_count": 12,
+      "sql_literal_files": [
+        "backend/db/migrations/01216_v30_delivery_lease.sql",
+        "backend/db/migrations/01261_v30_delivery_assembly_task.sql",
+        "backend/db/migrations/01262_v30_delivery_assembly_transport.sql",
+        "backend/db/migrations/01263_v30_delivery_sealed_profile_receipts.sql",
+        "backend/db/migrations/01265_v30_delivery_assembly_resource_gate.sql",
+        "backend/db/migrations/01267_v30_delivery_assembly_exact_inventory.sql",
+        "backend/db/migrations/01268_v30_delivery_assembly_source_context.sql",
+        "backend/db/migrations/01271_v30_delivery_worker_assembly_source.sql",
+        "backend/db/migrations/01279_v30_delivery_assembly_adoption_inputs.sql",
+        "backend/db/migrations/01280_v30_delivery_assembly_adoption_params.sql",
+        "backend/db/migrations/01283_v30_delivery_assembly_adoption_receipt.sql",
+        "backend/db/migrations/01285_v30_delivery_publication_source.sql"
+      ],
+      "sql_literal_file_count": 15,
+      "worker_literal_files": [
+        "workers/photo_worker/operations/delivery/adapter.py",
+        "workers/photo_worker/operations/delivery/admission.py",
+        "workers/photo_worker/operations/delivery/signed_adapter.py",
+        "workers/photo_worker/v2/adoption.py",
+        "workers/photo_worker/v2/adoption_service.py"
+      ],
+      "adoption_literal_files": [
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/adoption.py"
+      ],
+      "unit_literal_files": [
+        "backend/internal/delivery/assembly_task_test.go",
+        "backend/internal/workflow/delivery_assembly_queries_lifecycle_test.go",
+        "backend/internal/workflow/delivery_assembly_transport_queries_test.go",
+        "workers/tests/test_delivery_adapter_cancellation.py",
+        "workers/tests/test_delivery_signed_adapter.py",
+        "workers/tests/test_delivery_signed_assembly_adoption.py"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": null,
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "v2.interchange.import",
+      "package": "V30",
+      "worker_registration_kind": "direct_literal",
+      "worker_registration_files": [
+        "workers/photo_worker/operations/interchange/import_adapter.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/interchange/import_materialization.go",
+        "backend/internal/interchange/import_measured_resources.go"
+      ],
+      "service_literal_file_count": 2,
+      "sql_literal_files": [
+        "backend/db/migrations/00197_v21_foundation.sql",
+        "backend/db/migrations/01330_v30_interchange_import_task.sql",
+        "backend/db/migrations/01334_v30_interchange_input_registration.sql",
+        "backend/db/migrations/01339_v30_interchange_import_worker_admission.sql",
+        "backend/db/migrations/01340_v30_interchange_import_adoption_context.sql",
+        "backend/db/migrations/01341_v30_interchange_import_commit.sql",
+        "backend/db/migrations/01342_v30_interchange_import_recovery.sql",
+        "backend/db/migrations/01378_v30_interchange_prepared_review_reads.sql",
+        "backend/db/migrations/01573_v30_import_warp_scratch_admission.sql",
+        "backend/db/migrations/01575_v30_import_activation_receipt.sql",
+        "backend/db/migrations/02111_v30_import_adoption_claim.sql"
+      ],
+      "sql_literal_file_count": 11,
+      "worker_literal_files": [
+        "workers/photo_worker/operations/interchange/import_adapter.py",
+        "workers/photo_worker/operations/interchange/import_admission.py",
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/interchange_import_adopter_installation.py",
+        "workers/photo_worker/v2/interchange_import_adopter_semantics.py",
+        "workers/photo_worker/v2/interchange_import_adoption_commit.py",
+        "workers/photo_worker/v2/interchange_import_adoption_prepare.py",
+        "workers/photo_worker/v2/interchange_import_adoption_runtime.py"
+      ],
+      "adoption_literal_files": [
+        "workers/photo_worker/v2/interchange_import_adoption_prepare.py",
+        "workers/photo_worker/v2/interchange_import_adopter_installation.py",
+        "workers/photo_worker/v2/interchange_import_adoption_commit.py",
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/interchange_import_adoption_runtime.py",
+        "workers/photo_worker/v2/interchange_import_adopter_semantics.py"
+      ],
+      "unit_literal_files": [
+        "backend/internal/interchange/import_materialization_test.go",
+        "workers/tests/test_interchange_export_adapter.py",
+        "workers/tests/test_interchange_export_admission.py",
+        "workers/tests/test_interchange_import_adapter.py",
+        "workers/tests/test_interchange_import_adopter_installation.py",
+        "workers/tests/test_interchange_import_adopter_semantics.py",
+        "workers/tests/test_interchange_import_adoption_commit.py",
+        "workers/tests/test_interchange_import_adoption_prepare.py",
+        "workers/tests/test_interchange_import_adoption_routing.py",
+        "workers/tests/test_interchange_import_adoption_runtime.py",
+        "workers/tests/test_interchange_installation.py"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": null,
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "v2.interchange.export",
+      "package": "V30",
+      "worker_registration_kind": "direct_literal",
+      "worker_registration_files": [
+        "workers/photo_worker/operations/interchange/export_adapter.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/interchange/export_task.go",
+        "backend/internal/interchange/export_ticket_recovery.go"
+      ],
+      "service_literal_file_count": 2,
+      "sql_literal_files": [
+        "backend/db/migrations/00197_v21_foundation.sql",
+        "backend/db/migrations/01359_v30_interchange_export_materialization.sql",
+        "backend/db/migrations/01361_v30_interchange_export_worker_admission.sql",
+        "backend/db/migrations/01362_v30_interchange_export_output_catalog.sql",
+        "backend/db/migrations/01365_v30_interchange_export_adoption_guard.sql",
+        "backend/db/migrations/01368_v30_interchange_export_finalization.sql",
+        "backend/db/migrations/01370_v30_interchange_export_projection.sql",
+        "backend/db/migrations/01372_v30_interchange_export_draft_admission.sql",
+        "backend/db/migrations/01373_v30_interchange_export_seal_guard.sql",
+        "backend/db/migrations/01374_v30_interchange_export_activation.sql",
+        "backend/db/migrations/02033_v30_export_adoption_root.sql",
+        "backend/db/migrations/02034_v30_export_adoption_claim.sql"
+      ],
+      "sql_literal_file_count": 13,
+      "worker_literal_files": [
+        "workers/photo_worker/operations/interchange/export_adapter.py",
+        "workers/photo_worker/operations/interchange/export_admission.py",
+        "workers/photo_worker/v2/interchange_descriptor_occurrences.py"
+      ],
+      "adoption_literal_files": [],
+      "unit_literal_files": [
+        "backend/internal/interchange/export_seal_guard_sql_integration_test.go",
+        "backend/internal/interchange/export_task_test.go",
+        "workers/tests/test_interchange_descriptor_installation.py",
+        "workers/tests/test_interchange_descriptor_sql_authority.py",
+        "workers/tests/test_interchange_export_adapter.py",
+        "workers/tests/test_interchange_export_admission.py",
+        "workers/tests/test_interchange_import_adopter_installation.py",
+        "workers/tests/test_interchange_installation.py",
+        "workers/tests/test_interchange_parse_adoption_commit.py"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": null,
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "v2.semantic.assemble",
+      "package": "V27",
+      "worker_registration_kind": "direct_literal",
+      "worker_registration_files": [
+        "workers/photo_worker/operations/semantic/assemble_adapter.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/v2input/semantic_assembly.go",
+        "backend/internal/v2input/semantic_assembly_commit.go",
+        "backend/internal/v2input/semantic_assembly_store.go"
+      ],
+      "service_literal_file_count": 3,
+      "sql_literal_files": [
+        "backend/db/migrations/00495_v27_semantic_assembly_adoption_params.sql",
+        "backend/db/migrations/00497_v27_semantic_final_producer_gate.sql",
+        "backend/db/migrations/00499_v27_semantic_final_snapshot_authority.sql",
+        "backend/db/migrations/00501_v27_semantic_finalization_guard.sql",
+        "backend/db/migrations/00502_v27_semantic_assembly_lease.sql",
+        "backend/db/migrations/00506_v27_semantic_assembly_stage.sql",
+        "backend/db/migrations/00507_v27_semantic_transport_documents.sql",
+        "backend/db/migrations/00518_v27_semantic_adoption_qualification.sql",
+        "backend/db/migrations/00519_v27_semantic_adoption_qualification_fence.sql",
+        "backend/db/migrations/00520_v27_semantic_adoption_calibration_pin.sql",
+        "backend/db/migrations/00526_v27_semantic_assembly_worker_qualification.sql",
+        "backend/db/migrations/00530_v27_semantic_assembly_scratch_budget.sql"
+      ],
+      "sql_literal_file_count": 15,
+      "worker_literal_files": [
+        "workers/photo_worker/operations/semantic/assemble_adapter.py",
+        "workers/photo_worker/v2/adoption.py",
+        "workers/photo_worker/v2/adoption_service.py"
+      ],
+      "adoption_literal_files": [
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/adoption.py"
+      ],
+      "unit_literal_files": [
+        "backend/internal/gateway/v27_wire_integration_test.go",
+        "backend/internal/v2input/semantic_assembly_orchestrator_test.go",
+        "backend/internal/v2input/semantic_assembly_test.go"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": null,
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "v2.interchange.parse",
+      "package": "V30",
+      "worker_registration_kind": "direct_literal",
+      "worker_registration_files": [
+        "workers/photo_worker/operations/interchange/parse.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/interchange/parse_plan.go",
+        "backend/internal/interchange/parse_recovery.go"
+      ],
+      "service_literal_file_count": 2,
+      "sql_literal_files": [
+        "backend/db/migrations/00197_v21_foundation.sql",
+        "backend/db/migrations/01302_v30_interchange_parse_admission.sql",
+        "backend/db/migrations/01303_v30_interchange_parse_proof.sql",
+        "backend/db/migrations/01308_v30_interchange_parse_materialization.sql",
+        "backend/db/migrations/01309_v30_interchange_parse_activation.sql",
+        "backend/db/migrations/01310_v30_interchange_parse_adoption_params.sql",
+        "backend/db/migrations/01311_v30_interchange_ingest_bindings.sql",
+        "backend/db/migrations/01313_v30_interchange_ingest_run.sql",
+        "backend/db/migrations/01317_v30_interchange_ingest_principal.sql",
+        "backend/db/migrations/01318_v30_interchange_parse_commit.sql",
+        "backend/db/migrations/01319_v30_interchange_parse_recovery.sql",
+        "backend/db/migrations/01322_v30_interchange_import_sources.sql"
+      ],
+      "sql_literal_file_count": 21,
+      "worker_literal_files": [
+        "workers/photo_worker/operations/interchange/parse.py",
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/interchange_parse_adoption_commit.py",
+        "workers/photo_worker/v2/interchange_parse_adoption_prepare.py"
+      ],
+      "adoption_literal_files": [
+        "workers/photo_worker/v2/interchange_parse_adoption_commit.py",
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/interchange_parse_adoption_prepare.py"
+      ],
+      "unit_literal_files": [
+        "backend/internal/interchange/parse_plan_test.go",
+        "workers/tests/test_interchange_import_adoption_commit.py",
+        "workers/tests/test_interchange_parse_adapter.py",
+        "workers/tests/test_interchange_parse_adoption.py",
+        "workers/tests/test_interchange_parse_adoption_commit.py",
+        "workers/tests/test_interchange_parse_adoption_prepare.py"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": null,
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "v2.delivery.prepare",
+      "package": "V30",
+      "worker_registration_kind": "dynamic_named_dispatch",
+      "worker_registration_files": [
+        "workers/photo_worker/operations/delivery/adapter.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/delivery/create_intent.go",
+        "backend/internal/delivery/frozen_prepare_task.go",
+        "backend/internal/delivery/prepare_plan.go",
+        "backend/internal/delivery/prepare_transport_registration.go",
+        "backend/internal/delivery/watermark_proof_repository.go",
+        "backend/internal/v2input/delivery_closure.go"
+      ],
+      "service_literal_file_count": 6,
+      "sql_literal_files": [
+        "backend/db/migrations/01216_v30_delivery_lease.sql",
+        "backend/db/migrations/01217_v30_delivery_source.sql",
+        "backend/db/migrations/01218_v30_delivery_prepare_proof.sql",
+        "backend/db/migrations/01223_v30_delivery_package_admission.sql",
+        "backend/db/migrations/01224_v30_delivery_prepare_adoption.sql",
+        "backend/db/migrations/01225_v30_delivery_expansion_lease.sql",
+        "backend/db/migrations/01261_v30_delivery_assembly_task.sql",
+        "backend/db/migrations/01268_v30_delivery_assembly_source_context.sql",
+        "backend/db/migrations/01271_v30_delivery_worker_assembly_source.sql",
+        "backend/db/migrations/01285_v30_delivery_publication_source.sql",
+        "backend/db/migrations/01295_v30_delivery_prepare_materialization.sql",
+        "backend/db/migrations/01296_v30_delivery_prepare_inventory_resources.sql"
+      ],
+      "sql_literal_file_count": 23,
+      "worker_literal_files": [
+        "workers/photo_worker/operations/delivery/adapter.py",
+        "workers/photo_worker/operations/delivery/admission.py",
+        "workers/photo_worker/v2/adoption.py",
+        "workers/photo_worker/v2/adoption_service.py"
+      ],
+      "adoption_literal_files": [
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/adoption.py"
+      ],
+      "unit_literal_files": [
+        "backend/internal/delivery/expansion_plan_test.go",
+        "backend/internal/delivery/prepare_plan_test.go",
+        "backend/internal/delivery/prepare_resources_test.go",
+        "workers/tests/test_delivery_preparation_lifecycle.py"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": null,
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "region.preview",
+      "package": "V26",
+      "worker_registration_kind": "direct_literal",
+      "worker_registration_files": [
+        "workers/photo_worker/operations/region/adapter.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/v2region/region_queue.go",
+        "backend/internal/v2region/region_shell.go",
+        "backend/internal/v2region/region_transport.go"
+      ],
+      "service_literal_file_count": 3,
+      "sql_literal_files": [
+        "backend/db/migrations/00367_v26_region_operation_catalog.sql",
+        "backend/db/migrations/00368_v26_region_adoption_params.sql",
+        "backend/db/migrations/00370_v26_region_adoption_authority.sql",
+        "backend/db/migrations/00372_v26_region_snapshot_authority.sql",
+        "backend/db/migrations/00373_v26_region_admission_scope.sql",
+        "backend/db/migrations/00374_v26_region_seal_scope.sql",
+        "backend/db/migrations/00375_v26_region_seal_runtime_pins.sql",
+        "backend/db/migrations/00376_v26_region_worker_admission.sql",
+        "backend/db/migrations/00377_v26_region_worker_registration_lock.sql",
+        "backend/db/migrations/00378_v26_region_params_readiness.sql",
+        "backend/db/migrations/00380_v26_region_availability.sql",
+        "backend/db/migrations/00381_v26_region_descriptor_scope.sql"
+      ],
+      "sql_literal_file_count": 16,
+      "worker_literal_files": [
+        "workers/photo_worker/operations/region/adapter.py",
+        "workers/photo_worker/operations/region/admission.py",
+        "workers/photo_worker/v2/adoption.py",
+        "workers/photo_worker/v2/adoption_service.py"
+      ],
+      "adoption_literal_files": [
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/adoption.py"
+      ],
+      "unit_literal_files": [
+        "backend/internal/v2region/region_node_test.go",
+        "backend/internal/v2region/region_publish_integration_test.go",
+        "backend/internal/v2region/region_qualification_integration_test.go",
+        "backend/internal/v2region/region_seal_test.go"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": "D-04: region renderer requires CUDA; no MPS positive path",
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "render.compose",
+      "package": "V26",
+      "worker_registration_kind": "direct_literal",
+      "worker_registration_files": [
+        "workers/photo_worker/v2/render_task.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/delivery/provenance_delegated_adopted_producer.go",
+        "backend/internal/delivery/provenance_delegated_adopted_result.go",
+        "backend/internal/delivery/provenance_delegated_candidate_review.go",
+        "backend/internal/delivery/provenance_delegated_render_inputs.go",
+        "backend/internal/delivery/provenance_delegated_render_mask.go",
+        "backend/internal/delivery/provenance_delegated_render_parents.go",
+        "backend/internal/delivery/provenance_delegated_render_pixels.go",
+        "backend/internal/delivery/provenance_delegated_render_qualification.go",
+        "backend/internal/delivery/provenance_delegated_review_adapters.go",
+        "backend/internal/provenance/delegated_presentation_claims.go",
+        "backend/internal/provenance/delegated_render_evidence.go",
+        "backend/internal/provenance/delegated_render_mask.go"
+      ],
+      "service_literal_file_count": 49,
+      "sql_literal_files": [
+        "backend/db/migrations/00392_v26_render_recipe_task_stage.sql",
+        "backend/db/migrations/00393_v26_render_profile_shape.sql",
+        "backend/db/migrations/00394_v26_render_task_identity.sql",
+        "backend/db/migrations/00395_v26_render_source_resource_floor.sql",
+        "backend/db/migrations/00396_v26_render_run_output_quota.sql",
+        "backend/db/migrations/00397_v26_render_workflow_identity.sql",
+        "backend/db/migrations/00398_v26_render_snapshot_binding.sql",
+        "backend/db/migrations/00400_v26_render_transport_scope.sql",
+        "backend/db/migrations/00401_v26_render_input_state.sql",
+        "backend/db/migrations/00402_v26_render_input_seal_guard.sql",
+        "backend/db/migrations/00403_v26_render_input_contract_lock.sql",
+        "backend/db/migrations/00404_v26_render_closure_readiness.sql"
+      ],
+      "sql_literal_file_count": 75,
+      "worker_literal_files": [
+        "workers/photo_worker/runtime/restore_batch_adoption.py",
+        "workers/photo_worker/runtime/restore_parent_reports.py",
+        "workers/photo_worker/runtime/restore_render_array_catalogue.py",
+        "workers/photo_worker/runtime/restore_render_input_array.py",
+        "workers/photo_worker/runtime/restore_render_preview_catalogue.py",
+        "workers/photo_worker/runtime/restore_render_review.py",
+        "workers/photo_worker/runtime/restore_render_review_decide.py",
+        "workers/photo_worker/runtime/restore_render_review_pending.py",
+        "workers/photo_worker/runtime/restore_render_semantics.py",
+        "workers/photo_worker/runtime/restore_render_terminal.py",
+        "workers/photo_worker/runtime/restore_revoke_running.py",
+        "workers/photo_worker/v2/adoption.py"
+      ],
+      "adoption_literal_files": [
+        "workers/photo_worker/runtime/restore_batch_adoption.py",
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/adoption.py",
+        "workers/photo_worker/v2/render_prepare_adoption.py",
+        "workers/photo_worker/v2/render_adoption.py",
+        "workers/photo_worker/v2/render_adoption_inputs.py"
+      ],
+      "unit_literal_files": [
+        "backend/internal/delivery/provenance_delegated_adopted_result_test.go",
+        "backend/internal/delivery/provenance_delegated_candidate_review_test.go",
+        "backend/internal/delivery/provenance_delegated_render_inputs_test.go",
+        "backend/internal/provenance/child_outputs_test.go",
+        "backend/internal/provenance/delegated_complex_claims_test.go",
+        "backend/internal/provenance/delegated_presentation_claims_test.go",
+        "backend/internal/provenance/delegated_render_mask_counter_test.go",
+        "backend/internal/provenance/delegated_render_pixel_ancestry_test.go",
+        "backend/internal/provenance/delegated_render_pixels_test.go",
+        "backend/internal/provenance/delegated_render_recipe_test.go",
+        "backend/internal/provenance/lineage_graph_test.go",
+        "backend/internal/provenance/negative_execution_installation_test.go"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": null,
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "semantic.local_exposure",
+      "package": "V27",
+      "worker_registration_kind": "direct_literal",
+      "worker_registration_files": [
+        "workers/photo_worker/operations/semantic/exposure_adapter.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/semanticreview/exposure_report.go",
+        "backend/internal/semanticreview/exposure_task.go",
+        "backend/internal/v2input/exposure_closure.go"
+      ],
+      "service_literal_file_count": 3,
+      "sql_literal_files": [
+        "backend/db/migrations/00552_v27_local_exposure_worker_admission.sql",
+        "backend/db/migrations/00553_v27_local_exposure_geometry_pins.sql",
+        "backend/db/migrations/00563_v27_local_exposure_registry.sql",
+        "backend/db/migrations/00564_v27_exposure_adoption_params.sql",
+        "backend/db/migrations/00571_v27_exposure_adoption_commit.sql",
+        "backend/db/migrations/00572_v27_apply_child_adoption_inventory.sql",
+        "backend/db/migrations/00573_v27_exposure_adoption_source_locks.sql",
+        "backend/db/migrations/00574_v27_approved_exposure_nodes.sql",
+        "backend/db/migrations/00575_v27_exposure_batch_qualification_locks.sql",
+        "backend/db/migrations/00580_v27_exposure_inventory_digest.sql",
+        "backend/db/migrations/00581_v27_exposure_inventory_batch.sql",
+        "backend/db/migrations/00582_v27_apply_input_relational_scope.sql"
+      ],
+      "sql_literal_file_count": 20,
+      "worker_literal_files": [
+        "workers/photo_worker/operations/semantic/exposure_adapter.py",
+        "workers/photo_worker/operations/semantic/exposure_admission.py",
+        "workers/photo_worker/operations/semantic/exposure_installation.py",
+        "workers/photo_worker/operations/semantic/exposure_protection.py",
+        "workers/photo_worker/operations/semantic/exposure_quality.py",
+        "workers/photo_worker/operations/semantic/exposure_result.py",
+        "workers/photo_worker/v2/adoption.py",
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/exposure_adoption.py",
+        "workers/photo_worker/v2/exposure_params.py",
+        "workers/photo_worker/v2/semantic_qualification_report.py"
+      ],
+      "adoption_literal_files": [
+        "workers/photo_worker/v2/exposure_adoption.py",
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/adoption.py"
+      ],
+      "unit_literal_files": [
+        "backend/internal/gateway/v27_wire_integration_test.go",
+        "backend/internal/semanticreview/exposure_report_test.go",
+        "backend/internal/semanticreview/exposure_task_test.go",
+        "backend/internal/semanticreview/read_integration_test.go"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": null,
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    },
+    {
+      "id": "optical.perspective_lines",
+      "package": "V29",
+      "worker_registration_kind": "direct_literal",
+      "worker_registration_files": [
+        "workers/photo_worker/operations/optical/perspective_line_detection.py",
+        "workers/photo_worker/operations/optical/perspective_lines_installation.py"
+      ],
+      "service_literal_files": [
+        "backend/internal/workflow/perspective_lines_execution_policy.go",
+        "backend/internal/workflow/perspective_lines_plan.go"
+      ],
+      "service_literal_file_count": 2,
+      "sql_literal_files": [
+        "backend/db/migrations/01109_v29_perspective_line_detection_registry.sql",
+        "backend/db/migrations/01110_v29_perspective_line_detection_materialize.sql",
+        "backend/db/migrations/01117_v29_perspective_lines_workflow.sql",
+        "backend/db/migrations/01121_v29_perspective_lines_activate.sql",
+        "backend/db/migrations/01122_v29_perspective_lines_adoption_evidence.sql",
+        "backend/db/migrations/01123_v29_perspective_lines_adoption_commit.sql",
+        "backend/db/migrations/01124_v29_perspective_lines_adoption_params.sql",
+        "backend/db/migrations/01125_v29_perspective_lines_adoption_recovery.sql",
+        "backend/db/migrations/01126_v29_adopted_perspective_lines_read.sql",
+        "backend/db/migrations/01128_v29_perspective_lines_pending_recovery.sql",
+        "backend/db/migrations/01129_v29_perspective_lines_lifecycle.sql",
+        "backend/db/migrations/01130_v29_perspective_lines_failure_finalization.sql"
+      ],
+      "sql_literal_file_count": 20,
+      "worker_literal_files": [
+        "workers/photo_worker/operations/optical/perspective_line_detection.py",
+        "workers/photo_worker/operations/optical/perspective_lines_installation.py",
+        "workers/photo_worker/v2/adoption_service.py",
+        "workers/photo_worker/v2/perspective_replacement_detection_bridge.py",
+        "workers/photo_worker/v2/perspective_replacement_detection_job.py"
+      ],
+      "adoption_literal_files": [
+        "workers/photo_worker/v2/adoption_service.py"
+      ],
+      "unit_literal_files": [
+        "backend/internal/workflow/perspective_lines_plan_test.go",
+        "backend/internal/workflow/perspective_replacement_detection_publication_test.go"
+      ],
+      "confirmed_code_gaps": [],
+      "platform_qualification_blocker": null,
+      "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
+    }
+  ],
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/shoot-sessions",
+      "package": "V22",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [
+        "backend/internal/v2sessions/service.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/shoot-sessions/{id}",
+      "package": "V22",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/shoot-sessions",
+      "package": "V22",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/auth/service.go",
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/tenants/{t}/shoot-sessions/{id}",
+      "package": "V22",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [
+        "backend/internal/v2sessions/service.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/shoot-sessions/{id}/analyses",
+      "package": "V22",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/session-analyses/{id}",
+      "package": "V22",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/httpapi/catalog.go",
+        "backend/internal/v2sessions/analysis.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/session-analyses/{id}/apply",
+      "package": "V22",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/httpapi/catalog.go",
+        "backend/internal/v2sessions/apply_analysis.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/corrections",
+      "package": "V23",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/httpapi/catalog.go",
+        "backend/internal/v2learning/correction.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/learning-profiles",
+      "package": "V23",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/httpapi/catalog.go",
+        "backend/internal/v2learning/profile.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/learning-profiles/{id}",
+      "package": "V23",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/httpapi/catalog.go",
+        "backend/internal/v2learning/profile.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/learning-profiles/{id}/train",
+      "package": "V23",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/httpapi/catalog.go",
+        "backend/internal/v2learning/fit_factory.go",
+        "backend/internal/v2learning/stage.go",
+        "backend/internal/v2learning/train_service.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/learning-profiles/{id}/versions",
+      "package": "V23",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/httpapi/catalog.go",
+        "backend/internal/style/service.go",
+        "backend/internal/v2learning/versions.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/learning-profiles/{id}/activate",
+      "package": "V23",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/httpapi/catalog.go",
+        "backend/internal/v2learning/activation.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/consents",
+      "package": "V22",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/httpapi/catalog.go",
+        "backend/internal/v2people/service.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/projects/{id}/consents",
+      "package": "V22",
+      "route_declaration_kind": "dynamic_table",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/project-persons",
+      "package": "V22",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [
+        "backend/internal/v2people/service.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/projects/{id}/persons",
+      "package": "V22",
+      "route_declaration_kind": "dynamic_table",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/project-persons/{id}/observations",
+      "package": "V22",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [
+        "backend/internal/v2observation/service.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/project-persons/{id}/revoke",
+      "package": "V22",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [
+        "backend/internal/v2people/service.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/tenants/{t}/shoot-sessions/{id}/shot-list",
+      "package": "V24",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/httpapi/catalog.go",
+        "backend/internal/v2draft/shot_list.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/shoot-sessions/{id}/shot-list",
+      "package": "V24",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/httpapi/catalog.go",
+        "backend/internal/v2draft/shot_list.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/capture-devices",
+      "package": "V24",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [
+        "backend/internal/v2capture/service.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/capture-devices/{id}/revoke",
+      "package": "V24",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [
+        "backend/internal/v2capture/service.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/capture-devices/{id}/challenges",
+      "package": "V24",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "device_challenge_exchange",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/httpapi/catalog.go",
+        "backend/internal/v2capture/challenge.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/capture-devices/{id}/token",
+      "package": "V24",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "device_challenge_exchange",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/httpapi/catalog.go",
+        "backend/internal/v2capture/challenge.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/shoot-sessions/{id}/capture-receipts",
+      "package": "V24",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "device_principal",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/httpapi/catalog.go",
+        "backend/internal/v2capture/receipt.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/shoot-sessions/{id}/alerts",
+      "package": "V24",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/httpapi/catalog.go",
+        "backend/internal/v2capture/list_alerts.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/capture-receipts/{id}/confirm",
+      "package": "V24",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/httpapi/catalog.go",
+        "backend/internal/v2capture/confirm.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/capture-alerts/{id}/ack",
+      "package": "V24",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/httpapi/catalog.go",
+        "backend/internal/v2capture/alerts.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/tenants/{t}/assets/{id}/v2-draft",
+      "package": "V21",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/assets/{id}/v2-draft",
+      "package": "V21",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/editor/service.go",
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/assets/{id}/v2-binding",
+      "package": "V21",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/assets/{id}/v2-draft/history",
+      "package": "V21",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/assets/{id}/v2-draft/approve",
+      "package": "V21",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/assets/{id}/v2-draft/freeze",
+      "package": "V26",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/render_freeze.go"
+      ],
+      "declaring_server_methods": [
+        "renderFreezeRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/render-input-snapshots",
+      "package": "V26",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/render_input_snapshot.go"
+      ],
+      "declaring_server_methods": [
+        "renderInputSnapshotRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/projects/{id}/render-policy",
+      "package": "V26",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/render_policy.go"
+      ],
+      "declaring_server_methods": [
+        "renderPolicyRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/assets/{id}/region-previews",
+      "package": "V26",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/region.go"
+      ],
+      "declaring_server_methods": [
+        "regionRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/render-batches",
+      "package": "V26",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/render.go"
+      ],
+      "declaring_server_methods": [
+        "renderRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/relight-analyses",
+      "package": "V28",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/relight_analysis.go"
+      ],
+      "declaring_server_methods": [
+        "relightAnalysisRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/relight-preparation",
+      "package": "V28",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/relight_preparation.go"
+      ],
+      "declaring_server_methods": [
+        "relightPreparationRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/relight-candidates",
+      "package": "V28",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/relight_candidates.go"
+      ],
+      "declaring_server_methods": [
+        "relightCandidateRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/relight-intents",
+      "package": "V28",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/relight_submit.go"
+      ],
+      "declaring_server_methods": [
+        "relightRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [
+        "backend/internal/v2portrait/relight_resolved_submit.go",
+        "backend/internal/v2portrait/relight_submit.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/semantic-intents",
+      "package": "V27",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/semantic_propose.go"
+      ],
+      "declaring_server_methods": [
+        "semanticProposeRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/semantic_propose.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/httpapi/semantic_propose.go",
+        "backend/internal/semanticproposal/create_service.go",
+        "backend/internal/semanticproposal/defect_origin_first_stage.go",
+        "backend/internal/semanticproposal/manual_recovery_service.go",
+        "backend/internal/semanticproposal/project_create_service.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/semantic-intents/{id}/targets",
+      "package": "V27",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/semantic_review.go"
+      ],
+      "declaring_server_methods": [
+        "semanticReviewRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [
+        "D-01: pre-Apply candidate/evidence presentation is absent"
+      ],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/semantic-intents/{id}/apply",
+      "package": "V27",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/semantic_review.go"
+      ],
+      "declaring_server_methods": [
+        "semanticReviewRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [
+        "D-01: pre-Apply candidate/evidence presentation is absent"
+      ],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/delivery-packages",
+      "package": "V30",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/delivery.go"
+      ],
+      "declaring_server_methods": [
+        "deliveryRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/delivery_create.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/delivery/create_activate.go",
+        "backend/internal/delivery/create_admit_service.go",
+        "backend/internal/delivery/create_stage.go",
+        "backend/internal/delivery/metadata_source_api.go",
+        "backend/internal/delivery/watermark_create_stage.go",
+        "backend/internal/httpapi/delivery_create.go",
+        "backend/internal/provenance/policy_choices.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/delivery-packages/{id}",
+      "package": "V30",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/delivery.go"
+      ],
+      "declaring_server_methods": [
+        "deliveryRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/delivery-packages/{id}/publish",
+      "package": "V30",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/delivery.go"
+      ],
+      "declaring_server_methods": [
+        "deliveryRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/interchange-jobs",
+      "package": "V30",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/interchange.go"
+      ],
+      "declaring_server_methods": [
+        "interchangeRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/interchange_create.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/httpapi/interchange_create.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/interchange-jobs/{id}",
+      "package": "V30",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/interchange.go"
+      ],
+      "declaring_server_methods": [
+        "interchangeRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/exports/{id}/provenance",
+      "package": "V31",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/provenance.go"
+      ],
+      "declaring_server_methods": [
+        "provenanceRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/provenance.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/delivery/provenance_signing_start.go",
+        "backend/internal/httpapi/provenance.go",
+        "backend/internal/provenance/operator_installation.go",
+        "backend/internal/provenance/policy_choices.go",
+        "backend/internal/provenance/presentation_installation.go",
+        "backend/internal/provenance/sign_service.go",
+        "backend/internal/provenance/signing_tenant_router.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/v2-documents/{id}",
+      "package": "V21",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/httpapi/catalog.go",
+        "backend/internal/v2draft/document.go",
+        "backend/internal/v2draft/layer_read.go",
+        "backend/internal/v2learning/correction.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/v2-workflows/{id}",
+      "package": "V21",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/v2-workflows/{id}/cancel",
+      "package": "V21",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/runs/{id}/semantic-intent",
+      "package": "V27",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/semantic_review.go"
+      ],
+      "declaring_server_methods": [
+        "semanticReviewRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/semantic_review.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/httpapi/semantic_review.go",
+        "backend/internal/semanticreview/run_intent.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/assets/{id}/region-previews/{run}/descriptor",
+      "package": "V26",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/region.go"
+      ],
+      "declaring_server_methods": [
+        "regionRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/assets/{id}/v2-layers/{artifact}",
+      "package": "V26",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/httpapi/catalog.go",
+        "backend/internal/v2draft/layer_read.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/shoot-sessions/{id}/analyses",
+      "package": "V26",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/session-analyses/{id}/scene-board",
+      "package": "V26",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/httpapi/catalog.go",
+        "backend/internal/v2sessions/scene_board.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/semantic-intents/{id}/close-review",
+      "package": "V27",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/semantic_review.go"
+      ],
+      "declaring_server_methods": [
+        "semanticReviewRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/interchange-jobs/{id}/decisions",
+      "package": "V30",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/interchange.go"
+      ],
+      "declaring_server_methods": [
+        "interchangeRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/interchange_decide.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/httpapi/interchange_decide.go",
+        "backend/internal/interchange/import_approval_catalog.go",
+        "backend/internal/interchange/import_style_registration.go",
+        "backend/internal/interchange/review_approval.go",
+        "backend/internal/interchange/review_decide_service.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/interchange-jobs/{id}/close-review",
+      "package": "V30",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/interchange.go"
+      ],
+      "declaring_server_methods": [
+        "interchangeRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/interchange_close.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/httpapi/interchange_close.go",
+        "backend/internal/interchange/review_close_service.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/learning-versions/{id}/safety-review",
+      "package": "V23",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "service_symbol_files": [
+        "backend/internal/httpapi/catalog.go",
+        "backend/internal/v2learning/activation.go"
+      ],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/projects/{id}/reviews/{review}/perspective-replacements/{original}",
+      "package": "V29",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/perspective_replacement_review.go"
+      ],
+      "declaring_server_methods": [
+        "perspectiveReplacementReviewRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/reviews/{review}/perspective-replacements",
+      "package": "V29",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/perspective_replacement_review.go"
+      ],
+      "declaring_server_methods": [
+        "perspectiveReplacementReviewRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/projects/{id}/reviews/{review}/multi-replacements/{original}",
+      "package": "V29",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/multi_replacement_review.go"
+      ],
+      "declaring_server_methods": [
+        "multiReplacementReviewRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/reviews/{review}/multi-replacements",
+      "package": "V29",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/multi_replacement_review.go"
+      ],
+      "declaring_server_methods": [
+        "multiReplacementReviewRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads",
+      "package": "V30",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/interchange.go"
+      ],
+      "declaring_server_methods": [
+        "interchangeRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/{upload}/parts",
+      "package": "V30",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/interchange.go"
+      ],
+      "declaring_server_methods": [
+        "interchangeRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/{upload}/complete",
+      "package": "V30",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/interchange.go"
+      ],
+      "declaring_server_methods": [
+        "interchangeRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/{upload}/abort",
+      "package": "V30",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/interchange.go"
+      ],
+      "declaring_server_methods": [
+        "interchangeRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/attempt-status",
+      "package": "V30",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/interchange.go"
+      ],
+      "declaring_server_methods": [
+        "interchangeRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/{upload}",
+      "package": "V30",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/interchange.go"
+      ],
+      "declaring_server_methods": [
+        "interchangeRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/projects/{id}/raw-capabilities",
+      "package": "V25",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "tenant_request",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/media/review-pending",
+      "package": "V26",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "signed_revocable_media_grant",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/media/render-selected",
+      "package": "V26",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "signed_revocable_media_grant",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/media/restoration-selected",
+      "package": "V28",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "signed_revocable_media_grant",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/media/run-output",
+      "package": "V26",
+      "route_declaration_kind": "direct",
+      "route_declaration_files": [
+        "backend/internal/httpapi/catalog.go"
+      ],
+      "declaring_server_methods": [
+        "catalogRoutes"
+      ],
+      "mounted_from_server_routes": true,
+      "auth_entry_candidate": "signed_revocable_media_grant",
+      "handler_symbol_files": [],
+      "service_symbol_files": [],
+      "confirmed_code_gaps": [],
+      "remaining_static_review": "route declaration alone does not establish auth, service behavior, client use, replay or revocation"
+    }
+  ]
+}
