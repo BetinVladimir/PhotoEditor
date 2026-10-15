@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "8d663b162dee3dfbfc0b84e8398df0f8bdf09f30",
+  "source_commit": "54a35b8126ceed1039082a3a96c1cbe9c4f023ac",
   "scope": "current source candidates for all V20–V32 operations and endpoint contracts",
   "contract_sha256": {
     "docs/implementation-v2/contracts/operations.json": "35ca9a8987d30076269617ef92d466933e316dd9bdb805fe2eba5bc374349075",
@@ -98,6 +98,7 @@
         "truncated": false
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -170,6 +171,7 @@
         "truncated": false
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -231,6 +233,7 @@
         "truncated": false
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -300,6 +303,7 @@
         "truncated": false
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -369,6 +373,7 @@
         "truncated": false
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -437,6 +442,7 @@
         "truncated": false
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -518,6 +524,9 @@
         "truncated": false
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [
+        "D-02: learning/identity report client route and review are absent"
+      ],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -618,6 +627,9 @@
         "truncated": true
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [
+        "D-01: proposed target lacks pre-Apply candidate/evidence presentation"
+      ],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -728,6 +740,7 @@
         "truncated": true
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -819,6 +832,7 @@
         "truncated": true
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -909,6 +923,7 @@
         "truncated": true
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -1002,6 +1017,7 @@
         "truncated": true
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -1095,6 +1111,7 @@
         "truncated": true
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -1188,6 +1205,7 @@
         "truncated": false
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -1286,6 +1304,7 @@
         "truncated": false
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -1393,6 +1412,7 @@
         "truncated": true
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -1502,6 +1522,7 @@
         "truncated": true
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -1622,6 +1643,7 @@
         "truncated": true
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -1735,6 +1757,7 @@
         "truncated": true
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -1812,6 +1835,7 @@
         "truncated": false
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -1896,6 +1920,7 @@
         "truncated": false
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -1974,6 +1999,7 @@
         "truncated": false
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -2046,6 +2072,7 @@
         "truncated": false
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -2122,6 +2149,7 @@
         "truncated": false
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -2192,6 +2220,7 @@
         "truncated": false
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -2267,6 +2296,7 @@
         "truncated": false
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -2347,6 +2377,7 @@
         "truncated": false
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -2458,6 +2489,7 @@
         "truncated": true
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -2547,6 +2579,7 @@
         "truncated": false
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     },
     {
@@ -2617,6 +2650,7 @@
         "truncated": false
       },
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
     }
   ],
@@ -2655,6 +2689,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -2691,6 +2726,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -2732,6 +2768,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -2770,6 +2807,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -2804,6 +2842,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -2843,6 +2882,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -2885,6 +2925,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -2924,6 +2965,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -2965,6 +3007,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -3006,6 +3049,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -3047,6 +3091,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -3090,6 +3135,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -3129,6 +3175,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -3168,6 +3215,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -3202,6 +3250,7 @@
       },
       "route_mount_status": "static_dynamic_table_candidate",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -3240,6 +3289,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -3276,6 +3326,7 @@
       },
       "route_mount_status": "static_dynamic_table_candidate",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -3312,6 +3363,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -3348,6 +3400,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -3390,6 +3443,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -3432,6 +3486,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -3468,6 +3523,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -3504,6 +3560,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -3543,6 +3600,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -3582,6 +3640,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -3621,6 +3680,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -3662,6 +3722,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -3703,6 +3764,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -3744,6 +3806,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -3778,6 +3841,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -3817,6 +3881,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -3851,6 +3916,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -3885,6 +3951,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -3919,6 +3986,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -3953,6 +4021,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -3987,6 +4056,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -4021,6 +4091,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -4055,6 +4126,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -4089,6 +4161,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -4123,6 +4196,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -4157,6 +4231,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -4191,6 +4266,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -4228,6 +4304,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -4274,6 +4351,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -4308,6 +4386,9 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [
+        "D-01: pre-Apply candidate/evidence presentation is absent"
+      ],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -4342,6 +4423,9 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [
+        "D-01: pre-Apply candidate/evidence presentation is absent"
+      ],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -4388,6 +4472,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -4422,6 +4507,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -4456,6 +4542,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -4496,6 +4583,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -4530,6 +4618,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -4580,6 +4669,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -4623,6 +4713,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -4657,6 +4748,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -4691,6 +4783,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -4733,6 +4826,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -4767,6 +4861,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -4808,6 +4903,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -4842,6 +4938,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -4884,6 +4981,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -4918,6 +5016,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -4960,6 +5059,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -4999,6 +5099,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -5038,6 +5139,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -5072,6 +5174,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -5106,6 +5209,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -5140,6 +5244,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -5174,6 +5279,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -5208,6 +5314,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -5242,6 +5349,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -5276,6 +5384,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -5310,6 +5419,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -5344,6 +5454,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -5378,6 +5489,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -5412,6 +5524,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -5446,6 +5559,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -5480,6 +5594,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -5514,6 +5629,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     },
     {
@@ -5548,6 +5664,7 @@
       },
       "route_mount_status": "static_declaration_only",
       "trace_status": "not_verified",
+      "confirmed_code_gaps": [],
       "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation"
     }
   ]

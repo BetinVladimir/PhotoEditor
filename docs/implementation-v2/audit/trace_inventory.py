@@ -76,6 +76,10 @@ def inventory():
             mounted_routes.setdefault((method.upper(), route), set()).add(path)
 
     operation_rows = []
+    known_operation_gaps = {
+        "semantic.transfer": ["D-01: proposed target lacks pre-Apply candidate/evidence presentation"],
+        "identity.compare": ["D-02: learning/identity report client route and review are absent"],
+    }
     for operation in operations:
         identifier = operation["id"]
         literal = re.compile(r"(?<![A-Za-z0-9_.])['\"]" + re.escape(identifier) + r"['\"]")
@@ -84,6 +88,7 @@ def inventory():
             row[stage + "_candidates"] = matches(literal, source)
         row["unit_candidates"] = matches(literal, unit_files)
         row["trace_status"] = "not_verified"
+        row["confirmed_code_gaps"] = known_operation_gaps.get(identifier, [])
         row["review_gate"] = "request → authorization/frozen inputs → admission/dispatch → worker → result/adoption → UI decision → retry/cancel → GC/purge"
         operation_rows.append(row)
 
@@ -110,6 +115,10 @@ def inventory():
                                    "static_dynamic_table_candidate" if dynamic_route_files else
                                    "not_found_by_static_scan"),
             "trace_status": "not_verified",
+            "confirmed_code_gaps": (["D-01: pre-Apply candidate/evidence presentation is absent"]
+                                    if endpoint["path"] in (
+                                        "/api/v1/tenants/{t}/semantic-intents/{id}/targets",
+                                        "/api/v1/tenants/{t}/semantic-intents/{id}/apply") else []),
             "review_gate": "mounted route → auth/tenant scope → service/SQL → response/error → client consumer → idempotency/revocation",
         })
     return {
