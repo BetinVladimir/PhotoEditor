@@ -461,7 +461,10 @@ keys = [({'key': ' '}, 'KB-01'), ({'key': 'K'}, 'KB-02'), ({'key': 'l'}, 'KB-03'
         ({'key': 'c', 'alt': True}, 'KB-23'), ({'key': 'c'}, 'KB-24'), ({'key': 'v'}, 'KB-25'),
         ({'key': 'n'}, 'KB-26'), ({'key': 'Home'}, 'KB-27'), ({'key': 'End'}, 'KB-28'), ({'key': 'Escape'}, 'KB-29'),
         ({'key': '\\'}, 'KB-30'), ({'key': 'ArrowUp'}, 'KB-31'), ({'key': 'ArrowDown'}, 'KB-32'),
-        ({'key': 'q'}, 'KB-33'), ({'key': ' ', 'composing': True}, 'KB-34')]
+        ({'key': 'q'}, 'KB-33'), ({'key': ' ', 'composing': True}, 'KB-34'),
+        ({'key': 'c', 'ctrl': True}, 'KB-35'), ({'key': 'C', 'meta': True}, 'KB-36'), ({'key': 'v', 'ctrl': True}, 'KB-37'),
+        ({'key': 'V', 'meta': True}, 'KB-38'), ({'key': 'v', 'ctrl': True, 'shift': True}, 'KB-39'),
+        ({'key': 'c', 'ctrl': True, 'editing': True}, 'KB-40'), ({'key': 'v', 'ctrl': True, 'repeat': True}, 'KB-41')]
 for ev, name in keys:
     full = {'key': ev['key'], 'ctrl': ev.get('ctrl', False), 'meta': ev.get('meta', False),
             'shift': ev.get('shift', False), 'alt': ev.get('alt', False), 'repeat': ev.get('repeat', False),
@@ -556,5 +559,157 @@ img2 = {'w': 300, 'h': 1, 'pixels': [[i % 256, 0, 0] for i in range(300)]}
 OUT['scopes'] = [{'id': 'SC-01', 'image': img, 'expect': U.scopes(img['w'], img['h'], img['pixels'])},
                  {'id': 'SC-02', 'image': img2, 'expect': {'waveform_columns': len({c for c, _, _ in U.scopes(300, 1, img2['pixels'])['waveform']}),
                                                            'waveform_head': U.scopes(300, 1, img2['pixels'])['waveform'][:4]}}]
+
+# ---------- дополнение §20: таймкод, вставка клипа, колесо ----------
+import ref_editor_extra as E2  # noqa: E402
+
+FPS25 = {'num': 25, 'den': 1}
+FPS2997 = {'num': 30000, 'den': 1001}
+FPS2398 = {'num': 24000, 'den': 1001}
+FPS5994 = {'num': 60000, 'den': 1001}
+FPS60 = {'num': 60, 'den': 1}
+tcf = []
+for i, (t, fps) in enumerate([
+        (0, FPS25), (F, FPS25), (24 * F, FPS25), (25 * F, FPS25), (S(61), FPS25), (S(3600), FPS25),
+        (S(3660) + 24 * F, FPS25), (99 * S(3600) + 59 * S(60) + 59 * TPS + 24 * F, FPS25),
+        (100 * S(3600), FPS25), (-5, FPS25), (F + 1, FPS25), (F - 1, FPS25),
+        (1800 * K.ft({'video': {'fps': FPS2997}}), FPS2997), (30 * K.ft({'video': {'fps': FPS2997}}), FPS2997),
+        (1799 * K.ft({'video': {'fps': FPS2997}}), FPS2997), (24 * K.ft({'video': {'fps': FPS2398}}), FPS2398),
+        (59 * K.ft({'video': {'fps': FPS5994}}) + 3 * K.ft({'video': {'fps': FPS5994}}) * 60, FPS5994),
+        (61 * K.ft({'video': {'fps': FPS60}}), FPS60)], 1):
+    tcf.append({'id': f'TF-{i:02d}', 'ticks': t, 'fps': fps, 'expect': E2.format_timecode(t, fps)})
+OUT['timecode_format'] = tcf
+tcp = []
+for i, (txt, fps) in enumerate([
+        ('00:00:01:00', FPS25), ('00:00:00:00', FPS25), ('1:0', FPS25), ('1:12:3', FPS25), ('150', FPS25),
+        ('0', FPS25), ('00:00:01:25', FPS25), ('00:60:00:00', FPS25), ('00:00:60:00', FPS25), ('60:00', FPS25),
+        ('90:05', FPS25), ('1.2.3', FPS25), ('1;0', FPS25), ('  00:00:01:00 ', FPS25), ('', FPS25), ('abc', FPS25),
+        ('1:2:3:4:5', FPS25), ('-1', FPS25), ('٣', FPS25), ('99:59:59:24', FPS25), ('100:00:00:00', FPS25),
+        ('1:2:', FPS25), ('00:01:00:00', FPS2997), ('00:00:00:30', FPS2997), ('00:00:00:29', FPS2997),
+        ('0000001', FPS25), ('00:00:01:24', FPS25), ('1::2', FPS25)], 1):
+    tcp.append({'id': f'TP-{i:02d}', 'text': txt, 'fps': fps, 'expect': E2.parse_timecode(txt, fps)})
+OUT['timecode_parse'] = tcp
+# круговой обход: parse(format(t)) = t для t, кратных кадру
+rt = []
+for i, (t, fps) in enumerate([(0, FPS25), (37 * F + 11 * F * 25, FPS25),
+                              (123456 * K.ft({'video': {'fps': FPS2997}}), FPS2997),
+                              (99999 * K.ft({'video': {'fps': FPS60}}), FPS60)], 1):
+    s = E2.format_timecode(t, fps)
+    assert E2.parse_timecode(s, fps) == t, (s, t)
+    rt.append({'id': f'TR-{i:02d}', 'ticks': t, 'fps': fps, 'text': s})
+OUT['timecode_roundtrip'] = rt
+
+# ---- вставка ----
+V_LOCK2 = variant(lambda d: [tr(d, 'V1').update(locked=True), tr(d, 'V2').update(locked=True)])
+V_NOV2 = variant(lambda d: d['tracks'].remove(tr(d, 'V2')))
+VARS.update(locked_all_video=V_LOCK2, no_v2=V_NOV2)
+OUT['docs'].update(locked_all_video=V_LOCK2, no_v2=V_NOV2)
+CP = []
+for name, sel in [('CP-01', 'c1'), ('CP-02', 'a1'), ('CP-03', 'c3'), ('CP-04', 'zzz'), ('CP-05', None)]:
+    CP.append({'id': name, 'doc': 'base', 'selection': sel, 'expect': E2.copy_clip(B, sel)})
+OUT['copy_clip'] = CP
+PS = []
+
+
+def paste_case(name, vk, snap, ph, new_id, desc):
+    d = VARS[vk]
+    res = E2.paste_clip(d, snap, ph, new_id)
+    item = {'id': name, 'desc': desc, 'doc': vk, 'snapshot': snap, 'playhead': ph, 'new_id': new_id, 'expect': res}
+    if 'error' not in res:
+        try:
+            nd, inv = K.apply(d, {'op': 'add_clip', 'args': {'track': res['track'], 'clip': res['clip'], 'ripple': False}})
+            back = K.delete_clip(nd, new_id, False)
+            assert K.canon(back) == K.canon(d)
+            item['then'] = {'ok': True, 'inverse': inv}
+        except K.Err as e:
+            item['then'] = {'error': str(e)}
+    PS.append(item)
+
+
+snap_c1 = E2.copy_clip(B, 'c1')
+snap_c2 = E2.copy_clip(B, 'c2')
+snap_a1 = E2.copy_clip(B, 'a1')
+snap_c3 = E2.copy_clip(B, 'c3')
+snap_p1 = E2.copy_clip(B, 'p1')
+paste_case('PS-01', 'base', snap_c1, S(12), 'n1', 'видео в свободное место той же дорожки; эффект переименован')
+paste_case('PS-02', 'base', snap_c1, S(5), 'n1', 'поверх c2 → ADD_OVERLAP при добавлении')
+paste_case('PS-03', 'base', snap_a1, S(11), 'n1', 'звук на ту же дорожку')
+paste_case('PS-04', 'locked', snap_c1, S(12), 'n1', 'исходная дорожка заблокирована → первая незаблокированная того же вида')
+paste_case('PS-05', 'locked_all_video', snap_c1, S(12), 'n1', 'все видеодорожки заблокированы')
+paste_case('PS-06', 'no_v2', snap_p1, S(20), 'n1', 'исходной дорожки нет → первая подходящая')
+paste_case('PS-07', 'base', None, S(1), 'n1', 'буфер пуст')
+paste_case('PS-08', 'base', snap_c2, S(20), 'n1', 'переход не копируется')
+paste_case('PS-09', 'base', snap_c1, S(12) + 1000, 'n1', 'позиция округляется вниз к кадру')
+paste_case('PS-10', 'base', snap_c1, S(12), 'bad id', 'недопустимый идентификатор → ID_INVALID при добавлении')
+paste_case('PS-11', 'base', snap_c1, S(12), 'c1', 'повтор идентификатора → ID_DUPLICATE при добавлении')
+paste_case('PS-12', 'base', snap_c3, S(20), 'n1', 'фото: длительность и движение сохраняются')
+paste_case('PS-13', 'base', snap_a1, S(-1), 'n1', 'отрицательная позиция зажимается в 0 → ADD_OVERLAP (звук a1 с 0)')
+OUT['paste_clip'] = PS
+# цепочка: две вставки подряд, playhead после первой = конец вставленного
+ch = []
+d = VARS['base']
+ph = S(12)
+for k, nid in enumerate(['n1', 'n2'], 1):
+    r = E2.paste_clip(d, snap_c1, ph, nid)
+    d, inv = K.apply(d, {'op': 'add_clip', 'args': {'track': r['track'], 'clip': r['clip'], 'ripple': False}})
+    ph = K.end_of(r['clip'])
+    ch.append({'new_id': nid, 'playhead_before': r['clip']['at'], 'playhead_after': ph})
+OUT['paste_chain'] = {'id': 'PC-01', 'doc': 'base', 'snapshot': snap_c1, 'start_playhead': S(12), 'steps': ch,
+                      'expect_clip_ids_V1': [c['id'] for c in tr(d, 'V1')['clips']],
+                      'expect_ats': [c['at'] for c in tr(d, 'V1')['clips']]}
+
+# ---- колесо ----
+WV = {'scroll': S(10), 'tpp': 3528000, 'width': 1000}
+WEND = S(60)
+WH = []
+
+
+def wh_case(name, desc, evs, view=WV, end=WEND, busy=False):
+    st = {'acc': 0, 't': -10_000}
+    outs = []
+    cur = view
+    for e in evs:
+        e = dict({'dx': 0, 'dy': 0, 'mode': 0, 'ctrl': False, 'meta': False, 'shift': False, 'x': 560, 't': 0}, **e)
+        st, o = E2.wheel_step(st, e, cur, end, busy)
+        outs.append({'event': e, 'state': st, 'expect': o})
+        cur = o['view']
+    WH.append({'id': name, 'desc': desc, 'view': view, 'end': end, 'busy': busy, 'steps': outs})
+
+
+wh_case('WH-01', 'Ctrl + колесо вверх на 40 px → приблизить, якорь под курсором', [{'ctrl': True, 'dy': -40}])
+wh_case('WH-02', 'Ctrl + колесо вниз на 40 px → отдалить', [{'ctrl': True, 'dy': 40}])
+wh_case('WH-03', 'Cmd (meta) работает как Ctrl', [{'meta': True, 'dy': -40}])
+wh_case('WH-04', 'щепотка трекпада: мелкие дельты накапливаются (7-я даёт −42 → один шаг)',
+        [{'ctrl': True, 'dy': -6, 't': 10 * i} for i in range(8)])
+wh_case('WH-05', 'пауза > 200 мс сбрасывает накопление', [{'ctrl': True, 'dy': -30, 't': 0}, {'ctrl': True, 'dy': -30, 't': 500}])
+wh_case('WH-06', 'рывок ограничен накоплением ±80: два шага подряд, затем ничего',
+        [{'ctrl': True, 'dy': -500, 't': 0}, {'ctrl': True, 'dy': 0, 't': 10}, {'ctrl': True, 'dy': 0, 't': 20}])
+wh_case('WH-07', 'строчный режим: 3 строки = 48 px', [{'ctrl': True, 'dy': -3, 'mode': 1}])
+wh_case('WH-08', 'страничный режим: 1 страница = ширина области', [{'shift': True, 'dy': 1, 'mode': 2}])
+wh_case('WH-09', 'Shift + колесо → горизонтальная прокрутка', [{'shift': True, 'dy': 100}])
+wh_case('WH-10', 'Shift: если браузер подменил ось (dx), берётся доминирующая', [{'shift': True, 'dx': 50, 'dy': 0}])
+wh_case('WH-11', 'горизонтальный свайп без модификаторов', [{'dx': -80, 'dy': 10}])
+wh_case('WH-12', 'вертикальная прокрутка без модификаторов не перехватывается', [{'dy': 100}])
+wh_case('WH-13', 'прокрутка влево зажата нулём', [{'dx': -2000}], view=dict(WV, scroll=S(1)))
+wh_case('WH-14', 'прокрутка вправо зажата пределом (конец содержимого на 3/4 области)', [{'dx': 100000}])
+wh_case('WH-15', 'короткий проект: предел 0', [{'dx': 500}], end=S(1))
+wh_case('WH-16', 'жест выполняется (busy): колесо игнорируется', [{'ctrl': True, 'dy': -40}], busy=True)
+wh_case('WH-17', 'Ctrl, предел лестницы масштаба (самый крупный) не меняет вид, но событие поглощено',
+        [{'ctrl': True, 'dy': -40}], view=dict(WV, tpp=705600))
+wh_case('WH-18', 'дробные дельты округляются «половина вверх»: 0.5 → 1', [{'shift': True, 'dy': 0.5}])
+OUT['wheel'] = WH
+
+# ---- оформление клипа ----
+CS = []
+for i, (kind, fl) in enumerate([
+        ('video', {}), ('photo', {}), ('audio', {}), ('video', {'selected': True}), ('video', {'hover': True}),
+        ('video', {'hover': True, 'selected': True}), ('video', {'locked': True}), ('video', {'hidden': True}),
+        ('audio', {'hidden': True}), ('audio', {'muted': True}), ('video', {'muted': True}),
+        ('audio', {'locked': True, 'muted': True}), ('video', {'missing': True}),
+        ('photo', {'missing': True, 'selected': True}), ('video', {'preview': {'valid': True}}),
+        ('audio', {'preview': {'valid': False}, 'selected': True, 'locked': True}),
+        ('video', {'locked': True, 'hidden': True})], 1):
+    CS.append({'id': f'CS-{i:02d}', 'kind': kind, 'flags': fl, 'expect': E2.clip_style(kind, fl)})
+OUT['clip_style'] = CS
 
 print(json.dumps(OUT, ensure_ascii=False, indent=1))

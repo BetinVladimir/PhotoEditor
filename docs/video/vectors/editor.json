@@ -3389,6 +3389,350 @@
      }
     }
    }
+  },
+  "locked_all_video": {
+   "video": {
+    "fps": {
+     "num": 25,
+     "den": 1
+    }
+   },
+   "tracks": [
+    {
+     "id": "V1",
+     "kind": "video",
+     "clips": [
+      {
+       "id": "c1",
+       "source": {
+        "kind": "video",
+        "media_id": "m1",
+        "sha256": "h1"
+       },
+       "at": 0,
+       "src_in": 0,
+       "src_out": 2822400000,
+       "speed": {
+        "num": 1,
+        "den": 1
+       },
+       "fit": "fit",
+       "audio": {
+        "gain_db": 0.0,
+        "fade_in": 0,
+        "fade_out": 0,
+        "mute": false
+       },
+       "effects": [
+        {
+         "id": "e1",
+         "type": "color.basic",
+         "enabled": true,
+         "params": {}
+        }
+       ]
+      },
+      {
+       "id": "c2",
+       "source": {
+        "kind": "video",
+        "media_id": "m2",
+        "sha256": "h2"
+       },
+       "at": 2822400000,
+       "src_in": 1411200000,
+       "src_out": 4233600000,
+       "speed": {
+        "num": 1,
+        "den": 1
+       },
+       "fit": "fit",
+       "audio": {
+        "gain_db": 0.0,
+        "fade_in": 0,
+        "fade_out": 0,
+        "mute": false
+       },
+       "transition_in": {
+        "kind": "crossfade",
+        "duration": 705600000,
+        "align": "center"
+       },
+       "effects": []
+      },
+      {
+       "id": "c3",
+       "source": {
+        "kind": "photo",
+        "asset_version_id": "p9",
+        "sha256": "h9"
+       },
+       "at": 5644800000,
+       "duration": 2116800000,
+       "fit": "fit",
+       "motion": {
+        "kind": "pan_zoom",
+        "from": {
+         "scale": 1.0,
+         "center": [
+          0.5,
+          0.5
+         ]
+        },
+        "to": {
+         "scale": 1.2,
+         "center": [
+          0.6,
+          0.5
+         ]
+        },
+        "easing": "ease_in_out"
+       },
+       "effects": []
+      }
+     ],
+     "locked": true
+    },
+    {
+     "id": "V2",
+     "kind": "video",
+     "clips": [
+      {
+       "id": "p1",
+       "source": {
+        "kind": "photo",
+        "asset_version_id": "p8",
+        "sha256": "h8"
+       },
+       "at": 1411200000,
+       "duration": 1411200000,
+       "fit": "fit",
+       "transform": {
+        "scale": 0.5,
+        "position": [
+         0.25,
+         -0.25
+        ],
+        "rotate": 0.0,
+        "crop": [
+         0,
+         0,
+         0,
+         0
+        ]
+       },
+       "effects": []
+      }
+     ],
+     "locked": true
+    },
+    {
+     "id": "A1",
+     "kind": "audio",
+     "gain_db": -3.0,
+     "clips": [
+      {
+       "id": "a1",
+       "source": {
+        "kind": "audio",
+        "media_id": "m3",
+        "sha256": "h3"
+       },
+       "at": 0,
+       "src_in": 0,
+       "src_out": 7056000000,
+       "speed": {
+        "num": 1,
+        "den": 1
+       },
+       "audio": {
+        "gain_db": -6.0,
+        "fade_in": 705600000,
+        "fade_out": 1411200000,
+        "mute": false
+       },
+       "effects": []
+      }
+     ]
+    },
+    {
+     "id": "A2",
+     "kind": "audio",
+     "clips": []
+    }
+   ],
+   "markers": [
+    {
+     "id": "mk1",
+     "at": 2116800000,
+     "kind": "user",
+     "label": "A"
+    }
+   ],
+   "master": {
+    "effects": [],
+    "audio": {
+     "loudness": {
+      "target_lufs": -14.0,
+      "true_peak_db": -1.0
+     }
+    }
+   }
+  },
+  "no_v2": {
+   "video": {
+    "fps": {
+     "num": 25,
+     "den": 1
+    }
+   },
+   "tracks": [
+    {
+     "id": "V1",
+     "kind": "video",
+     "clips": [
+      {
+       "id": "c1",
+       "source": {
+        "kind": "video",
+        "media_id": "m1",
+        "sha256": "h1"
+       },
+       "at": 0,
+       "src_in": 0,
+       "src_out": 2822400000,
+       "speed": {
+        "num": 1,
+        "den": 1
+       },
+       "fit": "fit",
+       "audio": {
+        "gain_db": 0.0,
+        "fade_in": 0,
+        "fade_out": 0,
+        "mute": false
+       },
+       "effects": [
+        {
+         "id": "e1",
+         "type": "color.basic",
+         "enabled": true,
+         "params": {}
+        }
+       ]
+      },
+      {
+       "id": "c2",
+       "source": {
+        "kind": "video",
+        "media_id": "m2",
+        "sha256": "h2"
+       },
+       "at": 2822400000,
+       "src_in": 1411200000,
+       "src_out": 4233600000,
+       "speed": {
+        "num": 1,
+        "den": 1
+       },
+       "fit": "fit",
+       "audio": {
+        "gain_db": 0.0,
+        "fade_in": 0,
+        "fade_out": 0,
+        "mute": false
+       },
+       "transition_in": {
+        "kind": "crossfade",
+        "duration": 705600000,
+        "align": "center"
+       },
+       "effects": []
+      },
+      {
+       "id": "c3",
+       "source": {
+        "kind": "photo",
+        "asset_version_id": "p9",
+        "sha256": "h9"
+       },
+       "at": 5644800000,
+       "duration": 2116800000,
+       "fit": "fit",
+       "motion": {
+        "kind": "pan_zoom",
+        "from": {
+         "scale": 1.0,
+         "center": [
+          0.5,
+          0.5
+         ]
+        },
+        "to": {
+         "scale": 1.2,
+         "center": [
+          0.6,
+          0.5
+         ]
+        },
+        "easing": "ease_in_out"
+       },
+       "effects": []
+      }
+     ]
+    },
+    {
+     "id": "A1",
+     "kind": "audio",
+     "gain_db": -3.0,
+     "clips": [
+      {
+       "id": "a1",
+       "source": {
+        "kind": "audio",
+        "media_id": "m3",
+        "sha256": "h3"
+       },
+       "at": 0,
+       "src_in": 0,
+       "src_out": 7056000000,
+       "speed": {
+        "num": 1,
+        "den": 1
+       },
+       "audio": {
+        "gain_db": -6.0,
+        "fade_in": 705600000,
+        "fade_out": 1411200000,
+        "mute": false
+       },
+       "effects": []
+      }
+     ]
+    },
+    {
+     "id": "A2",
+     "kind": "audio",
+     "clips": []
+    }
+   ],
+   "markers": [
+    {
+     "id": "mk1",
+     "at": 2116800000,
+     "kind": "user",
+     "label": "A"
+    }
+   ],
+   "master": {
+    "effects": [],
+    "audio": {
+     "loudness": {
+      "target_lufs": -14.0,
+      "true_peak_db": -1.0
+     }
+    }
+   }
   }
  },
  "effective_transition": [
@@ -16032,6 +16376,104 @@
     "composing": true
    },
    "expect": null
+  },
+  {
+   "id": "KB-35",
+   "event": {
+    "key": "c",
+    "ctrl": true,
+    "meta": false,
+    "shift": false,
+    "alt": false,
+    "repeat": false,
+    "editing": false,
+    "composing": false
+   },
+   "expect": "copy"
+  },
+  {
+   "id": "KB-36",
+   "event": {
+    "key": "C",
+    "ctrl": false,
+    "meta": true,
+    "shift": false,
+    "alt": false,
+    "repeat": false,
+    "editing": false,
+    "composing": false
+   },
+   "expect": "copy"
+  },
+  {
+   "id": "KB-37",
+   "event": {
+    "key": "v",
+    "ctrl": true,
+    "meta": false,
+    "shift": false,
+    "alt": false,
+    "repeat": false,
+    "editing": false,
+    "composing": false
+   },
+   "expect": "paste"
+  },
+  {
+   "id": "KB-38",
+   "event": {
+    "key": "V",
+    "ctrl": false,
+    "meta": true,
+    "shift": false,
+    "alt": false,
+    "repeat": false,
+    "editing": false,
+    "composing": false
+   },
+   "expect": "paste"
+  },
+  {
+   "id": "KB-39",
+   "event": {
+    "key": "v",
+    "ctrl": true,
+    "meta": false,
+    "shift": true,
+    "alt": false,
+    "repeat": false,
+    "editing": false,
+    "composing": false
+   },
+   "expect": null
+  },
+  {
+   "id": "KB-40",
+   "event": {
+    "key": "c",
+    "ctrl": true,
+    "meta": false,
+    "shift": false,
+    "alt": false,
+    "repeat": false,
+    "editing": true,
+    "composing": false
+   },
+   "expect": null
+  },
+  {
+   "id": "KB-41",
+   "event": {
+    "key": "v",
+    "ctrl": true,
+    "meta": false,
+    "shift": false,
+    "alt": false,
+    "repeat": true,
+    "editing": false,
+    "composing": false
+   },
+   "expect": null
   }
  ],
  "split_target": [
@@ -20536,6 +20978,2730 @@
       1
      ]
     ]
+   }
+  }
+ ],
+ "timecode_format": [
+  {
+   "id": "TF-01",
+   "ticks": 0,
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": "00:00:00:00"
+  },
+  {
+   "id": "TF-02",
+   "ticks": 28224000,
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": "00:00:00:01"
+  },
+  {
+   "id": "TF-03",
+   "ticks": 677376000,
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": "00:00:00:24"
+  },
+  {
+   "id": "TF-04",
+   "ticks": 705600000,
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": "00:00:01:00"
+  },
+  {
+   "id": "TF-05",
+   "ticks": 43041600000,
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": "00:01:01:00"
+  },
+  {
+   "id": "TF-06",
+   "ticks": 2540160000000,
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": "01:00:00:00"
+  },
+  {
+   "id": "TF-07",
+   "ticks": 2583173376000,
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": "01:01:00:24"
+  },
+  {
+   "id": "TF-08",
+   "ticks": 254015971776000,
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": "99:59:59:24"
+  },
+  {
+   "id": "TF-09",
+   "ticks": 254016000000000,
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": "100:00:00:00"
+  },
+  {
+   "id": "TF-10",
+   "ticks": -5,
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": "00:00:00:00"
+  },
+  {
+   "id": "TF-11",
+   "ticks": 28224001,
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": "00:00:00:01"
+  },
+  {
+   "id": "TF-12",
+   "ticks": 28223999,
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": "00:00:00:00"
+  },
+  {
+   "id": "TF-13",
+   "ticks": 42378336000,
+   "fps": {
+    "num": 30000,
+    "den": 1001
+   },
+   "expect": "00:01:00:00"
+  },
+  {
+   "id": "TF-14",
+   "ticks": 706305600,
+   "fps": {
+    "num": 30000,
+    "den": 1001
+   },
+   "expect": "00:00:01:00"
+  },
+  {
+   "id": "TF-15",
+   "ticks": 42354792480,
+   "fps": {
+    "num": 30000,
+    "den": 1001
+   },
+   "expect": "00:00:59:29"
+  },
+  {
+   "id": "TF-16",
+   "ticks": 706305600,
+   "fps": {
+    "num": 24000,
+    "den": 1001
+   },
+   "expect": "00:00:01:00"
+  },
+  {
+   "id": "TF-17",
+   "ticks": 2813450640,
+   "fps": {
+    "num": 60000,
+    "den": 1001
+   },
+   "expect": "00:00:03:59"
+  },
+  {
+   "id": "TF-18",
+   "ticks": 717360000,
+   "fps": {
+    "num": 60,
+    "den": 1
+   },
+   "expect": "00:00:01:01"
+  }
+ ],
+ "timecode_parse": [
+  {
+   "id": "TP-01",
+   "text": "00:00:01:00",
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": 705600000
+  },
+  {
+   "id": "TP-02",
+   "text": "00:00:00:00",
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": 0
+  },
+  {
+   "id": "TP-03",
+   "text": "1:0",
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": 705600000
+  },
+  {
+   "id": "TP-04",
+   "text": "1:12:3",
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": 50887872000
+  },
+  {
+   "id": "TP-05",
+   "text": "150",
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": 4233600000
+  },
+  {
+   "id": "TP-06",
+   "text": "0",
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": 0
+  },
+  {
+   "id": "TP-07",
+   "text": "00:00:01:25",
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": null
+  },
+  {
+   "id": "TP-08",
+   "text": "00:60:00:00",
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": null
+  },
+  {
+   "id": "TP-09",
+   "text": "00:00:60:00",
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": null
+  },
+  {
+   "id": "TP-10",
+   "text": "60:00",
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": 42336000000
+  },
+  {
+   "id": "TP-11",
+   "text": "90:05",
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": 63645120000
+  },
+  {
+   "id": "TP-12",
+   "text": "1.2.3",
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": 43831872000
+  },
+  {
+   "id": "TP-13",
+   "text": "1;0",
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": 705600000
+  },
+  {
+   "id": "TP-14",
+   "text": "  00:00:01:00 ",
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": 705600000
+  },
+  {
+   "id": "TP-15",
+   "text": "",
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": null
+  },
+  {
+   "id": "TP-16",
+   "text": "abc",
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": null
+  },
+  {
+   "id": "TP-17",
+   "text": "1:2:3:4:5",
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": null
+  },
+  {
+   "id": "TP-18",
+   "text": "-1",
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": null
+  },
+  {
+   "id": "TP-19",
+   "text": "٣",
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": null
+  },
+  {
+   "id": "TP-20",
+   "text": "99:59:59:24",
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": 254015971776000
+  },
+  {
+   "id": "TP-21",
+   "text": "100:00:00:00",
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": null
+  },
+  {
+   "id": "TP-22",
+   "text": "1:2:",
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": null
+  },
+  {
+   "id": "TP-23",
+   "text": "00:01:00:00",
+   "fps": {
+    "num": 30000,
+    "den": 1001
+   },
+   "expect": 42378336000
+  },
+  {
+   "id": "TP-24",
+   "text": "00:00:00:30",
+   "fps": {
+    "num": 30000,
+    "den": 1001
+   },
+   "expect": null
+  },
+  {
+   "id": "TP-25",
+   "text": "00:00:00:29",
+   "fps": {
+    "num": 30000,
+    "den": 1001
+   },
+   "expect": 682762080
+  },
+  {
+   "id": "TP-26",
+   "text": "0000001",
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": null
+  },
+  {
+   "id": "TP-27",
+   "text": "00:00:01:24",
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": 1382976000
+  },
+  {
+   "id": "TP-28",
+   "text": "1::2",
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "expect": null
+  }
+ ],
+ "timecode_roundtrip": [
+  {
+   "id": "TR-01",
+   "ticks": 0,
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "text": "00:00:00:00"
+  },
+  {
+   "id": "TR-02",
+   "ticks": 8805888000,
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "text": "00:00:12:12"
+  },
+  {
+   "id": "TR-03",
+   "ticks": 2906588805120,
+   "fps": {
+    "num": 30000,
+    "den": 1001
+   },
+   "text": "01:08:35:06"
+  },
+  {
+   "id": "TR-04",
+   "ticks": 1175988240000,
+   "fps": {
+    "num": 60,
+    "den": 1
+   },
+   "text": "00:27:46:39"
+  }
+ ],
+ "copy_clip": [
+  {
+   "id": "CP-01",
+   "doc": "base",
+   "selection": "c1",
+   "expect": {
+    "track": "V1",
+    "clip": {
+     "id": "c1",
+     "source": {
+      "kind": "video",
+      "media_id": "m1",
+      "sha256": "h1"
+     },
+     "at": 0,
+     "src_in": 0,
+     "src_out": 2822400000,
+     "speed": {
+      "num": 1,
+      "den": 1
+     },
+     "fit": "fit",
+     "audio": {
+      "gain_db": 0.0,
+      "fade_in": 0,
+      "fade_out": 0,
+      "mute": false
+     },
+     "effects": [
+      {
+       "id": "e1",
+       "type": "color.basic",
+       "enabled": true,
+       "params": {}
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "CP-02",
+   "doc": "base",
+   "selection": "a1",
+   "expect": {
+    "track": "A1",
+    "clip": {
+     "id": "a1",
+     "source": {
+      "kind": "audio",
+      "media_id": "m3",
+      "sha256": "h3"
+     },
+     "at": 0,
+     "src_in": 0,
+     "src_out": 7056000000,
+     "speed": {
+      "num": 1,
+      "den": 1
+     },
+     "audio": {
+      "gain_db": -6.0,
+      "fade_in": 705600000,
+      "fade_out": 1411200000,
+      "mute": false
+     },
+     "effects": []
+    }
+   }
+  },
+  {
+   "id": "CP-03",
+   "doc": "base",
+   "selection": "c3",
+   "expect": {
+    "track": "V1",
+    "clip": {
+     "id": "c3",
+     "source": {
+      "kind": "photo",
+      "asset_version_id": "p9",
+      "sha256": "h9"
+     },
+     "at": 5644800000,
+     "duration": 2116800000,
+     "fit": "fit",
+     "motion": {
+      "kind": "pan_zoom",
+      "from": {
+       "scale": 1.0,
+       "center": [
+        0.5,
+        0.5
+       ]
+      },
+      "to": {
+       "scale": 1.2,
+       "center": [
+        0.6,
+        0.5
+       ]
+      },
+      "easing": "ease_in_out"
+     },
+     "effects": []
+    }
+   }
+  },
+  {
+   "id": "CP-04",
+   "doc": "base",
+   "selection": "zzz",
+   "expect": null
+  },
+  {
+   "id": "CP-05",
+   "doc": "base",
+   "selection": null,
+   "expect": null
+  }
+ ],
+ "paste_clip": [
+  {
+   "id": "PS-01",
+   "desc": "видео в свободное место той же дорожки; эффект переименован",
+   "doc": "base",
+   "snapshot": {
+    "track": "V1",
+    "clip": {
+     "id": "c1",
+     "source": {
+      "kind": "video",
+      "media_id": "m1",
+      "sha256": "h1"
+     },
+     "at": 0,
+     "src_in": 0,
+     "src_out": 2822400000,
+     "speed": {
+      "num": 1,
+      "den": 1
+     },
+     "fit": "fit",
+     "audio": {
+      "gain_db": 0.0,
+      "fade_in": 0,
+      "fade_out": 0,
+      "mute": false
+     },
+     "effects": [
+      {
+       "id": "e1",
+       "type": "color.basic",
+       "enabled": true,
+       "params": {}
+      }
+     ]
+    }
+   },
+   "playhead": 8467200000,
+   "new_id": "n1",
+   "expect": {
+    "track": "V1",
+    "clip": {
+     "id": "n1",
+     "source": {
+      "kind": "video",
+      "media_id": "m1",
+      "sha256": "h1"
+     },
+     "at": 8467200000,
+     "src_in": 0,
+     "src_out": 2822400000,
+     "speed": {
+      "num": 1,
+      "den": 1
+     },
+     "fit": "fit",
+     "audio": {
+      "gain_db": 0.0,
+      "fade_in": 0,
+      "fade_out": 0,
+      "mute": false
+     },
+     "effects": [
+      {
+       "id": "n1-e1",
+       "type": "color.basic",
+       "enabled": true,
+       "params": {}
+      }
+     ]
+    }
+   },
+   "then": {
+    "ok": true,
+    "inverse": {
+     "op": "delete_clip",
+     "args": {
+      "clip": "n1",
+      "ripple": false
+     }
+    }
+   }
+  },
+  {
+   "id": "PS-02",
+   "desc": "поверх c2 → ADD_OVERLAP при добавлении",
+   "doc": "base",
+   "snapshot": {
+    "track": "V1",
+    "clip": {
+     "id": "c1",
+     "source": {
+      "kind": "video",
+      "media_id": "m1",
+      "sha256": "h1"
+     },
+     "at": 0,
+     "src_in": 0,
+     "src_out": 2822400000,
+     "speed": {
+      "num": 1,
+      "den": 1
+     },
+     "fit": "fit",
+     "audio": {
+      "gain_db": 0.0,
+      "fade_in": 0,
+      "fade_out": 0,
+      "mute": false
+     },
+     "effects": [
+      {
+       "id": "e1",
+       "type": "color.basic",
+       "enabled": true,
+       "params": {}
+      }
+     ]
+    }
+   },
+   "playhead": 3528000000,
+   "new_id": "n1",
+   "expect": {
+    "track": "V1",
+    "clip": {
+     "id": "n1",
+     "source": {
+      "kind": "video",
+      "media_id": "m1",
+      "sha256": "h1"
+     },
+     "at": 3528000000,
+     "src_in": 0,
+     "src_out": 2822400000,
+     "speed": {
+      "num": 1,
+      "den": 1
+     },
+     "fit": "fit",
+     "audio": {
+      "gain_db": 0.0,
+      "fade_in": 0,
+      "fade_out": 0,
+      "mute": false
+     },
+     "effects": [
+      {
+       "id": "n1-e1",
+       "type": "color.basic",
+       "enabled": true,
+       "params": {}
+      }
+     ]
+    }
+   },
+   "then": {
+    "error": "ADD_OVERLAP"
+   }
+  },
+  {
+   "id": "PS-03",
+   "desc": "звук на ту же дорожку",
+   "doc": "base",
+   "snapshot": {
+    "track": "A1",
+    "clip": {
+     "id": "a1",
+     "source": {
+      "kind": "audio",
+      "media_id": "m3",
+      "sha256": "h3"
+     },
+     "at": 0,
+     "src_in": 0,
+     "src_out": 7056000000,
+     "speed": {
+      "num": 1,
+      "den": 1
+     },
+     "audio": {
+      "gain_db": -6.0,
+      "fade_in": 705600000,
+      "fade_out": 1411200000,
+      "mute": false
+     },
+     "effects": []
+    }
+   },
+   "playhead": 7761600000,
+   "new_id": "n1",
+   "expect": {
+    "track": "A1",
+    "clip": {
+     "id": "n1",
+     "source": {
+      "kind": "audio",
+      "media_id": "m3",
+      "sha256": "h3"
+     },
+     "at": 7761600000,
+     "src_in": 0,
+     "src_out": 7056000000,
+     "speed": {
+      "num": 1,
+      "den": 1
+     },
+     "audio": {
+      "gain_db": -6.0,
+      "fade_in": 705600000,
+      "fade_out": 1411200000,
+      "mute": false
+     },
+     "effects": []
+    }
+   },
+   "then": {
+    "ok": true,
+    "inverse": {
+     "op": "delete_clip",
+     "args": {
+      "clip": "n1",
+      "ripple": false
+     }
+    }
+   }
+  },
+  {
+   "id": "PS-04",
+   "desc": "исходная дорожка заблокирована → первая незаблокированная того же вида",
+   "doc": "locked",
+   "snapshot": {
+    "track": "V1",
+    "clip": {
+     "id": "c1",
+     "source": {
+      "kind": "video",
+      "media_id": "m1",
+      "sha256": "h1"
+     },
+     "at": 0,
+     "src_in": 0,
+     "src_out": 2822400000,
+     "speed": {
+      "num": 1,
+      "den": 1
+     },
+     "fit": "fit",
+     "audio": {
+      "gain_db": 0.0,
+      "fade_in": 0,
+      "fade_out": 0,
+      "mute": false
+     },
+     "effects": [
+      {
+       "id": "e1",
+       "type": "color.basic",
+       "enabled": true,
+       "params": {}
+      }
+     ]
+    }
+   },
+   "playhead": 8467200000,
+   "new_id": "n1",
+   "expect": {
+    "track": "V2",
+    "clip": {
+     "id": "n1",
+     "source": {
+      "kind": "video",
+      "media_id": "m1",
+      "sha256": "h1"
+     },
+     "at": 8467200000,
+     "src_in": 0,
+     "src_out": 2822400000,
+     "speed": {
+      "num": 1,
+      "den": 1
+     },
+     "fit": "fit",
+     "audio": {
+      "gain_db": 0.0,
+      "fade_in": 0,
+      "fade_out": 0,
+      "mute": false
+     },
+     "effects": [
+      {
+       "id": "n1-e1",
+       "type": "color.basic",
+       "enabled": true,
+       "params": {}
+      }
+     ]
+    }
+   },
+   "then": {
+    "ok": true,
+    "inverse": {
+     "op": "delete_clip",
+     "args": {
+      "clip": "n1",
+      "ripple": false
+     }
+    }
+   }
+  },
+  {
+   "id": "PS-05",
+   "desc": "все видеодорожки заблокированы",
+   "doc": "locked_all_video",
+   "snapshot": {
+    "track": "V1",
+    "clip": {
+     "id": "c1",
+     "source": {
+      "kind": "video",
+      "media_id": "m1",
+      "sha256": "h1"
+     },
+     "at": 0,
+     "src_in": 0,
+     "src_out": 2822400000,
+     "speed": {
+      "num": 1,
+      "den": 1
+     },
+     "fit": "fit",
+     "audio": {
+      "gain_db": 0.0,
+      "fade_in": 0,
+      "fade_out": 0,
+      "mute": false
+     },
+     "effects": [
+      {
+       "id": "e1",
+       "type": "color.basic",
+       "enabled": true,
+       "params": {}
+      }
+     ]
+    }
+   },
+   "playhead": 8467200000,
+   "new_id": "n1",
+   "expect": {
+    "error": "PASTE_NO_TRACK"
+   }
+  },
+  {
+   "id": "PS-06",
+   "desc": "исходной дорожки нет → первая подходящая",
+   "doc": "no_v2",
+   "snapshot": {
+    "track": "V2",
+    "clip": {
+     "id": "p1",
+     "source": {
+      "kind": "photo",
+      "asset_version_id": "p8",
+      "sha256": "h8"
+     },
+     "at": 1411200000,
+     "duration": 1411200000,
+     "fit": "fit",
+     "transform": {
+      "scale": 0.5,
+      "position": [
+       0.25,
+       -0.25
+      ],
+      "rotate": 0.0,
+      "crop": [
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "effects": []
+    }
+   },
+   "playhead": 14112000000,
+   "new_id": "n1",
+   "expect": {
+    "track": "V1",
+    "clip": {
+     "id": "n1",
+     "source": {
+      "kind": "photo",
+      "asset_version_id": "p8",
+      "sha256": "h8"
+     },
+     "at": 14112000000,
+     "duration": 1411200000,
+     "fit": "fit",
+     "transform": {
+      "scale": 0.5,
+      "position": [
+       0.25,
+       -0.25
+      ],
+      "rotate": 0.0,
+      "crop": [
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "effects": []
+    }
+   },
+   "then": {
+    "ok": true,
+    "inverse": {
+     "op": "delete_clip",
+     "args": {
+      "clip": "n1",
+      "ripple": false
+     }
+    }
+   }
+  },
+  {
+   "id": "PS-07",
+   "desc": "буфер пуст",
+   "doc": "base",
+   "snapshot": null,
+   "playhead": 705600000,
+   "new_id": "n1",
+   "expect": {
+    "error": "PASTE_EMPTY"
+   }
+  },
+  {
+   "id": "PS-08",
+   "desc": "переход не копируется",
+   "doc": "base",
+   "snapshot": {
+    "track": "V1",
+    "clip": {
+     "id": "c2",
+     "source": {
+      "kind": "video",
+      "media_id": "m2",
+      "sha256": "h2"
+     },
+     "at": 2822400000,
+     "src_in": 1411200000,
+     "src_out": 4233600000,
+     "speed": {
+      "num": 1,
+      "den": 1
+     },
+     "fit": "fit",
+     "audio": {
+      "gain_db": 0.0,
+      "fade_in": 0,
+      "fade_out": 0,
+      "mute": false
+     },
+     "transition_in": {
+      "kind": "crossfade",
+      "duration": 705600000,
+      "align": "center"
+     },
+     "effects": []
+    }
+   },
+   "playhead": 14112000000,
+   "new_id": "n1",
+   "expect": {
+    "track": "V1",
+    "clip": {
+     "id": "n1",
+     "source": {
+      "kind": "video",
+      "media_id": "m2",
+      "sha256": "h2"
+     },
+     "at": 14112000000,
+     "src_in": 1411200000,
+     "src_out": 4233600000,
+     "speed": {
+      "num": 1,
+      "den": 1
+     },
+     "fit": "fit",
+     "audio": {
+      "gain_db": 0.0,
+      "fade_in": 0,
+      "fade_out": 0,
+      "mute": false
+     },
+     "effects": []
+    }
+   },
+   "then": {
+    "ok": true,
+    "inverse": {
+     "op": "delete_clip",
+     "args": {
+      "clip": "n1",
+      "ripple": false
+     }
+    }
+   }
+  },
+  {
+   "id": "PS-09",
+   "desc": "позиция округляется вниз к кадру",
+   "doc": "base",
+   "snapshot": {
+    "track": "V1",
+    "clip": {
+     "id": "c1",
+     "source": {
+      "kind": "video",
+      "media_id": "m1",
+      "sha256": "h1"
+     },
+     "at": 0,
+     "src_in": 0,
+     "src_out": 2822400000,
+     "speed": {
+      "num": 1,
+      "den": 1
+     },
+     "fit": "fit",
+     "audio": {
+      "gain_db": 0.0,
+      "fade_in": 0,
+      "fade_out": 0,
+      "mute": false
+     },
+     "effects": [
+      {
+       "id": "e1",
+       "type": "color.basic",
+       "enabled": true,
+       "params": {}
+      }
+     ]
+    }
+   },
+   "playhead": 8467201000,
+   "new_id": "n1",
+   "expect": {
+    "track": "V1",
+    "clip": {
+     "id": "n1",
+     "source": {
+      "kind": "video",
+      "media_id": "m1",
+      "sha256": "h1"
+     },
+     "at": 8467200000,
+     "src_in": 0,
+     "src_out": 2822400000,
+     "speed": {
+      "num": 1,
+      "den": 1
+     },
+     "fit": "fit",
+     "audio": {
+      "gain_db": 0.0,
+      "fade_in": 0,
+      "fade_out": 0,
+      "mute": false
+     },
+     "effects": [
+      {
+       "id": "n1-e1",
+       "type": "color.basic",
+       "enabled": true,
+       "params": {}
+      }
+     ]
+    }
+   },
+   "then": {
+    "ok": true,
+    "inverse": {
+     "op": "delete_clip",
+     "args": {
+      "clip": "n1",
+      "ripple": false
+     }
+    }
+   }
+  },
+  {
+   "id": "PS-10",
+   "desc": "недопустимый идентификатор → ID_INVALID при добавлении",
+   "doc": "base",
+   "snapshot": {
+    "track": "V1",
+    "clip": {
+     "id": "c1",
+     "source": {
+      "kind": "video",
+      "media_id": "m1",
+      "sha256": "h1"
+     },
+     "at": 0,
+     "src_in": 0,
+     "src_out": 2822400000,
+     "speed": {
+      "num": 1,
+      "den": 1
+     },
+     "fit": "fit",
+     "audio": {
+      "gain_db": 0.0,
+      "fade_in": 0,
+      "fade_out": 0,
+      "mute": false
+     },
+     "effects": [
+      {
+       "id": "e1",
+       "type": "color.basic",
+       "enabled": true,
+       "params": {}
+      }
+     ]
+    }
+   },
+   "playhead": 8467200000,
+   "new_id": "bad id",
+   "expect": {
+    "track": "V1",
+    "clip": {
+     "id": "bad id",
+     "source": {
+      "kind": "video",
+      "media_id": "m1",
+      "sha256": "h1"
+     },
+     "at": 8467200000,
+     "src_in": 0,
+     "src_out": 2822400000,
+     "speed": {
+      "num": 1,
+      "den": 1
+     },
+     "fit": "fit",
+     "audio": {
+      "gain_db": 0.0,
+      "fade_in": 0,
+      "fade_out": 0,
+      "mute": false
+     },
+     "effects": [
+      {
+       "id": "bad id-e1",
+       "type": "color.basic",
+       "enabled": true,
+       "params": {}
+      }
+     ]
+    }
+   },
+   "then": {
+    "error": "ID_INVALID"
+   }
+  },
+  {
+   "id": "PS-11",
+   "desc": "повтор идентификатора → ID_DUPLICATE при добавлении",
+   "doc": "base",
+   "snapshot": {
+    "track": "V1",
+    "clip": {
+     "id": "c1",
+     "source": {
+      "kind": "video",
+      "media_id": "m1",
+      "sha256": "h1"
+     },
+     "at": 0,
+     "src_in": 0,
+     "src_out": 2822400000,
+     "speed": {
+      "num": 1,
+      "den": 1
+     },
+     "fit": "fit",
+     "audio": {
+      "gain_db": 0.0,
+      "fade_in": 0,
+      "fade_out": 0,
+      "mute": false
+     },
+     "effects": [
+      {
+       "id": "e1",
+       "type": "color.basic",
+       "enabled": true,
+       "params": {}
+      }
+     ]
+    }
+   },
+   "playhead": 8467200000,
+   "new_id": "c1",
+   "expect": {
+    "track": "V1",
+    "clip": {
+     "id": "c1",
+     "source": {
+      "kind": "video",
+      "media_id": "m1",
+      "sha256": "h1"
+     },
+     "at": 8467200000,
+     "src_in": 0,
+     "src_out": 2822400000,
+     "speed": {
+      "num": 1,
+      "den": 1
+     },
+     "fit": "fit",
+     "audio": {
+      "gain_db": 0.0,
+      "fade_in": 0,
+      "fade_out": 0,
+      "mute": false
+     },
+     "effects": [
+      {
+       "id": "c1-e1",
+       "type": "color.basic",
+       "enabled": true,
+       "params": {}
+      }
+     ]
+    }
+   },
+   "then": {
+    "error": "ID_DUPLICATE"
+   }
+  },
+  {
+   "id": "PS-12",
+   "desc": "фото: длительность и движение сохраняются",
+   "doc": "base",
+   "snapshot": {
+    "track": "V1",
+    "clip": {
+     "id": "c3",
+     "source": {
+      "kind": "photo",
+      "asset_version_id": "p9",
+      "sha256": "h9"
+     },
+     "at": 5644800000,
+     "duration": 2116800000,
+     "fit": "fit",
+     "motion": {
+      "kind": "pan_zoom",
+      "from": {
+       "scale": 1.0,
+       "center": [
+        0.5,
+        0.5
+       ]
+      },
+      "to": {
+       "scale": 1.2,
+       "center": [
+        0.6,
+        0.5
+       ]
+      },
+      "easing": "ease_in_out"
+     },
+     "effects": []
+    }
+   },
+   "playhead": 14112000000,
+   "new_id": "n1",
+   "expect": {
+    "track": "V1",
+    "clip": {
+     "id": "n1",
+     "source": {
+      "kind": "photo",
+      "asset_version_id": "p9",
+      "sha256": "h9"
+     },
+     "at": 14112000000,
+     "duration": 2116800000,
+     "fit": "fit",
+     "motion": {
+      "kind": "pan_zoom",
+      "from": {
+       "scale": 1.0,
+       "center": [
+        0.5,
+        0.5
+       ]
+      },
+      "to": {
+       "scale": 1.2,
+       "center": [
+        0.6,
+        0.5
+       ]
+      },
+      "easing": "ease_in_out"
+     },
+     "effects": []
+    }
+   },
+   "then": {
+    "ok": true,
+    "inverse": {
+     "op": "delete_clip",
+     "args": {
+      "clip": "n1",
+      "ripple": false
+     }
+    }
+   }
+  },
+  {
+   "id": "PS-13",
+   "desc": "отрицательная позиция зажимается в 0 → ADD_OVERLAP (звук a1 с 0)",
+   "doc": "base",
+   "snapshot": {
+    "track": "A1",
+    "clip": {
+     "id": "a1",
+     "source": {
+      "kind": "audio",
+      "media_id": "m3",
+      "sha256": "h3"
+     },
+     "at": 0,
+     "src_in": 0,
+     "src_out": 7056000000,
+     "speed": {
+      "num": 1,
+      "den": 1
+     },
+     "audio": {
+      "gain_db": -6.0,
+      "fade_in": 705600000,
+      "fade_out": 1411200000,
+      "mute": false
+     },
+     "effects": []
+    }
+   },
+   "playhead": -705600000,
+   "new_id": "n1",
+   "expect": {
+    "track": "A1",
+    "clip": {
+     "id": "n1",
+     "source": {
+      "kind": "audio",
+      "media_id": "m3",
+      "sha256": "h3"
+     },
+     "at": 0,
+     "src_in": 0,
+     "src_out": 7056000000,
+     "speed": {
+      "num": 1,
+      "den": 1
+     },
+     "audio": {
+      "gain_db": -6.0,
+      "fade_in": 705600000,
+      "fade_out": 1411200000,
+      "mute": false
+     },
+     "effects": []
+    }
+   },
+   "then": {
+    "error": "ADD_OVERLAP"
+   }
+  }
+ ],
+ "paste_chain": {
+  "id": "PC-01",
+  "doc": "base",
+  "snapshot": {
+   "track": "V1",
+   "clip": {
+    "id": "c1",
+    "source": {
+     "kind": "video",
+     "media_id": "m1",
+     "sha256": "h1"
+    },
+    "at": 0,
+    "src_in": 0,
+    "src_out": 2822400000,
+    "speed": {
+     "num": 1,
+     "den": 1
+    },
+    "fit": "fit",
+    "audio": {
+     "gain_db": 0.0,
+     "fade_in": 0,
+     "fade_out": 0,
+     "mute": false
+    },
+    "effects": [
+     {
+      "id": "e1",
+      "type": "color.basic",
+      "enabled": true,
+      "params": {}
+     }
+    ]
+   }
+  },
+  "start_playhead": 8467200000,
+  "steps": [
+   {
+    "new_id": "n1",
+    "playhead_before": 8467200000,
+    "playhead_after": 11289600000
+   },
+   {
+    "new_id": "n2",
+    "playhead_before": 11289600000,
+    "playhead_after": 14112000000
+   }
+  ],
+  "expect_clip_ids_V1": [
+   "c1",
+   "c2",
+   "c3",
+   "n1",
+   "n2"
+  ],
+  "expect_ats": [
+   0,
+   2822400000,
+   5644800000,
+   8467200000,
+   11289600000
+  ]
+ },
+ "wheel": [
+  {
+   "id": "WH-01",
+   "desc": "Ctrl + колесо вверх на 40 px → приблизить, якорь под курсором",
+   "view": {
+    "scroll": 7056000000,
+    "tpp": 3528000,
+    "width": 1000
+   },
+   "end": 42336000000,
+   "busy": false,
+   "steps": [
+    {
+     "event": {
+      "dx": 0,
+      "dy": -40,
+      "mode": 0,
+      "ctrl": true,
+      "meta": false,
+      "shift": false,
+      "x": 560,
+      "t": 0
+     },
+     "state": {
+      "acc": 0,
+      "t": 0
+     },
+     "expect": {
+      "consume": true,
+      "view": {
+       "scroll": 7902720000,
+       "tpp": 1411200,
+       "width": 1000
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "WH-02",
+   "desc": "Ctrl + колесо вниз на 40 px → отдалить",
+   "view": {
+    "scroll": 7056000000,
+    "tpp": 3528000,
+    "width": 1000
+   },
+   "end": 42336000000,
+   "busy": false,
+   "steps": [
+    {
+     "event": {
+      "dx": 0,
+      "dy": 40,
+      "mode": 0,
+      "ctrl": true,
+      "meta": false,
+      "shift": false,
+      "x": 560,
+      "t": 0
+     },
+     "state": {
+      "acc": 0,
+      "t": 0
+     },
+     "expect": {
+      "consume": true,
+      "view": {
+       "scroll": 5644800000,
+       "tpp": 7056000,
+       "width": 1000
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "WH-03",
+   "desc": "Cmd (meta) работает как Ctrl",
+   "view": {
+    "scroll": 7056000000,
+    "tpp": 3528000,
+    "width": 1000
+   },
+   "end": 42336000000,
+   "busy": false,
+   "steps": [
+    {
+     "event": {
+      "dx": 0,
+      "dy": -40,
+      "mode": 0,
+      "ctrl": false,
+      "meta": true,
+      "shift": false,
+      "x": 560,
+      "t": 0
+     },
+     "state": {
+      "acc": 0,
+      "t": 0
+     },
+     "expect": {
+      "consume": true,
+      "view": {
+       "scroll": 7902720000,
+       "tpp": 1411200,
+       "width": 1000
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "WH-04",
+   "desc": "щепотка трекпада: мелкие дельты накапливаются (7-я даёт −42 → один шаг)",
+   "view": {
+    "scroll": 7056000000,
+    "tpp": 3528000,
+    "width": 1000
+   },
+   "end": 42336000000,
+   "busy": false,
+   "steps": [
+    {
+     "event": {
+      "dx": 0,
+      "dy": -6,
+      "mode": 0,
+      "ctrl": true,
+      "meta": false,
+      "shift": false,
+      "x": 560,
+      "t": 0
+     },
+     "state": {
+      "acc": -6,
+      "t": 0
+     },
+     "expect": {
+      "consume": true,
+      "view": {
+       "scroll": 7056000000,
+       "tpp": 3528000,
+       "width": 1000
+      }
+     }
+    },
+    {
+     "event": {
+      "dx": 0,
+      "dy": -6,
+      "mode": 0,
+      "ctrl": true,
+      "meta": false,
+      "shift": false,
+      "x": 560,
+      "t": 10
+     },
+     "state": {
+      "acc": -12,
+      "t": 10
+     },
+     "expect": {
+      "consume": true,
+      "view": {
+       "scroll": 7056000000,
+       "tpp": 3528000,
+       "width": 1000
+      }
+     }
+    },
+    {
+     "event": {
+      "dx": 0,
+      "dy": -6,
+      "mode": 0,
+      "ctrl": true,
+      "meta": false,
+      "shift": false,
+      "x": 560,
+      "t": 20
+     },
+     "state": {
+      "acc": -18,
+      "t": 20
+     },
+     "expect": {
+      "consume": true,
+      "view": {
+       "scroll": 7056000000,
+       "tpp": 3528000,
+       "width": 1000
+      }
+     }
+    },
+    {
+     "event": {
+      "dx": 0,
+      "dy": -6,
+      "mode": 0,
+      "ctrl": true,
+      "meta": false,
+      "shift": false,
+      "x": 560,
+      "t": 30
+     },
+     "state": {
+      "acc": -24,
+      "t": 30
+     },
+     "expect": {
+      "consume": true,
+      "view": {
+       "scroll": 7056000000,
+       "tpp": 3528000,
+       "width": 1000
+      }
+     }
+    },
+    {
+     "event": {
+      "dx": 0,
+      "dy": -6,
+      "mode": 0,
+      "ctrl": true,
+      "meta": false,
+      "shift": false,
+      "x": 560,
+      "t": 40
+     },
+     "state": {
+      "acc": -30,
+      "t": 40
+     },
+     "expect": {
+      "consume": true,
+      "view": {
+       "scroll": 7056000000,
+       "tpp": 3528000,
+       "width": 1000
+      }
+     }
+    },
+    {
+     "event": {
+      "dx": 0,
+      "dy": -6,
+      "mode": 0,
+      "ctrl": true,
+      "meta": false,
+      "shift": false,
+      "x": 560,
+      "t": 50
+     },
+     "state": {
+      "acc": -36,
+      "t": 50
+     },
+     "expect": {
+      "consume": true,
+      "view": {
+       "scroll": 7056000000,
+       "tpp": 3528000,
+       "width": 1000
+      }
+     }
+    },
+    {
+     "event": {
+      "dx": 0,
+      "dy": -6,
+      "mode": 0,
+      "ctrl": true,
+      "meta": false,
+      "shift": false,
+      "x": 560,
+      "t": 60
+     },
+     "state": {
+      "acc": -2,
+      "t": 60
+     },
+     "expect": {
+      "consume": true,
+      "view": {
+       "scroll": 7902720000,
+       "tpp": 1411200,
+       "width": 1000
+      }
+     }
+    },
+    {
+     "event": {
+      "dx": 0,
+      "dy": -6,
+      "mode": 0,
+      "ctrl": true,
+      "meta": false,
+      "shift": false,
+      "x": 560,
+      "t": 70
+     },
+     "state": {
+      "acc": -8,
+      "t": 70
+     },
+     "expect": {
+      "consume": true,
+      "view": {
+       "scroll": 7902720000,
+       "tpp": 1411200,
+       "width": 1000
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "WH-05",
+   "desc": "пауза > 200 мс сбрасывает накопление",
+   "view": {
+    "scroll": 7056000000,
+    "tpp": 3528000,
+    "width": 1000
+   },
+   "end": 42336000000,
+   "busy": false,
+   "steps": [
+    {
+     "event": {
+      "dx": 0,
+      "dy": -30,
+      "mode": 0,
+      "ctrl": true,
+      "meta": false,
+      "shift": false,
+      "x": 560,
+      "t": 0
+     },
+     "state": {
+      "acc": -30,
+      "t": 0
+     },
+     "expect": {
+      "consume": true,
+      "view": {
+       "scroll": 7056000000,
+       "tpp": 3528000,
+       "width": 1000
+      }
+     }
+    },
+    {
+     "event": {
+      "dx": 0,
+      "dy": -30,
+      "mode": 0,
+      "ctrl": true,
+      "meta": false,
+      "shift": false,
+      "x": 560,
+      "t": 500
+     },
+     "state": {
+      "acc": -30,
+      "t": 500
+     },
+     "expect": {
+      "consume": true,
+      "view": {
+       "scroll": 7056000000,
+       "tpp": 3528000,
+       "width": 1000
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "WH-06",
+   "desc": "рывок ограничен накоплением ±80: два шага подряд, затем ничего",
+   "view": {
+    "scroll": 7056000000,
+    "tpp": 3528000,
+    "width": 1000
+   },
+   "end": 42336000000,
+   "busy": false,
+   "steps": [
+    {
+     "event": {
+      "dx": 0,
+      "dy": -500,
+      "mode": 0,
+      "ctrl": true,
+      "meta": false,
+      "shift": false,
+      "x": 560,
+      "t": 0
+     },
+     "state": {
+      "acc": -40,
+      "t": 0
+     },
+     "expect": {
+      "consume": true,
+      "view": {
+       "scroll": 7902720000,
+       "tpp": 1411200,
+       "width": 1000
+      }
+     }
+    },
+    {
+     "event": {
+      "dx": 0,
+      "dy": 0,
+      "mode": 0,
+      "ctrl": true,
+      "meta": false,
+      "shift": false,
+      "x": 560,
+      "t": 10
+     },
+     "state": {
+      "acc": 0,
+      "t": 10
+     },
+     "expect": {
+      "consume": true,
+      "view": {
+       "scroll": 8184960000,
+       "tpp": 705600,
+       "width": 1000
+      }
+     }
+    },
+    {
+     "event": {
+      "dx": 0,
+      "dy": 0,
+      "mode": 0,
+      "ctrl": true,
+      "meta": false,
+      "shift": false,
+      "x": 560,
+      "t": 20
+     },
+     "state": {
+      "acc": 0,
+      "t": 20
+     },
+     "expect": {
+      "consume": true,
+      "view": {
+       "scroll": 8184960000,
+       "tpp": 705600,
+       "width": 1000
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "WH-07",
+   "desc": "строчный режим: 3 строки = 48 px",
+   "view": {
+    "scroll": 7056000000,
+    "tpp": 3528000,
+    "width": 1000
+   },
+   "end": 42336000000,
+   "busy": false,
+   "steps": [
+    {
+     "event": {
+      "dx": 0,
+      "dy": -3,
+      "mode": 1,
+      "ctrl": true,
+      "meta": false,
+      "shift": false,
+      "x": 560,
+      "t": 0
+     },
+     "state": {
+      "acc": -8,
+      "t": 0
+     },
+     "expect": {
+      "consume": true,
+      "view": {
+       "scroll": 7902720000,
+       "tpp": 1411200,
+       "width": 1000
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "WH-08",
+   "desc": "страничный режим: 1 страница = ширина области",
+   "view": {
+    "scroll": 7056000000,
+    "tpp": 3528000,
+    "width": 1000
+   },
+   "end": 42336000000,
+   "busy": false,
+   "steps": [
+    {
+     "event": {
+      "dx": 0,
+      "dy": 1,
+      "mode": 2,
+      "ctrl": false,
+      "meta": false,
+      "shift": true,
+      "x": 560,
+      "t": 0
+     },
+     "state": {
+      "acc": 0,
+      "t": 0
+     },
+     "expect": {
+      "consume": true,
+      "view": {
+       "scroll": 10584000000,
+       "tpp": 3528000,
+       "width": 1000
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "WH-09",
+   "desc": "Shift + колесо → горизонтальная прокрутка",
+   "view": {
+    "scroll": 7056000000,
+    "tpp": 3528000,
+    "width": 1000
+   },
+   "end": 42336000000,
+   "busy": false,
+   "steps": [
+    {
+     "event": {
+      "dx": 0,
+      "dy": 100,
+      "mode": 0,
+      "ctrl": false,
+      "meta": false,
+      "shift": true,
+      "x": 560,
+      "t": 0
+     },
+     "state": {
+      "acc": 0,
+      "t": 0
+     },
+     "expect": {
+      "consume": true,
+      "view": {
+       "scroll": 7408800000,
+       "tpp": 3528000,
+       "width": 1000
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "WH-10",
+   "desc": "Shift: если браузер подменил ось (dx), берётся доминирующая",
+   "view": {
+    "scroll": 7056000000,
+    "tpp": 3528000,
+    "width": 1000
+   },
+   "end": 42336000000,
+   "busy": false,
+   "steps": [
+    {
+     "event": {
+      "dx": 50,
+      "dy": 0,
+      "mode": 0,
+      "ctrl": false,
+      "meta": false,
+      "shift": true,
+      "x": 560,
+      "t": 0
+     },
+     "state": {
+      "acc": 0,
+      "t": 0
+     },
+     "expect": {
+      "consume": true,
+      "view": {
+       "scroll": 7232400000,
+       "tpp": 3528000,
+       "width": 1000
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "WH-11",
+   "desc": "горизонтальный свайп без модификаторов",
+   "view": {
+    "scroll": 7056000000,
+    "tpp": 3528000,
+    "width": 1000
+   },
+   "end": 42336000000,
+   "busy": false,
+   "steps": [
+    {
+     "event": {
+      "dx": -80,
+      "dy": 10,
+      "mode": 0,
+      "ctrl": false,
+      "meta": false,
+      "shift": false,
+      "x": 560,
+      "t": 0
+     },
+     "state": {
+      "acc": 0,
+      "t": 0
+     },
+     "expect": {
+      "consume": true,
+      "view": {
+       "scroll": 6773760000,
+       "tpp": 3528000,
+       "width": 1000
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "WH-12",
+   "desc": "вертикальная прокрутка без модификаторов не перехватывается",
+   "view": {
+    "scroll": 7056000000,
+    "tpp": 3528000,
+    "width": 1000
+   },
+   "end": 42336000000,
+   "busy": false,
+   "steps": [
+    {
+     "event": {
+      "dx": 0,
+      "dy": 100,
+      "mode": 0,
+      "ctrl": false,
+      "meta": false,
+      "shift": false,
+      "x": 560,
+      "t": 0
+     },
+     "state": {
+      "acc": 0,
+      "t": 0
+     },
+     "expect": {
+      "consume": false,
+      "view": {
+       "scroll": 7056000000,
+       "tpp": 3528000,
+       "width": 1000
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "WH-13",
+   "desc": "прокрутка влево зажата нулём",
+   "view": {
+    "scroll": 705600000,
+    "tpp": 3528000,
+    "width": 1000
+   },
+   "end": 42336000000,
+   "busy": false,
+   "steps": [
+    {
+     "event": {
+      "dx": -2000,
+      "dy": 0,
+      "mode": 0,
+      "ctrl": false,
+      "meta": false,
+      "shift": false,
+      "x": 560,
+      "t": 0
+     },
+     "state": {
+      "acc": 0,
+      "t": 0
+     },
+     "expect": {
+      "consume": true,
+      "view": {
+       "scroll": 0,
+       "tpp": 3528000,
+       "width": 1000
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "WH-14",
+   "desc": "прокрутка вправо зажата пределом (конец содержимого на 3/4 области)",
+   "view": {
+    "scroll": 7056000000,
+    "tpp": 3528000,
+    "width": 1000
+   },
+   "end": 42336000000,
+   "busy": false,
+   "steps": [
+    {
+     "event": {
+      "dx": 100000,
+      "dy": 0,
+      "mode": 0,
+      "ctrl": false,
+      "meta": false,
+      "shift": false,
+      "x": 560,
+      "t": 0
+     },
+     "state": {
+      "acc": 0,
+      "t": 0
+     },
+     "expect": {
+      "consume": true,
+      "view": {
+       "scroll": 39690000000,
+       "tpp": 3528000,
+       "width": 1000
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "WH-15",
+   "desc": "короткий проект: предел 0",
+   "view": {
+    "scroll": 7056000000,
+    "tpp": 3528000,
+    "width": 1000
+   },
+   "end": 705600000,
+   "busy": false,
+   "steps": [
+    {
+     "event": {
+      "dx": 500,
+      "dy": 0,
+      "mode": 0,
+      "ctrl": false,
+      "meta": false,
+      "shift": false,
+      "x": 560,
+      "t": 0
+     },
+     "state": {
+      "acc": 0,
+      "t": 0
+     },
+     "expect": {
+      "consume": true,
+      "view": {
+       "scroll": 0,
+       "tpp": 3528000,
+       "width": 1000
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "WH-16",
+   "desc": "жест выполняется (busy): колесо игнорируется",
+   "view": {
+    "scroll": 7056000000,
+    "tpp": 3528000,
+    "width": 1000
+   },
+   "end": 42336000000,
+   "busy": true,
+   "steps": [
+    {
+     "event": {
+      "dx": 0,
+      "dy": -40,
+      "mode": 0,
+      "ctrl": true,
+      "meta": false,
+      "shift": false,
+      "x": 560,
+      "t": 0
+     },
+     "state": {
+      "acc": 0,
+      "t": -10000
+     },
+     "expect": {
+      "consume": false,
+      "view": {
+       "scroll": 7056000000,
+       "tpp": 3528000,
+       "width": 1000
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "WH-17",
+   "desc": "Ctrl, предел лестницы масштаба (самый крупный) не меняет вид, но событие поглощено",
+   "view": {
+    "scroll": 7056000000,
+    "tpp": 705600,
+    "width": 1000
+   },
+   "end": 42336000000,
+   "busy": false,
+   "steps": [
+    {
+     "event": {
+      "dx": 0,
+      "dy": -40,
+      "mode": 0,
+      "ctrl": true,
+      "meta": false,
+      "shift": false,
+      "x": 560,
+      "t": 0
+     },
+     "state": {
+      "acc": 0,
+      "t": 0
+     },
+     "expect": {
+      "consume": true,
+      "view": {
+       "scroll": 7056000000,
+       "tpp": 705600,
+       "width": 1000
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "WH-18",
+   "desc": "дробные дельты округляются «половина вверх»: 0.5 → 1",
+   "view": {
+    "scroll": 7056000000,
+    "tpp": 3528000,
+    "width": 1000
+   },
+   "end": 42336000000,
+   "busy": false,
+   "steps": [
+    {
+     "event": {
+      "dx": 0,
+      "dy": 0.5,
+      "mode": 0,
+      "ctrl": false,
+      "meta": false,
+      "shift": true,
+      "x": 560,
+      "t": 0
+     },
+     "state": {
+      "acc": 0,
+      "t": 0
+     },
+     "expect": {
+      "consume": true,
+      "view": {
+       "scroll": 7059528000,
+       "tpp": 3528000,
+       "width": 1000
+      }
+     }
+    }
+   ]
+  }
+ ],
+ "clip_style": [
+  {
+   "id": "CS-01",
+   "kind": "video",
+   "flags": {},
+   "expect": {
+    "fill": "primaryContainer",
+    "text": "onPrimaryContainer",
+    "stroke": "outline",
+    "stroke_w": 1,
+    "dash": [],
+    "alpha": 1.0,
+    "hatch": false
+   }
+  },
+  {
+   "id": "CS-02",
+   "kind": "photo",
+   "flags": {},
+   "expect": {
+    "fill": "secondaryContainer",
+    "text": "onSecondaryContainer",
+    "stroke": "outline",
+    "stroke_w": 1,
+    "dash": [],
+    "alpha": 1.0,
+    "hatch": false
+   }
+  },
+  {
+   "id": "CS-03",
+   "kind": "audio",
+   "flags": {},
+   "expect": {
+    "fill": "tertiaryContainer",
+    "text": "onTertiaryContainer",
+    "stroke": "outline",
+    "stroke_w": 1,
+    "dash": [],
+    "alpha": 1.0,
+    "hatch": false
+   }
+  },
+  {
+   "id": "CS-04",
+   "kind": "video",
+   "flags": {
+    "selected": true
+   },
+   "expect": {
+    "fill": "primaryContainer",
+    "text": "onPrimaryContainer",
+    "stroke": "primary",
+    "stroke_w": 2,
+    "dash": [],
+    "alpha": 1.0,
+    "hatch": false
+   }
+  },
+  {
+   "id": "CS-05",
+   "kind": "video",
+   "flags": {
+    "hover": true
+   },
+   "expect": {
+    "fill": "primaryContainer",
+    "text": "onPrimaryContainer",
+    "stroke": "primary",
+    "stroke_w": 1,
+    "dash": [],
+    "alpha": 1.0,
+    "hatch": false
+   }
+  },
+  {
+   "id": "CS-06",
+   "kind": "video",
+   "flags": {
+    "hover": true,
+    "selected": true
+   },
+   "expect": {
+    "fill": "primaryContainer",
+    "text": "onPrimaryContainer",
+    "stroke": "primary",
+    "stroke_w": 2,
+    "dash": [],
+    "alpha": 1.0,
+    "hatch": false
+   }
+  },
+  {
+   "id": "CS-07",
+   "kind": "video",
+   "flags": {
+    "locked": true
+   },
+   "expect": {
+    "fill": "primaryContainer",
+    "text": "onPrimaryContainer",
+    "stroke": "outline",
+    "stroke_w": 1,
+    "dash": [],
+    "alpha": 0.5,
+    "hatch": true
+   }
+  },
+  {
+   "id": "CS-08",
+   "kind": "video",
+   "flags": {
+    "hidden": true
+   },
+   "expect": {
+    "fill": "primaryContainer",
+    "text": "onPrimaryContainer",
+    "stroke": "outline",
+    "stroke_w": 1,
+    "dash": [],
+    "alpha": 0.4,
+    "hatch": false
+   }
+  },
+  {
+   "id": "CS-09",
+   "kind": "audio",
+   "flags": {
+    "hidden": true
+   },
+   "expect": {
+    "fill": "tertiaryContainer",
+    "text": "onTertiaryContainer",
+    "stroke": "outline",
+    "stroke_w": 1,
+    "dash": [],
+    "alpha": 1.0,
+    "hatch": false
+   }
+  },
+  {
+   "id": "CS-10",
+   "kind": "audio",
+   "flags": {
+    "muted": true
+   },
+   "expect": {
+    "fill": "tertiaryContainer",
+    "text": "onTertiaryContainer",
+    "stroke": "outline",
+    "stroke_w": 1,
+    "dash": [],
+    "alpha": 0.5,
+    "hatch": false
+   }
+  },
+  {
+   "id": "CS-11",
+   "kind": "video",
+   "flags": {
+    "muted": true
+   },
+   "expect": {
+    "fill": "primaryContainer",
+    "text": "onPrimaryContainer",
+    "stroke": "outline",
+    "stroke_w": 1,
+    "dash": [],
+    "alpha": 1.0,
+    "hatch": false
+   }
+  },
+  {
+   "id": "CS-12",
+   "kind": "audio",
+   "flags": {
+    "locked": true,
+    "muted": true
+   },
+   "expect": {
+    "fill": "tertiaryContainer",
+    "text": "onTertiaryContainer",
+    "stroke": "outline",
+    "stroke_w": 1,
+    "dash": [],
+    "alpha": 0.5,
+    "hatch": true
+   }
+  },
+  {
+   "id": "CS-13",
+   "kind": "video",
+   "flags": {
+    "missing": true
+   },
+   "expect": {
+    "fill": "errorContainer",
+    "text": "onErrorContainer",
+    "stroke": "error",
+    "stroke_w": 1,
+    "dash": [
+     4,
+     3
+    ],
+    "alpha": 1.0,
+    "hatch": false
+   }
+  },
+  {
+   "id": "CS-14",
+   "kind": "photo",
+   "flags": {
+    "missing": true,
+    "selected": true
+   },
+   "expect": {
+    "fill": "errorContainer",
+    "text": "onErrorContainer",
+    "stroke": "primary",
+    "stroke_w": 2,
+    "dash": [
+     4,
+     3
+    ],
+    "alpha": 1.0,
+    "hatch": false
+   }
+  },
+  {
+   "id": "CS-15",
+   "kind": "video",
+   "flags": {
+    "preview": {
+     "valid": true
+    }
+   },
+   "expect": {
+    "fill": "primaryContainer",
+    "text": "onPrimaryContainer",
+    "stroke": null,
+    "stroke_w": 0,
+    "dash": [],
+    "alpha": 0.6,
+    "hatch": false
+   }
+  },
+  {
+   "id": "CS-16",
+   "kind": "audio",
+   "flags": {
+    "preview": {
+     "valid": false
+    },
+    "selected": true,
+    "locked": true
+   },
+   "expect": {
+    "fill": "error",
+    "text": "onTertiaryContainer",
+    "stroke": null,
+    "stroke_w": 0,
+    "dash": [],
+    "alpha": 0.5,
+    "hatch": false
+   }
+  },
+  {
+   "id": "CS-17",
+   "kind": "video",
+   "flags": {
+    "locked": true,
+    "hidden": true
+   },
+   "expect": {
+    "fill": "primaryContainer",
+    "text": "onPrimaryContainer",
+    "stroke": "outline",
+    "stroke_w": 1,
+    "dash": [],
+    "alpha": 0.4,
+    "hatch": true
    }
   }
  ]

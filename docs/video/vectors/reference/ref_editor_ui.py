@@ -372,6 +372,10 @@ def match_shortcut(ev):
             return 'redo' if sh else 'undo'
         if key == 'y' and not sh:
             return 'redo'
+        if key == 'c' and not sh and not ev.get('repeat'):
+            return 'copy'
+        if key == 'v' and not sh and not ev.get('repeat'):
+            return 'paste'
         return None
     if ev.get('repeat') and key not in REPEATABLE:
         return None

@@ -294,6 +294,11 @@ RFC 8785 (JCS): TS — [`packages/api-client/src/canonical.ts`](../../packages/a
 | FN-E-15 | `wheelsToCdl`, `cdlToWheels` | `src/video-color-wheels-math.ts` | 14 | `wheels` (4) |
 | FN-E-16 | `curveAdd`, `curveMove`, `curveRemove` | `src/video-color-curves-math.ts` | 14 | `curves` (9) |
 | FN-E-17 | `scopes(width, height, rgb8)` | `src/video-scopes-math.ts` | 14 | `scopes` (2) |
+| FN-E-18 | `copyClip(doc, selection)`, `pasteClip(doc, snap, playhead, newId)` | `src/video-clipboard.ts` | 20 | `copy_clip` (5), `paste_clip` (13), `paste_chain` (1) |
+| FN-E-19 | `wheelStep(state, ev, view, end, busy)` | `src/video-timeline-wheel.ts` | 20 | `wheel` (18) |
+| FN-E-20 | `formatTimecode(ticks, fps)` | `src/video-timecode.ts` | 20 | `timecode_format` (18), `timecode_roundtrip` (4) |
+| FN-E-21 | `parseTimecode(text, fps)` | `src/video-timecode.ts` | 20 | `timecode_parse` (28), `timecode_roundtrip` (4) |
+| FN-E-22 | `clipStyle(kind, flags)` | `src/video-timeline-style.ts` | 20 | `clip_style` (17) |
 
 ## Модуль X — лицензии и допуск компонентов (добавлено по запросу о лицензиях)
 

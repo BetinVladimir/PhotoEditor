@@ -37,7 +37,7 @@ cd docs/video/vectors/reference && python ref_time.py && python ref_cmds.py && p
 | `quota.json` | части, оценки, допуск, пресеты | FN-Q-01…05, DS-14 |
 | `scale.json` | `job_cost` (18), `ingest_duration_estimate` (7), `retry_after` (11), `egress_lease` (12), `autosave_gate` (9), `admit_job` (20) | FN-Q-09…13, FN-U-14, FN-D-17 |
 | `license.json` | `license_verdict` (48), `model_gate` (14), `ffmpeg_build` (20) | FN-X-01…03 ([22](22-tools-models-licenses.md)) |
-| `editor.json` | состав кадра, переходы, звук, геометрия, хит-тест, масштаб, привязка, жесты, клавиши, воспроизведение, команды FN-T-15…28, колёса, кривые, осциллограммы (293 кейса) | FN-E-01…17, FN-T-15…28 ([23](23-editor-playback-timeline.md)) |
+| `editor.json` | состав кадра, переходы, звук, геометрия, хит-тест, масштаб, привязка, жесты, клавиши, воспроизведение, команды FN-T-15…28, колёса, кривые, осциллограммы, таймкод, вставка клипа, колесо, оформление клипа (404 кейса) | FN-E-01…22, FN-T-15…28 ([23](23-editor-playback-timeline.md)) |
 | `color.json` | sRGB↔линейный, экспозиция, CDL, LUT, ΔE, Lab, PCHIP | FN-L-01…10 |
 | `cube_cases.json` | `TC-L-CUBE-00…10` | FN-L-06, FN-U-09 |
 | `range_cases.json` | `TC-G-RNG-01…13` | FN-G-12 |
@@ -218,7 +218,7 @@ cd docs/video/vectors/reference && python ref_time.py && python ref_cmds.py && p
 | TC-LOAD-05…10 | допуск под нагрузкой, справедливость, стрим в двух режимах, перегрузка, хаос-убийство воркера, 24-часовое замачивание | полная таблица критериев — [20](20-saas-scaling-operations.md), 12.2; ночной прогон |
 | TC-SC-01, TC-SC-SQL-01…07, TC-SC-PROG-01 | модульные и SQL-тесты масштабирования | [20](20-saas-scaling-operations.md), 12.1 |
 | TC-LIC-01…06 | лицензионные гейты: векторы `license.json`, гейт SBOM, замок моделей, LGPL-сборка, сканирование образа, capability методов детекции | [22](22-tools-models-licenses.md), раздел 10 |
-| TC-ED-01…13 | редактор: векторы `editor.json`, DOM-тесты canvas, монитора, инспектора и клавиатуры, ссылки воспроизведения, компиляция переходов | [23](23-editor-playback-timeline.md), раздел 17 |
+| TC-ED-01…17 | редактор: векторы `editor.json`, DOM-тесты canvas, монитора, инспектора и клавиатуры, ссылки воспроизведения, компиляция переходов, вставка клипа, колесо, таймкод, оформление canvas | [23](23-editor-playback-timeline.md), раздел 17 |
 | TC-LOAD-04 | монтаж на 500 клипов в редакторе | интерфейс отзывчив (цель 60 к/с, замер вручную в браузере), сохранение ≤ 500 мс P95 (серверная часть) |
 
 Пороги и целевые числа калибруются в V0 ([10](10-testing-acceptance-rollout.md), раздел 6); до калибровки результат записывается как измерение, а не как «пройдено».

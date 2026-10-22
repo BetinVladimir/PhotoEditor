@@ -9,7 +9,7 @@
 | `quota.json`, `color.json`, `cube_cases.json`, `range_cases.json` | квоты и пресеты, цвет и LUT, файлы `.cube`, HTTP Range |
 | `scale.json` | стоимость задания, допуск и лимиты арендатора, `Retry-After`, аренды трафика, автосохранение ([../20-saas-scaling-operations.md](../20-saas-scaling-operations.md), 3.4); эталон `reference/ref_scale.py` |
 | `license.json` | вердикт по лицензии, допуск модели в замок, вердикт по сборке ffmpeg ([../22-tools-models-licenses.md](../22-tools-models-licenses.md)) |
-| `editor.json` | редактор: состав кадра, переходы, звук, геометрия, хит-тест, масштаб, привязка, жесты, клавиши, воспроизведение, команды FN-T-15…28 с обратными, колёса, кривые, осциллограммы ([../23-editor-playback-timeline.md](../23-editor-playback-timeline.md)); эталон `reference/ref_editor_core.py`, `ref_editor_ui.py`, генератор `ref_editor.py` |
+| `editor.json` | редактор: состав кадра, переходы, звук, геометрия, хит-тест, масштаб, привязка, жесты, клавиши, воспроизведение, команды FN-T-15…28 с обратными, колёса, кривые, осциллограммы, таймкод, вставка клипа, колесо, оформление клипа ([../23-editor-playback-timeline.md](../23-editor-playback-timeline.md)); эталон `reference/ref_editor_core.py`, `ref_editor_ui.py`, `ref_editor_extra.py`, генератор `ref_editor.py` |
 | `golden_render.md` | эталонные графы ffmpeg G1/G2 и громкость |
 | `reference/` | скрипты, породившие векторы (`ref_*.py`), и генератор видеофикстур `make_fixtures_ref.py` |
 
