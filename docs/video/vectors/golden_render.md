@@ -1,5 +1,8 @@
 # Golden render graphs (verified with ffmpeg)
 
+> **Статус (документ 24).** Графы G1/G2 ниже (`concat`/`xfade`/`acrossfade`) оставлены как исторический эталон длительности и числа кадров (5.000 с / 125 кадров, 6.000 с / 150 кадров) и для фикстур `g1.mp4`/`g2.mp4`. Компилятор рендера строит **другие** графы (холст + `overlay`, [24](../24-render-compiler.md), D-37); их строки и проверки — `compile.json → graphs` (G1…G15). L1 (громкость) сохраняет силу.
+
+
 Sources (lavfi, regenerate with fixtures script): srcA.mp4, srcB.mp4 = testsrc 320x180@25 10s + sine, h264/aac, GOP 25.
 
 ## G1 — two clips, hard cut, gain -6 dB, fade-in 0.5 s on first audio

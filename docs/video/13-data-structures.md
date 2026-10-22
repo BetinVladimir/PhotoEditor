@@ -563,9 +563,12 @@ class LutValidateResult(Contract):
 
 ```python
 class PlanInput(Contract): index: int; media_id: UUID | None; asset_version_id: UUID | None; sha256: SHA256; kind: Literal["video","audio","photo","lut"]
+    options: list[str] = []    # опции входа до `-i` (24, раздел 4): `-vn`, `-an`, `-ss`, `-t`, `-loop`, `-framerate`
 class RenderPlan(Contract):
     schema_version: Literal[1]; document_sha256: SHA256; preset_id: str; preset_sha256: SHA256
     inputs: list[PlanInput]; filter_complex: str; maps: list[str]; codec_args: list[str]
+    luts: list[str] = []       # имена файлов lut_<16hex>.cube в каталоге задания (24, 5.7); содержимое строит FN-L-08
+    compiler_version: str      # "render-compiler/1"
     decisions: list[dict]      # неявные решения компилятора (VID-T-07): {"code": str, "clip": str, "detail": str}
     tool_versions: dict[str, str]
 # render_fingerprint = canonical_hash({document_sha256, preset_sha256, compiler_version, tool_versions, encoder, model_lock})

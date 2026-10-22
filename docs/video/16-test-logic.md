@@ -18,7 +18,7 @@
 Каталог [`vectors/`](vectors/) создан независимой эталонной реализацией [`vectors/reference/*.py`](vectors/reference/) по тексту ТЗ (не по продуктовому коду). Пересчёт нужен только при изменении ТЗ; он выполняется человеком:
 
 ```
-cd docs/video/vectors/reference && python ref_time.py && python ref_cmds.py && python ref_cuts.py && python ref_f1.py && python ref_misc.py && python ref_extra.py && python ref_extra2.py
+cd docs/video/vectors/reference && python ref_time.py && python ref_cmds.py && python ref_cuts.py && python ref_f1.py && python ref_misc.py && python ref_extra.py && python ref_extra2.py && python ref_compile_vectors.py > ../compile.json
 ```
 
 Скрипты пишут JSON в текущую директорию (переносить в `..`) и используют `numpy`, `scipy`, `rfc8785`; пути к фикстурам (`../fx*`) задаются при запуске. Файл `ref_classic.py` проверяет классический детектор на фикстурах (требует `ffmpeg`). **Ограничение**: векторы проверяют соответствие ТЗ, а не «правильность» ТЗ; ошибка в ТЗ воспроизведётся и в эталоне.
@@ -41,7 +41,8 @@ cd docs/video/vectors/reference && python ref_time.py && python ref_cmds.py && p
 | `color.json` | sRGB↔линейный, экспозиция, CDL, LUT, ΔE, Lab, PCHIP | FN-L-01…10 |
 | `cube_cases.json` | `TC-L-CUBE-00…10` | FN-L-06, FN-U-09 |
 | `range_cases.json` | `TC-G-RNG-01…13` | FN-G-12 |
-| `golden_render.md` | графы G1, G2 и ожидаемые длительность/кадры, loudnorm | FN-R-* |
+| `compile.json` | компилятор рендера: `fmt_seconds` (13), `fmt_num` (10), `samples_at` (6), `atempo_chain` (8), `duck_params` (6), `kb_supersample` (4), `kb_expr` (2), `lut_name` (3), `errors` (7), `graphs` (23, G1…G15) | FN-R-08…R-17 ([24](24-render-compiler.md)) |
+| `golden_render.md` | исторические графы G1, G2 (длительность/кадры) и loudnorm L1; компилятор строит другие графы — `compile.json` | фикстуры `g1.mp4`, `g2.mp4`, FN-R-07 |
 
 ## 3. Правила сравнения
 
@@ -145,8 +146,8 @@ cd docs/video/vectors/reference && python ref_time.py && python ref_cmds.py && p
 | `srcA.mp4` | `testsrc2` 10 с, 25 к/с + `sine=440` 48 кГц, H.264 + AAC | 250 кадров, есть аудио |
 | `srcB.mp4` | `testsrc` 10 с + `sine=880` | 250 кадров |
 | `sine20.wav` | `sine=1000`, 48 кГц, 20 с, `volume=-20dB`, стерео | интегральная громкость ≈ −41 LUFS (до нормализации) |
-| `g1.mp4` | граф G1 ([`golden_render.md`](vectors/golden_render.md)) | 125 кадров, **5.000 с** |
-| `g2.mp4` | граф G2 (кроссфейд 1 с, центрированный) | 150 кадров, **6.000 с** |
+| `g1.mp4` | исторический граф G1 ([`golden_render.md`](vectors/golden_render.md)); граф компилятора — `compile.json` | 125 кадров, **5.000 с** |
+| `g2.mp4` | исторический граф G2 (кроссфейд 1 с, центрированный); граф компилятора — `compile.json` | 150 кадров, **6.000 с** |
 
 Точные команды ffmpeg — в `vectors/reference/make_fixtures_ref.py` (все проверены запуском 2026-10-22; скрипт завершается кодом 2 при расхождении числа кадров или длительности).
 
@@ -219,6 +220,7 @@ cd docs/video/vectors/reference && python ref_time.py && python ref_cmds.py && p
 | TC-SC-01, TC-SC-SQL-01…07, TC-SC-PROG-01 | модульные и SQL-тесты масштабирования | [20](20-saas-scaling-operations.md), 12.1 |
 | TC-LIC-01…06 | лицензионные гейты: векторы `license.json`, гейт SBOM, замок моделей, LGPL-сборка, сканирование образа, capability методов детекции | [22](22-tools-models-licenses.md), раздел 10 |
 | TC-ED-01…17 | редактор: векторы `editor.json`, DOM-тесты canvas, монитора, инспектора и клавиатуры, ссылки воспроизведения, компиляция переходов, вставка клипа, колесо, таймкод, оформление canvas | [23](23-editor-playback-timeline.md), раздел 17 |
+| TC-RC-01…03 | компилятор рендера: юнит-векторы `compile.json` (RC-01); паритет с `composeAt` на реальном ffmpeg 6.1.x, `render_parity/run_all.py` (RC-02); ducking, громкость и HDR (RC-03) | [24](24-render-compiler.md), раздел 9 |
 | TC-LOAD-04 | монтаж на 500 клипов в редакторе | интерфейс отзывчив (цель 60 к/с, замер вручную в браузере), сохранение ≤ 500 мс P95 (серверная часть) |
 
 Пороги и целевые числа калибруются в V0 ([10](10-testing-acceptance-rollout.md), раздел 6); до калибровки результат записывается как измерение, а не как «пройдено».
