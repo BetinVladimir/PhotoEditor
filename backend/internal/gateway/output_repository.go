@@ -40,7 +40,12 @@ func (s SQLOutputs) Begin(ctx context.Context, q UploadRequest) (UploadTicket, e
 		var outcome string
 		var upload, artifact *uuid.UUID
 		var key, sha *string
-		err := tx.QueryRow(ctx, `SELECT outcome,upload_id,artifact_id,object_key,sha256 FROM photo.begin_output($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`, q.Identity.TaskID, q.Identity.Attempt, q.Identity.Fence, q.Identity.WorkerID, certificateHash(q.Certificate), q.IdempotencyKey, q.Role, q.Bytes, q.SHA256, q.MediaType, s.Bucket).Scan(&outcome, &upload, &artifact, &key, &sha)
+		var err error
+		if imageMetadataRequired(q.MediaType) {
+			err = tx.QueryRow(ctx, `SELECT outcome,upload_id,artifact_id,object_key,sha256 FROM photo.begin_output_image($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`, q.Identity.TaskID, q.Identity.Attempt, q.Identity.Fence, q.Identity.WorkerID, certificateHash(q.Certificate), q.IdempotencyKey, q.Role, q.Bytes, q.SHA256, q.MediaType, s.Bucket).Scan(&outcome, &upload, &artifact, &key, &sha)
+		} else {
+			err = tx.QueryRow(ctx, `SELECT outcome,upload_id,artifact_id,object_key,sha256 FROM photo.begin_output($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`, q.Identity.TaskID, q.Identity.Attempt, q.Identity.Fence, q.Identity.WorkerID, certificateHash(q.Certificate), q.IdempotencyKey, q.Role, q.Bytes, q.SHA256, q.MediaType, s.Bucket).Scan(&outcome, &upload, &artifact, &key, &sha)
+		}
 		if err != nil {
 			return err
 		}
@@ -70,7 +75,18 @@ func (s SQLOutputs) Complete(ctx context.Context, q UploadRequest, t UploadTicke
 		var outcome string
 		var artifact *uuid.UUID
 		var sha *string
-		err := tx.QueryRow(ctx, `SELECT outcome,artifact_id,sha256 FROM photo.complete_output($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`, q.Identity.TaskID, q.Identity.Attempt, q.Identity.Fence, q.Identity.WorkerID, certificateHash(q.Certificate), t.UploadID, o.VersionID, o.Bytes, o.SHA256, o.ContentType).Scan(&outcome, &artifact, &sha)
+		var err error
+		if imageMetadataRequired(q.MediaType) {
+			if q.intrinsicImage == nil {
+				return objectstore.ErrIntegrity
+			}
+			err = tx.QueryRow(ctx, `SELECT outcome,artifact_id,sha256 FROM photo.complete_output_image($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, q.Identity.TaskID, q.Identity.Attempt, q.Identity.Fence, q.Identity.WorkerID, certificateHash(q.Certificate), t.UploadID, o.VersionID, o.Bytes, o.SHA256, o.ContentType, q.intrinsicImage.Width, q.intrinsicImage.Height).Scan(&outcome, &artifact, &sha)
+		} else {
+			if q.intrinsicImage != nil {
+				return objectstore.ErrInvalid
+			}
+			err = tx.QueryRow(ctx, `SELECT outcome,artifact_id,sha256 FROM photo.complete_output($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`, q.Identity.TaskID, q.Identity.Attempt, q.Identity.Fence, q.Identity.WorkerID, certificateHash(q.Certificate), t.UploadID, o.VersionID, o.Bytes, o.SHA256, o.ContentType).Scan(&outcome, &artifact, &sha)
+		}
 		if err != nil {
 			return err
 		}

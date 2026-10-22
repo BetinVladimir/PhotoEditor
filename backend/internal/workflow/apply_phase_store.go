@@ -3,7 +3,6 @@ package workflow
 import (
 	"context"
 	"encoding/json"
-	"github.com/google/uuid"
 	"photoeditor/backend/internal/review"
 )
 
@@ -22,7 +21,7 @@ type ApplyPhaseStore interface {
 	Adopt(ctx context.Context, l ApplyLease) (bool, error)
 	Inputs(ctx context.Context, l ApplyLease) ([]applyInput, error)
 	Outputs(ctx context.Context, l ApplyLease, op, role string) ([]applyOutput, error)
-	Artifact(ctx context.Context, tenant uuid.UUID, ref review.ArtifactRef) (styleArtifact, error)
+	Artifact(ctx context.Context, l ApplyLease, ref review.ArtifactRef) (styleArtifact, error)
 	Register(ctx context.Context, l ApplyLease, n applyNodePlan) (bool, error)
 	RegisterV4Plan(ctx context.Context, l ApplyLease, plan []ApplyV4Stage) (bool, error)
 	ProcessDefectReviews(ctx context.Context, l ApplyLease) (string, error)

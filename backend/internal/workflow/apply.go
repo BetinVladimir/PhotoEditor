@@ -277,6 +277,7 @@ func (s ApplyStore) Inputs(ctx context.Context, l ApplyLease) ([]applyInput, err
 	if e = rows.Err(); e != nil {
 		return nil, e
 	}
+	rows.Close() // finish the input stream before a locator query on the same pgx connection
 	if len(out) != l.ItemCount {
 		return nil, errors.New("apply input count mismatch")
 	}
@@ -285,7 +286,10 @@ func (s ApplyStore) Inputs(ctx context.Context, l ApplyLease) ([]applyInput, err
 		if out[i].Style == nil {
 			continue
 		}
-		e = s.DB.QueryRow(ctx, `SELECT bucket,object_key,object_version,media_type FROM photo.artifacts WHERE tenant_id=$1 AND id=$2 AND sha256=$3 AND state='ready'`, l.TenantID, out[i].Style.ArtifactID, out[i].Style.SHA256).Scan(&out[i].Style.Bucket, &out[i].Style.Key, &out[i].Style.VersionID, &out[i].Style.MediaType)
+		var located styleArtifact
+		located, e = s.inputStyleArtifact(ctx, l, out[i].Style.ref())
+		if e == nil && located.Bytes != out[i].Style.Bytes { return nil, errors.New("apply style locator byte binding mismatch") }
+		if e == nil { out[i].Style = &located }
 		if e != nil {
 			return nil, e
 		}
@@ -312,12 +316,12 @@ func (s ApplyStore) Outputs(ctx context.Context, l ApplyLease, op, role string) 
 	}
 	return out, rows.Err()
 }
-func (s ApplyStore) Artifact(ctx context.Context, tenant uuid.UUID, ref review.ArtifactRef) (styleArtifact, error) {
-	var a styleArtifact
-	err := s.DB.QueryRow(ctx, `SELECT id,sha256,bytes,bucket,object_key,object_version,media_type FROM photo.artifacts WHERE tenant_id=$1 AND id=$2 AND sha256=$3 AND state='ready' AND object_version IS NOT NULL AND (expires_at IS NULL OR expires_at>clock_timestamp())`, tenant, ref.ID, ref.SHA256).Scan(&a.ArtifactID, &a.SHA256, &a.Bytes, &a.Bucket, &a.Key, &a.VersionID, &a.MediaType)
-	return a, err
-}
 func (s ApplyStore) Register(ctx context.Context, l ApplyLease, n applyNodePlan) (bool, error) {
+	// Root nodes have no predecessors, but SQL registration requires a JSON
+	// array. Normalize the value copy so a nil Go slice cannot become null.
+	if n.Prerequisites == nil {
+		n.Prerequisites = []uuid.UUID{}
+	}
 	raw, e := canonical.Marshal(n)
 	if e != nil {
 		return false, e
@@ -2915,7 +2919,7 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 			if json.Unmarshal(raw, &plan) != nil || plan.Image.ID == uuid.Nil || plan.OutputWidth < 1 || plan.OutputHeight < 1 || plan.OutputWidth > 200000000 || plan.OutputHeight > 200000000 || int64(plan.OutputWidth)*int64(plan.OutputHeight) > 200000000 {
 				return false, errors.New("invalid composition render plan")
 			}
-			imageArtifact, er := c.Store.Artifact(ctx, l.TenantID, plan.Image)
+			imageArtifact, er := c.Store.Artifact(ctx, l, plan.Image)
 			if er != nil {
 				return false, er
 			}

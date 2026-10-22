@@ -29,6 +29,8 @@ type UploadRequest struct {
 	IdempotencyKey          uuid.UUID
 	Role, MediaType, SHA256 string
 	Bytes                   int64
+	// Server-only; HTTP headers and request JSON cannot supply intrinsic dimensions.
+	intrinsicImage *intrinsicImageMetadata
 }
 type UploadTicket struct {
 	ArtifactID uuid.UUID
@@ -57,6 +59,7 @@ type UploadService struct {
 }
 
 func (s *UploadService) Upload(ctx context.Context, request UploadRequest, body io.Reader) (ArtifactRef, bool, error) {
+	request.intrinsicImage = nil // Never trust caller-provided metadata, including internal replay input.
 	if s == nil || s.Repository == nil || s.Objects == nil {
 		return ArtifactRef{}, false, objectstore.ErrUnavailable
 	}
@@ -90,7 +93,8 @@ func (s *UploadService) Upload(ctx context.Context, request UploadRequest, body 
 	if err != nil || ticket.UploadID == uuid.Nil || ticket.ObjectKey != key {
 		return ArtifactRef{}, false, ErrUploadConflict
 	}
-	object, err := s.Objects.PutImmutable(ctx, key, body, request.Bytes, request.SHA256, request.MediaType)
+	verifiedBody, imagePrefix := captureIntrinsicImageMetadata(request.MediaType, body)
+	object, err := s.Objects.PutImmutable(ctx, key, verifiedBody, request.Bytes, request.SHA256, request.MediaType)
 	if err != nil {
 		dependencyObservation("output_storage", err)
 		return ArtifactRef{}, false, err
@@ -100,6 +104,12 @@ func (s *UploadService) Upload(ctx context.Context, request UploadRequest, body 
 	}
 	if object.Key != key || object.VersionID == "" || object.VersionID == "null" || object.Bytes != request.Bytes || object.SHA256 != request.SHA256 || object.ContentType != request.MediaType {
 		return ArtifactRef{}, false, objectstore.ErrIntegrity
+	}
+	if imagePrefix != nil {
+		request.intrinsicImage, err = decodeIntrinsicImageMetadata(request.MediaType, imagePrefix.data)
+		if err != nil {
+			return ArtifactRef{}, false, err
+		}
 	}
 	commitCtx, endCommit := context.WithTimeout(ctx, 5*time.Second)
 	ref, err := s.Repository.Complete(commitCtx, request, ticket, object)

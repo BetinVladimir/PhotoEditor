@@ -14,6 +14,7 @@ import (
 	"os"
 	"photoeditor/backend/internal/objectstore"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -124,16 +125,27 @@ func TestDownloadStreamObservationClosedVocabularyAndBudget(t *testing.T) {
 type deadlineStreamWriter struct {
 	*httptest.ResponseRecorder
 	deadline time.Time
+	mu       sync.Mutex
 	delay    time.Duration
 }
 
-func (w *deadlineStreamWriter) SetWriteDeadline(d time.Time) error { w.deadline = d; return nil }
+func (w *deadlineStreamWriter) SetWriteDeadline(d time.Time) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.deadline = d
+	return nil
+}
 func (w *deadlineStreamWriter) Write(p []byte) (int, error) {
-	if !w.deadline.IsZero() && time.Until(w.deadline) < w.delay {
-		time.Sleep(max(time.Until(w.deadline), 0))
-		return 0, os.ErrDeadlineExceeded
+	end := time.Now().Add(w.delay)
+	for time.Now().Before(end) {
+		w.mu.Lock()
+		deadline := w.deadline
+		w.mu.Unlock()
+		if !deadline.IsZero() && !time.Now().Before(deadline) {
+			return 0, os.ErrDeadlineExceeded
+		}
+		time.Sleep(5 * time.Millisecond)
 	}
-	time.Sleep(w.delay)
 	return w.ResponseRecorder.Write(p)
 }
 func TestDownloadRefreshesAuthorityBeforeNearDeadlineWrite(t *testing.T) {

@@ -20,17 +20,10 @@ const conservativeApplyPolicy = "conservative_auto_v1"
 // already lease-scoped proposal. Never accept a same-role artifact from a retry.
 func (s ApplyStore) conservativeProposalReport(ctx context.Context,l ApplyLease,proposal applyOutput)(styleArtifact,error){
  var report styleArtifact
- err:=s.DB.QueryRow(ctx,`SELECT a.id,a.sha256,a.bytes,a.bucket,a.object_key,a.object_version,a.media_type
- FROM photo.apply_builds b JOIN photo.tasks t ON t.tenant_id=b.tenant_id AND t.id=$4 AND t.run_id=b.run_id
- JOIN photo.task_results r ON r.tenant_id=t.tenant_id AND r.task_id=t.id AND r.id=t.canonical_result_id
- JOIN photo.artifacts p ON p.tenant_id=t.tenant_id AND p.id=$5 AND p.created_by_task_id=t.id
-  AND p.produced_attempt=r.attempt AND p.produced_fence=r.fencing_token AND p.sha256=$6 AND p.state='ready'
- JOIN photo.artifacts a ON a.tenant_id=t.tenant_id AND a.created_by_task_id=t.id
-  AND a.produced_attempt=r.attempt AND a.produced_fence=r.fencing_token AND a.output_role='defect_propose_report'
- WHERE b.tenant_id=$1 AND b.run_id=$2 AND b.lease_token=$3 AND b.lease_until>=clock_timestamp()
-  AND b.graph_version=4 AND t.operation='defects.propose' AND t.state='succeeded' AND a.state='ready'
-  AND a.object_version IS NOT NULL AND (a.expires_at IS NULL OR a.expires_at>clock_timestamp())
-  AND r.outputs @> jsonb_build_array(jsonb_build_object('artifact_id',p.id,'sha256',p.sha256),jsonb_build_object('artifact_id',a.id,'sha256',a.sha256))`,l.TenantID,l.RunID,l.Token,proposal.TaskID,proposal.Artifact.ArtifactID,proposal.Artifact.SHA256).Scan(&report.ArtifactID,&report.SHA256,&report.Bytes,&report.Bucket,&report.Key,&report.VersionID,&report.MediaType)
+ if s.DB==nil||proposal.TaskID==uuid.Nil||!validApplyLocator(l,proposal.Artifact.ref()){return report,errors.New("conservative locator lease/proposal invalid")}
+ err:=s.DB.QueryRow(ctx,`SELECT artifact_id,sha256,bytes,bucket,object_key,object_version,media_type
+ FROM photo.apply_conservative_report_locator($1,$2,$3,$4,$5,$6)`,l.TenantID,l.RunID,l.Token,proposal.TaskID,proposal.Artifact.ArtifactID,proposal.Artifact.SHA256).Scan(&report.ArtifactID,&report.SHA256,&report.Bytes,&report.Bucket,&report.Key,&report.VersionID,&report.MediaType)
+ if err==nil{err=validateApplyLocator(report,report.ref())}
  return report,err
 }
 
@@ -46,7 +39,7 @@ func (c ApplyCoordinator) conservativeDefectParams(ctx context.Context,l ApplyLe
  raw,err:=readApplyJSON(ctx,c.Objects,c.Bucket,report);if err!=nil{return fail(err)}
  var document struct{Proposal review.ArtifactRef `json:"proposal"`;Params struct{Image review.ArtifactRef `json:"image"`} `json:"params"`;Protection review.MaskRef `json:"protection"`}
  if json.Unmarshal(raw,&document)!=nil||document.Proposal!=proposal.Artifact.ref()||!document.Protection.Protected{return fail(errors.New("invalid conservative proposal report"))}
- image,err:=c.Store.Artifact(ctx,l.TenantID,document.Params.Image);if err!=nil{return fail(err)}
+ image,err:=c.Store.Artifact(ctx,l,document.Params.Image);if err!=nil{return fail(err)}
  working,err:=readWorking(ctx,c.Objects,c.Bucket,image);if err!=nil{return fail(err)}
  if document.Protection.Canvas!=working.Canvas||!bytes.Equal(document.Protection.TransformChain,working.TransformChain){return fail(errors.New("conservative protection geometry mismatch"))}
  resolved,err:=c.Store.Outputs(ctx,l,"style.resolve","resolved_style");if err!=nil{return fail(err)}

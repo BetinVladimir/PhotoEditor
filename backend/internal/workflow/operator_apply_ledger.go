@@ -190,9 +190,9 @@ func (s *OperatorApplyLedger) Adopt(ctx context.Context, l ApplyLease) (bool, er
 	s.complete = true
 	return true, ctx.Err()
 }
-func (s *OperatorApplyLedger) Artifact(ctx context.Context, tenant uuid.UUID, ref review.ArtifactRef) (styleArtifact, error) {
+func (s *OperatorApplyLedger) Artifact(ctx context.Context, l ApplyLease, ref review.ArtifactRef) (styleArtifact, error) {
 	a, ok := s.objects[ref.ID]
-	if tenant != s.lease.TenantID || !ok || a.SHA256 != ref.SHA256 {
+	if !s.scope(l) || !ok || a.SHA256 != ref.SHA256 {
 		return styleArtifact{}, errors.New("operator artifact unbound")
 	}
 	return a, ctx.Err()
@@ -342,6 +342,7 @@ func (s *OperatorApplyLedger) DustDecisions(ctx context.Context, l ApplyLease) (
 	return r.Dust, ctx.Err()
 }
 func (s *OperatorApplyLedger) conservativeProposalReport(ctx context.Context, l ApplyLease, p applyOutput) (styleArtifact, error) {
+ if !s.scope(l){return styleArtifact{},errors.New("operator proposal report scope invalid")}
 	for _, proof := range s.outputs[p.TaskID] {
 		if proof.Role == "defect_propose_report" {
 			return proof.Artifact, nil

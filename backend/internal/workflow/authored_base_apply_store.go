@@ -49,7 +49,7 @@ func buildAuthoredBaseReceipt(ctx context.Context,s AuthoredBaseApplyStore,l App
   profile,e:=canonical.Bytes([]byte(step.ProfileJCS));if e!=nil{return nil,e};step.ProfileJCS=string(profile)
   step.ProfileSHA,e=canonical.Hash(json.RawMessage(profile));if e!=nil{return nil,e}
  }
- read:=func(ref review.ArtifactRef)([]byte,error){a,e:=s.Artifact(ctx,l.TenantID,ref);if e!=nil{return nil,e};return readApplyJSON(ctx,s.Objects,s.Bucket,a)}
+ read:=func(ref review.ArtifactRef)([]byte,error){a,e:=s.Artifact(ctx,l,ref);if e!=nil{return nil,e};return readApplyJSON(ctx,s.Objects,s.Bucket,a)}
  image:=func(ref v2input.Ref)(review.WorkingImage,error){b,e:=read(review.ArtifactRef{ID:ref.ArtifactID,SHA256:ref.SHA256});if e!=nil{return review.WorkingImage{},e};return review.ParseWorkingImage(b)}
  original,err:=image(body.Original.Source);if err!=nil{return nil,err};processed,err:=image(body.Processed.Source);if err!=nil{return nil,err}
  originalCanvas,err:=canonical.Hash(original.Canvas);if err!=nil{return nil,err};processedCanvas,err:=canonical.Hash(processed.Canvas);if err!=nil{return nil,err}

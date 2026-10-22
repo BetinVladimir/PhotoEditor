@@ -139,42 +139,33 @@ func (h *HTTP) download(w http.ResponseWriter, r *http.Request) {
 	// open over network IO. Token expiry gates new requests; the DB lease gates this stream.
 	controller := http.NewResponseController(w)
 	defer controller.SetWriteDeadline(time.Time{})
-	nextCheck := time.Time{}
 	remaining := length
 	var observedWritten int64
 	observation := downloadStreamObservation{}
-	revalidate := func(boundary string) {
-		if err := ctx.Err(); err != nil {
-			observation.emit("context_done", boundary, observedWritten, length)
-			panic(http.ErrAbortHandler)
-		}
-		// Refresh before entering IO with a nearly exhausted authority window.
-		// The returned lease/deadline still caps every write; no grace is added.
-		if time.Now().Add(time.Second).Before(nextCheck) {
-			return
-		}
-		checkCtx, done := context.WithTimeout(ctx, 5*time.Second)
+	authority, authorityErr := newStreamAuthority(ctx, func(checkCtx context.Context) (time.Time, error) {
 		current, e := h.Tasks.Resolve(checkCtx, task.Identity.TaskID, task.Identity.Attempt, task.Identity.Fence, task.Identity.WorkerID, cert)
-		checkErr := checkCtx.Err()
-		done()
-		if e != nil || checkErr != nil || current.Identity != task.Identity {
-			stage := "authority_identity_changed"
-			if checkErr != nil {
-				stage = "authority_context_done"
-			} else if e != nil {
-				stage = "authority_query_failed"
-			}
-			observation.emit(stage, boundary, observedWritten, length)
-			panic(http.ErrAbortHandler)
+		if e != nil {
+			return time.Time{}, e
 		}
-		nextCheck = time.Now().Add(5 * time.Second)
-		if !current.LeaseUntil.IsZero() && current.LeaseUntil.Before(nextCheck) {
-			nextCheck = current.LeaseUntil
+		if current.Identity != task.Identity {
+			return time.Time{}, errStreamAuthority
 		}
-		if !current.Deadline.IsZero() && current.Deadline.Before(nextCheck) {
-			nextCheck = current.Deadline
+		until := time.Now().Add(5 * time.Second)
+		if !current.LeaseUntil.IsZero() && current.LeaseUntil.Before(until) {
+			until = current.LeaseUntil
 		}
-		if !time.Now().Before(nextCheck) {
+		if !current.Deadline.IsZero() && current.Deadline.Before(until) {
+			until = current.Deadline
+		}
+		return until, nil
+	}, controller.SetWriteDeadline, cancel)
+	if authorityErr != nil {
+		observation.emit("authority_query_failed", "initial", observedWritten, length)
+		panic(http.ErrAbortHandler)
+	}
+	defer authority.stop()
+	revalidate := func(boundary string) {
+		if !authority.valid() {
 			observation.emit("authority_expired", boundary, observedWritten, length)
 			panic(http.ErrAbortHandler)
 		}
@@ -192,12 +183,8 @@ func (h *HTTP) download(w http.ResponseWriter, r *http.Request) {
 			panic(http.ErrAbortHandler)
 		}
 		if n > 0 {
-			// A blocked client write must not outlive the next live-authority check.
-			writeUntil := time.Now().Add(15 * time.Second)
-			if nextCheck.Before(writeUntil) {
-				writeUntil = nextCheck
-			}
-			_ = controller.SetWriteDeadline(writeUntil)
+			// The authority watcher renews this deadline only after a fresh live
+			// guard, or interrupts this write when authority cannot be renewed.
 			written, writeErr := w.Write(buffer[:n])
 			if written >= 0 && written <= n {
 				observedWritten += int64(written)
