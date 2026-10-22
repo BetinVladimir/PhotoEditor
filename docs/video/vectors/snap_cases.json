@@ -1,0 +1,73 @@
+{
+ "schema": "snap_cases/1",
+ "cases": [
+  {
+   "id": "TC-T-SNAP-01",
+   "desc": "anchor within threshold",
+   "candidate": 1000000000,
+   "anchors": [
+    1010000000
+   ],
+   "threshold": 100000000,
+   "frame_ticks": 28224000,
+   "expect": 1010000000
+  },
+  {
+   "id": "TC-T-SNAP-02",
+   "desc": "tie -> smaller anchor",
+   "candidate": 1000000000,
+   "anchors": [
+    900000000,
+    1100000000
+   ],
+   "threshold": 150000000,
+   "frame_ticks": 28224000,
+   "expect": 900000000
+  },
+  {
+   "id": "TC-T-SNAP-03",
+   "desc": "no anchor -> round to frame grid",
+   "candidate": 1000000000,
+   "anchors": [
+    2000000000
+   ],
+   "threshold": 100000000,
+   "frame_ticks": 28224000,
+   "expect": 987840000
+  },
+  {
+   "id": "TC-T-SNAP-04",
+   "desc": "anchor equals candidate",
+   "candidate": 987840000,
+   "anchors": [
+    987840000
+   ],
+   "threshold": 100000000,
+   "frame_ticks": 28224000,
+   "expect": 987840000
+  },
+  {
+   "id": "TC-T-SNAP-05",
+   "desc": "closer of two anchors",
+   "candidate": 1000000000,
+   "anchors": [
+    1050000000,
+    1020000000
+   ],
+   "threshold": 100000000,
+   "frame_ticks": 28224000,
+   "expect": 1020000000
+  },
+  {
+   "id": "TC-T-SNAP-06",
+   "desc": "threshold 0, anchor 1 tick away -> grid",
+   "candidate": 1000000000,
+   "anchors": [
+    1000000001
+   ],
+   "threshold": 0,
+   "frame_ticks": 28224000,
+   "expect": 987840000
+  }
+ ]
+}

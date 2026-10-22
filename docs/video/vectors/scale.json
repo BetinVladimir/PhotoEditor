@@ -1,0 +1,752 @@
+{
+ "_about": "Сгенерировано ref_scale.py; не редактировать вручную. Правила — документ 20, разделы 3–6.",
+ "limits_default": {
+  "outstanding": {
+   "ingest": 50,
+   "heavy": 4,
+   "light": 8,
+   "preview": 4
+  },
+  "dailyCost": 14400,
+  "shedCost": 21600
+ },
+ "job_cost": [
+  {
+   "kind": "ingest",
+   "duration_ticks": 705600000,
+   "expect": 31
+  },
+  {
+   "kind": "ingest",
+   "duration_ticks": 42336000000,
+   "expect": 66
+  },
+  {
+   "kind": "ingest",
+   "duration_ticks": 7620480000000,
+   "expect": 6510
+  },
+  {
+   "kind": "ingest",
+   "duration_ticks": 1,
+   "expect": 31
+  },
+  {
+   "kind": "detect_cuts",
+   "duration_ticks": 423360000000,
+   "expect": 270
+  },
+  {
+   "kind": "detect_cuts",
+   "duration_ticks": 7620480000000,
+   "expect": 3840
+  },
+  {
+   "kind": "color_analyze",
+   "duration_ticks": 70560000000,
+   "expect": 50
+  },
+  {
+   "kind": "color_analyze",
+   "duration_ticks": 71265600000,
+   "expect": 51
+  },
+  {
+   "kind": "audio_analyze",
+   "duration_ticks": 141120000000,
+   "expect": 30
+  },
+  {
+   "kind": "audio_analyze",
+   "duration_ticks": 141825600000,
+   "expect": 31
+  },
+  {
+   "kind": "preview_frames",
+   "duration_ticks": 0,
+   "expect": 5
+  },
+  {
+   "kind": "preview_frames",
+   "duration_ticks": 3528000000,
+   "expect": 5
+  },
+  {
+   "kind": "render",
+   "duration_ticks": 3528000000,
+   "expect": 68
+  },
+  {
+   "kind": "render",
+   "duration_ticks": 4233600000,
+   "expect": 69
+  },
+  {
+   "kind": "render",
+   "duration_ticks": 7620480000000,
+   "expect": 16260
+  },
+  {
+   "kind": "ingest",
+   "duration_ticks": 0,
+   "error": "DURATION_INVALID"
+  },
+  {
+   "kind": "render",
+   "duration_ticks": -1,
+   "error": "DURATION_INVALID"
+  },
+  {
+   "kind": "transcode",
+   "duration_ticks": 705600000,
+   "error": "KIND_INVALID"
+  }
+ ],
+ "ingest_duration_estimate": [
+  {
+   "bytes": 1,
+   "expect": 705600000
+  },
+  {
+   "bytes": 1000000,
+   "expect": 705600000
+  },
+  {
+   "bytes": 1000001,
+   "expect": 1411200000
+  },
+  {
+   "bytes": 1073741824,
+   "expect": 757814400000
+  },
+  {
+   "bytes": 17179869184,
+   "expect": 7620480000000
+  },
+  {
+   "bytes": 0,
+   "error": "BYTES_INVALID"
+  },
+  {
+   "bytes": -1,
+   "error": "BYTES_INVALID"
+  }
+ ],
+ "retry_after": [
+  {
+   "ahead": 0,
+   "workers": 1,
+   "expect": 5
+  },
+  {
+   "ahead": 1,
+   "workers": 1,
+   "expect": 5
+  },
+  {
+   "ahead": 5,
+   "workers": 1,
+   "expect": 5
+  },
+  {
+   "ahead": 6,
+   "workers": 1,
+   "expect": 10
+  },
+  {
+   "ahead": 12,
+   "workers": 1,
+   "expect": 15
+  },
+  {
+   "ahead": 100,
+   "workers": 4,
+   "expect": 25
+  },
+  {
+   "ahead": 7,
+   "workers": 0,
+   "expect": 10
+  },
+  {
+   "ahead": 100000,
+   "workers": 2,
+   "expect": 900
+  },
+  {
+   "ahead": 900,
+   "workers": 1,
+   "expect": 900
+  },
+  {
+   "ahead": 901,
+   "workers": 1,
+   "expect": 900
+  },
+  {
+   "ahead": -1,
+   "workers": 1,
+   "error": "AHEAD_INVALID"
+  }
+ ],
+ "egress_lease": [
+  {
+   "remaining": 0,
+   "streams": 0,
+   "expect": 0
+  },
+  {
+   "remaining": -5,
+   "streams": 1,
+   "expect": 0
+  },
+  {
+   "remaining": 5242880,
+   "streams": 2,
+   "expect": 5242880
+  },
+  {
+   "remaining": 8388608,
+   "streams": 0,
+   "expect": 8388608
+  },
+  {
+   "remaining": 104857600,
+   "streams": 0,
+   "expect": 104857600
+  },
+  {
+   "remaining": 104857600,
+   "streams": 3,
+   "expect": 26214400
+  },
+  {
+   "remaining": 10737418240,
+   "streams": 1,
+   "expect": 268435456
+  },
+  {
+   "remaining": 20971520,
+   "streams": 10,
+   "expect": 8388608
+  },
+  {
+   "remaining": 9437184,
+   "streams": 100,
+   "expect": 8388608
+  },
+  {
+   "remaining": 1073741824,
+   "streams": 3,
+   "expect": 268435456
+  },
+  {
+   "remaining": 1048576000,
+   "streams": 1,
+   "expect": 268435456
+  },
+  {
+   "remaining": 104857600,
+   "streams": -1,
+   "error": "STREAMS_INVALID"
+  }
+ ],
+ "autosave_gate": [
+  {
+   "now_ms": 10000,
+   "last_ms": null,
+   "dirty": true,
+   "min_interval_ms": 5000,
+   "force": false,
+   "expect": {
+    "action": "save",
+    "waitMs": 0
+   }
+  },
+  {
+   "now_ms": 10000,
+   "last_ms": 4000,
+   "dirty": true,
+   "min_interval_ms": 5000,
+   "force": false,
+   "expect": {
+    "action": "save",
+    "waitMs": 0
+   }
+  },
+  {
+   "now_ms": 10000,
+   "last_ms": 5000,
+   "dirty": true,
+   "min_interval_ms": 5000,
+   "force": false,
+   "expect": {
+    "action": "save",
+    "waitMs": 0
+   }
+  },
+  {
+   "now_ms": 10000,
+   "last_ms": 5001,
+   "dirty": true,
+   "min_interval_ms": 5000,
+   "force": false,
+   "expect": {
+    "action": "wait",
+    "waitMs": 1
+   }
+  },
+  {
+   "now_ms": 10000,
+   "last_ms": 9999,
+   "dirty": true,
+   "min_interval_ms": 5000,
+   "force": false,
+   "expect": {
+    "action": "wait",
+    "waitMs": 4999
+   }
+  },
+  {
+   "now_ms": 10000,
+   "last_ms": 9999,
+   "dirty": true,
+   "min_interval_ms": 5000,
+   "force": true,
+   "expect": {
+    "action": "save",
+    "waitMs": 0
+   }
+  },
+  {
+   "now_ms": 10000,
+   "last_ms": 9999,
+   "dirty": false,
+   "min_interval_ms": 5000,
+   "force": true,
+   "expect": {
+    "action": "idle",
+    "waitMs": 0
+   }
+  },
+  {
+   "now_ms": 10000,
+   "last_ms": 20000,
+   "dirty": true,
+   "min_interval_ms": 5000,
+   "force": false,
+   "expect": {
+    "action": "save",
+    "waitMs": 0
+   }
+  },
+  {
+   "now_ms": 0,
+   "last_ms": null,
+   "dirty": false,
+   "min_interval_ms": 5000,
+   "force": false,
+   "expect": {
+    "action": "idle",
+    "waitMs": 0
+   }
+  }
+ ],
+ "admit_job": [
+  {
+   "kind": "ingest",
+   "cost": 100,
+   "state": {
+    "outstanding": {
+     "ingest": 0,
+     "heavy": 0,
+     "light": 0,
+     "preview": 0
+    },
+    "dailyUsedCost": 0,
+    "poolAheadCost": 0,
+    "activeWorkers": 1
+   },
+   "expect": {
+    "ok": true
+   }
+  },
+  {
+   "kind": "ingest",
+   "cost": 100,
+   "state": {
+    "outstanding": {
+     "ingest": 49,
+     "heavy": 0,
+     "light": 0,
+     "preview": 0
+    },
+    "dailyUsedCost": 0,
+    "poolAheadCost": 0,
+    "activeWorkers": 1
+   },
+   "expect": {
+    "ok": true
+   }
+  },
+  {
+   "kind": "ingest",
+   "cost": 100,
+   "state": {
+    "outstanding": {
+     "ingest": 50,
+     "heavy": 0,
+     "light": 0,
+     "preview": 0
+    },
+    "dailyUsedCost": 0,
+    "poolAheadCost": 0,
+    "activeWorkers": 1
+   },
+   "expect": {
+    "ok": false,
+    "code": "VIDEO_TENANT_LIMIT",
+    "limit_code": "OUTSTANDING_INGEST"
+   }
+  },
+  {
+   "kind": "render",
+   "cost": 500,
+   "state": {
+    "outstanding": {
+     "ingest": 0,
+     "heavy": 3,
+     "light": 0,
+     "preview": 0
+    },
+    "dailyUsedCost": 0,
+    "poolAheadCost": 0,
+    "activeWorkers": 1
+   },
+   "expect": {
+    "ok": true
+   }
+  },
+  {
+   "kind": "render",
+   "cost": 500,
+   "state": {
+    "outstanding": {
+     "ingest": 0,
+     "heavy": 4,
+     "light": 0,
+     "preview": 0
+    },
+    "dailyUsedCost": 0,
+    "poolAheadCost": 0,
+    "activeWorkers": 1
+   },
+   "expect": {
+    "ok": false,
+    "code": "VIDEO_TENANT_LIMIT",
+    "limit_code": "OUTSTANDING_HEAVY"
+   }
+  },
+  {
+   "kind": "detect_cuts",
+   "cost": 500,
+   "state": {
+    "outstanding": {
+     "ingest": 0,
+     "heavy": 4,
+     "light": 0,
+     "preview": 0
+    },
+    "dailyUsedCost": 0,
+    "poolAheadCost": 0,
+    "activeWorkers": 1
+   },
+   "expect": {
+    "ok": false,
+    "code": "VIDEO_TENANT_LIMIT",
+    "limit_code": "OUTSTANDING_HEAVY"
+   }
+  },
+  {
+   "kind": "audio_analyze",
+   "cost": 40,
+   "state": {
+    "outstanding": {
+     "ingest": 0,
+     "heavy": 0,
+     "light": 8,
+     "preview": 0
+    },
+    "dailyUsedCost": 0,
+    "poolAheadCost": 0,
+    "activeWorkers": 1
+   },
+   "expect": {
+    "ok": false,
+    "code": "VIDEO_TENANT_LIMIT",
+    "limit_code": "OUTSTANDING_LIGHT"
+   }
+  },
+  {
+   "kind": "preview_frames",
+   "cost": 5,
+   "state": {
+    "outstanding": {
+     "ingest": 0,
+     "heavy": 0,
+     "light": 0,
+     "preview": 4
+    },
+    "dailyUsedCost": 0,
+    "poolAheadCost": 0,
+    "activeWorkers": 1
+   },
+   "expect": {
+    "ok": false,
+    "code": "VIDEO_TENANT_LIMIT",
+    "limit_code": "OUTSTANDING_PREVIEW"
+   }
+  },
+  {
+   "kind": "preview_frames",
+   "cost": 5,
+   "state": {
+    "outstanding": {
+     "ingest": 0,
+     "heavy": 0,
+     "light": 0,
+     "preview": 3
+    },
+    "dailyUsedCost": 14400,
+    "poolAheadCost": 999999,
+    "activeWorkers": 1
+   },
+   "expect": {
+    "ok": false,
+    "code": "VIDEO_TENANT_LIMIT",
+    "limit_code": "DAILY_COST"
+   }
+  },
+  {
+   "kind": "render",
+   "cost": 500,
+   "state": {
+    "outstanding": {
+     "ingest": 0,
+     "heavy": 0,
+     "light": 0,
+     "preview": 0
+    },
+    "dailyUsedCost": 13900,
+    "poolAheadCost": 0,
+    "activeWorkers": 1
+   },
+   "expect": {
+    "ok": true
+   }
+  },
+  {
+   "kind": "render",
+   "cost": 501,
+   "state": {
+    "outstanding": {
+     "ingest": 0,
+     "heavy": 0,
+     "light": 0,
+     "preview": 0
+    },
+    "dailyUsedCost": 13900,
+    "poolAheadCost": 0,
+    "activeWorkers": 1
+   },
+   "expect": {
+    "ok": false,
+    "code": "VIDEO_TENANT_LIMIT",
+    "limit_code": "DAILY_COST"
+   }
+  },
+  {
+   "kind": "render",
+   "cost": 500,
+   "state": {
+    "outstanding": {
+     "ingest": 0,
+     "heavy": 0,
+     "light": 0,
+     "preview": 0
+    },
+    "dailyUsedCost": 13900,
+    "poolAheadCost": 21600,
+    "activeWorkers": 1
+   },
+   "expect": {
+    "ok": true
+   }
+  },
+  {
+   "kind": "render",
+   "cost": 500,
+   "state": {
+    "outstanding": {
+     "ingest": 0,
+     "heavy": 0,
+     "light": 0,
+     "preview": 0
+    },
+    "dailyUsedCost": 0,
+    "poolAheadCost": 21601,
+    "activeWorkers": 4
+   },
+   "expect": {
+    "ok": false,
+    "code": "VIDEO_CAPACITY_BUSY",
+    "retry_after_s": 900
+   }
+  },
+  {
+   "kind": "render",
+   "cost": 500,
+   "state": {
+    "outstanding": {
+     "ingest": 0,
+     "heavy": 0,
+     "light": 0,
+     "preview": 0
+    },
+    "dailyUsedCost": 0,
+    "poolAheadCost": 21601,
+    "activeWorkers": 0
+   },
+   "expect": {
+    "ok": false,
+    "code": "VIDEO_CAPACITY_BUSY",
+    "retry_after_s": 900
+   }
+  },
+  {
+   "kind": "ingest",
+   "cost": 100,
+   "state": {
+    "outstanding": {
+     "ingest": 50,
+     "heavy": 0,
+     "light": 0,
+     "preview": 0
+    },
+    "dailyUsedCost": 14400,
+    "poolAheadCost": 999999,
+    "activeWorkers": 1
+   },
+   "expect": {
+    "ok": false,
+    "code": "VIDEO_TENANT_LIMIT",
+    "limit_code": "OUTSTANDING_INGEST"
+   }
+  },
+  {
+   "kind": "render",
+   "cost": 500,
+   "state": {
+    "outstanding": {
+     "ingest": 0,
+     "heavy": 0,
+     "light": 0,
+     "preview": 0
+    },
+    "dailyUsedCost": 14400,
+    "poolAheadCost": 999999,
+    "activeWorkers": 1
+   },
+   "expect": {
+    "ok": false,
+    "code": "VIDEO_TENANT_LIMIT",
+    "limit_code": "DAILY_COST"
+   }
+  },
+  {
+   "kind": "ingest",
+   "cost": 100,
+   "state": {
+    "outstanding": {
+     "ingest": 0,
+     "heavy": 0,
+     "light": 0,
+     "preview": 0
+    },
+    "dailyUsedCost": 14400,
+    "poolAheadCost": 0,
+    "activeWorkers": 1
+   },
+   "expect": {
+    "ok": true
+   },
+   "limits_override": {
+    "dailyCost": null
+   }
+  },
+  {
+   "kind": "render",
+   "cost": 500,
+   "state": {
+    "outstanding": {
+     "ingest": 0,
+     "heavy": 0,
+     "light": 0,
+     "preview": 0
+    },
+    "dailyUsedCost": 0,
+    "poolAheadCost": 400,
+    "activeWorkers": 4
+   },
+   "expect": {
+    "ok": false,
+    "code": "VIDEO_CAPACITY_BUSY",
+    "retry_after_s": 100
+   },
+   "limits_override": {
+    "shedCost": 100
+   }
+  },
+  {
+   "kind": "ingest",
+   "cost": 100,
+   "state": {
+    "outstanding": {
+     "ingest": 0,
+     "heavy": 0,
+     "light": 0,
+     "preview": 0
+    },
+    "dailyUsedCost": 0,
+    "poolAheadCost": 101,
+    "activeWorkers": 0
+   },
+   "expect": {
+    "ok": false,
+    "code": "VIDEO_CAPACITY_BUSY",
+    "retry_after_s": 105
+   },
+   "limits_override": {
+    "shedCost": 100
+   }
+  },
+  {
+   "kind": "transcode",
+   "cost": 1,
+   "state": {
+    "outstanding": {
+     "ingest": 0,
+     "heavy": 0,
+     "light": 0,
+     "preview": 0
+    },
+    "dailyUsedCost": 0,
+    "poolAheadCost": 0,
+    "activeWorkers": 1
+   },
+   "expect": {
+    "error": "KIND_INVALID"
+   }
+  }
+ ]
+}

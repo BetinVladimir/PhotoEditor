@@ -1,0 +1,634 @@
+{
+ "schema": "validate_cases/1",
+ "tps": 705600000,
+ "base_doc": {
+  "schema_version": 1,
+  "sequence_id": "2f6c0000-0000-4000-8000-000000000001",
+  "base_revision": 1,
+  "timebase": {
+   "ticks_per_second": 705600000
+  },
+  "video": {
+   "fps": {
+    "num": 25,
+    "den": 1
+   },
+   "width": 1280,
+   "height": 720,
+   "color": {
+    "space": "rec709",
+    "range": "limited"
+   },
+   "background": "#000000"
+  },
+  "audio": {
+   "sample_rate": 48000,
+   "channels": 2
+  },
+  "tracks": [
+   {
+    "id": "V1",
+    "kind": "video",
+    "clips": [
+     {
+      "id": "c1",
+      "source": {
+       "kind": "video",
+       "media_id": "m1",
+       "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "at": 0,
+      "src_in": 0,
+      "src_out": 2822400000,
+      "speed": {
+       "num": 1,
+       "den": 1
+      },
+      "effects": []
+     },
+     {
+      "id": "c2",
+      "source": {
+       "kind": "video",
+       "media_id": "m1",
+       "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "at": 2822400000,
+      "src_in": 2822400000,
+      "src_out": 5644800000,
+      "speed": {
+       "num": 1,
+       "den": 1
+      },
+      "effects": []
+     }
+    ]
+   },
+   {
+    "id": "A1",
+    "kind": "audio",
+    "clips": [
+     {
+      "id": "a1",
+      "source": {
+       "kind": "audio",
+       "media_id": "m2",
+       "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "at": 0,
+      "src_in": 0,
+      "src_out": 5644800000,
+      "audio": {
+       "gain_db": 0.0,
+       "fade_in": 0,
+       "fade_out": 0,
+       "mute": false
+      },
+      "effects": []
+     }
+    ]
+   }
+  ],
+  "markers": [],
+  "master": {
+   "effects": [],
+   "audio": {
+    "loudness": {
+     "target_lufs": -14.0,
+     "true_peak_db": -1.0
+    }
+   }
+  },
+  "rights": {
+   "music_declared": true
+  }
+ },
+ "base_ctx": {
+  "sourceDurations": {
+   "m1": 14112000000,
+   "m2": 14112000000
+  },
+  "sourceStates": {
+   "m1": "ready",
+   "m2": "ready"
+  },
+  "sourceHashes": {
+   "m1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "m2": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "musicClipIds": [
+   "a1"
+  ],
+  "forRender": false
+ },
+ "issue_order": "by rule VT-01..VT-10, within rule by document order; if any VT-01 issue exists only VT-01 issues are returned",
+ "cases": [
+  {
+   "id": "TC-T-VAL-00",
+   "desc": "base valid",
+   "patches": [],
+   "ctx_patch": {},
+   "expect": []
+  },
+  {
+   "id": "TC-T-VAL-01",
+   "desc": "unknown root key",
+   "patches": [
+    {
+     "op": "set",
+     "path": "/extra",
+     "value": 1
+    }
+   ],
+   "ctx_patch": {},
+   "expect": [
+    {
+     "rule": "VT-01",
+     "pointer": "/extra",
+     "code": "DOC_SCHEMA"
+    }
+   ]
+  },
+  {
+   "id": "TC-T-VAL-02",
+   "desc": "non-integer at",
+   "patches": [
+    {
+     "op": "set",
+     "path": "/tracks/0/clips/0/at",
+     "value": 1.5
+    }
+   ],
+   "ctx_patch": {},
+   "expect": [
+    {
+     "rule": "VT-01",
+     "pointer": "/tracks/0/clips/0/at",
+     "code": "DOC_SCHEMA"
+    }
+   ]
+  },
+  {
+   "id": "TC-T-VAL-03",
+   "desc": "schema_version 2",
+   "patches": [
+    {
+     "op": "set",
+     "path": "/schema_version",
+     "value": 2
+    }
+   ],
+   "ctx_patch": {},
+   "expect": [
+    {
+     "rule": "VT-01",
+     "pointer": "/schema_version",
+     "code": "DOC_SCHEMA"
+    }
+   ]
+  },
+  {
+   "id": "TC-T-VAL-04",
+   "desc": "unsupported fps 7/1",
+   "patches": [
+    {
+     "op": "set",
+     "path": "/video/fps",
+     "value": {
+      "num": 7,
+      "den": 1
+     }
+    }
+   ],
+   "ctx_patch": {},
+   "expect": [
+    {
+     "rule": "VT-01",
+     "pointer": "/video/fps",
+     "code": "DOC_SCHEMA"
+    }
+   ]
+  },
+  {
+   "id": "TC-T-VAL-05",
+   "desc": "five video tracks",
+   "patches": [
+    {
+     "op": "append",
+     "path": "/tracks",
+     "value": {
+      "id": "V2",
+      "kind": "video",
+      "clips": []
+     }
+    },
+    {
+     "op": "append",
+     "path": "/tracks",
+     "value": {
+      "id": "V3",
+      "kind": "video",
+      "clips": []
+     }
+    },
+    {
+     "op": "append",
+     "path": "/tracks",
+     "value": {
+      "id": "V4",
+      "kind": "video",
+      "clips": []
+     }
+    },
+    {
+     "op": "append",
+     "path": "/tracks",
+     "value": {
+      "id": "V5",
+      "kind": "video",
+      "clips": []
+     }
+    }
+   ],
+   "ctx_patch": {},
+   "expect": [
+    {
+     "rule": "VT-02",
+     "pointer": "/tracks",
+     "code": "DOC_LIMIT"
+    }
+   ]
+  },
+  {
+   "id": "TC-T-VAL-06",
+   "desc": "duplicate clip id",
+   "patches": [
+    {
+     "op": "set",
+     "path": "/tracks/0/clips/1/id",
+     "value": "c1"
+    }
+   ],
+   "ctx_patch": {},
+   "expect": [
+    {
+     "rule": "VT-03",
+     "pointer": "/tracks/0/clips/1/id",
+     "code": "DOC_ID_DUPLICATE"
+    }
+   ]
+  },
+  {
+   "id": "TC-T-VAL-07",
+   "desc": "bad id pattern",
+   "patches": [
+    {
+     "op": "set",
+     "path": "/tracks/0/clips/0/id",
+     "value": "bad id!"
+    }
+   ],
+   "ctx_patch": {},
+   "expect": [
+    {
+     "rule": "VT-03",
+     "pointer": "/tracks/0/clips/0/id",
+     "code": "DOC_ID_DUPLICATE"
+    }
+   ]
+  },
+  {
+   "id": "TC-T-VAL-08",
+   "desc": "overlap",
+   "patches": [
+    {
+     "op": "set",
+     "path": "/tracks/0/clips/1/at",
+     "value": 2116800000
+    }
+   ],
+   "ctx_patch": {},
+   "expect": [
+    {
+     "rule": "VT-04",
+     "pointer": "/tracks/0/clips/1/at",
+     "code": "CLIP_OVERLAP"
+    }
+   ]
+  },
+  {
+   "id": "TC-T-VAL-09",
+   "desc": "unsorted clips",
+   "patches": [
+    {
+     "op": "set",
+     "path": "/tracks/0/clips",
+     "value": [
+      {
+       "id": "c2",
+       "source": {
+        "kind": "video",
+        "media_id": "m1",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+       },
+       "at": 2822400000,
+       "src_in": 2822400000,
+       "src_out": 5644800000,
+       "speed": {
+        "num": 1,
+        "den": 1
+       },
+       "effects": []
+      },
+      {
+       "id": "c1",
+       "source": {
+        "kind": "video",
+        "media_id": "m1",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+       },
+       "at": 0,
+       "src_in": 0,
+       "src_out": 2822400000,
+       "speed": {
+        "num": 1,
+        "den": 1
+       },
+       "effects": []
+      }
+     ]
+    }
+   ],
+   "ctx_patch": {},
+   "expect": [
+    {
+     "rule": "VT-04",
+     "pointer": "/tracks/0/clips/1/at",
+     "code": "CLIP_OVERLAP"
+    }
+   ]
+  },
+  {
+   "id": "TC-T-VAL-10",
+   "desc": "src_out equals src_in",
+   "patches": [
+    {
+     "op": "set",
+     "path": "/tracks/0/clips/0/src_out",
+     "value": 0
+    }
+   ],
+   "ctx_patch": {},
+   "expect": [
+    {
+     "rule": "VT-05",
+     "pointer": "/tracks/0/clips/0/src_out",
+     "code": "CLIP_RANGE"
+    }
+   ]
+  },
+  {
+   "id": "TC-T-VAL-11",
+   "desc": "src_out beyond source",
+   "patches": [
+    {
+     "op": "set",
+     "path": "/tracks/0/clips/1/src_out",
+     "value": 17640000000
+    }
+   ],
+   "ctx_patch": {},
+   "expect": [
+    {
+     "rule": "VT-05",
+     "pointer": "/tracks/0/clips/1/src_out",
+     "code": "CLIP_RANGE"
+    }
+   ]
+  },
+  {
+   "id": "TC-T-VAL-12",
+   "desc": "source m1 not ready",
+   "patches": [],
+   "ctx_patch": {
+    "sourceStates": {
+     "m1": "other",
+     "m2": "ready"
+    }
+   },
+   "expect": [
+    {
+     "rule": "VT-06",
+     "pointer": "/tracks/0/clips/0/source",
+     "code": "SOURCE_NOT_READY"
+    },
+    {
+     "rule": "VT-06",
+     "pointer": "/tracks/0/clips/1/source",
+     "code": "SOURCE_NOT_READY"
+    }
+   ]
+  },
+  {
+   "id": "TC-T-VAL-13",
+   "desc": "hash mismatch m2",
+   "patches": [],
+   "ctx_patch": {
+    "sourceHashes": {
+     "m1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "m2": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    }
+   },
+   "expect": [
+    {
+     "rule": "VT-06",
+     "pointer": "/tracks/1/clips/0/source",
+     "code": "SOURCE_HASH_MISMATCH"
+    }
+   ]
+  },
+  {
+   "id": "TC-T-VAL-14",
+   "desc": "exposure out of range",
+   "patches": [
+    {
+     "op": "set",
+     "path": "/tracks/0/clips/0/effects",
+     "value": [
+      {
+       "id": "e1",
+       "type": "color.basic",
+       "enabled": true,
+       "params": {
+        "exposure_ev": 6
+       }
+      }
+     ]
+    }
+   ],
+   "ctx_patch": {},
+   "expect": [
+    {
+     "rule": "VT-07",
+     "pointer": "/tracks/0/clips/0/effects/0/params/exposure_ev",
+     "code": "EFFECT_PARAM"
+    }
+   ]
+  },
+  {
+   "id": "TC-T-VAL-15",
+   "desc": "curve x not increasing",
+   "patches": [
+    {
+     "op": "set",
+     "path": "/tracks/0/clips/0/effects",
+     "value": [
+      {
+       "id": "e1",
+       "type": "color.curves",
+       "enabled": true,
+       "params": {
+        "master": [
+         [
+          0,
+          0
+         ],
+         [
+          0.5,
+          0.5
+         ],
+         [
+          0.4,
+          0.6
+         ],
+         [
+          1,
+          1
+         ]
+        ]
+       }
+      }
+     ]
+    }
+   ],
+   "ctx_patch": {},
+   "expect": [
+    {
+     "rule": "VT-07",
+     "pointer": "/tracks/0/clips/0/effects/0/params/master",
+     "code": "EFFECT_PARAM"
+    }
+   ]
+  },
+  {
+   "id": "TC-T-VAL-16",
+   "desc": "transition longer than half",
+   "patches": [
+    {
+     "op": "set",
+     "path": "/tracks/0/clips/1/transition_in",
+     "value": {
+      "kind": "crossfade",
+      "duration": 2116800000,
+      "align": "center"
+     }
+    }
+   ],
+   "ctx_patch": {},
+   "expect": [
+    {
+     "rule": "VT-08",
+     "pointer": "/tracks/0/clips/1/transition_in/duration",
+     "code": "TRANSITION_INVALID"
+    }
+   ]
+  },
+  {
+   "id": "TC-T-VAL-17",
+   "desc": "first clip crossfade",
+   "patches": [
+    {
+     "op": "set",
+     "path": "/tracks/0/clips/0/transition_in",
+     "value": {
+      "kind": "crossfade",
+      "duration": 705600000,
+      "align": "center"
+     }
+    }
+   ],
+   "ctx_patch": {},
+   "expect": [
+    {
+     "rule": "VT-08",
+     "pointer": "/tracks/0/clips/0/transition_in/kind",
+     "code": "TRANSITION_INVALID"
+    }
+   ]
+  },
+  {
+   "id": "TC-T-VAL-18",
+   "desc": "sidechain missing track",
+   "patches": [
+    {
+     "op": "set",
+     "path": "/tracks/1/clips/0/effects",
+     "value": [
+      {
+       "id": "e9",
+       "type": "audio.duck",
+       "enabled": true,
+       "params": {
+        "sidechain_tracks": [
+         "A9"
+        ],
+        "threshold_db": -30,
+        "depth_db": 12,
+        "attack_ms": 30,
+        "release_ms": 400
+       }
+      }
+     ]
+    }
+   ],
+   "ctx_patch": {},
+   "expect": [
+    {
+     "rule": "VT-09",
+     "pointer": "/tracks/1/clips/0/effects/0/params/sidechain_tracks",
+     "code": "SIDECHAIN_INVALID"
+    }
+   ]
+  },
+  {
+   "id": "TC-T-VAL-19",
+   "desc": "music without rights on render",
+   "patches": [
+    {
+     "op": "set",
+     "path": "/rights/music_declared",
+     "value": false
+    }
+   ],
+   "ctx_patch": {
+    "forRender": true
+   },
+   "expect": [
+    {
+     "rule": "VT-10",
+     "pointer": "/rights/music_declared",
+     "code": "RIGHTS_REQUIRED"
+    }
+   ]
+  },
+  {
+   "id": "TC-T-VAL-20",
+   "desc": "rights declared on render ok",
+   "patches": [],
+   "ctx_patch": {
+    "forRender": true
+   },
+   "expect": []
+  }
+ ]
+}

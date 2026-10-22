@@ -1,0 +1,498 @@
+{
+ "schema": "commands_extra/1",
+ "base": {
+  "video": {
+   "fps": {
+    "num": 25,
+    "den": 1
+   }
+  },
+  "tracks": [
+   {
+    "id": "V1",
+    "kind": "video",
+    "clips": [
+     {
+      "id": "c1",
+      "source": {
+       "kind": "video",
+       "media_id": "m1"
+      },
+      "at": 0,
+      "src_in": 0,
+      "src_out": 7056000000,
+      "speed": {
+       "num": 1,
+       "den": 1
+      },
+      "effects": [
+       {
+        "id": "e1",
+        "type": "color.basic",
+        "enabled": true,
+        "params": {}
+       }
+      ],
+      "transition_in": {
+       "kind": "crossfade",
+       "duration": 705600000,
+       "align": "center"
+      }
+     },
+     {
+      "id": "c2",
+      "source": {
+       "kind": "video",
+       "media_id": "m1"
+      },
+      "at": 7056000000,
+      "src_in": 3528000000,
+      "src_out": 6350400000,
+      "speed": {
+       "num": 1,
+       "den": 1
+      },
+      "effects": []
+     }
+    ]
+   },
+   {
+    "id": "A1",
+    "kind": "audio",
+    "clips": []
+   }
+  ],
+  "markers": []
+ },
+ "cases": [
+  {
+   "id": "TC-T-AC-M1",
+   "args": {
+    "media_id": "m1",
+    "boundaries": [
+     {
+      "id": "b1",
+      "kind": "cut",
+      "start_ticks": 2116800000,
+      "end_ticks": 2116800000
+     },
+     {
+      "id": "b2",
+      "kind": "dissolve",
+      "start_ticks": 4233600000,
+      "end_ticks": 4939200000
+     },
+     {
+      "id": "b3",
+      "kind": "cut",
+      "start_ticks": 8467200000,
+      "end_ticks": 8467200000
+     }
+    ],
+    "accepted": [
+     "b1",
+     "b2"
+    ],
+    "mode": "markers_only",
+    "new_ids": [
+     "n1",
+     "n2",
+     "n3"
+    ]
+   },
+   "expect": {
+    "doc": {
+     "video": {
+      "fps": {
+       "num": 25,
+       "den": 1
+      }
+     },
+     "tracks": [
+      {
+       "id": "V1",
+       "kind": "video",
+       "clips": [
+        {
+         "id": "c1",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 0,
+         "src_in": 0,
+         "src_out": 7056000000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": [
+          {
+           "id": "e1",
+           "type": "color.basic",
+           "enabled": true,
+           "params": {}
+          }
+         ],
+         "transition_in": {
+          "kind": "crossfade",
+          "duration": 705600000,
+          "align": "center"
+         }
+        },
+        {
+         "id": "c2",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 7056000000,
+         "src_in": 3528000000,
+         "src_out": 6350400000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": []
+        }
+       ]
+      },
+      {
+       "id": "A1",
+       "kind": "audio",
+       "clips": []
+      }
+     ],
+     "markers": [
+      {
+       "id": "n3",
+       "at": 2116800000,
+       "kind": "cut",
+       "label": ""
+      },
+      {
+       "id": "n1",
+       "at": 4233600000,
+       "kind": "cut",
+       "label": ""
+      },
+      {
+       "id": "n2",
+       "at": 7761600000,
+       "kind": "cut",
+       "label": ""
+      }
+     ]
+    },
+    "applied": [
+     {
+      "boundary": "b2",
+      "clip": "c1",
+      "new": "n1",
+      "at": 4233600000
+     },
+     {
+      "boundary": "b2",
+      "clip": "c2",
+      "new": "n2",
+      "at": 7761600000
+     },
+     {
+      "boundary": "b1",
+      "clip": "c1",
+      "new": "n3",
+      "at": 2116800000
+     }
+    ]
+   }
+  },
+  {
+   "id": "TC-T-AC-M2",
+   "note": "repeat on result of M1: nothing applied, ids not consumed",
+   "input": "result of TC-T-AC-M1",
+   "args": {
+    "media_id": "m1",
+    "boundaries": [
+     {
+      "id": "b1",
+      "kind": "cut",
+      "start_ticks": 2116800000,
+      "end_ticks": 2116800000
+     },
+     {
+      "id": "b2",
+      "kind": "dissolve",
+      "start_ticks": 4233600000,
+      "end_ticks": 4939200000
+     },
+     {
+      "id": "b3",
+      "kind": "cut",
+      "start_ticks": 8467200000,
+      "end_ticks": 8467200000
+     }
+    ],
+    "accepted": [
+     "b1",
+     "b2"
+    ],
+    "mode": "markers_only",
+    "new_ids": [
+     "n4",
+     "n5"
+    ]
+   },
+   "expect": {
+    "doc": {
+     "video": {
+      "fps": {
+       "num": 25,
+       "den": 1
+      }
+     },
+     "tracks": [
+      {
+       "id": "V1",
+       "kind": "video",
+       "clips": [
+        {
+         "id": "c1",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 0,
+         "src_in": 0,
+         "src_out": 7056000000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": [
+          {
+           "id": "e1",
+           "type": "color.basic",
+           "enabled": true,
+           "params": {}
+          }
+         ],
+         "transition_in": {
+          "kind": "crossfade",
+          "duration": 705600000,
+          "align": "center"
+         }
+        },
+        {
+         "id": "c2",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 7056000000,
+         "src_in": 3528000000,
+         "src_out": 6350400000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": []
+        }
+       ]
+      },
+      {
+       "id": "A1",
+       "kind": "audio",
+       "clips": []
+      }
+     ],
+     "markers": [
+      {
+       "id": "n3",
+       "at": 2116800000,
+       "kind": "cut",
+       "label": ""
+      },
+      {
+       "id": "n1",
+       "at": 4233600000,
+       "kind": "cut",
+       "label": ""
+      },
+      {
+       "id": "n2",
+       "at": 7761600000,
+       "kind": "cut",
+       "label": ""
+      }
+     ]
+    },
+    "applied": []
+   }
+  },
+  {
+   "id": "TC-T-AC-M3",
+   "args": {
+    "media_id": "m1",
+    "boundaries": [
+     {
+      "id": "b1",
+      "kind": "cut",
+      "start_ticks": 2116800000,
+      "end_ticks": 2116800000
+     },
+     {
+      "id": "b2",
+      "kind": "dissolve",
+      "start_ticks": 4233600000,
+      "end_ticks": 4939200000
+     },
+     {
+      "id": "b3",
+      "kind": "cut",
+      "start_ticks": 8467200000,
+      "end_ticks": 8467200000
+     }
+    ],
+    "accepted": [
+     "b2"
+    ],
+    "mode": "markers_only",
+    "new_ids": [
+     "n1",
+     "n2"
+    ]
+   },
+   "expect": {
+    "doc": {
+     "video": {
+      "fps": {
+       "num": 25,
+       "den": 1
+      }
+     },
+     "tracks": [
+      {
+       "id": "V1",
+       "kind": "video",
+       "clips": [
+        {
+         "id": "c1",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 0,
+         "src_in": 0,
+         "src_out": 7056000000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": [
+          {
+           "id": "e1",
+           "type": "color.basic",
+           "enabled": true,
+           "params": {}
+          }
+         ],
+         "transition_in": {
+          "kind": "crossfade",
+          "duration": 705600000,
+          "align": "center"
+         }
+        },
+        {
+         "id": "c2",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 7056000000,
+         "src_in": 3528000000,
+         "src_out": 6350400000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": []
+        }
+       ]
+      },
+      {
+       "id": "A1",
+       "kind": "audio",
+       "clips": []
+      }
+     ],
+     "markers": [
+      {
+       "id": "n1",
+       "at": 4233600000,
+       "kind": "cut",
+       "label": ""
+      },
+      {
+       "id": "n2",
+       "at": 7761600000,
+       "kind": "cut",
+       "label": ""
+      }
+     ]
+    },
+    "applied": [
+     {
+      "boundary": "b2",
+      "clip": "c1",
+      "new": "n1",
+      "at": 4233600000
+     },
+     {
+      "boundary": "b2",
+      "clip": "c2",
+      "new": "n2",
+      "at": 7761600000
+     }
+    ]
+   }
+  },
+  {
+   "id": "TC-T-AC-M4",
+   "note": "split mode with too few ids",
+   "args": {
+    "media_id": "m1",
+    "boundaries": [
+     {
+      "id": "b1",
+      "kind": "cut",
+      "start_ticks": 2116800000,
+      "end_ticks": 2116800000
+     },
+     {
+      "id": "b2",
+      "kind": "dissolve",
+      "start_ticks": 4233600000,
+      "end_ticks": 4939200000
+     },
+     {
+      "id": "b3",
+      "kind": "cut",
+      "start_ticks": 8467200000,
+      "end_ticks": 8467200000
+     }
+    ],
+    "accepted": [
+     "b1",
+     "b2"
+    ],
+    "mode": "split_at_start",
+    "new_ids": [
+     "n1"
+    ]
+   },
+   "expect": {
+    "error": "APPLY_IDS_EXHAUSTED"
+   }
+  }
+ ]
+}

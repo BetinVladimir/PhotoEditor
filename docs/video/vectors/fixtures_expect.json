@@ -1,0 +1,80 @@
+{
+ "schema": "fixture_expect/1",
+ "frames": {
+  "hard_cuts.mp4": 150,
+  "dissolve.mp4": 100,
+  "fades.mp4": 100
+ },
+ "fps": "25/1",
+ "ground_truth": {
+  "hard_cuts": [
+   {
+    "kind": "cut",
+    "frame_in": 50,
+    "frame_out": 50
+   },
+   {
+    "kind": "cut",
+    "frame_in": 100,
+    "frame_out": 100
+   }
+  ],
+  "dissolve": [
+   {
+    "kind": "dissolve",
+    "frame_in": 45,
+    "frame_out": 55
+   }
+  ],
+  "fades": [
+   {
+    "kind": "fade_out",
+    "frame_in": 35,
+    "frame_out": 50
+   },
+   {
+    "kind": "fade_in",
+    "frame_in": 50,
+    "frame_out": 65
+   }
+  ]
+ },
+ "classic_reference_output": {
+  "hard_cuts.mp4": [
+   {
+    "kind": "cut",
+    "frame_in": 50,
+    "frame_out": 50
+   },
+   {
+    "kind": "cut",
+    "frame_in": 100,
+    "frame_out": 100
+   }
+  ],
+  "dissolve.mp4": [
+   {
+    "kind": "dissolve",
+    "frame_in": 45,
+    "frame_out": 54
+   }
+  ],
+  "fades.mp4": [
+   {
+    "kind": "fade_out",
+    "frame_in": 34,
+    "frame_out": 49
+   },
+   {
+    "kind": "fade_in",
+    "frame_in": 51,
+    "frame_out": 66
+   }
+  ]
+ },
+ "tolerance": {
+  "frame_in_frames": 2,
+  "frame_out_frames": 2,
+  "min_f1_each_fixture": 1.0
+ }
+}

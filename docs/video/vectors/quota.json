@@ -1,0 +1,147 @@
+{
+ "part_bytes": [
+  {
+   "bytes": 1,
+   "part_bytes": 33554432,
+   "parts_total": 1
+  },
+  {
+   "bytes": 104857600,
+   "part_bytes": 33554432,
+   "parts_total": 4
+  },
+  {
+   "bytes": 1073741824,
+   "part_bytes": 33554432,
+   "parts_total": 32
+  },
+  {
+   "bytes": 17179869184,
+   "part_bytes": 33554432,
+   "parts_total": 512
+  },
+  {
+   "bytes": 18253611008,
+   "part_bytes": 33554432,
+   "parts_total": 544
+  }
+ ],
+ "derivative_estimate": [
+  {
+   "bytes": 1073741824,
+   "estimate": 295279001
+  },
+  {
+   "bytes": 10737418240,
+   "estimate": 1744830464
+  },
+  {
+   "bytes": 17179869184,
+   "estimate": 2711198105
+  },
+  {
+   "bytes": 104857600,
+   "estimate": 149946368
+  }
+ ],
+ "render_estimate": [
+  {
+   "duration_ticks": 42336000000,
+   "maxrate_bps": 12000000,
+   "audio_bps": 192000,
+   "estimate": 163120864
+  },
+  {
+   "duration_ticks": 2540160000000,
+   "maxrate_bps": 12000000,
+   "audio_bps": 192000,
+   "estimate": 5827828864
+  },
+  {
+   "duration_ticks": 1,
+   "maxrate_bps": 6000000,
+   "audio_bps": 192000,
+   "estimate": 67108865
+  },
+  {
+   "duration_ticks": 7620480000000,
+   "maxrate_bps": 48000000,
+   "audio_bps": 192000,
+   "estimate": 68379268864
+  }
+ ],
+ "admit": [
+  {
+   "used": 10,
+   "reserved": 5,
+   "limit": 100,
+   "request": 85,
+   "ok": true
+  },
+  {
+   "used": 10,
+   "reserved": 5,
+   "limit": 100,
+   "request": 86,
+   "ok": false
+  },
+  {
+   "used": 0,
+   "reserved": 0,
+   "limit": 0,
+   "request": 0,
+   "ok": true
+  },
+  {
+   "used": 0,
+   "reserved": 0,
+   "limit": 0,
+   "request": 1,
+   "ok": false
+  },
+  {
+   "used": 106300440576,
+   "reserved": 0,
+   "limit": 107374182400,
+   "request": 1073741824,
+   "ok": true
+  },
+  {
+   "used": 106300440576,
+   "reserved": 0,
+   "limit": 107374182400,
+   "request": 1073741825,
+   "ok": false
+  }
+ ],
+ "presets": {
+  "h264_720p": [
+   1280,
+   720,
+   5000000,
+   6000000,
+   12000000
+  ],
+  "h264_1080p": [
+   1920,
+   1080,
+   10000000,
+   12000000,
+   24000000
+  ],
+  "h264_1440p": [
+   2560,
+   1440,
+   18000000,
+   21600000,
+   43200000
+  ],
+  "h264_2160p": [
+   3840,
+   2160,
+   40000000,
+   48000000,
+   96000000
+  ]
+ }
+}

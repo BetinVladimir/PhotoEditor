@@ -1,0 +1,38 @@
+[
+ {
+  "input": {
+   "b": 1.0,
+   "a": [
+    3,
+    2,
+    1
+   ],
+   "c": {
+    "z": 0.1,
+    "y": "é",
+    "x": 1e+21,
+    "w": -0.0,
+    "v": 100.5
+   },
+   "d": null,
+   "e": true
+  },
+  "canonical": "{\"a\":[3,2,1],\"b\":1,\"c\":{\"v\":100.5,\"w\":0,\"x\":1e+21,\"y\":\"é\",\"z\":0.1},\"d\":null,\"e\":true}",
+  "sha256": "107d70ee4233395f778a61d7dc6c228d8b976d236d6d0ed2f0d2cffb479043bd"
+ },
+ {
+  "input": {
+   "schema_version": 1,
+   "scale": 1.0,
+   "rotate": 0.0,
+   "position": [
+    0,
+    0
+   ],
+   "name": "Привет",
+   "big": 705600000
+  },
+  "canonical": "{\"big\":705600000,\"name\":\"Привет\",\"position\":[0,0],\"rotate\":0,\"scale\":1,\"schema_version\":1}",
+  "sha256": "5a2df98ad45fb18fbe7b9dfed5a80d2d035eac25a7eda2a462820eef18f8803c"
+ }
+]

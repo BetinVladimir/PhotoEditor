@@ -1,0 +1,839 @@
+{
+ "_about": "Сгенерировано ref_license.py; не редактировать вручную. Правила — документ 22, разделы 2 и 6.",
+ "license_verdict": [
+  {
+   "expr": "MIT",
+   "kind": "code",
+   "expect": {
+    "verdict": "allow",
+    "reasons": []
+   }
+  },
+  {
+   "expr": "mit",
+   "kind": "weights",
+   "expect": {
+    "verdict": "allow",
+    "reasons": []
+   }
+  },
+  {
+   "expr": "Apache-2.0",
+   "kind": "data",
+   "expect": {
+    "verdict": "allow",
+    "reasons": []
+   }
+  },
+  {
+   "expr": "BSD-3-Clause",
+   "kind": "code",
+   "expect": {
+    "verdict": "allow",
+    "reasons": []
+   }
+  },
+  {
+   "expr": "ISC",
+   "kind": "code",
+   "expect": {
+    "verdict": "allow",
+    "reasons": []
+   }
+  },
+  {
+   "expr": "CC0-1.0",
+   "kind": "data",
+   "expect": {
+    "verdict": "allow",
+    "reasons": []
+   }
+  },
+  {
+   "expr": "CC-BY-4.0",
+   "kind": "data",
+   "expect": {
+    "verdict": "allow",
+    "reasons": [
+     "ATTRIBUTION_REQUIRED"
+    ]
+   }
+  },
+  {
+   "expr": "CC-BY-3.0",
+   "kind": "weights",
+   "expect": {
+    "verdict": "allow",
+    "reasons": [
+     "ATTRIBUTION_REQUIRED"
+    ]
+   }
+  },
+  {
+   "expr": "LGPL-2.1-or-later",
+   "kind": "code",
+   "expect": {
+    "verdict": "conditional",
+    "reasons": [
+     "COPYLEFT_CONDITIONS"
+    ]
+   }
+  },
+  {
+   "expr": "LGPL-2.1+",
+   "kind": "code",
+   "expect": {
+    "verdict": "conditional",
+    "reasons": [
+     "COPYLEFT_CONDITIONS"
+    ]
+   }
+  },
+  {
+   "expr": "LGPL-2.1-or-later",
+   "kind": "weights",
+   "expect": {
+    "verdict": "review",
+    "reasons": [
+     "COPYLEFT_ON_NON_CODE"
+    ]
+   }
+  },
+  {
+   "expr": "GPL-2.0",
+   "kind": "code",
+   "expect": {
+    "verdict": "conditional",
+    "reasons": [
+     "COPYLEFT_CONDITIONS"
+    ]
+   }
+  },
+  {
+   "expr": "GPL-3.0+",
+   "kind": "code",
+   "expect": {
+    "verdict": "conditional",
+    "reasons": [
+     "COPYLEFT_CONDITIONS"
+    ]
+   }
+  },
+  {
+   "expr": "GPL-3.0-only",
+   "kind": "data",
+   "expect": {
+    "verdict": "review",
+    "reasons": [
+     "COPYLEFT_ON_NON_CODE"
+    ]
+   }
+  },
+  {
+   "expr": "MPL-2.0",
+   "kind": "code",
+   "expect": {
+    "verdict": "conditional",
+    "reasons": [
+     "COPYLEFT_CONDITIONS"
+    ]
+   }
+  },
+  {
+   "expr": "AGPL-3.0-only",
+   "kind": "code",
+   "expect": {
+    "verdict": "deny",
+    "reasons": [
+     "NETWORK_COPYLEFT"
+    ]
+   }
+  },
+  {
+   "expr": "AGPL-3.0",
+   "kind": "code",
+   "expect": {
+    "verdict": "deny",
+    "reasons": [
+     "NETWORK_COPYLEFT"
+    ]
+   }
+  },
+  {
+   "expr": "CC-BY-NC-4.0",
+   "kind": "weights",
+   "expect": {
+    "verdict": "deny",
+    "reasons": [
+     "NON_COMMERCIAL"
+    ]
+   }
+  },
+  {
+   "expr": "CC-BY-NC-SA-4.0",
+   "kind": "data",
+   "expect": {
+    "verdict": "deny",
+    "reasons": [
+     "NON_COMMERCIAL"
+    ]
+   }
+  },
+  {
+   "expr": "CC-BY-ND-4.0",
+   "kind": "data",
+   "expect": {
+    "verdict": "deny",
+    "reasons": [
+     "NO_DERIVATIVES"
+    ]
+   }
+  },
+  {
+   "expr": "CC-BY-SA-4.0",
+   "kind": "data",
+   "expect": {
+    "verdict": "review",
+    "reasons": [
+     "NEEDS_HUMAN_REVIEW"
+    ]
+   }
+  },
+  {
+   "expr": "CreativeML-OpenRAIL-M",
+   "kind": "weights",
+   "expect": {
+    "verdict": "review",
+    "reasons": [
+     "NEEDS_HUMAN_REVIEW"
+    ]
+   }
+  },
+  {
+   "expr": "other",
+   "kind": "weights",
+   "expect": {
+    "verdict": "review",
+    "reasons": [
+     "NEEDS_HUMAN_REVIEW"
+    ]
+   }
+  },
+  {
+   "expr": "research-only",
+   "kind": "weights",
+   "expect": {
+    "verdict": "deny",
+    "reasons": [
+     "RESTRICTED_USE"
+    ]
+   }
+  },
+  {
+   "expr": "LicenseRef-Public-Domain",
+   "kind": "data",
+   "expect": {
+    "verdict": "allow",
+    "reasons": []
+   }
+  },
+  {
+   "expr": "LicenseRef-Own-Footage",
+   "kind": "data",
+   "expect": {
+    "verdict": "allow",
+    "reasons": []
+   }
+  },
+  {
+   "expr": "LicenseRef-Own-Work",
+   "kind": "weights",
+   "expect": {
+    "verdict": "allow",
+    "reasons": []
+   }
+  },
+  {
+   "expr": "LicenseRef-CC-Unspecified",
+   "kind": "data",
+   "expect": {
+    "verdict": "review",
+    "reasons": [
+     "NEEDS_HUMAN_REVIEW"
+    ]
+   }
+  },
+  {
+   "expr": "LicenseRef-ClipShots-Unstated",
+   "kind": "data",
+   "expect": {
+    "verdict": "review",
+    "reasons": [
+     "NEEDS_HUMAN_REVIEW"
+    ]
+   }
+  },
+  {
+   "expr": "",
+   "kind": "code",
+   "expect": {
+    "verdict": "deny",
+    "reasons": [
+     "NO_LICENSE_GRANT"
+    ]
+   }
+  },
+  {
+   "expr": "   ",
+   "kind": "weights",
+   "expect": {
+    "verdict": "deny",
+    "reasons": [
+     "NO_LICENSE_GRANT"
+    ]
+   }
+  },
+  {
+   "expr": "none",
+   "kind": "weights",
+   "expect": {
+    "verdict": "deny",
+    "reasons": [
+     "NO_LICENSE_GRANT"
+    ]
+   }
+  },
+  {
+   "expr": "SomethingNew-1.0",
+   "kind": "code",
+   "expect": {
+    "verdict": "review",
+    "reasons": [
+     "LICENSE_UNKNOWN"
+    ]
+   }
+  },
+  {
+   "expr": "MIT OR GPL-3.0-only",
+   "kind": "code",
+   "expect": {
+    "verdict": "allow",
+    "reasons": []
+   }
+  },
+  {
+   "expr": "GPL-3.0-only OR MIT",
+   "kind": "code",
+   "expect": {
+    "verdict": "allow",
+    "reasons": []
+   }
+  },
+  {
+   "expr": "MIT AND CC-BY-NC-4.0",
+   "kind": "weights",
+   "expect": {
+    "verdict": "deny",
+    "reasons": [
+     "NON_COMMERCIAL"
+    ]
+   }
+  },
+  {
+   "expr": "MIT AND Apache-2.0",
+   "kind": "code",
+   "expect": {
+    "verdict": "allow",
+    "reasons": []
+   }
+  },
+  {
+   "expr": "MIT OR Apache-2.0 AND GPL-2.0-only",
+   "kind": "code",
+   "expect": {
+    "verdict": "allow",
+    "reasons": []
+   }
+  },
+  {
+   "expr": "(MIT OR GPL-2.0-only) AND BSD-3-Clause",
+   "kind": "code",
+   "expect": {
+    "verdict": "allow",
+    "reasons": []
+   }
+  },
+  {
+   "expr": "GPL-2.0-or-later WITH Classpath-exception-2.0",
+   "kind": "code",
+   "expect": {
+    "verdict": "conditional",
+    "reasons": [
+     "COPYLEFT_CONDITIONS"
+    ]
+   }
+  },
+  {
+   "expr": "MIT WITH",
+   "kind": "code",
+   "expect": {
+    "verdict": "deny",
+    "reasons": [
+     "EXPR_INVALID"
+    ]
+   }
+  },
+  {
+   "expr": "MIT AND",
+   "kind": "code",
+   "expect": {
+    "verdict": "deny",
+    "reasons": [
+     "EXPR_INVALID"
+    ]
+   }
+  },
+  {
+   "expr": "(MIT",
+   "kind": "code",
+   "expect": {
+    "verdict": "deny",
+    "reasons": [
+     "EXPR_INVALID"
+    ]
+   }
+  },
+  {
+   "expr": "MIT)",
+   "kind": "code",
+   "expect": {
+    "verdict": "deny",
+    "reasons": [
+     "EXPR_INVALID"
+    ]
+   }
+  },
+  {
+   "expr": "MIT MIT",
+   "kind": "code",
+   "expect": {
+    "verdict": "deny",
+    "reasons": [
+     "EXPR_INVALID"
+    ]
+   }
+  },
+  {
+   "expr": "mit or apache-2.0",
+   "kind": "weights",
+   "expect": {
+    "verdict": "allow",
+    "reasons": []
+   }
+  },
+  {
+   "expr": "Apache-2.0 AND LicenseRef-CC-Unspecified",
+   "kind": "data",
+   "expect": {
+    "verdict": "review",
+    "reasons": [
+     "NEEDS_HUMAN_REVIEW"
+    ]
+   }
+  },
+  {
+   "expr": "MIT",
+   "kind": "model",
+   "expect": {
+    "error": "KIND_INVALID"
+   }
+  }
+ ],
+ "model_gate": [
+  {
+   "entry": {
+    "code_license": "MIT",
+    "weights_license": "MIT",
+    "training_data_license": "CC-BY-4.0",
+    "redistribution_policy": "allowed"
+   },
+   "expect": {
+    "eligible": true,
+    "reasons": []
+   }
+  },
+  {
+   "entry": {
+    "code_license": "MIT",
+    "weights_license": "MIT",
+    "training_data_license": "CC-BY-4.0",
+    "redistribution_policy": "restricted"
+   },
+   "expect": {
+    "eligible": true,
+    "reasons": []
+   }
+  },
+  {
+   "entry": {
+    "code_license": "MIT",
+    "weights_license": "MIT",
+    "training_data_license": "CC-BY-4.0",
+    "redistribution_policy": "unresolved"
+   },
+   "expect": {
+    "eligible": false,
+    "reasons": [
+     "REDISTRIBUTION_UNRESOLVED"
+    ]
+   }
+  },
+  {
+   "entry": {
+    "code_license": "MIT",
+    "weights_license": "MIT",
+    "training_data_license": null,
+    "redistribution_policy": "allowed"
+   },
+   "expect": {
+    "eligible": false,
+    "reasons": [
+     "DATA_NOT_RECORDED"
+    ]
+   }
+  },
+  {
+   "entry": {
+    "code_license": "MIT",
+    "weights_license": "MIT",
+    "training_data_license": "",
+    "redistribution_policy": "allowed"
+   },
+   "expect": {
+    "eligible": false,
+    "reasons": [
+     "DATA_NOT_RECORDED"
+    ]
+   }
+  },
+  {
+   "entry": {
+    "code_license": "MIT",
+    "weights_license": "MIT",
+    "training_data_license": "LicenseRef-CC-Unspecified AND LicenseRef-ClipShots-Unstated",
+    "redistribution_policy": "allowed"
+   },
+   "expect": {
+    "eligible": false,
+    "reasons": [
+     "DATA_REVIEW"
+    ]
+   }
+  },
+  {
+   "entry": {
+    "code_license": "MIT",
+    "weights_license": "MIT",
+    "training_data_license": "CC-BY-NC-4.0",
+    "redistribution_policy": "allowed"
+   },
+   "expect": {
+    "eligible": false,
+    "reasons": [
+     "DATA_DENY"
+    ]
+   }
+  },
+  {
+   "entry": {
+    "code_license": "MIT",
+    "weights_license": "CreativeML-OpenRAIL-M",
+    "training_data_license": "CC-BY-4.0",
+    "redistribution_policy": "allowed"
+   },
+   "expect": {
+    "eligible": false,
+    "reasons": [
+     "WEIGHTS_REVIEW"
+    ]
+   }
+  },
+  {
+   "entry": {
+    "code_license": "MIT",
+    "weights_license": "LGPL-2.1-or-later",
+    "training_data_license": "CC-BY-4.0",
+    "redistribution_policy": "allowed"
+   },
+   "expect": {
+    "eligible": false,
+    "reasons": [
+     "WEIGHTS_REVIEW"
+    ]
+   }
+  },
+  {
+   "entry": {
+    "code_license": "LGPL-2.1-or-later",
+    "weights_license": "MIT",
+    "training_data_license": "CC-BY-4.0",
+    "redistribution_policy": "allowed"
+   },
+   "expect": {
+    "eligible": true,
+    "reasons": []
+   }
+  },
+  {
+   "entry": {
+    "code_license": "AGPL-3.0-only",
+    "weights_license": "none",
+    "training_data_license": "unknown",
+    "redistribution_policy": "unresolved"
+   },
+   "expect": {
+    "eligible": false,
+    "reasons": [
+     "CODE_DENY",
+     "WEIGHTS_DENY",
+     "DATA_DENY",
+     "REDISTRIBUTION_UNRESOLVED"
+    ]
+   }
+  },
+  {
+   "entry": {
+    "code_license": "Apache-2.0",
+    "weights_license": "Apache-2.0",
+    "training_data_license": "LicenseRef-Own-Footage AND CC0-1.0",
+    "redistribution_policy": "allowed"
+   },
+   "expect": {
+    "eligible": true,
+    "reasons": []
+   }
+  },
+  {
+   "entry": {
+    "code_license": "MIT",
+    "weights_license": "LicenseRef-Own-Work",
+    "training_data_license": "CC-BY-3.0 AND CC-BY-4.0 AND CC0-1.0 AND LicenseRef-Own-Footage",
+    "redistribution_policy": "allowed"
+   },
+   "expect": {
+    "eligible": true,
+    "reasons": []
+   }
+  },
+  {
+   "entry": {
+    "code_license": "MIT",
+    "weights_license": "LicenseRef-Own-Work",
+    "training_data_license": "CC-BY-3.0 AND LicenseRef-CC-Unspecified",
+    "redistribution_policy": "allowed"
+   },
+   "expect": {
+    "eligible": false,
+    "reasons": [
+     "DATA_REVIEW"
+    ]
+   }
+  }
+ ],
+ "ffmpeg_build": [
+  {
+   "buildconf": "--prefix=/opt/ffmpeg --disable-gpl --disable-nonfree --enable-version3 --enable-ffnvcodec --enable-nvenc --enable-shared --disable-static",
+   "profile": "lgpl",
+   "expect": {
+    "ok": true,
+    "violations": []
+   }
+  },
+  {
+   "buildconf": "--prefix=/opt/ffmpeg --disable-gpl --disable-nonfree --enable-version3 --enable-ffnvcodec --enable-nvenc --enable-shared --disable-static",
+   "profile": "gpl_internal",
+   "expect": {
+    "ok": true,
+    "violations": []
+   }
+  },
+  {
+   "buildconf": "",
+   "profile": "lgpl",
+   "expect": {
+    "ok": true,
+    "violations": []
+   }
+  },
+  {
+   "buildconf": "configuration: --enable-gpl --enable-libx264",
+   "profile": "lgpl",
+   "expect": {
+    "ok": false,
+    "violations": [
+     "GPL:--enable-gpl",
+     "GPL:--enable-libx264"
+    ]
+   }
+  },
+  {
+   "buildconf": "configuration: --enable-gpl --enable-libx264",
+   "profile": "gpl_internal",
+   "expect": {
+    "ok": true,
+    "violations": []
+   }
+  },
+  {
+   "buildconf": "--enable-nonfree --enable-libfdk-aac",
+   "profile": "gpl_internal",
+   "expect": {
+    "ok": false,
+    "violations": [
+     "NONFREE:--enable-nonfree",
+     "NONFREE:--enable-libfdk-aac"
+    ]
+   }
+  },
+  {
+   "buildconf": "--enable-nonfree --enable-libfdk_aac",
+   "profile": "lgpl",
+   "expect": {
+    "ok": false,
+    "violations": [
+     "NONFREE:--enable-nonfree",
+     "NONFREE:--enable-libfdk_aac"
+    ]
+   }
+  },
+  {
+   "buildconf": "--enable-openssl --enable-libnpp --enable-cuda-nvcc",
+   "profile": "lgpl",
+   "expect": {
+    "ok": false,
+    "violations": [
+     "NONFREE:--enable-openssl",
+     "NONFREE:--enable-libnpp",
+     "NONFREE:--enable-cuda-nvcc"
+    ]
+   }
+  },
+  {
+   "buildconf": "--enable-libx264=shared --enable-libx265",
+   "profile": "lgpl",
+   "expect": {
+    "ok": false,
+    "violations": [
+     "GPL:--enable-libx264=shared",
+     "GPL:--enable-libx265"
+    ]
+   }
+  },
+  {
+   "buildconf": "--enable-libx264 --enable-libx264",
+   "profile": "lgpl",
+   "expect": {
+    "ok": false,
+    "violations": [
+     "GPL:--enable-libx264"
+    ]
+   }
+  },
+  {
+   "buildconf": "--disable-gpl --disable-libx264 --disable-nonfree",
+   "profile": "lgpl",
+   "expect": {
+    "ok": true,
+    "violations": []
+   }
+  },
+  {
+   "buildconf": "--enable-libopenh264 --enable-libvpx --enable-libsvtav1 --enable-libopus",
+   "profile": "lgpl",
+   "expect": {
+    "ok": true,
+    "violations": []
+   }
+  },
+  {
+   "buildconf": "--enable-postproc --enable-libvidstab --enable-librubberband --enable-frei0r",
+   "profile": "lgpl",
+   "expect": {
+    "ok": false,
+    "violations": [
+     "GPL:--enable-postproc",
+     "GPL:--enable-libvidstab",
+     "GPL:--enable-librubberband",
+     "GPL:--enable-frei0r"
+    ]
+   }
+  },
+  {
+   "buildconf": "--enable-postproc --enable-libvidstab",
+   "profile": "gpl_internal",
+   "expect": {
+    "ok": true,
+    "violations": []
+   }
+  },
+  {
+   "buildconf": "--ENABLE-GPL",
+   "profile": "lgpl",
+   "expect": {
+    "ok": false,
+    "violations": [
+     "GPL:--ENABLE-GPL"
+    ]
+   }
+  },
+  {
+   "buildconf": "--enable-GPL",
+   "profile": "lgpl",
+   "expect": {
+    "ok": false,
+    "violations": [
+     "GPL:--enable-GPL"
+    ]
+   }
+  },
+  {
+   "buildconf": "enable-gpl",
+   "profile": "lgpl",
+   "expect": {
+    "ok": true,
+    "violations": []
+   }
+  },
+  {
+   "buildconf": "--enable-gpl",
+   "profile": "windows",
+   "expect": {
+    "error": "PROFILE_INVALID"
+   }
+  },
+  {
+   "buildconf": "--enable-decklink --enable-gpl",
+   "profile": "lgpl",
+   "expect": {
+    "ok": false,
+    "violations": [
+     "NONFREE:--enable-decklink",
+     "GPL:--enable-gpl"
+    ]
+   }
+  },
+  {
+   "buildconf": "--enable-libxavs2 --enable-libdavs2 --enable-libxvid --enable-libcdio",
+   "profile": "lgpl",
+   "expect": {
+    "ok": false,
+    "violations": [
+     "GPL:--enable-libxavs2",
+     "GPL:--enable-libdavs2",
+     "GPL:--enable-libxvid",
+     "GPL:--enable-libcdio"
+    ]
+   }
+  }
+ ]
+}

@@ -1,0 +1,268 @@
+[
+ {
+  "id": "F1-01",
+  "pred": [
+   {
+    "kind": "cut",
+    "frame_in": 50,
+    "frame_out": 50
+   },
+   {
+    "kind": "cut",
+    "frame_in": 100,
+    "frame_out": 100
+   }
+  ],
+  "gt": [
+   {
+    "kind": "cut",
+    "frame_in": 50,
+    "frame_out": 50
+   },
+   {
+    "kind": "cut",
+    "frame_in": 100,
+    "frame_out": 100
+   }
+  ],
+  "expect": {
+   "tp": 2,
+   "fp": 0,
+   "fn": 0,
+   "precision": 1.0,
+   "recall": 1.0,
+   "f1": 1.0
+  }
+ },
+ {
+  "id": "F1-02",
+  "pred": [
+   {
+    "kind": "cut",
+    "frame_in": 52,
+    "frame_out": 52
+   }
+  ],
+  "gt": [
+   {
+    "kind": "cut",
+    "frame_in": 50,
+    "frame_out": 50
+   }
+  ],
+  "expect": {
+   "tp": 1,
+   "fp": 0,
+   "fn": 0,
+   "precision": 1.0,
+   "recall": 1.0,
+   "f1": 1.0
+  }
+ },
+ {
+  "id": "F1-03",
+  "pred": [
+   {
+    "kind": "cut",
+    "frame_in": 53,
+    "frame_out": 53
+   }
+  ],
+  "gt": [
+   {
+    "kind": "cut",
+    "frame_in": 50,
+    "frame_out": 50
+   }
+  ],
+  "expect": {
+   "tp": 0,
+   "fp": 1,
+   "fn": 1,
+   "precision": 0.0,
+   "recall": 0.0,
+   "f1": 0.0
+  }
+ },
+ {
+  "id": "F1-04",
+  "pred": [],
+  "gt": [],
+  "expect": {
+   "tp": 0,
+   "fp": 0,
+   "fn": 0,
+   "precision": 1.0,
+   "recall": 1.0,
+   "f1": 1.0
+  }
+ },
+ {
+  "id": "F1-05",
+  "pred": [
+   {
+    "kind": "cut",
+    "frame_in": 50,
+    "frame_out": 50
+   }
+  ],
+  "gt": [],
+  "expect": {
+   "tp": 0,
+   "fp": 1,
+   "fn": 0,
+   "precision": 0.0,
+   "recall": 0.0,
+   "f1": 0.0
+  }
+ },
+ {
+  "id": "F1-06",
+  "pred": [],
+  "gt": [
+   {
+    "kind": "cut",
+    "frame_in": 50,
+    "frame_out": 50
+   }
+  ],
+  "expect": {
+   "tp": 0,
+   "fp": 0,
+   "fn": 1,
+   "precision": 0.0,
+   "recall": 0.0,
+   "f1": 0.0
+  }
+ },
+ {
+  "id": "F1-07",
+  "pred": [
+   {
+    "kind": "cut",
+    "frame_in": 50,
+    "frame_out": 50
+   },
+   {
+    "kind": "cut",
+    "frame_in": 51,
+    "frame_out": 51
+   }
+  ],
+  "gt": [
+   {
+    "kind": "cut",
+    "frame_in": 50,
+    "frame_out": 50
+   }
+  ],
+  "expect": {
+   "tp": 1,
+   "fp": 1,
+   "fn": 0,
+   "precision": 0.5,
+   "recall": 1.0,
+   "f1": 0.6667
+  }
+ },
+ {
+  "id": "F1-08",
+  "pred": [
+   {
+    "kind": "dissolve",
+    "frame_in": 100,
+    "frame_out": 110
+   }
+  ],
+  "gt": [
+   {
+    "kind": "dissolve",
+    "frame_in": 104,
+    "frame_out": 114
+   }
+  ],
+  "expect": {
+   "tp": 1,
+   "fp": 0,
+   "fn": 0,
+   "precision": 1.0,
+   "recall": 1.0,
+   "f1": 1.0
+  }
+ },
+ {
+  "id": "F1-09",
+  "pred": [
+   {
+    "kind": "dissolve",
+    "frame_in": 100,
+    "frame_out": 110
+   }
+  ],
+  "gt": [
+   {
+    "kind": "dissolve",
+    "frame_in": 108,
+    "frame_out": 118
+   }
+  ],
+  "expect": {
+   "tp": 0,
+   "fp": 1,
+   "fn": 1,
+   "precision": 0.0,
+   "recall": 0.0,
+   "f1": 0.0
+  }
+ },
+ {
+  "id": "F1-10",
+  "pred": [
+   {
+    "kind": "cut",
+    "frame_in": 50,
+    "frame_out": 50
+   },
+   {
+    "kind": "dissolve",
+    "frame_in": 100,
+    "frame_out": 110
+   },
+   {
+    "kind": "fade_out",
+    "frame_in": 200,
+    "frame_out": 210
+   },
+   {
+    "kind": "flash",
+    "frame_in": 30,
+    "frame_out": 30
+   }
+  ],
+  "gt": [
+   {
+    "kind": "cut",
+    "frame_in": 50,
+    "frame_out": 50
+   },
+   {
+    "kind": "dissolve",
+    "frame_in": 101,
+    "frame_out": 111
+   },
+   {
+    "kind": "cut",
+    "frame_in": 150,
+    "frame_out": 150
+   }
+  ],
+  "expect": {
+   "tp": 2,
+   "fp": 1,
+   "fn": 1,
+   "precision": 0.6667,
+   "recall": 0.6667,
+   "f1": 0.6667
+  }
+ }
+]

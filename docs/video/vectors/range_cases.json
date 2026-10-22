@@ -1,0 +1,136 @@
+{
+ "schema": "range_cases/1",
+ "note": "status 200 = whole object, 206 = partial, 416 = error (Content-Range: bytes */size)",
+ "cases": [
+  {
+   "id": "TC-G-RNG-01",
+   "header": "",
+   "size": 1000,
+   "expect": {
+    "status": 200,
+    "start": 0,
+    "end": 999
+   }
+  },
+  {
+   "id": "TC-G-RNG-02",
+   "header": "bytes=0-99",
+   "size": 1000,
+   "expect": {
+    "status": 206,
+    "start": 0,
+    "end": 99
+   }
+  },
+  {
+   "id": "TC-G-RNG-03",
+   "header": "bytes=900-",
+   "size": 1000,
+   "expect": {
+    "status": 206,
+    "start": 900,
+    "end": 999
+   }
+  },
+  {
+   "id": "TC-G-RNG-04",
+   "header": "bytes=-100",
+   "size": 1000,
+   "expect": {
+    "status": 206,
+    "start": 900,
+    "end": 999
+   }
+  },
+  {
+   "id": "TC-G-RNG-05",
+   "header": "bytes=0-5000",
+   "size": 1000,
+   "expect": {
+    "status": 206,
+    "start": 0,
+    "end": 999
+   }
+  },
+  {
+   "id": "TC-G-RNG-06",
+   "header": "bytes=1000-",
+   "size": 1000,
+   "expect": {
+    "status": 416,
+    "start": null,
+    "end": null
+   }
+  },
+  {
+   "id": "TC-G-RNG-07",
+   "header": "bytes=-0",
+   "size": 1000,
+   "expect": {
+    "status": 416,
+    "start": null,
+    "end": null
+   }
+  },
+  {
+   "id": "TC-G-RNG-08",
+   "header": "bytes=5-2",
+   "size": 1000,
+   "expect": {
+    "status": 416,
+    "start": null,
+    "end": null
+   }
+  },
+  {
+   "id": "TC-G-RNG-09",
+   "header": "bytes=0-1,5-6",
+   "size": 1000,
+   "expect": {
+    "status": 416,
+    "start": null,
+    "end": null
+   }
+  },
+  {
+   "id": "TC-G-RNG-10",
+   "header": "items=0-1",
+   "size": 1000,
+   "expect": {
+    "status": 416,
+    "start": null,
+    "end": null
+   }
+  },
+  {
+   "id": "TC-G-RNG-11",
+   "header": "bytes=a-b",
+   "size": 1000,
+   "expect": {
+    "status": 416,
+    "start": null,
+    "end": null
+   }
+  },
+  {
+   "id": "TC-G-RNG-12",
+   "header": "bytes=-5000",
+   "size": 1000,
+   "expect": {
+    "status": 206,
+    "start": 0,
+    "end": 999
+   }
+  },
+  {
+   "id": "TC-G-RNG-13",
+   "header": "bytes=0-0",
+   "size": 0,
+   "expect": {
+    "status": 416,
+    "start": null,
+    "end": null
+   }
+  }
+ ]
+}

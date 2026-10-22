@@ -1,0 +1,152 @@
+{
+ "schema": "cube_cases/1",
+ "generators": {
+  "identity": "LUT_3D_SIZE N then N^3 rows; row index k=r+N*g+N*N*b has value r/(N-1) g/(N-1) b/(N-1) formatted %.6f; drop_rows removes that many rows from the end; replace_row replaces the row at index",
+  "header_only": "only the line LUT_3D_SIZE N",
+  "pad_comment": "a comment line # followed by x characters so that the total file size equals bytes, then LUT_3D_SIZE 17",
+  "text": "literal"
+ },
+ "cases": [
+  {
+   "id": "TC-L-CUBE-00",
+   "kind": "valid",
+   "gen": {
+    "kind": "identity",
+    "size": 17
+   },
+   "expect": {
+    "ok": true,
+    "size": 17
+   }
+  },
+  {
+   "id": "TC-L-CUBE-01",
+   "desc": "size 16 below minimum 17",
+   "gen": {
+    "kind": "identity",
+    "size": 16
+   },
+   "expect": {
+    "ok": false,
+    "error": "LUT_INVALID"
+   }
+  },
+  {
+   "id": "TC-L-CUBE-02",
+   "desc": "size 66 above maximum 65",
+   "gen": {
+    "kind": "header_only",
+    "size": 66
+   },
+   "expect": {
+    "ok": false,
+    "error": "LUT_INVALID"
+   }
+  },
+  {
+   "id": "TC-L-CUBE-03",
+   "desc": "one row missing",
+   "gen": {
+    "kind": "identity",
+    "size": 17,
+    "drop_rows": 1
+   },
+   "expect": {
+    "ok": false,
+    "error": "LUT_INVALID"
+   }
+  },
+  {
+   "id": "TC-L-CUBE-04",
+   "desc": "NaN value",
+   "gen": {
+    "kind": "identity",
+    "size": 17,
+    "replace_row": {
+     "index": 5,
+     "text": "nan 0.5 0.5"
+    }
+   },
+   "expect": {
+    "ok": false,
+    "error": "LUT_INVALID"
+   }
+  },
+  {
+   "id": "TC-L-CUBE-05",
+   "desc": "value 1.5 outside default domain [0;1]",
+   "gen": {
+    "kind": "identity",
+    "size": 17,
+    "replace_row": {
+     "index": 5,
+     "text": "1.5 0.5 0.5"
+    }
+   },
+   "expect": {
+    "ok": false,
+    "error": "LUT_INVALID"
+   }
+  },
+  {
+   "id": "TC-L-CUBE-06",
+   "desc": "1D LUT not supported",
+   "gen": {
+    "kind": "text",
+    "text": "TITLE \"x\"\nLUT_1D_SIZE 1024\n0 0 0\n"
+   },
+   "expect": {
+    "ok": false,
+    "error": "LUT_INVALID"
+   }
+  },
+  {
+   "id": "TC-L-CUBE-07",
+   "desc": "file larger than 20 MiB",
+   "gen": {
+    "kind": "pad_comment",
+    "bytes": 20971521
+   },
+   "expect": {
+    "ok": false,
+    "error": "LUT_INVALID"
+   }
+  },
+  {
+   "id": "TC-L-CUBE-08",
+   "desc": "line longer than 256 characters",
+   "gen": {
+    "kind": "text",
+    "text": "# xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nLUT_3D_SIZE 17\n"
+   },
+   "expect": {
+    "ok": false,
+    "error": "LUT_INVALID"
+   }
+  },
+  {
+   "id": "TC-L-CUBE-09",
+   "desc": "empty file",
+   "gen": {
+    "kind": "text",
+    "text": ""
+   },
+   "expect": {
+    "ok": false,
+    "error": "LUT_INVALID"
+   }
+  },
+  {
+   "id": "TC-L-CUBE-10",
+   "desc": "not a cube file",
+   "gen": {
+    "kind": "text",
+    "text": "abc"
+   },
+   "expect": {
+    "ok": false,
+    "error": "LUT_INVALID"
+   }
+  }
+ ]
+}

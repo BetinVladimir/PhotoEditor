@@ -1,0 +1,1524 @@
+{
+ "base": {
+  "video": {
+   "fps": {
+    "num": 25,
+    "den": 1
+   }
+  },
+  "tracks": [
+   {
+    "id": "V1",
+    "kind": "video",
+    "clips": [
+     {
+      "id": "c1",
+      "source": {
+       "kind": "video",
+       "media_id": "m1"
+      },
+      "at": 0,
+      "src_in": 0,
+      "src_out": 7056000000,
+      "speed": {
+       "num": 1,
+       "den": 1
+      },
+      "effects": [
+       {
+        "id": "e1",
+        "type": "color.basic",
+        "enabled": true,
+        "params": {}
+       }
+      ],
+      "transition_in": {
+       "kind": "crossfade",
+       "duration": 705600000,
+       "align": "center"
+      }
+     },
+     {
+      "id": "c2",
+      "source": {
+       "kind": "video",
+       "media_id": "m1"
+      },
+      "at": 7056000000,
+      "src_in": 3528000000,
+      "src_out": 6350400000,
+      "speed": {
+       "num": 1,
+       "den": 1
+      },
+      "effects": []
+     }
+    ]
+   },
+   {
+    "id": "A1",
+    "kind": "audio",
+    "clips": []
+   }
+  ]
+ },
+ "cases": [
+  {
+   "id": "SP-01",
+   "op": "split_clip",
+   "args": {
+    "clip": "c1",
+    "at": 2822400000,
+    "new_id": "c1b"
+   },
+   "expect": {
+    "doc": {
+     "video": {
+      "fps": {
+       "num": 25,
+       "den": 1
+      }
+     },
+     "tracks": [
+      {
+       "id": "V1",
+       "kind": "video",
+       "clips": [
+        {
+         "id": "c1",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 0,
+         "src_in": 0,
+         "src_out": 2822400000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": [
+          {
+           "id": "e1",
+           "type": "color.basic",
+           "enabled": true,
+           "params": {}
+          }
+         ],
+         "transition_in": {
+          "kind": "crossfade",
+          "duration": 705600000,
+          "align": "center"
+         }
+        },
+        {
+         "id": "c1b",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 2822400000,
+         "src_in": 2822400000,
+         "src_out": 7056000000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": [
+          {
+           "id": "c1b-e1",
+           "type": "color.basic",
+           "enabled": true,
+           "params": {}
+          }
+         ]
+        },
+        {
+         "id": "c2",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 7056000000,
+         "src_in": 3528000000,
+         "src_out": 6350400000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": []
+        }
+       ]
+      },
+      {
+       "id": "A1",
+       "kind": "audio",
+       "clips": []
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "SP-02",
+   "op": "split_clip",
+   "args": {
+    "clip": "c1",
+    "at": 0,
+    "new_id": "x"
+   },
+   "expect": {
+    "error": "SPLIT_OUT_OF_RANGE"
+   }
+  },
+  {
+   "id": "SP-03",
+   "op": "split_clip",
+   "args": {
+    "clip": "c1",
+    "at": 7056000000,
+    "new_id": "x"
+   },
+   "expect": {
+    "error": "SPLIT_OUT_OF_RANGE"
+   }
+  },
+  {
+   "id": "SP-04",
+   "op": "split_clip",
+   "args": {
+    "clip": "c1",
+    "at": 2822400001,
+    "new_id": "x"
+   },
+   "expect": {
+    "error": "SPLIT_NOT_ALIGNED"
+   }
+  },
+  {
+   "id": "SP-05",
+   "op": "split_clip",
+   "args": {
+    "clip": "nope",
+    "at": 2822400000,
+    "new_id": "x"
+   },
+   "expect": {
+    "error": "CLIP_NOT_FOUND"
+   }
+  },
+  {
+   "id": "SP-06",
+   "op": "split_clip(after set_speed c2 2/1)",
+   "args": {
+    "clip": "c2",
+    "at": 7761600000,
+    "new_id": "c2b"
+   },
+   "expect": {
+    "doc": {
+     "video": {
+      "fps": {
+       "num": 25,
+       "den": 1
+      }
+     },
+     "tracks": [
+      {
+       "id": "V1",
+       "kind": "video",
+       "clips": [
+        {
+         "id": "c1",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 0,
+         "src_in": 0,
+         "src_out": 7056000000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": [
+          {
+           "id": "e1",
+           "type": "color.basic",
+           "enabled": true,
+           "params": {}
+          }
+         ],
+         "transition_in": {
+          "kind": "crossfade",
+          "duration": 705600000,
+          "align": "center"
+         }
+        },
+        {
+         "id": "c2",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 7056000000,
+         "src_in": 3528000000,
+         "src_out": 4939200000,
+         "speed": {
+          "num": 2,
+          "den": 1
+         },
+         "effects": []
+        },
+        {
+         "id": "c2b",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 7761600000,
+         "src_in": 4939200000,
+         "src_out": 6350400000,
+         "speed": {
+          "num": 2,
+          "den": 1
+         },
+         "effects": []
+        }
+       ]
+      },
+      {
+       "id": "A1",
+       "kind": "audio",
+       "clips": []
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "TR-01",
+   "op": "trim_edge",
+   "args": {
+    "clip": "c1",
+    "edge": "out",
+    "pos": 5644800000,
+    "source_duration": 14112000000
+   },
+   "expect": {
+    "doc": {
+     "video": {
+      "fps": {
+       "num": 25,
+       "den": 1
+      }
+     },
+     "tracks": [
+      {
+       "id": "V1",
+       "kind": "video",
+       "clips": [
+        {
+         "id": "c1",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 0,
+         "src_in": 0,
+         "src_out": 5644800000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": [
+          {
+           "id": "e1",
+           "type": "color.basic",
+           "enabled": true,
+           "params": {}
+          }
+         ],
+         "transition_in": {
+          "kind": "crossfade",
+          "duration": 705600000,
+          "align": "center"
+         }
+        },
+        {
+         "id": "c2",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 7056000000,
+         "src_in": 3528000000,
+         "src_out": 6350400000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": []
+        }
+       ]
+      },
+      {
+       "id": "A1",
+       "kind": "audio",
+       "clips": []
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "TR-02",
+   "op": "trim_edge",
+   "args": {
+    "clip": "c1",
+    "edge": "in",
+    "pos": 1411200000,
+    "source_duration": 14112000000
+   },
+   "expect": {
+    "doc": {
+     "video": {
+      "fps": {
+       "num": 25,
+       "den": 1
+      }
+     },
+     "tracks": [
+      {
+       "id": "V1",
+       "kind": "video",
+       "clips": [
+        {
+         "id": "c1",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 1411200000,
+         "src_in": 1411200000,
+         "src_out": 7056000000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": [
+          {
+           "id": "e1",
+           "type": "color.basic",
+           "enabled": true,
+           "params": {}
+          }
+         ],
+         "transition_in": {
+          "kind": "crossfade",
+          "duration": 705600000,
+          "align": "center"
+         }
+        },
+        {
+         "id": "c2",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 7056000000,
+         "src_in": 3528000000,
+         "src_out": 6350400000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": []
+        }
+       ]
+      },
+      {
+       "id": "A1",
+       "kind": "audio",
+       "clips": []
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "TR-03",
+   "op": "trim_edge",
+   "args": {
+    "clip": "c1",
+    "edge": "out",
+    "pos": 7761600000,
+    "source_duration": 14112000000
+   },
+   "expect": {
+    "error": "TRIM_OVERLAP"
+   }
+  },
+  {
+   "id": "TR-04",
+   "op": "trim_edge",
+   "args": {
+    "clip": "c2",
+    "edge": "out",
+    "pos": 14817600000,
+    "source_duration": 6350400000
+   },
+   "expect": {
+    "error": "TRIM_BEYOND_SOURCE"
+   }
+  },
+  {
+   "id": "TR-05",
+   "op": "trim_edge",
+   "args": {
+    "clip": "c2",
+    "edge": "in",
+    "pos": 6350400000,
+    "source_duration": 14112000000
+   },
+   "expect": {
+    "error": "TRIM_OVERLAP"
+   }
+  },
+  {
+   "id": "TR-06",
+   "op": "trim_edge",
+   "args": {
+    "clip": "c1",
+    "edge": "out",
+    "pos": 0,
+    "source_duration": 14112000000
+   },
+   "expect": {
+    "error": "TRIM_EMPTY"
+   }
+  },
+  {
+   "id": "TR-07",
+   "op": "trim_edge",
+   "args": {
+    "clip": "c1",
+    "edge": "out",
+    "pos": 5644800001,
+    "source_duration": 14112000000
+   },
+   "expect": {
+    "error": "TRIM_NOT_ALIGNED"
+   }
+  },
+  {
+   "id": "MV-01",
+   "op": "move_clip",
+   "args": {
+    "clip": "c2",
+    "new_at": 8467200000
+   },
+   "expect": {
+    "doc": {
+     "video": {
+      "fps": {
+       "num": 25,
+       "den": 1
+      }
+     },
+     "tracks": [
+      {
+       "id": "V1",
+       "kind": "video",
+       "clips": [
+        {
+         "id": "c1",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 0,
+         "src_in": 0,
+         "src_out": 7056000000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": [
+          {
+           "id": "e1",
+           "type": "color.basic",
+           "enabled": true,
+           "params": {}
+          }
+         ],
+         "transition_in": {
+          "kind": "crossfade",
+          "duration": 705600000,
+          "align": "center"
+         }
+        },
+        {
+         "id": "c2",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 8467200000,
+         "src_in": 3528000000,
+         "src_out": 6350400000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": []
+        }
+       ]
+      },
+      {
+       "id": "A1",
+       "kind": "audio",
+       "clips": []
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "MV-02",
+   "op": "move_clip",
+   "args": {
+    "clip": "c2",
+    "new_at": 6350400000
+   },
+   "expect": {
+    "error": "MOVE_OVERLAP"
+   }
+  },
+  {
+   "id": "MV-03",
+   "op": "move_clip",
+   "args": {
+    "clip": "c2",
+    "new_at": 8467200000,
+    "track": "A1"
+   },
+   "expect": {
+    "error": "MOVE_TRACK_KIND"
+   }
+  },
+  {
+   "id": "MV-04",
+   "op": "move_clip",
+   "args": {
+    "clip": "c2",
+    "new_at": -28224000
+   },
+   "expect": {
+    "error": "MOVE_NOT_ALIGNED"
+   }
+  },
+  {
+   "id": "DL-01",
+   "op": "delete_clip",
+   "args": {
+    "clip": "c1",
+    "ripple": false
+   },
+   "expect": {
+    "doc": {
+     "video": {
+      "fps": {
+       "num": 25,
+       "den": 1
+      }
+     },
+     "tracks": [
+      {
+       "id": "V1",
+       "kind": "video",
+       "clips": [
+        {
+         "id": "c2",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 7056000000,
+         "src_in": 3528000000,
+         "src_out": 6350400000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": []
+        }
+       ]
+      },
+      {
+       "id": "A1",
+       "kind": "audio",
+       "clips": []
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "DL-02",
+   "op": "delete_clip",
+   "args": {
+    "clip": "c1",
+    "ripple": true
+   },
+   "expect": {
+    "doc": {
+     "video": {
+      "fps": {
+       "num": 25,
+       "den": 1
+      }
+     },
+     "tracks": [
+      {
+       "id": "V1",
+       "kind": "video",
+       "clips": [
+        {
+         "id": "c2",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 0,
+         "src_in": 3528000000,
+         "src_out": 6350400000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": []
+        }
+       ]
+      },
+      {
+       "id": "A1",
+       "kind": "audio",
+       "clips": []
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "SS-01",
+   "op": "set_speed",
+   "args": {
+    "clip": "c2",
+    "num": 2,
+    "den": 1
+   },
+   "expect": {
+    "doc": {
+     "video": {
+      "fps": {
+       "num": 25,
+       "den": 1
+      }
+     },
+     "tracks": [
+      {
+       "id": "V1",
+       "kind": "video",
+       "clips": [
+        {
+         "id": "c1",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 0,
+         "src_in": 0,
+         "src_out": 7056000000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": [
+          {
+           "id": "e1",
+           "type": "color.basic",
+           "enabled": true,
+           "params": {}
+          }
+         ],
+         "transition_in": {
+          "kind": "crossfade",
+          "duration": 705600000,
+          "align": "center"
+         }
+        },
+        {
+         "id": "c2",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 7056000000,
+         "src_in": 3528000000,
+         "src_out": 6350400000,
+         "speed": {
+          "num": 2,
+          "den": 1
+         },
+         "effects": []
+        }
+       ]
+      },
+      {
+       "id": "A1",
+       "kind": "audio",
+       "clips": []
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "SS-02",
+   "op": "set_speed",
+   "args": {
+    "clip": "c1",
+    "num": 1,
+    "den": 3
+   },
+   "expect": {
+    "error": "SPEED_OVERLAP"
+   }
+  },
+  {
+   "id": "SS-03",
+   "op": "set_speed",
+   "args": {
+    "clip": "c1",
+    "num": 5,
+    "den": 1
+   },
+   "expect": {
+    "error": "SPEED_RANGE"
+   }
+  },
+  {
+   "id": "SS-04",
+   "op": "set_speed",
+   "args": {
+    "clip": "c2",
+    "num": 4,
+    "den": 2
+   },
+   "expect": {
+    "doc": {
+     "video": {
+      "fps": {
+       "num": 25,
+       "den": 1
+      }
+     },
+     "tracks": [
+      {
+       "id": "V1",
+       "kind": "video",
+       "clips": [
+        {
+         "id": "c1",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 0,
+         "src_in": 0,
+         "src_out": 7056000000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": [
+          {
+           "id": "e1",
+           "type": "color.basic",
+           "enabled": true,
+           "params": {}
+          }
+         ],
+         "transition_in": {
+          "kind": "crossfade",
+          "duration": 705600000,
+          "align": "center"
+         }
+        },
+        {
+         "id": "c2",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 7056000000,
+         "src_in": 3528000000,
+         "src_out": 6350400000,
+         "speed": {
+          "num": 2,
+          "den": 1
+         },
+         "effects": []
+        }
+       ]
+      },
+      {
+       "id": "A1",
+       "kind": "audio",
+       "clips": []
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "SS-05",
+   "op": "set_speed",
+   "args": {
+    "clip": "c2",
+    "num": 1,
+    "den": 5
+   },
+   "expect": {
+    "error": "SPEED_RANGE"
+   }
+  },
+  {
+   "id": "AC-01",
+   "op": "apply_cuts",
+   "args": {
+    "media_id": "m1",
+    "boundaries": [
+     {
+      "id": "b1",
+      "kind": "cut",
+      "start_ticks": 2116800000,
+      "end_ticks": 2116800000
+     },
+     {
+      "id": "b2",
+      "kind": "dissolve",
+      "start_ticks": 4233600000,
+      "end_ticks": 4939200000
+     },
+     {
+      "id": "b3",
+      "kind": "cut",
+      "start_ticks": 8467200000,
+      "end_ticks": 8467200000
+     }
+    ],
+    "accepted": [
+     "b1",
+     "b2"
+    ],
+    "mode": "split_at_start",
+    "new_ids": [
+     "n1",
+     "n2",
+     "n3"
+    ]
+   },
+   "expect": {
+    "doc": {
+     "video": {
+      "fps": {
+       "num": 25,
+       "den": 1
+      }
+     },
+     "tracks": [
+      {
+       "id": "V1",
+       "kind": "video",
+       "clips": [
+        {
+         "id": "c1",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 0,
+         "src_in": 0,
+         "src_out": 2116800000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": [
+          {
+           "id": "e1",
+           "type": "color.basic",
+           "enabled": true,
+           "params": {}
+          }
+         ],
+         "transition_in": {
+          "kind": "crossfade",
+          "duration": 705600000,
+          "align": "center"
+         }
+        },
+        {
+         "id": "n3",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 2116800000,
+         "src_in": 2116800000,
+         "src_out": 4233600000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": [
+          {
+           "id": "n3-e1",
+           "type": "color.basic",
+           "enabled": true,
+           "params": {}
+          }
+         ]
+        },
+        {
+         "id": "n1",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 4233600000,
+         "src_in": 4233600000,
+         "src_out": 7056000000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": [
+          {
+           "id": "n1-e1",
+           "type": "color.basic",
+           "enabled": true,
+           "params": {}
+          }
+         ]
+        },
+        {
+         "id": "c2",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 7056000000,
+         "src_in": 3528000000,
+         "src_out": 4233600000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": []
+        },
+        {
+         "id": "n2",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 7761600000,
+         "src_in": 4233600000,
+         "src_out": 6350400000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": []
+        }
+       ]
+      },
+      {
+       "id": "A1",
+       "kind": "audio",
+       "clips": []
+      }
+     ]
+    },
+    "applied": [
+     {
+      "boundary": "b2",
+      "clip": "c1",
+      "new": "n1",
+      "at": 4233600000
+     },
+     {
+      "boundary": "b2",
+      "clip": "c2",
+      "new": "n2",
+      "at": 7761600000
+     },
+     {
+      "boundary": "b1",
+      "clip": "c1",
+      "new": "n3",
+      "at": 2116800000
+     }
+    ]
+   }
+  },
+  {
+   "id": "AC-02",
+   "op": "apply_cuts",
+   "args": {
+    "media_id": "m1",
+    "boundaries": [
+     {
+      "id": "b1",
+      "kind": "cut",
+      "start_ticks": 2116800000,
+      "end_ticks": 2116800000
+     },
+     {
+      "id": "b2",
+      "kind": "dissolve",
+      "start_ticks": 4233600000,
+      "end_ticks": 4939200000
+     },
+     {
+      "id": "b3",
+      "kind": "cut",
+      "start_ticks": 8467200000,
+      "end_ticks": 8467200000
+     }
+    ],
+    "accepted": [
+     "b1",
+     "b2"
+    ],
+    "mode": "split_at_middle",
+    "new_ids": [
+     "n1",
+     "n2",
+     "n3"
+    ]
+   },
+   "expect": {
+    "doc": {
+     "video": {
+      "fps": {
+       "num": 25,
+       "den": 1
+      }
+     },
+     "tracks": [
+      {
+       "id": "V1",
+       "kind": "video",
+       "clips": [
+        {
+         "id": "c1",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 0,
+         "src_in": 0,
+         "src_out": 2116800000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": [
+          {
+           "id": "e1",
+           "type": "color.basic",
+           "enabled": true,
+           "params": {}
+          }
+         ],
+         "transition_in": {
+          "kind": "crossfade",
+          "duration": 705600000,
+          "align": "center"
+         }
+        },
+        {
+         "id": "n3",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 2116800000,
+         "src_in": 2116800000,
+         "src_out": 4600512000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": [
+          {
+           "id": "n3-e1",
+           "type": "color.basic",
+           "enabled": true,
+           "params": {}
+          }
+         ]
+        },
+        {
+         "id": "n1",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 4600512000,
+         "src_in": 4600512000,
+         "src_out": 7056000000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": [
+          {
+           "id": "n1-e1",
+           "type": "color.basic",
+           "enabled": true,
+           "params": {}
+          }
+         ]
+        },
+        {
+         "id": "c2",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 7056000000,
+         "src_in": 3528000000,
+         "src_out": 4600512000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": []
+        },
+        {
+         "id": "n2",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 8128512000,
+         "src_in": 4600512000,
+         "src_out": 6350400000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": []
+        }
+       ]
+      },
+      {
+       "id": "A1",
+       "kind": "audio",
+       "clips": []
+      }
+     ]
+    },
+    "applied": [
+     {
+      "boundary": "b2",
+      "clip": "c1",
+      "new": "n1",
+      "at": 4600512000
+     },
+     {
+      "boundary": "b2",
+      "clip": "c2",
+      "new": "n2",
+      "at": 8128512000
+     },
+     {
+      "boundary": "b1",
+      "clip": "c1",
+      "new": "n3",
+      "at": 2116800000
+     }
+    ]
+   }
+  },
+  {
+   "id": "AC-03",
+   "op": "apply_cuts (repeat on result of AC-01)",
+   "args": {
+    "media_id": "m1",
+    "boundaries": [
+     {
+      "id": "b1",
+      "kind": "cut",
+      "start_ticks": 2116800000,
+      "end_ticks": 2116800000
+     },
+     {
+      "id": "b2",
+      "kind": "dissolve",
+      "start_ticks": 4233600000,
+      "end_ticks": 4939200000
+     },
+     {
+      "id": "b3",
+      "kind": "cut",
+      "start_ticks": 8467200000,
+      "end_ticks": 8467200000
+     }
+    ],
+    "accepted": [
+     "b1",
+     "b2"
+    ],
+    "mode": "split_at_start",
+    "new_ids": [
+     "n4",
+     "n5"
+    ]
+   },
+   "expect": {
+    "doc": {
+     "video": {
+      "fps": {
+       "num": 25,
+       "den": 1
+      }
+     },
+     "tracks": [
+      {
+       "id": "V1",
+       "kind": "video",
+       "clips": [
+        {
+         "id": "c1",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 0,
+         "src_in": 0,
+         "src_out": 2116800000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": [
+          {
+           "id": "e1",
+           "type": "color.basic",
+           "enabled": true,
+           "params": {}
+          }
+         ],
+         "transition_in": {
+          "kind": "crossfade",
+          "duration": 705600000,
+          "align": "center"
+         }
+        },
+        {
+         "id": "n3",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 2116800000,
+         "src_in": 2116800000,
+         "src_out": 4233600000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": [
+          {
+           "id": "n3-e1",
+           "type": "color.basic",
+           "enabled": true,
+           "params": {}
+          }
+         ]
+        },
+        {
+         "id": "n1",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 4233600000,
+         "src_in": 4233600000,
+         "src_out": 7056000000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": [
+          {
+           "id": "n1-e1",
+           "type": "color.basic",
+           "enabled": true,
+           "params": {}
+          }
+         ]
+        },
+        {
+         "id": "c2",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 7056000000,
+         "src_in": 3528000000,
+         "src_out": 4233600000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": []
+        },
+        {
+         "id": "n2",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 7761600000,
+         "src_in": 4233600000,
+         "src_out": 6350400000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": []
+        }
+       ]
+      },
+      {
+       "id": "A1",
+       "kind": "audio",
+       "clips": []
+      }
+     ]
+    },
+    "applied": []
+   }
+  },
+  {
+   "id": "AC-04",
+   "op": "apply_cuts",
+   "args": {
+    "media_id": "m1",
+    "boundaries": [
+     {
+      "id": "b1",
+      "kind": "cut",
+      "start_ticks": 2116800000,
+      "end_ticks": 2116800000
+     },
+     {
+      "id": "b2",
+      "kind": "dissolve",
+      "start_ticks": 4233600000,
+      "end_ticks": 4939200000
+     },
+     {
+      "id": "b3",
+      "kind": "cut",
+      "start_ticks": 8467200000,
+      "end_ticks": 8467200000
+     }
+    ],
+    "accepted": [
+     "b3"
+    ],
+    "mode": "split_at_start",
+    "new_ids": [
+     "n1"
+    ]
+   },
+   "expect": {
+    "doc": {
+     "video": {
+      "fps": {
+       "num": 25,
+       "den": 1
+      }
+     },
+     "tracks": [
+      {
+       "id": "V1",
+       "kind": "video",
+       "clips": [
+        {
+         "id": "c1",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 0,
+         "src_in": 0,
+         "src_out": 7056000000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": [
+          {
+           "id": "e1",
+           "type": "color.basic",
+           "enabled": true,
+           "params": {}
+          }
+         ],
+         "transition_in": {
+          "kind": "crossfade",
+          "duration": 705600000,
+          "align": "center"
+         }
+        },
+        {
+         "id": "c2",
+         "source": {
+          "kind": "video",
+          "media_id": "m1"
+         },
+         "at": 7056000000,
+         "src_in": 3528000000,
+         "src_out": 6350400000,
+         "speed": {
+          "num": 1,
+          "den": 1
+         },
+         "effects": []
+        }
+       ]
+      },
+      {
+       "id": "A1",
+       "kind": "audio",
+       "clips": []
+      }
+     ]
+    },
+    "applied": []
+   }
+  }
+ ],
+ "source_duration_ticks": {
+  "m1": 14112000000
+ }
+}
