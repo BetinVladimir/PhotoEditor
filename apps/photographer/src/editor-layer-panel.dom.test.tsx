@@ -7,7 +7,7 @@ import {createEditorState,currentEditorSnapshot,undoEditor,type EditorState} fro
 import {setEditorLayerStack} from './editor-layer-commands';
 import type {EditorLayerStack} from './editor-layers';
 vi.mock('react-native',async()=>import('react-native-web'));
-vi.mock('./locale-context',()=>({useLocale:()=>({t:(key:keyof typeof en)=>en[key]})}));
+vi.mock('./locale-context',async()=>{const __factory=()=>({useLocale:()=>({t:(key:keyof typeof en)=>en[key]})});const __out=await __factory();const {withUILocaleDouble}=await import('./test/locale-double');return {...__out,useLocale:()=>withUILocaleDouble(__out.useLocale())};});
 import {EditorLayerPanel} from './editor-layer-panel';
 afterEach(cleanup);
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`,sha='a'.repeat(64);

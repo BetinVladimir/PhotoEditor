@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+ "photoeditor/backend/internal/database"
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/domain"
 )
@@ -24,8 +25,12 @@ func TestIntegrationOwnerSnapshotAndCurrentPolicyFence(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer admin.Close()
-	apiConfig, _ := pgxpool.ParseConfig(dsn)
+	runtimeDSN := os.Getenv("PHOTO_TEST_RUNTIME_DATABASE_URL")
+ if runtimeDSN == "" { t.Fatal("isolated nonprivileged API runtime connection required") }
+ apiConfig, err := pgxpool.ParseConfig(runtimeDSN)
+ if err != nil { t.Fatal(err) }
 	apiConfig.ConnConfig.RuntimeParams["role"] = "photo_api"
+ database.GuardApplicationRole(apiConfig)
 	api, err := pgxpool.NewWithConfig(ctx, apiConfig)
 	if err != nil {
 		t.Fatal(err)
@@ -83,6 +88,13 @@ func TestIntegrationOwnerSnapshotAndCurrentPolicyFence(t *testing.T) {
 	if err != nil || accepted.Status != "queued" {
 		t.Fatal(accepted, err)
 	}
+	// Expiry refuses new work but must not hide an already accepted job.
+	service.Now = func() time.Time { return time.Now().Add(2*time.Hour) }
+	replayed, replayErr := service.Start(ctx, who, tenantID, "start-download", Request{SelectionSnapshotID:snapshotID,PresetID:presetID})
+	if replayErr != nil || replayed.DownloadJobID != accepted.DownloadJobID { t.Fatal("expired snapshot prevented accepted job recovery",replayed,replayErr) }
+	_, freshErr := service.Start(ctx, who, tenantID, "new-key-expired-snapshot", Request{SelectionSnapshotID:snapshotID,PresetID:presetID})
+	if freshErr == nil || domain.AsError(freshErr).Code != "SNAPSHOT_STALE" { t.Fatal("expired snapshot created new job",freshErr) }
+	service.Now = nil
 	var runID uuid.UUID
 	var savedSnapshot uuid.UUID
 	var savedDigest string
@@ -93,6 +105,34 @@ func TestIntegrationOwnerSnapshotAndCurrentPolicyFence(t *testing.T) {
 	if savedSnapshot != snapshotID || savedDigest != digest {
 		t.Fatal("download did not freeze exact snapshot")
 	}
+	t.Run("cancel reauthorizes after run lock wait",func(t *testing.T){
+		blocker,lockErr:=admin.Begin(ctx)
+		if lockErr!=nil { t.Fatal(lockErr) }
+		defer blocker.Rollback(context.Background())
+		var pid int
+		if lockErr=blocker.QueryRow(ctx,`SELECT pg_backend_pid()`).Scan(&pid);lockErr!=nil { t.Fatal(lockErr) }
+		if _,lockErr=blocker.Exec(ctx,`SELECT id FROM photo.runs WHERE tenant_id=$1 AND id=$2 FOR UPDATE`,tenantID,runID);lockErr!=nil { t.Fatal(lockErr) }
+		done:=make(chan error,1)
+		go func(){ _,cancelErr:=service.Cancel(ctx,who,tenantID,accepted.DownloadJobID);done<-cancelErr }()
+		ticker:=time.NewTicker(10*time.Millisecond)
+		defer ticker.Stop()
+		for {
+			var waiting bool
+			if lockErr=admin.QueryRow(ctx,`SELECT EXISTS(SELECT 1 FROM pg_stat_activity a WHERE $1=ANY(pg_blocking_pids(a.pid)))`,pid).Scan(&waiting);lockErr!=nil { t.Fatal(lockErr) }
+			if waiting { break }
+			select { case early:=<-done:t.Fatalf("Cancel did not reach observed run wait: %v",early)
+			case <-ticker.C:
+			case <-ctx.Done():t.Fatal(ctx.Err()) }
+		}
+		if _,lockErr=admin.Exec(ctx,`UPDATE photo.sessions SET expires_at=clock_timestamp()-interval '1 second' WHERE id=$1`,sessionID);lockErr!=nil { t.Fatal(lockErr) }
+		if lockErr=blocker.Commit(ctx);lockErr!=nil { t.Fatal(lockErr) }
+		select { case cancelErr:=<-done:if cancelErr==nil { t.Fatal("withdrawn session cancelled job after run wait") }
+		case <-ctx.Done():t.Fatal(ctx.Err()) }
+		var jobCancelled,runCancelled bool
+		if lockErr=admin.QueryRow(ctx,`SELECT j.cancel_requested,r.cancel_requested FROM photo.download_jobs j JOIN photo.runs r ON r.tenant_id=j.tenant_id AND r.id=j.run_id WHERE j.tenant_id=$1 AND j.id=$2`,tenantID,accepted.DownloadJobID).Scan(&jobCancelled,&runCancelled);lockErr!=nil { t.Fatal(lockErr) }
+		if jobCancelled||runCancelled { t.Fatal("refused cancellation mutated job/run") }
+		if _,lockErr=admin.Exec(ctx,`UPDATE photo.sessions SET expires_at=clock_timestamp()+interval '1 hour' WHERE id=$1`,sessionID);lockErr!=nil { t.Fatal(lockErr) }
+	})
 
 	// Later collection additions never enter the frozen download input.
 	var secondAsset, secondVersion uuid.UUID

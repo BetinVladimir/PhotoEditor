@@ -7,7 +7,7 @@ import bg from '../../../locales/bg/common.json';
 const locale=vi.hoisted(()=>({value:'en' as 'en'|'ru'|'bg'}));
 const catalogs={en,ru,bg};
 vi.mock('react-native',async()=>import('react-native-web'));
-vi.mock('./locale-context',()=>({useLocale:()=>({t:(key:keyof typeof en)=>catalogs[locale.value][key]})}));
+vi.mock('./locale-context',async()=>{const __factory=()=>({useLocale:()=>({t:(key:keyof typeof en)=>catalogs[locale.value][key]})});const __out=await __factory();const {withUILocaleDouble}=await import('./test/locale-double');return {...__out,useLocale:()=>withUILocaleDouble(__out.useLocale())};});
 import {SemanticReviewCloseControl} from './semantic-review-close';
 const id='11111111-1111-4111-8111-111111111111';
 const status={run_id:id,workflow_id:id,revision:'9',state:'waiting_review' as const,plan_sha:'a'.repeat(64),remaining:0,can_close:true};

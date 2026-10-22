@@ -13,6 +13,8 @@ from pydantic import BaseModel
 
 from photo_worker.contracts.base import canonical_bytes, parse_json
 from photo_worker.contracts.images import MaskRef
+from photo_worker.contracts.conservative import DefectAutoRepairParams, DustAutoRepairParams
+from photo_worker.contracts.defects import DefectProposeReport
 from photo_worker.contracts.restoration import DenoiseParams, UpscaleParams
 from photo_worker.contracts.statistics import StatsParams
 from photo_worker.operations.session.contracts import VersionBinding
@@ -31,7 +33,7 @@ class SchedulerImportAdoptionRuntimeAuthority:
     """Process-selected policies plus a mandatory independent semantic gate."""
 
     OPERATIONS = frozenset(('image.denoise', 'image.upscale',
-                            'color.stats', 'mask.person'))
+                            'color.stats', 'mask.person', 'defects.auto_repair', 'sensor.dust_auto_repair'))
 
     def __init__(self, catalog, objects, qualifications, qualify_other,
                  check_active, person_current=None):
@@ -58,7 +60,8 @@ class SchedulerImportAdoptionRuntimeAuthority:
                 raise ValueError('INTERCHANGE_IMPORT_RUNTIME_QUALIFICATION') from error
             if (not isinstance(expected, dict) or expected.get('Operation') != operation
                     or expected.get('Version') != '1'
-                    or expected.get('LicenseCleared') is not True):
+                    or expected.get('LicenseCleared') is not True
+                    or operation in ('defects.auto_repair','sensor.dust_auto_repair') and expected.get('Backend') != 'cpu'):
                 raise ValueError('INTERCHANGE_IMPORT_RUNTIME_QUALIFICATION')
             try:
                 validate_import_adoption_expected(expected)
@@ -171,7 +174,20 @@ class SchedulerImportAdoptionRuntimeAuthority:
         self.active()
         if not self._person_masks(scope, context, typed, binding, observed):
             return False
-        if contract == 'Params' and isinstance(typed, DenoiseParams):
+        if contract == 'Params' and isinstance(typed, (DefectAutoRepairParams, DustAutoRepairParams)):
+            operation = 'defects.auto_repair' if isinstance(typed, DefectAutoRepairParams) else 'sensor.dust_auto_repair'
+            policy = self.policies.get(operation)
+            if (typed.image != binding.source or policy is None
+                    or not self._report(scope, operation, policy.expected.get('ModelLockSHA'))):
+                return False
+        elif contract == 'DefectProposeReport':
+            # This report determines eligibility/protection, so its algorithm
+            # must be covered by the same measured pinned native engine.
+            policy = self.policies.get('defects.auto_repair')
+            if (typed.params.image != binding.source or typed.algorithm != 'defect_dog_v1'
+                    or policy is None or not self._report(scope, 'defects.auto_repair', policy.expected.get('ModelLockSHA'))):
+                return False
+        elif contract == 'Params' and isinstance(typed, DenoiseParams):
             if typed.image != binding.source or not self._report(
                     scope, 'image.denoise', typed.model_lock_id):
                 return False

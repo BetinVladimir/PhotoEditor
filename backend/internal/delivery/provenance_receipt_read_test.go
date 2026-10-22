@@ -31,8 +31,8 @@ func TestSignedDependencyReceiptExactIdentity(t *testing.T){
   if validSignedDependencyReceipt(dependency,changed){t.Fatal("invalid receipt accepted",mode)}
  }
  ctx,cancel:=context.WithCancel(context.Background());cancel()
- if _,_,err:=ReadSignedDependencyReceipt(ctx,nil,auth.Identity{},uuid.Nil,uuid.Nil,dependency,sha);err!=context.Canceled{t.Fatal("cancelled receipt reached DB",err)}
- if _,_,err:=ReadSignedDependencyReceipt(context.Background(),nil,auth.Identity{},uuid.Nil,uuid.Nil,dependency,sha);err==nil{t.Fatal("missing receipt dependencies accepted")}
+ if _,_,err:=ReadSignedDependencyReceipt(ctx,nil,auth.Identity{},uuid.Nil,uuid.Nil,dependency,sha,"photos");err!=context.Canceled{t.Fatal("cancelled receipt reached DB",err)}
+ if _,_,err:=ReadSignedDependencyReceipt(context.Background(),nil,auth.Identity{},uuid.Nil,uuid.Nil,dependency,sha,"photos");err==nil{t.Fatal("missing receipt dependencies accepted")}
 }
 
 func v2SignedObject(task uuid.UUID,ref v2input.Ref,media string,size int64)objectstore.Object{

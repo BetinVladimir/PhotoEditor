@@ -21,6 +21,9 @@ def test_adopter_operator_factory_uses_live_store_and_scheduler_connection(tmp_p
     connections = []
     class Connection:
         autocommit = True
+        def execute(self, query, args=()):
+            assert "current_user=" in query
+            return SimpleNamespace(fetchone=lambda:(True,))
         def __enter__(self):
             connections.append(self)
             return self

@@ -55,6 +55,7 @@ func PublishPackage(ctx context.Context, tx ProofTransaction, who auth.Identity,
 }
 
 func (s Service) PublishWithReceipt(ctx context.Context, who auth.Identity, tid, id uuid.UUID, request PublishRequest, key string) (idempotency.Response, error) {
+ if err:=ctx.Err();err!=nil{return idempotency.Response{},err}
 	if s.DB == nil {
 		return idempotency.Response{}, domain.NewError("DELIVERY_UNAVAILABLE", 503)
 	}
@@ -73,12 +74,17 @@ func (s Service) PublishWithReceipt(ctx context.Context, who auth.Identity, tid,
 		})
         if err!=nil{return err}
         if err:=ValidatePublicationResponse(response,tid,id,request);err!=nil{return err}
+        // The receipt wait can outlive the preflight publication gate.
+        authorized = false
+        if err := tx.QueryRow(ctx, `SELECT photo.authorize_v30_delivery_publish($1,$2,$3,$4)`, tid, id, who.UserID, who.SessionID).Scan(&authorized); err != nil { return err }
+        if !authorized { return domain.NewError("NOT_FOUND",404) }
         if err:=ctx.Err();err!=nil{return err}
 		receipt = response
 		receipt.Body = append(json.RawMessage(nil), response.Body...)
 		return ctx.Err()
 	})
 	if err!=nil{return idempotency.Response{},err}
+ if err:=ctx.Err();err!=nil{return idempotency.Response{},err}
  return receipt, nil
 }
 

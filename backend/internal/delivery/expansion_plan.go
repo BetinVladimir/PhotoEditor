@@ -79,6 +79,7 @@ func(s ExpansionLeaseStore)loadPlan(ctx context.Context,lease ExpansionLease,sco
 		}
 		configs = append(configs, PresetContent{ID: config.PresetID, SHA: preset.PresetSHA, Ref: preset.Config, Raw: []byte(config.ConfigJCS)})
 	}
+ var err error
  var plan PreparePlan
  var pins []PreparedWatermarkPin
  if scope!=nil{

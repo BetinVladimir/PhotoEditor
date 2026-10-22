@@ -68,3 +68,17 @@ func (s SQLLensDraftStore) Seal(ctx context.Context, tenant uuid.UUID, prepared 
 	}
 	return nil
 }
+
+// Replay repeats immutable-plan and live authority checks in the scheduler DB.
+// A run ID alone is never a receipt and no publication occurs on this path.
+func (s SQLLensDraftStore) Replay(ctx context.Context, tenant,actor,run uuid.UUID, policySHA string,draft CompiledLensDraft)(bool,error) {
+ if (draft.Config.QueueClass!="" && draft.Config.QueueClass!="batch") || s.DB==nil || tenant==uuid.Nil || actor==uuid.Nil || run==uuid.Nil || !digestPattern.MatchString(policySHA) || draft.OutputBytes<1 { return false,ErrInvalid }
+ body,err:=canonical.Marshal(draft.Config)
+ if err!=nil || !bytes.Equal(body,draft.Body) {return false,ErrInvalid}
+ sha,err:=canonical.Hash(draft.Config)
+ if err!=nil || sha!=draft.SHA256 {return false,ErrInvalid}
+ workflow,err:=WorkflowID(run);if err!=nil {return false,err}
+ var accepted bool
+ err=s.DB.QueryRow(ctx,`SELECT photo.replay_v25_lens_draft($1,$2,$3,$4,$5,$6,$7,$8,$9)`,tenant,draft.Config.ProjectID,draft.Config.SnapshotID,actor,draft.Config.Lens.AuthSessionID,run,workflow,string(body),policySHA).Scan(&accepted)
+ return accepted,err
+}

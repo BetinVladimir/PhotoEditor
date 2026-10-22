@@ -1,0 +1,946 @@
+{
+  "name": "framevela",
+  "services": {
+    "postgres": {
+      "image": "${POSTGRES_IMAGE:?required}",
+      "restart": "unless-stopped",
+      "networks": [
+        "backend"
+      ],
+      "environment": {
+        "POSTGRES_DB": "photoeditor",
+        "POSTGRES_USER": "photo_bootstrap",
+        "POSTGRES_PASSWORD": "${POSTGRES_PASSWORD:?required}",
+        "PGDATA": "/var/lib/postgresql/data/pgdata"
+      },
+      "command": [
+        "postgres",
+        "-c",
+        "ssl=on",
+        "-c",
+        "ssl_cert_file=/run/tls/postgres.crt",
+        "-c",
+        "ssl_key_file=/run/tls/postgres.key",
+        "-c",
+        "max_connections=120",
+        "-c",
+        "shared_buffers=128MB"
+      ],
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "/mnt/HC_Volume_107202006/postgres",
+          "target": "/var/lib/postgresql/data",
+          "bind": {
+            "create_host_path": false
+          }
+        },
+        "/srv/photoeditor/secrets/postgres/postgres.crt:/run/tls/postgres.crt:ro",
+        "/srv/photoeditor/secrets/postgres/postgres.key:/run/tls/postgres.key:ro"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD-SHELL",
+          "pg_isready -U photo_bootstrap -d photoeditor"
+        ],
+        "interval": "10s",
+        "timeout": "5s",
+        "retries": 12
+      }
+    },
+    "rabbitmq": {
+      "image": "${RABBITMQ_IMAGE:?required}",
+      "restart": "unless-stopped",
+      "networks": [
+        "backend"
+      ],
+      "environment": {
+        "RABBITMQ_DEFAULT_USER": "framevela",
+        "RABBITMQ_DEFAULT_PASS": "${RABBITMQ_DEFAULT_PASS:?required}",
+        "RABBITMQ_DEFAULT_VHOST": "photo",
+        "RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS": "+S 2:2"
+      },
+      "volumes": [
+        "rabbit-data:/var/lib/rabbitmq"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "rabbitmq-diagnostics",
+          "-q",
+          "ping"
+        ],
+        "interval": "15s",
+        "timeout": "10s",
+        "retries": 10
+      }
+    },
+    "minio": {
+      "image": "${MINIO_IMAGE:?required}",
+      "restart": "unless-stopped",
+      "command": [
+        "server",
+        "/data",
+        "--certs-dir",
+        "/certs"
+      ],
+      "networks": [
+        "backend"
+      ],
+      "environment": {
+        "MINIO_ROOT_USER": "${MINIO_ROOT_USER:?required}",
+        "MINIO_ROOT_PASSWORD": "${MINIO_ROOT_PASSWORD:?required}",
+        "MINIO_API_CORS_ALLOW_ORIGIN": "https://framevela.com,https://app.framevela.com"
+      },
+      "volumes": [
+        "minio-data:/data",
+        "/srv/photoeditor/secrets/minio/public.crt:/certs/public.crt:ro",
+        "/srv/photoeditor/secrets/minio/private.key:/certs/private.key:ro",
+        "/srv/photoeditor/secrets/minio/ca.crt:/certs/ca.crt:ro"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "curl",
+          "--fail",
+          "--silent",
+          "--cacert",
+          "/certs/ca.crt",
+          "https://minio:9000/minio/health/ready"
+        ],
+        "interval": "10s",
+        "timeout": "5s",
+        "retries": 12
+      }
+    },
+    "migrate": {
+      "image": "${PHOTO_API_IMAGE:?required}",
+      "restart": "no",
+      "init": true,
+      "read_only": true,
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "cap_drop": [
+        "ALL"
+      ],
+      "networks": [
+        "backend"
+      ],
+      "environment": {
+        "APP_ENV": "production",
+        "APP_ORIGIN": "https://app.framevela.com",
+        "PORTAL_ORIGIN": "https://framevela.com",
+        "API_PUBLIC_ORIGIN": "https://api.framevela.com",
+        "CAPTURE_ORIGIN": "https://app.framevela.com",
+        "S3_ENDPOINT": "https://minio:9000",
+        "S3_PUBLIC_ENDPOINT": "https://storage.framevela.com",
+        "S3_BUCKET": "photo",
+        "S3_ACCESS_KEY": "${S3_ACCESS_KEY:?required}",
+        "S3_SECRET_KEY": "${S3_SECRET_KEY:?required}",
+        "S3_REGION": "us-east-1",
+        "S3_CORS_STRATEGY": "minio-server",
+        "AMQP_URL": "${AMQP_URL:?required}",
+        "PHOTO_ICC_ROOT": "/opt/photo/icc",
+        "DATABASE_URL": "${MIGRATION_DATABASE_URL:?required}",
+        "PHOTO_ROLE": "migrate",
+        "SSL_CERT_FILE": "/run/photo/tls/trust-bundle.pem"
+      },
+      "tmpfs": [
+        "/tmp:rw,noexec,nosuid,size=64m"
+      ],
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      },
+      "profiles": [
+        "bootstrap"
+      ],
+      "depends_on": {
+        "postgres": {
+          "condition": "service_healthy"
+        },
+        "minio": {
+          "condition": "service_healthy"
+        },
+        "rabbitmq": {
+          "condition": "service_healthy"
+        }
+      },
+      "volumes": [
+        "/srv/photoeditor/secrets/trust-bundle.pem:/run/photo/tls/trust-bundle.pem:ro"
+      ]
+    },
+    "bootstrap-storage": {
+      "image": "${PHOTO_API_IMAGE:?required}",
+      "restart": "no",
+      "init": true,
+      "read_only": true,
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "cap_drop": [
+        "ALL"
+      ],
+      "networks": [
+        "backend",
+        "edge"
+      ],
+      "environment": {
+        "APP_ENV": "production",
+        "APP_ORIGIN": "https://app.framevela.com",
+        "PORTAL_ORIGIN": "https://framevela.com",
+        "API_PUBLIC_ORIGIN": "https://api.framevela.com",
+        "CAPTURE_ORIGIN": "https://app.framevela.com",
+        "S3_ENDPOINT": "https://minio:9000",
+        "S3_PUBLIC_ENDPOINT": "https://storage.framevela.com",
+        "S3_BUCKET": "photo",
+        "S3_ACCESS_KEY": "${S3_ACCESS_KEY:?required}",
+        "S3_SECRET_KEY": "${S3_SECRET_KEY:?required}",
+        "S3_REGION": "us-east-1",
+        "S3_CORS_STRATEGY": "minio-server",
+        "AMQP_URL": "${AMQP_URL:?required}",
+        "PHOTO_ICC_ROOT": "/opt/photo/icc",
+        "DATABASE_URL": "${API_DATABASE_URL:?required}",
+        "PHOTO_ROLE": "bootstrap-storage",
+        "SSL_CERT_FILE": "/run/photo/tls/trust-bundle.pem"
+      },
+      "tmpfs": [
+        "/tmp:rw,noexec,nosuid,size=64m"
+      ],
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      },
+      "profiles": [
+        "bootstrap"
+      ],
+      "depends_on": {
+        "postgres": {
+          "condition": "service_healthy"
+        },
+        "minio": {
+          "condition": "service_healthy"
+        },
+        "rabbitmq": {
+          "condition": "service_healthy"
+        }
+      },
+      "volumes": [
+        "/srv/photoeditor/secrets/trust-bundle.pem:/run/photo/tls/trust-bundle.pem:ro"
+      ]
+    },
+    "bootstrap-queue": {
+      "image": "${PHOTO_API_IMAGE:?required}",
+      "restart": "no",
+      "init": true,
+      "read_only": true,
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "cap_drop": [
+        "ALL"
+      ],
+      "networks": [
+        "backend"
+      ],
+      "environment": {
+        "APP_ENV": "production",
+        "APP_ORIGIN": "https://app.framevela.com",
+        "PORTAL_ORIGIN": "https://framevela.com",
+        "API_PUBLIC_ORIGIN": "https://api.framevela.com",
+        "CAPTURE_ORIGIN": "https://app.framevela.com",
+        "S3_ENDPOINT": "https://minio:9000",
+        "S3_PUBLIC_ENDPOINT": "https://storage.framevela.com",
+        "S3_BUCKET": "photo",
+        "S3_ACCESS_KEY": "${S3_ACCESS_KEY:?required}",
+        "S3_SECRET_KEY": "${S3_SECRET_KEY:?required}",
+        "S3_REGION": "us-east-1",
+        "S3_CORS_STRATEGY": "minio-server",
+        "AMQP_URL": "${AMQP_URL:?required}",
+        "PHOTO_ICC_ROOT": "/opt/photo/icc",
+        "DATABASE_URL": "${API_DATABASE_URL:?required}",
+        "PHOTO_ROLE": "bootstrap-queue",
+        "SSL_CERT_FILE": "/run/photo/tls/trust-bundle.pem"
+      },
+      "tmpfs": [
+        "/tmp:rw,noexec,nosuid,size=64m"
+      ],
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      },
+      "profiles": [
+        "bootstrap"
+      ],
+      "depends_on": {
+        "postgres": {
+          "condition": "service_healthy"
+        },
+        "minio": {
+          "condition": "service_healthy"
+        },
+        "rabbitmq": {
+          "condition": "service_healthy"
+        }
+      },
+      "volumes": [
+        "/srv/photoeditor/secrets/trust-bundle.pem:/run/photo/tls/trust-bundle.pem:ro"
+      ]
+    },
+    "api": {
+      "image": "${PHOTO_API_IMAGE:?required}",
+      "restart": "unless-stopped",
+      "init": true,
+      "read_only": true,
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "cap_drop": [
+        "ALL"
+      ],
+      "networks": [
+        "backend"
+      ],
+      "environment": {
+        "APP_ENV": "production",
+        "APP_ORIGIN": "https://app.framevela.com",
+        "PORTAL_ORIGIN": "https://framevela.com",
+        "API_PUBLIC_ORIGIN": "https://api.framevela.com",
+        "CAPTURE_ORIGIN": "https://app.framevela.com",
+        "S3_ENDPOINT": "https://minio:9000",
+        "S3_PUBLIC_ENDPOINT": "https://storage.framevela.com",
+        "S3_BUCKET": "photo",
+        "S3_ACCESS_KEY": "${S3_ACCESS_KEY:?required}",
+        "S3_SECRET_KEY": "${S3_SECRET_KEY:?required}",
+        "S3_REGION": "us-east-1",
+        "S3_CORS_STRATEGY": "minio-server",
+        "AMQP_URL": "${AMQP_URL:?required}",
+        "PHOTO_ICC_ROOT": "/opt/photo/icc",
+        "DATABASE_URL": "${API_DATABASE_URL:?required}",
+        "PHOTO_ROLE": "api",
+        "HTTP_LISTEN": "0.0.0.0:8080",
+        "AUTH_DATABASE_URL": "${AUTH_DATABASE_URL:?required}",
+        "AUTH_KEYS_FILE": "/run/photo/auth/keys.json",
+        "JWT_ISSUER": "https://api.framevela.com",
+        "JWT_AUDIENCE": "framevela-api",
+        "REGISTRATION_ENABLED": "false",
+        "SSL_CERT_FILE": "/run/photo/tls/trust-bundle.pem"
+      },
+      "tmpfs": [
+        "/tmp:rw,noexec,nosuid,size=64m"
+      ],
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      },
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "/usr/local/bin/photo-healthcheck",
+          "http://127.0.0.1:8080/health/ready"
+        ],
+        "interval": "15s",
+        "timeout": "5s",
+        "retries": 8,
+        "start_period": "30s"
+      },
+      "volumes": [
+        "/srv/photoeditor/secrets/auth/keys.json:/run/photo/auth/keys.json:ro",
+        "/srv/photoeditor/secrets/trust-bundle.pem:/run/photo/tls/trust-bundle.pem:ro"
+      ],
+      "depends_on": {
+        "postgres": {
+          "condition": "service_healthy"
+        },
+        "minio": {
+          "condition": "service_healthy"
+        },
+        "rabbitmq": {
+          "condition": "service_healthy"
+        }
+      }
+    },
+    "scheduler": {
+      "image": "${PHOTO_API_IMAGE:?required}",
+      "restart": "unless-stopped",
+      "init": true,
+      "read_only": true,
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "cap_drop": [
+        "ALL"
+      ],
+      "networks": [
+        "backend"
+      ],
+      "environment": {
+        "APP_ENV": "production",
+        "APP_ORIGIN": "https://app.framevela.com",
+        "PORTAL_ORIGIN": "https://framevela.com",
+        "API_PUBLIC_ORIGIN": "https://api.framevela.com",
+        "CAPTURE_ORIGIN": "https://app.framevela.com",
+        "S3_ENDPOINT": "https://minio:9000",
+        "S3_PUBLIC_ENDPOINT": "https://storage.framevela.com",
+        "S3_BUCKET": "photo",
+        "S3_ACCESS_KEY": "${S3_ACCESS_KEY:?required}",
+        "S3_SECRET_KEY": "${S3_SECRET_KEY:?required}",
+        "S3_REGION": "us-east-1",
+        "S3_CORS_STRATEGY": "minio-server",
+        "AMQP_URL": "${AMQP_URL:?required}",
+        "PHOTO_ICC_ROOT": "/opt/photo/icc",
+        "DATABASE_URL": "${SCHEDULER_DATABASE_URL:?required}",
+        "PHOTO_ROLE": "scheduler",
+        "HTTP_LISTEN": "0.0.0.0:8081",
+        "SSL_CERT_FILE": "/run/photo/tls/trust-bundle.pem",
+        "PHOTO_RENDER_CALIBRATION_FILE": "/run/photo/render/calibration.json",
+        "PHOTO_RENDER_CALIBRATION_SHA256": "${PHOTO_RENDER_CALIBRATION_SHA256:-}"
+      },
+      "tmpfs": [
+        "/tmp:rw,noexec,nosuid,size=64m"
+      ],
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      },
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "/usr/local/bin/photo-healthcheck",
+          "http://127.0.0.1:8081/health/ready"
+        ],
+        "interval": "15s",
+        "timeout": "5s",
+        "retries": 8,
+        "start_period": "30s"
+      },
+      "depends_on": {
+        "postgres": {
+          "condition": "service_healthy"
+        },
+        "minio": {
+          "condition": "service_healthy"
+        },
+        "rabbitmq": {
+          "condition": "service_healthy"
+        }
+      },
+      "volumes": [
+        "/srv/photoeditor/secrets/trust-bundle.pem:/run/photo/tls/trust-bundle.pem:ro",
+        {
+          "type": "bind",
+          "source": "/srv/photoeditor/config/render-calibration.json",
+          "target": "/run/photo/render/calibration.json",
+          "read_only": true,
+          "bind": {
+            "create_host_path": false
+          }
+        }
+      ],
+      "profiles": [
+        "qualified-render"
+      ]
+    },
+    "publisher": {
+      "image": "${PHOTO_API_IMAGE:?required}",
+      "restart": "unless-stopped",
+      "init": true,
+      "read_only": true,
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "cap_drop": [
+        "ALL"
+      ],
+      "networks": [
+        "backend"
+      ],
+      "environment": {
+        "APP_ENV": "production",
+        "APP_ORIGIN": "https://app.framevela.com",
+        "PORTAL_ORIGIN": "https://framevela.com",
+        "API_PUBLIC_ORIGIN": "https://api.framevela.com",
+        "CAPTURE_ORIGIN": "https://app.framevela.com",
+        "S3_ENDPOINT": "https://minio:9000",
+        "S3_PUBLIC_ENDPOINT": "https://storage.framevela.com",
+        "S3_BUCKET": "photo",
+        "S3_ACCESS_KEY": "${S3_ACCESS_KEY:?required}",
+        "S3_SECRET_KEY": "${S3_SECRET_KEY:?required}",
+        "S3_REGION": "us-east-1",
+        "S3_CORS_STRATEGY": "minio-server",
+        "AMQP_URL": "${AMQP_URL:?required}",
+        "PHOTO_ICC_ROOT": "/opt/photo/icc",
+        "DATABASE_URL": "${PUBLISHER_DATABASE_URL:?required}",
+        "PHOTO_ROLE": "publisher",
+        "HTTP_LISTEN": "0.0.0.0:8082",
+        "SSL_CERT_FILE": "/run/photo/tls/trust-bundle.pem"
+      },
+      "tmpfs": [
+        "/tmp:rw,noexec,nosuid,size=64m"
+      ],
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      },
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "/usr/local/bin/photo-healthcheck",
+          "http://127.0.0.1:8082/health/ready"
+        ],
+        "interval": "15s",
+        "timeout": "5s",
+        "retries": 8,
+        "start_period": "30s"
+      },
+      "depends_on": {
+        "postgres": {
+          "condition": "service_healthy"
+        },
+        "minio": {
+          "condition": "service_healthy"
+        },
+        "rabbitmq": {
+          "condition": "service_healthy"
+        }
+      },
+      "volumes": [
+        "/srv/photoeditor/secrets/trust-bundle.pem:/run/photo/tls/trust-bundle.pem:ro"
+      ]
+    },
+    "dead-letter-worker": {
+      "image": "${PHOTO_API_IMAGE:?required}",
+      "restart": "unless-stopped",
+      "init": true,
+      "read_only": true,
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "cap_drop": [
+        "ALL"
+      ],
+      "networks": [
+        "backend"
+      ],
+      "environment": {
+        "APP_ENV": "production",
+        "APP_ORIGIN": "https://app.framevela.com",
+        "PORTAL_ORIGIN": "https://framevela.com",
+        "API_PUBLIC_ORIGIN": "https://api.framevela.com",
+        "CAPTURE_ORIGIN": "https://app.framevela.com",
+        "S3_ENDPOINT": "https://minio:9000",
+        "S3_PUBLIC_ENDPOINT": "https://storage.framevela.com",
+        "S3_BUCKET": "photo",
+        "S3_ACCESS_KEY": "${S3_ACCESS_KEY:?required}",
+        "S3_SECRET_KEY": "${S3_SECRET_KEY:?required}",
+        "S3_REGION": "us-east-1",
+        "S3_CORS_STRATEGY": "minio-server",
+        "AMQP_URL": "${AMQP_URL:?required}",
+        "PHOTO_ICC_ROOT": "/opt/photo/icc",
+        "DATABASE_URL": "${PUBLISHER_DATABASE_URL:?required}",
+        "PHOTO_ROLE": "dead-letter-worker",
+        "HTTP_LISTEN": "0.0.0.0:8083",
+        "SSL_CERT_FILE": "/run/photo/tls/trust-bundle.pem"
+      },
+      "tmpfs": [
+        "/tmp:rw,noexec,nosuid,size=64m"
+      ],
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      },
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "/usr/local/bin/photo-healthcheck",
+          "http://127.0.0.1:8083/health/ready"
+        ],
+        "interval": "15s",
+        "timeout": "5s",
+        "retries": 8,
+        "start_period": "30s"
+      },
+      "depends_on": {
+        "postgres": {
+          "condition": "service_healthy"
+        },
+        "minio": {
+          "condition": "service_healthy"
+        },
+        "rabbitmq": {
+          "condition": "service_healthy"
+        }
+      },
+      "volumes": [
+        "/srv/photoeditor/secrets/trust-bundle.pem:/run/photo/tls/trust-bundle.pem:ro"
+      ]
+    },
+    "collection-worker": {
+      "image": "${PHOTO_API_IMAGE:?required}",
+      "restart": "unless-stopped",
+      "init": true,
+      "read_only": true,
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "cap_drop": [
+        "ALL"
+      ],
+      "networks": [
+        "backend"
+      ],
+      "environment": {
+        "APP_ENV": "production",
+        "APP_ORIGIN": "https://app.framevela.com",
+        "PORTAL_ORIGIN": "https://framevela.com",
+        "API_PUBLIC_ORIGIN": "https://api.framevela.com",
+        "CAPTURE_ORIGIN": "https://app.framevela.com",
+        "S3_ENDPOINT": "https://minio:9000",
+        "S3_PUBLIC_ENDPOINT": "https://storage.framevela.com",
+        "S3_BUCKET": "photo",
+        "S3_ACCESS_KEY": "${S3_ACCESS_KEY:?required}",
+        "S3_SECRET_KEY": "${S3_SECRET_KEY:?required}",
+        "S3_REGION": "us-east-1",
+        "S3_CORS_STRATEGY": "minio-server",
+        "AMQP_URL": "${AMQP_URL:?required}",
+        "PHOTO_ICC_ROOT": "/opt/photo/icc",
+        "DATABASE_URL": "${WORKER_DATABASE_URL:?required}",
+        "PHOTO_ROLE": "collection-worker",
+        "HTTP_LISTEN": "0.0.0.0:8084",
+        "SSL_CERT_FILE": "/run/photo/tls/trust-bundle.pem"
+      },
+      "tmpfs": [
+        "/tmp:rw,noexec,nosuid,size=64m"
+      ],
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      },
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "/usr/local/bin/photo-healthcheck",
+          "http://127.0.0.1:8084/health/ready"
+        ],
+        "interval": "15s",
+        "timeout": "5s",
+        "retries": 8,
+        "start_period": "30s"
+      },
+      "depends_on": {
+        "postgres": {
+          "condition": "service_healthy"
+        },
+        "minio": {
+          "condition": "service_healthy"
+        },
+        "rabbitmq": {
+          "condition": "service_healthy"
+        }
+      },
+      "volumes": [
+        "/srv/photoeditor/secrets/trust-bundle.pem:/run/photo/tls/trust-bundle.pem:ro"
+      ]
+    },
+    "maintenance": {
+      "image": "${PHOTO_API_IMAGE:?required}",
+      "restart": "unless-stopped",
+      "init": true,
+      "read_only": true,
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "cap_drop": [
+        "ALL"
+      ],
+      "networks": [
+        "backend"
+      ],
+      "environment": {
+        "APP_ENV": "production",
+        "APP_ORIGIN": "https://app.framevela.com",
+        "PORTAL_ORIGIN": "https://framevela.com",
+        "API_PUBLIC_ORIGIN": "https://api.framevela.com",
+        "CAPTURE_ORIGIN": "https://app.framevela.com",
+        "S3_ENDPOINT": "https://minio:9000",
+        "S3_PUBLIC_ENDPOINT": "https://storage.framevela.com",
+        "S3_BUCKET": "photo",
+        "S3_ACCESS_KEY": "${S3_ACCESS_KEY:?required}",
+        "S3_SECRET_KEY": "${S3_SECRET_KEY:?required}",
+        "S3_REGION": "us-east-1",
+        "S3_CORS_STRATEGY": "minio-server",
+        "AMQP_URL": "${AMQP_URL:?required}",
+        "PHOTO_ICC_ROOT": "/opt/photo/icc",
+        "DATABASE_URL": "${MAINTENANCE_DATABASE_URL:?required}",
+        "PHOTO_ROLE": "maintenance",
+        "HTTP_LISTEN": "0.0.0.0:8085",
+        "SSL_CERT_FILE": "/run/photo/tls/trust-bundle.pem"
+      },
+      "tmpfs": [
+        "/tmp:rw,noexec,nosuid,size=64m"
+      ],
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      },
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "/usr/local/bin/photo-healthcheck",
+          "http://127.0.0.1:8085/health/ready"
+        ],
+        "interval": "15s",
+        "timeout": "5s",
+        "retries": 8,
+        "start_period": "30s"
+      },
+      "depends_on": {
+        "postgres": {
+          "condition": "service_healthy"
+        },
+        "minio": {
+          "condition": "service_healthy"
+        },
+        "rabbitmq": {
+          "condition": "service_healthy"
+        }
+      },
+      "volumes": [
+        "/srv/photoeditor/secrets/trust-bundle.pem:/run/photo/tls/trust-bundle.pem:ro"
+      ]
+    },
+    "object-gateway": {
+      "image": "${PHOTO_API_IMAGE:?required}",
+      "restart": "unless-stopped",
+      "init": true,
+      "read_only": true,
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "cap_drop": [
+        "ALL"
+      ],
+      "networks": [
+        "backend"
+      ],
+      "environment": {
+        "APP_ENV": "production",
+        "APP_ORIGIN": "https://app.framevela.com",
+        "PORTAL_ORIGIN": "https://framevela.com",
+        "API_PUBLIC_ORIGIN": "https://api.framevela.com",
+        "CAPTURE_ORIGIN": "https://app.framevela.com",
+        "S3_ENDPOINT": "https://minio:9000",
+        "S3_PUBLIC_ENDPOINT": "https://storage.framevela.com",
+        "S3_BUCKET": "photo",
+        "S3_ACCESS_KEY": "${S3_ACCESS_KEY:?required}",
+        "S3_SECRET_KEY": "${S3_SECRET_KEY:?required}",
+        "S3_REGION": "us-east-1",
+        "S3_CORS_STRATEGY": "minio-server",
+        "AMQP_URL": "${AMQP_URL:?required}",
+        "PHOTO_ICC_ROOT": "/opt/photo/icc",
+        "DATABASE_URL": "${GATEWAY_DATABASE_URL:?required}",
+        "PHOTO_ROLE": "object-gateway",
+        "HTTP_LISTEN": "0.0.0.0:8443",
+        "GATEWAY_CLIENT_CA_FILE": "/run/photo/gateway/ca.crt",
+        "GATEWAY_CERT_FILE": "/run/photo/gateway/server.crt",
+        "GATEWAY_KEY_FILE": "/run/photo/gateway/server.key",
+        "GATEWAY_SIGNING_KEYS_FILE": "/run/photo/gateway/signing.json",
+        "GATEWAY_MAX_DOWNLOAD_BYTES": "21474836480",
+        "GATEWAY_MAX_UPLOAD_BYTES": "21474836480",
+        "SSL_CERT_FILE": "/run/photo/tls/trust-bundle.pem"
+      },
+      "tmpfs": [
+        "/tmp:rw,noexec,nosuid,size=64m"
+      ],
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      },
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "/usr/local/bin/photo-healthcheck",
+          "--client-ca",
+          "/run/photo/gateway/ca.crt",
+          "--client-cert",
+          "/run/photo/gateway/worker.crt",
+          "--client-key",
+          "/run/photo/gateway/worker.key",
+          "--server-name",
+          "object-gateway",
+          "https://127.0.0.1:8443/health/ready"
+        ],
+        "interval": "15s",
+        "timeout": "5s",
+        "retries": 8
+      },
+      "volumes": [
+        "/srv/photoeditor/secrets/gateway/ca.crt:/run/photo/gateway/ca.crt:ro",
+        "/srv/photoeditor/secrets/gateway/server.crt:/run/photo/gateway/server.crt:ro",
+        "/srv/photoeditor/secrets/gateway/server.key:/run/photo/gateway/server.key:ro",
+        "/srv/photoeditor/secrets/gateway/worker.crt:/run/photo/gateway/worker.crt:ro",
+        "/srv/photoeditor/secrets/gateway/worker.key:/run/photo/gateway/worker.key:ro",
+        "/srv/photoeditor/secrets/gateway/signing.json:/run/photo/gateway/signing.json:ro",
+        "/srv/photoeditor/secrets/trust-bundle.pem:/run/photo/tls/trust-bundle.pem:ro"
+      ],
+      "depends_on": {
+        "postgres": {
+          "condition": "service_healthy"
+        },
+        "minio": {
+          "condition": "service_healthy"
+        },
+        "rabbitmq": {
+          "condition": "service_healthy"
+        }
+      }
+    },
+    "caddy": {
+      "image": "${CADDY_IMAGE:?required}",
+      "restart": "unless-stopped",
+      "networks": [
+        "edge",
+        "backend"
+      ],
+      "ports": [
+        "80:80",
+        "443:443",
+        "443:443/udp"
+      ],
+      "volumes": [
+        "/srv/photoeditor/config/Caddyfile:/etc/caddy/Caddyfile:ro",
+        "caddy-data:/data",
+        "caddy-config:/config",
+        "/srv/photoeditor/secrets/gateway/ca.crt:/etc/caddy/internal-ca.crt:ro"
+      ]
+    },
+    "mail-worker": {
+      "image": "${PHOTO_API_IMAGE:?required}",
+      "restart": "unless-stopped",
+      "init": true,
+      "read_only": true,
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "cap_drop": [
+        "ALL"
+      ],
+      "networks": [
+        "backend",
+        "edge"
+      ],
+      "environment": {
+        "APP_ENV": "production",
+        "APP_ORIGIN": "https://app.framevela.com",
+        "PORTAL_ORIGIN": "https://framevela.com",
+        "API_PUBLIC_ORIGIN": "https://api.framevela.com",
+        "CAPTURE_ORIGIN": "https://app.framevela.com",
+        "S3_ENDPOINT": "https://minio:9000",
+        "S3_PUBLIC_ENDPOINT": "https://storage.framevela.com",
+        "S3_BUCKET": "photo",
+        "S3_ACCESS_KEY": "${S3_ACCESS_KEY:?required}",
+        "S3_SECRET_KEY": "${S3_SECRET_KEY:?required}",
+        "S3_REGION": "us-east-1",
+        "S3_CORS_STRATEGY": "minio-server",
+        "AMQP_URL": "${AMQP_URL:?required}",
+        "PHOTO_ICC_ROOT": "/opt/photo/icc",
+        "DATABASE_URL": "${MAIL_DATABASE_URL:?required}",
+        "PHOTO_ROLE": "mail-worker",
+        "HTTP_LISTEN": "0.0.0.0:8086",
+        "JWT_ISSUER": "https://api.framevela.com",
+        "JWT_AUDIENCE": "framevela-api",
+        "MAIL_KEYS_FILE": "/run/photo/mail/keys.json",
+        "SMTP_HOST": "smtp-relay.brevo.com",
+        "SMTP_PORT": "587",
+        "SMTP_FROM": "noreply@mail.framevela.com",
+        "SMTP_USERNAME": "a4d164001@smtp-brevo.com",
+        "SMTP_PASSWORD_FILE": "/run/photo/mail/smtp-password",
+        "SMTP_TLS_MODE": "starttls",
+        "SSL_CERT_FILE": "/run/photo/tls/trust-bundle.pem"
+      },
+      "tmpfs": [
+        "/tmp:rw,noexec,nosuid,size=64m"
+      ],
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      },
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "/usr/local/bin/photo-healthcheck",
+          "http://127.0.0.1:8086/health/ready"
+        ],
+        "interval": "15s",
+        "timeout": "5s",
+        "retries": 8,
+        "start_period": "30s"
+      },
+      "volumes": [
+        "/srv/photoeditor/secrets/mail/keys.json:/run/photo/mail/keys.json:ro",
+        "/srv/photoeditor/secrets/mail/smtp-password:/run/photo/mail/smtp-password:ro",
+        "/srv/photoeditor/secrets/trust-bundle.pem:/run/photo/tls/trust-bundle.pem:ro"
+      ],
+      "depends_on": {
+        "postgres": {
+          "condition": "service_healthy"
+        },
+        "minio": {
+          "condition": "service_healthy"
+        },
+        "rabbitmq": {
+          "condition": "service_healthy"
+        }
+      },
+      "profiles": [
+        "mail"
+      ]
+    }
+  },
+  "networks": {
+    "edge": {},
+    "backend": {
+      "internal": true
+    }
+  },
+  "volumes": {
+    "rabbit-data": {},
+    "minio-data": {},
+    "caddy-data": {},
+    "caddy-config": {}
+  }
+}

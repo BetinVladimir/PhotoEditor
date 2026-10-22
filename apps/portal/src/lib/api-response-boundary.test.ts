@@ -1,0 +1,15 @@
+import {afterEach,describe,it,expect,vi} from 'vitest';
+import {getCollection,getItems,getMediaLinks,createSelection,startDownload,beginUpload} from './api';
+const id='11111111-1111-4111-8111-111111111111';
+afterEach(()=>vi.unstubAllGlobals());
+function reply(body:unknown,status=200){vi.stubGlobal('fetch',vi.fn(async()=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json'}})));}
+describe('mounted portal API boundary',()=>{
+ it('rejects successful wrong-status and malformed collection responses before publication',async()=>{reply({name:'name'},201);await expect(getCollection()).rejects.toThrow('status');reply({name:'name',description:'desc',revision:'1',empty:true,capabilities:{view:false,download:false,upload:false},allowed_presets:[],sections:[]});expect((await getCollection()).description).toBe('desc');});
+ it('refuses malformed gallery, media, snapshot and job receipts',async()=>{reply({items:[{id:'bad'}],revision:'1'});await expect(getItems()).rejects.toThrow();reply({items:[{item_id:id,variant:'thumb640',url:'javascript:alert(1)'}]});await expect(getMediaLinks('csrf',[id],['thumb640'])).rejects.toThrow();reply({id,digest:'a'.repeat(64),item_count:2,expires_at:'2026-10-18T00:00:00Z'},201);await expect(createSelection('csrf','1',[id])).rejects.toThrow();reply({download_job_id:'bad',status:'queued'},202);await expect(startDownload('csrf',id,id)).rejects.toThrow();});
+ it('detaches media request identity before transport can mutate caller arrays',async()=>{const ids=[id],variants=['thumb640'];vi.stubGlobal('fetch',vi.fn(async()=>{ids[0]='22222222-2222-4222-8222-222222222222';variants[0]='preview1600';return new Response(JSON.stringify({items:[{item_id:id,variant:'thumb640',url:'https://objects.test/a?versionId=v1',expires_at:new Date(Date.now()+60000).toISOString(),width:1,height:1,media_type:'image/jpeg'}]}),{status:200});}));expect((await getMediaLinks('csrf',ids,variants)).items[0].item_id).toBe(id);});
+ it('binds upload accepted identity to selected file size/name',async()=>{reply({id,state:'uploading',revision:'1',filename:'other.jpg',expected_size:10,part_bytes:16777216,parts_total:1,expires_at:'2026-10-18T00:00:00Z'},201);await expect(beginUpload('csrf',{name:'photo.jpg',size:10} as File)).rejects.toThrow();});
+ it('normalizes malformed error payloads to the HTTP fallback',async()=>{reply({error:{code:{unexpected:true},message:['not text']}},403);await expect(getCollection()).rejects.toMatchObject({status:403,code:'HTTP_403'});});
+ it('retains existing pre/post cancellation fences',async()=>{const controller=new AbortController();controller.abort();reply({});await expect(getCollection(controller.signal)).rejects.toThrow();expect(fetch).not.toHaveBeenCalled();});
+});
+
+it('refuses metadata/page revision drift through the actual caller before gallery publication',async()=>{reply({items:[],revision:'2',next_cursor:null});await expect(getItems(undefined,undefined,undefined,'1')).rejects.toThrow();await expect(getItems('previous',undefined,undefined,'1')).rejects.toThrow();});

@@ -62,9 +62,9 @@ END $$;
 -- +goose StatementEnd
 ALTER FUNCTION photo.v31_delivery_negative_pixels_object(uuid,uuid,integer,uuid,uuid,uuid,text,uuid,text,uuid,text,text,bigint)
  OWNER TO photo_fn_owner;
-REVOKE ALL ON FUNCTION photo.v31_delivery_negative_pixels_object(uuid,uuid,integer,uuid,uuid,uuid,text,uuid,text,uuid,text,bigint)
+REVOKE ALL ON FUNCTION photo.v31_delivery_negative_pixels_object(uuid,uuid,integer,uuid,uuid,uuid,text,uuid,text,uuid,text,text,bigint)
  FROM PUBLIC,photo_api,photo_worker,photo_gateway,photo_portal,photo_maintenance;
-GRANT EXECUTE ON FUNCTION photo.v31_delivery_negative_pixels_object(uuid,uuid,integer,uuid,uuid,uuid,text,uuid,text,uuid,text,bigint)
+GRANT EXECUTE ON FUNCTION photo.v31_delivery_negative_pixels_object(uuid,uuid,integer,uuid,uuid,uuid,text,uuid,text,uuid,text,text,bigint)
  TO photo_scheduler;
 -- +goose Down
 -- +goose StatementBegin

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"photoeditor/backend/internal/artifactjson"
 	"photoeditor/backend/internal/domain"
+	"photoeditor/backend/internal/semanticproposal"
 	"photoeditor/backend/internal/v2input"
 	"photoeditor/backend/internal/v2qualification"
 	"testing"
@@ -19,6 +20,7 @@ func TestProposalAdmissionFailuresHaveStablePublicCodes(t *testing.T) {
 		{v2input.ErrInvalid, "VALIDATION_FAILED", 422},
 		{v2input.ErrExpired, "SNAPSHOT_EXPIRED", 410},
 		{artifactjson.ErrStale, "SNAPSHOT_EXPIRED", 410},
+		{errors.Join(semanticproposal.ErrPreparationPending, v2input.ErrConflict), "DEPENDENCY_UNAVAILABLE", 503},
 		{v2input.ErrConflict, "IDEMPOTENCY_CONFLICT", 409},
 		{artifactjson.ErrConflict, "IDEMPOTENCY_CONFLICT", 409},
 		{artifactjson.ErrQuota, "QUOTA_EXCEEDED", 409},

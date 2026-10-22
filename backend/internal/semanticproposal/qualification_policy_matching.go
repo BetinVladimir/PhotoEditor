@@ -38,7 +38,7 @@ func sameQualificationPolicyExpected(a, b v2qualification.Expected) bool {
 // Checks every selected face/parser/person policy against the DBA-selected
 // admission models. Does not replace original report/content or inventory gates.
 func matchSelectedEvidencePolicies(policy qualificationPolicySnapshot, faces []facePreparationProof, parsers []faceParsePreparationProof, persons []personProtectionProof) error {
-	selected, err := selectQualificationPolicies(policy, []string{"face.landmarks", "face.detect", "face.parse", "mask.person"})
+	selected, err := selectNativeQualificationPolicies(policy, []string{"face.landmarks", "face.detect", "face.parse", "mask.person"})
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func matchSelectedEvidencePolicies(policy qualificationPolicySnapshot, faces []f
 // Both execution policies are mandatory for the complete proposal contour.
 // Matching policy does not verify report/calibration bytes or costs.
 func matchProposalExecutionPolicies(policy qualificationPolicySnapshot, defect, transfer v2qualification.Expected) error {
-	selected, err := selectQualificationPolicies(policy, []string{"defects.propose", "semantic.transfer"})
+	selected, err := selectNativeQualificationPolicies(policy, []string{"defects.propose", "semantic.transfer"})
 	if err != nil {
 		return err
 	}

@@ -53,6 +53,7 @@ func (t *restorationStoreTx) QueryRow(_ context.Context, query string, args ...a
 	if strings.Contains(query, "save_v28_restoration_descriptor") ||
 		strings.Contains(query, "begin_v28_restoration_draft") ||
 		strings.Contains(query, "begin_v28_reflection_draft") ||
+		strings.Contains(query, "begin_v28_open_eyes_draft") ||
 		strings.Contains(query, "save_v28_restoration_params_intent") ||
 		strings.Contains(query, "stage_v28_restoration_task") ||
 		strings.Contains(query, "seal_v28_restoration_graph") {

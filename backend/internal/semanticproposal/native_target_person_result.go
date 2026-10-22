@@ -62,7 +62,7 @@ func (s SQLTransferSourceReader) readNativeTargetPersonResult(ctx context.Contex
 	if err != nil {
 		return zero, err
 	}
-	selected, err := selectQualificationPolicies(plan.person.policy, []string{"mask.person"})
+	selected, err := selectNativeQualificationPolicies(plan.person.policy, []string{"mask.person"})
 	if err != nil {
 		return zero, err
 	}

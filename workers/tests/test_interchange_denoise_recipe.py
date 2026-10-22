@@ -33,7 +33,7 @@ def test_denoise_recipe_uses_real_params_source_semantics_and_gc_receipt(mode):
     if image.alpha is not None:
         entries.append((image.alpha, 'WorkingAlpha', 'application/x-npy'))
     mask_pixels = ArtifactRef(artifact_id=uuid4(), sha256='d' * 64)
-    mask = MaskRef(artifact=mask_pixels, canvas=image.canvas, transform_chain=image.transform_chain,
+    mask = MaskRef(model_lock_id=None, artifact=mask_pixels, canvas=image.canvas, transform_chain=image.transform_chain,
                    selector='manual', confidence=1, protected=True)
     mask_ref = put(mask, 'MaskRef')
     entries.append((mask_pixels, 'MaskPixels', 'application/x-npy'))

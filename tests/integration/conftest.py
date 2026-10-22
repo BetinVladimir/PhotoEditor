@@ -23,6 +23,16 @@ SCAFFOLD_MODULES = {
     'test_v2_task_input_registration.py',
 }
 
+@pytest.fixture(scope='session')
+def session_database_templates():
+    from database_templates import SessionDatabaseTemplates
+    templates = SessionDatabaseTemplates(ROOT)
+    try:
+        yield templates
+    finally:
+        templates.close()
+
+
 @pytest.fixture
 def database(request):
     head_marker = request.node.get_closest_marker('migration_head')
@@ -36,6 +46,12 @@ def database(request):
         if not path.exists():pytest.skip('Start dedicated photoeditor development PostgreSQL first')
         values=dict(line.split('=',1) for line in path.read_text().splitlines() if '=' in line)
         kwargs=dict(host='127.0.0.1',port=55432,user=values['POSTGRES_USER'],password=values['POSTGRES_PASSWORD'])
+    if os.environ.get('PHOTO_TEST_DB_TEMPLATES') == '1':
+        templates = request.getfixturevalue('session_database_templates')
+        scaffold = Path(request.module.__file__).name in SCAFFOLD_MODULES
+        with templates.clone(kwargs, migration_head, scaffold) as name:
+            yield PrivateDatabaseConfig({**kwargs, 'dbname': name})
+        return
     name='photo_test_'+uuid4().hex
     try:
         admin_connection=psycopg.connect(**kwargs,dbname='postgres',autocommit=True)
@@ -44,7 +60,7 @@ def database(request):
     with admin_connection as admin:
         admin.execute(sql.SQL('CREATE DATABASE {}').format(sql.Identifier(name)))
     try:
-        with psycopg.connect(**kwargs,dbname=name) as conn:
+        with psycopg.connect(**kwargs,dbname=name,autocommit=True) as conn:
             for p in sorted((ROOT/'backend/db/migrations').glob('*.sql')):
                 if migration_head is not None and int(p.name.split('_',1)[0]) > migration_head:
                     continue
@@ -52,7 +68,17 @@ def database(request):
                 if Path(request.module.__file__).name in SCAFFOLD_MODULES and int(p.name.split('_',1)[0]) >= 197:
                     continue
                 up=p.read_text().split('-- +goose Down')[0]
-                conn.execute(up)
+                try:
+                    if '-- +goose NO TRANSACTION' in up:
+                        conn.execute(up)
+                    else:
+                        with conn.transaction():
+                            conn.execute(up)
+                except Exception as exc:
+                    # Identify the failing migration without printing credentials
+                    # or changing transaction/rollback behavior.
+                    exc.add_note(f'Migration: {p.name}')
+                    raise
         yield PrivateDatabaseConfig({**kwargs,'dbname':name})
     finally:
         with psycopg.connect(**kwargs,dbname='postgres',autocommit=True) as admin:

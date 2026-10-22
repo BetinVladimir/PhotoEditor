@@ -26,10 +26,28 @@
       "version": "v5.3.2"
     },
     {
+      "name": "github.com/go-ole/go-ole",
+      "purl": "pkg:golang/github.com/go-ole/go-ole@v1.3.0",
+      "type": "library",
+      "version": "v1.3.0"
+    },
+    {
+      "name": "github.com/golang-jwt/jwt/v4",
+      "purl": "pkg:golang/github.com/golang-jwt/jwt/v4@v4.5.2",
+      "type": "library",
+      "version": "v4.5.2"
+    },
+    {
       "name": "github.com/golang-jwt/jwt/v5",
       "purl": "pkg:golang/github.com/golang-jwt/jwt/v5@v5.3.1",
       "type": "library",
       "version": "v5.3.1"
+    },
+    {
+      "name": "github.com/golang/protobuf",
+      "purl": "pkg:golang/github.com/golang/protobuf@v1.5.4",
+      "type": "library",
+      "version": "v1.5.4"
     },
     {
       "name": "github.com/google/uuid",
@@ -80,6 +98,18 @@
       "version": "v1.3.0"
     },
     {
+      "name": "github.com/lufia/plan9stats",
+      "purl": "pkg:golang/github.com/lufia/plan9stats@v0.0.0-20250317134145-8bc96cf8fc35",
+      "type": "library",
+      "version": "v0.0.0-20250317134145-8bc96cf8fc35"
+    },
+    {
+      "name": "github.com/matttproud/golang_protobuf_extensions",
+      "purl": "pkg:golang/github.com/matttproud/golang_protobuf_extensions@v1.0.4",
+      "type": "library",
+      "version": "v1.0.4"
+    },
+    {
       "name": "github.com/mfridman/interpolate",
       "purl": "pkg:golang/github.com/mfridman/interpolate@v0.0.2",
       "type": "library",
@@ -90,6 +120,12 @@
       "purl": "pkg:golang/github.com/minio/crc64nvme@v1.1.1",
       "type": "library",
       "version": "v1.1.1"
+    },
+    {
+      "name": "github.com/minio/madmin-go/v3",
+      "purl": "pkg:golang/github.com/minio/madmin-go/v3@v3.0.109",
+      "type": "library",
+      "version": "v3.0.109"
     },
     {
       "name": "github.com/minio/md5-simd",
@@ -104,16 +140,58 @@
       "version": "v7.3.0"
     },
     {
+      "name": "github.com/munnerz/goautoneg",
+      "purl": "pkg:golang/github.com/munnerz/goautoneg@v0.0.0-20191010083416-a7dc8b61c822",
+      "type": "library",
+      "version": "v0.0.0-20191010083416-a7dc8b61c822"
+    },
+    {
       "name": "github.com/philhofer/fwd",
       "purl": "pkg:golang/github.com/philhofer/fwd@v1.2.0",
       "type": "library",
       "version": "v1.2.0"
     },
     {
+      "name": "github.com/power-devops/perfstat",
+      "purl": "pkg:golang/github.com/power-devops/perfstat@v0.0.0-20240221224432-82ca36839d55",
+      "type": "library",
+      "version": "v0.0.0-20240221224432-82ca36839d55"
+    },
+    {
       "name": "github.com/pressly/goose/v3",
       "purl": "pkg:golang/github.com/pressly/goose/v3@v3.28.0",
       "type": "library",
       "version": "v3.28.0"
+    },
+    {
+      "name": "github.com/prometheus/client_model",
+      "purl": "pkg:golang/github.com/prometheus/client_model@v0.6.2",
+      "type": "library",
+      "version": "v0.6.2"
+    },
+    {
+      "name": "github.com/prometheus/common",
+      "purl": "pkg:golang/github.com/prometheus/common@v0.63.0",
+      "type": "library",
+      "version": "v0.63.0"
+    },
+    {
+      "name": "github.com/prometheus/procfs",
+      "purl": "pkg:golang/github.com/prometheus/procfs@v0.22.0",
+      "type": "library",
+      "version": "v0.22.0"
+    },
+    {
+      "name": "github.com/prometheus/prom2json",
+      "purl": "pkg:golang/github.com/prometheus/prom2json@v1.4.2",
+      "type": "library",
+      "version": "v1.4.2"
+    },
+    {
+      "name": "github.com/prometheus/prometheus",
+      "purl": "pkg:golang/github.com/prometheus/prometheus@v0.303.0",
+      "type": "library",
+      "version": "v0.303.0"
     },
     {
       "name": "github.com/rabbitmq/amqp091-go",
@@ -128,16 +206,58 @@
       "version": "v1.6.0"
     },
     {
+      "name": "github.com/safchain/ethtool",
+      "purl": "pkg:golang/github.com/safchain/ethtool@v0.5.10",
+      "type": "library",
+      "version": "v0.5.10"
+    },
+    {
+      "name": "github.com/secure-io/sio-go",
+      "purl": "pkg:golang/github.com/secure-io/sio-go@v0.3.1",
+      "type": "library",
+      "version": "v0.3.1"
+    },
+    {
       "name": "github.com/sethvargo/go-retry",
       "purl": "pkg:golang/github.com/sethvargo/go-retry@v0.4.0",
       "type": "library",
       "version": "v0.4.0"
     },
     {
+      "name": "github.com/shirou/gopsutil/v3",
+      "purl": "pkg:golang/github.com/shirou/gopsutil/v3@v3.24.5",
+      "type": "library",
+      "version": "v3.24.5"
+    },
+    {
+      "name": "github.com/shoenig/go-m1cpu",
+      "purl": "pkg:golang/github.com/shoenig/go-m1cpu@v0.1.6",
+      "type": "library",
+      "version": "v0.1.6"
+    },
+    {
       "name": "github.com/tinylib/msgp",
       "purl": "pkg:golang/github.com/tinylib/msgp@v1.6.4",
       "type": "library",
       "version": "v1.6.4"
+    },
+    {
+      "name": "github.com/tklauser/go-sysconf",
+      "purl": "pkg:golang/github.com/tklauser/go-sysconf@v0.3.15",
+      "type": "library",
+      "version": "v0.3.15"
+    },
+    {
+      "name": "github.com/tklauser/numcpus",
+      "purl": "pkg:golang/github.com/tklauser/numcpus@v0.10.0",
+      "type": "library",
+      "version": "v0.10.0"
+    },
+    {
+      "name": "github.com/yusufpapurcu/wmi",
+      "purl": "pkg:golang/github.com/yusufpapurcu/wmi@v1.2.4",
+      "type": "library",
+      "version": "v1.2.4"
     },
     {
       "name": "github.com/zeebo/xxh3",
@@ -188,10 +308,28 @@
       "version": "v0.41.0"
     },
     {
+      "name": "google.golang.org/protobuf",
+      "purl": "pkg:golang/google.golang.org/protobuf@v1.36.12",
+      "type": "library",
+      "version": "v1.36.12"
+    },
+    {
       "name": "gopkg.in/ini.v1",
       "purl": "pkg:golang/gopkg.in/ini.v1@v1.67.3",
       "type": "library",
       "version": "v1.67.3"
+    },
+    {
+      "name": "@asamuzakjp/css-color/node_modules/lru-cache",
+      "purl": "pkg:npm/%40asamuzakjp/css-color/node_modules/lru-cache@10.4.3",
+      "type": "library",
+      "version": "10.4.3"
+    },
+    {
+      "name": "@asamuzakjp/css-color",
+      "purl": "pkg:npm/%40asamuzakjp/css-color@3.2.0",
+      "type": "library",
+      "version": "3.2.0"
     },
     {
       "name": "@babel/code-frame",
@@ -654,6 +792,48 @@
       "purl": "pkg:npm/%40babel/types@7.29.8",
       "type": "library",
       "version": "7.29.8"
+    },
+    {
+      "name": "@callstack/react-theme-provider/node_modules/deepmerge",
+      "purl": "pkg:npm/%40callstack/react-theme-provider/node_modules/deepmerge@3.3.0",
+      "type": "library",
+      "version": "3.3.0"
+    },
+    {
+      "name": "@callstack/react-theme-provider",
+      "purl": "pkg:npm/%40callstack/react-theme-provider@3.0.9",
+      "type": "library",
+      "version": "3.0.9"
+    },
+    {
+      "name": "@csstools/color-helpers",
+      "purl": "pkg:npm/%40csstools/color-helpers@5.1.0",
+      "type": "library",
+      "version": "5.1.0"
+    },
+    {
+      "name": "@csstools/css-calc",
+      "purl": "pkg:npm/%40csstools/css-calc@2.1.4",
+      "type": "library",
+      "version": "2.1.4"
+    },
+    {
+      "name": "@csstools/css-color-parser",
+      "purl": "pkg:npm/%40csstools/css-color-parser@3.1.0",
+      "type": "library",
+      "version": "3.1.0"
+    },
+    {
+      "name": "@csstools/css-parser-algorithms",
+      "purl": "pkg:npm/%40csstools/css-parser-algorithms@3.0.5",
+      "type": "library",
+      "version": "3.0.5"
+    },
+    {
+      "name": "@csstools/css-tokenizer",
+      "purl": "pkg:npm/%40csstools/css-tokenizer@3.0.4",
+      "type": "library",
+      "version": "3.0.4"
     },
     {
       "name": "@emnapi/runtime",
@@ -1394,6 +1574,12 @@
       "version": "57.0.19"
     },
     {
+      "name": "@expo/vector-icons",
+      "purl": "pkg:npm/%40expo/vector-icons@15.1.1",
+      "type": "library",
+      "version": "15.1.1"
+    },
+    {
       "name": "@expo/xcpretty/node_modules/ansi-styles",
       "purl": "pkg:npm/%40expo/xcpretty/node_modules/ansi-styles@4.3.0",
       "type": "library",
@@ -2096,6 +2282,42 @@
       "version": "0.5.23"
     },
     {
+      "name": "@testing-library/dom/node_modules/ansi-styles",
+      "purl": "pkg:npm/%40testing-library/dom/node_modules/ansi-styles@5.2.0",
+      "type": "library",
+      "version": "5.2.0"
+    },
+    {
+      "name": "@testing-library/dom/node_modules/pretty-format",
+      "purl": "pkg:npm/%40testing-library/dom/node_modules/pretty-format@27.5.1",
+      "type": "library",
+      "version": "27.5.1"
+    },
+    {
+      "name": "@testing-library/dom/node_modules/react-is",
+      "purl": "pkg:npm/%40testing-library/dom/node_modules/react-is@17.0.2",
+      "type": "library",
+      "version": "17.0.2"
+    },
+    {
+      "name": "@testing-library/dom",
+      "purl": "pkg:npm/%40testing-library/dom@10.4.2",
+      "type": "library",
+      "version": "10.4.2"
+    },
+    {
+      "name": "@testing-library/react",
+      "purl": "pkg:npm/%40testing-library/react@16.3.3",
+      "type": "library",
+      "version": "16.3.3"
+    },
+    {
+      "name": "@types/aria-query",
+      "purl": "pkg:npm/%40types/aria-query@5.0.4",
+      "type": "library",
+      "version": "5.0.4"
+    },
+    {
       "name": "@types/chai",
       "purl": "pkg:npm/%40types/chai@5.2.3",
       "type": "library",
@@ -2148,6 +2370,18 @@
       "purl": "pkg:npm/%40types/react-dom@19.2.2",
       "type": "library",
       "version": "19.2.2"
+    },
+    {
+      "name": "@types/react-dom",
+      "purl": "pkg:npm/%40types/react-dom@19.3.0",
+      "type": "library",
+      "version": "19.3.0"
+    },
+    {
+      "name": "@types/react-native-web",
+      "purl": "pkg:npm/%40types/react-native-web@0.19.3",
+      "type": "library",
+      "version": "0.19.3"
     },
     {
       "name": "@types/react-test-renderer",
@@ -2274,6 +2508,12 @@
       "purl": "pkg:npm/aria-hidden@1.2.6",
       "type": "library",
       "version": "1.2.6"
+    },
+    {
+      "name": "aria-query",
+      "purl": "pkg:npm/aria-query@5.3.0",
+      "type": "library",
+      "version": "5.3.0"
     },
     {
       "name": "asap",
@@ -2624,16 +2864,46 @@
       "version": "3.1.0"
     },
     {
+      "name": "cssstyle",
+      "purl": "pkg:npm/cssstyle@4.6.0",
+      "type": "library",
+      "version": "4.6.0"
+    },
+    {
       "name": "csstype",
       "purl": "pkg:npm/csstype@3.2.3",
       "type": "library",
       "version": "3.2.3"
     },
     {
+      "name": "data-urls/node_modules/tr46",
+      "purl": "pkg:npm/data-urls/node_modules/tr46@5.1.1",
+      "type": "library",
+      "version": "5.1.1"
+    },
+    {
+      "name": "data-urls/node_modules/whatwg-url",
+      "purl": "pkg:npm/data-urls/node_modules/whatwg-url@14.2.0",
+      "type": "library",
+      "version": "14.2.0"
+    },
+    {
+      "name": "data-urls",
+      "purl": "pkg:npm/data-urls@5.0.0",
+      "type": "library",
+      "version": "5.0.0"
+    },
+    {
       "name": "debug",
       "purl": "pkg:npm/debug@4.4.3",
       "type": "library",
       "version": "4.4.3"
+    },
+    {
+      "name": "decimal.js",
+      "purl": "pkg:npm/decimal.js@10.6.0",
+      "type": "library",
+      "version": "10.6.0"
     },
     {
       "name": "decode-uri-component",
@@ -2660,6 +2930,12 @@
       "version": "2.0.0"
     },
     {
+      "name": "dequal",
+      "purl": "pkg:npm/dequal@2.0.3",
+      "type": "library",
+      "version": "2.0.3"
+    },
+    {
       "name": "destroy",
       "purl": "pkg:npm/destroy@1.2.0",
       "type": "library",
@@ -2684,6 +2960,12 @@
       "version": "1.1.6"
     },
     {
+      "name": "dom-accessibility-api",
+      "purl": "pkg:npm/dom-accessibility-api@0.5.16",
+      "type": "library",
+      "version": "0.5.16"
+    },
+    {
       "name": "ee-first",
       "purl": "pkg:npm/ee-first@1.1.1",
       "type": "library",
@@ -2706,6 +2988,12 @@
       "purl": "pkg:npm/encodeurl@1.0.2",
       "type": "library",
       "version": "1.0.2"
+    },
+    {
+      "name": "entities",
+      "purl": "pkg:npm/entities@6.0.1",
+      "type": "library",
+      "version": "6.0.1"
     },
     {
       "name": "error-stack-parser",
@@ -3188,6 +3476,18 @@
       "version": "0.36.1"
     },
     {
+      "name": "hoist-non-react-statics/node_modules/react-is",
+      "purl": "pkg:npm/hoist-non-react-statics/node_modules/react-is@16.13.1",
+      "type": "library",
+      "version": "16.13.1"
+    },
+    {
+      "name": "hoist-non-react-statics",
+      "purl": "pkg:npm/hoist-non-react-statics@3.3.2",
+      "type": "library",
+      "version": "3.3.2"
+    },
+    {
       "name": "hosted-git-info/node_modules/lru-cache",
       "purl": "pkg:npm/hosted-git-info/node_modules/lru-cache@10.4.3",
       "type": "library",
@@ -3198,6 +3498,12 @@
       "purl": "pkg:npm/hosted-git-info@7.0.2",
       "type": "library",
       "version": "7.0.2"
+    },
+    {
+      "name": "html-encoding-sniffer",
+      "purl": "pkg:npm/html-encoding-sniffer@4.0.0",
+      "type": "library",
+      "version": "4.0.0"
     },
     {
       "name": "http-errors/node_modules/statuses",
@@ -3212,6 +3518,12 @@
       "version": "2.0.1"
     },
     {
+      "name": "http-proxy-agent",
+      "purl": "pkg:npm/http-proxy-agent@7.0.2",
+      "type": "library",
+      "version": "7.0.2"
+    },
+    {
       "name": "https-proxy-agent",
       "purl": "pkg:npm/https-proxy-agent@7.0.6",
       "type": "library",
@@ -3222,6 +3534,12 @@
       "purl": "pkg:npm/hyphenate-style-name@1.1.0",
       "type": "library",
       "version": "1.1.0"
+    },
+    {
+      "name": "iconv-lite",
+      "purl": "pkg:npm/iconv-lite@0.6.3",
+      "type": "library",
+      "version": "0.6.3"
     },
     {
       "name": "ignore",
@@ -3282,6 +3600,12 @@
       "purl": "pkg:npm/is-plain-obj@2.1.0",
       "type": "library",
       "version": "2.1.0"
+    },
+    {
+      "name": "is-potential-custom-element-name",
+      "purl": "pkg:npm/is-potential-custom-element-name@1.0.1",
+      "type": "library",
+      "version": "1.0.1"
     },
     {
       "name": "is-wsl",
@@ -3426,6 +3750,30 @@
       "purl": "pkg:npm/jsc-safe-url@0.2.4",
       "type": "library",
       "version": "0.2.4"
+    },
+    {
+      "name": "jsdom/node_modules/tr46",
+      "purl": "pkg:npm/jsdom/node_modules/tr46@5.1.1",
+      "type": "library",
+      "version": "5.1.1"
+    },
+    {
+      "name": "jsdom/node_modules/whatwg-url",
+      "purl": "pkg:npm/jsdom/node_modules/whatwg-url@14.2.0",
+      "type": "library",
+      "version": "14.2.0"
+    },
+    {
+      "name": "jsdom/node_modules/ws",
+      "purl": "pkg:npm/jsdom/node_modules/ws@8.22.0",
+      "type": "library",
+      "version": "8.22.0"
+    },
+    {
+      "name": "jsdom",
+      "purl": "pkg:npm/jsdom@26.1.0",
+      "type": "library",
+      "version": "26.1.0"
     },
     {
       "name": "jsesc",
@@ -3576,6 +3924,12 @@
       "purl": "pkg:npm/lru-cache@5.1.1",
       "type": "library",
       "version": "5.1.1"
+    },
+    {
+      "name": "lz-string",
+      "purl": "pkg:npm/lz-string@1.5.0",
+      "type": "library",
+      "version": "1.5.0"
     },
     {
       "name": "magic-string",
@@ -3860,6 +4214,12 @@
       "version": "1.1.1"
     },
     {
+      "name": "nwsapi",
+      "purl": "pkg:npm/nwsapi@2.2.28",
+      "type": "library",
+      "version": "2.2.28"
+    },
+    {
       "name": "ob1",
       "purl": "pkg:npm/ob1@0.84.6",
       "type": "library",
@@ -3924,6 +4284,12 @@
       "purl": "pkg:npm/parse-png@2.1.0",
       "type": "library",
       "version": "2.1.0"
+    },
+    {
+      "name": "parse5",
+      "purl": "pkg:npm/parse5@7.3.0",
+      "type": "library",
+      "version": "7.3.0"
     },
     {
       "name": "parseurl",
@@ -4052,6 +4418,12 @@
       "version": "2.4.2"
     },
     {
+      "name": "punycode",
+      "purl": "pkg:npm/punycode@2.3.1",
+      "type": "library",
+      "version": "2.3.1"
+    },
+    {
       "name": "query-string",
       "purl": "pkg:npm/query-string@7.1.3",
       "type": "library",
@@ -4118,6 +4490,18 @@
       "version": "1.3.1"
     },
     {
+      "name": "react-native-paper/node_modules/color",
+      "purl": "pkg:npm/react-native-paper/node_modules/color@3.2.1",
+      "type": "library",
+      "version": "3.2.1"
+    },
+    {
+      "name": "react-native-paper",
+      "purl": "pkg:npm/react-native-paper@5.15.3",
+      "type": "library",
+      "version": "5.15.3"
+    },
+    {
       "name": "react-native-reanimated",
       "purl": "pkg:npm/react-native-reanimated@4.7.0",
       "type": "library",
@@ -4125,9 +4509,9 @@
     },
     {
       "name": "react-native-safe-area-context",
-      "purl": "pkg:npm/react-native-safe-area-context@5.10.0",
+      "purl": "pkg:npm/react-native-safe-area-context@5.10.1",
       "type": "library",
-      "version": "5.10.0"
+      "version": "5.10.1"
     },
     {
       "name": "react-native-screens",
@@ -4304,10 +4688,22 @@
       "version": "1.2.9"
     },
     {
+      "name": "rrweb-cssom",
+      "purl": "pkg:npm/rrweb-cssom@0.8.0",
+      "type": "library",
+      "version": "0.8.0"
+    },
+    {
       "name": "safe-buffer",
       "purl": "pkg:npm/safe-buffer@5.2.1",
       "type": "library",
       "version": "5.2.1"
+    },
+    {
+      "name": "safer-buffer",
+      "purl": "pkg:npm/safer-buffer@2.1.2",
+      "type": "library",
+      "version": "2.1.2"
     },
     {
       "name": "sandbox-cli-detector",
@@ -4320,6 +4716,12 @@
       "purl": "pkg:npm/sax@1.6.1",
       "type": "library",
       "version": "1.6.1"
+    },
+    {
+      "name": "saxes",
+      "purl": "pkg:npm/saxes@6.0.0",
+      "type": "library",
+      "version": "6.0.0"
     },
     {
       "name": "scheduler",
@@ -4622,6 +5024,12 @@
       "version": "1.0.0"
     },
     {
+      "name": "symbol-tree",
+      "purl": "pkg:npm/symbol-tree@3.2.4",
+      "type": "library",
+      "version": "3.2.4"
+    },
+    {
       "name": "terminal-link",
       "purl": "pkg:npm/terminal-link@2.1.1",
       "type": "library",
@@ -4676,6 +5084,18 @@
       "version": "0.2.17"
     },
     {
+      "name": "tldts-core",
+      "purl": "pkg:npm/tldts-core@6.1.86",
+      "type": "library",
+      "version": "6.1.86"
+    },
+    {
+      "name": "tldts",
+      "purl": "pkg:npm/tldts@6.1.86",
+      "type": "library",
+      "version": "6.1.86"
+    },
+    {
       "name": "tmpl",
       "purl": "pkg:npm/tmpl@1.0.5",
       "type": "library",
@@ -4698,6 +5118,12 @@
       "purl": "pkg:npm/toqr@0.1.1",
       "type": "library",
       "version": "0.1.1"
+    },
+    {
+      "name": "tough-cookie",
+      "purl": "pkg:npm/tough-cookie@5.1.2",
+      "type": "library",
+      "version": "5.1.2"
     },
     {
       "name": "tr46",
@@ -4862,6 +5288,12 @@
       "version": "1.0.1"
     },
     {
+      "name": "w3c-xmlserializer",
+      "purl": "pkg:npm/w3c-xmlserializer@5.0.0",
+      "type": "library",
+      "version": "5.0.0"
+    },
+    {
       "name": "walker",
       "purl": "pkg:npm/walker@1.0.8",
       "type": "library",
@@ -4880,10 +5312,28 @@
       "version": "1.0.1"
     },
     {
+      "name": "webidl-conversions",
+      "purl": "pkg:npm/webidl-conversions@7.0.0",
+      "type": "library",
+      "version": "7.0.0"
+    },
+    {
+      "name": "whatwg-encoding",
+      "purl": "pkg:npm/whatwg-encoding@3.1.1",
+      "type": "library",
+      "version": "3.1.1"
+    },
+    {
       "name": "whatwg-fetch",
       "purl": "pkg:npm/whatwg-fetch@3.6.20",
       "type": "library",
       "version": "3.6.20"
+    },
+    {
+      "name": "whatwg-mimetype",
+      "purl": "pkg:npm/whatwg-mimetype@4.0.0",
+      "type": "library",
+      "version": "4.0.0"
     },
     {
       "name": "whatwg-url-minimum",
@@ -4952,6 +5402,12 @@
       "version": "3.0.1"
     },
     {
+      "name": "xml-name-validator",
+      "purl": "pkg:npm/xml-name-validator@5.0.0",
+      "type": "library",
+      "version": "5.0.0"
+    },
+    {
       "name": "xml2js/node_modules/xmlbuilder",
       "purl": "pkg:npm/xml2js/node_modules/xmlbuilder@11.0.1",
       "type": "library",
@@ -4968,6 +5424,12 @@
       "purl": "pkg:npm/xmlbuilder@15.1.1",
       "type": "library",
       "version": "15.1.1"
+    },
+    {
+      "name": "xmlchars",
+      "purl": "pkg:npm/xmlchars@2.2.0",
+      "type": "library",
+      "version": "2.2.0"
     },
     {
       "name": "y18n",
@@ -5256,7 +5718,7 @@
     "component": {
       "name": "PhotoEditor",
       "type": "application",
-      "version": "fee5be46bca3"
+      "version": "178751646526"
     }
   },
   "specVersion": "1.5",

@@ -72,7 +72,7 @@ func verifyNativeDefectPersonInput(ctx context.Context, prepared nativeDefectFac
 	if err != nil {
 		return err
 	}
-	selected, err := selectQualificationPolicies(p.policy, []string{"mask.person"})
+	selected, err := selectNativeQualificationPolicies(p.policy, []string{"mask.person"})
 	if err != nil {
 		return err
 	}

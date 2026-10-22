@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"sort"
+ "time"
 
 	"github.com/google/uuid"
 	"photoeditor/backend/internal/artifactjson"
@@ -59,6 +60,7 @@ func (c MediaRetryCoordinator) ProcessOne(ctx context.Context) (bool, error) { r
 // exact expected digest. Every identity is derived from the durable event ID,
 // which makes the sequence replayable after any process or object-store fault.
 func (c MediaRetryCoordinator) Process(ctx context.Context) (bool, error) {
+ if err:=ctx.Err();err!=nil{return false,err}
 	if c.Store == nil || c.Publisher == nil {
 		return false, errors.New("media retry coordinator unavailable")
 	}
@@ -69,9 +71,14 @@ func (c MediaRetryCoordinator) Process(ctx context.Context) (bool, error) {
 	release := true
 	defer func() {
 		if release {
-			_, _ = c.Store.Release(context.WithoutCancel(ctx), *lease)
+			cleanup,cancel:=context.WithTimeout(context.WithoutCancel(ctx),5*time.Second)
+   defer cancel()
+   _, _ = c.Store.Release(cleanup, *lease)
 		}
 	}()
+ // Reject absent/unknown policy before any durable plan or object write.
+ if lease.RendererPolicy!=media.CurrentRendererPolicy && lease.RendererPolicy!=media.LegacyRendererPolicy{return false,errors.New("unknown media retry renderer policy")}
+ if err=ctx.Err();err!=nil{return false,err}
 	runID := uuid.NewSHA1(lease.EventID, []byte("media-retry-run"))
 	config, err := canonical.Marshal(struct {
 		EventID        uuid.UUID `json:"event_id"`
@@ -91,7 +98,8 @@ func (c MediaRetryCoordinator) Process(ctx context.Context) (bool, error) {
 		}
 		return false, err
 	}
-	docs, err := BuildMediaRetryDocuments(lease.EventID, lease.AssetVersionID, lease.Master, lease.Variants, c.SRGBSHA)
+ if err=ctx.Err();err!=nil{return false,err}
+	docs, err := BuildMediaRetryDocumentsForPolicy(lease.EventID, lease.AssetVersionID, lease.Master, lease.Variants, c.SRGBSHA,lease.RendererPolicy)
 	if err != nil {
 		return false, err
 	}
@@ -108,10 +116,12 @@ func (c MediaRetryCoordinator) Process(ctx context.Context) (bool, error) {
 			}
 			return false, err
 		}
+  if err=ctx.Err();err!=nil{return false,err}
 		ref, err := c.Publisher.Publish(ctx, artifactjson.Scope{Tenant: lease.TenantID, Run: runID, Owner: doc.ID, Purpose: "task_params"}, body)
 		if err != nil {
 			return false, err
 		}
+  if err=ctx.Err();err!=nil{return false,err}
 		task, err := PrepareMediaRetryTask(PublishedMediaRetry{Document: doc, Params: review.ArtifactRef{ID: ref.ID, SHA256: ref.SHA256}}, lease.Master)
 		if err != nil {
 			return false, err
@@ -122,7 +132,8 @@ func (c MediaRetryCoordinator) Process(ctx context.Context) (bool, error) {
 			}
 			return false, err
 		}
-	}
+	  if err=ctx.Err();err!=nil{return false,err}
+ }
 	if ok, err = c.Store.Seal(ctx, *lease, runID); err != nil || !ok {
 		if err == nil {
 			err = errors.New("media retry seal rejected")
@@ -130,6 +141,7 @@ func (c MediaRetryCoordinator) Process(ctx context.Context) (bool, error) {
 		return false, err
 	}
 	release = false
+ if err=ctx.Err();err!=nil{return false,err}
 	return true, nil
 }
 
@@ -139,6 +151,12 @@ func mediaSuffix(mediaType string) (string, bool) {
 }
 
 func BuildMediaRetryDocuments(eventID, versionID uuid.UUID, master MediaMaster, groups []string, srgbSHA string) ([]MediaRetryDocument, error) {
+ return BuildMediaRetryDocumentsForPolicy(eventID,versionID,master,groups,srgbSHA,media.CurrentRendererPolicy)
+}
+
+// BuildMediaRetryDocumentsForPolicy keeps immutable historical Params replayable.
+func BuildMediaRetryDocumentsForPolicy(eventID, versionID uuid.UUID, master MediaMaster, groups []string, srgbSHA,policy string) ([]MediaRetryDocument, error) {
+ if policy!=media.CurrentRendererPolicy && policy!=media.LegacyRendererPolicy{return nil,errors.New("unknown media retry renderer policy")}
 	if eventID == uuid.Nil || versionID == uuid.Nil || master.Artifact.ID == uuid.Nil || master.Bytes < 1 {
 		return nil, errors.New("invalid media retry source")
 	}
@@ -197,7 +215,7 @@ func BuildMediaRetryDocuments(eventID, versionID uuid.UUID, master MediaMaster, 
 	sort.Strings(variants)
 	out := make([]MediaRetryDocument, 0, len(variants))
 	for _, variant := range variants {
-		profile, err := media.ProfileHash(variant, srgbSHA)
+		profile, err := media.ProfileHashForPolicy(variant, srgbSHA,policy)
 		if err != nil {
 			return nil, err
 		}

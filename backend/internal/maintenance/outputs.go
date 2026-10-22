@@ -31,12 +31,15 @@ type OutputCleaner struct {
 }
 
 func (c OutputCleaner) CleanOne(ctx context.Context) (bool, error) {
+	if err := ctx.Err(); err != nil { return false, err }
 	if c.Repository == nil || c.Objects == nil || c.Bucket == "" {
 		return false, errors.New("invalid cleanup configuration")
 	}
 	claim, done := context.WithTimeout(ctx, 5*time.Second)
 	ticket, err := c.Repository.Claim(claim)
+	claimErr := claim.Err()
 	done()
+	if err == nil { err = claimErr }
 	if err != nil || ticket == nil {
 		return false, err
 	}
@@ -46,13 +49,18 @@ func (c OutputCleaner) CleanOne(ctx context.Context) (bool, error) {
 	}
 	purge, done := context.WithTimeout(ctx, 40*time.Second)
 	err = c.Objects.PurgeAttempt(purge, ticket.TenantID, ticket.TaskID, ticket.ArtifactID, ticket.Attempt, ticket.Fence)
+	purgeErr := purge.Err()
 	done()
 	if err != nil {
 		return false, err
 	}
+	if purgeErr != nil { return false, purgeErr }
 	finish, done := context.WithTimeout(ctx, 5*time.Second)
 	defer done()
-	return c.Repository.Finish(finish, *ticket)
+	if err := finish.Err(); err != nil { return false, err }
+	accepted, err := c.Repository.Finish(finish, *ticket)
+	if err == nil { err = finish.Err() }
+	return accepted, err
 }
 
 type SQLCleanup struct{ DB *pgxpool.Pool }

@@ -1,0 +1,35 @@
+// @vitest-environment jsdom
+vi.mock('expo-router',async()=> (await import('./test/locale-router')).localeRouterFixture);
+import {afterEach,it,expect,vi} from 'vitest';
+import {act,cleanup,fireEvent,render,screen} from '@testing-library/react';
+const captured=vi.hoisted(()=>({loads:[] as Array<()=>void>}));
+vi.mock('react-native',async()=>{const React=await import('react');return {...await import('react-native-web'),Image:({source,onLoad,onError}:any)=>{captured.loads.push(onLoad);return React.createElement('img',{src:source.uri,onLoad,onError,alt:'Before photograph'});}};});
+vi.mock('@react-native-async-storage/async-storage',()=>({default:{getItem:vi.fn(async()=>null),setItem:vi.fn(async()=>{})}}));
+vi.mock('./lens-preview-view',()=>({LensPreviewView:({onReady}:any)=><button onClick={()=>onReady(true)}>Load after photograph</button>}));
+vi.mock('./lens-apply-journal',()=>({applyLensJournal:vi.fn()}));
+import {LensResultView} from './lens-result-view';
+import {LocaleProvider} from './locale-context';
+import {applyLensJournal} from './lens-apply-journal';
+import type {OwnerAPI} from './owner-api';
+import type {LensClient,LensTask} from './lens-client';
+import type {LensProposal} from './lens-proposal';
+import type {Collection,CollectionItem} from './catalog-types';
+const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`,ref=(n:number)=>({artifact_id:id(n),sha256:'a'.repeat(64)});
+const base={asset_version_id:id(5),source:ref(6),canvas_hash:'b'.repeat(64)},result=ref(7),task={task_id:id(8),result_id:id(9),result} as LensTask;
+const proposal={tenant_id:id(1),project_id:id(2),producer_task_id:task.task_id,result_id:task.result_id,result,base,requires_review:false} as LensProposal;
+afterEach(()=>{cleanup();captured.loads=[];vi.useRealTimers();vi.restoreAllMocks();});
+it('refreshes an expired exact before image without changing the accepted proposal or admitting a new task',async()=>{
+ vi.useFakeTimers();const authorize=vi.fn(async()=>{}),describe=vi.fn(async()=>proposal);
+ const mediaLinks=vi.fn().mockResolvedValueOnce({items:[{variant:'preview1600',asset_version_id:base.asset_version_id,url:'https://photos.test/before?versionId=one',expires_at:new Date(Date.now()+1000).toISOString(),width:100,height:80,media_type:'image/jpeg'}]}).mockImplementationOnce(async()=>({items:[{variant:'preview1600',asset_version_id:base.asset_version_id,url:'https://photos.test/before?versionId=two',expires_at:new Date(Date.now()+60000).toISOString(),width:100,height:80,media_type:'image/jpeg'}]}));
+ const item={id:id(10),asset_id:id(11)} as CollectionItem,collection={id:id(12),revision:'1'} as Collection;
+ render(<LocaleProvider><LensResultView canApply={true} owner={{mediaLinks} as unknown as OwnerAPI} lens={{proposal:describe} as unknown as LensClient} tenant={id(1)} project={id(2)} task={task} base={base} item={item} collection={collection} occurrence={{collection:collection.id,item:item.id,asset:item.asset_id,revision:'1',expectedVersion:base.asset_version_id}} journalScope={JSON.stringify(['https://lens.test',id(3),id(1),collection.id])} signal={new AbortController().signal} authorize={authorize}/></LocaleProvider>);
+ await act(async()=>{for(let i=0;i<8;i++)await Promise.resolve();});
+ const oldLoad=captured.loads.at(-1)!;
+ fireEvent.click(screen.getByText('Load after photograph'));fireEvent.click(screen.getByText('I accept this result and the geometry reset'));
+ const apply=screen.getByRole('button',{name:'Create corrected version'}) as HTMLButtonElement;
+ expect(apply.disabled).toBe(true);fireEvent.load(screen.getByRole('img'));expect(apply.disabled).toBe(false);
+ await act(async()=>{await vi.advanceTimersByTimeAsync(1001);});expect(apply.disabled).toBe(true);expect(screen.queryByRole('img')).toBeNull();
+ fireEvent.click(screen.getByRole('button',{name:'Reload before image'}));await act(async()=>{for(let i=0;i<8;i++)await Promise.resolve();});
+ act(()=>oldLoad());expect(apply.disabled).toBe(true);fireEvent.load(screen.getByRole('img'));expect(apply.disabled).toBe(false);
+ expect(describe).toHaveBeenCalledTimes(1);expect(mediaLinks.mock.calls.every(call=>call[1]===base.asset_version_id)).toBe(true);expect(applyLensJournal).not.toHaveBeenCalled();
+});

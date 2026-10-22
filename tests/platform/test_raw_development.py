@@ -29,7 +29,7 @@ def decoder(monkeypatch):
             calls.append(kwargs)
             return np.zeros((12,16,3),dtype=np.uint16)
     raw=Raw()
-    module=SimpleNamespace(__version__='0.27.1',libraw_version=(0,21,4),
+    module=SimpleNamespace(__version__='0.27.1',libraw_version=(0,21,4),flags={'OPENMP':False},
         ColorSpace=SimpleNamespace(sRGB='linear-srgb'),
         DemosaicAlgorithm=SimpleNamespace(AHD='ahd',DCB='dcb'),
         HighlightMode=SimpleNamespace(Clip=0,Blend=2,ReconstructDefault=5),

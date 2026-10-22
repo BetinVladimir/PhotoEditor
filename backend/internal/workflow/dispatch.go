@@ -1,65 +1,26 @@
 package workflow
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"photoeditor/backend/internal/database"
+	"photoeditor/backend/internal/taskrecovery"
 )
 
-type ResourceEstimate struct {
-	RAMBytes     int64 `json:"ram_bytes"`
-	VRAMBytes    int64 `json:"vram_bytes"`
-	ScratchBytes int64 `json:"scratch_bytes"`
-	OutputBytes  int64 `json:"output_bytes"`
-	PixelCount   int64 `json:"pixel_count"`
-}
+type ResourceEstimate = taskrecovery.ResourceEstimate
 
 func ParseResourceEstimate(profile []byte) (ResourceEstimate, error) {
-	var p map[string]json.RawMessage
-	var e ResourceEstimate
-	if err := json.Unmarshal(profile, &p); err != nil {
-		return e, errors.New("invalid execution profile")
-	}
-	raw, ok := p["resource_estimate"]
-	if !ok {
-		return e, errors.New("missing resource estimate")
-	}
-	var keys map[string]json.RawMessage
-	if json.Unmarshal(raw, &keys) != nil || len(keys) != 5 || keys["ram_bytes"] == nil || keys["vram_bytes"] == nil || keys["scratch_bytes"] == nil || keys["output_bytes"] == nil || keys["pixel_count"] == nil {
-		return e, errors.New("incomplete resource estimate")
-	}
-	d := json.NewDecoder(bytes.NewReader(raw))
-	d.DisallowUnknownFields()
-	for _, value := range keys {
-		if bytes.Equal(bytes.TrimSpace(value), []byte("null")) {
-			return e, errors.New("null resource estimate")
-		}
-	}
-	if err := d.Decode(&e); err != nil {
-		return e, errors.New("invalid resource estimate")
-	}
-	const max = int64(1<<53 - 1)
-	if e.RAMBytes <= 0 || e.RAMBytes > max || e.VRAMBytes < 0 || e.VRAMBytes > max || e.ScratchBytes < 0 || e.ScratchBytes > max || e.OutputBytes < 0 || e.OutputBytes > max || e.PixelCount < 0 || e.PixelCount > max {
-		return e, errors.New("invalid resource estimate range")
-	}
-	pixelLimit := int64(200000000)
-	if raw, ok := p["max_pixels"]; ok {
-		if json.Unmarshal(raw, &pixelLimit) != nil || pixelLimit < 1 || pixelLimit > max {
-			return e, errors.New("invalid pixel limit")
-		}
-	}
-	if e.PixelCount > pixelLimit {
-		return e, errors.New("output pixels limit")
-	}
-	return e, nil
+	return taskrecovery.ParseResourceEstimate(profile)
 }
 
-type Dispatcher struct{ DB *pgxpool.Pool; LegacyOnly bool; PreferModelAffinity bool }
+type Dispatcher struct {
+	DB                  *pgxpool.Pool
+	LegacyOnly          bool
+	PreferModelAffinity bool
+}
 
 func (d Dispatcher) Dispatch(ctx context.Context, limit int) (int, error) {
 	if limit < 1 || limit > 100 {
@@ -89,11 +50,28 @@ func (d Dispatcher) dispatchOne(ctx context.Context) (picked, queued bool, err e
 	return picked, queued, err
 }
 func (d Dispatcher) dispatchInTransaction(ctx context.Context, tx pgx.Tx) (picked, queued bool, err error) {
+	return d.DispatchOneInTransaction(ctx, tx, nil)
+}
+
+// DispatchOneInTransaction preserves normal selection/admission/outbox behavior,
+// while allowing a caller-owned transaction to reject a selected task before any
+// node reservation, defer or fairness record. The caller MUST roll back on error.
+// A nil validator retains the ordinary scheduler behavior. Validator receives a
+// private profile copy, so observation cannot alter authoritative admission costs.
+func (d Dispatcher) DispatchOneInTransaction(ctx context.Context, tx pgx.Tx, validate func(uuid.UUID, string, []byte) error) (picked, queued bool, err error) {
+	if tx == nil {
+		return false, false, errors.New("dispatch transaction required")
+	}
+	if err = ctx.Err(); err != nil {
+		return false, false, err
+	}
 	var id uuid.UUID
 	var class string
 	var profile []byte
-	query:="SELECT task_id,resource_class,profile FROM photo.pick_ready_task()"
-	if d.LegacyOnly {query="SELECT task_id,resource_class,profile FROM photo.pick_ready_legacy_task()"}
+	query := "SELECT task_id,resource_class,profile FROM photo.pick_ready_task()"
+	if d.LegacyOnly {
+		query = "SELECT task_id,resource_class,profile FROM photo.pick_ready_legacy_task()"
+	}
 	err = tx.QueryRow(ctx, query).Scan(&id, &class, &profile)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, false, nil
@@ -101,7 +79,12 @@ func (d Dispatcher) dispatchInTransaction(ctx context.Context, tx pgx.Tx) (picke
 	if err != nil {
 		return false, false, err
 	}
-	return d.dispatchSelectedInTransaction(ctx,tx,id,profile)
+	if validate != nil {
+		if err = validate(id, class, append([]byte(nil), profile...)); err != nil {
+			return true, false, err
+		}
+	}
+	return d.dispatchSelectedInTransaction(ctx, tx, id, profile)
 }
 
 // Shared admission/outbox path for legacy selection and leader-owned V32 DRR.
@@ -111,7 +94,9 @@ func (d Dispatcher) dispatchSelectedInTransaction(ctx context.Context, tx pgx.Tx
 	var nodes []string
 	if estimateErr == nil {
 		nodeQuery := "SELECT node_id FROM photo.eligible_dispatch_nodes($1)"
-		if d.PreferModelAffinity { nodeQuery = "SELECT node_id FROM photo.capacity_affinity_dispatch_nodes($1)" }
+		if d.PreferModelAffinity {
+			nodeQuery = "SELECT node_id FROM photo.capacity_affinity_dispatch_nodes($1)"
+		}
 		rows, e := tx.Query(ctx, nodeQuery, id)
 		if e != nil {
 			return true, false, e

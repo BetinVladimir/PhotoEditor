@@ -49,7 +49,7 @@ func (s SQLTransferSourceReader) prepareNativeSourceContinuation(ctx context.Con
 	if err := s.recheckSourcePreparationProof(ctx, who, request.TenantID, request.Intent.Reference, color, false, source); err != nil {
 		return fail(err)
 	}
-	selected, err := selectQualificationPolicies(native.defect.policy, []string{"defects.propose", "face.landmarks", "face.detect", "face.parse"})
+	selected, err := selectNativeQualificationPolicies(native.defect.policy, []string{"defects.propose", "face.landmarks", "face.detect", "face.parse"})
 	if err != nil {
 		return fail(err)
 	}

@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+vi.mock('expo-router',async()=> (await import('./test/locale-router')).localeRouterFixture);
 import {afterEach,expect,it,vi} from 'vitest';
 import {act,cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
 const mocks=vi.hoisted(()=>({read:vi.fn()}));
@@ -8,6 +9,7 @@ vi.mock('./multi-quality-view',()=>({MultiQualityView:()=>null}));
 vi.mock('./multi-preview-view',()=>({MultiPreviewView:()=>null}));
 vi.mock('./multi-result',()=>({readMultiAttemptResult:mocks.read,multiTicketProducer:()=> '00000000-0000-4000-8000-000000000099'}));
 import {MultiReviewView} from './multi-review-view';
+import {APIError} from '@photoeditor/api-client';
 import {LocaleProvider} from './locale-context';
 import type {OwnerAPI} from './owner-api';
 import type {MultiAttemptRecord} from './multi-attempt';
@@ -18,6 +20,11 @@ const available=()=>({state:'available',proposal:{sources:attempt().body.params.
 const api={} as Pick<OwnerAPI,'get'|'multiProposal'|'multiPreview'|'multiQuality'>;
 function view(value=attempt()){return <LocaleProvider><MultiReviewView api={api} tenant={id(1)} attempt={value}/></LocaleProvider>;}
 afterEach(()=>{cleanup();vi.useRealTimers();vi.resetAllMocks();});
+it('withdraws result, recovery and polling after a definitive result denial',async()=>{
+ mocks.read.mockRejectedValue(new APIError(403,'FORBIDDEN'));const onAccessDenied=vi.fn();
+ render(<LocaleProvider><MultiReviewView api={api} tenant={id(1)} attempt={attempt()} onAccessDenied={onAccessDenied} apply={{api:api as OwnerAPI,origin:'https://studio.test',collection:id(50),selection:null,onApplied:vi.fn()}}/></LocaleProvider>);
+ await screen.findByText('Access is no longer available.');expect(onAccessDenied).toHaveBeenCalledOnce();expect(screen.queryByTestId('multi-recovery')).toBeNull();expect(mocks.read).toHaveBeenCalledOnce();
+});
 it('shows current review evidence and keeps refresh read-only',async()=>{
  mocks.read.mockResolvedValue(available());render(view());
  await screen.findByText('Source photos: 2');expect(screen.getByText('Reference frame: 2')).toBeTruthy();expect(screen.getByText('Motion area: 12.50%')).toBeTruthy();expect(screen.getByText('Frame alignment needs careful review.')).toBeTruthy();expect(screen.getByText('The result has not been applied.')).toBeTruthy();

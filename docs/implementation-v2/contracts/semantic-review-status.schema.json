@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:photoeditor:http:semantic-review-status:1",
+  "title": "SemanticReviewStatus",
+  "description": "GET /api/v1/tenants/{t}/semantic-intents/{id}/review. Advisory metadata; mutations repeat authority. Optional verified kind never inferred from worker availability.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "run_id",
+    "workflow_id",
+    "revision",
+    "state",
+    "plan_sha",
+    "remaining",
+    "can_close"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "format": "uuid",
+      "not": {
+        "const": "00000000-0000-0000-0000-000000000000"
+      }
+    },
+    "workflow_id": {
+      "type": "string",
+      "format": "uuid",
+      "not": {
+        "const": "00000000-0000-0000-0000-000000000000"
+      }
+    },
+    "revision": {
+      "type": "string",
+      "pattern": "^[1-9][0-9]{0,18}$",
+      "description": "Decimal int64 <=9223372036854775807; SDK enforces bound."
+    },
+    "state": {
+      "enum": [
+        "queued",
+        "running",
+        "waiting_review",
+        "cancelling",
+        "cancelled",
+        "completed",
+        "failed"
+      ]
+    },
+    "plan_sha": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      ]
+    },
+    "remaining": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 5000
+    },
+    "can_close": {
+      "type": "boolean"
+    },
+    "kind": {
+      "enum": [
+        "remove_object",
+        "local_exposure",
+        "background_cleanup",
+        "retouch_region"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "can_close": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "state": {
+            "const": "waiting_review"
+          },
+          "remaining": {
+            "const": 0
+          },
+          "plan_sha": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    }
+  ]
+}

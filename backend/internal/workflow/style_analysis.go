@@ -852,7 +852,9 @@ func (c StyleAnalysisCoordinator) build(ctx context.Context, l StyleAnalysisLeas
 				inputs := workingInputs(p.Before.ref(), before)
 				inputs = append(inputs, qm[2].Ref, pm[0].Ref, mask.Artifact, fits[p.PairID][0].Ref)
 				prior := []uuid.UUID{fits[p.PairID][0].TaskID}
-				plans = append(plans, makeStylePlan(l, registry, "geometry", p.Ordinal, &p.PairID, "geometry.body", "cpu", inputs, prior, params, 3<<30, 0, before.Canvas.Width*before.Canvas.Height*24, before.Canvas.Width*before.Canvas.Height*20, before.Canvas.Width*before.Canvas.Height, cfg.AggregateRuntimeLockID))
+				bodyEstimate, resourceErr := bodyResourceEstimate(before.Canvas.Width*before.Canvas.Height,p.Before.Bytes,before.Alpha!=nil)
+                if resourceErr!=nil { return false,resourceErr }
+                plans = append(plans, makeStylePlan(l, registry, "geometry", p.Ordinal, &p.PairID, "geometry.body", "cpu", inputs, prior, params, bodyEstimate.RAMBytes, 0, bodyEstimate.ScratchBytes, bodyEstimate.OutputBytes, bodyEstimate.PixelCount, cfg.AggregateRuntimeLockID))
 			} else if l.Phase == "geometry_registration" {
 				if len(warped[p.PairID]) != 1 {
 					return false, errors.New("missing geometry output")

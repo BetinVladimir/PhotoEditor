@@ -11,6 +11,13 @@ import (
  "photoeditor/backend/internal/v2input"
 )
 type archiveStatusHTTPStub struct{value interchange.ArchiveUploadStatus;calls int;cancel context.CancelFunc}
+func TestArchiveStatusAbortDuringUnresolvedBegin(t *testing.T){
+ upload:=uuid.New();sha:=strings.Repeat("a",64)
+ status:=interchange.ArchiveUploadStatus{UploadID:upload,State:"aborting",RequestSHA:sha,ExpiresAt:time.Now().Add(time.Hour),ErrorCode:"UPLOAD_ABORTED",BeginRecovery:"reconciliation_required"}
+ if !validInterchangeArchiveStatus(status,upload,sha){t.Fatal("actual abort/creating generation status rejected")}
+ status.BeginRecovery="receipt_pending_bind"
+ if validInterchangeArchiveStatus(status,upload,sha){t.Fatal("aborting generation exposed a bind action")}
+}
 func(s *archiveStatusHTTPStub)Status(context.Context,auth.Identity,uuid.UUID,uuid.UUID,uuid.UUID,string)(interchange.ArchiveUploadStatus,error){s.calls++;if s.cancel!=nil{s.cancel()};return s.value,nil}
 func TestArchiveHTTPStatusValidatesProviderAndReadiness(t *testing.T){
  for _,mode:=range []string{"pending","verified-not-ready","ready","aborting","foreign-upload","foreign-hash","bad-state","bad-error","active-with-error","aborting-without-error","missing-expiry","missing-artifact","foreign-artifact","bad-artifact-sha","pending-artifact","ready-completing","uninstalled","cancelled"}{t.Run(mode,func(t *testing.T){

@@ -184,7 +184,7 @@ func (s CandidatePreviewService) Preview(ctx context.Context, who auth.Identity,
 	if err != nil {
 		return zero, err
 	}
-	if source != value.Source || value.ProfileHash != profile || value.ManifestObject.SHA256 != value.Manifest.SHA256 || value.DerivativeObject.SHA256 != value.Derivative.SHA256 {
+	if source != value.Source || !media.KnownProfileHash(value.ProfileHash,variant,s.SRGBSHA) || value.ManifestObject.SHA256 != value.Manifest.SHA256 || value.DerivativeObject.SHA256 != value.Derivative.SHA256 {
 		return zero, objectstore.ErrIntegrity
 	}
 	if len(raw) < 2 || len(raw) > 1048576 {
@@ -206,6 +206,8 @@ func (s CandidatePreviewService) Preview(ctx context.Context, who auth.Identity,
 	if err != nil {
 		return zero, err
 	}
+	if manifest.ProfileHash!=value.ProfileHash {return zero,objectstore.ErrIntegrity}
+	profile=manifest.ProfileHash
 	if value.ManifestObject.ContentType != "application/json" || value.DerivativeObject.ContentType != manifest.MediaType || value.DerivativeObject.Bytes < 2 || value.DerivativeObject.Bytes > 52*1048576 {
 		return zero, objectstore.ErrIntegrity
 	}

@@ -1,6 +1,7 @@
 package workflow
 
 import (
+	"photoeditor/backend/internal/media"
 	"encoding/json"
 	"github.com/google/uuid"
 	"photoeditor/backend/internal/v2input"
@@ -12,6 +13,7 @@ type MultiPreviewPlan struct {
 	source    v2render.MultiPreviewSource
 	run       uuid.UUID
 	srgb      string
+	policy    string
 	documents []RenderDerivativeDocument
 }
 
@@ -28,7 +30,8 @@ func (p MultiPreviewPlan) Documents() []RenderDerivativeDocument {
 	}
 	return out
 }
-func CompileMultiPreviewPlan(source v2render.MultiPreviewSource, content v2render.MultiResultContent, srgb string) (MultiPreviewPlan, error) {
+func CompileMultiPreviewPlan(source v2render.MultiPreviewSource, content v2render.MultiResultContent, srgb string, policies ...string) (MultiPreviewPlan, error) {
+	policy,policyErr:=media.ResolveRendererPolicy(policies...);if policyErr!=nil{return MultiPreviewPlan{},policyErr}
 	run, err := v2render.MultiPreviewRunID(source, srgb)
 	if err != nil {
 		return MultiPreviewPlan{}, err
@@ -38,11 +41,12 @@ func CompileMultiPreviewPlan(source v2render.MultiPreviewSource, content v2rende
 		return MultiPreviewPlan{}, err
 	}
 	intent := v2render.RenderDerivativeIntent{Tenant: source.Tenant, Project: source.Project, Run: run, Task: source.Producer, Result: source.Binding.ResultID, Root: source.Binding.Result, SourceAttempt: source.Attempt, SourceFence: source.Fence, SRGBSHA: srgb}
+	intent.RendererPolicy=policy
 	docs, err := BuildRenderDerivativeDocuments(intent, root, image)
 	if err != nil {
 		return MultiPreviewPlan{}, err
 	}
-	plan := MultiPreviewPlan{source: source, run: run, srgb: srgb, documents: docs}
+	plan := MultiPreviewPlan{source: source, run: run, srgb: srgb, policy:policy, documents: docs}
 	if err := validateMultiPreviewPlan(plan); err != nil {
 		return MultiPreviewPlan{}, err
 	}

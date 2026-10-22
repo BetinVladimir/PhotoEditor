@@ -23,6 +23,8 @@ type IngestMetadata struct {
 	Orientation int                `json:"orientation"`
 	HasAlpha    bool               `json:"has_alpha"`
 	Format      string             `json:"format"`
+	CapturedAt *string `json:"captured_at,omitempty"`
+	CapturedLocal *string `json:"captured_local,omitempty"`
 	Sensor      *SensorAlignment   `json:"sensor_alignment"`
 }
 

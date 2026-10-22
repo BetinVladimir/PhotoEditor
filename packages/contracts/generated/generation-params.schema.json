@@ -406,7 +406,7 @@
     "guidance_scale": {
       "default": 7.5,
       "maximum": 20,
-      "minimum": 1,
+      "minimum": 0,
       "title": "Guidance Scale",
       "type": "number"
     },
@@ -429,13 +429,12 @@
     },
     "negative_prompt": {
       "default": "",
-      "maxLength": 1000,
+      "maxLength": 2000,
       "title": "Negative Prompt",
       "type": "string"
     },
     "prompt": {
-      "maxLength": 1000,
-      "minLength": 1,
+      "maxLength": 2000,
       "title": "Prompt",
       "type": "string"
     },
@@ -454,10 +453,18 @@
       "type": "integer"
     },
     "steps": {
-      "const": 25,
       "default": 25,
+      "maximum": 50,
+      "minimum": 1,
       "title": "Steps",
       "type": "integer"
+    },
+    "strength": {
+      "default": 1.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Strength",
+      "type": "number"
     }
   },
   "required": [

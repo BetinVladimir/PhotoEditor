@@ -26,7 +26,7 @@ def _same_callback(current, pinned):
 
 @dataclass(frozen=True, init=False)
 class PinnedRegionRenderer:
-    """Provider still proves model/ICC/native/CUDA qualification independently."""
+    """Provider still proves model/ICC/native/backend qualification independently."""
     _provider: object
     _runtime_path: Path
     _pins: tuple
@@ -39,6 +39,8 @@ class PinnedRegionRenderer:
     def __init__(self, provider, runtime_path: Path, expected_sha: str, *,
                  render_pipeline=None, max_input_bytes=None, calibration_catalog=None):
         from .calibration import PinnedRegionCalibrationCatalog
+        if getattr(provider, 'backend', None) == 'mps' and calibration_catalog is None:
+            raise ValueError('MPS Region requires independent device calibration')
         device_pin = getattr(provider,"device_profile_sha",None) if calibration_catalog is not None else None
         if calibration_catalog is not None and (type(calibration_catalog) is not PinnedRegionCalibrationCatalog
                 or not isinstance(device_pin,str) or re.fullmatch(r"[0-9a-f]{64}",device_pin) is None):
@@ -48,7 +50,7 @@ class PinnedRegionRenderer:
                     or type(max_input_bytes) is not int or not 1 <= max_input_bytes <= 2**53-1)):
             raise ValueError("Invalid Region full-canvas pipeline configuration")
         if (not _valid_renderer_metadata(provider)
-                or provider.renderer_version != 'v2.2' or provider.backend != 'cuda'
+                or provider.renderer_version != 'v2.2' or provider.backend not in ('cuda', 'mps')
                 or provider.runtime_sha256 != expected_sha
                 or not isinstance(runtime_path, Path) or not runtime_path.is_absolute()):
             raise ValueError('Invalid pinned Region provider')

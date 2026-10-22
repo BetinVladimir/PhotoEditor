@@ -23,12 +23,14 @@ func(p DeliveryAssemblyPipeline)RegisterAndActivateSignedAssembly(ctx context.Co
   actor==uuid.Nil||len(slots)!=lease.SlotCount||
   len(dependencies)==0||len(dependencies)!=len(receipts)||
   len(p.Bucket)<3||len(p.Bucket)>63{return v2input.ErrInvalid}
+ // Pure closure/resource preflight must precede any params publication.
+ // An incomplete required bundle must not create durable transport documents.
+ profile,err:=CompileSignedDeliveryAssemblyProfile(ctx,publication,lease,
+  actor,slots,dependencies,receipts,resolved,p.Limits)
+ if err!=nil{return err}
  params,_,err:=PublishSignedDeliveryAssemblyParams(ctx,
   deliveryAssemblyPublicationQueries{db:p.DB,lease:lease},p.Objects,p.Bucket,
   lease,plan,publication.EnvelopeRef)
- if err!=nil{return err}
- profile,err:=CompileSignedDeliveryAssemblyProfile(ctx,publication,lease,
-  actor,slots,dependencies,receipts,resolved,p.Limits)
  if err!=nil{return err}
  frozen,err:=FreezePublishedSignedDeliveryAssemblyTask(lease,plan,publication,
   params,actor,slots,dependencies,receipts,resolved,profile)

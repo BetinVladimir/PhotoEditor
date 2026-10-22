@@ -53,8 +53,8 @@ BEGIN
   IF member.created_by_task_id IS DISTINCT FROM p_task
    OR member.produced_attempt IS DISTINCT FROM t.attempt
    OR member.produced_fence IS DISTINCT FROM t.fencing_token
-   OR member.output_role IS DISTINCT FROM CASE p_role WHEN 'output_pixels' THEN 'pixels'
-    ELSE 'mask_pixels' END THEN RETURN NULL;END IF;
+   OR member.output_role IS DISTINCT FROM (CASE p_role WHEN 'output_pixels' THEN 'pixels'
+    ELSE 'mask_pixels' END) THEN RETURN NULL;END IF;
  END IF;
  RETURN jsonb_build_object('key',member.object_key,'version',member.object_version,
   'sha256',member.sha256,'bytes',member.bytes,'media_type',member.media_type);

@@ -1,6 +1,7 @@
 package main
 
 import (
+ "photoeditor/backend/internal/database"
 	"context"
 	"errors"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -39,6 +40,7 @@ func buildRenderAdmission(ctx context.Context, api *pgxpool.Pool, dsn string, ob
 		return nil, noop, errors.New("render database configuration invalid")
 	}
 	config.ConnConfig.RuntimeParams["role"] = "photo_scheduler"
+	database.GuardApplicationRole(config)
 	config.ConnConfig.RuntimeParams["statement_timeout"] = "30000"
 	config.MaxConns = 8
 	config.MinConns = 0

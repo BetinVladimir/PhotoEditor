@@ -33,10 +33,10 @@ func (s StyleImportStore) Claim(ctx context.Context) (*StyleImportLease, error) 
 	}
 	return v, err
 }
-func (s StyleImportStore) Artifact(ctx context.Context, tenant, id uuid.UUID) (review.ArtifactRef, int64, error) {
+func (s StyleImportStore) Artifact(ctx context.Context, lease StyleImportLease, id uuid.UUID) (review.ArtifactRef, int64, error) {
 	var r review.ArtifactRef
 	var n int64
-	e := s.DB.QueryRow(ctx, `SELECT id,sha256,bytes FROM photo.artifacts WHERE tenant_id=$1 AND id=$2 AND state='ready' AND object_version IS NOT NULL AND (expires_at IS NULL OR expires_at>clock_timestamp())`, tenant, id).Scan(&r.ID, &r.SHA256, &n)
+	e := s.DB.QueryRow(ctx, `SELECT id,sha256,bytes FROM photo.style_import_artifact_ref($1,$2,$3,$4,$5)`, lease.TenantID, lease.RunID, lease.TaskID, lease.Token, id).Scan(&r.ID, &r.SHA256, &n)
 	return r, n, e
 }
 func (s StyleImportStore) Materialize(ctx context.Context, l StyleImportLease, params artifactjson.Ref, digest string, profile []byte) (bool, error) {
@@ -104,7 +104,7 @@ func (c StyleImportCoordinator) ProcessOne(ctx context.Context) (bool, error) {
 	refs := []review.ArtifactRef{}
 	total := int64(0)
 	for _, id := range []uuid.UUID{l.PackageID} {
-		r, n, e := c.Store.Artifact(ctx, l.TenantID, id)
+		r, n, e := c.Store.Artifact(ctx, *l, id)
 		if e != nil {
 			return false, e
 		}
@@ -112,7 +112,7 @@ func (c StyleImportCoordinator) ProcessOne(ctx context.Context) (bool, error) {
 		total += n
 	}
 	if l.ManifestID != nil {
-		r, n, e := c.Store.Artifact(ctx, l.TenantID, *l.ManifestID)
+		r, n, e := c.Store.Artifact(ctx, *l, *l.ManifestID)
 		if e != nil {
 			return false, e
 		}

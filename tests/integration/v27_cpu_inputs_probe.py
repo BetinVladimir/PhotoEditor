@@ -1,4 +1,5 @@
 """Actual SQL factory/index/object inputs; explicit MinIO transport test port."""
+from pathlib import Path as _PhotoRepositoryPath
 from types import SimpleNamespace
 from uuid import uuid4
 from psycopg.conninfo import make_conninfo
@@ -43,26 +44,27 @@ def verify_cpu_inputs(db,database,client,bucket,tenant,scope,root,*,expected_sta
     def open_stream(ref):
         location=locations[(ref.artifact_id,ref.sha256)]
         return Stream(client.get_object(location[0],location[1],version_id=location[2]))
-    transport=TaskDatabase(make_conninfo(**database))
-    factory=sql_semantic_assembly_factory(database=transport,objects=client,bucket=bucket)
-    with ScratchSpace(root,tenant,task,2,1024**3,min_free_bytes=0) as scratch:
-        index=V2InputIndex.build(task_id=task,inputs=command.inputs,params=command.params,execution_profile=profile,scratch=scratch,open_stream=open_stream,check_active=ctx.check_active)
-        with TaskArtifacts(ctx,SimpleNamespace(open_stream=open_stream),scratch,index) as artifacts:
-            installed=factory(ctx,artifacts)
-            params=artifacts.params(V2SemanticAssembleParams)
-            intent=artifacts.contract(params.intent,EditIntent)
-            calibration=artifacts.contract(params.calibration,Calibration)
-            snapshot=installed.load_snapshot(artifacts,intent)
-            candidates=[artifacts.contract(ref,TransferCandidate) for ref in params.candidates]
-            installed.verify_provenance(params,intent,snapshot,candidates)
-            plan=assemble_semantic_plan(params,intent,snapshot,calibration,candidates)
-            assert len(plan.candidates)==1 and plan.candidates[0].state==expected_state
-    assert not scratch.directory.exists()
-
+    from wire_runtime_login import worker_login
+    with worker_login(make_conninfo(**database),task) as runtime_dsn:
+        transport=TaskDatabase(runtime_dsn)
+        factory=sql_semantic_assembly_factory(database=transport,objects=client,bucket=bucket)
+        with ScratchSpace(root,tenant,task,2,1024**3,min_free_bytes=0) as scratch:
+            index=V2InputIndex.build(task_id=task,inputs=command.inputs,params=command.params,execution_profile=profile,scratch=scratch,open_stream=open_stream,check_active=ctx.check_active)
+            with TaskArtifacts(ctx,SimpleNamespace(open_stream=open_stream),scratch,index) as artifacts:
+                installed=factory(ctx,artifacts)
+                params=artifacts.params(V2SemanticAssembleParams)
+                intent=artifacts.contract(params.intent,EditIntent)
+                calibration=artifacts.contract(params.calibration,Calibration)
+                snapshot=installed.load_snapshot(artifacts,intent)
+                candidates=[artifacts.contract(ref,TransferCandidate) for ref in params.candidates]
+                installed.verify_provenance(params,intent,snapshot,candidates)
+                plan=assemble_semantic_plan(params,intent,snapshot,calibration,candidates)
+                assert len(plan.candidates)==1 and plan.candidates[0].state==expected_state
+        assert not scratch.directory.exists()
     import os,subprocess
     from pathlib import Path
     repo=Path(__file__).resolve().parents[2];credentials=client._provider.retrieve()
-    environment=dict(os.environ,PHOTO_TEST_V27_CPU_STATE=expected_state,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_TEST_V27_GATEWAY_TASK=str(task),PHOTO_TEST_V27_REPO_ROOT=str(repo),PHOTO_TEST_MINIO_URL='http://'+client._base_url.host,PHOTO_TEST_MINIO_BUCKET=bucket,PHOTO_TEST_MINIO_ACCESS=credentials.access_key,PHOTO_TEST_MINIO_SECRET=credentials.secret_key,GOCACHE='/private/tmp/photoeditor-go-cache')
+    environment=dict(os.environ,PHOTO_TEST_V27_CPU_STATE=expected_state,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_TEST_V27_GATEWAY_TASK=str(task),PHOTO_TEST_V27_REPO_ROOT=str(repo),PHOTO_TEST_MINIO_URL='http://'+client._base_url.host,PHOTO_TEST_MINIO_BUCKET=bucket,PHOTO_TEST_MINIO_ACCESS=credentials.access_key,PHOTO_TEST_MINIO_SECRET=credentials.secret_key,GOCACHE=str(_PhotoRepositoryPath(__file__).resolve().parents[2]/'work/go-cache'))
     wire=subprocess.run(['go','test','./internal/gateway','-run','^TestIntegrationV27IndexedDownloads$','-count=1','-timeout=90s','-v'],cwd=repo/'backend',env=environment,capture_output=True,text=True,timeout=100)
     assert wire.returncode==0,wire.stdout+wire.stderr
     assert '--- PASS: TestIntegrationV27IndexedDownloads' in wire.stdout

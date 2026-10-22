@@ -81,6 +81,15 @@ func TestIntegrationGetAndCancelWorkflow(t *testing.T) {
 	if err != nil || string(replay.Body) != string(first.Body) {
 		t.Fatal("idempotent replay", replay, err)
 	}
+
+ // Current parent withdrawal refuses both reads and exact accepted recovery;
+ // restoring authority recovers the same immutable acknowledgement.
+ if _,err=admin.Exec(ctx,`UPDATE photo.projects SET archived_at=clock_timestamp() WHERE tenant_id=$1 AND id=$2`,tenantID,projectID);err!=nil{t.Fatal(err)}
+ if _,err=service.Get(ctx,who,tenantID,workflowID);err==nil{t.Fatal("archived project workflow remained readable")}
+ if _,err=service.Cancel(ctx,who,tenantID,workflowID,key,CancelRequest{ExpectedRevision:"1"});err==nil{t.Fatal("accepted cancel bypassed current parent authority")}
+ if _,err=admin.Exec(ctx,`UPDATE photo.projects SET archived_at=NULL WHERE tenant_id=$1 AND id=$2`,tenantID,projectID);err!=nil{t.Fatal(err)}
+ replay,err=service.Cancel(ctx,who,tenantID,workflowID,key,CancelRequest{ExpectedRevision:"1"})
+ if err!=nil||!replay.Replayed||string(replay.Body)!=string(first.Body){t.Fatal("regranted authority lost immutable cancel receipt",replay,err)}
 	if _, err = service.Cancel(ctx, who, tenantID, workflowID, uuid.NewString(), CancelRequest{ExpectedRevision: "1"}); err == nil {
 		t.Fatal("stale revision was accepted")
 	}

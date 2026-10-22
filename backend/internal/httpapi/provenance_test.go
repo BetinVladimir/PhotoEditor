@@ -247,3 +247,39 @@ func TestSigningPolicyHTTPResponseMatchesBoundedClientContract(t *testing.T) {
 		})
 	}
 }
+
+// Simulate a provider which completes despite transport cancellation. The
+// handler must neither call an already-cancelled provider nor expose its ticket.
+type cancellingExportSigner struct { cancel context.CancelFunc; calls int }
+func(s *cancellingExportSigner)SignExport(ctx context.Context,who auth.Identity,tid,export,policy uuid.UUID,key string)(v2input.JobTicket,error){
+ s.calls++;s.cancel()
+ workflow:=uuid.NewSHA1(tid,[]byte("provenance:"+who.UserID.String()+":"+key))
+ return v2input.JobTicket{WorkflowID:workflow,RunID:uuid.NewSHA1(workflow,[]byte("run")),State:"queued"},nil
+}
+func TestSignExportCancellationBeforeAndAfterProvider(t *testing.T){
+ for _,pre:=range []bool{true,false}{t.Run(map[bool]string{true:"pre",false:"late"}[pre],func(t *testing.T){
+  ctx,cancel:=context.WithCancel(context.Background());defer cancel()
+  if pre{cancel()}
+  who:=auth.Identity{UserID:uuid.New(),SessionID:uuid.New()};tid,export,policy:=uuid.New(),uuid.New(),uuid.New()
+  request:=httptest.NewRequest("POST","/",strings.NewReader(`{"signing_policy_id":"`+policy.String()+`"}`)).WithContext(ctx)
+  request.Header.Set("Content-Type","application/json");request.Header.Set("Idempotency-Key","original-sign-key")
+  signer:=&cancellingExportSigner{cancel:cancel};response:=httptest.NewRecorder()
+  serveSignExport(response,request,who,tid,export,signer)
+  want:=1;if pre{want=0}
+  if signer.calls!=want||response.Code==202||strings.Contains(response.Body.String(),`"workflow_id"`){t.Fatalf("cancelled signing exposed acknowledgement: calls=%d status=%d body=%s",signer.calls,response.Code,response.Body.String())}
+ })}
+}
+
+// A body reader can finish successfully while cancelling its request context.
+type cancellingSigningBody struct { *strings.Reader; cancel context.CancelFunc }
+func(b *cancellingSigningBody)Read(p []byte)(int,error){n,err:=b.Reader.Read(p);if n>0{b.cancel()};return n,err}
+func TestSignExportCancellationDuringBodyDoesNotReachProvider(t *testing.T){
+ ctx,cancel:=context.WithCancel(context.Background());defer cancel()
+ who:=auth.Identity{UserID:uuid.New(),SessionID:uuid.New()};tid,export,policy:=uuid.New(),uuid.New(),uuid.New()
+ body:=&cancellingSigningBody{Reader:strings.NewReader(`{"signing_policy_id":"`+policy.String()+`"}`),cancel:cancel}
+ request:=httptest.NewRequest("POST","/",body).WithContext(ctx)
+ request.Header.Set("Content-Type","application/json");request.Header.Set("Idempotency-Key","original-sign-key")
+ signer:=&exportSignerStub{};response:=httptest.NewRecorder()
+ serveSignExport(response,request,who,tid,export,signer)
+ if signer.calls!=0||response.Code==202{t.Fatal("cancelled body reached signer",signer.calls,response.Code)}
+}

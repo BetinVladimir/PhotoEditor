@@ -32,18 +32,23 @@ type ArtifactCleaner struct {
 }
 
 func (c ArtifactCleaner) CleanOne(ctx context.Context) (bool, error) {
+	if err := ctx.Err(); err != nil { return false, err }
 	if c.Repository == nil || c.Objects == nil || c.Bucket == "" {
 		return false, errors.New("invalid artifact GC configuration")
 	}
 	recoverCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	recovered, err := c.Repository.Recover(recoverCtx)
+	recoverErr := recoverCtx.Err()
 	cancel()
 	if err != nil {
 		return false, err
 	}
+	if recoverErr != nil { return recovered > 0, recoverErr }
 	claim, cancel := context.WithTimeout(ctx, 5*time.Second)
 	ticket, err := c.Repository.Claim(claim)
+	claimErr := claim.Err()
 	cancel()
+	if err == nil { err = claimErr }
 	if err != nil || ticket == nil {
 		return recovered > 0, err
 	}
@@ -55,13 +60,18 @@ func (c ArtifactCleaner) CleanOne(ctx context.Context) (bool, error) {
 	}
 	remove, cancel := context.WithTimeout(ctx, 40*time.Second)
 	err = c.Objects.RemoveConfirmed(remove, ticket.Object)
+	removeErr := remove.Err()
 	cancel()
 	if err != nil {
 		return false, err
 	}
+	// An adapter returning nil after timeout cannot authorize metadata deletion.
+	if removeErr != nil { return recovered > 0, removeErr }
 	finish, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
+	if err := finish.Err(); err != nil { return recovered > 0, err }
 	done, err := c.Repository.Finish(finish, *ticket)
+	if err == nil { err = finish.Err() }
 	return recovered > 0 || done, err
 }
 

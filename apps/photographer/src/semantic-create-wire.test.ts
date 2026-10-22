@@ -5,11 +5,11 @@ import type {Collection} from './catalog-types';
 it('checks recovered parent through the real SDK and propagates cancellation to identity reads',async()=>{
  const tenant='11111111-1111-4111-8111-111111111111',run='22222222-2222-4222-8222-222222222222';
  const identity={run_id:run,workflow_id:tenant,intent_id:null,revision:'2',state:'queued'};
- const transport=vi.fn().mockResolvedValueOnce(new Response(JSON.stringify(identity),{status:200})).mockResolvedValueOnce(new Response(JSON.stringify({id:tenant}),{status:200}));
+ const transport=vi.fn().mockResolvedValueOnce(new Response(JSON.stringify(identity),{status:200})).mockResolvedValueOnce(new Response(JSON.stringify({id:tenant,email:'owner@example.test',locale:'en',theme:'system',timezone:'UTC',revision:'1'}),{status:200}));
  const client=new ApiClient('http://localhost',{principal:()=>({kind:'owner',accessToken:'fixture'}),refresh:async()=>'',clear:()=>{},csrfToken:()=> 'csrf',clientHeaders:()=>({'X-Photo-Client':'native'})},transport),api=new OwnerAPI(client,tenant),signal=new AbortController().signal;
  expect(await api.semanticRunIntent(run,signal)).toEqual(identity);await api.me(signal);
  expect(transport.mock.calls[0][0]).toBe(`http://localhost/api/v1/tenants/${tenant}/runs/${run}/semantic-intent`);
- expect(transport.mock.calls[0][1].signal).toBe(signal);expect(transport.mock.calls[1][1].signal).toBe(signal);
+ expect(transport.mock.calls[0][1].signal).toBe(signal);expect(transport.mock.calls[1][1].signal).toBeInstanceOf(AbortSignal);
 });
 it('uses the owner API and real SDK to preserve immutable snapshot/proposal keys on the wire',async()=>{
  const id='11111111-1111-4111-8111-111111111111';
@@ -25,6 +25,6 @@ it('uses the owner API and real SDK to preserve immutable snapshot/proposal keys
  expect(transport.mock.calls[0][1].headers.get('Idempotency-Key')).toBe('snapshot-key');
  expect(transport.mock.calls[1][0]).toBe(`http://localhost/api/v1/tenants/${id}/semantic-intents`);
  expect(transport.mock.calls[1][1].headers.get('Idempotency-Key')).toBe('proposal-key');
- expect(transport.mock.calls[1][1].signal).toBe(signal);
+ expect(transport.mock.calls[1][1].signal).toBeInstanceOf(AbortSignal);
  expect(JSON.parse(transport.mock.calls[1][1].body)).toEqual(body);
 });

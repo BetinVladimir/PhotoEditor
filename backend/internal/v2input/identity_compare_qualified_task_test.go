@@ -49,7 +49,7 @@ func TestQualifiedIdentityTaskPinsRuntimeAndPolicy(t *testing.T) {
 		}
 	}
 	changed := pin
-	changed.ModelLockSHA = strings.Repeat("d", 64)
+	changed.ModelLockSHA = strings.Repeat("e", 64)
 	if _, err := CompileQualifiedIdentityCompareTask(context.Background(), workflow, 0,
 		params, paramsRef, docs, sizes, costs, changed, 32<<30, 0, 12<<30, 1<<30); err == nil {
 		t.Fatal("foreign model pin accepted")

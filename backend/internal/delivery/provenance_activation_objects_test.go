@@ -43,6 +43,20 @@ func TestSignedActivationInventoryExactRowsAndPhysicalBytes(t *testing.T){
  changed:=append([]SignedActivationObject(nil),inventory...)
  changed[0].Object.VersionID="changed"
  if SignedActivationInventoryEqual(inventory,changed){t.Fatal("changed version accepted")}
+ mutableInventory:=append([]SignedActivationObject(nil),inventory...)
+ mutableClosure:=closure;mutableClosure.Entries=append([]SignedAssemblyEntry(nil),closure.Entries...)
+ mutate:=func(context.Context)error{
+  mutableInventory[0].Object.VersionID="substituted-after-renew"
+  mutableClosure.Entries[0].Signed.SHA256=signingObjectHash([]byte("wrong"))
+  return nil
+ }
+ if err:=VerifySignedActivationInventory(context.Background(),tenant,"photos",mutableClosure,mutableInventory,objects,mutate);err!=nil{t.Fatal("callback changed verified invocation",err)}
+ for _,final:=range []bool{false,true}{
+  call:=0;ctx,cancel:=context.WithCancel(context.Background());before:=objects.calls
+  cancelRenew:=func(context.Context)error{call++;if !final||call==2{cancel()};return nil}
+  err:=VerifySignedActivationInventory(ctx,tenant,"photos",closure,inventory,objects,cancelRenew);cancel()
+  if err!=context.Canceled||!final&&objects.calls!=before{t.Fatal("renew cancellation lost",final,err,objects.calls-before)}
+ }
  objects.contents[signed.Object.Key]=[]byte("substituted!")
  if err:=VerifySignedActivationInventory(context.Background(),tenant,"photos",closure,
   inventory,objects,renew);err==nil{t.Fatal("substituted bytes accepted")}

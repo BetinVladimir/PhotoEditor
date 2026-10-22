@@ -2,6 +2,7 @@ package interchange
 
 import (
 	"context"
+ "github.com/google/uuid"
 	"path/filepath"
 
 	"photoeditor/backend/internal/v2input"
@@ -15,6 +16,7 @@ type ImportSchedulerOperatorFiles struct {
 	StylePath, StyleSHA   string
 	Recipes               ImportRecipeDeploymentFiles
 	PersonOrigins         *ImportPersonOriginRecorderInstallation
+ HistoricalOrigins *ImportHistoricalSignerFiles
 	Limits                ImportPlanLimits
 }
 
@@ -24,7 +26,8 @@ func (f ImportSchedulerOperatorFiles) ValidateDeclaration() error {
 		f.Limits.Files < 1 || f.Limits.Files > 30000 {
 		return v2input.ErrInvalid
 	}
-	for _, pair := range [][2]string{
+	if f.HistoricalOrigins!=nil{v:=f.HistoricalOrigins;if !filepath.IsAbs(v.PrivateKeyPath)||filepath.Clean(v.PrivateKeyPath)!=v.PrivateKeyPath||!validImportRefForSHA(v.PublicSHA)||v.Issuer==uuid.Nil||len(v.KeyID)<1||len(v.KeyID)>120{return v2input.ErrInvalid}}
+ for _, pair := range [][2]string{
 		{f.NativePath, f.NativeSHA}, {f.StylePath, f.StyleSHA},
 		{f.Recipes.Restoration.DenoiseFile, f.Recipes.Restoration.DenoiseSHA},
 		{f.Recipes.Restoration.UpscaleFile, f.Recipes.Restoration.UpscaleSHA},
@@ -66,6 +69,7 @@ func (f ImportSchedulerOperatorFiles) Install(ctx context.Context, base SQLImpor
 		return zero, err
 	}
 	base.StyleInstallation = &style
+ if f.HistoricalOrigins!=nil{key,err:=LoadProcessPersonOriginKey(ctx,f.HistoricalOrigins.PrivateKeyPath,f.HistoricalOrigins.PublicSHA);if err!=nil{return zero,err};base.HistoricalSigner=key;base.HistoricalIssuer=f.HistoricalOrigins.Issuer;base.HistoricalKeyID=f.HistoricalOrigins.KeyID}
 	installed, err := f.Recipes.Install(ctx, base, personAcceptance)
 	if err != nil {
 		return zero, err
@@ -91,3 +95,7 @@ func (f ImportSchedulerOperatorFiles) Install(ctx context.Context, base SQLImpor
 		Limits:     f.Limits,
 	}, nil
 }
+
+// Operator-only signing seed; public verification keys are installed separately
+// on worker/scheduler adoption processes and are never taken from the archive.
+type ImportHistoricalSignerFiles struct{PrivateKeyPath string `json:"private_key_path"`;PublicSHA string `json:"public_key_sha256"`;Issuer uuid.UUID `json:"issuer_id"`;KeyID string `json:"key_id"`}

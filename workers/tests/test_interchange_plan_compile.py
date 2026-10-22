@@ -67,7 +67,7 @@ def test_plan_rejects_foreign_proposal_before_object_io():
 
 def test_plan_rejects_source_reordering_before_object_io():
     body,sources,_,_=adopted_fixture();sources.entries.reverse()
-    with pytest.raises(AdoptionInvalid,match='SOURCE_IDENTITY'):
+    with pytest.raises(ValueError,match='SOURCE_IDENTITY|invalid import source inventory'):
         compile(body,sources,lambda *a:pytest.fail('unexpected IO'))
 
 

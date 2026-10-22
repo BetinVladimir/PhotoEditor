@@ -83,3 +83,6 @@ it('binds ready artifact UUID to exact upload namespace even when content SHA ma
  expect(()=>archiveArtifactID('invalid')).toThrow();
 });
 it('matches the fixed archive UUIDv5 interoperability vector',()=>{expect(archiveArtifactID(upload)).toBe('44d0ac3c-5d7a-5a01-b987-7a64a0a3af30');});
+it('matches an independently computed RFC 4122 SHA1 upload identifier in all five UUID groups',()=>{
+ expect(archiveUploadID(project,upload,'original-key')).toBe('fddafd99-fb74-5adb-bd8d-815902f5df1a');
+});

@@ -4,9 +4,10 @@ import {APIError,type UploadSource} from '@photoeditor/api-client';
 import {act,cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 vi.mock('react-native',async()=>import('react-native-web'));
-vi.mock('./locale-context',()=>({useLocale:()=>({t:(key:string)=>key})}));
+vi.mock('./use-review-foreground',()=>({useReviewForeground:()=>({active:true,generation:0})}));
+vi.mock('./locale-context',async()=>{const __factory=()=>({useLocale:()=>({t:(key:string)=>key})});const __out=await __factory();const {withUILocaleDouble}=await import('./test/locale-double');return {...__out,useLocale:()=>withUILocaleDouble(__out.useLocale())};});
 vi.mock('@react-native-async-storage/async-storage',()=>{const values=new Map<string,string>();return {default:{getItem:async(k:string)=>values.get(k)??null,setItem:async(k:string,v:string)=>{values.set(k,v)},removeItem:async(k:string)=>{values.delete(k)}}};});
-vi.mock('./semantic-attempt-store',()=>({semanticJournalLock:async<T>(_key:string,action:()=>Promise<T>)=>action()}));
+vi.mock('./semantic-attempt-store',()=>({semanticJournalLock:async<T,>(_key:string,action:()=>Promise<T>)=>action()}));
 vi.mock('./interchange-archive-controller',async importOriginal=>({...await importOriginal<typeof import('./interchange-archive-controller')>(),runArchiveUpload:vi.fn(),abortArchiveUpload:vi.fn(),resetAbortedArchiveUpload:vi.fn()}));
 import {runArchiveUpload,resetAbortedArchiveUpload} from './interchange-archive-controller';
 import {ownArchiveSource} from './interchange-archive-source-lifecycle';
@@ -105,7 +106,7 @@ it('uses a fresh ready response and opens the import only once',async()=>{
 });
 it.each(['completing','aborting','aborted','verified'])('replaces stale ready UI with fresh non-ready state: %s',async state=>{
  const {p,ready}=await mountReadyArchive();
- vi.spyOn(OwnerAPI.prototype,'interchangeArchiveStatus').mockResolvedValue({...ready,state,ready:false,artifact:undefined});
+ vi.spyOn(OwnerAPI.prototype,'interchangeArchiveStatus').mockResolvedValue({...ready,state,ready:false,artifact:undefined,...(['aborting','aborted'].includes(state)?{error_code:'UPLOAD_ABORTED'}:{})});
  fireEvent.click(screen.getByText('interchange_archive_open'));await screen.findByRole('alert');expect(p.onReady).not.toHaveBeenCalled();
  expect(screen.queryByText('interchange_archive_open')).toBeNull();expect(screen.queryByText('interchange_archive_ready')).toBeNull();
  expect(screen.getByText(state==='aborted'?'interchange_archive_aborted':state==='aborting'?'interchange_archive_aborting':'interchange_archive_pending')).toBeTruthy();
@@ -123,4 +124,15 @@ it('cancels a pending status request and suppresses handoff after unmount',async
  fireEvent.click(screen.getByText('interchange_archive_open'));await waitFor(()=>expect(signal).toBeDefined());
  view.unmount();expect(signal!.aborted).toBe(true);await act(async()=>{resolve(ready);});
  await waitFor(()=>expect(screen.queryByText('interchange_archive_open')).toBeNull());expect(p.onReady).not.toHaveBeenCalled();
+});
+
+it('stopping an ignored-abort archive upload frees UI without old-finally unlocking its replacement',async()=>{
+ const p=props();let oldReject!:(reason:Error)=>void,newReject!:(reason:Error)=>void;
+ vi.mocked(runArchiveUpload).mockImplementationOnce(()=>new Promise((_resolve,reject)=>{oldReject=reject})).mockImplementationOnce(()=>new Promise((_resolve,reject)=>{newReject=reject}));
+ render(<InterchangeArchiveScreen {...p}/>);fireEvent.click(screen.getByText('interchange_archive_pick'));await screen.findByText('archive.zip');
+ fireEvent.click(screen.getByText('interchange_archive_upload'));await waitFor(()=>expect(runArchiveUpload).toHaveBeenCalledOnce());
+ fireEvent.click(screen.getByText('interchange_archive_stop'));fireEvent.click(screen.getByText('interchange_archive_upload'));await waitFor(()=>expect(runArchiveUpload).toHaveBeenCalledTimes(2));
+ await act(async()=>oldReject(new Error('late old failure')));expect(screen.getByText('interchange_archive_stop')).toBeTruthy();expect(screen.queryByRole('alert')).toBeNull();
+ fireEvent.click(screen.getByText('interchange_archive_upload'));expect(runArchiveUpload).toHaveBeenCalledTimes(2);
+ await act(async()=>newReject(new Error('current failure')));await screen.findByRole('alert');expect(p.onReady).not.toHaveBeenCalled();
 });

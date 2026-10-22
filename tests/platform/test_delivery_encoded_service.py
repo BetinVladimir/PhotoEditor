@@ -77,8 +77,9 @@ def test_delivery_encode_record_binds_exact_proof_and_requires_true(response):
         with pytest.raises(AdoptionInvalid,match='VERIFICATION_REFUSED'):
             service.record_prepared_delivery_encode(connection,**args)
     c,e=prepared.context,prepared.evidence
-    assert len(calls)==1
-    assert calls[0][1]==(prepared.tenant_id,prepared.task_id,2,7,c.result_id,
+    assert len(calls)==2
+    assert calls[0]==("SELECT set_config('app.tenant_id',%s,true)", (str(prepared.tenant_id),))
+    assert calls[1][1]==(prepared.tenant_id,prepared.task_id,2,7,c.result_id,
         e.params_jcs.decode(),e.source_jcs.decode(),e.manifest_jcs.decode(),42)
 
 
@@ -106,9 +107,10 @@ def test_delivery_encode_adoption_uses_dedicated_atomic_commit():
     connection=SimpleNamespace(execute=lambda sql,args:calls.append((sql,args)) or SimpleNamespace(fetchone=lambda:(True,)))
     service.adopt_prepared_delivery_encode(connection,tenant_id=prepared.tenant_id,
         task_id=prepared.task_id,prepared=prepared)
-    assert len(calls)==1
-    assert calls[0][0]=='SELECT photo.adopt_v30_delivery_encode(%s,%s,%s,%s,%s,%s,%s,%s,%s)'
-    assert calls[0][1][:5]==(prepared.tenant_id,prepared.task_id,2,7,prepared.context.result_id)
+    assert len(calls)==2
+    assert calls[0]==("SELECT set_config('app.tenant_id',%s,true)", (str(prepared.tenant_id),))
+    assert calls[1][0]=='SELECT photo.adopt_v30_delivery_encode(%s,%s,%s,%s,%s,%s,%s,%s,%s)'
+    assert calls[1][1][:5]==(prepared.tenant_id,prepared.task_id,2,7,prepared.context.result_id)
 
 
 @pytest.mark.parametrize('scenario',['success','prepare_error','sql_error','cancel_after_sql'])
@@ -164,7 +166,7 @@ def test_delivery_encode_pending_page_is_bounded_and_validated_before_adoption(s
     runtime=object.__new__(service.DeliveryEncodeAdoptionService)
     from contextlib import nullcontext
     deferred=[]
-    runtime.write_connection=SimpleNamespace(transaction=lambda:nullcontext(),execute=lambda sql,args:deferred.append(args) or SimpleNamespace(fetchone=lambda:(True,)))
+    runtime.write_connection=SimpleNamespace(transaction=lambda:nullcontext(),execute=lambda sql,args:deferred.append((sql,args)) or SimpleNamespace(fetchone=lambda:(False,) if 'reject_v30' in sql else (True,)))
     runtime.check_active=lambda:None
     runtime.read_connection=SimpleNamespace(execute=lambda sql,args:SimpleNamespace(fetchall=lambda:rows))
     def adopt(tenant,task):
@@ -185,7 +187,9 @@ def test_delivery_encode_pending_page_is_bounded_and_validated_before_adoption(s
         assert result.adopted==(1 if scenario=='rejected' else 2)
         assert len(result.rejected)==(1 if scenario=='rejected' else 0)
         assert calls==rows
-        assert deferred==([rows[0]] if scenario=='rejected' else [])
+        assert deferred==([('SELECT photo.defer_v30_delivery_encode(%s,%s)', rows[0]),
+                          ('SELECT photo.reject_v30_delivery_encode_after_retries(%s,%s,%s)', (*rows[0], 'refused'))]
+                         if scenario=='rejected' else [])
 
 
 @pytest.mark.parametrize('cancel_at',[2,3])

@@ -87,3 +87,22 @@ def test_exact_true_report_is_accepted():
     reporter=CapacityReporter(lambda sample:samples.append(sample) or True,lambda:Capacity(1,2,3),lambda:None)
     reporter.report_once()
     assert samples==[Capacity(1,2,3)] and not reporter.failed.is_set()
+
+
+
+@pytest.mark.parametrize('phase',['sample','report'])
+def test_capacity_exception_stops_consumer_before_abort(phase):
+    stop=Event();events=[]
+    class Tick:
+        def wait(self,interval):return stop.is_set()
+        def set(self):stop.set()
+    def sample():
+        if phase=='sample':raise RuntimeError('measurement failed')
+        return Capacity(1,2,3)
+    def report(value):raise RuntimeError('publication failed')
+    def abort():
+        assert stop.is_set() and reporter.failed.is_set()
+        events.append('abort')
+    reporter=CapacityReporter(report,sample,abort)
+    reporter.run(Tick())
+    assert events==['abort'] and stop.is_set() and reporter.failed.is_set()

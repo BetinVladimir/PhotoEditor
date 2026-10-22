@@ -1,2 +1,3 @@
-import { Redirect } from "expo-router";
-export default function Index(){return <Redirect href="/login"/>}
+import Screen from '../screens/index';
+import {LegacyLocaleRoute} from '../src/localized-router';
+export default function LegacyRoute(){return <LegacyLocaleRoute><Screen/></LegacyLocaleRoute>}

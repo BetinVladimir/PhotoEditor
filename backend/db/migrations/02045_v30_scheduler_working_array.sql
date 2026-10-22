@@ -33,23 +33,23 @@ BEGIN
   AND asset.project_id=w.project_id AND asset.deleted_at IS NULL AND asset.upload_state='verified'
  JOIN photo.artifacts source ON source.tenant_id=version.tenant_id AND source.id=p_parent
   AND source.sha256=p_parent_sha AND source.output_role='working_image'
- JOIN photo.artifacts array ON array.tenant_id=source.tenant_id AND array.id=p_array
-  AND array.sha256=p_array_sha AND array.output_role=CASE p_contract
+ JOIN photo.artifacts working_array ON working_array.tenant_id=source.tenant_id AND working_array.id=p_array
+  AND working_array.sha256=p_array_sha AND working_array.output_role=CASE p_contract
    WHEN 'WorkingPixels' THEN 'working_rgb' ELSE 'alpha' END
  WHERE item.tenant_id=p_tenant AND item.snapshot_id=w.input_snapshot_id
   AND item.artifact_id=p_parent AND item.sha256=p_parent_sha
   AND source.state='ready' AND source.verified_at IS NOT NULL
-  AND array.state='ready' AND array.verified_at IS NOT NULL
+  AND working_array.state='ready' AND working_array.verified_at IS NOT NULL
   AND source.object_version IS NOT NULL AND source.object_version NOT IN('','null')
-  AND array.object_version IS NOT NULL AND array.object_version NOT IN('','null')
+  AND working_array.object_version IS NOT NULL AND working_array.object_version NOT IN('','null')
   AND (source.expires_at IS NULL OR source.expires_at>clock_timestamp())
-  AND (array.expires_at IS NULL OR array.expires_at>clock_timestamp())
-  AND source.created_by_task_id=array.created_by_task_id
-  AND array.created_by_task_id IS NOT NULL
-  AND source.produced_attempt=array.produced_attempt
-  AND array.produced_attempt IS NOT NULL
-  AND source.produced_fence=array.produced_fence
-  AND array.produced_fence IS NOT NULL);
+  AND (working_array.expires_at IS NULL OR working_array.expires_at>clock_timestamp())
+  AND source.created_by_task_id=working_array.created_by_task_id
+  AND working_array.created_by_task_id IS NOT NULL
+  AND source.produced_attempt=working_array.produced_attempt
+  AND working_array.produced_attempt IS NOT NULL
+  AND source.produced_fence=working_array.produced_fence
+  AND working_array.produced_fence IS NOT NULL);
 EXCEPTION WHEN invalid_text_representation OR numeric_value_out_of_range OR invalid_parameter_value THEN RETURN false;
 END $$;
 ALTER FUNCTION photo.v30_export_adoption_working_array(uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid,text,uuid,text,text)

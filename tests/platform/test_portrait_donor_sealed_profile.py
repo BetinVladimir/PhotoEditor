@@ -2,7 +2,7 @@ from copy import deepcopy
 from uuid import uuid4
 import pytest
 from photo_worker.v2.portrait_donor_qualification import donor_compiler_profile,verify_donor_qualification
-from photo_worker.v2.contract_lock import SQL_TRANSPORT_SCHEMAS_SHA256
+from photo_worker.v2.contract_lock import SQL_TRANSPORT_SCHEMAS_SHA256, COPY_FENCE_SCHEMAS_SHA256, COPY_FENCE_DUAL_PREVIOUS_SCHEMAS_SHA256, COPY_FENCE_PREVIOUS_SCHEMAS_SHA256
 from test_portrait_donor_qualification import fixture
 
 
@@ -15,8 +15,10 @@ def sealed_fixture():
     return profile,sealed,report,calibration,policy
 
 
-def test_qualified_sealed_profile_preserves_owned_compiler_fields():
+@pytest.mark.parametrize("contracts_sha", [SQL_TRANSPORT_SCHEMAS_SHA256, COPY_FENCE_SCHEMAS_SHA256, COPY_FENCE_DUAL_PREVIOUS_SCHEMAS_SHA256, COPY_FENCE_PREVIOUS_SCHEMAS_SHA256])
+def test_qualified_sealed_profile_preserves_owned_compiler_fields(contracts_sha):
     profile,sealed,report,calibration,policy=sealed_fixture()
+    sealed["contracts_sha"]=contracts_sha
     extracted=donor_compiler_profile(sealed)
     assert extracted==profile
     pin,cal=verify_donor_qualification(sealed,report,calibration,policy,check_active=lambda:None)

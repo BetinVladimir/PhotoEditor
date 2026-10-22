@@ -1,9 +1,11 @@
 package v2input
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"github.com/google/uuid"
+	"photoeditor/backend/internal/canonical"
 )
 
 type SemanticTransferDependencies struct {
@@ -15,6 +17,7 @@ type SemanticTransferDependencies struct {
 	SourceProtection, TargetProtection                         Ref
 	SourceProtectionPixels, TargetProtectionPixels             Ref
 	Geometry                                                   []Ref
+	Scene                                                      json.RawMessage
 }
 
 type PreparedSemanticTask struct {
@@ -53,14 +56,38 @@ func CompileSemanticTransferTask(workflow uuid.UUID, ordinal int, params Semanti
 	key, _ := NodeKey("semantic.transfer", ordinal)
 
 	profileFields, ok := semanticObject(profile, nil, "backend", "renderer_version", "resource_estimate")
+	profileBase := profile
+	var sceneEntries []Entry
 	if !ok {
+		profileFields, ok = semanticObject(profile, nil, "backend", "renderer_version", "resource_estimate", "semantic_scene")
+		if !ok || len(dependencies.Scene) == 0 {
+			return empty, ErrInvalid
+		}
+		scene, err := canonical.Bytes(profileFields["semantic_scene"])
+		if err != nil {
+			return empty, ErrInvalid
+		}
+		owned, err := canonical.Bytes(dependencies.Scene)
+		if err != nil || !bytes.Equal(scene, owned) {
+			return empty, ErrInvalid
+		}
+		sceneEntries, err = SemanticSceneEntries(scene, params)
+		if err != nil {
+			return empty, err
+		}
+		base := map[string]json.RawMessage{"backend": profileFields["backend"], "renderer_version": profileFields["renderer_version"], "resource_estimate": profileFields["resource_estimate"]}
+		profileBase, err = json.Marshal(base)
+		if err != nil {
+			return empty, ErrInvalid
+		}
+	} else if len(dependencies.Scene) != 0 {
 		return empty, ErrInvalid
 	}
 	if _, ok := semanticObject(profileFields["resource_estimate"], nil, "ram_bytes", "vram_bytes", "scratch_bytes", "output_bytes", "pixel_count"); !ok {
 		return empty, ErrInvalid
 	}
 	var execution sessionDescribeExecutionProfile
-	if !semanticDecode(profile, &execution) || execution.Backend != "cuda" || execution.RendererVersion != "v2.2" || len(dependencies.Geometry) > 64 {
+	if !semanticDecode(profileBase, &execution) || (execution.Backend != "cuda" && execution.Backend != "mps") || execution.RendererVersion != "v2.2" || len(dependencies.Geometry) > 64 {
 		return empty, ErrInvalid
 	}
 	for _, cost := range []int64{execution.ResourceEstimate.RAMBytes, execution.ResourceEstimate.VRAMBytes, execution.ResourceEstimate.ScratchBytes, execution.ResourceEstimate.OutputBytes, execution.ResourceEstimate.PixelCount} {
@@ -73,7 +100,7 @@ func CompileSemanticTransferTask(workflow uuid.UUID, ordinal int, params Semanti
 	}
 
 	budget := execution.ResourceEstimate
-	if _, err := CompileSemanticTransferProfile(dependencies.ReferenceWidth, dependencies.ReferenceHeight,
+	if _, err := CompileSemanticTransferProfileForBackend(execution.Backend, dependencies.ReferenceWidth, dependencies.ReferenceHeight,
 		dependencies.TargetWidth, dependencies.TargetHeight, dependencies.ReferenceGamma, dependencies.TargetGamma,
 		dependencies.QualifiedCosts, budget.RAMBytes, budget.VRAMBytes, budget.ScratchBytes, budget.OutputBytes); err != nil {
 		return empty, err
@@ -93,6 +120,14 @@ func CompileSemanticTransferTask(workflow uuid.UUID, ordinal int, params Semanti
 	}
 	for _, field := range dependencies.Geometry {
 		entries = append(entries, Entry{field, "NpyArray"})
+	}
+	entries = append(entries, sceneEntries...)
+	// This inventory is closed: 13 required roots, two alpha arrays, at most
+	// 64 geometry arrays and seven scene entries for each of two images.
+	// Deduplication can only reduce it, so V2InputIndex retains its 16 MiB floor.
+	const maxSemanticTransferEntries = 13 + 2 + 64 + 2*7
+	if len(entries) > maxSemanticTransferEntries {
+		return empty, ErrInvalid
 	}
 	closure, err := compileCaptureInventory(task, "semantic.transfer", owned, paramsRef, entries)
 	if err != nil {

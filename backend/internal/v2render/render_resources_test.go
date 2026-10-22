@@ -45,7 +45,7 @@ func TestRenderResourcesActualWorkerParity(t *testing.T) {
 					t.Fatal(err)
 				}
 				command := exec.Command(python, "-c", "import sys,json; from photo_worker.v2.render_resources import render_resources; print(json.dumps(render_resources(int(sys.argv[1]),int(sys.argv[2]),mask_refs=257,mask_nodes=512,tile_size=int(sys.argv[3]),alpha_mode=sys.argv[4],provider_peak=dict(ram_bytes=123,scratch_bytes=234,vram_bytes=345,output_bytes=456))))", strconv.FormatInt(size[0], 10), strconv.FormatInt(size[1], 10), strconv.Itoa(tile), mode)
-				command.Env = append(os.Environ(), "PYTHONPATH="+filepath.Join(repo, "workers")+string(os.PathListSeparator)+filepath.Join(repo, "src"))
+				command.Env = append(os.Environ(), "PYTHONPATH="+filepath.Join(repo, "workers")+string(os.PathListSeparator)+filepath.Join(repo, "apps", "local-editor", "src"))
 				raw, err := command.Output()
 				if err != nil {
 					t.Fatal(err)

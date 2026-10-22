@@ -22,3 +22,16 @@ it('rejects noncanonical and duplicate JSON and mismatched catalog derivative',(
  const f=fixture(),raw=canonicalJSON(f.value);expect(()=>verify(raw+' ',f.derivative)).toThrow();expect(()=>verify('\ufeff'+raw,f.derivative)).toThrow();expect(()=>verify(raw.replace('{','{"alpha":true,'),f.derivative)).toThrow();expect(()=>verify(raw,{...f.derivative,artifact_id:id(6)})).toThrow();expect(()=>verify(raw,{...f.derivative,sha256:'f'.repeat(64)})).toThrow();
  const body=new TextEncoder().encode(raw);expect(()=>verifyRegionManifest(body,{bytes:body.length,sha256:'f'.repeat(64),role:'document',media_type:'application/json'} as RunOutput,f.derivative,binding)).toThrow();
 });
+
+it('uses independently adopted projected geometry and binds it into the cache key',()=>{
+ const f=fixture();const target={width:12000,height:8000,orientation:1,space_id:'upscale',source_sha256:'b'.repeat(64)};
+ const execution={sha256:'f'.repeat(64),target_canvas:target};
+ const steps=[{kind:'resize',from_canvas:{...target,width:6000,height:4000,space_id:'work'},to_canvas:target,invertibility:'invertible',valid_region:{x:0,y:0,width:12000,height:8000},pixel_centers:'half_pixel'}];
+ const projection={execution_sha256:execution.sha256,target_canvas:target,target_transform_chain:{steps,hash:digest(canonicalJSON({steps}))},geometry:{left:0,top:0,width:12000,height:8000,output_width:1024,output_height:682}};
+ const value={...f.value,projection,cache_key:digest(canonicalJSON({schema_version:1,params:binding.paramsSha256,target_icc_sha256:binding.iccSha256,quality:88,format:'jpeg',metadata_policy:'stripped',resize:'area_linear_premult_v1',projection}))};
+ const call=(v:unknown,expected:RegionManifestBinding)=>{const raw=canonicalJSON(v),body=new TextEncoder().encode(raw);return verifyRegionManifest(body,{artifact_id:id(5),sha256:digest(raw),bytes:body.length,role:'document',media_type:'application/json'} as RunOutput,f.derivative,expected);};
+ expect(call(value,{...binding,execution}).geometry.width).toBe(12000);
+ expect(()=>call(value,binding)).toThrow();
+ expect(()=>call({...value,projection:{...projection,execution_sha256:'0'.repeat(64)}},{...binding,execution})).toThrow();
+ expect(()=>call({...value,projection:{...projection,geometry:{...projection.geometry,output_height:683}}},{...binding,execution})).toThrow();
+});

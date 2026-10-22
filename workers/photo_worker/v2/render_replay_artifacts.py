@@ -54,7 +54,10 @@ class RenderReplayArtifacts:
         if suffix!='.npy':
             raise AdoptionInvalid('RENDER_REPLAY_FILE_INVALID')
         reference=_ref(ref);evidence=self.reader.evidence(reference)
-        if evidence.media_type!='application/x-npy':
+        # Legacy Apply materializes canonical NPY arrays as octet-stream.
+        # This bridge accepts only declared immutable inputs; callers still
+        # independently enforce exact shape/dtype/EOF with bounded NPY readers.
+        if evidence.media_type not in ('application/x-npy','application/octet-stream'):
             raise AdoptionInvalid('RENDER_REPLAY_FILE_INVALID')
         with self.scratch.reserve(evidence.bytes) as owner:
             path=owner.path('render-replay-input',suffix)

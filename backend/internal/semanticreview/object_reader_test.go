@@ -14,6 +14,7 @@ type planStoreFixture struct {
 	Opened   []objectstore.Object
 	Closed   int
 	CloseErr error
+ NilStream bool
 }
 type planReaderFixture struct {
 	io.Reader
@@ -23,6 +24,7 @@ type planReaderFixture struct {
 func (r *planReaderFixture) Close() error { r.Store.Closed++; return r.Store.CloseErr }
 func (s *planStoreFixture) Open(_ context.Context, o objectstore.Object) (io.ReadCloser, error) {
 	s.Opened = append(s.Opened, o)
+ if s.NilStream { return nil, nil }
 	return &planReaderFixture{bytes.NewReader(s.Body), s}, nil
 }
 
@@ -57,4 +59,15 @@ func TestPlanObjectReaderPinsVersionBoundsReadsAndCloses(t *testing.T) {
 	if _, err = read(context.Background(), source); !errors.Is(err, failure) {
 		t.Fatal(err)
 	}
+}
+
+func TestPlanObjectReaderRejectsNilStorageStream(t *testing.T) {
+ sources, _ := documentSources()
+ store := &planStoreFixture{NilStream:true}
+ read, err := NewPlanObjectReader(store,"bucket")
+ if err != nil {t.Fatal(err)}
+ body, err := read(context.Background(),sources.Objects[0])
+ if !errors.Is(err,ErrInvalid) || body != nil || len(store.Opened)!=1 || store.Closed!=0 {
+  t.Fatal("nil storage stream accepted",body,err)
+ }
 }

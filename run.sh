@@ -8,6 +8,7 @@ export PHOTO_MODELS_DIR="${PHOTO_MODELS_DIR:-$ROOT/.models}"
 export MPLCONFIGDIR="${MPLCONFIGDIR:-$ROOT/.cache/matplotlib}"
 export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$ROOT/.cache}"
 export PYTHONUNBUFFERED=1
+export PYTHONPATH="$ROOT/apps/local-editor/src${PYTHONPATH:+:$PYTHONPATH}"
 cd "$ROOT"
 if [ ! -x .venv/bin/python ] || ! .venv/bin/python -c 'import photoeditor' >/dev/null 2>&1; then
   "$ROOT/scripts/setup.sh"

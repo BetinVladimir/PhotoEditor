@@ -24,13 +24,16 @@ def component_paths() -> dict[str, Path]:
                  'glare_generative_worker', 'glare_generative_inputs',
                  'glare_generative_stage', 'glare_generative_result',
                  'glare_generative_evidence', 'glare_generative_files',
-                 'glare_generative_patch'):
+                 'glare_generative_patch', 'glare_source_admission'):
         paths[name] = root / 'operations/portrait' / (name + '.py')
+    for name in ('onnx_session', 'backend_support', 'capture_onnx', 'adapters', 'pool'):
+        paths['model_' + name] = root / 'models' / (name + '.py')
     paths['glare_donor_object_reader'] = root / 'v2/glare_donor_object_reader.py'
     paths['runtime_v28_installation'] = root / 'runtime/v28_installation.py'
     paths['runtime_glare_config'] = root / 'runtime/glare_config.py'
     paths['worker_cli'] = root / 'cli.py'
     paths['restoration_contracts'] = root / 'contracts/portrait_restoration.py'
+    paths['semantic_candidate_inpaint'] = root / 'operations/semantic/candidate_inpaint.py'
     return paths
 
 
@@ -46,8 +49,11 @@ class GlareDonorRuntimeLock(Contract):
     def inventory(self):
         if (re.fullmatch(r'\d+\.\d+\.\d+', self.python_version) is None
                 or not 1 <= len(self.machine) <= 80
-                or set(self.packages) != {'numpy', 'pydantic', 'rfc8785',
-                                         'opencv-python-headless', 'onnxruntime'}
+                or set(self.packages) not in (
+                    {'numpy', 'pydantic', 'rfc8785', 'opencv-python-headless', 'onnxruntime'},
+                    {'numpy', 'pydantic', 'rfc8785', 'opencv-python-headless', 'onnxruntime-gpu'},
+                    {'numpy', 'pydantic', 'rfc8785', 'opencv-python-headless', 'onnxruntime', 'torch'},
+                    {'numpy', 'pydantic', 'rfc8785', 'opencv-python-headless', 'onnxruntime-gpu', 'torch'})
                 or any(not 1 <= len(value) <= 120 for value in self.packages.values())
                 or set(self.components) != set(component_paths())):
             raise ValueError('GLARE_RUNTIME_INVENTORY_INVALID')

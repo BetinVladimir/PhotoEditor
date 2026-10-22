@@ -17,14 +17,15 @@ def stage_region_result(artifacts, params: RegionPreviewParams, source_body: byt
     """Stage through existing attempt upload fences; does not admit/adopt a job."""
     check_active()
     image = params.validate_source(source_body)
-    alpha = image.alpha is not None
-    width, height = params.geometry.output_width, params.geometry.output_height
+    alpha = image.alpha is not None if params.execution is None else params.execution.stages[-1].target_has_alpha
+    geometry=params.geometry if presentation.projection is None else presentation.projection.geometry
+    width, height = geometry.output_width, geometry.output_height
     if (not isinstance(presentation.rgb, np.ndarray)
             or presentation.rgb.shape != (height, width, 3)
             or presentation.rgb.dtype != np.float32
             or (presentation.alpha is not None) != alpha
             or sha256(presentation.profile).hexdigest() != presentation.profile_sha256
-            or presentation.cache_key != region_cache_key(params, presentation.profile_sha256, alpha)):
+            or presentation.cache_key != region_cache_key(params, presentation.profile_sha256, alpha,projection=presentation.projection)):
         raise ValueError('REGION_PRESENTATION_INVALID')
     values = [presentation.rgb]
     if alpha:

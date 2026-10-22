@@ -48,11 +48,15 @@ func TestIntegrationNativePreparationBootstrap(t *testing.T) {
 		PersonQualification    struct{ Report v2input.Ref }
 		ParseQualification     struct{ Report v2input.Ref }
 		FaceQualifications     []struct{ Report v2input.Ref }
+		SceneQualifications    [2]v2input.SemanticQualificationPin
 	}
 	if json.Unmarshal([]byte(raw), &f) != nil || len(f.FaceQualifications) != 2 {
 		t.Fatal("native fixture")
 	}
 	timeout := 180 * time.Second
+	if os.Getenv("PHOTO_TEST_V27_SCENE_WIRE") == "1" {
+		timeout = 6 * time.Minute
+	}
 	if os.Getenv("PHOTO_TEST_V27_PERSON_DEFECT_PARENT") == "1" {
 		timeout = 10 * time.Minute
 	}
@@ -64,6 +68,11 @@ func TestIntegrationNativePreparationBootstrap(t *testing.T) {
 	cfg, err := pgxpool.ParseConfig(os.Getenv("PHOTO_TEST_DATABASE_URL"))
 	if err != nil {
 		t.Fatal("database configuration")
+	}
+	var timing *nativeTimingTracer
+	if os.Getenv("PHOTO_TEST_NATIVE_TIMING") == "1" {
+		timing = newNativeTimingTracer(t)
+		cfg.ConnConfig.Tracer = timing
 	}
 	cfg.ConnConfig.RuntimeParams["role"] = "photo_api"
 	api, err := pgxpool.NewWithConfig(ctx, cfg)
@@ -125,6 +134,31 @@ func TestIntegrationNativePreparationBootstrap(t *testing.T) {
 	}
 	detector, ticket, err := bootstrap.bootstrapInitialDetector(ctx, who, anchor, f.FaceQualifications[1].Report, .8, 20, budget)
 	if err != nil {
+		// Diagnose the rejected boundary without bypassing admission or
+		// committing an exploratory retry. Never log evidence/credentials.
+		tx, beginErr := scheduler.Begin(ctx)
+		if beginErr == nil {
+			built, transportErr := recoverDetectorTransportInTransaction(ctx, tx, who, detector)
+			t.Log("bootstrap diagnostic transport", transportErr)
+			if transportErr == nil {
+				packet, evidenceErr := reader.marshalDetectorAdmissionEvidence(ctx, who, detector, built)
+				t.Log("bootstrap diagnostic evidence", evidenceErr)
+				if evidenceErr == nil {
+					_, _ = tx.Exec(ctx, "SELECT set_config('app.tenant_id',$1,true)", f.Tenant.String())
+					var checks []byte
+					diagnosticErr := tx.QueryRow(ctx, `SELECT jsonb_build_object(
+                        'anchor',photo.lock_semantic_native_admission_anchor($1,$2,$3::jsonb),
+                        'source',photo.lock_semantic_native_source_authority($1,($3::jsonb->>'project_id')::uuid,($3::jsonb->>'actor_id')::uuid,($3::jsonb->>'session_id')::uuid,$3::jsonb),
+                        'registration',photo.semantic_native_registration_binding_state($1,$2,'face.detect',$3::jsonb->'registration'),
+                        'budget',photo.lock_semantic_native_graph_budget($1,$2,$3::jsonb),
+                        'evidence',photo.lock_semantic_native_admission_evidence($1,$2,$3::jsonb))`, f.Tenant, detector.shell.Run, string(packet)).Scan(&checks)
+					t.Log("bootstrap diagnostic SQL gates", string(checks), diagnosticErr)
+				}
+			}
+			_ = tx.Rollback(ctx)
+		} else {
+			t.Log("bootstrap diagnostic transaction", beginErr)
+		}
 		t.Fatal("physical detector bootstrap", err)
 	}
 	initialPresence, err = reader.readInitialNativeDetectorPresence(ctx, who, request, key)
@@ -134,6 +168,10 @@ func TestIntegrationNativePreparationBootstrap(t *testing.T) {
 	replay, err := reader.resumeInitialDetectorPreparation(ctx, scheduler, who, detector)
 	if err != nil || replay != ticket || ticket.RunID != detectorRun {
 		t.Fatal("detector replay", err)
+	}
+	if os.Getenv("PHOTO_TEST_V27_SCENE_WIRE") == "1" {
+		probeSceneLifecycle(t, ctx, who, detector, reader, scheduler, documents, transportDocs, catalog, color, f.SceneQualifications)
+		return
 	}
 	if operation := os.Getenv("PHOTO_TEST_V27_NATIVE_TERMINAL_JOB"); operation != "" {
 		capacity := TransferPreparation{Color: color, RAM: budget.RAM, VRAM: budget.VRAM, Scratch: budget.Scratch, Output: budget.Output, MetadataBytes: 16 << 20}
@@ -604,10 +642,16 @@ func TestIntegrationNativePreparationBootstrap(t *testing.T) {
 			legacyDefect := preparedTask
 			legacyDefect.legacyQueueOmitted = true
 			legacyPlan, err := reader.compileNativeDefectDraftPlan(ctx, who, legacyDefect, budget.Reserved)
-			if err != nil { t.Fatal("historical defect compile", err) }
+			if err != nil {
+				t.Fatal("historical defect compile", err)
+			}
 			var legacyConfig map[string]json.RawMessage
-			if json.Unmarshal(legacyPlan.shell.Config, &legacyConfig) != nil { t.Fatal("historical defect config") }
-			if _, present := legacyConfig["queue_class"]; present { t.Fatal("historical defect queue fabricated") }
+			if json.Unmarshal(legacyPlan.shell.Config, &legacyConfig) != nil {
+				t.Fatal("historical defect config")
+			}
+			if _, present := legacyConfig["queue_class"]; present {
+				t.Fatal("historical defect queue fabricated")
+			}
 			legacyReplay, err := reader.compileNativeDefectDraftPlan(ctx, who, legacyPlan.prepared, budget.Reserved)
 			if err != nil || legacyReplay.seal != legacyPlan.seal || string(legacyReplay.shell.Config) != string(legacyPlan.shell.Config) {
 				t.Fatal("historical defect replay changed", err)
@@ -958,6 +1002,9 @@ func TestIntegrationNativePreparationBootstrap(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if timing != nil {
+		restartConfig.ConnConfig.Tracer = timing
+	}
 	restartConfig.ConnConfig.RuntimeParams["role"] = "photo_api"
 	restartedAPI, err := pgxpool.NewWithConfig(ctx, restartConfig)
 	if err != nil {
@@ -1012,7 +1059,7 @@ func TestIntegrationNativePreparationBootstrap(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	boxesBody, err := canonical.Marshal(map[string]any{"image": request.Intent.Reference.Source, "faces": []any{}, "model_id": "sfd", "model_lock_id": strings.Repeat("c", 64), "backend": "cuda", "preprocessing_id": "sfd_long1024_bgr_v1", "preview_width": 400, "preview_height": 300, "candidate_count": 0, "accepted_count": 0, "alpha_excluded_fraction": 1, "warnings": []string{"no_faces"}})
+	boxesBody, err := canonical.Marshal(map[string]any{"image": request.Intent.Reference.Source, "faces": []any{}, "model_id": "sfd", "model_lock_id": strings.Repeat("c", 64), "backend": nativeQualifiedFixtureBackend(), "preprocessing_id": "sfd_long1024_bgr_v1", "preview_width": 400, "preview_height": 300, "candidate_count": 0, "accepted_count": 0, "alpha_excluded_fraction": 1, "warnings": []string{"no_faces"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1031,7 +1078,7 @@ func TestIntegrationNativePreparationBootstrap(t *testing.T) {
 	if _, err := inspector.Exec(ctx, "UPDATE photo.tasks SET attempt=1,fencing_token=1 WHERE id=$1", detectorTask.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := inspector.Exec(ctx, "INSERT INTO photo.task_attempts(tenant_id,task_id,attempt,fencing_token,worker_id,started_at,finished_at,backend,profile) VALUES($1,$2,1,1,$3,clock_timestamp(),clock_timestamp(),'cuda','{\"backend\":\"cuda\"}')", f.Tenant, detectorTask.ID, worker); err != nil {
+	if _, err := inspector.Exec(ctx, "INSERT INTO photo.task_attempts(tenant_id,task_id,attempt,fencing_token,worker_id,started_at,finished_at,backend,profile) VALUES($1,$2,1,1,$3,clock_timestamp(),clock_timestamp(),$4,$5)", f.Tenant, detectorTask.ID, worker, nativeQualifiedFixtureBackend(), `{"backend":"`+nativeQualifiedFixtureBackend()+`"}`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := inspector.Exec(ctx, "INSERT INTO photo.artifacts(id,tenant_id,bucket,object_key,sha256,bytes,media_type,object_version,verified_at,output_role,created_by_task_id,produced_attempt,produced_fence) VALUES($1,$2,$3,$4,$5,$6,'application/json',$7,clock_timestamp(),'face_boxes',$8,1,1)", outputID, f.Tenant, f.Objects.Bucket, outputObject.Key, checksum, len(boxesBody), outputObject.VersionID, detectorTask.ID); err != nil {
@@ -1101,17 +1148,27 @@ func TestIntegrationNativePreparationBootstrap(t *testing.T) {
 		if err != nil || len(graph.shell.Tasks) != 1 || graph.shell.Tasks[0].ID != task.ID || graph.shell.Tasks[0].Operation != operation {
 			t.Fatal("owned downstream graph plan", operation, err)
 		}
-        var queueConfig map[string]json.RawMessage
-        if json.Unmarshal(graph.shell.Config,&queueConfig)!=nil||string(queueConfig["queue_class"])!=`"batch"`{t.Fatal("new face queue missing")}
-        legacyPreparation:=taskPreparation
-        legacyPreparation.legacyQueueOmitted=true
-        legacyGraph,err:=reader.compileNativeFaceDraftPlan(ctx,who,detector,legacyPreparation,budget.Reserved)
-        if err!=nil{t.Fatal(err)}
-        var legacyConfig map[string]json.RawMessage
-        if json.Unmarshal(legacyGraph.shell.Config,&legacyConfig)!=nil{t.Fatal("invalid legacy config")}
-        if _,present:=legacyConfig["queue_class"];present{t.Fatal("legacy face queue changed")}
-        replay,err:=reader.compileNativeFaceDraftPlan(ctx,who,legacyGraph.detector,legacyGraph.prepared,legacyGraph.shell.Bytes)
-        if err!=nil||replay.seal!=legacyGraph.seal||string(replay.shell.Config)!=string(legacyGraph.shell.Config){t.Fatal("legacy face replay changed",err)}
+		var queueConfig map[string]json.RawMessage
+		if json.Unmarshal(graph.shell.Config, &queueConfig) != nil || string(queueConfig["queue_class"]) != `"batch"` {
+			t.Fatal("new face queue missing")
+		}
+		legacyPreparation := taskPreparation
+		legacyPreparation.legacyQueueOmitted = true
+		legacyGraph, err := reader.compileNativeFaceDraftPlan(ctx, who, detector, legacyPreparation, budget.Reserved)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var legacyConfig map[string]json.RawMessage
+		if json.Unmarshal(legacyGraph.shell.Config, &legacyConfig) != nil {
+			t.Fatal("invalid legacy config")
+		}
+		if _, present := legacyConfig["queue_class"]; present {
+			t.Fatal("legacy face queue changed")
+		}
+		replay, err := reader.compileNativeFaceDraftPlan(ctx, who, legacyGraph.detector, legacyGraph.prepared, legacyGraph.shell.Bytes)
+		if err != nil || replay.seal != legacyGraph.seal || string(replay.shell.Config) != string(legacyGraph.shell.Config) {
+			t.Fatal("legacy face replay changed", err)
+		}
 		if err := verifyNativeFacePlanSeal(ctx, graph); err != nil {
 			t.Fatal("downstream plan fingerprint", err)
 		}
@@ -1471,8 +1528,8 @@ func TestIntegrationNativePreparationBootstrap(t *testing.T) {
 		if err == nil || refused.frozen != nil {
 			t.Fatal("wrong downstream qualification accepted", operation)
 		}
-		replay, err := reader.publishNativeFaceStageParams(ctx, who, detector, color, documents, operation)
-		if err != nil || replay.ref != prepared.ref || replay.document != prepared.document {
+		paramsReplay, err := reader.publishNativeFaceStageParams(ctx, who, detector, color, documents, operation)
+		if err != nil || paramsReplay.ref != prepared.ref || paramsReplay.document != prepared.document {
 			t.Fatal("downstream Params replay", operation, err)
 		}
 		var originalCursor int64
@@ -1552,7 +1609,7 @@ func TestIntegrationNativePreparationBootstrap(t *testing.T) {
 			t.Fatal(err)
 		}
 		faceWorker := uuid.New()
-		if _, err := inspector.Exec(ctx, "INSERT INTO photo.task_attempts(tenant_id,task_id,attempt,fencing_token,worker_id,started_at,finished_at,backend,profile) VALUES($1,$2,1,1,$3,clock_timestamp(),clock_timestamp(),'cuda','{\"backend\":\"cuda\"}')", f.Tenant, task.ID, faceWorker); err != nil {
+		if _, err := inspector.Exec(ctx, "INSERT INTO photo.task_attempts(tenant_id,task_id,attempt,fencing_token,worker_id,started_at,finished_at,backend,profile) VALUES($1,$2,1,1,$3,clock_timestamp(),clock_timestamp(),$4,$5)", f.Tenant, task.ID, faceWorker, nativeQualifiedFixtureBackend(), `{"backend":"`+nativeQualifiedFixtureBackend()+`"}`); err != nil {
 			t.Fatal(err)
 		}
 		roles, media := []string{"face_landmarks"}, []string{"application/json"}
@@ -1565,7 +1622,7 @@ func TestIntegrationNativePreparationBootstrap(t *testing.T) {
 			body := []byte(`{"synthetic_catalog_fixture":true}`)
 			if role == "face_landmarks" {
 				var err error
-				body, err = canonical.Marshal(map[string]any{"image": request.Intent.Reference.Source, "faces": completed.catalog.Output, "landmarks": []any{}, "model_id": "fan2d", "model_lock_id": strings.Repeat("c", 64), "backend": "cuda", "preprocessing_id": "fan2d_crop256_v1", "mean_confidence": 0, "warnings": []string{"no_faces"}})
+				body, err = canonical.Marshal(map[string]any{"image": request.Intent.Reference.Source, "faces": completed.catalog.Output, "landmarks": []any{}, "model_id": "fan2d", "model_lock_id": strings.Repeat("c", 64), "backend": nativeQualifiedFixtureBackend(), "preprocessing_id": "fan2d_crop256_v1", "mean_confidence": 0, "warnings": []string{"no_faces"}})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -1585,7 +1642,7 @@ func TestIntegrationNativePreparationBootstrap(t *testing.T) {
 					body = append(body, []byte(header)...)
 					body = append(body, make([]byte, source.Canvas.Width*source.Canvas.Height*2)...)
 				} else {
-					labels := review.FaceLabels19{Image: source.Image, Faces: review.ArtifactRef{ID: completed.catalog.Output.ArtifactID, SHA256: completed.catalog.Output.SHA256}, Labels: review.ArtifactRef{ID: faceOutputs[0].ArtifactID, SHA256: faceOutputs[0].SHA256}, Canvas: source.Canvas, TransformChain: source.TransformChain, Classes: 19, ModelID: "bisenet_face19", ModelLockID: strings.Repeat("c", 64), Backend: "cuda", PreprocessingID: "bisenet_face19_crop512_v1", ParsedFaces: 0, MeanConfidence: 0, Warnings: []string{"no_faces"}}
+					labels := review.FaceLabels19{Image: source.Image, Faces: review.ArtifactRef{ID: completed.catalog.Output.ArtifactID, SHA256: completed.catalog.Output.SHA256}, Labels: review.ArtifactRef{ID: faceOutputs[0].ArtifactID, SHA256: faceOutputs[0].SHA256}, Canvas: source.Canvas, TransformChain: source.TransformChain, Classes: 19, ModelID: "bisenet_face19", ModelLockID: strings.Repeat("c", 64), Backend: nativeQualifiedFixtureBackend(), PreprocessingID: "bisenet_face19_crop512_v1", ParsedFaces: 0, MeanConfidence: 0, Warnings: []string{"no_faces"}}
 					body, err = canonical.Marshal(labels)
 					if err != nil {
 						t.Fatal(err)
@@ -1675,17 +1732,27 @@ func TestIntegrationNativePreparationBootstrap(t *testing.T) {
 			if err != nil || verifyNativeSkinPlanSeal(ctx, skinGraph) != nil || len(skinGraph.shell.Tasks) != 1 || len(skinGraph.shell.Edges) != 0 {
 				t.Fatal("owned native skin graph", err)
 			}
-            var skinConfig map[string]json.RawMessage
-            if json.Unmarshal(skinGraph.shell.Config,&skinConfig)!=nil||string(skinConfig["queue_class"])!=`"batch"`{t.Fatal("new skin queue missing")}
-            legacySkin:=skinTask
-            legacySkin.legacyQueueOmitted=true
-            legacyGraph,err:=reader.compileNativeSkinDraftPlan(ctx,who,graph,legacySkin,64<<20)
-            if err!=nil{t.Fatal(err)}
-            var oldSkinConfig map[string]json.RawMessage
-            if json.Unmarshal(legacyGraph.shell.Config,&oldSkinConfig)!=nil{t.Fatal("invalid legacy skin")}
-            if _,ok:=oldSkinConfig["queue_class"];ok{t.Fatal("historical skin queue changed")}
-            replay,err:=reader.compileNativeSkinDraftPlan(ctx,who,legacyGraph.parser,legacyGraph.prepared,legacyGraph.shell.Bytes)
-            if err!=nil||replay.seal!=legacyGraph.seal||string(replay.shell.Config)!=string(legacyGraph.shell.Config){t.Fatal("historical skin replay changed",err)}
+			var skinConfig map[string]json.RawMessage
+			if json.Unmarshal(skinGraph.shell.Config, &skinConfig) != nil || string(skinConfig["queue_class"]) != `"batch"` {
+				t.Fatal("new skin queue missing")
+			}
+			legacySkin := skinTask
+			legacySkin.legacyQueueOmitted = true
+			legacyGraph, err := reader.compileNativeSkinDraftPlan(ctx, who, graph, legacySkin, 64<<20)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var oldSkinConfig map[string]json.RawMessage
+			if json.Unmarshal(legacyGraph.shell.Config, &oldSkinConfig) != nil {
+				t.Fatal("invalid legacy skin")
+			}
+			if _, ok := oldSkinConfig["queue_class"]; ok {
+				t.Fatal("historical skin queue changed")
+			}
+			replay, err := reader.compileNativeSkinDraftPlan(ctx, who, legacyGraph.parser, legacyGraph.prepared, legacyGraph.shell.Bytes)
+			if err != nil || replay.seal != legacyGraph.seal || string(replay.shell.Config) != string(legacyGraph.shell.Config) {
+				t.Fatal("historical skin replay changed", err)
+			}
 
 			lockSkin := func() error {
 				return database.InTransaction(ctx, scheduler, func(tx pgx.Tx) error { return reader.lockNativeSkinDependencyInTransaction(ctx, tx, who, skinGraph) })

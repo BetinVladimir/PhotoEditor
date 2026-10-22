@@ -18,6 +18,8 @@ type CreateRequest struct {
 	SnapshotID uuid.UUID `json:"snapshot_id"`
 	Name       string    `json:"name"`
 	Policy     Policy    `json:"policy"`
+ // Optional exact preset pins are used by durable grouped Export admission.
+ ExpectedPresetSHA map[uuid.UUID]string `json:"expected_preset_sha,omitempty"`
 }
 
 // Required booleans must not silently become false when omitted from JSON.
@@ -32,6 +34,7 @@ func (r *CreateRequest) UnmarshalJSON(raw []byte) error {
 			return fmt.Errorf("missing delivery field %s", name)
 		}
 	}
+	if value,present:=values["expected_preset_sha"];present && bytes.Equal(bytes.TrimSpace(value),[]byte("null")){return fmt.Errorf("null expected preset pins")}
 	policy, ok := closedJSONObject(values["policy"])
 	if !ok {
 		return fmt.Errorf("invalid delivery policy object")
@@ -102,7 +105,11 @@ func FreezeCreateIntent(tid uuid.UUID, who auth.Identity, request CreateRequest,
 	if err != nil {
 		return invalid()
 	}
-	request.Policy.ApprovedFields = fields
+	if request.ExpectedPresetSHA != nil {
+  if len(request.ExpectedPresetSHA) != len(seen) { return invalid() }
+  for id, pin := range request.ExpectedPresetSHA { if !seen[id] || !shaPattern.MatchString(pin) { return invalid() } }
+ }
+ request.Policy.ApprovedFields = fields
 	raw, err := canonical.Marshal(request)
 	if err != nil {
 		return invalid()
@@ -128,7 +135,8 @@ func (i CreateIntent) RequestJCS() []byte       { return append([]byte(nil), i.r
 func (i CreateIntent) RequestSHA() string       { return i.requestSHA }
 func (i CreateIntent) Request() CreateRequest {
 	r := i.request
-	r.Policy.ApprovedFields = append([]string(nil), r.Policy.ApprovedFields...)
+	if r.ExpectedPresetSHA != nil { owned:=make(map[uuid.UUID]string,len(r.ExpectedPresetSHA));for id,pin:=range r.ExpectedPresetSHA{owned[id]=pin};r.ExpectedPresetSHA=owned }
+ r.Policy.ApprovedFields = append([]string(nil), r.Policy.ApprovedFields...)
 	r.Policy.RequiredPresets = append([]uuid.UUID(nil), r.Policy.RequiredPresets...)
 	r.Policy.OptionalPresets = append([]uuid.UUID{}, r.Policy.OptionalPresets...)
 	return r

@@ -53,11 +53,11 @@ func (s Service) History(ctx context.Context, who auth.Identity, tenantID,
 			return out, domain.NewError("VALIDATION_FAILED", 422)
 		}
 		lastVersion, e = strconv.ParseInt(cursor.LastPosition, 10, 64)
-		if e != nil || lastVersion < 1 {
+		if e != nil || lastVersion < 1 || strconv.FormatInt(lastVersion,10)!=cursor.LastPosition {
 			return out, domain.NewError("VALIDATION_FAILED", 422)
 		}
 		lastID, e = uuid.Parse(cursor.LastID)
-		if e != nil {
+		if e != nil || lastID==uuid.Nil {
 			return out, domain.NewError("VALIDATION_FAILED", 422)
 		}
 	}
@@ -117,7 +117,9 @@ func (s Service) History(ctx context.Context, who auth.Identity, tenantID,
 				}
 				out.NextCursor = &next
 			}
-			return nil
+			current,e:=currentDraftStream(ctx,tx,who,tenantID,assetID,role)
+			if e!=nil{return e};if current!=streamID{return domain.NewError("REVISION_CONFLICT",409)}
+			return ctx.Err()
 		})
 	var pg *pgconn.PgError
 	if errors.As(err, &pg) && pg.Code == "42P01" {

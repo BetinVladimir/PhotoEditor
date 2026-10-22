@@ -33,19 +33,25 @@ type V2DraftUploadCleaner struct {
 }
 
 func (c V2DraftUploadCleaner) CleanOne(ctx context.Context) (bool, error) {
+	if err := ctx.Err(); err != nil { return false, err }
 	if c.Repository == nil || c.Objects == nil || c.Bucket == "" {
 		return false, errors.New("invalid V2 draft upload cleanup configuration")
 	}
 	claimCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	ticket, err := c.Repository.Claim(claimCtx)
+	claimErr := claimCtx.Err()
 	cancel()
+	if err == nil { err = claimErr }
 	if err != nil {
 		return false, err
 	}
 	if ticket == nil {
 		retireCtx, done := context.WithTimeout(ctx, 5*time.Second)
 		defer done()
-		return c.Repository.Retire(retireCtx)
+		if err := retireCtx.Err(); err != nil { return false, err }
+		retired, err := c.Repository.Retire(retireCtx)
+		if err == nil { err = retireCtx.Err() }
+		return retired, err
 	}
 	if ticket.DocumentID == uuid.Nil || ticket.Token == uuid.Nil ||
 		ticket.Bucket != c.Bucket {
@@ -56,13 +62,18 @@ func (c V2DraftUploadCleaner) CleanOne(ctx context.Context) (bool, error) {
 	}
 	purgeCtx, stop := context.WithTimeout(ctx, 40*time.Second)
 	err = c.Objects.PurgeV2Draft(purgeCtx, ticket.TenantID, ticket.ArtifactID)
+	purgeErr := purgeCtx.Err()
 	stop()
 	if err != nil {
 		return false, err
 	}
+	if purgeErr != nil { return false, purgeErr }
 	finishCtx, finishDone := context.WithTimeout(ctx, 5*time.Second)
 	defer finishDone()
-	return c.Repository.Finish(finishCtx, *ticket)
+	if err := finishCtx.Err(); err != nil { return false, err }
+	accepted, err := c.Repository.Finish(finishCtx, *ticket)
+	if err == nil { err = finishCtx.Err() }
+	return accepted, err
 }
 
 type SQLV2DraftUploadCleanup struct{ DB *pgxpool.Pool }

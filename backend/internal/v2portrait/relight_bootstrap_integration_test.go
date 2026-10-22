@@ -363,6 +363,23 @@ func TestIntegrationRelightBootstrap(t *testing.T) {
 				if replayErr != nil || string(replayedReceipt) != string(receipt) {
 					t.Fatal("keyed admission replay", replayErr)
 				}
+                // Recover the qualified admitted fixture without objects or
+                // the current project provider; changed pins must not replace
+                // persisted receipt authority or publish another task.
+                for _, mode := range []string{"removed", "replaced"} {
+                    router, buildErr := NewRelightReceiptOnlyProjects(observed)
+                    if buildErr != nil { t.Fatal(buildErr) }
+                    if mode == "replaced" {
+                        replacement := *service
+                        replacement.pin.ModelLockSHA = strings.Repeat("9",64)
+                        router.services[[2]uuid.UUID{seed.Tenant,seed.Project}] = &replacement
+                    }
+                    objectCalls := objects.calls
+                    replay, replayErr := router.SubmitProjectKeyed(WithRelightReplayOnly(ctx),request.Who,seed.Tenant,seed.Project,"relight-native-draft",intent)
+                    if replayErr != nil || string(replay)!=string(receipt) || objects.calls!=objectCalls { t.Fatal("stored qualified recovery",mode,replayErr) }
+                    rejected, rejectErr := router.SubmitProjectKeyed(WithRelightReplayOnly(ctx),request.Who,seed.Tenant,seed.Project,"relight-native-draft",changedIntent)
+                    if rejectErr==nil || rejected!=nil || objects.calls!=objectCalls { t.Fatal("stored changed request recovered",mode,rejectErr) }
+                }
 				if rejected, rejectErr := service.SubmitKeyed(ctx, request.Who, "relight-native-draft", changedIntent); rejectErr == nil || rejected != nil {
 					t.Fatal("changed keyed admission accepted", rejectErr)
 				}
@@ -1203,5 +1220,40 @@ func TestIntegrationRelightBootstrap(t *testing.T) {
 		if e != nil || string(first) != string(second) {
 			t.Fatal("receipt changed on replay", e)
 		}
+		assertLegacyRelightReceiptExpiryAfterWait(t,ctx,pool,admin,coordinator,request.Who,seed.Tenant,seed.Run)
 	}
+}
+
+// Observe an actual qualified receipt reader blocked by tenant lock, then expire
+// its session after the reader transaction started. Transaction now() would
+// still accept it; the final clock_timestamp check must refuse the receipt.
+func assertLegacyRelightReceiptExpiryAfterWait(t *testing.T,parent context.Context,pool *pgxpool.Pool,admin *pgx.Conn,coordinator RelightBootstrapCoordinator,who auth.Identity,tenant,run uuid.UUID){
+ t.Helper();ctx,cancel:=context.WithTimeout(parent,10*time.Second);defer cancel()
+ var previousExpiry time.Time
+ if err:=admin.QueryRow(ctx,"SELECT expires_at FROM photo.sessions WHERE id=$1",who.SessionID).Scan(&previousExpiry);err!=nil{t.Fatal(err)}
+ defer admin.Exec(context.WithoutCancel(ctx),"UPDATE photo.sessions SET expires_at=$2 WHERE id=$1",who.SessionID,previousExpiry)
+ lock,err:=admin.Begin(ctx);if err!=nil{t.Fatal(err)};defer lock.Rollback(context.WithoutCancel(ctx))
+ if _,err=lock.Exec(ctx,"SELECT id FROM photo.tenants WHERE id=$1 FOR UPDATE",tenant);err!=nil{t.Fatal(err)}
+ connection,err:=pool.Acquire(ctx);if err!=nil{t.Fatal(err)};defer connection.Release()
+ pid:=int32(connection.Conn().PgConn().PID())
+ coordinator.DB=connection.Conn()
+ type result struct{body []byte;err error}
+ finished:=make(chan result,1)
+ go func(){body,readErr:=coordinator.ReadRelightQueuedReceipt(ctx,who,tenant,run);finished<-result{body,readErr}}()
+ poll:=time.NewTicker(10*time.Millisecond);defer poll.Stop()
+ for {
+  var blocked bool
+  if err=lock.QueryRow(ctx,"SELECT pg_backend_pid()=ANY(pg_blocking_pids($1))",pid).Scan(&blocked);err!=nil{t.Fatal(err)}
+  if blocked{break}
+  select{case early:=<-finished:t.Fatal("receipt did not wait on tenant lock",early.err);case <-ctx.Done():t.Fatal("receipt reader never reached tenant lock");case <-poll.C:}
+ }
+ if _,err=lock.Exec(ctx,"UPDATE photo.sessions SET expires_at=clock_timestamp()+interval '100 milliseconds' WHERE id=$1",who.SessionID);err!=nil{t.Fatal(err)}
+ for {
+  var expired bool
+  if err=lock.QueryRow(ctx,"SELECT expires_at<=clock_timestamp() FROM photo.sessions WHERE id=$1",who.SessionID).Scan(&expired);err!=nil{t.Fatal(err)}
+  if expired{break}
+  select{case <-ctx.Done():t.Fatal("session expiry deadline missing");case <-poll.C:}
+ }
+ if err=lock.Commit(ctx);err!=nil{t.Fatal(err)}
+ select{case value:=<-finished:if value.err==nil||value.body!=nil{t.Fatal("expired post-wait session recovered qualified receipt")};case <-ctx.Done():t.Fatal("receipt reader did not finish after lock release")}
 }

@@ -4,64 +4,20 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/canonical"
-	"photoeditor/backend/internal/domain"
+	"photoeditor/backend/internal/facequalification"
 	"photoeditor/backend/internal/review"
-	"photoeditor/backend/internal/tenant"
 	"photoeditor/backend/internal/v2input"
 	"photoeditor/backend/internal/v2qualification"
 )
 
 func (s SQLTransferSourceReader) faceQualificationObject(ctx context.Context, who auth.Identity, tenantID uuid.UUID, expected v2qualification.Expected, report v2input.Ref) (personEvidenceObject, error) {
-	empty := personEvidenceObject{}
-	if s.DB == nil || s.Objects == nil || s.Bucket == "" || (expected.Operation != "face.landmarks" && expected.Operation != "face.detect" && expected.Operation != "face.parse") || expected.Version != "1" {
-		return empty, v2qualification.ErrUnqualified
-	}
-	body, err := canonical.Marshal(expected)
+	pin, err := (facequalification.Reader{DB: s.DB, Objects: s.Objects, Bucket: s.Bucket, ProjectID: s.ProjectID}).Object(ctx, who, tenantID, expected, report)
 	if err != nil {
-		return empty, err
+		return personEvidenceObject{}, err
 	}
-	var result personEvidenceObject
-	err = tenant.WithTenant(ctx, s.DB, who, tenantID, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
-		rows, err := tx.Query(ctx, "SELECT artifact_id,sha256,bucket,object_key,object_version,bytes FROM photo.semantic_proposal_face_qualification_object($1,$2,$3,$4,$5)", tenantID, s.ProjectID, who.UserID, who.SessionID, body)
-		if err != nil {
-			return err
-		}
-		defer rows.Close()
-		found := false
-		for rows.Next() {
-			var e personEvidenceObject
-			var bucket string
-			if err := rows.Scan(&e.ref.ArtifactID, &e.ref.SHA256, &bucket, &e.object.Key, &e.object.VersionID, &e.object.Bytes); err != nil {
-				return err
-			}
-			if e.ref != report {
-				continue
-			}
-			if found || bucket != s.Bucket {
-				return v2qualification.ErrUnqualified
-			}
-			e.object.SHA256 = e.ref.SHA256
-			e.object.ContentType = "application/json"
-			e.contract = "QualificationReport"
-			e.backend = expected.Backend
-			result = e
-			found = true
-		}
-		if err := rows.Err(); err != nil {
-			return err
-		}
-		if !found {
-			return v2qualification.ErrUnqualified
-		}
-		return nil
-	})
-	if err != nil {
-		return empty, err
-	}
-	return result, nil
+	return personEvidenceObject{contract: pin.Contract, ref: pin.Ref, object: pin.Object, backend: pin.Backend}, nil
 }
 
 // ReadQualifiedDefectFaces verifies separately selected trusted reports for both
@@ -103,7 +59,7 @@ func (s SQLTransferSourceReader) ReadQualifiedDefectFaces(ctx context.Context, w
 		if err != nil {
 			return nil, err
 		}
-		if _, err := v2qualification.Verify(raw, pin.ref.SHA256, expected[i]); err != nil {
+		if _, err := v2qualification.VerifyTyped(raw, pin.ref.SHA256, expected[i]); err != nil {
 			return nil, err
 		}
 		qualificationPins[i] = pin
@@ -203,7 +159,7 @@ func (s SQLTransferSourceReader) readQualifiedDefectFaceEvidence(ctx context.Con
 		if err != nil {
 			return nil, nil, err
 		}
-		if _, err := v2qualification.Verify(raw, pin.ref.SHA256, expected[i]); err != nil {
+		if _, err := v2qualification.VerifyTyped(raw, pin.ref.SHA256, expected[i]); err != nil {
 			return nil, nil, err
 		}
 		qualificationPins[i] = pin

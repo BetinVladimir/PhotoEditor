@@ -1,4 +1,5 @@
 """Authenticated freeze HTTP boundary with a controlled service, not GPU qualification."""
+from pathlib import Path as _PhotoRepositoryPath
 from pathlib import Path
 import os
 import subprocess
@@ -7,7 +8,7 @@ from psycopg.conninfo import make_conninfo
 
 def test_render_freeze_http_authenticated_contract(database):
     root=Path(__file__).resolve().parents[2]
-    env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),GOCACHE='/private/tmp/photoeditor-go-cache')
+    env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),GOCACHE=str(_PhotoRepositoryPath(__file__).resolve().parents[2]/'work/go-cache'))
     result=subprocess.run(['go','test','./internal/httpapi','-run','^TestIntegrationRenderFreezeHTTP$','-count=1'],cwd=root/'backend',env=env,capture_output=True,text=True,timeout=90)
     assert result.returncode==0,result.stdout+result.stderr
 
@@ -31,6 +32,6 @@ def test_concrete_freeze_saved_replay_without_object_reads(database):
         conn.execute('UPDATE photo.v2_document_streams SET revision=revision+1 WHERE tenant_id=%s AND id=%s',(tid,stream))
         fixture=dict(Tenant=str(tid),Actor=str(args[3]),Session=str(args[4]),Asset=str(asset),Key=key,Request=request)
     root=Path(__file__).resolve().parents[2]
-    env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_RENDER_FREEZE_REPLAY=json.dumps(fixture),GOCACHE='/private/tmp/photoeditor-go-cache')
+    env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_RENDER_FREEZE_REPLAY=json.dumps(fixture),GOCACHE=str(_PhotoRepositoryPath(__file__).resolve().parents[2]/'work/go-cache'))
     result=subprocess.run(['go','test','./internal/v2render','-run','^TestIntegrationRenderFreezeSavedReplay$','-count=1'],cwd=root/'backend',env=env,capture_output=True,text=True,timeout=90)
     assert result.returncode==0,result.stdout+result.stderr

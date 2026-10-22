@@ -13,6 +13,7 @@ from test_delivery_preparation import fixture as prepare_fixture
 
 class PresetDouble(Contract):
     format: Literal['jpeg']
+    metadata_policy: Literal['strip']
 
 
 class ContextDouble:

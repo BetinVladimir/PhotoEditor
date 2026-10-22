@@ -35,6 +35,12 @@ def test_coordinator_reconstructs_before_tx_and_uses_dedicated_commit(tmp_path,m
                 import psycopg
                 raise psycopg.OperationalError('connection lost during commit')
         def execute(self,query,args):
+            if query=="SELECT set_config('app.tenant_id',%s,true)":
+                assert args==(str(tenant),)
+                calls.append('tenant');return Cursor((str(tenant),))
+            if query=='SELECT photo.create_v28_open_eyes_review(%s,%s,%s)':
+                assert args==(tenant,task,result)
+                calls.append('review');return Cursor((uuid4(),))
             assert 'adopt_v28_donor' in query and len(args)==8
             assert args[:5]==(tenant,task,1,2,result) and args[-1]=='{"owned":true}'
             calls.append('sql');return Cursor((mode!='commit_false',))
@@ -61,13 +67,13 @@ def test_coordinator_reconstructs_before_tx_and_uses_dedicated_commit(tmp_path,m
     elif mode=='unknown_commit':
         import psycopg
         with pytest.raises(psycopg.OperationalError):coordinator.adopt(tenant,task)
-        assert calls==['reconstruct','inventory','begin','sql','commit']
+        assert calls==['reconstruct','inventory','begin','tenant','sql','review','commit']
     elif mode=='exhausted':
         with pytest.raises(ValueError,match='RETRYABLE_CONFLICT'):coordinator.adopt(tenant,task)
-        assert calls==['reconstruct','inventory']+['begin','sql','commit']*3
+        assert calls==['reconstruct','inventory']+['begin','tenant','sql','review','commit']*3
     else:
         assert coordinator.adopt(tenant,task) is (mode!='commit_false')
-        assert calls==['reconstruct','inventory']+['begin','sql','commit']*(2 if mode=='serialization' else 1)
+        assert calls==['reconstruct','inventory']+(['begin','tenant','sql']+([] if mode=='commit_false' else ['review'])+['commit'])*(2 if mode=='serialization' else 1)
 
 
 def test_coordinator_refuses_installation_without_runtime_options(tmp_path):

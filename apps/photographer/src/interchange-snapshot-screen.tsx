@@ -1,6 +1,7 @@
+import {ActivityIndicator,Button,Text,TouchableRipple} from 'react-native-paper';
 import {executeInterchangeSnapshot,openInterchangeSnapshot} from './interchange-snapshot-controller';
 import {useEffect,useMemo,useRef,useState} from 'react';
-import {ActivityIndicator,Pressable,SafeAreaView,Text,View} from 'react-native';
+import {SafeAreaView,View} from 'react-native';
 import {APIError,canonicalJSON,type ApiClient} from '@photoeditor/api-client';
 import {OwnerAPI} from './owner-api';
 import {type InterchangeSnapshotRequest,type InterchangeSnapshotReceipt} from './interchange-export-snapshot';
@@ -49,10 +50,10 @@ function Scope({client,tenant,project,request,journal,onPrepared}:Props){
  return <SafeAreaView style={s.root}><View style={s.header}>
   <Text style={s.title}>{t('interchange_snapshot_title')}</Text>
   <Text style={s.subtitle}>{t('interchange_snapshot_count')}: {request.items.length}</Text>
-  {!record?<Pressable accessibilityRole="checkbox" accessibilityState={{checked:confirmed,disabled:locked}} disabled={locked} onPress={()=>setConfirmed(!confirmed)}><Text style={s.name}>{confirmed?'☑':'☐'} {t('interchange_snapshot_confirm')}</Text></Pressable>:null}
-  {busy?<><ActivityIndicator/><Pressable accessibilityRole="button" onPress={stop} style={s.button}><Text style={s.buttonText}>{t('interchange_snapshot_stop')}</Text></Pressable></>:null}{error?<Text accessibilityRole="alert" style={s.error}>{t('interchange_snapshot_failed')}</Text>:null}
-  {!ready&&!busy?<Pressable accessibilityRole="button" onPress={()=>void recover()} style={s.button}><Text style={s.buttonText}>{t('interchange_snapshot_restore')}</Text></Pressable>:null}
-  {record?.receipt?<Pressable accessibilityRole="button" disabled={busy||denied} onPress={()=>void open()} style={s.button}><Text style={s.buttonText}>{t('interchange_snapshot_open')}</Text></Pressable>:
-   <Pressable accessibilityRole="button" disabled={!ready||busy||denied||(!record&&!confirmed)} onPress={()=>void submit()} style={s.button}><Text style={s.buttonText}>{t(record?'interchange_snapshot_retry':'interchange_snapshot_submit')}</Text></Pressable>}
+  {!record?<TouchableRipple  accessibilityRole="checkbox" accessibilityState={{checked:confirmed,disabled:locked}} aria-checked={confirmed} disabled={locked} onPress={()=>setConfirmed(!confirmed)}><Text style={s.name}>{confirmed?'☑':'☐'} {t('interchange_snapshot_confirm')}</Text></TouchableRipple>:null}
+  {busy?<><ActivityIndicator/><Button  accessibilityRole="button" onPress={stop}  mode="contained" contentStyle={{minHeight:48}}>{t('interchange_snapshot_stop')}</Button></>:null}{error?<Text accessibilityRole="alert" style={s.error}>{t('interchange_snapshot_failed')}</Text>:null}
+  {!ready&&!busy?<Button  accessibilityRole="button" onPress={()=>void recover()}  mode="contained" contentStyle={{minHeight:48}}>{t('interchange_snapshot_restore')}</Button>:null}
+  {record?.receipt?<Button  accessibilityRole="button" disabled={busy||denied} onPress={()=>void open()}  mode="contained" contentStyle={{minHeight:48}}>{t('interchange_snapshot_open')}</Button>:
+   <Button  accessibilityRole="button" disabled={!ready||busy||denied||(!record&&!confirmed)} onPress={()=>void submit()}  mode="contained" contentStyle={{minHeight:48}}>{t(record?'interchange_snapshot_retry':'interchange_snapshot_submit')}</Button>}
  </View></SafeAreaView>;
 }

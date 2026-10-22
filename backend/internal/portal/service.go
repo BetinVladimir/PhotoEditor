@@ -18,6 +18,7 @@ import (
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/domain"
+ "photoeditor/backend/internal/downloadpolicy"
 	"photoeditor/backend/internal/idempotency"
 	"photoeditor/backend/internal/objectstore"
 	"photoeditor/backend/internal/pagination"
@@ -29,6 +30,7 @@ type RowQuerier interface {
 }
 
 type Service struct {
+ DownloadPolicy downloadpolicy.Policy
 	DB      RowQuerier
 	Pepper  []byte
 	Random  io.Reader
@@ -69,7 +71,8 @@ type Identity struct {
 }
 
 type Collection struct {
-	Name, Description string          `json:"name"`
+	Name              string          `json:"name"`
+	Description       string          `json:"description"`
 	Revision          string          `json:"revision"`
 	Cover             json.RawMessage `json:"cover,omitempty"`
 	Capabilities      json.RawMessage `json:"capabilities"`
@@ -537,7 +540,7 @@ func (s Service) Items(ctx context.Context, token string, sectionID *uuid.UUID, 
 	if err != nil {
 		return out, err
 	}
-	scope := pagination.Cursor{Tenant: identity.TenantID.String(), Principal: identity.SessionID.String(), FilterHash: filterHash, Sort: "portal-items:position,id", Revision: collection.Revision}
+	scope := pagination.Cursor{Tenant: identity.TenantID.String(), Principal: identity.SessionID.String(), FilterHash: filterHash, Sort: "portal-items:effective-v2,id", Revision: collection.Revision}
 	var afterPosition *int64
 	var afterID *uuid.UUID
 	codec := pagination.Codec{Key: auth.MAC(s.Pepper, "portal-cursor")}
@@ -741,6 +744,8 @@ func (s Service) CreateSelection(ctx context.Context, token, csrf, key string, r
 			return out, errors.New("incomplete portal snapshot row")
 		}
 		return SnapshotRef{ID: *id, Digest: *digest, ItemCount: *count, ExpiresAt: *expires}, nil
+	case "abandoned":
+        return out, domain.NewError("PREPARATION_ABANDONED",409)
 	case "conflict":
 		return out, domain.NewError("IDEMPOTENCY_CONFLICT", 409)
 	case "stale":
@@ -772,9 +777,9 @@ func (s Service) StartDownload(ctx context.Context, token, csrf, key string, req
 	var outcome string
 	var id *uuid.UUID
 	var status *string
-	err = s.DB.QueryRow(ctx, `SELECT outcome,job_id,status FROM photo.start_portal_download($1,$2,$3,$4,$5,$6,$7,$8)`,
+	err = s.DB.QueryRow(ctx, `SELECT outcome,job_id,status FROM photo.start_portal_download_policy($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
 		auth.MAC(s.Pepper, "portal-session", token), auth.MAC(s.Pepper, "portal-csrf", token, csrf), key, requestHash,
-		uuid.New(), uuid.New(), request.SelectionSnapshotID, request.PresetID).Scan(&outcome, &id, &status)
+		uuid.New(), uuid.New(), request.SelectionSnapshotID, request.PresetID,s.policy().RetentionSeconds,s.policy().LinkSeconds).Scan(&outcome, &id, &status)
 	if err != nil {
 		return out, err
 	}
@@ -784,6 +789,8 @@ func (s Service) StartDownload(ctx context.Context, token, csrf, key string, req
 			return out, errors.New("incomplete portal download row")
 		}
 		return DownloadAccepted{DownloadJobID: *id, Status: *status}, nil
+	case "abandoned":
+        return out, domain.NewError("PREPARATION_ABANDONED",409)
 	case "conflict":
 		return out, domain.NewError("IDEMPOTENCY_CONFLICT", 409)
 	case "snapshot_invalid":
@@ -864,6 +871,7 @@ func (s Service) CancelDownload(ctx context.Context, token, csrf string, id uuid
 }
 
 func (s Service) CreateDownloadIntent(ctx context.Context, token, csrf, key string, job uuid.UUID, request DownloadIntentRequest) (DownloadIntent, error) {
+	if err := ctx.Err(); err != nil { return DownloadIntent{}, err }
 	if s.DB == nil || len(s.Pepper) < 32 || job == uuid.Nil || request.Volume < 1 || request.Volume > 5000 {
 		return DownloadIntent{}, domain.NewError("VALIDATION_FAILED", 422)
 	}
@@ -889,11 +897,7 @@ func (s Service) CreateDownloadIntent(ctx context.Context, token, csrf, key stri
 	}
 	switch outcome {
 	case "created", "replayed":
-		if id == nil || expires == nil {
-			return DownloadIntent{}, errors.New("incomplete download intent")
-		}
-		bearer = base64.RawURLEncoding.EncodeToString(auth.MAC(s.Pepper, "portal-download-bearer", id.String()))
-		return DownloadIntent{Token: bearer, ExpiresAt: *expires}, nil
+		return s.finishDownloadIntent(ctx, id, expires)
 	case "conflict":
 		return DownloadIntent{}, domain.NewError("IDEMPOTENCY_CONFLICT", 409)
 	case "unauthorized":
@@ -906,6 +910,7 @@ func (s Service) CreateDownloadIntent(ctx context.Context, token, csrf, key stri
 }
 
 func (s Service) CreateItemDownloadIntent(ctx context.Context, token, csrf, key string, item uuid.UUID, request SingleDownloadRequest) (DownloadIntent, error) {
+	if err := ctx.Err(); err != nil { return DownloadIntent{}, err }
 	if s.DB == nil || len(s.Pepper) < 32 || item == uuid.Nil || request.PresetID == uuid.Nil {
 		return DownloadIntent{}, domain.NewError("VALIDATION_FAILED", 422)
 	}
@@ -924,18 +929,14 @@ func (s Service) CreateItemDownloadIntent(ctx context.Context, token, csrf, key 
 	var outcome string
 	var id *uuid.UUID
 	var expires *time.Time
-	err = s.DB.QueryRow(ctx, "SELECT outcome,intent_id,expires_at FROM photo.create_portal_item_download_intent($1,$2,$3,$4,$5,$6,$7,$8,$9)",
-		auth.MAC(s.Pepper, "portal-session", token), auth.MAC(s.Pepper, "portal-csrf", token, csrf), key, requestHash, item, request.PresetID, intentID, auth.MAC(s.Pepper, "portal-download-intent", bearer), s.now().Add(time.Minute)).Scan(&outcome, &id, &expires)
+	err = s.DB.QueryRow(ctx, "SELECT outcome,intent_id,expires_at FROM photo.create_portal_item_download_intent_policy($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
+		auth.MAC(s.Pepper, "portal-session", token), auth.MAC(s.Pepper, "portal-csrf", token, csrf), key, requestHash, item, request.PresetID, intentID, auth.MAC(s.Pepper, "portal-download-intent", bearer), s.now().Add(s.policy().LinkTTL()),s.policy().LinkSeconds).Scan(&outcome, &id, &expires)
 	if err != nil {
 		return DownloadIntent{}, err
 	}
 	switch outcome {
 	case "created", "replayed":
-		if id == nil || expires == nil {
-			return DownloadIntent{}, errors.New("incomplete item download intent")
-		}
-		bearer = base64.RawURLEncoding.EncodeToString(auth.MAC(s.Pepper, "portal-download-bearer", id.String()))
-		return DownloadIntent{Token: bearer, ExpiresAt: *expires}, nil
+		return s.finishDownloadIntent(ctx, id, expires)
 	case "conflict":
 		return DownloadIntent{}, domain.NewError("IDEMPOTENCY_CONFLICT", 409)
 	case "unauthorized":
@@ -950,11 +951,12 @@ func (s Service) CreateItemDownloadIntent(ctx context.Context, token, csrf, key 
 }
 
 func (s Service) RedeemDownloadIntent(ctx context.Context, request DownloadRedeemRequest) (DownloadLink, error) {
+	if err := ctx.Err(); err != nil { return DownloadLink{}, err }
 	if s.DB == nil || s.Objects == nil || s.Bucket == "" || len(s.Pepper) < 32 {
 		return DownloadLink{}, errors.New("portal dependencies unavailable")
 	}
-	decoded, err := base64.RawURLEncoding.DecodeString(request.Token)
-	if err != nil || len(decoded) != 32 {
+	decoded, err := base64.RawURLEncoding.Strict().DecodeString(request.Token)
+	if err != nil || len(request.Token) != 43 || len(decoded) != 32 {
 		return DownloadLink{}, domain.NewError("DOWNLOAD_INTENT_INVALID", 404)
 	}
 	var outcome string
@@ -967,25 +969,34 @@ func (s Service) RedeemDownloadIntent(ctx context.Context, request DownloadRedee
 	if outcome != "ok" || key == nil || version == nil || sha == nil || size == nil || media == nil || filename == nil {
 		return DownloadLink{}, domain.NewError("DOWNLOAD_INTENT_INVALID", 404)
 	}
+	if err := ctx.Err(); err != nil { return DownloadLink{}, err }
 	object := objectstore.Object{Key: *key, VersionID: *version, SHA256: *sha, Bytes: *size, ContentType: *media}
 	if err := s.Objects.Check(ctx, object); err != nil {
 		return DownloadLink{}, err
 	}
-	signed, err := s.Objects.SignDownload(ctx, object, *filename, time.Minute)
+	if err := ctx.Err(); err != nil { return DownloadLink{}, err }
+	var linkSeconds *int
+ if err=s.DB.QueryRow(ctx,`SELECT photo.download_intent_signing_seconds($1,$2,$3,$4,$5,$6,$7)`,auth.MAC(s.Pepper,"portal-download-intent",request.Token),s.Bucket,*key,*version,*sha,*size,*media).Scan(&linkSeconds);err!=nil{return DownloadLink{},err}
+ if linkSeconds==nil||*linkSeconds<1||*linkSeconds>downloadpolicy.MaxLinkSeconds{return DownloadLink{},domain.NewError("DOWNLOAD_INTENT_INVALID",404)}
+ signed, err := s.Objects.SignDownload(ctx, object, *filename, time.Duration(*linkSeconds)*time.Second)
 	if err != nil {
 		return DownloadLink{}, err
 	}
+	if err := ctx.Err(); err != nil { return DownloadLink{}, err }
 	now := time.Now()
-	if !validDownloadReadURL(signed.URL, object.VersionID) || !signed.ExpiresAt.After(now) || signed.ExpiresAt.After(now.Add(time.Minute+5*time.Second)) {
+	if !validDownloadReadURL(signed.URL, object.VersionID) || !signed.ExpiresAt.After(now) || signed.ExpiresAt.After(now.Add(time.Duration(*linkSeconds)*time.Second+5*time.Second)) {
 		return DownloadLink{}, domain.NewError("DOWNLOAD_INTENT_INVALID", 404)
 	}
 	var current bool
 	err = s.DB.QueryRow(ctx, `SELECT photo.v30_delivery_download_intent_current($1,$2,$3,$4,$5,$6,$7)`,
 		auth.MAC(s.Pepper, "portal-download-intent", request.Token), s.Bucket,
 		*key, *version, *sha, *size, *media).Scan(&current)
-	if err != nil || !current {
+	if err != nil { return DownloadLink{}, err }
+	if !current {
 		return DownloadLink{}, domain.NewError("DOWNLOAD_INTENT_INVALID", 404)
 	}
+	if err := ctx.Err(); err != nil { return DownloadLink{}, err }
+	if !signed.ExpiresAt.After(time.Now()) { return DownloadLink{}, domain.NewError("DOWNLOAD_INTENT_INVALID", 404) }
 	return DownloadLink{URL: signed.URL, ExpiresAt: signed.ExpiresAt, Filename: *filename, Bytes: *size, SHA256: *sha}, nil
 }
 
@@ -1157,3 +1168,15 @@ func (s Service) CompleteUpload(ctx context.Context, token, csrf, key string, id
 		return GuestAccepted{}, domain.NewError("VALIDATION_FAILED", 422)
 	}
 }
+
+func (s Service) finishDownloadIntent(ctx context.Context, id *uuid.UUID, expires *time.Time) (DownloadIntent,error) {
+ if err := ctx.Err(); err != nil { return DownloadIntent{},err }
+ now:=s.now()
+ if id==nil || *id==uuid.Nil || expires==nil || !expires.After(now) || expires.After(now.Add(time.Minute+5*time.Second)) {
+  return DownloadIntent{},domain.NewError("DOWNLOAD_INTENT_INVALID",404)
+ }
+ bearer:=base64.RawURLEncoding.EncodeToString(auth.MAC(s.Pepper,"portal-download-bearer",id.String()))
+ return DownloadIntent{Token:bearer,ExpiresAt:*expires},nil
+}
+
+func(s Service)policy()downloadpolicy.Policy{if s.DownloadPolicy==(downloadpolicy.Policy{}){return downloadpolicy.Default()};return s.DownloadPolicy}

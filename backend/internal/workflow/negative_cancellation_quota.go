@@ -14,5 +14,5 @@ func(p NegativeCancellationQuota)ProcessOne(ctx context.Context)(bool,error){
  ctx,cancel:=context.WithTimeout(ctx,10*time.Second);defer cancel()
  var changed bool
  if err:=p.DB.QueryRow(ctx,"SELECT photo.release_next_v29_negative_cancelled_quota()").Scan(&changed);err!=nil {return false,err}
- return changed,nil
+ return changed,ctx.Err()
 }

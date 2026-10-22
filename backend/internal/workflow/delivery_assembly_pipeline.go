@@ -156,12 +156,12 @@ func (s SQLDeliveryAssemblyStore) Activate(ctx context.Context, f FrozenDelivery
 }
 
 func (p DeliveryAssemblyPipeline) prepare(ctx context.Context, lease delivery.ExpansionLease, plan delivery.PreparePlan, root v2input.Ref) (FrozenDeliveryAssemblyTask, error) {
-	params, _, err := PublishDeliveryAssemblyParams(ctx, deliveryAssemblyPublicationQueries{db:p.DB,lease:lease}, p.Objects, p.Bucket, lease, plan, root)
-	if err != nil {
-		return FrozenDeliveryAssemblyTask{}, err
-	}
 	recovery := deliveryAssemblyRecoveryQueries{deliveryAssemblyObservationQueries:deliveryAssemblyObservationQueries{db:p.DB,lease:lease},root:root}
-	return PrepareCurrentDeliveryAssemblyTask(ctx, delivery.ExpansionLeaseStore{DB: recovery}, lease, plan, root, params, p.Limits)
+	return prepareDeliveryAssemblyBeforePublication(ctx, delivery.ExpansionLeaseStore{DB: recovery}, lease, plan, root, p.Limits,
+		func() (v2input.Ref, error) {
+			params, _, err := PublishDeliveryAssemblyParams(ctx, deliveryAssemblyPublicationQueries{db:p.DB,lease:lease}, p.Objects, p.Bucket, lease, plan, root)
+			return params, err
+		})
 }
 func (p DeliveryAssemblyPipeline) register(ctx context.Context, frozen FrozenDeliveryAssemblyTask, lease delivery.ExpansionLease, plan delivery.PreparePlan) (uuid.UUID, error) {
 	draft,err:=frozen.DraftTask()

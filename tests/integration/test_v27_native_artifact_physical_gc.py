@@ -4,6 +4,7 @@ This does not execute/admit native inference. Retention state/expiry is fixture
 setup; lease expiry is waited in real time. The API attach probe is serialized
 at the actual GC remove boundary, not an independent reader-process race.
 """
+from pathlib import Path as _PhotoRepositoryPath
 import json
 import os
 import subprocess
@@ -34,7 +35,7 @@ def test_native_protection_physical_gc_retention_lease_and_exact_version(databas
     cfg=client._photo_test_config;root_dir=Path(__file__).resolve().parents[2]
     fixture=dict(Tenant=tenant,Artifact=str(pixels),Target=target,Sibling=sibling,Report=retained_report)
     def clean(remove):
-        env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_TEST_NATIVE_ARTIFACT_GC=json.dumps(dict(fixture,Remove=remove)),PHOTO_TEST_MINIO_URL=cfg['Endpoint'],PHOTO_TEST_MINIO_BUCKET=bucket,PHOTO_TEST_MINIO_ACCESS=cfg['AccessKey'],PHOTO_TEST_MINIO_SECRET=cfg['SecretKey'],GOCACHE='/private/tmp/photoeditor-go-cache')
+        env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_TEST_NATIVE_ARTIFACT_GC=json.dumps(dict(fixture,Remove=remove)),PHOTO_TEST_MINIO_URL=cfg['Endpoint'],PHOTO_TEST_MINIO_BUCKET=bucket,PHOTO_TEST_MINIO_ACCESS=cfg['AccessKey'],PHOTO_TEST_MINIO_SECRET=cfg['SecretKey'],GOCACHE=str(_PhotoRepositoryPath(__file__).resolve().parents[2]/'work/go-cache'))
         result=subprocess.run(['go','test','-tags','integration','./internal/maintenance','-run','^TestIntegrationV27NativeArtifactPhysicalGC$','-count=1','-timeout=60s','-v'],cwd=root_dir/'backend',env=env,capture_output=True,text=True,timeout=90)
         assert result.returncode==0,result.stdout+result.stderr
         assert ('V27_NATIVE_ARTIFACT_PHYSICAL_GC_OK' if remove else 'V27_NATIVE_ARTIFACT_PHYSICAL_RETAINED_OK') in result.stdout

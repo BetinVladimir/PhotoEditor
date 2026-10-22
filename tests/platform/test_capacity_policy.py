@@ -47,10 +47,10 @@ def test_policy_rejects_unknown_fields_and_unsafe_intervals(tmp_path):
         WorkerConfig.from_env({**environment(tmp_path), 'PHOTO_CAPACITY_POLICY': str(path)})
 
 
-def test_metal_verification_policy_caps_at_ten_decimal_gb():
+def test_metal_verification_policy_uses_measured_capacity_without_ten_gb_ceiling():
     policy = load_capacity_policy(POLICY.with_name('capacity-metal-verification.json'))
-    assert policy.gpu_budget_bytes == 10_000_000_000
-    for measured, expected in ((20_000_000_000, 10_000_000_000), (4_000_000_000, 4_000_000_000)):
+    assert policy.gpu_budget_bytes == 2**53 - 1
+    for measured, expected in ((20_000_000_000, 20_000_000_000), (4_000_000_000, 4_000_000_000)):
         sample = Capacity(32_000_000_000, 100_000_000_000, measured)
         assert policy.cap_measurement(sample, resource_class='gpu').vram_bytes == expected
 
@@ -191,7 +191,7 @@ def test_built_lifecycle_installs_policy_renewal_before_io(monkeypatch):
     payload=json.loads(POLICY.read_text());payload['renew_seconds']=3
     policy=CapacityPolicy.model_validate(payload)
     executor=SimpleNamespace(heartbeat_seconds=10)
-    candidate=SimpleNamespace(capacity_policy=policy)
+    candidate=SimpleNamespace(capacity_policy=policy,resource_class='gpu',backend='mps')
     def install(config):
         assert executor.heartbeat_seconds==3
         raise RuntimeError('stop before hardware IO')

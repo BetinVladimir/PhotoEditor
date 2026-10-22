@@ -100,6 +100,9 @@ func CaptureConfigFromEnvironment(getenv func(string) string) (CaptureSchedulerC
 	if cfg.Backend != "cpu" && cfg.Backend != "cuda" && cfg.Backend != "mps" {
 		return cfg, false, errors.New("invalid capture backend")
 	}
+	if cfg.Backend == "mps" && getenv("PHOTO_CAPTURE_VRAM_BYTES") == "" {
+		return cfg, false, errors.New("Metal capture requires an explicit measured VRAM budget")
+	}
 	if _, err := domain.ParseDigest(cfg.ModelLockSHA); err != nil {
 		return cfg, false, errors.New("capture model lock required")
 	}
@@ -123,8 +126,8 @@ func CaptureConfigFromEnvironment(getenv func(string) string) (CaptureSchedulerC
 			*field.target = n
 		}
 	}
-	if cfg.ReservedBytes < 1 || cfg.ReservedBytes > 9007199254740991 {
-		return cfg, false, errors.New("invalid capture reservation")
+	if cfg.ReservedBytes < 1 || cfg.ReservedBytes > 9007199254740991 || cfg.VRAMLimit > 9007199254740991 {
+		return cfg, false, errors.New("invalid capture resource budget")
 	}
 	if _, err := v2input.CompileCapturePrepareProfile(cfg.Backend, 1, 1, false, cfg.RAMLimit, cfg.VRAMLimit, cfg.ScratchLimit); err != nil {
 		return cfg, false, errors.New("capture resource budget too small")
@@ -133,10 +136,10 @@ func CaptureConfigFromEnvironment(getenv func(string) string) (CaptureSchedulerC
 }
 
 func captureDefaultVRAM(backend string) int64 {
-	if backend == "mps" {
+	if backend == "cuda" {
 		return 10_000_000_000
 	}
-	return 10 << 30
+	return 0
 }
 
 type captureStartupQuery interface {

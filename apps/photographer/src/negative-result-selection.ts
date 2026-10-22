@@ -12,8 +12,12 @@ export function readRenderResultSelection(value:unknown,review:Review):RenderRes
 }
 export type RestorationResultSelection=NegativeResultSelection;
 export function readRestorationResultSelection(value:unknown,review:Review):RestorationResultSelection{
- if(review.kind!=='portrait.glare'&&review.kind!=='portrait.open_eyes'&&review.kind!=='image.reflection')throw new Error('RESTORATION_RESULT_SELECTION_INVALID');
+ if(review.kind!=='portrait.glare'&&review.kind!=='portrait.open_eyes'&&review.kind!=='image.reflection'&&review.kind!=='image.relight')throw new Error('RESTORATION_RESULT_SELECTION_INVALID');
  return readCandidateResultSelection(value,review,review.kind,'RESTORATION_RESULT_SELECTION_INVALID');
+}
+export function readLocalPortraitResultSelection(value:unknown,review:Review):NegativeResultSelection{
+ if(review.kind!=='portrait.hair'&&review.kind!=='portrait.clothing')throw new Error('LOCAL_PORTRAIT_RESULT_SELECTION_INVALID');
+ return readCandidateResultSelection(value,review,review.kind,'LOCAL_PORTRAIT_RESULT_SELECTION_INVALID');
 }
 function readCandidateResultSelection(value:unknown,review:Review,kind:string,code:string):NegativeResultSelection{
  const fail=():never=>{throw new Error(code)};

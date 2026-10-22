@@ -110,7 +110,7 @@ func (r *RecursiveImportDependencyRemapper) remapImportRecipeDependency(ctx cont
 			return v2input.Ref{}, v2input.ErrInvalid
 		}
 		types[ref.ArtifactID] = kind
-		if kind == "MaskPixels" || kind == "DenseWarpField" || kind == "WorkingPixels" || kind == "WorkingAlpha" || kind == "NpyArray" || kind == "AbsoluteLUTArray" || kind == "DefectLabelMap" {
+		if kind == "MaskPixels" || kind == "DenseWarpField" || kind == "WorkingPixels" || kind == "WorkingAlpha" || kind == "NpyArray" || kind == "AbsoluteLUTArray" || kind == "DefectLabelMap" || kind == "DefectLabelPNG" {
 			if r.Binary == nil {
 				return v2input.Ref{}, &ImportRecipeUnsupported{Reason: "binary_dependency_codec_not_installed"}
 			}

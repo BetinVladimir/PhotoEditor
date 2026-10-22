@@ -20,7 +20,7 @@ def test_proxy_cannot_switch_source_canvas_or_color_lineage():
     with pytest.raises(ValueError, match='BINDING_INVALID'):
         validate_proxy(image, wrong, binding)
     wrong = image.model_copy(update={'canvas': image.canvas.model_copy(update={'width': 32})})
-    with pytest.raises(ValueError, match='TRANSFORM_INVALID'):
+    with pytest.raises(ValueError, match='BINDING_INVALID'):
         validate_proxy(image, wrong, binding)
 
 

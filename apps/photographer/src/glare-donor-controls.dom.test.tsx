@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import {expectEnabled,clickWhenEnabled} from './test/ui-readiness';
 import {afterEach,expect,it,vi} from 'vitest';
 import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
 vi.mock('react-native',async()=>import('react-native-web'));
@@ -9,6 +10,7 @@ vi.mock('@react-native-async-storage/async-storage',()=>({default:{
  removeItem:async(key:string)=>{memory.delete(key);},
 }}));
 import {GlareDonorControls} from './glare-donor-controls';
+import {APIError} from '@photoeditor/api-client';
 import type {OwnerAPI} from './owner-api';
 import type {GlareDonorPreparation,GlareDonorIntent} from './glare-donor-intent';
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
@@ -24,9 +26,22 @@ it('uses one preparation key for submission and verifies the accepted workflow',
  const prepareGlareDonor=vi.fn(async(_project:string,_body:GlareDonorPreparation,_key:string)=>prepared),submitGlareDonor=vi.fn(async(_project:string,_body:GlareDonorIntent,_key:string)=>ticket);
  const api={prepareGlareDonor,submitGlareDonor,get:vi.fn(async()=>({run_id:ticket.run_id,workflow_id:ticket.workflow_id}))} as unknown as OwnerAPI;
  const onSubmitted=vi.fn();render(<GlareDonorControls api={api} origin="https://photo.test" user={id(30)} tenant={id(31)} project={id(32)} baseVersion={selection.base.asset_version_id} selection={selection} onSubmitted={onSubmitted}/>);
- await waitFor(()=>expect(screen.getByRole('button').getAttribute('aria-disabled')).not.toBe('true'));
- fireEvent.click(screen.getByText('Prepare and submit'));
+ await waitFor(()=>expectEnabled(screen.getByRole('button',{name:'Prepare and submit'})));
+ await clickWhenEnabled(screen.getByRole('button',{name:'Prepare and submit'}));
  await waitFor(()=>expect(onSubmitted).toHaveBeenCalledWith(ticket));
  expect(prepareGlareDonor).toHaveBeenCalledOnce();expect(submitGlareDonor).toHaveBeenCalledOnce();
  expect(prepareGlareDonor.mock.calls[0][2]).toBe(submitGlareDonor.mock.calls[0][2]);
+});
+
+it.each(['prepare','submit','workflow'])('withdraws glare authority after %s denial while preserving an existing request',async(stage)=>{
+ const ticket={run_id:id(20),workflow_id:id(21),task_id:id(22),state:'queued' as const};
+ const prepareGlareDonor=vi.fn().mockResolvedValue(prepared),submitGlareDonor=vi.fn().mockResolvedValue(ticket),get=vi.fn().mockResolvedValue({run_id:ticket.run_id,workflow_id:ticket.workflow_id});
+ const denied=new APIError(403,'FORBIDDEN');
+ if(stage==='prepare')prepareGlareDonor.mockRejectedValue(denied);else if(stage==='submit')submitGlareDonor.mockRejectedValue(denied);else get.mockRejectedValue(denied);
+ const onSubmitted=vi.fn();render(<GlareDonorControls api={{prepareGlareDonor,submitGlareDonor,get} as unknown as OwnerAPI} origin="https://glare-denial.test" user={id(30)} tenant={id(31)} project={id(32)} baseVersion={selection.base.asset_version_id} selection={selection} onSubmitted={onSubmitted}/>);
+ await waitFor(()=>expectEnabled(screen.getByRole('button',{name:'Prepare and submit'})));
+ await clickWhenEnabled(screen.getByRole('button',{name:'Prepare and submit'}));await screen.findByText(/Donor glare access is no longer available/);
+ expect(screen.getByRole('button',{name:'Prepare and submit'}).getAttribute('aria-disabled')).toBe('true');expect(onSubmitted).not.toHaveBeenCalled();
+ const saved=[...memory.values()].map(value=>JSON.parse(value)).filter(value=>value.schema_version===1&&value.project===id(32));
+ if(stage==='prepare'){expect(saved).toHaveLength(0);expect(submitGlareDonor).not.toHaveBeenCalled()}else{expect(saved).toHaveLength(1);expect(saved[0].body).toEqual(prepared);expect(saved[0].ticket).toEqual(stage==='workflow'?ticket:null)}
 });

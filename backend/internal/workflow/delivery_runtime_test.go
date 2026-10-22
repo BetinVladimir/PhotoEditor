@@ -110,6 +110,12 @@ func TestDeliveryJobCountsActivationWithoutNewChildAdmissions(t *testing.T) {
 			store := &deliveryDriverStore{calls: &calls, plan: plan, lease: &delivery.ExpansionLease{Run: parent, ParentTask: plan.TaskID(), SlotCount: 1, Cursor: 1}}
 			job := DeliveryExpansionJob{Driver: DeliveryExpansionDriver{Store: store, Children: deliveryDriverChild{calls: &calls}, Assembly: &deliveryDriverAssembly{state: state}, PageSize: 1}}
 			changed, err := job.ProcessOne(context.Background())
+			if state == "failed" {
+				if err == nil || changed {
+					t.Fatal("unknown assembly outcome admitted", changed, err)
+				}
+				return
+			}
 			if err != nil || changed != (state == "activated" || state == "finalized_failed") {
 				t.Fatal("wrong scheduler work credit", changed, err)
 			}
@@ -209,7 +215,7 @@ func TestDeliveryMetadataProgressDoesNotStarveOrdinaryWork(t *testing.T) {
 				metadata.err = errors.New("metadata failed")
 			}
 			job := DeliveryExpansionJob{Metadata: metadata,
-				Driver: DeliveryExpansionDriver{Store: &deliveryDriverStore{calls: &calls}, PageSize: 1}}
+				Driver: DeliveryExpansionDriver{Store: &deliveryDriverStore{calls: &calls}, Children: deliveryDriverChild{calls: &calls}, PageSize: 1}}
 			changed, err := job.ProcessOne(context.Background())
 			if scenario == "error" {
 				if err == nil || !reflect.DeepEqual(calls, []string{"metadata", "claim"}) {
@@ -228,7 +234,7 @@ func TestDeliveryMetadataAndOrdinaryFailuresAreBothReported(t *testing.T) {
 	calls := []string{}
 	metadataFailure := errors.New("metadata failed")
 	store := &deliveryDriverStore{calls: &calls, fail: "claim"}
-	job := DeliveryExpansionJob{Metadata: deliveryRuntimeMetadata{calls: &calls, err: metadataFailure}, Driver: DeliveryExpansionDriver{Store: store, PageSize: 1}}
+	job := DeliveryExpansionJob{Metadata: deliveryRuntimeMetadata{calls: &calls, err: metadataFailure}, Driver: DeliveryExpansionDriver{Store: store, Children:deliveryDriverChild{calls:&calls}, PageSize: 1}}
 	_, err := job.ProcessOne(context.Background())
 	if !errors.Is(err, metadataFailure) || len(calls) != 2 || calls[0] != "metadata" || calls[1] != "claim" {
 		t.Fatal("independent failure masked", calls, err)

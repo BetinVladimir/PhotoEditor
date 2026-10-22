@@ -29,13 +29,14 @@ func TestDeliverySealedProfilePreservesIntentAcrossReceipt(t *testing.T) {
 	if _, err := tx.Exec(ctx, "SET LOCAL ROLE photo_fn_owner"); err != nil {
 		t.Fatal(err)
 	}
-	expected := map[string]any{"backend": "cpu", "renderer_version": "v2.2", "contracts_sha": "pinned", "resource_estimate": map[string]any{"vram_bytes": 0, "output_bytes": 8388608}}
+	expected := map[string]any{"backend": "cpu", "renderer_version": "v2.2", "resource_estimate": map[string]any{"vram_bytes": 0, "output_bytes": 8388608}}
 	for _, scenario := range []string{"sealed", "unsealed", "backend", "resources", "extra", "caller_seal_fields"} {
 		t.Run(scenario, func(t *testing.T) {
 			actual := map[string]any{}
 			for k, v := range expected {
 				actual[k] = v
 			}
+			actual["contracts_sha"] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 			actual["v2_input_manifest"] = map[string]any{"artifact_id": "immutable", "sha256": "exact"}
 			actual["v2_entry_count"] = 5
 			actual["v2_entries_sha"] = "entries"

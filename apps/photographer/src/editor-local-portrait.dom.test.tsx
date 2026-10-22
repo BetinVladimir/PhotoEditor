@@ -1,11 +1,13 @@
 // @vitest-environment jsdom
+import {expectEnabled,clickWhenEnabled} from './test/ui-readiness';
 import {afterEach,expect,it,vi} from 'vitest';
-import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
+import {act,cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
 vi.mock('react-native',async()=>import('react-native-web'));
 const memory=vi.hoisted(()=>new Map<string,string>());
 vi.mock('@react-native-async-storage/async-storage',()=>({default:{getItem:async(key:string)=>memory.get(key)??null,setItem:async(key:string,value:string)=>{memory.set(key,value);},removeItem:async(key:string)=>{memory.delete(key);}}}));
 import {EditorLocalPortrait} from './editor-local-portrait';
 import type {OwnerAPI} from './owner-api';
+import {APIError} from '@photoeditor/api-client';
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const ref=(n:number)=>({artifact_id:id(n),sha256:'a'.repeat(64)});
 const base={asset_version_id:id(1),source:ref(2),canvas_hash:'b'.repeat(64)};
@@ -18,13 +20,75 @@ it('submits server-prepared hair choices with exact manual producer pair',async(
  const api={me:vi.fn(async()=>({id:id(30)})),v2Binding:vi.fn(async()=>base),createRenderInputSnapshot:vi.fn(async()=>({id:id(17)})),localPortraitMaskPairs:vi.fn(async()=>({items:[pair],next_cursor:null})),prepareLocalPortrait,submitLocalPortrait,get:vi.fn(async()=>({run_id:ticket.run_id,workflow_id:ticket.workflow_id}))} as unknown as OwnerAPI;
  const onSubmitted=vi.fn();render(<EditorLocalPortrait api={api} origin="https://photo.test" tenant={id(32)} project={id(33)} asset={id(34)} version={base.asset_version_id} hairAvailable clothingAvailable onSubmitted={onSubmitted}/>);
  const option=await screen.findByRole('radio',{name:'Mask pair 1'});
- await waitFor(()=>expect(option.getAttribute('aria-disabled')).not.toBe('true'));
- fireEvent.click(option);
+ await waitFor(()=>expectEnabled(option));
+ await clickWhenEnabled(option);
  fireEvent.click(screen.getByRole('button',{name:'Review local portrait request'}));
  const submit=await screen.findByRole('button',{name:'Prepare and submit'});
- await waitFor(()=>expect(submit.getAttribute('aria-disabled')).not.toBe('true'));
- fireEvent.click(submit);
+ await waitFor(()=>expectEnabled(submit));
+ await clickWhenEnabled(submit);
  await waitFor(()=>expect(onSubmitted).toHaveBeenCalledWith(ticket));
  expect(prepareLocalPortrait.mock.calls[0][1]).toMatchObject({operation:'portrait.hair',params:{mask:pair.mask,protected:pair.protected},target_pixel:pair.target_pixel,protected_pixel:pair.protected_pixel});
  expect(prepareLocalPortrait.mock.calls[0][2]).toBe(submitLocalPortrait.mock.calls[0][2]);
+});
+
+it('does not submit hair after its capability is revoked during preparation',async()=>{
+ let finish:(body:unknown)=>void=()=>{};let selected:unknown;
+ const prepareLocalPortrait=vi.fn(async(_project:string,body:unknown)=>{selected=body;return new Promise<unknown>(resolve=>{finish=resolve;});});
+ const submitLocalPortrait=vi.fn();
+ const api={me:vi.fn(async()=>({id:id(30)})),v2Binding:vi.fn(async()=>base),createRenderInputSnapshot:vi.fn(async()=>({id:id(17)})),localPortraitMaskPairs:vi.fn(async()=>({items:[pair],next_cursor:null})),prepareLocalPortrait,submitLocalPortrait} as unknown as OwnerAPI;
+ const props={api,origin:'https://photo.test',tenant:id(32),project:id(33),asset:id(34),version:base.asset_version_id,onSubmitted:vi.fn()};
+ const view=render(<EditorLocalPortrait {...props} hairAvailable clothingAvailable/>);
+ const option=await screen.findByRole('radio',{name:'Mask pair 1'});
+ await waitFor(()=>expectEnabled(option));await clickWhenEnabled(option);
+ fireEvent.click(screen.getByRole('button',{name:'Review local portrait request'}));
+ const submit=await screen.findByRole('button',{name:'Prepare and submit'});
+ await waitFor(()=>expectEnabled(submit));await clickWhenEnabled(submit);
+ await waitFor(()=>expect(prepareLocalPortrait).toHaveBeenCalledTimes(1));
+ view.rerender(<EditorLocalPortrait {...props} hairAvailable={false} clothingAvailable/>);
+ await act(async()=>{finish(selected);});
+ expect(submitLocalPortrait).not.toHaveBeenCalled();expect(props.onSubmitted).not.toHaveBeenCalled();
+ expect([...memory.keys()].some(key=>key.startsWith('photo.local-portrait-attempt.v1:'))).toBe(false);
+});
+
+it('blocks hair POST on live capability loss without rerender',async()=>{
+ let available=true;
+ let finish:(body:unknown)=>void=()=>{};let selected:unknown;
+ const prepareLocalPortrait=vi.fn(async(_project:string,body:unknown)=>{selected=body;return new Promise<unknown>(resolve=>{finish=resolve;});});
+ const submitLocalPortrait=vi.fn();
+ const api={me:vi.fn(async()=>({id:id(30)})),v2Binding:vi.fn(async()=>base),createRenderInputSnapshot:vi.fn(async()=>({id:id(17)})),localPortraitMaskPairs:vi.fn(async()=>({items:[pair],next_cursor:null})),prepareLocalPortrait,submitLocalPortrait} as unknown as OwnerAPI;
+ const props={api,origin:'https://photo.test',tenant:id(32),project:id(33),asset:id(34),version:base.asset_version_id,onSubmitted:vi.fn(),operationAvailable:()=>available};
+ render(<EditorLocalPortrait {...props} hairAvailable clothingAvailable/>);
+ const option=await screen.findByRole('radio',{name:'Mask pair 1'});
+ await waitFor(()=>expectEnabled(option));await clickWhenEnabled(option);
+ fireEvent.click(screen.getByRole('button',{name:'Review local portrait request'}));
+ const submit=await screen.findByRole('button',{name:'Prepare and submit'});
+ await waitFor(()=>expectEnabled(submit));await clickWhenEnabled(submit);
+ await waitFor(()=>expect(prepareLocalPortrait).toHaveBeenCalledTimes(1));
+ available=false;
+ await act(async()=>{finish(selected);});
+ expect(submitLocalPortrait).not.toHaveBeenCalled();expect(props.onSubmitted).not.toHaveBeenCalled();
+ expect([...memory.keys()].some(key=>key.startsWith('photo.local-portrait-attempt.v1:'))).toBe(false);
+});
+
+it.each([401,403,404,410].flatMap(code=>['prepare','submit','workflow'].map(stage=>({code,stage}))))('withdraws local portrait on $stage denial $code and retains any existing journal',async({code,stage})=>{
+ const prepareLocalPortrait=vi.fn(async(_project:string,body:unknown)=>body);
+ const ticket={run_id:id(20),workflow_id:id(21),task_id:id(22),state:'queued' as const};
+ const submitLocalPortrait=vi.fn().mockResolvedValue(ticket),get=vi.fn().mockResolvedValue({run_id:ticket.run_id,workflow_id:ticket.workflow_id});
+ if(stage==='prepare')prepareLocalPortrait.mockRejectedValueOnce(new APIError(code,'DENIED'));
+ if(stage==='submit')submitLocalPortrait.mockRejectedValueOnce(new APIError(code,'DENIED'));
+ if(stage==='workflow')get.mockRejectedValueOnce(new APIError(code,'DENIED'));
+ const onSubmitted=vi.fn();
+ const api={me:vi.fn(async()=>({id:id(30)})),v2Binding:vi.fn(async()=>base),createRenderInputSnapshot:vi.fn(async()=>({id:id(17)})),localPortraitMaskPairs:vi.fn(async()=>({items:[pair],next_cursor:null})),prepareLocalPortrait,submitLocalPortrait,get} as unknown as OwnerAPI;
+ render(<EditorLocalPortrait api={api} origin="https://photo.test" tenant={id(32)} project={id(33)} asset={id(34)} version={base.asset_version_id} hairAvailable clothingAvailable onSubmitted={onSubmitted}/>);
+ const option=await screen.findByRole('radio',{name:'Mask pair 1'});
+ await waitFor(()=>expectEnabled(option));await clickWhenEnabled(option);
+ fireEvent.click(screen.getByRole('button',{name:'Review local portrait request'}));
+ const submit=await screen.findByRole('button',{name:'Prepare and submit'});
+ await waitFor(()=>expectEnabled(submit));await clickWhenEnabled(submit);
+ await screen.findByText(/Local portrait is no longer accessible/);
+ expect(screen.getByRole('button',{name:'Prepare and submit'}).getAttribute('aria-disabled')).toBe('true');
+ expect(submitLocalPortrait).toHaveBeenCalledTimes(stage==='prepare'?0:1);expect(onSubmitted).not.toHaveBeenCalled();
+ const journals=[...memory.entries()].filter(([key])=>key.startsWith('photo.local-portrait-attempt.v1:'));
+ expect(journals.length).toBe(stage==='prepare'?0:1);
+ if(journals.length)expect(JSON.parse(journals[0][1]).ticket).toEqual(stage==='workflow'?ticket:null);
 });

@@ -8,8 +8,10 @@ import (
 )
 
 func TestImportPersonMaskDecisionRejectsIncompleteGrantAndForeignRevokePayload(t *testing.T) {
+	epoch := int64(0)
 	base := ImportPersonMaskDecisionRequest{
 		Action:             "revoke",
+		ExpectedEpoch:      &epoch,
 		EntryID:            uuid.New(),
 		TargetVersionID:    uuid.New(),
 		OverrideArtifactID: uuid.New(),
@@ -40,5 +42,23 @@ func TestImportPersonMaskDecisionRejectsIncompleteGrantAndForeignRevokePayload(t
 				t.Fatal("invalid mask decision accepted")
 			}
 		})
+	}
+}
+
+func TestImportPersonMaskDecisionRequiresWritableEpoch(t *testing.T) {
+	req := ImportPersonMaskDecisionRequest{Action: "revoke", EntryID: uuid.New(), TargetVersionID: uuid.New(), OverrideArtifactID: uuid.New(), MaskArtifactID: uuid.New()}
+	if validateImportPersonMaskDecision(context.Background(), req) == nil {
+		t.Fatal("missing epoch accepted")
+	}
+	for _, epoch := range []int64{-1, 9007199254740991, 9007199254740992} {
+		req.ExpectedEpoch = &epoch
+		if validateImportPersonMaskDecision(context.Background(), req) == nil {
+			t.Fatal("unsafe epoch accepted", epoch)
+		}
+	}
+	epoch := int64(9007199254740990)
+	req.ExpectedEpoch = &epoch
+	if err := validateImportPersonMaskDecision(context.Background(), req); err != nil {
+		t.Fatal(err)
 	}
 }

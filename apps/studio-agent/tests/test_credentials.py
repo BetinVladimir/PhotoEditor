@@ -5,6 +5,8 @@ import unittest
 import uuid
 from unittest.mock import Mock, patch
 
+from cryptography.hazmat.primitives import serialization  # Load real enum classes before sys.modules isolation.
+
 from studio_agent.credentials import DeviceKey
 
 

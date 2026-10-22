@@ -20,7 +20,7 @@ type completedNativeLandmarks struct {
 
 // Verify original immutable FAN bytes before downstream use. This preflight
 // does not replace transaction locks or authorize skin/defect admission.
-func (s SQLTransferSourceReader) readCompletedNativeLandmarks(ctx context.Context, who auth.Identity, plan nativeFaceDraftPlan, color TransferColorProfile) (completedNativeLandmarks, error) {
+func (s SQLTransferSourceReader) readCompletedNativeLandmarksUncached(ctx context.Context, who auth.Identity, plan nativeFaceDraftPlan, color TransferColorProfile) (completedNativeLandmarks, error) {
 	var zero completedNativeLandmarks
 	if err := verifyNativeFacePlanSeal(ctx, plan); err != nil {
 		return zero, err
@@ -76,17 +76,17 @@ func (s SQLTransferSourceReader) readCompletedNativeLandmarks(ctx context.Contex
 		ModelLock string `json:"model_lock_id"`
 	}
 	var expected v2qualification.Expected
-	if json.Unmarshal(raw, &claims) != nil || json.Unmarshal([]byte(plan.prepared.expected), &expected) != nil || claims.Backend != "cuda" || claims.ModelLock != expected.ModelLockSHA {
+	if json.Unmarshal(raw, &claims) != nil || json.Unmarshal([]byte(plan.prepared.expected), &expected) != nil || claims.Backend != expected.Backend || claims.ModelLock != expected.ModelLockSHA {
 		return zero, v2qualification.ErrUnqualified
 	}
-	selected, err := selectQualificationPolicies(plan.detector.policy, []string{"face.landmarks"})
+	selected, err := selectNativeQualificationPolicies(plan.detector.policy, []string{"face.landmarks"})
 	if err != nil {
 		return zero, err
 	}
 	if !sameQualificationPolicyExpected(expected, selected["face.landmarks"]) {
 		return zero, v2qualification.ErrUnqualified
 	}
-	current, err := s.nativeFaceResultCatalog(ctx, who, plan)
+	current, err := s.nativeFaceResultCatalogCurrent(ctx, who, plan)
 	if err != nil {
 		return zero, err
 	}

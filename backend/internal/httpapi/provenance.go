@@ -139,6 +139,7 @@ func serveDeliverySigningPolicies(w http.ResponseWriter, r *http.Request, who au
 }
 
 func serveSignExport(w http.ResponseWriter, r *http.Request, who auth.Identity, tid, export uuid.UUID, signer ExportSigner) {
+	if err := r.Context().Err(); err != nil { writeError(w,r,err); return }
 	key := r.Header.Get("Idempotency-Key")
 	if !idempotency.ValidKey(key) || tid == uuid.Nil || export == uuid.Nil {
 		writeError(w, r, domain.NewError("VALIDATION_FAILED", 422))
@@ -160,6 +161,7 @@ func serveSignExport(w http.ResponseWriter, r *http.Request, who auth.Identity, 
 		writeError(w, r, domain.NewError("SIGNING_UNAVAILABLE", 503))
 		return
 	}
+	if err := r.Context().Err(); err != nil { writeError(w,r,err); return }
 	ticket, err := signer.SignExport(r.Context(), who, tid, export, request.Policy, key)
 	if err != nil {
 		switch {
@@ -175,6 +177,7 @@ func serveSignExport(w http.ResponseWriter, r *http.Request, who auth.Identity, 
 		writeError(w, r, err)
 		return
 	}
+	if err := r.Context().Err(); err != nil { writeError(w,r,err); return }
 	workflow := uuid.NewSHA1(tid, []byte("provenance:"+who.UserID.String()+":"+key))
 	if ticket.WorkflowID != workflow || ticket.RunID != uuid.NewSHA1(workflow, []byte("run")) || ticket.State != "queued" {
 		writeError(w, r, domain.NewError("SIGNING_UNAVAILABLE", 503))

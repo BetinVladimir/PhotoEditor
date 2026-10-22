@@ -5,6 +5,7 @@ export type NegativeAttemptRecord={schema_version:1;project:string;key:string;bo
 export type NegativeAttemptPersistence={write:(record:NegativeAttemptRecord)=>Promise<void>};
 /** Persist before admission; ambiguous failures retain the original body/key. */
 export class NegativeAttempt {
+ private persisted=false;
  private record:NegativeAttemptRecord;
  private phase:NegativeAttemptState='ready';
  constructor(project:string,key:string,body:NegativeIntent,private readonly persistence:NegativeAttemptPersistence){
@@ -12,11 +13,13 @@ export class NegativeAttempt {
   this.record={schema_version:1,project,key,body:freezeNegativeIntent(body),ticket:null};
  }
  get state(){return this.phase;}
+ get canReplay(){return this.persisted||this.record.ticket!==null;}
  get snapshot(){return structuredClone(this.record);}
  static restore(record:NegativeAttemptRecord,persistence:NegativeAttemptPersistence){
   if(record.schema_version!==1||Object.keys(record).sort().join(',')!=='body,key,project,schema_version,ticket')throw new Error('NEGATIVE_ATTEMPT_INVALID');
   const attempt=new NegativeAttempt(record.project,record.key,record.body,persistence);
   if(record.ticket!==null){attempt.record.ticket=regionJobTicket(record.ticket);attempt.phase='accepted';}else attempt.phase='unknown';
+  attempt.persisted=true;
   return attempt;
  }
  async submit(send:(project:string,body:NegativeIntent,key:string,signal?:AbortSignal)=>Promise<RegionJobTicket>,signal?:AbortSignal){
@@ -26,11 +29,12 @@ export class NegativeAttempt {
   this.phase='sending';
   try{
    await this.persistence.write(this.snapshot);
+   this.persisted=true;
    if(signal?.aborted)throw new Error('NEGATIVE_ATTEMPT_CANCELLED');
    const ticket=regionJobTicket(await send(this.record.project,freezeNegativeIntent(this.record.body),this.record.key,signal));
    // Persist before navigation; if persistence fails, retry server acknowledgement.
-   await this.persistence.write({...this.snapshot,ticket:structuredClone(ticket)});
-   this.record.ticket=ticket;this.phase='accepted';
+   this.record.ticket=structuredClone(ticket);this.phase='accepted';
+   await this.persistence.write(this.snapshot);
    if(signal?.aborted)throw new Error('NEGATIVE_ATTEMPT_CANCELLED');
    return structuredClone(ticket);
   }catch(error){if(this.record.ticket===null)this.phase='unknown';throw error;}

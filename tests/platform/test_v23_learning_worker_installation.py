@@ -8,6 +8,14 @@ from photo_worker.runtime import service
 from test_worker_service import environment
 
 
+@pytest.fixture(autouse=True)
+def installed_startup_schema(monkeypatch):
+    from photo_worker.runtime.database import TaskDatabase
+    monkeypatch.setattr(TaskDatabase,'media_renderer_policy_ready',lambda self:True)
+    monkeypatch.setattr(TaskDatabase,'task_result_fence_ready',lambda self:True)
+    monkeypatch.setattr(TaskDatabase,'editor_internal_dispatch_installed',lambda self,operation:True)
+
+
 class Provider:
     backend='cuda';renderer_version='v2.2';model_lock_sha='a'*64;icc_lock_sha='b'*64
     @contextmanager
@@ -37,7 +45,7 @@ def test_production_learning_worker_refuses_direct_unsigned_installation(monkeyp
             LearningEvaluationInstallation(Provider(), lambda:None))
 
 
-@pytest.mark.parametrize('resource,backend',[('cpu','cpu'),('gpu','mps'),('media','cpu')])
+@pytest.mark.parametrize('resource,backend',[('cpu','cpu'),('media','cpu')])
 def test_learning_worker_rejects_wrong_class_before_tls(monkeypatch,resource,backend):
     monkeypatch.setattr(service,'client_tls',lambda *a:pytest.fail('TLS before class validation'))
     with pytest.raises(service.WorkerConfigurationError,match='Learning evaluation'):

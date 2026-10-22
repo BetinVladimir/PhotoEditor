@@ -115,7 +115,7 @@ def test_apply_v4_node_is_bound_to_current_plan_and_snapshot(db):
 
 
 def test_apply_v4_adoption_uses_quality_target_with_canonical_provenance(db):
-    definition=db.execute("SELECT pg_get_functiondef('photo.adopt_apply_results(uuid,uuid,uuid)'::regprocedure)").fetchone()[0]
+    definition=db.execute("SELECT pg_get_functiondef('photo.adopt_apply_results_before_atomic_rejection(uuid,uuid,uuid)'::regprocedure)").fetchone()[0]
     assert "b.graph_version=4" in definition
     assert "n.params->'target'" in definition
     assert "candidate.created_by_task_id=pt.id" in definition

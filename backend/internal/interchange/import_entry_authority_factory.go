@@ -3,6 +3,7 @@ package interchange
 import (
 	"bytes"
 	"context"
+ "crypto"
 	"github.com/google/uuid"
 	"photoeditor/backend/internal/artifactjson"
 	"photoeditor/backend/internal/v2input"
@@ -25,6 +26,11 @@ type SQLImportEntryRecipeAuthorityFactory struct {
 	BackgroundMedia         string
 	ImageRuntimeSHA         string
 	DustSensors             ImportDustSensorMetadataReader
+ HistoricalForeign ImportHistoricalForeignAuthority
+ HistoricalSigner crypto.Signer
+ HistoricalIssuer uuid.UUID
+ HistoricalKeyID string
+ historicalProject uuid.UUID
 }
 
 func (f SQLImportEntryRecipeAuthorityFactory) BuildImportEntryRecipeAuthority(ctx context.Context, scope ImportPreparedScope, parsedRaw []byte, archive ImportArchiveDocumentReader, masters ImportMasterReader, publisher PreparedImportArtifactPublisher, warps ImportDenseWarpRemapper) (ImportDependencyCodec, ImportPreparedRecipeQualifier, error) {
@@ -159,6 +165,12 @@ func (f SQLImportEntryRecipeAuthorityFactory) BuildImportEntryRecipeAuthority(ct
 		}
 		codecs.DefectCandidates = BoundImportDefectCandidatesQualifier{Entry: scope.Entry, Old: matched.Old, Target: matched.New, Parsed: parsed, Reader: archive, Sources: sources, Semantic: codecs.DefectCandidates}
 	}
+	if codecs.DefectProposeReport != nil {
+  var matched *ImportCorrectionBinding
+  for i := range codecs.Bindings { if codecs.Bindings[i].Entry == scope.Entry { if matched != nil { return nil, nil, v2input.ErrInvalid }; matched = &codecs.Bindings[i] } }
+  if matched == nil || matched.New != scope.Binding || codecs.DefectCandidates == nil { return nil, nil, v2input.ErrInvalid }
+  codecs.DefectProposeReport = BoundImportDefectProposeReportQualifier{Entry: scope.Entry, Old: matched.Old, Target: matched.New, Parsed: parsed, Reader: archive, Documents: BoundedPreparedImportReader{Catalog: SQLPreparedImportCatalog{Store: store, Scope: scope, BackgroundMedia: f.BackgroundMedia}, Objects: objects}, Masters: masters, Sources: sources, Candidates: codecs.DefectCandidates, Semantic: codecs.DefectProposeReport}
+ }
 	if codecs.DustSeries != nil {
 		var matched *ImportCorrectionBinding
 		for i := range codecs.Bindings {
@@ -247,7 +259,13 @@ func (f SQLImportEntryRecipeAuthorityFactory) BuildImportEntryRecipeAuthority(ct
 		}
 		codecs.OverrideContent = override
 	}
-	deps := PreparedImportResolverDependencies{Registry: f.Registry, Catalog: SQLPreparedImportCatalog{Store: store, Scope: scope, BackgroundMedia: f.BackgroundMedia}, Objects: objects, Masters: masters, Working: working, Assets: assets, Canonical: witnesses, Documents: f.Documents, MaskSemantics: maskSemantics, ModelLocks: append([]string(nil), f.ModelLocks...), Scratch: f.Native.WarpScratch, Probe: f.Native.WarpProbe, ArrayRuntimeSHA: f.Native.WarpRuntimeSHA, MaxBytes: f.Native.MaxFileBytes}
+ var historicalBinding *ImportCorrectionBinding
+ for i:=range codecs.Bindings{if codecs.Bindings[i].Entry==scope.Entry{if historicalBinding!=nil||codecs.Bindings[i].New!=scope.Binding{return nil,nil,v2input.ErrInvalid};historicalBinding=&codecs.Bindings[i]}}
+ if historicalBinding==nil{return nil,nil,v2input.ErrInvalid}
+ historical:=ImportHistoricalNativeAuthority{Catalog:SQLPreparedImportCatalog{Store:store,Scope:scope,BackgroundMedia:f.BackgroundMedia},Reader:archive,Masters:masters,Sources:sources,Old:historicalBinding.Old,Target:scope.Binding,Foreign:f.HistoricalForeign}
+ codecs.Historical=historical
+	deps := PreparedImportResolverDependencies{Historical:&historical, Registry: f.Registry, Catalog: SQLPreparedImportCatalog{Store: store, Scope: scope, BackgroundMedia: f.BackgroundMedia}, Objects: objects, Masters: masters, Working: working, Assets: assets, Canonical: witnesses, Documents: f.Documents, MaskSemantics: maskSemantics, ModelLocks: append([]string(nil), f.ModelLocks...), Scratch: f.Native.WarpScratch, Probe: f.Native.WarpProbe, ArrayRuntimeSHA: f.Native.WarpRuntimeSHA, MaxBytes: f.Native.MaxFileBytes}
+ if f.HistoricalSigner!=nil{deps.HistoricalIssuer=&HistoricalOriginIssuer{Authority:historical,Project:f.historicalProject,Issuer:f.HistoricalIssuer,KeyID:f.HistoricalKeyID,Signer:f.HistoricalSigner};deps.HistoricalPublisher=&publisher}
 	if f.StyleInstallation != nil {
 		installation := f.StyleInstallation.owned()
 		composition, err := NewNativeExportStyleValidator(f.Native.WarpScratch, f.Native.WarpProbe, installation.Models, installation.StyleRuntimeSHA, exportCompositionStagingValidator{})
@@ -333,6 +351,11 @@ func (f SQLImportEntryRecipeAuthorityFactory) BindImportWorkflowRecipeAuthority(
 		}
 		f.Codecs.UpscaleModelLocks = locks
 	}
+ if f.Codecs.ConservativeQualifications!=nil{
+  owned:=map[ImportOperationVersion]ImportConservativeQualificationInstallation{}
+  for key,value:=range f.Codecs.ConservativeQualifications{owned[key]=value.owned()}
+  f.Codecs.ConservativeQualifications=owned
+ }
 	if f.Codecs.StatsQualification != nil {
 		owned := f.Codecs.StatsQualification.owned()
 		f.Codecs.StatsQualification = &owned
@@ -346,7 +369,8 @@ func (f SQLImportEntryRecipeAuthorityFactory) BindImportWorkflowRecipeAuthority(
 		owned.Project = c.Project
 		f.Codecs.LocalPortrait = &owned
 	}
-	f.Registry = &ImportPreparedNodeRegistry{}
+	f.historicalProject=c.Project
+ f.Registry = &ImportPreparedNodeRegistry{}
 	f.Native = deps
 	f.Codecs.Bindings = append([]ImportCorrectionBinding(nil), bindings...)
 	f.Codecs.Snapshot = c.Snapshot
@@ -368,6 +392,19 @@ func (f SQLImportEntryRecipeAuthorityFactory) BuildImportEntryBinaryRemapper(ctx
 	}
 	masks := ImportMaskBinaryRemapper{Workflow: workflowID, Catalog: catalog, Objects: objects, Masters: masters, Publisher: publisher}
 	router := ImportBinaryCodecRouter{Masks: masks}
+ preparedPublisher,ok:=publisher.(PreparedImportArtifactPublisher)
+ if ok {
+ preparedStore,storeOK:=preparedPublisher.Store.(SQLPreparedImportArtifactStore);if !storeOK{return nil,v2input.ErrInvalid}
+ historicalRouter:=importEntryHistoricalBinaryRouter{entries:map[uuid.UUID]ImportHistoricalBinaryRemapper{}}
+ for _,binding:=range f.Codecs.Bindings{
+  if binding.Entry==uuid.Nil{return nil,v2input.ErrInvalid};if _,exists:=historicalRouter.entries[binding.Entry];exists{return nil,v2input.ErrInvalid}
+  scope:=preparedPublisher.Scope;scope.Entry=binding.Entry;scope.Binding=binding.New
+  authority:=ImportHistoricalNativeAuthority{Catalog:SQLPreparedImportCatalog{Store:preparedStore,Scope:scope},Reader:reader,Masters:masters,Sources:sources,Old:binding.Old,Target:binding.New,Foreign:f.HistoricalForeign}
+  historicalRouter.entries[binding.Entry]=ImportHistoricalBinaryRemapper{Authority:authority,Catalog:catalog,Objects:objects,Publisher:publisher}
+ }
+ router.Historical=historicalRouter
+ }
+
 	if f.Codecs.DefectCandidates != nil {
 		labelsPublisher, ok := publisher.(ImportDefectLabelOccurrencePublisher)
 		if !ok {
@@ -375,6 +412,18 @@ func (f SQLImportEntryRecipeAuthorityFactory) BuildImportEntryBinaryRemapper(ctx
 		}
 		router.DefectLabels = ImportDefectLabelBinaryRemapper{Workflow: workflowID, Parsed: append([]byte(nil), parsed...), Reader: reader, Qualifier: f.Codecs.DefectCandidates, Sources: sources, Bindings: append([]ImportCorrectionBinding(nil), f.Codecs.Bindings...), Catalog: catalog, Objects: objects, Masters: masters, Publisher: labelsPublisher}
 	}
+ if f.Codecs.DefectProposeReport!=nil{
+  pngPublisher,ok:=publisher.(ImportDefectPNGOccurrencePublisher)
+  if !ok||f.Codecs.DefectCandidates==nil{return nil,&ImportRecipeUnsupported{Reason:"defect_png_occurrence_authority_not_installed"}}
+  scoped:=importEntryDefectPNGRouter{entries:map[uuid.UUID]ImportDefectPNGBinaryRemapper{}}
+  for _,binding:=range f.Codecs.Bindings{
+   if binding.Entry==uuid.Nil{return nil,v2input.ErrInvalid}
+   if _,exists:=scoped.entries[binding.Entry];exists{return nil,v2input.ErrInvalid}
+   source:=ImportArchivedDefectPNGSource{Entry:binding.Entry,Parsed:append([]byte(nil),parsed...),Reader:reader,Catalog:catalog,Sources:sources,Reports:f.Codecs.DefectProposeReport,Candidates:f.Codecs.DefectCandidates,Old:binding.Old,Target:binding.New}
+   scoped.entries[binding.Entry]=ImportDefectPNGBinaryRemapper{Workflow:workflowID,Entry:binding.Entry,Old:binding.Old,Target:binding.New,Sources:sources,Catalog:catalog,Objects:objects,Source:source,Publisher:pngPublisher}
+  }
+  router.DefectPNGs=scoped
+ }
 	if f.StyleInstallation == nil {
 		return router, nil
 	}

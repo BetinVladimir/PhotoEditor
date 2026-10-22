@@ -27,7 +27,7 @@ func TestImportPortraitDetailParamsRebindsResolvedAndInlineMask(t *testing.T) {
 	target.Source.ArtifactID = uuid.New()
 	resolved := v2input.Ref{ArtifactID: uuid.New(), SHA256: rawSHA([]byte("resolved"))}
 	pixels := v2input.Ref{ArtifactID: uuid.New(), SHA256: rawSHA([]byte("pixels"))}
-	mask := map[string]any{"artifact": pixels, "canvas": image.Canvas, "transform_chain": json.RawMessage(image.TransformChain), "selector": "teeth", "confidence": 1, "protected": false}
+	mask := map[string]any{"artifact": pixels, "canvas": image.Canvas, "transform_chain": json.RawMessage(image.TransformChain), "object_id":nil,"model_lock_id":nil,"selector": "teeth", "confidence": 1, "protected": false}
 	raw, err := canonical.Marshal(map[string]any{"image": old.Source, "resolved": resolved, "regions": []any{map[string]any{"region_id": "teeth-1", "kind": "teeth", "mask": mask, "confirmed": false, "strength": 0.4}}, "protected": []any{}})
 	if err != nil {
 		t.Fatal(err)

@@ -1,6 +1,7 @@
 package queue
 
 import (
+ "photoeditor/backend/internal/database"
 	"context"
 	"errors"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -34,11 +35,14 @@ func RunPublisher(ctx context.Context, dsn, url, listen string) error {
 		return errors.New("publisher database configuration invalid")
 	}
 	cfg.ConnConfig.RuntimeParams["role"] = "photo_publisher"
+	database.GuardApplicationRole(cfg)
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		return errors.New("publisher database unavailable")
 	}
 	defer pool.Close()
+	if err = database.RequireApplicationRole(ctx, pool, "photo_publisher"); err != nil { return err }
+	if err = RequireOutboxMarkFence(ctx, pool); err != nil { return err }
 	var ready atomic.Bool
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health/live", func(w http.ResponseWriter, r *http.Request) {

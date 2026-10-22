@@ -1,6 +1,7 @@
 package main
 
 import (
+ "photoeditor/backend/internal/database"
 	"context"
 	"crypto"
 	"crypto/ed25519"
@@ -98,6 +99,7 @@ func schedulerSigningFactory(path, pin string,
 			return zero, nil, err
 		}
 		config.ConnConfig.RuntimeParams["role"] = "photo_api"
+		database.GuardApplicationRole(config)
 		api, err := pgxpool.NewWithConfig(ctx, config)
 		if err != nil {
 			return zero, nil, err
@@ -183,6 +185,7 @@ func installAPISigning(ctx context.Context, path, pin, databaseURL string, api *
 		return nil, errors.New("signing scheduler configuration invalid")
 	}
 	config.ConnConfig.RuntimeParams["role"] = "photo_scheduler"
+	database.GuardApplicationRole(config)
 	scheduler, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
 		return nil, errors.New("signing scheduler unavailable")

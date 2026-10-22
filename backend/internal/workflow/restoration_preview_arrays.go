@@ -157,7 +157,7 @@ func VerifyRestorationPreviewInputs(ctx context.Context, sources RestorationPrev
 		validateRestorationPreviewIntent(plan) != nil {
 		return zero, v2input.ErrInvalid
 	}
-	rebuilt, err := CompileRestorationPreviewPlan(plan.source, plan.srgb, baseRaw, candidateRaw)
+	rebuilt, err := CompileRestorationPreviewPlan(plan.source, plan.srgb, baseRaw, candidateRaw,plan.policy)
 	if err != nil || rebuilt.run != plan.run {
 		return zero, v2input.ErrInvalid
 	}

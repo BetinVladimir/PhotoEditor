@@ -120,3 +120,15 @@ func TestIntegrationOutboxUnknownOutcome(t *testing.T) {
 		t.Fatal("event ID changed on retry", err)
 	}
 }
+
+func TestIntegrationDownloadTerminalEnvelopeRoutesWithMandatoryConfirm(t *testing.T) {
+ conn,_:=broker(t)
+ publisher,err:=NewPublisher(conn);if err!=nil{t.Fatal(err)};defer publisher.Close()
+ event,tenant,run,job:=uuid.New(),uuid.New(),uuid.New(),uuid.New()
+ payload,err:=json.Marshal(map[string]any{"schema_version":1,"event_id":event,"type":"download_status","tenant_id":tenant,"run_id":run,"download_job_id":job,"status":"failed"})
+ if err!=nil{t.Fatal(err)}
+ ctx,cancel:=context.WithTimeout(context.Background(),10*time.Second);defer cancel()
+ // Uses only production Declare bindings; no test-only binding can make an
+ // otherwise unroutable event appear accepted by the mandatory publisher.
+ if err=publisher.Publish(ctx,Envelope{EventID:event,Destination:Events,RoutingKey:"download_status",Payload:payload});err!=nil{t.Fatal(err)}
+}

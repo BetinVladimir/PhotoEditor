@@ -1,6 +1,8 @@
 package contactsheet
 
 import (
+	"context"
+	"photoeditor/backend/internal/auth"
 	"errors"
 	"github.com/google/uuid"
 	"photoeditor/backend/internal/artifactjson"
@@ -56,4 +58,10 @@ func TestResourceErrorsHaveStableAPIClassification(t *testing.T) {
 			t.Fatalf("%v: got %s/%d", tc.err, got.Code, got.HTTPStatus)
 		}
 	}
+}
+
+func TestCancelledContactSheetDoesNotTouchDependencies(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background()); cancel()
+	out, err := (Service{}).Create(ctx, auth.Identity{}, uuid.New(), "key", CreateRequest{})
+	if !errors.Is(err, context.Canceled) || out.Body != nil { t.Fatalf("cancelled receipt: %+v %v", out, err) }
 }

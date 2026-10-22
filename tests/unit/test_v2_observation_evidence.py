@@ -37,9 +37,9 @@ def test_resolve_face_evidence_checks_binding_digest_and_uniqueness():
     with pytest.raises(ValueError, match="not found"):
         verify(payload, observation_id=uuid4())
     payload["faces"].append(dict(payload["faces"][0], observation_id=str(uuid4())))
-    with pytest.raises(ValueError, match="duplicate"):
+    with pytest.raises(ValueError, match="INVALID_FACE_OBSERVATIONS_SCOPE"):
         verify(payload)
     payload["faces"].pop()
     payload["faces"][0]["person_id"] = str(uuid4())
-    with pytest.raises(ValueError, match="cannot assert"):
+    with pytest.raises(ValueError, match="INVALID_FACE_OBSERVATION_IDENTITY"):
         verify(payload)

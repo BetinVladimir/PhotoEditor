@@ -9,7 +9,7 @@ from photo_worker.operations.scene.parse import _required_scene_ram, _valid_scen
 
 def test_scene_large_frame_exceeds_small_ram_profile():
     assert _required_scene_ram(10_000, 10_000) > 10 * 1024**3
-    assert _required_scene_ram(1024, 1024) < 1024**3
+    assert _required_scene_ram(1024, 1024) == 3*1024**3 + 512*1024**2 + 1024*1024*128
 
 
 def test_scene_working_color_is_required():

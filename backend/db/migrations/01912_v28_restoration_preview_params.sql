@@ -66,7 +66,7 @@ BEGIN
  IF params->>'profile_hash' IS DISTINCT FROM profile_sha THEN RETURN NULL;END IF;
  IF jsonb_typeof(image->'pixels')<>'object' OR
   NOT image->'pixels' ?& ARRAY['artifact_id','sha256'] OR
-  (image->'pixels'-'artifact_id'-'sha256')<>'{}'::jsonb THEN RETURN NULL;END IF;
+  ((image->'pixels')-'artifact_id'-'sha256')<>'{}'::jsonb THEN RETURN NULL;END IF;
  pixel_id:=(image->'pixels'->>'artifact_id')::uuid;
  pixel_sha:=image->'pixels'->>'sha256';
  role:=CASE p_side WHEN 'before' THEN 'source_pixels' ELSE 'output_pixels' END;
@@ -74,7 +74,7 @@ BEGIN
   s.result_id,s.root_id,s.root_sha,role,pixel_id,pixel_sha,p_bucket) IS NULL THEN RETURN NULL;END IF;
  IF image->'alpha' IS NOT NULL AND image->'alpha'<>'null'::jsonb THEN
   IF jsonb_typeof(image->'alpha')<>'object' OR NOT image->'alpha' ?& ARRAY['artifact_id','sha256']
-   OR (image->'alpha'-'artifact_id'-'sha256')<>'{}'::jsonb THEN RETURN NULL;END IF;
+   OR ((image->'alpha')-'artifact_id'-'sha256')<>'{}'::jsonb THEN RETURN NULL;END IF;
   IF NOT EXISTS(SELECT 1 FROM photo.artifacts a WHERE a.tenant_id=p_tenant
    AND a.id=(image->'alpha'->>'artifact_id')::uuid AND a.sha256=image->'alpha'->>'sha256'
    AND a.state='ready' AND a.verified_at IS NOT NULL AND a.object_version NOT IN('','null')

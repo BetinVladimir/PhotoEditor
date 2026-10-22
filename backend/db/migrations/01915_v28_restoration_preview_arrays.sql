@@ -18,7 +18,7 @@ BEGIN
  IF NOT FOUND OR s.review_id IS DISTINCT FROM p_review OR s.result_id IS DISTINCT FROM p_result
  OR s.root_id IS DISTINCT FROM p_root OR s.root_sha IS DISTINCT FROM p_root_sha THEN RETURN NULL;END IF;
  IF encode(sha256(convert_to(p_image,'UTF8')),'hex') IS DISTINCT FROM
-  CASE p_side WHEN 'before' THEN s.source_sha ELSE s.candidate_sha END THEN RETURN NULL;END IF;
+  (CASE p_side WHEN 'before' THEN s.source_sha ELSE s.candidate_sha END) THEN RETURN NULL;END IF;
  image:=p_image::jsonb;
  expected:=image->p_channel;
  IF jsonb_typeof(expected)<>'object' OR NOT expected ?& ARRAY['artifact_id','sha256']

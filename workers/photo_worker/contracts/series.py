@@ -47,9 +47,25 @@ class SeriesStats(Contract):
         return self
 
 
+class PackedSeriesStats(Contract):
+    source:ArtifactRef
+    value:SeriesStats
+
+class SeriesStatsPack(Contract):
+    stats:Annotated[list[PackedSeriesStats],Field(min_length=1,max_length=80)]
+
+    @model_validator(mode='after')
+    def unique(self):
+        if len({s.value.item_id for s in self.stats})!=len(self.stats) or len({(s.source.artifact_id,s.source.sha256) for s in self.stats})!=len(self.stats):raise ValueError('Duplicate series stats pack')
+        return self
+
+class SeriesPackParams(Contract):
+    stats:Annotated[list[ArtifactRef],Field(min_length=1,max_length=80)]
+
 class SeriesParams(Contract):
     scene_id:Annotated[str,Field(min_length=1,max_length=120)]
-    stats:Annotated[list[ArtifactRef],Field(min_length=2,max_length=2000)]
+    stats:Annotated[list[ArtifactRef],Field(max_length=5000)]=Field(default_factory=list,exclude_if=lambda value:not value)
+    stats_batches:Annotated[list[ArtifactRef],Field(max_length=64)]=Field(default_factory=list,exclude_if=lambda value:not value)
     reference_item_id:UUID|None=None
     ev_limit:Literal[.35]=.35
     gain_min:Literal[.95]=.95
@@ -57,6 +73,11 @@ class SeriesParams(Contract):
     min_confidence:Literal[.75]=.75
     algorithm:Literal['seriesmatch_v1']='seriesmatch_v1'
 
+
+    @model_validator(mode='after')
+    def source(self):
+        if bool(self.stats)==bool(self.stats_batches) or self.stats and len(self.stats)<2:raise ValueError('Choose stats or immutable stats packs')
+        return self
 
 class ItemCorrection(Contract):
     item_id:UUID
@@ -78,6 +99,6 @@ class SeriesCorrections(Contract):
     scene_id:str
     reference_item_id:UUID
     common_region_ids:Annotated[list[str],Field(max_length=32)]
-    items:Annotated[list[ItemCorrection],Field(min_length=2,max_length=2000)]
+    items:Annotated[list[ItemCorrection],Field(min_length=2,max_length=5000)]
     algorithm:Literal['seriesmatch_v1']='seriesmatch_v1'
     warnings:Annotated[list[Literal['no_common_regions','items_skipped']],Field(max_length=2)]

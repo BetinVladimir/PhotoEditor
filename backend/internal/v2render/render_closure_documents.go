@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"github.com/google/uuid"
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/canonical"
@@ -19,6 +20,16 @@ type renderWitnessResolver interface {
 
 type renderEvidenceResolver interface {
 	ResolveTaskInputEvidence(context.Context, auth.Identity, uuid.UUID, []v2input.Entry, v2input.SessionVersionBinding) (v2draft.TaskInputEvidence, error)
+}
+
+// A sealed base carries an original execution DAG even though the final layer
+// stack is empty. It therefore requires the same physical document/occurrence
+// evidence as a composed stack; an empty inventory is never sufficient.
+func hasEditorExecutedReceipt(raw []byte) bool {
+	var frozen struct { Recipe map[string]json.RawMessage `json:"recipe"` }
+	if json.Unmarshal(raw, &frozen) != nil { return false }
+	value, present := frozen.Recipe["executed_base_receipt"]
+	return present && string(value) != "null"
 }
 
 func resolveRenderClosureDocuments(ctx context.Context, request RenderDraftRequest, resolver CompositionInputResolver) ([]v2input.Entry, []v2draft.DocumentWitness, error) {
@@ -36,7 +47,7 @@ func resolveRenderClosureEvidence(ctx context.Context, request RenderDraftReques
 	if request.Tenant == uuid.Nil || request.Actor.UserID == uuid.Nil || request.Actor.SessionID == uuid.Nil || resolver == nil {
 		return invalid(v2input.ErrInvalid)
 	}
-	if len(request.LayerDocuments) == 0 {
+	if len(request.LayerDocuments) == 0 && !hasEditorExecutedReceipt(request.RecipeRaw) {
 		entries, err := ResolveRenderInputs(ctx, request.Actor, request.Tenant, request.Binding, request.RecipeRef, request.RecipeRaw, request.SourceRaw, resolver)
 		if err != nil {
 			return invalid(err)
@@ -79,7 +90,7 @@ func resolveRenderClosureEvidence(ctx context.Context, request RenderDraftReques
 // Artifact refs can be binary and still require scoped catalog classification.
 func validateRenderClosureCoverage(request RenderDraftRequest) error {
 	if len(request.ClosureDocuments) == 0 {
-		if len(request.LayerDocuments) > 0 {
+		if len(request.LayerDocuments) > 0 || hasEditorExecutedReceipt(request.RecipeRaw) {
 			return v2input.ErrInvalid
 		}
 		return nil
@@ -115,7 +126,7 @@ func validateRenderClosureCoverage(request RenderDraftRequest) error {
 	}
 	for _, document := range request.ClosureDocuments {
 		switch document.Contract {
-		case "LayerStack", "Params", "FrozenRenderRecipe", "WorkingImage", "MaskRef", "ImageResult", "ImageReport", "IdentityReport", "FaceObservations", "DescriptorShard", "CandidateProfile", "CorrectionPlan":
+		case "EditorExecutedBaseReceipt", "LayerStack", "Params", "FrozenRenderRecipe", "WorkingImage", "MaskRef", "ImageResult", "ImageReport", "IdentityReport", "FaceObservations", "DescriptorShard", "CandidateProfile", "CorrectionPlan":
 			if err := addChildren([]byte(document.JCS), document.Contract, document.Ref); err != nil {
 				return err
 			}
@@ -156,7 +167,7 @@ func validateRenderClosureCoverage(request RenderDraftRequest) error {
 			children, err := v2draft.DocumentChildren([]byte(parent.JCS), parent.Contract, parent.Ref)
 			if err != nil {
 				switch parent.Contract {
-				case "LayerStack", "Params", "FrozenRenderRecipe", "WorkingImage", "MaskRef", "ImageResult", "ImageReport", "IdentityReport", "FaceObservations", "DescriptorShard", "CandidateProfile", "CorrectionPlan":
+				case "EditorExecutedBaseReceipt", "LayerStack", "Params", "FrozenRenderRecipe", "WorkingImage", "MaskRef", "ImageResult", "ImageReport", "IdentityReport", "FaceObservations", "DescriptorShard", "CandidateProfile", "CorrectionPlan":
 					return err
 				}
 				children, err = v2draft.OpaqueDocumentChildren([]byte(parent.JCS), parent.Contract, parent.Ref)

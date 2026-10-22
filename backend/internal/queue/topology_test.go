@@ -38,3 +38,26 @@ func TestEveryOperationHasOneQueue(t *testing.T) {
 		}
 	}
 }
+
+
+func TestDownloadTerminalEventHasOneDurableEventSink(t *testing.T) {
+ count:=0
+ for _,binding:=range Bindings {
+  if binding.Exchange==Events && matches(binding.Key,"download_status") {
+   count++
+   if binding.Queue!="q.orchestrator.events" || binding.Class!="events" {t.Fatal("unexpected download event sink")}
+  }
+ }
+ if count!=1 {t.Fatal("unroutable or duplicate download terminal event",count)}
+}
+
+func TestReviewCreatedHasOneDurableEventSink(t *testing.T) {
+ count:=0
+ for _,binding:=range Bindings {
+  if binding.Exchange==Events && matches(binding.Key,"review.created") {
+   count++
+   if binding.Queue!="q.orchestrator.events" || binding.Class!="events" {t.Fatal("unexpected review event sink")}
+  }
+ }
+ if count!=1 {t.Fatal("unroutable or duplicate review event",count)}
+}

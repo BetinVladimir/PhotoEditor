@@ -132,9 +132,6 @@ func normalizeShare(label string, permissions SharePermissions, limits ShareLimi
 			return "", limits, "", nil, domain.NewError("VALIDATION_FAILED", 422)
 		}
 	}
-	if permissions.Download && !permissions.View {
-		return "", limits, "", nil, domain.NewError("VALIDATION_FAILED", 422)
-	}
 	return label, limits, moderation, presets, nil
 }
 func (s Service) shareSecret(id uuid.UUID) string {
@@ -146,7 +143,9 @@ func prepareShare(req ShareCreate, now time.Time) (preparedShare, error) {
 		value := now.Add(30 * 24 * time.Hour)
 		expires = &value
 	}
-	label, limits, moderation, presets, err := normalizeShare(req.Label, req.Permissions, req.Limits, req.Moderation, append([]uuid.UUID(nil), req.AllowedPresets...), expires, now)
+	limitsInput := req.Limits
+ limitsInput.AllowedFormats = append([]string(nil),req.Limits.AllowedFormats...)
+ label, limits, moderation, presets, err := normalizeShare(req.Label, req.Permissions, limitsInput, req.Moderation, append([]uuid.UUID(nil), req.AllowedPresets...), expires, now)
 	return preparedShare{Label: label, ExpiresAt: expires, Permissions: req.Permissions, Limits: limits, Moderation: moderation, Presets: presets}, err
 }
 
@@ -188,35 +187,29 @@ func verifyPresets(ctx context.Context, tx pgx.Tx, tid uuid.UUID, ids []uuid.UUI
 func (s Service) CreateShare(ctx context.Context, who auth.Identity, tid, collectionID uuid.UUID, key string, req ShareCreate) (ShareCreated, error) {
 	var result ShareCreated
 	now := time.Now().UTC()
-	prepared, err := prepareShare(req, now)
+	intent, err := freezeShareIntent(collectionID, req)
 	if err != nil {
 		return result, err
-	}
-	if len(s.Pepper) < 32 {
-		return result, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
 	}
 	err = tenant.WithTenant(ctx, s.DB, who, tid, domain.Editor, func(tx pgx.Tx, role domain.Role) error {
 		if err := currentEditorProject(ctx, tx, who, tid, collectionID, role); err != nil {
 			return err
 		}
 		var response idempotency.Response
-		request := struct {
-			Collection  uuid.UUID        `json:"collection_id"`
-			Label       string           `json:"label"`
-			Expires     *time.Time       `json:"expires_at"`
-			Permissions SharePermissions `json:"permissions"`
-			Limits      ShareLimits      `json:"limits"`
-			Moderation  string           `json:"moderation"`
-			Presets     []uuid.UUID      `json:"allowed_presets"`
-		}{collectionID, prepared.Label, prepared.ExpiresAt, prepared.Permissions, prepared.Limits, prepared.Moderation, prepared.Presets}
+		if !idempotency.ValidKey(key) { return domain.NewError("IDEMPOTENCY_KEY_REQUIRED",400) }
+        request, err := shareRequestForReceipt(ctx,tx,who,tid,key,intent)
+        if err != nil { return err }
 		response, err = idempotency.Use(ctx, tx, idempotency.Scope{Tenant: tid, Principal: who.UserID, PrincipalType: "user", Route: "Share.Create", Key: key}, request, now.Add(24*time.Hour), func() (idempotency.Response, error) {
 			collection, err := authorize(ctx, tx, who, tid, collectionID, role, domain.Editor, true)
 			if err != nil {
 				return idempotency.Response{}, err
 			}
-			if collection.State == "archived" {
+			if !writableCollectionState(collection.State) {
 				return idempotency.Response{}, domain.NewError("REVISION_CONFLICT", 409)
 			}
+            if len(s.Pepper) < 32 { return idempotency.Response{}, domain.NewError("DEPENDENCY_UNAVAILABLE",503) }
+            prepared, err := prepareShare(intent.request(), time.Now().UTC())
+            if err != nil { return idempotency.Response{}, err }
 			share, err := s.insertShare(ctx, tx, tid, collectionID, who.UserID, prepared)
 			if err != nil {
 				return idempotency.Response{}, err
@@ -233,14 +226,19 @@ func (s Service) CreateShare(ctx context.Context, who auth.Identity, tid, collec
 		if err != nil {
 			return err
 		}
-		if err = json.Unmarshal(response.Body, &result); err != nil {
-			return err
-		}
+		if isCreationAbandoned(response,"Share.Create",key,collectionID) { return domain.NewError("SHARE_CREATION_ABANDONED",409) }
+		if response.Status != 201 || response.ResourceID == nil || strictShareJSON(response.Body, &result) != nil || result.ID != *response.ResourceID {
+            return domain.NewError("IDEMPOTENCY_CONFLICT",409)
+        }
+        if err = validateFrozenShareReceipt(result,collectionID,intent); err != nil { return err }
+        if err = bindCollectionReceipt(ctx,tx,who,tid,collectionID,"Share.Create",key,response,`SELECT EXISTS(SELECT 1 FROM photo.share_links WHERE tenant_id=$1 AND id=$2 AND collection_id=$3)`); err != nil { return err }
 		result.Replayed = response.Replayed
 		if !response.Replayed && response.ResourceID != nil {
 			result.Secret = s.shareSecret(*response.ResourceID)
 		}
-		return nil
+		currentRole, err := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Editor)
+		if err != nil { return err }
+		return currentEditorProject(ctx, tx, who, tid, collectionID, currentRole)
 	})
 	return result, err
 }
@@ -313,7 +311,7 @@ func (s Service) UpdateShare(ctx context.Context, who auth.Identity, tid, collec
 		if err != nil {
 			return err
 		}
-		if collection.State == "archived" {
+		if !writableCollectionState(collection.State) {
 			return domain.NewError("REVISION_CONFLICT", 409)
 		}
 		current, err := scanShare(tx.QueryRow(ctx, `SELECT `+shareFields+` FROM photo.share_links l WHERE l.tenant_id=$1 AND l.collection_id=$2 AND l.id=$3 FOR UPDATE`, tid, collectionID, shareID))
@@ -371,6 +369,9 @@ func (s Service) UpdateShare(ctx context.Context, who auth.Identity, tid, collec
 		if _, err = tx.Exec(ctx, `UPDATE photo.download_jobs SET cancel_requested=true WHERE tenant_id=$1 AND share_id=$2 AND status NOT IN ('ready','failed','cancelled','expired')`, tid, shareID); err != nil {
 			return err
 		}
+        currentRole, authorityErr := tenant.AuthorizeInTransaction(ctx,tx,who,tid,domain.Editor)
+        if authorityErr != nil { return authorityErr }
+        if authorityErr = currentEditorProject(ctx,tx,who,tid,collectionID,currentRole); authorityErr != nil { return authorityErr }
 		return audit(ctx, tx, who, tid, collectionID, "share.update")
 	})
 	return out, err
@@ -396,6 +397,9 @@ func (s Service) RevokeShare(ctx context.Context, who auth.Identity, tid, collec
 		if _, err = tx.Exec(ctx, `UPDATE photo.download_jobs SET cancel_requested=true WHERE tenant_id=$1 AND share_id=$2 AND status NOT IN ('ready','failed','cancelled','expired')`, tid, shareID); err != nil {
 			return err
 		}
+        currentRole, authorityErr := tenant.AuthorizeInTransaction(ctx,tx,who,tid,domain.Editor)
+        if authorityErr != nil { return authorityErr }
+        if authorityErr = currentEditorProject(ctx,tx,who,tid,collectionID,currentRole); authorityErr != nil { return authorityErr }
 		return audit(ctx, tx, who, tid, collectionID, "share.revoke")
 	})
 	return out, err

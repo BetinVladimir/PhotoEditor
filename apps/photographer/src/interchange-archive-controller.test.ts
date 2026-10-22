@@ -54,7 +54,7 @@ it.each(['aborted','aborting','verified','foreign'])('resets only freshly confir
  const journal=new InterchangeArchiveAttemptStore(storage,'https://reset.test/'+mode,id(9),tenant,project,request,lock);
  const receipt:ArchiveUploadReceipt={upload_id:id(3),state:'uploading',part_bytes:16777216,parts_total:1,request_sha256:archiveRequestSHA(project,request)};
  await journal.write({version:1,key:'original',body:request,checkpoint:{receipt,parts:[],stage:'aborting'}});
- const status=vi.fn(async()=>({upload_id:mode==='foreign'?id(4):id(3),state:mode==='foreign'?'aborted':mode,request_sha256:receipt.request_sha256,expires_at:new Date(Date.now()+3600000).toISOString(),ready:false}));
+ const status=vi.fn(async()=>({upload_id:mode==='foreign'?id(4):id(3),state:mode==='foreign'?'aborted':mode,request_sha256:receipt.request_sha256,expires_at:new Date(Date.now()+3600000).toISOString(),ready:false,...(mode==='aborted'||mode==='aborting'?{error_code:'UPLOAD_ABORTED'}:{})}));
  const action=resetAbortedArchiveUpload({api:{interchangeArchiveStatus:status},journal,tenant,project,request,signal:new AbortController().signal,lock});
  if(mode==='aborted'){await action;expect(await journal.read()).toBeNull();}else{await expect(action).rejects.toThrow();expect((await journal.read())?.key).toBe('original');}
  expect(status).toHaveBeenCalledOnce();
@@ -67,7 +67,7 @@ it.each(['aborting','aborted','completing','verified','failed','expired','upload
  const receipt:ArchiveUploadReceipt={upload_id:id(3),state:'uploading',part_bytes:16777216,parts_total:1,request_sha256:archiveRequestSHA(project,request)};
  await journal.write({version:1,key:'saved',body:request,checkpoint:{receipt,parts:[],stage:'uploading'}});
  const events:string[]=[],source={name:request.filename,size:22,sha256:request.sha256,lastModified:0,read:vi.fn(async()=>new Uint8Array(22))};
- const api={beginInterchangeArchive:vi.fn(async()=>receipt),interchangeArchiveStatus:vi.fn(async()=>{events.push('status');return {upload_id:id(3),state:mode==='expired'?'uploading':mode,request_sha256:receipt.request_sha256,expires_at:new Date(Date.now()+(mode==='expired'?-1000:3600000)).toISOString(),ready:false};}),interchangeArchiveParts:vi.fn(async()=>{events.push('parts');return [{part_no:1,url:'https://storage.example/signed',expires_at:new Date(Date.now()+300000).toISOString()}];}),completeInterchangeArchive:vi.fn(async()=>({upload_id:id(3),accepted:true}))};
+ const api={beginInterchangeArchive:vi.fn(async()=>receipt),interchangeArchiveStatus:vi.fn(async()=>{events.push('status');return {upload_id:id(3),state:mode==='expired'?'uploading':mode,request_sha256:receipt.request_sha256,expires_at:new Date(Date.now()+(mode==='expired'?-1000:3600000)).toISOString(),ready:false,...(mode==='aborted'||mode==='aborting'?{error_code:'UPLOAD_ABORTED'}:{})};}),interchangeArchiveParts:vi.fn(async()=>{events.push('parts');return [{part_no:1,url:'https://storage.example/signed',expires_at:new Date(Date.now()+300000).toISOString()}];}),completeInterchangeArchive:vi.fn(async()=>({upload_id:id(3),accepted:true}))};
  const put=vi.fn(async()=> 'etag'),newKey=vi.fn(()=> 'new');
  await runArchiveUpload({api,journal,tenant,project,request,source,signal:new AbortController().signal,put,newKey,lock});
  expect(api.beginInterchangeArchive).not.toHaveBeenCalled();expect(newKey).not.toHaveBeenCalled();expect(events[0]).toBe('status');

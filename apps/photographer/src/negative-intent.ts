@@ -14,3 +14,9 @@ export function freezeNegativeIntent(v:NegativeIntent):NegativeIntent {
  if(!fields(p,['schema_version','base','strength','film_base_rgb','calibration','exposure_ev'])||p.schema_version!==1||!fields(p.base,['asset_version_id','source','canvas_hash'])||!uuid(p.base.asset_version_id)||!ref(p.base.source)||!sha(p.base.canvas_hash)||!range(p.strength,0,1)||!range(p.exposure_ev,-3,3)||!ref(p.calibration)||!Array.isArray(p.film_base_rgb)||p.film_base_rgb.length!==3||!p.film_base_rgb.every(n=>range(n,0.000001,1)))return invalid();
  return structuredClone(v);
 }
+
+export function verifyNegativeRecoverySource(v:NegativeIntent,live:V2VersionBinding):NegativeIntent{
+ const frozen=freezeNegativeIntent(v),base=frozen.params.base;
+ if(!fields(live,['asset_version_id','source','canvas_hash'])||!uuid(live.asset_version_id)||!ref(live.source)||!sha(live.canvas_hash)||base.asset_version_id!==live.asset_version_id||base.source.artifact_id!==live.source.artifact_id||base.source.sha256!==live.source.sha256||base.canvas_hash!==live.canvas_hash)throw new Error('NEGATIVE_RECOVERY_SOURCE_CHANGED');
+ return frozen;
+}

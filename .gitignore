@@ -235,3 +235,8 @@ node_modules/
 dist/
 backend/bin/
 .go-build-cache/
+
+# Authored portal sources belong to the application, not Python packaging output.
+!apps/portal/src/lib/
+!apps/portal/src/lib/**
+**/audit/**

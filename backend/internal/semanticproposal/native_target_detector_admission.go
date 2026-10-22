@@ -34,7 +34,7 @@ func (s SQLTransferSourceReader) marshalNativeTargetDetectorAdmissionEvidence(ct
 		return nil, v2input.ErrConflict
 	}
 	p := rebuilt.detector
-	selected, err := selectQualificationPolicies(p.policy, []string{"face.detect"})
+	selected, err := selectNativeQualificationPolicies(p.policy, []string{"face.detect"})
 	if err != nil {
 		return nil, err
 	}

@@ -213,6 +213,7 @@ func ParseTransformedMask(raw []byte) (MaskRef, error) {
 		DType        string          `json:"dtype"`
 		GuidedRadius *int            `json:"guided_radius"`
 		Algorithm    string          `json:"algorithm"`
+		Regions []json.RawMessage `json:"regions,omitempty"`
 	}
 	if err := decodeExact(raw, &value); err != nil {
 		return MaskRef{}, err

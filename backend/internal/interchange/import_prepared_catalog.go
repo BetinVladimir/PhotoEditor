@@ -52,11 +52,12 @@ func (s SQLPreparedImportCatalog) LookupImportDocument(ctx context.Context, entr
 	media := "application/json"
 	maxBytes := int64(8 << 20)
 	probe := int64(2)
-	if entry.Contract == "MaskPixels" || entry.Contract == "DenseWarpField" || entry.Contract == "AbsoluteLUTArray" || entry.Contract == "DefectLabelMap" {
+	if entry.Contract == "MaskPixels" || entry.Contract == "DenseWarpField" || entry.Contract == "AbsoluteLUTArray" || entry.Contract == "DefectLabelMap" || entry.Contract == "WorkingPixels" || entry.Contract == "WorkingAlpha" {
 		media = "application/octet-stream"
 		maxBytes = 128 << 30
 		probe = 1
 	}
+ if entry.Contract=="DefectLabelPNG"{media="image/png";maxBytes=512<<20;probe=8}
 	if entry.Contract == "StyleBackgroundAsset" {
 		media = s.BackgroundMedia
 		maxBytes = 536870912

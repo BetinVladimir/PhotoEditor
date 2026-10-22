@@ -53,7 +53,7 @@ def test_model_residency_report_registered_worker_lifecycle(db,mode):
     worker=uuid4();node='publish-'+uuid4().hex
     db.execute('INSERT INTO photo.resource_nodes(node_id,ram_budget_bytes,vram_budget_bytes,scratch_budget_bytes) VALUES(%s,1000,0,1000)',(node,))
     principal=db.execute('SELECT session_user').fetchone()[0]
-    registration=db.execute("INSERT INTO photo.worker_registrations(tenant_id,worker_id,node_id,resource_classes,backends,lock_id,last_seen,capacity,db_principal,enabled,qualified_operations,capacity_policy_sha,reported_capacity_policy_sha,capacity_policy_reported_at) VALUES(%s,%s,%s,'[\"cpu\"]','[\"cpu\"]',%s,clock_timestamp(),'{}',%s,true,'{\"asset.verify\":[\"cpu\"]}',%s,%s,clock_timestamp()) RETURNING id",(tenant,worker,node,'b'*64,principal,pin,pin)).fetchone()[0]
+    registration=db.execute("INSERT INTO photo.worker_registrations(tenant_id,worker_id,node_id,resource_classes,backends,lock_id,last_seen,capacity,db_principal,enabled,qualified_operations,capacity_policy_sha,reported_capacity_policy_sha,capacity_policy_reported_at) VALUES(%s,%s,%s,'[\"cpu\"]','[\"cpu\"]',%s,clock_timestamp(),'{}',%s,true,'{\"asset.verify\":[\"cpu\"]}',%s,%s,clock_timestamp()) RETURNING id",(tenant,worker,node,'a'*64,principal,pin,pin)).fetchone()[0]
     if mode=='stale':
         db.execute("UPDATE photo.worker_registrations SET last_seen=clock_timestamp()-interval '1 hour' WHERE id=%s",(registration,))
     elif mode=='disabled':
@@ -119,14 +119,14 @@ def test_affinity_real_two_node_residency_scope(db,mode):
     for node,worker in zip(nodes,workers):
         db.execute('INSERT INTO photo.resource_nodes(node_id,enabled,ram_budget_bytes,vram_budget_bytes,scratch_budget_bytes,ram_available_bytes,scratch_available_bytes,reported_at,doctor_report_sha256) VALUES(%s,true,10000000,0,10000000,10000000,10000000,clock_timestamp(),%s)',(node,'b'*64))
         db.execute("INSERT INTO photo.resource_slots(node_id,slot_name,resource_class,capacity) VALUES(%s,'cpu1','cpu','{}')",(node,))
-        db.execute("INSERT INTO photo.worker_registrations(tenant_id,worker_id,node_id,resource_classes,backends,lock_id,last_seen,capacity,db_principal,enabled,qualified_operations,capacity_policy_sha,reported_capacity_policy_sha,capacity_policy_reported_at) VALUES(%s,%s,%s,'[\"cpu\"]','[\"cpu\"]',%s,clock_timestamp(),'{}',%s,true,'{\"face.detect\":[\"cpu\"]}',%s,%s,clock_timestamp())",(tenant,worker,node,'b'*64,principal,pin,pin))
-    run=db.execute("INSERT INTO photo.runs(tenant_id,kind,status,input_snapshot_id,config_snapshot,config_hash,created_by,graph_sealed) VALUES(%s,'v2','running',%s,%s,%s,%s,true) RETURNING id",(tenant,snapshot,Jsonb({'queue_class':'batch'}),'b'*64,user)).fetchone()[0]
+        db.execute("INSERT INTO photo.worker_registrations(tenant_id,worker_id,node_id,resource_classes,backends,lock_id,last_seen,capacity,db_principal,enabled,qualified_operations,capacity_policy_sha,reported_capacity_policy_sha,capacity_policy_reported_at) VALUES(%s,%s,%s,'[\"cpu\"]','[\"cpu\"]',%s,clock_timestamp(),'{}',%s,true,'{\"face.detect\":[\"cpu\"]}',%s,%s,clock_timestamp())",(tenant,worker,node,'a'*64,principal,pin,pin))
+    run=db.execute("INSERT INTO photo.runs(tenant_id,kind,status,input_snapshot_id,config_snapshot,config_hash,created_by,graph_sealed,failure_policy) VALUES(%s,'v2','running',%s,%s,%s,%s,true,'fail_fast') RETURNING id",(tenant,snapshot,Jsonb({'queue_class':'batch'}),'b'*64,user)).fetchone()[0]
     task=db.execute("INSERT INTO photo.tasks(tenant_id,run_id,node_key,operation,operation_version,resource_class,state,inputs,params_artifact_id,input_digest,execution_profile) VALUES(%s,%s,'affinity:0','face.detect','1','cpu','ready','[]',%s,%s,%s) RETURNING id",(tenant,run,artifact,'b'*64,Jsonb({'backend':'cpu','model_lock_sha':'a'*64,'resource_estimate':{'ram_bytes':2048,'vram_bytes':0,'scratch_bytes':1024,'output_bytes':0,'pixel_count':0}}))).fetchone()[0]
     baseline=db.execute('SELECT node_id FROM photo.eligible_dispatch_nodes(%s)',(task,)).fetchall()
     assert baseline==[(nodes[0],),(nodes[1],)]
     report=[{'model_lock_sha':'c'*64 if mode=='wrong_lock' else 'a'*64,'model_id':'fan2d' if mode=='wrong_model' else 'sfd','backend':'cpu','qualification_report_sha':'d'*64,'generation':1}]
     db.execute('SET LOCAL ROLE photo_worker')
-    assert db.execute('SELECT photo.report_worker_model_residency(%s,%s,%s)',(workers[1],pin,Jsonb(report))).fetchone()==(True,)
+    assert db.execute('SELECT photo.report_worker_model_residency(%s,%s,%s)',(workers[1],pin,Jsonb(report))).fetchone()==(mode!='wrong_lock',)
     if mode=='withdrawn':
         assert db.execute('SELECT photo.report_worker_model_residency(%s,%s,%s)',(workers[1],pin,Jsonb([]))).fetchone()==(True,)
     db.execute('RESET ROLE')
@@ -147,3 +147,40 @@ def test_affinity_real_two_node_residency_scope(db,mode):
         assert ordered==expected
         assert hints==[]
     assert set(ordered)==set(db.execute('SELECT node_id FROM photo.eligible_dispatch_nodes(%s)',(task,)).fetchall())
+
+
+
+@pytest.mark.parametrize('change,accepted',[({},True),({'model_lock_sha':'c'*64},False),({'backend':'cuda'},False)])
+def test_residency_report_binds_current_registration_lock_and_backend(db,change,accepted):
+    from test_task_leases import queued_task
+    from test_v32_capacity_rotation_concurrency import _install
+    item=queued_task(db)
+    pin=_install(db,60)
+    db.execute('UPDATE photo.worker_registrations SET lock_id=%s,capacity_policy_sha=%s,'
+        'reported_capacity_policy_sha=%s,capacity_policy_reported_at=clock_timestamp(),last_seen=clock_timestamp() '
+        'WHERE worker_id=%s',('a'*64,pin,pin,item['worker']))
+    model={**dict(model_lock_sha='a'*64,model_id='sfd',backend='cpu',qualification_report_sha='b'*64,generation=1),**change}
+    assert db.execute('SELECT photo.report_worker_model_residency(%s,%s,%s)',
+        (item['worker'],pin,Jsonb([model]))).fetchone()==(accepted,)
+    row=db.execute('SELECT model_residency,model_residency_reported_at FROM photo.worker_registrations '
+        'WHERE worker_id=%s',(item['worker'],)).fetchone()
+    if accepted:
+        assert row[0]==[model] and row[1] is not None
+    else:
+        assert row==([],None)
+
+
+def test_rotated_model_lock_cannot_restore_old_residency_hint(db):
+    from test_task_leases import queued_task
+    from test_v32_capacity_rotation_concurrency import _install
+    item=queued_task(db);pin=_install(db,60)
+    db.execute('UPDATE photo.worker_registrations SET lock_id=%s,capacity_policy_sha=%s,'
+        'reported_capacity_policy_sha=%s,capacity_policy_reported_at=clock_timestamp(),last_seen=clock_timestamp() '
+        'WHERE worker_id=%s',('a'*64,pin,pin,item['worker']))
+    model=dict(model_lock_sha='a'*64,model_id='sfd',backend='cpu',qualification_report_sha='b'*64,generation=1)
+    assert db.execute('SELECT photo.report_worker_model_residency(%s,%s,%s)',(item['worker'],pin,Jsonb([model]))).fetchone()==(True,)
+    db.execute('UPDATE photo.worker_registrations SET lock_id=%s WHERE worker_id=%s',('c'*64,item['worker']))
+    assert db.execute('SELECT photo.report_worker_model_residency(%s,%s,%s)',(item['worker'],pin,Jsonb([model]))).fetchone()==(False,)
+    assert db.execute('SELECT model_residency,model_residency_reported_at FROM photo.worker_registrations '
+        'WHERE worker_id=%s',(item['worker'],)).fetchone()==([],None)
+    assert db.execute('SELECT photo.report_worker_model_residency(%s,%s,%s)',(item['worker'],pin,Jsonb([]))).fetchone()==(True,)

@@ -241,23 +241,23 @@ func (s Service) Create(ctx context.Context, who auth.Identity, tid uuid.UUID, k
 		return out, domain.NewError("VALIDATION_FAILED", 422)
 	}
 	now := time.Now().UTC()
-	var prepared *preparedShare
-	if req.InitialShare != nil {
-		if len(s.Pepper) < 32 {
-			return out, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
-		}
-		value, err := prepareShare(*req.InitialShare, now)
-		if err != nil {
-			return out, err
-		}
-		prepared = &value
-	}
+	// Preserve the historical raw request fingerprint while detaching every
+	// aliased share field before waiting for receipt/project locks.
+	req = frozenCollectionCreate(req)
+
 	err := tenant.WithTenant(ctx, s.DB, who, tid, domain.Editor, func(tx pgx.Tx, role domain.Role) error {
 		if _, err := project.Authorize(ctx, tx, tid, req.ProjectID, who.UserID, role, domain.Editor, false); err != nil {
 			return err
 		}
 		var err error
 		out, err = idempotency.Use(ctx, tx, idempotency.Scope{Tenant: tid, Principal: who.UserID, PrincipalType: "user", Route: "Collection.Create", Key: key}, req, now.Add(24*time.Hour), func() (idempotency.Response, error) {
+			var prepared *preparedShare
+			if req.InitialShare != nil {
+				if len(s.Pepper) < 32 { return idempotency.Response{}, domain.NewError("DEPENDENCY_UNAVAILABLE",503) }
+				value, err := prepareShare(*req.InitialShare,time.Now().UTC())
+				if err != nil { return idempotency.Response{},err }
+				prepared = &value
+			}
 			item, err := scan(tx.QueryRow(ctx, `INSERT INTO photo.collections AS c(tenant_id,project_id,name,description) VALUES($1,$2,$3,$4) RETURNING `+fields,
 				tid, req.ProjectID, strings.TrimSpace(req.Name), req.Description))
 			if err != nil {
@@ -282,7 +282,8 @@ func (s Service) Create(ctx context.Context, who auth.Identity, tid uuid.UUID, k
 			body, err := canonical.Marshal(created)
 			return idempotency.Response{Status: 201, Body: body, ResourceID: &item.ID}, err
 		})
-		if err == nil && !out.Replayed && prepared != nil {
+		if err == nil && isCreationAbandoned(out,"Collection.Create",key,req.ProjectID) { return domain.NewError("COLLECTION_CREATION_ABANDONED",409) }
+		if err == nil && !out.Replayed && req.InitialShare != nil {
 			var created CollectionCreated
 			if err = json.Unmarshal(out.Body, &created); err != nil {
 				return err
@@ -293,6 +294,10 @@ func (s Service) Create(ctx context.Context, who auth.Identity, tid uuid.UUID, k
 			created.InitialShare.Secret = s.shareSecret(created.InitialShare.ID)
 			out.Body, err = canonical.Marshal(created)
 		}
+		if err != nil { return err }
+		currentRole, err := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Editor)
+		if err != nil { return err }
+		_, err = project.Authorize(ctx, tx, tid, req.ProjectID, who.UserID, currentRole, domain.Editor, false)
 		return err
 	})
 	return out, err
@@ -311,7 +316,7 @@ func (s Service) Update(ctx context.Context, who auth.Identity, tid, id uuid.UUI
 		if current.Revision != strconv.FormatInt(expected, 10) {
 			return domain.NewError("REVISION_CONFLICT", 409)
 		}
-		if current.State == "archived" {
+		if !writableCollectionState(current.State) {
 			return domain.NewError("REVISION_CONFLICT", 409)
 		}
 		if patch.Name != nil {
@@ -361,7 +366,7 @@ func (s Service) Archive(ctx context.Context, who auth.Identity, tid, id uuid.UU
 		if err != nil {
 			return err
 		}
-		if current.Revision != strconv.FormatInt(expected, 10) || current.State == "archived" {
+		if current.Revision != strconv.FormatInt(expected, 10) || !writableCollectionState(current.State) {
 			return domain.NewError("REVISION_CONFLICT", 409)
 		}
 		if _, err = tx.Exec(ctx, `UPDATE photo.collections SET state='archived',revision=revision+1 WHERE tenant_id=$1 AND id=$2`, tid, id); err != nil {
@@ -522,7 +527,7 @@ func (s Service) AddItem(ctx context.Context, who auth.Identity, tid, collection
 			if err != nil {
 				return idempotency.Response{}, err
 			}
-			if collection.State == "archived" || collection.Revision != strconv.FormatInt(req.ExpectedRevision, 10) {
+			if !writableCollectionState(collection.State) || collection.Revision != strconv.FormatInt(req.ExpectedRevision, 10) {
 				return idempotency.Response{}, domain.NewError("REVISION_CONFLICT", 409)
 			}
 			if err = verifySection(ctx, tx, tid, collectionID, req.SectionID); err != nil {
@@ -552,6 +557,9 @@ func (s Service) AddItem(ctx context.Context, who auth.Identity, tid, collection
 			} else if err = tx.QueryRow(ctx, `SELECT coalesce(max(position)+1,0) FROM photo.collection_items WHERE tenant_id=$1 AND collection_id=$2`, tid, collectionID).Scan(&position); err != nil {
 				return idempotency.Response{}, err
 			}
+			if position < 0 || position > 9007199254740991 {
+				return idempotency.Response{}, domain.NewError("VALIDATION_FAILED", 422)
+			}
 			item, err := scanItem(tx.QueryRow(ctx, `INSERT INTO photo.collection_items AS i(tenant_id,collection_id,asset_id,asset_version_id,section_id,position)
  VALUES($1,$2,$3,$4,$5,$6) RETURNING `+itemFields, tid, collectionID, assetID, req.AssetVersionID, req.SectionID, position))
 			if err != nil {
@@ -566,6 +574,12 @@ func (s Service) AddItem(ctx context.Context, who auth.Identity, tid, collection
 			body, err := canonical.Marshal(item)
 			return idempotency.Response{Status: 201, Body: body, ResourceID: &item.ID}, err
 		})
+		if err != nil { return err }
+		if err = bindCollectionReceipt(ctx, tx, who, tid, collectionID, "Collection.AddItem", key, out, `SELECT EXISTS(SELECT 1 FROM photo.collection_items WHERE tenant_id=$1 AND id=$2 AND collection_id=$3)`); err != nil { return err }
+		if err != nil { return err }
+		currentRole, err := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Editor)
+		if err != nil { return err }
+		_, err = project.Authorize(ctx, tx, tid, projectID, who.UserID, currentRole, domain.Editor, false)
 		return err
 	})
 	return out, err
@@ -581,7 +595,7 @@ func (s Service) UpdateItem(ctx context.Context, who auth.Identity, tid, collect
 		if err != nil {
 			return err
 		}
-		if collection.State == "archived" || collection.Revision != strconv.FormatInt(expected, 10) {
+		if !writableCollectionState(collection.State) || collection.Revision != strconv.FormatInt(expected, 10) {
 			return domain.NewError("REVISION_CONFLICT", 409)
 		}
 		current, err := scanItem(tx.QueryRow(ctx, `SELECT `+itemFields+` FROM photo.collection_items i WHERE i.tenant_id=$1 AND i.collection_id=$2 AND i.id=$3`, tid, collectionID, itemID))
@@ -648,7 +662,7 @@ func (s Service) ModerateApplyItem(ctx context.Context, who auth.Identity, tid, 
 		if err != nil {
 			return err
 		}
-		if collection.State == "archived" || collection.Revision != strconv.FormatInt(req.ExpectedRevision, 10) {
+		if !writableCollectionState(collection.State) || collection.Revision != strconv.FormatInt(req.ExpectedRevision, 10) {
 			return domain.NewError("REVISION_CONFLICT", 409)
 		}
 		if collection.SourceRunID == nil {
@@ -701,7 +715,7 @@ func (s Service) RemoveItem(ctx context.Context, who auth.Identity, tid, collect
 		if err != nil {
 			return err
 		}
-		if collection.State == "archived" || collection.Revision != strconv.FormatInt(expected, 10) {
+		if !writableCollectionState(collection.State) || collection.Revision != strconv.FormatInt(expected, 10) {
 			return domain.NewError("REVISION_CONFLICT", 409)
 		}
 		if collection.CoverItemID != nil && *collection.CoverItemID == itemID {
@@ -721,8 +735,13 @@ func (s Service) RemoveItem(ctx context.Context, who auth.Identity, tid, collect
 	})
 }
 
-func (s Service) ListItems(ctx context.Context, who auth.Identity, tid, collectionID uuid.UUID, limit int, raw, sectionRaw, flag, tagFilter string, ratingRaw string) (pagination.Page[Item], error) {
+type ItemGalleryFilter struct { Search string; Review string; Visibility string }
+func (s Service) ListItems(ctx context.Context, who auth.Identity, tid, collectionID uuid.UUID, limit int, raw, sectionRaw, flag, tagFilter string, ratingRaw string, gallery ...ItemGalleryFilter) (pagination.Page[Item], error) {
 	out := pagination.Page[Item]{Items: []Item{}}
+	filter:=ItemGalleryFilter{}
+	if len(gallery)>1{return out,domain.NewError("VALIDATION_FAILED",422)};if len(gallery)==1{filter=gallery[0]}
+	filter.Search=strings.TrimSpace(filter.Search)
+	if len([]rune(filter.Search))>200||(filter.Review!=""&&filter.Review!="pending_review"&&filter.Review!="accepted"&&filter.Review!="rejected")||(filter.Visibility!=""&&filter.Visibility!="hidden"&&filter.Visibility!="visible"){return out,domain.NewError("VALIDATION_FAILED",422)}
 	if limit < 1 || limit > 100 || (flag != "" && flag != "none" && flag != "pick" && flag != "reject") || len([]rune(tagFilter)) > 64 {
 		return out, domain.NewError("VALIDATION_FAILED", 422)
 	}
@@ -742,46 +761,58 @@ func (s Service) ListItems(ctx context.Context, who auth.Identity, tid, collecti
 		}
 		rating = &value
 	}
-	filterHash, err := canonical.Hash(map[string]string{"collection_id": collectionID.String(), "section_id": sectionRaw, "flag": flag, "tag": tagFilter, "rating": ratingRaw})
+	filters:=map[string]string{"collection_id": collectionID.String(), "section_id": sectionRaw, "flag": flag, "tag": tagFilter, "rating": ratingRaw}
+	// Preserve historical empty-gallery cursor identity for existing callers.
+	if filter.Search!=""||filter.Review!=""||filter.Visibility!=""{filters["search"],filters["review"],filters["visibility"]=filter.Search,filter.Review,filter.Visibility}
+	filterHash, err := canonical.Hash(filters)
 	if err != nil {
 		return out, err
 	}
-	scope := pagination.Cursor{Tenant: tid.String(), Principal: who.UserID.String(), FilterHash: filterHash, Sort: "item:position,id"}
+	var scope pagination.Cursor
 	var afterID *uuid.UUID
 	var afterPosition *int64
-	if raw != "" {
-		cursor, err := s.Cursors.Decode(raw, scope)
-		if err != nil {
-			return out, domain.NewError("INVALID_CURSOR", 400)
-		}
-		id, err := uuid.Parse(cursor.LastID)
-		if err != nil {
-			return out, domain.NewError("INVALID_CURSOR", 400)
-		}
-		position, err := strconv.ParseInt(cursor.LastPosition, 10, 64)
-		if err != nil {
-			return out, domain.NewError("INVALID_CURSOR", 400)
-		}
-		afterID, afterPosition = &id, &position
-	}
+	ordinals:=map[uuid.UUID]int64{}
+
 	err = tenant.WithTenant(ctx, s.DB, who, tid, domain.Viewer, func(tx pgx.Tx, role domain.Role) error {
-		collection, err := authorize(ctx, tx, who, tid, collectionID, role, domain.Viewer, false)
+		// Hold the catalogue revision and effective sort stable until the page
+		// query completes. All item/sort mutations lock this collection first.
+		collection, err := scan(tx.QueryRow(ctx, `SELECT `+fields+` FROM photo.collections c WHERE c.tenant_id=$1 AND c.id=$2 AND c.deleted_at IS NULL FOR SHARE OF c`,tid,collectionID))
+		if errors.Is(err,pgx.ErrNoRows) { return domain.NewError("NOT_FOUND",404) }
+		if err==nil {
+		 currentRole,e:=tenant.AuthorizeInTransaction(ctx,tx,who,tid,domain.Viewer);err=e
+		 if err==nil { _,err=project.Authorize(ctx,tx,tid,collection.ProjectID,who.UserID,currentRole,domain.Viewer,false) }
+		}
 		if err != nil {
 			return err
 		}
 		out.Revision = collection.Revision
-		rows, err := tx.Query(ctx, `SELECT `+itemFields+` FROM photo.collection_items i WHERE i.tenant_id=$1 AND i.collection_id=$2
+		scope=pagination.Cursor{Tenant:tid.String(),Principal:who.UserID.String(),FilterHash:filterHash,Sort:"item:effective-v2:"+collection.SortMode,Revision:collection.Revision}
+		if raw!="" {
+		 cursor,e:=s.Cursors.Decode(raw,scope);if e!=nil{return domain.NewError("INVALID_CURSOR",400)}
+		 if cursor.Revision!=collection.Revision{return domain.NewError("SNAPSHOT_STALE",409)}
+		 id,e:=uuid.Parse(cursor.LastID);if e!=nil||id==uuid.Nil{return domain.NewError("INVALID_CURSOR",400)}
+		 position,e:=strconv.ParseInt(cursor.LastPosition,10,64);if e!=nil||position<1{return domain.NewError("INVALID_CURSOR",400)}
+		 afterID,afterPosition=&id,&position
+		}
+		rows, err := tx.Query(ctx, `SELECT `+itemFields+`,ordering.sort_ordinal FROM photo.collection_items i JOIN photo.collection_item_order($1,$2) ordering ON ordering.item_id=i.id WHERE i.tenant_id=$1 AND i.collection_id=$2
  AND ($3::uuid IS NULL OR i.section_id=$3) AND ($4='' OR i.flag=$4) AND ($5::integer IS NULL OR i.rating=$5)
- AND ($6='' OR i.tags ? $6) AND ($7::uuid IS NULL OR (i.position,i.id)>($8::bigint,$7::uuid)) ORDER BY i.position,i.id LIMIT $9`, tid, collectionID, sectionID, flag, rating, tagFilter, afterID, afterPosition, limit+1)
+ AND ($6='' OR i.tags ? $6) AND ($7::uuid IS NULL OR (ordering.sort_ordinal,i.id)>($8::bigint,$7::uuid))
+ AND ($10='' OR strpos(lower(i.asset_id::text),lower($10))>0 OR EXISTS(SELECT 1 FROM jsonb_array_elements_text(i.tags) tag(value) WHERE strpos(lower(tag.value),lower($10))>0)
+ OR EXISTS(SELECT 1 FROM photo.ingest_upload_bindings b JOIN photo.upload_sessions u ON u.tenant_id=b.tenant_id AND u.id=b.upload_id AND u.ingest_run_id=b.run_id AND u.project_id=b.project_id
+ WHERE b.tenant_id=i.tenant_id AND b.asset_id=i.asset_id AND b.project_id=$13 AND strpos(lower(u.filename),lower($10))>0))
+ AND ($11='' OR i.moderation_state=$11) AND ($12='' OR i.visibility=$12)
+ ORDER BY ordering.sort_ordinal,i.id LIMIT $9`, tid, collectionID, sectionID, flag, rating, tagFilter, afterID, afterPosition, limit+1,filter.Search,filter.Review,filter.Visibility,collection.ProjectID)
 		if err != nil {
 			return err
 		}
 		defer rows.Close()
 		for rows.Next() {
-			item, err := scanItem(rows)
+			var ordinal int64
+			item, err := scanItem(itemOrderScanner{scanner:rows,ordinal:&ordinal})
 			if err != nil {
 				return err
 			}
+			ordinals[item.ID]=ordinal
 			out.Items = append(out.Items, item)
 		}
 		return rows.Err()
@@ -792,7 +823,7 @@ func (s Service) ListItems(ctx context.Context, who auth.Identity, tid, collecti
 	if len(out.Items) > limit {
 		out.Items = out.Items[:limit]
 		last := out.Items[limit-1]
-		scope.LastID, scope.LastPosition = last.ID.String(), strconv.FormatInt(last.Position, 10)
+		scope.LastID, scope.LastPosition = last.ID.String(), strconv.FormatInt(ordinals[last.ID], 10)
 		cursor, err := s.Cursors.Encode(scope)
 		if err != nil {
 			return out, err
@@ -847,7 +878,7 @@ func (s Service) CreateSection(ctx context.Context, who auth.Identity, tid, coll
 			if err != nil {
 				return idempotency.Response{}, err
 			}
-			if collection.State == "archived" || collection.Revision != strconv.FormatInt(req.ExpectedRevision, 10) {
+			if !writableCollectionState(collection.State) || collection.Revision != strconv.FormatInt(req.ExpectedRevision, 10) {
 				return idempotency.Response{}, domain.NewError("REVISION_CONFLICT", 409)
 			}
 			section, err := scanSection(tx.QueryRow(ctx, `INSERT INTO photo.sections AS s(tenant_id,collection_id,name,position) VALUES($1,$2,$3,$4) RETURNING `+sectionFields,
@@ -864,6 +895,18 @@ func (s Service) CreateSection(ctx context.Context, who auth.Identity, tid, coll
 			body, err := canonical.Marshal(section)
 			return idempotency.Response{Status: 201, Body: body, ResourceID: &section.ID}, err
 		})
+		if err != nil { return err }
+        if out.Status==200 {
+            if err=bindSectionAbandoned(ctx,tx,who,tid,collectionID,key,out);err!=nil{return err}
+            currentRole,e:=tenant.AuthorizeInTransaction(ctx,tx,who,tid,domain.Editor);if e!=nil{return e}
+            if e=currentEditorProject(ctx,tx,who,tid,collectionID,currentRole);e!=nil{return e}
+            return domain.NewError("SECTION_CREATE_ABANDONED",409)
+        }
+		if err = bindCollectionReceipt(ctx, tx, who, tid, collectionID, "Collection.CreateSection", key, out, `SELECT EXISTS(SELECT 1 FROM photo.sections WHERE tenant_id=$1 AND id=$2 AND collection_id=$3)`); err != nil { return err }
+		if err != nil { return err }
+		currentRole, err := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Editor)
+		if err != nil { return err }
+		err = currentEditorProject(ctx, tx, who, tid, collectionID, currentRole)
 		return err
 	})
 	return out, err
@@ -879,7 +922,7 @@ func (s Service) UpdateSection(ctx context.Context, who auth.Identity, tid, coll
 		if err != nil {
 			return err
 		}
-		if collection.State == "archived" || collection.Revision != strconv.FormatInt(expected, 10) {
+		if !writableCollectionState(collection.State) || collection.Revision != strconv.FormatInt(expected, 10) {
 			return domain.NewError("REVISION_CONFLICT", 409)
 		}
 		current, err := scanSection(tx.QueryRow(ctx, `SELECT `+sectionFields+` FROM photo.sections s WHERE s.tenant_id=$1 AND s.collection_id=$2 AND s.id=$3 FOR UPDATE`, tid, collectionID, sectionID))
@@ -920,7 +963,7 @@ func (s Service) DeleteSection(ctx context.Context, who auth.Identity, tid, coll
 		if err != nil {
 			return err
 		}
-		if collection.State == "archived" || collection.Revision != strconv.FormatInt(expected, 10) {
+		if !writableCollectionState(collection.State) || collection.Revision != strconv.FormatInt(expected, 10) {
 			return domain.NewError("REVISION_CONFLICT", 409)
 		}
 		var found uuid.UUID
@@ -961,6 +1004,11 @@ func sortedUniqueIDs(ids []uuid.UUID, maximum int) ([]uuid.UUID, bool) {
 func (s Service) Publish(ctx context.Context, who auth.Identity, tid, collectionID uuid.UUID, req PublicationRequest) (Collection, error) {
 	var out Collection
 	ids, ok := sortedUniqueIDs(req.ItemIDs, 500)
+	// Collection visibility can change independently of item publications,
+	// including an empty collection. Empty item-only mutations remain invalid.
+	if len(req.ItemIDs) == 0 && req.PublishCollection {
+		ids, ok = []uuid.UUID{}, true
+	}
 	if req.ExpectedRevision < 1 || !ok {
 		return out, domain.NewError("VALIDATION_FAILED", 422)
 	}
@@ -969,7 +1017,7 @@ func (s Service) Publish(ctx context.Context, who auth.Identity, tid, collection
 		if err != nil {
 			return err
 		}
-		if collection.State == "archived" || collection.Revision != strconv.FormatInt(req.ExpectedRevision, 10) {
+		if !writableCollectionState(collection.State) || collection.Revision != strconv.FormatInt(req.ExpectedRevision, 10) {
 			return domain.NewError("REVISION_CONFLICT", 409)
 		}
 		rows, err := tx.Query(ctx, `SELECT i.id,i.asset_version_id,a.upload_state,v.review_state,m.state,(m.expires_at IS NULL OR m.expires_at>clock_timestamp())
@@ -1010,7 +1058,7 @@ func (s Service) Publish(ctx context.Context, who auth.Identity, tid, collection
 		}
 		for _, item := range items {
 			_, err = tx.Exec(ctx, `INSERT INTO photo.publications(tenant_id,item_id,asset_version_id,state,published_by,published_at)
- VALUES($1,$2,$3,$4,$5,clock_timestamp()) ON CONFLICT(tenant_id,item_id) DO UPDATE SET state=EXCLUDED.state,published_by=EXCLUDED.published_by,published_at=EXCLUDED.published_at,policy_version=photo.publications.policy_version+1`,
+ VALUES($1,$2,$3,$4,$5,clock_timestamp()) ON CONFLICT(tenant_id,item_id,asset_version_id) DO UPDATE SET state=EXCLUDED.state,published_by=EXCLUDED.published_by,published_at=EXCLUDED.published_at,policy_version=photo.publications.policy_version+1`,
 				tid, item.id, item.version, state, who.UserID)
 			if err != nil {
 				return err

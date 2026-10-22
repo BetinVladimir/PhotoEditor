@@ -45,7 +45,7 @@ func preparedDocumentsFixture(t *testing.T) (PlanSources, []PlanDocument, string
 	return preparedDocumentsKindFixture(t, "remove_object")
 }
 
-func preparedDocumentsKindFixture(t *testing.T, kind string) (PlanSources, []PlanDocument, string, string) {
+func preparedDocumentsKindFixture(t *testing.T, kind string, proposeAll ...bool) (PlanSources, []PlanDocument, string, string) {
 	t.Helper()
 	raw, err := os.ReadFile("../v2input/testdata/semantic-plan-python.json")
 	if err != nil {
@@ -67,6 +67,32 @@ func preparedDocumentsKindFixture(t *testing.T, kind string) (PlanSources, []Pla
 	if err != nil {
 		t.Fatal(err)
 	}
+    // Optional multi-target fixture retains each original source binding while
+    // giving every candidate the established proposed mask/transform metadata.
+    if len(proposeAll)>0 && proposeAll[0] {
+        proposed := plan.Candidates[1]
+        for i := range plan.Candidates {
+            binding := plan.Candidates[i].Target
+            plan.Candidates[i] = proposed
+            plan.Candidates[i].Target = binding
+        }
+        for i := range fixture.Documents {
+            candidate, err := v2input.DecodeSemanticCandidate(fixture.Documents[i].Body)
+            if err != nil {t.Fatal(err)}
+            replacement := proposed
+            replacement.Target = candidate.Target
+            body, err := canonical.Marshal(replacement)
+            if err != nil {t.Fatal(err)}
+            fixture.Documents[i].Body = body
+            fixture.Documents[i].Ref.SHA256, err = canonical.Hash(replacement)
+            if err != nil {t.Fatal(err)}
+            for n := range fixture.Params.Candidates {
+                if fixture.Params.Candidates[n].ArtifactID == fixture.Documents[i].Ref.ArtifactID {
+                    fixture.Params.Candidates[n] = fixture.Documents[i].Ref
+                }
+            }
+        }
+    }
 	var snapshot v2input.SessionInputSnapshot
 	if json.Unmarshal(fixture.Snapshot, &snapshot) != nil {
 		t.Fatal("snapshot")

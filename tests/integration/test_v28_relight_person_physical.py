@@ -9,6 +9,9 @@ from photo_worker.contracts.base import ArtifactRef,canonical_bytes
 from photo_worker.contracts.images import MaskRef
 from photo_worker.contracts.relight import ImageRelightParams
 from photo_worker.runtime.database import TaskDatabase
+from wire_runtime_login import worker_login
+from pydantic import ValidationError
+from photo_worker.runtime.executor import OperationFailure
 from photo_worker.operations.portrait.relight_person_authority import SQLRelightPersonAuthority
 from test_v28_relight_person import seed_person_inputs
 from test_v28_relight_lease import relight_lease_fixture
@@ -40,12 +43,17 @@ def test_original_person_params_with_exact_version(database,lens_objects,failure
         fence=1,input_digest=args[9],execution_profile=profile))
     params=ImageRelightParams.model_validate_json(args[8]);person=MaskRef.model_validate_json(retained['body'])
     def unused(*args):pytest.fail('Direct versioned reader must not fall back to generic artifact transport')
-    authority=SQLRelightPersonAuthority(TaskDatabase(make_conninfo(**database)),SimpleNamespace(contract_bytes=unused),objects=client,bucket=bucket)
-    if failure:
-        from minio.error import S3Error
-        with pytest.raises((ValueError,RuntimeError) if failure=='corrupt' else S3Error):authority.verify(ctx,params,None,person)
-    else:
-        assert authority.verify(ctx,params,None,person) is True
-        with psycopg.connect(**database) as db:
-            db.execute('UPDATE photo.artifacts SET produced_fence=2 WHERE id=%s',(retained['root'],))
-        with pytest.raises(RuntimeError):authority.verify(ctx,params,None,person)
+    # Attest the isolated runtime identity before any expected negative outcome.
+    with worker_login(make_conninfo(**database),args[2]) as runtime_dsn:
+        runtime_database=TaskDatabase(runtime_dsn)
+        runtime_database.ping()
+        authority=SQLRelightPersonAuthority(runtime_database,SimpleNamespace(contract_bytes=unused),objects=client,bucket=bucket)
+        if failure:
+            from minio.error import S3Error
+            with pytest.raises(ValidationError if failure=='corrupt' else S3Error) as caught:authority.verify(ctx,params,None,person)
+            if failure=='corrupt':assert caught.value.errors()[0]['type']=='json_invalid'
+        else:
+            assert authority.verify(ctx,params,None,person) is True
+            with psycopg.connect(**database) as db:
+                db.execute('UPDATE photo.artifacts SET produced_fence=2 WHERE id=%s',(retained['root'],))
+            with pytest.raises(OperationFailure,match='^RELIGHT_PERSON_ORIGIN_INVALID$'):authority.verify(ctx,params,None,person)

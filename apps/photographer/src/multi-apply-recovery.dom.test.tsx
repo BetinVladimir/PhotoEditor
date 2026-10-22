@@ -1,13 +1,15 @@
 // @vitest-environment jsdom
 import {afterEach,expect,it,vi} from 'vitest';
 import {cleanup,fireEvent,render,screen,waitFor,act} from '@testing-library/react';
+import {APIError} from '@photoeditor/api-client';
 import type {MultiIntent} from './multi-intent';
 import type {OwnerAPI} from './owner-api';
 import en from '../../../locales/en/common.json';
 const mocks=vi.hoisted(()=>({read:vi.fn(),resume:vi.fn(),clear:vi.fn()}));
-vi.mock('react-native',async()=>import('react-native-web'));
+const lifecycle=vi.hoisted(()=>({listeners:new Set<(state:string)=>void>()}));
+vi.mock('react-native',async()=>({...await import('react-native-web'),AppState:{currentState:'active',addEventListener:(_event:string,listener:(state:string)=>void)=>{lifecycle.listeners.add(listener);return {remove:()=>lifecycle.listeners.delete(listener)}}}}));
 vi.mock('@react-native-async-storage/async-storage',()=>({default:{}}));
-vi.mock('./locale-context',()=>({useLocale:()=>({t:(key:keyof typeof en)=>en[key]})}));
+vi.mock('./locale-context',async()=>{const __factory=()=>({useLocale:()=>({t:(key:keyof typeof en)=>en[key]})});const __out=await __factory();const {withUILocaleDouble}=await import('./test/locale-double');return {...__out,useLocale:()=>withUILocaleDouble(__out.useLocale())};});
 vi.mock('./multi-apply-store',()=>({MultiApplyStore:class{read=mocks.read;clear=mocks.clear;}}));
 vi.mock('./multi-apply-attempt',()=>({MultiApplyAttempt:{restore:(record:unknown)=>({snapshot:record,resume:mocks.resume})}}));
 import {MultiApplyRecovery} from './multi-apply-recovery';
@@ -17,6 +19,11 @@ const props={api,origin:'https://studio.test',tenant:id(2),project:id(3),produce
 const scoped={review:{proposal:{operation:'optical.panorama'}},intent:props.intent};
 // UI isolation fixtures; journal schema validation is covered by attempt/store unit suites.
 afterEach(()=>{cleanup();vi.resetAllMocks();});
+it('withdraws the parent projection on denied recovery and keeps the journal',async()=>{
+ mocks.read.mockResolvedValue({...scoped,selection:null,applied:null,selected:false});mocks.resume.mockRejectedValue(new APIError(403,'FORBIDDEN'));
+ const onAccessDenied=vi.fn(),onApplied=vi.fn();render(<MultiApplyRecovery {...props} onApplied={onApplied} onAccessDenied={onAccessDenied}/>);
+ fireEvent.click(await screen.findByText(en.perspective_apply_resume));await waitFor(()=>expect(onAccessDenied).toHaveBeenCalledOnce());expect(mocks.clear).not.toHaveBeenCalled();expect(onApplied).not.toHaveBeenCalled();
+});
 it('resumes the persisted attempt and does not clear an incomplete collection CAS',async()=>{
  mocks.read.mockResolvedValue({...scoped,selection:{collection:id(5),revision:'3'},applied:{asset_version_id:id(6)},selected:false});
  mocks.resume.mockResolvedValue({asset_version_id:id(6)});const onApplied=vi.fn();
@@ -91,3 +98,21 @@ it('resets busy for new scope and old completion cannot unlock its active resume
  await act(async()=>finishResume({asset_version_id:id(61)}));
  expect(onApplied).toHaveBeenCalledWith({asset_version_id:id(61)});
  });
+
+it.each([401,403,404,410])('withdraws recovery action after definitive denial %s without clearing the journal',async status=>{
+ mocks.read.mockResolvedValue({...scoped,selection:null,applied:null,selected:false});mocks.resume.mockRejectedValue(new APIError(status,'DENIED'));
+ const onApplied=vi.fn();render(<MultiApplyRecovery {...props} onApplied={onApplied}/>);
+ fireEvent.click(await screen.findByText(en.perspective_apply_resume));await screen.findByText(en.perspective_apply_failed);
+ expect(screen.queryByText(en.perspective_apply_resume)).toBeNull();fireEvent.click(screen.getByText(en.perspective_apply_reload));
+ expect(mocks.resume).toHaveBeenCalledTimes(1);expect(mocks.clear).not.toHaveBeenCalled();expect(onApplied).not.toHaveBeenCalled();
+});
+it('does not navigate from a late background recovery result',async()=>{
+ mocks.read.mockResolvedValue({...scoped,selection:null,applied:null,selected:false});
+ let finish!:(value:unknown)=>void;mocks.resume.mockImplementation(()=>new Promise(resolve=>{finish=resolve}));
+ const onApplied=vi.fn();render(<MultiApplyRecovery {...props} onApplied={onApplied}/>);
+ fireEvent.click(await screen.findByText(en.perspective_apply_resume));await waitFor(()=>expect(mocks.resume).toHaveBeenCalledTimes(1));
+ act(()=>lifecycle.listeners.forEach(listener=>listener('background')));await act(async()=>finish({asset_version_id:id(6)}));
+ expect(onApplied).not.toHaveBeenCalled();expect(mocks.clear).not.toHaveBeenCalled();
+ act(()=>lifecycle.listeners.forEach(listener=>listener('active')));await screen.findByText(en.perspective_apply_resume);
+ expect(mocks.resume).toHaveBeenCalledTimes(1);
+});

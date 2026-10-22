@@ -27,6 +27,7 @@ func serveDecideInterchangeReview(w http.ResponseWriter,r *http.Request,who auth
  raw,err:=canonical.Marshal(request);if err!=nil{writeError(w,r,err);return}
  if closer==nil{writeError(w,r,domain.NewError("INTERCHANGE_UNAVAILABLE",503));return}
  response,err:=closer.DecideInterchangeReview(r.Context(),who,tid,id,r.Header.Get("Idempotency-Key"),raw);if err!=nil{writeError(w,r,err);return}
+ if r.Context().Err()!=nil{return}
  var status struct{Workflow uuid.UUID `json:"workflow_id"`;Revision string `json:"revision"`;Remaining *int `json:"remaining"`;Child json.RawMessage `json:"child"`;Batch uuid.UUID `json:"batch_id"`}
  decoder:=json.NewDecoder(bytes.NewReader(response.Body));decoder.DisallowUnknownFields();revision,_:=strconv.ParseInt(request.ExpectedRevision,10,64)
  intent,err:=interchange.FreezeImportReviewIntent(r.Context(),tid,id,who,r.Header.Get("Idempotency-Key"),"decide",raw)

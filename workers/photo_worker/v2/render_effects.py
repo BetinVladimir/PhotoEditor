@@ -37,6 +37,7 @@ class RenderLayerEffect:
     regions: tuple = ()
     denoise_report: object = None
     dust_report: object = None
+    conservative_report: object = None
 
 
 @dataclass(frozen=True)
@@ -96,10 +97,18 @@ def effect_review_required(evidence):
     if evidence is None:return False
     if isinstance(evidence,RenderLayerEffect):
         if (not isinstance(evidence.layer_id,UUID) or evidence.layer_id.int==0
-                or evidence.operation not in ('defects.repair','portrait.detail','image.denoise','sensor.dust_repair') or evidence.operation_version!='1'
+                or evidence.operation not in ('defects.repair','portrait.detail','image.denoise','sensor.dust_repair','defects.auto_repair','sensor.dust_auto_repair') or evidence.operation_version!='1'
                 or not isinstance(evidence.runtime_sha256,str) or re.fullmatch('[0-9a-f]{64}',evidence.runtime_sha256) is None
                 or type(evidence.review_required) is not bool):
             raise ValueError('RENDER_EFFECT_EVIDENCE_INVALID')
+        if evidence.operation in ('defects.auto_repair','sensor.dust_auto_repair'):
+            from photo_worker.contracts.conservative import ConservativeRepairReport
+            from photo_worker.contracts.base import canonical_bytes
+            if evidence.candidates!=() or evidence.regions!=() or evidence.denoise_report is not None or evidence.dust_report is not None or not isinstance(evidence.conservative_report,ConservativeRepairReport):raise ValueError('RENDER_EFFECT_EVIDENCE_INVALID')
+            report=ConservativeRepairReport.model_validate_json(canonical_bytes(evidence.conservative_report))
+            if report.operation!=evidence.operation:raise ValueError('RENDER_EFFECT_EVIDENCE_INVALID')
+            return evidence.review_required
+        if evidence.conservative_report is not None:raise ValueError('RENDER_EFFECT_EVIDENCE_INVALID')
         if evidence.operation=='sensor.dust_repair':
             if evidence.candidates!=() or evidence.regions!=() or evidence.denoise_report is not None:
                 raise ValueError('RENDER_EFFECT_EVIDENCE_INVALID')

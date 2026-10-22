@@ -23,6 +23,13 @@ import (
 
 type calibrationStore struct{ body []byte }
 
+type calibrationBarrierStore struct { calibrationStore; afterOpen func() }
+func (s calibrationBarrierStore) Open(ctx context.Context, object objectstore.Object) (io.ReadCloser,error) {
+ reader,err:=s.calibrationStore.Open(ctx,object)
+ if s.afterOpen!=nil { s.afterOpen() }
+ return reader,err
+}
+
 func (s calibrationStore) Open(_ context.Context, _ objectstore.Object) (io.ReadCloser, error) {
 	return io.NopCloser(bytes.NewReader(s.body)), nil
 }
@@ -268,6 +275,17 @@ func TestIntegrationSessionCreateReadUpdate(t *testing.T) {
 	if e = json.Unmarshal(accepted.Body, &sessionBody); e != nil || sessionBody.Data.CapturePolicy == nil || sessionBody.Data.CapturePolicy.Calibration != policy.Calibration {
 		t.Fatal("capture policy binding", sessionBody, e)
 	}
+	advisory,e:=service.CaptureCapabilities(ctx,who,tenantID,*accepted.ResourceID,sessionBody.Revision)
+	if e!=nil||!advisory.Available||advisory.TemplateID!=*accepted.ResourceID { t.Fatal("qualified template advisory",advisory,e) }
+	withdrawn:=false
+	late:=service
+	late.Objects=calibrationBarrierStore{calibrationStore:calibrationStore{body:calibration},afterOpen:func(){
+	 if withdrawn{return};withdrawn=true
+	 if _,err:=admin.Exec(ctx,`UPDATE photo.projects SET archived_at=clock_timestamp() WHERE tenant_id=$1 AND id=$2`,tenantID,projectID);err!=nil { t.Fatal(err) }
+	}}
+	if _,e=late.CaptureCapabilities(ctx,who,tenantID,*accepted.ResourceID,sessionBody.Revision);e==nil { t.Fatal("advisory disclosed after project withdrawal during calibration IO") }
+	if !withdrawn { t.Fatal("fixture did not reach actual calibration IO") }
+	if _,e=admin.Exec(ctx,`UPDATE photo.projects SET archived_at=NULL WHERE tenant_id=$1 AND id=$2`,tenantID,projectID);e!=nil { t.Fatal(e) }
 	closeRequest := UpdateRequest{ExpectedRevision: sessionBody.Revision, Name: "Capture closed", State: "closed", Policy: policy, CapturePolicy: captureRequest.CapturePolicy}
 	closed, e := service.Update(ctx, who, tenantID, *accepted.ResourceID, uuid.NewString(), closeRequest)
 	if e != nil || closed.Status != 200 {

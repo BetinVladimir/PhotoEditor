@@ -30,7 +30,7 @@ func (s SQLTransferSourceReader) facePreparationCandidates(ctx context.Context, 
 		}
 	}
 	for i, value := range expected {
-		if value.Operation != [2]string{"face.landmarks", "face.detect"}[i] || value.Version != "1" || (value.Backend != "cpu" && value.Backend != "cuda") {
+		if value.Operation != [2]string{"face.landmarks", "face.detect"}[i] || value.Version != "1" || (value.Backend != "cpu" && value.Backend != "cuda" && value.Backend != "mps") {
 			return nil, v2qualification.ErrUnqualified
 		}
 		for _, sha := range []string{value.ModelLockSHA, value.RuntimeLockSHA, value.DeviceProfileSHA} {

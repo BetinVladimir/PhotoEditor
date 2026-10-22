@@ -275,6 +275,17 @@ func TestPrepareLensTaskBuildsReplayableTransportBeforeCommit(t *testing.T) {
 	if err != nil || first.Tasks[0].InputDigest != second.Tasks[0].InputDigest || first.Tasks[0].Params != second.Tasks[0].Params {
 		t.Fatal("batch replay", err)
 	}
+ // A durable sealed receipt skips publication, staging and graph sealing.
+ replayStore:=&lensReplayStoreFake{accepted:true}
+ replayDocs:=&replayableLensDocuments{}
+ replayStage:=&lensStageDB{accepted:true}
+ replayRegistrar:=&lensRegistrarFake{}
+ replayBatch:=LensDraftCoordinator{Store:replayStore,Preparation:LensPreparationCoordinator{Documents:replayDocs,Stage:SQLLensTaskStage{DB:replayStage},Inputs:replayRegistrar}}
+ recovered,recoveryErr:=replayBatch.Prepare(context.Background(),tenant,actor,project,snapshot,session,"lens-batch",strings.Repeat("e",64),[]LensTaskRequest{batchRequest})
+ if recoveryErr!=nil || !recovered.Replayed || recovered.RunID!=batchRun || len(recovered.Tasks)!=0 || replayStore.calls!=0 || len(replayDocs.scopes)!=0 || replayRegistrar.calls!=0 {t.Fatal("sealed receipt repeated side effects",recoveryErr)}
+ replayStore.accepted=false
+ replayStore.err=ErrExpired
+ if _,recoveryErr=replayBatch.Prepare(context.Background(),tenant,actor,project,snapshot,session,"lens-batch",strings.Repeat("e",64),[]LensTaskRequest{batchRequest});recoveryErr!=ErrExpired || len(replayDocs.scopes)!=0 {t.Fatal("receipt refusal bypassed draft admission",recoveryErr)}
 	sealDB := &lensSealDB{accepted: true}
 	if err := (SQLLensDraftStore{DB: sealDB}).Seal(context.Background(), tenant, first); err != nil || sealDB.calls != 1 {
 		t.Fatal("prepared graph seal", err)
@@ -396,4 +407,10 @@ func (d *lensSealDB) QueryRow(_ context.Context, query string, args ...any) pgx.
 		return analysisStageRow(false)
 	}
 	return analysisStageRow(d.accepted)
+}
+
+type lensReplayStoreFake struct { lensDraftStoreFake; accepted bool }
+func(s *lensReplayStoreFake) Replay(_ context.Context,tenant,actor,run uuid.UUID,policy string,draft CompiledLensDraft)(bool,error){
+ if tenant==uuid.Nil || actor==uuid.Nil || run==uuid.Nil || policy=="" || len(draft.Config.Lens.Nodes)==0 {return false,ErrInvalid}
+ return s.accepted,nil
 }

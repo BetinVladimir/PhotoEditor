@@ -1,3 +1,4 @@
+import {semanticWireTime} from './semantic-wire-time';
 import type { ApiClient } from './index';
 
 export type SemanticTargetState='proposed'|'queued'|'rejected'|'unsupported'|'applied'|'failed'|'cancelled';
@@ -8,12 +9,13 @@ export type SemanticTargetPage={items:SemanticTargetResource[];next_cursor:strin
 export type SemanticTargetQuery={limit?:number;cursor?:string;signal?:AbortSignal};
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const validID=(v:unknown):v is string=>typeof v==='string'&&uuid.test(v)&&v!=='00000000-0000-0000-0000-000000000000';
-const revision=(v:unknown):v is string=>typeof v==='string'&&/^[1-9][0-9]{0,18}$/.test(v);
+// Target revisions are full positive int64 decimal strings, independent of parent revisions.
+const revision=(v:unknown):v is string=>typeof v==='string'&&/^[1-9][0-9]{0,18}$/.test(v)&&(v.length<19||v<='9223372036854775807');
 const record=(v:unknown):v is Record<string,unknown>=>v!==null&&typeof v==='object'&&!Array.isArray(v);
 const exact=(v:Record<string,unknown>,keys:string[])=>Object.keys(v).length===keys.length&&keys.every(k=>Object.hasOwn(v,k));
 const states=new Set<string>(['proposed','queued','rejected','unsupported','applied','failed','cancelled']);
 const rowKeys=['resource_type','id','tenant_id','project_id','created_at','revision','updated_at','intent_id','child_run_id','batch_id','asset_version_id','candidate_artifact_id','review_id','override_id','state'];
-const timestamp=(v:unknown)=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}T/.test(v)&&Number.isFinite(Date.parse(v));
+const timestamp=semanticWireTime;
 
 export function decodeSemanticTargets(value:unknown,tenant:string,intent:string):SemanticTargetPage{
  const fail=():never=>{throw new Error('SEMANTIC_TARGET_RESPONSE_INVALID')};
@@ -30,9 +32,12 @@ export function decodeSemanticTargets(value:unknown,tenant:string,intent:string)
 }
 
 export async function listSemanticTargets(client:Pick<ApiClient,'request'>,tenant:string,intent:string,query:SemanticTargetQuery={}):Promise<SemanticTargetPage>{
- if(!validID(tenant)||!validID(intent)||query.limit!==undefined&&(!Number.isInteger(query.limit)||query.limit<1||query.limit>100)||query.cursor!==undefined&&(query.cursor.length<1||query.cursor.length>2048))throw new Error('SEMANTIC_TARGET_QUERY_INVALID');
+ if(!validID(tenant)||!validID(intent)||query.limit!==undefined&&(!Number.isInteger(query.limit)||query.limit<1||query.limit>100)||query.cursor!==undefined&&(typeof query.cursor!=='string'||query.cursor.length<1||query.cursor.length>2048))throw new Error('SEMANTIC_TARGET_QUERY_INVALID');
  const params=new URLSearchParams();if(query.limit!==undefined)params.set('limit',String(query.limit));if(query.cursor!==undefined)params.set('cursor',query.cursor);
  const suffix=params.size?`?${params}`:'';
- const value=await client.request<unknown>(`/api/v1/tenants/${tenant}/semantic-intents/${intent}/targets${suffix}`,{signal:query.signal});
+ const signal=query.signal;
+ signal?.throwIfAborted();
+ const value=await client.request<unknown>(`/api/v1/tenants/${tenant}/semantic-intents/${intent}/targets${suffix}`,{signal});
+ signal?.throwIfAborted();
  return decodeSemanticTargets(value,tenant,intent);
 }

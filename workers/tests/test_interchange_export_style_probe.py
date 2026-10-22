@@ -5,6 +5,33 @@ from photo_worker.operations.interchange.export_style_probe import probe_export_
 from test_interchange_export_style import style_fixture
 
 
+@pytest.mark.parametrize('mode', ['installed', 'missing', 'relative', 'corrupt'])
+def test_composition_probe_resolves_trusted_physical_icc(tmp_path, monkeypatch, mode):
+    from pathlib import Path
+    from shutil import copytree
+    from photo_worker.color.icc import ICCError
+    from test_interchange_export_style import composition_fixture
+    value, models = composition_fixture()
+    raw = canonical_bytes(value)
+    policy = canonical_bytes({'style_weights': models, 'operation_locks': {'mobilesam': 'a' * 64}})
+    document = tmp_path / 'composition.json'; document.write_bytes(raw)
+    policy_path = tmp_path / 'composition-policy.json'; policy_path.write_bytes(policy)
+    request = dict(schema_version=3, contract='RenderComposition', file_path=str(document),
+                   bytes=len(raw), sha256=sha256(raw).hexdigest(),
+                   model_policy_path=str(policy_path), model_policy_bytes=len(policy),
+                   model_policy_sha256=sha256(policy).hexdigest())
+    root = tmp_path / 'icc'
+    copytree(Path(__file__).resolve().parents[2] / 'resources' / 'icc', root)
+    if mode == 'missing': root = tmp_path / 'absent'
+    if mode == 'corrupt': (root / 'work_rec2020_gamma24_v1.icc').write_bytes(b'corrupt')
+    monkeypatch.setenv('PHOTO_ICC_ROOT', 'relative' if mode == 'relative' else str(root))
+    if mode == 'installed':
+        assert probe_export_style(request)['contract'] == 'RenderComposition'
+    else:
+        with pytest.raises((ValueError, OSError, ICCError)):
+            probe_export_style(request)
+
+
 def request_for(tmp_path):
     value = style_fixture()
     raw = canonical_bytes(value)

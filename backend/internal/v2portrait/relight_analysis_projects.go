@@ -2,6 +2,7 @@ package v2portrait
 
 import (
 	"context"
+ "errors"
 	"github.com/google/uuid"
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/v2input"
@@ -13,6 +14,7 @@ type analysisProjectKey struct {
 	Operation       string
 }
 type RelightAnalysisProjects struct {
+ db DonorConfirmationTransactions
 	services map[analysisProjectKey]*RelightAnalysisService
 }
 
@@ -25,6 +27,7 @@ func NewRelightAnalysisProjects(services ...*RelightAnalysisService) (*RelightAn
 		if service == nil {
 			return nil, v2input.ErrInvalid
 		}
+		if result.db == nil { result.db = service.coordinator.DB }
 		key := analysisProjectKey{service.tenant, service.project, service.coordinator.Expected.Operation}
 		if result.services[key] != nil {
 			return nil, v2input.ErrInvalid
@@ -40,6 +43,11 @@ func (s *RelightAnalysisProjects) SubmitProjectAnalysis(ctx context.Context, who
 	if s == nil {
 		return RelightAnalysisReceipt{}, v2qualification.ErrUnqualified
 	}
+ if s.db != nil {
+  receipt, err := readStoredAnalysisReceipt(ctx,s.db,who,tenant,project,key,intent)
+  if err == nil { return receipt,nil }
+  if !errors.Is(err,v2input.ErrExpired)||IsRelightReplayOnly(ctx) { return RelightAnalysisReceipt{},err }
+ }
 	service := s.services[analysisProjectKey{tenant, project, intent.Operation}]
 	if service == nil {
 		return RelightAnalysisReceipt{}, v2qualification.ErrUnqualified

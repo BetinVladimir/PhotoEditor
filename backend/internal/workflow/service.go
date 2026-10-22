@@ -13,11 +13,14 @@ import (
 	"photoeditor/backend/internal/artifactjson"
 	"photoeditor/backend/internal/collection"
 	"photoeditor/backend/internal/colorprofile"
+	"photoeditor/backend/internal/database"
+	"photoeditor/backend/internal/media"
 	"photoeditor/backend/internal/objectstore"
 	"photoeditor/backend/internal/upload"
 	"photoeditor/backend/internal/v2input"
 	"photoeditor/backend/internal/v2learning"
 	"photoeditor/backend/internal/v2optical"
+	"photoeditor/backend/internal/v2render"
 	"photoeditor/backend/internal/v2sessions"
 	"sync/atomic"
 	"time"
@@ -96,6 +99,7 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 		return errors.New("scheduler database configuration invalid")
 	}
 	cfg.ConnConfig.RuntimeParams["role"] = "photo_scheduler"
+	database.GuardApplicationRole(cfg)
 	cfg.ConnConfig.RuntimeParams["statement_timeout"] = "5000"
 	cfg.ConnConfig.RuntimeParams["lock_timeout"] = "3000"
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
@@ -103,6 +107,12 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 		return errors.New("scheduler database unavailable")
 	}
 	defer pool.Close()
+	if err := database.RequireApplicationRole(ctx, pool, "photo_scheduler"); err != nil {
+		return err
+	}
+	if err := media.RequireRendererPolicy(ctx, pool); err != nil {
+		return err
+	}
 	var capacityRuntime *CapacityRuntime
 	if capacityPin != "" {
 		capacityStartup, stopCapacityStartup := context.WithTimeout(ctx, 10*time.Second)
@@ -130,6 +140,11 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 	startup, finishStartup := context.WithTimeout(ctx, 10*time.Second)
 	var installed bool
 	err = pool.QueryRow(startup, `SELECT to_regprocedure('photo.adopt_ingest_image(uuid,uuid,bigint,uuid,text,jsonb,jsonb)') IS NOT NULL
+ AND EXISTS(SELECT FROM pg_proc p WHERE p.oid=to_regprocedure('photo.adopt_ingest_image(uuid,uuid,bigint,uuid,text,jsonb,jsonb)')
+  AND p.prosecdef AND pg_get_userbyid(p.proowner)='photo_fn_owner'
+  AND strpos(p.prosrc,'-''captured_at''-''captured_local''')>0
+  AND strpos(p.prosrc,'p_metadata ? ''captured_local''')>0
+  AND strpos(p.prosrc,'photo.collection_capture_instant(p_metadata->>''captured_at'')')>0)
  AND to_regprocedure('photo.reject_ingest_upload(uuid,uuid,bigint,uuid,text,text,text)') IS NOT NULL
  AND to_regprocedure('photo.finish_ingest_run(uuid,uuid)') IS NOT NULL
  AND to_regprocedure('photo.cancel_idle_task()') IS NOT NULL
@@ -139,6 +154,26 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
  AND to_regprocedure('photo.reconcile_v29_negative_invalidation(uuid,uuid,uuid,uuid,uuid,text,jsonb,integer,integer)') IS NOT NULL
  AND to_regprocedure('photo.cancel_ingest_upload()') IS NOT NULL
  AND to_regprocedure('photo.finalize_run_cancellation()') IS NOT NULL
+ AND to_regprocedure('photo.withdraw_completed_glare_consent()') IS NOT NULL
+ AND to_regprocedure('photo.withdraw_completed_open_eyes_consent()') IS NOT NULL
+ AND to_regprocedure('photo.release_next_glare_withdrawn_quota()') IS NOT NULL
+ AND to_regprocedure('photo.release_next_open_eyes_withdrawn_quota()') IS NOT NULL
+ AND to_regprocedure('photo.release_next_v23_cancelled_training_quota()') IS NOT NULL
+ AND to_regprocedure('photo.authored_render_base_adoption_context(uuid,uuid,uuid)') IS NOT NULL
+ AND has_function_privilege(current_user,to_regprocedure('photo.authored_render_base_adoption_context(uuid,uuid,uuid)'),'EXECUTE')
+ AND to_regprocedure('photo.stage_authored_render_base_receipt(uuid,uuid,uuid,uuid,text)') IS NOT NULL
+ AND has_function_privilege(current_user,to_regprocedure('photo.stage_authored_render_base_receipt(uuid,uuid,uuid,uuid,text)'),'EXECUTE')
+ AND to_regprocedure('photo.reserve_authored_render_base_document(uuid,uuid,text)') IS NOT NULL
+ AND has_function_privilege(current_user,to_regprocedure('photo.reserve_authored_render_base_document(uuid,uuid,text)'),'EXECUTE')
+ AND to_regprocedure('photo.complete_authored_render_base_document(uuid,uuid,uuid,uuid,text,bigint,text,text)') IS NOT NULL
+ AND has_function_privilege(current_user,to_regprocedure('photo.complete_authored_render_base_document(uuid,uuid,uuid,uuid,text,bigint,text,text)'),'EXECUTE')
+ AND to_regprocedure('photo.commit_authored_render_base_phase(uuid,uuid,uuid,uuid,uuid,text)') IS NOT NULL
+ AND has_function_privilege(current_user,to_regprocedure('photo.commit_authored_render_base_phase(uuid,uuid,uuid,uuid,uuid,text)'),'EXECUTE')
+ AND has_function_privilege(current_user,to_regprocedure('photo.withdraw_completed_glare_consent()'),'EXECUTE')
+ AND has_function_privilege(current_user,to_regprocedure('photo.withdraw_completed_open_eyes_consent()'),'EXECUTE')
+ AND has_function_privilege(current_user,to_regprocedure('photo.release_next_glare_withdrawn_quota()'),'EXECUTE')
+ AND has_function_privilege(current_user,to_regprocedure('photo.release_next_open_eyes_withdrawn_quota()'),'EXECUTE')
+ AND has_function_privilege(current_user,to_regprocedure('photo.release_next_v23_cancelled_training_quota()'),'EXECUTE')
  AND to_regprocedure('photo.release_next_v29_replacement_detector_quota()') IS NOT NULL
  AND has_function_privilege(current_user,to_regprocedure('photo.release_next_v29_replacement_detector_quota()'),'EXECUTE')
  AND to_regprocedure('photo.settle_next_semantic_child()') IS NOT NULL
@@ -189,6 +224,7 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
  AND to_regprocedure('photo.seal_download_exports(uuid,uuid)') IS NOT NULL
  AND to_regprocedure('photo.download_build_phase(uuid,uuid)') IS NOT NULL
  AND to_regprocedure('photo.download_encode_outcomes(uuid,uuid)') IS NOT NULL
+ AND to_regprocedure('photo.fail_download_encoding(uuid,uuid)') IS NOT NULL
  AND to_regprocedure('photo.begin_download_packaging(uuid,uuid,jsonb)') IS NOT NULL
  AND to_regprocedure('photo.download_archive_context(uuid,uuid)') IS NOT NULL
  AND to_regprocedure('photo.register_download_archive_plan(uuid,uuid,uuid,integer,text,jsonb,jsonb,text,jsonb)') IS NOT NULL
@@ -207,6 +243,23 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
  AND to_regprocedure('photo.finalize_v26_render_batch()') IS NOT NULL
  AND to_regprocedure('photo.sync_v26_render_batch_state()') IS NOT NULL
  AND to_regprocedure('photo.release_next_v26_render_derivative_quota()') IS NOT NULL
+ AND to_regprocedure('photo.semantic_preview_lifecycle_current(uuid,uuid)') IS NOT NULL
+ AND to_regprocedure('photo.finalize_next_semantic_retouch_preview()') IS NOT NULL
+ AND has_function_privilege(current_user,to_regprocedure('photo.finalize_next_semantic_retouch_preview()'),'EXECUTE')
+ AND to_regprocedure('photo.cancel_stale_semantic_preapply_preview()') IS NOT NULL
+ AND has_function_privilege(current_user,to_regprocedure('photo.cancel_stale_semantic_preapply_preview()'),'EXECUTE')
+ AND to_regprocedure('photo.finalize_next_semantic_preapply_preview()') IS NOT NULL
+ AND has_function_privilege(current_user,to_regprocedure('photo.finalize_next_semantic_preapply_preview()'),'EXECUTE')
+ AND EXISTS(SELECT FROM pg_proc renewal WHERE renewal.oid=to_regprocedure('photo.renew_next_retry_cleanup_quota()')
+  AND renewal.prosecdef AND pg_get_userbyid(renewal.proowner)='photo_fn_owner'
+  AND has_function_privilege(current_user,renewal.oid,'EXECUTE')
+  AND strpos(renewal.prosrc,'-- 02541:')>0 AND strpos(renewal.prosrc,'interval ''4 hours''')>0
+  AND strpos(renewal.prosrc,'interval ''15 minutes''')>0
+  AND strpos(renewal.prosrc,'q.expires_at<=clock_timestamp()')>0
+  AND strpos(renewal.prosrc,'SET expires_at=until_time')>strpos(renewal.prosrc,'q.expires_at<=clock_timestamp()')
+  AND NOT EXISTS(SELECT FROM aclexplode(coalesce(renewal.proacl,acldefault('f',renewal.proowner))) a WHERE a.grantee=0 AND a.privilege_type='EXECUTE'))
+ AND to_regprocedure('photo.release_next_semantic_preapply_preview_quota()') IS NOT NULL
+ AND has_function_privilege(current_user,to_regprocedure('photo.release_next_semantic_preapply_preview_quota()'),'EXECUTE')
  AND to_regprocedure('photo.finalize_failed_v26_render_derivative()') IS NOT NULL
  AND to_regprocedure('photo.finalize_successful_v26_render_derivative()') IS NOT NULL
  AND to_regprocedure('photo.cancel_stale_v26_render_derivative()') IS NOT NULL
@@ -220,6 +273,13 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
  AND to_regprocedure('photo.seal_v29_multi_preview(uuid,uuid,text,text,jsonb,jsonb)') IS NOT NULL
  AND to_regprocedure('photo.v29_multi_preview_receipt(uuid,uuid,uuid,uuid,text,text,text,integer,bigint)') IS NOT NULL
  AND to_regprocedure('photo.v29_multi_preview_read_originals(uuid,uuid,text,integer,bigint,uuid,text)') IS NOT NULL
+ AND to_regprocedure('photo.next_v25_lens_preview_producer(uuid,text)') IS NOT NULL
+ AND to_regprocedure('photo.v25_lens_preview_source(uuid,uuid)') IS NOT NULL
+ AND to_regprocedure('photo.seal_v25_lens_preview(uuid,uuid,text,text,text,jsonb)') IS NOT NULL
+ AND to_regprocedure('photo.finalize_successful_v25_lens_preview(uuid,uuid)') IS NOT NULL
+ AND to_regprocedure('photo.pending_v25_lens_preview_lifecycle(uuid,uuid)') IS NOT NULL
+ AND to_regprocedure('photo.maintain_v25_lens_preview(uuid,uuid)') IS NOT NULL
+ AND to_regprocedure('photo.next_v25_lens_preview_tenant(uuid)') IS NOT NULL
  AND to_regprocedure('photo.next_v29_perspective_preview_producer(uuid,text)') IS NOT NULL
  AND to_regprocedure('photo.seal_v29_perspective_preview(uuid,uuid,text,text,text,jsonb)') IS NOT NULL
  AND to_regprocedure('photo.finalize_successful_v29_perspective_preview(uuid,uuid)') IS NOT NULL
@@ -242,6 +302,14 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
  AND to_regprocedure('photo.complete_interactive_document(uuid,uuid,uuid,uuid,uuid,text,bigint,text,text)') IS NOT NULL
  AND to_regprocedure('photo.materialize_interactive_task(uuid,uuid,uuid,uuid,uuid,text,jsonb,text,jsonb)') IS NOT NULL
  AND to_regprocedure('photo.finalize_interactive_run()') IS NOT NULL
+ AND to_regprocedure('photo.enqueue_next_v28_relight_before_media()') IS NOT NULL
+ AND to_regprocedure('photo.enqueue_next_v28_local_portrait_before_media()') IS NOT NULL
+ AND to_regprocedure('photo.finalize_v28_relight_selected_run()') IS NOT NULL
+ AND to_regprocedure('photo.apply_v28_relight_version(uuid,uuid,uuid,uuid,text,text,text)') IS NOT NULL
+ AND to_regprocedure('photo.decide_v28_relight_review(uuid,uuid,uuid,uuid,bigint,text,jsonb,text,text,jsonb)') IS NOT NULL
+ AND to_regprocedure('photo.v28_relight_viewed_pair_ready(uuid,uuid,uuid,uuid,bigint,jsonb)') IS NOT NULL
+ AND to_regprocedure('photo.v2_pending_adoptions_pre_relight_review_recovery()') IS NOT NULL
+ AND to_regprocedure('photo.v28_relight_review_read_ready(uuid,uuid,uuid,uuid)') IS NOT NULL
  AND to_regprocedure('photo.claim_generation_preview()') IS NOT NULL
  AND to_regprocedure('photo.register_generation_preview(uuid,uuid,uuid,jsonb,text,jsonb)') IS NOT NULL
  AND to_regprocedure('photo.claim_style_analysis_build()') IS NOT NULL
@@ -283,7 +351,10 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
  AND to_regprocedure('photo.finalize_media_retry_job()') IS NOT NULL
  AND to_regprocedure('photo.enqueue_bulk_chunk()') IS NOT NULL`).Scan(&installed)
 	if err == nil && installed {
-		err = storage.Ready(startup)
+		err = v2input.RequireDraftEdgeUUID(startup, pool)
+		if err == nil {
+			err = storage.Ready(startup)
+		}
 	}
 	finishStartup()
 	if err != nil || !installed {
@@ -417,17 +488,57 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 	renderBatchState := new(ExpansionLoopState)
 	renderDerivativeCleanupState := new(ExpansionLoopState)
 	renderDerivativeState := new(ExpansionLoopState)
+	editorEffectsState := new(ExpansionLoopState)
 	restorationPreviewState := new(ExpansionLoopState)
 	perspectivePreviewState := new(ExpansionLoopState)
+	lensPreviewState := new(ExpansionLoopState)
 	multiPreviewState := new(ExpansionLoopState)
 	multiQualityState := new(ExpansionLoopState)
 	perspectiveQualityState := new(ExpansionLoopState)
+	negativeQuotaState := new(ExpansionLoopState)
+	negativeState := new(ExpansionLoopState)
+	detectorQuotaState := new(ExpansionLoopState)
 	renderRecoveryState := new(ExpansionLoopState)
 	nativeRecoveryState := new(ExpansionLoopState)
 	perspectiveLinesRecoveryState := new(ExpansionLoopState)
 	perspectiveLinesLifecycleState := new(ExpansionLoopState)
 	interactiveState := new(ExpansionLoopState)
 	interactiveFinalizeState := new(ExpansionLoopState)
+	authoredFaceProcessor, closeAuthoredFace, err := buildAuthoredFaceParentScheduler(ctx, pool, storage, storageConfig.Bucket, profileSHAs["srgb_v1"])
+	if err != nil {
+		return err
+	}
+	defer closeAuthoredFace()
+	authoredDetailProcessor, closeAuthoredDetail, err := buildAuthoredDetailParentScheduler(ctx, pool, storage, storageConfig.Bucket)
+	if err != nil {
+		return err
+	}
+	defer closeAuthoredDetail()
+	authoredDetailState := new(ExpansionLoopState)
+	if authoredDetailProcessor == nil {
+		slog.Info("authored detail unavailable: deployment not configured")
+	}
+	authoredFinalProcessor, closeAuthoredFinal, err := buildAuthoredFinalParentScheduler(ctx, pool, storage, storageConfig.Bucket)
+	if err != nil {
+		return err
+	}
+	defer closeAuthoredFinal()
+	authoredFinalState := new(ExpansionLoopState)
+	authoredGeometryContinuation, err := buildAuthoredGeometryContinuation(ctx, pool, storage, storageConfig.Bucket)
+	if err != nil {
+		return err
+	}
+	authoredGeometryContinuationState := new(ExpansionLoopState)
+	authoredGeometryPreparation, closeGeometryPreparation, err := buildAuthoredGeometryPreparation(ctx, pool, storage, storageConfig.Bucket)
+	if err != nil {
+		return err
+	}
+	defer closeGeometryPreparation()
+	authoredGeometryPreparationState := new(ExpansionLoopState)
+	if authoredFinalProcessor == nil {
+		slog.Info("authored final unavailable: deployment not configured")
+	}
+	authoredFaceState := new(ExpansionLoopState)
 	applyState := new(ExpansionLoopState)
 	mediaRetryState := new(ExpansionLoopState)
 	mediaFinalizeState := new(ExpansionLoopState)
@@ -535,8 +646,12 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 		Source:  DownloadExportLoader{DB: pool, Objects: storage, Bucket: storageConfig.Bucket, WorkICCSHA256: workSHA, TargetICCs: profileSHAs},
 		Builder: DownloadExportBuilder{Plans: downloadPlans, Publisher: publisher}, Tasks: downloadPlans,
 	}
+	downloadLimits, err := DownloadVolumeLimitsFromEnvironment(os.Getenv)
+	if err != nil {
+		return err
+	}
 	downloadRunner := DownloadBuildRunnerV2{Phases: DownloadBuildPhaseSource{DB: pool}, Exports: downloadExports,
-		Packaging: DownloadPackagingCoordinator{Outcomes: DownloadEncodeOutcomeSource{DB: pool}, Plans: DownloadPackagingRepository{DB: pool}},
+		Packaging: DownloadPackagingCoordinator{ByteLimit: downloadLimits.Bytes, FileLimit: downloadLimits.Files, Outcomes: DownloadEncodeOutcomeSource{DB: pool}, Plans: DownloadPackagingRepository{DB: pool}},
 		Archives: DownloadArchiveCoordinator{Source: DownloadArchiveContextSource{DB: pool},
 			Builder: DownloadArchiveBuilder{Plans: DownloadArchiveRepository{DB: pool}, Publisher: publisher}, Tasks: DownloadArchiveTaskRepository{DB: pool}},
 		Finalize: DownloadArchiveFinalizer{DB: pool}}
@@ -547,11 +662,22 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 	styleImportProcessor := StyleImportCoordinator{Store: StyleImportStore{DB: pool}, Publisher: artifactjson.Publisher{Repository: StyleImportDocuments{DB: pool, Bucket: storageConfig.Bucket}, Objects: storage}}
 	embeddingProcessor := AssetEmbeddingMaterializer{Repository: SQLAssetEmbeddingRepository{DB: pool, Bucket: storageConfig.Bucket}, Objects: storage}
 	exportBatchProcessor := ExportBatchFinalizer{DB: pool}
-	renderBatchProcessor := RenderBatchFinalizer{DB: pool}
+	renderBatchProcessor := RenderBatchFinalizer{DB: pool, Billing: true, OperationBilling: true, Relight: true, LocalPortrait: true}
 	renderDerivativeCleanupProcessor := RenderDerivativeCleanup{DB: pool}
 	renderDerivativeProcessor := &RenderDerivativeCoordinator{DB: pool, Objects: storage, Bucket: storageConfig.Bucket, WorkSHA: workSHA, SRGBSHA: profileSHAs["srgb_v1"]}
+	editorRenderCalibrations, calibrationErr := loadEditorRenderCalibration(os.Getenv, func(path, digest string) (v2render.RenderCalibrationCatalog, error) {
+		return v2render.LoadPinnedRenderCalibrationCatalog(path, digest)
+	})
+	if calibrationErr != nil {
+		return calibrationErr
+	}
+	editorEffectsProcessor := &EditorEffectsCoordinator{DB: pool, Objects: storage, Bucket: storageConfig.Bucket, Calibrations: editorRenderCalibrations}
+	if err := validateEditorEffectsRuntimeSQL(ctx, pool); err != nil {
+		return err
+	}
 	perspectiveQualityProcessor := &PerspectiveQualityProcessor{Source: SQLPerspectiveQualityProducers{DB: pool},
 		Preparer: PerspectiveQualityCoordinator{DB: pool, Objects: storage, Bucket: storageConfig.Bucket, WorkingSHA: workSHA}}
+	lensPreviewProcessor := &LensPreviewProcessor{Source: SQLLensPreviewProducers{DB: pool}, Preparer: LensPreviewCoordinator{DB: pool, Objects: storage, Bucket: storageConfig.Bucket, WorkingSHA: workSHA, SRGBSHA: profileSHAs["srgb_v1"]}, SRGBSHA: profileSHAs["srgb_v1"]}
 	perspectivePreviewProcessor := &PerspectivePreviewProcessor{Source: SQLPerspectivePreviewProducers{DB: pool},
 		Preparer: PerspectivePreviewCoordinator{DB: pool, Objects: storage, Bucket: storageConfig.Bucket, WorkingSHA: workSHA, SRGBSHA: profileSHAs["srgb_v1"]}, SRGBSHA: profileSHAs["srgb_v1"]}
 	multiPreviewProcessor := &MultiPreviewProcessor{Source: SQLMultiPreviewProducers{DB: pool}, Preparer: MultiPreviewCoordinator{DB: pool, Objects: storage, Bucket: storageConfig.Bucket, WorkingSHA: workSHA, SRGBSHA: profileSHAs["srgb_v1"]}, SRGBSHA: profileSHAs["srgb_v1"]}
@@ -733,7 +859,7 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 
 	interactiveProcessor := InteractiveCoordinator{Store: InteractiveStore{DB: pool}, Publisher: artifactjson.Publisher{Repository: InteractiveDocuments{DB: pool, Bucket: storageConfig.Bucket}, Objects: storage}, Objects: storage, Bucket: storageConfig.Bucket}
 	interactiveFinalizer := InteractiveFinalizer{DB: pool}
-	applyProcessor := ApplyCoordinator{Store: ApplyStore{DB: pool}, Publisher: artifactjson.Publisher{Repository: ApplyDocuments{DB: pool, Bucket: storageConfig.Bucket}, Objects: storage}, Objects: storage, Bucket: storageConfig.Bucket}
+	applyProcessor := ApplyCoordinator{Store: AuthoredBaseApplyStore{ApplyStore: ApplyStore{DB: pool}, Objects: storage, Bucket: storageConfig.Bucket}, Publisher: artifactjson.Publisher{Repository: ApplyDocuments{DB: pool, Bucket: storageConfig.Bucket}, Objects: storage}, Objects: storage, Bucket: storageConfig.Bucket}
 	mediaRetryStore := MediaRetryStore{DB: pool, Objects: storage, Bucket: storageConfig.Bucket}
 	mediaRetryProcessor := MediaRetryCoordinator{Store: mediaRetryStore, Publisher: artifactjson.Publisher{Repository: MediaRetryDocuments{DB: pool, Bucket: storageConfig.Bucket}, Objects: storage}, SRGBSHA: profileSHAs["srgb_v1"]}
 	mediaFinalizer := MediaRetryFinalizer{DB: pool}
@@ -771,11 +897,25 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok"}`))
 	})
+	mux.HandleFunc("GET /health/authored-face", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if authoredFaceProcessor == nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			w.Write([]byte(`{"status":"unavailable","reason":"deployment_not_configured"}`))
+			return
+		}
+		if !authoredFaceState.Ready.Load() {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			w.Write([]byte(`{"status":"unavailable"}`))
+			return
+		}
+		w.Write([]byte(`{"status":"ready"}`))
+	})
 	mux.HandleFunc("GET /health/ready", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		ping, cancel := context.WithTimeout(r.Context(), time.Second)
 		defer cancel()
-		if (learningEvaluateInstalled && !learningEvaluateState.Ready.Load()) || (restorationEnabled && !restorationAdoptionState.Ready.Load()) || (identityAdoptionEnabled && !identityAdoptionState.Ready.Load()) || (restorationPreviewEnabled && !restorationPreviewState.Ready.Load()) || (metadataAdoptionEnabled && !metadataAdoptionState.Ready.Load()) || (replacementAdoptionEnabled && !replacementAdoptionState.Ready.Load()) || !ready.Load() || (deliveryConfig.Enabled && (!deliveryState.Ready.Load() || !deliveryRuntimeReady.Load())) || (captureEnabled && !captureState.Ready.Load()) || (sessionPlanInstalled && !sessionPlanState.Ready.Load()) || (semanticAssemblyInstalled && !semanticAssemblyState.Ready.Load()) || (sceneMaterializationInstalled && !sceneMaterializationState.Ready.Load()) || !expansionState.Ready.Load() || !ingestState.Ready.Load() || !interchangeCollectionState.Ready.Load() || (interchangeImportProcessor != nil && (!interchangeImportState.Ready.Load() || !interchangeImportRuntimeReady.Load())) || (interchangeExportProcessor != nil && (!interchangeExportState.Ready.Load() || !interchangeExportRuntimeReady.Load())) || (archiveInvalidationProcessor != nil && !archiveInvalidationState.Ready.Load()) || (archiveRevocationProcessor != nil && !archiveRevocationState.Ready.Load()) || (archiveRecoveryProcessor != nil && !archiveRecoveryState.Ready.Load()) || (archiveCleanupProcessor != nil && !archiveCleanupState.Ready.Load()) || (archiveExpiryProcessor != nil && !archiveExpiryState.Ready.Load()) || (archiveCompletionProcessor != nil && !archiveCompletionState.Ready.Load()) || !uploadState.Ready.Load() || !downloadState.Ready.Load() || !bulkState.Ready.Load() || !styleState.Ready.Load() || !styleAnalysisState.Ready.Load() || !styleImportState.Ready.Load() || !embeddingState.Ready.Load() || !exportBatchState.Ready.Load() || !renderBatchState.Ready.Load() || !renderDerivativeCleanupState.Ready.Load() || !renderDerivativeState.Ready.Load() || !perspectivePreviewState.Ready.Load() || !multiQualityState.Ready.Load() || !multiPreviewState.Ready.Load() || !perspectiveQualityState.Ready.Load() || !renderRecoveryState.Ready.Load() || (nativeRecoveryProcessor != nil && !nativeRecoveryState.Ready.Load()) || (linesEnabled && (!perspectiveLinesRecoveryState.Ready.Load() || !perspectiveLinesLifecycleState.Ready.Load())) || !interactiveState.Ready.Load() || !interactiveFinalizeState.Ready.Load() || !applyState.Ready.Load() || !mediaRetryState.Ready.Load() || !mediaFinalizeState.Ready.Load() || pool.Ping(ping) != nil || storage.Ready(ping) != nil {
+		if (authoredFaceProcessor != nil && !authoredFaceState.Ready.Load()) || (authoredDetailProcessor != nil && !authoredDetailState.Ready.Load()) || (authoredFinalProcessor != nil && !authoredFinalState.Ready.Load()) || (authoredGeometryContinuation != nil && !authoredGeometryContinuationState.Ready.Load()) || (authoredGeometryPreparation != nil && !authoredGeometryPreparationState.Ready.Load()) || (learningEvaluateInstalled && !learningEvaluateState.Ready.Load()) || (restorationEnabled && !restorationAdoptionState.Ready.Load()) || (identityAdoptionEnabled && !identityAdoptionState.Ready.Load()) || (restorationPreviewEnabled && !restorationPreviewState.Ready.Load()) || (metadataAdoptionEnabled && !metadataAdoptionState.Ready.Load()) || (replacementAdoptionEnabled && !replacementAdoptionState.Ready.Load()) || !ready.Load() || (deliveryConfig.Enabled && (!deliveryState.Ready.Load() || !deliveryRuntimeReady.Load())) || (captureEnabled && !captureState.Ready.Load()) || (sessionPlanInstalled && !sessionPlanState.Ready.Load()) || (semanticAssemblyInstalled && !semanticAssemblyState.Ready.Load()) || (sceneMaterializationInstalled && !sceneMaterializationState.Ready.Load()) || !expansionState.Ready.Load() || !ingestState.Ready.Load() || !interchangeCollectionState.Ready.Load() || (interchangeImportProcessor != nil && (!interchangeImportState.Ready.Load() || !interchangeImportRuntimeReady.Load())) || (interchangeExportProcessor != nil && (!interchangeExportState.Ready.Load() || !interchangeExportRuntimeReady.Load())) || (archiveInvalidationProcessor != nil && !archiveInvalidationState.Ready.Load()) || (archiveRevocationProcessor != nil && !archiveRevocationState.Ready.Load()) || (archiveRecoveryProcessor != nil && !archiveRecoveryState.Ready.Load()) || (archiveCleanupProcessor != nil && !archiveCleanupState.Ready.Load()) || (archiveExpiryProcessor != nil && !archiveExpiryState.Ready.Load()) || (archiveCompletionProcessor != nil && !archiveCompletionState.Ready.Load()) || !uploadState.Ready.Load() || !downloadState.Ready.Load() || !bulkState.Ready.Load() || !styleState.Ready.Load() || !styleAnalysisState.Ready.Load() || !styleImportState.Ready.Load() || !embeddingState.Ready.Load() || !exportBatchState.Ready.Load() || !renderBatchState.Ready.Load() || !renderDerivativeCleanupState.Ready.Load() || !renderDerivativeState.Ready.Load() || !editorEffectsState.Ready.Load() || !perspectivePreviewState.Ready.Load() || !lensPreviewState.Ready.Load() || !multiQualityState.Ready.Load() || !multiPreviewState.Ready.Load() || !perspectiveQualityState.Ready.Load() || !negativeQuotaState.Ready.Load() || !negativeState.Ready.Load() || !detectorQuotaState.Ready.Load() || !renderRecoveryState.Ready.Load() || (nativeRecoveryProcessor != nil && !nativeRecoveryState.Ready.Load()) || (linesEnabled && (!perspectiveLinesRecoveryState.Ready.Load() || !perspectiveLinesLifecycleState.Ready.Load())) || !interactiveState.Ready.Load() || !interactiveFinalizeState.Ready.Load() || !applyState.Ready.Load() || !mediaRetryState.Ready.Load() || !mediaFinalizeState.Ready.Load() || pool.Ping(ping) != nil || storage.Ready(ping) != nil {
 			w.WriteHeader(http.StatusServiceUnavailable)
 			w.Write([]byte(`{"status":"unavailable"}`))
 			return
@@ -849,8 +989,13 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 	if metadataAdoptionEnabled {
 		metadataCtx, stopMetadata := context.WithCancel(ctx)
 		metadataDone := make(chan error, 1)
+		metadataJob := runtimeFailureWithdrawal{Job: metadataAdoptionProcessor, State: metadataAdoptionState,
+			Withdraw: func(ctx context.Context) error {
+				_, err := pool.Exec(ctx, "SELECT photo.withdraw_v30_delivery_runtime($1)", deliveryInstance)
+				return err
+			}}
 		go func() {
-			metadataDone <- RunExpansionLoop(metadataCtx, metadataAdoptionProcessor, metadataAdoptionState, 5*time.Second)
+			metadataDone <- RunExpansionLoop(metadataCtx, metadataJob, metadataAdoptionState, 5*time.Second)
 		}()
 		defer func() { stopMetadata(); <-metadataDone }()
 	}
@@ -1051,6 +1196,11 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 		perspectiveDone <- RunExpansionLoop(perspectiveCtx, perspectivePreviewProcessor, perspectivePreviewState, 5*time.Second)
 	}()
 	defer func() { stopPerspectivePreview(); <-perspectiveDone }()
+	lensCtx, stopLensPreview := context.WithCancel(ctx)
+	lensDone := make(chan error, 1)
+	go func() { lensDone <- RunExpansionLoop(lensCtx, lensPreviewProcessor, lensPreviewState, 5*time.Second) }()
+	defer func() { stopLensPreview(); <-lensDone }()
+
 	multiPreviewCtx, stopMultiPreview := context.WithCancel(ctx)
 	multiPreviewDone := make(chan error, 1)
 	go func() {
@@ -1070,6 +1220,12 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 		derivativeDone <- RunExpansionLoop(derivativeCtx, renderDerivativeProcessor, renderDerivativeState, 5*time.Second)
 	}()
 	defer func() { stopDerivative(); <-derivativeDone }()
+	editorEffectsCtx, stopEditorEffects := context.WithCancel(ctx)
+	editorEffectsDone := make(chan error, 1)
+	go func() {
+		editorEffectsDone <- RunExpansionLoop(editorEffectsCtx, editorEffectsProcessor, editorEffectsState, 5*time.Second)
+	}()
+	defer func() { stopEditorEffects(); <-editorEffectsDone }()
 	derivativeCleanupCtx, stopDerivativeCleanup := context.WithCancel(ctx)
 	derivativeCleanupDone := make(chan error, 1)
 	go func() {
@@ -1119,6 +1275,46 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 		interactiveFinalizeDone <- RunExpansionLoop(interactiveFinalizeCtx, interactiveFinalizer, interactiveFinalizeState, 5*time.Second)
 	}()
 	defer func() { stopInteractiveFinalize(); <-interactiveFinalizeDone }()
+	if authoredFaceProcessor != nil {
+		authoredFaceCtx, stopAuthoredFace := context.WithCancel(ctx)
+		authoredFaceDone := make(chan error, 1)
+		go func() {
+			authoredFaceDone <- RunExpansionLoop(authoredFaceCtx, authoredFaceProcessor, authoredFaceState, 5*time.Second)
+		}()
+		defer func() { stopAuthoredFace(); <-authoredFaceDone }()
+	}
+	if authoredDetailProcessor != nil {
+		authoredDetailCtx, stopAuthoredDetail := context.WithCancel(ctx)
+		authoredDetailDone := make(chan error, 1)
+		go func() {
+			authoredDetailDone <- RunExpansionLoop(authoredDetailCtx, authoredDetailProcessor, authoredDetailState, 5*time.Second)
+		}()
+		defer func() { stopAuthoredDetail(); <-authoredDetailDone }()
+	}
+	if authoredFinalProcessor != nil {
+		authoredFinalCtx, stopAuthoredFinal := context.WithCancel(ctx)
+		authoredFinalDone := make(chan error, 1)
+		go func() {
+			authoredFinalDone <- RunExpansionLoop(authoredFinalCtx, authoredFinalProcessor, authoredFinalState, 5*time.Second)
+		}()
+		defer func() { stopAuthoredFinal(); <-authoredFinalDone }()
+	}
+	if authoredGeometryContinuation != nil {
+		geometryCtx, stopGeometry := context.WithCancel(ctx)
+		geometryDone := make(chan error, 1)
+		go func() {
+			geometryDone <- RunExpansionLoop(geometryCtx, authoredGeometryContinuation, authoredGeometryContinuationState, 5*time.Second)
+		}()
+		defer func() { stopGeometry(); <-geometryDone }()
+	}
+	if authoredGeometryPreparation != nil {
+		geometryPrepareCtx, stopGeometryPrepare := context.WithCancel(ctx)
+		geometryPrepareDone := make(chan error, 1)
+		go func() {
+			geometryPrepareDone <- RunExpansionLoop(geometryPrepareCtx, authoredGeometryPreparation, authoredGeometryPreparationState, 5*time.Second)
+		}()
+		defer func() { stopGeometryPrepare(); <-geometryPrepareDone }()
+	}
 	applyCtx, stopApply := context.WithCancel(ctx)
 	applyDone := make(chan error, 1)
 	go func() { applyDone <- RunExpansionLoop(applyCtx, applyProcessor, applyState, 5*time.Second) }()
@@ -1139,7 +1335,6 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 	// original object versions; qualification evidence is never synthesized.
 	negativeCtx, stopNegative := context.WithCancel(ctx)
 	negativeDone := make(chan error, 1)
-	negativeState := new(ExpansionLoopState)
 	negativeProcessor := &v2optical.NegativeScheduler{Backend: negativeBackend}
 	go func() { negativeDone <- RunExpansionLoop(negativeCtx, negativeProcessor, negativeState, 5*time.Second) }()
 	defer func() { stopNegative(); <-negativeDone }()
@@ -1180,14 +1375,12 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 	}
 	detectorQuotaCtx, stopDetectorQuota := context.WithCancel(ctx)
 	detectorQuotaDone := make(chan error, 1)
-	detectorQuotaState := new(ExpansionLoopState)
 	go func() {
 		detectorQuotaDone <- RunExpansionLoop(detectorQuotaCtx, ReplacementDetectorQuotaCleanup{DB: pool}, detectorQuotaState, 5*time.Second)
 	}()
 	defer func() { stopDetectorQuota(); <-detectorQuotaDone }()
 	negativeQuotaCtx, stopNegativeQuota := context.WithCancel(ctx)
 	negativeQuotaDone := make(chan error, 1)
-	negativeQuotaState := new(ExpansionLoopState)
 	go func() {
 		negativeQuotaDone <- RunExpansionLoop(negativeQuotaCtx, NegativeCancellationQuota{DB: pool}, negativeQuotaState, 5*time.Second)
 	}()

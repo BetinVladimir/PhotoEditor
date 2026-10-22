@@ -1,3 +1,4 @@
+from photo_worker.contracts.images import MaskRef
 """Current qualification must match each imported model-bearing document."""
 
 from copy import deepcopy
@@ -169,3 +170,37 @@ def test_import_runtime_scope_rechecks_every_used_person_mask_at_exit():
     assert qualify('MaskRef', mask, binding) is True
     with pytest.raises(AdoptionInvalid, match='PERSON_AUTHORITY_CHANGED'):
         recheck()
+
+
+@pytest.mark.parametrize('operation', ['defects.auto_repair', 'sensor.dust_auto_repair'])
+@pytest.mark.parametrize('mode', ['valid', 'missing_report', 'semantic_deny', 'foreign_source', 'wrong_backend'])
+def test_conservative_import_requires_cpu_current_measured_report_and_independent_semantics(operation, mode):
+    from photo_worker.contracts.conservative import DefectAutoRepairParams, DustAutoRepairParams
+    expected, _ = report_fixture(); expected = deepcopy(expected)
+    expected.update(Operation=operation, Backend='cuda' if mode == 'wrong_backend' else 'cpu')
+    calls = []
+    class Catalog:
+        def verified_report(self, objects, scope, name, policy, report, digest):
+            calls.append(name)
+            return {'operation': name, 'model_lock_sha': policy['ModelLockSHA']}
+    selected = ImportAdoptionQualification(expected, uuid4(), 'f'*64)
+    kwargs = dict(catalog=Catalog(), objects=SimpleNamespace(get_object=lambda *args, **kwargs: None),
+        qualifications={} if mode == 'missing_report' else {operation: selected},
+        qualify_other=lambda *args: mode != 'semantic_deny', check_active=lambda: None)
+    if mode == 'wrong_backend':
+        with pytest.raises(ValueError, match='QUALIFICATION'): SchedulerImportAdoptionRuntimeAuthority(**kwargs)
+        return
+    authority = SchedulerImportAdoptionRuntimeAuthority(**kwargs)
+    mask, binding = _mask_and_binding()
+    source = ArtifactRef(artifact_id=uuid4(), sha256='a'*64) if mode == 'foreign_source' else binding.source
+    if operation == 'defects.auto_repair':
+        params = DefectAutoRepairParams(policy='conservative_auto_v1', image=source,
+            proposal=source, proposal_report=source, resolved=source)
+    else:
+        # Avoid asserting whole-person authority through a permissive test mask.
+        mask.selector='manual'; mask.model_lock_id=None; mask.object_id=None; mask.protected=True
+        params = DustAutoRepairParams(policy='conservative_auto_v1', image=source, proposal=None, resolved=source, protected=[mask])
+    scope = (uuid4(), uuid4(), 1, 7, uuid4())
+    context = SimpleNamespace(operation='v2.interchange.import', version='1', attempt=1, fence=7, result_id=scope[4])
+    assert authority(scope, context, 'Params', params, binding) is (mode == 'valid')
+    assert calls == ([operation] if mode in ('valid', 'semantic_deny') else [])

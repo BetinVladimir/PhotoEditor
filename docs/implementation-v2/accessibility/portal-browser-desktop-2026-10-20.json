@@ -1,0 +1,68 @@
+{
+  "active": "Познакомиться с проектом ↗",
+  "documentWidth": 2048,
+  "lang": "ru",
+  "text": [
+    {
+      "background": "rgba(0, 0, 0, 0)",
+      "color": "rgb(48, 47, 41)",
+      "fontSize": "16px",
+      "lineHeight": "25.6px",
+      "selector": ".fv-nav nav"
+    },
+    {
+      "background": "rgba(0, 0, 0, 0)",
+      "color": "rgb(48, 47, 41)",
+      "fontSize": "14px",
+      "lineHeight": "23.8px",
+      "selector": ".fv-eyebrow"
+    },
+    {
+      "background": "rgba(0, 0, 0, 0)",
+      "color": "rgb(98, 95, 85)",
+      "fontSize": "18px",
+      "lineHeight": "30.6px",
+      "selector": ".fv-lead"
+    },
+    {
+      "background": "rgb(62, 80, 61)",
+      "color": "rgb(255, 255, 255)",
+      "fontSize": "16px",
+      "lineHeight": "25.6px",
+      "selector": ".fv-primary"
+    },
+    {
+      "background": "rgba(0, 0, 0, 0)",
+      "color": "rgb(98, 95, 85)",
+      "fontSize": "14px",
+      "lineHeight": "22.4px",
+      "selector": ".fv-hero-note"
+    },
+    {
+      "background": "rgba(0, 0, 0, 0)",
+      "color": "rgb(98, 95, 85)",
+      "fontSize": "14px",
+      "lineHeight": "22.4px",
+      "selector": ".fv-principles"
+    },
+    {
+      "background": "rgba(0, 0, 0, 0)",
+      "color": "rgb(98, 95, 85)",
+      "fontSize": "16px",
+      "lineHeight": "27.2px",
+      "selector": ".fv-steps p"
+    },
+    {
+      "background": "rgba(0, 0, 0, 0)",
+      "color": "rgb(98, 95, 85)",
+      "fontSize": "14px",
+      "lineHeight": "22.4px",
+      "selector": ".fv-footer p"
+    }
+  ],
+  "url": "http://127.0.0.1:3101/#main",
+  "viewport": {
+    "height": 919,
+    "width": 2048
+  }
+}

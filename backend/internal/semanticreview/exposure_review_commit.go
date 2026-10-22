@@ -44,7 +44,7 @@ func CommitApprovedExposure(ctx context.Context, tx pgx.Tx, tenant, intent, acto
 	if _, err = tx.Exec(ctx, "SELECT set_config('app.tenant_id',$1,true)", tenant.String()); err != nil {
 		return empty, err
 	}
-	response, err := idempotency.Use(ctx, tx, idempotency.Scope{Tenant: tenant, Principal: actor, PrincipalType: "user", Route: ApplyIdempotencyRoute, Key: key}, json.RawMessage(fingerprint), time.Now().Add(30*24*time.Hour), func() (idempotency.Response, error) {
+	response, err := idempotency.Use(ctx, guardReceiptAuthority(tx, tenant, intent, actor, session, identity), idempotency.Scope{Tenant: tenant, Principal: actor, PrincipalType: "user", Route: ApplyIdempotencyRoute, Key: key}, json.RawMessage(fingerprint), time.Now().Add(30*24*time.Hour), func() (idempotency.Response, error) {
 		if prepared.Sources.RunID != identity.RunID {
 			return empty, ErrConflict
 		}

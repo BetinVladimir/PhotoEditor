@@ -11,7 +11,7 @@ type ImportNativeOperationInstallation struct{Scratch *ExportArchiveScratch;Prob
 type nativeImportOperationQualifier struct{native *NativeExportStyleValidator;policy ImportLayerOperationQualifier}
 func nativeImportOperationSupported(key ImportOperationVersion)bool{
  if key.Version!="1"{return false}
- switch key.Operation{case "image.upscale","image.denoise","geometry.body","image.local","color.stats","defects.repair","portrait.detail","portrait.hair","portrait.clothing":return true};return false
+ switch key.Operation{case "defects.auto_repair","sensor.dust_auto_repair","image.upscale","image.denoise","geometry.body","image.local","color.stats","defects.repair","portrait.detail","portrait.hair","portrait.clothing":return true};return false
 }
 func(i ImportNativeOperationInstallation)Build(ctx context.Context,base *ImportOperationRouter)(*ImportOperationRouter,error){
  if err:=ctx.Err();err!=nil{return nil,err}

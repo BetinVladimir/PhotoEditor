@@ -24,6 +24,7 @@ func RecoverExportPending(ctx context.Context,tx ProofTransaction,who auth.Ident
  var hash string;var body []byte;var live bool;var status *int
  err=tx.QueryRow(ctx,`SELECT request_hash,response_body,expires_at>clock_timestamp(),response_status FROM photo.idempotency_records WHERE tenant_id=$1 AND principal_type='user' AND principal_id=$2 AND route='Interchange.Export.Pending' AND key=$3 FOR SHARE`,tid,who.UserID,key).Scan(&hash,&body,&live,&status)
  if errors.Is(err,pgx.ErrNoRows){return zero,nil};if err!=nil{return zero,err}
+ if err:=requireReceiptAuthority(ctx,tx,who,tid,request.ProjectID);err!=nil{return zero,err}
  if hash!=intent.RequestSHA{return zero,domain.NewError("IDEMPOTENCY_CONFLICT",409)}
  if !live{return zero,domain.NewError("SNAPSHOT_EXPIRED",410)}
  if status!=nil{return zero,domain.NewError("INTERCHANGE_PENDING_INVALID",409)}

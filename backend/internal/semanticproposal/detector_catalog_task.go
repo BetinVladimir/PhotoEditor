@@ -20,6 +20,10 @@ type catalogDetectorPreparation struct {
 // Original source pixels/ICC, model/report qualifications and locked admission
 // must independently accompany this preparatory value before queue activation.
 func prepareCatalogDetectorTask(ctx context.Context, catalog v2draft.ArtifactCatalog, who auth.Identity, tenantID, workflow uuid.UUID, ordinal int, binding v2input.SessionVersionBinding, imageBody json.RawMessage, params v2input.Ref, modelLock string, score float64, maxFaces int, costs v2input.SemanticQualifiedCosts, ram, vram, scratch, output int64) (catalogDetectorPreparation, error) {
+	return prepareCatalogDetectorTaskForBackend("cuda", ctx, catalog, who, tenantID, workflow, ordinal, binding, imageBody, params, modelLock, score, maxFaces, costs, ram, vram, scratch, output)
+}
+
+func prepareCatalogDetectorTaskForBackend(backend string, ctx context.Context, catalog v2draft.ArtifactCatalog, who auth.Identity, tenantID, workflow uuid.UUID, ordinal int, binding v2input.SessionVersionBinding, imageBody json.RawMessage, params v2input.Ref, modelLock string, score float64, maxFaces int, costs v2input.SemanticQualifiedCosts, ram, vram, scratch, output int64) (catalogDetectorPreparation, error) {
 	var zero catalogDetectorPreparation
 	if err := ctx.Err(); err != nil {
 		return zero, err
@@ -58,7 +62,7 @@ func prepareCatalogDetectorTask(ctx context.Context, catalog v2draft.ArtifactCat
 		sizes = append(sizes, v2input.SemanticInputSize{Ref: entry.Ref, Bytes: 1})
 	}
 	// Reject source/Params/shape/capacity contradictions before catalog IO.
-	if _, err := v2input.CompileSemanticDetectorTask(ctx, workflow, ordinal, binding, imageBody, params, modelLock, score, maxFaces, sizes, costs, ram, vram, scratch, output); err != nil {
+	if _, err := v2input.CompileSemanticDetectorTaskForBackend(backend, ctx, workflow, ordinal, binding, imageBody, params, modelLock, score, maxFaces, sizes, costs, ram, vram, scratch, output); err != nil {
 		return zero, err
 	}
 	evidence, err := v2draft.ReadInputEvidence(ctx, catalog, who, tenantID, nodes)
@@ -74,7 +78,7 @@ func prepareCatalogDetectorTask(ctx context.Context, catalog v2draft.ArtifactCat
 			return zero, v2input.ErrInvalid
 		}
 	}
-	frozen, err := v2input.CompileSemanticDetectorTask(ctx, workflow, ordinal, binding, imageBody, params, modelLock, score, maxFaces, actual, costs, ram, vram, scratch, output)
+	frozen, err := v2input.CompileSemanticDetectorTaskForBackend(backend, ctx, workflow, ordinal, binding, imageBody, params, modelLock, score, maxFaces, actual, costs, ram, vram, scratch, output)
 	if err != nil {
 		return zero, err
 	}

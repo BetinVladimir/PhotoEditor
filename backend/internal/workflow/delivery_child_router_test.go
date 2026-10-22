@@ -48,3 +48,19 @@ func TestDeliveryRouterRoutesOrdinaryFrozenChild(t *testing.T) {
 		t.Fatal(calls, err)
 	}
 }
+
+type cancellationDeliveryObserver struct{calls *int;cancel context.CancelFunc;slots []int}
+func(o cancellationDeliveryObserver)PendingSlots(context.Context,delivery.ExpansionLease,int)([]int,error){(*o.calls)++;if o.cancel!=nil{o.cancel()};return o.slots,nil}
+func(o cancellationDeliveryObserver)ObserveChild(context.Context,delivery.ExpansionLease,delivery.PreparePlan,delivery.ExportChildIntent)(bool,error){return false,nil}
+func TestDeliveryPendingDiscoveryCancellationAfterEitherBranch(t *testing.T){
+ for _,branch:=range []string{"ordinary","watermark"}{
+  ctx,cancel:=context.WithCancel(context.Background())
+  first,second:=0,0
+  ordinary:=cancellationDeliveryObserver{calls:&first,slots:[]int{0}}
+  watermark:=cancellationDeliveryObserver{calls:&second,slots:[]int{1}}
+  if branch=="ordinary"{ordinary.cancel=cancel}else{watermark.cancel=cancel}
+  result,err:=(DeliveryChildRouter{OrdinaryObserver:ordinary,WatermarkObserver:watermark}).PendingSlots(ctx,delivery.ExpansionLease{Cursor:2,SlotCount:2},2)
+  cancel()
+  if err!=context.Canceled||result!=nil||first!=1||branch=="ordinary"&&second!=0||branch=="watermark"&&second!=1{t.Fatal(branch,result,err,first,second)}
+ }
+}

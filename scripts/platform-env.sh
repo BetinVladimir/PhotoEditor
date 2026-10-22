@@ -26,5 +26,5 @@ export GOPATH="$PHOTO_REPO_ROOT/.runtime/go"
 export npm_config_cache="$PHOTO_REPO_ROOT/.cache/npm"
 export TMPDIR="$PHOTO_REPO_ROOT/.cache/tmp"
 export PYTHONDONTWRITEBYTECODE=1
-export PYTHONPATH="$PHOTO_REPO_ROOT/workers${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONPATH="$PHOTO_REPO_ROOT/workers:$PHOTO_REPO_ROOT/apps/local-editor/src${PYTHONPATH:+:$PYTHONPATH}"
 mkdir -p "$TMPDIR" "$GOCACHE" "$GOMODCACHE"

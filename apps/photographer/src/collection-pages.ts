@@ -9,7 +9,7 @@ export async function loadCollectionPages(collection:Collection,read:(cursor?:st
   for(const item of page.items){if(item.collection_id!==collection.id||!item.id||ids.has(item.id)||items.length>=5000)throw new Error('COLLECTION_PAGE_INVALID');ids.add(item.id);items.push({...item,tags:[...item.tags]});}
   const next=page.next_cursor;
   if(next!=null&&next!==''){
-   if(typeof next!=='string'||cursors.has(next)||page.items.length===0||items.length>=5000)throw new Error('COLLECTION_PAGE_INVALID');cursors.add(next);cursor=next;
+   if(typeof next!=='string'||next.length>4096||cursors.has(next)||page.items.length===0||items.length>=5000)throw new Error('COLLECTION_PAGE_INVALID');cursors.add(next);cursor=next;
   }else cursor=undefined;
  }while(cursor);
  return items;

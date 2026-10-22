@@ -1,4 +1,5 @@
 """Region catalog/policies are present without activating an incomplete renderer."""
+from pathlib import Path as _PhotoRepositoryPath
 
 
 def test_region_operation_registered_with_bounded_outputs_but_disabled(db):
@@ -98,7 +99,7 @@ def test_disabled_region_go_queue_stops_before_external_preparation(database):
     import subprocess
     from pathlib import Path
     from psycopg.conninfo import make_conninfo
-    env=dict(os.environ,PHOTO_REGION_QUEUE_DATABASE_URL=make_conninfo(**database),GOCACHE='/private/tmp/photoeditor-go-cache')
+    env=dict(os.environ,PHOTO_REGION_QUEUE_DATABASE_URL=make_conninfo(**database),GOCACHE=str(_PhotoRepositoryPath(__file__).resolve().parents[2]/'work/go-cache'))
     result=subprocess.run(['go','test','./internal/v2region','-run','^TestIntegrationDisabledRegionQueueStopsBeforePreparation$','-count=1'],cwd=Path(__file__).resolve().parents[2]/'backend',env=env,capture_output=True,text=True,timeout=30)
     assert result.returncode==0,result.stdout+result.stderr
 

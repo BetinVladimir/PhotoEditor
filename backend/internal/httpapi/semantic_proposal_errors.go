@@ -4,6 +4,7 @@ import (
 	"errors"
 	"photoeditor/backend/internal/artifactjson"
 	"photoeditor/backend/internal/domain"
+	"photoeditor/backend/internal/semanticproposal"
 	"photoeditor/backend/internal/v2input"
 	"photoeditor/backend/internal/v2qualification"
 )
@@ -12,6 +13,8 @@ import (
 // retain their existing handling and never expose private DB/object details.
 func semanticProposalError(err error) error {
 	switch {
+	case errors.Is(err, semanticproposal.ErrPreparationPending):
+		return domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
 	case errors.Is(err, v2input.ErrInvalid):
 		return domain.NewError("VALIDATION_FAILED", 422)
 	case errors.Is(err, v2input.ErrExpired), errors.Is(err, artifactjson.ErrStale):

@@ -55,7 +55,7 @@ func probeV27RetryBeforeSuccess(t *testing.T, ctx context.Context, admin *pgxpoo
 		}
 		cmd := exec.CommandContext(ctx, filepath.Join(root, ".venv-platform/bin/python"), filepath.Join(root, "tests/integration/v27_worker_failure_probe.py"))
 		cmd.Dir = root
-		cmd.Env = append(os.Environ(), "PYTHONPATH="+filepath.Join(root, "workers")+":"+filepath.Join(root, "src"), "PHOTO_TEST_V27_FAILURE_RETRYABLE=1", "PHOTO_TEST_V27_OLD_FAILURE_IDENTITY="+identity, "PHOTO_TEST_V27_FAILURE_STALE_ONLY="+mode)
+		cmd.Env = append(os.Environ(), "PYTHONPATH="+filepath.Join(root, "workers")+":"+filepath.Join(root, "apps", "local-editor", "src"), "PHOTO_TEST_V27_FAILURE_RETRYABLE=1", "PHOTO_TEST_V27_OLD_FAILURE_IDENTITY="+identity, "PHOTO_TEST_V27_FAILURE_STALE_ONLY="+mode)
 		out, err := cmd.CombinedOutput()
 		marker := "V27_WORKER_FAILURE_COMMITTED_OK"
 		if staleOnly {

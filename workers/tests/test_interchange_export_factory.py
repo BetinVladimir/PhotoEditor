@@ -66,7 +66,7 @@ def test_bundle_factory_composes_verified_inventory_and_real_manifest(monkeypatc
     recipe_factory=recipes();qualifier=object();events=[]
     occurrence=lambda event:True
     def build(ctx,artifacts,authority,owned,reader,**kwargs):
-        assert kwargs==({'qualify_occurrence':occurrence} if with_occurrences else {})
+        assert kwargs==({'background_mappings':(), 'qualify_occurrence':occurrence} if with_occurrences else {'background_mappings':()})
         events.append('recipes');return qualifier
     def occurrences(ctx,artifacts,authority,owned,reader):
         assert owned==plan and owned is not plan
@@ -81,6 +81,7 @@ def test_bundle_factory_composes_verified_inventory_and_real_manifest(monkeypatc
     monkeypatch.setattr(module,'compile_qualified_export_inventory',compile_inventory)
     monkeypatch.setattr(module,'qualify_export_image',image)
     monkeypatch.setattr(module,'compile_export_masks',masks)
+    monkeypatch.setattr(module,'qualify_export_background_sources',lambda *args,**kwargs:((),()))
     reader=SimpleNamespace(recheck=lambda:events.append('recheck'))
     authority=ExportAuthority(uuid4(),plan.project_id,plan.snapshot_digest,1 << 20,2 << 20,128 << 20)
     result=BundleExportPreparationFactory(recipe_factory,occurrence_factory=occurrences if with_occurrences else None)(SimpleNamespace(check_active=lambda:None),
@@ -99,6 +100,8 @@ def test_export_factory_rejects_noncallable_occurrence_factory(value):
 
 
 def test_bundle_stops_before_inventory_when_occurrence_installation_fails(monkeypatch):
+    import photo_worker.operations.interchange.export_bundle_factory as module
+    monkeypatch.setattr(module,'qualify_export_background_sources',lambda *args,**kwargs:((),()))
     from uuid import uuid4
     from photo_worker.operations.interchange.export_adapter import ExportAuthority
     from photo_worker.operations.interchange.export_bundle_factory import BundleExportPreparationFactory
@@ -108,4 +111,4 @@ def test_bundle_stops_before_inventory_when_occurrence_installation_fails(monkey
     factory.build_for_plan = lambda *args, **kwargs: pytest.fail('recipe qualification started')
     bundle = BundleExportPreparationFactory(factory, occurrence_factory=lambda *args: None)
     with pytest.raises(ValueError, match='OCCURRENCE_INSTALLATION'):
-        bundle(SimpleNamespace(check_active=lambda: None), None, authority, plan, None)
+        bundle(SimpleNamespace(check_active=lambda: None), SimpleNamespace(scratch=object()), authority, plan, None)

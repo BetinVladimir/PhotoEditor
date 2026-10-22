@@ -5,6 +5,7 @@ import numpy as np
 
 from photo_worker.runtime.executor import TaskCancelled
 from .install import ModelError
+from .onnx_session import create_session
 
 
 class ONNXInpaint:
@@ -17,7 +18,7 @@ class ONNXInpaint:
                         else 'CPUExecutionProvider')
             if provider not in ort.get_available_providers():
                 raise ModelError('BACKEND_UNAVAILABLE')
-            session = ort.InferenceSession(str(path), providers=[provider])
+            session = create_session(ort, path, backend)
             if session.get_providers() != [provider]:
                 raise ModelError('BACKEND_UNAVAILABLE')
             inputs, outputs = session.get_inputs(), session.get_outputs()

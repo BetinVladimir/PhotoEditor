@@ -24,6 +24,7 @@ import (
 )
 
 type ReplaceRequest struct {
+ EditorBridge *EditorRecipeBridgeRequest `json:"editor_bridge,omitempty"`
 	ExpectedRevision string          `json:"expected_revision"`
 	Recipe           json.RawMessage `json:"recipe"`
 	Layers           json.RawMessage `json:"layers"`
@@ -97,6 +98,10 @@ func (s Service) Replace(ctx context.Context, who auth.Identity, tenantID,
 	if !idempotency.ValidKey(key) {
 		return idempotency.Response{}, domain.NewError("IDEMPOTENCY_KEY_REQUIRED", 400)
 	}
+	// Freeze caller-owned raw messages before receipt waits or object IO.
+	req.Recipe=append(json.RawMessage(nil),req.Recipe...)
+	req.Layers=append(json.RawMessage(nil),req.Layers...)
+	if req.EditorBridge!=nil { bridge:=*req.EditorBridge;bridge.Params=append(json.RawMessage(nil),bridge.Params...);req.EditorBridge=&bridge }
 	expected, err := replaceRevision(req.ExpectedRevision)
 	if err != nil {
 		return idempotency.Response{}, err
@@ -104,11 +109,15 @@ func (s Service) Replace(ctx context.Context, who auth.Identity, tenantID,
 	if len(req.Recipe) == 0 || len(req.Layers) == 0 {
 		return idempotency.Response{}, domain.NewError("VALIDATION_FAILED", 422)
 	}
-	binding, projectID, err := (BindingResolver{DB: s.DB, Objects: s.Objects,
-		Bucket: s.Bucket}).CurrentScoped(ctx, who, tenantID, assetID)
+	if replay,found,e:=s.replayReplacement(ctx,who,tenantID,assetID,key,req);e!=nil||found{return replay,e}
+	binding, projectID, image, err := (BindingResolver{DB: s.DB, Objects: s.Objects,
+		Bucket: s.Bucket}).CurrentScopedImage(ctx, who, tenantID, assetID)
 	if err != nil {
 		return idempotency.Response{}, draftMutationError(err)
 	}
+
+	bridgeRecipe, bridgeRef, err := s.prepareEditorRecipeBridge(ctx,who,tenantID,assetID,key,expected,req,binding,image.Canvas.SourceSHA256)
+	if err != nil { return idempotency.Response{},draftMutationError(err) }
 	publisher := Publisher{DB: s.DB, Objects: s.Objects, Bucket: s.Bucket}
 	catalog := SQLArtifactCatalog{DB: s.DB, Bucket: s.Bucket,
 		ProjectID: projectID, AssetVersionID: binding.AssetVersionID}
@@ -124,7 +133,7 @@ func (s Service) Replace(ctx context.Context, who auth.Identity, tenantID,
 		}
 		sum := sha256.Sum256(body)
 		provisional := v2input.Ref{ArtifactID: layerID, SHA256: hex.EncodeToString(sum[:])}
-		if _, e = PrepareDraft(req.Recipe, req.Layers, binding, &provisional, expected == 0); e != nil {
+		if _, e = PrepareDraft(bridgeRecipe, req.Layers, binding, &provisional, expected == 0); e != nil {
 			return idempotency.Response{}, domain.NewError("VALIDATION_FAILED", 422)
 		}
 		published, e := publisher.Publish(ctx, who, tenantID, binding.AssetVersionID,
@@ -138,7 +147,7 @@ func (s Service) Replace(ctx context.Context, who auth.Identity, tenantID,
 			return idempotency.Response{}, draftMutationError(e)
 		}
 	}
-	prepared, err := PrepareDraft(req.Recipe, req.Layers, binding, layerRef, expected == 0)
+	prepared, err := PrepareDraft(bridgeRecipe, req.Layers, binding, layerRef, expected == 0)
 	if err != nil {
 		return idempotency.Response{}, domain.NewError("VALIDATION_FAILED", 422)
 	}
@@ -192,6 +201,7 @@ func (s Service) Replace(ctx context.Context, who auth.Identity, tenantID,
 				Principal: who.UserID, PrincipalType: "user",
 				Route: "Draft.Replace." + assetID.String(), Key: key},
 				req, time.Now().Add(24*time.Hour), func() (idempotency.Response, error) {
+					if req.EditorBridge!=nil { if e:=checkEditorBridge(ctx,tx,who,tenantID,binding.AssetVersionID,req.EditorBridge);e!=nil{return idempotency.Response{},e} }
 					var result json.RawMessage
 					e := tx.QueryRow(ctx, `SELECT photo.replace_v23_draft(
 					 $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
@@ -203,6 +213,10 @@ func (s Service) Replace(ctx context.Context, who auth.Identity, tenantID,
 					if e != nil {
 						return idempotency.Response{}, e
 					}
+                    if bridgeRef!=nil {
+                     revision,_:=replaceRevision(req.EditorBridge.Revision)
+                     if _,e=tx.Exec(ctx,`INSERT INTO photo.editor_recipe_bridges(tenant_id,document_id,asset_version_id,actor_id,editor_revision,override_artifact_id,override_sha) VALUES($1,$2,$3,$4,$5,$6,$7)`,tenantID,documentID,binding.AssetVersionID,who.UserID,revision,bridgeRef.ArtifactID,bridgeRef.SHA256);e!=nil{return idempotency.Response{},e}
+                    }
 					id, e := v2resource.ID(result)
 					if e != nil {
 						return idempotency.Response{}, e

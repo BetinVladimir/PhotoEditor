@@ -68,17 +68,17 @@ func (s SQLTransferSourceReader) readCompletedNativeTargetLandmarks(ctx context.
 		ModelLock string `json:"model_lock_id"`
 	}
 	var expected v2qualification.Expected
-	if json.Unmarshal(raw, &claims) != nil || json.Unmarshal([]byte(plan.prepared.expected), &expected) != nil || claims.Backend != "cuda" || claims.ModelLock != expected.ModelLockSHA {
+	if json.Unmarshal(raw, &claims) != nil || json.Unmarshal([]byte(plan.prepared.expected), &expected) != nil || claims.Backend != expected.Backend || claims.ModelLock != expected.ModelLockSHA {
 		return zero, v2qualification.ErrUnqualified
 	}
-	selected, err := selectQualificationPolicies(plan.detector.detector.policy, []string{"face.landmarks"})
+	selected, err := selectNativeQualificationPolicies(plan.detector.detector.policy, []string{"face.landmarks"})
 	if err != nil {
 		return zero, err
 	}
 	if !sameQualificationPolicyExpected(expected, selected["face.landmarks"]) {
 		return zero, v2qualification.ErrUnqualified
 	}
-	current, err := s.nativeTargetFaceResultCatalog(ctx, who, plan)
+	current, err := s.nativeTargetFaceResultCatalogCurrent(ctx, who, plan)
 	if err != nil {
 		return zero, err
 	}

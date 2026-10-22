@@ -61,10 +61,12 @@ func (r DeliveryChildRouter) PendingSlots(ctx context.Context, l delivery.Expans
 	if err != nil {
 		return nil, err
 	}
+ if err:=ctx.Err();err!=nil{return nil,err}
 	watermark, err := r.WatermarkObserver.PendingSlots(ctx, l, limit)
 	if err != nil {
 		return nil, err
 	}
+ if err:=ctx.Err();err!=nil{return nil,err}
 	return mergeDeliveryPendingSlots(ordinary, watermark, l.Cursor, limit)
 }
 func mergeDeliveryPendingSlots(ordinary, watermark []int, cursor, limit int) ([]int, error) {

@@ -101,6 +101,13 @@ func VerifyFloat32ArrayNPY(ctx context.Context, reader io.Reader, expectedBytes 
 	return verifyArrayNPY(ctx, reader, expectedBytes, expectedSHA, width, height, channels, unit, false, false, false, nil, false)
 }
 
+// VerifyNonnegativeFloat32RGBNPY preserves HDR values above one while rejecting
+// negative/nonfinite RGB. Uses the same bounded parser and exact SHA/size checks.
+func VerifyNonnegativeFloat32RGBNPY(ctx context.Context, reader io.Reader, expectedBytes int64, expectedSHA string, width, height int64) error {
+	return verifyArrayNPY(ctx, reader, expectedBytes, expectedSHA, width, height, 3, false, false, false, false,
+		func(_ int64, value float32) bool { return value >= 0 }, false)
+}
+
 // VerifyUint16RGBNPY accepts only little-endian C-order HWC uint16 RGB.
 func VerifyUint16RGBNPY(ctx context.Context, reader io.Reader, expectedBytes int64, expectedSHA string, width, height int64) error {
 	return verifyArrayNPY(ctx, reader, expectedBytes, expectedSHA, width, height, 3, false, false, false, false, nil, true)

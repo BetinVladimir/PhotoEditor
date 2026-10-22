@@ -33,7 +33,7 @@ func (s SQLTransferSourceReader) restoreDetectorDraftPlan(ctx context.Context, c
 	if err != nil {
 		return zero, err
 	}
-	selected, err := selectQualificationPolicies(policy, []string{"face.detect"})
+	selected, err := selectNativeQualificationPolicies(policy, []string{"face.detect"})
 	if err != nil {
 		return zero, err
 	}
@@ -58,6 +58,7 @@ func (s SQLTransferSourceReader) restoreDetectorDraftPlan(ctx context.Context, c
 		return zero, v2input.ErrConflict
 	}
 	m := saved.recovery
+	s.scenePolicy = m.ScenePolicy
 	if m.Report == nil || (m.RequestKey != "" && m.RequestKey != key) {
 		return zero, v2input.ErrInvalid
 	}
@@ -66,8 +67,12 @@ func (s SQLTransferSourceReader) restoreDetectorDraftPlan(ctx context.Context, c
 	if err != nil {
 		return zero, err
 	}
-	var queue struct { QueueClass string `json:"queue_class,omitempty"` }
- if json.Unmarshal([]byte(saved.config),&queue)!=nil{return zero,v2input.ErrInvalid}
+	var queue struct {
+		QueueClass string `json:"queue_class,omitempty"`
+	}
+	if json.Unmarshal([]byte(saved.config), &queue) != nil {
+		return zero, v2input.ErrInvalid
+	}
 	plan, err := s.compileDetectorDraftPlanForQueue(ctx, who, owned, key, published, snapshot, snapshotBody, prepared, policy, m.Reserved, m.RequestKey != "", queue.QueueClass)
 	if err != nil {
 		return zero, err

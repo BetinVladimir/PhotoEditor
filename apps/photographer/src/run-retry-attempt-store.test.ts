@@ -27,3 +27,6 @@ describe('run retry attempt journal',()=>{
   expect(await new RunRetryAttemptStore(data,'logout-origin',id(1),id(2),id(3)).read()).toBeNull();
  });
 });
+it('rejects a shortened UUID scope',()=>{
+ expect(()=>new RunRetryAttemptStore(storage(),'retry-shortened','00000000-0000-0000-000000000001',id(2),id(3))).toThrow('RUN_RETRY_SCOPE_INVALID');
+});

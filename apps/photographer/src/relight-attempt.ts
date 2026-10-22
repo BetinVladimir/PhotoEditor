@@ -6,6 +6,7 @@ export type RelightAttemptPersistence={write:(record:RelightAttemptRecord)=>Prom
 /** Persist before admission; ambiguous failures retain the original body/key. */
 export class RelightAttempt {
  private record:RelightAttemptRecord;
+ private receiptPending=false;
  private phase:RelightAttemptState='ready';
  constructor(project:string,key:string,body:RelightIntent,private readonly persistence:RelightAttemptPersistence){
   if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(project)||project==='00000000-0000-0000-0000-000000000000'||!key||key.length>128||!/^[!-~]+$/.test(key))throw new Error('RELIGHT_ATTEMPT_INVALID');
@@ -22,17 +23,28 @@ export class RelightAttempt {
  async submit(send:(project:string,body:RelightIntent,key:string,signal?:AbortSignal)=>Promise<RegionJobTicket>,signal?:AbortSignal){
   if(this.phase==='sending')throw new Error('RELIGHT_ATTEMPT_BUSY');
   if(signal?.aborted)throw new Error('RELIGHT_ATTEMPT_CANCELLED');
-  if(this.record.ticket)return structuredClone(this.record.ticket);
+  if(this.record.ticket){
+   const accepted=structuredClone(this.record.ticket);
+   if(this.receiptPending){
+    this.phase='sending';
+    try{await this.persistence.write(this.snapshot);this.receiptPending=false;}
+    finally{this.phase='accepted';}
+   }
+   if(signal?.aborted)throw new Error('RELIGHT_ATTEMPT_CANCELLED');
+   return accepted;
+  }
   this.phase='sending';
   try{
    await this.persistence.write(this.snapshot);
    if(signal?.aborted)throw new Error('RELIGHT_ATTEMPT_CANCELLED');
    const ticket=regionJobTicket(await send(this.record.project,freezeRelightIntent(this.record.body),this.record.key,signal));
-   // Persist before navigation; if persistence fails, retry server acknowledgement.
-   await this.persistence.write({...this.snapshot,ticket:structuredClone(ticket)});
-   this.record.ticket=ticket;this.phase='accepted';
+   // A validated acknowledgement is authoritative even if local storage fails.
+   // Cache owned receipt before IO; retry persistence, never repeat admission.
+   this.record.ticket=structuredClone(ticket);this.receiptPending=true;
+   await this.persistence.write(this.snapshot);
+   this.receiptPending=false;this.phase='accepted';
    if(signal?.aborted)throw new Error('RELIGHT_ATTEMPT_CANCELLED');
    return structuredClone(ticket);
-  }catch(error){if(this.record.ticket===null)this.phase='unknown';throw error;}
+  }catch(error){this.phase=this.record.ticket===null?'unknown':'accepted';throw error;}
  }
 }

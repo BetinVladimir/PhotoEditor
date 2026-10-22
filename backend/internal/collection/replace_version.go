@@ -43,7 +43,7 @@ func (s Service) ReplaceItemVersion(ctx context.Context, who auth.Identity, tid,
 		if err != nil {
 			return err
 		}
-		if c.State == "archived" || c.Revision != req.ExpectedRevision {
+		if !writableCollectionState(c.State) || c.Revision != req.ExpectedRevision {
 			return domain.NewError("REVISION_CONFLICT", 409)
 		}
 		current, err := scanItem(tx.QueryRow(ctx, `SELECT `+itemFields+` FROM photo.collection_items i WHERE i.tenant_id=$1 AND i.collection_id=$2 AND i.id=$3 FOR UPDATE`, tid, collectionID, itemID))

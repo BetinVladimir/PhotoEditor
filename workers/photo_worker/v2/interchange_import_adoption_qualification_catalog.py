@@ -23,7 +23,7 @@ class ImportQualificationObject:
 
 class SQLImportAdoptionQualificationCatalog:
     OPERATIONS = frozenset(('image.denoise', 'image.upscale',
-                            'color.stats', 'mask.person'))
+                            'color.stats', 'mask.person', 'defects.auto_repair', 'sensor.dust_auto_repair'))
 
     def __init__(self, connection, allowed_bucket, check_active):
         if (connection.autocommit is not True or not isinstance(allowed_bucket, str)

@@ -40,11 +40,13 @@ func NewPublisher(conn *amqp.Connection) (*Publisher, error) {
 }
 func (p *Publisher) Close() error { return p.channel.Close() }
 func (p *Publisher) Publish(ctx context.Context, e Envelope) error {
+    if err:=ctx.Err();err!=nil{return err}
 	if len(e.Payload) > 65536 || !json.Valid(e.Payload) || e.EventID == uuid.Nil || e.Destination != Commands && e.Destination != Events {
 		return errors.New("invalid queue envelope")
 	}
 	p.mu.Lock()
 	defer p.mu.Unlock()
+    if err:=ctx.Err();err!=nil{return err}
 	confirm, err := p.channel.PublishWithDeferredConfirmWithContext(ctx, e.Destination, e.RoutingKey, true, false, amqp.Publishing{ContentType: "application/json", DeliveryMode: amqp.Persistent, MessageId: e.EventID.String(), Timestamp: time.Now().UTC(), Body: e.Payload})
 	if err != nil {
 		return errors.New("broker publish failed")
@@ -101,16 +103,7 @@ func (o *Outbox) Dispatch(ctx context.Context, kind string, limit int) (int, err
 	for _, e := range batch {
 		// Keep each publish within the DB lease. On any unknown outcome rows stay
 		// unsent and are safely republished with the same event ID after expiration.
-		deadline := e.Lease.Add(-time.Second)
-		if local := time.Now().Add(10 * time.Second); local.Before(deadline) {
-			deadline = local
-		}
-		publishCtx, cancel := context.WithDeadline(ctx, deadline)
-		err = o.Publisher.Publish(publishCtx, e)
-		cancel()
-		if err != nil {
-			return sent, err
-		}
+        if err=publishWithinLease(ctx,o.Publisher,e);err!=nil{return sent,err}
 		var marked bool
 		if err = o.DB.QueryRow(ctx, "SELECT photo.mark_outbox_sent($1,$2,$3)", kind, e.ID, e.Lease).Scan(&marked); err != nil {
 			return sent, err
@@ -121,4 +114,17 @@ func (o *Outbox) Dispatch(ctx context.Context, kind string, limit int) (int, err
 		sent++
 	}
 	return sent, nil
+}
+
+// A late nil result is an unknown delivery outcome, not permission to mark the
+// row sent. Leave it recoverable under its stable event ID.
+func publishWithinLease(ctx context.Context,publisher ConfirmedPublisher,e Envelope)error{
+ if err:=ctx.Err();err!=nil{return err}
+ deadline:=e.Lease.Add(-time.Second)
+ if local:=time.Now().Add(10*time.Second);local.Before(deadline){deadline=local}
+ publishCtx,cancel:=context.WithDeadline(ctx,deadline);defer cancel()
+ if err:=publishCtx.Err();err!=nil{return err}
+ if err:=publisher.Publish(publishCtx,e);err!=nil{return err}
+ if err:=publishCtx.Err();err!=nil{return err}
+ return ctx.Err()
 }

@@ -69,6 +69,10 @@ def _read_file(value: str, limit: int) -> bytes:
 
 
 def learning_evaluation_from_environment(config, getenv=os.environ.get):
+    # V23 evaluation currently has a CUDA-only implementation. Shared operator
+    # configuration must not prevent supported Metal operations from starting.
+    if config.resource_class == 'gpu' and config.backend == 'mps':
+        return None
     names = ('PHOTO_LEARNING_QUALIFICATION_REPORT',
              'PHOTO_LEARNING_QUALIFICATION_SIGNATURE',
              'PHOTO_LEARNING_TRUSTED_PUBLIC_KEY',

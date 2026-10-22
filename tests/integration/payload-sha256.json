@@ -1,0 +1,14 @@
+{
+  "detail_closure_compiler.py": "06206855c5a44798428ccbd73795c92d54c53ee11e8f29a78d26fbe15bf13550",
+  "detail_material.py": "adbd21582f1f8827d614ab6e16fd4882853198ab67422f8ac16b42c15b0e7fa2",
+  "detail_producer_checks.py": "84e2e89559052cce6850036528649432926d96a7b7be39be963d5ba01b84a5c1",
+  "detail_training_fixture.py": "9bc5f5477c28a4d22e5a01450cee582654016a1d4056e68a6fa6f70f202a5973",
+  "portrait_detail_producer_fixture.py": "e2b1aa803210464fb637091b3f3484219edda234d43ef1ed93d706b86562ed25",
+  "test_v23_detail_evaluate_go.py": "0f1265a6c0f6699598616e5f4d522ace147e3918ba026ad82c88595101553c54",
+  "test_v23_detail_producer_upgrade.py": "8a416bebaa5accd4fde7935da7ccffe4bfc0c24e878da6bb11760a6e969a9a71",
+  "detail_closure_export_test.go": "525170f4286340e851e65fde89b62c72939f0ed0489755404eeafa9a43f6b244",
+  "02592_v23_apply_detail_producer_domain.sql": "f2920575c6094cd1eee0836bf7ffac60b28d004f97f45869d93df7813823bb7d",
+  "source-sha256.json": "0abb31ea9ef88b5b61ed4aabd3d51044f969e33e02a02c026ad0fb78101efa32",
+  "02593_v23_detail_event_row_lock_privilege.sql": "d144afe7bf08cbe369b55a21967ab8502e7ecce2fefd3983f9b082caf53033a1",
+  "02594_v23_detail_link_node_row_lock_privilege.sql": "5b272a735295b7e3449266b334f07fca921071a123f282ccc7d99d55edb88e4e"
+}

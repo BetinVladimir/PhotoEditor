@@ -91,6 +91,11 @@ func (s ProfileService) TrainProfile(ctx context.Context, who auth.Identity,
 	if err != nil {
 		return empty, false, trainingError(err)
 	}
+	// An accepted immutable command is recoverable even when the optional
+	// scheduler installation or inference provider has been withdrawn.
+	if ticket, found, receiptErr := readAcceptedTrainingReceipt(ctx, s.DB, who, tenantID, profileID, key, req); receiptErr != nil {
+		return empty, false, trainingError(receiptErr)
+	} else if found { return ticket, true, nil }
 	if s.Training == nil {
 		return empty, false, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
 	}

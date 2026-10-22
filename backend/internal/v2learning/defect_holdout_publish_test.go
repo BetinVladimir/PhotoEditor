@@ -40,7 +40,7 @@ func TestPublishReviewedDefectHoldoutRequiresExactEventManifestPin(t *testing.T)
 		Image: ref("b"), LabelMap: ref("c"),
 		CandidateIDs: []string{strings.Repeat("d", 64)}}
 	actor := uuid.New()
-	plan, err := review.PlanDefect(snapshot, actor, review.Decision{
+	plan, err := review.PlanDefects(snapshot, actor, review.Decision{
 		ExpectedRevision: 1, CandidateHash: snapshot.Proposal.SHA256,
 		Decision: "accept", Accepted: snapshot.CandidateIDs})
 	if err != nil {

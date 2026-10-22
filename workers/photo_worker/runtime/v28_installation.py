@@ -25,6 +25,18 @@ class _LeaseBoundGlareAdmission:
         ctx.check_active()
         return decision is True
 
+    def admit_generative(self, ctx, params, proof, source, calibration):
+        """A model callback cannot substitute for current source-person SQL."""
+        ctx.check_active()
+        if self.database.glare_generative_source_ready(
+                ctx.lease, canonical_bytes(params), bytes(proof)) is not True:
+            raise OperationFailure('GLARE_SOURCE_AUTHORITY_UNAVAILABLE')
+        ctx.check_active()
+        decision = self.provider.admit_generative(
+            ctx, params, proof, source, calibration)
+        ctx.check_active()
+        return decision is True
+
 
 def installed_v28_operations(artifacts, database, config, *,
                             glare_factory=None, reflection_factory=None):
@@ -71,7 +83,7 @@ def installed_v28_operations(artifacts, database, config, *,
             raise WorkerConfigurationError('Invalid glare admission installation')
         if not callable(getattr(database, 'glare_donor_source_ready', None)):
             raise WorkerConfigurationError('Glare donor SQL authority is unavailable')
-        generative_fields = ('admit_generative', 'acquire_inpaint', 'model_lock_sha')
+        generative_fields = ('admit_generative', 'acquire_inpaint')
         if any(getattr(glare_admission, name, None) is not None for name in generative_fields):
             model_sha = getattr(glare_admission, 'model_lock_sha', None)
             if (not callable(getattr(glare_admission, 'admit_generative', None))
@@ -79,6 +91,8 @@ def installed_v28_operations(artifacts, database, config, *,
                     or not isinstance(model_sha, str) or len(model_sha) != 64
                     or any(char not in '0123456789abcdef' for char in model_sha)):
                 raise WorkerConfigurationError('Incomplete glare generative installation')
+            if not callable(getattr(database, 'glare_generative_source_ready', None)):
+                raise WorkerConfigurationError('Glare source-person SQL authority is unavailable')
         from photo_worker.operations.portrait.glare import execute as execute_glare
         from photo_worker.contracts.portrait_restoration import PortraitGlareParams
         glare_admission = _LeaseBoundGlareAdmission(glare_admission, database)

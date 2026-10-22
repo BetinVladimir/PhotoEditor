@@ -93,7 +93,15 @@ def apply_global(rgb: RGB, config: GlobalColor, diagnostic: ColorDiagnostics | N
     saturated = linear + (config.saturation-1) * (linear-y)
     encoded = to_encoded(_clamp(saturated, "saturation", diagnostic))
     output = encoded + trilinear(expand_lut(config.residual_lut), encoded)
-    return _clamp(output, "residual_lut", diagnostic).astype(np.float32)
+    result = _clamp(output, "residual_lut", diagnostic).astype(np.float32)
+    if (config.gains_rgb == [1, 1, 1] and config.saturation == 1
+            and np.array_equal(config.master_curve, KNOTS)
+            and all(np.array_equal(curve, KNOTS) for curve in config.rgb_curves)
+            and all(value == 0 for value in config.residual_lut.values)):
+        # Neutral global colour must not alter pixels through gamma roundtrips.
+        # Preserve the established unit-domain clamp for out-of-range inputs.
+        return np.clip(rgb, 0, 1).copy()
+    return result
 
 
 def apply_local(rgb: RGB, person: RGB | None, config: LocalColor | Disabled, diagnostic: ColorDiagnostics | None = None) -> RGB:
@@ -111,7 +119,14 @@ def apply_local(rgb: RGB, person: RGB | None, config: LocalColor | Disabled, dia
     output = region(config.person_ev, config.person_saturation)*p + region(config.background_ev, config.background_saturation)*(1-p)
     if diagnostic is not None:
         diagnostic.record("local", output)
-    return to_encoded(output)
+    encoded=to_encoded(output)
+    person_neutral=config.person_ev==0 and config.person_saturation==1
+    background_neutral=config.background_ev==0 and config.background_saturation==1
+    if person_neutral and background_neutral:
+        return rgb.copy()
+    if person_neutral:np.copyto(encoded,rgb,where=(p==1))
+    if background_neutral:np.copyto(encoded,rgb,where=(p==0))
+    return encoded
 
 
 def apply_series(rgb: RGB, ev: float, gains: list[float], diagnostic: ColorDiagnostics | None = None) -> RGB:
@@ -121,7 +136,9 @@ def apply_series(rgb: RGB, ev: float, gains: list[float], diagnostic: ColorDiagn
     if gain.shape != (3,) or not np.isfinite(gain).all() or not -.35 <= ev <= .35 or np.any(gain < .95) or np.any(gain > 1.05):
         raise ValueError("Series correction outside renderer bounds")
     corrected = to_linear(rgb) * np.float32(2**ev) * gain
-    return to_encoded(_clamp(corrected, "series", diagnostic))
+    encoded=to_encoded(_clamp(corrected, "series", diagnostic))
+    if ev==0 and np.all(gain==1):return rgb.copy()
+    return encoded
 
 
 def apply_strength(base: RGB, processed: RGB, strength: float) -> RGB:
@@ -131,7 +148,12 @@ def apply_strength(base: RGB, processed: RGB, strength: float) -> RGB:
         return _rgb(base).copy()
     if strength == 1:
         return _rgb(processed).copy()
-    return to_encoded(to_linear(_rgb(base))*(1-strength)+to_linear(_rgb(processed))*strength)
+    base,processed=_rgb(base),_rgb(processed)
+    output=to_encoded(to_linear(base)*(1-strength)+to_linear(processed)*strength)
+    # Equal inputs carry identity/protection, even at fractional strength.
+    # Gamma round-tripping must not modify a pixel that the effect left alone.
+    np.copyto(output,base,where=np.all(base==processed,axis=-1)[...,None])
+    return output
 
 
 def compile_absolute_lut(config: GlobalColor, size: int = 33) -> LUT:

@@ -3,14 +3,14 @@ const state=vi.hoisted(()=>({files:new Set<string>(),directories:new Set<string>
 vi.mock('expo-file-system',()=>{
  class File{
   uri:string;
-  constructor(...parts:(string|{uri:string})[]){this.uri=parts.map(p=>typeof p==='string'?p:p.uri).join('/').replace(/([^:])\/{2,}/g,'$1/');}
+  constructor(...parts:(string|{uri:string})[]){this.uri=parts.map(p=>typeof p==='string'?p:p.uri).join('/');}
   get exists(){return state.files.has(this.uri);}
   delete(){if(state.failDelete)throw new Error('disk');state.files.delete(this.uri);}
   move(target:File){state.files.delete(this.uri);state.files.add(target.uri);this.uri=target.uri;}
  }
  class Directory{
   uri:string;
-  constructor(...parts:(string|{uri:string})[]){this.uri=parts.map(p=>typeof p==='string'?p:p.uri).join('/').replace(/([^:])\/{2,}/g,'$1/');}
+  constructor(...parts:(string|{uri:string})[]){this.uri=parts.map(p=>typeof p==='string'?p:p.uri).join('/');}
   get exists(){return state.directories.has(this.uri);}
   create(){state.directories.add(this.uri);}
   list(){return [...state.files].filter(uri=>uri.startsWith(this.uri+'/')).map(uri=>new File(uri));}

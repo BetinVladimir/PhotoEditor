@@ -92,8 +92,10 @@ def test_identity512_factory_requires_exact_onnx_contract(tmp_path,monkeypatch):
                                        {'identity.onnx':path},'cuda')
 
     class Session:
-        def __init__(self,path,providers):
+        def __init__(self,path,providers,enable_fallback):
+            assert enable_fallback is False
             self.providers=providers
+        def disable_fallback(self):pass
         def get_providers(self):return self.providers
         def get_inputs(self):
             return [SimpleNamespace(name='rgb',shape=[1,3,112,112],

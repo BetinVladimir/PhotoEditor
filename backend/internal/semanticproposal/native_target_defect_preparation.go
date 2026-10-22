@@ -41,7 +41,7 @@ func projectNativeTargetPersonProtection(ctx context.Context, plan nativeTargetP
 	if err != nil || mask.ModelLockID == nil {
 		return zero, v2input.ErrInvalid
 	}
-	selected, err := selectQualificationPolicies(plan.person.policy, []string{"mask.person"})
+	selected, err := selectNativeQualificationPolicies(plan.person.policy, []string{"mask.person"})
 	if err != nil {
 		return zero, err
 	}

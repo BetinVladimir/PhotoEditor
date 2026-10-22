@@ -52,6 +52,7 @@ func (s *Server) importReviewDecisionRoutes(router chi.Router) {
 			writeError(w, r, err)
 			return
 		}
+		if r.Context().Err()!=nil{return}
 		if page.Items == nil {
 			page.Items = []interchange.ImportReviewDecisionStatus{}
 		}
@@ -95,6 +96,7 @@ func (s *Server) importReviewDecisionRoutes(router chi.Router) {
 			writeError(w, r, err)
 			return
 		}
+		if r.Context().Err()!=nil{return}
 		if page.Items == nil {
 			page.Items = []interchange.ImportReviewProposalItem{}
 		}

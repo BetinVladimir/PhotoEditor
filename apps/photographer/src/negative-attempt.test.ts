@@ -48,3 +48,17 @@ it('owns the accepted ticket across a mutating persistence callback',async()=>{
  await expect(attempt.submit(async()=>ticket)).resolves.toEqual(ticket);
  expect(attempt.snapshot.ticket).toEqual(ticket);
 });
+
+it('admits recovery only after immutable persistence and keeps known acceptance if its write fails',async()=>{
+ const receipt={run_id:id(6),workflow_id:id(7),state:'queued' as const};let writes=0,sends=0;
+ const attempt=new NegativeAttempt(id(5),'recovery:proof',body(),{write:async()=>{if(++writes===1)throw new Error('initial storage failed');if(writes===3)throw new Error('accepted storage failed');}});
+ expect(attempt.canReplay).toBe(false);
+ await expect(attempt.submit(async()=>{sends++;return receipt;})).rejects.toThrow('initial storage failed');
+ expect(attempt.canReplay).toBe(false);expect(sends).toBe(0);
+ await expect(attempt.submit(async()=>{sends++;return receipt;})).rejects.toThrow('accepted storage failed');
+ expect(attempt.canReplay).toBe(true);expect(attempt.state).toBe('accepted');
+ await expect(attempt.submit(async()=>{throw new Error('must not repeat accepted POST');})).resolves.toEqual(receipt);
+ expect(sends).toBe(1);
+ const restored=NegativeAttempt.restore({...attempt.snapshot,ticket:null},{write:async()=>{}});
+ expect(restored.state).toBe('unknown');expect(restored.canReplay).toBe(true);
+});

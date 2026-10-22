@@ -64,3 +64,12 @@ def test_build_worker_installs_measured_person_authority(monkeypatch,tmp_path):
     assert calls==['cuda','cuda'] and executed==['cuda']
     measured['runtime_lock_sha']='d'*64
     with pytest.raises(WorkerConfigurationError):service.build_worker(config)
+
+
+@pytest.fixture(autouse=True)
+def installed_startup_schema(monkeypatch):
+    # Constructor isolation only; installed SQL authority has separate tests.
+    from photo_worker.runtime.database import TaskDatabase
+    monkeypatch.setattr(TaskDatabase, 'media_renderer_policy_ready', lambda self: True)
+    monkeypatch.setattr(TaskDatabase, 'task_result_fence_ready', lambda self: True)
+    monkeypatch.setattr(TaskDatabase, 'editor_internal_dispatch_installed', lambda self, operation: True)

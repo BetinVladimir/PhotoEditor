@@ -1,4 +1,5 @@
 """Real SQL lineage and pinned manual documents; seeded producer, no raster execution."""
+from pathlib import Path as _PhotoRepositoryPath
 import json
 import os
 import subprocess
@@ -14,6 +15,39 @@ from photo_worker.contracts.base import canonical_bytes, canonical_hash
 from layer_original_fixture import seed_original_composition
 from test_v27_native_protection_gc import lens_objects
 
+
+
+
+def _assert_exact_go_root_executed(result, package, root):
+    """A successful exit alone may hide a skipped or unmatched Go selector."""
+    from hashlib import sha256
+    from pathlib import Path
+    from uuid import uuid4
+    events=[]
+    invalid_json=False
+    for line in result.stdout.splitlines():
+        if not line.startswith('{'):continue
+        try:event=json.loads(line)
+        except (ValueError,TypeError):
+            invalid_json=True
+            continue
+        if not isinstance(event,dict):
+            invalid_json=True
+            continue
+        events.append({key:event[key] for key in ('Action','Package','Test','Elapsed') if key in event})
+    evidence=Path(__file__).resolve().parents[2]/'work/specialized-three-go-evidence'
+    evidence.mkdir(parents=True,exist_ok=True)
+    path=evidence/(root+'-'+uuid4().hex+'.json')
+    path.write_text(json.dumps(dict(selector='^'+root+'$',package=package,
+        exit_code=result.returncode,events=events,invalid_json=invalid_json,
+        stdout_sha256=sha256(result.stdout.encode()).hexdigest(),
+        stderr_sha256=sha256(result.stderr.encode()).hexdigest()),indent=2)+'\n')
+    assert not invalid_json,str(path)
+    assert events, 'Go JSON events required'
+    assert not [event for event in events if event.get('Action') in ('skip','fail')], 'Go root/child SKIP or FAIL is not execution evidence'
+    for action in ('run','pass'):
+        assert sum(event.get('Action')==action and event.get('Test')==root
+            and event.get('Package')==package for event in events)==1, 'exact selected Go root '+action+' required once'
 
 @pytest.mark.parametrize('external', [False, True])
 @pytest.mark.parametrize('failure', ['', 'corrupt-root', 'missing-params'])
@@ -83,12 +117,14 @@ def test_manual_documents_exact_bytes_and_lineage(database, lens_objects, failur
             client.remove_object(bucket,params_object['key'],version_id=params_object['version'])
     config={k:case[k] for k in ('Tenant','Project','Snapshot','Actor','Session')}
     config.update(Binding=base,Target=target,Guard=guard,TargetPixel=pins['mask_target'],GuardPixel=pins['mask_protected'],Source=source_raw.decode(),Root=root_raw.decode(),Params=params_raw.decode(),RootRef=pins['rasterized_mask'],ParamsRef=dict(artifact_id=str(params_id),sha256=params_object['sha256']),VectorRef=vector_ref,Failure=failure,Vectors=vector_raw.decode(),Objects={**client._photo_test_config,'Development':True})
-    env={**os.environ,'PHOTO_TEST_DATABASE_URL':make_conninfo(**database),'PHOTO_TEST_MANUAL_DOCUMENTS':json.dumps(config),'GOCACHE':'/private/tmp/photoeditor-go-cache'}
-    result=subprocess.run(['go','test','./internal/v2portrait','-run','^TestIntegrationManualDocumentsPhysical$','-count=1','-timeout=30s','-v'],cwd=root_path/'backend',env=env,capture_output=True,text=True,timeout=45)
+    env={**os.environ,'PHOTO_TEST_DATABASE_URL':make_conninfo(**database),'PHOTO_TEST_MANUAL_DOCUMENTS':json.dumps(config),'GOCACHE':str(_PhotoRepositoryPath(__file__).resolve().parents[2]/'work/go-cache')}
+    result=subprocess.run(['go','test','-json','./internal/v2portrait','-run','^TestIntegrationManualDocumentsPhysical$','-count=1','-timeout=30s','-v'],cwd=root_path/'backend',env=env,capture_output=True,text=True,timeout=45)
+    _assert_exact_go_root_executed(result,'photoeditor/backend/internal/v2portrait','TestIntegrationManualDocumentsPhysical')
     assert result.returncode==0,result.stdout+result.stderr
     assert ('MANUAL_DOCUMENTS_PHYSICAL_REFUSED' if failure else 'MANUAL_DOCUMENTS_PHYSICAL_OK') in result.stdout
 
-    material=subprocess.run(['go','test','./internal/v2draft','-run','^TestIntegrationLocalPortraitMaterialPhysical$','-count=1','-timeout=30s','-v'],cwd=root_path/'backend',env=env,capture_output=True,text=True,timeout=45)
+    material=subprocess.run(['go','test','-json','./internal/v2draft','-run','^TestIntegrationLocalPortraitMaterialPhysical$','-count=1','-timeout=30s','-v'],cwd=root_path/'backend',env=env,capture_output=True,text=True,timeout=45)
+    _assert_exact_go_root_executed(material,'photoeditor/backend/internal/v2draft','TestIntegrationLocalPortraitMaterialPhysical')
     assert material.returncode==0,material.stdout+material.stderr
     assert ('LOCAL_PORTRAIT_MATERIAL_REFUSED' if failure else 'LOCAL_PORTRAIT_MATERIAL_PHYSICAL_OK') in material.stdout
     if not failure:

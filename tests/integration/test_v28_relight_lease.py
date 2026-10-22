@@ -13,7 +13,7 @@ def test_relight_lease_gate_acl_and_unregistered_refusal(database):
         assert conn.execute('SELECT photo.v28_relight_lease_ready(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',args).fetchone()==(False,)
 
 
-def relight_lease_fixture(db,qualified=False,objects=None,calibration_raw=None,params_builder=None,extra_inputs_factory=None,source_builder=None,execution_resource_estimate=None,runtime_sha='b'*64):
+def relight_lease_fixture(db,qualified=False,objects=None,calibration_raw=None,params_builder=None,extra_inputs_factory=None,source_builder=None,execution_resource_estimate=None,runtime_sha='b'*64,workflow_type=None,params_declared_bytes_delta=0,params_declared_version=None):
     """Owner-seeded SQL attempt fixture; no producer/qualification/IO acceptance."""
     from psycopg.types.json import Jsonb
     from test_v27_semantic_final_producer_gate import fixture
@@ -44,13 +44,13 @@ def relight_lease_fixture(db,qualified=False,objects=None,calibration_raw=None,p
     if qualified:
         profile.update(relight_qualification=qualification,v2_entry_count=profile['v2_entry_count']+2)
     db.execute("INSERT INTO photo.runs(id,tenant_id,kind,status,input_snapshot_id,config_snapshot,config_hash,created_by,failure_policy,graph_sealed) SELECT %s,tenant_id,'v2','running',input_snapshot_id,config_snapshot || %s,config_hash,created_by,'fail_fast',false FROM photo.runs WHERE id=%s",(run,Jsonb({'v28_relight':{'auth_session_id':str(scope['session'])}}),oldrun))
-    db.execute("INSERT INTO photo.v2_workflows(tenant_id,project_id,run_id,input_snapshot_id,workflow_type,renderer_version,policy_sha) SELECT tenant_id,project_id,%s,input_snapshot_id,workflow_type,renderer_version,policy_sha FROM photo.v2_workflows WHERE run_id=%s",(run,oldrun))
+    db.execute("INSERT INTO photo.v2_workflows(tenant_id,project_id,run_id,input_snapshot_id,workflow_type,renderer_version,policy_sha) SELECT tenant_id,project_id,%s,input_snapshot_id,coalesce(%s,workflow_type),renderer_version,policy_sha FROM photo.v2_workflows WHERE run_id=%s",(run,workflow_type,oldrun))
     params_bucket,params_key,params_version='fixture',str(params),'v1'
     if objects is not None:
         from io import BytesIO
         client,params_bucket=objects
         params_version=client.put_object(params_bucket,params_key,BytesIO(raw.encode()),len(raw.encode()),content_type='application/json').version_id
-    db.execute("INSERT INTO photo.artifacts(id,tenant_id,bucket,object_key,object_version,sha256,bytes,media_type,verified_at) VALUES(%s,%s,%s,%s,%s,%s,%s,'application/json',clock_timestamp())",(params,tenant,params_bucket,params_key,params_version,digest,len(raw.encode())))
+    db.execute("INSERT INTO photo.artifacts(id,tenant_id,bucket,object_key,object_version,sha256,bytes,media_type,verified_at) VALUES(%s,%s,%s,%s,%s,%s,%s,'application/json',clock_timestamp())",(params,tenant,params_bucket,params_key,params_version if params_declared_version is None else params_declared_version,digest,len(raw.encode())+params_declared_bytes_delta))
     db.execute("INSERT INTO photo.tasks(id,tenant_id,run_id,node_key,operation,operation_version,resource_class,state,inputs,params_artifact_id,input_digest,execution_profile,attempt,fencing_token,worker_id,lease_until,deadline) VALUES(%s,%s,%s,'relight:0','image.relight','1','cpu','running',%s,%s,%s,%s,1,1,%s,clock_timestamp()+interval '60 seconds',clock_timestamp()+interval '120 seconds')",(task,tenant,run,Jsonb(inputs),params,'b'*64,Jsonb(profile),worker))
     db.execute("INSERT INTO photo.v2_task_inputs(tenant_id,project_id,task_id,artifact_id,sha256,contract,ordinal) SELECT tenant_id,project_id,%s,CASE WHEN artifact_id=%s THEN %s ELSE artifact_id END,CASE WHEN artifact_id=%s THEN %s ELSE sha256 END,contract,ordinal FROM photo.v2_task_inputs WHERE task_id=%s",(task,oldparams,params,oldparams,digest,template))
     if qualified:

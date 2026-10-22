@@ -19,6 +19,20 @@ func TestValidateJobOverride(t *testing.T) {
 	}
 	for _, raw := range []string{
 		`{"schema_version":1,"modules":{}}`,
+		`{"schema_version":1,"modules":{"global":{"saturation":1}}}`,
+		`{"schema_version":1,"modules":{"beauty":{}}}`,
+		`{"schema_version":1,"modules":{"geometry":{"enabled":null}}}`,
+		`{"schema_version":1,"modules":{"local":{"enabled":"false"}}}`,
+		`{"schema_version":1,"modules":{"defects":{"enabled":false,"policy":"review"}}}`,
+
+		`{"schema_version":1,"modules":{"strength":-0.1}}`,
+		`{"schema_version":1,"modules":{"strength":1.1}}`,
+		`{"schema_version":1,"modules":{"strength":"0.4"}}`,
+		`{"schema_version":1,"modules":{"strength":true}}`,
+		`{"schema_version":1,"modules":{"extensions":[]}}`,
+		`{"schema_version":1,"modules":{"local":false}}`,
+		`{"schema_version":1,"modules":{"strength":0.4}} {}`,
+
 		`{"schema_version":1,"modules":{"model_path":"/tmp/model"}}`,
 		`{"schema_version":1,"modules":{"strength":0.4},"extra":true}`,
 	} {
@@ -207,4 +221,16 @@ func TestPersonModelRequiresExactWeightIdentity(t *testing.T) {
 			t.Fatal("non-exact person model accepted")
 		}
 	}
+}
+
+func TestJobOverrideUsesCompleteModuleContracts(t *testing.T) {
+ for _, raw := range []string{
+  `{"schema_version":1,"modules":{"local":{"enabled":false},"beauty":{"enabled":false}}}`,
+  `{"schema_version":1,"modules":{"local":{"enabled":true,"person_ev":0,"background_ev":0,"person_saturation":1,"background_saturation":1,"mask_policy_id":"person_guided_v1"}}}`,
+ } { if err := validateJobOverride(json.RawMessage(raw)); err != nil { t.Fatalf("valid contract rejected: %v",err) } }
+ for _, raw := range []string{
+  `{"schema_version":1,"modules":{"local":{"enabled":true}}}`,
+  `{"schema_version":1,"modules":{"beauty":{"enabled":true,"smoothing":0.5}}}`,
+  `{"schema_version":1,"modules":{"geometry":{"enabled":true,"algorithm":"bodywarp_v1"}}}`,
+ } { if err := validateJobOverride(json.RawMessage(raw)); err == nil { t.Fatalf("incomplete module accepted: %s",raw) } }
 }

@@ -5,8 +5,8 @@ import {OwnerAPI} from './owner-api';
 const wire=()=>({policy_sha:'62daedfa9c9bc2aea4ba7ebaa1cff2b3753cab69425efaa798fe1627099626b4',policy:{schema_version:1,renderer_version:'v2.2',workflow_type:'preview',child_failure_policy:'fail_fast',max_frames:5000}});
 it('reads the server policy with independent canonical digest and detached fields',async()=>{
  const raw=wire(),request=vi.fn((..._args:unknown[])=>Promise.resolve(raw)),signal=new AbortController().signal;
- const api=new OwnerAPI({request} as never,'tenant/id');const result=await api.renderPolicy('project/id',signal);
- expect(request.mock.calls[0]).toEqual(['/api/v1/tenants/tenant%2Fid/projects/project%2Fid/render-policy',{signal}]);
+ const api=new OwnerAPI({request} as never,'00000000-0000-4000-8000-000000000010');const result=await api.renderPolicy('00000000-0000-4000-8000-000000000011',signal);
+ expect(request.mock.calls[0]).toEqual(['/api/v1/tenants/00000000-0000-4000-8000-000000000010/projects/00000000-0000-4000-8000-000000000011/render-policy',expect.objectContaining({signal:expect.any(AbortSignal)})]);
  raw.policy.max_frames=1;expect(result.policy.max_frames).toBe(5000);
 });
 it('denies unsupported semantics and digest/shape substitution',()=>{

@@ -1,6 +1,7 @@
 package workflow
 
 import (
+	"photoeditor/backend/internal/media"
 	"encoding/json"
 	"github.com/google/uuid"
 	"photoeditor/backend/internal/domain"
@@ -15,6 +16,7 @@ type PerspectivePreviewPlan struct {
 	source    v2render.PerspectivePreviewSource
 	run       uuid.UUID
 	srgb      string
+	policy    string
 	documents []RenderDerivativeDocument
 }
 
@@ -32,8 +34,9 @@ func (p PerspectivePreviewPlan) Documents() []RenderDerivativeDocument {
 	return out
 }
 
-func CompilePerspectivePreviewPlan(bundle v2render.PerspectivePreviewBundle, srgb string) (PerspectivePreviewPlan, error) {
+func CompilePerspectivePreviewPlan(bundle v2render.PerspectivePreviewBundle, srgb string, policies ...string) (PerspectivePreviewPlan, error) {
 	var zero PerspectivePreviewPlan
+	policy,policyErr:=media.ResolveRendererPolicy(policies...);if policyErr!=nil{return zero,policyErr}
 	pin := bundle.Source()
 	if _, err := domain.ParseDigest(srgb); err != nil {
 		return zero, v2input.ErrInvalid
@@ -53,9 +56,10 @@ func CompilePerspectivePreviewPlan(bundle v2render.PerspectivePreviewBundle, srg
 	// A distinct deterministic preview run never mutates the waiting-review parent.
 	run := uuid.NewSHA1(pin.Run, []byte("V29.PerspectivePreview:"+pin.Producer.String()+":"+pin.ResultID.String()+":"+pin.Result.SHA256+":"+srgb))
 	intent := v2render.RenderDerivativeIntent{Tenant: pin.Tenant, Run: run, Project: pin.Project, Task: pin.Producer, Result: pin.ResultID, Root: pin.Result, SourceAttempt: pin.Attempt, SourceFence: pin.Fence, SRGBSHA: srgb}
+	intent.RendererPolicy=policy
 	documents, err := BuildRenderDerivativeDocuments(intent, rootRaw, originals[result.WorkingImage.ArtifactID.String()])
 	if err != nil {
 		return zero, err
 	}
-	return PerspectivePreviewPlan{source: pin, run: run, srgb: srgb, documents: documents}, nil
+	return PerspectivePreviewPlan{source: pin, run: run, srgb: srgb, policy:policy, documents: documents}, nil
 }

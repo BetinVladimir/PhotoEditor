@@ -7,7 +7,7 @@ import (
 	"photoeditor/backend/internal/v2input"
 )
 
-type ImportBinaryCodecRouter struct{ Masks, LUT, DefectLabels ImportBinaryRemapper }
+type ImportBinaryCodecRouter struct{ Masks, LUT, DefectLabels, DefectPNGs, Historical ImportBinaryRemapper }
 
 func (r ImportBinaryCodecRouter) RemapImportBinary(ctx context.Context, entry uuid.UUID, archived, staged v2input.Ref, kind string, old, target v2input.SessionVersionBinding, maxBytes int64) (v2input.Ref, int64, error) {
 	if err := ctx.Err(); err != nil {
@@ -15,10 +15,14 @@ func (r ImportBinaryCodecRouter) RemapImportBinary(ctx context.Context, entry uu
 	}
 	var selected ImportBinaryRemapper
 	switch kind {
-	case "MaskPixels":
+	case "WorkingPixels", "WorkingAlpha", "DenseWarpField":
+        selected=r.Historical
+ case "MaskPixels":
 		selected = r.Masks
 	case "AbsoluteLUTArray":
 		selected = r.LUT
+	case "DefectLabelPNG":
+		selected = r.DefectPNGs
 	case "DefectLabelMap":
 		selected = r.DefectLabels
 	default:

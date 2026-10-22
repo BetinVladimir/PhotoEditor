@@ -11,7 +11,10 @@ def test_style_runtime_selection_is_tenant_bound_and_private():
     assert "p_tenant IS DISTINCT FROM nullif(current_setting('app.tenant_id',true),'')::uuid" in SQL
     assert "REVOKE ALL ON FUNCTION photo.select_style_analysis_runtimes" in SQL
     assert "GRANT EXECUTE ON FUNCTION photo.select_style_analysis_runtimes(uuid,boolean) TO photo_api" in SQL
-    assert "FROM photo.select_style_analysis_runtimes($1,$2)" in SERVICE
+    selector=(ROOT/'backend/internal/style/analysis_capabilities.go').read_text()
+    assert 'selectAnalysisRuntimes(ctx,tx,tid,req.AnalysisOptions.GeometryEnabled)' in SERVICE
+    assert "FROM photo.select_style_analysis_runtimes($1,$2)" in selector
+    assert "FROM photo.worker_registrations w WHERE w.tenant_id=$1" not in selector
     assert "FROM photo.worker_registrations w WHERE w.tenant_id=$1" not in SERVICE
 
 

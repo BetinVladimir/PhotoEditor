@@ -20,9 +20,9 @@ BEGIN
  OR coalesce(plan->>'params_sha','') !~ '^[0-9a-f]{64}$' OR v_run IS NULL OR v_workflow IS NULL OR v_project IS NULL OR v_snapshot IS NULL
  OR jsonb_typeof(plan->'inputs') IS DISTINCT FROM 'array' OR jsonb_array_length(plan->'inputs') NOT BETWEEN 4 AND 64
  OR (plan->>'reserved_bytes')::bigint NOT BETWEEN 8388609 AND 9007199254740991 THEN RETURN false;END IF;
- IF plan->'params' IS DISTINCT FROM CASE plan->>'operation'
+ IF plan->'params' IS DISTINCT FROM (CASE plan->>'operation'
  WHEN 'depth.predict' THEN jsonb_build_object('image',request->'base'->'source','model_id','depth_anything_v2_small','model_lock_id',profile->>'model_lock_sha','preprocessing_id','depth_anything_v2_small_518_v1','input_size',518)
- ELSE jsonb_build_object('image',request->'base'->'source','model_id','lraspp_mobilenet_v3_large','model_lock_id',profile->>'model_lock_sha','preprocessing_id','person_guided_v1','long_side',768,'guided_tile',512) END THEN RETURN false;END IF;
+ ELSE jsonb_build_object('image',request->'base'->'source','model_id','lraspp_mobilenet_v3_large','model_lock_id',profile->>'model_lock_sha','preprocessing_id','person_guided_v1','long_side',768,'guided_tile',512) END) THEN RETURN false;END IF;
  h:=public.digest(uuid_send(v_run)||convert_to('workflow','UTF8'),'sha1');h:=set_byte(h,6,(get_byte(h,6)&15)|80);h:=set_byte(h,8,(get_byte(h,8)&63)|128);
  IF v_workflow IS DISTINCT FROM encode(substring(h FROM 1 FOR 16),'hex')::uuid THEN RETURN false;END IF;
  PERFORM id FROM photo.tenants WHERE id=p_tenant AND status='active' FOR UPDATE;IF NOT FOUND THEN RETURN false;END IF;

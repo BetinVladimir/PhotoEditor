@@ -1,0 +1,137 @@
+{
+  "status": "LENGTH_CHECKS_PASS_NOT_STORE_ACCEPTANCE",
+  "locales": {
+    "bg": {
+      "apple.name": {
+        "characters": 9,
+        "utf16_units": 9,
+        "limit": 30,
+        "status": "PASS"
+      },
+      "apple.subtitle": {
+        "characters": 26,
+        "utf16_units": 26,
+        "limit": 30,
+        "status": "PASS"
+      },
+      "apple.description": {
+        "characters": 1055,
+        "utf16_units": 1055,
+        "limit": 4000,
+        "status": "PASS"
+      },
+      "apple.keywords": {
+        "characters": 68,
+        "utf16_units": 68,
+        "limit": 100,
+        "status": "PASS"
+      },
+      "google.name": {
+        "characters": 9,
+        "utf16_units": 9,
+        "limit": 30,
+        "status": "PASS"
+      },
+      "google.short_description": {
+        "characters": 79,
+        "utf16_units": 79,
+        "limit": 80,
+        "status": "PASS"
+      },
+      "google.full_description": {
+        "characters": 1055,
+        "utf16_units": 1055,
+        "limit": 4000,
+        "status": "PASS"
+      }
+    },
+    "en": {
+      "apple.name": {
+        "characters": 9,
+        "utf16_units": 9,
+        "limit": 30,
+        "status": "PASS"
+      },
+      "apple.subtitle": {
+        "characters": 26,
+        "utf16_units": 26,
+        "limit": 30,
+        "status": "PASS"
+      },
+      "apple.description": {
+        "characters": 1128,
+        "utf16_units": 1128,
+        "limit": 4000,
+        "status": "PASS"
+      },
+      "apple.keywords": {
+        "characters": 73,
+        "utf16_units": 73,
+        "limit": 100,
+        "status": "PASS"
+      },
+      "google.name": {
+        "characters": 9,
+        "utf16_units": 9,
+        "limit": 30,
+        "status": "PASS"
+      },
+      "google.short_description": {
+        "characters": 67,
+        "utf16_units": 67,
+        "limit": 80,
+        "status": "PASS"
+      },
+      "google.full_description": {
+        "characters": 1128,
+        "utf16_units": 1128,
+        "limit": 4000,
+        "status": "PASS"
+      }
+    },
+    "ru": {
+      "apple.name": {
+        "characters": 9,
+        "utf16_units": 9,
+        "limit": 30,
+        "status": "PASS"
+      },
+      "apple.subtitle": {
+        "characters": 30,
+        "utf16_units": 30,
+        "limit": 30,
+        "status": "PASS"
+      },
+      "apple.description": {
+        "characters": 1109,
+        "utf16_units": 1109,
+        "limit": 4000,
+        "status": "PASS"
+      },
+      "apple.keywords": {
+        "characters": 66,
+        "utf16_units": 66,
+        "limit": 100,
+        "status": "PASS"
+      },
+      "google.name": {
+        "characters": 9,
+        "utf16_units": 9,
+        "limit": 30,
+        "status": "PASS"
+      },
+      "google.short_description": {
+        "characters": 74,
+        "utf16_units": 74,
+        "limit": 80,
+        "status": "PASS"
+      },
+      "google.full_description": {
+        "characters": 1109,
+        "utf16_units": 1109,
+        "limit": 4000,
+        "status": "PASS"
+      }
+    }
+  }
+}

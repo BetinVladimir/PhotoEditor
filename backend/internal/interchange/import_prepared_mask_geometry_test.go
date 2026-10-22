@@ -24,7 +24,7 @@ func TestPreparedMaskGeometryRereadsParentAndCanonicalMaster(t *testing.T){
   switch mode{case "changed_parent":objects.body[0]='!';case "changed_master":masters.second=[]byte(`{}`);case "foreign_role":entry.Contract="MaskArray"}
   ctx,cancel:=context.WithCancel(context.Background());defer cancel();if mode=="cancelled"{cancel()}
   geometry,err:=(ImportPreparedMaskGeometry{Witnesses:witnesses,Catalog:catalog,Objects:objects,Masters:masters,Binding:binding}).ResolveExportArrayGeometry(ctx,entry)
-  if (err==nil)!=(mode=="valid"){t.Fatal("unexpected mask geometry",err)}
+  if (err==nil)!=(mode=="valid"){t.Fatal("unexpected mask geometry",err,"catalog",catalog.calls,"opens",objects.opens,"masters",masters.calls)}
   if mode=="valid"&&(geometry.CanvasSHA!=canvas||geometry.Width!=int(image.Canvas.Width)||geometry.Height!=int(image.Canvas.Height)||masters.calls!=4||objects.opens!=4){t.Fatal("mask parent/source rechecks missing")}
   if mode=="missing_witness"||mode=="foreign_role"||mode=="cancelled"{if objects.opens!=0||catalog.calls!=0{t.Fatal("invalid mask witness performed IO")}}
  })}

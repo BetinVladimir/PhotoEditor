@@ -25,7 +25,9 @@ func CompileSemanticFaceSkinProfile(width, height, inputBytes, ramLimit, scratch
 	pngBound := pngRaw + pngRaw/50 + (1 << 20)
 	// Float32 NPY, bounded header, PNG and bounded MaskRef control document.
 	output := 4*pixels + 8192 + pngBound + (1 << 20)
-	ramBase := int64(256<<20) + 16*pixels
+	// Match mask.face_skin._required_face_skin_ram: mapped labels,
+	// probability, PNG verification and encoder working pages.
+	ramBase := int64(256<<20) + 64*pixels
 	if inputBytes > safe-ramBase || inputBytes > safe-output {
 		return nil, ErrInvalid
 	}

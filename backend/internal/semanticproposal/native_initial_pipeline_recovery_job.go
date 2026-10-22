@@ -35,14 +35,14 @@ func (j SQLNativeInitialPipelineRecovery) validate(ctx context.Context) error {
 func (j SQLNativeInitialPipelineRecovery) Recover(ctx context.Context, who auth.Identity, tenantID, parent uuid.UUID) (nativeFacePipelineAdvance, bool, error) {
 	var out nativeFacePipelineAdvance
 	if err := j.validate(ctx); err != nil {
-		return out, false, err
+		return out, false, nativeInitialRecoveryStageError("validate", err)
 	}
 	work, cancel := context.WithTimeout(ctx, j.Timeout)
 	defer cancel()
 	locked, err := withNativeManualParentLock(work, j.Preparer.Scheduler, tenantID, parent, func(work context.Context) error {
 		terminal, err := j.Preparer.Reader.readNativeInitialTerminalState(work, who, tenantID, parent)
 		if err != nil {
-			return err
+			return nativeInitialRecoveryStageError("read_terminal", err)
 		}
 		if terminal != "" {
 			out = nativeFacePipelineAdvance{phase: nativePreparationFailed, operation: terminal}
@@ -51,66 +51,66 @@ func (j SQLNativeInitialPipelineRecovery) Recover(ctx context.Context, who auth.
 		capacity := ownTransferPreparation(j.Preparer.Configuration)
 		anchor, err := j.Preparer.Reader.loadNativePreparationAnchor(work, who, tenantID, parent, capacity.Color, capacity.MetadataBytes)
 		if err != nil {
-			return err
+			return nativeInitialRecoveryStageError("load_anchor", err)
 		}
 		catalog, err := resolveNativeParentRecoveryCatalog(work, who, anchor, j.Preparer.Reader.ProjectID, nil, j.CatalogForReference)
 		if err != nil {
-			return err
+			return nativeInitialRecoveryStageError("resolve_catalog", err)
 		}
 		// Saved all-native graphs retain exact original-person locators. Route
 		// before initial unique-candidate discovery, which remains mandatory for
 		// new graphs and must reject ambiguous shared-source producers.
 		allNative, err := j.Preparer.Reader.hasNativeAllTargetSavedParent(work, who, anchor.Request)
 		if err != nil {
-			return err
+			return nativeInitialRecoveryStageError("read_all_native_parent", err)
 		}
 		if allNative {
 			ticket, err := j.Preparer.loadAndResumeNativeAllTargetTransferLocked(work, who, anchor.Request, anchor.Key, capacity.Color)
 			if err != nil {
-				return err
+				return nativeInitialRecoveryStageError("resume_all_native_parent", err)
 			}
 			if ticket.RunID != parent || ticket.WorkflowID != anchor.Request.WorkflowID || ticket.State != "queued" {
-				return v2input.ErrConflict
+				return nativeInitialRecoveryStageError("all_native_ticket_identity", v2input.ErrConflict)
 			}
 			producers, err := j.Preparer.Reader.restoreNativeInputFaceProducers(work, catalog, who, anchor.Request, anchor.Key, anchor.Published, anchor.Snapshot, anchor.SnapshotBody, capacity.Color)
 			if err != nil {
-				return err
+				return nativeInitialRecoveryStageError("restore_all_native_producers", err)
 			}
 			out = nativeFacePipelineAdvance{phase: nativePreparationSucceeded, producers: producers}
 			return nil
 		}
 		checkpoint, checkpointSHA, present, err := j.Preparer.Reader.readNativeTargetCheckpoint(work, who, anchor.Request)
 		if err != nil {
-			return err
+			return nativeInitialRecoveryStageError("read_target_checkpoint", err)
 		}
 		if present {
 			out, err = j.Preparer.recoverNativeTargetCheckpoint(work, who, anchor, catalog, checkpoint, checkpointSHA, j.CatalogForReference)
-			return err
+			return nativeInitialRecoveryStageError("recover_target_checkpoint", err)
 		}
 		detectorRun, _, err := detectorPreparationIDs(parent)
 		if err != nil {
-			return err
+			return nativeInitialRecoveryStageError("detector_ids", err)
 		}
 		// One bounded attempt owns the meter; nested physical rechecks share it.
 		reader := j.Preparer.Reader.withManualRasterScope()
 		bootstrap := nativePreparationBootstrap{Reader: reader, Scheduler: j.Preparer.Scheduler, Catalog: catalog, Documents: j.Preparer.Documents, Transport: v2input.ScopedPublisher{Documents: j.Preparer.TransportDocuments, Tenant: tenantID, Run: detectorRun}}
 		if err := bootstrap.ensureInitialPersonPreparation(work, who, anchor, capacity, j.Preparer.ReservedBytes, j.Preparer.TransportDocuments); err != nil {
-			return err
+			return nativeInitialRecoveryStageError("ensure_initial_person", err)
 		}
 		out, err = bootstrap.advanceQualifiedInitialFacePipeline(work, who, anchor, capacity, j.Preparer.ReservedBytes, j.Preparer.TransportDocuments)
 		if err != nil || out.phase != nativePreparationSucceeded {
-			return err
+			return nativeInitialRecoveryStageError("advance_face_pipeline", err)
 		}
 		// Face readiness must not retire the scheduling checkpoint while its
 		// original person child is still pending. This observes state only;
 		// successful person bytes still require independent result authority.
 		personState, err := reader.readNativeInputSavedStageState(work, who, anchor.Request, anchor.Published.Ref, anchor.Snapshot, "mask.person")
 		if err != nil {
-			return err
+			return nativeInitialRecoveryStageError("read_person_state", err)
 		}
 		personPending, err := nativeInitialPersonPending(personState)
 		if err != nil {
-			return err
+			return nativeInitialRecoveryStageError("classify_person_state", err)
 		}
 		if personPending != nil {
 			out = *personPending
@@ -118,26 +118,27 @@ func (j SQLNativeInitialPipelineRecovery) Recover(ctx context.Context, who auth.
 		}
 		personPlan, err := reader.restorePersonDraftPlan(work, catalog, who, anchor)
 		if err != nil {
-			return err
+			return nativeInitialRecoveryStageError("restore_person_plan", err)
 		}
 		personInput, err := reader.readOriginalNativePersonInput(work, who, personPlan)
 		if err != nil {
-			return err
+			return nativeInitialRecoveryStageError("read_person_input", err)
 		}
 		presence, err := reader.readNativeManualSelectionPresence(work, who, out.producers.detector)
 		if err != nil {
-			return err
+			return nativeInitialRecoveryStageError("read_manual_presence", err)
 		}
 		switch presence {
 		case nativeStageAbsent:
 			advanced, err := bootstrap.advanceInitialPersonDefect(work, who, out.producers, personInput, capacity, j.Preparer.ReservedBytes, j.Preparer.TransportDocuments)
 			if err != nil {
-				return err
+				return nativeInitialRecoveryStageError("advance_initial_defect", err)
 			}
 			if advanced.phase == nativePreparationSucceeded {
 				preparer := j.Preparer
 				preparer.Reader = reader
 				ticket, err := preparer.admitInitialPersonDefectParent(work, who, advanced)
+				err = nativeInitialRecoveryStageError("admit_initial_parent", err)
 				if err != nil {
 					var required *nativeTargetPreparationRequired
 					if !errors.As(err, &required) {
@@ -145,28 +146,38 @@ func (j SQLNativeInitialPipelineRecovery) Recover(ctx context.Context, who auth.
 					}
 					saved, err := preparer.checkpointNativeTargetPreparation(work, who, out.producers.detector, required.manifest)
 					if err != nil {
-						return err
+						return nativeInitialRecoveryStageError("save_target_checkpoint", err)
 					}
 					completedProducers := out.producers
 					detector := out.producers.detector
 					out, err = preparer.advanceNativeTargetPersons(work, who, detector, saved, j.CatalogForReference)
+					err = nativeInitialRecoveryStageError("advance_target_persons", err)
 					if err == nil && out.phase == nativePreparationWaiting && out.operation == "semantic.transfer" {
 						out, err = preparer.advanceNativeTargetDetectors(work, who, detector, saved, j.CatalogForReference)
+						err = nativeInitialRecoveryStageError("advance_target_detectors", err)
 					}
 					if err == nil && out.phase == nativePreparationWaiting && out.operation == "semantic.transfer" {
 						out, err = preparer.advanceNativeTargetFaces(work, who, detector, saved, j.CatalogForReference)
+						err = nativeInitialRecoveryStageError("advance_target_faces", err)
 					}
 					if err == nil && out.phase == nativePreparationWaiting && out.operation == "semantic.transfer" {
 						out, err = preparer.advanceNativeTargetSkins(work, who, detector, saved, j.CatalogForReference)
+						err = nativeInitialRecoveryStageError("advance_target_skins", err)
 					}
 					if err == nil && out.phase == nativePreparationWaiting && out.operation == "semantic.transfer" {
 						out, err = preparer.advanceNativeTargetDefects(work, who, detector, saved, j.CatalogForReference)
+						err = nativeInitialRecoveryStageError("advance_target_defects", err)
+					}
+					if err == nil && out.phase == nativePreparationWaiting && out.operation == "semantic.transfer" {
+						out, err = preparer.advanceNativeScenePrerequisites(work, who, detector, saved, j.CatalogForReference)
+						err = nativeInitialRecoveryStageError("advance_scene_prerequisites", err)
 					}
 					if err == nil && out.phase == nativePreparationWaiting && out.operation == "semantic.transfer" {
 						ticket, err = preparer.admitPreparedNativeAllTargetParent(work, who, detector, advanced, saved, j.CatalogForReference)
+						err = nativeInitialRecoveryStageError("admit_prepared_parent", err)
 						if err == nil {
 							if ticket.RunID != detector.request.RunID || ticket.WorkflowID != detector.request.WorkflowID || ticket.State != "queued" {
-								return v2input.ErrConflict
+								return nativeInitialRecoveryStageError("prepared_ticket_identity", v2input.ErrConflict)
 							}
 							out = nativeFacePipelineAdvance{phase: nativePreparationSucceeded, producers: completedProducers}
 						}
@@ -175,7 +186,7 @@ func (j SQLNativeInitialPipelineRecovery) Recover(ctx context.Context, who auth.
 				}
 				original := out.producers.detector.request
 				if ticket.RunID != original.RunID || ticket.WorkflowID != original.WorkflowID || ticket.State != "queued" {
-					return v2input.ErrConflict
+					return nativeInitialRecoveryStageError("initial_ticket_identity", v2input.ErrConflict)
 				}
 				// Retain the fully verified original face-producer outcome. The
 				// commit-aware recorder independently requires original person,
@@ -189,20 +200,20 @@ func (j SQLNativeInitialPipelineRecovery) Recover(ctx context.Context, who auth.
 			// Presence/SHA is only a hint. Even terminal transitions must retain the
 			// complete original scope/source/selection codec, not accept damaged JSON.
 			if _, err := reader.readNativeManualSelection(work, who, out.producers.detector); err != nil {
-				return err
+				return nativeInitialRecoveryStageError("read_manual_selection", err)
 			}
 			terminal, err := reader.readNativeManualChildTerminal(work, who, out.producers.detector)
 			if err != nil {
-				return err
+				return nativeInitialRecoveryStageError("read_manual_terminal", err)
 			}
 			if terminal {
 				out = nativeFacePipelineAdvance{phase: nativePreparationFailed, operation: "defects.propose"}
 				return nil
 			}
 			_, err = bootstrap.ensureCheckpointSelectedManualDefect(work, who, out.producers, capacity, j.Preparer.ReservedBytes, j.Preparer.TransportDocuments)
-			return err
+			return nativeInitialRecoveryStageError("resume_manual_defect", err)
 		default:
-			return v2input.ErrConflict
+			return nativeInitialRecoveryStageError("manual_presence_invalid", v2input.ErrConflict)
 		}
 	})
 	if err != nil || !locked {
@@ -236,7 +247,7 @@ func nativeInitialPipelineRecoveryOutcome(parent uuid.UUID, out nativeFacePipeli
 		return "retry", attemptErr
 	}
 	empty := reflect.DeepEqual(out.producers, nativeInputRestoredFaceProducers{})
-	validOperation := out.operation == "face.detect" || out.operation == "face.landmarks" || out.operation == "face.parse" || out.operation == "mask.face_skin"
+	validOperation := out.operation == "face.detect" || out.operation == "face.landmarks" || out.operation == "face.parse" || out.operation == "mask.face_skin" || out.operation == "scene.parse" || out.operation == "depth.predict"
 	switch out.phase {
 	case nativePreparationWaiting, nativePreparationBlocked:
 		if !empty || (!validOperation && out.operation != "mask.person" && out.operation != "defects.propose" && out.operation != "semantic.transfer") {

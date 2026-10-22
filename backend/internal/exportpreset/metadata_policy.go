@@ -3,6 +3,7 @@ package exportpreset
 import (
  "context"
  "encoding/json"
+ "errors"
  "strconv"
  "time"
  "github.com/google/uuid"
@@ -48,7 +49,10 @@ func(s Service)ChangeMetadataPolicy(ctx context.Context,who auth.Identity,tid,id
    preset.Revision=strconv.FormatInt(current+1,10);preset.ConfigHash=hash
    response,err:=canonical.Marshal(preset)
    return idempotency.Response{Status:200,Body:response,ResourceID:&preset.ID},err
-  });return inner
+  });if inner!=nil{return inner}
+  receipt,receiptErr:=readPresetReceipt(out,200);if receiptErr!=nil{return receiptErr}
+  if receipt.ID!=id||receipt.Revision!=strconv.FormatInt(revision+1,10)||receipt.Config.MetadataPolicy!=req.MetadataPolicy{return errors.New("export preset metadata receipt binding mismatch")}
+  return nil
  });return out,err
 }
 

@@ -87,6 +87,7 @@ func resourceError(err error) error {
 
 func (s Service) Create(ctx context.Context, who auth.Identity, tid uuid.UUID, key string, raw CreateRequest) (idempotency.Response, error) {
 	var out idempotency.Response
+	if err := ctx.Err(); err != nil { return out, err }
 	r, e := normalize(raw)
 	if e != nil {
 		return out, e
@@ -94,6 +95,12 @@ func (s Service) Create(ctx context.Context, who auth.Identity, tid uuid.UUID, k
 	if key == "" {
 		return out, domain.NewError("IDEMPOTENCY_KEY_REQUIRED", 400)
 	}
+	if replay, found, err := s.replay(ctx, who, tid, key, r); err != nil {
+		return out, err
+	} else if found {
+		return replay, nil
+	}
+	if s.Resources.DB==nil||s.Resources.Objects==nil||s.Resources.Bucket==""{return out,domain.NewError("DEPENDENCY_UNAVAILABLE",503)}
 	font, e := s.Resources.EnsureFont(ctx, who, tid)
 	if e != nil {
 		return out, resourceError(e)
@@ -105,7 +112,7 @@ func (s Service) Create(ctx context.Context, who auth.Identity, tid uuid.UUID, k
 	e = tenant.WithTenant(ctx, s.DB, who, tid, domain.Editor, func(tx pgx.Tx, role domain.Role) error {
 		var projectID uuid.UUID
 		var itemCount int
-		x := tx.QueryRow(ctx, `SELECT c.project_id,s.item_count FROM photo.snapshots s JOIN photo.collections c ON c.tenant_id=s.tenant_id AND c.id=s.collection_id AND c.deleted_at IS NULL WHERE s.tenant_id=$1 AND s.id=$2 AND s.kind='selection' AND s.principal_type='user' AND s.principal_id=$3 AND (s.expires_at IS NULL OR s.expires_at>clock_timestamp())`, tid, r.SelectionSnapshotID, who.UserID).Scan(&projectID, &itemCount)
+		x := tx.QueryRow(ctx, `SELECT c.project_id,s.item_count FROM photo.snapshots s JOIN photo.collections c ON c.tenant_id=s.tenant_id AND c.id=s.collection_id AND c.deleted_at IS NULL WHERE s.tenant_id=$1 AND s.id=$2 AND s.kind='selection' AND s.principal_type='user' AND s.principal_id=$3`, tid, r.SelectionSnapshotID, who.UserID).Scan(&projectID, &itemCount)
 		if errors.Is(x, pgx.ErrNoRows) {
 			return domain.NewError("NOT_FOUND", 404)
 		}
@@ -119,6 +126,14 @@ func (s Service) Create(ctx context.Context, who auth.Identity, tid uuid.UUID, k
 			return domain.NewError("CONTACT_SHEET_PAGE_LIMIT", 422)
 		}
 		out, x = idempotency.Use(ctx, tx, idempotency.Scope{Tenant: tid, Principal: who.UserID, PrincipalType: "user", Route: "ContactSheet.Create", Key: key}, r, time.Now().Add(24*time.Hour), func() (idempotency.Response, error) {
+			// Expiry prevents a fresh job, not replay of an already accepted one.
+			var live bool
+			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM photo.snapshots
+			 WHERE tenant_id=$1 AND id=$2 AND kind='selection'
+			 AND principal_type='user' AND principal_id=$3
+			 AND (expires_at IS NULL OR expires_at>clock_timestamp()))`, tid,
+				r.SelectionSnapshotID, who.UserID).Scan(&live); err != nil { return idempotency.Response{}, err }
+			if !live { return idempotency.Response{}, domain.NewError("NOT_FOUND", 404) }
 			rows, qerr := tx.Query(ctx, `SELECT si.ordinal,ar.id,ar.sha256,ar.media_type,coalesce(nullif(a.metadata->>'filename',''),'') FROM photo.snapshot_items si JOIN photo.asset_versions v ON v.tenant_id=si.tenant_id AND v.id=si.asset_version_id JOIN photo.assets a ON a.tenant_id=v.tenant_id AND a.id=v.asset_id JOIN photo.derivatives d ON d.tenant_id=v.tenant_id AND d.asset_version_id=v.id AND d.variant='preview1600' AND d.profile_hash=$3 AND d.status='ready' JOIN photo.artifacts ar ON ar.tenant_id=d.tenant_id AND ar.id=d.artifact_id AND ar.state='ready' AND ar.object_version IS NOT NULL AND ar.media_type IN('image/jpeg','image/png','image/webp') AND (ar.expires_at IS NULL OR ar.expires_at>clock_timestamp()) WHERE si.tenant_id=$1 AND si.snapshot_id=$2 ORDER BY si.ordinal`, tid, r.SelectionSnapshotID, profileHash)
 			if qerr != nil {
 				return idempotency.Response{}, qerr
@@ -192,7 +207,12 @@ func (s Service) Create(ctx context.Context, who auth.Identity, tid uuid.UUID, k
 			body, qerr := canonical.Marshal(Accepted{run, "queued"})
 			return idempotency.Response{Status: 202, Body: body, ResourceID: &run}, qerr
 		})
-		return x
+		if x!=nil{return x}
+		if x=authorizeSelection(ctx,tx,who,tid,r);x!=nil{return x}
+		if x=validateReceipt(ctx,tx,who,tid,key,r,out);x!=nil{return x}
+		if isAbandoned(out,r,key){return domain.NewError("CONTACT_SHEET_ABANDONED",409)}
+		if err:=authorizeSelection(ctx,tx,who,tid,r);err!=nil{return err}
+		return ctx.Err()
 	})
 	return out, e
 }

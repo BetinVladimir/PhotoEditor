@@ -61,7 +61,7 @@ def test_background_pins_follow_frozen_override_selection(selection):
     source = WorkingImage(pixels=ArtifactRef(artifact_id=uuid4(), sha256='d' * 64),
         canvas=Canvas(width=32, height=24, orientation=1, space_id='canonical', source_sha256='a' * 64),
         color=ColorSpace(profile_id='work_rec2020_gamma24_v1',
-            icc_sha256=style_value['color']['icc_sha256'], encoding='gamma24'),
+            icc_sha256='e' * 64, encoding='gamma24'),
         dtype='float32', alpha=None, transform_chain=TransformChain.create([]))
     source_ref, source_raw = pin(source)
     binding = plan.entries[0].binding

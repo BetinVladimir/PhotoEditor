@@ -155,7 +155,7 @@ def verify_import_output(*, root, staged_entries, params_ref, params_jcs,
             check_active()
             if not isinstance(item, dict) or set(item) != {'artifact_id', 'sha256', 'purpose', 'ordinal'}:
                 raise AdoptionInvalid('INTERCHANGE_IMPORT_ADOPTION_RECIPE_REFS')
-            child = ArtifactRef.model_validate({name: item[name] for name in ('artifact_id', 'sha256')})
+            child = ArtifactRef.model_validate_json(canonical_bytes({name: item[name] for name in ('artifact_id', 'sha256')}))
             purpose = sha256(('interchange/recipe/'+str(ref.artifact_id)+'/dependency/'+str(child.artifact_id)).encode()).hexdigest()
             if (child.artifact_id in seen or child.artifact_id == ref.artifact_id
                     or child.artifact_id in inventory or item['purpose'] != purpose

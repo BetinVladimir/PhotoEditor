@@ -6,7 +6,7 @@ const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const lock:SemanticJournalLock=async(_origin,action)=>action();
 function storage(){const values=new Map<string,string>();return {getItem:async(k:string)=>values.get(k)??null,setItem:async(k:string,v:string)=>{values.set(k,v)},removeItem:async(k:string)=>{values.delete(k)},getAllKeys:async()=>[...values.keys()]};}
 const record=()=>({version:1 as const,key:id(8),body:{id:id(4),project_id:id(3),expected_revision:'2'}});
-function published():DeliveryPackage{return {id:id(4),tenant_id:id(2),project_id:id(3),revision:'3',workflow_id:id(5),snapshot_id:id(6),name:'Delivery',policy_artifact_id:id(7),manifest_artifact_id:id(9),published_at:'2026-10-11T12:00:00Z',state:'ready',document:{artifact_id:id(9),sha256:'a'.repeat(64)}};}
+function published():DeliveryPackage{return {created_at:"2026-10-10T11:00:00Z",updated_at:"2026-10-10T12:00:00Z",id:id(4),tenant_id:id(2),project_id:id(3),revision:'3',workflow_id:id(5),snapshot_id:id(6),name:'Delivery',policy_artifact_id:id(7),manifest_artifact_id:id(9),published_at:'2026-10-11T12:00:00Z',state:'ready',document:{artifact_id:id(9),sha256:'a'.repeat(64)}};}
 it('restores original key and CAS across mounts without mutable aliases',async()=>{
  const data=storage(),first=new DeliveryPublishAttemptStore(data,'origin',id(1),id(2),id(3),id(4),lock),attempt=record();await first.write(attempt);attempt.body.expected_revision='7';
  const second=new DeliveryPublishAttemptStore(data,'origin',id(1),id(2),id(3),id(4),lock);

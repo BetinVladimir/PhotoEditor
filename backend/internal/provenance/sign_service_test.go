@@ -61,7 +61,10 @@ func TestEnsureSigningDraftResumesExactBlockedDraft(t *testing.T) {
 	body, lineage := contractBytes(t, SigningLineage{Schema: 1, SourceHashes: []string{params.Export.SHA256}, Actions: []SigningAction{}})
 	who := auth.Identity{UserID: uuid.New(), SessionID: uuid.New()}
 	tid, project, export := uuid.New(), uuid.New(), uuid.New()
-	source := &signingSourceStub{evidence: SigningExportEvidence{Project: project, ExportID: export, Export: params.Export, MIME: "image/jpeg", Lineage: lineage, LineageBody: body}}
+ registry, err = registry.ForTenant(tid)
+ if err != nil { t.Fatal(err) }
+	lineage.ArtifactID = uuid.NewSHA1(export, []byte("signing:lineage:"+lineage.SHA256))
+ source := &signingSourceStub{evidence: SigningExportEvidence{Project: project, ExportID: export, Export: params.Export, MIME: "image/jpeg", Lineage: lineage, LineageBody: body}}
 	intent, err := PrepareSigningIntent(context.Background(), who, tid, export, params.PolicyID, "resume", source, registry, now)
 	if err != nil {
 		t.Fatal(err)

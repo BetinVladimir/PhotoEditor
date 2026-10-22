@@ -182,5 +182,6 @@ def run_fixture_v2_workflow_report(report_root,replay,fixture_sha256,connection,
         _require_restore_guard(check_active,'RESTORE_V2_WORKFLOW_INACTIVE')
         _require_restore_guard(assert_installed_fixture,'RESTORE_V2_WORKFLOW_FIXTURE')
         _require_restore_guard(check_active,'RESTORE_V2_WORKFLOW_INACTIVE')
+    guard()
     return persist_restore_probe_report(root,replay,'v2_workflow',fixture_sha256,
         started,finished,observations,check_active=guard)

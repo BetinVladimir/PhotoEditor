@@ -86,7 +86,7 @@ def test_run_worker_forwards_explicit_export_installation(monkeypatch):
         raise ConstructionStopped()
     monkeypatch.setattr(service, "build_worker", build)
     with pytest.raises(ConstructionStopped):
-        service.run_worker(object(), interchange_export_installation=installed)
+        service.run_worker(__import__("types").SimpleNamespace(capacity_policy=None, backend="cpu", resource_class="cpu"), interchange_export_installation=installed)
 
 
 def test_invalid_export_installation_is_rejected_before_tls_or_database():
@@ -115,7 +115,7 @@ def test_export_runtime_registers_only_explicit_installation(monkeypatch, tmp_pa
     monkeypatch.setattr(service, "asset_operations", lambda *args: [Operation("test.base", "cpu", lambda ctx: None)])
     monkeypatch.setattr(layers, "layer_operations", lambda *args: [])
     monkeypatch.setattr(service, "client_tls", lambda *args: object())
-    database = object()
+    database = SimpleNamespace(media_renderer_policy_ready=lambda:True, task_result_fence_ready=lambda:True, editor_internal_dispatch_installed=lambda operation:True)
     monkeypatch.setattr(service, "TaskDatabase", lambda *args: database)
     monkeypatch.setattr(service, "Transport", lambda url, resource, executor, **kwargs: SimpleNamespace(executor=executor))
     installed = export_adapter.ExportInstallation(SimpleNamespace(admit=lambda *args: None), lambda *args: None)
@@ -157,7 +157,7 @@ def test_import_worker_requires_current_person_mask_sql_before_registration(monk
     monkeypatch.setattr(service, 'asset_operations', lambda *args: [Operation('test.base', 'cpu', lambda ctx: None)])
     monkeypatch.setattr(layers, 'layer_operations', lambda *args: [])
     monkeypatch.setattr(service, 'client_tls', lambda *args: object())
-    database = SimpleNamespace(interchange_import_person_mask_ready=lambda: sql_ready)
+    database = SimpleNamespace(interchange_import_person_mask_ready=lambda: sql_ready, media_renderer_policy_ready=lambda:True, task_result_fence_ready=lambda:True, editor_internal_dispatch_installed=lambda operation:True)
     monkeypatch.setattr(service, 'TaskDatabase', lambda *args: database)
     monkeypatch.setattr(service, 'Transport', lambda url, resource, executor, **kwargs: SimpleNamespace(executor=executor))
     installed = ImportInstallation(SimpleNamespace(admit=lambda *args: None), lambda *args: None)

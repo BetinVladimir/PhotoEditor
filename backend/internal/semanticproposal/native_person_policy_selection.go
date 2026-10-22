@@ -24,7 +24,7 @@ func (s SQLTransferSourceReader) selectNativePersonProtectionPolicy(ctx context.
 	if err != nil {
 		return zero, err
 	}
-	selected, err := selectQualificationPolicies(snapshot, []string{"mask.person"})
+	selected, err := selectNativeQualificationPolicies(snapshot, []string{"mask.person"})
 	if err != nil {
 		return zero, err
 	}
@@ -48,7 +48,7 @@ func (s SQLTransferSourceReader) selectNativePersonProtectionPolicy(ctx context.
 	if err != nil {
 		return zero, err
 	}
-	if _, err := v2qualification.Verify(raw, report.SHA256, expected); err != nil {
+	if _, err := v2qualification.VerifyTyped(raw, report.SHA256, expected); err != nil {
 		return zero, err
 	}
 	current, err := s.personQualificationObject(ctx, who, tenantID, expected, report)

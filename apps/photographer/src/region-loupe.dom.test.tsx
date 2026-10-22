@@ -4,7 +4,7 @@ import {render,screen,act,cleanup,fireEvent} from '@testing-library/react';
 import en from '../../../locales/en/common.json';
 import type {RegionDisplay} from './region-preview-display';
 vi.mock('react-native',async()=>import('react-native-web'));
-vi.mock('./locale-context',()=>({useLocale:()=>({t:(key:keyof typeof en)=>en[key]})}));
+vi.mock('./locale-context',async()=>{const __factory=()=>({useLocale:()=>({t:(key:keyof typeof en)=>en[key]})});const __out=await __factory();const {withUILocaleDouble}=await import('./test/locale-double');return {...__out,useLocale:()=>withUILocaleDouble(__out.useLocale())};});
 import {RegionLoupe} from './region-loupe';
 afterEach(cleanup);
 const display=():RegionDisplay=>({uri:'blob:region',width:100,height:50,scale:{x:.5,y:.5,sourcePixels:false},dispose:vi.fn()});

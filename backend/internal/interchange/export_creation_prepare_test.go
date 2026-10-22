@@ -25,7 +25,7 @@ func TestExportCreationPreparationComposesCommittedDraftAndExecution(t *testing.
   p:=ExportCreationPreparation{Proposals:adapters,Drafts:adapters,Installation:adapters}
   switch mode{case "missing_dependencies":p.Drafts=nil;case "missing_qualifier":adapters.installation.Activation.Resources=nil;case "materialize":pipeline.fail="materialize";case "qualification":qualifier.err=cause}
   receipt,err:=p.PrepareExportCreation(context.Background(),who,tid,intent.Request,"pipeline-key")
-  if mode=="valid"||mode=="mutation"{if err!=nil||receipt.task.ID!=intent.Identity.Task||len(pipeline.events)==0||qualifier.calls!=1{t.Fatal("creation preparation",err)}}else{if err==nil||receipt.task.ID!=uuid.Nil{t.Fatal("failed stage exposed activation receipt",err)}}
+  if mode=="valid"||mode=="mutation"{if err!=nil||receipt.task.ID!=intent.Identity.Task||len(pipeline.events)==0||qualifier.calls!=2{t.Fatal("creation preparation",err)}}else{if err==nil||receipt.task.ID!=uuid.Nil{t.Fatal("failed stage exposed activation receipt",err)}}
   if (mode=="proposal"||mode=="draft"||mode=="installation"||mode=="qualification")&&!errors.Is(err,cause){t.Fatal("stage cause lost",err)}
   if (mode=="missing_dependencies"||mode=="missing_qualifier"||mode=="draft"||mode=="proposal"||mode=="installation")&&len(pipeline.events)!=0{t.Fatal("failed preflight published documents")}
   if mode=="missing_dependencies"&&len(adapters.events)!=0{t.Fatal("missing dependency performed IO")}

@@ -82,8 +82,11 @@ func (s PerspectiveProposalService) Apply(ctx context.Context, who auth.Identity
 		if saved == nil || *saved != expected {
 			return v2input.ErrExpired
 		}
-		return nil
+		return bounded.Err()
 	})
+	if cancellation := bounded.Err(); cancellation != nil {
+		return zero, cancellation
+	}
 	if err != nil {
 		return zero, err
 	}

@@ -1,3 +1,4 @@
+import {legacyJSONRevision} from './legacy-json-revision';
 import type {EditorLayerStack} from './editor-layers';
 import type{EditorDraft}from"./catalog-types";
 
@@ -9,7 +10,7 @@ export type EditorState={versionId:string;sourceSha:string;draftRevision:number;
 
 function snapshot(draft:Pick<EditorDraft,"params"|"mask_refs">,selectionObjectId?:string):EditorSnapshot{return{params:structuredClone(draft.params),maskRefs:structuredClone(draft.mask_refs),selectionObjectId}}
 
-export function createEditorState(draft:EditorDraft):EditorState{return{versionId:draft.asset_version_id,sourceSha:draft.source_sha256,draftRevision:Number(draft.revision),requestRevision:0,history:[snapshot(draft)],historyIndex:0,viewport:{scale:1,offsetX:0,offsetY:0}}}
+export function createEditorState(draft:EditorDraft):EditorState{return{versionId:draft.asset_version_id,sourceSha:draft.source_sha256,draftRevision:legacyJSONRevision(draft.revision),requestRevision:0,history:[snapshot(draft)],historyIndex:0,viewport:{scale:1,offsetX:0,offsetY:0}}}
 
 export function applyEditorCommand(state:EditorState,change:Partial<EditorSnapshot>):EditorState{
  const current=state.history[state.historyIndex],next:EditorSnapshot={layerStack:structuredClone(change.layerStack===undefined?current.layerStack:change.layerStack),params:structuredClone(change.params??current.params),maskRefs:structuredClone(change.maskRefs??current.maskRefs),selectionObjectId:change.selectionObjectId===undefined?current.selectionObjectId:change.selectionObjectId};

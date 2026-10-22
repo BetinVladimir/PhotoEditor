@@ -87,7 +87,14 @@ func (c LensAdmissionCoordinator) Admit(ctx context.Context, request LensAdmissi
 	if err = ctx.Err(); err != nil {
 		return JobTicket{}, err
 	}
-	if err = c.Sealer.Seal(ctx, request.Tenant, prepared); err != nil {
+	if !prepared.Replayed {
+ if err = c.Sealer.Seal(ctx, request.Tenant, prepared); err != nil {
+		return JobTicket{}, err
+	}
+	}
+	// A committed seal is recovered by the same immutable key. Cancellation must
+	// never expose a late success ticket to a caller that lost its scope.
+	if err = ctx.Err(); err != nil {
 		return JobTicket{}, err
 	}
 	return JobTicket{RunID: run, WorkflowID: workflow, State: "queued"}, nil

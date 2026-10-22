@@ -31,6 +31,7 @@ func ReadSignedActivationObjects(ctx context.Context,db *pgxpool.Pool,lease Expa
  defer rows.Close()
  result:=make([]SignedActivationObject,0)
  for rows.Next(){
+  if err:=ctx.Err();err!=nil{return nil,err}
   var entry SignedActivationObject
   if err:=rows.Scan(&entry.ArtifactID,&entry.Object.SHA256,&entry.Object.Bytes,
    &entry.Bucket,&entry.Object.Key,&entry.Object.VersionID,&entry.Object.ContentType);err!=nil{return nil,err}
@@ -38,6 +39,7 @@ func ReadSignedActivationObjects(ctx context.Context,db *pgxpool.Pool,lease Expa
   result=append(result,entry)
  }
  if err:=rows.Err();err!=nil{return nil,err}
+ if err:=ctx.Err();err!=nil{return nil,err}
  return result,nil
 }
 
@@ -50,9 +52,13 @@ func VerifySignedActivationInventory(ctx context.Context,tenant uuid.UUID,bucket
  if tenant==uuid.Nil||closure.TenantID!=tenant||len(bucket)<3||len(bucket)>63||
   len(closure.Entries)<1||len(closure.Entries)>80000||
   len(inventory)!=2*len(closure.Entries)||objects==nil||renew==nil{return v2input.ErrInvalid}
+ // Renewal/object callbacks must not change the inventory being verified.
+ closure.Entries=append([]SignedAssemblyEntry(nil),closure.Entries...)
+ inventory=append([]SignedActivationObject(nil),inventory...)
  for index,entry:=range closure.Entries{
   if err:=ctx.Err();err!=nil{return err}
   if index%25==0{if err:=renew(ctx);err!=nil{return err}}
+  if err:=ctx.Err();err!=nil{return err}
   signed,manifest:=inventory[2*index],inventory[2*index+1]
   if signed.ArtifactID!=entry.Signed.ArtifactID||manifest.ArtifactID!=entry.Manifest.ArtifactID||
    signed.Bucket!=bucket||manifest.Bucket!=bucket||
@@ -68,7 +74,8 @@ func VerifySignedActivationInventory(ctx context.Context,tenant uuid.UUID,bucket
    return fmt.Errorf("signed activation slot %d: %w",index,err)
   }
  }
- return renew(ctx)
+ if err:=renew(ctx);err!=nil{return err}
+ return ctx.Err()
 }
 
 // SignedActivationInventoryEqual is the second SQL read barrier after object

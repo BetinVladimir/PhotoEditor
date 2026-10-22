@@ -58,6 +58,7 @@ func serveCreateInterchange(w http.ResponseWriter, r *http.Request, who auth.Ide
 		writeError(w, r, err)
 		return
 	}
+	if r.Context().Err()!=nil{return}
 	var ticket v2input.JobTicket
 	decoder := json.NewDecoder(bytes.NewReader(result.Body))
 	decoder.DisallowUnknownFields()

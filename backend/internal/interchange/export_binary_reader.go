@@ -15,7 +15,7 @@ import (
 type ExportBinaryQualifier interface{QualifyExportBinary(context.Context,v2input.Entry,objectstore.Object)error}
 type ExportBinaryNodeResolver struct{Catalog ExportDocumentCatalog;Objects ImportDocumentObjects;Qualifier ExportBinaryQualifier;MaxBytes int64}
 func exportBinaryContract(contract string)bool{
- switch contract{case "EncodedImage","StyleBackgroundAsset","WorkingPixels","WorkingAlpha","PixelArray","MaskPixels","MaskArray","DenseWarpField","DenseWarpArray","DefectLabelMap","AbsoluteLUTArray":return true};return false
+ switch contract{case "EncodedImage","StyleBackgroundAsset","WorkingPixels","WorkingAlpha","PixelArray","MaskPixels","MaskArray","DenseWarpField","DenseWarpArray","DefectLabelMap","DefectLabelPNG","AbsoluteLUTArray":return true};return false
 }
 func(r ExportBinaryNodeResolver)ResolveExportNode(ctx context.Context,entry v2input.Entry)(ExportClosureNode,error){
  var zero ExportClosureNode
@@ -24,6 +24,7 @@ func(r ExportBinaryNodeResolver)ResolveExportNode(ctx context.Context,entry v2in
  object,err:=r.Catalog.LookupExportDocument(ctx,entry);if err!=nil{return zero,err}
  mediaOK:=object.ContentType=="application/octet-stream"
  if exportArrayBinaryContract(entry.Contract)||exportMaskBinaryContract(entry.Contract)||entry.Contract=="DefectLabelMap"{mediaOK=exportArrayMediaType(object.ContentType)}
+ if entry.Contract=="DefectLabelPNG"{mediaOK=object.ContentType=="image/png"}
  if entry.Contract=="EncodedImage"||entry.Contract=="StyleBackgroundAsset"{mediaOK=object.ContentType=="image/tiff"||object.ContentType=="image/jpeg"||object.ContentType=="image/png"}
  if !mediaOK||object.Bytes<1||object.Bytes>r.MaxBytes||object.SHA256!=entry.Ref.SHA256||object.Key==""||object.VersionID==""||object.VersionID=="null"{return zero,v2input.ErrInvalid}
  if err:=ctx.Err();err!=nil{return zero,err}

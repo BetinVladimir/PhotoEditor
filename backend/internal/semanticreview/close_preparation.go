@@ -11,7 +11,7 @@ import (
 )
 
 func NewClosePreparation(db *pgxpool.Pool, objects artifactjson.Objects, read PlanObjectReader, bucket string, budget int64, modelSHA, datasetSHA string) (ClosePreparation, error) {
-	if db == nil || objects == nil || read == nil || len(bucket) < 3 || len(bucket) > 63 || budget < 2 || !shaPattern.MatchString(modelSHA) || !shaPattern.MatchString(datasetSHA) {
+	if db == nil || objects == nil || read == nil || len(bucket) < 3 || len(bucket) > 63 || budget < 2 || budget > 64*1048576 || !shaPattern.MatchString(modelSHA) || !shaPattern.MatchString(datasetSHA) {
 		return nil, ErrInvalid
 	}
 	return func(ctx context.Context, who auth.Identity, tenant, intent uuid.UUID, request ReviewClose) (PreparedClose, error) {
@@ -31,6 +31,9 @@ func NewClosePreparation(db *pgxpool.Pool, objects artifactjson.Objects, read Pl
 // transactions and takes a fresh source/target fence before publication.
 func PrepareScopedCloseReview(ctx context.Context, db *pgxpool.Pool, who auth.Identity, tenant, intent uuid.UUID,
 	request ReviewClose, read PlanObjectReader, budget int64, modelSHA, datasetSHA string) (PreparedReview, []LockedTarget, error) {
+	if err := ctx.Err(); err != nil {
+		return PreparedReview{}, nil, err
+	}
 	if db == nil || read == nil || tenant == uuid.Nil || intent == uuid.Nil || who.UserID == uuid.Nil || who.SessionID == uuid.Nil {
 		return PreparedReview{}, nil, ErrInvalid
 	}

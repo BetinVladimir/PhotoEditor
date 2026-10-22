@@ -1,5 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
+from contextlib import contextmanager
+from threading import RLock
 import os
 from pathlib import Path
 from uuid import uuid4
@@ -44,50 +46,124 @@ def validate_raw_rgb_layout(rgb: object) -> np.ndarray:
     return rgb
 
 
+# LibRaw X-Trans reconstruction can produce different native RGB16 samples
+# with multiple OpenMP threads. Serialize RAW decode scopes within this process;
+# one heavy task already runs per worker process. OpenMP's per-calling-thread
+# setting works for background callers too; worker_thread_budget is main-only.
+class RAWThreadControlError(RuntimeError):
+    """Installed native runtime cannot enforce deterministic RAW execution."""
+
+
+_RAW_THREAD_LOCK = RLock()
+
+
+def _raw_openmp_pools(controller):
+    pools = [pool for pool in controller.info() if pool.get('user_api') == 'openmp']
+    if any(not isinstance(pool.get('filepath'), str) or not pool['filepath']
+           or type(pool.get('num_threads')) is not int
+           or not 1 <= pool['num_threads'] <= 2147483647 for pool in pools):
+        raise RAWThreadControlError('RAW_THREAD_CONTROL_UNAVAILABLE')
+    return pools
+
+
+@contextmanager
+def deterministic_raw_threads():
+    """Enforce serial LibRaw without imposing a main-thread-only API.
+
+    Existing OpenMP pools recover their exact observed counts. A pool first
+    loaded by rawpy has no prior native state: after decode it adopts the outer
+    scalar OMP_NUM_THREADS if valid, otherwise stays conservatively serial.
+    The environment is always restored verbatim, including unset/auto/list forms.
+    """
+    from threadpoolctl import ThreadpoolController
+    with _RAW_THREAD_LOCK:
+        previous = os.environ.get('OMP_NUM_THREADS')
+        existing = {p['filepath']: p['num_threads']
+                    for p in _raw_openmp_pools(ThreadpoolController())}
+        outer = (int(previous) if previous is not None and previous.isascii()
+                 and previous.isdecimal() and len(previous) <= 10 else 1)
+        if not 1 <= outer <= 2147483647:
+            outer = 1
+        os.environ['OMP_NUM_THREADS'] = '1'
+        try:
+            import rawpy
+            flags = getattr(rawpy, 'flags', None)
+            if not isinstance(flags, dict) or type(flags.get('OPENMP')) is not bool:
+                raise RAWThreadControlError('RAW_THREAD_CONTROL_UNAVAILABLE')
+            # Refresh after import: a pre-import controller cannot control a
+            # newly loaded private LibRaw OpenMP library.
+            controller = ThreadpoolController()
+            with controller.limit(limits=1, user_api='openmp'):
+                pools = _raw_openmp_pools(controller)
+                if flags['OPENMP'] and not pools:
+                    raise RAWThreadControlError('RAW_THREAD_CONTROL_UNAVAILABLE')
+                if any(pool['num_threads'] != 1 for pool in pools):
+                    raise RAWThreadControlError('RAW_THREAD_CONTROL_NOT_APPLIED')
+                yield rawpy
+        finally:
+            try:
+                # Refresh even after partial import/native exceptions. The
+                # explicit restoration also covers a limiter entry failure.
+                restore = ThreadpoolController()
+                for pool in _raw_openmp_pools(restore):
+                    expected = existing.get(pool['filepath'], outer)
+                    selected = restore.select(filepath=pool['filepath'])
+                    # Deliberately apply, not a temporary with-scope: this is
+                    # the outer state that must remain after returning.
+                    selected.limit(limits=expected, user_api='openmp')
+                    if any(p['num_threads'] != expected for p in _raw_openmp_pools(selected)):
+                        raise RAWThreadControlError('RAW_THREAD_RESTORE_NOT_APPLIED')
+            finally:
+                if previous is None:
+                    os.environ.pop('OMP_NUM_THREADS', None)
+                else:
+                    os.environ['OMP_NUM_THREADS'] = previous
+
+
 def decode_raw(source: VerifiedSource, development: RAWDevelopment | None = None, *,
                check_active: Callable[[],None] = lambda:None) -> np.ndarray:
     check_active()
-    import rawpy
-    options = dict(use_camera_wb=True,use_auto_wb=False,no_auto_bright=True,
-                   gamma=(1,1),output_bps=16,output_color=rawpy.ColorSpace.sRGB,
-                   demosaic_algorithm=rawpy.DemosaicAlgorithm.AHD)
-    if development is not None:
-        # model_copy/model_construct may bypass Pydantic validation; reparse
-        # owned fields before mapping options into the native decoder.
-        development = RAWDevelopment.model_validate(development.model_dump() if isinstance(development,RAWDevelopment) else development)
-        if development.decoder_version != raw_decoder_version(rawpy):
-            raise AssetError('RAW_DECODER_VERSION_MISMATCH')
-        options.update(use_camera_wb=development.wb_source=='camera',
-                       use_auto_wb=development.wb_source=='auto',
-                       demosaic_algorithm={'ahd':rawpy.DemosaicAlgorithm.AHD,
-                                           'dcb':rawpy.DemosaicAlgorithm.DCB}[development.demosaic],
-                       exp_shift=2.0**development.exposure_ev,exp_preserve_highlights=0.0,
-                       highlight_mode={'clip':rawpy.HighlightMode.Clip,
-                                       'blend':rawpy.HighlightMode.Blend,
-                                       'reconstruct':rawpy.HighlightMode.ReconstructDefault}[development.highlight_policy])
-    try:
-        check_active()
-        with rawpy.imread(str(source.path)) as raw:
+    with deterministic_raw_threads() as rawpy:
+        options = dict(use_camera_wb=True,use_auto_wb=False,no_auto_bright=True,
+                       gamma=(1,1),output_bps=16,output_color=rawpy.ColorSpace.sRGB,
+                       demosaic_algorithm=rawpy.DemosaicAlgorithm.AHD)
+        if development is not None:
+            # model_copy/model_construct may bypass Pydantic validation; reparse
+            # owned fields before mapping options into the native decoder.
+            development = RAWDevelopment.model_validate(development.model_dump() if isinstance(development,RAWDevelopment) else development)
+            if development.decoder_version != raw_decoder_version(rawpy):
+                raise AssetError('RAW_DECODER_VERSION_MISMATCH')
+            options.update(use_camera_wb=development.wb_source=='camera',
+                           use_auto_wb=development.wb_source=='auto',
+                           demosaic_algorithm={'ahd':rawpy.DemosaicAlgorithm.AHD,
+                                               'dcb':rawpy.DemosaicAlgorithm.DCB}[development.demosaic],
+                           exp_shift=2.0**development.exposure_ev,exp_preserve_highlights=0.0,
+                           highlight_mode={'clip':rawpy.HighlightMode.Clip,
+                                           'blend':rawpy.HighlightMode.Blend,
+                                           'reconstruct':rawpy.HighlightMode.ReconstructDefault}[development.highlight_policy])
+        try:
             check_active()
-            dimensions=(raw.sizes.raw_width,raw.sizes.raw_height)
-            if any(isinstance(value,(bool,np.bool_)) or not isinstance(value,(int,np.integer)) or value<1 for value in dimensions):
-                raise AssetError('RAW_DECODE_CONTRACT_ERROR')
-            if int(dimensions[0])*int(dimensions[1]) > MAX_PIXELS:
-                raise AssetError('PIXEL_LIMIT_EXCEEDED')
-            if development is not None and development.wb_source == 'camera':
-                wb = raw.camera_whitebalance
-                if (not isinstance(wb,(list,tuple,np.ndarray)) or np.shape(wb)!=(4,) or
-                    any(not isinstance(value,(int,float,np.number)) or not np.isfinite(value) for value in wb) or
-                    any(value <= 0 for value in wb[:3]) or wb[3] < 0):
-                    raise AssetError('RAW_CAMERA_WB_UNAVAILABLE')
-            check_active()
-            rgb = raw.postprocess(**options)
-            check_active()
-            # LittleCMS below consumes RGB16. Never reinterpret an unexpected
-            # native tensor's byte layout or publish an invalid working image.
-            return validate_raw_rgb_layout(rgb)
-    except rawpy.LibRawError as exc:
-        raise AssetError('RAW_UNSUPPORTED') from exc
+            with rawpy.imread(str(source.path)) as raw:
+                check_active()
+                dimensions=(raw.sizes.raw_width,raw.sizes.raw_height)
+                if any(isinstance(value,(bool,np.bool_)) or not isinstance(value,(int,np.integer)) or value<1 for value in dimensions):
+                    raise AssetError('RAW_DECODE_CONTRACT_ERROR')
+                if int(dimensions[0])*int(dimensions[1]) > MAX_PIXELS:
+                    raise AssetError('PIXEL_LIMIT_EXCEEDED')
+                if development is not None and development.wb_source == 'camera':
+                    wb = raw.camera_whitebalance
+                    if (not isinstance(wb,(list,tuple,np.ndarray)) or np.shape(wb)!=(4,) or
+                        any(not isinstance(value,(int,float,np.number)) or not np.isfinite(value) for value in wb) or
+                        any(value <= 0 for value in wb[:3]) or wb[3] < 0):
+                        raise AssetError('RAW_CAMERA_WB_UNAVAILABLE')
+                check_active()
+                rgb = raw.postprocess(**options)
+                check_active()
+                # LittleCMS below consumes RGB16. Never reinterpret an unexpected
+                # native tensor's byte layout or publish an invalid working image.
+                return validate_raw_rgb_layout(rgb)
+        except rawpy.LibRawError as exc:
+            raise AssetError('RAW_UNSUPPORTED') from exc
 
 
 def icc_to_work(source: VerifiedSource, output: Path, registry: ICCRegistry,

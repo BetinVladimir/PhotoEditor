@@ -27,6 +27,8 @@ func (s DownloadBuildPhaseSource) Load(ctx context.Context, tenant, run uuid.UUI
 	return "", errors.New("invalid download build phase")
 }
 
+var errDownloadEncodeFailed = errors.New("download export failed")
+
 type DownloadEncodeOutcome struct {
 	DownloadSource
 	State string
@@ -34,6 +36,7 @@ type DownloadEncodeOutcome struct {
 type DownloadEncodeOutcomeSource struct{ DB ActivationRows }
 
 func (s DownloadEncodeOutcomeSource) Load(ctx context.Context, tenant, run uuid.UUID) ([]DownloadSource, bool, error) {
+	if err:=ctx.Err();err!=nil{return nil,false,err}
 	if s.DB == nil || tenant == uuid.Nil || run == uuid.Nil {
 		return nil, false, errors.New("invalid download outcome source")
 	}
@@ -44,7 +47,9 @@ func (s DownloadEncodeOutcomeSource) Load(ctx context.Context, tenant, run uuid.
 	defer rows.Close()
 	items := []DownloadSource{}
 	ready := true
+ failed := false
 	for rows.Next() {
+		if err:=ctx.Err();err!=nil{return nil,false,err}
 		var o DownloadEncodeOutcome
 		var artifact *uuid.UUID
 		var sha, filename *string
@@ -52,19 +57,25 @@ func (s DownloadEncodeOutcomeSource) Load(ctx context.Context, tenant, run uuid.
 		if err = rows.Scan(&o.Ordinal, &o.AssetVersionID, &o.State, &artifact, &sha, &size, &filename); err != nil {
 			return nil, false, err
 		}
+		// Validate the frozen inventory even while other exports are still running.
+		// A missing or duplicated ordinal must not masquerade as a pending barrier.
+		if o.Ordinal != int64(len(items)) || o.AssetVersionID == uuid.Nil {
+			return nil, false, errors.New("invalid download export order")
+		}
 		switch o.State {
 		case "blocked", "ready", "queued", "running":
 			ready = false
 		case "succeeded":
 			if artifact == nil || sha == nil || size == nil || filename == nil {
-				return nil, false, errors.New("incomplete encoded output")
+                failed = true
+                break
 			}
 			o.ArtifactID = *artifact
 			o.SHA256 = *sha
 			o.Bytes = *size
 			o.Filename = *filename
 		case "failed", "cancelled", "skipped":
-			return nil, false, errors.New("download export failed")
+			failed = true
 		default:
 			return nil, false, errors.New("invalid download export state")
 		}
@@ -73,23 +84,21 @@ func (s DownloadEncodeOutcomeSource) Load(ctx context.Context, tenant, run uuid.
 	if err = rows.Err(); err != nil {
 		return nil, false, err
 	}
+	if err:=ctx.Err();err!=nil{return nil,false,err}
 	if len(items) == 0 {
 		return nil, false, errors.New("missing download export outcomes")
 	}
 	if !ready {
 		return nil, false, nil
 	}
-	for i := range items {
-		if items[i].Ordinal != int64(i) {
-			return nil, false, errors.New("invalid download export order")
-		}
-	}
+ if failed { return nil, false, errDownloadEncodeFailed }
 	return items, true, nil
 }
 
 type DownloadPackagingRepository struct{ DB artifactjson.RowQuerier }
 
 func (r DownloadPackagingRepository) Begin(ctx context.Context, tenant, run uuid.UUID, plan []PlannedDownload) (bool, error) {
+	if err:=ctx.Err();err!=nil{return false,err}
 	if r.DB == nil || tenant == uuid.Nil || run == uuid.Nil || len(plan) == 0 {
 		return false, errors.New("invalid download packaging plan")
 	}
@@ -102,14 +111,33 @@ func (r DownloadPackagingRepository) Begin(ctx context.Context, tenant, run uuid
 	return saved, err
 }
 
+// FailEncoded is independently gated in SQL; transient IO and malformed output
+// errors never convert an otherwise recoverable download into a terminal failure.
+func (r DownloadPackagingRepository) FailEncoded(ctx context.Context, tenant, run uuid.UUID) (bool,error) {
+ if err:=ctx.Err();err!=nil{return false,err}
+ if r.DB==nil || tenant==uuid.Nil || run==uuid.Nil{return false,errors.New("invalid download failure repository")}
+ var changed bool
+ err:=r.DB.QueryRow(ctx,"SELECT photo.fail_download_encoding($1,$2)",tenant,run).Scan(&changed)
+ if err!=nil{return false,err}
+ if err:=ctx.Err();err!=nil{return false,err}
+ return changed,nil
+}
+
 type DownloadPackagingCoordinator struct {
 	Outcomes  DownloadEncodeOutcomeSource
 	Plans     DownloadPackagingRepository
 	ByteLimit int64
+ FileLimit int
 }
 
 func (c DownloadPackagingCoordinator) Advance(ctx context.Context, tenant, run uuid.UUID) (bool, error) {
 	items, ready, err := c.Outcomes.Load(ctx, tenant, run)
+ if errors.Is(err,errDownloadEncodeFailed) {
+  changed,saveErr:=c.Plans.FailEncoded(ctx,tenant,run)
+  if saveErr!=nil{return false,saveErr}
+  if !changed{return false,errors.New("download failure barrier conflict")}
+  return true,nil
+ }
 	if err != nil {
 		return false, err
 	}
@@ -120,7 +148,9 @@ func (c DownloadPackagingCoordinator) Advance(ctx context.Context, tenant, run u
 	if limit == 0 {
 		limit = DefaultVolumeByteLimit
 	}
-	plan, err := PlanDownloadVolumes(items, limit)
+	fileLimit:=c.FileLimit
+ if fileLimit==0{fileLimit=MaxDownloadItems}
+ plan, err := PlanDownloadVolumesWithLimits(items, limit,fileLimit)
 	if err != nil {
 		return false, err
 	}
@@ -163,10 +193,13 @@ func (r DownloadBuildRunnerV2) Build(ctx context.Context, tenant, run uuid.UUID)
 type DownloadArchiveFinalizer struct{ DB artifactjson.RowQuerier }
 
 func (f DownloadArchiveFinalizer) Finish(ctx context.Context, tenant, run uuid.UUID) (bool, error) {
+	if err:=ctx.Err();err!=nil{return false,err}
 	if f.DB == nil || tenant == uuid.Nil || run == uuid.Nil {
 		return false, errors.New("invalid archive finalizer")
 	}
 	var changed bool
 	err := f.DB.QueryRow(ctx, "SELECT photo.finalize_download_archives($1,$2)", tenant, run).Scan(&changed)
-	return changed, err
+	if err!=nil{return false,err}
+	if err:=ctx.Err();err!=nil{return false,err}
+	return changed,nil
 }

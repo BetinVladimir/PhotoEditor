@@ -6,6 +6,16 @@ from photo_worker.cli import app
 from photo_worker.runtime.service import WorkerConfig,WorkerConfigurationError
 
 
+@pytest.fixture(autouse=True)
+def installed_startup_schema(monkeypatch):
+    # These construction tests isolate current migration installation from live DB IO.
+    # Dedicated installation tests cover the fail-closed SQL/readiness predicates.
+    from photo_worker.runtime.database import TaskDatabase
+    monkeypatch.setattr(TaskDatabase, 'media_renderer_policy_ready', lambda self: True)
+    monkeypatch.setattr(TaskDatabase, 'task_result_fence_ready', lambda self: True)
+    monkeypatch.setattr(TaskDatabase, 'editor_internal_dispatch_installed', lambda self, operation: True)
+
+
 def metal_policy(backend):
     return {'PHOTO_CAPACITY_POLICY':str(Path(__file__).resolve().parents[2]/'configs'/'capacity-metal-verification.json')} if backend=='mps' else {}
 
@@ -155,6 +165,7 @@ def test_render_installation_mismatch_refuses_before_tls(monkeypatch,tmp_path,wo
 
 
 def test_run_worker_forwards_render_installation_and_keeps_registration_gate(monkeypatch,tmp_path):
+    monkeypatch.setattr('photo_worker.runtime.service._install_cuda_budget',lambda config:None)
     from types import SimpleNamespace
     import photo_worker.runtime.service as service
     renderer=object();calls=[]
@@ -187,6 +198,7 @@ def test_gpu_startup_uses_backend_preflight_and_capacity(monkeypatch,tmp_path):
     calls=[]
     class Database:
         def ping(self):pass
+        def capacity_policy_timing_ready(self,*args):return True
         def accelerator_operations(self,worker,backend):
             calls.append(('preflight',backend));return frozenset({'pair.fit.color'})
         def heartbeat_policy_worker(self,worker,resource_class,backend,ops,ram,vram,scratch,policy_sha):
@@ -204,6 +216,9 @@ def test_gpu_startup_uses_backend_preflight_and_capacity(monkeypatch,tmp_path):
     monkeypatch.setattr(service,'measure_accelerator',lambda root,backend:Capacity(100,200,300))
     monkeypatch.setattr(service,'_install_metal_budget',lambda config:None)
     monkeypatch.setattr(service,'_capacity_sample',lambda config,sample,**kwargs:sample)
+    from photo_worker.runtime import thread_budget
+    from contextlib import nullcontext
+    monkeypatch.setattr(thread_budget,'worker_thread_budget',lambda threads:nullcontext())
     config=WorkerConfig.from_env({**environment(tmp_path),'PHOTO_WORKER_CLASS':'gpu','PHOTO_WORKER_BACKEND':'mps',**metal_policy('mps')})
     service.run_worker(config)
     assert calls==[('preflight','mps'),('capacity','mps',100,300,200)]
@@ -255,7 +270,7 @@ def test_installed_region_operation_uses_worker_database_admission(monkeypatch,t
     assert transport.executor.operations['region.preview'].execute(object())=='region-result'
 
 
-@pytest.mark.parametrize('worker_class,backend',[('cpu','cpu'),('media','cpu'),('gpu','mps'),('gpu','cpu')])
+@pytest.mark.parametrize('worker_class,backend',[('cpu','cpu'),('media','cpu'),('gpu','cpu')])
 def test_region_installation_requires_cuda_before_tls(monkeypatch,tmp_path,worker_class,backend):
     from types import SimpleNamespace
     import photo_worker.runtime.service as service
@@ -267,6 +282,7 @@ def test_region_installation_requires_cuda_before_tls(monkeypatch,tmp_path,worke
 
 
 def test_run_worker_forwards_region_installation_and_checks_registration(monkeypatch,tmp_path):
+    monkeypatch.setattr('photo_worker.runtime.service._install_cuda_budget',lambda config:None)
     from types import SimpleNamespace
     import photo_worker.runtime.service as service
     config=WorkerConfig.from_env({**environment(tmp_path),'PHOTO_WORKER_CLASS':'gpu','PHOTO_WORKER_BACKEND':'cuda'})
@@ -334,6 +350,7 @@ def test_render_and_region_install_together_with_one_admission_database(monkeypa
 
 
 def test_run_worker_advertises_both_installed_renderers(monkeypatch,tmp_path):
+    monkeypatch.setattr('photo_worker.runtime.service._install_cuda_budget',lambda config:None)
     from threading import Event
     from types import SimpleNamespace
     import photo_worker.runtime.service as service
@@ -351,6 +368,9 @@ def test_run_worker_advertises_both_installed_renderers(monkeypatch,tmp_path):
     monkeypatch.setattr(service,'build_worker',build)
     monkeypatch.setattr(service,'measure_accelerator',lambda *args:SimpleNamespace(ram_bytes=1,vram_bytes=2,scratch_bytes=3))
     monkeypatch.setattr(service,'_capacity_sample',lambda config,sample,**kwargs:sample)
+    from photo_worker.runtime import thread_budget
+    from contextlib import nullcontext
+    monkeypatch.setattr(thread_budget,'worker_thread_budget',lambda threads:nullcontext())
     class Reporter:
         def __init__(self,report,measure,abort,**kwargs):self.report=report;self.measure=measure;self.failed=Event()
         def report_once(self):self.report(self.measure())
@@ -382,7 +402,7 @@ def test_semantic_operation_installed_only_with_explicit_cuda_factory(monkeypatc
     with pytest.raises(WorkerConfigurationError,match='ambiguous'):
         service.build_worker(cuda,semantic_installation_factory=lambda ctx:None,
             semantic_artifact_installation_factory=lambda ctx,artifacts:None)
-    for config,factory in [(base,lambda ctx:None),(replace(cuda,backend='mps'),lambda ctx:None),(cuda,object())]:
+    for config,factory in [(base,lambda ctx:None),(cuda,object())]:
         with pytest.raises(WorkerConfigurationError,match='Semantic installation'):
             service.build_worker(config,semantic_installation_factory=factory)
         with pytest.raises(WorkerConfigurationError,match='Semantic installation'):
@@ -474,6 +494,151 @@ def test_mps_configuration_requires_explicit_capacity_policy(tmp_path):
         WorkerConfig.from_env(env)
 
 
-def test_mps_verification_policy_preserves_ten_decimal_gb(tmp_path):
+def test_mps_verification_policy_preserves_measured_device_capacity(tmp_path):
     config = WorkerConfig.from_env({**environment(tmp_path), 'PHOTO_WORKER_CLASS':'gpu', 'PHOTO_WORKER_BACKEND':'mps',**metal_policy('mps')})
-    assert config.capacity_policy.gpu_budget_bytes == 10_000_000_000
+    assert config.capacity_policy.gpu_budget_bytes == 2**53 - 1
+
+
+@pytest.mark.parametrize('resource,backend,root,lock,callable_factory',[
+    ('cpu','cpu',True,True,True),('gpu','metal',True,True,True),
+    ('gpu','cuda',False,True,True),('gpu','mps',True,False,True),
+    ('gpu','cpu',True,True,False),
+])
+def test_background_cleanup_preview_registration_refuses_invalid_configuration_before_tls(
+        monkeypatch,tmp_path,resource,backend,root,lock,callable_factory):
+    from dataclasses import replace
+    import photo_worker.runtime.service as service
+    base=WorkerConfig.from_env(environment(tmp_path))
+    config=replace(base,resource_class=resource,backend=backend,
+        model_root=tmp_path if root else None,model_lock=tmp_path/'lock.json' if lock else None)
+    def unexpected(*args,**kwargs):raise AssertionError('TLS/DB accessed before configuration refusal')
+    monkeypatch.setattr(service,'client_tls',unexpected)
+    monkeypatch.setattr(service,'TaskDatabase',unexpected)
+    factory=(lambda ctx,artifacts:None) if callable_factory else object()
+    with pytest.raises(WorkerConfigurationError,match='Background cleanup preview requires matching installed model worker'):
+        service.build_worker(config,background_cleanup_preview_installation_factory=factory)
+
+
+@pytest.mark.parametrize('backend',['cpu','cuda','mps'])
+@pytest.mark.parametrize('mode',['baseline','installed','missing_model'])
+def test_background_cleanup_preview_build_worker_with_real_model_pool_registration(monkeypatch,tmp_path,backend,mode):
+    import json
+    import ssl
+    from dataclasses import replace
+    import photo_worker.runtime.service as service
+    from photo_worker.contracts.base import canonical_hash
+    from photo_worker.models.pool import ModelPool
+    entry={'id':'big_lama','architecture':'test-lock-only','weight_id':'fixture',
+        'repository':'https://download.pytorch.org/models/','revision':'fixture1',
+        'files':[{'path':'weights.bin','bytes':1,'sha256':'a'*64,
+            'url':'https://download.pytorch.org/models/fixture.bin'}],
+        'preprocessing_id':'test','packages_lock_hash':'b'*64,'code_license':'CC0-1.0',
+        'weights_license':'CC0-1.0','notices':[],'redistribution_policy':'allowed',
+        'approved_for_install':False,'backends':{value:{'status':'untested',
+            'reason':'registration-only fixture','report_sha256':None} for value in ('cpu','cuda','mps')}}
+    payload={'schema_version':1,'models':[] if mode=='missing_model' else [entry]}
+    lock=tmp_path/'registration-lock.json'
+    lock.write_text(json.dumps({**payload,'lock_id':canonical_hash(payload)}))
+    config=replace(WorkerConfig.from_env(environment(tmp_path)),resource_class='gpu',backend=backend,
+        model_root=tmp_path,model_lock=lock)
+    monkeypatch.setattr(service,'client_tls',lambda *args:ssl.create_default_context())
+    def unexpected(*args,**kwargs):raise AssertionError('startup must not load model or execute factory')
+    monkeypatch.setattr(ModelPool,'acquire',unexpected)
+    options={} if mode=='baseline' else {'background_cleanup_preview_installation_factory':unexpected}
+    if mode=='missing_model':
+        with pytest.raises(WorkerConfigurationError,match='Background cleanup preview requires big_lama model'):
+            service.build_worker(config,**options)
+        return
+    if mode=='installed':
+        # Explicit registration cannot turn untested model metadata into qualification.
+        with pytest.raises(WorkerConfigurationError,match='qualified'):
+            service.build_worker(config,**options)
+        return
+    _,transport=service.build_worker(config,**options)
+    operation=transport.executor.operations.get('semantic.preview_background_cleanup')
+    if mode=='baseline':assert operation is None
+    else:
+        assert operation is not None and operation.resource_class=='gpu' and operation.version=='1'
+    # Registration does not fabricate passed backend evidence or residency.
+    assert transport.executor.model_residency_snapshot()==()
+
+
+
+def test_background_cleanup_copy_is_explicit_cpu_worker_installation(monkeypatch,tmp_path):
+    import ssl
+    from dataclasses import replace
+    import photo_worker.runtime.service as service
+    base=WorkerConfig.from_env(environment(tmp_path))
+    cpu=replace(base,resource_class='cpu',backend='cpu')
+    monkeypatch.setattr(service,'client_tls',lambda *args:ssl.create_default_context())
+    def unexpected(*args,**kwargs):raise AssertionError('startup must not execute copy factory')
+    _,baseline=service.build_worker(cpu)
+    assert 'semantic.adopt_shown_background_cleanup' not in baseline.executor.operations
+    _,installed=service.build_worker(cpu,shown_background_cleanup_installation_factory=unexpected)
+    operation=installed.executor.operations['semantic.adopt_shown_background_cleanup']
+    assert operation.resource_class=='cpu' and operation.version=='1'
+    for config,factory in [(replace(cpu,backend='mps'),unexpected),
+            (replace(cpu,resource_class='gpu',backend='cuda'),unexpected),(cpu,object())]:
+        with pytest.raises(WorkerConfigurationError,match='Shown background cleanup installation requires CPU worker'):
+            service.build_worker(config,shown_background_cleanup_installation_factory=factory)
+
+
+@pytest.mark.parametrize('providers', ['installations', 'factories', 'both'])
+def test_metal_build_omits_unsupported_restoration_without_losing_other_operations(monkeypatch, tmp_path, providers):
+    import ssl
+    import photo_worker.runtime.service as service
+    config = WorkerConfig.from_env({**environment(tmp_path),
+        'PHOTO_WORKER_CLASS': 'gpu', 'PHOTO_WORKER_BACKEND': 'mps', **metal_policy('mps')})
+    monkeypatch.setattr(service, 'client_tls', lambda *args: ssl.create_default_context())
+    def unsupported_provider(*args):
+        pytest.fail('Metal must not instantiate unsupported restoration provider')
+    options = {}
+    if providers in ('installations', 'both'):
+        options.update(glare_installation=object(), reflection_installation=object())
+    if providers in ('factories', 'both'):
+        options.update(glare_admission_factory=unsupported_provider,
+                       reflection_admission_factory=unsupported_provider)
+    _, transport = service.build_worker(config, **options)
+    operations = set(transport.executor.operations)
+    assert 'portrait.glare' not in operations
+    assert 'image.reflection' not in operations
+    assert operations == {'pair.fit.color'}
+
+
+@pytest.mark.parametrize('provider',['region_renderer','semantic_installation_factory','semantic_artifact_installation_factory','learning_evaluation_installation'])
+def test_metal_omits_cuda_only_installations_before_validation_and_keeps_base_operations(monkeypatch,tmp_path,provider):
+    import ssl
+    from types import SimpleNamespace
+    import photo_worker.runtime.service as service
+    config=WorkerConfig.from_env({**environment(tmp_path),'PHOTO_WORKER_CLASS':'gpu','PHOTO_WORKER_BACKEND':'mps',**metal_policy('mps')})
+    monkeypatch.setattr(service,'client_tls',lambda *args:ssl.create_default_context())
+    _,transport=service.build_worker(config,**{provider:SimpleNamespace(backend='cuda') if provider=='region_renderer' else object()})
+    assert set(transport.executor.operations)=={'pair.fit.color'}
+
+
+@pytest.mark.parametrize('metal_status,expected',[('unsupported',False),('untested',True)])
+def test_model_backed_operations_follow_explicit_metal_support_before_loading(monkeypatch,tmp_path,metal_status,expected):
+    import json
+    import ssl
+    from dataclasses import replace
+    import photo_worker.runtime.service as service
+    from photo_worker.contracts.base import canonical_hash
+    from photo_worker.models.pool import ModelPool
+    models=[]
+    for model in ['keypointrcnn_resnet50_fpn','sfd','fan2d','bisenet_face19','mobilesam','scunet_color_real_psnr','realesrgan_x2','big_lama','sd15_inpaint']:
+        models.append({'id':model,'architecture':'registration-only','weight_id':'fixture',
+            'repository':'https://download.pytorch.org/models/','revision':'fixture1',
+            'files':[{'path':'weights.bin','bytes':1,'sha256':'a'*64,'url':'https://download.pytorch.org/models/fixture.bin'}],
+            'preprocessing_id':'fixture','packages_lock_hash':'b'*64,'code_license':'CC0-1.0','weights_license':'CC0-1.0',
+            'notices':[],'redistribution_policy':'allowed','approved_for_install':False,
+            'backends':{backend:{'status':metal_status if backend=='mps' else 'untested','reason':'registration fixture','report_sha256':None} for backend in ['cpu','cuda','mps']}})
+    payload={'schema_version':1,'models':models};lock=tmp_path/'metal-registration-lock.json'
+    lock.write_text(json.dumps({**payload,'lock_id':canonical_hash(payload)}))
+    config=replace(WorkerConfig.from_env({**environment(tmp_path),'PHOTO_WORKER_CLASS':'gpu','PHOTO_WORKER_BACKEND':'mps',**metal_policy('mps')}),model_root=tmp_path,model_lock=lock)
+    monkeypatch.setattr(service,'client_tls',lambda *args:ssl.create_default_context())
+    monkeypatch.setattr(ModelPool,'acquire',lambda *args,**kwargs:pytest.fail('registration loaded a model'))
+    _,transport=service.build_worker(config)
+    for operation in ['pose.detect','face.detect','face.landmarks','face.parse','mask.prompt','image.denoise','image.upscale','image.inpaint','image.generate','image.outpaint']:
+        assert (operation in transport.executor.operations)==expected
+    assert 'pair.fit.color' in transport.executor.operations
+    assert transport.executor.model_residency_snapshot()==()

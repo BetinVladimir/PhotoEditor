@@ -22,7 +22,8 @@ def setup(tmp_path):
     root.mkdir()
     artifacts.scratch = ScratchSpace(root, uuid4(), uuid4(), 1, 2_000_000, min_free_bytes=0)
     style = profile().model_copy(deep=True)
-    from photo_worker.contracts.style import Restoration
+    from photo_worker.contracts.style import Restoration,ModelReference
+    style.models.append(ModelReference(id='scunet_color_real_psnr',weight_id='fixture'))
     style.extensions.restoration = Restoration(denoise='scunet_color_real_psnr',
         denoise_strength=.8, upscale='off', sensor_dust='off')
     style.strength = .5

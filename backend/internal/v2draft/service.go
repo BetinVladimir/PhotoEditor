@@ -46,6 +46,8 @@ func currentDraftStream(ctx context.Context, tx pgx.Tx, who auth.Identity,
 	if e != nil {
 		return uuid.Nil, e
 	}
+	role, e = tenant.AuthorizeInTransaction(ctx, tx, who, tenantID, domain.Viewer)
+	if e != nil { return uuid.Nil,e }
 	if _, e = project.Authorize(ctx, tx, tenantID, projectID,
 		who.UserID, role, domain.Viewer, false); e != nil {
 		return uuid.Nil, e
@@ -83,7 +85,10 @@ func (s Service) Get(ctx context.Context, who auth.Identity, tenantID,
 			if errors.Is(e, pgx.ErrNoRows) {
 				return domain.NewError("NOT_FOUND", 404)
 			}
-			return e
+			if e!=nil{return e}
+			current,e:=currentDraftStream(ctx,tx,who,tenantID,assetID,role)
+			if e!=nil{return e};if current!=streamID{return domain.NewError("REVISION_CONFLICT",409)}
+			return ctx.Err()
 		})
 	var pg *pgconn.PgError
 	if errors.As(err, &pg) && pg.Code == "42P01" {

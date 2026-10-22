@@ -43,7 +43,7 @@ func TestReplacementInputPackageRequiresWholeBranchAndOwnsEvidence(t *testing.T)
  if _,err:=bound[0].Rebind(context.Background(),[]OpticalReplacementBinding{{Before:p.Base,After:wrongAfter}},lineRef);err==nil {t.Fatal("substituted canvas accepted")}
  if _,err:=prepared.ReadyParentSources(context.Background(),[]VerifiedAdoptedParentArrays{{}},nil);err==nil {t.Fatal("empty completion proof accepted")}
  if _,err:=prepared.ReadyParentSources(context.Background(),nil,[]VerifiedAdoptedParentArrays{{}});err==nil {t.Fatal("empty retained proof accepted")}
- steps,err:=prepared.ReadySteps(context.Background(),nil);if err!=nil||len(steps)!=1||steps[0].Operation!="optical.perspective" {t.Fatal("ready frozen intent",err)}
+ steps,err:=prepared.ReadySteps(context.Background(),nil);if err!=nil||len(steps)!=1||steps[0].Operation()!="optical.perspective" {t.Fatal("ready frozen intent",err)}
  mappingRaw,_:=canonical.Marshal([]negativeAffectedSource{{Artifact:p.Base.Source.ArtifactID,SHA:p.Base.Source.SHA256,Producer:origin,Run:run}})
  mappingCatalog:=&negativeAffectedMappingDouble{raw:mappingRaw}
  mapping,err:=loadNegativeAffectedSources(context.Background(),mappingCatalog,steps[0]);if err!=nil||len(mapping.sources)!=1||mapping.sources[0].Before!=p.Base||mappingCatalog.calls!=2 {t.Fatal("scoped mapping receipt",err)}

@@ -24,7 +24,7 @@ type SQLDeliveryWatermarkChildResolver struct{
  WorkingICCSHA string
 }
 
-func (s SQLDeliveryWatermarkChildResolver) ResolveWatermarkChild(ctx context.Context, l delivery.ExpansionLease, p delivery.PreparePlan, c delivery.ExportChildIntent) (DeliveryResolvedWatermarkChild, error) {
+func (s SQLDeliveryWatermarkChildResolver) ResolveWatermarkChild(ctx context.Context, l delivery.ExpansionLease, p delivery.PreparePlan, c delivery.ExportChildIntent) (result DeliveryResolvedWatermarkChild, failure error) {
 	zero := DeliveryResolvedWatermarkChild{}
 	if err := ctx.Err(); err != nil {
 		return zero, err
@@ -43,6 +43,7 @@ func (s SQLDeliveryWatermarkChildResolver) ResolveWatermarkChild(ctx context.Con
  if err!=nil{return zero,err}
  _,originalRaw,err:=p.WatermarkExportRequest(l.Run,c,scope,pin)
  if err!=nil||!bytes.Equal(originalRaw,requestRaw){return zero,v2input.ErrInvalid}
+ defer func(){bindDeliveryPhysicalFailure(&failure,c.SlotIndex,string(requestRaw),true)}()
  queries:=watermarkChildSourceQueries{db:s.DB,lease:l,slot:c.SlotIndex,request:string(requestRaw)}
  reader:=SQLDeliveryChildResolver{Objects:s.Objects}
  // Scope/config/current plan were derived from persisted SQL authority.

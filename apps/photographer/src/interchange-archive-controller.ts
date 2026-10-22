@@ -15,8 +15,8 @@ export async function checkArchiveAttempt(options:{api:{interchangeArchiveAttemp
   if(!saved)throw new Error('INTERCHANGE_ARCHIVE_JOURNAL_CONFLICT');
   const expected=canonicalJSON(saved);
   const value=await api.interchangeArchiveAttemptStatus(user,project,request,saved.key,signal);signal.throwIfAborted();
-  const expected:ArchiveUploadReceipt={upload_id:archiveUploadID(tenant,user,saved.key),state:'uploading',part_bytes:16777216,parts_total:Math.ceil(request.bytes/16777216),request_sha256:archiveRequestSHA(project,request)};
-  const status=readArchiveStatus(value,expected,request);
+  const expectedReceipt:ArchiveUploadReceipt={upload_id:archiveUploadID(tenant,user,saved.key),state:'uploading',part_bytes:16777216,parts_total:Math.ceil(request.bytes/16777216),request_sha256:archiveRequestSHA(project,request)};
+  const status=readArchiveStatus(value,expectedReceipt,request);
   const fresh=await journal.read();signal.throwIfAborted();
   if(!fresh||canonicalJSON(fresh)!==expected)throw new Error('INTERCHANGE_ARCHIVE_JOURNAL_CONFLICT');
   if(saved.checkpoint&&status.upload_id!==saved.checkpoint.receipt.upload_id)throw new Error('INTERCHANGE_ARCHIVE_UPLOAD_INVALID');

@@ -13,6 +13,7 @@ class EditingRecipeV3(Contract):
     schema_version: Literal[3]
     source: VersionBinding
     base_style: ArtifactRef
+    executed_base_receipt: ArtifactRef | None = Field(default=None, exclude_if=lambda v: v is None)
     session_corrections: ArtifactRef | None
     learning_version_id: UUID | None
     overrides: Annotated[list[ArtifactRef], Field(max_length=128)]
@@ -24,7 +25,7 @@ class EditingRecipeV3(Contract):
     @model_validator(mode='after')
     def identities(self):
         refs = [self.source.source, self.base_style, *self.overrides]
-        refs += [v for v in (self.session_corrections, self.layer_stack, self.protected_mask) if v is not None]
+        refs += [v for v in (self.session_corrections, self.layer_stack, self.protected_mask, self.executed_base_receipt) if v is not None]
         if (self.source.asset_version_id.int == 0 or any(v.artifact_id.int == 0 for v in refs)
                 or self.learning_version_id is not None and self.learning_version_id.int == 0):
             raise ValueError('FROZEN_RENDER_ZERO_ID')

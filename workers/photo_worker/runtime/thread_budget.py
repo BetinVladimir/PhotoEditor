@@ -41,9 +41,21 @@ def worker_thread_budget(threads, *, modules=None, pool_limits=None):
             previous = get()
             if type(previous) is not int or previous < 0:
                 raise ValueError('THREAD_BUDGET_RUNTIME_INVALID')
-            scope.callback(set_value,previous)
+            def restore_native(setter=set_value,getter=get,old=previous,runtime=name):
+                setter(old)
+                # A nested GCD scope may have inherited sequential mode. A
+                # positive one is ignored by GCD just like any positive cap.
+                if runtime=='cv2' and old==1 and getter()!=1:
+                    setter(0)
+            scope.callback(restore_native)
             set_value(effective)
             applied=get()
-            if type(applied) is not int or not 0<=applied<=effective:
+            # OpenCV's GCD backend (macOS) ignores positive thread counts.
+            # Its documented zero setting disables parallel execution instead;
+            # verify that fallback rather than silently exceeding the budget.
+            if name=='cv2' and type(applied) is int and applied>effective:
+                set_value(0)
+                applied=get()
+            if type(applied) is not int or not 1<=applied<=effective:
                 raise ValueError('THREAD_BUDGET_NOT_APPLIED')
         yield effective

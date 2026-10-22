@@ -183,6 +183,32 @@ func (c InteractiveCoordinator) ProcessOne(ctx context.Context) (bool, error) {
 			}
 		}
 	}
+
+	if l.Kind == "mask_manual" || l.Kind == "mask_prompt" {
+		// Validate input identity before publication, as the existing common
+		// materializer does. This local identity is never persisted or treated
+		// as an accepted Params/result receipt.
+		validation := artifactjson.Ref{ID: uuid.NewSHA1(l.TaskID, []byte("interactive.mask.materialization.validation")), SHA256: l.ParamsSHA}
+		if _, err := CompileInteractiveMaskMaterialization(*l, source, *working, validation); err != nil {
+			return false, err
+		}
+		p, err := c.Publisher.Publish(ctx, artifactjson.Scope{Tenant: l.TenantID, Run: l.RunID, Owner: l.TaskID, Purpose: "task_params"}, l.Params)
+		if err != nil {
+			return false, err
+		}
+		m, err := CompileInteractiveMaskMaterialization(*l, source, *working, p)
+		if err != nil {
+			return false, err
+		}
+		ok, err := c.Store.Materialize(ctx, *l, p, m.Inputs, m.Digest, m.Profile)
+		if err != nil {
+			return false, err
+		}
+		if !ok {
+			return false, errors.New("interactive task materialization rejected")
+		}
+		return true, nil
+	}
 	var declared []review.ArtifactRef
 	if json.Unmarshal(l.Declared, &declared) != nil {
 		return false, errors.New("invalid interactive inputs")
@@ -231,15 +257,27 @@ func (c InteractiveCoordinator) ProcessOne(ctx context.Context) (bool, error) {
 		return false, e
 	}
 	pixels := int64(0)
-	if working != nil {
+	if working != nil && l.Operation != "image.generate" {
 		pixels = working.Canvas.Width * working.Canvas.Height
 	}
 	inputBytes := source.Bytes
 	out := pixels*16 + 8*1048576
 	ram := int64(1 << 30)
 	if l.Operation == "image.generate" {
-		ram = 4 << 30
-		out = pixels*12 + 2*1048576
+		if working == nil {
+			return false, errors.New("generation source missing")
+		}
+		inputBytes, e = c.Store.generationMappedBytes(ctx, *l, *working, inputs)
+		if e != nil {
+			return false, e
+		}
+		var scratch int64
+		pixels, out, scratch, ram, e = interactiveGenerationResources(working.Canvas.Width, working.Canvas.Height, inputBytes)
+		if e != nil {
+			return false, e
+		}
+		// The shared profile below adds output to mapped input scratch.
+		inputBytes = scratch - out
 	}
 	if l.Operation == "report.contact_sheet" {
 		var params struct {

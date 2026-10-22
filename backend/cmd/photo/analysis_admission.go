@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"errors"
+	"math"
 	"os"
+	"photoeditor/backend/internal/database"
 	"strconv"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -25,11 +27,17 @@ func analysisMemory(name string, fallback int64) (int64, error) {
 }
 
 func analysisDefaultVRAM(backend string) int64 {
-	if backend == "mps" {
-		// Match the 10 GB Metal verification policy; 10 GiB exceeds it.
+	switch backend {
+	case "mps":
+		// No fixed Metal admission ceiling. The compiled workload estimate still
+		// passes measured node/worker capacity and residency guards at dispatch.
+		return math.MaxInt64
+	case "cpu":
+		return 0
+	default:
+		// RTX MVP uses a decimal 10 GB ceiling, not 10 GiB.
 		return 10_000_000_000
 	}
-	return 10 << 30
 }
 
 // The V22 SQL slice is forward-only and may not be installed in older
@@ -72,6 +80,7 @@ func buildAnalysisAdmission(ctx context.Context, api *pgxpool.Pool, dsn string,
 		return nil, noop, errors.New("analysis database configuration invalid")
 	}
 	config.ConnConfig.RuntimeParams["role"] = "photo_scheduler"
+	database.GuardApplicationRole(config)
 	config.ConnConfig.RuntimeParams["statement_timeout"] = "30000"
 	scheduler, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {

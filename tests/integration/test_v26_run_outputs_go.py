@@ -1,4 +1,5 @@
 """V2 run output project scope on an isolated fully migrated database."""
+from pathlib import Path as _PhotoRepositoryPath
 import os
 import subprocess
 from psycopg.conninfo import make_conninfo
@@ -7,7 +8,7 @@ from test_v25_lens_objectstore import lens_objects
 
 
 def test_v2_run_output_scope_without_collection(database):
-    env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),GOCACHE='/private/tmp/photoeditor-go-cache')
+    env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),GOCACHE=str(_PhotoRepositoryPath(__file__).resolve().parents[2]/'work/go-cache'))
     result=subprocess.run(['go','test','./internal/run','-run','^TestIntegrationV2OutputsProjectWithoutCollection$','-count=1'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=60)
     assert result.returncode==0,result.stdout+result.stderr
 
@@ -33,7 +34,7 @@ def test_output_service_real_signed_version(database, lens_objects):
                    Payload=base64.b64encode(payload).decode('ascii'))
     env = dict(os.environ, PHOTO_TEST_DATABASE_URL=make_conninfo(**database),
                PHOTO_OUTPUT_S3_FIXTURE=json.dumps(fixture),
-               GOCACHE='/private/tmp/photoeditor-go-cache')
+               GOCACHE=str(_PhotoRepositoryPath(__file__).resolve().parents[2]/'work/go-cache'))
     result = subprocess.run(['go', 'test', './internal/run', '-run',
         '^TestIntegrationV2OutputsProjectWithoutCollection$', '-count=1', '-v'],
         cwd=ROOT/'backend', env=env, capture_output=True, text=True, timeout=90)

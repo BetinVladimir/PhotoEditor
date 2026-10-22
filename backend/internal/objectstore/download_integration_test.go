@@ -3,6 +3,7 @@ package objectstore
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -20,7 +21,13 @@ func TestIntegrationSignedDownloadPinsVersion(t *testing.T) {
 	payload := []byte("original verified presentation bytes")
 	object, err := s.PutImmutable(ctx, "presentation.jpg", bytes.NewReader(payload), int64(len(payload)), digest(payload), "image/jpeg")
 	if err != nil {
-		t.Fatal("publish failed")
+		var storage *StorageError
+		code, status := "", 0
+		if errors.As(err, &storage) {
+			code, status = storage.Code, storage.Status
+		}
+		t.Logf("storage_code=%s storage_status=%d", code, status)
+		t.Fatalf("publish failed: type=%T invalid=%t integrity=%t exists=%t unavailable=%t s3_code=%s", err, errors.Is(err, ErrInvalid), errors.Is(err, ErrIntegrity), errors.Is(err, ErrExists), errors.Is(err, ErrUnavailable), minio.ToErrorResponse(err).Code)
 	}
 	replacement := []byte("replacement must never be downloaded")
 	newer, err := s.client.PutObject(ctx, s.bucket, object.Key, bytes.NewReader(replacement), int64(len(replacement)), minio.PutObjectOptions{ContentType: "image/jpeg"})

@@ -23,7 +23,7 @@ func MaterializePerspectivePreviewTasks(ctx context.Context, db *pgxpool.Pool, p
 	if db == nil || bundle.Source() != plan.source || len(tasks) != 2 {
 		return objectstore.ErrInvalid
 	}
-	rebuilt, err := CompilePerspectivePreviewPlan(bundle, plan.srgb)
+	rebuilt, err := CompilePerspectivePreviewPlan(bundle, plan.srgb,plan.policy)
 	if err != nil {
 		return err
 	}

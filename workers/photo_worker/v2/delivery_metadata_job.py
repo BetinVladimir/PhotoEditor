@@ -86,8 +86,9 @@ def run_job(raw,*,getenv=None):
             cert_reqs='CERT_REQUIRED',ca_certs=certifi.where()))
     options='-c role=photo_scheduler -c statement_timeout=30000 -c lock_timeout=3000'
     with psycopg.connect(config.database_url,autocommit=True,connect_timeout=5,options=options) as connection:
-        active();row=connection.execute('SELECT current_user').fetchone()
-        if row is None or row[0]!='photo_scheduler':raise AdoptionInvalid('METADATA_ADOPTION_ROLE_INVALID')
+        from photo_worker.runtime.application_role import require_application_role
+        require_application_role(connection, 'photo_scheduler')
+        active()
         adopted=adopt_current_delivery_metadata(connection,objects,scope=scope,
             allowed_bucket=config.bucket,scratch_root=installation.scratch_root,
             max_bytes=installation.max_bytes,max_pixels=installation.max_pixels,check_active=active)

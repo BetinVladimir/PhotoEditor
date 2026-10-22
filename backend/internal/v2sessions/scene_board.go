@@ -32,6 +32,9 @@ type SceneBoardDocument struct {
 // GetSceneBoard reads immutable plan bytes after current tenant/project authorization.
 // No object-store IO is performed while the read transaction is held.
 func (s Service) GetSceneBoard(ctx context.Context, who auth.Identity, tid, analysisID uuid.UUID) (SceneBoardDocument, error) {
+	if err := ctx.Err(); err != nil {
+		return SceneBoardDocument{}, err
+	}
 	out := SceneBoardDocument{AnalysisID: analysisID, Frames: []SceneBoardFrame{}}
 	if s.DB == nil || s.Objects == nil || s.Bucket == "" {
 		return out, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
@@ -50,7 +53,7 @@ func (s Service) GetSceneBoard(ctx context.Context, who auth.Identity, tid, anal
    JOIN photo.runs r ON r.tenant_id=w.tenant_id AND r.id=w.run_id
    JOIN photo.artifacts ar ON ar.tenant_id=a.tenant_id AND ar.id=a.plan_artifact_id
    WHERE a.tenant_id=$1 AND a.id=$2 AND s.kind='v2' AND s.expires_at IS NULL
-   AND w.workflow_type='session' AND w.input_snapshot_id=a.snapshot_id AND w.policy_sha=a.policy_sha
+   AND w.workflow_type='session' AND w.renderer_version='v2.2' AND w.input_snapshot_id=a.snapshot_id AND w.policy_sha=a.policy_sha
    AND r.kind='v2' AND r.status IN ('completed','waiting_review') AND NOT r.cancel_requested
    AND ar.state='ready' AND ar.output_role='document' AND ar.verified_at IS NOT NULL
    AND ar.object_version IS NOT NULL AND ar.object_version NOT IN ('','null')
@@ -101,6 +104,45 @@ func (s Service) GetSceneBoard(ctx context.Context, who auth.Identity, tid, anal
 		return SceneBoardDocument{}, err
 	}
 	if _, err = decodeScenePlan(raw, source.Object.SHA256, out.SnapshotID, out.SnapshotDigest, out.PolicySHA, count); err != nil {
+		return SceneBoardDocument{}, err
+	}
+	// Object IO happens outside a transaction. Reauthorize and pin the same
+	// adopted object before exposing bytes if access or artifact state changed.
+	err = tenant.WithTenant(ctx, s.DB, who, tid, domain.Viewer, func(tx pgx.Tx, role domain.Role) error {
+		if _, err := project.Authorize(ctx, tx, tid, projectID, who.UserID, role, domain.Viewer, false); err != nil {
+			return err
+		}
+		var current bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS(
+		 SELECT 1 FROM photo.session_analyses a
+		 JOIN photo.artifacts ar ON ar.tenant_id=a.tenant_id AND ar.id=a.plan_artifact_id
+		 JOIN photo.v2_workflows w ON w.tenant_id=a.tenant_id AND w.id=a.workflow_id
+		 JOIN photo.runs r ON r.tenant_id=w.tenant_id AND r.id=w.run_id
+		 WHERE a.tenant_id=$1 AND a.id=$2 AND a.project_id=$3
+		 AND ar.id=$4 AND ar.sha256=$5 AND ar.bucket=$6
+		 AND ar.object_key=$7 AND ar.object_version=$8 AND ar.bytes=$9
+		 AND ar.state='ready' AND ar.output_role='document'
+		 AND ar.media_type='application/json' AND ar.verified_at IS NOT NULL
+		 AND (ar.expires_at IS NULL OR ar.expires_at>clock_timestamp())
+		 AND w.workflow_type='session' AND w.renderer_version='v2.2'
+		 AND w.input_snapshot_id=a.snapshot_id AND w.policy_sha=a.policy_sha
+		 AND r.kind='v2' AND r.status IN ('completed','waiting_review') AND NOT r.cancel_requested
+		 AND EXISTS(SELECT 1 FROM photo.v2_artifact_links l
+		 WHERE l.tenant_id=a.tenant_id AND l.workflow_id=w.id
+		 AND l.artifact_id=ar.id AND l.sha256=ar.sha256))`, tid, analysisID,
+			projectID, source.ID, source.Object.SHA256, source.Bucket,
+			source.Object.Key, source.Object.VersionID, source.Object.Bytes).Scan(&current); err != nil {
+			return err
+		}
+		if !current {
+			return domain.NewError("ANALYSIS_CONFLICT", 409)
+		}
+		return nil
+	})
+	if err != nil {
+		return SceneBoardDocument{}, err
+	}
+	if err := ctx.Err(); err != nil {
 		return SceneBoardDocument{}, err
 	}
 	out.PlanSHA = source.Object.SHA256

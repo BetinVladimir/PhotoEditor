@@ -65,8 +65,8 @@ BEGIN
    jsonb_typeof(pin->'expected_bytes') IS DISTINCT FROM 'number' OR
    coalesce(pin->>'expected_bytes','') !~ '^[1-9][0-9]{0,8}$' OR
    (pin->>'expected_bytes')::bigint>536870912 OR
-   pin->>'suffix' IS DISTINCT FROM CASE pin->>'media_type'
-    WHEN 'image/jpeg' THEN '.jpg' WHEN 'image/png' THEN '.png' WHEN 'image/tiff' THEN '.tiff' ELSE '' END
+   pin->>'suffix' IS DISTINCT FROM (CASE pin->>'media_type'
+    WHEN 'image/jpeg' THEN '.jpg' WHEN 'image/png' THEN '.png' WHEN 'image/tiff' THEN '.tiff' ELSE '' END)
    THEN RETURN false; END IF;
   -- Compare untrusted IDs as text: malformed UUIDs cannot throw during casts.
   -- The style JSON independently declares the same portable background.

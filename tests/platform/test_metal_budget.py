@@ -14,7 +14,7 @@ def runtime(recommended=24_000_000_000, used=0, after=None):
     return torch,calls
 
 
-def test_metal_budget_installs_strict_ten_decimal_gb_ceiling():
+def test_metal_budget_installs_explicit_operator_ceiling():
     torch,calls=runtime()
     evidence=install_metal_budget(10_000_000_000,torch_module=torch)
     assert len(calls)==1 and 0<calls[0]<=1
@@ -92,7 +92,8 @@ def test_capacity_sample_caps_mps_by_remaining_allocator_budget(monkeypatch, tmp
         cap_measurement=lambda measured, **kwargs: measured)
     config=SimpleNamespace(capacity_policy=policy, resource_class='gpu', backend='mps', scratch_root=tmp_path)
     monkeypatch.setattr(budget, 'remaining_metal_budget', lambda limit: 100)
-    result=_capacity_sample(config, Capacity(1000, 2000, 3000))
+    receipt=install_metal_budget(policy.gpu_budget_bytes,torch_module=runtime()[0])
+    result=_capacity_sample(config, Capacity(1000, 2000, 3000),metal_budget=receipt)
     assert result==Capacity(1000, 2000, 100)
 
 
@@ -114,7 +115,8 @@ def test_mps_budget_failure_stops_built_worker_without_publishing_capacity(monke
             raise ValueError('METAL_BUDGET_ALREADY_EXCEEDED')
         return 100
     monkeypatch.setattr(budget, 'remaining_metal_budget', remaining)
-    monkeypatch.setattr(service, '_install_metal_budget', lambda config: None)
+    receipt=install_metal_budget(policy.gpu_budget_bytes,torch_module=runtime()[0])
+    monkeypatch.setattr(service, '_install_metal_budget', lambda config: receipt)
     monkeypatch.setattr(service, 'measure_accelerator', lambda root, backend: Capacity(1000, 2000, 3000))
     monkeypatch.setattr(service.signal, 'getsignal', lambda sig: None)
     monkeypatch.setattr(service.signal, 'signal', lambda sig, handler: None)
@@ -141,7 +143,8 @@ def test_mps_startup_measurement_failure_never_starts_consumer(monkeypatch, tmp_
     def failed(limit):
         raise ValueError('METAL_BUDGET_MEASUREMENT_INVALID')
     monkeypatch.setattr(budget,'remaining_metal_budget',failed)
-    monkeypatch.setattr(service,'_install_metal_budget',lambda config:None)
+    receipt=install_metal_budget(config.capacity_policy.gpu_budget_bytes,torch_module=runtime()[0])
+    monkeypatch.setattr(service,'_install_metal_budget',lambda config:receipt)
     monkeypatch.setattr(service,'measure_accelerator',lambda *args:Capacity(100,100,100))
     database=SimpleNamespace(ping=lambda:None,accelerator_operations=lambda *args:{'operation'},
         heartbeat_accelerator_worker=lambda *args:events.append('heartbeat'))
@@ -198,7 +201,7 @@ def test_mps_heartbeats_reduce_advertised_budget_as_driver_allocations_grow(monk
     from pathlib import Path
 
     policy = load_capacity_policy(Path(__file__).resolve().parents[2] / 'configs/capacity-metal-verification.json')
-    assert policy.gpu_budget_bytes == 10_000_000_000
+    assert policy.gpu_budget_bytes == 2**53 - 1
     torch, _ = runtime()
     receipt = install_metal_budget(policy.gpu_budget_bytes, torch_module=torch)
     allocated = [0]
@@ -214,6 +217,7 @@ def test_mps_heartbeats_reduce_advertised_budget_as_driver_allocations_grow(monk
         reports.append(measured.vram_bytes)
         assert measured.vram_bytes == max(0, receipt.allocator_bytes - used - 64 * 1024 * 1024)
         assert measured.vram_bytes <= policy.gpu_budget_bytes
+    assert reports[0] > 10_000_000_000  # Metal has no fixed RTX ceiling.
     assert reports == sorted(reports, reverse=True)
     allocated[0] = receipt.allocator_bytes + 1
     with pytest.raises(ValueError, match='ALREADY_EXCEEDED'):

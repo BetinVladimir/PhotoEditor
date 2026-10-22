@@ -62,8 +62,8 @@ def run_job(raw,*,getenv=None):
     context=AdoptionContext(job['attempt'],job['fence'],UUID(job['result_id']),'optical.perspective_lines','1',ArtifactRef.parse(job['root']))
     options='-c role=photo_scheduler -c statement_timeout=15000 -c lock_timeout=3000'
     with psycopg.connect(config.database_url,autocommit=True,connect_timeout=5,options=options) as connection:
-        row=connection.execute('SELECT current_user').fetchone()
-        if row is None or row[0]!='photo_scheduler':raise AdoptionInvalid('REPLACEMENT_ADOPTION_ROLE_INVALID')
+        from photo_worker.runtime.application_role import require_application_role
+        require_application_role(connection, 'photo_scheduler')
         reader=PostgresObjectEvidenceReader(connection,objects,tenant_id=tenant,task_id=task,
             attempt=context.attempt,fence=context.fence,allowed_bucket=config.bucket)
         recovered=bridge.replay_and_adopt(reader,context,ArtifactRef.parse(job['params']),job['descriptor_jcs'].encode(),installation=installation)

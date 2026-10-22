@@ -2,6 +2,7 @@ package provenance
 
 import (
 	"context"
+ "encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -176,6 +177,7 @@ func TestMeasuredSigningResourcesRequireExactWorkloadAndInstallation(t *testing.
 				r.Measurements[0].Output = 1
 			}
 			data, err := canonical.Marshal(r)
+            if mode == "unsafe" { data, err = json.Marshal(r) }
 			if err != nil {
 				t.Fatal(err)
 			}

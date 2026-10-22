@@ -26,9 +26,17 @@ def render_resources(width,height,*,mask_refs,mask_nodes,provider_peak,tile_size
     return required
 
 
-def admit_render(profile,width,height,*,mask_refs,mask_nodes,provider_peak,tile_size=512,alpha_mode='require_float32'):
+def admit_render(profile,width,height,*,mask_refs,mask_nodes,provider_peak,tile_size=None,alpha_mode=None):
     """Validate sealed execution estimate; qualification is an independent gate."""
     from photo_worker.runtime.executor import OperationFailure
+    # Nested providers share the composition's sealed execution choices. An
+    # explicit conflicting choice is a configuration error, never a new budget.
+    choices=profile if isinstance(profile,dict) else {}
+    for explicit,key in ((tile_size,'tile_size'),(alpha_mode,'alpha_mode')):
+        if explicit is not None and key in choices and (type(explicit)!=type(choices[key]) or explicit!=choices[key]):
+            raise OperationFailure('CONFIG_INVALID')
+    if tile_size is None:tile_size=choices.get('tile_size',512)
+    if alpha_mode is None:alpha_mode=choices.get('alpha_mode','require_float32')
     required=render_resources(width,height,mask_refs=mask_refs,mask_nodes=mask_nodes,
         provider_peak=provider_peak,tile_size=tile_size,alpha_mode=alpha_mode)
     estimate=profile.get('resource_estimate') if isinstance(profile,dict) else None

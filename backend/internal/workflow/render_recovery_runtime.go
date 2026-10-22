@@ -1,6 +1,7 @@
 package workflow
 
 import (
+ "photoeditor/backend/internal/database"
 	"context"
 	"errors"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -24,6 +25,7 @@ func NewRenderRecoveryProcessor(ctx context.Context, scheduler *pgxpool.Pool, so
 		return nil, nil, errors.New("render source database configuration invalid")
 	}
 	cfg.ConnConfig.RuntimeParams["role"] = "photo_api"
+	database.GuardApplicationRole(cfg)
 	cfg.ConnConfig.RuntimeParams["statement_timeout"] = "5000"
 	cfg.ConnConfig.RuntimeParams["lock_timeout"] = "3000"
 	cfg.MaxConns = 4

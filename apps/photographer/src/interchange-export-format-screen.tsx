@@ -1,5 +1,6 @@
+import {Button,Text} from 'react-native-paper';
 import {useRef} from 'react';
-import {Pressable,SafeAreaView,Text,View} from 'react-native';
+import {SafeAreaView,View} from 'react-native';
 import {assertInterchangeScope} from './interchange-job';
 import type {InterchangeFormat,InterchangeCreateRequest} from './interchange-create';
 import {freezeInterchangeCreate} from './interchange-create';
@@ -11,6 +12,6 @@ export function InterchangeExportFormatScreen({tenant,project,snapshot,onSelect}
  try{assertInterchangeScope(tenant,project,snapshot);}catch{return <Text accessibilityRole="alert">{t('interchange_create_failed')}</Text>}
  const formats:InterchangeFormat[]=['photoeditor_bundle','xmp','captureone_sidecar'];
  return <SafeAreaView style={s.root}><View style={s.header}><Text style={s.title}>{t('interchange_format_title')}</Text>
- {formats.map(format=><View key={format}><Pressable accessibilityRole="button" style={s.button} onPress={()=>{if(selected.current)return;const request=freezeInterchangeCreate({project_id:project,direction:'export',format,snapshot_id:snapshot},'format-selection');selected.current=true;try{onSelect(request);}catch(error){selected.current=false;throw error;}}}><Text style={s.buttonText}>{t(`interchange_format_${format}`)}</Text></Pressable><Text style={s.subtitle}>{t(`interchange_format_${format}_hint`)}</Text></View>)}
+ {formats.map(format=><View key={format}><Button  accessibilityRole="button"  onPress={()=>{if(selected.current)return;const request=freezeInterchangeCreate({project_id:project,direction:'export',format,snapshot_id:snapshot},'format-selection');selected.current=true;try{onSelect(request);}catch(error){selected.current=false;throw error;}}} mode="contained" contentStyle={{minHeight:48}}>{t(`interchange_format_${format}`)}</Button><Text style={s.subtitle}>{t(`interchange_format_${format}_hint`)}</Text></View>)}
  </View></SafeAreaView>;
 }

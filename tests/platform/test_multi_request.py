@@ -13,7 +13,7 @@ def fixture():
     params=OpticalPanoramaParams(schema_version=1,frames=[VersionBinding(asset_version_id=uuid4(),source=ArtifactRef(artifact_id=uuid4(),sha256='a'*64),canvas_hash='b'*64) for _ in range(2)],
         reference_ordinal=1,projection='cylindrical',max_pixels=10000,
         calibration=ArtifactRef(artifact_id=uuid4(),sha256=canonical_hash(calibration)))
-    return params,calibration,pin
+    return params,calibration.model_dump(mode='json'),pin
 
 
 def test_calibration_thresholds_and_source_order_forwarded_exactly(monkeypatch):

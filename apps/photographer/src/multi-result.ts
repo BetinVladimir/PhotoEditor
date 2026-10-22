@@ -21,7 +21,7 @@ export function multiTicketProducer(operation:MultiOperation,ticket:RegionJobTic
  if(multiWorkflowID(owned.run_id)!==owned.workflow_id)throw new Error('MULTI_RESULT_SCOPE_INVALID');
  return multiProducerTask(owned.workflow_id,operation);
 }
-export type MultiResultObservation={state:'pending';workflow_state:'draft'|'queued'|'running'|'cancelling'}|{state:'terminal';workflow_state:'failed'|'cancelled'}|{state:'available';proposal:MultiProposal};
+export type MultiResultObservation={state:'pending';workflow_state:'draft'|'queued'|'running'|'cancelling'}|{state:'terminal';workflow_state:'failed'|'cancelled'|'completed_with_errors'}|{state:'available';proposal:MultiProposal};
 /** A durable ticket is read-only recovery: never resubmit or change frame order. */
 export async function readMultiAttemptResult(api:Pick<OwnerAPI,'get'|'multiProposal'>,tenant:string,project:string,operation:MultiOperation,request:MultiIntent,ticket:RegionJobTicket,signal:AbortSignal):Promise<MultiResultObservation>{
  const active=()=>{if(signal.aborted)throw new Error('MULTI_RESULT_CANCELLED');};active();
@@ -32,7 +32,7 @@ export async function readMultiAttemptResult(api:Pick<OwnerAPI,'get'|'multiPropo
  const current=status as Record<string,unknown>;
  if(current.run_id!==owned.run_id||current.workflow_id!==owned.workflow_id)throw new Error('MULTI_RESULT_SCOPE_CHANGED');
  if(current.state==='draft'||current.state==='queued'||current.state==='running'||current.state==='cancelling')return {state:'pending',workflow_state:current.state};
- if(current.state==='failed'||current.state==='cancelled')return {state:'terminal',workflow_state:current.state};
+ if(current.state==='failed'||current.state==='cancelled'||current.state==='completed_with_errors')return {state:'terminal',workflow_state:current.state};
  if(current.state!=='waiting_review'&&current.state!=='completed')throw new Error('MULTI_RESULT_UNAVAILABLE');
  const producer=multiTicketProducer(operation,owned);
  const value=await api.multiProposal(operation,project,producer,body,signal);active();

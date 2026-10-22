@@ -46,7 +46,7 @@ func normalize(raw ReconcileRequest) (ReconcileRequest, []byte, error) {
 		return raw, nil, domain.NewError("VALIDATION_FAILED", 422)
 	}
 	clean := path.Clean(raw.SourceRelative)
-	if raw.UploadID == uuid.Nil || raw.SourceRelative == "" || len(raw.SourceRelative) > 1024 || clean != raw.SourceRelative || clean == "." || strings.HasPrefix(clean, "../") || strings.HasPrefix(clean, "/") || strings.ContainsAny(clean, "\\\x00") {
+	if raw.UploadID == uuid.Nil || raw.SourceRelative == "" || len(raw.SourceRelative) > 1024 || clean != raw.SourceRelative || clean == "." || clean == ".." || strings.HasPrefix(clean, "../") || strings.HasPrefix(clean, "/") || strings.ContainsAny(clean, "\\\x00") {
 		return raw, nil, domain.NewError("VALIDATION_FAILED", 422)
 	}
 	if len(raw.Provenance) == 0 {
@@ -65,6 +65,7 @@ func normalize(raw ReconcileRequest) (ReconcileRequest, []byte, error) {
 
 func (s Service) Reconcile(ctx context.Context, who auth.Identity, tenantID uuid.UUID, request ReconcileRequest) (Record, error) {
 	var out Record
+	if err := ctx.Err(); err != nil { return out, err }
 	request, provenance, err := normalize(request)
 	if err != nil {
 		return out, err
@@ -84,14 +85,16 @@ func (s Service) Reconcile(ctx context.Context, who auth.Identity, tenantID uuid
 		if err != nil {
 			return err
 		}
+		role, err = tenant.AuthorizeInTransaction(ctx, tx, who, tenantID, domain.Editor)
+		if err != nil { return err }
 		if _, err = project.Authorize(ctx, tx, tenantID, projectID, who.UserID, role, domain.Editor, false); err != nil {
 			return err
 		}
-		var owns bool
-		if err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM photo.asset_versions v JOIN photo.assets a
+		var currentVersion uuid.UUID
+		if err = tx.QueryRow(ctx, `SELECT v.id FROM photo.asset_versions v JOIN photo.assets a
 			ON a.tenant_id=v.tenant_id AND a.id=v.asset_id WHERE v.tenant_id=$1 AND v.id=$2
-			AND a.project_id=$3 AND a.deleted_at IS NULL)`, tenantID, versionID, projectID).Scan(&owns); err != nil || !owns {
-			if err != nil {
+			AND a.project_id=$3 AND a.deleted_at IS NULL FOR SHARE OF a,v`, tenantID, versionID, projectID).Scan(&currentVersion); err != nil {
+			if !errors.Is(err,pgx.ErrNoRows) {
 				return err
 			}
 			return domain.NewError("UPLOAD_NOT_VERIFIED", 409)
@@ -128,7 +131,12 @@ func (s Service) Reconcile(ctx context.Context, who auth.Identity, tenantID uuid
 		out.SourceRelative = request.SourceRelative
 		out.SourceSHA256 = request.SourceSHA256
 		out.AssetVersionID = storedVersion
-		return nil
+		// INSERT may wait for a concurrent exact reconciliation. Authority must
+		// still hold before either its existing receipt or fresh record escapes.
+		role, err = tenant.AuthorizeInTransaction(ctx, tx, who, tenantID, domain.Editor)
+		if err != nil { return err }
+		if _, err = project.Authorize(ctx, tx, tenantID, projectID, who.UserID, role, domain.Editor, false); err != nil { return err }
+		return ctx.Err()
 	})
 	return out, err
 }

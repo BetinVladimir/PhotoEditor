@@ -140,3 +140,23 @@ def test_decode_missing_icc_and_budget_fail_before_upload(tmp_path):
             artifacts.scratch=scratch
             with pytest.raises(error):_decode(context_for(source,'asset.decode'),artifacts,registry)
             assert not artifacts.staged and list(scratch.directory.iterdir())==[]
+
+
+@pytest.mark.parametrize('verify', [True, False])
+def test_asset_metadata_mutation_never_publishes_manifest(tmp_path, monkeypatch, verify):
+    from photo_worker.operations.asset import adapters
+    path=tmp_path/'input.jpg'
+    Image.new('RGB',(32,16),(120,80,30)).save(path)
+    source=ArtifactRef(artifact_id=uuid4(),sha256=hashlib.sha256(path.read_bytes()).hexdigest())
+    artifacts=Artifacts(path,source)
+    original=adapters.read_metadata
+    def read_then_change(verified):
+        metadata=original(verified)
+        raw=bytearray(path.read_bytes());raw[-1]^=1;path.write_bytes(raw)
+        return metadata
+    monkeypatch.setattr(adapters,'read_metadata',read_then_change)
+    ctx=context_for(source,'asset.verify' if verify else 'asset.inspect')
+    with pytest.raises(OperationFailure) as error:
+        _execute(ctx,artifacts,verify)
+    assert error.value.error.code=='INPUT_INVALID'
+    assert not artifacts.staged

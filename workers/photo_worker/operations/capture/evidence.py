@@ -4,6 +4,7 @@ import numpy as np
 
 from .prepare import capture_model_preview
 from .assess import FaceModelEvidence
+from photo_worker.models.backend_support import model_backend_supported
 
 
 def infer_face_evidence(ctx, work, faces, calibration, pool, backend, policy, alpha=None):
@@ -11,7 +12,7 @@ def infer_face_evidence(ctx, work, faces, calibration, pool, backend, policy, al
     entries = {entry.id: entry for entry in pool.lock.models}
     def available(model_id):
         entry = entries.get(model_id)
-        return (entry is not None and entry.approved_for_install and backend in entry.backends
+        return (model_backend_supported(model_id,backend) and entry is not None and entry.approved_for_install and backend in entry.backends
                 and entry.backends[backend].status == 'passed')
     eye_ready = 'eyes' in policy.checks and available('eye_open')
     glare_ready = 'glare' in policy.checks and available('glare_mask')

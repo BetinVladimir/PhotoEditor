@@ -26,7 +26,7 @@ func SealRestorationPreview(ctx context.Context, db *pgxpool.Pool,
 		return objectstore.ErrInvalid
 	}
 	rebuilt, err := CompileRestorationPreviewPlan(plan.source, plan.srgb,
-		baseRaw, candidateRaw)
+		baseRaw, candidateRaw,plan.policy)
 	if err != nil || rebuilt.run != plan.run {
 		return v2input.ErrInvalid
 	}

@@ -1,0 +1,38 @@
+{
+  "source": {
+    "tenant": "00000000-0000-0000-0000-0000000003e9",
+    "parent": "00000000-0000-0000-0000-0000000003ea",
+    "instruction": {
+      "kind": "segment",
+      "layers": [
+        "1a7d690c-dc85-4164-82e4-804a1dd860a5"
+      ]
+    },
+    "source": {
+      "asset_version_id": "97f78d3f-fd2d-4849-af78-eba068088c66",
+      "source": {
+        "artifact_id": "5634321b-8631-4f38-a674-a5abb72c2f05",
+        "sha256": "73fe2658f4cf461f0733338dfc7f84baba8793ea45e83d7147dd7cbe37ba2605"
+      },
+      "canvas_hash": "0d6caa571b5edec6928c0ed2cde296edd13bf0759f031046b0fea2f92b20be26"
+    },
+    "layer_stack_jcs": "{\"layers\":[{\"blend\":\"multiply\",\"enabled\":true,\"id\":\"1a7d690c-dc85-4164-82e4-804a1dd860a5\",\"mask\":{\"left\":{\"left\":{\"canvas_hash\":\"d924f797418963ffbea9d5529d651870549fefdfc31f905a90ab2de690274ff0\",\"mask\":{\"artifact_id\":\"77226665-8403-4376-afe6-7fb107b105cd\",\"sha256\":\"27aaa1c4f61f7d03e1e3b3679f04fcec09207304a6934b4fd00eef3d3d45b431\"},\"op\":\"ref\"},\"op\":\"union\",\"right\":{\"op\":\"invert\",\"operand\":{\"canvas_hash\":\"d924f797418963ffbea9d5529d651870549fefdfc31f905a90ab2de690274ff0\",\"mask\":{\"artifact_id\":\"77226665-8403-4376-afe6-7fb107b105cd\",\"sha256\":\"27aaa1c4f61f7d03e1e3b3679f04fcec09207304a6934b4fd00eef3d3d45b431\"},\"op\":\"ref\"}}},\"op\":\"subtract\",\"right\":{\"left\":{\"canvas_hash\":\"d924f797418963ffbea9d5529d651870549fefdfc31f905a90ab2de690274ff0\",\"mask\":{\"artifact_id\":\"77226665-8403-4376-afe6-7fb107b105cd\",\"sha256\":\"27aaa1c4f61f7d03e1e3b3679f04fcec09207304a6934b4fd00eef3d3d45b431\"},\"op\":\"ref\"},\"op\":\"intersect\",\"right\":{\"canvas_hash\":\"d924f797418963ffbea9d5529d651870549fefdfc31f905a90ab2de690274ff0\",\"mask\":{\"artifact_id\":\"77226665-8403-4376-afe6-7fb107b105cd\",\"sha256\":\"27aaa1c4f61f7d03e1e3b3679f04fcec09207304a6934b4fd00eef3d3d45b431\"},\"op\":\"ref\"}}},\"opacity\":0.35,\"operation\":\"portrait.detail\",\"operation_version\":\"1\",\"params\":{\"artifact_id\":\"77226665-8403-4376-afe6-7fb107b105cd\",\"sha256\":\"27aaa1c4f61f7d03e1e3b3679f04fcec09207304a6934b4fd00eef3d3d45b431\"}}],\"schema_version\":1,\"source\":{\"asset_version_id\":\"97f78d3f-fd2d-4849-af78-eba068088c66\",\"canvas_hash\":\"d924f797418963ffbea9d5529d651870549fefdfc31f905a90ab2de690274ff0\",\"source\":{\"artifact_id\":\"77226665-8403-4376-afe6-7fb107b105cd\",\"sha256\":\"27aaa1c4f61f7d03e1e3b3679f04fcec09207304a6934b4fd00eef3d3d45b431\"}}}"
+  },
+  "params": {
+    "artifact_id": "ae865351-1778-4641-8aea-3099d2faf8b5",
+    "sha256": "d21062b11f0055840cd70e8e5e6b5ace2f5c1e4d926208086757d21d1cd57036"
+  },
+  "bindings": [
+    {
+      "source": {
+        "artifact_id": "77226665-8403-4376-afe6-7fb107b105cd",
+        "sha256": "27aaa1c4f61f7d03e1e3b3679f04fcec09207304a6934b4fd00eef3d3d45b431"
+      },
+      "current": {
+        "artifact_id": "ae865351-1778-4641-8aea-3099d2faf8b5",
+        "sha256": "d21062b11f0055840cd70e8e5e6b5ace2f5c1e4d926208086757d21d1cd57036"
+      }
+    }
+  ],
+  "expected": "{\"layers\":[{\"blend\":\"multiply\",\"enabled\":true,\"id\":\"1a7d690c-dc85-4164-82e4-804a1dd860a5\",\"mask\":{\"left\":{\"left\":{\"canvas_hash\":\"0d6caa571b5edec6928c0ed2cde296edd13bf0759f031046b0fea2f92b20be26\",\"mask\":{\"artifact_id\":\"ae865351-1778-4641-8aea-3099d2faf8b5\",\"sha256\":\"d21062b11f0055840cd70e8e5e6b5ace2f5c1e4d926208086757d21d1cd57036\"},\"op\":\"ref\"},\"op\":\"union\",\"right\":{\"op\":\"invert\",\"operand\":{\"canvas_hash\":\"0d6caa571b5edec6928c0ed2cde296edd13bf0759f031046b0fea2f92b20be26\",\"mask\":{\"artifact_id\":\"ae865351-1778-4641-8aea-3099d2faf8b5\",\"sha256\":\"d21062b11f0055840cd70e8e5e6b5ace2f5c1e4d926208086757d21d1cd57036\"},\"op\":\"ref\"}}},\"op\":\"subtract\",\"right\":{\"left\":{\"canvas_hash\":\"0d6caa571b5edec6928c0ed2cde296edd13bf0759f031046b0fea2f92b20be26\",\"mask\":{\"artifact_id\":\"ae865351-1778-4641-8aea-3099d2faf8b5\",\"sha256\":\"d21062b11f0055840cd70e8e5e6b5ace2f5c1e4d926208086757d21d1cd57036\"},\"op\":\"ref\"},\"op\":\"intersect\",\"right\":{\"canvas_hash\":\"0d6caa571b5edec6928c0ed2cde296edd13bf0759f031046b0fea2f92b20be26\",\"mask\":{\"artifact_id\":\"ae865351-1778-4641-8aea-3099d2faf8b5\",\"sha256\":\"d21062b11f0055840cd70e8e5e6b5ace2f5c1e4d926208086757d21d1cd57036\"},\"op\":\"ref\"}}},\"opacity\":0.35,\"operation\":\"portrait.detail\",\"operation_version\":\"1\",\"params\":{\"artifact_id\":\"ae865351-1778-4641-8aea-3099d2faf8b5\",\"sha256\":\"d21062b11f0055840cd70e8e5e6b5ace2f5c1e4d926208086757d21d1cd57036\"}}],\"schema_version\":1,\"source\":{\"asset_version_id\":\"97f78d3f-fd2d-4849-af78-eba068088c66\",\"canvas_hash\":\"0d6caa571b5edec6928c0ed2cde296edd13bf0759f031046b0fea2f92b20be26\",\"source\":{\"artifact_id\":\"5634321b-8631-4f38-a674-a5abb72c2f05\",\"sha256\":\"73fe2658f4cf461f0733338dfc7f84baba8793ea45e83d7147dd7cbe37ba2605\"}}}"
+}

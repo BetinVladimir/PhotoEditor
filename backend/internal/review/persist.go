@@ -3,6 +3,7 @@ package review
 import (
 	"context"
 	"errors"
+ "time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -209,6 +210,17 @@ func persistCandidateAuthorized(ctx context.Context, outer pgx.Tx, tenantID, rev
 		}
 		attested = ready
 	}
+	if localPortraitKind(s.Kind) {
+		if sessionID == uuid.Nil {
+			return CandidatePlan{}, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
+		}
+		var ready bool
+		err = tx.QueryRow(ctx, `SELECT photo.v28_local_portrait_review_decision_ready($1,$2,$3,$4)`, tenantID, reviewID, actor, sessionID).Scan(&ready)
+		if err != nil {
+			return CandidatePlan{}, err
+		}
+		attested = ready
+	}
 	if s.Kind == "portrait.open_eyes" {
 		if sessionID == uuid.Nil {
 			return CandidatePlan{}, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
@@ -220,12 +232,28 @@ func persistCandidateAuthorized(ctx context.Context, outer pgx.Tx, tenantID, rev
 		}
 		attested = ready
 	}
+	if s.Kind == "image.relight" {
+		if sessionID == uuid.Nil {
+			return CandidatePlan{}, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
+		}
+		var ready bool
+		err = tx.QueryRow(ctx, `SELECT photo.v28_relight_review_decision_ready($1,$2,$3,$4)`, tenantID, reviewID, actor, sessionID).Scan(&ready)
+		if err != nil {
+			return CandidatePlan{}, err
+		}
+		attested = ready
+	}
 	if !attested {
 		return CandidatePlan{}, domain.NewError("STALE_CANDIDATE_REVIEW", 409)
 	}
 	if err = tx.QueryRow(ctx, `SELECT sha256 FROM photo.artifacts WHERE tenant_id=$1 AND id=$2`, tenantID, s.Base.ID).Scan(&s.Base.SHA256); err != nil {
 		return CandidatePlan{}, err
 	}
+ if s.Kind=="image.relight" {
+  if !relightDecisionViewedBinding(request,s,actor,sessionID,time.Now()){
+   return CandidatePlan{},domain.NewError("REVIEW_VIEW_REQUIRED",409)
+  }
+ }
 	plan, err := PlanCandidate(s, actor, request)
 	if err != nil {
 		return CandidatePlan{}, err
@@ -234,13 +262,21 @@ func persistCandidateAuthorized(ctx context.Context, outer pgx.Tx, tenantID, rev
 	if err != nil {
 		return CandidatePlan{}, err
 	}
-	if restorationPreviewKind(s.Kind) || s.Kind == "portrait.open_eyes" {
+	if restorationPreviewKind(s.Kind) || localPortraitKind(s.Kind) || s.Kind == "portrait.open_eyes" || s.Kind == "image.relight" {
 		if sessionID == uuid.Nil {
 			return CandidatePlan{}, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
 		}
+  if s.Kind=="image.relight"&&!request.viewedGrant.valid(time.Now()){
+   return CandidatePlan{},domain.NewError("REVIEW_VIEW_REQUIRED",409)
+  }
 		var decided bool
 		decisionFunction := candidateDecisionFunction(s.Kind)
+  if s.Kind=="image.relight" {
+   grantJSON,marshalErr:=canonical.Marshal(request.viewedGrant);if marshalErr!=nil{return CandidatePlan{},marshalErr}
+   err=tx.QueryRow(ctx,`SELECT photo.decide_v28_relight_review($1,$2,$3,$4,$5,$6,$7::jsonb,$8,$9,$10::jsonb)`,tenantID,reviewID,actor,sessionID,s.Revision,request.Decision,string(selection),plan.DecisionHash,plan.Route,string(grantJSON)).Scan(&decided)
+  }else{
 		err = tx.QueryRow(ctx, `SELECT `+decisionFunction+`($1,$2,$3,$4,$5,$6,$7::jsonb,$8,$9)`, tenantID, reviewID, actor, sessionID, s.Revision, request.Decision, string(selection), plan.DecisionHash, plan.Route).Scan(&decided)
+  }
 		if err != nil {
 			return CandidatePlan{}, err
 		}
@@ -269,7 +305,17 @@ func persistCandidateAuthorized(ctx context.Context, outer pgx.Tx, tenantID, rev
 	return plan, nil
 }
 
+func localPortraitKind(kind string) bool {
+	return kind == "portrait.hair" || kind == "portrait.clothing"
+}
+
 func candidateDecisionFunction(kind string) string {
+	if localPortraitKind(kind) {
+		return "photo.decide_v28_local_portrait_review"
+	}
+	if kind == "image.relight" {
+		return "photo.decide_v28_relight_review"
+	}
 	if kind == "portrait.open_eyes" {
 		return "photo.decide_v28_open_eyes_review"
 	}

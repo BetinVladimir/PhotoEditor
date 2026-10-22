@@ -69,7 +69,7 @@ func (s SQLTransferSourceReader) readNativePersonInputAuthorityCandidate(ctx con
 	if err != nil {
 		return zero, err
 	}
-	policies, err := selectQualificationPolicies(policy, []string{"mask.person"})
+	policies, err := selectNativeQualificationPolicies(policy, []string{"mask.person"})
 	if err != nil {
 		return zero, err
 	}

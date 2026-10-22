@@ -33,6 +33,7 @@ type AdoptedLensCatalog struct {
 	tenant, project, version, producer uuid.UUID
 	root                               v2input.Ref
 	bucket                             string
+	documents map[uuid.UUID][]byte
 	entries                            map[uuid.UUID]adoptedOccurrence
 	geometries                         map[uuid.UUID]v2draft.DocumentGeometry
 }
@@ -47,7 +48,7 @@ func buildAdoptedLensCatalog(ctx context.Context, source adoptedLensCatalogSourc
 	if err != nil {
 		return nil, AdoptedLensBinding{}, err
 	}
-	catalog := &AdoptedLensCatalog{source: source, original: original, who: who, tenant: tenant, project: project, version: version, producer: producer, root: root, bucket: bucket, entries: map[uuid.UUID]adoptedOccurrence{}, geometries: map[uuid.UUID]v2draft.DocumentGeometry{}}
+	catalog := &AdoptedLensCatalog{source: source, original: original, who: who, tenant: tenant, project: project, version: version, producer: producer, root: root, bucket: bucket, documents:map[uuid.UUID][]byte{}, entries: map[uuid.UUID]adoptedOccurrence{}, geometries: map[uuid.UUID]v2draft.DocumentGeometry{}}
 	active := map[uuid.UUID]bool{}
 	var visit func(v2input.Ref, string, string, []byte, int) error
 	visit = func(ref v2input.Ref, contract, path string, body []byte, depth int) error {
@@ -107,6 +108,7 @@ func buildAdoptedLensCatalog(ctx context.Context, source adoptedLensCatalogSourc
 				return v2input.ErrInvalid
 			}
 		}
+		catalog.documents[ref.ArtifactID]=append([]byte(nil),body...)
 		children, err := v2draft.DocumentChildren(body, contract, ref)
 		if err != nil {
 			return err

@@ -11,7 +11,7 @@ from photo_worker.v2.interchange_recipe_semantics import build_prepared_import_r
 class PreparedImportRecipeFactory:
     def __init__(self, *, schemas_jcs, schemas_sha, work_icc_sha, qualify_runtime,
                  extra_validators=None, max_file_bytes=128 << 30, operation_schemas=None,
-                 qualify_confirmation=None):
+                 qualify_confirmation=None, historical_authority=None):
         if (not isinstance(schemas_jcs, bytes) or not 2 <= len(schemas_jcs) <= 16 << 20
                 or sha256(schemas_jcs).hexdigest() != schemas_sha
                 or not isinstance(work_icc_sha, str) or len(work_icc_sha) != 64
@@ -30,6 +30,9 @@ class PreparedImportRecipeFactory:
         self.operation_schemas = None if operation_schemas is None else dict(operation_schemas)
         self.runtime, self.extra, self.maximum = qualify_runtime, dict(extra_validators or {}), max_file_bytes
         self.confirmation = qualify_confirmation
+        if historical_authority is not None and not (callable(getattr(historical_authority, "bind_inputs", None)) or all(callable(getattr(historical_authority, name, None)) for name in ("ancestors", "qualify_ancestor", "qualify_faces"))):
+            raise ValueError("INTERCHANGE_HISTORICAL_AUTHORITY_INSTALLATION")
+        self.historical = historical_authority
         if any(not callable(value) for value in self.extra.values()):
             raise ValueError('INTERCHANGE_FACTORY_INSTALLATION')
 
@@ -122,8 +125,20 @@ class PreparedImportRecipeFactory:
         for entry in reader.entries.values():
             metadata = reader.evidence(entry.ref.model_copy(deep=True))
             entries.append((entry.ref.model_copy(deep=True),entry.contract,metadata.media_type))
+        historical = self.historical
+        if historical is not None and callable(getattr(historical, 'bind_inputs', None)):
+            command = ctx.lease.command
+            historical = historical.bind_inputs(entries=entries, read=read,
+                tenant_id=command.tenant_id, project_id=authority.project_id,
+                workflow_id=authority.workflow_id, run_id=command.run_id, plan=plan,
+                check_active=ctx.check_active, recheck_inputs=reader.recheck)
         def runtime(contract,typed,binding):
             ctx.check_active()
+            from photo_worker.v2.interchange_conservative_semantics import qualify_conservative_document
+            conservative = qualify_conservative_document(contract, typed, binding, read, require_contract, ctx.check_active,
+                None if historical is None else lambda *args: historical.qualify_faces(ctx, authority, *args))
+            if conservative is False:
+                return False
             result = self.runtime(ctx,authority,contract,typed,binding)
             ctx.check_active()
             return result
@@ -140,6 +155,7 @@ class PreparedImportRecipeFactory:
                    mask.artifact.sha256)
             previous = confirmation_epochs.setdefault(key, result)
             return previous == result
+        ancestors = () if historical is None else historical.ancestors(ctx, authority, plan, read, require_contract)
         result = build_prepared_import_recipe_qualifier(canonical_images=images,work_icc_sha=self.icc,
             entries=entries,schemas_jcs=self.schemas,schemas_sha=self.schemas_sha,read_document=read,
             evidence_reader=reader,scratch=artifacts.scratch,max_file_bytes=self.maximum,
@@ -147,6 +163,7 @@ class PreparedImportRecipeFactory:
             recheck_inputs=reader.recheck,qualify_occurrence=qualify_occurrence,
             operation_schemas=None if self.operation_schemas is None else dict(self.operation_schemas),
             qualify_confirmation=confirmation if self.confirmation is not None else None,
-            background_mappings=background_mappings)
+            background_mappings=background_mappings, prepared_ancestors=ancestors,
+            qualify_ancestor=None if historical is None else lambda *args: historical.qualify_ancestor(ctx, authority, *args))
         ctx.check_active()
         return result

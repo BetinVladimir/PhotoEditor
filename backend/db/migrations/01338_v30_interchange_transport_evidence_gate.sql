@@ -23,7 +23,7 @@ BEGIN
 END $$;
 ALTER FUNCTION photo.complete_v30_interchange_import_document(uuid,uuid,text,uuid,text,text,text,uuid,text) OWNER TO photo_fn_owner;
 REVOKE ALL ON FUNCTION photo.complete_v30_interchange_import_document(uuid,uuid,text,uuid,text,text,text,uuid,text) FROM PUBLIC,photo_api,photo_worker,photo_gateway,photo_portal;
-GRANT EXECUTE ON FUNCTION photo.complete_v30_interchange_import_document(uuid,uuid,text,uuid,text,text,uuid,text) TO photo_scheduler;
+GRANT EXECUTE ON FUNCTION photo.complete_v30_interchange_import_document(uuid,uuid,text,uuid,text,text,text,uuid,text) TO photo_scheduler;
 -- +goose StatementEnd
 -- +goose StatementBegin
 ALTER FUNCTION photo.v30_interchange_transport_scope(uuid,uuid,uuid,text) RENAME TO v30_interchange_transport_scope_pre_evidence_gate;

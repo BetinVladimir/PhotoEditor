@@ -4,7 +4,7 @@ const draft:CaptureDraft={version:1,revision:'9007199254740991',saved_at:1000,re
 describe('Capture device draft storage',()=>{
  it('validates bounds, version, expiry and duplicate bindings',()=>{
   expect(parseCaptureDraft(JSON.stringify(draft),1000)).toEqual(draft);
-  for(const value of [{...draft,revision:'9007199254740992'},{...draft,version:2},{...draft,saved_at:1001},{...draft,requirements:[draft.requirements[0],draft.requirements[0]]},{...draft,requirements:[{...draft.requirements[0],min_quality:2}]}])expect(parseCaptureDraft(JSON.stringify(value),1000)).toBeNull();
+  for(const value of [{...draft,revision:'9223372036854775808'},{...draft,version:2},{...draft,saved_at:1001},{...draft,requirements:[draft.requirements[0],draft.requirements[0]]},{...draft,requirements:[{...draft.requirements[0],min_quality:2}]}])expect(parseCaptureDraft(JSON.stringify(value),1000)).toBeNull();
   expect(parseCaptureDraft(JSON.stringify(draft),1000+8*86400000)).toBeNull();
   expect(parseCaptureDraft('{')).toBeNull();
  });
@@ -50,4 +50,12 @@ describe('Capture device draft storage',()=>{
   expect(values.has(denied.key)).toBe(false);expect(JSON.parse(values.get(other.key)!).revision).toBe('2');expect(await denied.read()).toBeNull();
  });
 
+});
+
+it('retains full int64 string revisions without converting them to a Number',()=>{
+ for(const revision of ['9007199254740992','9223372036854775807'])expect(parseCaptureDraft(JSON.stringify({...draft,revision}),1000)?.revision).toBe(revision);
+});
+it('discard fences another live store and a stale clear cannot delete a renewed draft',async()=>{
+ let value:string|null=null;const storage={getItem:async()=>value,setItem:async(_key:string,next:string)=>{value=next},removeItem:async()=>{value=null}};
+ const first=new CaptureDraftStore(storage,'closed-server','user','tenant','session'),other=new CaptureDraftStore(storage,'closed-server','user','tenant','session');await first.write(draft);await first.clear();await other.write(draft);expect(value).toBeNull();const renewed=new CaptureDraftStore(storage,'closed-server','user','tenant','session');await renewed.write({...draft,revision:'2'});await other.clear();expect(JSON.parse(value!).revision).toBe('2');
 });

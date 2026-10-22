@@ -13,15 +13,18 @@ import (
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/domain"
+ "photoeditor/backend/internal/downloadpolicy"
+ "photoeditor/backend/internal/exportpreset"
 	"photoeditor/backend/internal/idempotency"
 	"photoeditor/backend/internal/project"
 	"photoeditor/backend/internal/tenant"
 )
 
-type Service struct{ DB *pgxpool.Pool }
+type Service struct{ DB *pgxpool.Pool; DownloadPolicy downloadpolicy.Policy; DeliveryCreator DeliveryCreator }
 type CreateRequest struct {
 	SnapshotID uuid.UUID   `json:"snapshot_id"`
 	Presets    []uuid.UUID `json:"presets"`
+ ApprovedFields []string `json:"approved_fields,omitempty"`
 }
 type RunAccepted struct {
 	RunID  uuid.UUID `json:"run_id"`
@@ -32,7 +35,7 @@ var terminalCode = regexp.MustCompile(`^[A-Z][A-Z0-9_]{0,79}$`)
 
 func (s Service) Create(ctx context.Context, who auth.Identity, tid uuid.UUID, key string, req CreateRequest) (idempotency.Response, error) {
 	var out idempotency.Response
-	if req.SnapshotID == uuid.Nil || len(req.Presets) < 1 || len(req.Presets) > 16 {
+	if s.DB == nil || tid == uuid.Nil || who.UserID == uuid.Nil || req.SnapshotID == uuid.Nil || len(req.Presets) < 1 || len(req.Presets) > 16 {
 		return out, domain.NewError("VALIDATION_FAILED", 422)
 	}
 	seen := map[uuid.UUID]bool{}
@@ -42,6 +45,7 @@ func (s Service) Create(ctx context.Context, who auth.Identity, tid uuid.UUID, k
 		}
 		seen[id] = true
 	}
+	if s.DeliveryCreator != nil { return s.createDeliveryBatch(ctx,who,tid,key,req) }
 	err := tenant.WithTenant(ctx, s.DB, who, tid, domain.Viewer, func(tx pgx.Tx, role domain.Role) error {
 		var collectionID, projectID uuid.UUID
 		var digest string
@@ -54,9 +58,6 @@ func (s Service) Create(ctx context.Context, who auth.Identity, tid uuid.UUID, k
 		if e != nil {
 			return e
 		}
-		if expires != nil && !time.Now().UTC().Before(*expires) {
-			return domain.NewError("SNAPSHOT_STALE", 409)
-		}
 		p, e := project.Authorize(ctx, tx, tid, projectID, who.UserID, role, domain.Editor, false)
 		if e != nil {
 			return e
@@ -65,6 +66,9 @@ func (s Service) Create(ctx context.Context, who auth.Identity, tid uuid.UUID, k
 			return domain.NewError("DOWNLOAD_FORBIDDEN", 403)
 		}
 		out, e = idempotency.Use(ctx, tx, idempotency.Scope{Tenant: tid, Principal: who.UserID, PrincipalType: "user", Route: "Export.Create", Key: key}, req, time.Now().Add(30*24*time.Hour), func() (idempotency.Response, error) {
+            // An authenticated exact retry recovers its committed batch even
+            // after selection expiry; only admission of new work expires.
+            if expires != nil && !time.Now().UTC().Before(*expires) { return idempotency.Response{},domain.NewError("SNAPSHOT_STALE",409) }
 			batch := uuid.New()
 			cfg := map[string]any{"schema_version": 1, "pipeline": "export_batch", "input_snapshot_id": req.SnapshotID, "input_snapshot_digest": digest, "presets": req.Presets}
 			hash, x := canonical.Hash(cfg)
@@ -88,8 +92,14 @@ func (s Service) Create(ctx context.Context, who auth.Identity, tid uuid.UUID, k
 				if x != nil {
 					return idempotency.Response{}, x
 				}
+                frozen,e:=canonical.Bytes(preset);if e!=nil{return idempotency.Response{},domain.NewError("VALIDATION_FAILED",422)}
+                checked,e:=exportpreset.DecodeFrozenConfig(frozen,presetHash);if e!=nil{return idempotency.Response{},e}
+                // Full presentation stays an explicit unavailable capability
+                // until the Delivery stage authority is attached to this API.
+                if checked.Watermark!=nil || checked.Sharpen!=nil || checked.MetadataPolicy!="strip" {return idempotency.Response{},domain.NewError("EXPORT_PRESENTATION_UNAVAILABLE",503)}
 				child, job := uuid.New(), uuid.New()
-				childCfg := map[string]any{"schema_version": 1, "pipeline": "download", "pipeline_version": 3, "input_snapshot_id": req.SnapshotID, "input_snapshot_digest": digest, "preset_id": presetID, "preset_revision": revision, "preset_hash": presetHash, "preset": preset, "failure_policy": "continue_items", "scope": "selected"}
+                policy:=s.DownloadPolicy;if policy==(downloadpolicy.Policy{}){policy=downloadpolicy.Default()};if !policy.Valid(){return idempotency.Response{},errors.New("invalid export download TTL policy")}
+				childCfg := map[string]any{"schema_version": 1, "pipeline": "download", "pipeline_version": 3, "input_snapshot_id": req.SnapshotID, "input_snapshot_digest": digest, "preset_id": presetID, "preset_revision": revision, "preset_hash": presetHash, "preset": preset, "failure_policy": "continue_items", "scope": "selected", "download_policy":policy}
 				childHash, x := canonical.Hash(childCfg)
 				if x != nil {
 					return idempotency.Response{}, x
@@ -108,7 +118,13 @@ func (s Service) Create(ctx context.Context, who auth.Identity, tid uuid.UUID, k
 			body, x := canonical.Marshal(RunAccepted{batch, "queued"})
 			return idempotency.Response{Status: 202, Body: body, ResourceID: &batch}, x
 		})
-		return e
+		if e != nil { return e }
+		currentRole, e := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Editor)
+		if e != nil { return e }
+		currentProject, e := project.Authorize(ctx, tx, tid, projectID, who.UserID, currentRole, domain.Editor, false)
+		if e != nil { return e }
+		if !currentProject.DownloadAllowed { return domain.NewError("DOWNLOAD_FORBIDDEN",403) }
+		return nil
 	})
 	return out, err
 }

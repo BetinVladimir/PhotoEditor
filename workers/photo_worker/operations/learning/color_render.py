@@ -30,6 +30,8 @@ def render_resolved_color(source: np.ndarray, target: np.ndarray,
                           series_item_id: UUID | None = None,
                           person_mask: np.ndarray | None = None,
                           region_masks: Mapping[str, np.ndarray] | None = None,
+                          phase: str = 'complete',
+                          global_output: np.ndarray | None = None,
                           tile: int = 512,
                           check_active: Callable[[], None] = lambda: None) -> None:
     """Write global → series → local → regions → one strength blend, tile by tile.
@@ -37,7 +39,9 @@ def render_resolved_color(source: np.ndarray, target: np.ndarray,
     A series correction is accepted only for the exact frozen item. The
     outer holdout pipeline still requires its own SQL-authorized evidence.
     """
-    if (not isinstance(resolved, (ResolvedStyle, ResolvedColor)) or
+    if (phase not in ('complete','global','local') or
+            (phase=='local') != (global_output is not None) or
+            not isinstance(resolved, (ResolvedStyle, ResolvedColor)) or
             not isinstance(source, np.ndarray) or
             not isinstance(target, np.ndarray) or
             source.ndim != 3 or source.shape[-1] != 3 or
@@ -48,6 +52,10 @@ def render_resolved_color(source: np.ndarray, target: np.ndarray,
             tile not in (256, 512, 1024) or
             np.shares_memory(source, target) or
             (isinstance(resolved, ResolvedStyle) and resolved.mode == 'skip')):
+        raise ValueError('INVALID_HOLDOUT_COLOR_INPUT')
+    if global_output is not None and (not isinstance(global_output,np.ndarray)
+            or global_output.shape!=source.shape or global_output.dtype!=np.float32
+            or np.shares_memory(global_output,target)):
         raise ValueError('INVALID_HOLDOUT_COLOR_INPUT')
     if isinstance(resolved, ResolvedStyle):
         if style is not None:
@@ -115,8 +123,12 @@ def render_resolved_color(source: np.ndarray, target: np.ndarray,
             check_active()
             sl = np.s_[y:y + tile, x:x + tile]
             base = source[sl]
-            colored = (apply_global(base, resolved.fixed) if resolved.fixed is not None
+            colored = (global_output[sl] if phase=='local' else
+                       apply_global(base, resolved.fixed) if resolved.fixed is not None
                        else np.clip(trilinear(lut, base), 0, 1).astype(np.float32))
+            if phase=='global':
+                target[sl]=colored
+                continue
             if series_enabled:
                 colored = apply_series(colored, series_correction.applied_ev,
                                        series_correction.applied_gains)

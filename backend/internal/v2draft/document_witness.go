@@ -34,6 +34,18 @@ type TaskInputEvidence struct {
 	Occurrences []OccurrenceWitness
 }
 
+// ResolveBoundProvenanceEvidence retains an independently authorized branch's
+// own geometry. It does not change current-source task admission: callers must
+// supply a scoped catalog, construct roots from verified parent bytes and merge
+// evidence under those exact parent edges before final graph compilation.
+func(s ClosureResolver)ResolveBoundProvenanceEvidence(ctx context.Context,who auth.Identity,tenant uuid.UUID,roots []LayerRef,binding v2input.SessionVersionBinding)(TaskInputEvidence,error){
+	result:=TaskInputEvidence{Documents:[]DocumentWitness{},Occurrences:[]OccurrenceWitness{}}
+	if len(roots)<1||len(roots)>260||binding.AssetVersionID==uuid.Nil||!isDocumentRef(binding.Source)||!correctionDigest(binding.CanvasHash){return TaskInputEvidence{},v2input.ErrInvalid}
+	var entries []v2input.Entry
+	if _,err:=s.resolveRootsWithEvidence(ctx,who,tenant,roots,binding,&entries,&result.Documents,&result.Occurrences);err!=nil{return TaskInputEvidence{},err}
+	var err error;result.Entries,err=uniqueTaskInputs(entries);if err!=nil{return TaskInputEvidence{},err};return result,nil
+}
+
 func ownOccurrenceNode(node LayerRef) LayerRef {
 	if node.ManualVectors != nil {
 		value := *node.ManualVectors

@@ -12,7 +12,7 @@ const preparedMaskWitnessByteLimit int64 = 128 << 20
 type preparedMaskParentDocument struct { ref v2input.Ref; contract string; body []byte }
 func(w *ImportPreparedMaskWitnesses)rememberQualified(candidate preparedMaskWitness)error{
  if w==nil||!validImportRef(candidate.parent)||!validImportRef(candidate.child.Ref)||candidate.child.Contract!="MaskPixels"||rawSHA(candidate.body)!=candidate.parent.SHA256{return v2input.ErrInvalid}
- if candidate.contract!=""&&candidate.contract!="Override"&&candidate.contract!="Params"{return v2input.ErrInvalid}
+ if candidate.contract!=""&&candidate.contract!="Override"&&candidate.contract!="Params"&&candidate.contract!="DefectProposeReport"{return v2input.ErrInvalid}
  w.mu.Lock();defer w.mu.Unlock()
  id:=candidate.child.Ref.ArtifactID
  first,exists:=w.masks[id]

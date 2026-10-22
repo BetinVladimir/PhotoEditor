@@ -29,7 +29,7 @@ class OverrideMaskBinding(Contract):
     binding_id: Annotated[str, Field(pattern=r"^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$")]
     purpose: Literal[
         "portrait_teeth", "portrait_sclera", "portrait_shine", "portrait_under_eye",
-        "portrait_cloth", "portrait_glasses", "inpaint_target", "generation_target", "protected", "person_subject",
+        "portrait_cloth", "portrait_glasses", "inpaint_target", "generation_target", "protected", "person_subject", "region_adjustment",
     ]
     mask: MaskRef
     confirmed: bool = False
@@ -42,6 +42,7 @@ class OverrideMaskBinding(Contract):
             "portrait_shine": {"skin", "manual"}, "portrait_under_eye": {"skin", "manual"},
             "portrait_cloth": {"clothing", "manual"}, "portrait_glasses": {"glasses", "manual"},
             "inpaint_target": {"manual"}, "generation_target": {"manual"},
+            "region_adjustment": {"skin", "sky", "clothing", "manual"},
         }
         if self.purpose == "protected":
             if not self.mask.protected:
@@ -52,7 +53,7 @@ class OverrideMaskBinding(Contract):
                 raise ValueError("Person source evidence requires a confirmed original person mask")
         elif self.mask.protected or self.mask.selector not in selectors[self.purpose]:
             raise ValueError("Override mask selector does not match its purpose")
-        if self.purpose in {"portrait_cloth", "portrait_glasses", "inpaint_target", "generation_target"} and not self.confirmed:
+        if self.purpose in {"portrait_cloth", "portrait_glasses", "inpaint_target", "generation_target", "region_adjustment"} and not self.confirmed:
             raise ValueError("Destructive or content-sensitive mask use requires confirmation")
         return self
 

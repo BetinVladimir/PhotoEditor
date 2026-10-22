@@ -24,6 +24,8 @@ def test_uninstalled_adoption_authority_is_retryable_without_rejection(code):
                 return SimpleNamespace(fetchall=lambda: [(tenant, run, task)])
             if 'pg_try_advisory_lock' in query:
                 return SimpleNamespace(fetchone=lambda: (True,))
+            if 'editor_effect_pending_seal_adoptions' in query:
+                return SimpleNamespace(fetchall=lambda: [])
             if 'v2_pending_finalizations' in query:
                 return SimpleNamespace(fetchall=lambda: [])
             assert 'pg_advisory_unlock' in query
@@ -42,9 +44,13 @@ def test_uninstalled_adoption_authority_is_retryable_without_rejection(code):
     adopter.write = object()
     adopter.coordinator = Coordinator()
     adopter.exposure_enabled = False
+    adopter.shown_exposure_enabled = False
+    adopter.shown_removal_enabled = False
+    adopter.shown_background_cleanup_enabled = False
+    adopter.shown_retouch_enabled = False
     for name in ('delivery_encode', 'negative_review_publisher', 'derivative_coordinator',
                  'multi_quality_runner', 'multi_preview_runner', 'restoration_preview_runner',
-                 'perspective_preview_runner', 'perspective_quality_runner'):
+                 'perspective_preview_runner', 'perspective_quality_runner', 'lens_preview_runner'):
         setattr(adopter, name, None)
     assert adopter.run_once() == {'adopted': 0, 'rejected': 0, 'finalized': 0, 'retry': 1}
     assert adopter.signing_runtime_healthy is (not code.startswith('SIGNING_'))
@@ -57,6 +63,8 @@ def test_shared_finalization_failure_withdraws_signer_health():
         def execute(self, query, _args=()):
             if 'v2_pending_adoptions' in query:
                 return SimpleNamespace(fetchall=lambda: [])
+            if 'editor_effect_pending_seal_adoptions' in query:
+                return SimpleNamespace(fetchall=lambda: [])
             if 'v2_pending_finalizations' in query:
                 return SimpleNamespace(fetchall=lambda: [(tenant, run)])
             raise AssertionError(query)
@@ -67,9 +75,13 @@ def test_shared_finalization_failure_withdraws_signer_health():
     adopter.stop = Event()
     adopter.read, adopter.write = Read(), Write()
     adopter.exposure_enabled = False
+    adopter.shown_exposure_enabled = False
+    adopter.shown_removal_enabled = False
+    adopter.shown_background_cleanup_enabled = False
+    adopter.shown_retouch_enabled = False
     for name in ('delivery_encode', 'negative_review_publisher', 'derivative_coordinator',
                  'multi_quality_runner', 'multi_preview_runner', 'restoration_preview_runner',
-                 'perspective_preview_runner', 'perspective_quality_runner'):
+                 'perspective_preview_runner', 'perspective_quality_runner', 'lens_preview_runner'):
         setattr(adopter, name, None)
     assert adopter.run_once()['retry'] == 1
     assert adopter.signing_runtime_healthy is False

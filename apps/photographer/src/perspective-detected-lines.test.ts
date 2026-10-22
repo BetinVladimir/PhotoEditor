@@ -15,3 +15,10 @@ describe('detected perspective lines',()=>{
  ]){const value=fixture();mutate(value);expect(()=>read(value)).toThrow();}});
  it('refuses status mismatch, missing families and non-separated evidence',()=>{const value=fixture();value.detection.status='unsupported';expect(()=>read(value)).toThrow();const missing=fixture();missing.detection.lines!.lines.pop();expect(()=>read(missing)).toThrow();const narrow=fixture();narrow.detection.lines!.lines[1]={a:{x:.1,y:.11},b:{x:.9,y:.11},family:'horizontal'};expect(()=>read(narrow)).toThrow();});
 });
+
+it('refuses a late detected-lines response after caller cancellation',async()=>{
+ const {OwnerAPI}=await import('./owner-api');const controller=new AbortController();let resolve!:(value:unknown)=>void;
+ const api=new OwnerAPI({request:()=>new Promise<unknown>(done=>{resolve=done;})} as never,id(1));
+ const pending=api.perspectiveDetectedLines(id(2),id(3),fixture().detection.base,controller.signal);
+ controller.abort();resolve(fixture());await expect(pending).rejects.toMatchObject({name:'AbortError'});
+});

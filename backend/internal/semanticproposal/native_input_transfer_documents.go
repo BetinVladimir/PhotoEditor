@@ -20,6 +20,19 @@ type nativeInputTransferReferenceDocuments struct {
 // Creates compiler documents only after independent person coverage and
 // nonempty zero-overlap selection, retaining the original native-input authority.
 func (s SQLTransferSourceReader) readNativeInputTransferReferenceDocuments(ctx context.Context, who auth.Identity, request Request, person nativeInputReferencePerson, color TransferColorProfile, budget int64) (nativeInputTransferReferenceDocuments, error) {
+	var result nativeInputTransferReferenceDocuments
+	err := nativeReadOperation(ctx, s, who, color, func(scoped SQLTransferSourceReader) error {
+		var err error
+		result, err = scoped.readNativeInputTransferReferenceDocumentsInScope(ctx, who, request, person, color, budget)
+		return err
+	})
+	if err != nil {
+		return nativeInputTransferReferenceDocuments{}, err
+	}
+	return result, nil
+}
+
+func (s SQLTransferSourceReader) readNativeInputTransferReferenceDocumentsInScope(ctx context.Context, who auth.Identity, request Request, person nativeInputReferencePerson, color TransferColorProfile, budget int64) (nativeInputTransferReferenceDocuments, error) {
 	var zero nativeInputTransferReferenceDocuments
 	if err := ctx.Err(); err != nil {
 		return zero, fmt.Errorf("native reference document read: %w", err)

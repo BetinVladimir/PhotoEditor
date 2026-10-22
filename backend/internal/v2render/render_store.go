@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"photoeditor/backend/internal/auth"
+	"photoeditor/backend/internal/billing"
 	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/database"
 	"photoeditor/backend/internal/v2input"
@@ -47,14 +48,14 @@ func (s SQLRenderDraftStore) Begin(ctx context.Context, tenant, run uuid.UUID, w
 		return v2input.ErrInvalid
 	}
 	var config struct {
- QueueClass string `json:"queue_class"`
-		Project  uuid.UUID `json:"project_id"`
-		Snapshot uuid.UUID `json:"input_snapshot_id"`
-		Render   struct {
+		QueueClass string    `json:"queue_class"`
+		Project    uuid.UUID `json:"project_id"`
+		Snapshot   uuid.UUID `json:"input_snapshot_id"`
+		Render     struct {
 			Session uuid.UUID `json:"auth_session_id"`
 		} `json:"v26_render"`
 	}
-	if json.Unmarshal(body, &config) != nil || (config.QueueClass!=""&&config.QueueClass!="batch"&&config.QueueClass!="interactive") || config.Project == uuid.Nil || config.Snapshot == uuid.Nil || config.Render.Session != who.SessionID {
+	if json.Unmarshal(body, &config) != nil || (config.QueueClass != "" && config.QueueClass != "batch" && config.QueueClass != "interactive") || config.Project == uuid.Nil || config.Snapshot == uuid.Nil || config.Render.Session != who.SessionID {
 		return v2input.ErrInvalid
 	}
 	return database.InTransaction(ctx, s.DB, func(tx pgx.Tx) error {
@@ -65,12 +66,21 @@ func (s SQLRenderDraftStore) Begin(ctx context.Context, tenant, run uuid.UUID, w
 		if role != "photo_scheduler" {
 			return v2input.ErrInvalid
 		}
+		billable, billingErr := billing.PrepareRender(ctx, tx, tenant, config.Project, who)
+		if billingErr != nil {
+			return billingErr
+		}
 		var accepted bool
 		if err := tx.QueryRow(ctx, `SELECT photo.begin_v26_render_draft($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`, tenant, config.Project, config.Snapshot, who.UserID, who.SessionID, run, workflow, string(body), policySHA, plan.OutputBytes).Scan(&accepted); err != nil {
 			return err
 		}
 		if !accepted {
 			return v2input.ErrExpired
+		}
+		if billable {
+			if err := billing.BindRender(ctx, tx, tenant, run, who); err != nil {
+				return err
+			}
 		}
 		return nil
 	})

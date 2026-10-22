@@ -1,7 +1,7 @@
 import type {ArtifactRef} from './catalog-types';
 import {v2ResourceData} from './v2-resource';
 export type DeliveryPackage = {
- id:string;tenant_id:string;project_id:string;revision:string;
+ id:string;tenant_id:string;project_id:string;revision:string;created_at:string;updated_at:string;
  workflow_id:string;snapshot_id:string;name:string;
  policy_artifact_id:string;manifest_artifact_id:string|null;
  published_at:string|null;state:'building'|'review'|'ready'|'failed'|'cancelled';
@@ -44,7 +44,7 @@ export function readDeliveryPackage(value:unknown,tenant:string,project:string,i
  }
  if(['review','ready'].includes(data.state as string)&&data.manifest_artifact_id===null)return invalid();
  if(data.published_at!==null&&(data.state!=='ready'||data.manifest_artifact_id===null))return invalid();
- return {id,tenant_id:tenant,project_id:project,revision:data.revision,workflow_id:data.workflow_id,snapshot_id:data.snapshot_id,name:data.name,policy_artifact_id:data.policy_artifact_id,manifest_artifact_id:data.manifest_artifact_id as string|null,published_at:data.published_at as string|null,state:data.state as DeliveryPackage['state'],document};
+ return {id,tenant_id:tenant,project_id:project,revision:data.revision,created_at:data.created_at as string,updated_at:data.updated_at as string,workflow_id:data.workflow_id,snapshot_id:data.snapshot_id,name:data.name,policy_artifact_id:data.policy_artifact_id,manifest_artifact_id:data.manifest_artifact_id as string|null,published_at:data.published_at as string|null,state:data.state as DeliveryPackage['state'],document};
 }
 /** Keep the original revision/key for retry; a refresh must not rewrite the intent. */
 export function freezeDeliveryPublish(intent:DeliveryPublishIntent,key:string):DeliveryPublishIntent{
@@ -61,4 +61,10 @@ export function prepareDeliveryPublication(pkg:DeliveryPackage,acceptReview:bool
  if(typeof acceptReview!=='boolean'||!['review','ready'].includes(pkg.state)||pkg.published_at!==null||pkg.document===null||pkg.manifest_artifact_id!==pkg.document.artifact_id)throw new Error('DELIVERY_NOT_PUBLISHABLE');
  if(pkg.state==='review'&&!acceptReview)throw new Error('DELIVERY_REVIEW_CONFIRMATION_REQUIRED');
  return freezeDeliveryPublish({id:pkg.id,project_id:pkg.project_id,expected_revision:pkg.revision},'prepare');
+}
+
+/** Reconstruct only the public resource envelope; document belongs outside data. */
+export function deliveryPackageEnvelope(pkg:DeliveryPackage){
+ const {document,...data}=structuredClone(pkg);
+ return {id:pkg.id,revision:pkg.revision,document,data:{...data,resource_type:'delivery_packages'}};
 }

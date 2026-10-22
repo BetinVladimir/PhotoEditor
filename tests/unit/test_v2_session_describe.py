@@ -181,3 +181,28 @@ def test_calibration_rejects_non_normalized_loss_weights(weights):
     value['loss_weights']=weights
     with pytest.raises(ValueError,match='loss_weights must sum to one'):
         Calibration.model_validate(value)
+
+
+def test_describe_cancelled_before_inputs_stages_nothing(tmp_path):
+    artifacts = FakeArtifacts(tmp_path / 'unused.npy')
+    ctx = context()
+    def cancelled():
+        raise RuntimeError('cancelled')
+    ctx.check_active = cancelled
+    with pytest.raises(RuntimeError, match='cancelled'):
+        execute(ctx, artifacts, FakePool(), 'cuda')
+    assert artifacts.staged == []
+
+
+def test_describe_cancelled_after_faces_does_not_publish_descriptor(tmp_path):
+    path = tmp_path / 'pixels.npy'
+    np.save(path, np.full((32, 32, 3), .5, np.float32))
+    artifacts = FakeArtifacts(path)
+    ctx = context()
+    def active():
+        if artifacts.staged:
+            raise RuntimeError('cancelled')
+    ctx.check_active = active
+    with pytest.raises(RuntimeError, match='cancelled'):
+        execute(ctx, artifacts, FakePool(), 'cuda')
+    assert [role for role, _ in artifacts.staged] == ['faces']

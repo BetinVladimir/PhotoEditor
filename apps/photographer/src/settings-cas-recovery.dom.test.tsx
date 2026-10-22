@@ -1,0 +1,48 @@
+// @vitest-environment jsdom
+import {act,cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
+import {afterEach,beforeEach,expect,it,vi} from 'vitest';
+import en from '../../../locales/en/common.json';
+const mocks=vi.hoisted(()=>({api:{me:vi.fn(),updateMe:vi.fn()},auth:{origin:'https://settings.test',client:()=>({})},foreground:{active:true,generation:0}}));
+vi.mock('react-native',async()=>import('react-native-web'));
+vi.mock('./auth-context',()=>({useAuth:()=>mocks.auth}));
+vi.mock('./owner-api',()=>({OwnerAPI:class{constructor(){return mocks.api;}}}));
+vi.mock('./locale-context',async()=>{const __factory=()=>({useLocale:()=>({t:(key:keyof typeof en)=>en[key]})});const __out=await __factory();const {withUILocaleDouble}=await import('./test/locale-double');return {...__out,useLocale:()=>withUILocaleDouble(__out.useLocale())};});
+vi.mock('./use-review-foreground',()=>({useReviewForeground:()=>mocks.foreground}));
+import Profile from '../screens/settings/profile';
+const profile={id:'11111111-1111-4111-8111-111111111111',email:'photographer@example.test',theme:'system',timezone:'UTC',revision:'4'};
+beforeEach(()=>{vi.resetAllMocks();mocks.foreground={active:true,generation:0};mocks.api.me.mockResolvedValue(profile);});
+afterEach(cleanup);
+it('cancels profile saving, rereads current settings and ignores an old successful response',async()=>{
+ let finish!:(value:unknown)=>void;
+ mocks.api.updateMe.mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve}));
+ mocks.api.me.mockResolvedValueOnce(profile).mockResolvedValue({...profile,timezone:'Europe/Sofia',revision:'5'});
+ render(<Profile/>);await screen.findByDisplayValue('UTC');
+ fireEvent.change(screen.getByRole('textbox',{name:'IANA timezone'}),{target:{value:'America/New_York'}});
+ fireEvent.click(screen.getByText('Save timezone'));
+ await waitFor(()=>expect(mocks.api.updateMe).toHaveBeenCalledOnce());
+ fireEvent.click(await screen.findByText('Stop loading'));
+ expect((mocks.api.updateMe.mock.calls[0][2] as AbortSignal).aborted).toBe(true);
+ await screen.findByDisplayValue('Europe/Sofia');
+ await act(async()=>{finish({...profile,timezone:'America/New_York',revision:'5'});});
+ expect(screen.queryByDisplayValue('America/New_York')).toBeNull();
+ expect(mocks.api.updateMe).toHaveBeenCalledOnce();expect(mocks.api.me).toHaveBeenCalledTimes(2);
+});
+it('aborts saving in background and keeps a fresh foreground save owned while the old reply settles',async()=>{
+ let finishOld!:(value:unknown)=>void,finishNew!:(value:unknown)=>void;
+ mocks.api.updateMe.mockImplementationOnce(()=>new Promise(resolve=>{finishOld=resolve})).mockImplementationOnce(()=>new Promise(resolve=>{finishNew=resolve}));
+ mocks.api.me.mockResolvedValueOnce(profile).mockResolvedValue({...profile,timezone:'Europe/Sofia',revision:'5'});
+ const view=render(<Profile/>);await screen.findByDisplayValue('UTC');
+ fireEvent.change(screen.getByRole('textbox',{name:'IANA timezone'}),{target:{value:'America/New_York'}});fireEvent.click(screen.getByText('Save timezone'));
+ await waitFor(()=>expect(mocks.api.updateMe).toHaveBeenCalledTimes(1));
+ mocks.foreground={active:false,generation:0};view.rerender(<Profile/>);
+ expect((mocks.api.updateMe.mock.calls[0][2] as AbortSignal).aborted).toBe(true);
+ mocks.foreground={active:true,generation:1};view.rerender(<Profile/>);await screen.findByDisplayValue('Europe/Sofia');
+ fireEvent.change(screen.getByRole('textbox',{name:'IANA timezone'}),{target:{value:'Asia/Tokyo'}});fireEvent.click(screen.getByText('Save timezone'));
+ await waitFor(()=>expect(mocks.api.updateMe).toHaveBeenCalledTimes(2));
+ expect(mocks.api.updateMe.mock.calls[1][0]).toMatchObject({revision:'5',timezone:'Europe/Sofia'});
+ await act(async()=>{finishOld({...profile,timezone:'America/New_York',revision:'5'});});
+ expect((mocks.api.updateMe.mock.calls[1][2] as AbortSignal).aborted).toBe(false);
+ expect(screen.getByText('Stop loading')).toBeTruthy();expect(screen.queryByDisplayValue('America/New_York')).toBeNull();
+ await act(async()=>{finishNew({...profile,timezone:'Asia/Tokyo',revision:'6'});});
+ await screen.findByDisplayValue('Asia/Tokyo');expect(mocks.api.me).toHaveBeenCalledTimes(2);
+});

@@ -48,12 +48,18 @@ type Config struct {
 	Endpoint, PublicEndpoint, Bucket, AccessKey, SecretKey, Region string
 	Development                                                    bool
 	CORSOrigins                                                    []string
+	CORSStrategy                                                   string
 }
 type Store struct {
-	client       *minio.Client
-	publicClient *minio.Client
-	bucket       string
-	corsOrigins  []string
+	client             *minio.Client
+	publicClient       *minio.Client
+	bucket             string
+	corsOrigins        []string
+	corsStrategy       string
+	corsServerRead     func(context.Context) ([]byte, error)
+	corsHTTP           *http.Client
+	corsPublicEndpoint string
+	corsDevelopment    bool
 }
 type Object struct {
 	Key, VersionID, SHA256, ContentType string
@@ -73,8 +79,19 @@ func AttemptKey(tenant, task, artifact uuid.UUID, attempt int, fence int64) (str
 	return fmt.Sprintf("tenants/%s/tasks/%s/attempts/%d/fences/%d/%s", tenant, task, attempt, fence, artifact), nil
 }
 func New(c Config) (*Store, error) {
+	if c.CORSStrategy == "" {
+		c.CORSStrategy = "bucket"
+	}
+	if c.CORSStrategy != "bucket" && c.CORSStrategy != "minio-server" {
+		return nil, ErrInvalid
+	}
 	origins, err := archiveCORSOrigins(c.CORSOrigins, c.Development)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
+	if c.CORSStrategy == "minio-server" && len(origins) == 0 {
+		return nil, ErrInvalid
+	}
 	u, err := url.Parse(c.Endpoint)
 	if err != nil || u.Host == "" || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" || (u.Scheme != "https" && u.Scheme != "http") || c.AccessKey == "" || c.SecretKey == "" || s3utils.CheckValidBucketNameStrict(c.Bucket) != nil {
 		return nil, ErrInvalid
@@ -112,7 +129,15 @@ func New(c Config) (*Store, error) {
 	if err != nil {
 		return nil, ErrInvalid
 	}
-	return &Store{client: client, publicClient: publicClient, bucket: c.Bucket, corsOrigins: origins}, nil
+	store := &Store{client: client, publicClient: publicClient, bucket: c.Bucket, corsOrigins: origins, corsStrategy: c.CORSStrategy, corsPublicEndpoint: c.PublicEndpoint, corsDevelopment: c.Development}
+	if c.CORSStrategy == "minio-server" {
+		store.corsServerRead, err = corsServerReader(u, creds, transport)
+		if err != nil {
+			return nil, err
+		}
+		store.corsHTTP = &http.Client{Transport: transport, Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	}
+	return store, nil
 }
 
 // Bootstrap is privileged and explicit; normal runtime never creates buckets.
@@ -136,11 +161,21 @@ func (s *Store) Bootstrap(ctx context.Context) error {
 	if !status.Enabled() {
 		return ErrInvalid
 	}
-	if len(s.corsOrigins)>0 {
-		rules:=[]cors.Rule{{AllowedOrigin:append([]string(nil),s.corsOrigins...),AllowedMethod:[]string{"GET","HEAD","PUT"},AllowedHeader:[]string{"*"},ExposeHeader:[]string{"ETag"},MaxAgeSeconds:300}}
-		if err=s.client.SetBucketCors(ctx,s.bucket,cors.NewConfig(rules));err!=nil{return classify(err)}
-		installed,readErr:=s.client.GetBucketCors(ctx,s.bucket);if readErr!=nil{return classify(readErr)}
-		if !archiveCORSInstalled(installed,s.corsOrigins){return ErrIntegrity}
+	if s.corsStrategy == "minio-server" {
+		return s.bootstrapCORSServer(ctx)
+	}
+	if len(s.corsOrigins) > 0 {
+		rules := []cors.Rule{{AllowedOrigin: append([]string(nil), s.corsOrigins...), AllowedMethod: []string{"GET", "HEAD", "PUT"}, AllowedHeader: []string{"*"}, ExposeHeader: []string{"ETag"}, MaxAgeSeconds: 300}}
+		if err = s.client.SetBucketCors(ctx, s.bucket, cors.NewConfig(rules)); err != nil {
+			return classify(err)
+		}
+		installed, readErr := s.client.GetBucketCors(ctx, s.bucket)
+		if readErr != nil {
+			return classify(readErr)
+		}
+		if !archiveCORSInstalled(installed, s.corsOrigins) {
+			return ErrIntegrity
+		}
 	}
 	return nil
 }
@@ -230,8 +265,20 @@ func (s *Store) Check(ctx context.Context, object Object) error {
 	if err != nil {
 		return classify(err)
 	}
-	if stat.VersionID != object.VersionID || stat.Size != object.Bytes || stat.ContentType != object.ContentType || stat.Metadata.Get("X-Amz-Meta-Sha256") != object.SHA256 {
+	if stat.VersionID != object.VersionID || stat.Size != object.Bytes || stat.ContentType != object.ContentType {
 		return ErrIntegrity
+	}
+	metadataSHA := stat.Metadata.Get("X-Amz-Meta-Sha256")
+	if metadataSHA != object.SHA256 {
+		// Multipart upload metadata is fixed before the server computes its SHA.
+		// For exact bounded multipart source namespaces only, verify every byte of the
+		// pinned version instead. A conflicting metadata hash always fails.
+		// This also protects OpenRange: no range is served before full validation.
+		if metadataSHA != "" || !allowsMultipartDigestVerification(object) {
+			return ErrIntegrity
+		}
+		_, err := s.VerifyPending(ctx, PendingObject{Key: object.Key, VersionID: object.VersionID, ContentType: object.ContentType, Bytes: object.Bytes}, object.SHA256)
+		return err
 	}
 	return nil
 }
@@ -334,6 +381,12 @@ func (s *Store) PurgeAttempt(ctx context.Context, tenant, task, artifact uuid.UU
 }
 
 func (s *Store) purgeReservedKey(ctx context.Context, key string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if s == nil || s.client == nil || s.bucket == "" {
+		return ErrInvalid
+	}
 	if err := s.client.RemoveIncompleteUpload(ctx, s.bucket, key); err != nil {
 		return classify(err)
 	}
@@ -341,6 +394,9 @@ func (s *Store) purgeReservedKey(ctx context.Context, key string) error {
 	defer cancel()
 	removed := 0
 	for object := range s.client.ListObjects(listing, s.bucket, minio.ListObjectsOptions{Prefix: key, Recursive: true, WithVersions: true}) {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if object.Err != nil {
 			return classify(object.Err)
 		}
@@ -353,12 +409,18 @@ func (s *Store) purgeReservedKey(ctx context.Context, key string) error {
 		if removed >= 64 {
 			return ErrUnavailable
 		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if err := s.client.RemoveObject(ctx, s.bucket, key, minio.RemoveObjectOptions{VersionID: object.VersionID}); err != nil {
 			return classify(err)
 		}
 		removed++
 	}
 	for object := range s.client.ListObjects(listing, s.bucket, minio.ListObjectsOptions{Prefix: key, Recursive: true, WithVersions: true}) {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if object.Err != nil {
 			return classify(object.Err)
 		}
@@ -366,7 +428,7 @@ func (s *Store) purgeReservedKey(ctx context.Context, key string) error {
 			return ErrUnavailable
 		}
 	}
-	return nil
+	return ctx.Err()
 }
 
 func tenantPrefix(tenant uuid.UUID) (string, error) {

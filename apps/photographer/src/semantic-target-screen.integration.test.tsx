@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {render,screen,waitFor,cleanup,fireEvent} from '@testing-library/react';
 import {it,expect,vi,afterEach} from 'vitest';
 import {decodeSemanticTargets,decodeSemanticReviewStatus,decodeSemanticReviewClosed,decodeSemanticChildStatus} from '@photoeditor/api-client';
+vi.mock('./workspace-access-context',()=>({useWorkspaceAccess:()=>({canEdit:true,actor:'actor'})}));
 vi.mock('react-native',async()=>import('react-native-web'));
 import {SemanticTargetScreen} from './semantic-target-screen';
 import {SemanticChildProgress} from './semantic-child-progress';

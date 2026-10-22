@@ -1,3 +1,4 @@
+from photo_worker.contracts.base import canonical_bytes
 """Real cryptographic Sign1 fixtures; self-signed certs are not trust evidence."""
 from datetime import datetime,timedelta,timezone
 from hashlib import sha256
@@ -111,9 +112,9 @@ def test_binary_jumbf_cose_and_sdk_join(mode):
         superbox(b'c2cl','c2pa.claim.v2',[box(b'cbor',claim)]),
         superbox(b'c2as','c2pa.assertions',[assertion]),
         superbox(b'c2cs','c2pa.signature',[box(b'cbor',cose)])])])
-    policy=SigningPolicy.model_validate(dict(schema_version=1,id=str(uuid4()),revision='1',
+    policy=SigningPolicy.model_validate_json(canonical_bytes(dict(schema_version=1,id=str(uuid4()),revision='1',
         sdk_lock_sha='a'*64,key_handle='key',certificate_chain_sha='b'*64 if mode=='policy' else sha256(pem).hexdigest(),
-        timestamp_mode='off',timestamp_service_id=None,allowed_mime=['image/png'],trust_bundle_sha='c'*64,revocation_mode='off'))
+        timestamp_mode='off',timestamp_service_id=None,allowed_mime=['image/png'],trust_bundle_sha='c'*64,revocation_mode='off')))
     lineage=SigningLineage(schema_version=1,source_hashes=['a'*64],actions=[])
     active={'format':'image/png','assertions':[{'label':'org.photoeditor.lineage',
         'data':{} if mode=='lineage' else lineage.model_dump(mode='json')}]}

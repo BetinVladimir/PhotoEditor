@@ -5,6 +5,7 @@ import (
 	"github.com/google/uuid"
 	"os"
 	"photoeditor/backend/internal/canonical"
+	"photoeditor/backend/internal/media"
 	"photoeditor/backend/internal/review"
 	"photoeditor/backend/internal/v2input"
 	"photoeditor/backend/internal/v2render"
@@ -45,7 +46,7 @@ func TestRenderDerivativeDocumentsBindCanonicalRootAndSource(t *testing.T) {
 		}
 		imageRef := v2input.Ref{ArtifactID: uuid.New(), SHA256: renderDerivativeBytesSHA(imageBytes)}
 		resultBytes, _ := canonical.Marshal(map[string]any{"schema_version": 1, "working_image": imageRef, "changed_mask": ref(), "report": ref(), "generated_mask": nil})
-		intent := v2render.RenderDerivativeIntent{Run: uuid.New(), Root: v2input.Ref{ArtifactID: uuid.New(), SHA256: renderDerivativeBytesSHA(resultBytes)}, SRGBSHA: strings.Repeat("b", 64)}
+		intent := v2render.RenderDerivativeIntent{Run: uuid.New(), Root: v2input.Ref{ArtifactID: uuid.New(), SHA256: renderDerivativeBytesSHA(resultBytes)}, SRGBSHA: strings.Repeat("b", 64), RendererPolicy: media.CurrentRendererPolicy}
 		docs, err := BuildRenderDerivativeDocuments(intent, resultBytes, imageBytes)
 		if err != nil || len(docs) != 2 {
 			t.Fatal(err)

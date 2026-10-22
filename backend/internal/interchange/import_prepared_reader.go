@@ -28,7 +28,7 @@ func (r BoundedPreparedImportReader) ReadPreparedImportDocument(ctx context.Cont
 		return nil, v2input.ErrInvalid
 	}
 	switch entry.Contract {
-	case "EditingRecipeV3", "StyleV2", "CorrectionPlan", "Override", "LayerStack", "MaskRef", "Params", "Stats20", "ResolvedStyle", "DefectCandidates", "DefectReview", "DustCandidates":
+	case "EditingRecipeV3", "StyleV2", "CorrectionPlan", "Override", "LayerStack", "MaskRef", "Params", "Stats20", "ResolvedStyle", "DefectCandidates", "DefectReview", "DustCandidates", "DefectProposeReport":
 	default:
 		return nil, v2input.ErrInvalid
 	}

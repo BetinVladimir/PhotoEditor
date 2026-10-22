@@ -87,7 +87,7 @@ def sign_staged(input_path, output_path, mime, source_sha, lineage_raw,
         with ExitStack() as stack:
             check_signing_active()
             fd = os.open(input_path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
-            source = stack.enter_context(os.fdopen(fd, 'rb'))
+            source = stack.enter_context(os.fdopen(fd, 'rb', buffering=0))
             check_signing_active()
             info = os.fstat(source.fileno())
             if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or not 1 <= info.st_size <= 512 << 20:
@@ -103,7 +103,7 @@ def sign_staged(input_path, output_path, mime, source_sha, lineage_raw,
             created = True
             output_info = os.fstat(fd)
             output_identity = (output_info.st_dev, output_info.st_ino)
-            output = stack.enter_context(os.fdopen(fd, 'w+b'))
+            output = stack.enter_context(os.fdopen(fd, 'w+b', buffering=0))
             check_signing_active()
             context = stack.enter_context(operator.open_context(policy))
             signer = stack.enter_context(operator.open_signer(policy))

@@ -26,6 +26,7 @@ func RecoverParse(ctx context.Context,tx ProofTransaction,who auth.Identity,tid 
  var hash string;var body []byte;var live bool;var status *int;var resource *uuid.UUID
  err=tx.QueryRow(ctx,`SELECT request_hash,response_body,expires_at>clock_timestamp(),response_status,resource_id FROM photo.idempotency_records WHERE tenant_id=$1 AND principal_type='user' AND principal_id=$2 AND route='Interchange.Parse.Ticket' AND key=$3 FOR SHARE`,tid,who.UserID,key).Scan(&hash,&body,&live,&status,&resource)
  if err==nil{
+  if err:=requireReceiptAuthority(ctx,tx,who,tid,request.ProjectID);err!=nil{return ParseRecovery{},err}
   if hash!=intent.RequestSHA{return ParseRecovery{},domain.NewError("IDEMPOTENCY_CONFLICT",409)}
   if !live{return ParseRecovery{},domain.NewError("SNAPSHOT_EXPIRED",410)}
   if status==nil||*status!=202||resource==nil||*resource!=intent.Identity.Workflow{return ParseRecovery{},domain.NewError("INTERCHANGE_PENDING_INVALID",409)}
@@ -39,6 +40,7 @@ func RecoverParse(ctx context.Context,tx ProofTransaction,who auth.Identity,tid 
  if !errors.Is(err,pgx.ErrNoRows){return ParseRecovery{},err}
  err=tx.QueryRow(ctx,`SELECT request_hash,response_body,expires_at>clock_timestamp(),response_status FROM photo.idempotency_records WHERE tenant_id=$1 AND principal_type='user' AND principal_id=$2 AND route='Interchange.Parse.Pending' AND key=$3 FOR SHARE`,tid,who.UserID,key).Scan(&hash,&body,&live,&status)
  if errors.Is(err,pgx.ErrNoRows){return ParseRecovery{},nil};if err!=nil{return ParseRecovery{},err}
+ if err:=requireReceiptAuthority(ctx,tx,who,tid,request.ProjectID);err!=nil{return ParseRecovery{},err}
  if hash!=intent.RequestSHA{return ParseRecovery{},domain.NewError("IDEMPOTENCY_CONFLICT",409)}
  if !live{return ParseRecovery{},domain.NewError("SNAPSHOT_EXPIRED",410)}
  if status!=nil{return ParseRecovery{},domain.NewError("INTERCHANGE_PENDING_INVALID",409)}

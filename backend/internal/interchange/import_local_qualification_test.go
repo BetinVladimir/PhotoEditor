@@ -16,7 +16,7 @@ func TestImportedLocalOperationPhysicalDependenciesAndRuntimeRecheck(t *testing.
  for _,change:=range []string{"none","clothing","version","operation","runtime","runtime_revoked","mask","capacity","race","cancelled"}{t.Run(change,func(t *testing.T){
   _,_,master:=importWorkingValidatorFixture(t);image,err:=review.ParseWorkingImage(master);if err!=nil{t.Fatal(err)};canvas,_:=canonical.Hash(image.Canvas)
   binding:=v2input.SessionVersionBinding{AssetVersionID:uuid.New(),Source:v2input.Ref{ArtifactID:uuid.New(),SHA256:rawSHA(master)},CanvasHash:canvas}
-  mraw,err:=canonical.Marshal(map[string]any{"artifact":v2input.Ref{ArtifactID:uuid.New(),SHA256:rawSHA([]byte("pixels"))},"canvas":image.Canvas,"transform_chain":json.RawMessage(image.TransformChain),"selector":"manual","confidence":1,"protected":true});if err!=nil{t.Fatal(err)}
+  mraw,err:=canonical.Marshal(map[string]any{"artifact":v2input.Ref{ArtifactID:uuid.New(),SHA256:rawSHA([]byte("pixels"))},"canvas":image.Canvas,"transform_chain":json.RawMessage(image.TransformChain),"object_id":nil,"model_lock_id":nil,"selector":"manual","confidence":1,"protected":true});if err!=nil{t.Fatal(err)}
   mask:=v2input.Ref{ArtifactID:uuid.New(),SHA256:rawSHA(mraw)}
   operation:="portrait.hair";version:="1"
   raw,_,err:=(v2portrait.HairParams{SchemaVersion:1,Base:binding,Mask:mask,Protected:mask,SaturationFactor:1}).Compile();if err!=nil{t.Fatal(err)}

@@ -2,7 +2,9 @@ package project
 
 import (
 	"context"
+	"bytes"
 	"errors"
+	"encoding/json"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -22,6 +24,7 @@ type Service struct {
 	Cursors pagination.Codec
 }
 type Project struct {
+	CanEdit         *bool     `json:"can_edit,omitempty"`
 	ID              uuid.UUID `json:"id"`
 	TenantID        uuid.UUID `json:"tenant_id"`
 	Name            string    `json:"name"`
@@ -78,6 +81,18 @@ func scan(row pgx.Row) (Project, error) {
 // Authorize returns 404 for a project invisible to this principal and 403 only
 // after its visibility is established. ACL permissions never elevate tenant roles.
 func Authorize(ctx context.Context, tx pgx.Tx, tid, id, user uuid.UUID, role, required domain.Role, lock bool) (Project, error) {
+	p, err := authorize(ctx, tx, tid, id, user, role, required, lock)
+	if err != nil { return p, err }
+	if registry, ok := tx.(interface { RegisterReceiptAuthority(func(context.Context, domain.Role) error) }); ok {
+		registry.RegisterReceiptAuthority(func(checkCtx context.Context, currentRole domain.Role) error {
+			_, checkErr := authorize(checkCtx, tx, tid, id, user, currentRole, required, false)
+			return checkErr
+		})
+	}
+	return p, nil
+}
+
+func authorize(ctx context.Context, tx pgx.Tx, tid, id, user uuid.UUID, role, required domain.Role, lock bool) (Project, error) {
 	suffix := ""
 	if lock {
 		suffix = " FOR UPDATE OF p"
@@ -103,6 +118,8 @@ func Authorize(ctx context.Context, tx pgx.Tx, tid, id, user uuid.UUID, role, re
 			effective = grant
 		}
 	}
+	canEdit := effective.Allows(domain.Editor)
+	p.CanEdit = &canEdit
 	if !effective.Allows(required) {
 		return p, domain.NewError("FORBIDDEN", 403)
 	}
@@ -140,17 +157,32 @@ func (s *Service) Create(ctx context.Context, who auth.Identity, tid uuid.UUID, 
 			b, e := canonical.Marshal(p)
 			return idempotency.Response{Status: 201, Body: b, ResourceID: &p.ID}, e
 		})
-		return err
+		if err!=nil{return err}
+		var receipt Project
+		if out.Status!=201||out.ResourceID==nil||*out.ResourceID==uuid.Nil||json.Unmarshal(out.Body,&receipt)!=nil||receipt.ID!=*out.ResourceID||receipt.TenantID!=tid||receipt.Revision!="1"||receipt.Name!=req.Name||receipt.Description!=req.Description||receipt.Visibility!=req.Visibility||receipt.DownloadAllowed!=req.DownloadAllowed||receipt.CreatedAt.IsZero()||receipt.CanEdit!=nil{return domain.NewError("IDEMPOTENCY_CONFLICT",409)}
+		expectedBody,e:=canonical.Marshal(receipt);if e!=nil{return e}
+		actualBody,e:=canonical.Bytes(out.Body);if e!=nil{return e}
+		if !bytes.Equal(expectedBody,actualBody){return domain.NewError("IDEMPOTENCY_CONFLICT",409)}
+		currentRole,e:=tenant.AuthorizeInTransaction(ctx,tx,who,tid,domain.Editor)
+		if e!=nil{return e}
+		_,e=Authorize(ctx,tx,tid,receipt.ID,who.UserID,currentRole,domain.Viewer,false)
+		return e
 	})
+	if err!=nil{return idempotency.Response{},err}
 	return out, err
 }
 func (s *Service) Update(ctx context.Context, who auth.Identity, tid, id uuid.UUID, expected int64, patch Patch) (Project, error) {
 	var out Project
-	err := tenant.WithTenant(ctx, s.DB, who, tid, domain.Viewer, func(tx pgx.Tx, role domain.Role) error {
+	err := tenant.WithTenant(ctx, s.DB, who, tid, domain.Editor, func(tx pgx.Tx, role domain.Role) error {
 		p, err := Authorize(ctx, tx, tid, id, who.UserID, role, domain.Editor, true)
 		if err != nil {
 			return err
 		}
+		// The project lock can wait past tenant demotion. Re-evaluate restricted
+		// project ACL using the current role before applying any patch.
+		currentRole,err:=tenant.AuthorizeInTransaction(ctx,tx,who,tid,domain.Editor)
+		if err!=nil{return err}
+		if _,err=Authorize(ctx,tx,tid,id,who.UserID,currentRole,domain.Editor,false);err!=nil{return err}
 		if p.Revision != strconv.FormatInt(expected, 10) {
 			return domain.NewError("REVISION_CONFLICT", 409)
 		}

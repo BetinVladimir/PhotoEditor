@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"context"
+ "errors"
 	"github.com/google/uuid"
 	"photoeditor/backend/internal/delivery"
 	"photoeditor/backend/internal/v2input"
@@ -83,7 +84,14 @@ func (d DeliveryExpansionDriver) ProcessOne(ctx context.Context) (progress Deliv
 		return progress, err
 	}
 	progress = DeliveryExpansionProgress{Claimed: true, Cursor: lease.Cursor, SlotCount: lease.SlotCount}
-	defer func() {
+ defer func(){
+  var source *deliveryPhysicalSourceFailure
+  if ctx.Err()==nil && errors.As(err,&source){
+   if terminal,ok:=d.Store.(deliveryPhysicalSourceFinalizer);ok{
+    accepted,finalErr:=terminal.FailPhysicalSource(ctx,*lease,source.Ref,source.Version,source.Code,source.Slot,source.Request,source.Watermark)
+    if cancellation := ctx.Err(); cancellation != nil { err = cancellation } else if finalErr!=nil{err=finalErr}else if accepted{progress.AssemblyState="finalized_failed";err=nil}
+   }
+  }
 		// Do not suppress a processing error with cleanup failure. Cancellation must
 		// not trigger an unbounded background SQL call; expiry remains recovery.
 		if ctx.Err() == nil && progress.AssemblyState != "activated" && progress.AssemblyState != "finalized_failed" {
@@ -97,10 +105,16 @@ func (d DeliveryExpansionDriver) ProcessOne(ctx context.Context) (progress Deliv
 	if err != nil {
 		return progress, err
 	}
+	if err = ctx.Err(); err != nil {
+		return progress, err
+	}
 	if d.Observer != nil {
 		slots, observeErr := d.Observer.PendingSlots(ctx, *lease, d.PageSize)
 		if observeErr != nil {
 			return progress, observeErr
+		}
+		if err = ctx.Err(); err != nil {
+			return progress, err
 		}
 		if len(slots) > d.PageSize {
 			return progress, v2input.ErrInvalid
@@ -126,10 +140,16 @@ func (d DeliveryExpansionDriver) ProcessOne(ctx context.Context) (progress Deliv
 			if len(childPage.Items) != 1 || childPage.Items[0].SlotIndex != slot {
 				return progress, v2input.ErrInvalid
 			}
-			changed, childErr := d.Observer.ObserveChild(ctx, *lease, plan, childPage.Items[0])
+			changed, childErr := withDeliveryPhysicalLease(ctx, d.Store, *lease, interval,
+				func(work context.Context) (bool, error) {
+					return d.Observer.ObserveChild(work, *lease, plan, childPage.Items[0])
+				})
 			if childErr != nil {
 				return progress, childErr
 			}
+			if err = ctx.Err(); err != nil {
+			return progress, err
+		}
 			if changed {
 				progress.Observed++
 			}
@@ -181,6 +201,9 @@ func (d DeliveryExpansionDriver) ProcessOne(ctx context.Context) (progress Deliv
 			if signingErr != nil {
 				return progress, signingErr
 			}
+		if err = ctx.Err(); err != nil {
+			return progress, err
+		}
 			if state != "scanning" && state != "pending" && state != "adopted" && state != "finalized_failed" {
 				return progress, v2input.ErrInvalid
 			}
@@ -199,6 +222,9 @@ func (d DeliveryExpansionDriver) ProcessOne(ctx context.Context) (progress Deliv
 		state, assemblyErr := assembly.ProcessAssembly(ctx, *lease, plan)
 		if assemblyErr != nil {
 			return progress, assemblyErr
+		}
+		if err = ctx.Err(); err != nil {
+			return progress, err
 		}
 		if state != "pending" && state != "finalized_failed" && state != "activated" {
 			return progress, v2input.ErrInvalid

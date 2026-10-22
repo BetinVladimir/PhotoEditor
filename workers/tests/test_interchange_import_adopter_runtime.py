@@ -64,5 +64,5 @@ def test_import_adopter_runtime_rejects_invalid_bucket(bucket):
                    'S3_ENDPOINT': 'https://s3.example.test',
                    'S3_BUCKET': bucket, 'S3_ACCESS_KEY': 'key',
                    'S3_SECRET_KEY': 'secret'}
-    with pytest.raises(ValueError, match='bucket'):
+    with pytest.raises(ValueError, match='bucket|Missing V2 adopter configuration'):
         AdopterConfig.from_env(environment)

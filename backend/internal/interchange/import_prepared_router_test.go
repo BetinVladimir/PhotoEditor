@@ -8,7 +8,7 @@ import (
 )
 
 func TestPreparedImportRouterDoesNotFallbackAcrossAuthorities(t *testing.T) {
-	for _, kind := range []string{"WorkingImage", "WorkingPixels", "WorkingAlpha", "MaskPixels", "DenseWarpField", "DefectLabelMap", "StyleBackgroundAsset", "StyleV2", "MaskRef", "EditingRecipeV3"} {
+	for _, kind := range []string{"WorkingImage", "WorkingPixels", "WorkingAlpha", "MaskPixels", "DenseWarpField", "DefectLabelMap", "DefectLabelPNG", "StyleBackgroundAsset", "StyleV2", "MaskRef", "EditingRecipeV3"} {
 		t.Run(kind, func(t *testing.T) {
 			entry := v2input.Entry{Contract: kind, Ref: v2input.Ref{ArtifactID: uuid.New(), SHA256: rawSHA([]byte(kind))}}
 			called := ""
@@ -18,7 +18,7 @@ func TestPreparedImportRouterDoesNotFallbackAcrossAuthorities(t *testing.T) {
 					return ImportClosureNode{Entry: e}, nil
 				})
 			}
-			r := ImportPreparedResolverRouter{JSON: resolver("json"), Working: resolver("working"), Masks: resolver("mask"), Warps: resolver("warp"), DefectLabels: resolver("labels"), Assets: resolver("asset")}
+			r := ImportPreparedResolverRouter{JSON: resolver("json"), Working: resolver("working"), Masks: resolver("mask"), Warps: resolver("warp"), DefectLabels: resolver("labels"), DefectPNGs: resolver("png"), Assets: resolver("asset")}
 			if _, err := r.ResolveImportNode(context.Background(), entry); err != nil {
 				t.Fatal(err)
 			}
@@ -30,6 +30,8 @@ func TestPreparedImportRouterDoesNotFallbackAcrossAuthorities(t *testing.T) {
 				expected = "mask"
 			case "DenseWarpField":
 				expected = "warp"
+			case "DefectLabelPNG":
+				expected = "png"
 			case "DefectLabelMap":
 				expected = "labels"
 			case "StyleBackgroundAsset":

@@ -3,7 +3,7 @@ import {afterEach,expect,it,vi} from 'vitest';
 import {render,screen,fireEvent,cleanup} from '@testing-library/react';
 import en from '../../../locales/en/common.json';
 vi.mock('react-native',async()=>import('react-native-web'));
-vi.mock('./locale-context',()=>({useLocale:()=>({t:(key:keyof typeof en)=>en[key]})}));
+vi.mock('./locale-context',async()=>{const __factory=()=>({useLocale:()=>({t:(key:keyof typeof en)=>en[key]})});const __out=await __factory();const {withUILocaleDouble}=await import('./test/locale-double');return {...__out,useLocale:()=>withUILocaleDouble(__out.useLocale())};});
 import {EditorDraftConflict} from './editor-draft-conflict';
 const server={asset_version_id:'version',source_sha256:'a'.repeat(64),revision:'8',params:{serverRecipe:true},mask_refs:[{id:'server-mask'}]};
 afterEach(cleanup);

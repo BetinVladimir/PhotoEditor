@@ -145,3 +145,11 @@ func (r *ImportRecipeCodecRouter) QualifyRemappedImportDocument(ctx context.Cont
 	}
 	return ctx.Err()
 }
+
+func(r *ImportRecipeCodecRouter)WithDefectProposeReport(codec ImportDependencyCodec)(*ImportRecipeCodecRouter,error){
+ if r==nil||codec==nil||r.codecs["DefectProposeReport"]!=nil{return nil,v2input.ErrInvalid}
+ owned:=make(map[string]ImportDependencyCodec,len(r.codecs)+1)
+ for kind,existing:=range r.codecs{if existing==nil{return nil,v2input.ErrInvalid};owned[kind]=existing}
+ owned["DefectProposeReport"]=codec
+ return &ImportRecipeCodecRouter{codecs:owned},nil
+}

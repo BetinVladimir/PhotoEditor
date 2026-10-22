@@ -40,6 +40,6 @@ it('uses the selected render preview route only after a decided binding',async()
  await api.renderSelectedPreview(current,signal);
  expect(request.mock.calls[0][0]).toBe(`/api/v1/tenants/${id(5)}/reviews/${current.id}/selected-preview/preview1600`);
  current.state='pending';current.revision=1;
- expect(()=>api.renderSelectedPreview(current,signal)).toThrow();
+ await expect(api.renderSelectedPreview(current,signal)).rejects.toThrow();
  expect(request).toHaveBeenCalledTimes(1);
 });

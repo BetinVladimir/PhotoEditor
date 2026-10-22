@@ -143,3 +143,9 @@ func TestDeliveryPublishRequiresMatchingReceiptAfterSQL(t *testing.T) {
 		})
 	}
 }
+
+func TestDeliveryPublicationCancelledBeforeDependencyAccess(t *testing.T) {
+ ctx,cancel:=context.WithCancel(context.Background());cancel()
+ receipt,err:=(Service{}).PublishWithReceipt(ctx,auth.Identity{},uuid.New(),uuid.New(),PublishRequest{ExpectedRevision:"2"},"stable-key")
+ if !errors.Is(err,context.Canceled)||len(receipt.Body)!=0{t.Fatal("cancelled publication returned receipt or dependency error",receipt,err)}
+}

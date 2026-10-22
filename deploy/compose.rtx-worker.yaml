@@ -1,0 +1,63 @@
+# Standalone dedicated RTX host. Core services stay on their existing server.
+name: photoeditor-rtx
+services:
+  worker-rtx:
+    image: ${PHOTO_RTX_WORKER_IMAGE:?immutable CUDA-qualified worker image required}
+    restart: unless-stopped
+    init: true
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    stop_grace_period: 75s
+    # RAM is host memory, separate from the policy's CUDA VRAM budget.
+    # Keep the previously deployed 16 GiB default until 12 GiB is measured.
+    mem_limit: ${PHOTO_RTX_RAM_LIMIT:-17179869184}
+    memswap_limit: ${PHOTO_RTX_RAM_LIMIT:-17179869184}
+    env_file:
+      - ${PHOTO_RTX_INSTALLATION_ENV_FILE:?operator installation environment file required}
+    environment:
+      APP_ENV: production
+      DATABASE_URL: ${PHOTO_RTX_DATABASE_URL:?dedicated worker database identity required}
+      PGSSLROOTCERT: /run/photo/tls/postgres-ca.crt
+      AMQP_URL: ${PHOTO_RTX_AMQP_URL:?dedicated worker queue identity required}
+      GATEWAY_ORIGIN: ${PHOTO_RTX_GATEWAY_ORIGIN:?reachable HTTPS object gateway origin required}
+      GATEWAY_CA_FILE: /run/photo/tls/ca.crt
+      WORKER_CERT_FILE: /run/photo/tls/worker.crt
+      WORKER_KEY_FILE: /run/photo/tls/worker.key
+      PHOTO_WORKER_ID: ${PHOTO_RTX_WORKER_ID:?provisioned worker UUID required}
+      PHOTO_WORKER_CLASS: gpu
+      PHOTO_WORKER_BACKEND: cuda
+      PHOTO_MODEL_ROOT: /models
+      PHOTO_MODEL_LOCK: /models/model-lock.json
+      PHOTO_ICC_ROOT: /opt/photo/resources/icc
+      PHOTO_SCRATCH_ROOT: /scratch
+      PHOTO_CAPACITY_POLICY: /run/photo/capacity/policy.json
+      WORKER_MAX_SCRATCH_BYTES: ${PHOTO_RTX_SCRATCH_BYTES:-12884901888}
+      WORKER_MAX_DOWNLOAD_BYTES: ${WORKER_MAX_DOWNLOAD_BYTES:-21474836480}
+      WORKER_MAX_UPLOAD_BYTES: ${WORKER_MAX_UPLOAD_BYTES:-21474836480}
+      CUDA_VISIBLE_DEVICES: "0"
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+    volumes:
+      - type: bind
+        source: ${PHOTO_RTX_TLS_DIR:?absolute worker TLS directory required}
+        target: /run/photo/tls
+        read_only: true
+        bind: {create_host_path: false}
+      - type: bind
+        source: ${PHOTO_MODELS_DIR:?absolute verified model directory required}
+        target: /models
+        read_only: true
+        bind: {create_host_path: false}
+      - type: bind
+        source: ${PHOTO_RTX_CAPACITY_POLICY_FILE:-../configs/capacity-rtx3060.json}
+        target: /run/photo/capacity/policy.json
+        read_only: true
+        bind: {create_host_path: false}
+      - worker-rtx-scratch:/scratch
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=64m"]
+    deploy:
+      resources:
+        reservations:
+          devices: [{driver: nvidia, count: 1, capabilities: [gpu]}]
+volumes:
+  worker-rtx-scratch:

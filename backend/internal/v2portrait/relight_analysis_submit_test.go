@@ -136,3 +136,16 @@ func TestAnalysisSubmissionStopsOnReceiptAuthorityFailure(t *testing.T) {
 		t.Fatal("continued after receipt failure", f.calls)
 	}
 }
+
+func TestAnalysisReplayOnlyDoesNotPrepareAbsentRequest(t *testing.T) {
+ request,who,steps:=analysisSubmitFixture(t)
+ steps.ready=false
+ _,err:=submitRelightAnalysis(WithRelightReplayOnly(context.Background()),steps,who,request)
+ if !errors.Is(err,v2input.ErrExpired)||!reflect.DeepEqual(steps.calls,[]string{"read"}) {t.Fatal(steps.calls,err)}
+}
+func TestAnalysisReplayOnlyRecoversHistoricalReceipt(t *testing.T) {
+ request,who,steps:=analysisSubmitFixture(t)
+ steps.ready=true
+ _,err:=submitRelightAnalysis(WithRelightReplayOnly(context.Background()),steps,who,request)
+ if err!=nil||!reflect.DeepEqual(steps.calls,[]string{"read"}) {t.Fatal(steps.calls,err)}
+}

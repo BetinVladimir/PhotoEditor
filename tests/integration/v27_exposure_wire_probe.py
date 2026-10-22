@@ -1,4 +1,5 @@
 """Owned integration subprocess: real Python worker readers against Go mTLS gateway."""
+from specialized_go_child_evidence import run_named_go
 import os
 import json
 from pathlib import Path
@@ -20,7 +21,7 @@ from photo_worker.contracts.base import canonical_bytes
 from hashlib import sha256
 
 
-def main():
+def main(runtime_dsn):
     dsn=os.environ['PHOTO_TEST_DATABASE_URL']
     with psycopg.connect(dsn) as db:
         row=db.execute('SELECT tenant_id,run_id,id,worker_id,attempt,fencing_token,lease_until,deadline,execution_profile,input_digest,inputs,params_artifact_id,dispatch_command FROM photo.tasks WHERE id=%s',(UUID(os.environ['PHOTO_TEST_V27_GATEWAY_TASK']),)).fetchone()
@@ -31,7 +32,7 @@ def main():
     tls=client_tls(directory/'ca.pem',directory/'client.pem',directory/'client.key')
     scratch=directory/'scratch';scratch.mkdir()
     config=ArtifactConfig(scratch,os.environ['PHOTO_TEST_V27_GATEWAY_ORIGIN'],tls,1024**3,8*1024**2,1024**3)
-    database=TaskDatabase(dsn)
+    database=TaskDatabase(runtime_dsn)
     objects=Minio(os.environ['PHOTO_TEST_MINIO_URL'].removeprefix('http://'),access_key=os.environ['PHOTO_TEST_MINIO_ACCESS'],secret_key=os.environ['PHOTO_TEST_MINIO_SECRET'],secure=False)
     factory=sql_local_exposure_factory(database=database,objects=objects,bucket=os.environ['PHOTO_TEST_MINIO_BUCKET'],icc_registry=ICCRegistry(Path(__file__).resolve().parents[2]/'resources/icc'),**{key:row[8][key] for key in ('model_lock_sha','runtime_lock_sha','device_profile_sha','dataset_sha')})
     with TaskArtifacts.create(ctx,config,frozenset({'pixels','working_image','report','document'})) as artifacts:
@@ -216,7 +217,7 @@ def main():
         assert document_state[1:]==(plan.params_sha256,len(plan.params_bytes),plan.params_bytes.decode())
         import subprocess
         publish_env={**os.environ,'PHOTO_TEST_V27_PREVIEW_RUN':str(preview_run)}
-        publication=subprocess.run(['go','test','./internal/workflow','-run','^TestIntegrationSemanticPreviewPublish$','-count=1','-timeout=40s','-v'],cwd=Path(__file__).resolve().parents[2]/'backend',env=publish_env,capture_output=True,text=True,timeout=50)
+        publication=run_named_go(['go','test','./internal/workflow','-run','^TestIntegrationSemanticPreviewPublish$','-count=1','-timeout=40s','-v'],cwd=Path(__file__).resolve().parents[2]/'backend',env=publish_env,capture_output=True,text=True,timeout=50)
         assert publication.returncode==0,publication.stdout+publication.stderr
         assert 'V27_PREVIEW_PUBLISH_OK' in publication.stdout
         published_documents=preparation.execute("SELECT state,object_version FROM photo.backend_documents WHERE tenant_id=%s AND run_id=%s AND purpose='task_params'",(command.tenant_id,preview_run)).fetchall()
@@ -300,4 +301,6 @@ def main():
     print('V27_WORKER_WIRE_OK')
 
 
-if __name__=='__main__':main()
+if __name__ == '__main__':
+    from wire_runtime_login import run_worker_probe
+    run_worker_probe(main, os.environ['PHOTO_TEST_DATABASE_URL'])

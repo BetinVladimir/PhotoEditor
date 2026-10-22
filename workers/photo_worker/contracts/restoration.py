@@ -84,6 +84,7 @@ class InpaintParams(Contract):
 
 
 class InpaintReport(Contract):
+    generated_mask: ArtifactRef | None = Field(default=None, exclude_if=lambda v: v is None)
     image: ArtifactRef
     mask: ArtifactRef
     model_id: Literal["big_lama"]
@@ -104,11 +105,12 @@ class GenerationParams(Contract):
     mask: MaskRef
     protected: Annotated[list[MaskRef], Field(max_length=32)] = Field(default_factory=list)
     confirmed: Literal[True]
-    prompt: Annotated[str, Field(min_length=1, max_length=1000)]
-    negative_prompt: Annotated[str, Field(max_length=1000)] = ""
+    prompt: Annotated[str, Field(max_length=2000)]
+    negative_prompt: Annotated[str, Field(max_length=2000)] = ""
     seed: Annotated[int, Field(ge=0, le=2**32-1)]
-    steps: Literal[25] = 25
-    guidance_scale: Annotated[float, Field(ge=1, le=20)] = 7.5
+    steps: Annotated[int, Field(ge=1, le=50)] = 25
+    strength: Annotated[float, Field(ge=0, le=1)] = 1.0
+    guidance_scale: Annotated[float, Field(ge=0, le=20)] = 7.5
     model_id: Literal["sd15_inpaint"] = "sd15_inpaint"
     model_lock_id: SHA256
     feather_pixels: Annotated[int, Field(ge=1, le=64)] = 8
@@ -119,6 +121,7 @@ class GenerationParams(Contract):
 
 
 class GenerationReport(Contract):
+    generated_mask: ArtifactRef | None = Field(default=None, exclude_if=lambda v: v is None)
     image: ArtifactRef
     mask: ArtifactRef | None
     model_id: Literal["sd15_inpaint"]
@@ -126,8 +129,9 @@ class GenerationReport(Contract):
     backend: Literal["cpu", "cuda", "mps"]
     seed: Annotated[int, Field(ge=0, le=2**32-1)]
     scheduler: Literal["ddim_v1"] = "ddim_v1"
-    steps: Literal[25] = 25
-    guidance_scale: Annotated[float, Field(ge=1, le=20)]
+    steps: Annotated[int, Field(ge=1, le=50)] = 25
+    strength: Annotated[float, Field(ge=0, le=1)] = 1.0
+    guidance_scale: Annotated[float, Field(ge=0, le=20)]
     generated_pixels: Annotated[int, Field(ge=1, le=200_000_000)]
     protected_pixels: Annotated[int, Field(ge=0, le=200_000_000)]
     side: Literal["left", "right", "top", "bottom"] | None

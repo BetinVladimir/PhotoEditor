@@ -13,9 +13,9 @@ def fixture():
         return ArtifactRef(artifact_id=uuid4(), sha256=sha256(label.encode()).hexdigest())
     binding = VersionBinding(asset_version_id=uuid4(), source=ref('source'), canvas_hash='c' * 64)
     faces = ref('faces')
-    frame = dict(schema_version=1, binding=binding, ordinal=7, captured_at=None,
+    frame = dict(schema_version=1, binding=binding.model_dump(mode="json"), ordinal=7, captured_at=None,
         camera_hash=None, scene_embedding=[0.] * 384, luma_quantiles=[.1,.2,.3,.4,.5],
-        neutral_rgb=None, sharpness=1., clipping_fraction=0., person_fraction=0., faces=faces)
+        neutral_rgb=None, sharpness=1., clipping_fraction=0., person_fraction=0., faces=faces.model_dump(mode="json"))
     raw = canonical_bytes(dict(schema_version=1, snapshot_digest='d' * 64, frames=[frame]))
     descriptor = ArtifactRef(artifact_id=uuid4(), sha256=sha256(raw).hexdigest())
     pin = dict(root=ref('root'), descriptor=descriptor, descriptor_body=raw,
@@ -102,7 +102,7 @@ def test_descriptor_descendants_preserve_frame_context(role, mode):
     raw = canonical_bytes(image)
     binding.source = ArtifactRef(artifact_id=uuid4(), sha256=sha256(raw).hexdigest())
     binding.canvas_hash = canonical_hash(image.canvas)
-    face_raw = canonical_bytes(dict(schema_version=1, binding=binding, faces=[]))
+    face_raw = canonical_bytes(dict(schema_version=1, binding=binding.model_dump(mode='json'), faces=[]))
     faces = ArtifactRef(artifact_id=uuid4(), sha256=sha256(face_raw).hexdigest())
     pin, _ = fixture()
     shard = DescriptorShard.model_validate_json(pin['descriptor_body'])

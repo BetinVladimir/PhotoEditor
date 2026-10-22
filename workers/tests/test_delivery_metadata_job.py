@@ -1,3 +1,4 @@
+import json
 from uuid import uuid4
 import pytest
 from photo_worker.contracts.base import canonical_bytes
@@ -19,7 +20,7 @@ def test_metadata_job_closed_canonical_identity():
         elif mode=='nil':changed['tenant_id']='00000000-0000-0000-0000-000000000000'
         elif mode=='fence':changed['fence']=2**53
         elif mode=='timeout':changed['timeout_seconds']=601
-        raw=canonical_bytes(changed)+(b' ' if mode=='noncanonical' else b'')
+        raw=(json.dumps(changed,separators=(',',':'),sort_keys=True).encode() if mode=='fence' else canonical_bytes(changed))+(b' ' if mode=='noncanonical' else b'')
         with pytest.raises(ValueError):decode_job(raw)
 
 

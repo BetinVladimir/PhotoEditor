@@ -18,11 +18,51 @@ func validateTransferConfiguration(c TransferPreparation) error {
 // Resource/model policy may be validated before original per-request mask
 // locators are loaded. No transfer may compile until complete refs are validated.
 func validateTransferPolicyConfiguration(c TransferPreparation) error {
-	if !validMetadataBudget(c) || c.Color.sha == "" || c.Expected.Operation != "semantic.transfer" || c.Expected.Version != "1" || c.Expected.Backend != "cuda" {
+	if !validMetadataBudget(c) || c.Color.sha == "" || c.Expected.Operation != "semantic.transfer" || c.Expected.Version != "1" || (c.Expected.Backend != "cuda" && c.Expected.Backend != "mps") {
 		return v2input.ErrInvalid
 	}
 	if err := verifyQualificationConfiguration(c.Qualification, c.Expected); err != nil {
 		return err
+	}
+	if c.Scene != nil {
+		_, sha, err := v2input.DecodeSemanticScenePolicy(c.Scene.Policy)
+		if err != nil {
+			return err
+		}
+		if _, ok := c.Expected.EvidenceSHAs[sha]; !ok {
+			return v2input.ErrInvalid
+		}
+		check := false
+		for _, name := range c.Expected.RequiredChecks {
+			if name == "semantic.scene.farneback_depth_plane_v1" {
+				check = true
+			}
+		}
+		if !check {
+			return v2input.ErrInvalid
+		}
+		for i, producer := range []TransferSceneProducer{c.Scene.Scene, c.Scene.Depth} {
+			operation := "scene.parse"
+			if i == 1 {
+				operation = "depth.predict"
+			}
+			if producer.Expected.Operation != operation || producer.Expected.Version != "1" || producer.Expected.Backend != c.Expected.Backend || producer.Expected.ModelLockSHA != c.Qualification.ModelLockSHA || producer.Report.ArtifactID == uuid.Nil {
+				return v2input.ErrInvalid
+			}
+			for _, digest := range []string{producer.Report.SHA256, producer.Expected.ModelLockSHA, producer.Expected.RuntimeLockSHA, producer.Expected.DeviceProfileSHA, producer.Expected.DatasetSHA} {
+				if _, err := domain.ParseDigest(digest); err != nil {
+					return v2input.ErrInvalid
+				}
+			}
+			for _, cost := range []int64{producer.Costs.RAMBytes, producer.Costs.VRAMBytes, producer.Costs.ScratchBytes} {
+				if cost < 0 || cost > 9007199254740991 {
+					return v2input.ErrInvalid
+				}
+			}
+			if producer.Costs.VRAMBytes < 1 || (producer.Expected.Backend == "cuda" && producer.Costs.VRAMBytes > 10000000000) {
+				return v2input.ErrInvalid
+			}
+		}
 	}
 	if c.PersonProtection != nil {
 		policy := c.PersonProtection

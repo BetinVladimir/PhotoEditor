@@ -48,7 +48,7 @@ func (p TransferDraftPreparer) admitInitialPersonDefectParent(ctx context.Contex
 	if err != nil {
 		return zero, fmt.Errorf("initial native parent transfer runtime configuration: %w", err)
 	}
-	selected, err := selectQualificationPolicies(original.policy, []string{"mask.person"})
+	selected, err := selectNativeQualificationPolicies(original.policy, []string{"mask.person"})
 	if err != nil {
 		return zero, fmt.Errorf("initial native parent person policy: %w", err)
 	}
@@ -57,6 +57,10 @@ func (p TransferDraftPreparer) admitInitialPersonDefectParent(ctx context.Contex
 		return zero, v2input.ErrConflict
 	}
 	config.SourceProtection = registered.verified.Root
+	config.Scene, err = frozenSemanticSceneParentPolicy(ctx, d)
+	if err != nil {
+		return zero, err
+	}
 	p.Configuration = config
 	_, transferSource, err := p.Reader.readQualifiedSourcePreparationProof(ctx, who, d.request.TenantID, d.request.Intent.Reference, config.Color, false)
 	if err != nil {
@@ -87,6 +91,16 @@ func (p TransferDraftPreparer) admitInitialPersonDefectParent(ctx context.Contex
 			return zero, fmt.Errorf("initial native parent saved target protections: %w", err)
 		}
 		return p.loadAndResumeNativeInputTransfer(ctx, who, d.request.TenantID, d.requestKey, d.request.Body, person, built)
+	}
+	if p.Configuration.Scene != nil {
+		// Fresh scene-qualified transfers always use the durable all-target
+		// pipeline, including snapshots that reuse only the reference. Existing
+		// accepted legacy graphs above retain their original execution profile.
+		manifest, err := compileNativeTargetPreparationManifest(ctx, who, d.request, d.requestKey, d.published, d.anchor.snapshotRef, d.anchor.snapshotBody)
+		if err != nil {
+			return zero, err
+		}
+		return zero, &nativeTargetPreparationRequired{manifest: manifest}
 	}
 	if len(p.Configuration.TargetProtection) == 0 {
 		p.Configuration, err = p.Reader.selectTransferTargetProtectionConfiguration(ctx, who, d.request, d.published, p.Configuration)

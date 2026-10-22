@@ -1,0 +1,18 @@
+{
+  "brand": "Framevela",
+  "revision": "v3-camera-video-ai",
+  "status": "USER_APPROVED",
+  "approved_on": "2026-10-20",
+  "meaning": {
+    "camera": "photo",
+    "play_in_lens": "video",
+    "gold_spark": "AI and creativity"
+  },
+  "change_policy": "Keep this icon for mobile/store builds unless user explicitly requests a redesign.",
+  "sha256": {
+    "framevela-logo.svg": "179b87db2eef94c37adeb703c7cb7b62cd02b59a2a80ccef9d233a9c4a4b16e8",
+    "framevela-logo-dark.svg": "5623d5e718e1ba4657537efabf9cf554ee16e36a70ec73e70e301b93bf33e03e",
+    "framevela-app-icon.svg": "4f35ca8b65b0d035cbe62543097d10df03bed9db447396449a1b0bd065c9e6b6",
+    "framevela-app-icon-1024.png": "03a9a1bbccac3521e4c2ff3ef53c228b9446e14b0a791c0ef137408d5997b8b1"
+  }
+}

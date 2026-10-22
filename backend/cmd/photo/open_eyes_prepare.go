@@ -1,6 +1,7 @@
 package main
 
 import (
+ "photoeditor/backend/internal/database"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -137,6 +138,7 @@ func buildOpenEyesPrepare(ctx context.Context, catalog *pgxpool.Pool,
 		return nil, noop, errors.New("open eyes scheduler configuration invalid")
 	}
 	poolConfig.ConnConfig.RuntimeParams["role"] = "photo_scheduler"
+	database.GuardApplicationRole(poolConfig)
 	scheduler, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
 		return nil, noop, errors.New("open eyes scheduler unavailable")

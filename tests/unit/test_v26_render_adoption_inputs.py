@@ -13,8 +13,8 @@ def case():
     class Connection:
         calls=[]
         def execute(self,statement,args):
-            self.calls.append((statement,args));return self
-        def fetchone(self):return row
+            self.calls.append((statement,args));self.statement=statement;return self
+        def fetchone(self):return None if 'editor_effect_render_adoption_receipt' in self.statement else row
     return Connection(),context,row
 
 
@@ -22,6 +22,8 @@ def test_exact_scoped_query_and_detached_profile_and_parents():
     connection,context,row=case();tenant,task=uuid4(),uuid4()
     value=load_render_adoption_inputs(connection,tenant,task,context)
     assert connection.calls==[('SELECT * FROM photo.v26_render_adoption_inputs(%s,%s,%s,%s,%s)',
+        (tenant,task,2,3,context.result_id)),
+        ('SELECT * FROM photo.editor_effect_render_adoption_receipt(%s,%s,%s,%s,%s)',
         (tenant,task,2,3,context.result_id))]
     profile=value.execution_profile();profile['resource_estimate']['ram_bytes']=7
     row[2]['resource_estimate']['ram_bytes']=8;row[3][0]['sha256']='c'*64

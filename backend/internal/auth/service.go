@@ -107,6 +107,10 @@ func localeOK(s string) bool { return s == "ru" || s == "bg" || s == "en" }
 // RequestOTP commits rate counters even for rejected requests; returning a domain
 // error inside the transaction would roll the limiter back.
 func (s *Service) RequestOTP(ctx context.Context, raw, locale, ip string) (Challenge, error) {
+	return s.requestOTP(ctx,raw,locale,ip,nil)
+}
+
+func (s *Service) requestOTP(ctx context.Context, raw, locale, ip string, receipt *otpRequestReceipt) (Challenge, error) {
 	if err := s.valid(); err != nil {
 		return Challenge{}, err
 	}
@@ -114,24 +118,27 @@ func (s *Service) RequestOTP(ctx context.Context, raw, locale, ip string) (Chall
 	if err != nil || !localeOK(locale) {
 		return Challenge{}, domain.NewError("VALIDATION_FAILED", 422)
 	}
-	id, err := uuid.NewRandomFromReader(s.random())
-	if err != nil {
-		return Challenge{}, err
-	}
-	code, err := NewOTP(s.random())
-	if err != nil {
-		return Challenge{}, err
-	}
-	now := s.now()
-	expires := now.Add(5 * time.Minute)
-	out := Challenge{id, 300}
+	var out Challenge
 	var outcome error
-	err = database.InTransaction(ctx, s.DB, func(tx pgx.Tx) error {
+	err = database.InTransaction(ctx, s.DB, func(tx pgx.Tx) (txErr error) {
 		outcome = nil
+		if receipt!=nil {
+			prior,e:=lockOTPRequestReceipt(ctx,tx,*receipt);if e!=nil{return e}
+			if prior!=nil{out=*prior;return nil}
+			defer func(){if txErr==nil&&outcome==nil {txErr=saveOTPRequestReceipt(ctx,tx,*receipt,out,s.now())}}()
+		}
+		// Recovery does not depend on fresh entropy: only a new request allocates
+		// a challenge. Complete transaction retries allocate a new candidate.
+		id,e := uuid.NewRandomFromReader(s.random());if e!=nil{return e}
+		code,e := NewOTP(s.random());if e!=nil{return e}
+		out=Challenge{id,300}
 		// Serialize same email before examining cooldown; IP and email counters have a fixed lock order.
 		if _, e := tx.Exec(ctx, "SELECT pg_advisory_xact_lock(hashtextextended($1,0))", "otp:"+email); e != nil {
 			return e
 		}
+        if err:=ctx.Err();err!=nil{return err}
+        now:=s.now()
+        expires:=now.Add(5*time.Minute)
 		limited := false
 		for _, r := range []struct {
 			kind, value string
@@ -149,7 +156,7 @@ func (s *Service) RequestOTP(ctx context.Context, raw, locale, ip string) (Chall
 			return nil
 		}
 		var last time.Time
-		e := tx.QueryRow(ctx, `SELECT created_at FROM photo.auth_challenges WHERE email_normalized=$1 ORDER BY created_at DESC LIMIT 1`, email).Scan(&last)
+		e = tx.QueryRow(ctx, `SELECT created_at FROM photo.auth_challenges WHERE email_normalized=$1 ORDER BY created_at DESC LIMIT 1`, email).Scan(&last)
 		if e != nil && !errors.Is(e, pgx.ErrNoRows) {
 			return e
 		}
@@ -233,10 +240,14 @@ func (s *Service) newSession(ctx context.Context, tx pgx.Tx, user, family uuid.U
 	return Tokens{User: profile, Access: access, Refresh: refresh, CSRF: csrf, SessionID: sid, ExpiresIn: 300, RefreshExpires: expires}, nil
 }
 func (s *Service) VerifyOTP(ctx context.Context, id uuid.UUID, code, client string) (Tokens, error) {
+	return s.verifyOTP(ctx,id,code,client,nil)
+}
+
+func (s *Service) verifyOTP(ctx context.Context, id uuid.UUID, code, client string, receipt *OTPReceiptRequest) (Tokens, error) {
 	if err := s.valid(); err != nil {
 		return Tokens{}, err
 	}
-	if !ValidOTP(code) || (client != "web" && client != "native") {
+	if id == uuid.Nil || !ValidOTP(code) || (client != "web" && client != "native") {
 		return Tokens{}, domain.NewError("VALIDATION_FAILED", 422)
 	}
 	var result Tokens
@@ -249,7 +260,10 @@ func (s *Service) VerifyOTP(ctx context.Context, id uuid.UUID, code, client stri
 		var expires time.Time
 		var consumed *time.Time
 		var attempts int
-		err := tx.QueryRow(ctx, `SELECT email_normalized,locale,code_hmac,expires_at,consumed_at,attempts FROM photo.auth_challenges WHERE id=$1 FOR UPDATE`, id).Scan(&email, &locale, &mac, &expires, &consumed, &attempts)
+		var binding,cipher []byte
+		var receiptExpires *time.Time
+		var receiptEpoch *int64
+		err := tx.QueryRow(ctx, `SELECT email_normalized,locale,code_hmac,expires_at,consumed_at,attempts,verify_receipt_binding,verify_receipt_cipher,verify_receipt_expires_at,verify_receipt_epoch FROM photo.auth_challenges WHERE id=$1 FOR UPDATE`, id).Scan(&email, &locale, &mac, &expires, &consumed, &attempts,&binding,&cipher,&receiptExpires,&receiptEpoch)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil
 		}
@@ -257,6 +271,13 @@ func (s *Service) VerifyOTP(ctx context.Context, id uuid.UUID, code, client stri
 			return err
 		}
 		now := s.now()
+		if err:=ctx.Err();err!=nil{return err}
+		if consumed != nil && receipt != nil && receiptExpires != nil && receiptEpoch != nil && now.Before(*receiptExpires) && Equal(binding,s.otpReceiptBinding(id,code,client,*receipt)) {
+			var replayErr error
+			result,replayErr=s.openOTPReceipt(ctx,tx,cipher,binding,*receiptEpoch,*receiptExpires)
+			if replayErr==nil{outcome=nil}
+			return replayErr
+		}
 		if consumed != nil || !now.Before(expires) || attempts >= 5 {
 			return nil
 		}
@@ -278,6 +299,15 @@ func (s *Service) VerifyOTP(ctx context.Context, id uuid.UUID, code, client stri
 			return err
 		}
 		result, err = s.newSession(ctx, tx, user, uuid.New(), nil, client, epoch, now.Add(30*24*time.Hour))
+		if err==nil && receipt!=nil {
+			binding=s.otpReceiptBinding(id,code,client,*receipt)
+			cipher,err=s.sealOTPReceipt(result,binding)
+			if err==nil {
+                tag,saveErr:=tx.Exec(ctx,`UPDATE photo.auth_challenges SET verify_receipt_binding=$2,verify_receipt_cipher=$3,verify_receipt_expires_at=$4,verify_receipt_epoch=$5 WHERE id=$1 AND consumed_at IS NOT NULL`,id,binding,cipher,now.Add(2*time.Minute),epoch)
+                err=saveErr
+                if err==nil&&tag.RowsAffected()!=1{err=errors.New("OTP receipt persistence lost challenge")}
+            }
+		}
 		if err == nil {
 			outcome = nil
 		}

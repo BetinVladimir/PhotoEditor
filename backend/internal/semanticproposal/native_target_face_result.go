@@ -30,7 +30,7 @@ func targetFaceResultDigest(p nativeTargetFaceResult) (string, error) {
 
 // Physical validation precedes the consumer transaction. No source-wide latest
 // discovery or original request reference substitution is permitted.
-func (s SQLTransferSourceReader) readNativeTargetFaceResult(ctx context.Context, who auth.Identity, plan nativeTargetFaceDraftPlan, color TransferColorProfile) (nativeTargetFaceResult, error) {
+func (s SQLTransferSourceReader) readNativeTargetFaceResultUncached(ctx context.Context, who auth.Identity, plan nativeTargetFaceDraftPlan, color TransferColorProfile) (nativeTargetFaceResult, error) {
 	var zero nativeTargetFaceResult
 	if err := verifyNativeTargetFacePlanSeal(ctx, plan); err != nil {
 		return zero, err
@@ -50,6 +50,9 @@ func (s SQLTransferSourceReader) readNativeTargetFaceResult(ctx context.Context,
 			return zero, err
 		}
 		out.catalog, out.body, out.paramsBody, out.labels, out.counts, out.objects = parsed.catalog, parsed.body, parsed.paramsBody, parsed.labels, parsed.counts, parsed.objects
+		if out.pixels != parsed.pixels {
+			return zero, v2input.ErrConflict
+		}
 		after, err := s.faceParsePreparationPixels(ctx, who, plan.shell.Tenant, plan.detector.anchor.entry.Binding, before.Outputs[1], plan.prepared.detector.Output, before.Outputs[0])
 		if err != nil {
 			return zero, err

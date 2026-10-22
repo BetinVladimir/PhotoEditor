@@ -221,3 +221,30 @@ func TestGlobalRuntimeTablesDoNotGiveFunctionOwnerImplicitDelete(t *testing.T) {
 		}
 	}
 }
+
+// Newer editor/culling/export tables must use the same checked purge array as
+// older tenant metadata, rather than an invisible second list of inline DELETEs.
+func TestTenantPurgeNormalizedEditorAndExportAllowlist(t *testing.T) {
+ dsn:=os.Getenv("PHOTO_TEST_DATABASE_URL")
+ if dsn=="" { t.Skip("isolated fully migrated PostgreSQL required") }
+ ctx,cancel:=context.WithTimeout(context.Background(),10*time.Second);defer cancel()
+ db,err:=pgxpool.New(ctx,dsn);if err!=nil { t.Fatal(err) };defer db.Close()
+ var definition string
+ if err=db.QueryRow(ctx,`SELECT pg_get_functiondef('photo.finish_tenant_deletion(uuid,uuid)'::regprocedure)`).Scan(&definition);err!=nil { t.Fatal(err) }
+ array:=regexp.MustCompile(`(?s)tables_to_purge constant text\[\]:=ARRAY\[(.*?)\]`).FindStringSubmatch(definition)
+ if len(array)!=2 { t.Fatal("purge allowlist missing") }
+ for _,name:=range []string{"export_delivery_tickets","export_delivery_batches","editor_effect_builds","editor_recipe_bridges","apply_culling_reviews"} {
+  if strings.Count(array[1],"'"+name+"'")!=1 || strings.Contains(definition,"DELETE FROM photo."+name+" WHERE") { t.Fatal("purge list not normalized",name) }
+ }
+}
+
+func TestEditorGCStartupRejectsDisabledReferenceGuard(t *testing.T) {
+ dsn:=os.Getenv("PHOTO_TEST_DATABASE_URL")
+ if dsn=="" { t.Skip("isolated fully migrated PostgreSQL required") }
+ ctx,cancel:=context.WithTimeout(context.Background(),10*time.Second);defer cancel()
+ db,err:=pgxpool.New(ctx,dsn);if err!=nil { t.Fatal(err) };defer db.Close()
+ tx,err:=db.Begin(ctx);if err!=nil { t.Fatal(err) };defer tx.Rollback(context.Background())
+ if err=RequireEditorGCSchema(ctx,tx);err!=nil { t.Fatal(err) }
+ if _,err=tx.Exec(ctx,"ALTER TABLE photo.editor_effect_builds DISABLE TRIGGER ready_artifact_reference");err!=nil { t.Fatal(err) }
+ if err=RequireEditorGCSchema(ctx,tx);err==nil { t.Fatal("cleanup accepted disabled editor artifact guard") }
+}

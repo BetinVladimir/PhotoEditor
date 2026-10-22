@@ -35,7 +35,7 @@ def test_render_encoder_outputs_are_accepted_by_client(record_property):
         path=root/'cases.json';path.write_text(json.dumps(cases))
         env=dict(os.environ,PHOTO_RENDER_CLIENT_CASES=str(path))
         report_path = root / 'test_render_preview_client_contract-vitest.json'
-        result=subprocess.run(['npm','test','--','--run','src/render-preview-worker.test.ts', '--reporter=json', '--outputFile='+str(report_path)],
+        result=subprocess.run(['npm','test','--','--run','src/render-preview-worker.test.ts', '--maxWorkers=2','--reporter=json', '--outputFile='+str(report_path)],
             cwd=repo/'apps/photographer',env=env,capture_output=True,text=True,timeout=60)
-        assert result.returncode==0,result.stdout+result.stderr
+        assert result.returncode==0,result.stdout+result.stderr+(report_path.read_text() if report_path.exists() else "")
         assert_live_vitest_report(report_path, 2, record_property)

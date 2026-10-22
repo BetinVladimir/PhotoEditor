@@ -9,7 +9,26 @@ from pydantic import ValidationError
 from photo_worker.contracts.archive import ArchiveManifest, ArchiveManifestEntry, ArchiveParams
 from photo_worker.contracts.base import canonical_bytes
 from photo_worker.runtime.artifacts import ArtifactConfig, TaskArtifacts
+from photo_worker.runtime.gateway import GatewayError
+from photo_worker.runtime.materialize import ArtifactTransferError
 from photo_worker.runtime.executor import ExecutionContext, Operation, OperationFailure, OperationResult
+
+
+def _entry_failure(exc, entry):
+    """Only stable, declared artifact identity may leave the archive operation."""
+    if isinstance(exc, GatewayError):
+        if exc.code == 'LEASE_LOST':
+            raise exc
+        allowed = {'ARTIFACT_MISSING', 'ARTIFACT_HASH_MISMATCH', 'DEPENDENCY_UNAVAILABLE'}
+        code = 'ARTIFACT_HASH_MISMATCH' if exc.code == 'ARTIFACT_SIZE_MISMATCH' else (exc.code if exc.code in allowed else 'INPUT_INVALID')
+        retryable = code == 'DEPENDENCY_UNAVAILABLE' and exc.retryable
+    elif isinstance(exc, ArtifactTransferError):
+        code = 'ARTIFACT_HASH_MISMATCH' if exc.args == ('ARTIFACT_HASH_MISMATCH',) else 'INPUT_INVALID'
+        retryable = False
+    else:
+        code, retryable = exc.error.code, exc.error.retryable
+    return OperationFailure(code, retryable=retryable, args={
+        'artifact_id': str(entry.artifact.artifact_id), 'sha256': entry.artifact.sha256})
 
 
 def _copy_entry(ctx: ExecutionContext, source, target, expected_bytes: int, expected_sha: str) -> str:
@@ -101,8 +120,11 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts) -> OperationResult:
                 info.compress_type = zipfile.ZIP_STORED
                 info.external_attr = 0o600 << 16
                 info.date_time = (1980, 1, 1, 0, 0, 0)
-                with artifacts.stream(entry.artifact) as source, archive.open(info, mode='w', force_zip64=True) as target:
-                    _copy_entry(ctx, source, target, entry.bytes, entry.artifact.sha256)
+                try:
+                    with artifacts.stream(entry.artifact) as source, archive.open(info, mode='w', force_zip64=True) as target:
+                        _copy_entry(ctx, source, target, entry.bytes, entry.artifact.sha256)
+                except (GatewayError, ArtifactTransferError, OperationFailure) as exc:
+                    raise _entry_failure(exc, entry) from exc
                 ctx.progress(ordinal + 1, total_steps)
             provisional = dict(schema_version=1, snapshot_id=str(params.snapshot_id),
                 snapshot_digest=params.snapshot_digest, volume_no=params.volume_no,

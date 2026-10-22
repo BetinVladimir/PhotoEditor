@@ -50,10 +50,10 @@ class AdoptionCoordinator:
     def __init__(self, read_connection: Connection, write_connection: Connection,
                  objects: VersionedObjectStore, allowed_bucket: str, *,
                  layer_scratch_root=None, layer_scratch_bytes=None,
-                 region_target_icc_sha=None, render_replay=None,
+                 region_target_icc_sha=None, region_replay=None, render_replay=None,
                  render_max_tile_bytes=None, semantic_authority=None, semantic_ram_bytes=None,
                  semantic_plan_snapshot=None, semantic_plan_provenance=None,
-                 exposure_installation=None, donor_installation=None, negative_installation=None, relight_installation=None, perspective_installation=None, perspective_lines_installation=None, multi_installations=(),
+                 exposure_installation=None, shown_exposure_installation=None, shown_removal_installation=None, shown_background_cleanup_installation=None, shown_retouch_installation=None, donor_installation=None, negative_installation=None, relight_installation=None, perspective_installation=None, perspective_lines_installation=None, multi_installations=(),
                  interchange_recipe_qualifier_factory=None, signing_operator=None, signing_sdk=None, check_active=lambda: None):
         if not read_connection.autocommit or read_connection is write_connection:
             raise ValueError("Use distinct autocommit read and transactional write connections")
@@ -86,6 +86,10 @@ class AdoptionCoordinator:
                 or any(c not in '0123456789abcdef' for c in region_target_icc_sha)):
             raise ValueError("Trusted region target ICC SHA must be lowercase SHA256")
         self.region_target_icc_sha = region_target_icc_sha
+        from .region_replay import NativeRegionReplay
+        if region_replay is not None and type(region_replay) is not NativeRegionReplay:
+            raise ValueError('Region adopter requires installed native replay')
+        self.region_replay=region_replay
         if render_replay is not None and not callable(render_replay):
             raise ValueError("Render replay must be an operator-configured context factory")
         self.render_replay = render_replay
@@ -103,6 +107,18 @@ class AdoptionCoordinator:
         if exposure_installation is not None and not callable(exposure_installation):
             raise ValueError('Exposure installation must be operator configured')
         self.exposure_installation = exposure_installation
+        if shown_exposure_installation is not None and not callable(shown_exposure_installation):
+            raise ValueError('Shown exposure installation must be operator configured')
+        self.shown_exposure_installation = shown_exposure_installation
+        if shown_removal_installation is not None and not callable(shown_removal_installation):
+            raise ValueError('Shown removal installation must be operator configured')
+        self.shown_removal_installation = shown_removal_installation
+        if shown_background_cleanup_installation is not None and not callable(shown_background_cleanup_installation):
+            raise ValueError('Shown background cleanup installation must be operator configured')
+        self.shown_background_cleanup_installation = shown_background_cleanup_installation
+        if shown_retouch_installation is not None and not callable(shown_retouch_installation):
+            raise ValueError('Shown retouch installation must be operator configured')
+        self.shown_retouch_installation = shown_retouch_installation
         self.donor_installation = None
         if donor_installation is not None:
             from copy import deepcopy
@@ -176,9 +192,28 @@ class AdoptionCoordinator:
         row = self.read_connection.execute(
             "SELECT * FROM photo.v2_adoption_context(%s,%s)", (tenant_id, task_id),
         ).fetchone()
+        if row is None:
+            row=self.read_connection.execute('SELECT * FROM photo.editor_effect_seal_adoption_context(%s,%s)',
+                (tenant_id,task_id)).fetchone()
         if row is None and self.exposure_installation is not None:
             row = self.read_connection.execute(
                 "SELECT * FROM photo.v27_exposure_adoption_context(%s,%s)", (tenant_id, task_id),
+            ).fetchone()
+        if row is None and self.shown_exposure_installation is not None:
+            row = self.read_connection.execute(
+                "SELECT * FROM photo.v27_shown_exposure_adoption_context(%s,%s)", (tenant_id, task_id),
+            ).fetchone()
+        if row is None and self.shown_removal_installation is not None:
+            row = self.read_connection.execute(
+                "SELECT * FROM photo.v27_shown_removal_adoption_context(%s,%s)", (tenant_id, task_id),
+            ).fetchone()
+        if row is None and self.shown_background_cleanup_installation is not None:
+            row = self.read_connection.execute(
+                "SELECT * FROM photo.v27_shown_background_cleanup_adoption_context(%s,%s)", (tenant_id, task_id),
+            ).fetchone()
+        if row is None and self.shown_retouch_installation is not None:
+            row = self.read_connection.execute(
+                "SELECT * FROM photo.v27_shown_retouch_adoption_context(%s,%s)", (tenant_id, task_id),
             ).fetchone()
         if row is None:
             raise AdoptionInvalid("V2_ADOPTION_CONTEXT_STALE")
@@ -227,10 +262,16 @@ class AdoptionCoordinator:
         self.check_active()
         if context.operation == 'region.preview' and self.region_target_icc_sha is None:
             raise AdoptionInvalid('REGION_ADOPTION_ICC_REQUIRED')
+        if context.operation == 'region.preview' and self.region_replay is None:
+            raise AdoptionInvalid('REGION_REPLAY_INSTALLATION_REQUIRED')
         reader = PostgresObjectEvidenceReader(
             self.read_connection, self.objects, tenant_id=tenant_id, task_id=task_id,
             attempt=context.attempt, fence=context.fence, allowed_bucket=self.allowed_bucket,
             exposure=context.operation == 'semantic.local_exposure',
+            editor_seal=context.operation == 'editor.effects_seal',
+            shown_operation=context.operation if context.operation in (
+                'semantic.adopt_shown_exposure','semantic.adopt_shown_removal',
+                'semantic.adopt_shown_background_cleanup','semantic.adopt_shown_retouch_region') else None,
         )
         render_cache_body = None
         prepared_donor = None
@@ -243,7 +284,16 @@ class AdoptionCoordinator:
         prepared_import = None
         prepared_signing = None
         delivery_commit_signed = False
-        if context.operation == 'render.compose':
+        if context.operation == 'editor.effects_seal':
+            if self.layer_scratch_root is None or self.layer_scratch_bytes is None:
+                raise AdoptionInvalid('EDITOR_SEAL_ADOPTION_SCRATCH_REQUIRED')
+            from .editor_seal_adoption import load_editor_seal_adoption_inputs
+            scoped=load_editor_seal_adoption_inputs(self.read_connection,tenant_id,task_id,context)
+            prepared=prepare_v2_adoption(task_id=task_id,operation=context.operation,version=context.version,
+                root=context.root,reader=reader,params_ref=scoped.params,editor_seal_inputs=scoped,
+                layer_scratch_root=self.layer_scratch_root,layer_scratch_bytes=self.layer_scratch_bytes,
+                check_active=self.check_active)
+        elif context.operation == 'render.compose':
             from .render_adoption_inputs import load_render_adoption_inputs
             from .render_prepare_adoption import prepare_render_adoption
             inputs = load_render_adoption_inputs(self.read_connection, tenant_id, task_id, context)
@@ -460,7 +510,59 @@ class AdoptionCoordinator:
                 ArtifactRef(row[0], row[1]), context.root, check_active=self.check_active)
         else:
             params_ref = None
+            if context.operation in ('portrait.hair', 'portrait.clothing'):
+                row = self.read_connection.execute(
+                    'SELECT params_id,params_sha FROM photo.v28_local_portrait_adoption_params(%s,%s,%s,%s,%s)',
+                    (tenant_id,task_id,context.attempt,context.fence,context.result_id)).fetchone()
+                if row is None:
+                    raise AdoptionInvalid('LOCAL_PORTRAIT_ADOPTION_PARAMS_STALE')
+                params_ref = ArtifactRef(row[0], row[1])
             exposure = None
+            shown_exposure = None
+            shown_removal = None
+            shown_background_cleanup = None
+            shown_retouch = None
+            retouch_preview_admission = None
+            if context.operation == 'semantic.preview_retouch_region':
+                from .retouch_preview_admission import sql_retouch_preview_adoption_admission
+                params_ref,retouch_preview_admission=sql_retouch_preview_adoption_admission(
+                    self.read_connection,tenant_id,task_id,context,check_active=self.check_active)
+            if context.operation == 'semantic.adopt_shown_exposure':
+                from .shown_exposure_installation import ShownExposureAdoptionInstallation
+                if self.shown_exposure_installation is None:
+                    raise AdoptionInvalid('SEMANTIC_SHOWN_INSTALLATION_REQUIRED')
+                shown_exposure = self.shown_exposure_installation(tenant_id,task_id,context,reader)
+                self.check_active()
+                if not isinstance(shown_exposure,ShownExposureAdoptionInstallation):
+                    raise AdoptionInvalid('SEMANTIC_SHOWN_INSTALLATION_REQUIRED')
+                params_ref = shown_exposure.params
+            if context.operation == 'semantic.adopt_shown_removal':
+                from .shown_removal_installation import ShownRemovalAdoptionInstallation
+                if self.shown_removal_installation is None:
+                    raise AdoptionInvalid('SEMANTIC_SHOWN_INSTALLATION_REQUIRED')
+                shown_removal = self.shown_removal_installation(tenant_id,task_id,context,reader)
+                self.check_active()
+                if not isinstance(shown_removal,ShownRemovalAdoptionInstallation):
+                    raise AdoptionInvalid('SEMANTIC_SHOWN_INSTALLATION_REQUIRED')
+                params_ref = shown_removal.params
+            if context.operation == 'semantic.adopt_shown_background_cleanup':
+                from .shown_background_cleanup_installation import ShownBackgroundCleanupAdoptionInstallation
+                if self.shown_background_cleanup_installation is None:
+                    raise AdoptionInvalid('SEMANTIC_SHOWN_INSTALLATION_REQUIRED')
+                shown_background_cleanup = self.shown_background_cleanup_installation(tenant_id,task_id,context,reader)
+                self.check_active()
+                if not isinstance(shown_background_cleanup,ShownBackgroundCleanupAdoptionInstallation):
+                    raise AdoptionInvalid('SEMANTIC_SHOWN_INSTALLATION_REQUIRED')
+                params_ref = shown_background_cleanup.params
+            if context.operation == 'semantic.adopt_shown_retouch_region':
+                from .shown_retouch_installation import ShownRetouchAdoptionInstallation
+                if self.shown_retouch_installation is None:
+                    raise AdoptionInvalid('SEMANTIC_SHOWN_INSTALLATION_REQUIRED')
+                shown_retouch = self.shown_retouch_installation(tenant_id,task_id,context,reader)
+                self.check_active()
+                if not isinstance(shown_retouch,ShownRetouchAdoptionInstallation):
+                    raise AdoptionInvalid('SEMANTIC_SHOWN_INSTALLATION_REQUIRED')
+                params_ref = shown_retouch.params
             if context.operation == 'semantic.local_exposure':
                 from .exposure_adoption import ExposureAdoptionInstallation
                 if self.exposure_installation is None:
@@ -479,6 +581,16 @@ class AdoptionCoordinator:
                 if row is None:
                     raise AdoptionInvalid('REGION_ADOPTION_PARAMS_STALE')
                 params_ref = ArtifactRef(row[0], row[1])
+                replay_args=(tenant_id,task_id,context.attempt,context.fence,context.result_id)
+                replay_sql='SELECT photo.v26_region_adoption_execution_profile(%s,%s,%s,%s,%s)'
+                row=self.read_connection.execute(replay_sql,replay_args).fetchone()
+                if row is None or not isinstance(row[0],dict):raise AdoptionInvalid('REGION_REPLAY_PROFILE_STALE')
+                from copy import deepcopy
+                replay_profile=deepcopy(row[0])
+                self.region_replay.verify(reader,params_ref,context.root,task_id=task_id,attempt=context.attempt,
+                    fence=context.fence,profile=replay_profile,check_active=self.check_active)
+                row=self.read_connection.execute(replay_sql,replay_args).fetchone()
+                if row is None or row[0]!=replay_profile:raise AdoptionInvalid('REGION_REPLAY_PROFILE_STALE')
             if context.operation == 'v2.semantic.assemble':
                 if self.semantic_plan_snapshot is None or self.semantic_plan_provenance is None:
                     raise AdoptionInvalid('SEMANTIC_PLAN_AUTHORITY_REQUIRED')
@@ -545,6 +657,11 @@ class AdoptionCoordinator:
                                            exposure_admission=None if exposure is None else exposure.verify_admission,
                                            exposure_origin=None if exposure is None else exposure.verify_origin,
                                            exposure_color=None if exposure is None else exposure.verify_color,
+                                           retouch_preview_admission=retouch_preview_admission,
+                                           shown_exposure_admission=None if shown_exposure is None else shown_exposure.verify_admission,
+                                           shown_removal_admission=None if shown_removal is None else shown_removal.verify_admission,
+                                           shown_background_cleanup_admission=None if shown_background_cleanup is None else shown_background_cleanup.verify_admission,
+                                           shown_retouch_admission=None if shown_retouch is None else shown_retouch.verify_admission,
                                            check_active=self.check_active)
         # The SQL function locks tenant → run → task, then rechecks every
         # relation. Any cancel, revoke or fence change during preparation
@@ -552,6 +669,32 @@ class AdoptionCoordinator:
         params = (tenant_id, task_id, context.attempt, context.fence, context.result_id,
                   Jsonb(list(prepared.inventory)), prepared.digest)
         statement = "SELECT photo.adopt_v2_plan(%s,%s,%s,%s,%s,%s,%s)"
+        if context.operation=='editor.effects_seal':
+            statement='SELECT photo.adopt_editor_effect_seal(%s,%s,%s,%s,%s,%s,%s)'
+        if context.operation == 'semantic.adopt_shown_exposure':
+            from .shown_exposure_commit import shown_exposure_commit_inputs
+            additions=shown_exposure_commit_inputs(reader,shown_exposure,context.root,
+                check_active=self.check_active)
+            params += additions
+            statement = 'SELECT photo.adopt_shown_exposure('+','.join(['%s']*14)+')'
+        if context.operation == 'semantic.adopt_shown_removal':
+            from .shown_removal_commit import shown_removal_commit_inputs
+            additions=shown_removal_commit_inputs(reader,shown_removal,context.root,
+                check_active=self.check_active)
+            params += additions
+            statement = 'SELECT photo.adopt_shown_removal('+','.join(['%s']*14)+')'
+        if context.operation == 'semantic.adopt_shown_background_cleanup':
+            from .shown_background_cleanup_commit import shown_background_cleanup_commit_inputs
+            additions=shown_background_cleanup_commit_inputs(reader,shown_background_cleanup,context.root,
+                check_active=self.check_active)
+            params += additions
+            statement = 'SELECT photo.adopt_shown_background_cleanup('+','.join(['%s']*14)+')'
+        if context.operation == 'semantic.adopt_shown_retouch_region':
+            from .shown_retouch_commit import shown_retouch_commit_inputs
+            additions=shown_retouch_commit_inputs(reader,shown_retouch,context.root,
+                check_active=self.check_active)
+            params += additions
+            statement = 'SELECT photo.adopt_shown_retouch('+','.join(['%s']*14)+')'
         if prepared_donor is not None:
             params += (prepared_donor.evidence_jcs.decode('utf-8'),)
             statement = 'SELECT photo.adopt_v28_donor(%s,%s,%s,%s,%s,%s,%s,%s)'
@@ -627,9 +770,26 @@ class AdoptionCoordinator:
                     self.check_active()
                     if prepared_parse is not None or prepared_donor is not None:
                         self.write_connection.execute("SELECT set_config('app.tenant_id',%s,true)", (str(tenant_id),))
+                    if context.operation in ('portrait.hair', 'portrait.clothing'):
+                        # Physical reads can outlive consent/source/qualification. Recheck
+                        # the exact original task result in this adoption transaction;
+                        # the publisher repeats this fence after typed-link insertion.
+                        self.write_connection.execute("SELECT set_config('app.tenant_id',%s,true)", (str(tenant_id),))
+                        local_authority = self.write_connection.execute(
+                            'SELECT params_id,params_sha FROM photo.v28_local_portrait_adoption_params(%s,%s,%s,%s,%s)',
+                            (tenant_id,task_id,context.attempt,context.fence,context.result_id)).fetchone()
+                        if local_authority is None or ArtifactRef(local_authority[0],local_authority[1]) != params_ref:
+                            raise AdoptionInvalid('LOCAL_PORTRAIT_ADOPTION_PARAMS_STALE')
                     row = self.write_connection.execute(
                         statement, params,
                     ).fetchone()
+                    if context.operation in ('portrait.hair','portrait.clothing') and row and row[0]:
+                        self.write_connection.execute("SELECT set_config('app.tenant_id',%s,true)", (str(tenant_id),))
+                        local_result = self.write_connection.execute(
+                            'SELECT photo.publish_v28_local_portrait_result(%s,%s,%s)',
+                            (tenant_id,task_id,context.result_id)).fetchone()
+                        if local_result is None or not isinstance(local_result[0],UUID):
+                            raise AdoptionInvalid('LOCAL_PORTRAIT_RESULT_PUBLICATION_STALE')
                     if prepared_donor is not None and row and row[0]:
                         _publish_donor_review(self.write_connection,tenant_id,task_id,context.result_id)
                     if render_cache_body is not None:

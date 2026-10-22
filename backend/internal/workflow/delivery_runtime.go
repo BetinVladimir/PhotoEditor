@@ -128,5 +128,5 @@ func NewDeliveryExpansionJob(db *pgxpool.Pool, objects artifactjson.Objects, rea
 		assembly.SignedObjects = signedObjects
 	}
 	metadata := DeliveryMetadataJob{Leases: delivery.MetadataNextBarrierStore{DB: db}, Stage: DeliveryMetadataStage{DB: db, Objects: objects, Bucket: bucket, Registry: registry, Limits: c.Limits}}
-	return DeliveryExpansionJob{Metadata: metadata, Cleanup: delivery.ExpansionLeaseStore{DB: db}, WorkTimeout: c.WorkTimeout, Driver: DeliveryExpansionDriver{Store: DeliveryRuntimePlanStore{ExpansionLeaseStore: delivery.ExpansionLeaseStore{DB: db, Instance: instance, Bucket: bucket}, Transactions: db}, Children: router, Observer: router, Assembly: assembly, PageSize: c.PageSize}}, nil
+	return DeliveryExpansionJob{Metadata: metadata, Cleanup: delivery.ExpansionLeaseStore{DB: db, Instance: instance, Bucket: bucket}, WorkTimeout: c.WorkTimeout, Driver: DeliveryExpansionDriver{Store: DeliveryRuntimePlanStore{ExpansionLeaseStore: delivery.ExpansionLeaseStore{DB: db, Instance: instance, Bucket: bucket}, Transactions: db}, Children: router, Observer: router, Assembly: assembly, PageSize: c.PageSize}}, nil
 }

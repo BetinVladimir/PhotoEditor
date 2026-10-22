@@ -30,7 +30,7 @@ func (s SQLTransferSourceReader) validateNativeInputManualTransferReference(ctx 
 	if string(expected) != p.person.expected {
 		return v2input.ErrConflict
 	}
-	selected, err := selectQualificationPolicies(p.policy, []string{"semantic.transfer", "mask.person"})
+	selected, err := selectNativeQualificationPolicies(p.policy, []string{"semantic.transfer", "mask.person"})
 	if err != nil {
 		return err
 	}

@@ -340,3 +340,37 @@ func TestSkinRecoveryProfileVersionRetainsExactIndexBudget(t *testing.T) {
 		}
 	}
 }
+
+// A saved backend is a compiler locator, never a qualification grant.
+func TestNativeRecoveryBackendLocatorIsExactAndCUDAWireCompatible(t *testing.T) {
+	report := v2input.Ref{ArtifactID: uuid.New(), SHA256: strings.Repeat("a", 64)}
+	for _, backend := range []string{"cuda", "mps"} {
+		task := v2input.DraftTask{Operation: "mask.person", ExecutionProfile: json.RawMessage(`{"backend":"` + backend + `","resource_estimate":{"ram_bytes":1024,"vram_bytes":256,"scratch_bytes":2048,"output_bytes":4096}}`)}
+		metadata, err := nativePlanRecoveryFromTask(task, &report, v2input.SemanticQualifiedCosts{VRAMBytes: 128}, 16<<20)
+		if err != nil {
+			t.Fatal(err)
+		}
+		raw, err := canonical.Marshal(metadata)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if backend == "cuda" && (metadata.Backend != "" || strings.Contains(string(raw), `"backend"`)) {
+			t.Fatal("changed existing CUDA metadata wire")
+		}
+		if backend == "mps" && metadata.Backend != "mps" {
+			t.Fatal("missing MPS locator")
+		}
+		if _, err := decodeNativePlanRecoveryMetadata(raw, task); err != nil {
+			t.Fatal("original backend refused", err)
+		}
+		changed := task
+		other := "mps"
+		if backend == "mps" {
+			other = "cuda"
+		}
+		changed.ExecutionProfile = json.RawMessage(strings.Replace(string(task.ExecutionProfile), `"`+backend+`"`, `"`+other+`"`, 1))
+		if _, err := decodeNativePlanRecoveryMetadata(raw, changed); err == nil {
+			t.Fatal("cross-backend recovery accepted")
+		}
+	}
+}

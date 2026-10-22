@@ -1,6 +1,7 @@
 package main
 
 import (
+ "photoeditor/backend/internal/database"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -112,6 +113,7 @@ func buildReflectionCreate(ctx context.Context, catalog *pgxpool.Pool,
 		return nil, noop, errors.New("reflection scheduler configuration invalid")
 	}
 	poolConfig.ConnConfig.RuntimeParams["role"] = "photo_scheduler"
+	database.GuardApplicationRole(poolConfig)
 	scheduler, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
 		return nil, noop, errors.New("reflection scheduler unavailable")
@@ -126,6 +128,8 @@ func buildReflectionCreate(ctx context.Context, catalog *pgxpool.Pool,
   to_regprocedure('photo.begin_v28_reflection_draft(text,text,text,bigint)') IS NOT NULL
   AND to_regprocedure('photo.v28_reflection_params_request_scope(uuid,uuid,jsonb)') IS NOT NULL
   AND to_regprocedure('photo.read_v28_reflection_admission_ticket(uuid,uuid,uuid,uuid,uuid,uuid,text,text,jsonb,jsonb)') IS NOT NULL
+  AND to_regprocedure('photo.v28_reflection_current_authority(uuid,uuid,uuid,uuid)') IS NOT NULL
+  AND to_regprocedure('photo.apply_v28_reflection_version(uuid,uuid,uuid,uuid,text,text,text)') IS NOT NULL
   AND to_regprocedure('photo.v28_manual_pair_origin(uuid,uuid,uuid,uuid,uuid,jsonb,uuid,text,uuid,text,uuid,text,uuid,text)') IS NOT NULL`).Scan(&role, &installed)
 	if err != nil || role != "photo_scheduler" || !installed {
 		return closeOnError("reflection SQL installation unavailable")

@@ -1,11 +1,17 @@
 // @vitest-environment jsdom
+vi.mock('expo-router',async()=> (await import('./test/locale-router')).localeRouterFixture);
+import {expectEnabled,clickWhenEnabled} from './test/ui-readiness';
 import {afterEach,expect,it,vi} from 'vitest';
 import {act,cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
 import {APIError} from '@photoeditor/api-client';
+// This standalone screen fixture explicitly grants current workspace edit authority.
+// JSDOM has no Web Locks; the controller's own per-journal execution queue remains exercised.
+vi.mock('./semantic-attempt-store',async importOriginal=>({...await importOriginal<typeof import('./semantic-attempt-store')>(),semanticJournalLock:async<T,>(_key:string,action:()=>Promise<T>)=>action()}));
+vi.mock('./workspace-access-context',()=>({useWorkspaceAccess:()=>({actor:'00000000-0000-4000-8000-000000000001',canEdit:true,canAdmin:true})}));
 vi.mock('react-native',async()=>({...await import('react-native-web'),Linking:{openURL:vi.fn().mockResolvedValue(undefined)}}));
 import {Linking} from 'react-native';
-vi.mock('expo-router',()=>({router:{push:vi.fn()}}));
-import {router} from 'expo-router';
+vi.mock('./localized-router',()=>({router:{push:vi.fn()}}));
+import {router} from './localized-router';
 import {LocaleProvider} from './locale-context';
 import {LocalePicker} from './locale-picker';
 import ru from '../../../locales/ru/common.json';
@@ -27,9 +33,9 @@ it('shows loading then polls until terminal and uses server run identity',async(
  terminal=true;await act(async()=>{await vi.advanceTimersByTimeAsync(5000);});expect(screen.getByText('Completed')).toBeTruthy();
  const count=request.mock.calls.length;await act(async()=>{await vi.advanceTimersByTimeAsync(15000);});expect(request).toHaveBeenCalledTimes(count);
 });
-it('clears prior metadata and stops polling when access is revoked',async()=>{
+it.each([401,403,404,410])('clears prior metadata and stops polling on unavailable status %s',async(status)=>{
  vi.useFakeTimers();let denied=false;
- const request=vi.fn((path:string,_options?:{signal?:AbortSignal})=>denied?Promise.reject(new APIError(403,'FORBIDDEN')):Promise.resolve(path.endsWith('/inspection')?inspection():job()));
+ const request=vi.fn((path:string,_options?:{signal?:AbortSignal})=>denied?Promise.reject(new APIError(status,'FORBIDDEN')):Promise.resolve(path.endsWith('/inspection')?inspection():job()));
  render(<InterchangeJobScreen {...props(request)}/>);await flush();expect(screen.getByText('Open run')).toBeTruthy();
  denied=true;await act(async()=>{await vi.advanceTimersByTimeAsync(5000);});
  expect(screen.getByText('This job is unavailable.')).toBeTruthy();expect(screen.queryByText('Open run')).toBeNull();
@@ -88,7 +94,7 @@ it('clears stale choices when polling observes a new review revision',async()=>{
  await act(async()=>{await vi.advanceTimersByTimeAsync(5000);});
  expect(screen.getByText('Review changed. Select decisions again.')).toBeTruthy();
  expect(screen.getByText('Save decisions (0)')).toBeTruthy();
- expect(screen.getByRole('checkbox',{name:'Approve photo-1'}).getAttribute('aria-checked')).toBe('false');
+ expect(screen.getByRole('checkbox',{name:'Approve photo-1'}).getAttribute('aria-checked')).not.toBe('true');
 });
 it('guards double submission and aborts the decision when leaving the scope',async()=>{
  const request=vi.fn((path:string,options?:any)=>options?.method==='POST'?new Promise(()=>{}):Promise.resolve(path.endsWith('/inspection')?reviewInspection():job()));
@@ -100,25 +106,25 @@ it('guards double submission and aborts the decision when leaving the scope',asy
 });
 
 const exportJob=()=>{const value=job();return {...value,data:{...value.data,direction:'export',format:'xmp',report_artifact_id:id(5),bundle_artifact_id:id(6)}};};
-const archiveOutput=()=>({items:[{artifact_id:id(6),role:'bundle',sha256:'a'.repeat(64),bytes:4096,media_type:'application/zip',url:'https://objects.example/archive?signature=opaque',expires_at:new Date(Date.now()+60000).toISOString()}]});
+const archiveOutput=()=>({items:[{artifact_id:id(6),role:'bundle',sha256:'a'.repeat(64),bytes:4096,media_type:'application/zip',url:'https://objects.example/archive?signature=opaque&versionId=archive-v1',expires_at:new Date(Date.now()+60000).toISOString()}]});
 async function flushDownload(){await act(async()=>{for(let i=0;i<16;i++)await Promise.resolve();});}
 it('opens only the archive from a fresh completed export snapshot',async()=>{
- const request=vi.fn((path:string)=>Promise.resolve(path.endsWith('/outputs')?archiveOutput():path.endsWith('/inspection')?inspection(1,'completed','completed'):exportJob()));
+ const request=vi.fn((path:string):Promise<unknown>=>Promise.resolve(path.endsWith('/outputs')?archiveOutput():path.endsWith('/inspection')?inspection(1,'completed','completed'):exportJob()));
  render(<InterchangeJobScreen {...props(request)}/>);await flushDownload();
  fireEvent.click(screen.getByText('Download export archive'));await flushDownload();
- expect(Linking.openURL).toHaveBeenCalledTimes(1);expect(Linking.openURL).toHaveBeenCalledWith('https://objects.example/archive?signature=opaque');
+ expect(Linking.openURL).toHaveBeenCalledTimes(1);expect(Linking.openURL).toHaveBeenCalledWith('https://objects.example/archive?signature=opaque&versionId=archive-v1');
  expect(request.mock.calls.filter(call=>call[0].endsWith('/outputs'))).toHaveLength(1);
  expect(request.mock.calls.filter(call=>call[0].endsWith('/inspection'))).toHaveLength(3);
 });
 it('does not show download for pending exports or imports',async()=>{
- const request=vi.fn((path:string)=>Promise.resolve(path.endsWith('/inspection')?inspection(1,'running','finalizing'):exportJob()));
+ const request=vi.fn((path:string):Promise<unknown>=>Promise.resolve(path.endsWith('/inspection')?inspection(1,'running','finalizing'):exportJob()));
  const view=render(<InterchangeJobScreen {...props(request)}/>);await flushDownload();expect(screen.queryByText('Download export archive')).toBeNull();
  view.unmount();request.mockImplementation((path:string)=>Promise.resolve(path.endsWith('/inspection')?inspection(1,'completed','completed'):job()));
  render(<InterchangeJobScreen {...props(request)}/>);await flushDownload();expect(screen.queryByText('Download export archive')).toBeNull();
 });
-it('clears archive controls when output access is denied and permits refresh',async()=>{
+it.each([401,403,404,410])('clears archive controls on unavailable status %s and permits explicit refresh',async(status)=>{
  let denied=true;
- const request=vi.fn((path:string)=>path.endsWith('/outputs')&&denied?Promise.reject(new APIError(403,'FORBIDDEN')):Promise.resolve(path.endsWith('/outputs')?archiveOutput():path.endsWith('/inspection')?inspection(1,'completed','completed'):exportJob()));
+ const request=vi.fn((path:string)=>path.endsWith('/outputs')&&denied?Promise.reject(new APIError(status,'FORBIDDEN')):Promise.resolve(path.endsWith('/outputs')?archiveOutput():path.endsWith('/inspection')?inspection(1,'completed','completed'):exportJob()));
  render(<InterchangeJobScreen {...props(request)}/>);await flushDownload();fireEvent.click(screen.getByText('Download export archive'));await flushDownload();
  expect(screen.getByText('This archive is unavailable.')).toBeTruthy();expect(screen.queryByText('Download export archive')).toBeNull();expect(Linking.openURL).not.toHaveBeenCalled();
  denied=false;fireEvent.click(screen.getByText('Refresh'));await flushDownload();expect(screen.queryByText('This archive is unavailable.')).toBeNull();fireEvent.click(screen.getByText('Download export archive'));await flushDownload();expect(Linking.openURL).toHaveBeenCalledTimes(1);
@@ -157,7 +163,7 @@ it('aborts an archive request when navigating to another job and ignores its lat
 });
 it('reports an external opener failure and releases the download lock for retry',async()=>{
  vi.mocked(Linking.openURL).mockRejectedValueOnce(new Error('opener unavailable'));
- const request=vi.fn((path:string)=>Promise.resolve(path.endsWith('/outputs')?archiveOutput():path.endsWith('/inspection')?inspection(1,'completed','completed'):exportJob()));
+ const request=vi.fn((path:string):Promise<unknown>=>Promise.resolve(path.endsWith('/outputs')?archiveOutput():path.endsWith('/inspection')?inspection(1,'completed','completed'):exportJob()));
  render(<InterchangeJobScreen {...props(request)}/>);await flushDownload();fireEvent.click(screen.getByText('Download export archive'));await flushDownload();
  expect(screen.getByText('Unable to download archive. Refresh and try again.')).toBeTruthy();
  fireEvent.click(screen.getByText('Refresh'));await flushDownload();fireEvent.click(screen.getByText('Download export archive'));await flushDownload();expect(Linking.openURL).toHaveBeenCalledTimes(2);
@@ -176,7 +182,7 @@ it('replacing API client cancels old mutation and resets pending review choices'
  view.rerender(<InterchangeJobScreen {...props(nextRequest)}/>);await flush();
  expect(post[1].signal.aborted).toBe(true);
  expect(screen.getByText('Save decisions (0)')).toBeTruthy();
- expect(screen.getByRole('checkbox',{name:'Approve photo-1'}).getAttribute('aria-checked')).toBe('false');
+ expect(screen.getByRole('checkbox',{name:'Approve photo-1'}).getAttribute('aria-checked')).not.toBe('true');
  const before=nextRequest.mock.calls.length;
  await act(async()=>finish({workflow_id:id(1),revision:'2',remaining:0,batch_id:id(15),child:null}));
  await flush();
@@ -300,9 +306,9 @@ it('switches recovery language without replacing durable intent or submitting it
  const pending={version:1 as const,kind:'decide' as const,key:'original-key',inspection:reviewInspection() as any,decisions:[{entry_id:id(10),decision:'reject' as const}],receipt:null};await journal.write(pending);
  const request=vi.fn((path:string,_options?:any)=>Promise.resolve(path.endsWith('/inspection')?reviewInspection():job()));
  render(<LocaleProvider><LocalePicker/><InterchangeJobScreen {...props(request)} journal={journal}/></LocaleProvider>);await flush();
- fireEvent.click(screen.getByRole('button',{name:'Русский'}));
+ fireEvent.click(screen.getByRole('radio',{name:'Русский'}));
  expect(screen.getByRole('button',{name:ru.interchange_recovery_retry})).toBeTruthy();
- fireEvent.click(screen.getByRole('button',{name:'Български'}));
+ fireEvent.click(screen.getByRole('radio',{name:'Български'}));
  expect(screen.getByRole('button',{name:bg.interchange_recovery_retry})).toBeTruthy();
  expect((await journal.read())?.key).toBe('original-key');expect(request.mock.calls.every(call=>call[1]?.method!=='POST')).toBe(true);
 });
@@ -312,9 +318,9 @@ it('switches a displayed job error language without another request',async()=>{
  const request=vi.fn().mockRejectedValue(new Error('offline'));
  render(<LocaleProvider><LocalePicker/><InterchangeJobScreen {...props(request)}/></LocaleProvider>);await flush();
  const calls=request.mock.calls.length;
- fireEvent.click(screen.getByRole('button',{name:'Русский'}));
+ fireEvent.click(screen.getByRole('radio',{name:'Русский'}));
  expect(screen.getByRole('alert').textContent).toBe(ru.interchange_error_job_load);
- fireEvent.click(screen.getByRole('button',{name:'Български'}));
+ fireEvent.click(screen.getByRole('radio',{name:'Български'}));
  expect(screen.getByRole('alert').textContent).toBe(bg.interchange_error_job_load);
  expect(request).toHaveBeenCalledTimes(calls);
 });
@@ -337,9 +343,9 @@ it('stops a durable review request then retries the same selection and key',asyn
  fireEvent.click(screen.getByRole('checkbox',{name:'Approve photo-1'}));fireEvent.click(screen.getByText('Save decisions (1)'));
  await waitFor(()=>expect(firstSignal).toBeDefined());const pending=await journal.read();
  fireEvent.click(screen.getByText('Stop waiting'));
- await waitFor(()=>expect(screen.getByRole('button',{name:'Retry saved review action'}).getAttribute('aria-disabled')).not.toBe('true'));
+ await waitFor(()=>expectEnabled(screen.getByRole('button',{name:'Retry saved review action'})));
  expect(firstSignal!.aborted).toBe(true);expect((await journal.read())?.key).toBe(pending?.key);
- fireEvent.click(screen.getByText('Retry saved review action'));
+ await clickWhenEnabled(screen.getByRole('button',{name:'Retry saved review action'}));
  await waitFor(()=>expect(posts).toBe(2));await waitFor(async()=>expect(await journal.read()).toBeNull());
  const sent=request.mock.calls.filter(call=>call[1]?.method==='POST');
  expect(sent[1][1].idempotencyKey).toBe(sent[0][1].idempotencyKey);expect(sent[1][1].body).toEqual(sent[0][1].body);

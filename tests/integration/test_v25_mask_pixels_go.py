@@ -1,4 +1,5 @@
 """Actual Go/API/SQL binary lifecycle with injected object transport."""
+from pathlib import Path as _PhotoRepositoryPath
 from pathlib import Path
 import json
 import os
@@ -20,7 +21,7 @@ def test_mask_pixels_go_publication_and_recovery(database):
         with db.transaction():
             case=seed_original_composition(db)
             db.execute('INSERT INTO photo.tenant_usage(tenant_id) VALUES(%s) ON CONFLICT DO NOTHING',(case['Tenant'],))
-        env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_MASK_PIXELS_CASE=json.dumps(case),GOCACHE='/private/tmp/photoeditor-go-cache')
+        env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_MASK_PIXELS_CASE=json.dumps(case),GOCACHE=str(_PhotoRepositoryPath(__file__).resolve().parents[2]/'work/go-cache'))
         result=subprocess.run(['go','test','./internal/v2render','-run','^TestIntegrationUserMaskPixelsPublisher$','-count=1'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=45)
         assert result.returncode==0,result.stdout+result.stderr
         rows=db.execute("SELECT u.bytes,u.state,a.media_type,a.output_role,u.mask_width,u.mask_height FROM photo.v2_draft_uploads u JOIN photo.artifacts a ON a.tenant_id=u.tenant_id AND a.id=u.artifact_id WHERE u.tenant_id=%s AND u.upload_contract='MaskPixels'",(case['Tenant'],)).fetchall()
@@ -36,7 +37,7 @@ def test_mask_pixels_real_s3_publication(database,lens_objects):
             case=seed_original_composition(db)
             db.execute('INSERT INTO photo.tenant_usage(tenant_id) VALUES(%s) ON CONFLICT DO NOTHING',(case['Tenant'],))
         case['Objects']=client._photo_test_config
-        env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_MASK_PIXELS_S3_CASE=json.dumps(case),GOCACHE='/private/tmp/photoeditor-go-cache')
+        env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_MASK_PIXELS_S3_CASE=json.dumps(case),GOCACHE=str(_PhotoRepositoryPath(__file__).resolve().parents[2]/'work/go-cache'))
         result=subprocess.run(['go','test','./internal/v2render','-run','^TestIntegrationUserMaskPixelsS3$','-count=1'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=50)
         assert result.returncode==0,result.stdout+result.stderr
         rows=db.execute("SELECT a.object_key,a.object_version,a.sha256,a.bytes FROM photo.v2_draft_uploads u JOIN photo.artifacts a ON a.tenant_id=u.tenant_id AND a.id=u.artifact_id WHERE u.tenant_id=%s AND u.upload_contract='MaskPixels' AND u.state='ready'",(case['Tenant'],)).fetchall()
@@ -92,7 +93,7 @@ def test_verified_new_user_mask_real_s3(database,lens_objects):
             db.execute("UPDATE photo.tenants SET quotas=jsonb_set(quotas,'{storage_bytes}','100000000') WHERE id=%s",(case['Tenant'],))
             db.execute('INSERT INTO photo.tenant_usage(tenant_id) VALUES(%s) ON CONFLICT DO NOTHING',(case['Tenant'],))
         case.update(Objects=client._photo_test_config,SourceBody=body.decode())
-        env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_VERIFIED_MASK_S3_CASE=json.dumps(case),GOCACHE='/private/tmp/photoeditor-go-cache')
+        env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_VERIFIED_MASK_S3_CASE=json.dumps(case),GOCACHE=str(_PhotoRepositoryPath(__file__).resolve().parents[2]/'work/go-cache'))
         result=subprocess.run(['go','test','./internal/v2render','-run','^TestIntegrationVerifiedUserMaskS3$','-count=1'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=50)
         assert result.returncode==0,result.stdout+result.stderr
         rows=db.execute("SELECT u.upload_contract,u.bytes,a.object_key,a.object_version FROM photo.v2_draft_uploads u JOIN photo.artifacts a ON a.tenant_id=u.tenant_id AND a.id=u.artifact_id WHERE u.tenant_id=%s AND u.bucket=%s AND u.state='ready' ORDER BY u.upload_contract",(case['Tenant'],bucket)).fetchall()

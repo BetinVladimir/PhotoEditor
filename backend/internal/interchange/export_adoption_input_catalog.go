@@ -72,7 +72,7 @@ func validExportInputContract(contract string) bool {
 		"MaskRef", "CandidateProfile", "DescriptorShard", "FaceObservations",
 		"ResolvedStyle", "Stats20", "SeriesCorrections", "PoseSet", "BodyFit",
 		"PairAlignment", "FaceBoxes", "FaceLandmarks", "AbsoluteLUTArray",
-		"DustCandidates", "DefectCandidates", "DefectReview", "DefectLabelMap",
+		"DustCandidates", "DefectCandidates", "DefectReview", "DefectProposeReport", "DefectLabelMap", "DefectLabelPNG",
 		"StyleBackgroundAsset",
 		"EncodedImage", "WorkingPixels", "WorkingAlpha", "PixelArray", "MaskPixels",
 		"MaskArray", "DenseWarpField", "DenseWarpArray":

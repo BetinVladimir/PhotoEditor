@@ -23,6 +23,20 @@ func NewExportOperationParamsValidator(other ExportTypedDocumentValidator,source
 }
 func exportParamsOperationShape(raw []byte)(string,error){
  var fields map[string]json.RawMessage;if json.Unmarshal(raw,&fields)!=nil{return "",v2input.ErrInvalid}
+ // Automatic repair is a separate policy contract. Never let malformed
+ // automatic Params fall through to a reviewed or generic document path.
+ var policyClaim string
+ _ = json.Unmarshal(fields["policy"],&policyClaim)
+ if fields["policy"]!=nil&&(policyClaim=="conservative_auto_v1"||fields["image"]!=nil&&fields["resolved"]!=nil&&(fields["proposal"]!=nil||fields["proposal_report"]!=nil||fields["protected"]!=nil)){
+  var policy string
+  if json.Unmarshal(fields["policy"],&policy)!=nil||policy!="conservative_auto_v1"{return "",v2input.ErrInvalid}
+  operation:="sensor.dust_auto_repair"
+  expected:=[]string{"policy","image","proposal","resolved","protected"}
+  if fields["proposal_report"]!=nil{operation="defects.auto_repair";expected=[]string{"policy","image","proposal","proposal_report","resolved"}}
+  if len(fields)!=len(expected){return "",v2input.ErrInvalid}
+  for _,key:=range expected{if fields[key]==nil{return "",v2input.ErrInvalid}}
+  return operation,nil
+ }
  if fields["model_id"]!=nil{var model string;if json.Unmarshal(fields["model_id"],&model)!=nil{return "",v2input.ErrInvalid};if model=="scunet_color_real_psnr"{return "image.denoise",nil};if model=="realesrgan_x2"||model=="realesrgan_x4"{return "image.upscale",nil}}
  if fields["base"]!=nil&&(fields["detail"]!=nil||fields["wrinkle_strength"]!=nil){
   if fields["detail"]!=nil&&fields["wrinkle_strength"]!=nil{return "",v2input.ErrInvalid}

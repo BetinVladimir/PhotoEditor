@@ -5,14 +5,18 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -27,7 +31,7 @@ import (
 
 // Invoked only after the owned fixture has committed the original parent.
 // This is the production executable (main/run), not an alternate HTTP server.
-func probeSemanticCreateExecutable(t *testing.T, ctx context.Context, root, directory, deployment, dsn, schedulerDSN string, objects objectstore.Config, tenant, actor, session uuid.UUID, intent v2input.SemanticEditIntent) {
+func probeSemanticCreateExecutable(t *testing.T, ctx context.Context, root, directory, deployment, dsn, applicationDSN, authDSN, schedulerDSN string, objects objectstore.Config, tenant, actor, session uuid.UUID, intent v2input.SemanticEditIntent) {
 	t.Helper()
 	binary := filepath.Join(directory, "photo")
 	build := exec.CommandContext(ctx, "go", "build", "-o", binary, ".")
@@ -77,14 +81,19 @@ func probeSemanticCreateExecutable(t *testing.T, ctx context.Context, root, dire
 	// configurations or production endpoint can leak into this owned fixture.
 	command.Env = []string{
 		"PHOTO_ROLE=api", "APP_ENV=development", "HTTP_LISTEN=" + address,
-		"DATABASE_URL=" + dsn, "AUTH_DATABASE_URL=" + dsn, "AUTH_KEYS_FILE=" + keyFile,
+		"DATABASE_URL=" + applicationDSN, "AUTH_DATABASE_URL=" + authDSN, "AUTH_KEYS_FILE=" + keyFile,
 		"JWT_ISSUER=fixture", "JWT_AUDIENCE=fixture",
 		"PHOTO_ICC_ROOT=" + filepath.Join(root, "resources", "icc"),
 		"PHOTO_V27_CREATE_CONFIG=" + deployment, "V27_CREATE_SCHEDULER_DATABASE_URL=" + schedulerDSN,
+		"PHOTO_ADMISSION_SCHEDULER_DATABASE_URL=" + schedulerDSN,
 		"S3_ENDPOINT=" + objects.Endpoint, "S3_PUBLIC_ENDPOINT=" + objects.PublicEndpoint,
 		"S3_BUCKET=" + objects.Bucket, "S3_ACCESS_KEY=" + objects.AccessKey,
 		"S3_SECRET_KEY=" + objects.SecretKey, "S3_REGION=" + objects.Region,
 	}
+	trace := openCreateExecutableTrace(t, root)
+	command.Stdout = trace
+	command.Stderr = trace
+	defer trace.finish(t)
 	if err := command.Start(); err != nil {
 		t.Fatal("create executable failed to start")
 	}
@@ -177,8 +186,12 @@ func probeSemanticCreateExecutable(t *testing.T, ctx context.Context, root, dire
 		State      string     `json:"state"`
 	}
 	// Draft revision 1 advances exactly once on sealed admission.
-	if readErr != nil || resolved.StatusCode != 200 || json.Unmarshal(resolvedBody, &identity) != nil || identity.RunID != compiled.RunID || identity.WorkflowID != compiled.WorkflowID || identity.IntentID != nil || identity.Revision != "2" || identity.State != "queued" {
-		t.Fatal("pending semantic parent resolution invalid", resolved.StatusCode)
+	decodeErr := json.Unmarshal(resolvedBody, &identity)
+	if readErr != nil || len(resolvedBody) > 65536 || resolved.StatusCode != 200 || decodeErr != nil || identity.RunID != compiled.RunID || identity.WorkflowID != compiled.WorkflowID || identity.IntentID != nil || identity.Revision != "2" || identity.State != "queued" {
+		// Report only bounded contract checks: never the response body, UUIDs,
+		// credentials, transport references or signed URLs from this fixture.
+		revision, state := pendingParentStateDiagnostic(identity.Revision, identity.State)
+		t.Fatalf("pending semantic parent resolution invalid status=%d read_ok=%t bounded=%t json_ok=%t run_match=%t workflow_match=%t intent_pending=%t revision_match=%t state_queued=%t revision=%d state=%s", resolved.StatusCode, readErr == nil, len(resolvedBody) <= 65536, decodeErr == nil, identity.RunID == compiled.RunID, identity.WorkflowID == compiled.WorkflowID, identity.IntentID == nil, identity.Revision == "2", identity.State == "queued", revision, state)
 	}
 	for _, negative := range []struct {
 		run           uuid.UUID
@@ -216,5 +229,111 @@ func probeSemanticCreateExecutable(t *testing.T, ctx context.Context, root, dire
 	case <-ctx.Done():
 		t.Fatal("create executable shutdown timed out")
 	}
+	if trace.overflowed() {
+		t.Fatal("create executable diagnostic exceeded bound")
+	}
 	t.Log("V27_CREATE_EXECUTABLE_REPLAY_SHUTDOWN_OK")
+}
+
+// Survives the ephemeral binary/config directory cleanup; never public raw output.
+type createExecutableTrace struct {
+	mu       sync.Mutex
+	file     *os.File
+	path     string
+	written  int
+	overflow bool
+	failed   bool
+}
+
+func openCreateExecutableTrace(t *testing.T, root string) *createExecutableTrace {
+	t.Helper()
+	dir, err := os.MkdirTemp(filepath.Join(root, "work"), "create-executable-private-")
+	if err != nil {
+		t.Fatal("create executable trace directory unavailable")
+	}
+	if os.Chmod(dir, 0700) != nil {
+		t.Fatal("create executable trace permissions")
+	}
+	path := filepath.Join(dir, "process.private.log")
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if err != nil {
+		t.Fatal("create executable trace unavailable")
+	}
+	return &createExecutableTrace{file: f, path: path}
+}
+func (b *createExecutableTrace) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	n := len(p)
+	left := (4 << 20) - b.written
+	if n > left {
+		b.overflow = true
+		p = p[:left]
+	}
+	w, e := b.file.Write(p)
+	b.written += w
+	if e != nil {
+		b.failed = true
+		return w, e
+	}
+	return n, nil
+}
+func (b *createExecutableTrace) overflowed() bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.overflow || b.failed
+}
+func (b *createExecutableTrace) finish(t *testing.T) {
+	t.Helper()
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	se := b.file.Sync()
+	ce := b.file.Close()
+	if se != nil || ce != nil {
+		t.Error("create executable trace persistence failed")
+		return
+	}
+	raw, e := os.ReadFile(b.path)
+	if e != nil || len(raw) > 4<<20 {
+		t.Error("create executable trace read failed")
+		return
+	}
+	// Only closed booleans/size/hash/path; errors, response bodies, keys and DSNs remain private.
+	safe := fmt.Sprintf("CREATE_EXECUTABLE_PRIVATE path=%s bytes=%d overflow=%t write_failed=%t test_failed=%t sha256=%x", b.path, len(raw), b.overflow, b.failed, t.Failed(), sha256.Sum256(raw))
+	t.Log(safe)
+}
+
+// Diagnostic output is limited to a canonical positive integer and a closed
+// state enum. Unexpected response strings must never enter the transcript.
+func pendingParentStateDiagnostic(revision, state string) (int64, string) {
+	value, err := strconv.ParseInt(revision, 10, 64)
+	if err != nil || value < 1 || strconv.FormatInt(value, 10) != revision {
+		value = 0
+	}
+	switch state {
+	case "queued", "running", "waiting_review", "cancelling", "cancelled", "completed", "failed":
+	default:
+		state = "invalid"
+	}
+	return value, state
+}
+
+func TestPendingParentDiagnosticRedactsUntrustedValues(t *testing.T) {
+	for _, row := range []struct {
+		revision, state string
+		wantRevision    int64
+		wantState       string
+	}{
+		{"2", "queued", 2, "queued"}, {"3", "running", 3, "running"},
+		{"9223372036854775807", "waiting_review", 9223372036854775807, "waiting_review"},
+		{"9223372036854775808", "failed", 0, "failed"},
+		{"PRIVATE_SENTINEL", "PRIVATE_SENTINEL", 0, "invalid"},
+		{"+2", "queued", 0, "queued"}, {"02", "queued", 0, "queued"},
+		{"0", "queued", 0, "queued"}, {"-1", "cancelled", 0, "cancelled"},
+	} {
+		revision, state := pendingParentStateDiagnostic(row.revision, row.state)
+		if revision != row.wantRevision || state != row.wantState {
+			t.Fatal("unsafe or incorrect bounded parent diagnostic")
+		}
+	}
 }

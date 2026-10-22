@@ -1,0 +1,37 @@
+{
+  "status": "IMPLEMENTED_BROWSER_AT_UNRUN_NOT_DEPLOYED",
+  "candidate_manifest_sha256": "6cbaf43345fc70b4378b21469be3d175add0754b3cf1f9cdb91bde012e4d228c",
+  "checks": {
+    "actual_react_jsdom": 7,
+    "source_controls": 3,
+    "typescript_exit": 0,
+    "portal_vitest_tests": 62,
+    "portal_vitest_files": 13,
+    "maintained_production_component_dom_tests": 7
+  },
+  "behaviors": [
+    "initial focus",
+    "Tab/ShiftTab containment",
+    "Escape latest onClose",
+    "inert background and exact attribute restoration",
+    "async background isolation",
+    "programmatic focus containment",
+    "opener restore or gallery heading fallback",
+    "hidden ancestor control refusal",
+    "wrapping scrolling narrow modal CSS"
+  ],
+  "source": {
+    "apps/portal/src/components/AccessibleLightbox.tsx": "2f0582377993f4f8ce1989ea074a9bcd337c9d32b3da1625f29b9ffc9624e859",
+    "apps/portal/src/components/Portal.tsx": "8ea4f555c90c66dbaca9bc1228e9b1bad53e906df4a2fe363217c0f18d055b2c",
+    "apps/portal/src/app/global.css": "78cc9ddf72d32479b6c709bbc8b122c817e2c3e35584e88cf3da8857fcccce7b",
+    "apps/portal/src/components/AccessibleLightbox.test.tsx": "e663794f5f98d0afbd3e11f627c2946167de758ca0d38b571ad59a4cd86146a8",
+    "apps/portal/package.json": "b1831754e01cff875ab4cdf8304eba462a5d4ea61d9f86c8232f3be633a72c02",
+    "apps/portal/package-lock.json": "8bd21c91100de6bc55cf092151dff121283de3ecaf89507ef9c048faac1f7f80"
+  },
+  "remaining": [
+    "actual browser keyboard/zoom/reflow",
+    "VoiceOver/NVDA",
+    "publish portal"
+  ],
+  "maintained_test": "apps/portal/src/components/AccessibleLightbox.test.tsx"
+}

@@ -1,5 +1,6 @@
+import {Button,Text} from 'react-native-paper';
 import {useEffect,useState} from 'react';
-import {Pressable,Text,View} from 'react-native';
+import {View} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type {OwnerAPI} from './owner-api';
 import type {MultiApplyRecord} from './multi-apply-attempt';
@@ -34,7 +35,7 @@ function MultiApplyInboxScope({api,origin,tenant,project,collection,onApplied}:P
    <Text>{t('multi_review_frames').replace('{n}',String(record.review.proposal.sources.length))} · {record.review.proposal.canvas.width} × {record.review.proposal.canvas.height}</Text>
    <MultiApplyRecovery api={api} origin={origin} tenant={tenant} project={project} collection={collection} producer={record.review.proposal.producer_task_id} operation={record.review.proposal.operation} intent={record.intent} onApplied={onApplied}/>
   </View>)}
-  <Pressable accessibilityRole="button" onPress={()=>{setState(null);setCursor(undefined);setRefresh(n=>n+1);}}><Text>{t('perspective_apply_reload')}</Text></Pressable>
-  {current?.next?<Pressable accessibilityRole="button" onPress={()=>{setState(null);setCursor(current.next!);}}><Text>{t('multi_recovery_next')}</Text></Pressable>:null}
+  <Button accessibilityRole="button" onPress={()=>{setState(null);setCursor(undefined);setRefresh(n=>n+1);}} mode="outlined">{t('perspective_apply_reload')}</Button>
+  {current?.next?<Button accessibilityRole="button" onPress={()=>{setState(null);setCursor(current.next!);}} mode="outlined">{t('multi_recovery_next')}</Button>:null}
  </View>;
 }

@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"github.com/google/uuid"
+	"os"
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/v2input"
@@ -28,7 +30,16 @@ func TestFullRenderBoundsUseMergedAbsoluteModules(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			global := func(gain float64) any {
-				return map[string]any{"gains_rgb": []float64{gain, gain, gain}, "saturation": 1}
+				raw, err := os.ReadFile("../run/identity_style.json")
+				if err != nil {
+					t.Fatal(err)
+				}
+				var base map[string]json.RawMessage
+				json.Unmarshal(raw, &base)
+				var module map[string]any
+				json.Unmarshal(base["global"], &module)
+				module["gains_rgb"] = []float64{gain, gain, gain}
+				return module
 			}
 			style, _ := canonical.Marshal(map[string]any{"schema_version": "2.0.0", "renderer_version": "photo_renderer_v2", "global": global(tc.base), "beauty": map[string]any{"enabled": false}, "extensions": map[string]any{}})
 			encodedSHA := strings.Repeat("a", 64)
@@ -95,7 +106,7 @@ func TestFullRenderScalarModuleShapeAndBeautyBounds(t *testing.T) {
 		{"missing smoothing", `{"beauty":{"enabled":true}}`, CorrectionVector{}, false},
 		{"null smoothing", `{"beauty":{"enabled":true,"smoothing":null}}`, CorrectionVector{}, false},
 		{"beauty final overflow", `{"beauty":{"enabled":true,"smoothing":0.9}}`, CorrectionVector{RetouchDelta: .2}, false},
-		{"beauty final valid", `{"beauty":{"enabled":true,"smoothing":0.4}}`, CorrectionVector{RetouchDelta: .1}, true},
+		{"beauty final valid", `{"beauty":{"enabled":true,"algorithm":"beautyfilter_v1","smoothing":0.4,"tone_evenness":0,"texture_keep":1,"skin_mask":"face68_conservative_v1","protect_features":true}}`, CorrectionVector{RetouchDelta: .1}, true},
 		{"disabled beauty reset", `{"beauty":{"enabled":false}}`, CorrectionVector{RetouchDelta: .1}, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

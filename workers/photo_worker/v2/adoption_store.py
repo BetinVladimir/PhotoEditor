@@ -32,7 +32,8 @@ class PostgresObjectEvidenceReader:
 
     def __init__(self, connection: Connection, objects: VersionedObjectStore,
                  *, tenant_id: UUID, task_id: UUID, attempt: int, fence: int,
-                 allowed_bucket: str, exposure: bool = False):
+                 allowed_bucket: str, exposure: bool = False, editor_seal: bool = False,
+                 shown_operation: str | None = None):
         if not connection.autocommit:
             raise ValueError("Adoption preparation requires an autocommit connection")
         if attempt < 1 or fence < 1:
@@ -41,6 +42,13 @@ class PostgresObjectEvidenceReader:
             raise ValueError("Missing adoption bucket")
         if type(exposure) is not bool:
             raise ValueError("Invalid adoption scope")
+        if type(editor_seal) is not bool or editor_seal and exposure:raise ValueError("Invalid Editor seal scope")
+        if shown_operation is not None and (shown_operation not in (
+                'semantic.adopt_shown_exposure','semantic.adopt_shown_removal',
+                'semantic.adopt_shown_background_cleanup','semantic.adopt_shown_retouch_region')
+                or exposure or editor_seal):raise ValueError('Invalid shown adoption scope')
+        self._shown_operation=shown_operation
+        self._editor_seal = editor_seal
         self._exposure = exposure
         self.connection = connection
         self.objects = objects
@@ -56,9 +64,9 @@ class PostgresObjectEvidenceReader:
             return self._locations[ref]
         row = self.connection.execute(
             "SELECT bucket,object_key,object_version,sha256,bytes,media_type,role,source "
-            + ("FROM photo.v27_exposure_adoption_artifact(%s,%s,%s,%s,%s)" if self._exposure
+            + ("FROM photo.v27_shown_adoption_artifact(%s,%s,%s,%s,%s,%s)" if self._shown_operation is not None else "FROM photo.editor_effect_seal_adoption_artifact(%s,%s,%s,%s,%s)" if self._editor_seal else "FROM photo.v27_exposure_adoption_artifact(%s,%s,%s,%s,%s)" if self._exposure
              else "FROM photo.v2_adoption_artifact(%s,%s,%s,%s,%s)"),
-            (self.tenant_id, self.task_id, self.attempt, self.fence, ref.artifact_id),
+            (self.tenant_id, self.task_id, self.attempt, self.fence, ref.artifact_id)+((self._shown_operation,) if self._shown_operation is not None else ()),
         ).fetchone()
         if (row is None or row[0] != self.allowed_bucket or row[3] != ref.sha256 or row[4] < 0
                 or not isinstance(row[1], str) or not row[1]
@@ -121,9 +129,9 @@ class PostgresObjectEvidenceReader:
 
     def staged_outputs(self) -> set[ArtifactRef]:
         rows = self.connection.execute(
-            ("SELECT artifact_id,sha256,state FROM photo.v27_exposure_adoption_staged_outputs(%s,%s,%s,%s)" if self._exposure
+            ("SELECT artifact_id,sha256,state FROM photo.v27_shown_adoption_staged_outputs(%s,%s,%s,%s,%s)" if self._shown_operation is not None else "SELECT artifact_id,sha256,state FROM photo.editor_effect_seal_adoption_staged_outputs(%s,%s,%s,%s)" if self._editor_seal else "SELECT artifact_id,sha256,state FROM photo.v27_exposure_adoption_staged_outputs(%s,%s,%s,%s)" if self._exposure
              else "SELECT artifact_id,sha256,state FROM photo.v2_adoption_staged_outputs(%s,%s,%s,%s)"),
-            (self.tenant_id, self.task_id, self.attempt, self.fence),
+            (self.tenant_id, self.task_id, self.attempt, self.fence)+((self._shown_operation,) if self._shown_operation is not None else ()),
         ).fetchall()
         if any(state != "ready" for _, _, state in rows):
             raise AdoptionInvalid("STAGED_OUTPUT_INCOMPLETE")

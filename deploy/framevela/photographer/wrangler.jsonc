@@ -1,0 +1,19 @@
+{
+  "name": "framevela-photographer",
+  "account_id": "434d7cf69d6175676c4fdcf9167a5033",
+  "compatibility_date": "2026-10-20",
+  "workers_dev": true,
+  "assets": {
+    "directory": "../../../work/photographer-web-localized-r2",
+    "html_handling": "none",
+    "not_found_handling": "single-page-application"
+  },
+  "routes": [
+    {"pattern": "app.framevela.com", "custom_domain": true}
+  ],
+  "observability": {
+    "enabled": true,
+    "traces": {"enabled": true, "head_sampling_rate": 0.1},
+    "logs": {"enabled": true, "head_sampling_rate": 0.1, "invocation_logs": false}
+  }
+}

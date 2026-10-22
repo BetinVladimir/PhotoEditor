@@ -9,8 +9,9 @@ from uuid import UUID
 from pydantic import Field, model_validator
 
 from photo_worker.contracts.base import ArtifactRef, Contract, SHA256, Unit, canonical_hash, canonical_bytes, parse_json
-from photo_worker.contracts.images import WorkingImage
+from photo_worker.contracts.images import WorkingImage,Canvas,TransformChain
 from photo_worker.operations.learning.contracts import FrozenRecipe
+from .execution import RegionExecutionDescriptor
 
 
 class RegionRect(Contract):
@@ -58,11 +59,12 @@ class RegionObjectPin(Contract):
 
 class RegionInput(Contract):
     ref: ArtifactRef
-    contract: Literal['WorkingImage', 'FrozenRecipe', 'StyleV2', 'NpyArray']
+    contract: Literal['WorkingImage', 'FrozenRecipe', 'StyleV2', 'NpyArray', 'EncodedImage', 'Params', 'CompositionPlan', 'ImageStructure', 'BodyWarpReport', 'PoseSet', 'FaceBoxes', 'FaceLandmarks', 'BodyFit', 'ResolvedStyle', 'Stats20', 'MaskRef','SeriesCorrections','DefectCandidates','DefectProposeReport','DefectReview','DustCandidates','DefectLabelPNG']
 
 
 class RegionPreviewParams(Contract):
     schema_version: Literal[1]
+    execution: RegionExecutionDescriptor | None = Field(default=None,exclude_if=lambda value:value is None)
     tenant_id: UUID
     project_id: UUID
     asset_id: UUID
@@ -72,7 +74,7 @@ class RegionPreviewParams(Contract):
     frozen_recipe: FrozenRecipe
     geometry: RegionGeometry
     render_order: Literal['full_canvas_then_crop_then_downscale']
-    inputs: Annotated[list[RegionInput], Field(min_length=4, max_length=133)]
+    inputs: Annotated[list[RegionInput], Field(min_length=4, max_length=511)]
 
     @model_validator(mode='after')
     def binding(self):
@@ -85,6 +87,10 @@ class RegionPreviewParams(Contract):
                 or canonical_hash(recipe) != self.recipe.ref.sha256
                 or self.source.bucket != self.recipe.bucket):
             raise ValueError('REGION_PREVIEW_INVALID')
+        if self.execution is not None and (self.execution.source!=self.source.ref
+                or self.execution.source_canvas_hash!=recipe.source.canvas_hash
+                or self.execution.style!=recipe.base_style):
+            raise ValueError('REGION_EXECUTION_BINDING_INVALID')
         ids = [entry.ref.artifact_id for entry in self.inputs]
         if (any(value.int == 0 for value in ids) or ids != sorted(set(ids))):
             raise ValueError('REGION_INPUTS_INVALID')
@@ -129,3 +135,19 @@ class RegionPreviewParams(Contract):
                 raise ValueError('REGION_INPUTS_INVALID')
 
         return image
+
+
+class RegionProjection(Contract):
+    """Executed geometry receipt; adoption must independently recompute it."""
+    execution_sha256: SHA256
+    target_canvas: Canvas
+    target_transform_chain: TransformChain
+    geometry: RegionGeometry
+
+    @model_validator(mode='after')
+    def target(self):
+        self.target_transform_chain.validate_target(self.target_canvas)
+        if (self.geometry.left+self.geometry.width>self.target_canvas.width
+                or self.geometry.top+self.geometry.height>self.target_canvas.height):
+            raise ValueError('REGION_PROJECTION_GEOMETRY_INVALID')
+        return self

@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "functions": [
+    {
+      "signature": "billing_prepare_render(uuid,uuid,uuid,uuid)",
+      "execute_roles": [
+        "photo_scheduler"
+      ]
+    },
+    {
+      "signature": "billing_render_source_frames(uuid,uuid)",
+      "execute_roles": []
+    },
+    {
+      "signature": "billing_bind_render(uuid,uuid,uuid,uuid,text)",
+      "execute_roles": [
+        "photo_scheduler"
+      ]
+    },
+    {
+      "signature": "billing_settle_render(uuid,uuid)",
+      "execute_roles": []
+    },
+    {
+      "signature": "billing_settle_next_render()",
+      "execute_roles": [
+        "photo_scheduler"
+      ]
+    },
+    {
+      "signature": "billing_settle_apply_run(uuid,uuid)",
+      "execute_roles": []
+    },
+    {
+      "signature": "billing_guard_render_terminal()",
+      "execute_roles": []
+    },
+    {
+      "signature": "billing_guard_source_item()",
+      "execute_roles": []
+    },
+    {
+      "signature": "seal_v2_graph(uuid,uuid)",
+      "execute_roles": [
+        "photo_scheduler"
+      ]
+    }
+  ]
+}

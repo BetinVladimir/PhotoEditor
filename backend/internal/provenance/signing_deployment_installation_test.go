@@ -43,7 +43,10 @@ func TestDeploymentRuntimeResolutionBeforeIO(t *testing.T) {
 				t.Fatal(err)
 			}
 			entry := SigningAPITenantDocument{TenantID: uuid.New(), WorkerID: uuid.New(), QualificationSHA: serverPin, CertificateChain: string(chain), TrustBundle: string(roots), CertificateUsages: []int{int(x509.ExtKeyUsageCodeSigning)}, ChallengeOrigin: "https://signer.example", ChallengeServerSHA: serverPin, ChallengeRoots: string(roots), IdentityID: "identity", TimeoutSeconds: 10, CRLEndpoints: []SigningAPICRLDocument{}, Policies: []SigningAPIPolicyDocument{{Body: body, NotBefore: now.Add(-time.Hour).Format(time.RFC3339Nano), NotAfter: now.Add(time.Hour).Format(time.RFC3339Nano)}}, ResourceReport: report, ResourceReportSHA: bodyDigest(report), NegativePolicies: json.RawMessage("null")}
-			raw, err := canonical.Marshal(SigningAPIDeploymentDocument{Schema: "signing-api-deployment/v1", Tenants: []SigningAPITenantDocument{entry}})
+			if mode == "tsa_valid" || mode == "tsa_missing" || mode == "tsa_conflict" {
+ entry.TimestampServices = []SigningAPITimestampDocument{{ID:"installed-tsa",URL:"https://tsa.example/issue",ServerSHA:serverPin,HTTPRoots:string(roots),TrustRoots:string(roots),PolicyOID:"1.2.3.4",TimeoutSeconds:10,MaxSkewSeconds:60,CRLRoots:string(roots),CRLMaxAgeSeconds:3600,CRLEndpoints:[]SigningAPICRLDocument{{IssuerSHA:serverPin,URL:"https://crl.example/list",ServerSHA:serverPin}}}}
+ }
+ raw, err := canonical.Marshal(SigningAPIDeploymentDocument{Schema: "signing-api-deployment/v1", Tenants: []SigningAPITenantDocument{entry}})
 			if err != nil {
 				t.Fatal(err)
 			}

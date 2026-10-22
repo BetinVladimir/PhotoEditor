@@ -104,6 +104,9 @@ def test_adopter_runtime_transports_signing_operator_and_pinned_sdk(tmp_path, mo
     captured = []
     class Connection:
         autocommit = True
+        def execute(self, query, args=()):
+            assert "current_user=" in query
+            return SimpleNamespace(fetchone=lambda:(True,))
         def __enter__(self):
             return self
         def __exit__(self, *_args):
@@ -143,6 +146,9 @@ def test_signing_adopter_lease_follows_signer_health_independent_of_other_retrie
     stop = Stop()
     class Connection:
         autocommit = True
+        def execute(self, query, args=()):
+            assert "current_user=" in query
+            return SimpleNamespace(fetchone=lambda:(True,))
         def __enter__(self): return self
         def __exit__(self, *_args): return False
     class Adopter:

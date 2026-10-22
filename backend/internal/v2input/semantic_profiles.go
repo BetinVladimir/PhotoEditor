@@ -5,9 +5,13 @@ import (
 	"photoeditor/backend/internal/canonical"
 )
 
+// The closed transfer inventory contains at most 93 entries (see semantic_task.go).
+const semanticTransferInputIndexScratch int64 = 16 << 20
+
 // SemanticQualifiedCosts are additional installed operator/model and transport
-// peaks, excluding the native stage, five array downloads and RGB conversion
-// costs calculated below. They are trusted qualification inputs, not client data.
+// peaks. They exclude the native stage, five array downloads, RGB conversion
+// and retained V2 input index, which this compiler calculates separately.
+// They are trusted qualification inputs, not client data.
 type SemanticQualifiedCosts struct {
 	RAMBytes     int64
 	VRAMBytes    int64
@@ -16,7 +20,15 @@ type SemanticQualifiedCosts struct {
 
 func CompileSemanticTransferProfile(referenceWidth, referenceHeight, targetWidth, targetHeight int64,
 	referenceGamma, targetGamma bool, qualified SemanticQualifiedCosts, ramLimit, vramLimit, scratchLimit, outputLimit int64) (json.RawMessage, error) {
+	return CompileSemanticTransferProfileForBackend("cuda", referenceWidth, referenceHeight, targetWidth, targetHeight, referenceGamma, targetGamma, qualified, ramLimit, vramLimit, scratchLimit, outputLimit)
+}
+
+func CompileSemanticTransferProfileForBackend(backend string, referenceWidth, referenceHeight, targetWidth, targetHeight int64,
+	referenceGamma, targetGamma bool, qualified SemanticQualifiedCosts, ramLimit, vramLimit, scratchLimit, outputLimit int64) (json.RawMessage, error) {
 	const safe int64 = 9007199254740991
+	if backend != "cuda" && backend != "mps" {
+		return nil, ErrInvalid
+	}
 	for _, shape := range [][2]int64{{referenceWidth, referenceHeight}, {targetWidth, targetHeight}} {
 		if shape[0] < 8 || shape[1] < 8 || shape[0] > 200000000 || shape[1] > 200000000 || shape[0]*shape[1] > 200000000 {
 			return nil, ErrInvalid
@@ -37,7 +49,7 @@ func CompileSemanticTransferProfile(referenceWidth, referenceHeight, targetWidth
 	}
 	downloads := 12*(source+target) + 8*source + 4*target + 5*8192
 	estimate := sessionDescribeEstimate{RAMBytes: 20*(source+target) + (320 << 20) + conversions,
-		ScratchBytes: 4*target + 8192 + (8 << 20) + downloads + conversions, OutputBytes: 4*target + 4096 + (24 << 20), PixelCount: source + target}
+		ScratchBytes: 4*target + 8192 + (8 << 20) + semanticTransferInputIndexScratch + downloads + conversions, OutputBytes: 4*target + 4096 + (24 << 20), PixelCount: source + target}
 	if qualified.RAMBytes > safe-estimate.RAMBytes || qualified.ScratchBytes > safe-estimate.ScratchBytes {
 		return nil, ErrInvalid
 	}
@@ -47,5 +59,5 @@ func CompileSemanticTransferProfile(referenceWidth, referenceHeight, targetWidth
 	if estimate.OutputBytes > 825169920 || ramLimit < estimate.RAMBytes || vramLimit < estimate.VRAMBytes || scratchLimit < estimate.ScratchBytes || outputLimit < estimate.OutputBytes {
 		return nil, ErrInvalid
 	}
-	return canonical.Marshal(sessionDescribeExecutionProfile{"cuda", "v2.2", estimate})
+	return canonical.Marshal(sessionDescribeExecutionProfile{backend, "v2.2", estimate})
 }

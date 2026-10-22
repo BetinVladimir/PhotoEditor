@@ -75,7 +75,22 @@ def prepare_pinned_detail(artifacts,params_ref,current,*,execution_profile,expec
         same(current.rgb,pinned)
         if image.alpha is None:
             if current.alpha is not None:raise ValueError('RENDER_DETAIL_CURRENT_PIXELS_CHANGED')
-        else:same(current.alpha,mapped(image.alpha,(h,w)))
+        else:
+            from photo_worker.runtime.arrays import read_alpha_array
+            from .render_defects import alpha_tile_matches
+            local=stack.enter_context(artifacts.input(image.alpha,suffix='.npy'))
+            pinned_alpha=stack.enter_context(
+                read_alpha_array(local.path,(h,w),check_active)
+                if profile.get('alpha_mode','require_float32')=='normalize_uint16'
+                else read_array(local.path,(h,w),'float32',check_active,unit_interval=True))
+            if (not isinstance(current.alpha,np.ndarray) or current.alpha.shape!=(h,w)
+                    or current.alpha.dtype!=np.float32):
+                raise ValueError('RENDER_DETAIL_CURRENT_PIXELS_CHANGED')
+            for y in range(0,h,256):
+                for x in range(0,w,256):
+                    check_active()
+                    if not alpha_tile_matches(current.alpha[y:y+256,x:x+256],pinned_alpha[y:y+256,x:x+256]):
+                        raise ValueError('RENDER_DETAIL_CURRENT_PIXELS_CHANGED')
         if detail is None or not detail.enabled:
             check_active();yield RenderDetailStage(current,(),resolved.needs_review);check_active();return
         protection=np.zeros((h,w),np.float32)

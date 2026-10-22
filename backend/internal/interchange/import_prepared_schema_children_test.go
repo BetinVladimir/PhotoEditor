@@ -20,7 +20,7 @@ func TestPreparedSchemaChildrenProjectsInlineMaskAndRejectsOpaqueRefs(t *testing
 		t.Fatal(err)
 	}
 	pixels := v2input.Ref{ArtifactID: uuid.New(), SHA256: rawSHA([]byte("pixels"))}
-	mask := map[string]any{"artifact": pixels, "canvas": image.Canvas, "transform_chain": json.RawMessage(image.TransformChain), "selector": "manual", "confidence": 1, "protected": true}
+	mask := map[string]any{"artifact": pixels, "canvas": image.Canvas, "transform_chain": json.RawMessage(image.TransformChain), "object_id":nil,"model_lock_id":nil,"selector": "manual", "confidence": 1, "protected": true}
 	for _, mode := range []string{"override_mask", "mask", "style_leaf", "style_ref", "override_ref", "params_ref", "unknown", "hash", "cancel"} {
 		t.Run(mode, func(t *testing.T) {
 			kind := "Override"

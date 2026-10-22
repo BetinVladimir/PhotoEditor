@@ -121,7 +121,7 @@ BEGIN
  params:=raw::jsonb;
  IF params->'schema_version' IS DISTINCT FROM '1'::jsonb OR jsonb_typeof(params->'frames') IS DISTINCT FROM 'array' THEN RETURN;END IF;
  n:=jsonb_array_length(params->'frames');
- IF n NOT BETWEEN 2 AND CASE p_operation WHEN 'optical.panorama' THEN 20 ELSE 30 END
+ IF n NOT BETWEEN 2 AND (CASE p_operation WHEN 'optical.panorama' THEN 20 ELSE 30 END)
  OR jsonb_typeof(params->'reference_ordinal') IS DISTINCT FROM 'number'
  OR coalesce(params->>'reference_ordinal','') !~ '^[0-9]+$'
  OR (params->>'reference_ordinal')::integer NOT BETWEEN 0 AND n-1

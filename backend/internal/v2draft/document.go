@@ -139,5 +139,15 @@ func (s Service) GetDocument(ctx context.Context, who auth.Identity, tenantID,
 			return nil, err
 		}
 	}
-	return json.RawMessage(body), nil
+ // Object IO must not expose bytes after project withdrawal, expiry, or a
+ // catalogue pin change. Historical documents remain readable: no latest-draft
+ // or latest-asset requirement is introduced at this generic endpoint.
+ err = tenant.WithTenant(ctx,s.DB,who,tenantID,domain.Viewer,func(tx pgx.Tx,role domain.Role)error{
+  var live bool
+  if e:=tx.QueryRow(ctx,`SELECT EXISTS(SELECT FROM photo.v2_documents d JOIN photo.artifacts a ON a.tenant_id=d.tenant_id AND a.id=d.artifact_id AND a.sha256=d.sha256 WHERE d.tenant_id=$1 AND d.id=$2 AND d.project_id=$3 AND d.document_type=$4 AND a.id=$5 AND a.sha256=$6 AND a.bucket=$7 AND a.object_key=$8 AND a.object_version=$9 AND a.bytes=$10 AND a.media_type=$11 AND a.state='ready' AND a.verified_at IS NOT NULL AND (a.expires_at IS NULL OR a.expires_at>clock_timestamp()))`,tenantID,documentID,projectID,documentType,ref.ArtifactID,ref.SHA256,bucket,object.Key,object.VersionID,object.Bytes,object.ContentType).Scan(&live);e!=nil{return e}
+  if !live{return domain.NewError("DOCUMENT_INVALID",422)}
+  currentRole,e:=tenant.AuthorizeInTransaction(ctx,tx,who,tenantID,domain.Viewer);if e!=nil{return e}
+  _,e=project.Authorize(ctx,tx,tenantID,projectID,who.UserID,currentRole,domain.Viewer,false);return e
+ });if err!=nil{return nil,err};if err=ctx.Err();err!=nil{return nil,err}
+ return json.RawMessage(body), nil
 }

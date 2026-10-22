@@ -43,7 +43,7 @@ class TransferHTTPTest(unittest.TestCase):
                     failures.append('missing API authorization')
                 self.reply({'id': upload, 'state': state['phase'], 'part_bytes': 16,
                             'parts_total': 2, 'project_id': ids[1], 'collection_id': ids[3],
-                            'expected_size': len(original)})
+                            'filename': 'frame.jpg', 'expected_size': len(original)})
 
             def do_POST(self):
                 body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))

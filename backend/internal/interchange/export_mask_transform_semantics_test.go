@@ -25,7 +25,7 @@ func TestExportTransformedMaskRequiresSelectedChainOrigin(t *testing.T){
   if mode=="wrong_target"{mask.Canvas=origin}
   raw,err:=canonical.Marshal(mask);if err!=nil{t.Fatal(err)}
   entry:=v2input.Entry{Ref:v2input.Ref{ArtifactID:uuid.New(),SHA256:rawSHA(raw)},Contract:"MaskRef"}
-  semantics:=&ExportCanonicalMaskSemantics{canvases:map[string]bool{digest:true},locks:map[string]bool{}}
+  semantics:=&ExportCanonicalMaskSemantics{canvases:map[string]bool{digest:true},locks:map[string]bool{},fallback:&exportSemanticsStub{}}
   err=semantics.QualifyExportDependency(context.Background(),entry,raw,[]v2draft.LayerRef{{Ref:ref,Contract:"MaskPixels"}})
   if (err==nil)!=(mode=="resize"){t.Fatalf("unexpected transform qualification: %v",err)}
  })}

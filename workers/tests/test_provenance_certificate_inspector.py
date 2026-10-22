@@ -8,6 +8,7 @@ from cryptography.hazmat.primitives.asymmetric import ed25519, ec, rsa
 from cryptography.x509.oid import NameOID
 
 from photo_worker.contracts.provenance import SigningPolicy
+from photo_worker.contracts.base import canonical_bytes
 from photo_worker.operations.provenance.certificate_inspector import CertificateBoundInstallationInspector
 from test_signer_deployment import fixture
 
@@ -34,7 +35,7 @@ def test_certificate_inspector_live_boundaries(tmp_path,mode):
     _,manifest=fixture(tmp_path)
     raw=manifest['policies'][0]
     raw['certificate_chain_sha']=sha256(chain).hexdigest()
-    policy=SigningPolicy.model_validate(raw)
+    policy=SigningPolicy.model_validate_json(canonical_bytes(raw))
     calls=[]
     times=iter([now,now+timedelta(hours=2)]) if mode=='rotated' else None
     def clock():
@@ -70,7 +71,7 @@ def test_certificate_inspector_algorithm_matrix(tmp_path,kind,algorithm,allowed)
     else:key=ed25519.Ed25519PrivateKey.generate()
     chain=certificate(now,key=key)
     _,manifest=fixture(tmp_path);raw=manifest['policies'][0]
-    raw['certificate_chain_sha']=sha256(chain).hexdigest();policy=SigningPolicy.model_validate(raw)
+    raw['certificate_chain_sha']=sha256(chain).hexdigest();policy=SigningPolicy.model_validate_json(canonical_bytes(raw))
     calls=[]
     inspector=CertificateBoundInstallationInspector(lambda *args:calls.append(args) or True,clock=lambda:now)
     if allowed:assert inspector(policy,algorithm,chain) is True
@@ -85,7 +86,7 @@ def test_certificate_inspector_refuses_invalid_leaf_or_callback(tmp_path,mode):
     now=datetime(2026,10,12,tzinfo=timezone.utc)
     chain=certificate(now,ca=mode=='ca',usage=mode!='missing-usage')
     _,manifest=fixture(tmp_path);raw=manifest['policies'][0]
-    raw['certificate_chain_sha']=sha256(chain).hexdigest();policy=SigningPolicy.model_validate(raw)
+    raw['certificate_chain_sha']=sha256(chain).hexdigest();policy=SigningPolicy.model_validate_json(canonical_bytes(raw))
     active=True;calls=[]
     def guard():
         if not active:raise RuntimeError('cancelled')
@@ -110,7 +111,7 @@ def test_certificate_inspector_rejects_non_ca_chain_issuer(tmp_path):
     _, manifest = fixture(tmp_path)
     raw = manifest['policies'][0]
     raw['certificate_chain_sha'] = sha256(chain).hexdigest()
-    policy = SigningPolicy.model_validate(raw)
+    policy = SigningPolicy.model_validate_json(canonical_bytes(raw))
     with pytest.raises(ValueError, match='ISSUER_USAGE'):
         CertificateBoundInstallationInspector(lambda *args:pytest.fail('live authority called'),
             clock=lambda:now)(policy, 'ED25519', chain)
@@ -147,7 +148,7 @@ def test_certificate_inspector_verifies_intermediate_signature_before_live_autho
     raw['certificate_chain_sha'] = sha256(chain).hexdigest()
     trust = issuer.public_bytes(serialization.Encoding.PEM)
     raw['trust_bundle_sha'] = sha256(trust).hexdigest()
-    policy = SigningPolicy.model_validate(raw)
+    policy = SigningPolicy.model_validate_json(canonical_bytes(raw))
     called = []
     inspector = CertificateBoundInstallationInspector(
         lambda *args: called.append(True) or True, trust_bundle=trust,
@@ -169,7 +170,7 @@ def test_certificate_inspector_binds_deployed_trust_bundle_before_live_authority
     raw = manifest['policies'][0]
     raw['certificate_chain_sha'] = sha256(chain).hexdigest()
     raw['trust_bundle_sha'] = sha256(wrong_root).hexdigest()
-    policy = SigningPolicy.model_validate(raw)
+    policy = SigningPolicy.model_validate_json(canonical_bytes(raw))
     called = []
     wrong = CertificateBoundInstallationInspector(
         lambda *args: called.append(True) or True,
@@ -178,7 +179,7 @@ def test_certificate_inspector_binds_deployed_trust_bundle_before_live_authority
         wrong(policy, 'ED25519', chain)
     assert called == []
     raw['trust_bundle_sha'] = sha256(chain).hexdigest()
-    policy = SigningPolicy.model_validate(raw)
+    policy = SigningPolicy.model_validate_json(canonical_bytes(raw))
     pinned = CertificateBoundInstallationInspector(
         lambda *args: called.append(True) or True,
         trust_bundle=chain, clock=lambda: now)
@@ -214,7 +215,7 @@ def test_trust_anchor_enforces_intermediate_ca_path_length(tmp_path, root_path_l
     raw = manifest['policies'][0]
     raw['certificate_chain_sha'] = sha256(chain).hexdigest()
     raw['trust_bundle_sha'] = sha256(root).hexdigest()
-    policy = SigningPolicy.model_validate(raw)
+    policy = SigningPolicy.model_validate_json(canonical_bytes(raw))
     called = []
     inspector = CertificateBoundInstallationInspector(
         lambda *args: called.append(True) or True, trust_bundle=root,

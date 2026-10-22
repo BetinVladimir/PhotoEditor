@@ -34,7 +34,7 @@ func (s SQLTransferSourceReader) marshalNativeTargetPersonAdmissionEvidence(ctx 
 		return nil, v2input.ErrConflict
 	}
 	p := rebuilt.person
-	selected, err := selectQualificationPolicies(p.policy, []string{"mask.person"})
+	selected, err := selectNativeQualificationPolicies(p.policy, []string{"mask.person"})
 	if err != nil {
 		return nil, err
 	}

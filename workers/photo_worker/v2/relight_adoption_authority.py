@@ -76,8 +76,12 @@ def qualified_completed_relight_authority(connection, reader, tenant_id, task_id
     """Explicit installed-runtime factory; never auto-qualifies changed code."""
     from photo_worker.operations.portrait.relight_runtime_lock import verify_installed_runtime
     from .relight_adoption_qualification import verify_completed_relight_qualification
+    if not callable(check_active):
+        raise ValueError('RELIGHT_ADOPTION_AUTHORITY_CONFIGURATION')
+    check_active()
     lock = deepcopy(runtime_lock)
     verify_installed_runtime(lock, expected_runtime_sha)
+    check_active()
     owned_context = deepcopy(context)
     def qualification(evidence, params, calibration):
         check_active()

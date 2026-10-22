@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 
 from .install import ModelError
+from .onnx_session import create_session
 
 
 class ONNXCapture:
@@ -15,7 +16,7 @@ class ONNXCapture:
             provider = 'CUDAExecutionProvider' if backend == 'cuda' else 'CPUExecutionProvider'
             if provider not in ort.get_available_providers():
                 raise ModelError('BACKEND_UNAVAILABLE')
-            self.session = ort.InferenceSession(str(path), providers=[provider])
+            self.session = create_session(ort, path, backend)
             if self.session.get_providers() != [provider]:
                 raise ModelError('BACKEND_UNAVAILABLE')
             inputs, outputs = self.session.get_inputs(), self.session.get_outputs()

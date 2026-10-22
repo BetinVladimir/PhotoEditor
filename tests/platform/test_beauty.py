@@ -14,14 +14,22 @@ def fixture():
     return image,skin,protected
 
 
-def test_protected_and_outside_skin_are_exact_and_source_unchanged():
-    image,skin,protect=fixture();skin[:20]=0;protect[:,40:55]=1;before=image.copy()
+@pytest.mark.parametrize('protection',[1,.25,np.nextafter(np.float32(0),np.float32(1))])
+def test_protected_and_outside_skin_are_exact_and_source_unchanged(protection):
+    image,skin,protect=fixture();skin[:20]=0;protect[:,40:55]=protection;before=image.copy()
     result=beauty_filter(image,skin,protect,100.,params())
     assert result.applied and result.texture_energy_ratio is not None
     assert np.array_equal(result.rgb[:20],image[:20])
     assert np.array_equal(result.rgb[:,40:55],image[:,40:55])
     assert np.array_equal(image,before) and not result.rgb.flags.writeable
     assert np.isfinite(result.rgb).all() and result.rgb.min()>=0 and result.rgb.max()<=1
+
+
+def test_positive_protection_over_all_skin_skips_tone_reference():
+    image,skin,protect=fixture();protect[:]=.25
+    result=beauty_filter(image,skin,protect,100.,params())
+    assert not result.applied and result.reason=='empty_skin'
+    np.testing.assert_array_equal(result.rgb,image)
 
 
 def test_tone_independent_of_smoothing_and_texture_preserved():

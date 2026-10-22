@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"os"
 	"photoeditor/backend/internal/auth"
+	"photoeditor/backend/internal/capability"
 	"photoeditor/backend/internal/config"
 	"photoeditor/backend/internal/media"
 	"photoeditor/backend/internal/objectstore"
@@ -76,7 +77,21 @@ func TestIntegrationCompletedSemanticTargetsHTTP(t *testing.T) {
 		t.Fatal("object fixture unavailable")
 	}
 	api := makePool("photo_api")
-	handler := (&Server{DB: api, Auth: service, Media: &media.Service{Objects: objects, Bucket: bucket}, Config: config.Config{Environment: "development", AppOrigin: "http://localhost:8080", PortalOrigin: "http://localhost:3000", MaxJSONBytes: 65536}}).Routes()
+	intentReader, err := semanticreview.NewPlanObjectReader(objects, bucket)
+	if err != nil {
+		t.Fatal(err)
+	}
+	kindReader, err := semanticreview.SQLReviewKindReader(api, intentReader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Install the real capability-serving origin before Routes captures run service configuration.
+	outputServer := httptest.NewUnstartedServer(nil)
+	outputOrigin := "http://" + outputServer.Listener.Addr().String()
+	handler := (&Server{SemanticReviewKind: kindReader, DB: api, Auth: service, Media: &media.Service{Objects: objects, Bucket: bucket}, Config: config.Config{Environment: "development", APIPublicOrigin: outputOrigin, AppOrigin: "http://localhost:8080", PortalOrigin: "http://localhost:3000", MaxJSONBytes: 65536}}).Routes()
+	outputServer.Config.Handler = handler
+	outputServer.Start()
+	t.Cleanup(outputServer.Close)
 	path := "/api/v1/tenants/" + tenant.String() + "/semantic-intents/" + intent.String() + "/targets"
 	get := func(url, access string) *httptest.ResponseRecorder {
 		r := httptest.NewRequest("GET", url, nil)
@@ -90,6 +105,48 @@ func TestIntegrationCompletedSemanticTargetsHTTP(t *testing.T) {
 	}
 	if w := get(path, ""); w.Code != 401 {
 		t.Fatal("unauthenticated", w.Code)
+	}
+	capabilityResponse := get("/api/v1/tenants/"+tenant.String()+"/capabilities", token)
+	if capabilityResponse.Code != 200 {
+		t.Fatal("authorized capability projection", capabilityResponse.Code)
+	}
+	var deployment capability.Capabilities
+	if json.Unmarshal(capabilityResponse.Body.Bytes(), &deployment) != nil {
+		t.Fatal("invalid capability response")
+	}
+	own := map[string]bool{"semantic.preview_local_exposure": true, "semantic.preview_remove_object": true, "semantic.preview_background_cleanup": true, "semantic.adopt_shown_exposure": true, "semantic.adopt_shown_removal": true, "semantic.adopt_shown_background_cleanup": true}
+	foundOwn := 0
+	for _, operation := range deployment.Operations {
+		if !own[operation.Operation] {
+			continue
+		}
+		foundOwn++
+		if operation.Available || operation.Status != "unqualified" || string(operation.AvailableBackends) != "[]" || operation.Reason == nil || *operation.Reason != "api_installation_missing" {
+			t.Fatal("missing API installation advertised ready", operation)
+		}
+	}
+	if foundOwn != len(own) {
+		t.Fatal("own semantic registry rows missing", foundOwn)
+	}
+	reviewPath := "/api/v1/tenants/" + tenant.String() + "/semantic-intents/" + intent.String() + "/review"
+	if response := get(reviewPath, ""); response.Code != 401 {
+		t.Fatal("unauthenticated review projection", response.Code)
+	}
+	expectedKind, err := kindReader(ctx, auth.Identity{UserID: actor, SessionID: session}, tenant, intent)
+	if err != nil {
+		t.Fatal("verified intent fixture required", err)
+	}
+	reviewResponse := get(reviewPath, token)
+	if reviewResponse.Code != 200 {
+		t.Fatal("authorized review projection", reviewResponse.Code)
+	}
+	var reviewStatus semanticreview.ReviewStatus
+	if json.Unmarshal(reviewResponse.Body.Bytes(), &reviewStatus) != nil || reviewStatus.Kind == nil || *reviewStatus.Kind != expectedKind {
+		t.Fatal("verified review kind mismatch")
+	}
+	foreignReview := "/api/v1/tenants/" + uuid.NewString() + "/semantic-intents/" + intent.String() + "/review"
+	if response := get(foreignReview, token); response.Code == 200 {
+		t.Fatal("foreign tenant review kind exposed")
 	}
 	w := get(path+"?limit=1", token)
 	outputPath := "/api/v1/tenants/" + tenant.String() + "/runs/" + child.String() + "/outputs"
@@ -109,11 +166,13 @@ func TestIntegrationCompletedSemanticTargetsHTTP(t *testing.T) {
 		t.Fatal("preview output projection mismatch")
 	}
 	images := 0
+	var issuedDerivativeURL string
 	for _, output := range outputPage.Items {
 		if output.Role != "derivative" {
 			continue
 		}
 		images++
+		issuedDerivativeURL = output.URL
 		request, err := http.NewRequestWithContext(ctx, "GET", output.URL, nil)
 		if err != nil {
 			t.Fatal("invalid signed output URL")
@@ -530,6 +589,19 @@ func TestIntegrationCompletedSemanticTargetsHTTP(t *testing.T) {
 	}
 	if denied := get(outputPath, token); denied.Code != 404 {
 		t.Fatal("archived preview exposed", denied.Code)
+	}
+	// A previously issued capability must still check current project authority.
+	archivedRequest, err := http.NewRequestWithContext(ctx, http.MethodGet, issuedDerivativeURL, nil)
+	if err != nil {
+		t.Fatal("archived capability request", err)
+	}
+	archivedMedia, err := http.DefaultClient.Do(archivedRequest)
+	if err != nil {
+		t.Fatal("archived capability request", err)
+	}
+	archivedMedia.Body.Close()
+	if archivedMedia.StatusCode != http.StatusNotFound {
+		t.Fatal("issued capability bypassed archive", archivedMedia.StatusCode)
 	}
 	if _, err := owner.Exec(ctx, "UPDATE photo.projects SET archived_at=NULL WHERE tenant_id=$1 AND id=$2", tenant, project); err != nil {
 		t.Fatal(err)

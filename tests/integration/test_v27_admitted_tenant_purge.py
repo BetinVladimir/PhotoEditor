@@ -3,6 +3,7 @@
 Worker model/qualification doubles remain declared. Deletion uses the real
 API SQL request, scheduler cancellation and maintenance cleaner/storage.
 """
+from physical_go_child_evidence import run_evidenced_go
 import json
 import os
 import subprocess
@@ -42,9 +43,9 @@ def test_admitted_native_chain_physical_tenant_purge(database,lens_objects,monke
     version=client.put_object(bucket,neighbor_key,BytesIO(body),len(body),content_type='application/octet-stream',metadata={'sha256':sha256(body).hexdigest()}).version_id
     cfg=client._photo_test_config
     fixture={'Tenant':str(tenant),'RegistryRows':registry,'Neighbor':{'Key':neighbor_key,'VersionID':version,'SHA256':sha256(body).hexdigest(),'ContentType':'application/octet-stream','Bytes':len(body)}}
-    env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_TEST_ADMITTED_NATIVE_PURGE=json.dumps(fixture),PHOTO_TEST_MINIO_URL=cfg['Endpoint'],PHOTO_TEST_MINIO_BUCKET=bucket,PHOTO_TEST_MINIO_ACCESS=cfg['AccessKey'],PHOTO_TEST_MINIO_SECRET=cfg['SecretKey'],GOCACHE='/private/tmp/photoeditor-go-cache')
+    env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_TEST_ADMITTED_NATIVE_PURGE=json.dumps(fixture),PHOTO_TEST_MINIO_URL=cfg['Endpoint'],PHOTO_TEST_MINIO_BUCKET=bucket,PHOTO_TEST_MINIO_ACCESS=cfg['AccessKey'],PHOTO_TEST_MINIO_SECRET=cfg['SecretKey'],GOCACHE=str(Path(__file__).resolve().parents[2]/'.cache/go-build'))
     root=Path(__file__).resolve().parents[2]
-    result=subprocess.run(['go','test','-tags','integration','./internal/maintenance','-run','^TestIntegrationAdmittedNativeTenantPurge$','-count=1','-timeout','120s','-v'],cwd=root/'backend',env=env,capture_output=True,text=True,timeout=150)
+    result=run_evidenced_go(['go','test','-tags','integration','./internal/maintenance','-run','^TestIntegrationAdmittedNativeTenantPurge$','-count=1','-timeout','120s','-v'],cwd=root/'backend',env=env,capture_output=True,text=True,timeout=150)
     assert result.returncode==0,result.stdout+result.stderr
     assert 'V27_ADMITTED_NATIVE_PHYSICAL_TENANT_PURGE_OK' in result.stdout
     assert list(client.list_objects(bucket,prefix=f'tenants/{tenant}/',recursive=True,include_version=True))==[]

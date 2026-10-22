@@ -29,7 +29,7 @@ func(tx *ledgerTx)Exec(_ context.Context,query string,args ...any)(pgconn.Comman
 func TestPendingLedgerReplaysOriginalBudgetAndSourceScope(t *testing.T){
  tid,who,request,_,limits:=pendingFixture();tx:=&ledgerTx{allowed:true,live:true,size:100}
  first,err:=PinParsePending(context.Background(),tx,who,tid,request,"key",limits);if err!=nil{t.Fatal(err)}
- if tx.writes!=1||len(tx.sourceArgs)!=4||tx.sourceArgs[0]!=tid||tx.sourceArgs[1]!=request.ProjectID||tx.sourceArgs[2]!=request.Bundle.ArtifactID{t.Fatal("source scope not pinned")}
+ if tx.writes!=1||len(tx.sourceArgs)!=6||tx.sourceArgs[0]!=tid||tx.sourceArgs[1]!=request.ProjectID||tx.sourceArgs[2]!=request.Bundle.ArtifactID||tx.sourceArgs[4]!=who.UserID||tx.sourceArgs[5]!=who.SessionID{t.Fatal("source scope not pinned")}
  second,err:=PinParsePending(context.Background(),tx,who,tid,request,"key",ParseLimits{});if err!=nil||first.Identity()!=second.Identity()||first.OutputBytes()!=second.OutputBytes()||tx.writes!=1{t.Fatal("replay changed budget",err)}
  tx.size=101;if _,err:=PinParsePending(context.Background(),tx,who,tid,request,"key",limits);err==nil{t.Fatal("changed source size accepted")}
 }

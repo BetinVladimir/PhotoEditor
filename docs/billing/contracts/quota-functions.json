@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "stage": "quota_kernel_shadow",
+  "functions": [
+    {
+      "signature": "billing_quota_lock(uuid,text)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Internal shadow-only quota primitive; no API authority implied"
+    },
+    {
+      "signature": "billing_append_quota_event(uuid,text,uuid,uuid,uuid,uuid,text,bigint,text,text)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Internal shadow-only quota primitive; no API authority implied"
+    },
+    {
+      "signature": "billing_grant_bootstrap(uuid,uuid)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Internal shadow-only quota primitive; no API authority implied"
+    },
+    {
+      "signature": "billing_allocate_admission_lease(uuid,text,uuid,text,bigint,integer,text)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Internal shadow-only quota primitive; no API authority implied"
+    },
+    {
+      "signature": "billing_issue_funding_claim(uuid,text,uuid,uuid,text,bytea,bigint)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Internal shadow-only quota primitive; no API authority implied"
+    },
+    {
+      "signature": "billing_finalize_funding_claim(uuid,text,uuid,bigint,bytea)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Internal shadow-only quota primitive; no API authority implied"
+    },
+    {
+      "signature": "billing_close_admission_lease(uuid,text,uuid,uuid)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Internal shadow-only quota primitive; no API authority implied"
+    },
+    {
+      "signature": "billing_expire_quota_buckets(uuid,text,integer)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Internal shadow-only quota primitive; no API authority implied"
+    },
+    {
+      "signature": "billing_project_quota(uuid,text)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Internal shadow-only quota primitive; no API authority implied"
+    },
+    {
+      "signature": "billing_quota_reject_immutable()",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Internal shadow-only quota primitive; no API authority implied"
+    },
+    {
+      "signature": "billing_quota_pin_budget()",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Internal shadow-only quota primitive; no API authority implied"
+    }
+  ]
+}

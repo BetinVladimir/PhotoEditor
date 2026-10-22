@@ -32,7 +32,7 @@ func TestStyleCodecPreservesRenderingParametersAndSeparatesHistoricalQuality(t *
   if change=="missing_background"{var unsupported *ImportRecipeUnsupported;if !errors.As(err,&unsupported){t.Fatal("foreign background accepted",err)};return}
   if err!=nil{t.Fatal(err)}
   var result map[string]json.RawMessage;if err:=json.Unmarshal(prepared,&result);err!=nil{t.Fatal(err)}
-  for _,key:=range []string{"schema_version","renderer_version","mode","strength","color","raw_recipe","models","global","local","adaptation","beauty","defects","geometry"}{if string(result[key])!=string(original[key]){t.Fatal("processing parameter changed",key)}}
+  for _,key:=range []string{"schema_version","renderer_version","mode","strength","color","raw_recipe","models","global","local","adaptation","beauty","defects","geometry"}{left,leftErr:=canonical.Bytes(result[key]);right,rightErr:=canonical.Bytes(original[key]);if leftErr!=nil||rightErr!=nil||string(left)!=string(right){t.Fatal("processing parameter changed",key)}}
   if string(result["style_id"])==string(original["style_id"])||qualifier.validated!=1||qualifier.qualified!=1{t.Fatal("identity or qualification missing")}
   var quality map[string]json.RawMessage;if err:=json.Unmarshal(result["quality"],&quality);err!=nil||string(quality["status"])!=`"needs_review"`||string(quality["transfer_confidence"])!=`"unvalidated"`{t.Fatal("historical claims treated as current evidence",err)}
   if change=="background"{var extensions struct{Background struct{ID string `json:"asset_id"`} `json:"background"`};if err:=json.Unmarshal(result["extensions"],&extensions);err!=nil||extensions.Background.ID!="local-archive-bg"||assets.calls!=1{t.Fatal("background not remapped",err)}}

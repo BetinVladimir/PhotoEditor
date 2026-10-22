@@ -35,7 +35,7 @@ def test_delivery_metadata_shared_wire_corpus():
     corpus=json.loads((Path(__file__).resolve().parents[2]/'docs/implementation-v2/contracts/delivery-metadata-crosslang.json').read_text())
     assert len(corpus['cases'])==4
     for case in corpus['cases']:
-        binding=VersionBinding.model_validate(case['binding']);ref=ArtifactRef.model_validate(case['metadata_source'])
+        binding=VersionBinding.model_validate_json(canonical_bytes(case['binding']));ref=ArtifactRef.model_validate_json(canonical_bytes(case['metadata_source']))
         source=case['source_jcs'].encode()
         raw=freeze_delivery_metadata(binding,ref,source,case['policy'],approved_fields=tuple(case['approved_fields']))
         assert raw==case['frozen_jcs'].encode()

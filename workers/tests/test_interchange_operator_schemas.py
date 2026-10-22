@@ -18,7 +18,7 @@ def test_operator_identifiers_are_bounded_utf8(operation):
 
 
 def test_registry_limit_includes_builtin_operations():
-    supplied = {(f'custom.{i}','1'):'Params' for i in range(251)}
+    supplied = {(f'custom.{i}','1'):'Params' for i in range(249)}
     assert len(build_interchange_operator_schemas({'Params':{}}, supplied)) == 256
     supplied[('custom.extra','1')] = 'Params'
     with pytest.raises(ValueError, match='OPERATORS'):

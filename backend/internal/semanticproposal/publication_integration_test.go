@@ -2744,6 +2744,63 @@ func TestIntegrationProposalIntentPublication(t *testing.T) {
 				t.Fatal(err)
 			}
 			var genericDefectSealed bool
+			// Observe in the SAME transaction, so uncommitted erroneous writes
+			// remain visible. This is scoped run/tasks/quota plus tenant usage.
+			const genericGuardStateSQL = `SELECT jsonb_build_object(
+                'run',to_jsonb(r),
+                'tasks',(SELECT jsonb_agg(to_jsonb(t) ORDER BY t.id) FROM photo.tasks t WHERE t.tenant_id=r.tenant_id AND t.run_id=r.id),
+                'quota',(SELECT jsonb_agg(to_jsonb(q) ORDER BY q.id) FROM photo.quota_reservations q WHERE q.tenant_id=r.tenant_id AND q.holder_id=r.id),
+                'usage',(SELECT to_jsonb(u) FROM photo.tenant_usage u WHERE u.tenant_id=r.tenant_id)
+                )::text FROM photo.runs r WHERE r.tenant_id=$1 AND r.id=$2`
+			readGenericGuardState := func() string {
+				var callerRole, tenantContext string
+				if err := genericDefectTx.QueryRow(ctx, "SELECT current_user,coalesce(current_setting('app.tenant_id',true),'')").Scan(&callerRole, &tenantContext); err != nil || callerRole != "photo_scheduler" {
+					genericDefectTx.Rollback(context.Background())
+					t.Fatal("native generic scoped observer caller", err)
+				}
+				// The disposable fixture session owner may observe tables; the
+				// actual seal must still execute as the unchanged scheduler role.
+				if _, err := genericDefectTx.Exec(ctx, "SET LOCAL ROLE NONE"); err != nil {
+					genericDefectTx.Rollback(context.Background())
+					t.Fatal("native generic fixture observer role", err)
+				}
+				var state string
+				if err := genericDefectTx.QueryRow(ctx, genericGuardStateSQL, fixture.Tenant, defectStagePlan.shell.Run).Scan(&state); err != nil {
+					genericDefectTx.Rollback(context.Background())
+					t.Fatal("native generic scoped observer state", err)
+				}
+				if _, err := genericDefectTx.Exec(ctx, "SET LOCAL ROLE photo_scheduler"); err != nil {
+					genericDefectTx.Rollback(context.Background())
+					t.Fatal("native generic restore scheduler", err)
+				}
+				var restoredRole, restoredTenant string
+				if err := genericDefectTx.QueryRow(ctx, "SELECT current_user,coalesce(current_setting('app.tenant_id',true),'')").Scan(&restoredRole, &restoredTenant); err != nil || restoredRole != callerRole || restoredTenant != tenantContext {
+					genericDefectTx.Rollback(context.Background())
+					t.Fatal("native generic observer changed caller scope", err)
+				}
+				return state
+			}
+			// Public seal requires transaction-local tenant context (02580).
+			// A denied context is not evidence that native graph locks were reached.
+			for _, tenantContext := range []string{"", uuid.New().String()} {
+				if _, err := genericDefectTx.Exec(ctx, "SELECT set_config('app.tenant_id',$1,true)", tenantContext); err != nil {
+					genericDefectTx.Rollback(context.Background())
+					t.Fatal("native generic tenant refusal setup", err)
+				}
+				guardStateBefore := readGenericGuardState()
+				if err := genericDefectTx.QueryRow(ctx, "SELECT photo.seal_v2_graph($1,$2)", fixture.Tenant, defectStagePlan.shell.Run).Scan(&genericDefectSealed); err != nil || genericDefectSealed {
+					genericDefectTx.Rollback(context.Background())
+					t.Fatal("native generic seal accepted absent or foreign tenant", tenantContext == "", err)
+				}
+				if guardStateAfter := readGenericGuardState(); guardStateAfter != guardStateBefore {
+					genericDefectTx.Rollback(context.Background())
+					t.Fatal("native generic tenant refusal changed scoped ledger")
+				}
+			}
+			if _, err := genericDefectTx.Exec(ctx, "SELECT set_config('app.tenant_id',$1,true)", fixture.Tenant.String()); err != nil {
+				genericDefectTx.Rollback(context.Background())
+				t.Fatal("native generic authenticated tenant setup", err)
+			}
 			if err := genericDefectTx.QueryRow(ctx, "SELECT photo.seal_v2_graph($1,$2)", fixture.Tenant, defectStagePlan.shell.Run).Scan(&genericDefectSealed); err != nil || genericDefectSealed {
 				genericDefectTx.Rollback(context.Background())
 				t.Fatal("native defect generic seal bypass", err)
@@ -4565,13 +4622,57 @@ func TestIntegrationProposalIntentPublication(t *testing.T) {
 			swapped.Preparer.Reader.DB = serviceScheduler
 			swapped.Preparer.Documents.DB = serviceScheduler
 			swapped.Preparer.Scheduler = api
-			if response, err := swapped.Propose(ctx, who, request.TenantID, "proposal-publication", request.Intent); !errors.Is(err, v2input.ErrInvalid) || response.Status != 0 || response.ResourceID != nil || len(response.Body) != 0 {
-				t.Fatal("swapped service roles reached publication", err)
+			// The standalone preflight still rejects miswiring as ErrInvalid.
+			if err := validateCreatePreparer(ctx, swapped.Preparer); !errors.Is(err, v2input.ErrInvalid) {
+				t.Fatal("swapped create preflight accepted roles", err)
+			}
+			for role, allowed := range map[string]bool{"photo_api": true, "photo_scheduler": false} {
+				var executable bool
+				if err := evidenceOwner.QueryRow(ctx, "SELECT has_function_privilege($1,'photo.authorize_tenant(uuid,uuid,uuid)','EXECUTE')", role).Scan(&executable); err != nil || executable != allowed {
+					t.Fatal("create replay tenant authority role", role, err)
+				}
+			}
+			// Propose reauthorizes accepted-receipt replay before deployment
+			// preflight. Each call owns/rolls back its transaction before return;
+			// this independent owner snapshot therefore sees committed effects.
+			// These are tenant-scoped publication/ledger tables, not all tables.
+			const swappedPublicationStateSQL = `SELECT jsonb_build_object(
+                'artifacts',(SELECT jsonb_agg(to_jsonb(a) ORDER BY a.id) FROM photo.artifacts a WHERE a.tenant_id=$1),
+                'documents',(SELECT jsonb_agg(to_jsonb(d) ORDER BY d.id) FROM photo.backend_documents d WHERE d.tenant_id=$1),
+                'runs',(SELECT jsonb_agg(to_jsonb(r) ORDER BY r.id) FROM photo.runs r WHERE r.tenant_id=$1),
+                'tasks',(SELECT jsonb_agg(to_jsonb(t) ORDER BY t.id) FROM photo.tasks t WHERE t.tenant_id=$1),
+                'quota',(SELECT jsonb_agg(to_jsonb(q) ORDER BY q.id) FROM photo.quota_reservations q WHERE q.tenant_id=$1),
+                'usage',(SELECT to_jsonb(u) FROM photo.tenant_usage u WHERE u.tenant_id=$1),
+                'workflows',(SELECT jsonb_agg(to_jsonb(w) ORDER BY w.id) FROM photo.v2_workflows w WHERE w.tenant_id=$1),
+                'events',(SELECT jsonb_agg(to_jsonb(e) ORDER BY e.id) FROM photo.run_events e WHERE e.tenant_id=$1),
+                'idempotency',(SELECT jsonb_agg(to_jsonb(i) ORDER BY i.id) FROM photo.idempotency_records i WHERE i.tenant_id=$1),
+                'outbox',(SELECT jsonb_agg(to_jsonb(o) ORDER BY o.id) FROM photo.outbox o WHERE o.tenant_id=$1))::text`
+			var swappedStateBefore, swappedStateAfter string
+			if err := evidenceOwner.QueryRow(ctx, swappedPublicationStateSQL, fixture.Tenant).Scan(&swappedStateBefore); err != nil {
+				t.Fatal("swapped publication before state", err)
+			}
+			response, swappedErr := swapped.Propose(ctx, who, request.TenantID, "proposal-publication", request.Intent)
+			var swappedDenied *pgconn.PgError
+			if !errors.As(swappedErr, &swappedDenied) || swappedDenied.Code != "42501" || swappedDenied.Message != "permission denied for function authorize_tenant" || response.Status != 0 || response.ResourceID != nil || len(response.Body) != 0 {
+				t.Fatal("swapped service roles reached publication", swappedErr)
+			}
+			if err := evidenceOwner.QueryRow(ctx, swappedPublicationStateSQL, fixture.Tenant).Scan(&swappedStateAfter); err != nil || swappedStateAfter != swappedStateBefore {
+				t.Fatal("swapped service roles changed publication ledger", err)
 			}
 			t.Log("V27_CREATE_SWAPPED_ROLES_REFUSED_OK")
 			response, createErr := service.Propose(ctx, who, request.TenantID, "proposal-publication", request.Intent)
-			if !errors.Is(createErr, v2input.ErrConflict) || response.Status != 0 || response.ResourceID != nil || len(response.Body) != 0 {
-				t.Fatal("ambiguous protection produced public receipt", createErr)
+			if !errors.Is(createErr, v2qualification.ErrUnqualified) || response.Status != 0 || response.ResourceID != nil || len(response.Body) != 0 {
+				t.Fatal("unqualified no-scene command produced public receipt", createErr)
+			}
+			if err := evidenceOwner.QueryRow(ctx, swappedPublicationStateSQL, fixture.Tenant).Scan(&swappedStateAfter); err != nil || swappedStateAfter != swappedStateBefore {
+				t.Fatal("no-scene public refusal changed tenant publication state", err)
+			}
+			t.Log("V27_CREATE_NOSCENE_PUBLIC_REFUSED_NO_WRITE_OK")
+			if selected, err := reader.selectOrdinaryTransferConfiguration(ctx, who, request, first, deployment); !errors.Is(err, v2input.ErrConflict) || selected.SourceProtection != (v2input.Ref{}) {
+				t.Fatal("ambiguous protection selector accepted", err)
+			}
+			if err := evidenceOwner.QueryRow(ctx, swappedPublicationStateSQL, fixture.Tenant).Scan(&swappedStateAfter); err != nil || swappedStateAfter != swappedStateBefore {
+				t.Fatal("ambiguous protection selector changed tenant publication state", err)
 			}
 			t.Log("V27_CREATE_AMBIGUOUS_POLICY_REFUSED_OK")
 			// Disposable fixture only: make the independently covered producer the
@@ -4596,24 +4697,7 @@ func TestIntegrationProposalIntentPublication(t *testing.T) {
 				t.Fatal(err)
 			}
 			selected, selectionErr := reader.selectOrdinaryTransferConfiguration(ctx, who, request, first, deployment)
-			if fixture.CreateOrdinary && selectionErr == nil {
-				if _, err := evidenceOwner.Exec(ctx, "UPDATE photo.operation_registry SET v2_enabled=true WHERE operation='semantic.transfer' AND version='1'"); err != nil {
-					t.Fatal(err)
-				}
-				if fixture.CreatePerson {
-					if _, err := evidenceOwner.Exec(ctx, "UPDATE photo.operation_registry SET v2_enabled=true WHERE operation='mask.person' AND version='1'"); err != nil {
-						t.Fatal(err)
-					}
-				}
-				probeCommittedCreateService(t, ctx, service, who, request, evidenceOwner, fixture.CreatePerson)
-				if _, err := evidenceOwner.Exec(ctx, "UPDATE photo.operation_registry SET v2_enabled=false WHERE operation='semantic.transfer' AND version='1'"); err != nil {
-					t.Fatal(err)
-				}
-				if _, err := evidenceOwner.Exec(ctx, "UPDATE photo.artifacts SET expires_at=NULL WHERE tenant_id=$1 AND id=ANY($2::uuid[])", fixture.Tenant, retired); err != nil {
-					t.Fatal(err)
-				}
-				return
-			}
+
 			if _, err := evidenceOwner.Exec(ctx, "UPDATE photo.artifacts SET expires_at=NULL WHERE tenant_id=$1 AND id=ANY($2::uuid[])", fixture.Tenant, retired); err != nil {
 				t.Fatal(err)
 			}
@@ -4629,6 +4713,10 @@ func TestIntegrationProposalIntentPublication(t *testing.T) {
 				t.Fatal("automatic selection lost original protection or person coverage")
 			}
 			t.Log("V27_CREATE_SELECTED_INPUTS_PREPARED_OK")
+			if fixture.CreateOrdinary {
+				t.Log("V27_CREATE_DIRECT_POLICY_ONLY_OK")
+				return
+			}
 		}
 		if personInputs, personDocuments, personErr := reader.PrepareTransferInputs(ctx, who, request, first, personPreparation); !errors.Is(personErr, masknpy.ErrInvalid) || personInputs != nil || personDocuments != nil {
 			t.Fatal("transfer preparation ignored person coverage", personErr)

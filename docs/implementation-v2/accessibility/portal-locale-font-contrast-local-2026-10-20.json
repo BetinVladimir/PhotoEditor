@@ -1,0 +1,63 @@
+{
+  "status": "LOCAL_LOCALE_INFORMATION_PAGES_SAMPLE_PASS",
+  "pages": [
+    {
+      "url": "http://127.0.0.1:3101/en",
+      "lang": "en",
+      "paragraph_px": 16,
+      "text_rgb": [
+        22,
+        32,
+        27
+      ],
+      "background_rgb": [
+        246,
+        245,
+        240
+      ],
+      "contrast_ratio": 15.31
+    },
+    {
+      "url": "http://127.0.0.1:3101/bg",
+      "lang": "bg",
+      "paragraph_px": 16,
+      "text_rgb": [
+        22,
+        32,
+        27
+      ],
+      "background_rgb": [
+        246,
+        245,
+        240
+      ],
+      "contrast_ratio": 15.31
+    },
+    {
+      "url": "http://127.0.0.1:3101/ru",
+      "lang": "ru",
+      "paragraph_px": 16,
+      "text_rgb": [
+        22,
+        32,
+        27
+      ],
+      "background_rgb": [
+        246,
+        245,
+        240
+      ],
+      "contrast_ratio": 15.31
+    }
+  ],
+  "method": "Actual Chrome computed DOM styles on all3 local information pages; ordinary text foreground against opaque body background",
+  "source": {
+    "apps/portal/src/app/[locale]/page.tsx": "6d7a70a03ac533e8f413f81f4ba1332aeeada4e5fc2708285fecd4e5284eacec",
+    "apps/portal/src/app/global.css": "78cc9ddf72d32479b6c709bbc8b122c817e2c3e35584e88cf3da8857fcccce7b"
+  },
+  "limits": [
+    "Information page only, no privategallery/process states",
+    "Desktop sample, mobile and interactionstates unrun",
+    "No fullAA or wholePortal acceptance; demoexcluded"
+  ]
+}

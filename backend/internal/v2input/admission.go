@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"photoeditor/backend/internal/billing"
 	"photoeditor/backend/internal/database"
 )
 
@@ -93,6 +94,9 @@ func SealGraphInTransaction(ctx context.Context, tx pgx.Tx, tenant, run uuid.UUI
 			identity, identityTask = pin, task.ID
 		}
 	}
+	if err := billing.PrepareOperations(ctx, tx, tenant, run); err != nil {
+		return err
+	}
 	for _, task := range tasks {
 		if err := RegisterInTransaction(ctx, tx, tenant, run, task.ID,
 			task.Built, task.Open, task.Direct); err != nil {
@@ -107,7 +111,7 @@ func SealGraphInTransaction(ctx context.Context, tx pgx.Tx, tenant, run uuid.UUI
 		args = append(args, identity.Workflow, identityTask, string(identity.Body))
 	}
 	if err := tx.QueryRow(ctx, statement, args...).Scan(&sealed); err != nil {
-		return err
+		return billing.MapError(err)
 	}
 	if !sealed {
 		return fmt.Errorf("%w: graph not sealed", ErrInvalid)
@@ -266,7 +270,7 @@ func registerTaskInputs(ctx context.Context, tx pgx.Tx, tenant, run, task uuid.U
 		args = append(args, string(parsed))
 	}
 	if err := tx.QueryRow(ctx, statement, args...).Scan(&sealed); err != nil {
-		return err
+		return billing.MapError(err)
 	}
 	if !sealed {
 		return fmt.Errorf("%w: task input closure not sealed", ErrInvalid)

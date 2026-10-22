@@ -9,7 +9,7 @@ import (
 
 func TestEntryBinaryFactorySeparatesInstalledDefectLabels(t *testing.T) {
 	factory := SQLImportEntryRecipeAuthorityFactory{Codecs: ImportRecipeCodecDependencies{DefectCandidates: &importDefectCandidatesQualifierStub{}}}
-	installed, err := factory.BuildImportEntryBinaryRemapper(context.Background(), uuid.New(), nil, remapArchiveStub{}, &importRecipePorts{}, &importMasterReaderStub{}, &importCatalogStub{}, &importReaderStub{}, PreparedImportArtifactPublisher{})
+	installed, err := factory.BuildImportEntryBinaryRemapper(context.Background(), uuid.New(), nil, remapArchiveStub{}, &importRecipePorts{}, &importMasterReaderStub{}, &importCatalogStub{}, &importReaderStub{}, PreparedImportArtifactPublisher{Store:SQLPreparedImportArtifactStore{}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -18,7 +18,7 @@ func TestEntryBinaryFactorySeparatesInstalledDefectLabels(t *testing.T) {
 		t.Fatal("typed defect binary route missing")
 	}
 	without := SQLImportEntryRecipeAuthorityFactory{}
-	installed, err = without.BuildImportEntryBinaryRemapper(context.Background(), uuid.New(), nil, remapArchiveStub{}, &importRecipePorts{}, &importMasterReaderStub{}, &importCatalogStub{}, &importReaderStub{}, PreparedImportArtifactPublisher{})
+	installed, err = without.BuildImportEntryBinaryRemapper(context.Background(), uuid.New(), nil, remapArchiveStub{}, &importRecipePorts{}, &importMasterReaderStub{}, &importCatalogStub{}, &importReaderStub{}, PreparedImportArtifactPublisher{Store:SQLPreparedImportArtifactStore{}})
 	if err != nil {
 		t.Fatal(err)
 	}

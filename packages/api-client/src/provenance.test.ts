@@ -22,7 +22,7 @@ it.each([null,{},[],{items:null},{items:[{id:id(3),revision:1}]},
 });
 
 it('does not consume policy choices after cancellation',async()=>{
- const controller=new AbortController(),request=vi.fn(async()=>{controller.abort();return {items:[]}});
+ const controller=new AbortController(),request=vi.fn().mockImplementation(async()=>{controller.abort();return {items:[]}});
  await expect(signingPolicies({request},id(1),id(2),controller.signal)).rejects.toThrow();
 });
 
@@ -57,7 +57,7 @@ it('checks cancellation before transport and after its response',async()=>{
  const controller=new AbortController();controller.abort();const request=vi.fn();
  await expect(signExport({request},id(1),id(2),{signing_policy_id:id(3)},'key',controller.signal)).rejects.toThrow();
  expect(request).not.toHaveBeenCalled();
- const late=new AbortController(),transport=vi.fn(async()=>{late.abort();return ticket()});
+ const late=new AbortController(),transport=vi.fn().mockImplementation(async()=>{late.abort();return ticket()});
  await expect(signExport({request:transport},id(1),id(2),{signing_policy_id:id(3)},'key',late.signal)).rejects.toThrow();
 });
 

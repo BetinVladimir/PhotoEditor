@@ -58,7 +58,12 @@ func (a SQLRestorationCandidateAdopter) AdoptCandidate(ctx context.Context,
 		Documents: SQLRestorationResultDocumentCatalog{DB: a.SchedulerDB, Bucket: a.Bucket},
 		Arrays:    SQLRestorationResultArrayCatalog{DB: a.SchedulerDB, Bucket: a.Bucket},
 		Objects:   a.Objects, Bucket: a.Bucket}
-	service := RestorationAdoptionService{Verifier: verifier,
+	var currentVerifier RestorationEvidenceVerifier = verifier
+	if job.Operation == "portrait.glare" {
+		currentVerifier = currentGlareAdoptionVerifier{Inner: verifier,
+			Authority: sqlGlareAdoptionAuthority{DB: a.SchedulerDB}}
+	}
+	service := RestorationAdoptionService{Verifier: currentVerifier,
 		Store: SQLRestorationAdoptionStore{DB: a.SchedulerDB}}
 	_, _, err := service.Adopt(ctx, job.Actor, job.Scope, job.Operation, job.Params)
 	return err

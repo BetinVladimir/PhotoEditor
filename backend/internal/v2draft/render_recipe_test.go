@@ -81,7 +81,7 @@ func TestFrozenRenderRecipePreservesCompositionAndChecksLayerBytes(t *testing.T)
 			t.Fatal(err)
 		}
 		command := exec.Command(python, "-c", "import sys; from photo_worker.v2.render_recipe import decode_frozen_render_recipe; from photo_worker.contracts.base import canonical_bytes; raw=sys.stdin.buffer.read(); assert canonical_bytes(decode_frozen_render_recipe(raw))==raw")
-		command.Env = append(os.Environ(), "PYTHONPATH="+filepath.Join(root, "workers")+string(os.PathListSeparator)+filepath.Join(root, "src"))
+		command.Env = append(os.Environ(), "PYTHONPATH="+filepath.Join(root, "workers")+string(os.PathListSeparator)+filepath.Join(root, "apps", "local-editor", "src"))
 		command.Stdin = bytes.NewReader(out)
 		if output, err := command.CombinedOutput(); err != nil {
 			t.Fatalf("worker rejected actual Go recipe: %v %s", err, output)

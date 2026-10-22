@@ -95,7 +95,7 @@ BEGIN
  AND a.state='ready' AND a.sha256=proposal_sha AND a.output_role='v30_import_prepared'
  AND a.verified_at IS NOT NULL AND a.object_version NOT IN('','null')
  AND (a.expires_at IS NULL OR a.expires_at>clock_timestamp()) FOR SHARE OF b,a;
- IF scope IS NULL OR scope->>'contract' IS DISTINCT FROM CASE WHEN kind='defects' THEN 'DefectCandidates' ELSE 'DustCandidates' END
+ IF scope IS NULL OR scope->>'contract' IS DISTINCT FROM (CASE WHEN kind='defects' THEN 'DefectCandidates' ELSE 'DustCandidates' END)
  OR scope->>'workflow' IS DISTINCT FROM p_workflow::text OR scope->>'entry' IS DISTINCT FROM entry_id::text
  OR scope#>>'{binding,asset_version_id}' IS DISTINCT FROM target_version::text
  OR scope#>>'{binding,source,artifact_id}' IS DISTINCT FROM base_id::text

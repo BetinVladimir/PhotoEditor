@@ -24,7 +24,7 @@ func TestSemanticProfileMatchesPinnedLoaderCosts(t *testing.T) {
 			conversion += 12*512 + 8192
 		}
 		expected := sessionDescribeEstimate{RAMBytes: 20*(480+512) + (320 << 20) + conversion + 1000, VRAMBytes: 2000,
-			ScratchBytes: 4*512 + 8192 + (8 << 20) + 12*(480+512) + 8*480 + 4*512 + 5*8192 + conversion + 3000,
+			ScratchBytes: 4*512 + 8192 + (8 << 20) + semanticTransferInputIndexScratch + 12*(480+512) + 8*480 + 4*512 + 5*8192 + conversion + 3000,
 			OutputBytes:  4*512 + 4096 + (24 << 20), PixelCount: 992}
 		if p.Backend != "cuda" || p.RendererVersion != "v2.2" || p.ResourceEstimate != expected {
 			t.Fatalf("wrong costs: %+v", p)
@@ -53,5 +53,30 @@ func TestSemanticProfileMaximumCanvasAndOverflow(t *testing.T) {
 	}
 	if _, err := CompileSemanticTransferProfile(8, 8, 8, 8, false, false, SemanticQualifiedCosts{RAMBytes: 9007199254740991}, 9007199254740991, 0, 1<<40, 1<<40); err == nil {
 		t.Fatal("RAM overflow")
+	}
+}
+
+func TestSemanticTransferRetainedIndexBudgetBoundary(t *testing.T) {
+	for _, backend := range []string{"cuda", "mps"} {
+		for _, gamma := range [][2]bool{{false, false}, {true, false}, {false, true}, {true, true}} {
+			raw, err := CompileSemanticTransferProfileForBackend(backend, 24, 20, 32, 16, gamma[0], gamma[1], SemanticQualifiedCosts{}, 1<<40, 1<<40, 1<<40, 1<<40)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var p sessionDescribeExecutionProfile
+			if err = json.Unmarshal(raw, &p); err != nil {
+				t.Fatal(err)
+			}
+			e := p.ResourceEstimate
+			if _, err = CompileSemanticTransferProfileForBackend(backend, 24, 20, 32, 16, gamma[0], gamma[1], SemanticQualifiedCosts{}, e.RAMBytes, e.VRAMBytes, e.ScratchBytes, e.OutputBytes); err != nil {
+				t.Fatal(err)
+			}
+			if _, err = CompileSemanticTransferProfileForBackend(backend, 24, 20, 32, 16, gamma[0], gamma[1], SemanticQualifiedCosts{}, e.RAMBytes, e.VRAMBytes, e.ScratchBytes-1, e.OutputBytes); err == nil {
+				t.Fatal("one byte short accepted")
+			}
+		}
+	}
+	if _, err := CompileSemanticTransferProfileForBackend("cuda", 8, 8, 8, 8, false, false, SemanticQualifiedCosts{ScratchBytes: 9007199254740991}, 1<<40, 1<<40, 1<<40, 1<<40); err == nil {
+		t.Fatal("overflow accepted")
 	}
 }

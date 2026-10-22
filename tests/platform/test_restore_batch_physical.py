@@ -16,7 +16,12 @@ def test_physical_render_root_and_direct_children_are_pinned_and_rechecked(monke
     tenant=uuid4();root=uuid4();ids=[uuid4() for _ in range(3)];opens={};semantic_calls=[]
     binding=VersionBinding(asset_version_id=uuid4(),source=ArtifactRef(artifact_id=uuid4(),sha256='a'*64),canvas_hash='b'*64)
     if mode=='alias':ids[1]=ids[0]
-    childraw=b'{}';pin=sha256(childraw).hexdigest()
+    from photo_worker.contracts.images import WorkingImage,Canvas,ColorSpace,TransformChain
+    childraw=canonical_bytes(WorkingImage(pixels=ArtifactRef(artifact_id=uuid4(),sha256='c'*64),
+        canvas=Canvas(width=2,height=3,orientation=1,space_id='source',source_sha256='a'*64),
+        color=ColorSpace(profile_id='linear_srgb_v1',encoding='linear',icc_sha256='d'*64),
+        dtype='float32',alpha=None,transform_chain=TransformChain.create([])))
+    pin=sha256(childraw).hexdigest()
     body=dict(schema_version=1,working_image=dict(artifact_id=str(ids[0]),sha256=pin),
         report=dict(artifact_id=str(ids[1]),sha256=pin),changed_mask=dict(artifact_id=str(ids[2]),sha256=pin),generated_mask=None)
     raw=canonical_bytes(body);key='tenants/'+str(tenant)+'/root';calls=[]
@@ -52,7 +57,7 @@ def test_physical_render_root_and_direct_children_are_pinned_and_rechecked(monke
             if q.startswith('SELECT current_database'):row=('isolated',True)
             if q.startswith('SELECT a.bucket'):
                 assert params[-2]==(params[1]==ids[0])
-                row=None if mode=='missing_child' else ('photos','tenants/'+str(uuid4() if mode=='foreign_child' else tenant)+'/'+str(params[1]),'v1',pin,2)
+                row=None if mode=='missing_child' else ('photos','tenants/'+str(uuid4() if mode=='foreign_child' else tenant)+'/'+str(params[1]),'v1',pin,len(childraw))
             return NS(fetchone=lambda:row)
     def run():return m.verify_fixture_batch_physical(Connection(),Client(),('photos',),tenant,NS(database='isolated'),
         binding=binding,source_raw=b'{}',

@@ -101,7 +101,17 @@ def probe_export_style(request):
                  'BodyFitOrigin': validate_export_body_fit_origin,
                  'PairAlignmentOrigin': validate_export_pair_alignment_origin,
                  'FaceDetectorOrigin': validate_export_face_detector_origin}[contract]
-    validator(raw, request['sha256'], policy)
+    if contract == 'RenderComposition':
+        from photo_worker.color.icc import ICCRegistry
+        root = os.environ.get('PHOTO_ICC_ROOT')
+        registry = None
+        if root is not None:
+            if not root or not Path(root).is_absolute():
+                raise ValueError('INTERCHANGE_EXPORT_STYLE_PROBE_ICC_ROOT')
+            registry = ICCRegistry(Path(root))
+        validator(raw, request['sha256'], policy, icc_registry=registry)
+    else:
+        validator(raw, request['sha256'], policy)
     runtime_versions = {'python': platform.python_version(), 'pydantic': version('pydantic')}
     if contract in ('BodyFitOrigin', 'PairAlignmentOrigin'):
         import numpy as np

@@ -23,7 +23,7 @@ def test_panorama_ram_rejection_precedes_scratch():
         def reserve(self, _size): pytest.fail('unexpected allocation')
     frame = np.zeros((9, 11, 3), np.float32)
     with pytest.raises(ValueError, match='PANORAMA_RAM_EXCEEDED'):
-        with prepare_panorama_blend([frame, frame], [], [], NoScratch(), motion_threshold=.5, ram_max_bytes=1):
+        with prepare_panorama_blend([frame, frame], [np.ones((9,11),np.float32)]*2, [np.ones((9,11),bool)]*2, NoScratch(), motion_threshold=.5, ram_max_bytes=1):
             pytest.fail('unexpected result')
 
 

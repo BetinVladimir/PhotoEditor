@@ -99,3 +99,23 @@ func TestDecisionProofDeniesStaleAndSubstitutedInventory(t *testing.T) {
 		})
 	}
 }
+
+
+func TestRejectDecisionProofDoesNotRequireOrPublishShownPreview(t *testing.T) {
+	prepared, targets, request := decisionProofFixture(t)
+	request.TargetDecisions[0].Decision = "reject"
+	request.TargetDecisions[0].Preview = nil
+	proof, err := BuildDecisionProof(prepared, targets, request)
+	if err != nil || len(proof.Approved) != 0 { t.Fatal("rejection required approval resources", err) }
+	var doc decisionDocument
+	if err := json.Unmarshal(proof.Body, &doc); err != nil { t.Fatal(err) }
+	if len(doc.Targets) != 1 || doc.Targets[0].Decision != "reject" ||
+		doc.Targets[0].TargetID != request.TargetDecisions[0].TargetID ||
+		doc.Targets[0].Preview != nil || bytes.Contains(proof.Body, []byte(`"preview"`)) ||
+		doc.Targets[0].Source.AssetVersionID == uuid.Nil || doc.Targets[0].Candidate.ArtifactID == uuid.Nil {
+		t.Fatal("rejection lost explicit lineage or published preview", string(proof.Body))
+	}
+	frozen := append([]byte(nil), proof.Body...)
+	request.TargetDecisions[0].Decision = "approve"
+	if !bytes.Equal(proof.Body, frozen) { t.Fatal("proof aliases request") }
+}

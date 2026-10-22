@@ -17,6 +17,8 @@ from test_task_leases import queued_task
     ('memory','RESOURCE_OOM',True),
     ('torch-type','RESOURCE_OOM',True),
     ('ordinary','INTERNAL_ERROR',False),
+    ('deadlock','DEPENDENCY_UNAVAILABLE',True),
+    ('serialization','DEPENDENCY_UNAVAILABLE',True),
 ])
 def test_executor_classifies_oom_and_releases_actual_resources(database,monkeypatch,kind,code,retryable):
     class DeclaredTorchOOM(RuntimeError):
@@ -28,7 +30,7 @@ def test_executor_classifies_oom_and_releases_actual_resources(database,monkeypa
     def operation(ctx):
         calls.append(ctx.lease.command.task_id)
         ctx.check_active()
-        error={'memory':MemoryError,'torch-type':DeclaredTorchOOM,'ordinary':RuntimeError}[kind]
+        error={'memory':MemoryError,'torch-type':DeclaredTorchOOM,'ordinary':RuntimeError,'deadlock':psycopg.errors.DeadlockDetected,'serialization':psycopg.errors.SerializationFailure}[kind]
         raise error('private diagnostic /path token=must-not-persist')
     executor=Executor(TaskDatabase(make_conninfo(**database)),case['worker'],[Operation('asset.verify','media',operation)])
     assert executor.process(json.dumps(case['command']).encode())=='committed'

@@ -34,12 +34,12 @@ func (s SQLTransferSourceReader) prepareNativeTargetFaceTask(ctx context.Context
 	if published.document != uuid.NewSHA1(plan.anchor.entry.Namespace, []byte("semantic."+published.operation+".params:reference")) {
 		return zero, v2input.ErrInvalid
 	}
-	selected, err := selectQualificationPolicies(plan.detector.policy, []string{published.operation})
+	selected, err := selectNativeQualificationPolicies(plan.detector.policy, []string{published.operation})
 	if err != nil {
 		return zero, fmt.Errorf("target face qualification policy: %w", err)
 	}
 	expected := selected[published.operation]
-	if expected.Backend != "cuda" {
+	if expected.Backend != "cuda" && expected.Backend != "mps" {
 		return zero, v2qualification.ErrUnqualified
 	}
 	if err := validateTransferMeasuredCosts(budget.Costs, v2qualification.Metrics{}); err != nil {
@@ -97,9 +97,9 @@ func (s SQLTransferSourceReader) prepareNativeTargetFaceTask(ctx context.Context
 	}
 	compile := func(sizes []v2input.SemanticInputSize) (nativeRegistrationTask, error) {
 		if published.operation == "face.landmarks" {
-			return v2input.CompileSemanticLandmarkTask(ctx, workflow, 0, binding, image, before.catalog.Output, faces, before.catalog.Params, detector, published.ref, expected.ModelLockSHA, sizes, budget.Costs, budget.RAM, budget.VRAM, budget.Scratch, budget.Output)
+			return v2input.CompileSemanticLandmarkTaskForBackend(expected.Backend, ctx, workflow, 0, binding, image, before.catalog.Output, faces, before.catalog.Params, detector, published.ref, expected.ModelLockSHA, sizes, budget.Costs, budget.RAM, budget.VRAM, budget.Scratch, budget.Output)
 		}
-		return v2input.CompileSemanticFaceParseTask(ctx, workflow, 0, binding, image, before.catalog.Output, faces, before.catalog.Params, detector, published.ref, expected.ModelLockSHA, sizes, budget.Costs, budget.RAM, budget.VRAM, budget.Scratch, budget.Output)
+		return v2input.CompileSemanticFaceParseTaskForBackend(expected.Backend, ctx, workflow, 0, binding, image, before.catalog.Output, faces, before.catalog.Params, detector, published.ref, expected.ModelLockSHA, sizes, budget.Costs, budget.RAM, budget.VRAM, budget.Scratch, budget.Output)
 	}
 	if _, err := compile(sizes); err != nil {
 		return zero, fmt.Errorf("target face initial task capacity: %w", err)
@@ -112,11 +112,11 @@ func (s SQLTransferSourceReader) prepareNativeTargetFaceTask(ctx context.Context
 	if err != nil {
 		return zero, fmt.Errorf("target face qualification bytes: %w", err)
 	}
-	verified, err := v2qualification.Verify(rawReport, report.SHA256, expected)
+	verified, err := v2qualification.VerifyTyped(rawReport, report.SHA256, expected)
 	if err != nil {
 		return zero, fmt.Errorf("target face qualification verification: %w", err)
 	}
-	if err := validateTransferMeasuredCosts(budget.Costs, verified.Metrics); err != nil {
+	if err := validateTransferResourceCosts(budget.Costs, verified.Resources()); err != nil {
 		return zero, fmt.Errorf("target face measured costs: %w", err)
 	}
 	scoped := nativeFaceInputCatalog{params: detectorParamsCatalog{reader: s, source: catalog, binding: binding, document: published.document, params: published.ref}, detector: before.catalog}
@@ -192,5 +192,5 @@ func (s SQLTransferSourceReader) prepareNativeTargetFaceTask(ctx context.Context
 	if err != nil {
 		return zero, fmt.Errorf("target face final context: %w", err)
 	}
-	return nativeFaceTaskPreparation{costs: budget.Costs, operation: published.operation, document: published.document, params: published.ref, detector: before.catalog, frozen: frozen, inputs: string(pins), expected: string(expectedBody), taskSHA: taskSHA, report: originalReport, metrics: verified.Metrics, tenant: plan.detector.request.TenantID, project: s.ProjectID, actor: who.UserID, session: who.SessionID, parent: plan.anchor.entry.Namespace, bucket: s.Bucket, policySHA: policySHA}, nil
+	return nativeFaceTaskPreparation{costs: budget.Costs, operation: published.operation, document: published.document, params: published.ref, detector: before.catalog, frozen: frozen, inputs: string(pins), expected: string(expectedBody), taskSHA: taskSHA, report: originalReport, metrics: verified.Resources(), tenant: plan.detector.request.TenantID, project: s.ProjectID, actor: who.UserID, session: who.SessionID, parent: plan.anchor.entry.Namespace, bucket: s.Bucket, policySHA: policySHA}, nil
 }

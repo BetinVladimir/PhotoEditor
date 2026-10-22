@@ -90,7 +90,7 @@ func verifyDeliveryStageOutput(ctx context.Context,objects v2input.SessionAnalys
 		}
 		reader, err := objects.Open(ctx, objectstore.Object{Key: output.Key, VersionID: output.Version, SHA256: output.Ref.SHA256, ContentType: output.MediaType, Bytes: output.Bytes})
 		if err != nil {
-			return zero, err
+			return zero, physicalDeliveryFailure(output.Ref,output.Version,err)
 		}
 		if reader == nil {
 			return zero, v2input.ErrInvalid
@@ -102,10 +102,10 @@ func verifyDeliveryStageOutput(ctx context.Context,objects v2input.SessionAnalys
 		}
 		closeErr := reader.Close()
 		if err != nil {
-			return zero, err
+			return zero, physicalDeliveryFailure(output.Ref,output.Version,err)
 		}
 		if closeErr != nil {
-			return zero, closeErr
+			return zero, physicalDeliveryFailure(output.Ref,output.Version,closeErr)
 		}
 	}
  if err=ctx.Err();err!=nil{return zero,err}

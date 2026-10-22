@@ -113,7 +113,7 @@ func PublishRestorationPreviewTasks(ctx context.Context, db *pgxpool.Pool,
 	if db == nil || objects == nil {
 		return nil, v2input.ErrInvalid
 	}
-	rebuilt, err := CompileRestorationPreviewPlan(plan.source, plan.srgb, baseRaw, candidateRaw)
+	rebuilt, err := CompileRestorationPreviewPlan(plan.source, plan.srgb, baseRaw, candidateRaw,plan.policy)
 	if err != nil {
 		return nil, err
 	}

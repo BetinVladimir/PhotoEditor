@@ -1,3 +1,4 @@
+import {APIError} from '@photoeditor/api-client';
 import {expect,it,vi} from 'vitest';
 import type {Collection,CollectionItem} from './catalog-types';
 import {saveCompareDecisions} from './compare-decisions-save';
@@ -16,4 +17,11 @@ it('acknowledges an in-flight commit before stopping after cancellation',async()
 });
 it('rejects ineligible frames before any mutation',async()=>{
  const save=vi.fn();await expect(saveCompareDecisions(collection,[{...items[0],moderation_state:'accepted'},items[1]],{a:'accept'},save,new AbortController().signal)).rejects.toThrow();expect(save).not.toHaveBeenCalled();
+});
+
+it.each([401,403,404])('propagates access loss %s and stops remaining decisions',async status=>{
+ const error=new APIError(status,'ACCESS_UNAVAILABLE');
+ const save=vi.fn(async()=>{throw error;});
+ await expect(saveCompareDecisions(collection,items,{a:'accept',b:'reject'},save,new AbortController().signal)).rejects.toBe(error);
+ expect(save).toHaveBeenCalledTimes(1);
 });

@@ -25,6 +25,7 @@ func PinExportPending(ctx context.Context,tx PendingTransaction,who auth.Identit
  if _,err:=tx.Exec(ctx,`INSERT INTO photo.idempotency_records(tenant_id,principal_type,principal_id,route,key,request_hash,expires_at) VALUES($1,'user',$2,$3,$4,$5,clock_timestamp()+interval '24 hours') ON CONFLICT DO NOTHING`,tenant,who.UserID,route,key,intent.RequestSHA);err!=nil{return zero,plan,err}
  var hash string;var body []byte;var live bool;var status *int
  if err:=tx.QueryRow(ctx,`SELECT request_hash,response_body,expires_at>clock_timestamp(),response_status FROM photo.idempotency_records WHERE tenant_id=$1 AND principal_type='user' AND principal_id=$2 AND route=$3 AND key=$4 FOR UPDATE`,tenant,who.UserID,route,key).Scan(&hash,&body,&live,&status);err!=nil{return zero,plan,err}
+ if err:=requireReceiptAuthority(ctx,tx,who,tenant,request.ProjectID);err!=nil{return zero,plan,err}
  if hash!=intent.RequestSHA{return zero,plan,domain.NewError("IDEMPOTENCY_CONFLICT",409)}
  if !live{return zero,plan,domain.NewError("SNAPSHOT_EXPIRED",410)}
  if status!=nil{return zero,plan,domain.NewError("INTERCHANGE_PENDING_INVALID",409)}

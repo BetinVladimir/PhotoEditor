@@ -77,3 +77,16 @@ def test_import_adoption_report_rejects_noncanonical_bytes_and_untrusted_policy(
     expected['LicenseCleared'] = False
     with pytest.raises(AdoptionInvalid, match='REPORT_INVALID'):
         verify(expected, report)
+
+
+@pytest.mark.parametrize('operation', ['defects.auto_repair', 'sensor.dust_auto_repair'])
+@pytest.mark.parametrize('mode', ['valid', 'mps', 'unmeasured', 'missing_check'])
+def test_native_auto_reports_require_cpu_and_unchanged_measured_evidence(operation, mode):
+    expected, report = fixture()
+    expected['Operation']=report['operation']=operation
+    expected['Backend']='mps' if mode=='mps' else 'cpu'
+    if mode=='unmeasured': report['status']='pending'
+    if mode=='missing_check': report['checks']=[]
+    if mode=='valid': assert verify(expected, report)==report
+    else:
+        with pytest.raises(AdoptionInvalid): verify(expected, report)

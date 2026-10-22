@@ -18,7 +18,7 @@ type completedNativeInputDefect struct {
 
 // Exact native dependency and physical result verification, outside SQL.
 // A stale catalog/dependency or any invalid byte stream returns no evidence.
-func (s SQLTransferSourceReader) readCompletedNativeInputDefect(ctx context.Context, who auth.Identity, plan nativeDefectDraftPlan, color TransferColorProfile) (completedNativeInputDefect, error) {
+func (s SQLTransferSourceReader) readCompletedNativeInputDefectUncached(ctx context.Context, who auth.Identity, plan nativeDefectDraftPlan, color TransferColorProfile) (completedNativeInputDefect, error) {
 	var zero completedNativeInputDefect
 	if err := verifyNativeDefectDraftSeal(ctx, plan); err != nil {
 		return zero, err
@@ -97,7 +97,7 @@ func (s SQLTransferSourceReader) readCompletedNativeInputDefect(ctx context.Cont
 	if err := s.verifyNativeDefectPersonOutput(ctx, who, p, declared, objects[1]); err != nil {
 		return zero, err
 	}
-	current, err := s.nativeInputDefectResultCatalog(ctx, who, plan)
+	current, err := s.nativeInputDefectResultCatalogCurrent(ctx, who, plan)
 	if err != nil {
 		return zero, err
 	}

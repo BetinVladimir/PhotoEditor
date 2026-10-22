@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"photoeditor/backend/internal/auth"
+	"photoeditor/backend/internal/canonical"
 	"strings"
 	"testing"
 )
@@ -158,6 +159,20 @@ func TestCreateRunRequiresMetadataAdopterForPreservedMetadata(t *testing.T) {
 	base, session, catalog, items := createDocumentsFixture(t)
 	request := base.Request()
 	request.Policy.MetadataPolicy = "copyright"
+	// Preserved-metadata admission requires matching frozen preset policies.
+	for n := range catalog.Presets {
+		var config map[string]any
+		if err := json.Unmarshal(catalog.Presets[n].ConfigJCS, &config); err != nil { t.Fatal(err) }
+		config["metadata_policy"] = "copyright"
+		body, err := json.Marshal(config)
+		if err != nil { t.Fatal(err) }
+		// Use the package canonical form required by immutable preset identity.
+		body, err = canonical.Bytes(body)
+		if err != nil { t.Fatal(err) }
+		catalog.Presets[n].ConfigJCS = body
+		catalog.Presets[n].SHA256 = digest(body)
+		if request.ExpectedPresetSHA != nil { request.ExpectedPresetSHA[catalog.Presets[n].ID] = digest(body) }
+	}
 	who := auth.Identity{UserID: base.actor, SessionID: session}
 	intent, err := FreezeCreateIntent(base.tenant, who, request, base.key)
 	if err != nil {

@@ -128,7 +128,7 @@
         ],
         "additionalProperties": false
       },
-      "maxItems": 128
+      "maxItems": 512
     },
     "params": {
       "type": "object",

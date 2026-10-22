@@ -63,7 +63,7 @@ BEGIN
  OR descriptor->>'params_document_id' IS DISTINCT FROM identity->>'params_document_id'
  OR descriptor->>'params_sha' IS DISTINCT FROM identity->>'params_sha' THEN RETURN false;END IF;
  FOR field IN SELECT unnest(ARRAY['params_jcs','source_jcs']) LOOP
- IF jsonb_typeof(descriptor->field) IS DISTINCT FROM 'string' OR octet_length(descriptor->>field) NOT BETWEEN 2 AND CASE WHEN field='source_jcs' THEN 1048576 ELSE 65536 END THEN RETURN false;END IF;
+ IF jsonb_typeof(descriptor->field) IS DISTINCT FROM 'string' OR octet_length(descriptor->>field) NOT BETWEEN 2 AND (CASE WHEN field='source_jcs' THEN 1048576 ELSE 65536 END) THEN RETURN false;END IF;
  END LOOP;
  params:=(descriptor->>'params_jcs')::jsonb;source:=(descriptor->>'source_jcs')::jsonb;profile:=descriptor->'execution_profile';pin:=profile->'perspective_qualification';
  IF params->'schema_version' IS DISTINCT FROM '1'::jsonb OR params->>'mode' IS DISTINCT FROM 'manual'

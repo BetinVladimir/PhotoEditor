@@ -37,7 +37,7 @@ func cloneRenderOccurrences(records []v2draft.OccurrenceWitness) []v2draft.Occur
 func validateRenderOccurrences(request RenderDraftRequest, entries []v2input.Entry) error {
 	records := request.ClosureOccurrences
 	if len(records) == 0 {
-		if len(request.LayerDocuments) > 0 {
+		if len(request.LayerDocuments) > 0 || hasEditorExecutedReceipt(request.RecipeRaw) {
 			return v2input.ErrInvalid
 		}
 		return nil
@@ -120,7 +120,7 @@ func validateRenderOccurrences(request RenderDraftRequest, entries []v2input.Ent
 			return v2input.ErrInvalid
 		}
 	}
-	if len(request.LayerDocuments) > 0 {
+	if len(request.LayerDocuments) > 0 || hasEditorExecutedReceipt(request.RecipeRaw) {
 		if err := validateRenderOccurrenceEdges(request); err != nil {
 			return err
 		}
@@ -227,7 +227,7 @@ func renderOccurrenceChildren(parent v2draft.DocumentWitness, node v2draft.Layer
 		return children, nil
 	}
 	switch node.Contract {
-	case "LayerStack", "Params", "FrozenRenderRecipe", "WorkingImage", "MaskRef", "ImageResult", "ImageReport", "IdentityReport", "FaceObservations", "DescriptorShard", "CandidateProfile", "CorrectionPlan":
+	case "EditorExecutedBaseReceipt", "LayerStack", "Params", "FrozenRenderRecipe", "WorkingImage", "MaskRef", "ImageResult", "ImageReport", "IdentityReport", "FaceObservations", "DescriptorShard", "CandidateProfile", "CorrectionPlan":
 		return nil, err
 	}
 	children, err = v2draft.OpaqueDocumentChildren([]byte(parent.JCS), node.Contract, node.Ref)

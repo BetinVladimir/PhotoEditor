@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -13,6 +14,7 @@ import (
 	"photoeditor/backend/internal/media"
 	"photoeditor/backend/internal/portal"
 	"photoeditor/backend/internal/review"
+	"photoeditor/backend/internal/semanticreview"
 	"photoeditor/backend/internal/upload"
 	"photoeditor/backend/internal/v2learning"
 	"photoeditor/backend/internal/v2render"
@@ -21,6 +23,8 @@ import (
 )
 
 type Server struct {
+	RuntimeReady func(context.Context) error
+	SemanticReviewKind               semanticreview.ReviewKindReader
 	OpenEyesPrepare                  OpenEyesPrepare
 	OpenEyesSubmit                   OpenEyesSubmit
 	OpenEyesSourceCandidates         GlareSourceCandidates
@@ -54,6 +58,8 @@ type Server struct {
 	PerspectiveDetectedLines         PerspectiveDetectedLines
 	PerspectiveProposals             *v2render.PerspectiveProposalService
 	NegativeSubmit                   NegativeSubmit
+	LensProposals *v2render.LensProposalService
+	LensSubmit                       LensSubmit
 	PerspectiveSubmit                PerspectiveSubmit
 	MultiProposals                   MultiProposalReader
 	PanoramaSubmit                   MultiSubmit
@@ -61,11 +67,16 @@ type Server struct {
 	RelightAnalysis                  RelightAnalysisSubmit
 	RelightSubmit                    RelightSubmit
 	SemanticPropose                  SemanticPropose
+	SemanticAppliedPreview           SemanticAppliedPreview
+	SemanticShownVersion             SemanticShownVersion
 	SemanticReviewApply              SemanticReviewApply
+	SemanticReviewPreview            SemanticReviewPreviewProvider
+	SemanticPreviewAdmission         SemanticPreviewAdmission
 	SemanticReviewClose              SemanticReviewClose
 	RenderFreezer                    RenderFreezer
 	RenderQueue                      RenderQueue
 	RenderCalibrations               v2render.RenderCalibrationCatalog
+ AuthoredFinalCalibrations v2render.AuthoredFinalCalibrationCatalog
 	Auth                             *auth.Service
 	Config                           config.Config
 	DB                               *pgxpool.Pool
@@ -77,6 +88,9 @@ type Server struct {
 	AnalysisAdmission                v2sessions.AnalysisAdmission
 	TrainingAdmission                v2learning.TrainingAdmission
 	RegionQueue                      RegionQueue
+	AuthoredRegionQueue              AuthoredRegionQueue
+	AuthoredRegionMedia              AuthoredRegionMediaReader
+	AuthoredFaceMedia v2render.AuthoredFaceMediaService
 }
 
 func (s *Server) Routes() http.Handler {
@@ -99,7 +113,11 @@ func (s *Server) Routes() http.Handler {
 	})
 	r.Get("/health/live", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, map[string]any{"status": "ok"}) })
 	r.Get("/health/ready", func(w http.ResponseWriter, r *http.Request) {
-		if err := s.DB.Ping(r.Context()); err != nil {
+		if s.DB == nil {
+			writeError(w, r, domain.NewError("DEPENDENCY_UNAVAILABLE", 503))
+			return
+		}
+		if err := checkReadiness(r.Context(), s.DB, s.RuntimeReady); err != nil {
 			writeError(w, r, domain.NewError("DEPENDENCY_UNAVAILABLE", 503))
 			return
 		}
@@ -115,6 +133,8 @@ func (s *Server) Routes() http.Handler {
 		s.provenanceRoutes(r)
 		s.interchangeRoutes(r)
 		s.semanticReviewRoutes(r)
+		s.semanticShownVersionRoutes(r)
+		s.semanticAppliedPreviewRoutes(r)
 		s.relightRoutes(r)
 		s.glareDonorRoutes(r)
 		s.openEyesRoutes(r)
@@ -122,12 +142,19 @@ func (s *Server) Routes() http.Handler {
 		s.localPortraitRoutes(r)
 		s.perspectiveRoutes(r)
 		s.negativeRoutes(r)
+		s.lensRoutes(r)
 		s.multiRoutes(r)
 		s.multiProposalRoutes(r)
+		s.multiRunReviewRoutes(r)
 		s.multiReplacementReviewRoutes(r)
 		s.perspectiveDetectedLinesRoutes(r)
 		s.perspectiveLinesSubmissionRoutes(r)
 		s.regionRoutes(r)
+		s.authoredRegionRoutes(r)
+		s.authoredFaceSelectionRoutes(r)
+ s.authoredParentRoutes(r)
+ s.authoredFaceMediaRoutes(r, s.AuthoredFaceMedia)
+		RegisterAuthoredRegionMediaRoutes(r, s.tenantRequest, s.AuthoredRegionMedia)
 		s.renderRoutes(r)
 		s.renderFreezeRoutes(r)
 	}

@@ -1,0 +1,38 @@
+{
+  "status": "LOCAL_LANDING_COMPUTED_SAMPLE_PASS",
+  "url": "http://127.0.0.1:3101/",
+  "method": "Actual Chrome DOM computed font/color and nearest opaque ancestor background; sRGB relative luminance ratio; decorative role=img subtree excluded",
+  "measurements": {
+    "body_px": [
+      16,
+      18
+    ],
+    "secondary_px": 14,
+    "navigation_px": 16,
+    "primary_CTA_px": 16,
+    "ordinary_text_min_ratio": 4.66,
+    "large_heading_min_ratio": 4.28,
+    "primary_CTA_ratio": 8.68,
+    "muted_text_ratio": 5.62,
+    "logo_accent_ratio": 4.03
+  },
+  "exceptions": [
+    "Brand logo accent not ordinary UI text",
+    "Large headings assessed against3:1, ordinary text4.5:1"
+  ],
+  "checks": {
+    "portal_tests_passed": 62,
+    "portal_test_files": 13
+  },
+  "source": {
+    "apps/portal/src/app/landing.css": "9bfbdf41a1a97b4a27333ea01d86f9c3cf6e31b87bb1370900efddc94017e3ec",
+    "apps/portal/src/app/global.css": "78cc9ddf72d32479b6c709bbc8b122c817e2c3e35584e88cf3da8857fcccce7b",
+    "apps/portal/src/components/AccessibleLightbox.tsx": "6ccbbc768576d0b8cf969f886ec4751a7c3c3b5eef58a5b7bec8f4519f080a78"
+  },
+  "limits": [
+    "Single local desktop landing state only",
+    "No gallery private states, mobile or hover/disabled coverage",
+    "Nearest opaque background method does not establish arbitrary gradient/alpha composite contrast",
+    "No full WCAG claim; demo not used"
+  ]
+}

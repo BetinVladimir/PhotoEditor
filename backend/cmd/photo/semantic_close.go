@@ -56,3 +56,12 @@ func buildSemanticReviewClose(api *pgxpool.Pool, objects *objectstore.Store, buc
 	}
 	return service, nil
 }
+
+// Share the configured admission service so close uses the same tenant catalog
+// as Apply. Only replay/rejection-only installations use the legacy fallback.
+func buildSemanticCloseForApply(api *pgxpool.Pool, objects *objectstore.Store, bucket string, apply httpapi.SemanticReviewApply) (httpapi.SemanticReviewClose, error) {
+ if closeService, ok := apply.(httpapi.SemanticReviewClose); ok {
+  return closeService, nil
+ }
+ return buildSemanticReviewClose(api, objects, bucket)
+}

@@ -1,0 +1,234 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "SemanticExposurePreviewInput": {
+      "additionalProperties": false,
+      "description": "Existing exposure wire format; no additional fields.",
+      "properties": {
+        "candidate": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "device_profile_sha": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Device Profile Sha",
+          "type": "string"
+        },
+        "intent": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "intent_id": {
+          "format": "uuid",
+          "title": "Intent Id",
+          "type": "string"
+        },
+        "model_lock_sha": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Model Lock Sha",
+          "type": "string"
+        },
+        "plan": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "protection": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "runtime_lock_sha": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Runtime Lock Sha",
+          "type": "string"
+        },
+        "schema_version": {
+          "maximum": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "snapshot_id": {
+          "format": "uuid",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/VersionBinding"
+        },
+        "target_id": {
+          "format": "uuid",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "target_revision": {
+          "pattern": "^[1-9][0-9]{0,18}$",
+          "title": "Target Revision",
+          "type": "string"
+        },
+        "tenant_id": {
+          "format": "uuid",
+          "title": "Tenant Id",
+          "type": "string"
+        },
+        "workflow_id": {
+          "format": "uuid",
+          "title": "Workflow Id",
+          "type": "string"
+        },
+        "workflow_revision": {
+          "pattern": "^[1-9][0-9]{0,18}$",
+          "title": "Workflow Revision",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "tenant_id",
+        "intent_id",
+        "target_id",
+        "workflow_id",
+        "workflow_revision",
+        "target_revision",
+        "snapshot_id",
+        "plan",
+        "intent",
+        "candidate",
+        "source",
+        "protection",
+        "model_lock_sha",
+        "runtime_lock_sha",
+        "device_profile_sha"
+      ],
+      "title": "SemanticExposurePreviewInput",
+      "type": "object"
+    },
+    "VersionBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "asset_version_id": {
+          "format": "uuid",
+          "title": "Asset Version Id",
+          "type": "string"
+        },
+        "canvas_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Canvas Hash",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/ArtifactRef"
+        }
+      },
+      "required": [
+        "asset_version_id",
+        "source",
+        "canvas_hash"
+      ],
+      "title": "VersionBinding",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/exposure-preview-presentation.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Complete display linkage, not photo qualification or an Apply receipt.",
+  "properties": {
+    "affected": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "after": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "before": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "height": {
+      "maximum": 4096,
+      "minimum": 1,
+      "title": "Height",
+      "type": "integer"
+    },
+    "icc_lock_sha": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Icc Lock Sha",
+      "type": "string"
+    },
+    "numerical_evidence": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "overlay": {
+      "const": "max_coverage_ceil_alpha_v1",
+      "title": "Overlay",
+      "type": "string"
+    },
+    "params": {
+      "$ref": "#/$defs/SemanticExposurePreviewInput"
+    },
+    "pixels": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "protected": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "resize": {
+      "const": "area_linear_premult_v1",
+      "title": "Resize",
+      "type": "string"
+    },
+    "schema_version": {
+      "maximum": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "srgb_sha": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Srgb Sha",
+      "type": "string"
+    },
+    "width": {
+      "maximum": 4096,
+      "minimum": 1,
+      "title": "Width",
+      "type": "integer"
+    },
+    "working_image": {
+      "$ref": "#/$defs/ArtifactRef"
+    }
+  },
+  "required": [
+    "schema_version",
+    "params",
+    "numerical_evidence",
+    "working_image",
+    "pixels",
+    "before",
+    "after",
+    "affected",
+    "protected",
+    "width",
+    "height",
+    "icc_lock_sha",
+    "srgb_sha",
+    "resize",
+    "overlay"
+  ],
+  "title": "ExposurePreviewPresentation",
+  "type": "object"
+}

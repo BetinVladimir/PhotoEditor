@@ -6,7 +6,14 @@ import (
  "photoeditor/backend/internal/auth"
  "photoeditor/backend/internal/objectstore"
  "photoeditor/backend/internal/v2input"
+ "photoeditor/backend/internal/v2draft"
 )
+type observationOriginalCatalog struct { fixture *previewBundleFixture }
+func(c observationOriginalCatalog)Lookup(_ context.Context,_ auth.Identity,_ uuid.UUID,node v2draft.LayerRef)(objectstore.Object,error){
+ media,_,ok:=perspectiveChildObjectLimit(node.Contract);if !ok{return objectstore.Object{},v2input.ErrInvalid}
+ size:=int64(len(c.fixture.docs[node.Ref.ArtifactID.String()]));if size==0&&media!="application/json"{size=224}
+ return objectstore.Object{Key:node.Ref.ArtifactID.String(),VersionID:"immutable",SHA256:node.Ref.SHA256,Bytes:size,ContentType:media},nil
+}
 type perspectiveCatalogObservation struct {
  *previewBundleFixture
  binding AdoptedPerspectiveBinding
@@ -29,8 +36,7 @@ func TestPerspectiveCatalogRefusesBindingChangedDuringDescendantIO(t *testing.T)
  for _,changed:=range []bool{false,true}{
   fixture:=newPreviewBundleFixture(t)
   f:=&perspectiveCatalogObservation{previewBundleFixture:fixture,binding:AdoptedPerspectiveBinding{ResultID:fixture.pin.ResultID,Result:fixture.pin.Result,Base:fixture.pin.Base},changed:changed}
-  ref:=fixture.pin.Base.Source
-  original:=&perspectiveFieldCatalog{object:objectstore.Object{Key:ref.ArtifactID.String(),VersionID:"immutable",SHA256:ref.SHA256,Bytes:int64(len(f.docs[ref.ArtifactID.String()])),ContentType:"application/json"}}
+  original:=observationOriginalCatalog{fixture:fixture}
   catalog,_,err:=buildAdoptedPerspectiveCatalog(context.Background(),f,original,f,fixture.pin.Principal,fixture.pin.Tenant,fixture.pin.Project,fixture.pin.Base.AssetVersionID,fixture.pin.Producer,fixture.pin.Result,"photos")
   if changed {
    if err!=v2input.ErrExpired||catalog!=nil{t.Fatal("changed final binding exposed",err)}

@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"bytes"
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
@@ -34,6 +35,10 @@ func TestIntegrationCaptureCredentialsHTTP(t *testing.T) {
 	if w.Code != 201 {
 		t.Fatal("register", w.Code, w.Body.String())
 	}
+	registeredBody:=append([]byte(nil),w.Body.Bytes()...)
+	var deviceWire map[string]json.RawMessage
+	if err=json.Unmarshal(registeredBody,&deviceWire);err!=nil||len(deviceWire)!=8 { t.Fatal("flat device credential shape",deviceWire,err) }
+	for _,field:=range []string{"id","revision","project_id","label","public_key","credential_epoch","state","created_at"} { if _,ok:=deviceWire[field];!ok { t.Fatal("missing actual device field",field) } }
 	var registered struct {
 		ID uuid.UUID `json:"id"`
 	}
@@ -41,6 +46,8 @@ func TestIntegrationCaptureCredentialsHTTP(t *testing.T) {
 		t.Fatal("device response", w.Body.String(), err)
 	}
 	devicePath := base + "/capture-devices/" + registered.ID.String()
+	w=request(h,"POST",base+"/capture-devices",`{"project_id":"`+project.String()+`","label":"Camera","public_key":"`+base64.RawURLEncoding.EncodeToString(public)+`"}`,ownerToken,"register-device","")
+	if w.Code!=201||w.Header().Get("Idempotency-Replayed")!="true"||!bytes.Equal(w.Body.Bytes(),registeredBody) { t.Fatal("device registration exact replay",w.Code,w.Body.String()) }
 	w = request(h, "POST", devicePath+"/challenges", `{"device_id":"`+registered.ID.String()+`"}`, "", "", "")
 	if w.Code != 200 {
 		t.Fatal("challenge", w.Code, w.Body.String())
@@ -113,6 +120,17 @@ func TestIntegrationCaptureCredentialsHTTP(t *testing.T) {
 	if w.Code != 401 {
 		t.Fatal("expired challenge accepted", w.Code, w.Body.String())
 	}
+	// Positive device receipt/replay does not depend on an optional Python runtime.
+	goSession,_,goUpload,goSHA:=captureVerifiedReceiptFixture(t,db,tenant,project,registered.ID)
+	goReceiptPath:=base+"/shoot-sessions/"+goSession.String()+"/capture-receipts"
+	goReceiptBody:=`{"device_id":"`+registered.ID.String()+`","sequence":"2","content_sha":"`+goSHA+`","upload_id":"`+goUpload.String()+`","captured_at":null}`
+	w=request(h,"POST",goReceiptPath,goReceiptBody,credentials.AccessToken,"go-positive-receipt","")
+	if w.Code!=201 { t.Fatal("device receipt",w.Code,w.Body.String()) }
+	acceptedReceipt:=append([]byte(nil),w.Body.Bytes()...)
+	var receiptWire map[string]any
+	if err=json.Unmarshal(acceptedReceipt,&receiptWire);err!=nil||len(receiptWire)!=11||receiptWire["resource_type"]!="capture_receipts"||receiptWire["upload_id"]!=goUpload.String()||receiptWire["session_id"]!=goSession.String()||receiptWire["device_id"]!=registered.ID.String()||receiptWire["project_id"]!=project.String()||receiptWire["tenant_id"]!=tenant.String() { t.Fatal("device receipt projection",receiptWire,err) }
+	w=request(h,"POST",goReceiptPath,goReceiptBody,credentials.AccessToken,"go-positive-receipt","")
+	if w.Code!=201||w.Header().Get("Idempotency-Replayed")!="true"||!bytes.Equal(w.Body.Bytes(),acceptedReceipt) { t.Fatal("device receipt exact replay",w.Code,w.Body.String()) }
 	t.Run("python_agent_live_challenge", func(t *testing.T) {
 		root, err := filepath.Abs("../../..")
 		if err != nil {
@@ -152,8 +170,8 @@ entry=Entry(c["device"],1,"frame.jpg",3,1,"receipt","invalid",c["collection"],0,
 try:
  client.receipt(entry,"python-agent-live-receipt")
  raise RuntimeError("invalid payload accepted")
-except APIError as error:
- if error.status!=422 or error.code!="VALIDATION_FAILED": raise
+except ValueError:
+ pass # malformed source is refused locally before authentication/transport
 entry=Entry(c["device"],1,"frame.jpg",3,1,"receipt",c["sha"],c["upload"],0,None)
 first=client.receipt(entry,"python-agent-positive-receipt")
 replay=client.receipt(entry,"python-agent-positive-receipt")
@@ -188,10 +206,21 @@ print("agent-challenge-and-positive-receipt-replay-ok")
 		}
 
 	})
+	w = request(h, "POST", devicePath+"/revoke", `{"expected_revision":"+1"}`, ownerToken, "noncanonical-revoke", "")
+	if w.Code != 422 { t.Fatal("noncanonical revoke revision accepted",w.Code,w.Body.String()) }
 	w = request(h, "POST", devicePath+"/revoke", `{"expected_revision":"1"}`, ownerToken, "revoke-device", "")
 	if w.Code != 200 {
 		t.Fatal("device revoke", w.Code, w.Body.String())
 	}
+	revokedBody:=append([]byte(nil),w.Body.Bytes()...)
+	w=request(h,"POST",devicePath+"/revoke",`{"expected_revision":"1"}`,ownerToken,"revoke-device","")
+	if w.Code!=200||w.Header().Get("Idempotency-Replayed")!="true"||!bytes.Equal(w.Body.Bytes(),revokedBody) { t.Fatal("device revoke exact replay",w.Code,w.Body.String()) }
+	if _,err=db.Exec(context.Background(),`UPDATE photo.projects SET archived_at=clock_timestamp() WHERE tenant_id=$1 AND id=$2`,tenant,project);err!=nil { t.Fatal(err) }
+	w=request(h,"POST",devicePath+"/revoke",`{"expected_revision":"1"}`,ownerToken,"revoke-device","")
+	if w.Code!=404 { t.Fatal("revocation receipt bypassed withdrawn project",w.Code,w.Body.String()) }
+	if _,err=db.Exec(context.Background(),`UPDATE photo.projects SET archived_at=NULL WHERE tenant_id=$1 AND id=$2`,tenant,project);err!=nil { t.Fatal(err) }
+	w=request(h,"POST",goReceiptPath,goReceiptBody,credentials.AccessToken,"go-positive-receipt","")
+	if w.Code!=401 { t.Fatal("known accepted receipt bypassed device revocation",w.Code,w.Body.String()) }
 	w = request(h, "POST", receiptPath, `{}`, credentials.AccessToken, "receipt", "")
 	if w.Code != 401 {
 		t.Fatal("revoked device token accepted", w.Code, w.Body.String())

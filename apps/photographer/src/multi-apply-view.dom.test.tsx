@@ -1,3 +1,5 @@
+import {clickWhenEnabled} from './test/ui-readiness';
+import {perspectiveQualityTask} from './perspective-quality';
 // @vitest-environment jsdom
 import {afterEach,it,expect,vi} from 'vitest';
 import {render,screen,fireEvent,waitFor,cleanup,act} from '@testing-library/react';
@@ -5,13 +7,14 @@ import type {OwnerAPI} from './owner-api';
 import type {MultiProposal} from './multi-proposal';
 import type {MultiQuality} from './multi-quality';
 import type {MultiIntent,MultiOperation} from './multi-intent';
-import {canonicalJSON} from '@photoeditor/api-client';
+import {APIError,canonicalJSON} from '@photoeditor/api-client';
 import {sha256} from '@noble/hashes/sha2.js';
 import {bytesToHex} from '@noble/hashes/utils.js';
 import en from '../../../locales/en/common.json';
-vi.mock('react-native',async()=>import('react-native-web'));
+const lifecycle=vi.hoisted(()=>({listeners:new Set<(state:string)=>void>()}));
+vi.mock('react-native',async()=>({...await import('react-native-web'),AppState:{currentState:'active',addEventListener:(_event:string,listener:(state:string)=>void)=>{lifecycle.listeners.add(listener);return {remove:()=>lifecycle.listeners.delete(listener)}}}}));
 vi.mock('@react-native-async-storage/async-storage',()=>{const values=new Map<string,string>();return {default:{getItem:async(k:string)=>values.get(k)??null,setItem:async(k:string,v:string)=>{values.set(k,v);},removeItem:async(k:string)=>{values.delete(k);}}};});
-vi.mock('./locale-context',()=>({useLocale:()=>({t:(key:keyof typeof en)=>en[key]})}));
+vi.mock('./locale-context',async()=>{const __factory=()=>({useLocale:()=>({t:(key:keyof typeof en)=>en[key]})});const __out=await __factory();const {withUILocaleDouble}=await import('./test/locale-double');return {...__out,useLocale:()=>withUILocaleDouble(__out.useLocale())};});
 import {MultiApplyView} from './multi-apply-view';
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const ref=(n:number)=>({artifact_id:id(n),sha256:'a'.repeat(64)});
@@ -23,18 +26,22 @@ function scopeFixture(op:MultiOperation){
  return {intent,proposal};
 }
 
-function quality(proposal:MultiProposal):MultiQuality{const value:MultiQuality={proposal:structuredClone(proposal),quality_run_id:id(40),quality_task_id:id(41),quality_result_id:id(42),quality_report:ref(43),quality:{target:proposal.working_image,target_kind:'working',stage:'master',threshold_profile_id:'master_v1',status:'pass',reference:null,reasons:[],technical:{below_zero_fraction:0,above_one_fraction:0,clipped_black_fraction:0,clipped_white_fraction:0,sharpness_laplacian:.01,seam_p99_delta:0,finite:true}}};seal(value);return value;}
+function quality(proposal:MultiProposal):MultiQuality{const value:MultiQuality={proposal:structuredClone(proposal),quality_run_id:id(40),quality_task_id:perspectiveQualityTask(id(40)),quality_result_id:id(42),quality_report:ref(43),quality:{target:proposal.working_image,target_kind:'working',stage:'master',threshold_profile_id:'master_v1',status:'pass',reference:null,reasons:[],technical:{below_zero_fraction:0,above_one_fraction:0,clipped_black_fraction:0,clipped_white_fraction:0,sharpness_laplacian:.01,seam_p99_delta:0,finite:true}}};seal(value);return value;}
 function seal(v:MultiQuality){v.quality_report.sha256=bytesToHex(sha256(new TextEncoder().encode(canonicalJSON(v.quality))));}
 
 function fixture(){return quality(scopeFixture("optical.panorama").proposal);}
 const intent=()=>scopeFixture("optical.panorama").intent;
 afterEach(cleanup);
+it('withdraws the parent projection on definitive Apply denial without navigating',async()=>{
+ const onAccessDenied=vi.fn(),onApplied=vi.fn();render(<MultiApplyView origin="https://denied-multi.test" api={{me:async()=>({id:id(50)}),applyMulti:async()=>{throw new APIError(403,'FORBIDDEN')}} as unknown as OwnerAPI} intent={intent()} review={fixture()} onApplied={onApplied} onAccessDenied={onAccessDenied}/>);
+ await clickWhenEnabled(screen.getByRole('checkbox'));await clickWhenEnabled(screen.getByText(en.perspective_apply_submit));await waitFor(()=>expect(onAccessDenied).toHaveBeenCalledOnce());expect(onApplied).not.toHaveBeenCalled();
+});
 it('requires confirmation before dispatch and reports exact applied response',async()=>{
  const result={asset_version_id:id(30),parent_asset_version_id:id(22),source:ref(6)},applyMulti=vi.fn().mockResolvedValue(result),onApplied=vi.fn();
  render(<MultiApplyView origin={'https://studio.test'} api={{applyMulti,me:async()=>({id:id(50)})} as unknown as OwnerAPI} intent={intent()} review={fixture()} onApplied={onApplied}/>);
  const button=screen.getByText(en.perspective_apply_submit).closest('[role="button"]')!;
  expect(button.getAttribute('aria-disabled')).toBe('true');
- fireEvent.click(screen.getByRole('checkbox'));fireEvent.click(button);
+ await clickWhenEnabled(screen.getByRole('checkbox'));await clickWhenEnabled(button);
  await waitFor(()=>expect(onApplied).toHaveBeenCalledWith(result));
  expect(applyMulti).toHaveBeenCalledTimes(1);
 });
@@ -52,7 +59,7 @@ it('replacing API aborts pending identity lookup and requires fresh confirmation
  const nextAPI={me:vi.fn(),applyMulti:nextApply} as unknown as OwnerAPI;
  const review=fixture(),frozenIntent=intent();
  const mounted=render(<MultiApplyView origin="https://studio.test" api={oldAPI} intent={frozenIntent} review={review} onApplied={onApplied}/>);
- fireEvent.click(screen.getByRole('checkbox'));fireEvent.click(screen.getByText(en.perspective_apply_submit));
+ await clickWhenEnabled(screen.getByRole('checkbox'));await clickWhenEnabled(screen.getByText(en.perspective_apply_submit));
  await waitFor(()=>expect(oldAPI.me).toHaveBeenCalledTimes(1));
  mounted.rerender(<MultiApplyView origin="https://studio.test" api={nextAPI} intent={structuredClone(frozenIntent)} review={structuredClone(review)} onApplied={onApplied}/>);
  expect(oldSignal?.aborted).toBe(true);
@@ -69,4 +76,21 @@ it('equivalent frozen props retain confirmation but changed selection resets it'
  mounted.rerender(<MultiApplyView origin="https://studio.test" api={api} intent={frozenIntent} review={review} selection={{collection:id(70),item:id(71),asset:id(72),revision:'2',expectedVersion:id(22)}} onApplied={vi.fn()}/>);
  expect(screen.getByRole('checkbox').getAttribute('aria-checked')).toBe('false');
  expect(api.me).not.toHaveBeenCalled();
+});
+
+it.each([401,403,404,410])('blocks another Apply after definitive denial %s',async status=>{
+ const applyMulti=vi.fn().mockRejectedValue(new APIError(status,'DENIED')),onApplied=vi.fn();
+ render(<MultiApplyView origin={`https://denied-${status}.test`} api={{applyMulti,me:async()=>({id:id(50)})} as unknown as OwnerAPI} intent={intent()} review={fixture()} onApplied={onApplied}/>);
+ fireEvent.click(screen.getByRole('checkbox'));fireEvent.click(screen.getByText(en.perspective_apply_submit));
+ await screen.findByText(en.perspective_apply_failed);fireEvent.click(screen.getByText(en.perspective_apply_submit));
+ expect(applyMulti).toHaveBeenCalledTimes(1);expect(onApplied).not.toHaveBeenCalled();
+});
+it('suppresses a saved result returned after background transition',async()=>{
+ let finish!:(value:unknown)=>void;const onApplied=vi.fn(),applyMulti=vi.fn().mockImplementation(()=>new Promise(resolve=>{finish=resolve}));
+ render(<MultiApplyView origin="https://background-multi.test" api={{applyMulti,me:async()=>({id:id(50)})} as unknown as OwnerAPI} intent={intent()} review={fixture()} onApplied={onApplied}/>);
+ await clickWhenEnabled(screen.getByRole('checkbox'));await clickWhenEnabled(screen.getByText(en.perspective_apply_submit));await waitFor(()=>expect(applyMulti).toHaveBeenCalledTimes(1));
+ act(()=>lifecycle.listeners.forEach(listener=>listener('background')));
+ await act(async()=>finish({asset_version_id:id(30),parent_asset_version_id:id(22),source:ref(6)}));expect(onApplied).not.toHaveBeenCalled();
+ act(()=>lifecycle.listeners.forEach(listener=>listener('active')));
+ expect(screen.getByRole('checkbox').getAttribute('aria-checked')).toBe('false');expect(applyMulti).toHaveBeenCalledTimes(1);
 });

@@ -43,7 +43,7 @@ func (s SQLTransferSourceReader) readNativeTransferReferenceDocuments(ctx contex
 	if beforePolicy != owned.native.defect.policy {
 		return zero, v2input.ErrConflict
 	}
-	selected, err := selectQualificationPolicies(beforePolicy, []string{"defects.propose", "face.landmarks", "face.detect", "face.parse"})
+	selected, err := selectNativeQualificationPolicies(beforePolicy, []string{"defects.propose", "face.landmarks", "face.detect", "face.parse"})
 	if err != nil {
 		return zero, err
 	}

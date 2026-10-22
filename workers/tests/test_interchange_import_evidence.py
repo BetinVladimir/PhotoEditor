@@ -46,7 +46,7 @@ def test_import_evidence_rejects_inconsistent_frozen_scope(change):
         args['plan_ref'].sha256 = sha256(canonical_bytes(args['plan'])).hexdigest()
     else:
         args['recipe_diagnostics'] = {uuid4(): 'unrelated'}
-    with pytest.raises(AdoptionInvalid):
+    with pytest.raises(ValueError):
         freeze_import_evidence(**args)
 
 

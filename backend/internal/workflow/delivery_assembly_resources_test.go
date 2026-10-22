@@ -70,6 +70,30 @@ func TestAssemblyResourcesUseVerifiedDocumentsAndFullInventory(t *testing.T) {
 			}
 		})
 	}
+	for _, scenario := range []string{"ready", "budget", "missing_inventory", "lost_lease", "cancel_after_publish"} {
+		t.Run("prepublication_"+scenario, func(t *testing.T) {
+			store := &assemblyPreparationStore{evidence: delivery.AssemblyPreparationEvidence{RootJCS: raw, ShardsJCS: shards, Inventory: required}, failRenew: scenario == "lost_lease"}
+			caps := limits
+			if scenario == "budget" { caps.RAMBytes = 1 }
+			if scenario == "missing_inventory" { store.evidence.Inventory = nil }
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			published := 0
+			frozen, err := prepareDeliveryAssemblyBeforePublication(ctx, store, lease, plan, root, caps, func() (v2input.Ref, error) {
+				published++
+				if scenario == "cancel_after_publish" { cancel() }
+				return params, nil
+			})
+			if scenario == "ready" {
+				if _, draftErr := frozen.DraftTask(); err != nil || draftErr != nil || published != 1 { t.Fatal(err, draftErr, published) }
+			} else {
+				if err == nil { t.Fatal("invalid preparation accepted") }
+				if _, draftErr := frozen.DraftTask(); draftErr == nil { t.Fatal("failure returned usable task") }
+				if scenario != "cancel_after_publish" && published != 0 { t.Fatal("invalid preparation wrote Params") }
+				if scenario == "cancel_after_publish" && !errors.Is(err, context.Canceled) { t.Fatal(err) }
+			}
+		})
+	}
 	profile, err := CompileDeliveryAssemblyProfile(context.Background(), plan, parent, root, raw, shards, required, limits)
 	if err != nil {
 		t.Fatal(err)

@@ -40,6 +40,12 @@ func (s Service) promoteOrdinarySelection(ctx context.Context, who auth.Identity
 		if err := tx.QueryRow(ctx, `SELECT request_hash,response_status,response_body,expires_at>clock_timestamp() FROM photo.idempotency_records WHERE tenant_id=$1 AND principal_type='user' AND principal_id=$2 AND route='POST /delivery-packages' AND key=$3 FOR UPDATE`, tid, who.UserID, key).Scan(&hash, &status, &saved, &live); err != nil {
 			return err
 		}
+		if err := tx.QueryRow(ctx, `SELECT photo.v2_editor_authorized($1,$2,$3,$4)`, tid, request.ProjectID, who.UserID, who.SessionID).Scan(&allowed); err != nil {
+			return err
+		}
+		if !allowed {
+			return domain.NewError("NOT_FOUND", 404)
+		}
 		if hash != intent.requestSHA {
 			return domain.NewError("IDEMPOTENCY_CONFLICT", 409)
 		}

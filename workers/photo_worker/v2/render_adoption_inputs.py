@@ -13,6 +13,7 @@ class RenderAdoptionInputs:
     parent_roots: tuple[ArtifactRef, ...]
     qualification_pin: RenderQualificationPin | None = None
     cache_identity: str | None = None
+    executed_base_receipt: ArtifactRef | None = None
 
     def execution_profile(self):
         # Return an independent object: caller changes cannot alter the snapshot.
@@ -43,7 +44,11 @@ def load_render_adoption_inputs(connection, tenant_id, task_id, context):
         (tenant_id,task_id,context.attempt,context.fence,context.result_id)).fetchone()
     if row is None:
         raise AdoptionInvalid('RENDER_ADOPTION_INPUTS_STALE')
-    return decode_render_adoption_inputs(row)
+    from dataclasses import replace
+    scoped = decode_render_adoption_inputs(row)
+    receipt = connection.execute('SELECT * FROM photo.editor_effect_render_adoption_receipt(%s,%s,%s,%s,%s)',
+        (tenant_id, task_id, context.attempt, context.fence, context.result_id)).fetchone()
+    return replace(scoped, executed_base_receipt=decode_executed_base_reference(receipt))
 
 
 def decode_render_adoption_inputs(row):
@@ -85,3 +90,11 @@ def resolve_render_source_parent(artifacts, scoped, source_ref, *, check_active=
                 raise AdoptionInvalid('RENDER_REPLAY_SOURCE_PARENT_AMBIGUOUS')
             matched=parent
     return matched
+
+
+def decode_executed_base_reference(row):
+    if row is None:
+        return None
+    if not isinstance(row, (tuple, list)) or len(row) != 2:
+        raise AdoptionInvalid('RENDER_EXECUTED_BASE_AUTHORITY_INVALID')
+    return _reference(row[0], row[1])

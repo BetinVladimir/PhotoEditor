@@ -21,7 +21,7 @@ func preflightActiveSigningPolicies(ctx context.Context, installation SigningIns
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		policy, err := DecodeSigningPolicy(installed.Body, installed.Ref, installed.Ref.ArtifactID)
+		policy, err := decodeInstalledSigningPolicy(installed)
 		if err != nil || installed.NotBefore.IsZero() || !installed.NotAfter.After(installed.NotBefore) {
 			return ErrInvalid
 		}

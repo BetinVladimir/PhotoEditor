@@ -27,3 +27,6 @@ describe('run cancel attempt journal',()=>{
   expect(await new RunCancelAttemptStore(data,'cancel-logout',id(1),id(2),id(3)).read()).toBeNull();
  });
 });
+it('rejects a shortened UUID scope',()=>{
+ expect(()=>new RunCancelAttemptStore(storage(),'cancel-shortened','00000000-0000-0000-000000000001',id(2),id(3))).toThrow('RUN_CANCEL_SCOPE_INVALID');
+});

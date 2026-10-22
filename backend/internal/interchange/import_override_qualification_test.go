@@ -34,7 +34,7 @@ func TestPreparedOverrideChecksSourceMasksAndFullContent(t *testing.T) {
 			}
 			canvas, _ := canonical.Hash(image.Canvas)
 			binding := v2input.SessionVersionBinding{AssetVersionID: uuid.New(), Source: v2input.Ref{ArtifactID: uuid.New(), SHA256: rawSHA(master)}, CanvasHash: canvas}
-			mask := map[string]any{"artifact": v2input.Ref{ArtifactID: uuid.New(), SHA256: rawSHA([]byte("pixels"))}, "canvas": image.Canvas, "transform_chain": json.RawMessage(image.TransformChain), "selector": "manual", "confidence": 1, "protected": true}
+			mask := map[string]any{"artifact": v2input.Ref{ArtifactID: uuid.New(), SHA256: rawSHA([]byte("pixels"))}, "canvas": image.Canvas, "transform_chain": json.RawMessage(image.TransformChain), "object_id":nil,"model_lock_id":nil,"selector": "manual", "confidence": 1, "protected": true}
 			inline := map[string]any{"binding_id": "guard-1", "purpose": "protected", "mask": mask, "strength": .5}
 			if change == "confirmation" || change == "confirmation_authorized" || change == "confirmation_revoked" {
 				inline["confirmed"] = true

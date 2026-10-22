@@ -32,7 +32,7 @@ def test_identity_operation_roles_are_scoped_and_dispatch_disabled(db):
         "SELECT resource_class,timeout_seconds,backends,v2_enabled "
         "FROM photo.operation_registry WHERE operation='identity.compare' "
         "AND version='1'").fetchone()
-    assert registry == ('gpu', 1800, ['cuda'], False)
+    assert registry == ('gpu', 1800, ['cuda', 'cpu'], False)
     policies = db.execute(
         "SELECT role,max_bytes,max_count,media_types "
         "FROM photo.operation_output_policies "

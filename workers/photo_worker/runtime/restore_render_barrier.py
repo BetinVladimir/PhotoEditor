@@ -53,7 +53,10 @@ class RestoreBarrierRenderer(ProfiledTaskRenderer):
     def execute(self,ctx,artifacts,inputs,*,authoritative_inputs):
         command=ctx.lease.command
         if (command.tenant_id,command.task_id)!=(self._tenant,self._task):
-            raise OperationFailure('CONFIG_INVALID')
+            # The embedded worker also runs the other installed fixture tasks.
+            # Only the exact revoke target is held; ordinary work retains the
+            # same real admission/provider execution and never obtains a witness.
+            return self._renderer.execute(ctx,artifacts,inputs,authoritative_inputs=authoritative_inputs)
         with self._lock:
             if self._entered.is_set():raise OperationFailure('CONFIG_INVALID')
             self._generation=(command.attempt,ctx.lease.fence)

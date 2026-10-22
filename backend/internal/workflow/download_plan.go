@@ -18,6 +18,9 @@ import (
 
 const (
 	MaxDownloadItems       = 5000
+ // archive.build uses one declared input per file; Params is a separate
+ // TaskCommand field. Match dispatch and the worker wire ceiling.
+ MaxDownloadArchiveInputs = 512
 	DefaultVolumeByteLimit = int64(10 * 1024 * 1024 * 1024)
 	maxEntryNameBytes      = 180
 )
@@ -41,7 +44,12 @@ type PlannedDownload struct {
 // PlanDownloadVolumes preserves snapshot order and deterministically assigns safe
 // flat names. Oversized inputs remain explicit single-file deliveries.
 func PlanDownloadVolumes(items []DownloadSource, byteLimit int64) ([]PlannedDownload, error) {
-	if len(items) < 1 || len(items) > MaxDownloadItems || byteLimit < 1 || byteLimit > DefaultVolumeByteLimit {
+ return PlanDownloadVolumesWithLimits(items,byteLimit,MaxDownloadItems)
+}
+
+// Lower operational limits preserve the wire/storage safety ceilings.
+func PlanDownloadVolumesWithLimits(items []DownloadSource, byteLimit int64, fileLimit int) ([]PlannedDownload,error) {
+	if len(items) < 1 || len(items) > MaxDownloadItems || byteLimit < 1 || byteLimit > DefaultVolumeByteLimit || fileLimit<1 || fileLimit>MaxDownloadItems {
 		return nil, errors.New("invalid download plan bounds")
 	}
 	out := make([]PlannedDownload, 0, len(items))
@@ -76,7 +84,7 @@ func PlanDownloadVolumes(items []DownloadSource, byteLimit int64) ([]PlannedDown
 			volume++
 			continue
 		}
-		if files > 0 && (files == MaxDownloadItems || bytes+item.Bytes > byteLimit || parameterBytes+entryBytes > 1048576 || manifestBytes+manifestEntryBytes > 1048576) {
+		if files > 0 && (files == fileLimit || files == MaxDownloadArchiveInputs || bytes+item.Bytes > byteLimit || parameterBytes+entryBytes > 1048576 || manifestBytes+manifestEntryBytes > 1048576) {
 			volume++
 			files, bytes = 0, 0
 			parameterBytes, manifestBytes = 512, 512

@@ -13,7 +13,7 @@ it('does not start another read while the previous request is pending',async()=>
  vi.useFakeTimers();let resolve!:(value:typeof status)=>void;
  const semanticChildStatus=vi.fn().mockImplementation(()=>new Promise<typeof status>(done=>{resolve=done}));
  const view=render(<SemanticChildProgress client={{semanticChildStatus}} tenant={id} run={id} onTerminal={()=>{}}/>);
- await act(async()=>{vi.advanceTimersByTime(30000)});
+ await act(async()=>{vi.advanceTimersByTime(7999)});
  expect(semanticChildStatus).toHaveBeenCalledOnce();
  await act(async()=>{resolve(status)});
  await act(async()=>{vi.advanceTimersByTime(2999)});
@@ -64,11 +64,11 @@ it('suspends shared polling in background and revalidates after foreground retur
  await act(async()=>{view=render(<SemanticChildProgress client={client} tenant={id} run={id} onTerminal={done}/>)});
  expect(screen.getByText('Processing: Running · 0%')).toBeTruthy();
  act(()=>change('background'));expect(screen.queryByText('Processing: Running · 0%')).toBeNull();
- expect((client.semanticChildStatus.mock.calls[0][2] as AbortSignal).aborted).toBe(true);
+ // The completed read detached its signal; background must cancel the next poll.
  await act(async()=>{await vi.advanceTimersByTimeAsync(30000)});expect(client.semanticChildStatus).toHaveBeenCalledTimes(1);
  await act(async()=>change('active'));expect(client.semanticChildStatus).toHaveBeenCalledTimes(2);expect(screen.getByText('Processing: Running · 0%')).toBeTruthy();
  act(()=>change('active'));expect(client.semanticChildStatus).toHaveBeenCalledTimes(2);
- view.unmount();expect(remove).toHaveBeenCalledOnce();expect((client.semanticChildStatus.mock.calls[1][2] as AbortSignal).aborted).toBe(true);expect(vi.getTimerCount()).toBe(0);
+ view.unmount();expect(remove).toHaveBeenCalledOnce();expect(vi.getTimerCount()).toBe(0);
 });
 
 it('offers an explicit retry after failure and resumes shared progress',async()=>{

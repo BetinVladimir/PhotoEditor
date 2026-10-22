@@ -74,7 +74,7 @@ func NewRelightAnalysisService(c RelightAnalysisCoordinator, tenant, project uui
 			return nil, v2input.ErrInvalid
 		}
 	}
-	if capacity.PixelCount > 200000000 || runtime.Backend == "mps" && capacity.VRAMBytes > 10000000000 {
+	if capacity.PixelCount > 200000000 {
 		return nil, v2input.ErrInvalid
 	}
 	cloneSet := func(src map[string]struct{}) map[string]struct{} {

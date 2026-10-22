@@ -106,18 +106,18 @@ func (p TransferDraftPreparer) prepareMissingCreatePerson(ctx context.Context, w
 		if err != nil {
 			return err
 		}
-		verified, err := v2qualification.Verify(raw, policy.Report.SHA256, policy.Expected)
+		verified, err := v2qualification.VerifyTyped(raw, policy.Report.SHA256, policy.Expected)
 		if err != nil {
 			return err
 		}
-		costs, err := transferCostsFromVerifiedMetrics(verified.Metrics)
+		costs, err := transferCostsFromResources(verified.Resources())
 		if err != nil {
 			return err
 		}
-		if costs.VRAMBytes <= 0 || policy.Expected.Backend != "cuda" {
+		if costs.VRAMBytes <= 0 || (policy.Expected.Backend != "cuda" && policy.Expected.Backend != "mps") {
 			return v2qualification.ErrUnqualified
 		}
-		budget, err := createPersonBudget(capacity, p.ReservedBytes, verified.Metrics)
+		budget, err := createPersonResourceBudget(capacity, p.ReservedBytes, verified.Resources())
 		if err != nil {
 			return err
 		}

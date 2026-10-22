@@ -117,6 +117,16 @@ func updateProgress(out *Status) {
 }
 
 func applyRenderBatchCounts(ctx context.Context, tx pgx.Tx, tenantID uuid.UUID, out *Status) error {
+	if out.Kind == "apply" || out.Kind == "v2" {
+		var codes []string
+		if err := tx.QueryRow(ctx, `SELECT photo.editor_effect_source_failure_codes($1,$2)`, tenantID, out.ID).Scan(&codes); err != nil {
+			return err
+		}
+		// Closed stable error codes are localized by clients; never expose the
+		// stored object locator, issuer context or arbitrary exception text.
+		out.Errors = append(out.Errors, codes...)
+	}
+    if out.Kind=="apply" { var diagnostic *string; if err:=tx.QueryRow(ctx,`SELECT photo.apply_plan_restart_diagnostic($1,$2)`,tenantID,out.ID).Scan(&diagnostic);err!=nil{return err}; if diagnostic!=nil {out.Errors=append(out.Errors,*diagnostic)} }
 	if out.Kind != "bulk" {
 		return nil
 	}
@@ -195,12 +205,13 @@ func (s Service) List(ctx context.Context, who auth.Identity, tenantID uuid.UUID
 		}
 		afterID, afterTime = &id, &position
 	}
-	err = tenant.WithTenant(ctx, s.DB, who, tenantID, domain.Viewer, func(tx pgx.Tx, _ domain.Role) error {
+	err = tenant.WithTenant(ctx, s.DB, who, tenantID, domain.Viewer, func(tx pgx.Tx, role domain.Role) error {
 		rows, err := tx.Query(ctx, `SELECT `+statusFields+` FROM photo.runs r
 		 LEFT JOIN photo.tasks t ON t.tenant_id=r.tenant_id AND t.run_id=r.id
 		 WHERE r.tenant_id=$1 AND ($2='' OR r.status=$2)
 		 AND ($3::uuid IS NULL OR (r.created_at,r.id)>($4::timestamptz,$3::uuid))
-		 GROUP BY r.id ORDER BY r.created_at,r.id LIMIT $5`, tenantID, status, afterID, afterTime, limit+1)
+		 AND (`+runReadVisible+`)
+		 GROUP BY r.id ORDER BY r.created_at,r.id LIMIT $5`, tenantID, status, afterID, afterTime, limit+1,role.Allows(domain.Admin),who.UserID)
 		if err != nil {
 			return err
 		}
@@ -217,6 +228,7 @@ func (s Service) List(ctx context.Context, who auth.Identity, tenantID uuid.UUID
 		}
 		rows.Close()
 		for i := range out.Items {
+			if err := authorizeRunRead(ctx,tx,who,tenantID,out.Items[i].ID,role);err!=nil{return err}
 			if err := applyRenderBatchCounts(ctx, tx, tenantID, &out.Items[i]); err != nil {
 				return err
 			}
@@ -242,17 +254,7 @@ func (s Service) List(ctx context.Context, who auth.Identity, tenantID uuid.UUID
 func (s Service) Get(ctx context.Context, who auth.Identity, tenantID, id uuid.UUID) (Status, error) {
 	var out Status
 	err := tenant.WithTenant(ctx, s.DB, who, tenantID, domain.Viewer, func(tx pgx.Tx, role domain.Role) error {
-		// An admitted semantic Apply has a project even without an output collection.
-		// Repeat project authority before exposing child progress or task counts.
-		var semanticProject uuid.UUID
-		e := tx.QueryRow(ctx, `SELECT project_id FROM photo.semantic_targets WHERE tenant_id=$1 AND child_run_id=$2 LIMIT 1`, tenantID, id).Scan(&semanticProject)
-		if e == nil {
-			if _, e = project.Authorize(ctx, tx, tenantID, semanticProject, who.UserID, role, domain.Viewer, false); e != nil {
-				return e
-			}
-		} else if !errors.Is(e, pgx.ErrNoRows) {
-			return e
-		}
+		if err:=authorizeRunRead(ctx,tx,who,tenantID,id,role);err!=nil{return err}
 		var err error
 		out, err = readStatus(ctx, tx, tenantID, id, false)
 		if err != nil || out.Kind != "v2" {
@@ -280,20 +282,7 @@ type pendingOutput struct {
 func (s Service) readOutputCandidates(ctx context.Context, who auth.Identity, tenantID, id uuid.UUID) ([]pendingOutput, error) {
 	items := []pendingOutput{}
 	err := tenant.WithTenant(ctx, s.DB, who, tenantID, domain.Viewer, func(tx pgx.Tx, role domain.Role) error {
-		var projectID uuid.UUID
-		e := tx.QueryRow(ctx, `SELECT COALESCE(st.project_id,w.project_id,c.project_id,a.project_id,sc.project_id) FROM photo.runs r LEFT JOIN photo.semantic_targets st ON st.tenant_id=r.tenant_id AND st.child_run_id=r.id AND r.kind='apply' LEFT JOIN photo.v2_workflows w ON w.tenant_id=r.tenant_id AND w.run_id=r.id AND r.kind='v2' LEFT JOIN photo.collections c ON c.tenant_id=r.tenant_id AND c.id=r.output_collection_id LEFT JOIN photo.asset_versions v ON v.tenant_id=r.tenant_id AND v.id=NULLIF(r.config_snapshot->>'asset_version_id','')::uuid LEFT JOIN photo.assets a ON a.tenant_id=v.tenant_id AND a.id=v.asset_id LEFT JOIN photo.snapshots s ON s.tenant_id=r.tenant_id AND s.id=r.input_snapshot_id LEFT JOIN photo.collections sc ON sc.tenant_id=s.tenant_id AND sc.id=s.collection_id WHERE r.tenant_id=$1 AND r.id=$2`, tenantID, id).Scan(&projectID)
-		if errors.Is(e, pgx.ErrNoRows) {
-			return domain.NewError("NOT_FOUND", 404)
-		}
-		if e != nil || projectID == uuid.Nil {
-			if e == nil {
-				e = domain.NewError("NOT_FOUND", 404)
-			}
-			return e
-		}
-		if _, e = project.Authorize(ctx, tx, tenantID, projectID, who.UserID, role, domain.Viewer, false); e != nil {
-			return e
-		}
+		if err:=authorizeRunRead(ctx,tx,who,tenantID,id,role);err!=nil{return err}
 		rows, e := tx.Query(ctx, `SELECT a.id,a.output_role,a.sha256,a.bytes,a.media_type,a.bucket,a.object_key,a.object_version,(t.operation IN ('render.compose','optical.negative') AND z.review_required) FROM photo.tasks t JOIN photo.task_results z ON z.tenant_id=t.tenant_id AND z.id=t.canonical_result_id JOIN photo.artifacts a ON a.tenant_id=t.tenant_id AND a.created_by_task_id=t.id AND a.produced_attempt=z.attempt AND a.produced_fence=z.fencing_token AND z.outputs @> jsonb_build_array(jsonb_build_object('artifact_id',a.id,'sha256',a.sha256)) WHERE t.tenant_id=$1 AND t.run_id=$2 AND t.state='succeeded' AND NOT t.cancel_requested AND z.attempt=t.attempt AND z.fencing_token=t.fencing_token AND a.state='ready' AND a.verified_at IS NOT NULL AND a.object_version IS NOT NULL AND a.object_version NOT IN('','null') AND (a.expires_at IS NULL OR a.expires_at>clock_timestamp()) AND a.output_role IN('derivative','derivative_manifest','prompt_mask_png','prompt_mask_ref','working_image','generation_report','contact_page','contact_sheet') AND photo.v26_render_preview_output_allowed($3,$4,$1,t.run_id) AND photo.candidate_review_canonical_output_allowed($3,$4,$1,t.id) UNION ALL SELECT artifact_id,output_role,sha256,bytes,media_type,bucket,object_key,object_version,true FROM photo.v26_render_derivative_outputs($3,$4,$1,$2) UNION ALL SELECT artifact_id,output_role,sha256,bytes,media_type,bucket,object_key,object_version,false FROM photo.v30_interchange_export_download($3,$4,$1,$2)`, tenantID, id, who.UserID, who.SessionID)
 		if e != nil {
 			return e
@@ -378,45 +367,11 @@ func (s Service) Outputs(ctx context.Context, who auth.Identity, tenantID, id uu
 	return result, nil
 }
 
-// authorizeRunProject repeats current project ACL before an idempotent mutation
-// can replay a saved response. Some legacy tenant-wide runs have no project.
+// Mutation receipts remain scoped to current Editor authority on every source
+// project. Historical accepted receipts are not permission to bypass revocation.
 func authorizeRunProject(ctx context.Context, tx pgx.Tx, who auth.Identity,
-	tenantID, id uuid.UUID, role domain.Role) error {
-	var projectID *uuid.UUID
-	var configProject *string
-	err := tx.QueryRow(ctx, `SELECT COALESCE(st.project_id,w.project_id,c.project_id,a.project_id,sc.project_id),
-	 r.config_snapshot->>'project_id' FROM photo.runs r
-	 LEFT JOIN photo.semantic_targets st ON st.tenant_id=r.tenant_id AND st.child_run_id=r.id AND r.kind='apply'
-	 LEFT JOIN photo.v2_workflows w ON w.tenant_id=r.tenant_id AND w.run_id=r.id AND r.kind='v2'
-	 LEFT JOIN photo.collections c ON c.tenant_id=r.tenant_id AND c.id=r.output_collection_id
-	 LEFT JOIN photo.asset_versions v ON v.tenant_id=r.tenant_id AND v.id=NULLIF(r.config_snapshot->>'asset_version_id','')::uuid
-	 LEFT JOIN photo.assets a ON a.tenant_id=v.tenant_id AND a.id=v.asset_id
-	 LEFT JOIN photo.snapshots s ON s.tenant_id=r.tenant_id AND s.id=r.input_snapshot_id
-	 LEFT JOIN photo.collections sc ON sc.tenant_id=s.tenant_id AND sc.id=s.collection_id
-	 WHERE r.tenant_id=$1 AND r.id=$2`, tenantID, id).Scan(&projectID, &configProject)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return domain.NewError("NOT_FOUND", 404)
-	}
-	if err != nil {
-		return err
-	}
-	if projectID != nil {
-		if _, err = project.Authorize(ctx, tx, tenantID, *projectID,
-			who.UserID, role, domain.Editor, false); err != nil {
-			return err
-		}
-	}
-	if configProject != nil {
-		parsed, err := uuid.Parse(*configProject)
-		if err != nil || parsed == uuid.Nil {
-			return domain.NewError("NOT_FOUND", 404)
-		}
-		if projectID == nil || *projectID != parsed {
-			_, err = project.Authorize(ctx, tx, tenantID, parsed,
-				who.UserID, role, domain.Editor, false)
-		}
-	}
-	return err
+ tenantID, id uuid.UUID, role domain.Role) error {
+ return authorizeRunProjects(ctx,tx,who,tenantID,id,role,domain.Editor)
 }
 
 func (s Service) Cancel(ctx context.Context, who auth.Identity, tenantID, id uuid.UUID, key string) (Status, error) {
@@ -467,6 +422,9 @@ func (s Service) Cancel(ctx context.Context, who auth.Identity, tenantID, id uui
 		if response.Status != 200 || response.ResourceID == nil || *response.ResourceID != id {
 			return domain.NewError("IDEMPOTENCY_CONFLICT", 409)
 		}
+		currentRole,e:=tenant.AuthorizeInTransaction(ctx,tx,who,tenantID,domain.Editor)
+		if e!=nil{return e}
+		if e=authorizeRunProject(ctx,tx,who,tenantID,id,currentRole);e!=nil{return e}
 		return json.Unmarshal(response.Body, &out)
 	})
 	return out, err
@@ -551,6 +509,9 @@ func (s Service) Retry(ctx context.Context, who auth.Identity, tenantID, id uuid
 		if response.Status != 200 || response.ResourceID == nil || *response.ResourceID != id {
 			return domain.NewError("IDEMPOTENCY_CONFLICT", 409)
 		}
+		currentRole,e:=tenant.AuthorizeInTransaction(ctx,tx,who,tenantID,domain.Editor)
+		if e!=nil{return e}
+		if e=authorizeRunProject(ctx,tx,who,tenantID,id,currentRole);e!=nil{return e}
 		return json.Unmarshal(response.Body, &out)
 	})
 	return out, err
@@ -597,7 +558,7 @@ func retryRun(ctx context.Context, tx pgx.Tx, who auth.Identity, tenantID, id uu
 		_, e = tx.Exec(ctx, `UPDATE photo.runs SET status='running',cancel_requested=false,revision=revision+1 WHERE tenant_id=$1 AND id=$2`, tenantID, id)
 		if e != nil {
 			var guard *pgconn.PgError
-			if errors.As(e, &guard) && guard.Code == "23514" && guard.Message == "V26_BATCH_ALREADY_TERMINAL" {
+			if errors.As(e, &guard) && guard.Code == "23514" && (guard.Message == "V26_BATCH_ALREADY_TERMINAL" || guard.Message == "BILLING_RUN_TERMINAL") {
 				return domain.NewError("RUN_NOT_RETRYABLE", 409)
 			}
 			return e

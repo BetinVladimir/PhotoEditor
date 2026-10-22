@@ -30,7 +30,7 @@ func LoadRestorationPreviewResult(ctx context.Context, results RestorationPrevie
 	if err := validateRestorationPreviewIntent(plan); err != nil {
 		return zero, err
 	}
-	rebuilt, err := CompileRestorationPreviewPlan(plan.source, plan.srgb, baseRaw, candidateRaw)
+	rebuilt, err := CompileRestorationPreviewPlan(plan.source, plan.srgb, baseRaw, candidateRaw,plan.policy)
 	if err != nil {
 		return zero, err
 	}

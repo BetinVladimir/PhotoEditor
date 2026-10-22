@@ -1,6 +1,6 @@
 # Построчный статический аудит контрактных трасс
 
-Срез `9785352`. Метод: source inspection only; no tests, migrations, builds or runtime calls.
+Срез `1787516`. Метод: source inspection only; no tests, migrations, builds or runtime calls.
 
 Охват: 30/30 операций имеют прямую или динамическую worker-регистрацию; 79/79 HTTP-контрактов имеют объявление маршрута, достижимое из `Server.Routes()` через вызовы методов. Ни одного отсутствующего structural declaration не найдено.
 
@@ -19,10 +19,10 @@
 | V23 | `learning.evaluate` | direct_literal | 3/9 | — |
 | V24 | `capture.assess` | direct_literal | 5/13 | — |
 | V23 | `identity.compare` | direct_literal | 5/20 | D-02: learning/identity report client route and review are absent |
-| V27 | `semantic.transfer` | direct_literal | 26/42 | D-01: proposed target lacks pre-Apply candidate/evidence presentation; D-04: semantic installation requires CUDA; no MPS positive path |
+| V27 | `semantic.transfer` | direct_literal | 26/42 | D-01: proposed target lacks pre-Apply candidate/evidence presentation; D-04: mandatory MVP CUDA qualification on dedicated RTX |
 | V28 | `portrait.open_eyes` | direct_literal | 17/21 | — |
-| V28 | `portrait.glare` | direct_literal | 22/25 | D-04: model installation permits CPU/CUDA GPU-class backend, not MPS |
-| V28 | `image.reflection` | direct_literal | 21/24 | D-04: model installation permits CPU/CUDA GPU-class backend, not MPS |
+| V28 | `portrait.glare` | direct_literal | 22/25 | D-04: qualify CPU/CUDA deployment; MPS is not required for MVP |
+| V28 | `image.reflection` | direct_literal | 21/24 | D-04: qualify CPU/CUDA deployment; MPS is not required for MVP |
 | V28 | `portrait.hair` | direct_literal | 13/11 | — |
 | V28 | `portrait.clothing` | direct_literal | 13/11 | — |
 | V28 | `image.relight` | direct_literal | 5/9 | — |
@@ -38,7 +38,7 @@
 | V27 | `v2.semantic.assemble` | direct_literal | 3/15 | — |
 | V30 | `v2.interchange.parse` | direct_literal | 2/21 | — |
 | V30 | `v2.delivery.prepare` | dynamic_named_dispatch | 6/23 | — |
-| V26 | `region.preview` | direct_literal | 3/16 | D-04: region renderer requires CUDA; no MPS positive path |
+| V26 | `region.preview` | direct_literal | 3/16 | D-04: mandatory MVP CUDA qualification on dedicated RTX |
 | V26 | `render.compose` | direct_literal | 49/75 | — |
 | V27 | `semantic.local_exposure` | direct_literal | 3/20 | — |
 | V29 | `optical.perspective_lines` | direct_literal | 2/20 | — |

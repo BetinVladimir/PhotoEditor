@@ -50,7 +50,7 @@ def test_worker_region_outputs_are_accepted_by_client(record_property):
             raw = canonical_bytes(manifest)
             def catalog(ref, role, media, count, url):
                 return dict(artifact_id=str(ref.artifact_id), sha256=ref.sha256,
-                    role=role, media_type=media, bytes=count, url=url, expires_at='2099-01-01T00:00:00Z')
+                    role=role, media_type=media, bytes=count, url=url+'?versionId=fixture-version', expires_at='2099-01-01T00:00:00Z')
             document = ArtifactRef(artifact_id=uuid4(), sha256=sha256(raw).hexdigest())
             cases.append(dict(raw=base64.b64encode(raw).decode(), encoded=base64.b64encode(encoded).decode(),
                 document=catalog(document, 'document', 'application/json', len(raw), 'https://photo.test/document'),
@@ -64,5 +64,5 @@ def test_worker_region_outputs_are_accepted_by_client(record_property):
         report_path = root / 'test_region_preview_client_contract-vitest.json'
         result = subprocess.run(['npm', 'test', '--', '--run', 'src/region-preview-worker.test.ts', '--reporter=json', '--outputFile='+str(report_path)],
             cwd=repo / 'apps/photographer', env=env, capture_output=True, text=True, timeout=60)
-        assert result.returncode == 0, result.stdout + result.stderr
+        assert result.returncode == 0, result.stdout + result.stderr + (report_path.read_text() if report_path.exists() else '')
         assert_live_vitest_report(report_path, 2, record_property)

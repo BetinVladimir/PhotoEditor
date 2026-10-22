@@ -66,6 +66,7 @@ def verify_size(path: Path, expected_size: int | None = None, expected_sha256: s
     sha = digest.hexdigest()
     if expected_sha256 is not None and sha != expected_sha256:
         raise AssetError('INPUT_HASH_MISMATCH')
+    if check_active is not None:check_active()
     return size,sha
 
 
@@ -78,6 +79,8 @@ def verify_decode(path: Path, expected_size: int | None = None, expected_sha256:
     read_metadata(source)
     if kind != 'raw':
         verify_raster_decode(path, check_active=check_active)
+    # Decoder/header inspection must not turn a changed file into a verified source.
+    verify_size(path,size,sha,check_active=check_active)
     return source
 
 

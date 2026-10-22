@@ -90,7 +90,7 @@ type DownloadArchiveTaskRepository struct{ DB artifactjson.RowQuerier }
 
 func (r DownloadArchiveTaskRepository) Materialize(ctx context.Context, tenant, run uuid.UUID, task PreparedTask) (bool, error) {
 	if err := ctx.Err(); err != nil { return false, err }
-	if r.DB == nil || tenant == uuid.Nil || run == uuid.Nil || task.Operation != "archive.build" || !validExpansionRef(task.Params) || len(task.Inputs) < 1 {
+	if r.DB == nil || tenant == uuid.Nil || run == uuid.Nil || task.Operation != "archive.build" || !validExpansionRef(task.Params) || len(task.Inputs) < 1 || len(task.Inputs) > MaxDownloadArchiveInputs {
 		return false, errors.New("invalid archive task materialization")
 	}
 	digest, e := repairInputDigest(task.Operation, task.Version, task.Params, task.Inputs)

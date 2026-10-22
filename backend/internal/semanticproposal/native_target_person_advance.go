@@ -59,11 +59,11 @@ func (p TransferDraftPreparer) advanceNativeTargetPersons(ctx context.Context, w
 			if err != nil {
 				return nativeFacePipelineAdvance{}, err
 			}
-			report, err := v2qualification.Verify(raw, selected.Report.SHA256, selected.Expected)
+			report, err := v2qualification.VerifyTyped(raw, selected.Report.SHA256, selected.Expected)
 			if err != nil {
 				return nativeFacePipelineAdvance{}, err
 			}
-			budget, err := createPersonBudget(p.Configuration, p.ReservedBytes, report.Metrics)
+			budget, err := createPersonResourceBudget(p.Configuration, p.ReservedBytes, report.Resources())
 			if err != nil {
 				return nativeFacePipelineAdvance{}, err
 			}

@@ -1,8 +1,6 @@
 package semanticreview
 
 import (
-	"strconv"
-
 	"github.com/google/uuid"
 	"photoeditor/backend/internal/canonical"
 )
@@ -52,10 +50,6 @@ func BuildCloseProof(parentRun uuid.UUID, request ReviewClose, planSHA, revision
 	}
 	if err := ValidateClose(request, planSHA, revision, parentState, remaining); err != nil {
 		return CloseProof{}, err
-	}
-	parsed, _ := strconv.ParseInt(revision, 10, 64)
-	if parsed == 9223372036854775807 {
-		return CloseProof{}, ErrConflict
 	}
 	requestSHA, err := HashCloseRequest(parentRun, request)
 	if err != nil {

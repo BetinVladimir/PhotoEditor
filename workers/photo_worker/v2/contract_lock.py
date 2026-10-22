@@ -1,6 +1,9 @@
 """SHA-256 of docs/implementation-v2/contracts/schemas.json in this build."""
 
-SCHEMAS_SHA256 = "c5dfcb5423c480660d3170e1d0fcee353cfb2f3a20f3cf8ff49f45bb63fd9ea7"
+SCHEMAS_SHA256 = "fc32a5930c5f970f814b302662dfd7e2cc5a9746dbf0b25a1288015c07ea776c"
+RETOUCH_PREVIOUS_SCHEMAS_SHA256 = "3ceaa93f206f65f3c5dd568e6a8fac587a8e76dc646a0f4309452a0d2afa1f9c"
+# Previously accepted build pin; retain existing sealed tasks unchanged.
+SEMANTIC_PREVIEW_PREVIOUS_SCHEMAS_SHA256 = "c5dfcb5423c480660d3170e1d0fcee353cfb2f3a20f3cf8ff49f45bb63fd9ea7"
 DETAIL_MANIFEST_PREVIOUS_SCHEMAS_SHA256 = "696918818c7524007a9f68a73e3b93da9883364061a23286e983224a55979f27"
 DETAIL_LINK_PREVIOUS_SCHEMAS_SHA256 = "7dd6b5af57acd78d4aece31fc8a46f69a6aa3f71b0f2039a1cf6af39d1c6e0bd"
 HOLDOUT_EVIDENCE_PREVIOUS_SCHEMAS_SHA256 = "895026a0f6929d13f004943c8e6fdeeb55d4aae5bdf69fc32f1e5a7b9314848a"
@@ -20,3 +23,14 @@ PREVIOUS_SCHEMAS_SHA256 = "4004dd5e69d67835b7d295bfcebded5c006125256c2f6047fd11b
 
 # Immutable fallback pin emitted by SQL seal_v2_task_inputs (migration 00534).
 SQL_TRANSPORT_SCHEMAS_SHA256 = "341984c53d787175fb5a9eec4e5d55ab74e9cd293075add8965d6064aba2e815"
+
+# Lossless-copy build pin. Forward-only02405..02407 preserve reader compatibility.
+# The previous pin remains accepted for historical safe numeric copy documents.
+COPY_FENCE_SCHEMAS_SHA256 = "75e3bcf5679402efe777b409f919bdcd594f92be5a163975ccf66e27dc3b6ee8"
+COPY_FENCE_PREVIOUS_SCHEMAS_SHA256 = "886cb3e1b7316c40d6696ab57e59bcc2a8ec714b50ffd8d51c0a1cb9cf799f90"
+
+# Previous dual-wire generation remains valid for already sealed input closures.
+COPY_FENCE_DUAL_PREVIOUS_SCHEMAS_SHA256 = "7593be39f45ce3bf1aa8c5b3c42bc9defc82f2416def579fd2d3e6d3ea165ab0"
+
+# Additive per-item Apply API request only; all worker DTO definitions unchanged.
+# SQL emitters and historical closures retain the explicit COPY_FENCE build pin.

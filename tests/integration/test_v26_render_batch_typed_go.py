@@ -1,4 +1,5 @@
 """Typed batch recovery: real SQL, optional live MinIO source JSON and transport; synthetic binary provenance."""
+from pathlib import Path as _PhotoRepositoryPath
 import json
 import os
 from pathlib import Path
@@ -69,11 +70,12 @@ def run_typed_recovery(database,crash,objects=None):
             db.execute("INSERT INTO photo.style_versions(tenant_id,style_id,version_no,config_json,config_hash,schema_version,renderer_version,approval_status,metrics,export_artifact_id) VALUES(%s,%s,1,'{}',%s,'2.0.0','photo_renderer_v2','accepted','{}',%s)",(tenant,style,sha256(style_raw).hexdigest(),style_ref))
             root,document,batch=uuid4(),uuid4(),uuid4()
             path.write_text(json.dumps(dict(Tenant=tenant,Project=project,Snapshot=case['Snapshot'],Batch=str(batch),Actor=actor,Session=session,Root=str(root),Binding=binding,Source=source,Style=dict(artifact_id=str(style_ref),sha256=sha256(style_raw).hexdigest()))))
-        env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_RENDER_TYPED_FIXTURE=str(path),GOCACHE='/private/tmp/photoeditor-go-cache')
+        env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_RENDER_TYPED_FIXTURE=str(path),GOCACHE=str(_PhotoRepositoryPath(__file__).resolve().parents[2]/'work/go-cache'))
         if objects is not None:
             env['PHOTO_RENDER_OBJECT_CONFIG']=json.dumps(objects[0]._photo_test_config)
-        command=['go','test','./internal/v2render','-run','^TestIntegrationRenderBatchTypedPlan$','-count=1']
+        command=['go','test','-json','./internal/v2render','-run','^TestIntegrationRenderBatchTypedPlan$','-count=1']
         result=subprocess.run(command,cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=60)
+        _capture_named_go(result, 'TestIntegrationRenderBatchTypedPlan')
         assert result.returncode==0,result.stdout+result.stderr
         recipe=Path(str(path)+'.recipe').read_text();digest=sha256(recipe.encode()).hexdigest()
         with psycopg.connect(**database) as db:
@@ -85,6 +87,7 @@ def run_typed_recovery(database,crash,objects=None):
         env['PHOTO_RENDER_TYPED_STAGE']='1'
         env['PHOTO_RENDER_TYPED_CRASH']='1' if crash else '0'
         result=subprocess.run(command,cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=60)
+        _capture_named_go(result, 'TestIntegrationRenderBatchTypedPlan', require_pass=not crash)
         if crash:
             assert result.returncode!=0
             assert 'signal: killed' in result.stdout+result.stderr,result.stdout+result.stderr
@@ -100,10 +103,10 @@ def run_typed_recovery(database,crash,objects=None):
             replacement=client.put_object(bucket,key,BytesIO(b'{}'),2,content_type='application/json',metadata={'sha256':sha256(b'{}').hexdigest()})
             assert replacement.version_id!=old_version
             source_versions.add((key,replacement.version_id))
-        restart=['go','test','./internal/v2render','-run','^TestIntegrationRenderBatchTypedRestart$','-count=1']
+        restart=['go','test','-json','./internal/v2render','-run','^TestIntegrationRenderBatchTypedRestart$','-count=1']
         result=subprocess.run(restart,cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=60)
+        _capture_named_go(result, 'TestIntegrationRenderBatchTypedRestart')
         assert result.returncode==0,result.stdout+result.stderr
-
         with psycopg.connect(**database) as db:
             with pytest.raises(psycopg.errors.InsufficientPrivilege):
                 with db.transaction():
@@ -121,9 +124,11 @@ def run_typed_recovery(database,crash,objects=None):
                     db.execute('SELECT photo.record_v26_render_recovery(%s,%s,true)',(tenant,json.loads(Path(str(path)+'.recovery').read_text())['Batch']))
         if objects is not None:
             client,bucket=objects
-            staged=subprocess.run(['go','test','./internal/v2render','-run','^TestIntegrationStageRenderRuntimeBatch$','-count=1'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=60)
+            staged=subprocess.run(['go','test','-json','./internal/v2render','-run','^TestIntegrationStageRenderRuntimeBatch$','-count=1'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=60)
+            _capture_named_go(staged, 'TestIntegrationStageRenderRuntimeBatch')
             assert staged.returncode==0,staged.stdout+staged.stderr
-            runtime=subprocess.run(['go','test','./internal/workflow','-run','^TestIntegrationRenderRecoveryRuntimeLoop$','-count=1'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=60)
+            runtime=subprocess.run(['go','test','-json','./internal/workflow','-run','^TestIntegrationRenderRecoveryRuntimeLoop$','-count=1'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=60)
+            _capture_named_go(runtime, 'TestIntegrationRenderRecoveryRuntimeLoop')
             assert runtime.returncode==0,runtime.stdout+runtime.stderr
             with psycopg.connect(**database) as db:
                 rows=db.execute("SELECT d.purpose,a.object_key,a.object_version,a.sha256,a.bytes,d.object_version FROM photo.backend_documents d JOIN photo.artifacts a ON a.tenant_id=d.tenant_id AND a.id=d.artifact_id WHERE d.tenant_id=%s AND d.bucket=%s AND d.state='ready' ORDER BY d.owner_id,d.purpose",(tenant,bucket)).fetchall()
@@ -182,3 +187,35 @@ def verify_live_render_pixels(client,bucket,location,source,expected,folder):
             assert mapped._mmap.closed
             with scratch.reserve(8*1024*1024):pass
     assert len(streams)==1 and all(stream.closed for stream in streams)
+
+
+def _capture_named_go(result, name, *, require_pass=True):
+    """Persist only closed Go event metadata: never child output, DSN or object config."""
+    from uuid import uuid4
+    from hashlib import sha256
+    events = []
+    for line in result.stdout.splitlines():
+        if not line.startswith('{'):
+            continue
+        event = json.loads(line)
+        events.append({key: event[key] for key in ('Action', 'Package', 'Test', 'Elapsed') if key in event})
+    evidence = ROOT/'work/specialized-v26-go-evidence'
+    evidence.mkdir(parents=True, exist_ok=True)
+    record = dict(root=name, exit_code=result.returncode, events=events,
+                  stdout_sha256=sha256(result.stdout.encode()).hexdigest(),
+                  stderr_sha256=sha256(result.stderr.encode()).hexdigest())
+    path = evidence/(name+'-'+uuid4().hex+'.json')
+    path.write_text(json.dumps(record, indent=2)+'\n')
+    package = ('photoeditor/backend/internal/workflow' if name in ('TestIntegrationRenderBatchPassFinalizesAndSynchronizes', 'TestIntegrationRenderRecoveryRuntimeLoop') else 'photoeditor/backend/internal/v2draft' if name == 'TestIntegrationRenderCatalogFrameAuthority' else 'photoeditor/backend/internal/v2render')
+    exact = [event for event in events if event.get('Test') == name and event.get('Package') == package]
+    assert sum(event.get('Action') == 'run' for event in exact) == 1, str(path)
+    assert not any(event.get('Test') == name and event.get('Package') != package for event in events), str(path)
+    assert not any(event.get('Action') == 'skip' for event in events), str(path)
+    if require_pass:
+        assert result.returncode == 0, str(path)
+        assert [event['Action'] for event in exact if event.get('Action') in ('pass', 'fail', 'skip')] == ['pass'], str(path)
+        assert not any(event.get('Action') == 'fail' for event in events), str(path)
+    else:
+        assert result.returncode != 0, str(path)
+        assert not any(event.get('Action') == 'pass' for event in exact), str(path)
+

@@ -14,7 +14,9 @@ from photo_worker.runtime.executor import ExecutionContext,Operation,OperationFa
 
 def _required_scene_ram(height:int,width:int)->int:
     if type(height) is not int or type(width) is not int or height<1 or width<1:raise ValueError('SCENE_SIZE_INVALID')
-    return 512*1024**2+height*width*128
+    # decode_logits accepts150x1024x1024 logits. Maximum/exp/probability
+    # temporaries coexist independently of the source canvas dimensions.
+    return 3*1024**3+512*1024**2+height*width*128
 
 
 def _valid_scene_image(image)->bool:
@@ -30,9 +32,17 @@ def decode_logits(logits,w,h):
     maximum=np.max(value,axis=0);exp=np.exp(value-maximum);prob=exp/np.sum(exp,axis=0);labels=np.argmax(prob,axis=0).astype(np.uint16);confidence=float(np.mean(np.max(prob,axis=0)));return cv2.resize(labels,(w,h),interpolation=cv2.INTER_NEAREST).astype(np.uint16),confidence
 
 
-def execute(ctx:ExecutionContext,artifacts:TaskArtifacts,pool:ModelPool,backend:str)->OperationResult:
+def execute(ctx:ExecutionContext,artifacts:TaskArtifacts,pool:ModelPool,backend:str,verify_runtime=None)->OperationResult:
     profile=ctx.lease.execution_profile;estimate=profile.get('resource_estimate');ram=estimate.get('ram_bytes') if isinstance(estimate,dict) else None
     if profile.get('backend')!=backend or type(ram) is not int or ram<1073741824:raise OperationFailure('CONFIG_INVALID')
+    pinned=any(key in profile for key in ('model_lock_sha','runtime_lock_sha','device_profile_sha'))
+    if pinned and not callable(verify_runtime):raise OperationFailure('SCENE_RUNTIME_INSTALLATION_REQUIRED')
+    def authorize():
+        ctx.check_active()
+        if pinned and (not callable(verify_runtime) or verify_runtime(ctx) is not True):
+            raise OperationFailure('SCENE_RUNTIME_UNQUALIFIED')
+        ctx.check_active()
+    authorize()
     try:
         p=artifacts.params(SceneParseParams);image=artifacts.contract(p.image,WorkingImage)
         if p.model_lock_id!=pool.lock.lock_id:raise ModelError('MODEL_LOCK_MISMATCH')
@@ -44,22 +54,24 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts,pool:ModelPool,backend:
     try:
         with ExitStack() as stack:
             rgb=stack.enter_context(read_array(stack.enter_context(artifacts.input(image.pixels,suffix='.npy')).path,(h,w,3),'float32',ctx.check_active,unit_interval=True));srgb,clipped=work_to_model(rgb)
+            authorize()
             with pool.acquire(p.model_id,backend) as engine:logits=engine.infer(srgb)
+            authorize()
         labels,confidence=decode_logits(logits,w,h)
         with artifacts.scratch.reserve(h*w*2+8192) as reservation:
             path=reservation.path('scene-labels','.npy');mm=np.lib.format.open_memmap(path,mode='w+',dtype='<u2',shape=(h,w))
             try:mm[:]=labels;mm.flush();ctx.check_active()
             finally:mm._mmap.close()
-            reservation.validate();ctx.check_active();lref=artifacts.stage(path,reservation,'scene_labels','application/octet-stream');written=path.stat().st_size
+            reservation.validate();authorize();lref=artifacts.stage(path,reservation,'scene_labels','application/octet-stream');written=path.stat().st_size
     except ModelError as exc:raise OperationFailure(str(exc)) from exc
     except ValueError as exc:raise OperationFailure('MODEL_OUTPUT_INVALID') from exc
     warnings=[]
     if confidence<.75:warnings.append('low_confidence')
     if np.any(clipped):warnings.append('source_srgb_clipped')
-    result=SceneLabels(image=p.image,labels=lref,canvas=image.canvas,transform_chain=image.transform_chain,model_id=p.model_id,model_lock_id=p.model_lock_id,backend=backend,preprocessing_id=p.preprocessing_id,confidence=confidence,warnings=warnings);ctx.check_active();ref=artifacts.stage_contract(result,'scene_labels_ref');return OperationResult(outputs=[lref,ref],review_required=bool(warnings),bytes_written=written+len(canonical_bytes(result)))
+    result=SceneLabels(image=p.image,labels=lref,canvas=image.canvas,transform_chain=image.transform_chain,model_id=p.model_id,model_lock_id=p.model_lock_id,backend=backend,preprocessing_id=p.preprocessing_id,confidence=confidence,warnings=warnings);authorize();ref=artifacts.stage_contract(result,'scene_labels_ref');authorize();return OperationResult(outputs=[lref,ref],review_required=bool(warnings),bytes_written=written+len(canonical_bytes(result)))
 
 
-def scene_parse_operations(config:ArtifactConfig,pool:ModelPool,backend:str):
+def scene_parse_operations(config:ArtifactConfig,pool:ModelPool,backend:str,verify_runtime=None):
     def run(ctx):
-        with TaskArtifacts.create(ctx,config,frozenset({'scene_labels','scene_labels_ref'})) as a:return execute(ctx,a,pool,backend)
+        with TaskArtifacts.create(ctx,config,frozenset({'scene_labels','scene_labels_ref'})) as a:return execute(ctx,a,pool,backend,verify_runtime)
     return [Operation('scene.parse','gpu',run)]

@@ -1,6 +1,7 @@
 package main
 
 import (
+ "photoeditor/backend/internal/database"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -54,6 +55,7 @@ func buildPerspective(ctx context.Context, objects *objectstore.Store, bucket st
 		return nil, noop, errors.New("perspective scheduler configuration invalid")
 	}
 	config.ConnConfig.RuntimeParams["role"] = "photo_scheduler"
+	database.GuardApplicationRole(config)
 	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
 		return nil, noop, errors.New("perspective scheduler unavailable")

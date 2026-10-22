@@ -43,6 +43,9 @@ func (s SQLPreparedImportArtifactStore) receipt(scope ImportPreparedScope, ref v
 		owned := *scope.DefectLabel
 		scope.DefectLabel = &owned
 	}
+ if scope.Historical!=nil{owned:=*scope.Historical;if owned.OriginalBoxes!=nil{boxes:=*owned.OriginalBoxes;owned.OriginalBoxes=&boxes};scope.Historical=&owned}
+ if scope.DefectPNG!=nil{owned:=*scope.DefectPNG;owned.Reports=append([]v2input.Ref(nil),owned.Reports...);scope.DefectPNG=&owned}
+ if err:=validateImportDefectPNGOccurrence(scope,ref);err!=nil{return nil,nil,err}
 	if err := validateImportBackgroundOccurrence(scope, ref); err != nil {
 		return nil, nil, err
 	}
@@ -67,15 +70,17 @@ func (s SQLPreparedImportArtifactStore) receipt(scope ImportPreparedScope, ref v
 		return nil, nil, err
 	}
 	switch scope.Contract {
+ case "DefectLabelPNG":
+  if media!="image/png"||size<8||size>512<<20{return nil,nil,v2input.ErrInvalid}
 	case "StyleBackgroundAsset":
 		if size < 8 || size > 536870912 || (media != "image/jpeg" && media != "image/png" && media != "image/tiff") {
 			return nil, nil, v2input.ErrInvalid
 		}
-	case "MaskPixels", "DenseWarpField", "AbsoluteLUTArray", "DefectLabelMap":
+	case "MaskPixels", "DenseWarpField", "AbsoluteLUTArray", "DefectLabelMap", "WorkingPixels", "WorkingAlpha":
 		if media != "application/octet-stream" {
 			return nil, nil, v2input.ErrInvalid
 		}
-	case "EditingRecipeV3", "StyleV2", "CorrectionPlan", "Override", "LayerStack", "MaskRef", "Params", "Stats20", "ResolvedStyle", "DefectCandidates", "DefectReview", "DustCandidates":
+	case "EditingRecipeV3", "StyleV2", "CorrectionPlan", "Override", "LayerStack", "MaskRef", "Params", "Stats20", "ResolvedStyle", "DefectCandidates", "DefectReview", "DustCandidates", "DefectProposeReport", "WorkingImage", "FaceLandmarks", "FaceBoxes", "HistoricalOriginReceipt":
 		if media != "application/json" || size < 2 || size > 8<<20 {
 			return nil, nil, v2input.ErrInvalid
 		}
@@ -91,8 +96,10 @@ func (s SQLPreparedImportArtifactStore) receipt(scope ImportPreparedScope, ref v
 		Warp        *ImportWarpOccurrence         `json:"warp_occurrence,omitempty"`
 		LUT         *ImportLUTOccurrence          `json:"lut_occurrence,omitempty"`
 		DefectLabel *ImportDefectLabelOccurrence  `json:"defect_label_occurrence,omitempty"`
+ Historical *HistoricalOriginPayload `json:"historical_origin_occurrence,omitempty"`
+ DefectPNG *ImportDefectPNGOccurrence `json:"defect_png_occurrence,omitempty"`
 		Background  *ImportBackgroundSource       `json:"background_occurrence,omitempty"`
-	}{scope.Entry, scope.Binding, ref.SHA256, size, media, scope.Warp, scope.LUT, scope.DefectLabel, scope.Background})
+	}{scope.Entry, scope.Binding, ref.SHA256, size, media, scope.Warp, scope.LUT, scope.DefectLabel, scope.Historical, scope.DefectPNG, scope.Background})
 	return raw, parsed, err
 }
 func scanPreparedImportReservation(row pgx.Row, ref v2input.Ref) (artifactjson.Reservation, error) {

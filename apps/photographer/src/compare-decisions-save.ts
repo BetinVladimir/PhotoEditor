@@ -20,7 +20,7 @@ export async function saveCompareDecisions(collection:Collection,items:readonly 
    const item=await save(structuredClone(current),job.item,job.decision);
    if(item.id!==job.item.id||item.collection_id!==current.id||item.asset_id!==job.item.asset_id||item.asset_version_id!==job.versionId||item.moderation_state!==(job.decision==='accept'?'accepted':'rejected'))throw new Error('COMPARE_SAVE_RESPONSE_INVALID');
    updated.push(structuredClone(item));current={...current,revision:String(Number(current.revision)+1)};results.push({versionId:job.versionId,status:'saved'});
-  }catch(error){results.push({versionId:job.versionId,status:error instanceof APIError&&[409,412].includes(error.status)?'conflict':'failed'});stopped=true;}
+  }catch(error){if(error instanceof APIError&&[401,403,404].includes(error.status))throw error;results.push({versionId:job.versionId,status:error instanceof APIError&&[409,412].includes(error.status)?'conflict':'failed'});stopped=true;}
  }
  return {collection:current,items:updated,results};
 }

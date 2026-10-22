@@ -16,7 +16,7 @@ it.each(['decide','close'] as const)('owns and restores exact %s request across 
  restored!.inspection.revision='8';expect(await first.read()).toEqual(record(kind));
  await expect(first.clear('original-key')).rejects.toThrow('CONFLICT');
  await first.write({...record(kind),receipt:accepted(kind)});
- await expect(first.write(record(kind))).rejects.toThrow('CONFLICT');
+ await expect(async()=>first.write(record(kind))).rejects.toThrow('CONFLICT');
  await expect(first.clear('another-key')).rejects.toThrow('CONFLICT');
  await first.clear('original-key');expect(await first.read()).toBeNull();
 });
@@ -25,8 +25,8 @@ it('refuses changed intent, key, revision, report and receipt',async()=>{
  const revision=record();revision.inspection.revision='2';
  const report=record();report.inspection.review!.report.sha256='b'.repeat(64);
  const decision=record();decision.decisions[0].decision='reject';
- for(const changed of [{...record(),key:'new-key'},revision,report,decision])await expect(journal.write(changed)).rejects.toThrow('CONFLICT');
- await expect(journal.write({...record(),receipt:{...accepted('decide'),revision:'3'}})).rejects.toThrow();
+ for(const changed of [{...record(),key:'new-key'},revision,report,decision])await expect(async()=>journal.write(changed)).rejects.toThrow('CONFLICT');
+ await expect(async()=>journal.write({...record(),receipt:{...accepted('decide'),revision:'3'}})).rejects.toThrow();
  expect(await journal.read()).toEqual(record());
 });
 it('isolates scopes and invalidates mounted stores after logout',async()=>{
@@ -34,7 +34,7 @@ it('isolates scopes and invalidates mounted stores after logout',async()=>{
  expect(()=>journal.assertScope(id(2),id(3),id(90))).toThrow('SCOPE_INVALID');
  expect(await new InterchangeReviewAttemptStore(data,'logout-origin',id(90),id(2),id(3),id(4),lock).read()).toBeNull();
  await clearInterchangeReviewAttempts(data,'logout-origin',lock);
- await expect(journal.write(record())).rejects.toThrow('EXPIRED');
+ await expect(async()=>journal.write(record())).rejects.toThrow('EXPIRED');
  expect(await store(data,'logout-origin').read()).toBeNull();
 });
 
@@ -52,7 +52,7 @@ it('old acknowledgement cannot remove a newly admitted operation',async()=>{
  await first.write({...record(),receipt:accepted('decide')});await first.clear('original-key');
  const newer={...record(),key:'new-key'};await second.write(newer);
  await expect(first.clear('original-key')).rejects.toThrow('CONFLICT');
- await expect(first.write({...record(),receipt:accepted('decide')})).rejects.toThrow('CONFLICT');
+ await expect(async()=>first.write({...record(),receipt:accepted('decide')})).rejects.toThrow('CONFLICT');
  expect(await second.read()).toEqual(newer);
 });
 it('observes foreign-tab generation change before write or clear',async()=>{
@@ -61,7 +61,7 @@ it('observes foreign-tab generation change before write or clear',async()=>{
  // changing this realm's in-memory epoch map. Browser lock is doubled here.
  await data.setItem('photo.interchange-review-generation.v1:'+JSON.stringify('foreign-generation'),id(90));
  await expect(journal.read()).rejects.toThrow('EXPIRED');
- await expect(journal.write({...record(),receipt:accepted('decide')})).rejects.toThrow('EXPIRED');
+ await expect(async()=>journal.write({...record(),receipt:accepted('decide')})).rejects.toThrow('EXPIRED');
  await expect(journal.clear('original-key')).rejects.toThrow('EXPIRED');
  const fresh=store(data,'foreign-generation');expect(await fresh.read()).toEqual(record());
 });

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+ "errors"
 	"github.com/google/uuid"
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/canonical"
@@ -138,6 +139,7 @@ func DecodeRelightDeployment(raw []byte) (RelightDeployment, error) {
 }
 
 type RelightProjectServices struct {
+ db DonorConfirmationTransactions
 	services map[[2]uuid.UUID]*RelightSubmissionService
 }
 
@@ -145,7 +147,7 @@ func (d RelightDeployment) Build(db DonorConfirmationTransactions, objects *obje
 	if db == nil || objects == nil || bucket == "" || len(d.projects) == 0 {
 		return nil, v2input.ErrInvalid
 	}
-	result := &RelightProjectServices{services: map[[2]uuid.UUID]*RelightSubmissionService{}}
+	result := &RelightProjectServices{db: db, services: map[[2]uuid.UUID]*RelightSubmissionService{}}
 	for _, p := range d.projects {
 		expected, err := p.expected()
 		if err != nil {
@@ -168,6 +170,17 @@ func (s *RelightProjectServices) SubmitProjectKeyed(ctx context.Context, who aut
 	if s == nil {
 		return nil, v2qualification.ErrUnqualified
 	}
+ // Receipt recovery uses persisted pins before current provider lookup.
+ // The minimal service derives/validates IDs only; it cannot publish work.
+ if s.db != nil {
+  request, err := (&RelightSubmissionService{tenant: tenant, project: project}).keyedDraftRequest(ctx, who, key, intent)
+  if err != nil { return nil, err }
+  body, err := canonical.Marshal(relightSubmissionWire{SchemaVersion:1, Snapshot:request.Snapshot, Run:request.Run, Workflow:request.Workflow, Ordinal:request.Ordinal, SubjectKind:request.SubjectKind, Params:request.ParamsRaw})
+  if err != nil { return nil, err }
+  receipt, err := (RelightBootstrapCoordinator{DB:s.db}).readRelightQueuedReceipt(ctx,who,tenant,request.Run,&relightReceiptBinding{project:project,request:body})
+  if err == nil { return receipt, nil }
+  if !errors.Is(err,v2input.ErrExpired) || IsRelightReplayOnly(ctx) { return nil, err }
+ }
 	service := s.services[[2]uuid.UUID{tenant, project}]
 	if service == nil {
 		return nil, v2qualification.ErrUnqualified

@@ -15,6 +15,7 @@ from .adapters import factories
 from .install import ModelError
 from .lock import ModelLock
 from .pool import ModelPool
+from .backend_support import model_backend_supported
 
 
 def _array(value: Any, model_id: str, *, allow_empty: bool = False) -> np.ndarray:
@@ -125,6 +126,15 @@ def smoke(model_id: str, model: Any) -> dict[str, Any]:
     return {"shape": list(output.shape), "dtype": str(output.dtype), "minimum": float(output.min(initial=0)), "maximum": float(output.max(initial=0))}
 
 
+def _install_doctor_budget(backend: str):
+    if backend == 'cuda':
+        from photo_worker.runtime.cuda_budget import install_cuda_budget
+        # Same decimal 10 GB allocator ceiling as the production RTX worker.
+        # External CUDA providers still require measured peak qualification.
+        return install_cuda_budget()
+    return None
+
+
 def run(root: Path, lock_path: Path, backend: str) -> dict[str, Any]:
     if backend not in ("cpu", "mps", "cuda"):
         raise ValueError("Unsupported backend")
@@ -133,14 +143,16 @@ def run(root: Path, lock_path: Path, backend: str) -> dict[str, Any]:
         raise ValueError("Invalid model doctor paths")
     lock_raw = lock_path.read_bytes()
     lock = ModelLock.model_validate_json(lock_raw)
+    _install_doctor_budget(backend)
     pool = ModelPool(root, lock, factories())
     process = psutil.Process()
     results = []
     try:
         for entry in sorted(lock.models, key=lambda value: value.id):
             state = entry.backends[backend]
-            if state.status == "unsupported":
-                results.append({"model_id": entry.id, "status": "unsupported", "reason": state.reason,
+            if state.status == "unsupported" or not model_backend_supported(entry.id,backend):
+                reason=state.reason if state.status == "unsupported" else "Native adapter does not support backend"
+                results.append({"model_id": entry.id, "status": "unsupported", "reason": reason,
                                 "lock_backend_status": state.status, "lock_report_sha256": state.report_sha256})
                 continue
             started, rss = time.monotonic(), process.memory_info().rss

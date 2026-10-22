@@ -11,6 +11,8 @@ import (
 type ImportPreparedNodeRegistry struct {
 	mu    sync.RWMutex
 	nodes map[v2input.Entry]ImportClosureNodeResolver
+ auxiliary map[v2input.Entry]ImportClosureNodeResolver
+ auxiliaryParents map[v2input.Entry]v2input.Entry
 }
 
 func (r *ImportPreparedNodeRegistry) Contains(entry v2input.Entry) bool {
@@ -58,7 +60,7 @@ func (r *ImportPreparedNodeRegistry) register(nodes map[v2input.Entry]ImportClos
 			return v2input.ErrInvalid
 		}
 		switch entry.Contract {
-		case "EditingRecipeV3", "StyleV2", "CorrectionPlan", "Override", "LayerStack", "MaskRef", "Params", "Stats20", "ResolvedStyle", "DefectCandidates", "DefectReview", "DustCandidates", "MaskPixels", "DenseWarpField", "AbsoluteLUTArray", "DefectLabelMap", "StyleBackgroundAsset":
+		case "EditingRecipeV3", "StyleV2", "CorrectionPlan", "Override", "LayerStack", "MaskRef", "Params", "Stats20", "ResolvedStyle", "DefectCandidates", "DefectReview", "DustCandidates", "DefectProposeReport", "WorkingImage", "FaceLandmarks", "FaceBoxes", "HistoricalOriginReceipt", "WorkingPixels", "WorkingAlpha", "MaskPixels", "DenseWarpField", "AbsoluteLUTArray", "DefectLabelMap", "DefectLabelPNG", "StyleBackgroundAsset":
 		default:
 			return v2input.ErrInvalid
 		}
@@ -96,13 +98,16 @@ func (r *recordingPreparedImportResolver) ResolveImportNode(ctx context.Context,
 		return ImportClosureNode{}, v2input.ErrInvalid
 	}
 	switch entry.Contract {
-	case "StyleV2", "CorrectionPlan", "Override", "LayerStack", "MaskRef", "Params", "Stats20", "ResolvedStyle", "DefectCandidates", "DefectReview", "DustCandidates", "MaskPixels", "DenseWarpField", "AbsoluteLUTArray", "DefectLabelMap", "StyleBackgroundAsset":
+	case "StyleV2", "CorrectionPlan", "Override", "LayerStack", "MaskRef", "Params", "Stats20", "ResolvedStyle", "DefectCandidates", "DefectReview", "DustCandidates", "DefectProposeReport", "WorkingImage", "FaceLandmarks", "FaceBoxes", "HistoricalOriginReceipt", "WorkingPixels", "WorkingAlpha", "MaskPixels", "DenseWarpField", "AbsoluteLUTArray", "DefectLabelMap", "DefectLabelPNG", "StyleBackgroundAsset":
 		r.nodes[entry] = r.base
 	}
 	return node, nil
 }
 
 type registeredPreparedImportRecipeQualifier struct {
+ Historical *HistoricalOriginIssuer
+ HistoricalSource *ImportHistoricalNativeAuthority
+ Publisher *PreparedImportArtifactPublisher
 	Scope       ImportPreparedScope
 	Resolver    ImportClosureNodeResolver
 	Catalog     ImportDocumentCatalog
@@ -134,7 +139,10 @@ func (q registeredPreparedImportRecipeQualifier) QualifyPreparedImportRecipe(ctx
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	return q.Registry.register(recorder.nodes)
+	receipts,err:=q.historicalReceipts(ctx,recorder.nodes);if err!=nil{return err}
+ for entry,resolver:=range receipts{recorder.nodes[entry]=resolver}
+ if err=q.Registry.register(recorder.nodes);err!=nil{return err}
+ q.Registry.mu.Lock();defer q.Registry.mu.Unlock();if q.Registry.auxiliary==nil{q.Registry.auxiliary=map[v2input.Entry]ImportClosureNodeResolver{}};if q.Registry.auxiliaryParents==nil{q.Registry.auxiliaryParents=map[v2input.Entry]v2input.Entry{}};for entry,resolver:=range receipts{q.Registry.auxiliary[entry]=resolver;typed:=resolver.(ImportJSONNodeResolver).Validator.(historicalOriginNodeValidator);q.Registry.auxiliaryParents[entry]=v2input.Entry{Ref:typed.Expected.Prepared,Contract:typed.Expected.Contract}};return nil
 }
 
 type pinnedPreparedRecipeValidator struct {
@@ -147,4 +155,14 @@ func (v pinnedPreparedRecipeValidator) ImportDocumentChildren(ctx context.Contex
 		return nil, v2input.ErrInvalid
 	}
 	return interchangeRecipeChildren(ctx, append([]byte(nil), raw...), v.Binding)
+}
+
+// Additional roots are privately issued authorization documents, never archive
+// dependencies. Actual typed resolution is repeated during every inventory pass.
+func(r *ImportPreparedNodeRegistry)AdditionalImportRoots(ctx context.Context)([]v2input.Entry,error){
+ if err:=ctx.Err();err!=nil{return nil,err};if r==nil{return nil,nil};r.mu.RLock();defer r.mu.RUnlock();roots:=[]v2input.Entry{};for entry:=range r.auxiliary{roots=append(roots,entry)};return roots,nil
+}
+
+func(r *ImportPreparedNodeRegistry)AdditionalImportRootsFor(ctx context.Context,reachable []v2input.Entry)([]v2input.Entry,error){
+ if err:=ctx.Err();err!=nil{return nil,err};if r==nil{return nil,nil};seen:=map[v2input.Entry]bool{};for _,entry:=range reachable{seen[entry]=true};r.mu.RLock();defer r.mu.RUnlock();roots:=[]v2input.Entry{};for entry,parent:=range r.auxiliaryParents{if seen[parent]{roots=append(roots,entry)}};return roots,nil
 }

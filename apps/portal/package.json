@@ -15,9 +15,11 @@
   },
   "devDependencies": {
     "@rolldown/binding-darwin-arm64": "^1.2.9",
+    "@types/jsdom": "30.0.0",
     "@types/node": "24.10.0",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
+    "jsdom": "26.1.0",
     "typescript": "5.9.3",
     "vitest": "^5.0.1"
   }

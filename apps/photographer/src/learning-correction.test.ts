@@ -39,4 +39,22 @@ describe('learning correction producer binding',()=>{
     expect(()=>freezeLearningCorrection({...input,unexpected:true} as never))
       .toThrow('INVALID_CORRECTION');
   });
+  it('enforces the actual paired consent, distinct documents and int64 epoch boundary',()=>{
+    const value=request();
+    expect(freezeLearningCorrection({...value,consent_epoch:'9223372036854775807'}).consent_epoch).toBe('9223372036854775807');
+    for(const invalid of [
+      {...value,consent_epoch:'9223372036854775808'},
+      {...value,base_document_id:value.approved_document_id},
+      {...value,learn:false,portrait_detail_producer:undefined,consent_id:null},
+      {...value,learn:false,portrait_detail_producer:undefined,consent_epoch:null},
+    ])expect(()=>freezeLearningCorrection(invalid)).toThrow('INVALID_CORRECTION');
+  });
+  it('does not let a mutable transport substitute the frozen receipt identity',async()=>{
+    const transport=vi.fn().mockImplementation(async(_path,options)=>{
+      options.body.client_event_id=id(30);options.body.asset_version_id=id(31);
+      return {id:id(11),project_id:id(12),client_event_id:id(30),asset_version_id:id(31)};
+    });
+    const api=new OwnerAPI({request:transport} as unknown as ApiClient,id(13));
+    await expect(api.recordCorrection(request(),'immutable-key')).rejects.toThrow('INVALID_CORRECTION_RECEIPT');
+  });
 });

@@ -1,0 +1,18 @@
+{
+ admin off
+}
+api.framevela.com {
+ encode zstd gzip
+ header {
+  Referrer-Policy "no-referrer"
+  X-Content-Type-Options "nosniff"
+ }
+ reverse_proxy api:8080
+}
+storage.framevela.com {
+ reverse_proxy https://minio:9000 {
+  transport http {
+   tls_trust_pool file /etc/caddy/internal-ca.crt
+  }
+ }
+}

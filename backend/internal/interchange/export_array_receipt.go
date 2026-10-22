@@ -27,7 +27,7 @@ type ExportNativeArrayReceipt struct{
 }
 func exportArrayMediaType(media string)bool{return media=="application/octet-stream"||media=="application/x-npy"}
 func exportArrayBinaryContract(contract string)bool{
- switch contract{case "WorkingPixels","PixelArray","WorkingAlpha","DenseWarpField","DenseWarpArray","AbsoluteLUTArray":return true};return false
+ switch contract{case "WorkingPixels","PixelArray","WorkingAlpha","MaskArray","DenseWarpField","DenseWarpArray","AbsoluteLUTArray":return true};return false
 }
 func exportArrayMaximumBytes(entry v2input.Entry,g ExportArrayGeometry)(int64,error){
  if !exportArrayBinaryContract(entry.Contract)||!validImportRef(entry.Ref)||!validExportMaskGeometry(ExportMaskGeometry{Width:g.Width,Height:g.Height,CanvasSHA:g.CanvasSHA},entry.Ref)||(g.DType!="float32"&&g.DType!="uint16"){return 0,v2input.ErrInvalid}

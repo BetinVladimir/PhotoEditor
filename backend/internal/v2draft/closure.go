@@ -434,8 +434,23 @@ func (s ClosureResolver) resolveRootsWithEvidence(ctx context.Context, who auth.
 			occurrenceBytes += len(wire)
 			*occurrences = append(*occurrences, occurrence)
 		}
+		stackBinding := binding
+		if node.Contract == "LayerStack" {
+			if provider, ok := s.Catalog.(LayerStackBindingCatalog); ok {
+				selected, found, bindingErr := provider.LayerStackBinding(ctx, who, tenantID, node)
+				if bindingErr != nil {
+					return bindingErr
+				}
+				if found {
+					if selected.AssetVersionID != binding.AssetVersionID || !isDocumentRef(selected.Source) || !correctionDigest(selected.CanvasHash) {
+						return v2input.ErrInvalid
+					}
+					stackBinding = selected
+				}
+			}
+		}
 		sameValidation := validatedContracts[node.Ref.ArtifactID] == node.Contract
-		if occurrences == nil && repeated && (node.Contract == "Artifact" || sameValidation && node.Contract != "WorkingImage" && node.Contract != "MaskRef" && node.Contract != "FaceObservations" && node.Contract != "DescriptorShard") {
+		if occurrences == nil && repeated && (node.Contract == "Artifact" || sameValidation && node.Contract != "LayerStack" && node.Contract != "WorkingImage" && node.Contract != "MaskRef" && node.Contract != "FaceObservations" && node.Contract != "DescriptorShard") {
 			return nil
 		}
 		seen[node.Ref.ArtifactID] = node.Ref.SHA256
@@ -537,6 +552,24 @@ func (s ClosureResolver) resolveRootsWithEvidence(ctx context.Context, who auth.
 			if err != nil {
 				return err
 			}
+		case "AuthoredFinalGenerationEvidence", "QualificationReport", "AuthoredNativeReplayRequest", "AuthoredNativeReplayEvidence", "AuthoredSegmentParams", "AuthoredBaseReceipt", "AuthoredCompoundContinuation", "AuthoredCanonicalPhaseReceipt", "AuthoredGeometryPhaseResult", "AuthoredGeometryPhaseResultV3", "AuthoredGeometryMaskMappingV2", "AuthoredGeometryTaskParams":
+			children, err = DocumentChildren(body, node.Contract, node.Ref)
+			if err != nil {
+				return err
+			}
+			for i := range children {
+				children[i].Path = node.Path + strings.TrimPrefix(children[i].Path, "Document")
+			}
+			// Explicit typed/opaque edges only; never rediscover arbitrary refs.
+			compositionParams = true
+		case "EditorExecutedBaseReceipt":
+			children, err = editorExecutedReceiptRefs(body, node.Path, node.Ref)
+			if err != nil {
+				return err
+			}
+			// This only supplies typed edges. SQLArtifactCatalog still requires
+			// a dedicated sealed-origin authority before any child is readable.
+			compositionParams = true
 		case "WorkingImage":
 			image, e := review.ParseWorkingImage(body)
 			if e != nil {
@@ -583,7 +616,7 @@ func (s ClosureResolver) resolveRootsWithEvidence(ctx context.Context, who auth.
 				return v2input.ErrInvalid
 			}
 		case "LayerStack":
-			children, err = ValidateLayerStack(body, binding)
+			children, err = ValidateLayerStack(body, stackBinding)
 			if err != nil {
 				return err
 			}

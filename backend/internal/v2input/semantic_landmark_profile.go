@@ -10,7 +10,14 @@ import (
 // include installed FAN2D model and inference peaks; clients may not supply them.
 // This is a capacity bound, not a GPU benchmark or scientific qualification.
 func CompileSemanticLandmarkProfile(width, height, inputBytes int64, qualified SemanticQualifiedCosts, ramLimit, vramLimit, scratchLimit, outputLimit int64) (json.RawMessage, error) {
+	return CompileSemanticLandmarkProfileForBackend("cuda", width, height, inputBytes, qualified, ramLimit, vramLimit, scratchLimit, outputLimit)
+}
+
+func CompileSemanticLandmarkProfileForBackend(backend string, width, height, inputBytes int64, qualified SemanticQualifiedCosts, ramLimit, vramLimit, scratchLimit, outputLimit int64) (json.RawMessage, error) {
 	const safe int64 = 9007199254740991
+	if backend != "cuda" && backend != "mps" {
+		return nil, ErrInvalid
+	}
 	if width < 8 || height < 8 || width > 200000000 || height > 200000000 || width*height > 200000000 || inputBytes <= 0 || qualified.VRAMBytes <= 0 {
 		return nil, ErrInvalid
 	}
@@ -41,15 +48,19 @@ func CompileSemanticLandmarkProfile(width, height, inputBytes int64, qualified S
 	if ram > ramLimit || qualified.VRAMBytes > vramLimit || scratch > scratchLimit || output > outputLimit {
 		return nil, ErrInvalid
 	}
-	return canonical.Marshal(sessionDescribeExecutionProfile{Backend: "cuda", RendererVersion: "v2.2", ResourceEstimate: sessionDescribeEstimate{RAMBytes: ram, VRAMBytes: qualified.VRAMBytes, ScratchBytes: scratch, OutputBytes: output, PixelCount: pixels}})
+	return canonical.Marshal(sessionDescribeExecutionProfile{Backend: backend, RendererVersion: "v2.2", ResourceEstimate: sessionDescribeEstimate{RAMBytes: ram, VRAMBytes: qualified.VRAMBytes, ScratchBytes: scratch, OutputBytes: output, PixelCount: pixels}})
 }
 
 // CompileSemanticLandmarkProfileFromInputs counts every declared artifact,
 // including Params, exactly once. Catalog authorization remains caller duty.
 func CompileSemanticLandmarkProfileFromInputs(width, height int64, params Ref, inputs []Ref, sizes []SemanticInputSize, qualified SemanticQualifiedCosts, ramLimit, vramLimit, scratchLimit, outputLimit int64) (json.RawMessage, error) {
+	return CompileSemanticLandmarkProfileFromInputsForBackend("cuda", width, height, params, inputs, sizes, qualified, ramLimit, vramLimit, scratchLimit, outputLimit)
+}
+
+func CompileSemanticLandmarkProfileFromInputsForBackend(backend string, width, height int64, params Ref, inputs []Ref, sizes []SemanticInputSize, qualified SemanticQualifiedCosts, ramLimit, vramLimit, scratchLimit, outputLimit int64) (json.RawMessage, error) {
 	total, err := exactSemanticInputBytes(params, inputs, sizes)
 	if err != nil {
 		return nil, err
 	}
-	return CompileSemanticLandmarkProfile(width, height, total, qualified, ramLimit, vramLimit, scratchLimit, outputLimit)
+	return CompileSemanticLandmarkProfileForBackend(backend, width, height, total, qualified, ramLimit, vramLimit, scratchLimit, outputLimit)
 }

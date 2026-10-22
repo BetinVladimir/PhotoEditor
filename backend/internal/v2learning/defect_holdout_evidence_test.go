@@ -18,7 +18,7 @@ func TestFrozenDefectHoldoutBindsReviewedDecisionAndOwnsSelection(t *testing.T) 
 	snapshot := review.DefectSnapshot{TenantID: uuid.New(), ReviewID: uuid.New(), RunID: uuid.New(), Revision: 1,
 		State: "pending", Proposal: ref("a"), Image: ref("b"), LabelMap: ref("c"), CandidateIDs: []string{strings.Repeat("d", 64)}}
 	actor := uuid.New()
-	plan, err := review.PlanDefect(snapshot, actor, review.Decision{ExpectedRevision: 1, CandidateHash: snapshot.Proposal.SHA256,
+	plan, err := review.PlanDefects(snapshot, actor, review.Decision{ExpectedRevision: 1, CandidateHash: snapshot.Proposal.SHA256,
 		Decision: "accept", Accepted: []string{snapshot.CandidateIDs[0]}})
 	if err != nil {
 		t.Fatal(err)
@@ -148,7 +148,7 @@ func TestFrozenDefectHoldoutRefusesUnappliedBaseAndSkipRoutes(t *testing.T) {
 	protection := v2input.Ref{ArtifactID: uuid.New(), SHA256: strings.Repeat("e", 64)}
 	params := v2input.Ref{ArtifactID: uuid.New(), SHA256: strings.Repeat("f", 64)}
 	for _, name := range []string{"reject", "skip"} {
-		plan, err := review.PlanDefect(snapshot, actor, review.Decision{ExpectedRevision: 1,
+		plan, err := review.PlanDefects(snapshot, actor, review.Decision{ExpectedRevision: 1,
 			CandidateHash: snapshot.Proposal.SHA256, Decision: name})
 		if err != nil {
 			t.Fatal(err)

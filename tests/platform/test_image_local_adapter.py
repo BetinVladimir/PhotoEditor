@@ -1,3 +1,4 @@
+import json
 from uuid import uuid4
 import numpy as np
 import pytest
@@ -110,3 +111,60 @@ def test_cancelled_local_cleans_scratch(tmp_path):
         a.scratch=scratch
         with pytest.raises(RuntimeError,match='cancelled'):execute(ctx,a)
         assert not list(scratch.directory.iterdir()) and not a.uploads
+
+
+@pytest.mark.parametrize('selector,invert',[('person',False),('background',True)])
+def test_regional_person_and_background_use_exact_probability_complement(tmp_path,selector,invert):
+    from photo_worker.contracts.style import RegionAdjustment, Disabled
+    from photo_worker.algorithms.regions import apply_regions
+    a=setup(tmp_path,1.)
+    rule=RegionAdjustment(region_id='r',selector=selector,ev=.4,saturation=1.,hue_deg=0.,strength=1.,priority=0)
+    values=a.resolved.model_dump(exclude={'hash'})
+    values['local']=Disabled()
+    modules=a.resolved.modules.model_copy(update={'extensions':a.resolved.modules.extensions.model_copy(update={'region_adjustments':[rule]})})
+    values['modules']=modules
+    a.resolved=ResolvedStyle.create(**values)
+    a.raw['resolved']=a.add(a.resolved).model_dump(mode='json')
+    a.raw['regions']=[{'region_id':'r','mask':a.raw['person'],'invert':invert}]
+    ctx=context(a)
+    ctx.lease.command.inputs.append(MaskRef.model_validate_json(json.dumps(a.raw['person'])).artifact)
+    scratch_root=tmp_path/'scratch';scratch_root.mkdir()
+    with ScratchSpace(scratch_root,uuid4(),uuid4(),1,1048576,min_free_bytes=0) as scratch:
+        a.scratch=scratch;result=execute(ctx,a)
+    expected=apply_regions(a.rgb,[(rule,1-a.person if invert else a.person)]).rgb
+    assert np.allclose(a.output,expected,rtol=0,atol=1e-7)
+    assert a.staged[1][1].region_skips==[] and not result.review_required
+
+
+def test_region_inversion_refuses_nonbackground_rule(tmp_path):
+    from photo_worker.contracts.style import RegionAdjustment
+    a=setup(tmp_path,1.)
+    values=a.resolved.model_dump(exclude={'hash'})
+    values['modules']=a.resolved.modules.model_copy(update={'extensions':a.resolved.modules.extensions.model_copy(update={'region_adjustments':[RegionAdjustment(region_id='r',selector='person',ev=0.,saturation=1.,hue_deg=0.,strength=1.,priority=0)]})})
+    a.resolved=ResolvedStyle.create(**values);a.raw['resolved']=a.add(a.resolved).model_dump(mode='json')
+    a.raw['regions']=[{'region_id':'r','mask':a.raw['person'],'invert':True}]
+    with pytest.raises(OperationFailure,match='INPUT_INVALID'):
+        execute(context(a),a)
+    assert a.uploads==[]
+
+
+def test_region_contract_refuses_arbitrary_inversion(tmp_path):
+    from photo_worker.contracts.image_local import RegionMask
+    from pydantic import ValidationError
+    a=setup(tmp_path,1.)
+    for change in ({'selector':'manual'},{'protected':True}):
+        raw={**a.raw['person'],**change}
+        with pytest.raises(ValidationError):RegionMask.model_validate_json(json.dumps({'region_id':'r','mask':raw,'invert':True}))
+
+
+@pytest.mark.parametrize('selector',['skin','sky','clothing','manual'])
+def test_regional_override_binding_is_explicit_and_confirmed(tmp_path,selector):
+    from photo_worker.contracts.override import OverrideMaskBinding
+    from pydantic import ValidationError
+    a=setup(tmp_path,1.)
+    mask={**a.raw['person'],'selector':selector}
+    raw={'binding_id':'r','purpose':'region_adjustment','mask':mask,'confirmed':True,'strength':1.}
+    binding=OverrideMaskBinding.model_validate_json(json.dumps(raw))
+    assert binding.mask.selector==selector
+    with pytest.raises(ValidationError):OverrideMaskBinding.model_validate_json(json.dumps({**raw,'confirmed':False}))
+    with pytest.raises(ValidationError):OverrideMaskBinding.model_validate_json(json.dumps({**raw,'mask':{**mask,'protected':True}}))

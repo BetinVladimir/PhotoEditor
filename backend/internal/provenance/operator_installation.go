@@ -233,7 +233,7 @@ func validateSigningOperatorPolicies(policies SigningInstallation, operator Sign
 	}
 	requiresRevocation := false
 	for _, installed := range policies.Policies {
-		policy, err := DecodeSigningPolicy(installed.Body, installed.Ref, installed.Ref.ArtifactID)
+		policy, err := decodeInstalledSigningPolicy(installed)
 		if err != nil {
 			return err
 		}

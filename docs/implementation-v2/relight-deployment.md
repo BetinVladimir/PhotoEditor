@@ -2,7 +2,7 @@
 
 Implementation status: written, NOT RUN. Per user instruction, compilation, unit/integration execution and deep acceptance are deferred until implementation of the remaining scope. This document does not certify working deployment.
 
-API startup optionally reads `PHOTO_V28_RELIGHT_CONFIG` (regular JSON file, <=8 MiB) and requires `V28_RELIGHT_SCHEDULER_DATABASE_URL`. The connection explicitly assumes `photo_scheduler`; a login without permission to assume it fails startup. File configured but invalid, database unavailable or missing01012/01013 functions fails startup. File absent leaves relight submission unavailable503. Dedicated pool is owned by the installation and closed on shutdown.
+API startup optionally reads `PHOTO_V28_RELIGHT_CONFIG` (regular JSON file, <=8 MiB) and requires `V28_RELIGHT_SCHEDULER_DATABASE_URL`. The connection explicitly assumes `photo_scheduler`; a login without permission to assume it fails startup. File configured but invalid, database unavailable or missing01012/01013 functions fails startup. With no deployment file and a configured `V28_RELIGHT_SCHEDULER_DATABASE_URL`, startup installs a receipt-only router using02420; it recovers historical acknowledgements with persisted pins and cannot publish or admit tasks. With neither file nor scheduler DSN the endpoint remains unavailable503. Invalid configured files still fail startup; they never silently select receipt-only mode. Dedicated pool is owned by the installation and closed on shutdown.
 
 Top-level exact object: `schema_version:1`, `projects:[...]` (1..1024 entries). Each entry requires all fields below; extra fields are rejected. Duplicate `(tenant_id,project_id)` entries are rejected.
 
@@ -23,4 +23,4 @@ Capacity values represent measured deployment inputs, not client estimates. The 
 
 Public POST `/api/v1/tenants/{t}/projects/{id}/relight-intents` accepts only schema_version, snapshot_id, ordinal, subject_kind and params; Idempotency-Key is required. Server derives run/workflow IDs. Repeating an admitted exact request returns its historical queued acknowledgement only while all receipt gates still hold. Current processing state must be read from workflow status.
 
-Metal10GB is the current hardware verification profile, documented in audit/metal-verification-profile.md. This CPU relight service must not be relabeled MPS to bypass backend pins. GPU operations will be tested separately on MPS where supported. Tests and qualification for this new deployment wiring have not yet run.
+Metal remains supported without an artificial 10 GB limit; the dedicated RTX deployment is qualified separately against its actual capacity. This CPU relight service must not be relabeled MPS to bypass backend pins. GPU operations will be tested separately on MPS where supported. Tests and qualification for this new deployment wiring have not yet run.

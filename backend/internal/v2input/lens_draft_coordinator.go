@@ -11,12 +11,18 @@ type LensDraftStore interface {
 	Begin(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, string, CompiledLensDraft) error
 }
 
+// LensDraftReplayStore recovers only a sealed graph with the exact frozen plan.
+type LensDraftReplayStore interface {
+ Replay(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, string, CompiledLensDraft) (bool, error)
+}
+
 type LensDraftCoordinator struct {
 	Store       LensDraftStore
 	Preparation LensPreparationCoordinator
 }
 
 type PreparedLensDraft struct {
+ Replayed bool
 	RunID      uuid.UUID
 	WorkflowID uuid.UUID
 	Tasks      []PreparedLensTask
@@ -69,9 +75,20 @@ func (c LensDraftCoordinator) Prepare(ctx context.Context, tenant, actor, projec
 	if err = ctx.Err(); err != nil {
 		return empty, err
 	}
-	if err = c.Store.Begin(ctx, tenant, actor, run, policySHA, draft); err != nil {
-		return empty, err
-	}
+	replay := func() (bool,error) {
+  if store,ok:=c.Store.(LensDraftReplayStore);ok { return store.Replay(ctx,tenant,actor,run,policySHA,draft) }
+  return false,nil
+ }
+ if accepted,replayErr:=replay(); replayErr!=nil { return empty,replayErr } else if accepted {
+  return PreparedLensDraft{RunID:run,WorkflowID:workflow,Replayed:true},nil
+ }
+ if err = c.Store.Begin(ctx, tenant, actor, run, policySHA, draft); err != nil {
+  // A concurrent identical submission may have sealed after our lookup.
+  if accepted,replayErr:=replay(); replayErr!=nil { return empty,replayErr } else if accepted {
+   return PreparedLensDraft{RunID:run,WorkflowID:workflow,Replayed:true},nil
+  }
+  return empty,err
+ }
 	result := PreparedLensDraft{RunID: run, WorkflowID: workflow, Tasks: make([]PreparedLensTask, 0, len(ordered))}
 	for _, request := range ordered {
 		prepared, err := c.Preparation.Resume(ctx, tenant, run, request)

@@ -31,12 +31,12 @@ func (s SQLTransferSourceReader) prepareDetectorDraftPlan(ctx context.Context, c
 	if err != nil {
 		return zero, err
 	}
-	selected, err := selectQualificationPolicies(policy, []string{"face.detect"})
+	selected, err := selectNativeQualificationPolicies(policy, []string{"face.detect"})
 	if err != nil {
 		return zero, err
 	}
 	expected := selected["face.detect"]
-	if expected.Backend != "cuda" {
+	if expected.Backend != "cuda" && expected.Backend != "mps" {
 		return zero, v2qualification.ErrUnqualified
 	}
 	document := uuid.NewSHA1(owned.RunID, []byte("semantic.face.detect.params:reference"))
@@ -66,12 +66,12 @@ func (s SQLTransferSourceReader) preparePersonDraftPlan(ctx context.Context, cat
 	if err != nil {
 		return zero, err
 	}
-	selected, err := selectQualificationPolicies(policy, []string{"mask.person"})
+	selected, err := selectNativeQualificationPolicies(policy, []string{"mask.person"})
 	if err != nil {
 		return zero, err
 	}
 	expected := selected["mask.person"]
-	if expected.Backend != "cuda" {
+	if expected.Backend != "cuda" && expected.Backend != "mps" {
 		return zero, v2qualification.ErrUnqualified
 	}
 	document := uuid.NewSHA1(owned.RunID, []byte("semantic.mask.person.params:reference"))

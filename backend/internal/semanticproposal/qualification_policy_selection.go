@@ -9,22 +9,23 @@ import (
 )
 
 type qualificationPolicyRow struct {
-	ID           uuid.UUID `json:"id"`
-	Operation    string    `json:"operation"`
-	Version      string    `json:"operation_version"`
-	Model        string    `json:"model_lock_sha"`
-	Runtime      string    `json:"runtime_lock_sha"`
-	Backend      string    `json:"backend"`
-	Device       string    `json:"device_profile_sha"`
-	Dataset      string    `json:"dataset_sha"`
-	Issuer       uuid.UUID `json:"issuer_id"`
-	Checks       []string  `json:"required_checks"`
-	Fixtures     []string  `json:"test_fixture_shas"`
-	Calibrations []string  `json:"calibration_shas"`
-	Evidence     []string  `json:"evidence_shas"`
-	License      bool      `json:"license_cleared"`
-	Enabled      bool      `json:"enabled"`
-	Admission    bool      `json:"admission_enabled"`
+	MPSResources *v2qualification.MPSResourcePolicy `json:"mps_resource_policy"`
+	ID           uuid.UUID                          `json:"id"`
+	Operation    string                             `json:"operation"`
+	Version      string                             `json:"operation_version"`
+	Model        string                             `json:"model_lock_sha"`
+	Runtime      string                             `json:"runtime_lock_sha"`
+	Backend      string                             `json:"backend"`
+	Device       string                             `json:"device_profile_sha"`
+	Dataset      string                             `json:"dataset_sha"`
+	Issuer       uuid.UUID                          `json:"issuer_id"`
+	Checks       []string                           `json:"required_checks"`
+	Fixtures     []string                           `json:"test_fixture_shas"`
+	Calibrations []string                           `json:"calibration_shas"`
+	Evidence     []string                           `json:"evidence_shas"`
+	License      bool                               `json:"license_cleared"`
+	Enabled      bool                               `json:"enabled"`
+	Admission    bool                               `json:"admission_enabled"`
 }
 
 // Selects the DBA admission policy for every server-required operation. No
@@ -93,7 +94,19 @@ func selectQualificationPolicies(snapshot qualificationPolicySnapshot, required 
 				sets[i][sha] = struct{}{}
 			}
 		}
-		result[row.Operation] = v2qualification.Expected{Operation: row.Operation, Version: row.Version, Backend: row.Backend, ModelLockSHA: row.Model, RuntimeLockSHA: row.Runtime, DeviceProfileSHA: row.Device, DatasetSHA: row.Dataset, IssuerID: row.Issuer, RequiredChecks: checks, TestFixtureSHAs: sets[0], CalibrationSHAs: sets[1], EvidenceSHAs: sets[2], LicenseCleared: row.License}
+		selected := v2qualification.Expected{Operation: row.Operation, Version: row.Version, Backend: row.Backend, ModelLockSHA: row.Model, RuntimeLockSHA: row.Runtime, DeviceProfileSHA: row.Device, DatasetSHA: row.Dataset, IssuerID: row.Issuer, RequiredChecks: checks, TestFixtureSHAs: sets[0], CalibrationSHAs: sets[1], EvidenceSHAs: sets[2], LicenseCleared: row.License}
+		if row.MPSResources != nil {
+			resourceExpected, err := (v2qualification.DeploymentLocks{MPSResources: row.MPSResources,
+				Operation: row.Operation, Version: row.Version, Backend: row.Backend, ModelLockSHA: row.Model,
+				RuntimeLockSHA: row.Runtime, DeviceProfileSHA: row.Device, DatasetSHA: row.Dataset, IssuerID: row.Issuer.String(),
+				RequiredChecks: checks, TestFixtureSHAs: row.Fixtures, CalibrationSHAs: row.Calibrations,
+				EvidenceSHAs: row.Evidence, LicenseCleared: row.License}).Expected()
+			if err != nil {
+				return fail()
+			}
+			selected.MPSResources = resourceExpected.MPSResources
+		}
+		result[row.Operation] = selected
 	}
 	for op := range wanted {
 		if _, ok := result[op]; !ok {

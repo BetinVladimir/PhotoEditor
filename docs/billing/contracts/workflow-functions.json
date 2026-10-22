@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "scope": "standard_apply",
+  "functions": [
+    {
+      "signature": "billing_prepare_apply(uuid,uuid,uuid,text)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [
+        "photo_api"
+      ]
+    },
+    {
+      "signature": "billing_bind_apply(uuid,uuid,uuid,uuid,text,bytea,text)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [
+        "photo_api"
+      ]
+    },
+    {
+      "signature": "billing_lock_apply_run(uuid,uuid)",
+      "owner": "photo_fn_owner",
+      "execute_roles": []
+    },
+    {
+      "signature": "billing_settle_apply_run(uuid,uuid)",
+      "owner": "photo_fn_owner",
+      "execute_roles": []
+    },
+    {
+      "signature": "adopt_apply_results(uuid,uuid,uuid)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [
+        "photo_scheduler"
+      ]
+    },
+    {
+      "signature": "fail_apply_build(uuid,uuid,text)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [
+        "photo_scheduler"
+      ]
+    },
+    {
+      "signature": "billing_guard_terminal_run()",
+      "owner": "photo_fn_owner",
+      "execute_roles": []
+    }
+  ]
+}

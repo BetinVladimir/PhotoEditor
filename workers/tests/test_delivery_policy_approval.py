@@ -61,13 +61,13 @@ def test_delivery_signing_policy_choice_is_frozen_only_for_required_mode():
 def test_delivery_policy_uses_sixteen_preset_total_limit():
     value=policy_value()
     value['required_presets']=[str(uuid4()) for _ in range(16)]
-    assert len(DeliveryPolicy.model_validate(value).required_presets)==16
+    assert len(DeliveryPolicy.model_validate_json(json.dumps(value)).required_presets)==16
     value['optional_presets']=[value['required_presets'].pop()]
-    assert len(DeliveryPolicy.model_validate(value).optional_presets)==1
+    assert len(DeliveryPolicy.model_validate_json(json.dumps(value)).optional_presets)==1
     value['optional_presets'].append(str(uuid4()))
-    with pytest.raises(ValueError):DeliveryPolicy.model_validate(value)
+    with pytest.raises(ValueError):DeliveryPolicy.model_validate_json(json.dumps(value))
     value['optional_presets']=[value['required_presets'][0]]
-    with pytest.raises(ValueError):DeliveryPolicy.model_validate(value)
+    with pytest.raises(ValueError):DeliveryPolicy.model_validate_json(json.dumps(value))
 
 
 def test_public_delivery_policy_schema_enforces_the_same_total_limit():

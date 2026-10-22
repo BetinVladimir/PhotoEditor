@@ -38,7 +38,7 @@ func (c nativeFaceInputCatalog) Lookup(ctx context.Context, who auth.Identity, t
 }
 
 type nativeFaceTaskPreparation struct {
- legacyQueueOmitted bool
+	legacyQueueOmitted                      bool
 	costs                                   v2input.SemanticQualifiedCosts
 	operation                               string
 	document                                uuid.UUID
@@ -47,7 +47,7 @@ type nativeFaceTaskPreparation struct {
 	frozen                                  nativeRegistrationTask
 	inputs, expected, taskSHA               string
 	report                                  personEvidenceObject
-	metrics                                 v2qualification.Metrics
+	metrics                                 v2qualification.ResourceEvidence
 	tenant, project, actor, session, parent uuid.UUID
 	bucket, policySHA                       string
 }
@@ -86,12 +86,12 @@ func (s SQLTransferSourceReader) prepareNativeFaceTask(ctx context.Context, cata
 	if published.document != uuid.NewSHA1(plan.request.RunID, []byte("semantic."+published.operation+".params:reference")) {
 		return zero, v2input.ErrInvalid
 	}
-	selected, err := selectQualificationPolicies(plan.policy, []string{published.operation})
+	selected, err := selectNativeQualificationPolicies(plan.policy, []string{published.operation})
 	if err != nil {
 		return zero, err
 	}
 	expected := selected[published.operation]
-	if expected.Backend != "cuda" {
+	if expected.Backend != "cuda" && expected.Backend != "mps" {
 		return zero, v2qualification.ErrUnqualified
 	}
 	if err := validateTransferMeasuredCosts(budget.Costs, v2qualification.Metrics{}); err != nil {
@@ -149,9 +149,9 @@ func (s SQLTransferSourceReader) prepareNativeFaceTask(ctx context.Context, cata
 	}
 	compile := func(sizes []v2input.SemanticInputSize) (nativeRegistrationTask, error) {
 		if published.operation == "face.landmarks" {
-			return v2input.CompileSemanticLandmarkTask(ctx, workflow, 0, binding, image, before.catalog.Output, faces, before.catalog.Params, detector, published.ref, expected.ModelLockSHA, sizes, budget.Costs, budget.RAM, budget.VRAM, budget.Scratch, budget.Output)
+			return v2input.CompileSemanticLandmarkTaskForBackend(expected.Backend, ctx, workflow, 0, binding, image, before.catalog.Output, faces, before.catalog.Params, detector, published.ref, expected.ModelLockSHA, sizes, budget.Costs, budget.RAM, budget.VRAM, budget.Scratch, budget.Output)
 		}
-		return v2input.CompileSemanticFaceParseTask(ctx, workflow, 0, binding, image, before.catalog.Output, faces, before.catalog.Params, detector, published.ref, expected.ModelLockSHA, sizes, budget.Costs, budget.RAM, budget.VRAM, budget.Scratch, budget.Output)
+		return v2input.CompileSemanticFaceParseTaskForBackend(expected.Backend, ctx, workflow, 0, binding, image, before.catalog.Output, faces, before.catalog.Params, detector, published.ref, expected.ModelLockSHA, sizes, budget.Costs, budget.RAM, budget.VRAM, budget.Scratch, budget.Output)
 	}
 	if _, err := compile(sizes); err != nil {
 		return zero, err
@@ -164,11 +164,11 @@ func (s SQLTransferSourceReader) prepareNativeFaceTask(ctx context.Context, cata
 	if err != nil {
 		return zero, err
 	}
-	verified, err := v2qualification.Verify(rawReport, report.SHA256, expected)
+	verified, err := v2qualification.VerifyTyped(rawReport, report.SHA256, expected)
 	if err != nil {
 		return zero, err
 	}
-	if err := validateTransferMeasuredCosts(budget.Costs, verified.Metrics); err != nil {
+	if err := validateTransferResourceCosts(budget.Costs, verified.Resources()); err != nil {
 		return zero, err
 	}
 	scoped := nativeFaceInputCatalog{params: detectorParamsCatalog{reader: s, source: catalog, binding: binding, document: published.document, params: published.ref}, detector: before.catalog}
@@ -244,7 +244,7 @@ func (s SQLTransferSourceReader) prepareNativeFaceTask(ctx context.Context, cata
 	if err != nil {
 		return zero, err
 	}
-	return nativeFaceTaskPreparation{costs: budget.Costs, operation: published.operation, document: published.document, params: published.ref, detector: before.catalog, frozen: frozen, inputs: string(pins), expected: string(expectedBody), taskSHA: taskSHA, report: originalReport, metrics: verified.Metrics, tenant: plan.request.TenantID, project: s.ProjectID, actor: who.UserID, session: who.SessionID, parent: plan.request.RunID, bucket: s.Bucket, policySHA: policySHA}, nil
+	return nativeFaceTaskPreparation{costs: budget.Costs, operation: published.operation, document: published.document, params: published.ref, detector: before.catalog, frozen: frozen, inputs: string(pins), expected: string(expectedBody), taskSHA: taskSHA, report: originalReport, metrics: verified.Resources(), tenant: plan.request.TenantID, project: s.ProjectID, actor: who.UserID, session: who.SessionID, parent: plan.request.RunID, bucket: s.Bucket, policySHA: policySHA}, nil
 }
 
 // A supplied source catalog cannot substitute metadata used for GPU accounting.

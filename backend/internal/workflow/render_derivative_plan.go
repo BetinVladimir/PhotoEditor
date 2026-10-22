@@ -60,7 +60,7 @@ func BuildRenderDerivativeDocuments(intent v2render.RenderDerivativeIntent, resu
 	}
 	result := make([]RenderDerivativeDocument, 0, 2)
 	for _, variant := range []string{"preview1600", "preview2560"} {
-		profileHash, err := media.ProfileHash(variant, intent.SRGBSHA)
+		profileHash, err := media.ProfileHashForPolicy(variant, intent.SRGBSHA,intent.RendererPolicy)
 		if err != nil {
 			return nil, err
 		}

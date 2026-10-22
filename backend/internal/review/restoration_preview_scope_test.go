@@ -3,7 +3,7 @@ package review
 import "testing"
 
 func TestRestorationPreviewUsesOnlyCandidateReviewKinds(t *testing.T) {
-	for _, kind := range []string{"render.compose", "optical.negative", "portrait.glare", "portrait.open_eyes", "image.reflection"} {
+	for _, kind := range []string{"render.compose", "optical.negative", "portrait.glare", "portrait.open_eyes", "image.reflection", "image.relight"} {
 		if !candidatePreviewKind(kind) {
 			t.Fatal("review derivative kind refused", kind)
 		}

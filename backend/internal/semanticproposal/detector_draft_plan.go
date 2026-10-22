@@ -109,6 +109,7 @@ func (s SQLTransferSourceReader) compileDetectorDraftPlanForQueue(ctx context.Co
 	if persistKey {
 		recovery.RequestKey = key
 	}
+	recovery.ScenePolicy=s.scenePolicy
 	configValue := map[string]any{"project_id": s.ProjectID, "v27_detector_prepare": map[string]any{"recovery": recovery, "schema_version": 1, "parent_run_id": owned.RunID, "request_sha": owned.RequestSHA, "auth_session_id": who.SessionID, "source": owned.Intent.Reference, "intent": published.Ref, "snapshot": snapshot, "params_document": prepared.document, "params": v2input.Ref{ArtifactID: task.ParamsArtifactID, SHA256: task.ParamsSHA}, "task_id": task.ID, "input_digest": task.InputDigest, "policy_sha": policySHA}}
  if queue!="" { configValue["queue_class"]=queue }
  config, err := canonical.Marshal(configValue)
@@ -153,5 +154,6 @@ func (s SQLTransferSourceReader) recompileDetectorDraftPlan(ctx context.Context,
 	if recovery.RequestKey != "" && recovery.RequestKey != plan.requestKey {
 		return zero, v2input.ErrConflict
 	}
+	s.scenePolicy=recovery.ScenePolicy
 	return s.compileDetectorDraftPlanForQueue(ctx, who, plan.request, plan.requestKey, plan.published, plan.anchor.snapshotRef, plan.anchor.snapshotBody, plan.prepared, plan.policy, plan.shell.Bytes, recovery.RequestKey != "", envelope.QueueClass)
 }

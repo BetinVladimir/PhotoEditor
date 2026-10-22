@@ -1,0 +1,36 @@
+{
+  "status": "SOURCE_TYPES_AND_FONT_UNIT_PASS_LOCAL_LOGIN_SAMPLE_ONLY",
+  "scope": "Font sizes and contrast only per current user decision",
+  "source": {
+    "apps/photographer/src/paper-readable-fonts.ts": "3fed69dce81038fd414191b64c2477a65449ade84f3d08d8bffe04e7e96f5ed6",
+    "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644",
+    "apps/photographer/app/collections/[id]/index.tsx": "b5235543c9ad52c55b8689409407d3f426b2b2d2ac6797a78282ea6d69a2fde2",
+    "apps/portal/src/components/AccessibleLightbox.tsx": "6ccbbc768576d0b8cf969f886ec4751a7c3c3b5eef58a5b7bec8f4519f080a78",
+    "apps/photographer/src/paper-readable-fonts.test.ts": "4efda6f4c22458f90ac4901d9d6ba6499df731420a5cad4cf824fa602490dc90"
+  },
+  "checks": {
+    "candidate_source_controls": 4,
+    "candidate_Paper_role_control": "PASS",
+    "current_photographer_tsc_noemit": 0,
+    "current_root_helper_actual_Paper_role_control": "PASS",
+    "current_portal_tsc_noemit": 0,
+    "explicit_integer_fontSize_8_to_13_search": "No matches in Photographer app and src; source search only, not rendered acceptance",
+    "maintained_actual_Paper_font_tests": {
+      "files_passed": 1,
+      "tests_passed": 3,
+      "exit_code": 0,
+      "local": true,
+      "scope": "Minimum sizes, preservation and immutability, larger role preservation"
+    }
+  },
+  "root_adjustments": [
+    "Readable font helper accepts concrete Paper font object to avoid enum-key string type mismatch",
+    "Array.from DOM children preserves lightbox behavior under shared Expo TypeScript compilation"
+  ],
+  "limits": [
+    "Only local login rendered sample checked; remaining routes and states remain open",
+    "Source opaque color pairs only, not all states",
+    "No full WCAG claim"
+  ],
+  "rendered_sample_evidence": "photographer-login-font-contrast-local-2026-10-20.json"
+}

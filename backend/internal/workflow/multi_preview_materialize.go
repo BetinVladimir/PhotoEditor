@@ -22,7 +22,7 @@ func MaterializeMultiPreviewTasks(ctx context.Context, db *pgxpool.Pool, plan Mu
 	if db == nil || len(tasks) != 2 {
 		return objectstore.ErrInvalid
 	}
-	rebuilt, err := CompileMultiPreviewPlan(plan.source, content, plan.srgb)
+	rebuilt, err := CompileMultiPreviewPlan(plan.source, content, plan.srgb,plan.policy)
 	if err != nil {
 		return err
 	}

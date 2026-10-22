@@ -24,10 +24,25 @@ func ValidateMultiOutputGeometry(source VerifiedMultiSourceClosure, imageRaw, ma
 	if err != nil {
 		return invalid()
 	}
+ sourceRefs:=make([]v2input.Ref,0,len(source.originals.inventory.items))
+ for _,item:=range source.originals.inventory.items{sourceRefs=append(sourceRefs,item.Ref)}
+ return validateMultiOutputGeometryContent(binding,originals,sourceRefs,imageRaw,maskRaw,registrations)
+}
+
+// validateMultiOutputGeometryContent is only a content predicate. The public
+// API above still requires physically verified source closure. Authored callers
+// additionally bind every source JSON through their protected current phase;
+// this projection does not claim array replay or qualification authority.
+func validateMultiOutputGeometryContent(binding AdoptedMultiBinding,originals []review.WorkingImage,sourceRefs []v2input.Ref,imageRaw,maskRaw []byte,registrations [][]byte)(review.WorkingImage,review.MaskRef,[]MultiRegistration,error){
+ invalid:=func()(review.WorkingImage,review.MaskRef,[]MultiRegistration,error){return review.WorkingImage{},review.MaskRef{},nil,v2input.ErrInvalid}
 	frames, reference, calibration, err := binding.Inputs()
-	if err != nil || len(registrations) != len(frames) {
+	if err != nil || len(originals)!=len(frames) || len(registrations) != len(frames) {
 		return invalid()
 	}
+ for i,image:=range originals{
+  sourceSHA,e:=canonical.Hash(image);canvasSHA,e2:=canonical.Hash(image.Canvas)
+  if e!=nil||e2!=nil||sourceSHA!=frames[i].Source.SHA256||canvasSHA!=frames[i].CanvasHash{return invalid()}
+ }
 	image, err := review.ParseWorkingImage(imageRaw)
 	if err != nil {
 		return invalid()
@@ -139,8 +154,8 @@ func ValidateMultiOutputGeometry(source VerifiedMultiSourceClosure, imageRaw, ma
 		}
 	}
 	used := map[string]bool{calibration.ArtifactID.String(): true}
-	for _, item := range source.originals.inventory.items {
-		used[item.Ref.ArtifactID.String()] = true
+	for _, ref := range sourceRefs {
+		used[ref.ArtifactID.String()] = true
 	}
 	add := func(id string) bool {
 		if used[id] {

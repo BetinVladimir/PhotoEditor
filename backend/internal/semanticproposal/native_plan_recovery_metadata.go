@@ -14,10 +14,13 @@ import (
 // Capacity limits use the exact original compiled estimates: recompilation must
 // reproduce that profile and the original graph config before recovery proceeds.
 type nativePlanRecoveryMetadata struct {
+	// Empty preserves the existing CUDA/CPU wire bytes; MPS is an explicit locator.
+	Backend              string                         `json:"backend,omitempty"`
 	SkinProfileVersion   int                            `json:"skin_profile_version,omitempty"`
 	FaceProfileVersion   int                            `json:"face_profile_version,omitempty"`
 	PersonProfileVersion int                            `json:"person_profile_version,omitempty"`
 	OrdinaryPolicy       *createProjectPolicy           `json:"ordinary_policy,omitempty"`
+	ScenePolicy          *createScenePolicy             `json:"scene_policy,omitempty"`
 	Continuation         string                         `json:"continuation,omitempty"`
 	RequestKey           string                         `json:"request_key,omitempty"`
 	Schema               int                            `json:"schema_version"`
@@ -47,6 +50,10 @@ func nativePlanRecoveryFromTask(task v2input.DraftTask, report *v2input.Ref, cos
 	expectedBackend := "cuda"
 	switch task.Operation {
 	case "face.detect", "face.landmarks", "face.parse", "mask.person":
+		if profile.Backend != "cuda" && profile.Backend != "mps" {
+			return zero, v2input.ErrInvalid
+		}
+		expectedBackend = profile.Backend
 	case "defects.propose":
 		expectedBackend = "cpu"
 	case "mask.face_skin":
@@ -131,7 +138,11 @@ func nativePlanRecoveryFromTask(task v2input.DraftTask, report *v2input.Ref, cos
 	} else {
 		faceVersion = version
 	}
-	return nativePlanRecoveryMetadata{SkinProfileVersion: skinVersion, FaceProfileVersion: faceVersion, PersonProfileVersion: personVersion, Schema: 1, Report: owned, Costs: costs, RAM: p.RAM, VRAM: p.VRAM, Scratch: p.Scratch, Output: p.Output, Reserved: reserved}, nil
+	storedBackend := ""
+	if expectedBackend == "mps" {
+		storedBackend = "mps"
+	}
+	return nativePlanRecoveryMetadata{Backend: storedBackend, SkinProfileVersion: skinVersion, FaceProfileVersion: faceVersion, PersonProfileVersion: personVersion, Schema: 1, Report: owned, Costs: costs, RAM: p.RAM, VRAM: p.VRAM, Scratch: p.Scratch, Output: p.Output, Reserved: reserved}, nil
 }
 
 func decodeNativePlanRecoveryMetadata(raw []byte, task v2input.DraftTask) (nativePlanRecoveryMetadata, error) {
@@ -161,6 +172,15 @@ func decodeNativePlanRecoveryMetadata(raw []byte, task v2input.DraftTask) (nativ
 	}
 	if value.Continuation == "" && value.OrdinaryPolicy != nil {
 		return zero, v2input.ErrInvalid
+	}
+	if value.ScenePolicy != nil {
+		if task.Operation != "face.detect" {
+			return zero, v2input.ErrInvalid
+		}
+		if _, err := value.ScenePolicy.preparation(); err != nil {
+			return zero, err
+		}
+		compiled.ScenePolicy = value.ScenePolicy
 	}
 	actual, err := canonical.Hash(json.RawMessage(raw))
 	if err != nil {

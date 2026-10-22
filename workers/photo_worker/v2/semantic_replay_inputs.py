@@ -42,7 +42,12 @@ def verify_pinned_semantic_replay(reader,params_ref,root_ref,*,source_protection
     candidate=document(root_ref,TransferCandidate,'output')
     mask=verify_semantic_geometry(reader,params_ref,root_ref,check_active=check_active)
     if mask is None:
-        check_active();verify_authority(deepcopy(params),deepcopy(intent),deepcopy(calibration),None,[]);check_active()
+        check_active();outcome=verify_authority(deepcopy(params),deepcopy(intent),deepcopy(calibration),None,[]);check_active()
+        from photo_worker.operations.semantic.scene_refusal import REASONS,SceneDecision
+        if isinstance(outcome,SceneDecision):
+            if (outcome.reason is not None and (candidate.state!='unsupported' or candidate.reason!=outcome.reason)
+                    or candidate.reason in REASONS and outcome.reason!=candidate.reason):
+                raise AdoptionInvalid('SEMANTIC_SCENE_REFUSAL_CHANGED')
         return None
     source=document(ref(params.reference.source),WorkingImage,'input')
     selected=document(ref(intent.reference_mask),MaskRef,'input')
@@ -52,8 +57,11 @@ def verify_pinned_semantic_replay(reader,params_ref,root_ref,*,source_protection
             or canonical_hash(source.canvas)!=params.reference.canvas_hash):
         raise AdoptionInvalid('SEMANTIC_REPLAY_SOURCE_MASK_CHANGED')
     # Own all documents before external verifier code; it cannot change replay.
-    check_active();verify_authority(deepcopy(params),deepcopy(intent),deepcopy(calibration),
+    check_active();outcome=verify_authority(deepcopy(params),deepcopy(intent),deepcopy(calibration),
         deepcopy(selected),deepcopy(guards));check_active()
+    from photo_worker.operations.semantic.scene_refusal import SceneDecision
+    if isinstance(outcome,SceneDecision) and outcome.reason is not None:
+        raise AdoptionInvalid('SEMANTIC_SCENE_UNSAFE_PROPOSAL')
     return verify_semantic_mask_replay(reader,selected,mask,*guards,transform,scratch_root=scratch_root,
         max_bytes=max_bytes,max_ram_bytes=max_ram_bytes,check_active=check_active)
 

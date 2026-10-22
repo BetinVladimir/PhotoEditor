@@ -20,6 +20,7 @@ func TestNormalizeReconcileRejectsUnsafeIdentity(t *testing.T) {
 	for _, request := range []ReconcileRequest{
 		{PlanHash: "bad", SourceRelative: "a.jpg", SourceSHA256: hash, UploadID: uuid.New()},
 		{PlanHash: hash, SourceRelative: "../a.jpg", SourceSHA256: hash, UploadID: uuid.New()},
+		{PlanHash: hash, SourceRelative: "..", SourceSHA256: hash, UploadID: uuid.New()},
 		{PlanHash: hash, SourceRelative: "a.jpg", SourceSHA256: hash, UploadID: uuid.Nil},
 		{PlanHash: hash, SourceRelative: "a.jpg", SourceSHA256: hash, UploadID: uuid.New(), Provenance: json.RawMessage(`[]`)},
 	} {

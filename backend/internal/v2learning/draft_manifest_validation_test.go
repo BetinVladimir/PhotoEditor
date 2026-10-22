@@ -27,9 +27,11 @@ func TestTrainingDraftPinsOptionalReviewedEvidenceToRunAndEvent(t *testing.T) {
 		profile, key, 4096, request, manifest); err != nil {
 		t.Fatal("exact reviewed evidence ref rejected", err)
 	}
+	// Admission proves deterministic ownership and digest syntax; physical evidence
+	// readers separately verify the supplied digest against immutable bytes.
 	for _, changed := range []v2input.Ref{
 		{ArtifactID: uuid.New(), SHA256: ref.SHA256},
-		{ArtifactID: ref.ArtifactID, SHA256: strings.Repeat("b", 64)},
+		{ArtifactID: ref.ArtifactID, SHA256: "invalid-sha"},
 	} {
 		manifest.Examples[0].RenderCase.DefectEvidence = &changed
 		if _, err := PrepareTrainingDraft(tenant, actor, session, project,
@@ -57,9 +59,11 @@ func TestTrainingDraftPinsOptionalSeriesEvidenceToRunAndEvent(t *testing.T) {
 		profile, key, 4096, request, manifest); err != nil {
 		t.Fatal("exact series evidence ref rejected", err)
 	}
+	// Admission proves deterministic ownership and digest syntax; physical evidence
+	// readers separately verify the supplied digest against immutable bytes.
 	for _, changed := range []v2input.Ref{
 		{ArtifactID: uuid.New(), SHA256: ref.SHA256},
-		{ArtifactID: ref.ArtifactID, SHA256: strings.Repeat("b", 64)},
+		{ArtifactID: ref.ArtifactID, SHA256: "invalid-sha"},
 	} {
 		manifest.Examples[0].RenderCase.SeriesEvidence = &changed
 		if _, err := PrepareTrainingDraft(tenant, actor, session, project,

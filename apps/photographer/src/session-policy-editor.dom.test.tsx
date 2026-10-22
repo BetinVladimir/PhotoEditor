@@ -5,7 +5,7 @@ import {APIError} from '@photoeditor/api-client';
 import type {ShootSession} from './capture-types';
 import en from '../../../locales/en/common.json';
 vi.mock('react-native',async()=>import('react-native-web'));
-vi.mock('./locale-context',()=>({useLocale:()=>({t:(key:keyof typeof en)=>en[key]})}));
+vi.mock('./locale-context',async()=>{const __factory=()=>({useLocale:()=>({t:(key:keyof typeof en)=>en[key]})});const __out=await __factory();const {withUILocaleDouble}=await import('./test/locale-double');return {...__out,useLocale:()=>withUILocaleDouble(__out.useLocale())};});
 import {SessionPolicyEditor} from './session-policy-editor';
 const session={id:'session',project_id:'project',collection_id:'collection',revision:'3',name:'Shoot',state:'open',policy:{schema_version:1,time_gap_seconds:60,neighbor_count:2,camera_offsets:[],protect_manual_picks:true,calibration:{artifact_id:'calibration',sha256:'a'.repeat(64)}},capture_policy:null} as ShootSession;
 afterEach(cleanup);

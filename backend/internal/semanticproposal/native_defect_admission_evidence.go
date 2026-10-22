@@ -36,7 +36,7 @@ func (s SQLTransferSourceReader) marshalNativeDefectAdmissionEvidence(ctx contex
 		return nil, v2input.ErrConflict
 	}
 	p := owned.prepared
-	selected, err := selectQualificationPolicies(p.qualification.policy, []string{"defects.propose"})
+	selected, err := selectNativeQualificationPolicies(p.qualification.policy, []string{"defects.propose"})
 	if err != nil {
 		return nil, err
 	}

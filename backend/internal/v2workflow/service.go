@@ -73,6 +73,8 @@ func (s Service) authorized(ctx context.Context, tx pgx.Tx, who auth.Identity,
 	if err != nil {
 		return uuid.Nil, err
 	}
+	role,err=tenant.AuthorizeInTransaction(ctx,tx,who,tenantID,required)
+	if err!=nil{return uuid.Nil,err}
 	_, err = project.Authorize(ctx, tx, tenantID, projectID,
 		who.UserID, role, required, false)
 	return projectID, err
@@ -168,6 +170,8 @@ func (s Service) Get(ctx context.Context, who auth.Identity, tenantID,
 			}
 			var e error
 			out, e = readStatus(ctx, tx, tenantID, workflowID, false)
+			if e!=nil{return e}
+			_,e=s.authorized(ctx,tx,who,tenantID,workflowID,role,domain.Viewer)
 			return e
 		})
 	return out, unavailable(err)
@@ -204,6 +208,7 @@ func (s Service) Cancel(ctx context.Context, who auth.Identity, tenantID,
 					if e != nil {
 						return idempotency.Response{}, e
 					}
+					if _,e=s.authorized(ctx,tx,who,tenantID,workflowID,role,domain.Editor);e!=nil{return idempotency.Response{},e}
 					if current.Revision != strconv.FormatInt(expected, 10) {
 						return idempotency.Response{}, domain.NewError("REVISION_CONFLICT", 409)
 					}
@@ -232,6 +237,9 @@ func (s Service) Cancel(ctx context.Context, who auth.Identity, tenantID,
 					return idempotency.Response{Status: 200, Body: body,
 						ResourceID: &workflowID}, e
 				})
+			if e!=nil{return e}
+			if e=validateCancelReceipt(out,workflowID);e!=nil{return e}
+			_,e=s.authorized(ctx,tx,who,tenantID,workflowID,role,domain.Editor)
 			return e
 		})
 	return out, unavailable(err)

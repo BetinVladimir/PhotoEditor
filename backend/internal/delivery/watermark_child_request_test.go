@@ -18,7 +18,7 @@ func TestWatermarkRequestBindsPrepareProofAndPin(t *testing.T){
  pins:=[]PreparedWatermarkPin{{Preset:scope.Preset,PresetSHA:scope.PresetSHA,Pin:pin}}
  _,_,params,err:=CompileWatermarkPrepareProof(scope,session,frozen,frozenRaw,raw,configs,pins);if err!=nil{t.Fatal(err)}
  plan,err:=CompileWatermarkPreparePlan(scope,session,v2input.Ref{ArtifactID:uuid.New(),SHA256:digest(params)},frozen,frozenRaw,raw,configs,pins);if err!=nil{t.Fatal(err)}
- lease:=validExpansionLease();lease.Tenant=scope.Tenant;lease.Run=scope.Parent;lease.Workflow,_=v2input.WorkflowID(scope.Parent);lease.ParentTask=plan.TaskID();lease.SlotCount=plan.preparation.SlotCount
+ lease:=validExpansionLease();lease.Tenant=scope.Tenant;lease.Run=scope.Parent;lease.Workflow,_=v2input.WorkflowID(scope.Parent);lease.ParentTask=plan.TaskID();lease.SlotCount=plan.preparation.SlotCount;lease.Cursor=0
  var proof PrepareProof;if json.Unmarshal(plan.ProofJCS(),&proof)!=nil{t.Fatal("proof fixture")}
  payloadRaw,err:=json.Marshal(expansionPlanPayload{Proof:proof,Params:plan.params,Input:plan.input});if err!=nil{t.Fatal(err)}
  for _,revoke:=range []bool{false,true}{reader:=&watermarkExpansionPins{pin:pin,scope:scope,revoke:revoke};store:=ExpansionLeaseStore{DB:&deliveryReadTx{raw:payloadRaw}};restored,err:=store.LoadWatermarkPlan(context.Background(),lease,scope,reader);if (err==nil)==revoke{t.Fatal("watermark plan pin recheck",err)};if !revoke&&(restored.TaskID()!=plan.TaskID()||reader.calls!=2){t.Fatal("plan restore/recheck")} ;if !revoke{

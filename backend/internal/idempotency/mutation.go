@@ -36,6 +36,9 @@ func ValidKey(key string) bool {
 
 // Use must be called before domain row locks and within the same transaction as fn.
 func Use(ctx context.Context, tx pgx.Tx, scope Scope, request any, expires time.Time, fn func() (Response, error)) (Response, error) {
+	if err := ctx.Err(); err != nil {
+		return Response{}, err
+	}
 	if !ValidKey(scope.Key) {
 		return Response{}, domain.NewError("IDEMPOTENCY_KEY_REQUIRED", 400)
 	}
@@ -56,15 +59,31 @@ func Use(ctx context.Context, tx pgx.Tx, scope Scope, request any, expires time.
 	if err != nil {
 		return Response{}, err
 	}
+	// Waiting for the receipt lock may outlive the caller. Never invoke the
+	// mutation or deliver a replay after cancellation.
+	if err := ctx.Err(); err != nil {
+		return Response{}, err
+	}
+	// A tenant transaction may own preflight resource gates registered before
+	// this receipt wait. Validate them with current authority before either
+	// mutation or replay; the optional interface creates no package cycle.
+	if err := ValidateReceiptAuthority(ctx, tx); err != nil { return Response{}, err }
 	if hash != storedHash {
 		return Response{}, domain.NewError("IDEMPOTENCY_CONFLICT", 409)
 	}
 	if status != nil {
+		if *status < 200 || *status > 299 {
+			return Response{}, errors.New("idempotency receipt has invalid successful response status")
+		}
 		b, e := canonical.Bytes(body)
-		return Response{Status: *status, Body: b, ResourceID: resource, Replayed: true}, e
+		if e != nil { return Response{}, e }
+		return Response{Status: *status, Body: b, ResourceID: resource, Replayed: true}, nil
 	}
 	out, err := fn()
 	if err != nil {
+		return Response{}, err
+	}
+	if err := ctx.Err(); err != nil {
 		return Response{}, err
 	}
 	if out.Status < 200 || out.Status > 299 {
@@ -74,6 +93,15 @@ func Use(ctx context.Context, tx pgx.Tx, scope Scope, request any, expires time.
 	if err != nil {
 		return Response{}, err
 	}
-	_, err = tx.Exec(ctx, `UPDATE photo.idempotency_records SET response_status=$3,response_body=$4,resource_id=$5 WHERE tenant_id=$1 AND id=$2`, scope.Tenant, id, out.Status, out.Body, out.ResourceID)
-	return out, err
+	tag, err := tx.Exec(ctx, `UPDATE photo.idempotency_records SET response_status=$3,response_body=$4,resource_id=$5 WHERE tenant_id=$1 AND id=$2`, scope.Tenant, id, out.Status, out.Body, out.ResourceID)
+	if err != nil {
+		return Response{}, err
+	}
+	if tag.RowsAffected() != 1 {
+		return Response{}, errors.New("idempotency receipt was not persisted")
+	}
+	if err := ctx.Err(); err != nil {
+		return Response{}, err
+	}
+	return out, nil
 }

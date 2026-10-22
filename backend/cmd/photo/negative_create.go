@@ -1,6 +1,7 @@
 package main
 
 import (
+ "photoeditor/backend/internal/database"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -54,6 +55,7 @@ func buildNegative(ctx context.Context, objects *objectstore.Store, bucket strin
 		return nil, noop, errors.New("negative scheduler configuration invalid")
 	}
 	config.ConnConfig.RuntimeParams["role"] = "photo_scheduler"
+	database.GuardApplicationRole(config)
 	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
 		return nil, noop, errors.New("negative scheduler unavailable")
@@ -67,6 +69,8 @@ func buildNegative(ctx context.Context, objects *objectstore.Store, bucket strin
  AND to_regprocedure('photo.register_v29_negative_transport(uuid,uuid,text,jsonb,jsonb,text)') IS NOT NULL
  AND to_regprocedure('photo.v29_negative_source_document(uuid,uuid,uuid,uuid,uuid,jsonb)') IS NOT NULL
  AND to_regprocedure('photo.reconcile_v29_negative_invalidation(uuid,uuid,uuid,uuid,uuid,text,jsonb,integer,integer)') IS NOT NULL
+ AND to_regprocedure('photo.apply_v29_negative_version(uuid,uuid,uuid,uuid,text,text,text)') IS NOT NULL
+ AND to_regprocedure('photo.get_v29_negative_apply_selection(uuid,uuid,uuid,uuid)') IS NOT NULL
  AND to_regprocedure('photo.read_v29_negative_declined_decisions(uuid,uuid,uuid,uuid,uuid,integer)') IS NOT NULL`).Scan(&role, &installed)
 	if err != nil || role != "photo_scheduler" || !installed {
 		pool.Close()

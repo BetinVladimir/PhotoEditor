@@ -182,9 +182,11 @@ def prepare_v2_adoption(*, task_id: UUID, operation: str, version: str,
                         layer_alpha_mode: str = "require_float32",
                         region_target_icc_sha: str | None = None,
                         render_inputs=None, render_expected=None,
-                        render_max_tile_bytes=None, semantic_plan_snapshot=None,
+                        render_max_tile_bytes=None, editor_seal_inputs=None, semantic_plan_snapshot=None,
                         semantic_plan_provenance=None, exposure_protection=None,
                         exposure_admission=None, exposure_origin=None, exposure_color=None,
+                        shown_exposure_admission=None, shown_removal_admission=None, shown_background_cleanup_admission=None,
+                        retouch_preview_admission=None, shown_retouch_admission=None,
                         relight_context=None,
                         delivery_signed_scope: tuple[UUID, UUID, UUID] | None = None,
                         check_active=lambda: None) -> PreparedAdoption:
@@ -200,6 +202,30 @@ def prepare_v2_adoption(*, task_id: UUID, operation: str, version: str,
                if item["id"] == operation and item["version"] == version), None)
     if op is None:
         raise AdoptionInvalid("UNKNOWN_OPERATION")
+    if operation in ('render.compose','editor.effects_seal'):
+        # Receipt dependencies are immutable declared inputs even though the
+        # seal root itself is an output of the separate predecessor task.
+        bindings=dict(bindings)
+        bindings.update({
+            ('EditingRecipeV3','/executed_base_receipt'):ChildBinding('EditorExecutedBaseReceipt','executed_base_receipt',frozenset({'application/json'})),
+            ('FrozenRenderRecipe','/recipe/executed_base_receipt'):ChildBinding('EditorExecutedBaseReceipt','executed_base_receipt',frozenset({'application/json'})),
+            ('EditorExecutedBaseReceipt','/original_recipe'):ChildBinding('FrozenRenderRecipe','input_dependency',frozenset({'application/json'})),
+            ('EditorExecutedBaseReceipt','/executed_style'):ChildBinding('declared_input','input_dependency',frozenset({'application/json'})),
+            ('EditorExecutedBaseReceipt','/quality'):ChildBinding('declared_input','input_dependency',frozenset({'application/json'})),
+            ('EditorExecutedBaseReceipt','/image_result'):ChildBinding('ImageResult','image_result',frozenset({'application/json'})),
+        })
+    if operation == 'editor.effects_seal':
+        from .editor_seal_adoption import verify_editor_effects_seal
+        verify_editor_effects_seal(reader,root,editor_seal_inputs,scratch_root=layer_scratch_root,
+            max_bytes=layer_scratch_bytes,check_active=check_active)
+        bindings=dict(bindings)
+        bindings.update({
+            ('EditorExecutedBaseReceipt','/image_result'):ChildBinding('ImageResult','image_result',frozenset({'application/json'})),
+            ('ImageResult','/report'):ChildBinding('ImageReport','image_report',frozenset({'application/json'})),
+            ('ImageResult','/changed_mask'):ChildBinding('MaskRef','changed_mask',frozenset({'application/json'})),
+            ('ImageResult','/generated_mask'):ChildBinding('MaskRef','generated_mask',frozenset({'application/json'})),
+            ('MaskRef','/artifact'):ChildBinding('MaskArray','changed_pixels',frozenset({'application/octet-stream'})),
+        })
     if operation == 'v2.delivery.prepare':
         if params_ref is None:
             raise AdoptionInvalid('DELIVERY_PREPARATION_PARAMS_REQUIRED')
@@ -229,6 +255,50 @@ def prepare_v2_adoption(*, task_id: UUID, operation: str, version: str,
             max_scratch_bytes=relight_context.max_scratch_bytes,
             execution_profile=relight_context.execution_profile,
             verify_authority=relight_context.verify_authority,check_active=check_active)
+    if operation == 'semantic.preview_retouch_region':
+        if params_ref is None or not callable(retouch_preview_admission):
+            raise AdoptionInvalid('SEMANTIC_RETOUCH_ADOPTION_CONTEXT_REQUIRED')
+        from .retouch_preview_adoption import verify_retouch_preview_output
+        verify_retouch_preview_output(reader,params_ref,root,
+            verify_admission=retouch_preview_admission,check_active=check_active)
+    if operation == 'semantic.adopt_shown_exposure':
+        if params_ref is None or not callable(shown_exposure_admission):
+            raise AdoptionInvalid('SEMANTIC_SHOWN_ADOPTION_CONTEXT_REQUIRED')
+        from .shown_exposure_adoption import verify_shown_exposure_output
+        verify_shown_exposure_output(reader,params_ref,root,
+            verify_admission=shown_exposure_admission,check_active=check_active)
+    if operation == 'semantic.adopt_shown_removal':
+        if params_ref is None or not callable(shown_removal_admission):
+            raise AdoptionInvalid('SEMANTIC_SHOWN_ADOPTION_CONTEXT_REQUIRED')
+        from .shown_removal_adoption import verify_shown_removal_output
+        verify_shown_removal_output(reader,params_ref,root,
+            verify_admission=shown_removal_admission,check_active=check_active)
+    if operation == 'semantic.adopt_shown_background_cleanup':
+        if (params_ref is None or not callable(shown_background_cleanup_admission)
+                or layer_scratch_root is None or layer_scratch_bytes is None):
+            raise AdoptionInvalid('SEMANTIC_SHOWN_ADOPTION_CONTEXT_REQUIRED')
+        from .shown_background_cleanup_adoption import verify_shown_background_cleanup_output
+        from .shown_background_cleanup_pixels import verify_shown_background_cleanup_pixels
+        _,shown,output=verify_shown_background_cleanup_output(reader,params_ref,root,
+            verify_admission=shown_background_cleanup_admission,check_active=check_active)
+        verify_shown_background_cleanup_pixels(reader,shown,output,
+            scratch_root=layer_scratch_root,max_bytes=layer_scratch_bytes,check_active=check_active)
+        # Receipt authority must still hold after potentially long pixel IO.
+        verify_shown_background_cleanup_output(reader,params_ref,root,
+            verify_admission=shown_background_cleanup_admission,check_active=check_active)
+    if operation == 'semantic.adopt_shown_retouch_region':
+        if (params_ref is None or not callable(shown_retouch_admission)
+                or layer_scratch_root is None or layer_scratch_bytes is None):
+            raise AdoptionInvalid('SEMANTIC_SHOWN_ADOPTION_CONTEXT_REQUIRED')
+        from .shown_retouch_adoption import verify_shown_retouch_output
+        from .shown_retouch_pixels import verify_shown_retouch_pixels
+        _,shown,output=verify_shown_retouch_output(reader,params_ref,root,
+            verify_admission=shown_retouch_admission,check_active=check_active)
+        verify_shown_retouch_pixels(reader,shown,output,
+            scratch_root=layer_scratch_root,max_bytes=layer_scratch_bytes,check_active=check_active)
+        # Receipt authority must still hold after potentially long pixel IO.
+        verify_shown_retouch_output(reader,params_ref,root,
+            verify_admission=shown_retouch_admission,check_active=check_active)
     if operation == 'semantic.local_exposure':
         if (params_ref is None or exposure_protection is None
                 or not all(callable(value) for value in
@@ -239,6 +309,16 @@ def prepare_v2_adoption(*, task_id: UUID, operation: str, version: str,
         verify_exposure_image_result(reader, params_ref, root,
             protection_ref=exposure_protection, verify_admission=exposure_admission,
             verify_origin=exposure_origin, verify_color=exposure_color,
+            scratch_root=layer_scratch_root, max_bytes=layer_scratch_bytes,
+            check_active=check_active)
+    if operation in ('portrait.hair', 'portrait.clothing'):
+        from .local_portrait_adoption import verify_local_portrait_documents
+        if layer_scratch_root is None or layer_scratch_bytes is None:
+            raise AdoptionInvalid('LOCAL_PORTRAIT_SCRATCH_REQUIRED')
+        documents = verify_local_portrait_documents(reader, operation, params_ref, root,
+            check_active=check_active)
+        from .local_portrait_pixels import verify_local_portrait_pixels
+        verify_local_portrait_pixels(reader, *documents[:4],
             scratch_root=layer_scratch_root, max_bytes=layer_scratch_bytes,
             check_active=check_active)
     identity_bypass = False
@@ -318,7 +398,7 @@ def prepare_v2_adoption(*, task_id: UUID, operation: str, version: str,
             raise AdoptionInvalid('REGION_ADOPTION_PARAMS_REQUIRED')
         from .region_adoption import verify_region_result
         verify_region_result(reader, params_ref, root, target_icc_sha256=region_target_icc_sha,
-                             check_active=check_active)
+                             check_active=check_active,scratch_root=layer_scratch_root,max_bytes=layer_scratch_bytes)
     if operation == 'layer.compose':
         if params_ref is None:
             raise AdoptionInvalid('LAYER_ADOPTION_PARAMS_REQUIRED')
@@ -368,7 +448,7 @@ def prepare_v2_adoption(*, task_id: UUID, operation: str, version: str,
                 role_counts[role] = role_counts.get(role, 0) + 1
                 if role_counts[role] > policy["max_count"]:
                     raise AdoptionInvalid("OUTPUT_COUNT_EXCEEDED")
-        elif required_role == "document":
+        elif required_role == "document" or (operation in ('semantic.adopt_shown_exposure','semantic.adopt_shown_removal','semantic.adopt_shown_background_cleanup','semantic.adopt_shown_retouch_region') and depth == 0):
             raise AdoptionInvalid("ROOT_MUST_BE_STAGED")
         key = (ref.artifact_id, ref.sha256, contract)
         if key in active:
@@ -407,25 +487,32 @@ def prepare_v2_adoption(*, task_id: UUID, operation: str, version: str,
                     raise AdoptionInvalid("UNBOUND_OUTPUT_REFERENCE")
                 child_type = binding.contract if binding else "declared_input"
                 child_role = binding.role if binding else None
-                inherited_exposure_alpha = (operation == 'semantic.local_exposure'
+                if operation=='editor.effects_seal' and contract=='MaskRef' and typed_path=='/artifact' and child_evidence.source=='output':
+                    if required_role not in ('changed_mask','generated_mask'):
+                        raise AdoptionInvalid('EDITOR_SEAL_MASK_ROLE_INVALID')
+                    child_role='changed_pixels' if required_role=='changed_mask' else 'generated_pixels'
+                inherited_exposure_alpha = (operation in ('semantic.local_exposure','semantic.adopt_shown_exposure','semantic.adopt_shown_removal','semantic.adopt_shown_background_cleanup','semantic.adopt_shown_retouch_region')
                     and contract == 'WorkingImage' and typed_path == '/alpha'
                     and child_evidence.source == 'input'
                     and child_evidence.media_type == 'application/octet-stream')
-                inherited_exposure_field = ((operation == 'semantic.local_exposure'
-                    or operation == 'semantic.transfer' and contract == 'MaskRef')
+                inherited_exposure_field = ((operation in ('semantic.local_exposure','semantic.adopt_shown_exposure','semantic.adopt_shown_removal','semantic.adopt_shown_background_cleanup','semantic.adopt_shown_retouch_region')
+                    or operation in ('semantic.transfer','editor.effects_seal') and contract == 'MaskRef')
                     and contract in ('WorkingImage', 'MaskRef')
                     and typed_path == '/transform_chain/steps/*/inverse_field'
                     and child_evidence.source == 'input'
                     and child_evidence.media_type == 'application/octet-stream')
                 # Legacy input alpha is independently version/SHA/shape/dtype
                 # verified by the exposure pixel proof; outputs stay strict.
-                if binding and child_evidence.media_type not in binding.media_types and not (inherited_exposure_alpha or inherited_exposure_field):
+                executed_base_array = (operation in ('render.compose','editor.effects_seal')
+                    and contract in ('WorkingImage','MaskRef') and typed_path in ('/pixels','/alpha','/artifact','/transform_chain/steps/*/inverse_field')
+                    and child_evidence.source == 'input' and child_evidence.media_type == 'application/octet-stream')
+                if binding and child_evidence.media_type not in binding.media_types and not (inherited_exposure_alpha or inherited_exposure_field or executed_base_array):
                     raise AdoptionInvalid("OUTPUT_MEDIA_MISMATCH")
                 visit(child_ref, child_type, path + typed_path, depth + 1, child_role)
         finally:
             active.remove(key)
 
-    visit(root, root_type, "$", 0, "document")
+    visit(root, root_type, "$", 0, "working_image" if operation in ('semantic.adopt_shown_exposure','semantic.adopt_shown_removal','semantic.adopt_shown_background_cleanup','semantic.adopt_shown_retouch_region') else "executed_base_receipt" if operation=="editor.effects_seal" else "document")
     if output_seen != reader.staged_outputs():
         raise AdoptionInvalid("STAGED_OUTPUT_CLOSURE_MISMATCH")
     for role, policy in policies.items():
@@ -435,6 +522,10 @@ def prepare_v2_adoption(*, task_id: UUID, operation: str, version: str,
             raise AdoptionInvalid("REQUIRED_OUTPUT_MISSING")
     if len(output_seen) > op["max_output_count"]:
         raise AdoptionInvalid("OUTPUT_COUNT_EXCEEDED")
+    if operation == 'semantic.adopt_shown_retouch_region':
+        # Final receipt fence after schema traversal and staged-output discovery.
+        verify_shown_retouch_output(reader,params_ref,root,
+            verify_admission=shown_retouch_admission,check_active=check_active)
     body = canonical_bytes(inventory)
     if len(body) > 16 * 1024 * 1024:
         raise AdoptionInvalid("SQL_INVENTORY_LIMIT_EXCEEDED")

@@ -1,4 +1,5 @@
 """Synthetic qualification + real original JSON/NPY + production Go bootstrap."""
+from physical_go_child_evidence import run_evidenced_go
 from pathlib import Path
 from uuid import uuid4
 from hashlib import sha256
@@ -75,7 +76,7 @@ def test_actual_relight_bootstrap(database,lens_objects,tmp_path,subject,stage_o
     if registered_only:env['PHOTO_TEST_RELIGHT_REGISTERED_ONLY']='1'
     if stage_only:env['PHOTO_TEST_RELIGHT_STAGE_ONLY']='1'
     if transport_only:env['PHOTO_TEST_RELIGHT_TRANSPORT_ONLY']='1'
-    result=subprocess.run(['go','test','./internal/v2portrait','-run','^TestIntegrationRelightBootstrap$','-count=1','-timeout=90s','-v'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=120)
+    result=run_evidenced_go(['go','test','./internal/v2portrait','-run','^TestIntegrationRelightBootstrap$','-count=1','-timeout=90s','-v'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=120)
     assert result.returncode==0,result.stdout+result.stderr
     if stage_only or transport_only or registered_only or queued_only:return json.loads(seed_file.read_text()),env
 
@@ -125,7 +126,7 @@ def test_relight_transport_upgrade_resumes_committed_blocked_task(database,lens_
         assert setup.execute('SELECT v28_relight_intent,v28_relight_descriptor_jcs FROM photo.runs WHERE id=%s',(seed['run'],)).fetchone()==before
     env.pop('PHOTO_TEST_RELIGHT_STAGE_ONLY',None)
     env['PHOTO_TEST_RELIGHT_RESUME_ONLY']='1'
-    result=subprocess.run(['go','test','./internal/v2portrait','-run','^TestIntegrationRelightBootstrap$','-count=1','-timeout=90s','-v'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=120)
+    result=run_evidenced_go(['go','test','./internal/v2portrait','-run','^TestIntegrationRelightBootstrap$','-count=1','-timeout=90s','-v'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=120)
     assert result.returncode==0,result.stdout+result.stderr
 
 
@@ -143,7 +144,7 @@ def test_relight_registration_upgrade_preserves_published_transport(database,len
     env.pop('PHOTO_TEST_RELIGHT_TRANSPORT_ONLY',None)
     env['PHOTO_TEST_RELIGHT_RESUME_ONLY']='1'
     env['PHOTO_TEST_RELIGHT_RESUME_REGISTER_ONLY']='1'
-    result=subprocess.run(['go','test','./internal/v2portrait','-run','^TestIntegrationRelightBootstrap$','-count=1','-timeout=90s','-v'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=120)
+    result=run_evidenced_go(['go','test','./internal/v2portrait','-run','^TestIntegrationRelightBootstrap$','-count=1','-timeout=90s','-v'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=120)
     assert result.returncode==0,result.stdout+result.stderr
 
 
@@ -162,7 +163,7 @@ def test_relight_recovery_upgrade_preserves_registered_state(database,lens_objec
     env.pop('PHOTO_TEST_RELIGHT_REGISTERED_ONLY',None)
     env['PHOTO_TEST_RELIGHT_RESUME_ONLY']='1'
     env['PHOTO_TEST_RELIGHT_RESUME_RECOVERY_ONLY']='1'
-    result=subprocess.run(['go','test','./internal/v2portrait','-run','^TestIntegrationRelightBootstrap$','-count=1','-timeout=90s','-v'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=120)
+    result=run_evidenced_go(['go','test','./internal/v2portrait','-run','^TestIntegrationRelightBootstrap$','-count=1','-timeout=90s','-v'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=120)
     assert result.returncode==0,result.stdout+result.stderr
     with psycopg.connect(**database) as setup:
         assert setup.execute(query,(seed['run'],)).fetchall()==before
@@ -192,11 +193,13 @@ def test_relight_queued_receipt_upgrade_and_new_process(database,lens_objects,tm
         setup.commit()
         migration=ROOT/'backend/db/migrations/01009_v28_relight_queued_receipt.sql'
         setup.execute(migration.read_text().split('-- +goose Down')[0])
+        live_migration=ROOT/'backend/db/migrations/02422_relight_legacy_receipt_live_authority.sql'
+        setup.execute(live_migration.read_text().split('-- +goose Down')[0])
         assert snapshot(setup)==before
     env.pop('PHOTO_TEST_RELIGHT_QUEUED_ONLY',None)
     env.pop('PHOTO_TEST_RELIGHT_ADMISSION',None)
     env['PHOTO_TEST_RELIGHT_RECEIPT_ONLY']='1'
-    result=subprocess.run(['go','test','./internal/v2portrait','-run','^TestIntegrationRelightBootstrap$','-count=1','-timeout=90s','-v'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=120)
+    result=run_evidenced_go(['go','test','./internal/v2portrait','-run','^TestIntegrationRelightBootstrap$','-count=1','-timeout=90s','-v'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=120)
     assert result.returncode==0,result.stdout+result.stderr
     with psycopg.connect(**database) as setup:
         assert snapshot(setup)==before
@@ -225,7 +228,7 @@ def test_relight_admission_upgrade_preserves_registered_inventory(database,lens_
     env.pop('PHOTO_TEST_RELIGHT_REGISTERED_ONLY',None)
     env['PHOTO_TEST_RELIGHT_RESUME_ONLY']='1'
     env['PHOTO_TEST_RELIGHT_RESUME_ADMISSION_ONLY']='1'
-    result=subprocess.run(['go','test','./internal/v2portrait','-run','^TestIntegrationRelightBootstrap$','-count=1','-timeout=90s','-v'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=120)
+    result=run_evidenced_go(['go','test','./internal/v2portrait','-run','^TestIntegrationRelightBootstrap$','-count=1','-timeout=90s','-v'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=120)
     assert result.returncode==0,result.stdout+result.stderr
     with psycopg.connect(**database) as setup:
         assert setup.execute(query,(seed['run'],)).fetchall()==before
@@ -263,7 +266,7 @@ def test_relight_resolver_upgrade_preserves_registered_state(database,lens_objec
         assert snapshot(setup)==before
     env.pop('PHOTO_TEST_RELIGHT_REGISTERED_ONLY',None)
     env['PHOTO_TEST_RELIGHT_RESOLVERS_ONLY']='1'
-    result=subprocess.run(['go','test','./internal/v2portrait','-run','^TestIntegrationRelightBootstrap$','-count=1','-timeout=90s','-v'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=120)
+    result=run_evidenced_go(['go','test','./internal/v2portrait','-run','^TestIntegrationRelightBootstrap$','-count=1','-timeout=90s','-v'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=120)
     assert result.returncode==0,result.stdout+result.stderr
     with psycopg.connect(**database) as setup:
         assert snapshot(setup)==before

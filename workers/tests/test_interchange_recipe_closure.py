@@ -141,7 +141,7 @@ def test_invalid_recipe_requalification_revokes_prior_gc_receipt():
     recipe, root, args = closure_fixture()
     qualifier = PreparedRecipeClosureQualifier(**args)
     qualifier(root, recipe, recipe.source)
-    recipe.renderer_version = 'invalid-renderer'
+    recipe = recipe.model_copy(update={'renderer_version':'invalid-renderer'})
     with pytest.raises(ValueError):
         qualifier(root, recipe, recipe.source)
     with pytest.raises(AdoptionInvalid, match='RECEIPT_REQUIRED'):
@@ -254,7 +254,7 @@ def test_prepared_working_pixels_cannot_be_relabelled_in_inventory():
     recipe, root, args = closure_fixture()
     pixels_body = b'physical-array'
     pixels = ArtifactRef(artifact_id=uuid4(), sha256=sha256(pixels_body).hexdigest())
-    working_body = canonical_bytes({'pixels': pixels})
+    working_body = canonical_bytes({'pixels': pixels.model_dump(mode='json')})
     recipe.source.source.sha256 = sha256(working_body).hexdigest()
     root_body = canonical_bytes(recipe)
     root.sha256 = sha256(root_body).hexdigest()
@@ -405,9 +405,9 @@ def test_dust_proposal_role_is_checked_during_actual_closure_traversal(proposal_
     from photo_worker.contracts.base import parse_json
     recipe,root,args=closure_fixture()
     proposal=ArtifactRef(artifact_id=uuid4(),sha256=sha256(b'{}').hexdigest())
-    params_raw=canonical_bytes({'image':recipe.source.source,'proposal':proposal,'review':None})
+    params_raw=canonical_bytes({'image':recipe.source.source.model_dump(mode='json'),'proposal':proposal.model_dump(mode='json'),'review':None})
     params=ArtifactRef(artifact_id=uuid4(),sha256=sha256(params_raw).hexdigest())
-    layer_raw=canonical_bytes({'layers':[{'operation':'sensor.dust_repair','operation_version':'1','params':params}]})
+    layer_raw=canonical_bytes({'layers':[{'operation':'sensor.dust_repair','operation_version':'1','params':params.model_dump(mode='json')}]})
     recipe.layer_stack.sha256=sha256(layer_raw).hexdigest()
     root_raw=canonical_bytes(recipe);root.sha256=sha256(root_raw).hexdigest()
     schemas=parse_json(args['schemas_jcs']);ref={'$ref':'#/$defs/ArtifactRef'}
@@ -449,6 +449,10 @@ def test_prepared_style_background_is_qualified_and_retained_for_gc(change):
         binary_calls.append((ref, contract))
         return change != 'binary_refusal'
     args['qualify_binary'] = binary
+    if change == 'role':
+        with pytest.raises(ValueError, match='CLOSURE_ENTRIES'):
+            PreparedRecipeClosureQualifier(**args)
+        return
     qualifier = PreparedRecipeClosureQualifier(**args)
     if change == 'valid':
         assert qualifier(root, recipe, recipe.source) is True
@@ -488,6 +492,10 @@ def test_prepared_override_background_is_qualified_and_retained_for_gc(change):
         return True
     args['qualify_binary'] = binary
     args['qualify_occurrence'] = occurrence
+    if change == 'role':
+        with pytest.raises(ValueError, match='CLOSURE_ENTRIES'):
+            PreparedRecipeClosureQualifier(**args)
+        return
     qualifier = PreparedRecipeClosureQualifier(**args)
     if change == 'valid':
         assert qualifier(root, recipe, recipe.source) is True

@@ -38,12 +38,19 @@
       "title": "Eye Policy",
       "type": "string"
     },
+    "feature_batches": {
+      "items": {
+        "$ref": "#/$defs/ArtifactRef"
+      },
+      "maxItems": 64,
+      "title": "Feature Batches",
+      "type": "array"
+    },
     "features": {
       "items": {
         "$ref": "#/$defs/ArtifactRef"
       },
-      "maxItems": 2000,
-      "minItems": 1,
+      "maxItems": 5000,
       "title": "Features",
       "type": "array"
     },
@@ -56,7 +63,7 @@
         "format": "uuid",
         "type": "string"
       },
-      "maxItems": 2000,
+      "maxItems": 5000,
       "title": "Intentional Closed",
       "type": "array"
     },
@@ -66,7 +73,7 @@
         "format": "uuid",
         "type": "string"
       },
-      "maxItems": 2000,
+      "maxItems": 5000,
       "title": "Manual Picks",
       "type": "array"
     },
@@ -79,7 +86,7 @@
     "target_count": {
       "anyOf": [
         {
-          "maximum": 2000,
+          "maximum": 5000,
           "minimum": 1,
           "type": "integer"
         },
@@ -106,8 +113,7 @@
     }
   },
   "required": [
-    "groups",
-    "features"
+    "groups"
   ],
   "title": "CullParams",
   "type": "object"

@@ -17,6 +17,8 @@ def component_paths():
         paths['depth_'+name]=root/'operations/depth'/(name+'.py')
     paths['contracts_depth']=root/'contracts/depth.py'
     paths['depth_startup_config']=root/'runtime/depth_config.py'
+    from photo_worker.models.processing_inventory import processing_component_paths
+    paths.update(processing_component_paths())
     return paths
 
 
@@ -30,7 +32,7 @@ def measure_runtime():
         components[name]=digest.hexdigest()
     return canonical_hash(dict(schema_version=1,operation='depth.predict',python_version=platform.python_version(),
         implementation=platform.python_implementation(),machine=platform.machine(),
-        packages={name:metadata.version(name) for name in ('numpy','pydantic','rfc8785','torch','torchvision')},
+        packages={name:metadata.version(name) for name in ('numpy','pydantic','rfc8785','torch','torchvision','transformers','Pillow')},
         torch_build=sha256(torch.__config__.show().encode()).hexdigest(),components=components))
 
 

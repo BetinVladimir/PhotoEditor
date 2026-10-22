@@ -16,7 +16,7 @@ func TestListRejectsUnboundedAndUnknownFiltersBeforeDatabase(t *testing.T) {
 	for _, tc := range []struct {
 		limit                   int
 		project, status, search string
-	}{{0, "", "", ""}, {101, "", "", ""}, {50, "bad", "", ""}, {50, "", "deleted", ""}, {50, "", "", string(make([]rune, 201))}} {
+	}{{0, "", "", ""}, {101, "", "", ""}, {50, "bad", "", ""}, {50, uuid.Nil.String(), "", ""}, {50, "", "deleted", ""}, {50, "", "", string(make([]rune, 201))}} {
 		_, err := s.List(context.Background(), who, tid, tc.limit, "", tc.project, tc.status, tc.search)
 		if domain.AsError(err).Code != "VALIDATION_FAILED" {
 			t.Fatalf("expected validation failure, got %v", err)

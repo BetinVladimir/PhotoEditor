@@ -18,6 +18,10 @@ type FrozenSemanticLandmarkTask struct {
 }
 
 func CompileSemanticLandmarkTask(ctx context.Context, workflow uuid.UUID, ordinal int, binding SessionVersionBinding, imageBody json.RawMessage, faces Ref, facesBody json.RawMessage, detectorParams Ref, detectorBody json.RawMessage, paramsRef Ref, modelLock string, sizes []SemanticInputSize, costs SemanticQualifiedCosts, ram, vram, scratch, output int64) (FrozenSemanticLandmarkTask, error) {
+	return CompileSemanticLandmarkTaskForBackend("cuda", ctx, workflow, ordinal, binding, imageBody, faces, facesBody, detectorParams, detectorBody, paramsRef, modelLock, sizes, costs, ram, vram, scratch, output)
+}
+
+func CompileSemanticLandmarkTaskForBackend(backend string, ctx context.Context, workflow uuid.UUID, ordinal int, binding SessionVersionBinding, imageBody json.RawMessage, faces Ref, facesBody json.RawMessage, detectorParams Ref, detectorBody json.RawMessage, paramsRef Ref, modelLock string, sizes []SemanticInputSize, costs SemanticQualifiedCosts, ram, vram, scratch, output int64) (FrozenSemanticLandmarkTask, error) {
 	var zero FrozenSemanticLandmarkTask
 	closure, err := CompileSemanticLandmarkClosure(ctx, workflow, ordinal, binding, imageBody, faces, facesBody, detectorParams, detectorBody, paramsRef, modelLock)
 	if err != nil {
@@ -35,7 +39,7 @@ func CompileSemanticLandmarkTask(ctx context.Context, workflow uuid.UUID, ordina
 	if err != nil {
 		return zero, ErrInvalid
 	}
-	profile, err := CompileSemanticLandmarkProfileFromInputs(int64(image.Canvas.Width), int64(image.Canvas.Height), paramsRef, refs, sizes, costs, ram, vram, scratch, output)
+	profile, err := CompileSemanticLandmarkProfileFromInputsForBackend(backend, int64(image.Canvas.Width), int64(image.Canvas.Height), paramsRef, refs, sizes, costs, ram, vram, scratch, output)
 	if err != nil {
 		return zero, err
 	}

@@ -23,18 +23,27 @@ QUALITY = {'thumb320': 82, 'thumb640': 82, 'preview1600': 88, 'preview2560': 88}
 MAX_PIXELS = 200_000_000
 
 
-def media_profile_hash(variant: str, srgb_sha256: str) -> str:
-    return hashlib.sha256(canonical_bytes({
+RENDERER_POLICY = 'declared_encoding_alpha8_icc_v2'
+
+
+def media_profile_hash(variant: str, srgb_sha256: str, *, legacy: bool = False) -> str:
+    policy={
         'schema_version': 1, 'variant': variant, 'long_edge': EDGES[variant],
         'quality': QUALITY[variant], 'icc_sha256': srgb_sha256,
         'no_upscale': True, 'metadata_policy': 'stripped',
-    })).hexdigest()
+    }
+    if not legacy:policy['renderer_policy']=RENDERER_POLICY
+    return hashlib.sha256(canonical_bytes(policy)).hexdigest()
 
 
 def dimensions(width: int, height: int, variant: str) -> tuple[int, int]:
     edge = EDGES[variant]
     scale = min(1.0, edge / max(width, height))
     return max(1, round(width * scale)), max(1, round(height * scale))
+
+
+def _alpha8(alpha):
+    return np.round(np.clip(alpha,0,1)*255).astype(np.uint8)
 
 
 def _write(path, rgb: np.ndarray, alpha: np.ndarray | None, profile: bytes, quality: int, *, strip_metadata: bool = False):
@@ -46,7 +55,7 @@ def _write(path, rgb: np.ndarray, alpha: np.ndarray | None, profile: bytes, qual
         image.set_type(pyvips.GValue.blob_type, 'icc-profile-data', profile)
         image.jpegsave(str(path), Q=quality, subsample_mode='off', optimize_coding=True, strip=False, **metadata_options)
     else:
-        alpha8 = np.round(np.clip(alpha, 0, 1) * 255).astype(np.uint8)
+        alpha8 = _alpha8(alpha)
         rgba = np.dstack((rgb8, alpha8))
         image = pyvips.Image.new_from_memory(rgba.data, width, height, 4, 'uchar').copy(interpretation='srgb')
         image.set_type(pyvips.GValue.blob_type, 'icc-profile-data', profile)
@@ -82,6 +91,58 @@ def _read_master(path, check_active, *, admit=None):
         raise OperationFailure('INPUT_INVALID') from exc
 
 
+def _presentation_alpha_matches(alpha, width, height, check_active, image=None):
+    """Match lossless WebP alpha to the writer's exact 8-bit quantization.
+
+    RGB WebP implies 255 everywhere. RGBA must match each actual alpha sample.
+    This is the presentation contract, not a change to working/source alpha.
+    """
+    if not isinstance(alpha,np.ndarray) or alpha.shape != (height,width):
+        return False
+    for y in range(0,height,256):
+        for x in range(0,width,256):
+            check_active()
+            tile=alpha[y:y+256,x:x+256]
+            if not np.isfinite(tile).all():
+                return False
+            expected=_alpha8(tile)
+            if image is None:
+                if not np.all(expected == 255):return False
+            else:
+                box=(x,y,min(x+256,width),min(y+256,height))
+                with image.crop(box) as region:
+                    with region.getchannel('A') as plane:
+                        if not np.array_equal(np.asarray(plane),expected):return False
+    check_active()
+    return True
+
+
+def _verify_derivative(path, width, height, has_alpha, profile_sha, *, expected_alpha=None, check_active=lambda:None):
+    """Verify the physical presentation contract before immutable publication."""
+    check_active()
+    with Image.open(path) as check:
+        check.verify()
+    with Image.open(path) as check:
+        check_active()
+        if check.size != (width,height):
+            raise ValueError('DERIVATIVE_VERIFY_FAILED')
+        check.load()
+        check_active()
+        expected_format = 'WEBP' if has_alpha else 'JPEG'
+        expected_mode = 'RGBA' if has_alpha else 'RGB'
+        mode_valid = check.mode == expected_mode
+        if has_alpha and check.format == 'WEBP' and check.mode in ('RGB','RGBA'):
+            mode_valid = _presentation_alpha_matches(expected_alpha,width,height,check_active,
+                check if check.mode == 'RGBA' else None)
+        profile = check.info.get('icc_profile')
+        if (check.size != (width, height) or check.format != expected_format or
+                not mode_valid or not isinstance(profile, bytes) or
+                hashlib.sha256(profile).hexdigest() != profile_sha or
+                check.info.get('exif') or check.info.get('xmp') or check.getexif()):
+            raise ValueError('DERIVATIVE_VERIFY_FAILED')
+    check_active()
+
+
 def execute(ctx: ExecutionContext, artifacts: TaskArtifacts, registry: ICCRegistry, operation: str) -> OperationResult:
     if ctx.lease.execution_profile.get('backend') != 'cpu':
         raise OperationFailure('CONFIG_INVALID')
@@ -91,7 +152,8 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts, registry: ICCRegist
         if not params.variant.startswith(expected_prefix):
             raise ValueError('VARIANT_OPERATION_MISMATCH')
         target_profile = registry.resolve('srgb_v1')
-        if params.profile_hash != media_profile_hash(params.variant, target_profile.sha256):
+        legacy = params.profile_hash == media_profile_hash(params.variant,target_profile.sha256,legacy=True)
+        if not legacy and params.profile_hash != media_profile_hash(params.variant, target_profile.sha256):
             raise ValueError('MEDIA_PROFILE_MISMATCH')
         if params.source_kind == 'working':
             image = artifacts.contract(params.image, WorkingImage)
@@ -125,8 +187,8 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts, registry: ICCRegist
                 alpha = alpha16.astype(np.float32) / 65535 if alpha16.dtype==np.uint16 else alpha16
             source_width, source_height = image.canvas.width, image.canvas.height
             width, height = dimensions(source_width, source_height, params.variant)
-            resized_source,resized_alpha = _resize_rgba(rgb,alpha,width,height)
-            converted16 = LittleCMS().convert(np.round(np.clip(resized_source,0,1) * 65535).astype(np.uint16), source_profile.data, target_profile.data)
+            resized_source,resized_alpha = _resize_rgba(rgb,alpha,width,height,encoding='gamma24' if legacy else image.color.encoding)
+            converted16 = LittleCMS().convert(np.round(np.clip(resized_source,0,1) * 65535).astype(np.uint16), source_profile.data, target_profile.data,preserve_identity=not legacy)
             resized = converted16.astype(np.float32) / 65535
         else:
             encoded = stack.enter_context(artifacts.input(params.image, suffix=params.suffix))
@@ -137,7 +199,7 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts, registry: ICCRegist
                                    target_width,target_height,alpha=has_alpha)
             rgb16, alpha, embedded_profile = _read_master(encoded.path, ctx.check_active,admit=admit_master)
             source_height, source_width = rgb16.shape[:2]
-            converted16 = LittleCMS().convert(rgb16, embedded_profile, target_profile.data)
+            converted16 = LittleCMS().convert(rgb16, embedded_profile, target_profile.data,preserve_identity=not legacy)
             width, height = dimensions(source_width, source_height, params.variant)
             converted = converted16.astype(np.float32) / 65535
             resized,resized_alpha = _resize_rgba(converted,alpha,width,height,encoding='srgb')
@@ -149,11 +211,8 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts, registry: ICCRegist
             try:
                 _write(path, resized, resized_alpha, target_profile.data, QUALITY[params.variant], strip_metadata=True)
                 reservation.validate_file(path)
-                with Image.open(path) as check:
-                    check.verify()
-                with Image.open(path) as check:
-                    if check.size != (width, height) or (check.mode == 'RGBA') != (resized_alpha is not None):
-                        raise ValueError('DERIVATIVE_VERIFY_FAILED')
+                _verify_derivative(path, width, height, resized_alpha is not None, target_profile.sha256,
+                    expected_alpha=resized_alpha,check_active=ctx.check_active)
             except (OSError, ValueError, pyvips.Error) as exc:
                 raise OperationFailure('INPUT_INVALID') from exc
             derivative = artifacts.stage(path, reservation, 'derivative', media_type)

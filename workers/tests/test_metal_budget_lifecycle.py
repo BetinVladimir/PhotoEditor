@@ -42,6 +42,16 @@ def test_metal_ceiling_never_exceeds_operator_limit_or_device_recommendation(rec
     torch.mps.set_per_process_memory_fraction.assert_called_once_with(receipt.fraction)
 
 
+@pytest.mark.parametrize('limit', [12_000_000_000, 24_000_000_000])
+def test_metal_operator_budget_is_not_clamped_to_cuda_mvp_ceiling(limit):
+    torch = torch_double(recommended=32_000_000_000)
+    receipt = install_metal_budget(limit, torch_module=torch)
+    assert receipt.configured_bytes == limit
+    assert 10_000_000_000 < receipt.allocator_bytes <= limit
+    assert valid_metal_budget_receipt(receipt, limit)
+    assert remaining_metal_budget(receipt.allocator_bytes, torch_module=torch) == receipt.allocator_bytes - GUARD
+
+
 @pytest.mark.parametrize('limit', [True, 0, -1, 10_000_000_000.0, 2**53])
 def test_invalid_budget_refuses_before_device_access(limit):
     torch = torch_double()

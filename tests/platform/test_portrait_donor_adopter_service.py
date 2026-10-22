@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from contextlib import nullcontext
 from threading import Event
 import pytest
@@ -7,12 +8,19 @@ from photo_worker.operations.portrait.donor_adapter import DonorRuntimeOptions
 from test_portrait_donor_runtime_lock import current_runtime
 
 
+def role_connection():
+    def execute(query, params=()):
+        assert "current_user=" in query
+        return SimpleNamespace(fetchone=lambda:(True,))
+    return SimpleNamespace(autocommit=True,execute=execute)
+
+
 def test_service_carries_owned_donor_installation_to_adopter(tmp_path,monkeypatch):
     config=service.AdopterConfig('postgres://unused','https://objects.example','bucket','key','secret')
     policy={'owned':True}
     installation=DonorAdoptionInstallation(policy,DonorRuntimeOptions(current_runtime().model_copy(deep=True),
         'b'*64,tmp_path,tmp_path,100,200),tmp_path,300,1<<30)
-    connections=[object(),object()];seen=[]
+    connections=[role_connection(),role_connection()];seen=[]
     def connect(*args,**kwargs):
         assert kwargs['autocommit'] is True and 'role=photo_scheduler' in kwargs['options']
         return nullcontext(connections.pop(0))

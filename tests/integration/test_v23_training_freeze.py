@@ -372,9 +372,9 @@ def test_training_freeze_happy_path_and_consent_pin(db):
                                    *stage_args[9:])).fetchone()[0] is False
     assert db.execute(stage_eval, stage_args).fetchone()[0] is True
     assert db.execute(stage_eval, stage_args).fetchone()[0] is True
-    assert db.execute('SELECT photo.close_v23_learning_evaluate(%s,%s,%s,%s,%s)',
+    assert db.execute('SELECT photo.close_v23_learning_evaluate_guarded(%s,%s,%s,%s,%s)',
                       (tenant, run, claim[0], claim[1], eval_task)).fetchone()[0] is False
-    assert db.execute('SELECT photo.close_v23_learning_evaluate(%s,%s,%s,%s,%s)',
+    assert db.execute('SELECT photo.close_v23_learning_evaluate_guarded(%s,%s,%s,%s,%s)',
                       (tenant, run, claim[0], uuid4(), eval_task)).fetchone()[0] is False
     db.execute('RESET ROLE')
     # Exercise the successful state transition in a rolled-back savepoint.
@@ -436,7 +436,13 @@ def test_training_freeze_happy_path_and_consent_pin(db):
                                               ref(candidate, '8' * 64)]), eval_task))
             assert db.execute('SELECT photo.v2_input_closure_ready(%s)',
                               (eval_task,)).fetchone()[0] is True
-            db.execute('SET LOCAL ROLE photo_scheduler')
+            # Owner-only relational transition: this synthetic closure does not
+            # claim current scheduler quality admission. The full guarded positive
+            # is covered by test_consent_authorized_training_withdrawal.py.
+            assert db.execute("SELECT has_function_privilege('photo_scheduler',"
+                              "'photo.close_v23_learning_evaluate(uuid,uuid,uuid,uuid,uuid)',"
+                              "'EXECUTE')").fetchone()[0] is False
+            db.execute('SET LOCAL ROLE photo_fn_owner')
             assert db.execute('SELECT photo.close_v23_learning_evaluate(%s,%s,%s,%s,%s)',
                               (tenant, run, claim[0], claim[1], eval_task)).fetchone()[0] is True
             db.execute('RESET ROLE')
@@ -514,16 +520,31 @@ def test_training_freeze_happy_path_and_consent_pin(db):
                                        auth_session)).fetchone()[0] is None
             assert db.execute(activate, (tenant, profile, 1, version, 'rollback',
                                          actor, auth_session)).fetchone()[0] is False
-            with pytest.raises(RuntimeError, match='discard purpose mutation'):
-                with db.transaction():
-                    db.execute("UPDATE photo.consent_grants SET purpose='learning_person' "
-                               'WHERE id=%s', (matching,))
-                    assert db.execute('SELECT photo.v23_learning_version_consents_live('
-                                      '%s,%s)', (tenant, version)).fetchone()[0] is False
-                    assert db.execute(activate, (tenant, profile, 1, version,
-                                                 'promote', actor,
-                                                 auth_session)).fetchone()[0] is False
-                    raise RuntimeError('discard purpose mutation')
+            # Consent identity is immutable, including for fixture controls.
+            with db.transaction():
+                db.execute('RESET ROLE')
+                with pytest.raises(errors.CheckViolation,match='V22_CONSENT_SCOPE_IMMUTABLE'),db.transaction():
+                    db.execute("UPDATE photo.consent_grants SET purpose='learning_person' WHERE id=%s",(matching,))
+                assert db.execute('SELECT purpose FROM photo.consent_grants WHERE id=%s',(matching,)).fetchone()==('identity_matching',)
+                db.execute('SET LOCAL ROLE photo_api')
+            # Synthetic relational helper input, not an adopted/eligible ticket.
+            # Same new lineage is valid before adding the wrong-purpose grant;
+            # only that legally constructed dependency changes the live verdict.
+            with db.transaction(force_rollback=True):
+                db.execute('RESET ROLE')
+                wrong_run,wrong_workflow,wrong_version=uuid4(),uuid4(),uuid4()
+                config={'project_id':str(project)}
+                db.execute("INSERT INTO photo.runs(id,tenant_id,kind,status,input_snapshot_id,config_snapshot,config_hash,created_by,failure_policy) SELECT %s,tenant_id,'v2','draft',input_snapshot_id,%s,%s,created_by,'fail_fast' FROM photo.runs WHERE id=%s",(wrong_run,Jsonb(config),sha256(_jcs_simple(config)).hexdigest(),run))
+                db.execute("INSERT INTO photo.v2_workflows(id,tenant_id,project_id,run_id,input_snapshot_id,workflow_type,renderer_version,policy_sha) SELECT %s,tenant_id,project_id,%s,input_snapshot_id,'learning',renderer_version,policy_sha FROM photo.v2_workflows WHERE id=%s",(wrong_workflow,wrong_run,workflow))
+                db.execute('INSERT INTO photo.workflow_consent_links(tenant_id,project_id,workflow_id,consent_id,consent_epoch) VALUES(%s,%s,%s,%s,1)',(tenant,project,wrong_workflow,matching))
+                db.execute('INSERT INTO photo.learning_versions(id,tenant_id,project_id,profile_id,version_no,workflow_id,training_artifact_id,model_artifact_id,evaluation_artifact_id,parent_version_id) SELECT %s,tenant_id,project_id,profile_id,version_no+1,%s,training_artifact_id,model_artifact_id,evaluation_artifact_id,id FROM photo.learning_versions WHERE id=%s',(wrong_version,wrong_workflow,version))
+                copied=db.execute('INSERT INTO photo.learning_example_links(tenant_id,project_id,version_id,event_id,consent_id,consent_epoch) SELECT tenant_id,project_id,%s,event_id,consent_id,consent_epoch FROM photo.learning_example_links WHERE version_id=%s',(wrong_version,version)).rowcount
+                assert copied==40
+                assert db.execute('SELECT photo.v23_learning_version_consents_live(%s,%s)',(tenant,wrong_version)).fetchone()==(True,)
+                wrong_grant=db.execute("INSERT INTO photo.consent_grants(tenant_id,project_id,purpose,person_id,status,epoch,policy_version,actor_id) VALUES(%s,%s,'learning_person',%s,'granted',1,'v1',%s) RETURNING id",(tenant,project,person,actor)).fetchone()[0]
+                db.execute('INSERT INTO photo.workflow_consent_links(tenant_id,project_id,workflow_id,consent_id,consent_epoch) VALUES(%s,%s,%s,%s,1)',(tenant,project,wrong_workflow,wrong_grant))
+                assert db.execute('SELECT photo.v23_learning_version_consents_live(%s,%s)',(tenant,wrong_version)).fetchone()==(False,)
+            # Genuine original adopted-version API promotion remains the control.
             assert db.execute(activate, (tenant, profile, 1, version, 'promote',
                                          actor, auth_session)).fetchone()[0] is True
             db.execute('RESET ROLE')

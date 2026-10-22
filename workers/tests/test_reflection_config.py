@@ -28,9 +28,8 @@ def test_reflection_refuses_missing_pins_and_wrong_worker(tmp_path):
         reflection_config.reflection_installation_from_environment(worker,
             {'PHOTO_REFLECTION_ENABLED': 'true'}.get)
     worker.backend = 'mps'
-    with pytest.raises(WorkerConfigurationError, match='CPU/CUDA'):
-        reflection_config.reflection_installation_from_environment(worker,
-            {'PHOTO_REFLECTION_ENABLED': 'true'}.get)
+    assert reflection_config.reflection_installation_from_environment(worker,
+        {'PHOTO_REFLECTION_ENABLED': 'true'}.get) is None
 
 
 def test_reflection_pins_existing_model_and_runtime_before_registration(monkeypatch, tmp_path):

@@ -16,7 +16,7 @@ it('binds status to original workflow and monotonic revision',()=>{
  expect(first.state).toBe('running');
  for(const patch of [{run_id:workflow},{workflow_id:run},{revision:'0'},{revision:'9223372036854775808'},{state:'unknown'}])
   expect(()=>readRelightAnalysisWorkflow({...first,...patch},ticket,first)).toThrow();
- expect(()=>readRelightAnalysisWorkflow({...first,revision:'2',state:'completed'},ticket,first).state).toBe('completed');
+ expect(readRelightAnalysisWorkflow({...first,revision:'2',state:'completed'},ticket,first).state).toBe('completed');
  const done=readRelightAnalysisWorkflow({...first,revision:'2',state:'completed'},ticket,first);
  expect(()=>readRelightAnalysisWorkflow({...done,revision:'3',state:'running'},ticket,done)).toThrow('RELIGHT_ANALYSIS_STATUS_REGRESSED');
  expect(()=>readRelightAnalysisWorkflow({...done,revision:'1'},ticket,done)).toThrow('RELIGHT_ANALYSIS_STATUS_REGRESSED');

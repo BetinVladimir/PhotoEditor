@@ -17,13 +17,17 @@ class Pool:
     lock = SimpleNamespace(lock_id='a' * 64,
                            models=[SimpleNamespace(id='lraspp_mobilenet_v3_large')])
 
+    def __init__(self,backend='cuda'):
+        self.backend=backend
+
     @contextmanager
     def acquire(self, model_id, backend):
-        assert model_id == 'lraspp_mobilenet_v3_large' and backend == 'cuda'
+        assert model_id == 'lraspp_mobilenet_v3_large' and backend == self.backend
         yield SimpleNamespace(infer=lambda value: value)
 
 
-def test_holdout_person_stats_reuses_exact_statistics(tmp_path, monkeypatch):
+@pytest.mark.parametrize('backend',['cuda','mps'])
+def test_holdout_person_stats_reuses_exact_statistics(tmp_path, monkeypatch,backend):
     artifacts = Artifacts(tmp_path, False)
     monkeypatch.setattr(
         'photo_worker.operations.learning.person_stats._preview',
@@ -37,8 +41,8 @@ def test_holdout_person_stats_reuses_exact_statistics(tmp_path, monkeypatch):
     alpha = np.full(artifacts.rgb.shape[:2], 65535, np.uint16)
     with ScratchSpace(root, uuid4(), uuid4(), 1, 500_000,
                       min_free_bytes=0) as scratch:
-        with open_holdout_person_stats(artifacts.rgb, alpha, Pool(),
-                                       'cuda', 'a' * 64, scratch,
+        with open_holdout_person_stats(artifacts.rgb, alpha, Pool(backend),
+                                       backend, 'a' * 64, scratch,
                                        lambda: None) as result:
             assert result.mask.shape == artifacts.rgb.shape[:2]
             assert result.features.shape == (20,)

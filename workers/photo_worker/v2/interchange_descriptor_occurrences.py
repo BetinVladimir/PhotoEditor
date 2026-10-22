@@ -166,11 +166,11 @@ class SQLExportDescriptorAuthority:
     def __call__(self, occurrence, evidence):
         from photo_worker.contracts.base import parse_json
         self.ctx.check_active()
-        wire = dict(root=evidence['root'], root_jcs=evidence['root_body'].decode('utf-8'),
-            descriptor=evidence['descriptor'], selected_binding=evidence['selected_binding'],
-            analysis_id=evidence['analysis_id'], selected_ordinal=evidence['selected_ordinal'],
-            model_lock_sha256=evidence['model_lock_sha256'], reference=occurrence['reference'],
-            contract=occurrence['contract'], frame_binding=evidence['frame_binding'],
+        wire = dict(root=evidence['root'].model_dump(mode='json'), root_jcs=evidence['root_body'].decode('utf-8'),
+            descriptor=evidence['descriptor'].model_dump(mode='json'), selected_binding=evidence['selected_binding'].model_dump(mode='json'),
+            analysis_id=str(evidence['analysis_id']), selected_ordinal=evidence['selected_ordinal'],
+            model_lock_sha256=evidence['model_lock_sha256'], reference=occurrence['reference'].model_dump(mode='json'),
+            contract=occurrence['contract'], frame_binding=None if evidence['frame_binding'] is None else evidence['frame_binding'].model_dump(mode='json'),
             frame_ordinal=evidence['frame_ordinal'])
         owned = parse_json(canonical_bytes(wire), max_bytes=2 << 20)
         allowed = self.database.interchange_export_descriptor_authority(self.ctx.lease, self.params, owned)

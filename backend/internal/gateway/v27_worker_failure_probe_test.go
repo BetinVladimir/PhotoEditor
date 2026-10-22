@@ -35,7 +35,7 @@ func probeV27WorkerFailure(t *testing.T, ctx context.Context, admin *pgxpool.Poo
 		if retryable {
 			value = "1"
 		}
-		cmd.Env = append(os.Environ(), "PYTHONPATH="+filepath.Join(root, "workers")+":"+filepath.Join(root, "src"), "PHOTO_TEST_V27_FAILURE_RETRYABLE="+value, "PHOTO_TEST_V27_OLD_FAILURE_IDENTITY="+old)
+		cmd.Env = append(os.Environ(), "PYTHONPATH="+filepath.Join(root, "workers")+":"+filepath.Join(root, "apps", "local-editor", "src"), "PHOTO_TEST_V27_FAILURE_RETRYABLE="+value, "PHOTO_TEST_V27_OLD_FAILURE_IDENTITY="+old)
 		out, err := cmd.CombinedOutput()
 		if err != nil || !bytes.Contains(out, []byte("V27_WORKER_FAILURE_COMMITTED_OK")) {
 			t.Fatal("actual worker failure commit", err, string(out))

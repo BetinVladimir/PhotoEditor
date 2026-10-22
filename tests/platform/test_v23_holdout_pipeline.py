@@ -15,6 +15,8 @@ from test_v23_holdout_denoise import setup
 def test_full_native_holdout_order_and_cancellation_cleanup(tmp_path, monkeypatch, cancel_at):
     from photo_worker.operations.learning import color_render, beauty_render, background
     artifacts,case,base,provider,execution,model_events,engine = setup(tmp_path)
+    from photo_worker.contracts.style import ModelReference
+    base.models.extend([ModelReference(id=x,weight_id='fixture') for x in ('fan2d','sfd')])
     base.beauty = Beauty(enabled=True,algorithm='beautyfilter_v1',smoothing=.4,
         tone_evenness=.1,texture_keep=1,skin_mask='face68_conservative_v1',protect_features=True)
     base.extensions.background = Background(mode='blur',asset_id=None,blur_strength=.5,
@@ -227,7 +229,7 @@ def test_incomplete_pipeline_refuses_before_any_render_callback(tmp_path, monkey
     try:
         with open_holdout_workspace(artifacts, case, artifacts.image.color.icc_sha256,
                                     lambda: None) as workspace:
-            with pytest.raises(ValueError, match='HOLDOUT_(COMPLETE_RESTORATION_REQUIRED|RENDER_REQUIRES_EFFECT_PIPELINE)'):
+            with pytest.raises(ValueError, match='HOLDOUT_(COMPLETE_RESTORATION_REQUIRED|RENDER_REQUIRES_EFFECT_PIPELINE|BACKGROUND_BINDING_MISMATCH)'):
                 render_holdout_triplet(workspace, FrozenHoldoutStyles(*styles),
                     person_reliable=False, prepare_source=prepare)
         assert list(artifacts.scratch.directory.iterdir()) == []

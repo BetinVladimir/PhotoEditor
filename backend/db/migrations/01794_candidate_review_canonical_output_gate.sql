@@ -29,7 +29,6 @@ SET search_path=pg_catalog,photo AS $$
        END
       ) IS NOT TRUE)
     )
-   )
  );
 $$;
 ALTER FUNCTION photo.candidate_review_canonical_output_allowed(uuid,uuid,uuid,uuid)

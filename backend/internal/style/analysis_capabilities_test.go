@@ -1,0 +1,8 @@
+package style
+import("context";"errors";"testing";"github.com/google/uuid";"github.com/jackc/pgx/v5";"photoeditor/backend/internal/domain")
+type analysisSelectionRow struct{fit,backend,aggregate string;err error}
+func(r analysisSelectionRow)Scan(v ...any)error{if r.err!=nil{return r.err};*(v[0].(*string))=r.fit;*(v[1].(*string))=r.backend;*(v[2].(*string))=r.aggregate;return nil}
+type analysisSelectionQuery struct{row analysisSelectionRow;geometry bool;sql string}
+func(q *analysisSelectionQuery)QueryRow(_ context.Context,sql string,args ...any)pgx.Row{q.sql=sql;q.geometry=args[1].(bool);return q.row}
+func TestAnalysisSelectionUsesCombinedSelectorAndMetal(t *testing.T){q:=&analysisSelectionQuery{row:analysisSelectionRow{fit:"fit",backend:"mps",aggregate:"aggregate"}};out,e:=selectAnalysisRuntimes(context.Background(),q,uuid.New(),true);if e!=nil||out.FitBackend!="mps"||!q.geometry||q.sql!=`SELECT fit_lock_id,fit_backend,aggregate_lock_id FROM photo.select_style_analysis_runtimes($1,$2)`{t.Fatal(out,e,q)}}
+func TestAnalysisSelectionCannotInventAggregateOrHideDatabaseErrors(t *testing.T){q:=&analysisSelectionQuery{row:analysisSelectionRow{fit:"fit",backend:"cpu"}};_,e:=selectAnalysisRuntimes(context.Background(),q,uuid.New(),false);if domain.AsError(e).Code!="STYLE_AGGREGATE_CAPABILITY_UNAVAILABLE"{t.Fatal(e)};q.row.err=pgx.ErrNoRows;_,e=selectAnalysisRuntimes(context.Background(),q,uuid.New(),false);if domain.AsError(e).Code!="STYLE_FIT_CAPABILITY_UNAVAILABLE"{t.Fatal(e)};q.row.err=errors.New("offline");_,e=selectAnalysisRuntimes(context.Background(),q,uuid.New(),false);if e!=q.row.err{t.Fatal(e)}}

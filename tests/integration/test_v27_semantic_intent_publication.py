@@ -1,4 +1,5 @@
 """Real immutable intent PUT/replay; source/mask metadata is synthetic."""
+from specialized_go_child_evidence import run_named_go
 from io import BytesIO
 import json
 import os
@@ -16,7 +17,15 @@ from semantic_qualification_fixture import frozen_qualification
 from test_v25_lens_objectstore import lens_objects
 ROOT=Path(__file__).resolve().parents[2]
 
-@pytest.mark.parametrize("wrapper,race",[(False,False),(True,False),(True,True),(True,"source"),(True,"batch"),(True,"fresh"),(True,"partial"),(True,"registration-revoke"),(True,"oriented"),(True,"external"),(True,"manual-lock"),(True,"manual-lock-go"),(True,"manual-lock-go-disjoint"),(True,"manual-races"),(True,"native-bootstrap"),(True,"ordinary-admission"),(True,"create-service"),(True,"create-person"),(True,"create-person-uncovered"),(True,"native-face-wire"),(True,"native-person-defect-recovery"),(True,"native-person-defect-wire"),(True,"native-terminal-cancel"),(True,"native-terminal-job-detector"),(True,"native-terminal-job-person"),(True,"native-terminal-job-person-draft"),(True,"native-terminal-worker-person"),(True,"native-terminal-worker-detector")],ids=["publisher","proposal-wrapper","revoke-during-put","source-during-put","transfer-batch","preparer-fresh","preparer-partial","preparer-registration-revoke","transfer-batch-oriented","transfer-batch-external","manual-lock-external","manual-lock-go-external","manual-lock-go-disjoint-external","manual-races-external","native-bootstrap","ordinary-admission","create-service","create-person","create-person-uncovered","native-face-wire","native-person-defect-recovery","native-person-defect-wire","native-terminal-cancel","native-terminal-job-detector","native-terminal-job-person","native-terminal-job-person-draft","native-terminal-worker-person","native-terminal-worker-detector"])
+def test_ordinary_scene_full_parent_and_transfer_tail(database,lens_objects,monkeypatch):
+    """Dedicated source-linked path; no external ready-parent fixture required."""
+    monkeypatch.setenv('PHOTO_TEST_V27_ORIGINAL_PERSON','1')
+    test_semantic_intent_publication_old_version_and_replay(database,lens_objects,True,'native-scene-tail')
+
+def test_legacy_ordinary_unsealed_recovery(database,lens_objects):
+    test_semantic_intent_publication_old_version_and_replay(database,lens_objects,True,'legacy-ordinary-recovery')
+
+@pytest.mark.parametrize("wrapper,race",[(False,False),(True,False),(True,True),(True,"source"),(True,"batch"),(True,"fresh"),(True,"partial"),(True,"registration-revoke"),(True,"oriented"),(True,"external"),(True,"manual-lock"),(True,"manual-lock-go"),(True,"manual-lock-go-disjoint"),(True,"manual-races"),(True,"native-bootstrap"),(True,"ordinary-admission"),(True,"create-service"),(True,"create-person"),(True,"create-person-uncovered"),(True,"native-face-wire"),(True,"native-person-defect-recovery"),(True,"native-person-defect-wire"),(True,"native-terminal-cancel"),(True,"native-terminal-job-detector"),(True,"native-terminal-job-person"),(True,"native-terminal-job-person-draft"),(True,"native-terminal-worker-person"),(True,"native-terminal-worker-detector"),(True,"native-scene-wire")],ids=["publisher","proposal-wrapper","revoke-during-put","source-during-put","transfer-batch","preparer-fresh","preparer-partial","preparer-registration-revoke","transfer-batch-oriented","transfer-batch-external","manual-lock-external","manual-lock-go-external","manual-lock-go-disjoint-external","manual-races-external","native-bootstrap","ordinary-admission","create-service","create-person","create-person-uncovered","native-face-wire","native-person-defect-recovery","native-person-defect-wire","native-terminal-cancel","native-terminal-job-detector","native-terminal-job-person","native-terminal-job-person-draft","native-terminal-worker-person","native-terminal-worker-detector","native-scene-wire"])
 def test_semantic_intent_publication_old_version_and_replay(database,lens_objects,wrapper,race):
     native_terminal_worker=race in ("native-terminal-worker-person","native-terminal-worker-detector")
     native_terminal_draft=race=="native-terminal-job-person-draft"
@@ -41,6 +50,10 @@ def test_semantic_intent_publication_old_version_and_replay(database,lens_object
     revoke_registration=race=="registration-revoke"
     partial=race=="partial"
     batch=race in ("native-terminal-worker-person","native-terminal-worker-detector","native-terminal-job-person-draft","native-terminal-job-detector","native-terminal-job-person","native-terminal-cancel","native-face-wire","native-person-defect-recovery","native-person-defect-wire","create-person-uncovered","create-person","create-service","ordinary-admission","native-bootstrap","batch","fresh","partial","registration-revoke","oriented","external","manual-lock","manual-lock-go","manual-lock-go-disjoint","manual-races")
+    scene_wire=race=="native-scene-wire"
+    scene_tail=race=="native-scene-tail"
+    legacy_ordinary=race=='legacy-ordinary-recovery'
+    if scene_wire or scene_tail or legacy_ordinary: native_bootstrap=oriented=batch=True
     if batch:race=False
     client,bucket=lens_objects
     source_object=None
@@ -51,7 +64,14 @@ def test_semantic_intent_publication_old_version_and_replay(database,lens_object
         profiles=json.loads((ROOT/'resources/icc/profiles.lock.json').read_text())
         source_image['color']['icc_sha256']=next(profile['sha256'] for profile in profiles['profiles'] if profile['id']=='work_rec2020_gamma24_v1')
         rgb_buffer=BytesIO()
-        np.save(rgb_buffer,np.full((300,400,3),.5 if oriented or create_person else 1.25,dtype='<f4'),allow_pickle=False)
+        rgb=np.full((300,400,3),.5 if oriented or create_person else 1.25,dtype='<f4')
+        if scene_tail:
+            # Identical source/target; real ORB must recover the transform.
+            rng=np.random.default_rng(20261017)
+            coarse=rng.uniform(.05,.95,(75,100)).astype('<f4')
+            texture=np.repeat(np.repeat(coarse,4,axis=0),4,axis=1)
+            rgb[:]=texture[...,None]
+        np.save(rgb_buffer,rgb,allow_pickle=False)
         rgb_body=rgb_buffer.getvalue()
         rgb_id=str(uuid4())
         rgb_sha=sha256(rgb_body).hexdigest()
@@ -145,11 +165,14 @@ def test_semantic_intent_publication_old_version_and_replay(database,lens_object
                 pixels_buffer=BytesIO()
                 selected_pixels=np.full((300,400),.5,dtype='<f4')
                 selected_pixels[41,17]=0
-                if os.environ.get("PHOTO_TEST_V27_PERSON_DEFECT_PARENT") == "1":
+                if os.environ.get("PHOTO_TEST_V27_PERSON_DEFECT_PARENT") == "1" or scene_tail:
                     # Positive native parent input must be disjoint from the
                     # independently generated protected face features/person.
                     selected_pixels.fill(0)
                     selected_pixels[:10,:10]=.5
+                    if scene_tail:
+                        selected_pixels.fill(0)
+                        selected_pixels[40:90,40:80]=.5
                 if native_disjoint:
                     selected_pixels.fill(0)
                     selected_pixels[0,0]=.5
@@ -173,12 +196,13 @@ def test_semantic_intent_publication_old_version_and_replay(database,lens_object
                 db.execute("INSERT INTO photo.v2_draft_uploads(tenant_id,document_id,project_id,asset_version_id,artifact_id,sha256,bytes,bucket,state,object_version,completed_at,user_mask_binding) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,'ready',%s,clock_timestamp(),%s)",(case['Tenant'],uuid4(),case['Project'],base['asset_version_id'],mask['artifact_id'],mask['sha256'],mask_size,mask_bucket,mask_version,Jsonb(dict(source=base['source'],canvas_hash=base['canvas_hash'],mask=mask_document))))
         fixture=dict(Tenant=case['Tenant'],Actor=case['Actor'],Session=case['Session'],Document=str(uuid4()),Intent=intent,TransferBatch=batch,CommitOrdinary=commit_ordinary,CreateOrdinary=create_ordinary,CreatePerson=create_person,FailManifest=partial,RevokeManifest=revoke_registration,Objects=client._photo_test_config,RevokeDuringPut=race is True,SourceDuringPut=race=="source")
         fixture['ManualLockOnly']=go_lock_only
+        fixture['LegacyOrdinary']=legacy_ordinary
         fixture['ManualRaceOnly']=race_only
         if batch:
             fixture['SourceBody']=source_image
             fixture['MaskBody']=mask_document
             with db.transaction():
-                db.execute("UPDATE photo.tenants SET quotas=jsonb_set(quotas,'{storage_bytes}','1073741824'::jsonb) WHERE id=%s",(case['Tenant'],))
+                db.execute("UPDATE photo.tenants SET quotas=jsonb_set(quotas,'{storage_bytes}',%s::jsonb) WHERE id=%s",('8589934592' if scene_tail else '1073741824',case['Tenant']))
                 calibration=json.loads((ROOT/'docs/implementation-v2/contracts/structural-fixtures.json').read_text())['fixtures']['Calibration']
                 calibration.update(qualified=True,model_lock_sha='c'*64,dataset_sha='d'*64,loss_weights=[1/6]*6)
                 calibration_body=json.dumps(calibration,sort_keys=True,separators=(',',':')).encode()
@@ -187,7 +211,15 @@ def test_semantic_intent_publication_old_version_and_replay(database,lens_object
                 calibration_key='proposal-calibration/'+calibration_id
                 calibration_version=client.put_object(bucket,calibration_key,BytesIO(calibration_body),len(calibration_body),content_type='application/json',metadata={'sha256':calibration_sha}).version_id
                 db.execute("INSERT INTO photo.artifacts(id,tenant_id,bucket,object_key,sha256,bytes,media_type,object_version,verified_at) VALUES(%s,%s,%s,%s,%s,%s,'application/json',%s,clock_timestamp())",(calibration_id,case['Tenant'],bucket,calibration_key,calibration_sha,len(calibration_body),calibration_version))
-                fixture['Qualification']=frozen_qualification(db,case['Tenant'],case['Project'],case['Actor'],objects=lens_objects,calibration_ref=dict(artifact_id=calibration_id,sha256=calibration_sha),model_lock_sha='c'*64,resource_metrics=dict(peak_rss_bytes=101,peak_vram_bytes=202,scratch_bytes=303) if race=='external' else None)
+                scene_policy=dict(algorithm='farneback_depth_plane_v1',background_labels=[1],proxy_edge=256,min_support=32,flow_error_px=1,homography_error_px=1,depth_plane_error=.01)
+                scene_policy_sha=sha256(json.dumps(scene_policy,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+                fixture['Qualification']=frozen_qualification(db,case['Tenant'],case['Project'],case['Actor'],objects=lens_objects,calibration_ref=dict(artifact_id=calibration_id,sha256=calibration_sha),model_lock_sha='c'*64,resource_metrics=dict(peak_rss_bytes=101,peak_vram_bytes=202,scratch_bytes=303) if race=='external' else None,required_checks=['quality','semantic.scene.farneback_depth_plane_v1'] if scene_tail else None,evidence_sha=scene_policy_sha if scene_tail else 'f'*64)
+                if scene_wire or scene_tail:
+                    fixture['SceneQualifications']=[frozen_qualification(db,case['Tenant'],case['Project'],case['Actor'],objects=lens_objects,calibration_ref=dict(artifact_id=calibration_id,sha256=calibration_sha),model_lock_sha='c'*64,operation=operation,backend='cuda',resource_metrics={'peak_vram_bytes':128<<20}) for operation in ('scene.parse','depth.predict')]
+                if scene_tail:
+                    # Explicit synthetic imported evidence for authority testing;
+                    # never a measured model/corpus qualification claim.
+                    fixture['ScenePolicy']=scene_policy
                 fixture['MeasuredTransferCosts']=race=='external'
                 fixture['PersonQualification']=frozen_qualification(db,case['Tenant'],case['Project'],case['Actor'],objects=lens_objects,calibration_ref=dict(artifact_id=calibration_id,sha256=calibration_sha),model_lock_sha='c'*64,operation='mask.person',resource_metrics={'peak_vram_bytes':128<<20} if native_bootstrap or create_person else None)
                 fixture['FaceQualifications']=[frozen_qualification(db,case['Tenant'],case['Project'],case['Actor'],objects=lens_objects,calibration_ref=dict(artifact_id=calibration_id,sha256=calibration_sha),model_lock_sha='c'*64,operation=operation,backend='cuda' if native_bootstrap else 'cpu',resource_metrics={'peak_vram_bytes':128<<20} if os.environ.get('PHOTO_TEST_V27_TARGET_FACE_PLAN')=='1' else None) for operation in ('face.landmarks','face.detect')]
@@ -752,16 +784,17 @@ def test_semantic_intent_publication_old_version_and_replay(database,lens_object
             return
 
         if native_bootstrap:
-            db.execute("UPDATE photo.operation_registry SET v2_enabled=true WHERE operation IN ('face.detect','mask.person','face.landmarks','face.parse') AND version='1'")
-        if face_wire:
+            db.execute("UPDATE photo.operation_registry SET v2_enabled=true WHERE operation IN ('face.detect','mask.person','face.landmarks','face.parse','scene.parse','depth.predict') AND version='1'")
+        if face_wire or scene_tail:
             db.execute("UPDATE photo.operation_registry SET v2_enabled=true WHERE operation IN ('mask.face_skin','defects.propose') AND version='1'")
-        if os.environ.get("PHOTO_TEST_V27_PERSON_DEFECT_PARENT") == "1":
+        if os.environ.get("PHOTO_TEST_V27_PERSON_DEFECT_PARENT") == "1" or scene_tail or legacy_ordinary:
             # Isolated imported-qualification fixture only. The deployed default
             # remains disabled pending real model/corpus acceptance.
             assert db.execute("SELECT v2_enabled FROM photo.operation_registry WHERE operation='semantic.transfer' AND version='1'").fetchone() == (False,)
             db.execute("UPDATE photo.operation_registry SET v2_enabled=true WHERE operation='semantic.transfer' AND version='1'")
         before=db.execute('SELECT storage_bytes,reserved_bytes FROM photo.tenant_usage WHERE tenant_id=%s',(case['Tenant'],)).fetchone()
-        env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_SEMANTIC_INTENT_PUBLISH_CASE=json.dumps(fixture),GOCACHE='/private/tmp/photoeditor-go-cache')
+        env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_SEMANTIC_INTENT_PUBLISH_CASE=json.dumps(fixture),GOCACHE=str(ROOT/'.cache/go-build'))
+        if scene_wire: env['PHOTO_TEST_V27_SCENE_WIRE']='1'
         if native_terminal_worker: env['PHOTO_TEST_V27_NATIVE_TERMINAL_WORKER_FAILURE']='1'
         if native_terminal_draft: env['PHOTO_TEST_V27_NATIVE_TERMINAL_DRAFT']='1'
         if native_terminal_job: env['PHOTO_TEST_V27_NATIVE_TERMINAL_JOB']='mask.person' if native_terminal_person else 'face.detect'
@@ -772,10 +805,22 @@ def test_semantic_intent_publication_old_version_and_replay(database,lens_object
         if person_defect_execution: env['PHOTO_TEST_V27_PERSON_DEFECT_EXECUTION']='1'
         package='./internal/semanticproposal' if wrapper else './internal/v2draft'
         probe='^TestIntegrationNativePreparationBootstrap$' if native_bootstrap else '^TestIntegrationTransferDraftPreparer$' if fresh else '^TestIntegrationProposalIntentPublication$' if wrapper else '^TestIntegrationSemanticIntentPublication$'
+        if scene_tail: probe='^TestIntegrationOrdinaryScenePipelineTail$'
+        if legacy_ordinary: probe='^TestIntegrationOrdinaryScenePipelineTail$'
         parent_probe = os.environ.get('PHOTO_TEST_V27_PERSON_DEFECT_PARENT') == '1'
         full_recover = os.environ.get('PHOTO_TEST_V27_ORIGINAL_PERSON_RECOVER') == '1'
-        result=subprocess.run(['go','test',package,'-run',probe,'-count=1','-timeout','540s' if go_lock_only else '960s' if full_recover else '660s' if parent_probe else '210s','-v'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=570 if go_lock_only else 990 if full_recover else 690 if parent_probe else 240)
+        result=run_named_go(['go','test',package,'-run',probe,'-count=1','-timeout','1200s' if scene_tail else '390s' if scene_wire else '540s' if go_lock_only else '960s' if full_recover else '660s' if parent_probe else '210s','-v'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=1230 if scene_tail else 420 if scene_wire else 570 if go_lock_only else 990 if full_recover else 690 if parent_probe else 240)
+        if os.environ.get('PHOTO_TEST_NATIVE_TIMING') == '1':
+            print(result.stdout, end='')
+            print(result.stderr, end='')
         assert result.returncode==0,result.stdout+result.stderr
+        if legacy_ordinary:
+            assert 'V27_LEGACY_ORDINARY_UNSEALED_RECOVERY_OK' in result.stdout
+            return
+        if scene_tail:
+            assert 'V27_ORDINARY_SCENE_FINAL_PARENT_AND_RECEIPT_OK' in result.stdout
+            assert 'V27_ORDINARY_SCENE_TRANSFER_TAIL_OK' in result.stdout
+            return
         retry_success=os.environ.get('PHOTO_TEST_V27_TARGET_WORKER_RETRY_SUCCESS_OPERATION')
         if retry_success:
             assert 'V27_TARGET_WORKER_RETRY_SUCCESS_OK' in result.stdout
@@ -1303,7 +1348,7 @@ def test_semantic_intent_publication_old_version_and_replay(database,lens_object
             assert len(native_tasks)==1
             objects_config=client._photo_test_config
             wire_env=dict(env,PHOTO_TEST_V27_GATEWAY_TASK=str(native_tasks[0][0]),PHOTO_TEST_V27_REPO_ROOT=str(ROOT),PHOTO_TEST_MINIO_URL=objects_config['Endpoint'],PHOTO_TEST_MINIO_BUCKET=bucket,PHOTO_TEST_MINIO_ACCESS=objects_config['AccessKey'],PHOTO_TEST_MINIO_SECRET=objects_config['SecretKey'])
-            wire=subprocess.run(['go','test','./internal/gateway','-run','^TestIntegrationV27IndexedDownloads$','-count=1','-timeout','150s','-v'],cwd=ROOT/'backend',env=wire_env,capture_output=True,text=True,timeout=180)
+            wire=run_named_go(['go','test','./internal/gateway','-run','^TestIntegrationV27IndexedDownloads$','-count=1','-timeout','150s','-v'],cwd=ROOT/'backend',env=wire_env,capture_output=True,text=True,timeout=180)
             assert wire.returncode==0,wire.stdout+wire.stderr
             with db.transaction():
                 foreign=seed_original_composition(db,snapshot_canvas=True)
@@ -1337,7 +1382,7 @@ def test_semantic_intent_publication_old_version_and_replay(database,lens_object
             native_config=db.execute("SELECT r.config_snapshot->'v27_defect_prepare' FROM photo.tasks t JOIN photo.runs r ON r.tenant_id=t.tenant_id AND r.id=t.run_id WHERE t.tenant_id=%s AND t.id=%s",(case['Tenant'],native_tasks[0][0])).fetchone()[0]
             content_fixture=dict(fixture,Project=case['Project'],NativeForeign=foreign_scope,NativeIntent=native_config['intent'],NativeSnapshot=native_config['snapshot'],NativeSelectionOverlap=native_selection_overlap,NativeSelectionCount=native_selection_count)
             content_env=dict(wire_env,PHOTO_SEMANTIC_INTENT_PUBLISH_CASE=json.dumps(content_fixture))
-            content=subprocess.run(['go','test','./internal/semanticproposal','-run','^TestIntegration(NativeDefectContent|SavedDefectConfigIsolation)$','-count=1','-timeout','360s','-v'],cwd=ROOT/'backend',env=content_env,capture_output=True,text=True,timeout=390)
+            content=run_named_go(['go','test','./internal/semanticproposal','-run','^TestIntegration(NativeDefectContent|SavedDefectConfigIsolation)$','-count=1','-timeout','360s','-v'],cwd=ROOT/'backend',env=content_env,capture_output=True,text=True,timeout=390)
             assert content.returncode==0,content.stdout+content.stderr
             assert 'V27_SAVED_DEFECT_CONFIG_ISOLATION_OK' in content.stdout
             assert 'V27_NATIVE_DEFECT_WORKER_CONTENT_OK' in content.stdout
@@ -1396,7 +1441,7 @@ def test_semantic_intent_publication_old_version_and_replay(database,lens_object
                 db.execute("UPDATE photo.asset_versions SET review_state='accepted' WHERE id=%s",(base['asset_version_id'],))
             fixture.update(Session=str(restored),RevokeDuringPut=False,SourceDuringPut=False)
             env['PHOTO_SEMANTIC_INTENT_PUBLISH_CASE']=json.dumps(fixture)
-            recovered=subprocess.run(['go','test',package,'-run',probe,'-count=1','-timeout','210s','-v'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=240)
+            recovered=run_named_go(['go','test',package,'-run',probe,'-count=1','-timeout','210s','-v'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=240)
             assert recovered.returncode==0,recovered.stdout+recovered.stderr
             assert 'V27_PROPOSAL_PUBLICATION_OK' in recovered.stdout
             ready=db.execute("SELECT a.object_version,u.state FROM photo.v2_draft_uploads u JOIN photo.artifacts a ON a.tenant_id=u.tenant_id AND a.id=u.artifact_id WHERE u.artifact_id=%s",(artifact,)).fetchone()
@@ -1587,7 +1632,7 @@ def test_semantic_intent_publication_old_version_and_replay(database,lens_object
             db.execute('UPDATE photo.sessions SET revoked_at=clock_timestamp() WHERE id=%s',(case['Session'],))
             fixture['Revoked']=True
             env['PHOTO_SEMANTIC_INTENT_PUBLISH_CASE']=json.dumps(fixture)
-            denied=subprocess.run(['go','test',package,'-run',probe,'-count=1','-timeout','210s','-v'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=240)
+            denied=run_named_go(['go','test',package,'-run',probe,'-count=1','-timeout','210s','-v'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=240)
             assert denied.returncode==0,denied.stdout+denied.stderr
             assert 'V27_PROPOSAL_REVOKED_OK' in denied.stdout
             assert db.execute('SELECT storage_bytes,reserved_bytes FROM photo.tenant_usage WHERE tenant_id=%s',(case['Tenant'],)).fetchone()==after

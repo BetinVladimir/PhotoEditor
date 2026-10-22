@@ -3,12 +3,12 @@ import pytest
 from psycopg.types.json import Jsonb
 
 
-@pytest.mark.parametrize("request", [None, {}, [], {"tenant_id": "invalid"},
+@pytest.mark.parametrize("payload", [None, {}, [], {"tenant_id": "invalid"},
                                      {"tenant_id": None, "run_id": None}])
-def test_local_queue_refuses_malformed_or_missing_authority(db, request):
+def test_local_queue_refuses_malformed_or_missing_authority(db, payload):
     db.execute("SET LOCAL ROLE photo_scheduler")
     assert db.execute("SELECT photo.v32_local_portrait_queue(%s)",
-                      (None if request is None else Jsonb(request),)).fetchone() == (None,)
+                      (None if payload is None else Jsonb(payload),)).fetchone() == (None,)
 
 
 @pytest.mark.parametrize("role,allowed", [("photo_scheduler", True), ("photo_api", False),

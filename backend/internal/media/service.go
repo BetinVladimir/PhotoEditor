@@ -54,19 +54,32 @@ var profiles = map[string]struct {
 }{"thumb320": {320, 82}, "thumb640": {640, 82}, "preview1600": {1600, 88}, "preview2560": {2560, 88}}
 
 func ProfileHash(variant, srgbSHA string) (string, error) {
+	return profileHash(variant,srgbSHA,false)
+}
+
+// LegacyProfileHash identifies frozen jobs authored before renderer policy v2.
+// New cache readers and compilers use ProfileHash exclusively.
+func LegacyProfileHash(variant, srgbSHA string) (string,error) {
+	return profileHash(variant,srgbSHA,true)
+}
+
+// KnownProfileHash is for immutable, source-bound historical receipts only.
+// Fresh cache lookup and admission must continue to use ProfileHash.
+func KnownProfileHash(hash,variant,srgbSHA string) bool {
+	current,err:=ProfileHash(variant,srgbSHA)
+	if err!=nil {return false}
+	legacy,_:=LegacyProfileHash(variant,srgbSHA)
+	return hash==current || hash==legacy
+}
+
+func profileHash(variant, srgbSHA string, legacy bool) (string,error) {
 	profile, ok := profiles[variant]
 	if _, err := domain.ParseDigest(srgbSHA); !ok || err != nil {
 		return "", errors.New("unknown media variant")
 	}
-	return canonical.Hash(struct {
-		SchemaVersion int    `json:"schema_version"`
-		Variant       string `json:"variant"`
-		LongEdge      int    `json:"long_edge"`
-		Quality       int    `json:"quality"`
-		ICC           string `json:"icc_sha256"`
-		NoUpscale     bool   `json:"no_upscale"`
-		Metadata      string `json:"metadata_policy"`
-	}{1, variant, profile.Edge, profile.Quality, srgbSHA, true, "stripped"})
+	payload:=map[string]any{"schema_version":1,"variant":variant,"long_edge":profile.Edge,"quality":profile.Quality,"icc_sha256":srgbSHA,"no_upscale":true,"metadata_policy":"stripped"}
+	if !legacy { payload["renderer_policy"]="declared_encoding_alpha8_icc_v2" }
+	return canonical.Hash(payload)
 }
 
 func normalize(request Request, srgbSHA string) (Request, map[string]string, error) {
@@ -90,9 +103,11 @@ func normalize(request Request, srgbSHA string) (Request, map[string]string, err
 
 func (s Service) Sign(ctx context.Context, who auth.Identity, tenantID, assetID uuid.UUID, raw Request) (Links, error) {
 	out := Links{Items: []Link{}}
+	if err := ctx.Err(); err != nil { return out, err }
 	if s.DB == nil || s.Objects == nil || s.Bucket == "" {
 		return out, errors.New("media service dependencies unavailable")
 	}
+	raw.Variants = append([]string(nil), raw.Variants...)
 	request, hashes, err := normalize(raw, s.SRGBSHA256)
 	if err != nil {
 		return out, err
@@ -102,8 +117,9 @@ func (s Service) Sign(ctx context.Context, who auth.Identity, tenantID, assetID 
 		object        objectstore.Object
 		width, height int
 	}
+	resolve := func() ([]resolved, error) {
 	resolvedItems := make([]resolved, 0, len(request.Variants))
-	err = tenant.WithTenant(ctx, s.DB, who, tenantID, domain.Viewer, func(tx pgx.Tx, role domain.Role) error {
+	err := tenant.WithTenant(ctx, s.DB, who, tenantID, domain.Viewer, func(tx pgx.Tx, role domain.Role) error {
 		var projectID uuid.UUID
 		err := tx.QueryRow(ctx, `SELECT a.project_id FROM photo.assets a JOIN photo.asset_versions v ON v.tenant_id=a.tenant_id AND v.asset_id=a.id
 			WHERE a.tenant_id=$1 AND a.id=$2 AND v.id=$3 AND a.deleted_at IS NULL AND a.upload_state='verified'`, tenantID, assetID, request.AssetVersionID).Scan(&projectID)
@@ -136,10 +152,14 @@ func (s Service) Sign(ctx context.Context, who auth.Identity, tenantID, assetID 
 		}
 		return nil
 	})
+	return resolvedItems, err
+	}
+	resolvedItems, err := resolve()
 	if err != nil {
 		return out, err
 	}
 	for _, item := range resolvedItems {
+		if err = ctx.Err(); err != nil { return Links{}, err }
 		link, signErr := s.Objects.SignRead(ctx, item.object, 10*time.Minute)
 		if signErr != nil {
 			return Links{}, signErr
@@ -149,6 +169,16 @@ func (s Service) Sign(ctx context.Context, who auth.Identity, tenantID, assetID 
 		}
 		out.Items = append(out.Items, Link{AssetVersionID: request.AssetVersionID, ArtifactSHA256: item.object.SHA256, ICCSHA256: s.SRGBSHA256, ProfileHash: hashes[item.variant], Variant: item.variant, URL: link.URL, ExpiresAt: link.ExpiresAt, Width: item.width, Height: item.height, MediaType: item.object.ContentType})
 	}
+	// Signing is external IO. Re-read current authority and the exact immutable
+	// derivative bindings before releasing any bearer URLs to the caller.
+	current, err := resolve()
+	if err != nil { return Links{}, err }
+	if len(current) != len(resolvedItems) { return Links{}, domain.NewError("MEDIA_NOT_READY", 409) }
+	for i := range current {
+		if current[i] != resolvedItems[i] { return Links{}, domain.NewError("MEDIA_NOT_READY", 409) }
+		if !validMediaSignedRead(current[i].object, objectstore.ReadURL{URL:out.Items[i].URL, ExpiresAt:out.Items[i].ExpiresAt}, time.Now()) { return Links{}, domain.NewError("MEDIA_SIGNED_LINK_INVALID", 503) }
+	}
+	if err = ctx.Err(); err != nil { return Links{}, err }
 	return out, nil
 }
 

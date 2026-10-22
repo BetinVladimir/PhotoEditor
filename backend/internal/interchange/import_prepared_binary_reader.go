@@ -18,7 +18,7 @@ func (r ImportPreparedBinaryNodeResolver) ResolveImportNode(ctx context.Context,
 	if err := ctx.Err(); err != nil {
 		return ImportClosureNode{}, err
 	}
-	if (entry.Contract != "MaskPixels" && entry.Contract != "DenseWarpField" && entry.Contract != "AbsoluteLUTArray" && entry.Contract != "DefectLabelMap") || !validImportRef(entry.Ref) || r.Catalog == nil || r.Objects == nil || r.Qualifier == nil || r.MaxBytes < 1 || r.MaxBytes > 128<<30 {
+	if (entry.Contract != "MaskPixels" && entry.Contract != "DenseWarpField" && entry.Contract != "AbsoluteLUTArray" && entry.Contract != "DefectLabelMap" && entry.Contract != "WorkingPixels" && entry.Contract != "WorkingAlpha") || !validImportRef(entry.Ref) || r.Catalog == nil || r.Objects == nil || r.Qualifier == nil || r.MaxBytes < 1 || r.MaxBytes > 128<<30 {
 		return ImportClosureNode{}, v2input.ErrInvalid
 	}
 	initial, err := r.Catalog.LookupImportDocument(ctx, entry)

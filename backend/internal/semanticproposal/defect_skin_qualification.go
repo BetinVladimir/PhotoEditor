@@ -29,7 +29,7 @@ func (s SQLTransferSourceReader) readQualifiedDefectFaceMaskEvidence(ctx context
 		}
 	}
 	for i := range expected {
-		if _, err := s.VerifyFaceQualification(ctx, who, tenantID, reports[i], expected[i]); err != nil {
+		if _, err := s.VerifyFaceQualificationTyped(ctx, who, tenantID, reports[i], expected[i]); err != nil {
 			return nil, nil, err
 		}
 		pin, err := s.faceQualificationObject(ctx, who, tenantID, expected[i], reports[i])

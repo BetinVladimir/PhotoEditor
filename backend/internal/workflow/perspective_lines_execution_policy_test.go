@@ -28,7 +28,7 @@ func TestPerspectiveLinesExecutionPolicyPinsRuntimeAndOwnsBytes(t *testing.T) {
 	if err != nil || other.SHA256() == policy.SHA256() {
 		t.Fatal("runtime not pinned", err)
 	}
-	foreign, _ := CompilePerspectiveLinesExecutionPolicy(strings.Repeat("c", 64), strings.Repeat("a", 64))
+	foreign, _ := CompilePerspectiveLinesExecutionPolicy(strings.Repeat("f", 64), strings.Repeat("a", 64))
 	if _, err := foreign.ForPlan(plan); err == nil {
 		t.Fatal("foreign ICC accepted")
 	}

@@ -70,3 +70,60 @@ def test_nested_thread_scopes_restore_parent_budget(monkeypatch):
             assert os.environ['OMP_NUM_THREADS']=='1'
         assert os.environ['OMP_NUM_THREADS']=='2'
     assert os.environ['OMP_NUM_THREADS']=='8'
+
+
+def test_installed_native_pool_budget_applies_and_restores_without_injection():
+    import os
+    import numpy as np
+    import cv2
+    import torch
+    from threadpoolctl import threadpool_info
+    # Materialize the installed numerical runtime before discovering its pools.
+    np.ones((8,8)) @ np.ones((8,8))
+    native_before=(cv2.getNumThreads(),torch.get_num_threads())
+    before=threadpool_info()
+    previous=os.environ.get('OMP_NUM_THREADS')
+    with worker_thread_budget(2) as effective:
+        assert 1<=effective<=2
+        assert os.environ['OMP_NUM_THREADS']==str(effective)
+        assert 1<=cv2.getNumThreads()<=effective
+        assert 1<=torch.get_num_threads()<=effective
+        assert all(pool['num_threads']<=effective for pool in threadpool_info())
+    assert os.environ.get('OMP_NUM_THREADS')==previous
+    assert (cv2.getNumThreads(),torch.get_num_threads())==native_before
+    assert [(p['filepath'],p['num_threads']) for p in threadpool_info()]==[(p['filepath'],p['num_threads']) for p in before]
+
+
+def test_opencv_gcd_falls_back_to_verified_sequential_execution():
+    values={'threads':12};calls=[]
+    def set_threads(value):
+        calls.append(value)
+        values['threads']=1 if value==0 else 12
+    cv2=SimpleNamespace(getNumThreads=lambda:values['threads'],setNumThreads=set_threads)
+    @contextmanager
+    def pools(**kwargs):yield
+    with worker_thread_budget(2,modules={'cv2':cv2},pool_limits=pools):
+        assert values['threads']==1
+    assert calls==[2,0,12] and values['threads']==12
+
+
+def test_opencv_failed_sequential_fallback_still_refuses():
+    cv2=SimpleNamespace(getNumThreads=lambda:12,setNumThreads=lambda value:None)
+    @contextmanager
+    def pools(**kwargs):yield
+    with pytest.raises(ValueError,match='THREAD_BUDGET_NOT_APPLIED'):
+        with worker_thread_budget(2,modules={'cv2':cv2},pool_limits=pools):
+            pytest.fail('unbounded native runtime entered')
+
+
+def test_nested_opencv_gcd_scope_restores_inherited_sequential_mode():
+    values={'threads':12}
+    def set_threads(value):values['threads']=1 if value==0 else 12
+    cv2=SimpleNamespace(getNumThreads=lambda:values['threads'],setNumThreads=set_threads)
+    @contextmanager
+    def pools(**kwargs):yield
+    with worker_thread_budget(2,modules={'cv2':cv2},pool_limits=pools):
+        with worker_thread_budget(2,modules={'cv2':cv2},pool_limits=pools):
+            assert values['threads']==1
+        assert values['threads']==1
+    assert values['threads']==12

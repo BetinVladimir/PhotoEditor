@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "functions": [
+    {
+      "signature": "billing_selected_contract(text,text)",
+      "execute_roles": []
+    },
+    {
+      "signature": "billing_operation_session(uuid,uuid)",
+      "execute_roles": []
+    },
+    {
+      "signature": "billing_selected_source(uuid,uuid,uuid)",
+      "execute_roles": []
+    },
+    {
+      "signature": "billing_selected_outcome(uuid,uuid,uuid,text)",
+      "execute_roles": []
+    },
+    {
+      "signature": "billing_link_selected_children(uuid,uuid)",
+      "execute_roles": []
+    },
+    {
+      "signature": "billing_link_selected_preview()",
+      "execute_roles": []
+    },
+    {
+      "signature": "billing_prepare_operations(uuid,uuid)",
+      "execute_roles": [
+        "photo_api",
+        "photo_scheduler"
+      ]
+    },
+    {
+      "signature": "billing_bind_operations(uuid,uuid)",
+      "execute_roles": []
+    },
+    {
+      "signature": "seal_v2_graph(uuid,uuid)",
+      "execute_roles": [
+        "photo_scheduler"
+      ]
+    },
+    {
+      "signature": "billing_guard_operation_item()",
+      "execute_roles": []
+    },
+    {
+      "signature": "billing_settle_operations(uuid,uuid)",
+      "execute_roles": []
+    },
+    {
+      "signature": "billing_local_selected_ready(uuid,uuid)",
+      "execute_roles": []
+    },
+    {
+      "signature": "billing_finalize_local_selected()",
+      "execute_roles": []
+    },
+    {
+      "signature": "billing_settle_next_operations()",
+      "execute_roles": [
+        "photo_scheduler"
+      ]
+    }
+  ]
+}

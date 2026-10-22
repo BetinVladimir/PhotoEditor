@@ -1,22 +1,29 @@
+import {ActivityIndicator,Button,Text,TouchableRipple} from 'react-native-paper';
 import {executeInterchangeCreate,openInterchangeCreate} from './interchange-create-controller';
 import {useEffect,useMemo,useRef,useState} from 'react';
-import {ActivityIndicator,Pressable,SafeAreaView,Text,View} from 'react-native';
+import {SafeAreaView,View} from 'react-native';
 import {APIError,canonicalJSON,type ApiClient} from '@photoeditor/api-client';
 import {OwnerAPI} from './owner-api';
 import {type InterchangeCreateRequest,type InterchangeCreateTicket} from './interchange-create';
 import type {InterchangeCreateAttempt,InterchangeCreateAttemptStore} from './interchange-create-attempt-store';
 import {catalogStyle as s} from './catalog-style';
 import {useLocale} from './locale-context';
+import {useReviewForeground} from './use-review-foreground';
 type Props={client:ApiClient;tenant:string;request:InterchangeCreateRequest;journal:InterchangeCreateAttemptStore;onCreated:(ticket:InterchangeCreateTicket)=>void};
 export function InterchangeCreateScreen(props:Props){
- const generation=useMemo(()=>crypto.randomUUID(),[props.client,props.journal]);
- return <Scope key={`${generation}:${props.tenant}:${canonicalJSON(props.request)}`} {...props}/>;
+ const foreground=useReviewForeground(),generation=useMemo(()=>crypto.randomUUID(),[props.client,props.journal]);
+ if(!foreground.active)return null;
+ return <Scope key={`${generation}:${foreground.generation}:${props.tenant}:${canonicalJSON(props.request)}`} {...props}/>;
 }
 function Scope({client,tenant,request,journal,onCreated}:Props){
+ const __displayValue=useLocale().value;
+
  const {t}=useLocale(),api=useMemo(()=>new OwnerAPI(client,tenant),[client,tenant]);
  const [ready,setReady]=useState(false),[busy,setBusy]=useState(false),[confirmed,setConfirmed]=useState(false),[denied,setDenied]=useState(false);
  const [record,setRecord]=useState<InterchangeCreateAttempt|null>(null),[error,setError]=useState(false);
  const flight=useRef<AbortController|null>(null),alive=useRef(false),attempt=useRef<InterchangeCreateAttempt|null>(null),opened=useRef(false);
+ function stop(showError=false){const controller=flight.current;if(!controller)return;controller.abort();flight.current=null;setBusy(false);setError(showError);}
+ useEffect(()=>{if(!busy)return;const timer=setTimeout(()=>stop(true),ready?15000:8000);return()=>clearTimeout(timer);},[busy,ready]);
  function failure(reason:unknown){setError(true);if(reason instanceof APIError&&[401,403,404,410].includes(reason.status))setDenied(true);}
  async function recover(){
   if(flight.current)return;
@@ -24,7 +31,7 @@ function Scope({client,tenant,request,journal,onCreated}:Props){
   try{journal.assertScope(tenant,request);const saved=await journal.read();controller.signal.throwIfAborted();
    if(alive.current){attempt.current=saved;setRecord(saved);setReady(true);}
   }catch(reason){if(alive.current&&!controller.signal.aborted)failure(reason);}
-  finally{if(flight.current===controller)flight.current=null;if(alive.current)setBusy(false);}
+  finally{if(flight.current===controller){flight.current=null;if(alive.current)setBusy(false);}}
  }
  useEffect(()=>{alive.current=true;void recover();return()=>{alive.current=false;flight.current?.abort();};},[]);
  async function submit(){
@@ -35,7 +42,7 @@ function Scope({client,tenant,request,journal,onCreated}:Props){
    controller.signal.throwIfAborted();
    if(alive.current){attempt.current=acknowledged;setRecord(acknowledged);}
   }catch(reason){if(alive.current&&!controller.signal.aborted)failure(reason);}
-  finally{if(flight.current===controller)flight.current=null;if(alive.current)setBusy(false);}
+  finally{if(flight.current===controller){flight.current=null;if(alive.current)setBusy(false);}}
  }
  async function open(){
   if(!ready||flight.current||denied||opened.current||!record?.ticket)return;
@@ -43,16 +50,16 @@ function Scope({client,tenant,request,journal,onCreated}:Props){
   try{
    await openInterchangeCreate({journal,tenant,request,expected:record,signal:controller.signal,onCreated:ticket=>{controller.signal.throwIfAborted();if(alive.current){opened.current=true;onCreated(ticket);}}});
   }catch(reason){if(alive.current&&!controller.signal.aborted)failure(reason);}
-  finally{if(flight.current===controller)flight.current=null;if(alive.current)setBusy(false);}
+  finally{if(flight.current===controller){flight.current=null;if(alive.current)setBusy(false);}}
  }
  const locked=!ready||busy||denied||record!==null;
  return <SafeAreaView style={s.root}><View style={s.header}>
   <Text style={s.title}>{t('interchange_create_title')}</Text>
-  <Text style={s.subtitle}>{t(request.direction==='import'?'interchange_create_import':'interchange_create_export')} · {request.format}</Text>
-  {!record?<Pressable accessibilityRole="checkbox" accessibilityState={{checked:confirmed,disabled:locked}} disabled={locked} onPress={()=>setConfirmed(!confirmed)}><Text style={s.name}>{confirmed?'☑':'☐'} {t('interchange_create_confirm')}</Text></Pressable>:null}
-  {busy?<><ActivityIndicator/><Pressable accessibilityRole="button" onPress={()=>flight.current?.abort()} style={s.button}><Text style={s.buttonText}>{t('interchange_create_stop')}</Text></Pressable></>:null}{error?<Text accessibilityRole="alert" style={s.error}>{t('interchange_create_failed')}</Text>:null}
-  {!ready&&!busy?<Pressable accessibilityRole="button" onPress={()=>void recover()} style={s.button}><Text style={s.buttonText}>{t('interchange_create_restore')}</Text></Pressable>:null}
-  {record?.ticket?<Pressable accessibilityRole="button" disabled={busy||denied} onPress={()=>void open()} style={s.button}><Text style={s.buttonText}>{t('interchange_create_open')}</Text></Pressable>:
-   <Pressable accessibilityRole="button" disabled={!ready||busy||denied||(!record&&!confirmed)} onPress={()=>void submit()} style={s.button}><Text style={s.buttonText}>{t(record?'interchange_create_retry':'interchange_create_submit')}</Text></Pressable>}
+  <Text style={s.subtitle}>{t(request.direction==='import'?'interchange_create_import':'interchange_create_export')} · {__displayValue(request.format)}</Text>
+  {!record?<TouchableRipple  accessibilityRole="checkbox" accessibilityState={{checked:confirmed,disabled:locked}} aria-checked={confirmed} disabled={locked} onPress={()=>setConfirmed(!confirmed)}><Text style={s.name}>{confirmed?'☑':'☐'} {t('interchange_create_confirm')}</Text></TouchableRipple>:null}
+  {busy?<><ActivityIndicator/><Button  accessibilityRole="button" onPress={()=>stop()}  mode="contained" contentStyle={{minHeight:48}}>{t('interchange_create_stop')}</Button></>:null}{error?<Text accessibilityRole="alert" style={s.error}>{t('interchange_create_failed')}</Text>:null}
+  {!ready&&!busy?<Button  accessibilityRole="button" onPress={()=>void recover()}  mode="contained" contentStyle={{minHeight:48}}>{t('interchange_create_restore')}</Button>:null}
+  {record?.ticket?<Button  accessibilityRole="button" disabled={busy||denied} onPress={()=>void open()}  mode="contained" contentStyle={{minHeight:48}}>{t('interchange_create_open')}</Button>:
+   <Button  accessibilityRole="button" disabled={!ready||busy||denied||(!record&&!confirmed)} onPress={()=>void submit()}  mode="contained" contentStyle={{minHeight:48}}>{t(record?'interchange_create_retry':'interchange_create_submit')}</Button>}
  </View></SafeAreaView>;
 }

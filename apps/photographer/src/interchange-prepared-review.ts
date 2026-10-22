@@ -12,7 +12,7 @@ export type PreparedReviewPage={items:PreparedReviewItem[];next_after?:string};
 const uuid=(v:unknown):v is string=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(v)&&v!=='00000000-0000-0000-0000-000000000000';
 const sha=(v:unknown):v is string=>typeof v==='string'&&/^[0-9a-f]{64}$/.test(v);
 const record=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
-const safeEpoch=(v:unknown):v is number=>typeof v==='number'&&Number.isSafeInteger(v)&&v>=0&&v<9007199254740991;
+const safeEpoch=(v:unknown):v is number=>typeof v==='number'&&Number.isSafeInteger(v)&&v>=0&&v<=9007199254740991;
 const safeInt=(v:unknown):v is number=>typeof v==='number'&&Number.isSafeInteger(v);
 const validRef=(v:unknown):v is PreparedReviewRef=>record(v)&&Object.keys(v).length===2&&uuid(v.artifact_id)&&sha(v.sha256);
 const invalid=()=>new Error('INTERCHANGE_PREPARED_REVIEW_INVALID');
@@ -43,16 +43,16 @@ export function readPreparedReviews(value:unknown,workflow:string):PreparedRevie
     !Number.isInteger(raw.document.canvas.width)||!Number.isInteger(raw.document.canvas.height)||
     (raw.document.canvas.width as number)<8||(raw.document.canvas.height as number)<8)throw invalid();
   }else{
-   const d=raw.document,crop=d.raw_crop;
+   const d=raw.document,crop=d.raw_crop,base=raw.base;
    if(d.algorithm!=='sensor_dust_log_v1'||typeof d.camera_id!=='string'||!/^raw-[0-9a-f]{64}$/.test(d.camera_id)||
     !safeInt(d.sensor_width)||!safeInt(d.sensor_height)||d.sensor_width<8||d.sensor_height<8||!record(crop)||
     !safeInt(crop.x)||!safeInt(crop.y)||!safeInt(crop.width)||!safeInt(crop.height)||crop.x<0||crop.y<0||crop.width<8||crop.height<8||
     crop.x+crop.width>d.sensor_width||crop.y+crop.height>d.sensor_height||
     !Array.isArray(d.frames)||d.frames.length<5||d.frames.length>64||!d.frames.every(validRef)||
     new Set(d.frames.map(frame=>(frame as PreparedReviewRef).artifact_id)).size!==d.frames.length||
-    !d.frames.some(frame=>validRef(frame)&&frame.artifact_id===raw.base.artifact_id&&frame.sha256===raw.base.sha256)||
+    !d.frames.some(frame=>validRef(frame)&&frame.artifact_id===base.artifact_id&&frame.sha256===base.sha256)||
     !Array.isArray(d.warnings)||d.warnings.length>1||!d.warnings.every(w=>typeof w==='string')||
-    (d.candidates.length===0)!==(d.warnings.length===1&&d.warnings[0]==='no_repeated_dust'))throw invalid();
+    ((d.candidates as unknown[]).length===0)!==(d.warnings.length===1&&d.warnings[0]==='no_repeated_dust'))throw invalid();
   }
   const candidates:PreparedReviewCandidate[]=[],candidateIDs=new Set<string>();
   for(const candidate of raw.document.candidates){
@@ -66,7 +66,7 @@ export function readPreparedReviews(value:unknown,workflow:string):PreparedRevie
      (candidate.bbox.y as number)+(candidate.bbox.height as number)>(raw.document.canvas as Record<string,number>).height||
      typeof candidate.score!=='number'||!Number.isFinite(candidate.score))throw invalid();
    }else if(typeof candidate.sensor_x!=='number'||!Number.isFinite(candidate.sensor_x)||typeof candidate.sensor_y!=='number'||!Number.isFinite(candidate.sensor_y)||typeof candidate.radius_sensor_px!=='number'||!Number.isFinite(candidate.radius_sensor_px)||candidate.radius_sensor_px<=0||candidate.radius_sensor_px>32||
-    !safeInt(candidate.observed_frames)||!safeInt(candidate.eligible_frames)||candidate.eligible_frames!==raw.document.frames.length||candidate.observed_frames<1||candidate.observed_frames>candidate.eligible_frames||
+    !safeInt(candidate.observed_frames)||!safeInt(candidate.eligible_frames)||candidate.eligible_frames!==(raw.document.frames as unknown[]).length||candidate.observed_frames<1||candidate.observed_frames>candidate.eligible_frames||
     typeof candidate.recurrence!=='number'||!Number.isFinite(candidate.recurrence)||candidate.recurrence<0.8||candidate.recurrence>1||Math.abs(candidate.recurrence-candidate.observed_frames/candidate.eligible_frames)>1e-12||
     candidate.sensor_x<(raw.document.raw_crop as Record<string,number>).x||candidate.sensor_x>=(raw.document.raw_crop as Record<string,number>).x+(raw.document.raw_crop as Record<string,number>).width||
     candidate.sensor_y<(raw.document.raw_crop as Record<string,number>).y||candidate.sensor_y>=(raw.document.raw_crop as Record<string,number>).y+(raw.document.raw_crop as Record<string,number>).height)throw invalid();
@@ -91,7 +91,7 @@ export function readPreparedReviewPage(value:unknown,workflow:string):PreparedRe
 
 export function freezePreparedReviewDecision(item:PreparedReviewItem,action:'grant'|'revoke',decision:'accept'|'reject'|'skip'='accept',accepted:readonly string[]=[],rejected:readonly string[]=[]):PreparedReviewDecision{
  const label=item.kind==='defects'?item.document.label_map:undefined;
- if(item.kind==='defects'&&!validRef(label)||item.kind==='dust'&&label!==undefined||!safeEpoch(item.decision_epoch))throw invalid();
+ if(item.kind==='defects'&&!validRef(label)||item.kind==='dust'&&label!==undefined||(!safeEpoch(item.decision_epoch)||item.decision_epoch>=9007199254740991))throw invalid();
  if(action==='revoke'&&item.decision_status!=='granted')throw invalid();
  const base={action,kind:item.kind,entry_id:item.entry_id,target_version_id:item.target_version_id,proposal:{...item.proposal},base:{...item.base},...(label?{label_map:{...(label as PreparedReviewRef)}}:{}),expected_epoch:item.decision_epoch};
  if(action==='revoke')return base;
@@ -103,8 +103,8 @@ export function freezePreparedReviewDecision(item:PreparedReviewItem,action:'gra
 
 export function readPreparedReviewReceipt(value:unknown,workflow:string,request:PreparedReviewDecision):PreparedReviewReceipt{
  if(!record(value)||Object.keys(value).length!==7||value.workflow_id!==workflow||value.entry_id!==request.entry_id||value.kind!==request.kind||value.target_version_id!==request.target_version_id||
-  value.proposal_id!==request.proposal.artifact_id||value.status!==(request.action==='grant'?'granted':'revoked')||!safeEpoch(value.epoch)||value.epoch<1)throw invalid();
- return value as unknown as PreparedReviewReceipt;
+  value.proposal_id!==request.proposal.artifact_id||value.status!==(request.action==='grant'?'granted':'revoked')||!safeEpoch(value.epoch)||value.epoch!==request.expected_epoch+1)throw invalid();
+ return {workflow_id:workflow,entry_id:request.entry_id,kind:request.kind,target_version_id:request.target_version_id,proposal_id:request.proposal.artifact_id,status:value.status as 'granted'|'revoked',epoch:value.epoch};
 }
 
 export function readSavedPreparedReviews(value:unknown,workflow:string):SavedPreparedReview[]{
@@ -117,7 +117,10 @@ export function readSavedPreparedReviews(value:unknown,workflow:string):SavedPre
    ![...raw.accepted_candidate_ids,...raw.rejected_candidate_ids].every(sha)||
    (raw.status!=='granted'&&raw.status!=='revoked')||!safeEpoch(raw.epoch)||raw.epoch<1)throw invalid();
   const key=JSON.stringify([raw.entry_id,raw.target_version_id,raw.kind,raw.proposal.artifact_id]);
-  if(seen.has(key))throw invalid();seen.add(key);rows.push(raw as unknown as SavedPreparedReview);
+  if(seen.has(key))throw invalid();seen.add(key);
+  const accepted=raw.accepted_candidate_ids as string[],rejected=raw.rejected_candidate_ids as string[];
+  if(raw.decision!=='accept'&&(accepted.length||rejected.length)||accepted.some((id,i)=>i>0&&id<=accepted[i-1])||rejected.some((id,i)=>i>0&&id<=rejected[i-1]||accepted.includes(id)))throw invalid();
+  rows.push({entry_id:raw.entry_id,target_version_id:raw.target_version_id,kind:raw.kind,proposal:{...raw.proposal},base:{...raw.base},label_map:raw.label_map?{...(raw.label_map as PreparedReviewRef)}:null,decision:raw.decision as SavedPreparedReview['decision'],accepted_candidate_ids:[...accepted],rejected_candidate_ids:[...rejected],status:raw.status,epoch:raw.epoch});
  }
  return rows;
 }
@@ -135,8 +138,22 @@ export function readSavedPreparedReviewPage(value:unknown,workflow:string):Saved
 }
 
 export function freezeSavedPreparedRevoke(saved:SavedPreparedReview):PreparedReviewDecision{
- if(saved.status!=='granted'||!safeEpoch(saved.epoch)||saved.epoch<1||!validRef(saved.proposal)||!validRef(saved.base)||
+ if(saved.status!=='granted'||!safeEpoch(saved.epoch)||saved.epoch<1||saved.epoch>=9007199254740991||!validRef(saved.proposal)||!validRef(saved.base)||
   (saved.kind==='defects'?!validRef(saved.label_map):saved.label_map!==null))throw invalid();
  return {action:'revoke',kind:saved.kind,entry_id:saved.entry_id,target_version_id:saved.target_version_id,
   proposal:{...saved.proposal},base:{...saved.base},...(saved.label_map?{label_map:{...saved.label_map}}:{}),expected_epoch:saved.epoch};
+}
+
+/** Validate an immutable decision restored from durable storage without trusting archived UI state. */
+export function readPreparedReviewDecision(value:unknown):PreparedReviewDecision{
+ if(!record(value)||!uuid(value.entry_id)||!uuid(value.target_version_id)||!validRef(value.proposal)||!validRef(value.base)||value.proposal.artifact_id===value.base.artifact_id||(!safeEpoch(value.expected_epoch)||value.expected_epoch>=9007199254740991)||(value.action!=='grant'&&value.action!=='revoke')||(value.kind!=='defects'&&value.kind!=='dust'))throw invalid();
+ const kind=value.kind as 'defects'|'dust',action=value.action as 'grant'|'revoke';
+ if(kind==='defects'&&(!validRef(value.label_map)||value.label_map.artifact_id===value.proposal.artifact_id||value.label_map.artifact_id===value.base.artifact_id)||kind==='dust'&&value.label_map!==undefined||action==='revoke'&&value.expected_epoch<1)throw invalid();
+ const expected=['action','kind','entry_id','target_version_id','proposal','base','expected_epoch',...(kind==='defects'?['label_map']:[]),...(action==='grant'?['decision','accepted_candidate_ids','rejected_candidate_ids']:[])].sort();
+ if(Object.keys(value).sort().join(',')!==expected.join(','))throw invalid();
+ const accepted=action==='grant'?value.accepted_candidate_ids:[],rejected=action==='grant'?value.rejected_candidate_ids:[];
+ if(!Array.isArray(accepted)||!Array.isArray(rejected)||accepted.length+rejected.length>4096||![...accepted,...rejected].every(sha)||action==='grant'&&(value.decision!=='accept'&&value.decision!=='reject'&&value.decision!=='skip'))throw invalid();
+ for(const ids of [accepted,rejected])if(ids.some((id,i)=>i>0&&id<=ids[i-1]))throw invalid();
+ const item:PreparedReviewItem={entry_id:value.entry_id,target_version_id:value.target_version_id,kind,proposal:value.proposal,base:value.base,decision_epoch:value.expected_epoch,decision_status:action==='revoke'?'granted':undefined,document:{...(kind==='defects'?{label_map:value.label_map}:{}),candidates:[...accepted,...rejected].map(id=>({id,decision:'pending' as const}))}};
+ return freezePreparedReviewDecision(item,action,(value.decision??'accept') as 'accept'|'reject'|'skip',accepted,rejected);
 }

@@ -32,7 +32,11 @@ func imageLocalParamRefs(raw []byte,path string,parent v2input.Ref)([]LayerRef,b
   var items []map[string]json.RawMessage;if json.Unmarshal(regions,&items)!=nil||items==nil||len(items)>128{return invalid()}
   ids:=map[string]bool{}
   for index,item:=range items{
-   var id string;if len(item)!=2||json.Unmarshal(item["region_id"],&id)!=nil||utf8.RuneCountInString(id)<1||utf8.RuneCountInString(id)>120||ids[id]||item["mask"]==nil{return invalid()};ids[id]=true
+   for key:=range item{switch key{case "region_id","mask","invert":default:return invalid()}}
+   invert:=false
+   if body,ok:=item["invert"];ok{if string(body)=="null"||json.Unmarshal(body,&invert)!=nil{return invalid()}}
+   var id string;if (len(item)!=2&&len(item)!=3)||json.Unmarshal(item["region_id"],&id)!=nil||utf8.RuneCountInString(id)<1||utf8.RuneCountInString(id)>120||ids[id]||item["mask"]==nil{return invalid()};ids[id]=true
+   if invert{mask,err:=review.ParseMaskRef(item["mask"]);if err!=nil||mask.Selector!="person"||mask.Protected{return invalid()}}
    if add(item["mask"],path+".regions["+strconv.Itoa(index)+"].mask",false)!=nil{return invalid()}
   }
  }

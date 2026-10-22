@@ -73,13 +73,13 @@
       "type": "string"
     },
     "burst_group_count": {
-      "maximum": 2000,
+      "maximum": 5000,
       "minimum": 1,
       "title": "Burst Group Count",
       "type": "integer"
     },
     "exact_group_count": {
-      "maximum": 2000,
+      "maximum": 5000,
       "minimum": 1,
       "title": "Exact Group Count",
       "type": "integer"
@@ -88,13 +88,13 @@
       "items": {
         "$ref": "#/$defs/GroupedItem"
       },
-      "maxItems": 2000,
+      "maxItems": 5000,
       "minItems": 1,
       "title": "Items",
       "type": "array"
     },
     "scene_count": {
-      "maximum": 2000,
+      "maximum": 5000,
       "minimum": 1,
       "title": "Scene Count",
       "type": "integer"

@@ -62,6 +62,21 @@ func TestIntegrationBeginReservesOnceAndResumesMultipart(t *testing.T) {
 	if err != nil || second.ID != first.ID || objects.begins != 1 {
 		t.Fatal("replay", second, objects.begins, err)
 	}
+	// Accepted Begin replay survives an archived destination; a new key must
+	// not reserve bytes or create another multipart upload into that collection.
+	var collectionID uuid.UUID
+	if err = admin.QueryRow(ctx, "INSERT INTO photo.collections(tenant_id,project_id,name,state) VALUES($1,$2,'Archive guard','draft') RETURNING id", tenantID, projectID).Scan(&collectionID); err != nil { t.Fatal(err) }
+	collectionRequest := BeginRequest{ProjectID:projectID,CollectionID:&collectionID,Filename:"archived.jpg",Bytes:512,Format:"jpeg"}
+	admitted, err := service.Begin(ctx,who,tenantID,"archive-original",collectionRequest)
+	if err != nil { t.Fatal(err) }
+	if _, err = admin.Exec(ctx,"UPDATE photo.collections SET state='archived',revision=revision+1 WHERE tenant_id=$1 AND id=$2",tenantID,collectionID); err != nil { t.Fatal(err) }
+	begins := objects.begins
+	if replay, err := service.Begin(ctx,who,tenantID,"archive-original",collectionRequest); err != nil || replay.ID != admitted.ID { t.Fatal("accepted archived replay",err) }
+	if _, err = service.Begin(ctx,who,tenantID,"archive-new",collectionRequest); err == nil { t.Fatal("new archived collection upload admitted") }
+	if objects.begins != begins { t.Fatal("archived collection created multipart bytes") }
+	// Release the already admitted upload to retain the original quota fixture.
+	if _, err = service.Abort(ctx,who,tenantID,admitted.ID); err != nil { t.Fatal(err) }
+
 	var reservedBytes, reservedFiles int64
 	if err = admin.QueryRow(ctx, "SELECT reserved_bytes,reserved_files FROM photo.tenant_usage WHERE tenant_id=$1", tenantID).Scan(&reservedBytes, &reservedFiles); err != nil || reservedBytes != 1024 || reservedFiles != 1 {
 		t.Fatal("quota reservation", reservedBytes, reservedFiles, err)

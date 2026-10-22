@@ -111,7 +111,7 @@ func buildInterchangeReviewStyle(icc string) (interchange.ImportReviewStyleQuali
 	if err != nil {
 		return nil, invalid
 	}
-	probe := interchange.PythonExportStyleProbe{Python: cfg.Python, WorkerRoot: cfg.WorkerRoot, Timeout: time.Duration(cfg.TimeoutSeconds) * time.Second}
+	probe := interchange.PythonExportStyleProbe{Python: cfg.Python, WorkerRoot: cfg.WorkerRoot, Timeout: time.Duration(cfg.TimeoutSeconds) * time.Second, ICCRoot: os.Getenv("PHOTO_ICC_ROOT")}
 	factory, err := interchange.NewNativeImportReviewStyleFactory(scratch, probe, cfg.Models, cfg.RuntimeSHA, icc)
 	if err != nil {
 		return nil, invalid

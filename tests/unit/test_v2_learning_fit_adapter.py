@@ -126,8 +126,9 @@ def test_fit_candidate_rejects_duplicate_source_bytes_across_sessions():
     changed = manifest.model_copy(deep=True)
     train = next(item for item in changed.examples if item.split == 'train')
     holdout = next(item for item in changed.examples if item.split == 'holdout')
-    train.render_case.working_image = holdout.render_case.working_image
-    train.render_case.binding.source = holdout.render_case.working_image
+    train.render_case = train.render_case.model_copy(update={
+        'working_image':holdout.render_case.working_image,
+        'binding':train.render_case.binding.model_copy(update={'source':holdout.render_case.working_image})})
     assert train.render_case.source_lineage_sha != holdout.render_case.source_lineage_sha
     with pytest.raises(ValueError, match='INVALID_TRAINING_MANIFEST'):
         fit_candidate(params, changed, baseline, calibration)
@@ -171,7 +172,7 @@ def test_worker_adapter_stages_only_canonical_candidate_document():
             return ref(999)
 
     artifacts = Artifacts()
-    ctx = SimpleNamespace(lease=SimpleNamespace(execution_profile={
+    ctx = SimpleNamespace(lease=SimpleNamespace(command=SimpleNamespace(run_id=UUID(int=9000),tenant_id=UUID(int=9001)),execution_profile={
         'renderer_version': 'v2.2', 'backend': 'cpu'}),
         check_active=lambda: None)
     result = execute(ctx, artifacts)
@@ -217,7 +218,7 @@ def test_fit_rejects_invalid_frozen_recipe_in_train_partition(change):
         def stage_contract(self, value, role):
             pytest.fail('staged an invalid training candidate')
 
-    ctx = SimpleNamespace(lease=SimpleNamespace(execution_profile={
+    ctx = SimpleNamespace(lease=SimpleNamespace(command=SimpleNamespace(run_id=UUID(int=9000),tenant_id=UUID(int=9001)),execution_profile={
         'renderer_version': 'v2.2', 'backend': 'cpu'}),
         check_active=lambda: None)
     with pytest.raises(OperationFailure, match='INPUT_INVALID'):
@@ -266,7 +267,7 @@ def test_fit_stops_after_cancelled_artifact_io(monkeypatch, cancel_at):
             return ref(999)
 
     monkeypatch.setattr(adapter, 'fit_candidate', lambda *args, **kwargs: baseline)
-    ctx = SimpleNamespace(lease=SimpleNamespace(execution_profile={
+    ctx = SimpleNamespace(lease=SimpleNamespace(command=SimpleNamespace(run_id=UUID(int=9000),tenant_id=UUID(int=9001)),execution_profile={
         'renderer_version': 'v2.2', 'backend': 'cpu'}), check_active=active)
     with pytest.raises(LeaseLost, match='lost during artifact IO'):
         adapter.execute(ctx, Artifacts())
@@ -282,7 +283,7 @@ def test_fit_stops_after_cancelled_artifact_io(monkeypatch, cancel_at):
 def test_fit_rechecks_manifest_identity_and_consent_shape(change):
     params, manifest, baseline, calibration = fixture()
     if change == 'profile':
-        manifest.profile_id = UUID(int=0)
+        manifest = manifest.model_copy(update={'profile_id':UUID(int=0)})
         baseline.profile_id = UUID(int=0)
     elif change == 'consent':
         manifest.consents[0].consent_id = UUID(int=0)
@@ -291,7 +292,7 @@ def test_fit_rechecks_manifest_identity_and_consent_shape(change):
     elif change == 'epoch':
         manifest.consents[0].epoch = '9223372036854775808'
     else:
-        manifest.person_id = UUID(int=1)
+        manifest = manifest.model_copy(update={'person_id':UUID(int=1)})
     with pytest.raises(ValueError, match='INVALID_TRAINING_MANIFEST'):
         fit_candidate(params, manifest, baseline, calibration)
     with pytest.raises(ValueError, match='INVALID_TRAINING_MANIFEST'):
@@ -300,6 +301,6 @@ def test_fit_rechecks_manifest_identity_and_consent_shape(change):
 
 def test_fit_rejects_zero_subject_group():
     params, manifest, baseline, calibration = fixture()
-    manifest.examples[0].subject_group_id = UUID(int=0)
+    manifest.examples[0] = manifest.examples[0].model_copy(update={'subject_group_id':UUID(int=0)})
     with pytest.raises(ValueError, match='INVALID_TRAINING_MANIFEST'):
         fit_candidate(params, manifest, baseline, calibration)

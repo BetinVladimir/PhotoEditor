@@ -58,7 +58,14 @@ func TestDeliveryRuntimeBucketLeaseAndRoleBoundary(t *testing.T) {
 	}
 	defer tx.Rollback(ctx)
 	instance := uuid.New()
-	signingTenant := uuid.New()
+	var signingTenant uuid.UUID
+	var signingActor uuid.UUID
+	if err = tx.QueryRow(ctx, `SELECT user_id FROM photo.auth_bootstrap_user($1,'en',true)`, uuid.NewString()+"@delivery-runtime.test").Scan(&signingActor); err != nil {
+		t.Fatal(err)
+	}
+	if err = tx.QueryRow(ctx, `SELECT id FROM photo.tenants WHERE owner_user_id=$1`, signingActor).Scan(&signingTenant); err != nil {
+		t.Fatal(err)
+	}
 	policy := uuid.New()
 	sha := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 	if _, err = tx.Exec(ctx, `SET LOCAL ROLE photo_scheduler`); err != nil {

@@ -28,7 +28,7 @@ func decodeNativeTransferQualificationCandidate(raw []byte, expected v2qualifica
 	if err != nil || actual != wanted {
 		return zero, v2input.ErrInvalid
 	}
-	if expected.Operation != "semantic.transfer" || expected.Version != "1" || expected.Backend != "cuda" {
+	if expected.Operation != "semantic.transfer" || expected.Version != "1" || (expected.Backend != "cuda" && expected.Backend != "mps") {
 		return zero, v2input.ErrInvalid
 	}
 	if err := verifyQualificationConfiguration(pin, expected); err != nil {
@@ -50,7 +50,7 @@ func (s SQLTransferSourceReader) discoverNativeTransferQualificationPin(ctx cont
 	if s.DB == nil || s.ProjectID == uuid.Nil || tenantID == uuid.Nil || who.UserID == uuid.Nil || who.SessionID == uuid.Nil {
 		return zero, v2input.ErrInvalid
 	}
-	if expected.Operation != "semantic.transfer" || expected.Version != "1" || expected.Backend != "cuda" {
+	if expected.Operation != "semantic.transfer" || expected.Version != "1" || (expected.Backend != "cuda" && expected.Backend != "mps") {
 		return zero, v2input.ErrInvalid
 	}
 	body, err := canonical.Marshal(ownQualificationExpected(expected))
@@ -115,7 +115,7 @@ func (s SQLTransferSourceReader) selectNativeTransferQualificationPolicy(ctx con
 	if err != nil {
 		return zero, err
 	}
-	policies, err := selectQualificationPolicies(snapshot, []string{"semantic.transfer"})
+	policies, err := selectNativeQualificationPolicies(snapshot, []string{"semantic.transfer"})
 	if err != nil {
 		return zero, err
 	}

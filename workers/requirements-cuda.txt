@@ -1,0 +1,5 @@
+# Supplemental Linux x86_64 CPython 3.11 GPU wheel; shared dependencies remain in uv.lock.
+# Source: https://pypi.org/project/onnxruntime-gpu/1.30.0/
+# Wheel: onnxruntime_gpu-1.30.0-cp311-cp311-manylinux_2_28_x86_64.whl
+onnxruntime-gpu==1.30.0 \
+    --hash=sha256:4fbf0c5d7b5fb99266c2e8a802e3e64af68bdc383e0f3c7349b985f1087eedaa

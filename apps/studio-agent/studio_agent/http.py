@@ -232,6 +232,8 @@ class HTTPClient:
             body["raw_development"] = frozen_policy
         response = self._json("POST", "/capture-uploads", body, key=key)
         self._upload_response(response)
+        if response.get("filename") != body["filename"].strip():
+            raise ValueError("capture upload filename mismatch")
         if response.get("expected_size") != entry.size or type(response.get("expected_size")) is not int:
             raise ValueError("capture upload size mismatch")
         if response["parts_total"] != (entry.size + response["part_bytes"] - 1) // response["part_bytes"]:
@@ -239,6 +241,8 @@ class HTTPClient:
         return response
 
     def _upload_response(self, response: dict, upload_id: str | None = None) -> None:
+        if response.get("state") not in ("initializing", "uploading", "completing", "verifying", "verified", "rejected", "aborted", "expired"):
+            raise ValueError("invalid capture upload state")
         identity = response.get("id")
         if (not isinstance(identity, str) or _resource_id(identity) != identity
                 or upload_id is not None and identity != upload_id
@@ -326,8 +330,10 @@ class HTTPClient:
                     or any(ord(c) < 32 or ord(c) == 127 for c in part["etag"])):
                 raise ValueError("invalid capture completion part")
             owned.append({"part_no": number, "etag": part["etag"]})
-        self._json("POST", "/capture-uploads/" + upload_id + "/complete",
-                   {"parts": owned, "expected_size": size}, key=key)
+        response = self._json("POST", "/capture-uploads/" + upload_id + "/complete",
+                              {"parts": owned, "expected_size": size}, key=key)
+        if set(response) != {"job_id", "status"} or response.get("job_id") != upload_id or response.get("status") != "queued":
+            raise ValueError("capture completion receipt mismatch")
 
     def receipt(self, entry: Entry, key: str) -> dict:
         self._validate_source(entry)

@@ -73,7 +73,9 @@ func (s *Server) relightRoutes(router chi.Router) {
 			writeError(w, r, domain.NewError("DEPENDENCY_UNAVAILABLE", 503))
 			return
 		}
-		receipt, err := s.RelightSubmit.SubmitProjectKeyed(r.Context(), who, tenant, project, key, intent)
+		ctx, err := relightRequestContext(r)
+		if err != nil { writeError(w, r, err); return }
+		receipt, err := s.RelightSubmit.SubmitProjectKeyed(ctx, who, tenant, project, key, intent)
 		if err != nil {
 			writeError(w, r, semanticProposalError(err))
 			return

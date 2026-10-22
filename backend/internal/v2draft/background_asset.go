@@ -41,13 +41,24 @@ func (s SQLBackgroundAssetResolver) Resolve(ctx context.Context, who auth.Identi
 	if s.DB == nil || s.Bucket == "" {
 		return out, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
 	}
-	var bucket string
-	var matches int64
 	err := tenant.WithTenant(ctx, s.DB, who, tenantID, domain.Editor, func(tx pgx.Tx, role domain.Role) error {
-		if _, err := project.Authorize(ctx, tx, tenantID, projectID, who.UserID, role, domain.Editor, false); err != nil {
-			return err
-		}
-		err := tx.QueryRow(ctx, `SELECT b.portable_asset_id,v.id,a.id,a.sha256,a.bytes,
+        var err error
+        out, err = s.ResolveTx(ctx, tx, who, tenantID, projectID, styleRef, portableID, role)
+        return err
+    })
+    return out, err
+}
+
+// ResolveTx reuses the caller's admission transaction, preserving project ACL
+// and accepted-style portable binding authority without a second transaction.
+func (s SQLBackgroundAssetResolver) ResolveTx(ctx context.Context, tx pgx.Tx, who auth.Identity, tenantID, projectID uuid.UUID, styleRef v2input.Ref, portableID string, role domain.Role) (PortableBackgroundAsset,error) {
+ var out PortableBackgroundAsset
+ if err:=ctx.Err();err!=nil { return out,err }
+ if tx==nil || s.Bucket=="" || tenantID==uuid.Nil || projectID==uuid.Nil || who.UserID==uuid.Nil || who.SessionID==uuid.Nil || !isDocumentRef(styleRef) || portableID=="" || len(portableID)>120 || strings.TrimSpace(portableID)!=portableID { return out,v2input.ErrInvalid }
+ if _,err:=project.Authorize(ctx,tx,tenantID,projectID,who.UserID,role,domain.Editor,false);err!=nil { return out,err }
+ var bucket string
+ var matches int64
+	err := tx.QueryRow(ctx, `SELECT b.portable_asset_id,v.id,a.id,a.sha256,a.bytes,
    a.bucket,a.object_key,a.object_version,a.media_type,count(*) OVER ()
    FROM photo.styles s JOIN photo.style_versions v ON v.tenant_id=s.tenant_id AND v.style_id=s.id
    JOIN photo.style_asset_bindings b ON b.tenant_id=v.tenant_id AND b.style_version_id=v.id
@@ -66,17 +77,9 @@ func (s SQLBackgroundAssetResolver) Resolve(ctx context.Context, who auth.Identi
     AND config.state='ready' AND config.verified_at IS NOT NULL
     AND config.object_version IS NOT NULL AND config.object_version NOT IN ('','null')
     AND (config.expires_at IS NULL OR config.expires_at>clock_timestamp())`, tenantID, projectID, styleRef.ArtifactID, styleRef.SHA256, portableID, who.UserID, who.SessionID).Scan(&out.PortableID, &out.StyleVersionID, &out.Ref.ArtifactID, &out.Ref.SHA256, &out.Object.Bytes, &bucket, &out.Object.Key, &out.Object.VersionID, &out.Object.ContentType, &matches)
-		if errors.Is(err, pgx.ErrNoRows) {
-			return v2input.ErrInvalid
-		}
-		return err
-	})
-	if err != nil {
-		return PortableBackgroundAsset{}, err
-	}
-	if matches != 1 || bucket != s.Bucket || !isDocumentRef(out.Ref) {
-		return PortableBackgroundAsset{}, v2input.ErrInvalid
-	}
-	out.Object.SHA256 = out.Ref.SHA256
-	return out, nil
+	if errors.Is(err, pgx.ErrNoRows) { return PortableBackgroundAsset{}, v2input.ErrInvalid }
+ if err!=nil { return PortableBackgroundAsset{},err }
+ if matches!=1 || bucket!=s.Bucket || !isDocumentRef(out.Ref) { return PortableBackgroundAsset{},v2input.ErrInvalid }
+ out.Object.SHA256=out.Ref.SHA256
+ return out,nil
 }

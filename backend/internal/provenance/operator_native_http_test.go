@@ -100,14 +100,20 @@ func TestNativeCheckCloseCancelsInflightRequest(t *testing.T) {
 		CertificateChainSHA: bodyDigest(chain), TrustBundleSHA: bodyDigest([]byte("trust")),
 		AllowedMIME: []string{"image/png"}, TimestampMode: "off", RevocationMode: "off"}
 	started := make(chan struct{}, 1)
+	releaseHandler := make(chan struct{})
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		io.Copy(io.Discard, r.Body)
 		started <- struct{}{}
-		<-r.Context().Done()
+		select {
+		case <-r.Context().Done():
+		case <-releaseHandler:
+		}
 	}))
 	server.TLS = &tls.Config{Certificates: []tls.Certificate{serverCert}, ClientCAs: roots,
 		ClientAuth: tls.RequireAndVerifyClientCert, MinVersion: tls.VersionTLS13}
 	server.StartTLS()
 	defer server.Close()
+	defer close(releaseHandler)
 	client, err := NewHTTPSigningNativeCheck(server.URL, roots, clientCert, pin, 5*time.Second)
 	if err != nil {
 		t.Fatal(err)

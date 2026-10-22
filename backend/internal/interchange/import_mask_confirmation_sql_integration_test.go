@@ -3,6 +3,7 @@ package interchange
 import (
 	"context"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -57,6 +58,7 @@ func TestImportMaskConfirmationSQLPrivilegesAndAbsentScope(t *testing.T) {
 	}
 }
 
+// Requires isolated PostgreSQL migrated through 02260.
 func TestImportMaskDecisionSQLPrivilegesAndAbsentScope(t *testing.T) {
 	dsn := os.Getenv("PHOTO_TEST_DATABASE_URL")
 	if dsn == "" {
@@ -69,6 +71,8 @@ func TestImportMaskDecisionSQLPrivilegesAndAbsentScope(t *testing.T) {
 	}
 	defer db.Close()
 	for _, signature := range []string{
+		"photo.grant_v30_import_person_mask_cas(uuid,uuid,uuid,uuid,uuid,text,uuid,text,uuid,text,text,uuid,bigint)",
+		"photo.revoke_v30_import_person_mask_cas(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,bigint)",
 		"photo.grant_v30_import_person_mask(uuid,uuid,uuid,uuid,uuid,text,uuid,text,uuid,text,text,uuid)",
 		"photo.revoke_v30_import_person_mask(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid)",
 	} {
@@ -77,7 +81,7 @@ func TestImportMaskDecisionSQLPrivilegesAndAbsentScope(t *testing.T) {
 			if err := db.QueryRow(ctx, `SELECT has_function_privilege($1,$2,'EXECUTE')`, role, signature).Scan(&allowed); err != nil {
 				t.Fatal(err)
 			}
-			if allowed != (role == "photo_api") {
+			if allowed != (role == "photo_api" && strings.Contains(signature, "_cas(")) {
 				t.Fatalf("confirmation decision privilege drift: %s %s", signature, role)
 			}
 		}
@@ -94,17 +98,19 @@ func TestImportMaskDecisionSQLPrivilegesAndAbsentScope(t *testing.T) {
 	if _, err := tx.Exec(ctx, `SET LOCAL ROLE photo_api`); err != nil {
 		t.Fatal(err)
 	}
-	for _, queried := range []uuid.UUID{tenant, uuid.New()} {
-		var epoch *int64
-		err := tx.QueryRow(ctx, `SELECT photo.grant_v30_import_person_mask($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
-			queried, uuid.New(), uuid.New(), uuid.New(), uuid.New(), `{}`, uuid.New(), `{}`, uuid.New(), `{}`, `{}`, uuid.New()).Scan(&epoch)
-		if err != nil || epoch != nil {
-			t.Fatal("absent or foreign import received confirmation", err)
-		}
-		err = tx.QueryRow(ctx, `SELECT photo.revoke_v30_import_person_mask($1,$2,$3,$4,$5,$6,$7,$8)`,
-			queried, uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New()).Scan(&epoch)
-		if err != nil || epoch != nil {
-			t.Fatal("absent or foreign import received revocation receipt", err)
+	for _, expected := range []any{nil, int64(-1), int64(0), int64(9007199254740991)} {
+		for _, queried := range []uuid.UUID{tenant, uuid.New()} {
+			var epoch *int64
+			err := tx.QueryRow(ctx, `SELECT photo.grant_v30_import_person_mask_cas($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+				queried, uuid.New(), uuid.New(), uuid.New(), uuid.New(), `{}`, uuid.New(), `{}`, uuid.New(), `{}`, `{}`, uuid.New(), expected).Scan(&epoch)
+			if err != nil || epoch != nil {
+				t.Fatal("absent or foreign import received confirmation", err)
+			}
+			err = tx.QueryRow(ctx, `SELECT photo.revoke_v30_import_person_mask_cas($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+				queried, uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New(), expected).Scan(&epoch)
+			if err != nil || epoch != nil {
+				t.Fatal("absent or foreign import received revocation receipt", err)
+			}
 		}
 	}
 }

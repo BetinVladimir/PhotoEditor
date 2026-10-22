@@ -1,0 +1,179 @@
+{
+  "date": "2026-10-20",
+  "status": "GOOGLE_INTERNAL_ACTIVE_IOS_SIGNING_REQUIRED",
+  "brand": "docs/brand/APPROVED.json",
+  "profiles": [
+    "store-beta"
+  ],
+  "public_release": false,
+  "signed_builds": [
+    {
+      "platform": "android",
+      "build_id": "d55b9bdf-6d78-42f9-9c7c-29653dad5e83",
+      "version_code": 4,
+      "path": "work/framevela-android-internal-004.aab",
+      "sha256": "376c521f2f6f957df4319db4040b0e7672b71886d97feb1fc1ee70605658bf1c",
+      "zip_integrity": "PASS",
+      "device_acceptance": "PENDING"
+    }
+  ],
+  "store_uploads": [
+    {
+      "platform": "android",
+      "track": "internal",
+      "release_id": 1,
+      "version_code": 4,
+      "status": "AVAILABLE_TO_INTERNAL_TESTERS",
+      "public_release": false
+    }
+  ],
+  "checks": {
+    "expo_dependency_check": "PASS",
+    "typescript": "PASS",
+    "focused_tests": {
+      "files": 5,
+      "passed": 52
+    },
+    "listing_lengths": {
+      "locales": 3,
+      "fields": 21,
+      "status": "PASS"
+    },
+    "eas_schema": "PASS",
+    "critical_shell_quote": "Patched to1.12.0; other advisories remain for triage"
+  },
+  "source_workspace": "work/framevela-store-workspace-006",
+  "remaining": [
+    "Configure signing credentials for confirmed Apple and Android app identities",
+    "Build signed IPA/AAB and inspect on real devices",
+    "Verify live test workspace/mail/processing access",
+    "Upload exact verified builds to TestFlight and Google internal",
+    "Add only explicitly authorized testers; no public links"
+  ],
+  "notes": [
+    "No signature, upload, invitation or public release claimed",
+    "Do not grant tester admin/developer console access merely to enable beta testing"
+  ],
+  "npm_audit": {
+    "info": 0,
+    "low": 0,
+    "moderate": 10,
+    "high": 19,
+    "critical": 0,
+    "total": 29
+  },
+  "expo": {
+    "owner": "beeloy",
+    "slug": "framevela",
+    "project_id": "dde18c43-5867-4de5-b023-f9a1b843d9dc",
+    "url": "https://expo.dev/accounts/beeloy/projects/framevela",
+    "browser_creation": "CONFIRMED",
+    "cli_access": "VERIFIED: anastatiia Owner of beeloy",
+    "cli_project_info": "@beeloy/framevela / dde18c43-5867-4de5-b023-f9a1b843d9dc"
+  },
+  "apple": {
+    "team": "BEELOY EOOD",
+    "team_id": "U6TTUVHSL6",
+    "bundle_id": "com.framevela.photographer",
+    "registration": "VERIFIED in Apple Developer identifiers list",
+    "capabilities": "No optional capability selected; default In-App Purchase remains as provided by Apple",
+    "app_store_record": "VERIFIED",
+    "asc_app_id": "6824850193",
+    "asc_url": "https://appstoreconnect.apple.com/apps/6824850193",
+    "release_mode": "MANUAL verified after reload",
+    "en_description_keywords": "SAVED verified after reload",
+    "icon_check": {
+      "source": "apps/photographer/assets/brand/icon.png",
+      "size": "1024x1024",
+      "alpha": false,
+      "config": "ios.icon",
+      "asc_builds": "NONE_VERIFIED_2026-10-20",
+      "blocked_by": "IOS_SIGNING_CREDENTIALS_NOT_CONFIGURED",
+      "latest_attempt_build_number": 2
+    }
+  },
+  "google": {
+    "developer_id": "4985303100356090739",
+    "search": "Framevela: no results",
+    "package_proposed": "com.framevela.photographer",
+    "creation": "VERIFIED app-list and app dashboard after user completed company declarations",
+    "package": "com.framevela.photographer",
+    "app_id": "4973409955615046994",
+    "url": "https://play.google.com/console/u/0/developers/4985303100356090739/app/4973409955615046994/app-dashboard",
+    "test_track": {
+      "type": "internal",
+      "track_id": "4700917277455392938",
+      "url": "https://play.google.com/console/u/0/developers/4985303100356090739/app/4973409955615046994/tracks/4700917277455392938?tab=testers",
+      "tester_list": "Framevela internal",
+      "testers": [
+        "vladimir.betin@gmail.com"
+      ],
+      "saved": true,
+      "other_lists_selected": false,
+      "status": "ACTIVE",
+      "public_release": false,
+      "release": "1.0.0 (4) — internal preview",
+      "temporary_name": "com.framevela.photographer (unreviewed)",
+      "evidence": "work/photographer-cloudflare-20261020/google-internal-active.png"
+    }
+  },
+  "source_workspace_status": "INSPECTION_AND_NPM10_DRY_RUN_PASS",
+  "checks_scope": "Earlier checks describe main source before staged localization integration; not final release acceptance",
+  "localized_source_status": {
+    "status": "SDK_ALIGNED_MAIN_REGRESSION_TYPECHECK_WEB_EXPORTS_PASS_NATIVE_PENDING",
+    "candidate_report": "work/photographer-locale-validation-r1/full-translated-r4.json",
+    "candidate_passed": 3570,
+    "candidate_skipped": 7,
+    "main_typecheck": "work/photographer-locale-dom-boundary-r2/main-typecheck-r5.log",
+    "fresh_workspace": "work/framevela-store-workspace-006",
+    "workspace_manifest_sha256": "d9b0e11887706e0b24a9a4b10a0c3268b8771ecf50ca93ed61591444895d21d1",
+    "workspace_uploaded": true,
+    "screen_inclusion_verified": 42,
+    "main_passed": 3572,
+    "main_failed": 0,
+    "main_skipped": 7,
+    "fresh_workspace_status": "INSPECTION_AND_NPM10_DRY_RUN_PASS",
+    "main_full_report": "work/photographer-locale-dom-boundary-r2/main-full-r3.json"
+  },
+  "build_attempts": [
+    {
+      "platform": "android",
+      "id": "916af392-6236-4c42-a870-e0563419128b",
+      "status": "ERRORED",
+      "version_code": 2,
+      "cause": "EBADPLATFORM: required Darwin arm64 build-tool binding on Linux x64",
+      "fix": "Moved binding to optionalDependencies; lock changes only root and platform binding, versions unchanged"
+    },
+    {
+      "platform": "android",
+      "snapshot": "work/framevela-store-workspace-005",
+      "status": "ERRORED",
+      "local_session": 64995,
+      "id": "7a4968b6-926c-4bf7-80e3-12bab89af110",
+      "url": "https://expo.dev/accounts/beeloy/projects/framevela/builds/7a4968b6-926c-4bf7-80e3-12bab89af110",
+      "cause": "EUSAGE: npm10 expected a Worklets lock entry; unpinned optional peers selected incompatible animation versions"
+    },
+    {
+      "platform": "ios",
+      "status": "NOT_STARTED_CREDENTIAL_SETUP_FAILED",
+      "cause": "No distribution certificate/provisioning profile configured for non-interactive EAS build",
+      "build_number_initialized": "1",
+      "export_compliance": "ITSAppUsesNonExemptEncryption not declared; operator/App Store Connect review remains required"
+    },
+    {
+      "platform": "android",
+      "snapshot": "work/framevela-store-workspace-006",
+      "status": "ACCEPTED_BY_EAS_PENDING_RESULT",
+      "local_session": 12070,
+      "id": "d55b9bdf-6d78-42f9-9c7c-29653dad5e83",
+      "url": "https://expo.dev/accounts/beeloy/projects/framevela/builds/d55b9bdf-6d78-42f9-9c7c-29653dad5e83"
+    }
+  ],
+  "android_latest_observation": {
+    "build_id": "d55b9bdf-6d78-42f9-9c7c-29653dad5e83",
+    "status": "FINISHED",
+    "version_code": 4,
+    "evidence": "work/photographer-cloudflare-20261020/android-artifact.json",
+    "play_status": "AVAILABLE_TO_INTERNAL_TESTERS"
+  }
+}

@@ -70,7 +70,7 @@ func probeNativeTerminalProcessOne(t *testing.T, ctx context.Context, p Transfer
 			t.Fatal("nonretryable worker error not terminal", state, err)
 		}
 	} else if operation == "mask.person" {
-		status, err := (runservice.Service{DB: p.Reader.DB}).Cancel(ctx, who, detector.request.TenantID, run)
+		status, err := (runservice.Service{DB: p.Reader.DB}).Cancel(ctx, who, detector.request.TenantID, run, "terminal-probe-cancel")
 		if err != nil || status.State != "cancelling" {
 			t.Fatal("authenticated original person cancellation", err)
 		}

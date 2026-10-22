@@ -37,7 +37,7 @@ func (s SQLTransferSourceReader) marshalNativeInputManualAdmissionEvidence(ctx c
 // Callers independently recompile their initial or restored authority before sharing packet assembly.
 func (s SQLTransferSourceReader) marshalNativeInputManualAdmissionPacket(ctx context.Context, who auth.Identity, shell v2input.DraftShell, frozen v2input.FrozenSemanticDefectTask, dependencies nativeInputManualDependencies, qualified nativeInputManualStageQualification, paramsObject defectEvidenceObject, built v2input.Built) (json.RawMessage, error) {
 	q := qualified.qualification
-	selected, err := selectQualificationPolicies(q.policy, []string{"defects.propose"})
+	selected, err := selectNativeQualificationPolicies(q.policy, []string{"defects.propose"})
 	if err != nil {
 		return nil, err
 	}

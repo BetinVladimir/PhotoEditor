@@ -69,3 +69,27 @@ def test_coordinator_rejects_untyped_relight_installation():
     from photo_worker.v2.adoption_service import AdoptionCoordinator
     with pytest.raises(ValueError,match='Invalid relight'):
         AdoptionCoordinator(SimpleNamespace(autocommit=True),SimpleNamespace(),None,'bucket',relight_installation=object())
+
+
+@pytest.mark.parametrize('cancel_at', ['before_runtime', 'during_runtime'])
+def test_installed_factory_stops_cancelled_work_at_initial_runtime_boundary(monkeypatch, tmp_path, cancel_at):
+    from photo_worker.operations.portrait import relight_runtime_lock
+    events = []
+    cancelled = cancel_at == 'before_runtime'
+
+    def check_active():
+        if cancelled:
+            raise RuntimeError('TASK_CANCELLED')
+
+    def verify_runtime(*args):
+        nonlocal cancelled
+        events.append('runtime')
+        cancelled = True
+
+    monkeypatch.setattr(relight_runtime_lock, 'verify_installed_runtime', verify_runtime)
+    with pytest.raises(RuntimeError, match='TASK_CANCELLED'):
+        module.qualified_completed_relight_authority(
+            SimpleNamespace(autocommit=True), None, uuid4(), uuid4(), SimpleNamespace(),
+            scratch_root=tmp_path, max_bytes=1000, runtime_lock={},
+            expected_runtime_sha='a'*64, check_active=check_active)
+    assert events == ([] if cancel_at == 'before_runtime' else ['runtime'])

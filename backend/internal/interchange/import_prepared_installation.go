@@ -52,7 +52,10 @@ type PreparedImportResolverDependencies struct {
 	Scratch         *ExportArchiveScratch
 	Probe           ExportNativeProbe
 	ArrayRuntimeSHA string
-	Composition     *NativeExportStyleValidator
+	Historical *ImportHistoricalNativeAuthority
+ HistoricalIssuer *HistoricalOriginIssuer
+ HistoricalPublisher *PreparedImportArtifactPublisher
+ Composition     *NativeExportStyleValidator
 	MaxBytes        int64
 }
 
@@ -111,5 +114,14 @@ func NewSQLPreparedImportResolver(ctx context.Context, d PreparedImportResolverD
 	if err != nil {
 		return zero, err
 	}
-	return ImportPreparedResolverRouter{JSON: documents, Working: d.Working, Masks: masks, Warps: warps, LUT: lut, DefectLabels: labels, Assets: d.Assets, Canonical: d.Canonical}, ctx.Err()
+	pngSource := SQLPreparedDefectPNGSource{Catalog: catalog, Documents: documents, LabelWitnesses: defectLabelWitnesses, Labels: SQLPreparedDefectLabelSource{Catalog: catalog, Witnesses: defectLabelWitnesses, Documents: parentDocuments}}
+	pngs := ImportPreparedPNGNodeResolver{Catalog: catalog, Qualifier: ExportDefectPNGQualifier{Objects: d.Objects, Source: pngSource}}
+ var historicalArrays ImportClosureNodeResolver
+ historicalRefs:=map[v2input.Entry]bool{}
+ if d.Historical!=nil{
+  bindings,err:=historicalPreparedArrayBindings(ctx,*d.Historical);if err!=nil{return zero,err}
+  for entry:=range bindings{historicalRefs[entry]=true}
+  historicalArrays=ImportPreparedBinaryNodeResolver{Catalog:catalog,Objects:d.Objects,MaxBytes:d.MaxBytes,Qualifier:ImportPreparedHistoricalArrayQualifier{Authority:*d.Historical,Objects:d.Objects,Documents:documents,Bindings:bindings}}
+ }
+	return ImportPreparedResolverRouter{JSON: documents, Working: d.Working, Masks: masks, Warps: warps, LUT: lut, DefectLabels: labels, DefectPNGs: pngs, Assets: d.Assets, Canonical: d.Canonical, CurrentSource:scope.Binding.Source, HistoricalJSON:documents, HistoricalArrays:historicalArrays, HistoricalBinaryRefs:historicalRefs}, ctx.Err()
 }

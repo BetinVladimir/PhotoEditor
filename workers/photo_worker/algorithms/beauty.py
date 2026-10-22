@@ -52,7 +52,10 @@ def beauty_filter(rgb:np.ndarray,skin:np.ndarray,protected:np.ndarray,face_width
     if automatic and face_width<64:return skipped('face_too_small')
     if params.smoothing==0 and params.tone_evenness==0:return skipped('zero_strength')
     mask=compose(skin,protected=protected,check_active=check_active)
-    trusted=(skin>=.5)&(protected<.5)
+    # A soft protection edge still forbids modification and must not
+    # contribute to the unprotected skin tone reference.
+    mask[protected>0]=0
+    trusted=(skin>=.5)&(protected==0)
     if not np.any(trusted) or not np.any(mask):return skipped('empty_skin')
     support=filter_support(face_width)
     r,sigma_low,sigma_fine=support.radius,support.sigma_low,support.sigma_fine

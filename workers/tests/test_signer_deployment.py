@@ -374,7 +374,7 @@ def test_deployed_certificate_composition_keeps_live_authority(tmp_path,monkeypa
         called.append((policy,algorithm,actual))
         return False
     def factory(*args,**kwargs):
-        policy=SigningPolicy.model_validate(manifest['policies'][0])
+        policy=SigningPolicy.model_validate_json(canonical_bytes(manifest['policies'][0]))
         assert kwargs['native_inspector'](policy,'ED25519',chain) is False
         return 'refused-live-authority'
     monkeypatch.setattr(installation,'build_pkcs11_signer_executor',factory)

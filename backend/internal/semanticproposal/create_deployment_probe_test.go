@@ -23,6 +23,7 @@ func createDeploymentForProbe(t *testing.T, p TransferDraftPreparer) CreateDeplo
 	t.Helper()
 	c := p.Configuration
 	project := createProjectPolicy{ProjectID: p.Reader.ProjectID, Qualification: c.Qualification, Expected: createExpectationForProbe(c.Expected), Person: createPersonPolicy{Report: c.PersonProtection.Report, Expected: createExpectationForProbe(c.PersonProtection.Expected)}, Costs: createResourceCosts{RAM: c.Costs.RAMBytes, VRAM: c.Costs.VRAMBytes, Scratch: c.Costs.ScratchBytes}, RAM: c.RAM, VRAM: c.VRAM, Scratch: c.Scratch, Output: c.Output, Metadata: c.MetadataBytes, Reserved: p.ReservedBytes}
+	project.Scene=ordinaryParentPolicy(p).Scene
 	raw, err := json.Marshal(struct {
 		SchemaVersion int                   `json:"schema_version"`
 		Projects      []createProjectPolicy `json:"projects"`

@@ -13,7 +13,7 @@ func TestInlinePreparedMaskWitnessRequiresQualifiedExactParent(t *testing.T){
  image,err:=review.ParseWorkingImage(imageRaw);if err!=nil{t.Fatal(err)}
  canvas,err:=canonical.Hash(image.Canvas);if err!=nil{t.Fatal(err)}
  ref:=v2input.Ref{ArtifactID:uuid.New(),SHA256:rawSHA([]byte("pixels"))}
- mask,err:=canonical.Marshal(map[string]any{"artifact":ref,"canvas":image.Canvas,"transform_chain":json.RawMessage(image.TransformChain),"selector":"manual","confidence":1,"protected":true});if err!=nil{t.Fatal(err)}
+ mask,err:=canonical.Marshal(map[string]any{"artifact":ref,"canvas":image.Canvas,"transform_chain":json.RawMessage(image.TransformChain),"object_id":nil,"model_lock_id":nil,"selector":"manual","confidence":1,"protected":true});if err!=nil{t.Fatal(err)}
  parent,err:=canonical.Marshal(map[string]any{"mask_refs":[]any{map[string]any{"mask":json.RawMessage(mask)}}});if err!=nil{t.Fatal(err)}
  entry:=v2input.Entry{Contract:"Override",Ref:v2input.Ref{ArtifactID:uuid.New(),SHA256:rawSHA(parent)}}
  witnesses:=&ImportPreparedMaskWitnesses{}

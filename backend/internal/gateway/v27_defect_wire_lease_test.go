@@ -53,7 +53,7 @@ func claimNativeWireTask(t *testing.T, ctx context.Context, db *pgxpool.Pool, ta
 	lock := strings.Repeat("a", 64)
 	if value, ok := identities["model_lock_id"].(string); ok {
 		lock = value
-	} else if operation == "mask.person" || operation == "face.detect" || operation == "face.landmarks" || operation == "face.parse" {
+	} else if operation == "mask.person" || operation == "face.detect" || operation == "face.landmarks" || operation == "face.parse" || operation == "scene.parse" || operation == "depth.predict" || operation == "semantic.transfer" {
 		if value, ok := identities["model_lock_sha"].(string); ok {
 			lock = value
 		}
@@ -92,7 +92,7 @@ func claimNativeWireTask(t *testing.T, ctx context.Context, db *pgxpool.Pool, ta
 	var fence int64
 	var until, deadline time.Time
 	var leaseContext []byte
-	if operation == "mask.person" || operation == "face.detect" || operation == "face.landmarks" || operation == "face.parse" {
+	if operation == "mask.person" || operation == "face.detect" || operation == "face.landmarks" || operation == "face.parse" || operation == "scene.parse" || operation == "depth.predict" {
 		var altered map[string]any
 		if json.Unmarshal(command, &altered) != nil {
 			t.Fatal("person command")
@@ -138,8 +138,102 @@ func claimNativeWireTask(t *testing.T, ctx context.Context, db *pgxpool.Pool, ta
 			t.Fatal(err)
 		}
 	}
+	const sceneSnapshotQuery = `SELECT jsonb_build_object('task',to_jsonb(t),
+     'slots',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY to_jsonb(s)::text),'[]') FROM photo.resource_slots s WHERE s.task_id=t.id),
+     'reservations',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]') FROM photo.resource_reservations r WHERE r.task_id=t.id),
+     'quota',(SELECT coalesce(jsonb_agg(to_jsonb(q) ORDER BY to_jsonb(q)::text),'[]') FROM photo.quota_reservations q WHERE q.tenant_id=t.tenant_id AND q.holder_id=t.run_id),
+     'outbox',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY to_jsonb(o)::text),'[]') FROM photo.outbox o WHERE o.tenant_id=t.tenant_id),
+     'workers',(SELECT coalesce(jsonb_agg(to_jsonb(w) ORDER BY to_jsonb(w)::text),'[]') FROM photo.worker_registrations w WHERE w.tenant_id=t.tenant_id),
+     'usage',(SELECT to_jsonb(u) FROM photo.tenant_usage u WHERE u.tenant_id=t.tenant_id))::text FROM photo.tasks t WHERE t.id=$1`
+	if operation == "scene.parse" || operation == "depth.predict" {
+		if _, err := tx.Exec(ctx, "SET LOCAL ROLE NONE"); err != nil {
+			t.Fatal(err)
+		}
+		var beforeScope, afterScope string
+		if err := tx.QueryRow(ctx, sceneSnapshotQuery, task).Scan(&beforeScope); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := tx.Exec(ctx, "SET LOCAL ROLE photo_worker"); err != nil {
+			t.Fatal(err)
+		}
+		var guc string
+		if err := tx.QueryRow(ctx, "SELECT coalesce(current_setting('app.tenant_id',true),'')").Scan(&guc); err != nil || guc != "" {
+			t.Fatal("scene claim must exercise absent API tenant context", err)
+		}
+		if err := tx.QueryRow(ctx, "SELECT outcome FROM photo.claim_task($1,$4,$2,$3::jsonb)", task, uuid.New(), string(command), dispatched.Attempt).Scan(&outcome); err != nil || outcome != "unauthorized" {
+			t.Fatal("scene foreign worker claim", outcome, err)
+		}
+		// Wrong tenant/task in the command must be refused before a lease exists.
+		for _, field := range []string{"tenant_id", "task_id"} {
+			var altered map[string]any
+			if err := json.Unmarshal(command, &altered); err != nil {
+				t.Fatal(err)
+			}
+			altered[field] = uuid.NewString()
+			invalid, err := json.Marshal(altered)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := tx.QueryRow(ctx, "SELECT outcome FROM photo.claim_task($1,$4,$2,$3::jsonb)", task, worker, string(invalid), dispatched.Attempt).Scan(&outcome); err != nil || outcome != "stale" {
+				t.Fatal("scene substituted command identity", field, outcome, err)
+			}
+		}
+		if _, err := tx.Exec(ctx, "SET LOCAL ROLE NONE"); err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.QueryRow(ctx, sceneSnapshotQuery, task).Scan(&afterScope); err != nil || afterScope != beforeScope {
+			t.Fatal("scene refused claim changed scoped state", err)
+		}
+		var unchanged string
+		if err := tx.QueryRow(ctx, "SELECT to_jsonb(t)::text FROM photo.tasks t WHERE id=$1", task).Scan(&unchanged); err != nil || unchanged != beforeRejectedClaim {
+			t.Fatal("scene refused claim wrote task", err)
+		}
+		if _, err := tx.Exec(ctx, "SET LOCAL ROLE photo_worker"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var semanticStatus string
+	var semanticRevision int64
+	if operation == "semantic.transfer" {
+		if _,err:=tx.Exec(ctx,"SET LOCAL ROLE NONE");err!=nil {t.Fatal(err)}
+		if err:=tx.QueryRow(ctx,"SELECT r.status,r.revision FROM photo.runs r JOIN photo.tasks t ON t.tenant_id=r.tenant_id AND t.run_id=r.id WHERE t.id=$1",task).Scan(&semanticStatus,&semanticRevision);err!=nil {t.Fatal(err)}
+		t.Log("SEMANTIC_TRANSFER_BEFORE_CLAIM",semanticStatus,semanticRevision)
+		assertSemanticTransferRejectedClaims(t, ctx, tx, task, worker, dispatched.Attempt, command)
+	}
 	if err := tx.QueryRow(ctx, "SELECT * FROM photo.claim_task($1,$4,$2,$3::jsonb)", task, worker, string(command), dispatched.Attempt).Scan(&outcome, &fence, &until, &deadline, &leaseContext); err != nil || outcome != "claimed" || fence < 1 || until.After(deadline) {
 		t.Fatal("native wire claim", outcome, err)
+	}
+	if operation == "semantic.transfer" {
+		assertSemanticTransferClaimStarted(t, ctx, tx, task, worker, dispatched.Attempt, fence, semanticStatus, semanticRevision)
+	}
+	if operation == "scene.parse" || operation == "depth.predict" {
+		if _, err := tx.Exec(ctx, "SET LOCAL ROLE NONE"); err != nil {
+			t.Fatal(err)
+		}
+		var before, after string
+		if err := tx.QueryRow(ctx, sceneSnapshotQuery, task).Scan(&before); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := tx.Exec(ctx, "SET LOCAL ROLE photo_worker"); err != nil {
+			t.Fatal(err)
+		}
+		for _, foreignWorker := range []bool{false, true} {
+			workerArg, fenceArg := worker, fence+1
+			if foreignWorker {
+				workerArg = uuid.New()
+				fenceArg = fence
+			}
+			var accepted bool
+			if err := tx.QueryRow(ctx, "SELECT accepted FROM photo.heartbeat_task($1,$2,$3,$4,'{}'::jsonb)", task, dispatched.Attempt, fenceArg, workerArg).Scan(&accepted); err != nil || accepted {
+				t.Fatal("scene foreign worker/fence heartbeat", foreignWorker, err)
+			}
+		}
+		if _, err := tx.Exec(ctx, "SET LOCAL ROLE NONE"); err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.QueryRow(ctx, sceneSnapshotQuery, task).Scan(&after); err != nil || after != before {
+			t.Fatal("scene rejected heartbeat wrote lease/accounting", err)
+		}
 	}
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err)

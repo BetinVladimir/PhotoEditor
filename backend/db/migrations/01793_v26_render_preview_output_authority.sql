@@ -26,7 +26,7 @@ SET search_path=pg_catalog,photo AS $$
         WHERE decided.tenant_id=p_tenant AND decided.task_id=origin.id
          AND decided.kind='render.compose' AND decided.state='decided'
          AND (decided.decision='accept' AND decided.decision_route='candidate'
-          AND photo.v26_render_review_completion_ready(p_tenant,origin.id)) IS NOT TRUE))))))
+          AND photo.v26_render_review_completion_ready(p_tenant,origin.id)) IS NOT TRUE)))))
  );
 $$;
 ALTER FUNCTION photo.v26_render_preview_output_allowed(uuid,uuid,uuid,uuid)

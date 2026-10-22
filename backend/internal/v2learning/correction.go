@@ -17,6 +17,7 @@ import (
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/domain"
 	"photoeditor/backend/internal/idempotency"
+ "photoeditor/backend/internal/project"
 	"photoeditor/backend/internal/tenant"
 	"photoeditor/backend/internal/v2draft"
 	"photoeditor/backend/internal/v2input"
@@ -163,7 +164,7 @@ func correctionError(err error) error {
 func (s CorrectionService) RecordCorrection(ctx context.Context, who auth.Identity,
 	tenantID uuid.UUID, key string, req CorrectionCreate) (idempotency.Response, error) {
 	var out idempotency.Response
-	if s.DB == nil || s.Drafts.Objects == nil || s.Drafts.Bucket == "" {
+	if s.DB == nil {
 		return out, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
 	}
 	if !validCorrection(req) {
@@ -172,6 +173,8 @@ func (s CorrectionService) RecordCorrection(ctx context.Context, who auth.Identi
 	if !idempotency.ValidKey(key) {
 		return out, domain.NewError("IDEMPOTENCY_KEY_REQUIRED", 400)
 	}
+	if replay, found, err := s.readCorrectionReplay(ctx,who,tenantID,key,req); err != nil || found { return replay,err }
+	if s.Drafts.Objects == nil || s.Drafts.Bucket == "" { return out,domain.NewError("DEPENDENCY_UNAVAILABLE",503) }
 	base, err := s.Drafts.GetDocument(ctx, who, tenantID, req.BaseDocumentID)
 	if err != nil {
 		return out, err
@@ -203,8 +206,14 @@ func (s CorrectionService) RecordCorrection(ctx context.Context, who auth.Identi
 	}
 	baseDigest, approvedDigest := sha256.Sum256(base), sha256.Sum256(approved)
 	err = tenant.WithTenant(ctx, s.DB, who, tenantID, domain.Editor,
-		func(tx pgx.Tx, _ domain.Role) error {
-			var e error
+		func(tx pgx.Tx, role domain.Role) error {
+			// Persisted shoot identity is sufficient for replay authorization;
+			// no consumed/expired document needs to be reopened for this gate.
+			var projectID uuid.UUID
+			e := tx.QueryRow(ctx, `SELECT project_id FROM photo.shoot_sessions WHERE tenant_id=$1 AND id=$2`, tenantID, req.SessionID).Scan(&projectID)
+			if errors.Is(e, pgx.ErrNoRows) { return domain.NewError("NOT_FOUND",404) }
+			if e != nil { return e }
+			if _, e = project.Authorize(ctx,tx,tenantID,projectID,who.UserID,role,domain.Editor,false); e != nil { return e }
 			out, e = idempotency.Use(ctx, tx, idempotency.Scope{
 				Tenant: tenantID, Principal: who.UserID, PrincipalType: "user",
 				Route: "V23.RecordCorrection", Key: key,

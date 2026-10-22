@@ -11,10 +11,69 @@ import (
 	"photoeditor/backend/internal/idempotency"
 )
 
+// RemovalPreviewDeployment contains only deployment-owned measured limits.
+type RemovalPreviewDeployment struct {
+	Qualification       RemovalQualificationPin  `json:"qualification"`
+	OwnerCosts          ExposureOwnerCosts       `json:"owner_costs"`
+	Limits              ExposureResourceEstimate `json:"limits"`
+	MeasuredDeviceBytes int64                    `json:"measured_device_bytes"`
+	ContextPixels       int                      `json:"context_pixels"`
+	FeatherPixels       int                      `json:"feather_pixels"`
+}
+
+func validateRemovalPreviewDeployment(config RemovalPreviewDeployment) error {
+	if !validRemovalQualification(config.Qualification) || config.ContextPixels < 32 || config.ContextPixels > 512 || config.FeatherPixels < 1 || config.FeatherPixels > 64 || config.Limits.PixelCount > 200000000 {
+		return ErrInvalid
+	}
+	_, err := CompileRemovalPreviewResources(1, 1, config.OwnerCosts, config.Limits, config.Qualification.Backend, config.MeasuredDeviceBytes)
+	return err
+}
+
+// BackgroundCleanupPreviewDeployment contains only deployment-owned measured limits.
+type BackgroundCleanupPreviewDeployment struct {
+	Qualification       BackgroundCleanupQualificationPin `json:"qualification"`
+	OwnerCosts          ExposureOwnerCosts                `json:"owner_costs"`
+	Limits              ExposureResourceEstimate          `json:"limits"`
+	MeasuredDeviceBytes int64                             `json:"measured_device_bytes"`
+	ContextPixels       int                               `json:"context_pixels"`
+	FeatherPixels       int                               `json:"feather_pixels"`
+}
+
+func validateBackgroundCleanupPreviewDeployment(config BackgroundCleanupPreviewDeployment) error {
+	if !validBackgroundCleanupQualification(config.Qualification) || config.ContextPixels < 32 || config.ContextPixels > 512 || config.FeatherPixels < 1 || config.FeatherPixels > 64 || config.Limits.PixelCount > 200000000 {
+		return ErrInvalid
+	}
+	_, err := CompileBackgroundCleanupPreviewResources(1, 1, config.OwnerCosts, config.Limits, config.Qualification.Backend, config.MeasuredDeviceBytes)
+	return err
+}
+
+// RetouchPreviewDeployment freezes explicit BeautyFilter controls and CPU limits.
+type RetouchPreviewDeployment struct {
+	Qualification RetouchQualificationPin  `json:"qualification"`
+	OwnerCosts    ExposureOwnerCosts       `json:"owner_costs"`
+	Limits        ExposureResourceEstimate `json:"limits"`
+	Beauty        RetouchPreviewBeauty     `json:"beauty"`
+}
+
+func validateRetouchPreviewDeployment(config RetouchPreviewDeployment) error {
+	if !validRetouchQualification(config.Qualification) || !validRetouchBeauty(config.Beauty) || config.Limits.VRAMBytes != 0 || config.Limits.PixelCount > 200000000 {
+		return ErrInvalid
+	}
+	_, err := CompileRetouchPreviewResources(1, 1, config.OwnerCosts, config.Limits)
+	return err
+}
+
 type ExposureTenantPreparation struct {
-	TenantID  uuid.UUID                `json:"tenant_id"`
-	Review    ReviewPreparationConfig  `json:"review"`
-	Execution ExposureDeploymentBudget `json:"execution"`
+	ShownRetouchExecution           *ExposureDeploymentBudget           `json:"shown_retouch_execution,omitempty"`
+	RetouchPreview                  *RetouchPreviewDeployment           `json:"retouch_preview,omitempty"`
+	ShownBackgroundCleanupExecution *ExposureDeploymentBudget           `json:"shown_background_cleanup_execution,omitempty"`
+	BackgroundCleanupPreview        *BackgroundCleanupPreviewDeployment `json:"background_cleanup_preview,omitempty"`
+	RemovalPreview                  *RemovalPreviewDeployment           `json:"removal_preview,omitempty"`
+	TenantID                        uuid.UUID                           `json:"tenant_id"`
+	Review                          ReviewPreparationConfig             `json:"review"`
+	Execution                       ExposureDeploymentBudget            `json:"execution"`
+	ShownExecution                  *ExposureDeploymentBudget           `json:"shown_execution,omitempty"`
+	ShownRemovalExecution           *ExposureDeploymentBudget           `json:"shown_removal_execution,omitempty"`
 }
 
 type ExposurePreparationCatalog struct {
@@ -54,6 +113,53 @@ func DecodeExposurePreparationCatalog(raw []byte) (ExposurePreparationCatalog, e
 		if _, err = NewExposureBudgetSelection(entry.Execution); err != nil {
 			return ExposurePreparationCatalog{}, err
 		}
+		if entry.RetouchPreview != nil {
+			if err = validateRetouchPreviewDeployment(*entry.RetouchPreview); err != nil {
+				return ExposurePreparationCatalog{}, err
+			}
+			for _, artifact := range []uuid.UUID{entry.RetouchPreview.Qualification.Report.ArtifactID, entry.RetouchPreview.Qualification.Calibration.ArtifactID} {
+				if owner, found := artifactTenants[artifact]; found && owner != entry.TenantID {
+					return ExposurePreparationCatalog{}, ErrInvalid
+				}
+				artifactTenants[artifact] = entry.TenantID
+			}
+		}
+		if entry.RemovalPreview != nil {
+			if err = validateRemovalPreviewDeployment(*entry.RemovalPreview); err != nil {
+				return ExposurePreparationCatalog{}, err
+			}
+			for _, artifact := range []uuid.UUID{entry.RemovalPreview.Qualification.Report.ArtifactID, entry.RemovalPreview.Qualification.Calibration.ArtifactID} {
+				if owner, found := artifactTenants[artifact]; found && owner != entry.TenantID {
+					return ExposurePreparationCatalog{}, ErrInvalid
+				}
+				artifactTenants[artifact] = entry.TenantID
+			}
+		}
+		if entry.BackgroundCleanupPreview != nil {
+			if err = validateBackgroundCleanupPreviewDeployment(*entry.BackgroundCleanupPreview); err != nil {
+				return ExposurePreparationCatalog{}, err
+			}
+			for _, artifact := range []uuid.UUID{entry.BackgroundCleanupPreview.Qualification.Report.ArtifactID, entry.BackgroundCleanupPreview.Qualification.Calibration.ArtifactID} {
+				if owner, found := artifactTenants[artifact]; found && owner != entry.TenantID {
+					return ExposurePreparationCatalog{}, ErrInvalid
+				}
+				artifactTenants[artifact] = entry.TenantID
+			}
+		}
+		for _, copyExecution := range []*ExposureDeploymentBudget{entry.ShownExecution, entry.ShownRemovalExecution, entry.ShownBackgroundCleanupExecution, entry.ShownRetouchExecution} {
+			if copyExecution == nil {
+				continue
+			}
+			if _, err = NewShownBudgetSelection(*copyExecution); err != nil {
+				return ExposurePreparationCatalog{}, err
+			}
+			for _, artifact := range []uuid.UUID{copyExecution.Qualification.Report.ArtifactID, copyExecution.Qualification.Calibration.ArtifactID} {
+				if owner, found := artifactTenants[artifact]; found && owner != entry.TenantID {
+					return ExposurePreparationCatalog{}, ErrInvalid
+				}
+				artifactTenants[artifact] = entry.TenantID
+			}
+		}
 		for _, artifact := range []uuid.UUID{entry.Execution.Qualification.Report.ArtifactID, entry.Execution.Qualification.Calibration.ArtifactID} {
 			if owner, found := artifactTenants[artifact]; found && owner != entry.TenantID {
 				return ExposurePreparationCatalog{}, ErrInvalid
@@ -65,10 +171,11 @@ func DecodeExposurePreparationCatalog(raw []byte) (ExposurePreparationCatalog, e
 }
 
 type TenantExposureApplyService struct {
-	services      map[uuid.UUID]*ApplyService
-	fallback      *ApplyService
-	closeServices map[uuid.UUID]*CloseService
-	closeFallback *CloseService
+	installedOperations map[uuid.UUID]map[string]bool
+	services            map[uuid.UUID]*ApplyService
+	fallback            *ApplyService
+	closeServices       map[uuid.UUID]*CloseService
+	closeFallback       *CloseService
 }
 
 // InstallTenantExposureApplyService owns the catalog and shares verified DB
@@ -83,13 +190,17 @@ func InstallTenantExposureApplyService(ctx context.Context, base ExposureApplyIn
 	if err != nil {
 		return nil, err
 	}
-	result := &TenantExposureApplyService{services: make(map[uuid.UUID]*ApplyService, len(owned.Tenants)), fallback: &ApplyService{API: base.API}, closeServices: make(map[uuid.UUID]*CloseService, len(owned.Tenants)), closeFallback: &CloseService{API: base.API}}
+	result := &TenantExposureApplyService{installedOperations: make(map[uuid.UUID]map[string]bool), services: make(map[uuid.UUID]*ApplyService, len(owned.Tenants)), fallback: &ApplyService{API: base.API}, closeServices: make(map[uuid.UUID]*CloseService, len(owned.Tenants)), closeFallback: &CloseService{API: base.API}}
 	for i, entry := range owned.Tenants {
 		config := base
 		config.ReviewModelSHA = entry.Review.ModelSHA
 		config.ReviewDatasetSHA = entry.Review.DatasetSHA
 		config.DocumentBudgetBytes = entry.Review.DocumentBudgetBytes
 		config.Execution = entry.Execution
+		config.ShownExecution = entry.ShownExecution
+		config.ShownRemovalExecution = entry.ShownRemovalExecution
+		config.ShownBackgroundCleanupExecution = entry.ShownBackgroundCleanupExecution
+		config.ShownRetouchExecution = entry.ShownRetouchExecution
 		var service *ApplyService
 		if i == 0 {
 			service, err = InstallExposureApplyService(ctx, config)
@@ -98,6 +209,14 @@ func InstallTenantExposureApplyService(ctx context.Context, base ExposureApplyIn
 		}
 		if err != nil {
 			return nil, err
+		}
+		// Later tenants use the pure constructor because shared baseline roles
+		// were checked for the first tenant. Optional retouch authority still
+		// needs checking when only a later tenant enables this operation.
+		if i > 0 && config.ShownRetouchExecution != nil {
+			if err = verifyShownRetouchAdmissionRole(ctx, config.Admission); err != nil {
+				return nil, err
+			}
 		}
 		read, closeErr := NewPlanObjectReader(config.Objects, config.Bucket)
 		if closeErr != nil {
@@ -109,6 +228,12 @@ func InstallTenantExposureApplyService(ctx context.Context, base ExposureApplyIn
 		}
 		result.closeServices[entry.TenantID] = &CloseService{API: config.API, Prepare: prepareClose}
 		result.services[entry.TenantID] = service
+		result.installedOperations[entry.TenantID] = map[string]bool{
+			"semantic.adopt_shown_retouch_region":     config.ShownRetouchExecution != nil,
+			"semantic.adopt_shown_exposure":           config.ShownExecution != nil,
+			"semantic.adopt_shown_removal":            config.ShownRemovalExecution != nil,
+			"semantic.adopt_shown_background_cleanup": config.ShownBackgroundCleanupExecution != nil,
+		}
 	}
 	return result, nil
 }
@@ -139,4 +264,8 @@ func (s *TenantExposureApplyService) closeServiceForTenant(tenant uuid.UUID) *Cl
 		return service
 	}
 	return s.closeFallback
+}
+
+func (s *TenantExposureApplyService) SemanticOperationInstalled(tenant uuid.UUID, operation string) bool {
+	return s != nil && tenant != uuid.Nil && s.services[tenant] != nil && s.installedOperations[tenant][operation]
 }

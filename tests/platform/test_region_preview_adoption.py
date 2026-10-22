@@ -74,11 +74,15 @@ def test_coordinator_passes_trusted_icc_and_generation_bound_params(monkeypatch,
         def execute(self,query,args):
             queries.append((query,args))
             assert args==(tenant,task,3,9,result)
+            if 'v26_region_adoption_execution_profile' in query:
+                return SimpleNamespace(fetchone=lambda:({},))
             assert 'v26_region_adoption_params' in query
             return SimpleNamespace(fetchone=lambda:(params_ref.artifact_id,params_ref.sha256) if row_present else None)
     class Write:
         def transaction(self):raise AssertionError('No write transaction before proof')
-    coordinator=service.AdoptionCoordinator(Read(),Write(),object(),'private',region_target_icc_sha=icc)
+    from photo_worker.v2.region_replay import NativeRegionReplay
+    monkeypatch.setattr(NativeRegionReplay,'verify',lambda *a,**kw:None)
+    coordinator=service.AdoptionCoordinator(Read(),Write(),object(),'private',region_target_icc_sha=icc,region_replay=object.__new__(NativeRegionReplay))
     coordinator.context=lambda *_:service.AdoptionContext(3,9,result,'region.preview','1',root)
     def proof(**kwargs):
         assert kwargs['region_target_icc_sha']==icc and kwargs['params_ref']==params_ref
@@ -173,18 +177,24 @@ def test_coordinator_stop_after_proof_never_enters_write_transaction(monkeypatch
     class Read:
         autocommit = True
         def execute(self, query, args):
+            if 'v26_region_adoption_execution_profile' in query:
+                return SimpleNamespace(fetchone=lambda:({},))
             assert 'v26_region_adoption_params' in query
             return SimpleNamespace(fetchone=lambda: (params.artifact_id, params.sha256))
     class Write:
         def transaction(self):
             pytest.fail('write transaction after stopped proof')
+    from photo_worker.v2.region_replay import NativeRegionReplay
+    monkeypatch.setattr(NativeRegionReplay,'verify',lambda *a,**kw:None)
     coordinator = service.AdoptionCoordinator(Read(), Write(), object(), 'private',
-        region_target_icc_sha='b' * 64, check_active=active)
+        region_target_icc_sha='b' * 64, check_active=active,region_replay=object.__new__(NativeRegionReplay))
     coordinator.context = lambda *args: service.AdoptionContext(1, 2, uuid4(),
         'region.preview', '1', ArtifactRef(uuid4(), 'c' * 64))
     def proof(**kwargs):
-        assert kwargs['check_active'] is active
+        kwargs['check_active']()
         stop.set()
+        with pytest.raises(InterruptedError,match='stopped'):
+            kwargs['check_active']()
         return SimpleNamespace(inventory=(), digest='d' * 64)
     monkeypatch.setattr(service, 'prepare_v2_adoption', proof)
     with pytest.raises(InterruptedError, match='stopped'):

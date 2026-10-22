@@ -99,7 +99,7 @@ def test_cache_miss_rechecks_primary_context_before_profiled_render(tmp_path,mon
         assert actual_lease is lease and actual_raw==raw
         events.append('primary');return row
     database=SimpleNamespace(admit_render_recipe=lambda *args:True,render_qualification=lambda *args:asdict(pin),
-        render_cache_context=primary)
+        render_cache_context=primary,render_executed_base_receipt=lambda *args:None)
     admission=render_task.SQLRenderTaskAdmission(database)
     monkeypatch.setattr(render_task,'read_render_document',lambda *args:raw)
     monkeypatch.setattr(render_task,'load_frozen_render_inputs',lambda *args,**kwargs:inputs)
@@ -231,7 +231,7 @@ def test_worker_reads_primary_parents_with_exact_recipe_profile_and_qualificatio
     calls=[]
     def primary(actual_lease,raw):
         calls.append((actual_lease,raw));return row
-    admission=render_task.SQLRenderTaskAdmission(SimpleNamespace(render_cache_context=primary))
+    admission=render_task.SQLRenderTaskAdmission(SimpleNamespace(render_cache_context=primary,render_executed_base_receipt=lambda *args:None))
     ctx=SimpleNamespace(lease=lease,check_active=lambda:None)
     if failure is None:
         scoped=admission.inputs(ctx,b'{"exact":"recipe"}',pin)

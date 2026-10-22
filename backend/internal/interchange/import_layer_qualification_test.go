@@ -19,7 +19,7 @@ func TestPreparedLayersCheckDisabledOperationsMasksAndFinalAuthority(t *testing.
   canvas,_:=canonical.Hash(image.Canvas)
   binding:=v2input.SessionVersionBinding{AssetVersionID:uuid.New(),Source:v2input.Ref{ArtifactID:uuid.New(),SHA256:rawSHA(master)},CanvasHash:canvas}
   params:=[]byte(`{"schema_version":1}`);p:=v2input.Ref{ArtifactID:uuid.New(),SHA256:rawSHA(params)}
-  mraw,err:=canonical.Marshal(map[string]any{"artifact":v2input.Ref{ArtifactID:uuid.New(),SHA256:rawSHA([]byte("pixels"))},"canvas":image.Canvas,"transform_chain":json.RawMessage(image.TransformChain),"selector":"manual","confidence":1,"protected":true});if err!=nil{t.Fatal(err)}
+  mraw,err:=canonical.Marshal(map[string]any{"artifact":v2input.Ref{ArtifactID:uuid.New(),SHA256:rawSHA([]byte("pixels"))},"canvas":image.Canvas,"transform_chain":json.RawMessage(image.TransformChain),"object_id":nil,"model_lock_id":nil,"selector":"manual","confidence":1,"protected":true});if err!=nil{t.Fatal(err)}
   m:=v2input.Ref{ArtifactID:uuid.New(),SHA256:rawSHA(mraw)}
   layers:=[]any{}
   for i:=0;i<2;i++{layers=append(layers,map[string]any{"id":uuid.New(),"enabled":i==0,"opacity":0,"blend":"normal","operation":"adjust.exposure","operation_version":"1","params":p,"mask":map[string]any{"op":"ref","mask":m,"canvas_hash":canvas}})}

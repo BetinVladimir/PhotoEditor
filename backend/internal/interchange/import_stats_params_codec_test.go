@@ -16,7 +16,7 @@ func TestImportStatsParamsRemapsSourceAndInlinePerson(t *testing.T){
   old:=v2input.SessionVersionBinding{AssetVersionID:uuid.New(),Source:v2input.Ref{ArtifactID:uuid.New(),SHA256:rawSHA(imageRaw)},CanvasHash:canvas}
   target:=old;target.AssetVersionID=uuid.New();target.Source.ArtifactID=uuid.New()
   pixels:=v2input.Ref{ArtifactID:uuid.New(),SHA256:rawSHA([]byte("pixels"))}
-  mask,err:=canonical.Marshal(map[string]any{"artifact":pixels,"canvas":image.Canvas,"transform_chain":json.RawMessage(image.TransformChain),"selector":"person","confidence":.8,"model_lock_id":rawSHA([]byte("model")),"protected":true});if err!=nil{t.Fatal(err)}
+  mask,err:=canonical.Marshal(map[string]any{"artifact":pixels,"canvas":image.Canvas,"transform_chain":json.RawMessage(image.TransformChain),"object_id":nil,"selector":"person","confidence":.8,"model_lock_id":rawSHA([]byte("model")),"protected":true});if err!=nil{t.Fatal(err)}
   if mode=="selector"{var fields map[string]any;if err:=json.Unmarshal(mask,&fields);err!=nil{t.Fatal(err)};fields["selector"]="manual";mask,err=canonical.Marshal(fields);if err!=nil{t.Fatal(err)}}
   params:=importStatsParams{Image:old.Source,Person:mask};if mode=="source"{params.Image.ArtifactID=uuid.New()};if mode=="canvas"{target.CanvasHash=rawSHA([]byte("other"))}
   raw,err:=canonical.Marshal(params);if err!=nil{t.Fatal(err)}

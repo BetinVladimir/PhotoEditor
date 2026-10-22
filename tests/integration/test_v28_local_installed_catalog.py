@@ -2,6 +2,7 @@
 
 Denial/resource parity evidence, not a positive portrait producer/owner cycle.
 """
+from pathlib import Path as _PhotoRepositoryPath
 import json
 import os
 from pathlib import Path
@@ -19,7 +20,7 @@ ROOT=Path(__file__).resolve().parents[2]
     ('v2draft','TestLocalPortraitSQLInventoryDigestParity'),
 ])
 def test_v28_local_installed_postgres_contract(database,package,name):
-    env={**os.environ,'PHOTO_TEST_DATABASE_URL':make_conninfo(**database),'GOCACHE':'/private/tmp/photoeditor-go-cache'}
+    env={**os.environ,'PHOTO_TEST_DATABASE_URL':make_conninfo(**database),'GOCACHE':str(_PhotoRepositoryPath(__file__).resolve().parents[2]/'work/go-cache')}
     result=subprocess.run(['go','test','./internal/'+package,'-run','^'+name+'$','-count=1','-json'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=60)
     assert result.returncode==0,result.stdout+result.stderr
     events=[json.loads(line) for line in result.stdout.splitlines() if line.startswith('{')]

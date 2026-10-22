@@ -1,5 +1,18 @@
 -- +goose Up
 -- Preserve exact bounded document bytes in existing tenant-owned/purged rows.
+-- Preserve all earlier purposes while admitting only this module's exact
+-- assembly purpose and bounded three-digit shard purpose family.
+-- +goose StatementBegin
+DO $$ DECLARE expression text;
+BEGIN
+ SELECT pg_get_expr(conbin,conrelid) INTO expression FROM pg_constraint
+ WHERE conrelid='photo.backend_documents'::regclass
+  AND conname='backend_documents_purpose_check';
+ IF expression IS NULL THEN RAISE EXCEPTION 'MISSING_DOCUMENT_PURPOSE_CONSTRAINT';END IF;
+ ALTER TABLE photo.backend_documents DROP CONSTRAINT backend_documents_purpose_check;
+ EXECUTE format('ALTER TABLE photo.backend_documents ADD CONSTRAINT backend_documents_purpose_check CHECK ((%s) OR purpose=''v30_delivery_assembly'' OR purpose ~ ''^v30_delivery_slots_[0-9]{3}$'')',expression);
+END $$;
+-- +goose StatementEnd
 ALTER TABLE photo.backend_documents ADD COLUMN v30_delivery_document_jcs text;
 ALTER TABLE photo.backend_documents ADD CONSTRAINT backend_documents_v30_delivery_document_exact
  CHECK(v30_delivery_document_jcs IS NULL OR (

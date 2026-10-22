@@ -51,7 +51,7 @@ func TestSchedulerExportStyleBackgroundFactoryUsesClaimScope(t *testing.T) {
 		t.Fatal("missing claim lease accepted")
 	}
 	foreign = catalog
-	foreign.Claim.Request.Format = "xmp"
+	foreign.Claim.Request.Format = "photoeditor_bundle"
 	if result, err := factory.BuildExportStyleBackgroundAuthority(context.Background(),
 		intent, frozen, foreign, objects, images); err == nil || result != nil {
 		t.Fatal("changed claim request accepted")

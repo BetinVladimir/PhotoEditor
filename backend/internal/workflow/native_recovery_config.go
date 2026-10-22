@@ -1,6 +1,7 @@
 package workflow
 
 import (
+ "photoeditor/backend/internal/database"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -102,6 +103,7 @@ func LoadNativeRecoveryFactory(path, sourceDSN, iccDirectory string) (SchedulerN
 			return nil, nil, errors.New("native recovery source database configuration invalid")
 		}
 		cfg.ConnConfig.RuntimeParams["role"] = "photo_api"
+		database.GuardApplicationRole(cfg)
 		cfg.ConnConfig.RuntimeParams["statement_timeout"] = "5000"
 		cfg.ConnConfig.RuntimeParams["lock_timeout"] = "3000"
 		cfg.MaxConns = 4

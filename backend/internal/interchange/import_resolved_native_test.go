@@ -41,6 +41,8 @@ func TestNativeImportResolvedQualifierRequiresProbeAndSourceScope(t *testing.T) 
 		t.Fatal(err)
 	}
 	params := body["params"].(map[string]any)
+	// A source image and style are distinct typed artifact roles.
+	params["style"].(map[string]any)["artifact_id"] = uuid.NewString()
 	var image v2input.Ref
 	imageRaw, err := canonical.Marshal(params["image"])
 	if err != nil {

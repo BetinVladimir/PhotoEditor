@@ -6,7 +6,9 @@ import (
 	_ "embed"
 	"encoding/json"
 	"errors"
+	"io"
 	"math"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -14,26 +16,32 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"photoeditor/backend/internal/auth"
+	"photoeditor/backend/internal/billing"
 	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/domain"
+	"photoeditor/backend/internal/editor"
 	"photoeditor/backend/internal/idempotency"
 	"photoeditor/backend/internal/project"
+	"photoeditor/backend/internal/review"
 	"photoeditor/backend/internal/tenant"
+	"photoeditor/backend/internal/v2draft"
+	"photoeditor/backend/internal/v2input"
 )
 
 //go:embed identity_style.json
 var identityStyleJSON []byte
 
 type ApplyRequest struct {
-	SourceRevision      int64           `json:"source_revision"`
-	StyleVersionID      uuid.UUID       `json:"style_version_id"`
-	Scope               string          `json:"scope"`
-	ItemIDs             []uuid.UUID     `json:"item_ids,omitempty"`
-	SelectionSnapshotID *uuid.UUID      `json:"selection_snapshot_id,omitempty"`
-	Strength            *float64        `json:"strength,omitempty"`
-	OverridesID         *uuid.UUID      `json:"overrides_id,omitempty"`
-	JobOverrides        json.RawMessage `json:"job_overrides,omitempty"`
-	OutputName          string          `json:"output_name,omitempty"`
+	ItemMaskOverrides   []ApplyItemMaskOverride `json:"item_mask_overrides,omitempty"`
+	SourceRevision      int64                   `json:"source_revision"`
+	StyleVersionID      uuid.UUID               `json:"style_version_id"`
+	Scope               string                  `json:"scope"`
+	ItemIDs             []uuid.UUID             `json:"item_ids,omitempty"`
+	SelectionSnapshotID *uuid.UUID              `json:"selection_snapshot_id,omitempty"`
+	Strength            *float64                `json:"strength,omitempty"`
+	OverridesID         *uuid.UUID              `json:"overrides_id,omitempty"`
+	JobOverrides        json.RawMessage         `json:"job_overrides,omitempty"`
+	OutputName          string                  `json:"output_name,omitempty"`
 }
 type CreateRequest struct {
 	Kind               string    `json:"kind"`
@@ -226,7 +234,16 @@ type styleExecutionNeeds struct {
 		Enabled bool `json:"enabled"`
 	} `json:"geometry"`
 	Extensions struct {
-		Series struct {
+		Culling struct {
+			Enabled bool `json:"enabled"`
+		} `json:"culling"`
+		Masking *struct {
+			Scene       string `json:"scene"`
+			Face        string `json:"face"`
+			Interactive string `json:"interactive"`
+		} `json:"masking"`
+		RegionAdjustments []applyRegionRule `json:"region_adjustments"`
+		Series            struct {
 			Enabled bool `json:"enabled"`
 		} `json:"series"`
 		Composition struct {
@@ -246,6 +263,7 @@ type styleExecutionNeeds struct {
 		} `json:"restoration"`
 		Background struct {
 			Mode         string    `json:"mode"`
+			AssetID      string    `json:"asset_id"`
 			SolidRGB     []float64 `json:"solid_rgb"`
 			BlurStrength float64   `json:"blur_strength"`
 		} `json:"background"`
@@ -262,9 +280,22 @@ type styleExecutionNeeds struct {
 			NegativePrompt    string  `json:"negative_prompt"`
 			Steps             int     `json:"steps"`
 			Guidance          float64 `json:"guidance_scale"`
+			Strength          float64 `json:"strength"`
 			RequireAcceptance bool    `json:"require_acceptance"`
 		} `json:"generation"`
 	} `json:"extensions"`
+}
+
+// Override modules replace named modules; absent fields must not retain
+// configuration from a previous style or job module.
+func replaceApplyNeedModule(raw json.RawMessage, target any) error {
+	pointer := reflect.ValueOf(target)
+	fresh := reflect.New(pointer.Elem().Type())
+	if err := json.Unmarshal(raw, fresh.Interface()); err != nil {
+		return err
+	}
+	pointer.Elem().Set(fresh.Elem())
+	return nil
 }
 
 func mergeOverrideNeeds(s *styleExecutionNeeds, raw json.RawMessage) error {
@@ -278,8 +309,15 @@ func mergeOverrideNeeds(s *styleExecutionNeeds, raw json.RawMessage) error {
 		return errors.New("invalid override execution requirements")
 	}
 	for name, value := range envelope.Modules {
+		if bytes.Equal(bytes.TrimSpace(value), []byte("null")) {
+			continue
+		}
 		var target any
 		switch name {
+		case "culling":
+			target = &s.Extensions.Culling
+		case "local":
+			target = &s.Local
 		case "beauty":
 			target = &s.Beauty
 		case "defects":
@@ -293,6 +331,15 @@ func mergeOverrideNeeds(s *styleExecutionNeeds, raw json.RawMessage) error {
 			}
 			for key, entry := range ext {
 				switch key {
+				case "region_adjustments":
+					if err := replaceApplyNeedModule(entry, &s.Extensions.RegionAdjustments); err != nil {
+						return err
+					}
+					continue
+				case "masking":
+					target = &s.Extensions.Masking
+				case "culling":
+					target = &s.Extensions.Culling
 				case "series":
 					target = &s.Extensions.Series
 				case "composition":
@@ -310,7 +357,7 @@ func mergeOverrideNeeds(s *styleExecutionNeeds, raw json.RawMessage) error {
 				default:
 					continue
 				}
-				if json.Unmarshal(entry, target) != nil {
+				if replaceApplyNeedModule(entry, target) != nil {
 					return errors.New("invalid override extension")
 				}
 			}
@@ -318,9 +365,36 @@ func mergeOverrideNeeds(s *styleExecutionNeeds, raw json.RawMessage) error {
 		default:
 			continue
 		}
-		if json.Unmarshal(value, target) != nil {
+		if replaceApplyNeedModule(value, target) != nil {
 			return errors.New("invalid override module")
 		}
+	}
+	return nil
+}
+
+func applyMaskingModelsPresent(s styleExecutionNeeds) bool {
+	if s.Extensions.Masking == nil {
+		return true
+	}
+	required := []string{s.Extensions.Masking.Scene, s.Extensions.Masking.Face, s.Extensions.Masking.Interactive}
+	for _, id := range required {
+		found := false
+		for _, model := range s.Models {
+			if model.ID == id && model.WeightID != "" {
+				found = true
+			}
+		}
+		if id == "" || !found {
+			return false
+		}
+	}
+	return true
+}
+
+// Evaluate dependencies only after style, job and item modules are merged.
+func validateApplyModuleDependencies(s styleExecutionNeeds) error {
+	if s.Extensions.Background.Mode == "generate" && !s.Extensions.Generation.Enabled {
+		return domain.NewError("VALIDATION_FAILED", 422)
 	}
 	return nil
 }
@@ -328,15 +402,15 @@ func mergeOverrideNeeds(s *styleExecutionNeeds, raw json.RawMessage) error {
 func supportsApplyV4(s styleExecutionNeeds) bool {
 	inpaintOK := !s.Extensions.Inpainting.Enabled || s.Extensions.Inpainting.Model == inpaintModelID && s.Extensions.Inpainting.Policy == "review" && s.Extensions.Inpainting.MaskSource == "per_image"
 	g := s.Extensions.Generation
-	generationOK := !g.Enabled || g.Model == generationModelID && len(g.Prompt) >= 1 && len(g.Prompt) <= 1000 && len(g.NegativePrompt) <= 1000 && g.Steps == 25 && g.Guidance >= 1 && g.Guidance <= 20 && g.RequireAcceptance
+	generationOK := !g.Enabled || g.Model == generationModelID && len([]rune(g.Prompt)) <= 2000 && len([]rune(g.NegativePrompt)) <= 2000 && g.Steps >= 1 && g.Steps <= 50 && g.Guidance >= 0 && g.Guidance <= 20 && g.Strength >= 0 && g.Strength <= 1 && g.RequireAcceptance
 	c := s.Extensions.Composition
 	compositionOK := !c.Enabled || c.OutpaintPolicy == "" || c.OutpaintPolicy == "off" || c.OutpaintPolicy == "review" && len(c.OutpaintPrompt) >= 1 && len(c.OutpaintPrompt) <= 1000 && len(c.OutpaintNegative) <= 1000 && c.OutpaintGuidance >= 1 && c.OutpaintGuidance <= 20
-	return inpaintOK && generationOK && (!s.Defects.Enabled || s.Defects.Policy == "review") && !s.Extensions.PortraitDetail.Enabled &&
+	return inpaintOK && generationOK && (!s.Defects.Enabled || s.Defects.Policy == "review" || s.Defects.Policy == "conservative_auto") && !s.Extensions.PortraitDetail.Enabled &&
 		compositionOK &&
 		(s.Extensions.Restoration.Denoise == "" || s.Extensions.Restoration.Denoise == "off" || s.Extensions.Restoration.Denoise == denoiseModelID) &&
 		(s.Extensions.Restoration.Upscale == "" || s.Extensions.Restoration.Upscale == "off" || s.Extensions.Restoration.Upscale == "2x" || s.Extensions.Restoration.Upscale == "4x") &&
-		(s.Extensions.Restoration.SensorDust == "" || s.Extensions.Restoration.SensorDust == "off" || s.Extensions.Restoration.SensorDust == "review") &&
-		(s.Extensions.Background.Mode == "" || s.Extensions.Background.Mode == "keep" || s.Extensions.Background.Mode == "transparent" || s.Extensions.Background.Mode == "solid" || s.Extensions.Background.Mode == "blur" || s.Extensions.Background.Mode == "generate")
+		(s.Extensions.Restoration.SensorDust == "" || s.Extensions.Restoration.SensorDust == "off" || s.Extensions.Restoration.SensorDust == "review" || s.Extensions.Restoration.SensorDust == "conservative_auto") &&
+		(s.Extensions.Background.Mode == "" || s.Extensions.Background.Mode == "keep" || s.Extensions.Background.Mode == "transparent" || s.Extensions.Background.Mode == "solid" || s.Extensions.Background.Mode == "asset" || s.Extensions.Background.Mode == "blur" || s.Extensions.Background.Mode == "generate")
 }
 
 func supportsApplyV4WithOverrides(s styleExecutionNeeds, raw json.RawMessage) bool {
@@ -345,7 +419,7 @@ func supportsApplyV4WithOverrides(s styleExecutionNeeds, raw json.RawMessage) bo
 	if !s.Extensions.PortraitDetail.Enabled && !creative {
 		return supportsApplyV4(s)
 	}
-	if s.Extensions.PortraitDetail.Enabled && s.Geometry.Enabled || len(raw) == 0 {
+	if len(raw) == 0 {
 		return false
 	}
 	var override struct {
@@ -397,16 +471,50 @@ func validateJobOverride(raw json.RawMessage) error {
 	if decoder.Decode(&value) != nil || value.SchemaVersion != 1 || len(value.Modules) == 0 {
 		return domain.NewError("VALIDATION_FAILED", 422)
 	}
+	if decoder.Decode(new(any)) != io.EOF {
+		return domain.NewError("VALIDATION_FAILED", 422)
+	}
 	allowed := map[string]bool{"strength": true, "global": true, "local": true, "beauty": true, "defects": true, "geometry": true, "extensions": true}
 	for name, body := range value.Modules {
 		if !allowed[name] || len(body) == 0 || string(body) == "null" {
 			return domain.NewError("VALIDATION_FAILED", 422)
+		}
+		if name == "global" && !validApplyJobColor(body) {
+			return domain.NewError("VALIDATION_FAILED", 422)
+		}
+		if name == "extensions" && !validApplyJobExtensions(body) {
+			return domain.NewError("VALIDATION_FAILED", 422)
+		}
+		if name == "strength" {
+			var strength float64
+			if json.Unmarshal(body, &strength) != nil || math.IsNaN(strength) || math.IsInf(strength, 0) || strength < 0 || strength > 1 {
+				return domain.NewError("VALIDATION_FAILED", 422)
+			}
+		} else {
+			var module map[string]json.RawMessage
+			if json.Unmarshal(body, &module) != nil || module == nil {
+				return domain.NewError("VALIDATION_FAILED", 422)
+			}
+			if (name == "local" || name == "beauty" || name == "defects" || name == "geometry") && !validApplyJobModule(name, body) {
+				return domain.NewError("VALIDATION_FAILED", 422)
+			}
 		}
 	}
 	return nil
 }
 
 func normalizeApply(req ApplyRequest) (ApplyRequest, float64, error) {
+	if len(req.ItemMaskOverrides) > 5000 || len(req.ItemMaskOverrides) > 0 && req.OverridesID != nil {
+		return req, 0, domain.NewError("VALIDATION_FAILED", 422)
+	}
+	sort.Slice(req.ItemMaskOverrides, func(i, j int) bool {
+		return bytes.Compare(req.ItemMaskOverrides[i].ItemID[:], req.ItemMaskOverrides[j].ItemID[:]) < 0
+	})
+	for i, value := range req.ItemMaskOverrides {
+		if value.ItemID == uuid.Nil || value.OverrideID == uuid.Nil || i > 0 && value.ItemID == req.ItemMaskOverrides[i-1].ItemID {
+			return req, 0, domain.NewError("VALIDATION_FAILED", 422)
+		}
+	}
 	req.Scope = strings.ToLower(strings.TrimSpace(req.Scope))
 	req.OutputName = strings.TrimSpace(req.OutputName)
 	strength := 1.0
@@ -493,7 +601,7 @@ func (s Service) Apply(ctx context.Context, who auth.Identity, tid, sourceID uui
 	if raw.StyleVersionID == uuid.Nil {
 		return idempotency.Response{}, domain.NewError("VALIDATION_FAILED", 422)
 	}
-	return s.apply(ctx, who, tid, sourceID, key, raw, false, "Run.Apply", "", nil, nil)
+	return s.apply(ctx, who, tid, sourceID, key, raw, false, "Run.Apply", "", nil, nil, nil)
 }
 
 // ApplyWithCommit admits a child Apply and lets its parent workflow commit its
@@ -521,23 +629,33 @@ func (s Service) ApplyWithCommit(ctx context.Context, who auth.Identity,
 			return idempotency.Response{}, domain.NewError("VALIDATION_FAILED", 422)
 		}
 	}
-	return s.apply(ctx, who, tid, sourceID, key, raw, false, "SessionAnalysis.Apply", decisionSHA, itemOverrides, commit)
+	return s.apply(ctx, who, tid, sourceID, key, raw, false, "SessionAnalysis.Apply", decisionSHA, itemOverrides, commit, nil)
 }
 
 func (s Service) apply(ctx context.Context, who auth.Identity, tid, sourceID uuid.UUID, key string, raw ApplyRequest, identity bool, route, decisionSHA string,
 	itemOverrides []BoundItemOverride,
-	commit func(context.Context, pgx.Tx, ApplyAccepted) error) (idempotency.Response, error) {
+	commit func(context.Context, pgx.Tx, ApplyAccepted) error, editorModes ...*editorEffectApplyMode) (idempotency.Response, error) {
+	var editorMode *editorEffectApplyMode
+	if len(editorModes) > 0 {
+		editorMode = editorModes[0]
+	}
 	var out idempotency.Response
 	req, strength, err := normalizeApply(raw)
 	if err != nil {
 		return out, err
 	}
-	if sourceID == uuid.Nil {
+	if sourceID == uuid.Nil && editorMode == nil {
 		return out, domain.NewError("VALIDATION_FAILED", 422)
 	}
 	err = tenant.WithTenant(ctx, s.DB, who, tid, domain.Viewer, func(tx pgx.Tx, role domain.Role) error {
 		var projectID uuid.UUID
-		e := tx.QueryRow(ctx, `SELECT project_id FROM photo.collections WHERE tenant_id=$1 AND id=$2 AND deleted_at IS NULL`, tid, sourceID).Scan(&projectID)
+		var e error
+		if editorMode != nil {
+			projectID = editorMode.ProjectID
+			e = editorMode.authorize(ctx, tx, who, tid, false)
+		} else {
+			e = tx.QueryRow(ctx, `SELECT project_id FROM photo.collections WHERE tenant_id=$1 AND id=$2 AND deleted_at IS NULL`, tid, sourceID).Scan(&projectID)
+		}
 		if errors.Is(e, pgx.ErrNoRows) {
 			return domain.NewError("NOT_FOUND", 404)
 		}
@@ -551,6 +669,15 @@ func (s Service) apply(ctx context.Context, who auth.Identity, tid, sourceID uui
 			Source  uuid.UUID    `json:"source_collection_id"`
 			Request ApplyRequest `json:"request"`
 		}{sourceID, req})
+		if editorMode != nil {
+			fingerprint = editorMode.Intent
+			if editorMode.AuthoredBase != nil {
+				fingerprint = struct {
+					Intent EditorEffectRequest      `json:"intent"`
+					Origin authoredBaseApplyBinding `json:"authored_base"`
+				}{editorMode.Intent, *editorMode.AuthoredBase}
+			}
+		}
 		if decisionSHA != "" {
 			fingerprint = struct {
 				Source        uuid.UUID           `json:"source_collection_id"`
@@ -560,13 +687,32 @@ func (s Service) apply(ctx context.Context, who auth.Identity, tid, sourceID uui
 			}{sourceID, req, decisionSHA, itemOverrides}
 		}
 		out, e = idempotency.Use(ctx, tx, idempotency.Scope{Tenant: tid, Principal: who.UserID, PrincipalType: "user", Route: route, Key: key}, fingerprint, time.Now().Add(30*24*time.Hour), func() (idempotency.Response, error) {
+			// Manual SaveEdits has no AI admission and consumes neither funding nor rerun slots.
+			var billable bool
+			var billingErr error
+			if editorMode != nil && editorMode.AuthoredBase == nil {
+				billable, billingErr = billing.PrepareEditor(ctx, tx, tid, editorMode.ProjectID, who)
+			} else if !(route == "Run.SaveEdits" && identity) {
+				billable, billingErr = billing.PrepareApply(ctx, tx, tid, who, route)
+			}
+			if billingErr != nil {
+				return idempotency.Response{}, billingErr
+			}
 			var sourceName, state string
 			var revision int64
-			e := tx.QueryRow(ctx, `SELECT name,state,revision FROM photo.collections WHERE tenant_id=$1 AND id=$2 AND project_id=$3 AND deleted_at IS NULL FOR UPDATE`, tid, sourceID, projectID).Scan(&sourceName, &state, &revision)
+			var e error
+			if editorMode != nil {
+				sourceName = "Editor"
+				state = "draft"
+				revision = req.SourceRevision
+				e = editorMode.authorize(ctx, tx, who, tid, true)
+			} else {
+				e = tx.QueryRow(ctx, `SELECT name,state,revision FROM photo.collections WHERE tenant_id=$1 AND id=$2 AND project_id=$3 AND deleted_at IS NULL FOR UPDATE`, tid, sourceID, projectID).Scan(&sourceName, &state, &revision)
+			}
 			if e != nil {
 				return idempotency.Response{}, e
 			}
-			if state == "archived" || revision != req.SourceRevision {
+			if state != "draft" && state != "published" || revision != req.SourceRevision {
 				return idempotency.Response{}, domain.NewError("REVISION_CONFLICT", 409)
 			}
 			var styleID, styleArtifactID uuid.UUID
@@ -617,7 +763,21 @@ func (s Service) apply(ctx context.Context, who auth.Identity, tid, sourceID uui
 				}
 				overrideHash = &h
 			}
+			if editorMode != nil {
+				overrideConfig = append(json.RawMessage(nil), editorMode.Override...)
+				overrideVersion = editorMode.Binding.AssetVersionID
+				overrideInputSHA = editorMode.SourceSHA
+			}
+			if e = mergeOverrideNeeds(&styleNeeds, req.JobOverrides); e != nil {
+				return idempotency.Response{}, e
+			}
 			if e = mergeOverrideNeeds(&styleNeeds, overrideConfig); e != nil {
+				return idempotency.Response{}, e
+			}
+			if !identity && !applyMaskingModelsPresent(styleNeeds) {
+				return idempotency.Response{}, domain.NewError("STYLE_MODEL_BINDING_MISSING", 409)
+			}
+			if e = validateApplyModuleDependencies(styleNeeds); e != nil {
 				return idempotency.Response{}, e
 			}
 			var graphBeauty json.RawMessage
@@ -635,111 +795,41 @@ func (s Service) apply(ctx context.Context, who auth.Identity, tid, sourceID uui
 					styleNeeds.Beauty.Enabled = true
 				}
 			}
+			if len(req.ItemMaskOverrides) == 0 {
+				if e = validateApplyRegionBindings(styleNeeds.Extensions.RegionAdjustments, overrideConfig, styleNeeds.Geometry.Enabled); e != nil {
+					return idempotency.Response{}, e
+				}
+			}
+			var backgroundAsset *review.ApplyBackgroundAsset
+			if styleNeeds.Extensions.Background.Mode == "asset" {
+				asset, resolveErr := (v2draft.SQLBackgroundAssetResolver{DB: s.DB, Bucket: s.Bucket}).ResolveTx(ctx, tx, who, tid, projectID, v2input.Ref{ArtifactID: styleArtifactID, SHA256: styleHash}, styleNeeds.Extensions.Background.AssetID, role)
+				if resolveErr != nil {
+					return idempotency.Response{}, resolveErr
+				}
+				if asset.StyleVersionID != req.StyleVersionID {
+					return idempotency.Response{}, domain.NewError("STYLE_MODEL_BINDING_MISSING", 409)
+				}
+				backgroundAsset = &review.ApplyBackgroundAsset{PortableID: asset.PortableID, StyleVersionID: asset.StyleVersionID, Style: review.ArtifactRef{ID: styleArtifactID, SHA256: styleHash}, Source: review.ArtifactRef{ID: asset.Ref.ArtifactID, SHA256: asset.Ref.SHA256}, ExpectedBytes: asset.Object.Bytes, Suffix: map[string]string{"image/jpeg": ".jpg", "image/png": ".png", "image/tiff": ".tiff"}[asset.Object.ContentType]}
+			}
 			seriesRequested := styleNeeds.Extensions.Series.Enabled
-			geometryRequested := styleNeeds.Geometry.Enabled
-			faceRequired := styleNeeds.Beauty.Enabled || styleNeeds.Defects.Enabled
-			backgroundRequested := styleNeeds.Extensions.Background.Mode == "transparent" || styleNeeds.Extensions.Background.Mode == "solid" || styleNeeds.Extensions.Background.Mode == "blur" || styleNeeds.Extensions.Background.Mode == "generate"
-			backgroundBlur := styleNeeds.Extensions.Background.Mode == "blur"
-			personRequired := styleNeeds.Mode == "adaptive" || styleNeeds.Local.Enabled || seriesRequested || geometryRequested || faceRequired || backgroundRequested || styleNeeds.Extensions.Composition.Enabled
-			personBackend, personRuntimeLock := "", ""
-			if personRequired {
-				if !identity && !hasPersonModel(styleNeeds.Models) {
-					return idempotency.Response{}, domain.NewError("STYLE_MODEL_BINDING_MISSING", 409)
-				}
-				if !identity && geometryRequested && !hasExactModel(styleNeeds.Models, poseModelID, poseWeightID) {
-					return idempotency.Response{}, domain.NewError("STYLE_MODEL_BINDING_MISSING", 409)
-				}
-				if !identity && faceRequired && (!hasExactModel(styleNeeds.Models, faceDetectModelID, faceDetectWeightID) ||
-					!hasExactModel(styleNeeds.Models, faceLandmarkModelID, faceLandmarkWeightID) ||
-					!hasExactModel(styleNeeds.Models, faceParseModelID, faceParseWeightID)) {
-					return idempotency.Response{}, domain.NewError("STYLE_MODEL_BINDING_MISSING", 409)
-				}
-				if !identity && backgroundBlur && !hasExactModel(styleNeeds.Models, depthModelID, depthWeightID) {
-					return idempotency.Response{}, domain.NewError("STYLE_MODEL_BINDING_MISSING", 409)
-				}
-				e = tx.QueryRow(ctx, `
-					SELECT w.lock_id, candidate.backend
-					FROM photo.worker_registrations w
-					CROSS JOIN LATERAL (
-						SELECT backend
-						FROM unnest(ARRAY['cuda','mps','cpu']) WITH ORDINALITY AS preferred(backend, priority)
-						WHERE w.backends ? backend
-						  AND (w.qualified_operations->'mask.person') ? backend
-						  AND (NOT $2 OR (w.qualified_operations->'pose.detect') ? backend)
-						  AND (NOT $3 OR ((w.qualified_operations->'face.detect') ? backend
-						                    AND (w.qualified_operations->'face.landmarks') ? backend
-						                    AND (w.qualified_operations->'face.parse') ? backend))
-						  AND (NOT $4 OR (w.qualified_operations->'depth.predict') ? backend)
-						ORDER BY priority
-						LIMIT 1
-					) candidate
-					WHERE w.tenant_id=$1
-					  AND w.enabled
-					  AND w.last_seen>clock_timestamp()-interval '30 seconds'
-					  AND w.resource_classes ? 'gpu'
-					  AND w.lock_id ~ '^[0-9a-f]{64}$'
-					ORDER BY CASE candidate.backend WHEN 'cuda' THEN 0 WHEN 'mps' THEN 1 ELSE 2 END, w.worker_id
-					LIMIT 1`, tid, geometryRequested, faceRequired, backgroundBlur).Scan(&personRuntimeLock, &personBackend)
-				if errors.Is(e, pgx.ErrNoRows) {
-					return idempotency.Response{}, domain.NewError("PERSON_MASK_CAPABILITY_UNAVAILABLE", 409)
-				}
-				if e != nil {
-					return idempotency.Response{}, e
-				}
+			runtimes, e := selectApplyRuntimes(ctx, tx, tid, styleNeeds, identity)
+			if e != nil {
+				return idempotency.Response{}, e
 			}
-			restorationDenoise := styleNeeds.Extensions.Restoration.Denoise == denoiseModelID
-			restorationUpscale := styleNeeds.Extensions.Restoration.Upscale == "2x" || styleNeeds.Extensions.Restoration.Upscale == "4x"
-			restorationBackend, restorationRuntimeLock := "", ""
-			if restorationDenoise || restorationUpscale {
-				if !identity && restorationDenoise && !hasExactModel(styleNeeds.Models, denoiseModelID, denoiseWeightID) {
-					return idempotency.Response{}, domain.NewError("STYLE_MODEL_BINDING_MISSING", 409)
-				}
-				upscaleID, upscaleWeight := upscale2ModelID, upscale2WeightID
-				if styleNeeds.Extensions.Restoration.Upscale == "4x" {
-					upscaleID, upscaleWeight = upscale4ModelID, upscale4WeightID
-				}
-				if !identity && restorationUpscale && !hasExactModel(styleNeeds.Models, upscaleID, upscaleWeight) {
-					return idempotency.Response{}, domain.NewError("STYLE_MODEL_BINDING_MISSING", 409)
-				}
-				e = tx.QueryRow(ctx, `SELECT w.lock_id,c.backend FROM photo.worker_registrations w CROSS JOIN LATERAL (
-				 SELECT backend FROM unnest(ARRAY['cuda','mps','cpu']) WITH ORDINALITY p(backend,priority)
-				 WHERE w.backends ? backend AND (NOT $2 OR (w.qualified_operations->'image.denoise') ? backend)
-				  AND (NOT $3 OR (w.qualified_operations->'image.upscale') ? backend) ORDER BY priority LIMIT 1) c
-				 WHERE w.tenant_id=$1 AND w.enabled AND w.last_seen>clock_timestamp()-interval '30 seconds' AND w.resource_classes ? 'gpu'
-				  AND w.lock_id ~ '^[0-9a-f]{64}$' ORDER BY CASE c.backend WHEN 'cuda' THEN 0 WHEN 'mps' THEN 1 ELSE 2 END,w.worker_id LIMIT 1`, tid, restorationDenoise, restorationUpscale).Scan(&restorationRuntimeLock, &restorationBackend)
-				if errors.Is(e, pgx.ErrNoRows) {
-					return idempotency.Response{}, domain.NewError("RESTORATION_CAPABILITY_UNAVAILABLE", 409)
-				}
-				if e != nil {
-					return idempotency.Response{}, e
-				}
-			}
-			creativeInpaint := styleNeeds.Extensions.Inpainting.Enabled
-			creativeGeneration := styleNeeds.Extensions.Generation.Enabled || styleNeeds.Extensions.Background.Mode == "generate" || styleNeeds.Extensions.Composition.Enabled && styleNeeds.Extensions.Composition.OutpaintPolicy == "review"
-			creativeBackend, creativeRuntimeLock := "", ""
-			if creativeInpaint || creativeGeneration {
-				if !identity && (creativeInpaint && !hasExactModel(styleNeeds.Models, inpaintModelID, inpaintWeightID) || creativeGeneration && !hasExactModel(styleNeeds.Models, generationModelID, generationWeightID)) {
-					return idempotency.Response{}, domain.NewError("STYLE_MODEL_BINDING_MISSING", 409)
-				}
-				e = tx.QueryRow(ctx, `SELECT w.lock_id,c.backend FROM photo.worker_registrations w CROSS JOIN LATERAL (
-				 SELECT backend FROM unnest(ARRAY['cuda','mps','cpu']) WITH ORDINALITY p(backend,priority)
-					 WHERE w.backends ? backend AND (NOT $2 OR (w.qualified_operations->'image.inpaint') ? backend)
-				  AND (NOT $3 OR ((w.qualified_operations->'image.generate') ? backend OR (w.qualified_operations->'image.outpaint') ? backend))
-				  AND (NOT $4 OR (w.qualified_operations->'image.outpaint') ? backend) ORDER BY priority LIMIT 1) c
-				 WHERE w.tenant_id=$1 AND w.enabled AND w.last_seen>clock_timestamp()-interval '30 seconds' AND w.resource_classes ? 'gpu'
-				  AND w.lock_id ~ '^[0-9a-f]{64}$' ORDER BY CASE c.backend WHEN 'cuda' THEN 0 WHEN 'mps' THEN 1 ELSE 2 END,w.worker_id LIMIT 1`, tid, creativeInpaint, styleNeeds.Extensions.Generation.Enabled || styleNeeds.Extensions.Background.Mode == "generate", styleNeeds.Extensions.Composition.Enabled && styleNeeds.Extensions.Composition.OutpaintPolicy == "review").Scan(&creativeRuntimeLock, &creativeBackend)
-				if errors.Is(e, pgx.ErrNoRows) {
-					return idempotency.Response{}, domain.NewError("CREATIVE_CAPABILITY_UNAVAILABLE", 409)
-				}
-				if e != nil {
-					return idempotency.Response{}, e
-				}
-			}
+			personRequired := runtimes.PersonRequired
+			personBackend, personRuntimeLock := runtimes.PersonBackend, runtimes.PersonLock
+			restorationBackend, restorationRuntimeLock := runtimes.RestorationBackend, runtimes.RestorationLock
+			creativeBackend, creativeRuntimeLock := runtimes.CreativeBackend, runtimes.CreativeLock
 			var snapshotID uuid.UUID
 			var snapshotDigest string
 			var items []applySelection
 			var expectedSnapshotCount int64
-			if req.SelectionSnapshotID != nil {
+			if editorMode != nil {
+				snapshotID, snapshotDigest, items, e = editorMode.snapshot(ctx, tx, who, tid)
+				if e != nil {
+					return idempotency.Response{}, e
+				}
+			} else if req.SelectionSnapshotID != nil {
 				snapshotID = *req.SelectionSnapshotID
 				e = tx.QueryRow(ctx, `SELECT digest,item_count FROM photo.snapshots WHERE tenant_id=$1 AND id=$2 AND kind='selection' AND collection_id=$3 AND source_revision=$4 AND principal_type='user' AND principal_id=$5 AND expires_at>clock_timestamp()`, tid, snapshotID, sourceID, revision, who.UserID).Scan(&snapshotDigest, &expectedSnapshotCount)
 				if errors.Is(e, pgx.ErrNoRows) {
@@ -799,6 +889,46 @@ func (s Service) apply(ctx context.Context, who auth.Identity, tid, sourceID uui
 			if req.OverridesID != nil && (len(items) != 1 || items[0].AssetVersionID != overrideVersion || items[0].SHA256 != overrideInputSHA) {
 				return idempotency.Response{}, domain.NewError("OVERRIDE_SOURCE_MISMATCH", 409)
 			}
+			if editorMode != nil && editorMode.Precompose {
+				var installed bool
+				e = tx.QueryRow(ctx, `SELECT EXISTS(SELECT FROM photo.worker_registrations w WHERE w.tenant_id=$1 AND w.enabled AND w.last_seen>clock_timestamp()-interval '30 seconds' AND w.resource_classes ? 'cpu' AND w.backends ? 'cpu' AND (w.qualified_operations->'editor.layers_precompose') ? 'cpu')`, tid).Scan(&installed)
+				if e != nil {
+					return idempotency.Response{}, e
+				}
+				if !installed {
+					return idempotency.Response{}, domain.NewError("EDITOR_PRECOMPOSE_CAPABILITY_UNAVAILABLE", 409)
+				}
+			}
+			if editorMode != nil || applyRegionsNeedExplicitMasks(styleNeeds.Extensions.RegionAdjustments) || styleNeeds.Geometry.Enabled && req.OverridesID != nil {
+				if styleNeeds.Geometry.Enabled {
+					if e = validateApplyBodyMaskBudget(overrideConfig); e != nil {
+						return idempotency.Response{}, e
+					}
+				}
+				if e = editor.ValidateOverrideMaskSources(ctx, tx, who, tid, overrideVersion, overrideConfig, overrideInputSHA); e != nil {
+					return idempotency.Response{}, e
+				}
+			}
+			if len(req.ItemMaskOverrides) > 0 && (decisionSHA != "" || editorMode != nil) {
+				return idempotency.Response{}, domain.NewError("VALIDATION_FAILED", 422)
+			}
+			itemMaskInputs, maskErr := loadApplyItemMasks(ctx, tx, who, tid, items, req.ItemMaskOverrides)
+			if maskErr != nil {
+				return idempotency.Response{}, maskErr
+			}
+			for _, binding := range itemMaskInputs {
+				if !supportsApplyV4WithOverrides(styleNeeds, binding.Body) {
+					return idempotency.Response{}, domain.NewError("STYLE_MODEL_BINDING_MISSING", 409)
+				}
+				if e = validateApplyRegionBindings(styleNeeds.Extensions.RegionAdjustments, binding.Body, styleNeeds.Geometry.Enabled); e != nil {
+					return idempotency.Response{}, e
+				}
+				if styleNeeds.Geometry.Enabled {
+					if e = validateApplyBodyMaskBudget(binding.Body); e != nil {
+						return idempotency.Response{}, e
+					}
+				}
+			}
 			var boundOverrides []BoundItemOverride
 			if decisionSHA != "" {
 				boundOverrides, _, e = validateBoundItemOverrides(items, itemOverrides)
@@ -807,6 +937,9 @@ func (s Service) apply(ctx context.Context, who auth.Identity, tid, sourceID uui
 				}
 			}
 			runID, outputID := uuid.New(), uuid.New()
+			if editorMode != nil {
+				outputID = uuid.Nil
+			}
 			name := req.OutputName
 			if name == "" {
 				name = sourceName + " — processed"
@@ -861,8 +994,11 @@ func (s Service) apply(ctx context.Context, who auth.Identity, tid, sourceID uui
 				}
 			}
 			pipelineVersion, graphVersion := 3, 3
-			if identity || supportsApplyV4WithOverrides(styleNeeds, overrideConfig) {
+			if identity || supportsApplyV4WithOverrides(styleNeeds, overrideConfig) || len(itemMaskInputs) > 0 {
 				pipelineVersion, graphVersion = 4, 4
+			}
+			if editorMode != nil && graphVersion != 4 {
+				return idempotency.Response{}, domain.NewError("STYLE_MODEL_BINDING_MISSING", 409)
 			}
 			var graphStyleConfig json.RawMessage
 			if decisionSHA != "" {
@@ -875,58 +1011,102 @@ func (s Service) apply(ctx context.Context, who auth.Identity, tid, sourceID uui
 				}
 			}
 			config := struct {
-				Schema              string              `json:"schema_version"`
-				Pipeline            string              `json:"pipeline"`
-				PipelineVersion     int                 `json:"pipeline_version"`
-				Renderer            string              `json:"renderer_version"`
-				Source              uuid.UUID           `json:"source_collection_id"`
-				SourceRevision      int64               `json:"source_revision"`
-				Input               uuid.UUID           `json:"input_snapshot_id"`
-				InputDigest         string              `json:"input_snapshot_digest"`
-				StyleVersion        *uuid.UUID          `json:"style_version_id,omitempty"`
-				StyleArtifact       *uuid.UUID          `json:"style_artifact_id,omitempty"`
-				StyleHash           string              `json:"style_hash"`
-				StyleConfig         json.RawMessage     `json:"style_config"`
-				GraphStyleConfig    json.RawMessage     `json:"graph_style_config,omitempty"`
-				Identity            bool                `json:"identity_style"`
-				PersonRequired      bool                `json:"person_mask_required"`
-				PersonBackend       string              `json:"person_backend,omitempty"`
-				PersonLock          string              `json:"person_runtime_lock_id,omitempty"`
-				SeriesEnabled       bool                `json:"series_enabled"`
-				SeriesModelLock     string              `json:"series_model_lock_sha,omitempty"`
-				SeriesRuntimeLock   string              `json:"series_runtime_lock_sha,omitempty"`
-				SeriesDeviceProfile string              `json:"series_device_profile_sha,omitempty"`
-				GeometryEnabled     bool                `json:"geometry_enabled"`
-				BeautyEnabled       bool                `json:"beauty_enabled"`
-				PortraitDetail      bool                `json:"portrait_detail_enabled"`
-				DefectsEnabled      bool                `json:"defects_enabled"`
-				RestorationBackend  string              `json:"restoration_backend,omitempty"`
-				RestorationLock     string              `json:"restoration_runtime_lock_id,omitempty"`
-				CreativeBackend     string              `json:"creative_backend,omitempty"`
-				CreativeLock        string              `json:"creative_runtime_lock_id,omitempty"`
-				Strength            float64             `json:"strength"`
-				Scope               string              `json:"scope"`
-				OverridesID         *uuid.UUID          `json:"overrides_id,omitempty"`
-				OverridesHash       *string             `json:"overrides_hash,omitempty"`
-				OverrideConfig      json.RawMessage     `json:"override_config,omitempty"`
-				JobOverrides        json.RawMessage     `json:"job_overrides,omitempty"`
-				AnalysisDecisionSHA string              `json:"analysis_decision_sha,omitempty"`
-				ItemOverrides       []BoundItemOverride `json:"item_overrides,omitempty"`
-				FailurePolicy       string              `json:"failure_policy"`
-				Seed                uint32              `json:"seed"`
-			}{"1", "apply", pipelineVersion, "photo_renderer_v2", sourceID, revision, snapshotID, snapshotDigest, styleVersion, styleArtifact, styleHash, styleConfig, graphStyleConfig, identity, personRequired, personBackend, personRuntimeLock, seriesEnabled, seriesPins.ModelLockSHA, seriesPins.RuntimeLockSHA, seriesPins.DeviceProfileSHA, styleNeeds.Geometry.Enabled, styleNeeds.Beauty.Enabled, styleNeeds.Extensions.PortraitDetail.Enabled, styleNeeds.Defects.Enabled, restorationBackend, restorationRuntimeLock, creativeBackend, creativeRuntimeLock, strength, req.Scope, req.OverridesID, overrideHash, overrideConfig, req.JobOverrides, decisionSHA, boundOverrides, "continue_items", 42}
+				Schema              string                       `json:"schema_version"`
+				Pipeline            string                       `json:"pipeline"`
+				PipelineVersion     int                          `json:"pipeline_version"`
+				Renderer            string                       `json:"renderer_version"`
+				Source              uuid.UUID                    `json:"source_collection_id"`
+				SourceRevision      int64                        `json:"source_revision"`
+				Input               uuid.UUID                    `json:"input_snapshot_id"`
+				InputDigest         string                       `json:"input_snapshot_digest"`
+				StyleVersion        *uuid.UUID                   `json:"style_version_id,omitempty"`
+				StyleArtifact       *uuid.UUID                   `json:"style_artifact_id,omitempty"`
+				StyleHash           string                       `json:"style_hash"`
+				StyleConfig         json.RawMessage              `json:"style_config"`
+				GraphStyleConfig    json.RawMessage              `json:"graph_style_config,omitempty"`
+				Identity            bool                         `json:"identity_style"`
+				PersonRequired      bool                         `json:"person_mask_required"`
+				PersonBackend       string                       `json:"person_backend,omitempty"`
+				PersonLock          string                       `json:"person_runtime_lock_id,omitempty"`
+				SeriesEnabled       bool                         `json:"series_enabled"`
+				SeriesModelLock     string                       `json:"series_model_lock_sha,omitempty"`
+				SeriesRuntimeLock   string                       `json:"series_runtime_lock_sha,omitempty"`
+				SeriesDeviceProfile string                       `json:"series_device_profile_sha,omitempty"`
+				GeometryEnabled     bool                         `json:"geometry_enabled"`
+				BeautyEnabled       bool                         `json:"beauty_enabled"`
+				PortraitDetail      bool                         `json:"portrait_detail_enabled"`
+				DefectsEnabled      bool                         `json:"defects_enabled"`
+				RestorationBackend  string                       `json:"restoration_backend,omitempty"`
+				RestorationLock     string                       `json:"restoration_runtime_lock_id,omitempty"`
+				CreativeBackend     string                       `json:"creative_backend,omitempty"`
+				CreativeLock        string                       `json:"creative_runtime_lock_id,omitempty"`
+				Strength            float64                      `json:"strength"`
+				Scope               string                       `json:"scope"`
+				OverridesID         *uuid.UUID                   `json:"overrides_id,omitempty"`
+				OverridesHash       *string                      `json:"overrides_hash,omitempty"`
+				OverrideConfig      json.RawMessage              `json:"override_config,omitempty"`
+				JobOverrides        json.RawMessage              `json:"job_overrides,omitempty"`
+				AnalysisDecisionSHA string                       `json:"analysis_decision_sha,omitempty"`
+				ItemOverrides       []BoundItemOverride          `json:"item_overrides,omitempty"`
+				FailurePolicy       string                       `json:"failure_policy"`
+				Seed                uint32                       `json:"seed"`
+				BackgroundAsset     *review.ApplyBackgroundAsset `json:"background_asset,omitempty"`
+			}{"1", "apply", pipelineVersion, "photo_renderer_v2", sourceID, revision, snapshotID, snapshotDigest, styleVersion, styleArtifact, styleHash, styleConfig, graphStyleConfig, identity, personRequired, personBackend, personRuntimeLock, seriesEnabled, seriesPins.ModelLockSHA, seriesPins.RuntimeLockSHA, seriesPins.DeviceProfileSHA, styleNeeds.Geometry.Enabled, styleNeeds.Beauty.Enabled, styleNeeds.Extensions.PortraitDetail.Enabled, styleNeeds.Defects.Enabled, restorationBackend, restorationRuntimeLock, creativeBackend, creativeRuntimeLock, strength, req.Scope, req.OverridesID, overrideHash, overrideConfig, req.JobOverrides, decisionSHA, boundOverrides, "continue_items", 42, backgroundAsset}
 			configBytes, e := canonical.Marshal(config)
 			if e != nil {
 				return idempotency.Response{}, e
 			}
-			configHash, e := canonical.Hash(config)
+			configBytes, e = bindApplyMixedAuthority(ctx, tx, tid, projectID, runtimes, styleNeeds, configBytes)
 			if e != nil {
 				return idempotency.Response{}, e
 			}
-			if _, e = tx.Exec(ctx, `INSERT INTO photo.collections(id,tenant_id,project_id,name,state,source_collection_id,source_revision,source_run_id,applied_style_version_id) VALUES($1,$2,$3,$4,'draft',$5,$6,$7,$8)`, outputID, tid, projectID, name, sourceID, revision, runID, styleVersion); e != nil {
+			if editorMode != nil {
+				var editorConfig map[string]any
+				if e = json.Unmarshal(configBytes, &editorConfig); e != nil {
+					return idempotency.Response{}, e
+				}
+				if editorMode.AuthoredBase != nil {
+					editorConfig["authored_render_origin"] = editorMode.AuthoredBase
+					editorConfig["project_id"] = editorMode.ProjectID
+				} else {
+					editorConfig["editor_effect_source"] = editorMode.config()
+				}
+				if editorMode.Precompose {
+					editorConfig["editor_precompose"] = editorMode.config()
+				}
+				configBytes, e = canonical.Marshal(editorConfig)
+				if e != nil {
+					return idempotency.Response{}, e
+				}
+			}
+			if len(itemMaskInputs) > 0 {
+				var configObject map[string]json.RawMessage
+				if e = json.Unmarshal(configBytes, &configObject); e != nil {
+					return idempotency.Response{}, e
+				}
+				configObject["item_mask_inputs"], e = canonical.Marshal(itemMaskInputs)
+				if e != nil {
+					return idempotency.Response{}, e
+				}
+				configObject["item_mask_override_ids"], e = canonical.Marshal(req.ItemMaskOverrides)
+				if e != nil {
+					return idempotency.Response{}, e
+				}
+				configBytes, e = canonical.Marshal(configObject)
+				if e != nil {
+					return idempotency.Response{}, e
+				}
+			}
+			configHash, e := canonical.Hash(json.RawMessage(configBytes))
+			if e != nil {
 				return idempotency.Response{}, e
 			}
-			if _, e = tx.Exec(ctx, `INSERT INTO photo.runs(id,tenant_id,kind,status,input_snapshot_id,output_collection_id,style_version_id,config_snapshot,config_hash,created_by,failure_policy,graph_sealed) VALUES($1,$2,'apply','queued',$3,$4,$5,$6,$7,$8,'continue_items',false)`, runID, tid, snapshotID, outputID, styleVersion, configBytes, configHash, who.UserID); e != nil {
+			if editorMode == nil {
+				if _, e = tx.Exec(ctx, `INSERT INTO photo.collections(id,tenant_id,project_id,name,state,source_collection_id,source_revision,source_run_id,applied_style_version_id) VALUES($1,$2,$3,$4,'draft',$5,$6,$7,$8)`, outputID, tid, projectID, name, sourceID, revision, runID, styleVersion); e != nil {
+					return idempotency.Response{}, e
+				}
+			}
+			if _, e = tx.Exec(ctx, `INSERT INTO photo.runs(id,tenant_id,kind,status,input_snapshot_id,output_collection_id,style_version_id,config_snapshot,config_hash,created_by,failure_policy,graph_sealed) VALUES($1,$2,'apply','queued',$3,$4,$5,$6,$7,$8,'continue_items',false)`, runID, tid, snapshotID, editorNullableID(outputID), styleVersion, configBytes, configHash, who.UserID); e != nil {
 				return idempotency.Response{}, e
 			}
 			reservationID := uuid.New()
@@ -940,8 +1120,16 @@ func (s Service) apply(ctx context.Context, who auth.Identity, tid, sourceID uui
 			if personRequired {
 				initialPhase = "mask"
 			}
-			if _, e = tx.Exec(ctx, `INSERT INTO photo.apply_builds(tenant_id,run_id,source_collection_id,style_version_id,item_count,phase,graph_version) VALUES($1,$2,$3,$4,$5,$6,$7)`, tid, runID, sourceID, styleVersion, len(items), initialPhase, graphVersion); e != nil {
+			if editorMode != nil && editorMode.Precompose {
+				initialPhase = "editor_precompose"
+			}
+			if _, e = tx.Exec(ctx, `INSERT INTO photo.apply_builds(tenant_id,run_id,source_collection_id,style_version_id,item_count,phase,graph_version,plan_contract_version) VALUES($1,$2,$3,$4,$5,$6,$7,2)`, tid, runID, editorNullableID(sourceID), styleVersion, len(items), initialPhase, graphVersion); e != nil {
 				return idempotency.Response{}, e
+			}
+			if billable && editorMode == nil {
+				if e = billing.BindApply(ctx, tx, tid, who, runID, key, route, fingerprint); e != nil {
+					return idempotency.Response{}, e
+				}
 			}
 			if req.Scope == "all_change_selected" {
 				if _, e = tx.Exec(ctx, `INSERT INTO photo.collection_items(tenant_id,collection_id,asset_id,asset_version_id,section_id,position,visibility,moderation_state,rating,flag,tags,created_by_run_id,source_item_id) SELECT i.tenant_id,$3,i.asset_id,i.asset_version_id,NULL,i.position,'hidden','pending_review',i.rating,i.flag,i.tags,$4,i.id FROM photo.collection_items i WHERE i.tenant_id=$1 AND i.collection_id=$2 AND NOT EXISTS(SELECT FROM photo.snapshot_items s WHERE s.tenant_id=i.tenant_id AND s.snapshot_id=$5 AND s.item_id=i.id)`, tid, sourceID, outputID, runID, snapshotID); e != nil {
@@ -952,6 +1140,16 @@ func (s Service) apply(ctx context.Context, who auth.Identity, tid, sourceID uui
 				return idempotency.Response{}, e
 			}
 			accepted := ApplyAccepted{runID, outputID, "queued"}
+			if editorMode != nil {
+				if e = editorMode.commit(ctx, tx, who, tid, accepted); e != nil {
+					return idempotency.Response{}, e
+				}
+				if billable && editorMode.AuthoredBase == nil {
+					if e = billing.BindEditor(ctx, tx, tid, runID, who, key, route, fingerprint); e != nil {
+						return idempotency.Response{}, e
+					}
+				}
+			}
 			if commit != nil {
 				if e = commit(ctx, tx, accepted); e != nil {
 					return idempotency.Response{}, e
@@ -960,6 +1158,31 @@ func (s Service) apply(ctx context.Context, who auth.Identity, tid, sourceID uui
 			body, e := canonical.Marshal(accepted)
 			return idempotency.Response{Status: 202, Body: body, ResourceID: &runID}, e
 		})
+		if e != nil {
+			return e
+		}
+		if route == "Run.SaveEdits" {
+			if e = bindSaveEditsReceipt(ctx, tx, who, tid, sourceID, key, out); e != nil {
+				return e
+			}
+			if isSaveEditsAbandoned(out, sourceID, key) {
+				return domain.NewError("SAVE_EDITS_ABANDONED", 409)
+			}
+			var currentProject uuid.UUID
+			if e = tx.QueryRow(ctx, `SELECT project_id FROM photo.collections WHERE tenant_id=$1 AND id=$2 AND deleted_at IS NULL FOR SHARE`, tid, sourceID).Scan(&currentProject); errors.Is(e, pgx.ErrNoRows) {
+				return domain.NewError("NOT_FOUND", 404)
+			} else if e != nil {
+				return e
+			}
+			if currentProject != projectID {
+				return domain.NewError("IDEMPOTENCY_CONFLICT", 409)
+			}
+		}
+		currentRole, e := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Editor)
+		if e != nil {
+			return e
+		}
+		_, e = project.Authorize(ctx, tx, tid, projectID, who.UserID, currentRole, domain.Editor, false)
 		return e
 	})
 	return out, err

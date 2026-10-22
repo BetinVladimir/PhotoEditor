@@ -185,7 +185,7 @@ func (s ImportReviewDecisionService) Decide(ctx context.Context, who auth.Identi
 	if err != nil {
 		return zero, err
 	}
-	if epoch == nil || *epoch < 1 {
+	if epoch == nil || *epoch < 1 || *epoch != req.ExpectedEpoch+1 {
 		return zero, domain.NewError("REVISION_CONFLICT", 409)
 	}
 	status := "granted"

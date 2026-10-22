@@ -14,7 +14,7 @@ cd /Users/freelancer/Documents/PhotoEditor
 ./run.sh render --resume
 ```
 
-`run-e2e.sh` устанавливает фиксированные пути input/output/config теста. `run.sh` принимает `PHOTO_INPUT_DIR`, `PHOTO_OUTPUT_DIR`, `PHOTO_CONFIG_FILE`; без ENV использует e2e-пути. Первый запуск вызывает `scripts/setup.sh`. Зависимости из `requirements.lock`, пакет устанавливается editable. Setup скачивает веса с официальных versioned URLs и проверяет SHA-256. Веса не скачиваются во время render; фотографии не передаются в сеть.
+`run-e2e.sh` устанавливает фиксированные пути input/output/config теста. `run.sh` принимает `PHOTO_INPUT_DIR`, `PHOTO_OUTPUT_DIR`, `PHOTO_CONFIG_FILE`; без ENV использует e2e-пути. Первый запуск вызывает `scripts/setup.sh`. Зависимости из `apps/local-editor/requirements.lock`, пакет устанавливается editable. Setup скачивает веса с официальных versioned URLs и проверяет SHA-256. Веса не скачиваются во время render; фотографии не передаются в сеть.
 
 Настройки e2e: `e2e/config/studio_soft.yaml`. Для произвольной серии: `configs/natural.yaml`. Схема: `schemas/config.schema.json`.
 
@@ -39,7 +39,7 @@ cd /Users/freelancer/Documents/PhotoEditor
 
 OS file lock запрещает два concurrent writer в одном output. JSON/изображения записываются через временный файл и replace. При KeyboardInterrupt run помечается cancelled; незавершённый TIFF/JPEG не получает complete-sidecar. Resume проверяет plan hash и SHA-256 готовых выходов. Ошибка одного изображения записывается отдельно, оставшиеся обрабатываются. Повреждённый analysis cache проверяется по checksum и пересоздаётся.
 
-Model manifest с URL и hashes: `src/photoeditor/models.py`. Зафиксированы официальные MediaPipe веса; проверки лицензии весов для распространения отдельного продукта и модельные cards остаются задачей перед дистрибуцией.
+Model manifest с URL и hashes: `apps/local-editor/src/photoeditor/models.py`. Зафиксированы официальные MediaPipe веса; проверки лицензии весов для распространения отдельного продукта и модельные cards остаются задачей перед дистрибуцией.
 
 ## Редактор
 

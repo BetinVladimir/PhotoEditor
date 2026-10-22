@@ -4,7 +4,7 @@ import {deliveryDownloadTarget,readDeliveryDownloadIntent,readDeliveryDownloadLi
 import type {DeliveryPackage} from './delivery-package';
 import type {DeliveryItem} from './delivery-items';
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
-const pkg=():DeliveryPackage=>({id:id(1),tenant_id:id(2),project_id:id(3),revision:'2',workflow_id:id(4),snapshot_id:id(5),name:'Delivery',policy_artifact_id:id(6),manifest_artifact_id:id(7),published_at:'2026-10-10T12:00:00Z',state:'ready',document:{artifact_id:id(7),sha256:'a'.repeat(64)}});
+const pkg=():DeliveryPackage=>({created_at:'2026-10-10T11:00:00Z',updated_at:'2026-10-10T12:00:00Z',id:id(1),tenant_id:id(2),project_id:id(3),revision:'2',workflow_id:id(4),snapshot_id:id(5),name:'Delivery',policy_artifact_id:id(6),manifest_artifact_id:id(7),published_at:'2026-10-10T12:00:00Z',state:'ready',document:{artifact_id:id(7),sha256:'a'.repeat(64)}});
 const item=():DeliveryItem=>({id:id(8),ordinal:2,preset_id:id(9),preset_sha:'b'.repeat(64),required:true,export_id:id(10),state:'ready',reason:null});
 it('allows only published ready package and ready slot',()=>{
  expect(deliveryDownloadTarget(pkg())).toEqual({kind:'manifest'});
@@ -13,7 +13,7 @@ it('allows only published ready package and ready slot',()=>{
  expect(()=>deliveryDownloadTarget({...pkg(),state:'review'})).toThrow();
  expect(()=>deliveryDownloadTarget(pkg(),{...item(),state:'omitted',export_id:null})).toThrow();
  for(const changed of [
-  {...item(),id:id(0).replace('4000','0000')},
+  {...item(),id:'00000000-0000-0000-0000-000000000000'},
   {...item(),export_id:'not-an-export'},
   {...item(),preset_sha:'not-a-sha'},
   {...item(),required:'yes' as never},
@@ -59,4 +59,56 @@ it('refuses a foreign package before IO and an invalid intent before redemption'
  expect(request).not.toHaveBeenCalled();
  await expect(api.downloadDelivery(pkg(),undefined,'key')).rejects.toThrow();
  expect(request).toHaveBeenCalledTimes(1);
+});
+
+it('does not redeem a token when the request is cancelled after issuance',async()=>{
+ const controller=new AbortController();
+ const request=vi.fn().mockImplementation(async()=>{
+  controller.abort();
+  return {intent_token:'a'.repeat(42)+'A',expires_at:new Date(Date.now()+45_000).toISOString()};
+ });
+ const api=new OwnerAPI({request} as never,id(2));
+ await expect(api.downloadDelivery(pkg(),undefined,'cancel-key',controller.signal)).rejects.toThrow();
+ expect(request).toHaveBeenCalledTimes(1);
+});
+it('does not expose a redeemed URL after cancellation',async()=>{
+ const controller=new AbortController(),expires_at=new Date(Date.now()+45_000).toISOString();
+ const request=vi.fn().mockResolvedValueOnce({intent_token:'a'.repeat(42)+'A',expires_at}).mockImplementationOnce(async()=>{
+  controller.abort();
+  return {url:'https://objects.example/a?versionId=v1',expires_at,filename:'manifest.json',bytes:4,sha256:'a'.repeat(64)};
+ });
+ const api=new OwnerAPI({request} as never,id(2));
+ await expect(api.downloadDelivery(pkg(),undefined,'cancel-redeem',controller.signal)).rejects.toThrow();
+ expect(request).toHaveBeenCalledTimes(2);
+});
+it('rejects intent validity exceeding the client lifetime bound before redemption',async()=>{
+ const request=vi.fn().mockResolvedValue({intent_token:'a'.repeat(42)+'A',expires_at:new Date(Date.now()+120_000).toISOString()});
+ const api=new OwnerAPI({request} as never,id(2));
+ await expect(api.downloadDelivery(pkg(),undefined,'future-key')).rejects.toThrow('DELIVERY_DOWNLOAD_INVALID');
+ expect(request).toHaveBeenCalledTimes(1);
+});
+
+it('rejects malformed published package metadata before issuing any download token',async()=>{
+ const request=vi.fn(),api=new OwnerAPI({request} as never,id(2));
+ const malformed=[
+  {...pkg(),created_at:'invalid'},
+  {...pkg(),updated_at:'2026-10-09T12:00:00Z'},
+  {...pkg(),revision:'01'},
+  {...pkg(),published_at:'invalid'},
+  {...pkg(),workflow_id:'foreign'},
+  {...pkg(),document:{artifact_id:id(7),sha256:'bad'}},
+  {...pkg(),manifest_artifact_id:id(99)},
+ ];
+ for(const value of malformed)await expect(api.downloadDelivery(value,undefined,'key')).rejects.toThrow();
+ expect(request).not.toHaveBeenCalled();
+});
+it('accepts explicitly configured short archive links without weakening delivery defaults or upper caps',()=>{
+ const now=Date.now();const link={url:'https://objects.example/a?versionId=v1',expires_at:new Date(now+1000).toISOString(),filename:'a.jpg',bytes:4,sha256:'a'.repeat(64)};
+ expect(()=>readDeliveryDownloadLink(link,undefined,now)).toThrow();
+ expect(readDeliveryDownloadLink(link,undefined,now,Number.MAX_SAFE_INTEGER,0)).toBe(link.url);
+ expect(()=>readDeliveryDownloadLink({...link,expires_at:new Date(now).toISOString()},undefined,now,Number.MAX_SAFE_INTEGER,0)).toThrow();
+ expect(()=>readDeliveryDownloadLink({...link,expires_at:new Date(now+66000).toISOString()},undefined,now,Number.MAX_SAFE_INTEGER,0)).toThrow();
+ const intent={intent_token:'a'.repeat(42)+'A',expires_at:new Date(now+62000).toISOString()};
+ expect(readDeliveryDownloadIntent(intent,now,65000)).toBe(intent.intent_token);
+ expect(()=>readDeliveryDownloadIntent({...intent,expires_at:new Date(now+66000).toISOString()},now,65000)).toThrow();
 });

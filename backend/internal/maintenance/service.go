@@ -1,6 +1,7 @@
 package maintenance
 
 import (
+ "photoeditor/backend/internal/database"
 	"context"
 	"errors"
 	"fmt"
@@ -223,6 +224,7 @@ func Run(ctx context.Context, dsn, listen string, storageConfig objectstore.Conf
 		return errors.New("invalid maintenance database configuration")
 	}
 	config.ConnConfig.RuntimeParams["role"] = "photo_maintenance"
+	database.GuardApplicationRole(config)
 	config.ConnConfig.RuntimeParams["statement_timeout"] = "5000"
 	config.ConnConfig.RuntimeParams["lock_timeout"] = "3000"
 	pool, err := pgxpool.NewWithConfig(ctx, config)
@@ -230,6 +232,9 @@ func Run(ctx context.Context, dsn, listen string, storageConfig objectstore.Conf
 		return errors.New("maintenance database unavailable")
 	}
 	defer pool.Close()
+	if err = database.RequireApplicationRole(ctx, pool, "photo_maintenance"); err != nil { return err }
+	if err = RequireCollectionCleanup(ctx, pool); err != nil { return err }
+	if err = RequireResourceWithdrawal(ctx, pool); err != nil { return err }
 	startup, cancel := context.WithTimeout(ctx, 10*time.Second)
 	var installed bool
 	err = pool.QueryRow(startup, `SELECT to_regprocedure('photo.claim_tenant_deletion()') IS NOT NULL AND to_regprocedure('photo.checkpoint_tenant_deletion(uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.settle_v30_archive_generations_after_tenant_purge(uuid,uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.renew_tenant_deletion_lease(uuid,uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.finish_tenant_deletion(uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.claim_staging_cleanup()') IS NOT NULL AND to_regprocedure('photo.finish_staging_cleanup(uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.claim_original_cleanup()') IS NOT NULL AND to_regprocedure('photo.finish_original_cleanup(uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.claim_output_cleanup()') IS NOT NULL AND to_regprocedure('photo.finish_output_cleanup(uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.claim_document_cleanup()') IS NOT NULL AND to_regprocedure('photo.finish_document_cleanup(uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.expire_upload_session()') IS NOT NULL AND to_regprocedure('photo.claim_upload_abort_cleanup()') IS NOT NULL AND to_regprocedure('photo.finish_upload_abort_cleanup(uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.claim_artifact_gc()') IS NOT NULL AND to_regprocedure('photo.finish_artifact_gc(uuid,uuid)') IS NOT NULL AND to_regprocedure('photo.recover_artifact_gc()') IS NOT NULL`).Scan(&installed)
@@ -255,6 +260,11 @@ func Run(ctx context.Context, dsn, listen string, storageConfig objectstore.Conf
 				err = errors.New("tenant deletion lease renewal unavailable")
 			}
 		}
+	}
+	if err == nil && installed {
+		err = RequireEditorGCSchema(startup, pool)
+		if err == nil { err = RequireArtifactGCAccounting(startup, pool) }
+        if err == nil { err = RequireOutputCleanupRefund(startup, pool) }
 	}
 	var history TenantDeletionHistory
 	if err == nil && installed && appender != nil {
@@ -296,6 +306,13 @@ func Run(ctx context.Context, dsn, listen string, storageConfig objectstore.Conf
 	if err != nil {
 		return errors.New("v2 draft upload cleanup probe failed")
 	}
+ var collectionInstalled bool
+ collectionProbe,collectionProbeDone:=context.WithTimeout(ctx,5*time.Second)
+ err=pool.QueryRow(collectionProbe,`SELECT to_regprocedure('photo.claim_collection_deletion()') IS NOT NULL AND to_regprocedure('photo.finish_collection_deletion(uuid,uuid,uuid,uuid)') IS NOT NULL AND has_function_privilege(current_user,'photo.claim_collection_deletion()','EXECUTE') AND has_function_privilege(current_user,'photo.finish_collection_deletion(uuid,uuid,uuid,uuid)','EXECUTE')`).Scan(&collectionInstalled)
+ collectionProbeDone()
+ if err!=nil||!collectionInstalled{return errors.New("collection deletion lifecycle unavailable")}
+ collectionState:=new(LoopState)
+ resourceState:=new(LoopState)
 	state := new(LoopState)
 	documentState := new(LoopState)
 	originalState := new(LoopState)
@@ -310,7 +327,7 @@ func Run(ctx context.Context, dsn, listen string, storageConfig objectstore.Conf
 	mux.HandleFunc("GET /health/ready", func(w http.ResponseWriter, r *http.Request) {
 		check, done := context.WithTimeout(r.Context(), 5*time.Second)
 		defer done()
-		if !state.Ready.Load() || !documentState.Ready.Load() || !originalState.Ready.Load() || !stagingState.Ready.Load() || !uploadState.Ready.Load() || !artifactState.Ready.Load() || !tenantState.Ready.Load() || (v2DraftInstalled && !v2DraftState.Ready.Load()) || (v2UploadInstalled && !v2UploadState.Ready.Load()) || pool.Ping(check) != nil || readyTenantBuckets(check, tenantReady) != nil {
+		if !resourceState.Ready.Load() || !collectionState.Ready.Load() || !state.Ready.Load() || !documentState.Ready.Load() || !originalState.Ready.Load() || !stagingState.Ready.Load() || !uploadState.Ready.Load() || !artifactState.Ready.Load() || !tenantState.Ready.Load() || (v2DraftInstalled && !v2DraftState.Ready.Load()) || (v2UploadInstalled && !v2UploadState.Ready.Load()) || pool.Ping(check) != nil || readyTenantBuckets(check, tenantReady) != nil {
 			w.WriteHeader(503)
 			return
 		}
@@ -318,6 +335,8 @@ func Run(ctx context.Context, dsn, listen string, storageConfig objectstore.Conf
 	})
 	mux.HandleFunc("GET /metrics", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; version=0.0.4")
+        fmt.Fprintf(w,"# TYPE photo_collection_cleanup_total counter\nphoto_collection_cleanup_total %d\n# TYPE photo_collection_cleanup_failures_total counter\nphoto_collection_cleanup_failures_total %d\n",collectionState.Cleaned.Load(),collectionState.Failures.Load())
+        fmt.Fprintf(w,"# TYPE photo_resource_withdrawal_total counter\nphoto_resource_withdrawal_total %d\n# TYPE photo_resource_withdrawal_failures_total counter\nphoto_resource_withdrawal_failures_total %d\n",resourceState.Cleaned.Load(),resourceState.Failures.Load())
 		fmt.Fprintf(w, "# TYPE photo_output_cleanup_total counter\nphoto_output_cleanup_total %d\n# TYPE photo_output_cleanup_failures_total counter\nphoto_output_cleanup_failures_total %d\n", state.Cleaned.Load(), state.Failures.Load())
 		fmt.Fprintf(w, "# TYPE photo_staging_cleanup_total counter\nphoto_staging_cleanup_total %d\n# TYPE photo_staging_cleanup_failures_total counter\nphoto_staging_cleanup_failures_total %d\n", stagingState.Cleaned.Load(), stagingState.Failures.Load())
 		fmt.Fprintf(w, "# TYPE photo_original_cleanup_total counter\nphoto_original_cleanup_total %d\n# TYPE photo_original_cleanup_failures_total counter\nphoto_original_cleanup_failures_total %d\n", originalState.Cleaned.Load(), originalState.Failures.Load())
@@ -343,6 +362,8 @@ func Run(ctx context.Context, dsn, listen string, storageConfig objectstore.Conf
 	loopDone := make(chan error, 1)
 	go func() {
 		cleanupJobs := []CleanupJob{
+            ResourceWithdrawalCleaner{DB:pool},
+            CollectionCleaner{DB:pool},
 			OutputCleaner{Repository: SQLCleanup{DB: pool}, Objects: storage, Bucket: storageConfig.Bucket},
 			DocumentCleaner{Repository: SQLDocumentCleanup{DB: pool}, Objects: storage, Bucket: storageConfig.Bucket},
 			OriginalCleaner{Repository: SQLOriginalCleanup{DB: pool}, Objects: storage, Bucket: storageConfig.Bucket},
@@ -351,7 +372,7 @@ func Run(ctx context.Context, dsn, listen string, storageConfig objectstore.Conf
 			ArtifactCleaner{Repository: SQLArtifactGC{DB: pool}, Objects: storage, Bucket: storageConfig.Bucket},
 			TenantCleaner{Repository: SQLTenantDeletion{DB: pool}, Objects: tenantStores, Batch: 256, History: history, RequireHistory: requireHistory},
 		}
-		cleanupStates := []*LoopState{state, documentState, originalState, stagingState, uploadState, artifactState, tenantState}
+		cleanupStates := []*LoopState{resourceState,collectionState,state, documentState, originalState, stagingState, uploadState, artifactState, tenantState}
 		if v2DraftInstalled {
 			cleanupJobs = append(cleanupJobs, V2DraftCleaner{DB: pool})
 			cleanupStates = append(cleanupStates, v2DraftState)

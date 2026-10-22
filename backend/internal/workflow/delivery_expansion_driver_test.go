@@ -347,3 +347,52 @@ func TestDeliveryExpansionDriverAssemblyTransition(t *testing.T) {
 		})
 	}
 }
+
+
+// A processor may complete its durable operation as the caller cancels. That
+// receipt remains durable, but this invocation must not report success.
+type deliveryCancellingAssembly struct { cancel context.CancelFunc }
+func (a deliveryCancellingAssembly) ProcessAssembly(context.Context, delivery.ExpansionLease, delivery.PreparePlan) (string, error) {
+ a.cancel()
+ return "activated", nil
+}
+func TestDeliveryExpansionDriverRejectsLateAssemblyCancellation(t *testing.T) {
+ plan, parent, _, _, _ := deliveryExportPlanFixture(t, nil)
+ calls := []string{}
+ store := &deliveryDriverStore{calls: &calls, plan: plan, lease: &delivery.ExpansionLease{Run: parent, ParentTask: plan.TaskID(), SlotCount: 1, Cursor: 1}}
+ ctx, cancel := context.WithCancel(context.Background())
+ defer cancel()
+ progress, err := (DeliveryExpansionDriver{Store: store, Children: deliveryDriverChild{calls: &calls}, Assembly: deliveryCancellingAssembly{cancel: cancel}, PageSize: 1}).ProcessOne(ctx)
+ if !errors.Is(err, context.Canceled) || progress.AssemblyState == "activated" {
+  t.Fatal("late cancellation reported successful activation", progress, err)
+ }
+ if !reflect.DeepEqual(calls, []string{"claim", "plan", "renew"}) {
+  t.Fatal("cancelled invocation performed further work", calls)
+ }
+}
+
+
+type deliveryHeartbeatObserver struct { renewals *atomic.Int32 }
+func (o deliveryHeartbeatObserver) PendingSlots(context.Context, delivery.ExpansionLease, int) ([]int, error) { return []int{0}, nil }
+func (o deliveryHeartbeatObserver) ObserveChild(ctx context.Context, _ delivery.ExpansionLease, _ delivery.PreparePlan, _ delivery.ExportChildIntent) (bool, error) {
+ for o.renewals.Load() < 2 {
+  select {
+  case <-ctx.Done(): return false, ctx.Err()
+  case <-time.After(time.Millisecond):
+  }
+ }
+ if err := ctx.Err(); err != nil { return false, err }
+ return true, nil
+}
+func TestDeliveryObservationPhysicalWorkRenewsAndRejectsLostLease(t *testing.T) {
+ plan, parent, _, _, _ := deliveryExportPlanFixture(t, nil)
+ for _, failAt := range []int32{0, 2} {
+  store := &deliveryHeartbeatDriverStore{plan: plan, failAt: failAt,
+   lease: delivery.ExpansionLease{Expansion: uuid.New(), Token: uuid.New(), Until: time.Now().Add(time.Minute), Tenant: uuid.New(), Run: parent, Workflow: uuid.New(), Package: uuid.New(), ParentTask: plan.TaskID(), SlotCount: 1, Cursor: 1}}
+  ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+  progress, err := (DeliveryExpansionDriver{Store: store, Children: deliveryHeartbeatChild{renewals: &store.renewals}, Observer: deliveryHeartbeatObserver{renewals: &store.renewals}, Assembly: &deliveryDriverAssembly{state: "pending"}, PageSize: 1, HeartbeatInterval: time.Millisecond}).ProcessOne(ctx)
+  cancel()
+  if failAt == 0 && (err != nil || progress.Observed != 1 || store.renewals.Load() < 2) { t.Fatal("observation IO did not keep lease", progress, err) }
+  if failAt == 2 && (err == nil || progress.Observed != 0 || progress.AssemblyState != "") { t.Fatal("lost observation lease credited progress", progress, err) }
+ }
+}

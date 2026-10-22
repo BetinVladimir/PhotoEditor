@@ -1364,7 +1364,9 @@
             "portrait_glasses",
             "inpaint_target",
             "generation_target",
-            "protected"
+            "protected",
+            "person_subject",
+            "region_adjustment"
           ],
           "title": "Purpose",
           "type": "string"

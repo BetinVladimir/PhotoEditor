@@ -1,7 +1,7 @@
 """Apply body and face geometry once through a validated full-resolution inverse field."""
 from contextlib import ExitStack
 import numpy as np
-from photo_worker.algorithms.body_warp import anchors,face_anchors,solve_inverse_field,validate_field,bilinear
+from photo_worker.algorithms.body_warp import anchors,face_anchors,solve_inverse_field,identity_inverse_field,validate_field,bilinear,warp_rgb_into,warp_alpha_into
 from photo_worker.algorithms.color import to_encoded,to_linear
 from photo_worker.contracts.base import canonical_bytes,canonical_hash
 from photo_worker.contracts.body import BodyParams,BodyWarpMetrics,BodyWarpReport
@@ -40,6 +40,8 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
         if params.faces is not None:required.append(params.faces)
         if any(ref not in ctx.lease.command.inputs for ref in required):raise ValueError('Undeclared body input')
     except ValueError as exc:raise OperationFailure('INPUT_INVALID') from exc
+    if ram<max(1073741824,72*h*w+(128<<20)):
+        raise OperationFailure('RAM_ADMISSION_EXCEEDED')
     ctx.progress(0,6);outputs=[];written=0
     with ExitStack() as inputs:
         def mapped(ref,shape,dtype='float32',unit=True):
@@ -61,7 +63,7 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
                             if candidates:
                                 fp,fv=face_anchors(candidates[0],requested[pose.object_id].face_slim,strength,w,h);points=np.r_[points,fp];values=np.r_[values,fv]
                         sets.append((points,values,roi))
-                    candidate=solve_inverse_field(w,h,sets,person);check=validate_field(candidate,params.max_displacement_image_fraction*max(h,w),person)
+                    candidate=solve_inverse_field(w,h,sets,person,check_active=ctx.check_active);check=validate_field(candidate,params.max_displacement_image_fraction*max(h,w),person,check_active=ctx.check_active)
                 except ValueError as exc:
                     if str(exc)=='AMBIGUOUS_OVERLAP':reason='ambiguous_overlap';break
                     raise OperationFailure('INPUT_INVALID') from exc
@@ -69,21 +71,22 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
                 if check.safe:field=candidate;effective=strength;reason='applied';break
                 strength/=2
         if field is None:
-            yy,xx=np.mgrid[0:h,0:w];field=np.stack((xx,yy),axis=-1).astype(np.float32)
-            validation=validate_field(field,params.max_displacement_image_fraction*max(h,w),person)
+            field=identity_inverse_field(w,h,check_active=ctx.check_active)
+            validation=validate_field(field,params.max_displacement_image_fraction*max(h,w),person,check_active=ctx.check_active)
         ctx.progress(1,6)
         reserve_bytes=h*w*(8+12+(2 if alpha is not None else 0))+65536
         with artifacts.scratch.reserve(reserve_bytes) as reservation:
             field_path=reservation.path('body-inverse-field','.npy');field_mm=np.lib.format.open_memmap(field_path,mode='w+',dtype='<f4',shape=(h,w,2));field_mm[:]=field;field_mm.flush();field_mm._mmap.close()
             rgb_path=reservation.path('body-rgb','.npy');rgb_mm=np.lib.format.open_memmap(rgb_path,mode='w+',dtype='<f4',shape=(h,w,3))
             if reason=='applied':
-                warped=bilinear(to_linear(np.asarray(rgb)),field);rgb_mm[:]=to_encoded(np.asarray(warped,np.float32))
+                warp_rgb_into(rgb,alpha,field,rgb_mm,check_active=ctx.check_active)
             else:rgb_mm[:]=rgb # strength=0 and every safety skip are byte-value identity.
             rgb_mm.flush();rgb_mm._mmap.close()
             alpha_path=None
             if alpha is not None:
                 alpha_path=reservation.path('body-alpha','.npy');alpha_mm=np.lib.format.open_memmap(alpha_path,mode='w+',dtype='<u2',shape=(h,w))
-                alpha_mm[:]=np.rint(np.clip(bilinear(np.asarray(alpha,np.float32),field),0,65535)).astype(np.uint16) if reason=='applied' else alpha
+                if reason=='applied':warp_alpha_into(alpha,field,alpha_mm,check_active=ctx.check_active)
+                else:alpha_mm[:]=alpha
                 alpha_mm.flush();alpha_mm._mmap.close()
             reservation.validate();field_ref=artifacts.stage(field_path,reservation,'inverse_field','application/octet-stream');pixel_ref=artifacts.stage(rgb_path,reservation,'working_rgb','application/octet-stream');outputs.extend([field_ref,pixel_ref]);written+=field_path.stat().st_size+rgb_path.stat().st_size
             alpha_ref=None

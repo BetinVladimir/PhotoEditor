@@ -1,0 +1,32 @@
+{
+  "status": "SOURCE_FIXED_BROWSER_UNRUN_NOT_DEPLOYED",
+  "checks": {
+    "typescript_noemit": {
+      "exit_code": 0
+    },
+    "portal_vitest": {
+      "exit_code": 0,
+      "files": 12,
+      "tests": 55
+    },
+    "landing_css_parse": {
+      "passed": true,
+      "rules": 84
+    }
+  },
+  "conformance": "NOT_PROVEN",
+  "open": [
+    "actual browser computed contrast/text sizes/reflow/zoom",
+    "keyboard filepicker currentbuild",
+    "screenreader locales",
+    "lightbox focus management",
+    "all apps complete A+AA criterion/state matrix"
+  ],
+  "source": {
+    "apps/portal/src/app/landing.css": "9bfbdf41a1a97b4a27333ea01d86f9c3cf6e31b87bb1370900efddc94017e3ec",
+    "apps/portal/src/app/global.css": "aac9785901a46c160986391678d89aa19770697d8b8662e42ead9fa83d3d8557",
+    "apps/portal/src/app/layout.tsx": "9b5e4ea63434360f382af68ba8dde953db091e16af190a243f6829a0dad9c225",
+    "apps/portal/src/app/[locale]/page.tsx": "6d7a70a03ac533e8f413f81f4ba1332aeeada4e5fc2708285fecd4e5284eacec",
+    "apps/portal/src/components/Portal.tsx": "b6e148bdd936d43be46fa6c4b7f311561349a041fef72f6796f3f78eeb4bbfbe"
+  }
+}

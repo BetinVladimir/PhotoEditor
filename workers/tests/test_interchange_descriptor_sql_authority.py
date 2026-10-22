@@ -11,7 +11,7 @@ from test_interchange_descriptor_occurrences import fixture
 def test_descriptor_sql_authority_binds_lease_and_owned_evidence(allowed):
     pin, event = fixture()
     pin.update(frame_binding=pin['selected_binding'], frame_ordinal=7)
-    params = dict(schema_version=1, plan=ArtifactRef(artifact_id=uuid4(), sha256='a' * 64), max_report_bytes=8388608)
+    params = dict(schema_version=1, plan=ArtifactRef(artifact_id=uuid4(), sha256='a' * 64).model_dump(mode='json'), max_report_bytes=8388608)
     raw = canonical_bytes(params)
     command = SimpleNamespace(operation='v2.interchange.export', operation_version='1', resource_class='cpu',
         params=ArtifactRef(artifact_id=uuid4(), sha256=sha256(raw).hexdigest()))

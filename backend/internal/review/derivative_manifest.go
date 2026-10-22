@@ -46,8 +46,7 @@ func ParseRenderDerivativeManifest(raw []byte, manifestRef, sourceRef, derivativ
 	if err != nil || !bytes.Equal(roundtrip, body) {
 		return fail()
 	}
-	profile, err := media.ProfileHash(variant, srgbSHA)
-	if err != nil || (variant != "preview1600" && variant != "preview2560") || out.Variant != variant || out.ProfileHash != profile || out.Source != sourceRef || out.Derivative != derivativeRef || out.ColorProfile != "srgb" || out.MetadataPolicy != "stripped" {
+	if !media.KnownProfileHash(out.ProfileHash,variant,srgbSHA) || (variant != "preview1600" && variant != "preview2560") || out.Variant != variant || out.Source != sourceRef || out.Derivative != derivativeRef || out.ColorProfile != "srgb" || out.MetadataPolicy != "stripped" {
 		return fail()
 	}
 	w, h := image.Canvas.Width, image.Canvas.Height

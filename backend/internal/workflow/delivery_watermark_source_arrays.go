@@ -13,6 +13,12 @@ import (
 // publication. Descriptors must come from the current SQL-authorized inventory;
 // this verifier cannot make an arbitrary descriptor authoritative.
 func verifyInitialWatermarkSourceArrays(ctx context.Context,objects v2input.SessionAnalysisObjectReader,ref v2input.Ref,raw []byte,arrays []delivery.WatermarkArrayObject)error{
+ return verifyExportWorkingImageArrays(ctx,objects,ref,raw,arrays)
+}
+
+// verifyExportWorkingImageArrays accepts only independently authorized exact refs.
+// It preserves canonical image/ICC/alpha representations and verifies all actual NPY bytes.
+func verifyExportWorkingImageArrays(ctx context.Context,objects v2input.SessionAnalysisObjectReader,ref v2input.Ref,raw []byte,arrays []delivery.WatermarkArrayObject)error{
  if err:=ctx.Err();err!=nil{return err}
  if objects==nil||len(raw)<2||len(raw)>1<<20||renderDerivativeBytesSHA(raw)!=ref.SHA256{return v2input.ErrInvalid}
  image,err:=review.ParseWorkingImage(raw)
@@ -27,9 +33,9 @@ func verifyInitialWatermarkSourceArrays(ctx context.Context,objects v2input.Sess
  }
  for n,array:=range arrays{
   if err=ctx.Err();err!=nil{return err}
-  reader,openErr:=objects.Open(ctx,array.Object);if openErr!=nil{return openErr};if reader==nil{return v2input.ErrInvalid}
+  reader,openErr:=objects.Open(ctx,array.Object);if openErr!=nil{return physicalDeliveryFailure(array.Ref,array.Object.VersionID,openErr)};if reader==nil{return v2input.ErrInvalid}
   if n==0{err=masknpy.VerifyFloat32ArrayNPY(ctx,reader,array.Object.Bytes,array.Ref.SHA256,image.Canvas.Width,image.Canvas.Height,3,false)}else{err=masknpy.VerifyAlphaNPY(ctx,reader,array.Object.Bytes,array.Ref.SHA256,image.Canvas.Width,image.Canvas.Height)}
-  closeErr:=reader.Close();if err!=nil{return err};if closeErr!=nil{return closeErr}
+  closeErr:=reader.Close();if err!=nil{return physicalDeliveryFailure(array.Ref,array.Object.VersionID,err)};if closeErr!=nil{return physicalDeliveryFailure(array.Ref,array.Object.VersionID,closeErr)}
  }
  return ctx.Err()
 }

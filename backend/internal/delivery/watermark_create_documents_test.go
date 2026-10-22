@@ -48,17 +48,19 @@ func TestWatermarkCreateDocumentsRequireExactPins(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	callerBytes := append([]byte(nil), pendingRaw...)
+	selectionRaw, err := intent.EncodeWatermarkSelectionPending(context.Background(), session, catalog, items)
+	if err != nil || bytes.Equal(selectionRaw, pendingRaw) { t.Fatal("selection lost distinct stage", err) }
+	callerBytes := append([]byte(nil), selectionRaw...)
 	ownedSelection, ownErr := intent.ownWatermarkSelectionPending(context.Background(), session, callerBytes)
-	if ownErr != nil || !bytes.Equal(ownedSelection, pendingRaw) {
+	if ownErr != nil || !bytes.Equal(ownedSelection, selectionRaw) {
 		t.Fatal("selection ownership changed payload", ownErr)
 	}
 	callerBytes[0] = '!'
-	if !bytes.Equal(ownedSelection, pendingRaw) {
+	if !bytes.Equal(ownedSelection, selectionRaw) {
 		t.Fatal("caller mutation changed owned selection")
 	}
-	if _, ownErr = intent.DecodeWatermarkPending(context.Background(), session, ownedSelection, pins); ownErr != nil {
-		t.Fatal("owned selection lost verified pin compatibility", ownErr)
+	if _, ownErr = intent.DecodeWatermarkPending(context.Background(), session, ownedSelection, pins); ownErr == nil {
+		t.Fatal("selection acquired executable authority without promotion")
 	}
 	if _, ownErr = intent.ownWatermarkSelectionPending(context.Background(), session, callerBytes); ownErr == nil {
 		t.Fatal("malformed selection acquired ownership")
@@ -69,10 +71,6 @@ func TestWatermarkCreateDocumentsRequireExactPins(t *testing.T) {
 		t.Fatal("cancelled selection acquired ownership", ownErr)
 	}
 
-	selectionRaw, err := intent.EncodeWatermarkSelectionPending(context.Background(), session, catalog, items)
-	if err != nil || !bytes.Equal(selectionRaw, pendingRaw) {
-		t.Fatal("selection/verified document drift", err)
-	}
 	if _, _, err := (Service{}).PinWatermarkSelectionPending(context.Background(), auth.Identity{UserID: intent.actor, SessionID: session}, intent.tenant, intent.Request(), intent.key, catalog, items); err == nil {
 		t.Fatal("missing database accepted")
 	}

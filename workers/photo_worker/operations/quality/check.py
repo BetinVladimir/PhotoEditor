@@ -55,7 +55,7 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
                     base=array(baseline.pixels,rgb.shape);delta=np.abs(np.asarray(rgb)-np.asarray(base));mse=float(np.mean(delta*delta));protected_max=None
                     if p.protected:
                         union=np.zeros(rgb.shape[:2],bool)
-                        for mask in p.protected:union|=array(mask.artifact,rgb.shape[:2])>=.5
+                        for mask in p.protected:union|=array(mask.artifact,rgb.shape[:2])>0
                         protected_max=float(np.max(delta[union])) if np.any(union) else 0.
                     reference=ReferenceMetrics(mean_absolute_error=float(np.mean(delta)),psnr_db=min(200.,float(-10*math.log10(max(mse,1e-20)))),protected_max_delta=protected_max)
         except ValueError as exc:raise OperationFailure('INPUT_INVALID') from exc

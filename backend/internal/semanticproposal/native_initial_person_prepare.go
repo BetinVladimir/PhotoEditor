@@ -60,7 +60,7 @@ func (b nativePreparationBootstrap) ensureInitialPersonPreparation(ctx context.C
 	if err != nil {
 		return err
 	}
-	if policy.Expected.Backend != "cuda" {
+	if policy.Expected.Backend != "cuda" && policy.Expected.Backend != "mps" {
 		return v2qualification.ErrUnqualified
 	}
 	pin, err := b.Reader.personQualificationObject(ctx, who, anchor.Request.TenantID, policy.Expected, policy.Report)
@@ -74,11 +74,11 @@ func (b nativePreparationBootstrap) ensureInitialPersonPreparation(ctx context.C
 	if err != nil {
 		return err
 	}
-	verified, err := v2qualification.Verify(raw, policy.Report.SHA256, policy.Expected)
+	verified, err := v2qualification.VerifyTyped(raw, policy.Report.SHA256, policy.Expected)
 	if err != nil {
 		return err
 	}
-	budget, err := initialNativeFaceBudget(capacity, reserved, verified.Metrics)
+	budget, err := initialNativeFaceResourceBudget(capacity, reserved, verified.Resources())
 	if err != nil {
 		return err
 	}

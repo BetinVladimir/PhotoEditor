@@ -47,6 +47,8 @@ func DocumentChildren(raw []byte, contract string, parent v2input.Ref) ([]LayerR
 		}
 	case "BodyFit":
 		children, err = bodyFitDocumentRefs(raw, path, parent)
+	case "DefectProposeReport":
+		children, err = defectProposeReportRefs(raw, path, parent)
 	case "DefectCandidates":
 		if _, err = review.ParseDefectProposalStructure(context.Background(), raw,
 			review.ArtifactRef{ID: parent.ArtifactID, SHA256: parent.SHA256}); err == nil {
@@ -133,10 +135,46 @@ func DocumentChildren(raw []byte, contract string, parent v2input.Ref) ([]LayerR
 		_, err = DecodeCandidateProfile(raw)
 	case "FrozenRenderRecipe":
 		children, err = renderRecipeRefs(raw, path, parent)
+	case "AuthoredNativeReplayRequest", "AuthoredNativeReplayEvidence":
+		children, err = authoredNativeReplayRefs(raw, contract, path, parent)
+	case "AuthoredSegmentParams":
+		children, err = authoredSegmentRefs(raw, path, parent)
+	case "AuthoredBaseReceipt":
+		children, err = authoredBaseRefs(raw, path, parent)
+	case "AuthoredCompoundContinuation":
+		children, err = authoredContinuationRefs(raw, path, parent)
+	case "AuthoredCanonicalPhaseReceipt":
+		children, err = authoredPhaseRefs(raw, path, parent)
+	case "AuthoredFinalGenerationEvidence":
+		children, err = authoredFinalGenerationRefs(raw, path, parent)
+	case "QualificationReport":
+		err = authoredQualificationReportLeaf(raw)
+	case "AuthoredGeometryTaskParams":
+		children, err = authoredGeometryTaskRefs(raw, path, parent)
+	case "AuthoredGeometryPhaseResultV3":
+		children, err = authoredGeometryRoot3Refs(raw, path, parent)
+	case "AuthoredGeometryMaskMappingV2":
+		children, err = authoredGeometryMapping2Refs(raw, path, parent)
+	case "AuthoredGeometryPhaseResult":
+		var header struct {
+			SchemaVersion int `json:"schema_version"`
+		}
+		if json.Unmarshal(raw, &header) != nil {
+			return nil, v2input.ErrInvalid
+		}
+		if header.SchemaVersion == 3 {
+			children, err = authoredGeometryRoot3Refs(raw, path, parent)
+		} else {
+			children, err = authoredGeometryRefs(raw, path, parent)
+		}
+	case "EditorExecutedBaseReceipt":
+		children, err = editorExecutedReceiptRefs(raw, path, parent)
 	case "ImageResult":
 		children, err = imageResultRefs(raw, path, parent)
 		// ImageResult has no array-valued child paths.
 		sort.Slice(children, func(i, j int) bool { return children[i].Path < children[j].Path })
+	case "UpscaleReport":
+		children, err = upscaleReportRefs(raw, path, parent)
 	case "ImageReport":
 		children, err = imageReportRefs(raw, path, parent)
 		// Preserve array order within each property.

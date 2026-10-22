@@ -182,7 +182,10 @@ def test_complete_adapter_with_controlled_registration(tmp_path,monkeypatch,oper
         from photo_worker.v2.adoption import prepare_v2_adoption
         inventory=prepare_v2_adoption(task_id=uuid4(),operation=operation,version='1',
             root=_ref(result.outputs[0]),reader=reader,params_ref=_ref(params_ref),check_active=lambda:None)
-        assert len(inventory.inventory)==len(artifacts.records)
+        expected_refs={str(ref.artifact_id) for ref,_,_ in artifacts.records}
+        expected_refs.update(str(binding.source.artifact_id) for binding in params.frames)
+        assert {row['artifact_id'] for row in inventory.inventory}==expected_refs
+        assert len(inventory.inventory)==len(expected_refs)
         # Provenance role substitution must fail even when document bytes match.
         rgb_id=metadata.image.pixels.artifact_id
         raw,role,origin=records[rgb_id];records[rgb_id]=(raw,'mask_pixels',origin)

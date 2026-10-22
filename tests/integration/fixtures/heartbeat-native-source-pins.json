@@ -1,0 +1,14 @@
+[
+  {
+    "migration": "02615_authored_mask_transform_routes.sql",
+    "source_sha256": "64f9b7d36e87add1b13789f2d29645f967dacaeb3acf598d12650c3d6e8733ed",
+    "function": "authored_mask_lock_execution_parent",
+    "body_sha256": "4c0183f52fd1ea6013a8c4a2bb54cf028d64921c5ebbc9fa3d871f674e48f79c"
+  },
+  {
+    "migration": "02618_authored_native_replay.sql",
+    "source_sha256": "f2919b6fc128c24b286039d946e91f882083476b5d716924cd05b0a4530c1a9a",
+    "function": "authored_native_replay_parent_lock",
+    "body_sha256": "54198fcd79caf5fbc10476a547a86a516f1ab945e28a9ead648ece4ce494357d"
+  }
+]

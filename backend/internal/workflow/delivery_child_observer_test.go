@@ -153,3 +153,33 @@ func TestDeliveryContinuationRecoveryAndFailureBoundaries(t *testing.T) {
 		})
 	}
 }
+
+
+func TestDeliveryContinuationOwnsSavedRefAcrossRecoveryCallback(t *testing.T) {
+ saved := v2input.Ref{ArtifactID: uuid.New(), SHA256: strings.Repeat("a", 64)}
+ expected := saved
+ admitted := false
+ _, err := resumeDeliveryContinuation(context.Background(), &saved, deliveryContinuationActions{
+  activated: func(got v2input.Ref) (bool, error) { saved = v2input.Ref{}; return false, nil },
+  open: func() error { return nil },
+  publish: func() (v2input.Ref, error) { t.Fatal("saved Params republished"); return v2input.Ref{}, nil },
+  admit: func(got v2input.Ref) (bool, error) { admitted = true; if got != expected { t.Fatal("retry descriptor substituted", got) }; return false, nil },
+ })
+ if err != nil || !admitted { t.Fatal(admitted, err) }
+}
+
+func TestDeliveryContinuationRejectsLateCallbackCancellation(t *testing.T) {
+ for _, phase := range []string{"activated", "admit"} {
+  ctx, cancel := context.WithCancel(context.Background())
+  saved := v2input.Ref{ArtifactID: uuid.New(), SHA256: strings.Repeat("a", 64)}
+  opened := false
+  recovered, err := resumeDeliveryContinuation(ctx, &saved, deliveryContinuationActions{
+   activated: func(v2input.Ref) (bool, error) { if phase == "activated" { cancel(); return true, nil }; return false, nil },
+   open: func() error { opened = true; return nil },
+   publish: func() (v2input.Ref, error) { t.Fatal("saved Params republished"); return v2input.Ref{}, nil },
+   admit: func(v2input.Ref) (bool, error) { cancel(); return true, nil },
+  })
+  cancel()
+  if !errors.Is(err, context.Canceled) || recovered || (phase == "activated" && opened) { t.Fatal(phase, recovered, opened, err) }
+ }
+}

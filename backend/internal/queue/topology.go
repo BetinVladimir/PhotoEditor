@@ -16,6 +16,8 @@ var Bindings = []Binding{
 	{"q.worker.media", Commands, "io.preview", "media"}, {"q.worker.media", Commands, "io.verify", "media"},
 	{"q.worker.archive", Commands, "io.archive", "archive"},
 	{"q.worker.collection", Commands, "collection.mutate", "collection"}, {"q.worker.collection", Commands, "media.retry", "collection"}, {"q.orchestrator.events", Events, "task.*", "events"},
+ {"q.orchestrator.events", Events, "download_status", "events"},
+ {"q.orchestrator.events", Events, "review.created", "events"},
 }
 
 // Declare is a privileged bootstrap operation; runtime publishers do not require

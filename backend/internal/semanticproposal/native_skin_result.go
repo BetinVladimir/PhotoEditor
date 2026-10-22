@@ -22,15 +22,19 @@ type nativeSkinResultCatalog struct {
 
 // Lookup never substitutes source-wide latest output or delegates admission.
 func (s SQLTransferSourceReader) nativeSkinResultCatalog(ctx context.Context, who auth.Identity, plan nativeSkinDraftPlan) (nativeSkinResultCatalog, error) {
+	if _, err := s.compileNativeSkinDraftPlan(ctx, who, plan.parser, plan.prepared, plan.shell.Bytes); err != nil {
+		return nativeSkinResultCatalog{}, err
+	}
+	return s.nativeSkinResultCatalogCurrent(ctx, who, plan)
+}
+
+func (s SQLTransferSourceReader) nativeSkinResultCatalogCurrent(ctx context.Context, who auth.Identity, plan nativeSkinDraftPlan) (nativeSkinResultCatalog, error) {
 	var zero nativeSkinResultCatalog
 	if err := verifyNativeSkinPlanSeal(ctx, plan); err != nil {
 		return zero, err
 	}
 	if s.DB == nil {
 		return zero, v2input.ErrInvalid
-	}
-	if _, err := s.compileNativeSkinDraftPlan(ctx, who, plan.parser, plan.prepared, plan.shell.Bytes); err != nil {
-		return zero, err
 	}
 	task, err := plan.prepared.frozen.DraftTask()
 	if err != nil {

@@ -1725,7 +1725,7 @@ BEGIN
  FOR edge IN SELECT value FROM jsonb_array_elements(p_edges) LOOP
   IF jsonb_typeof(edge) IS DISTINCT FROM 'object'
    OR (edge-'prerequisite_id'-'dependent_id')<>'{}'::jsonb
-   OR coalesce(edge->>'prerequisite_id','') !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+   OR coalesce(edge->>'prerequisite_id','') !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
    OR coalesce(edge->>'dependent_id','') !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
    OR edge->>'prerequisite_id'=edge->>'dependent_id' THEN RETURN false; END IF;
  END LOOP;

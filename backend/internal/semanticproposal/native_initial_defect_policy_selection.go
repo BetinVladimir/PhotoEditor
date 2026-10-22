@@ -28,7 +28,7 @@ func (s SQLTransferSourceReader) selectInitialDefectConfiguration(ctx context.Co
 	if err != nil {
 		return zero, err
 	}
-	selected, err := selectQualificationPolicies(snapshot, []string{"defects.propose"})
+	selected, err := selectNativeQualificationPolicies(snapshot, []string{"defects.propose"})
 	if err != nil {
 		return zero, err
 	}

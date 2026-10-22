@@ -33,12 +33,12 @@ func (s SQLTransferSourceReader) publishNativeFaceStageParams(ctx context.Contex
 	if err := verifyDetectorPlanSeal(ctx, plan); err != nil {
 		return zero, err
 	}
-	selected, err := selectQualificationPolicies(plan.policy, []string{operation})
+	selected, err := selectNativeQualificationPolicies(plan.policy, []string{operation})
 	if err != nil {
 		return zero, err
 	}
 	model := selected[operation]
-	if model.Backend != "cuda" {
+	if model.Backend != "cuda" && model.Backend != "mps" {
 		return zero, v2qualification.ErrUnqualified
 	}
 	before, err := s.readCompletedDetectorPreparation(ctx, who, plan, color)

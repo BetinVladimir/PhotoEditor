@@ -20,6 +20,47 @@ type admissionRoleQueryer interface {
 	QueryRow(context.Context, string, ...any) pgx.Row
 }
 
+// Optional retouch installation must verify its exact transaction entry point.
+// A healthy exposure-only role is not evidence that retouch can be committed.
+func verifyShownRetouchAdmissionRole(ctx context.Context, db admissionRoleQueryer) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if db == nil {
+		return ErrUnavailable
+	}
+	var ready bool
+	err := db.QueryRow(ctx, `SELECT current_user='photo_semantic_admission' AND EXISTS(
+ SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure(
+ 'photo.commit_semantic_shown_retouch_apply_review(uuid,uuid,uuid,uuid,text,bigint,text,uuid,text,jsonb,uuid,jsonb)')
+ AND p.prosecdef AND p.proowner='photo_fn_owner'::regrole
+ AND p.proconfig @> ARRAY['search_path=pg_catalog, photo']::text[]
+ AND has_function_privilege(current_user,p.oid,'EXECUTE')
+ AND NOT EXISTS(SELECT 1 FROM unnest(ARRAY['photo_api','photo_worker','photo_scheduler','photo_portal','photo_gateway']) runtime(role_name)
+ WHERE has_function_privilege(runtime.role_name,p.oid,'EXECUTE')))
+ AND (SELECT count(*) FROM pg_proc entry JOIN pg_namespace n ON n.oid=entry.pronamespace
+ WHERE n.nspname='photo' AND entry.proname='commit_semantic_shown_retouch_apply_review')=1
+ AND NOT EXISTS(SELECT 1 FROM unnest($1::text[]) required(name) WHERE
+ (SELECT count(*)=1 AND bool_and(helper.prosecdef
+ AND helper.proowner='photo_fn_owner'::regrole
+ AND helper.proconfig @> ARRAY['search_path=pg_catalog, photo']::text[]
+ AND NOT has_function_privilege(current_user,helper.oid,'EXECUTE'))
+ FROM pg_proc helper JOIN pg_namespace n ON n.oid=helper.pronamespace
+ WHERE n.nspname='photo' AND helper.proname=required.name) IS DISTINCT FROM true)`, []string{
+		"lock_semantic_shown_retouch_decision_batch", "semantic_shown_retouch_batch_nodes_bound",
+		"create_semantic_shown_retouch_apply_draft_shell", "reserve_semantic_shown_retouch_apply_quota",
+		"create_semantic_shown_retouch_apply_reserved_draft", "register_semantic_shown_retouch_apply_inputs", "seal_semantic_shown_retouch_apply_inputs",
+		"activate_semantic_shown_retouch_apply_child", "finish_semantic_shown_retouch_apply_review",
+	}).Scan(&ready)
+	if err != nil {
+		return err
+	}
+	if !ready {
+		return ErrUnavailable
+	}
+	return nil
+}
+
 func verifyExposureAdmissionRole(ctx context.Context, db admissionRoleQueryer) error {
 	var ready bool
 	err := db.QueryRow(ctx, `SELECT current_user='photo_semantic_admission'

@@ -1,6 +1,9 @@
+import {ActivityIndicator,Button,Text,TextInput,TouchableRipple} from 'react-native-paper';
+import {readDeadline} from './read-deadline';
+import {useReviewForeground} from './use-review-foreground';
 import type {DeliveryCreateAttemptStore} from './delivery-create-attempt-store';
 import {useEffect,useMemo,useRef,useState} from 'react';
-import {ActivityIndicator,FlatList,Pressable,SafeAreaView,Text,TextInput,View} from 'react-native';
+import {FlatList,SafeAreaView,View} from 'react-native';
 import {APIError,type ApiClient} from '@photoeditor/api-client';
 import {OwnerAPI} from './owner-api';
 import type {ExportPreset} from './catalog-types';
@@ -12,10 +15,16 @@ import type {DeliverySigningPolicyChoice} from './delivery-signing-policies';
 type Props={journal?:DeliveryCreateAttemptStore;client:ApiClient;tenant:string;project:string;snapshot:string;onCreated:(ticket:DeliveryCreateTicket)=>void};
 export function DeliveryCreateScreen(props:Props){const generation=useMemo(()=>crypto.randomUUID(),[props.client,props.journal]);return <Scope key={`${generation}:${props.tenant}:${props.project}:${props.snapshot}`} {...props}/>;}
 function Scope({client,tenant,project,snapshot,onCreated,journal}:Props){
+ const __uiMessage=useLocale().message;
+
+ const __uiT=useLocale().t;
+
+ const foreground=useReviewForeground(),foregroundActive=useRef(foreground.active);
+ foregroundActive.current=foreground.active;
  const {t}=useLocale(),api=useMemo(()=>new OwnerAPI(client,tenant),[client,tenant]);
  const [presets,setPresets]=useState<ExportPreset[]>([]),[cursor,setCursor]=useState<string|null>(null),[name,setName]=useState(''),[required,setRequired]=useState<string[]>([]),[optional,setOptional]=useState<string[]>([]);
  const [metadataPolicy,setMetadataPolicy]=useState<DeliveryCreateRequest['policy']['metadata_policy']>('strip'),[approvedFields,setApprovedFields]=useState<DeliveryMetadataField[]>([]);
- const [provenance,setProvenance]=useState<DeliveryCreateRequest['policy']['provenance']>('off'),[policies,setPolicies]=useState<DeliverySigningPolicyChoice[]>([]),[selectedPolicy,setSelectedPolicy]=useState<Pick<DeliverySigningPolicyChoice,'id'|'sha256'>|null>(null),[policyLoading,setPolicyLoading]=useState(false),[policyError,setPolicyError]=useState(false);
+ const [provenance,setProvenance]=useState<DeliveryCreateRequest['policy']['provenance']>('off'),[policies,setPolicies]=useState<DeliverySigningPolicyChoice[]>([]),[selectedPolicy,setSelectedPolicy]=useState<Pick<DeliverySigningPolicyChoice,'id'|'sha256'>|null>(null),[policyEpoch,setPolicyEpoch]=useState(0),[policyLoading,setPolicyLoading]=useState(false),[policyError,setPolicyError]=useState(false);
  const [recovered,setRecovered]=useState(!journal);
  const [review,setReview]=useState(true),[omitted,setOmitted]=useState(false),[busy,setBusy]=useState(false),[locked,setLocked]=useState(false),[denied,setDenied]=useState(false),[error,setError]=useState('');
  const alive=useRef(false),flight=useRef<AbortController|null>(null),attempt=useRef<{body:DeliveryCreateRequest;key:string}|null>(null),done=useRef(false),usedCursors=useRef(new Set<string>());
@@ -23,48 +32,57 @@ function Scope({client,tenant,project,snapshot,onCreated,journal}:Props){
  const selectedFormatKey=useMemo(()=>[...new Set(selectedFormats)].sort().join(','),[selectedFormats]);
  const hasRequired=required.length>0;
  useEffect(()=>{alive.current=true;return()=>{alive.current=false;flight.current?.abort();flight.current=null};},[]);
+ async function verifySavedTicket(ticket:DeliveryCreateTicket,signal:AbortSignal){
+  const workflow=await api.get<{run_id:string;workflow_id:string}>(`/api/v1/tenants/{t}/v2-workflows/${encodeURIComponent(ticket.workflow_id)}`,signal);
+  signal.throwIfAborted();
+  if(workflow.run_id!==ticket.run_id||workflow.workflow_id!==ticket.workflow_id)throw new Error('DELIVERY_RECOVERY_SCOPE_CHANGED');
+ }
  function failure(reason:unknown){
   if(reason instanceof APIError&&[401,403,404,410].includes(reason.status)){attempt.current=null;setPresets([]);setRequired([]);setOptional([]);setDenied(true);setLocked(false);setMetadataPolicy('strip');setApprovedFields([]);setProvenance('off');setPolicies([]);setSelectedPolicy(null);}
   setError(t('delivery_create_failed'));
  }
  async function load(after?:string){
-  if(flight.current||done.current)return;
+  if(!foregroundActive.current||flight.current||done.current)return;
   const controller=new AbortController();flight.current=controller;setBusy(true);setError('');
-  try{assertDeliveryScope(tenant,project,snapshot);
+  try{await readDeadline(controller.signal,async signal=>{assertDeliveryScope(tenant,project,snapshot);
    if(after&&usedCursors.current.has(after))throw new Error('DELIVERY_PRESET_CURSOR_REPEATED');
    if(!after)usedCursors.current.clear();
-   if(!after&&journal){journal.assertScope(tenant,project,snapshot);const saved=await journal.read();if(!alive.current||controller.signal.aborted)return;
+   if(!after&&journal){journal.assertScope(tenant,project,snapshot);const saved=await journal.read();if(!alive.current||!foregroundActive.current||signal.aborted)return;
+    setRecovered(true);
     if(saved){attempt.current={body:saved.body,key:saved.key};setLocked(true);setName(saved.body.name);setRequired(saved.body.policy.required_presets);setOptional(saved.body.policy.optional_presets);setReview(saved.body.policy.require_review);setOmitted(saved.body.policy.allow_omitted);setMetadataPolicy(saved.body.policy.metadata_policy);setApprovedFields(saved.body.policy.approved_fields||[]);setProvenance(saved.body.policy.provenance);setSelectedPolicy(saved.body.policy.provenance==='required'?{id:saved.body.policy.signing_policy_id!,sha256:saved.body.policy.signing_policy_sha!}:null);
-     if(saved.ticket){done.current=true;onCreated(saved.ticket);return;}
+     if(saved.ticket){await verifySavedTicket(saved.ticket,signal);if(!alive.current||!foregroundActive.current||signal.aborted)return;onCreated(saved.ticket);done.current=true;return;}
     }
     setRecovered(true);
    }
-   const page=await api.presets(after,controller.signal);if(alive.current&&!controller.signal.aborted){
+   const page=await api.presets(after,signal);if(alive.current&&!signal.aborted){
     if(!page||!Array.isArray(page.items)||page.items.length>100||!(page.next_cursor===null||typeof page.next_cursor==='string'&&page.next_cursor.length>0&&page.next_cursor.length<=4096)||page.items.length===0&&page.next_cursor!==null)throw new Error('DELIVERY_PRESET_PAGE_INVALID');
     const ids=new Set(after?presets.map(p=>p.id):[]);
     for(const preset of page.items){if(!preset||typeof preset.id!=='string'||ids.has(preset.id))throw new Error('DELIVERY_PRESET_PAGE_INVALID');ids.add(preset.id);}
     if(page.next_cursor&&(page.next_cursor===after||usedCursors.current.has(page.next_cursor)))throw new Error('DELIVERY_PRESET_CURSOR_REPEATED');
     if(after)usedCursors.current.add(after);
     setPresets(prior=>after?[...prior,...page.items]:page.items);setCursor(page.next_cursor);
-   }}
+   }},8000);}
   catch(reason){if(alive.current&&!controller.signal.aborted)failure(reason);}
-  finally{if(flight.current===controller)flight.current=null;if(alive.current&&!controller.signal.aborted)setBusy(false);}
+  finally{if(flight.current===controller){flight.current=null;if(alive.current)setBusy(false);}}
  }
- useEffect(()=>{void load();return()=>{flight.current?.abort();flight.current=null};},[api]);
  useEffect(()=>{
-  if(locked||denied){setPolicyLoading(false);return;}
+  if(!foreground.active){flight.current?.abort();flight.current=null;setBusy(false);return;}
+  void load();return()=>{flight.current?.abort();flight.current=null};
+ },[api,foreground.active,foreground.generation]);
+ useEffect(()=>{
+  if(!foreground.active||locked||denied){setPolicyLoading(false);return;}
   setPolicies([]);setSelectedPolicy(null);setPolicyError(false);
   if(provenance!=='required'){setPolicyLoading(false);return;}
   if(!hasRequired||selectedFormatKey.split(',').includes('')){setPolicyLoading(false);return;}
   const controller=new AbortController();let live=true;setPolicyLoading(true);
-  void api.deliverySigningPolicies(project,selectedFormatKey.split(',') as Array<'jpeg'|'png'|'tiff'>,controller.signal)
+  void readDeadline(controller.signal,signal=>api.deliverySigningPolicies(project,selectedFormatKey.split(',') as Array<'jpeg'|'png'|'tiff'>,signal))
    .then(choices=>{if(live&&!controller.signal.aborted)setPolicies(choices)})
-   .catch(cause=>{if(live&&!controller.signal.aborted){setPolicyError(true);if(cause instanceof APIError&&[401,403,404].includes(cause.status)){setDenied(true);setPresets([]);setRequired([]);setOptional([]);}}})
+   .catch(cause=>{if(live&&!controller.signal.aborted){setPolicyError(true);if(cause instanceof APIError&&[401,403,404,410].includes(cause.status)){setDenied(true);setPresets([]);setRequired([]);setOptional([]);}}})
    .finally(()=>{if(live&&!controller.signal.aborted)setPolicyLoading(false)});
   return()=>{live=false;controller.abort()};
- },[api,project,provenance,selectedFormatKey,hasRequired,locked,denied]);
+ },[api,project,provenance,selectedFormatKey,hasRequired,locked,denied,foreground.active,foreground.generation,policyEpoch]);
  function choose(id:string,kind:'required'|'optional'){
-  if(!recovered||locked||busy||denied)return;
+  if(!foregroundActive.current||!recovered||locked||busy||denied)return;
   const preset=presets.find(p=>p.id===id);if(!preset||(preset.config.metadata_policy||'strip')!==metadataPolicy)return;
   const current=kind==='required'?required:optional;
   if(!required.includes(id)&&!optional.includes(id)&&required.length+optional.length>=16)return;
@@ -75,61 +93,64 @@ function Scope({client,tenant,project,snapshot,onCreated,journal}:Props){
   setRequired(nextRequired);setOptional(nextOptional);
  }
  function selectMetadata(mode:DeliveryCreateRequest['policy']['metadata_policy']){
-  if(!recovered||locked||busy||denied||mode===metadataPolicy)return;
+  if(!foregroundActive.current||!recovered||locked||busy||denied||mode===metadataPolicy)return;
   setMetadataPolicy(mode);setApprovedFields([]);setRequired([]);setOptional([]);setSelectedPolicy(null);
  }
  function selectProvenance(mode:DeliveryCreateRequest['policy']['provenance']){
-  if(!recovered||locked||busy||denied||mode===provenance)return;
+  if(!foregroundActive.current||!recovered||locked||busy||denied||mode===provenance)return;
   setProvenance(mode);setSelectedPolicy(null);
  }
  function approve(field:DeliveryMetadataField){
-  if(!recovered||locked||busy||denied||metadataPolicy!=='approved_exif')return;
+  if(!foregroundActive.current||!recovered||locked||busy||denied||metadataPolicy!=='approved_exif')return;
   setApprovedFields(prior=>prior.includes(field)?prior.filter(v=>v!==field):[...prior,field]);
  }
  const metadataModes=[['strip','delivery_metadata_strip'],['copyright','delivery_metadata_copyright'],['approved_exif','delivery_metadata_approved']] as const;
  const metadataFields=[['author','delivery_metadata_author'],['copyright','delivery_metadata_rights'],['camera_make','delivery_metadata_make'],['camera_model','delivery_metadata_model'],['lens','delivery_metadata_lens'],['datetime_original','delivery_metadata_datetime'],['gps','delivery_metadata_gps']] as const;
+ function cancel(){const current=flight.current;if(!current)return;current.abort();flight.current=null;setBusy(false);setError(t('delivery_create_failed'))}
+ useEffect(()=>{if(!busy)return;const current=flight.current;const timer=setTimeout(()=>{if(flight.current===current)cancel()},15000);return()=>clearTimeout(timer)},[busy]);
  async function submit(){
-  if(!recovered||flight.current||denied||done.current)return;
+  if(!foregroundActive.current||!recovered||flight.current||denied||done.current)return;
   let owned=attempt.current;
   if(!owned){try{if(provenance==='required'&&(policyLoading||!selectedPolicy||!policies.some(choice=>choice.id===selectedPolicy.id&&choice.sha256===selectedPolicy.sha256)))throw new Error('DELIVERY_SIGNING_CHOICE_INVALID');const key=crypto.randomUUID();owned={key,body:freezeDeliveryCreate({project_id:project,snapshot_id:snapshot,name:name.trim(),policy:{required_presets:required,optional_presets:optional,require_review:review,allow_omitted:omitted,metadata_policy:metadataPolicy,approved_fields:metadataPolicy==='approved_exif'?approvedFields:[],provenance,...(provenance==='required'?{signing_policy_id:selectedPolicy!.id,signing_policy_sha:selectedPolicy!.sha256}:{})}},key)};attempt.current=owned;setLocked(true);}catch{setError(t('delivery_create_invalid'));return;}}
   const controller=new AbortController();flight.current=controller;setBusy(true);setError('');
   try{
    if(journal){
     journal.assertScope(tenant,project,snapshot);
-    const saved=await journal.read();if(!alive.current||controller.signal.aborted)return;
+    const saved=await journal.read();if(!alive.current||!foregroundActive.current||controller.signal.aborted)return;
     if(saved){
      if(saved.key!==owned.key||JSON.stringify(saved.body)!==JSON.stringify(owned.body))throw new Error('DELIVERY_CREATE_JOURNAL_CONFLICT');
-     if(saved.ticket){done.current=true;onCreated(saved.ticket);return;}
+     if(saved.ticket){await verifySavedTicket(saved.ticket,controller.signal);if(!alive.current||!foregroundActive.current||controller.signal.aborted)return;onCreated(saved.ticket);done.current=true;return;}
     }
     await journal.write({version:1,key:owned.key,body:owned.body,ticket:null});
    }
-   if(!alive.current||controller.signal.aborted)return;
+   if(!alive.current||!foregroundActive.current||controller.signal.aborted)return;
    const ticket=await api.createDelivery(owned.body,owned.key,controller.signal);
-   if(!alive.current||controller.signal.aborted)return;
+   if(!alive.current||!foregroundActive.current||controller.signal.aborted)return;
    if(journal)await journal.write({version:1,key:owned.key,body:owned.body,ticket});
-   if(alive.current&&!controller.signal.aborted){done.current=true;onCreated(ticket);}
+   if(alive.current&&foregroundActive.current&&!controller.signal.aborted){onCreated(ticket);done.current=true;}
   }
   catch(reason){if(alive.current&&!controller.signal.aborted)failure(reason);}
-  finally{if(flight.current===controller)flight.current=null;if(alive.current&&!controller.signal.aborted)setBusy(false);}
+  finally{if(flight.current===controller){flight.current=null;if(alive.current)setBusy(false);}}
  }
+ if(!foreground.active)return <SafeAreaView style={s.root}><Text style={s.title}>{t('delivery_create_title')}</Text></SafeAreaView>;
  return <SafeAreaView style={s.root}><View style={s.header}><Text style={s.title}>{t('delivery_create_title')}</Text>
  <TextInput accessibilityLabel={t('delivery_create_name')} value={name} onChangeText={setName} editable={recovered&&!busy&&!locked&&!denied} placeholder={t('delivery_create_name')} style={s.input}/>
- <Pressable accessibilityRole="checkbox" accessibilityState={{checked:review,disabled:!recovered||busy||locked||denied}} disabled={!recovered||busy||locked||denied} onPress={()=>setReview(!review)}><Text style={s.name}>{review?'☑':'☐'} {t('delivery_create_review')}</Text></Pressable>
- <Pressable accessibilityRole="checkbox" accessibilityState={{checked:omitted,disabled:!recovered||busy||locked||denied}} disabled={!recovered||busy||locked||denied} onPress={()=>setOmitted(!omitted)}><Text style={s.name}>{omitted?'☑':'☐'} {t('delivery_create_omitted')}</Text></Pressable>
+ <TouchableRipple  accessibilityRole="checkbox" aria-checked={review} accessibilityState={{checked:review,disabled:!recovered||busy||locked||denied}} disabled={!recovered||busy||locked||denied} onPress={()=>setReview(!review)}><Text style={s.name}>{review?'☑':'☐'} {t('delivery_create_review')}</Text></TouchableRipple>
+ <TouchableRipple  accessibilityRole="checkbox" aria-checked={omitted} accessibilityState={{checked:omitted,disabled:!recovered||busy||locked||denied}} disabled={!recovered||busy||locked||denied} onPress={()=>setOmitted(!omitted)}><Text style={s.name}>{omitted?'☑':'☐'} {t('delivery_create_omitted')}</Text></TouchableRipple>
  <Text style={s.subtitle}>{t('delivery_metadata_title')}</Text>
- {metadataModes.map(([mode,label])=><Pressable key={mode} accessibilityRole="radio" accessibilityLabel={t(label)} accessibilityState={{checked:metadataPolicy===mode,disabled:!recovered||busy||locked||denied}} disabled={!recovered||busy||locked||denied} onPress={()=>selectMetadata(mode)}><Text style={s.name}>{metadataPolicy===mode?'◉':'○'} {t(label)}</Text></Pressable>)}
+ {metadataModes.map(([mode,label])=><TouchableRipple  key={mode} accessibilityRole="radio" accessibilityLabel={t(label)} aria-checked={metadataPolicy===mode} accessibilityState={{checked:metadataPolicy===mode,disabled:!recovered||busy||locked||denied}} disabled={!recovered||busy||locked||denied} onPress={()=>selectMetadata(mode)}><Text style={s.name}>{metadataPolicy===mode?'◉':'○'} {t(label)}</Text></TouchableRipple>)}
  <Text style={s.meta}>{t('delivery_metadata_presets_hint')}</Text>
- {metadataPolicy==='approved_exif'?<View><Text style={s.meta}>{t('delivery_metadata_consent_hint')}</Text>{metadataFields.map(([field,label])=><Pressable key={field} accessibilityRole="checkbox" accessibilityLabel={t(label)} accessibilityState={{checked:approvedFields.includes(field),disabled:!recovered||busy||locked||denied}} disabled={!recovered||busy||locked||denied} onPress={()=>approve(field)}><Text style={s.name}>{approvedFields.includes(field)?'☑':'☐'} {t(label)}</Text></Pressable>)}</View>:null}
+ {metadataPolicy==='approved_exif'?<View><Text style={s.meta}>{t('delivery_metadata_consent_hint')}</Text>{metadataFields.map(([field,label])=><TouchableRipple  key={field} accessibilityRole="checkbox" accessibilityLabel={t(label)} aria-checked={approvedFields.includes(field)} accessibilityState={{checked:approvedFields.includes(field),disabled:!recovered||busy||locked||denied}} disabled={!recovered||busy||locked||denied} onPress={()=>approve(field)}><Text style={s.name}>{approvedFields.includes(field)?'☑':'☐'} {t(label)}</Text></TouchableRipple>)}</View>:null}
  <Text style={s.subtitle}>{t('delivery_provenance_title')}</Text>
- {([['off','delivery_provenance_off'],['required','delivery_provenance_required']] as const).map(([mode,label])=><Pressable key={mode} accessibilityRole="radio" accessibilityLabel={t(label)} accessibilityState={{checked:provenance===mode,disabled:!recovered||busy||locked||denied}} disabled={!recovered||busy||locked||denied} onPress={()=>selectProvenance(mode)}><Text style={s.name}>{provenance===mode?'◉':'○'} {t(label)}</Text></Pressable>)}
+ {([['off','delivery_provenance_off'],['required','delivery_provenance_required']] as const).map(([mode,label])=><TouchableRipple  key={mode} accessibilityRole="radio" accessibilityLabel={t(label)} aria-checked={provenance===mode} accessibilityState={{checked:provenance===mode,disabled:!recovered||busy||locked||denied}} disabled={!recovered||busy||locked||denied} onPress={()=>selectProvenance(mode)}><Text style={s.name}>{provenance===mode?'◉':'○'} {t(label)}</Text></TouchableRipple>)}
  {provenance==='required'&&locked&&selectedPolicy?<Text style={s.meta}>{t('delivery_signing_locked')} {selectedPolicy.id.slice(0,8)}</Text>:null}
- {provenance==='required'&&!locked?policyLoading?<ActivityIndicator/>:<View>{policies.map(choice=><Pressable key={choice.id} accessibilityRole="radio" accessibilityLabel={`${t('delivery_signing_policy')} ${choice.id.slice(0,8)}`} accessibilityState={{checked:selectedPolicy?.id===choice.id,disabled:busy||denied}} disabled={busy||denied} onPress={()=>setSelectedPolicy({id:choice.id,sha256:choice.sha256})}><Text style={s.name}>{selectedPolicy?.id===choice.id?'◉':'○'} {t('delivery_signing_policy')} {choice.id.slice(0,8)} · {choice.revision}</Text></Pressable>)}{(policyError||policies.length===0)?<Text style={s.meta}>{t('delivery_signing_unavailable')}</Text>:null}</View>:null}
- {error?<Text accessibilityRole="alert" style={s.error}>{error}</Text>:null}{busy?<ActivityIndicator/>:null}
- {error&&!busy&&!locked&&!denied?<Pressable accessibilityRole="button" onPress={()=>void load()} style={s.button}><Text style={s.buttonText}>{t('delivery_create_reload')}</Text></Pressable>:null}
- <Pressable accessibilityRole="button" disabled={!recovered||busy||denied||done.current||(!locked&&(!name.trim()||!required.length||provenance==='required'&&(policyLoading||!selectedPolicy)))} onPress={()=>void submit()} style={s.button}><Text style={s.buttonText}>{locked?t('delivery_create_retry'):t('delivery_create_submit')}</Text></Pressable>
+ {provenance==='required'&&!locked?policyLoading?<ActivityIndicator/>:<View>{policies.map(choice=><TouchableRipple  key={choice.id} accessibilityRole="radio" accessibilityLabel={__uiT('ui_8cbaa55a52ef', {p0:(t('delivery_signing_policy')),p1:(choice.id.slice(0,8))})} aria-checked={selectedPolicy?.id===choice.id} accessibilityState={{checked:selectedPolicy?.id===choice.id,disabled:busy||denied}} disabled={busy||denied} onPress={()=>setSelectedPolicy({id:choice.id,sha256:choice.sha256})}><Text style={s.name}>{selectedPolicy?.id===choice.id?'◉':'○'} {t('delivery_signing_policy')} {choice.id.slice(0,8)} · {choice.revision}</Text></TouchableRipple>)}{(policyError||policies.length===0)?<Text style={s.meta}>{t('delivery_signing_unavailable')}</Text>:null}{policyError&&!denied?<Button accessibilityRole="button" onPress={()=>setPolicyEpoch(value=>value+1)}>{t('read_retry')}</Button>:null}</View>:null}
+ {error?<Text accessibilityRole="alert" style={s.error}>{__uiMessage(error,true)}</Text>:null}{busy?<><ActivityIndicator/><Button accessibilityRole="button" onPress={cancel}>{t('read_cancel')}</Button></>:null}
+ {error&&!busy&&!locked&&!denied?<Button  accessibilityRole="button" onPress={()=>void load()}  mode="contained" contentStyle={{minHeight:48}}>{t('delivery_create_reload')}</Button>:null}
+ <Button  accessibilityRole="button" disabled={!recovered||busy||denied||done.current||(!locked&&(!name.trim()||!required.length||provenance==='required'&&(policyLoading||!selectedPolicy)))} onPress={()=>void submit()}  mode="contained" contentStyle={{minHeight:48}}>{locked?t('delivery_create_retry'):t('delivery_create_submit')}</Button>
  {locked&&!busy&&!denied?<Text style={s.subtitle}>{t('delivery_create_retry_hint')}</Text>:null}
  </View><FlatList data={presets} keyExtractor={p=>p.id} contentContainerStyle={s.list} ListEmptyComponent={!busy?<Text style={s.empty}>{t('delivery_create_empty')}</Text>:null} renderItem={({item})=><View style={s.row}><View><Text style={s.name}>{item.name}</Text><Text style={s.meta}>{item.config.format.toUpperCase()}</Text></View><View>
- <Pressable accessibilityRole="checkbox" accessibilityLabel={`${item.name}: ${t('delivery_create_required')}`} accessibilityState={{checked:required.includes(item.id)}} disabled={!recovered||busy||locked||denied||(item.config.metadata_policy||'strip')!==metadataPolicy} onPress={()=>choose(item.id,'required')}><Text style={s.name}>{required.includes(item.id)?'☑':'☐'} {t('delivery_create_required')}</Text></Pressable>
- <Pressable accessibilityRole="checkbox" accessibilityLabel={`${item.name}: ${t('delivery_create_optional')}`} accessibilityState={{checked:optional.includes(item.id)}} disabled={!recovered||busy||locked||denied||(item.config.metadata_policy||'strip')!==metadataPolicy} onPress={()=>choose(item.id,'optional')}><Text style={s.name}>{optional.includes(item.id)?'☑':'☐'} {t('delivery_create_optional')}</Text></Pressable>
- </View></View>} ListFooterComponent={cursor&&!locked&&!denied?<Pressable accessibilityRole="button" disabled={busy} onPress={()=>void load(cursor)} style={s.button}><Text style={s.buttonText}>{t('delivery_create_more')}</Text></Pressable>:null}/></SafeAreaView>;
+ <TouchableRipple  accessibilityRole="checkbox" accessibilityLabel={__uiT('ui_07e3a63ea0ed', {p0:(item.name),p1:(t('delivery_create_required'))})} aria-checked={required.includes(item.id)} accessibilityState={{checked:required.includes(item.id)}} disabled={!recovered||busy||locked||denied||(item.config.metadata_policy||'strip')!==metadataPolicy} onPress={()=>choose(item.id,'required')}><Text style={s.name}>{required.includes(item.id)?'☑':'☐'} {t('delivery_create_required')}</Text></TouchableRipple>
+ <TouchableRipple  accessibilityRole="checkbox" accessibilityLabel={__uiT('ui_07e3a63ea0ed', {p0:(item.name),p1:(t('delivery_create_optional'))})} aria-checked={optional.includes(item.id)} accessibilityState={{checked:optional.includes(item.id)}} disabled={!recovered||busy||locked||denied||(item.config.metadata_policy||'strip')!==metadataPolicy} onPress={()=>choose(item.id,'optional')}><Text style={s.name}>{optional.includes(item.id)?'☑':'☐'} {t('delivery_create_optional')}</Text></TouchableRipple>
+ </View></View>} ListFooterComponent={cursor&&!locked&&!denied?<Button  accessibilityRole="button" disabled={busy} onPress={()=>void load(cursor)}  mode="contained" contentStyle={{minHeight:48}}>{t('delivery_create_more')}</Button>:null}/></SafeAreaView>;
 }

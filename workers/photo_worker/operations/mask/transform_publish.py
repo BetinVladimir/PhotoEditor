@@ -35,9 +35,16 @@ def stage_transform(artifacts,files,params,target,*,check_active=lambda:None):
 
 
 def finish_transform(artifacts,staged,*,check_active=lambda:None):
-    if not isinstance(staged,PublishedTransform) or len(staged.outputs)!=2:
+    if not isinstance(staged,PublishedTransform) or not 2<=len(staged.outputs)<=126:
         raise ValueError('MASK_TRANSFORM_PUBLICATION_INVALID')
-    check_active();manifest=artifacts.stage_contract(staged.result,'mask_transform_result');check_active()
+    result=TransformedMask.model_validate_json(canonical_bytes(staged.result))
+    expected=[result.mask.artifact,result.png]
+    for region in result.regions:
+        for ref in (region.mask.artifact,region.png):
+            if ref not in expected:expected.append(ref)
+    if len(staged.outputs)!=len(expected) or set((r.artifact_id,r.sha256) for r in staged.outputs)!=set((r.artifact_id,r.sha256) for r in expected):
+        raise ValueError('MASK_TRANSFORM_OUTPUT_INVENTORY_INVALID')
+    check_active();manifest=artifacts.stage_contract(result,'mask_transform_result');check_active()
     return PublishedTransform(staged.result,(*staged.outputs,manifest),staged.bytes_written)
 
 

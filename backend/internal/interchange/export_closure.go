@@ -39,28 +39,30 @@ func discoverExportGeometryAndDefects(ctx context.Context,compiled CompiledExpor
  return parents,defects,err
 }
 func discoverExportGeometryDefectsAndLUTs(ctx context.Context,compiled CompiledExportPlan,jsonResolver ExportClosureNodeResolver)([]v2input.Entry,[]v2input.Entry,[]v2input.Entry,error){
- parents,defects,luts,_,err:=discoverExportNativeParents(ctx,compiled,jsonResolver)
+ parents,defects,luts,_,_,err:=discoverExportNativeParents(ctx,compiled,jsonResolver)
  return parents,defects,luts,err
 }
-func discoverExportNativeParents(ctx context.Context,compiled CompiledExportPlan,jsonResolver ExportClosureNodeResolver)([]v2input.Entry,[]v2input.Entry,[]v2input.Entry,[]v2input.Entry,error){
- inventory,err:=resolveExportInputInventory(ctx,compiled,jsonResolver,true);if err!=nil{return nil,nil,nil,nil,err}
+func discoverExportNativeParents(ctx context.Context,compiled CompiledExportPlan,jsonResolver ExportClosureNodeResolver)([]v2input.Entry,[]v2input.Entry,[]v2input.Entry,[]v2input.Entry,[]v2input.Entry,error){
+ inventory,err:=resolveExportInputInventory(ctx,compiled,jsonResolver,true);if err!=nil{return nil,nil,nil,nil,nil,err}
  parents,defects,resolved,inline:=[]v2input.Entry{},[]v2input.Entry{},[]v2input.Entry{},[]v2input.Entry{}
+ reports:=[]v2input.Entry{}
  hasLUT:=false
  for _,entry:=range inventory.entries{
   if entry.Contract=="WorkingImage"||entry.Contract=="MaskRef"{parents=append(parents,entry)}
+  if entry.Contract=="DefectProposeReport"{reports=append(reports,entry);inline=append(inline,entry)}
   if entry.Contract=="DefectCandidates"{defects=append(defects,entry)}
   if entry.Contract=="ResolvedStyle"{resolved=append(resolved,entry)}
   if entry.Contract=="ResolvedStyle"||entry.Contract=="Override"{inline=append(inline,entry)}
   if entry.Contract=="Params"{
-   node,readErr:=jsonResolver.ResolveExportNode(ctx,entry);if readErr!=nil{return nil,nil,nil,nil,readErr}
-   if node.Entry!=entry{return nil,nil,nil,nil,v2input.ErrInvalid}
-   masks,extractErr:=exportParamsInlineMasks(entry,node.Body);if extractErr!=nil{return nil,nil,nil,nil,extractErr}
+   node,readErr:=jsonResolver.ResolveExportNode(ctx,entry);if readErr!=nil{return nil,nil,nil,nil,nil,readErr}
+   if node.Entry!=entry{return nil,nil,nil,nil,nil,v2input.ErrInvalid}
+   masks,extractErr:=exportParamsInlineMasks(entry,node.Body);if extractErr!=nil{return nil,nil,nil,nil,nil,extractErr}
    if len(masks)>0{inline=append(inline,entry)}
   }
   if entry.Contract=="AbsoluteLUTArray"{hasLUT=true}
  }
  var luts []v2input.Entry;if hasLUT{luts=append(luts,resolved...)}
- return parents,defects,luts,inline,ctx.Err()
+ return parents,defects,luts,inline,reports,ctx.Err()
 }
 
 func resolveExportInputInventory(ctx context.Context,compiled CompiledExportPlan,resolver ExportClosureNodeResolver,discoverOnly bool)(ExportInputInventory,error){
@@ -74,7 +76,7 @@ func resolveExportInputInventory(ctx context.Context,compiled CompiledExportPlan
   if _,err:=validator.ExportDocumentChildren(ctx,document.entry,document.body);err!=nil{return zero,err}
  }
  seen:=map[uuid.UUID]v2input.Entry{};active:=map[uuid.UUID]bool{};entries:=[]v2input.Entry{};jsonBytes:=0
- binaries:=map[string]bool{"EncodedImage":true,"StyleBackgroundAsset":true,"WorkingPixels":true,"WorkingAlpha":true,"PixelArray":true,"MaskPixels":true,"MaskArray":true,"DenseWarpField":true,"DenseWarpArray":true,"DefectLabelMap":true,"AbsoluteLUTArray":true}
+ binaries:=map[string]bool{"EncodedImage":true,"StyleBackgroundAsset":true,"WorkingPixels":true,"WorkingAlpha":true,"PixelArray":true,"MaskPixels":true,"MaskArray":true,"DenseWarpField":true,"DenseWarpArray":true,"DefectLabelMap":true,"DefectLabelPNG":true,"AbsoluteLUTArray":true}
  var visit func(v2input.Entry,int)error
  visit=func(entry v2input.Entry,depth int)error{
   if err:=ctx.Err();err!=nil{return err}

@@ -336,7 +336,7 @@ def test_evaluate_rejects_insufficient_train_partition_before_render(tmp_path):
 
 def test_evaluate_rejects_zero_subject_group():
     params, manifest, baseline, candidate, calibration, cases = inputs()
-    manifest.examples[0].subject_group_id = UUID(int=0)
+    manifest.examples[0] = manifest.examples[0].model_copy(update={'subject_group_id':UUID(int=0)})
     with pytest.raises(ValueError, match='INVALID_TRAINING_MANIFEST'):
         aggregate_evaluation(params, manifest, baseline, candidate, calibration, cases)
 

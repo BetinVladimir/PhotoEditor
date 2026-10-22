@@ -1,5 +1,5 @@
 import type {DraftStorage} from './capture-draft-store';
-import {freezeDeliveryPublish,readPublishedDelivery,type DeliveryPublishIntent,type DeliveryPackage} from './delivery-package';
+import {freezeDeliveryPublish,readPublishedDelivery,deliveryPackageEnvelope,type DeliveryPublishIntent,type DeliveryPackage} from './delivery-package';
 export type DeliveryPublishAttempt={version:1;key:string;body:DeliveryPublishIntent};
 import {semanticJournalLock,type SemanticJournalLock} from './semantic-attempt-store';
 const prefix='photo.delivery-publish-attempt.v1:',epochs=new Map<string,number>();
@@ -50,8 +50,7 @@ export class DeliveryPublishAttemptStore {
     const record=this.decode(raw);
     if(record.key!==acceptedKey)throw new Error('DELIVERY_PUBLISH_JOURNAL_CONFLICT');
     try{
-     readPublishedDelivery({id:receipt.id,revision:receipt.revision,document:receipt.document,
-      data:{...receipt,resource_type:'delivery_packages'}},this.tenant,record.body);
+     readPublishedDelivery(deliveryPackageEnvelope(receipt),this.tenant,record.body);
     }catch{throw new Error('DELIVERY_PUBLISH_JOURNAL_CONFLICT');}
    }
    await this.storage.removeItem(this.key);this.current();

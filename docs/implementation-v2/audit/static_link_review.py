@@ -48,10 +48,10 @@ def main():
         "v2.delivery.assemble": "workers/photo_worker/operations/delivery/adapter.py",
     }
     platform_blockers = {
-        "semantic.transfer": "D-04: semantic installation requires CUDA; no MPS positive path",
-        "region.preview": "D-04: region renderer requires CUDA; no MPS positive path",
-        "portrait.glare": "D-04: model installation permits CPU/CUDA GPU-class backend, not MPS",
-        "image.reflection": "D-04: model installation permits CPU/CUDA GPU-class backend, not MPS",
+        "semantic.transfer": "D-04: mandatory MVP CUDA qualification on dedicated RTX",
+        "region.preview": "D-04: mandatory MVP CUDA qualification on dedicated RTX",
+        "portrait.glare": "D-04: qualify CPU/CUDA deployment; MPS is not required for MVP",
+        "image.reflection": "D-04: qualify CPU/CUDA deployment; MPS is not required for MVP",
     }
     operations = []
     for row in source["operations"]:

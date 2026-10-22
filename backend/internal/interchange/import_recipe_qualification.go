@@ -86,7 +86,7 @@ func resolvePreparedRecipeClosure(ctx context.Context, root ImportClosureNode, r
 		children := append([]v2input.Entry(nil), node.Children...)
 		if node.Body == nil {
 			switch entry.Contract {
-			case "WorkingPixels", "WorkingAlpha", "MaskPixels", "MaskArray", "DenseWarpField", "DenseWarpArray", "StyleBackgroundAsset", "AbsoluteLUTArray", "LUTArray", "DefectLabelMap":
+			case "WorkingPixels", "WorkingAlpha", "MaskPixels", "MaskArray", "DenseWarpField", "DenseWarpArray", "StyleBackgroundAsset", "AbsoluteLUTArray", "LUTArray", "DefectLabelMap", "DefectLabelPNG":
 			default:
 				return v2input.ErrInvalid
 			}

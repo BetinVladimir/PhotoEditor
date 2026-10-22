@@ -5,7 +5,7 @@ import argparse,hashlib,json,subprocess
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
-LOCKS=("requirements.lock","backend/go.mod","backend/go.sum","apps/portal/package-lock.json","apps/photographer/package-lock.json","configs/capacity-rtx3060.json")
+LOCKS=("apps/local-editor/requirements.lock","backend/go.mod","backend/go.sum","apps/portal/package-lock.json","apps/photographer/package-lock.json","configs/capacity-rtx3060.json")
 
 def digest(path:Path)->str:
  h=hashlib.sha256()
@@ -18,7 +18,7 @@ def git(*args:str)->str:
 
 def python_components()->list[dict]:
  out=[]
- for line in (ROOT/"requirements.lock").read_text().splitlines():
+ for line in (ROOT/"apps/local-editor/requirements.lock").read_text().splitlines():
   line=line.strip()
   if not line or line.startswith("#") or line.startswith("-") or "==" not in line:continue
   name,version=line.split("==",1);version=version.split()[0].rstrip("\\")

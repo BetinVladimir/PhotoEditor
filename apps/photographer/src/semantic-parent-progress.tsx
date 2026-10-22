@@ -1,5 +1,7 @@
+import {Button,Text} from 'react-native-paper';
+import {readDeadline} from './read-deadline';
 import {useEffect,useMemo,useRef,useState} from 'react';
-import {AppState,Pressable,Text,View} from 'react-native';
+import {AppState,View} from 'react-native';
 import {APIError,type ApiClient,type SemanticReviewStatus} from '@photoeditor/api-client';
 import type en from '../../../locales/en/common.json';
 import {useLocale} from './locale-context';
@@ -13,18 +15,20 @@ export function SemanticParentProgress(props:Props){
 }
 function SemanticParentProgressScope({client,tenant,intent,onReady,onAccessLost}:Props){
  const {t}=useLocale();
+ const[busy,setBusy]=useState(false),stopRead=useRef<(()=>void)|null>(null);
  const[status,setStatus]=useState<SemanticReviewStatus|null>(null),[failed,setFailed]=useState(false),[epoch,setEpoch]=useState(0);
  const callback=useRef(onReady),retained=useRef<SemanticReviewStatus|null>(null),notified=useRef(false);
  callback.current=onReady;
  const accessLost=useRef(onAccessLost);accessLost.current=onAccessLost;
  useEffect(()=>{
   let active=true,foreground=(AppState.currentState??'active')==='active',flight:AbortController|null=null,timer:ReturnType<typeof setTimeout>|undefined;
-  const stop=()=>{if(timer!==undefined){clearTimeout(timer);timer=undefined}flight?.abort();flight=null};
+  const stop=()=>{if(timer!==undefined){clearTimeout(timer);timer=undefined}flight?.abort();flight=null;setBusy(false)};
+  stopRead.current=()=>{stop();setFailed(true)};
   async function poll(){
    if(!active||!foreground||flight)return;
-   const controller=new AbortController();flight=controller;
+   const controller=new AbortController();flight=controller;setBusy(true);
    try{
-    const value=await client.semanticReviewStatus(tenant,intent,controller.signal);
+    const value=await readDeadline(controller.signal,signal=>client.semanticReviewStatus(tenant,intent,signal));
     if(!active||controller.signal.aborted)return;
     const old=retained.current;
     // The route ID is semantic_intents.id, independently generated from the
@@ -34,8 +38,8 @@ function SemanticParentProgressScope({client,tenant,intent,onReady,onAccessLost}
     retained.current=structuredClone(value);setStatus(value);setFailed(false);
     if(value.state==='waiting_review'&&!notified.current){notified.current=true;callback.current()}
     if(processing(value.state))timer=setTimeout(()=>void poll(),3000);
-   }catch(cause){if(active&&!controller.signal.aborted){setFailed(true);if(cause instanceof APIError&&[401,403,404].includes(cause.status)){setStatus(null);notified.current=false;accessLost.current?.()}}}
-   finally{if(flight===controller)flight=null}
+   }catch(cause){if(active&&!controller.signal.aborted){setFailed(true);if(cause instanceof APIError&&[401,403,404,410].includes(cause.status)){setStatus(null);notified.current=false;accessLost.current?.()}}}
+   finally{if(flight===controller){flight=null;setBusy(false)}}
   }
   const listener=AppState.addEventListener('change',state=>{
    foreground=state==='active';
@@ -43,7 +47,7 @@ function SemanticParentProgressScope({client,tenant,intent,onReady,onAccessLost}
    else void poll();
   });
   void poll();
-  return()=>{active=false;stop();listener.remove()};
+  return()=>{active=false;stopRead.current=null;stop();listener.remove()};
  },[client,tenant,intent,epoch]);
- return <View>{status?<Text accessibilityLiveRegion="polite">{t('semantic_parent_status').replace('{state}',t(labels[status.state]))}</Text>:null}{failed?<><Text accessibilityRole="alert" style={s.error}>{t('semantic_progress_failed')}</Text><Pressable accessibilityRole="button" onPress={()=>{setFailed(false);setEpoch(value=>value+1)}} style={s.button}><Text style={s.buttonText}>{t('semantic_results_refresh')}</Text></Pressable></>:null}</View>;
+ return <View>{busy?<Button accessibilityRole="button" onPress={()=>stopRead.current?.()} mode="outlined">{t('read_cancel')}</Button>:null}{status?<Text accessibilityLiveRegion="polite">{t('semantic_parent_status').replace('{state}',t(labels[status.state]))}</Text>:null}{failed?<><Text accessibilityRole="alert" style={s.error}>{t('semantic_progress_failed')}</Text><Button accessibilityRole="button" onPress={()=>{setFailed(false);setEpoch(value=>value+1)}}    mode="contained" contentStyle={{minHeight:48}}>{t('semantic_results_refresh')}</Button></>:null}</View>;
 }

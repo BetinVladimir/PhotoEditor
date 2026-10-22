@@ -38,6 +38,30 @@ def test_holdout_color_uses_v2_global_and_single_strength_blend(tmp_path, adapti
     np.testing.assert_array_equal(target, expected)
 
 
+@pytest.mark.parametrize('adaptive',[False,True])
+def test_split_global_local_is_bit_exact_and_strength_is_applied_once(tmp_path,adaptive):
+    fixture=Artifacts(tmp_path,adaptive)
+    resolved=_resolved(fixture.resolved,strength=.4)
+    complete=np.empty_like(fixture.rgb);global_pixels=np.empty_like(fixture.rgb);phased=np.empty_like(fixture.rgb)
+    arguments=dict(absolute_lut=fixture.grid,tile=256)
+    render_resolved_color(fixture.rgb,complete,resolved,**arguments)
+    render_resolved_color(fixture.rgb,global_pixels,resolved,phase='global',**arguments)
+    render_resolved_color(fixture.rgb,phased,resolved,phase='local',global_output=global_pixels,**arguments)
+    np.testing.assert_array_equal(phased.view(np.uint32),complete.view(np.uint32))
+    changed=global_pixels.copy();changed[:3]=.25
+    render_resolved_color(fixture.rgb,phased,resolved,phase='local',global_output=changed,**arguments)
+    expected=apply_strength(fixture.rgb,changed,.4)
+    np.testing.assert_array_equal(phased.view(np.uint32),expected.view(np.uint32))
+
+
+def test_local_phase_rejects_missing_or_aliasing_intermediate(tmp_path):
+    fixture=Artifacts(tmp_path,False);output=np.empty_like(fixture.rgb)
+    with pytest.raises(ValueError,match='INVALID_HOLDOUT_COLOR_INPUT'):
+        render_resolved_color(fixture.rgb,output,fixture.resolved,phase='local')
+    with pytest.raises(ValueError,match='INVALID_HOLDOUT_COLOR_INPUT'):
+        render_resolved_color(fixture.rgb,output,fixture.resolved,phase='local',global_output=output)
+
+
 def test_holdout_color_uses_v2_local_and_region_order(tmp_path):
     fixture = Artifacts(tmp_path, False)
     local = LocalColor(enabled=True, mask_policy_id='person_guided_v1',
@@ -60,6 +84,11 @@ def test_holdout_color_uses_v2_local_and_region_order(tmp_path):
     expected = apply_strength(fixture.rgb, apply_regions(
         apply_local(colored, person, local), [(rule, region)]).rgb, .5)
     np.testing.assert_array_equal(target, expected)
+    global_pixels=np.empty_like(fixture.rgb);phased=np.empty_like(fixture.rgb)
+    arguments=dict(person_mask=person,region_masks={'sky':region},tile=256)
+    render_resolved_color(fixture.rgb,global_pixels,resolved,phase='global',**arguments)
+    render_resolved_color(fixture.rgb,phased,resolved,phase='local',global_output=global_pixels,**arguments)
+    np.testing.assert_array_equal(phased.view(np.uint32),target.view(np.uint32))
 
 
 def test_holdout_color_refuses_missing_masks_and_unsupported_effects(tmp_path):

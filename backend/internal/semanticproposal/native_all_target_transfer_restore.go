@@ -45,6 +45,7 @@ func (p TransferDraftPreparer) restoreNativeAllTargetTransferPlan(ctx context.Co
 		return zero, empty, err
 	}
 	p.Configuration = ownTransferPreparation(c)
+	if err:=p.verifyFrozenNativeSceneEvidence(ctx,who,original,c,catalogs);err!=nil{return zero,empty,err}
 	targets, err := p.restoreNativeTransferTargets(ctx, who, original, manifest, reference, catalogs)
 	if err != nil {
 		return zero, empty, err

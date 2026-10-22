@@ -89,3 +89,19 @@ func TestExportBodyParamsAreNotSelectedAsStatsInlineMasks(t *testing.T){
   masks,err:=exportParamsInlineMasks(entry,raw);if err==nil||len(masks)!=0{t.Fatal("malformed body mask accepted",err)}
  }
 }
+
+func TestExportAutomaticDustProtectedMasksUseClosedList(t *testing.T){
+ _,source,imageRaw:=importWorkingValidatorFixture(t)
+ image,err:=review.ParseWorkingImage(imageRaw);if err!=nil{t.Fatal(err)}
+ mask:=review.MaskRef{Artifact:image.Pixels,Canvas:image.Canvas,TransformChain:image.TransformChain,Selector:"person",Confidence:1,Protected:true}
+ for _,mode:=range []string{"valid","unknown_policy","mixed_review","empty"}{t.Run(mode,func(t *testing.T){
+  params:=map[string]any{"policy":"conservative_auto_v1","image":source.Ref,"proposal":nil,"resolved":v2input.Ref{ArtifactID:uuid.New(),SHA256:rawSHA([]byte("resolved"))},"protected":[]any{mask}}
+  if mode=="unknown_policy"{params["policy"]="future"};if mode=="mixed_review"{params["review"]=source.Ref};if mode=="empty"{params["protected"]=[]any{}}
+  raw,err:=canonical.Marshal(params);if err!=nil{t.Fatal(err)}
+  entry:=v2input.Entry{Ref:v2input.Ref{ArtifactID:uuid.New(),SHA256:rawSHA(raw)},Contract:"Params"}
+  masks,err:=exportParamsInlineMasks(entry,raw)
+  if mode!="valid"{if err==nil{t.Fatal("malformed automatic Params accepted")};return}
+  if err!=nil||len(masks)!=1{t.Fatal("protected list missing",err)}
+  before:=rawSHA(raw);masks[0][0]='!';if rawSHA(raw)!=before{t.Fatal("mask aliases source document")}
+ })}
+}

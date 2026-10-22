@@ -34,7 +34,7 @@ func CompileRenderResultSelection(snapshot CandidateSnapshot, actor uuid.UUID, d
 }
 
 func CompileRestorationResultSelection(snapshot CandidateSnapshot, actor uuid.UUID, decision Decision, persisted CandidatePlan) (RestorationResultSelection, error) {
-	if snapshot.Kind != "portrait.glare" && snapshot.Kind != "portrait.open_eyes" && snapshot.Kind != "image.reflection" {
+	if !localPortraitKind(snapshot.Kind) && snapshot.Kind != "portrait.glare" && snapshot.Kind != "portrait.open_eyes" && snapshot.Kind != "image.reflection" && snapshot.Kind != "image.relight" {
 		return RestorationResultSelection{}, domain.NewError("INPUT_INVALID", 422)
 	}
 	return compileCandidateResultSelection(snapshot, snapshot.Kind, actor, decision, persisted)

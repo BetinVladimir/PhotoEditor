@@ -55,12 +55,7 @@ func FreezeDeliveryInitialTask(plan delivery.PreparePlan, parent uuid.UUID, chil
 	if err != nil {
 		return zero, err
 	}
-	var profile json.RawMessage
-	if node.Operation == "export.encode" {
-		profile, err = CompileDeliveryEncodeProfile(node, imageRaw, limits)
-	} else {
-		profile, err = CompileDeliveryDerivativeProfile(node, imageRaw, limits)
-	}
+	profile, err := compileDeliveryInitialProfile(node, imageRaw, limits)
 	if err != nil {
 		return zero, err
 	}
@@ -113,4 +108,14 @@ func (f FrozenDeliveryInitialTask) PublishInputs(ctx context.Context, publisher 
 		return v2input.GraphTask{}, err
 	}
 	return v2input.GraphTask{ID: draft.ID, Built: built, Open: f.closure.Open, Direct: append([]v2input.Ref(nil), f.closure.Direct...)}, nil
+}
+
+
+// Shared pure admission budget check. Use before durable Params publication and
+// again while freezing the exact registered input closure.
+func compileDeliveryInitialProfile(node CompiledDownloadNode, imageRaw []byte, limits DeliveryDerivativeLimits) (json.RawMessage, error) {
+ if node.Operation == "export.encode" {
+  return CompileDeliveryEncodeProfile(node, imageRaw, limits)
+ }
+ return CompileDeliveryDerivativeProfile(node, imageRaw, limits)
 }

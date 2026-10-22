@@ -42,7 +42,8 @@ func validateInterchangeExportRuntimeSQL(ctx context.Context, db *pgxpool.Pool) 
 		return errors.New("interchange export runtime SQL unavailable")
 	}
 	err = db.QueryRow(ctx, `SELECT c.relkind='r' AND c.relrowsecurity AND c.relforcerowsecurity
- AND owner.rolname='photo_fn_owner'
+ AND owner.rolname='photo_runtime_owner'
+ AND NOT owner.rolcanlogin AND NOT owner.rolsuper AND NOT owner.rolbypassrls AND NOT owner.rolinherit
  AND has_table_privilege('photo_fn_owner',c.oid,'SELECT')
  AND has_table_privilege('photo_fn_owner',c.oid,'INSERT')
  AND has_table_privilege('photo_fn_owner',c.oid,'UPDATE')

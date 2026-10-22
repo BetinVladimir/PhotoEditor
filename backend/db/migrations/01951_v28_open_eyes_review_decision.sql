@@ -71,7 +71,7 @@ BEGIN
  OR encode(sha256(convert_to(proof,'UTF8')),'hex') IS DISTINCT FROM body->'confirmation'->>'sha256'
  OR context_value->>'project_id' IS DISTINCT FROM w.project_id::text
  OR context_value->>'tenant_id' IS DISTINCT FROM p_tenant::text
- OR (context_value->'params'-'confirmation') IS DISTINCT FROM (body-'confirmation')
+ OR ((context_value->'params')-'confirmation') IS DISTINCT FROM (body-'confirmation')
  OR photo.lock_v28_donor_session(p_tenant,w.project_id,
   (context_value->>'shoot_session_id')::uuid,p_actor,p_session,proof::jsonb,
   body->'source_faces',body->'donor_faces') IS DISTINCT FROM true
@@ -103,8 +103,8 @@ BEGIN
    OR OLD.state<>'pending' OR NEW.state<>'decided'
    OR NEW.revision<>OLD.revision+1 OR NEW.decided_by IS NULL
    OR NEW.decided_at IS NULL OR NEW.decision NOT IN('accept','reject','skip')
-   OR NEW.decision_route IS DISTINCT FROM CASE NEW.decision
-    WHEN 'accept' THEN 'candidate' WHEN 'reject' THEN 'base' ELSE 'skip' END
+   OR NEW.decision_route IS DISTINCT FROM (CASE NEW.decision
+    WHEN 'accept' THEN 'candidate' WHEN 'reject' THEN 'base' ELSE 'skip' END)
    OR NEW.decision_hash !~ '^[0-9a-f]{64}$' OR NEW.selection IS NULL
   THEN RAISE EXCEPTION 'V28 donor review decision requires dedicated authority'
    USING ERRCODE='42501';END IF;
@@ -128,8 +128,8 @@ BEGIN
  OR p_review IS NULL OR p_actor IS NULL OR p_session IS NULL
  OR p_expected_revision IS NULL OR p_expected_revision NOT BETWEEN 1 AND 9007199254740990
  OR p_decision NOT IN('accept','reject','skip')
- OR p_route IS DISTINCT FROM CASE p_decision WHEN 'accept' THEN 'candidate'
-  WHEN 'reject' THEN 'base' ELSE 'skip' END
+ OR p_route IS DISTINCT FROM (CASE p_decision WHEN 'accept' THEN 'candidate'
+  WHEN 'reject' THEN 'base' ELSE 'skip' END)
  OR coalesce(p_hash,'') !~ '^[0-9a-f]{64}$' OR p_selection IS NULL
  THEN RETURN false;END IF;
  SELECT * INTO v FROM photo.reviews WHERE tenant_id=p_tenant AND id=p_review FOR UPDATE;

@@ -6,6 +6,249 @@ import typer
 from photo_worker.contracts.style import StyleV2
 app=typer.Typer(no_args_is_help=True)
 
+@app.command('backup-create')
+def backup_create(config:Path):
+    """Pause installed services and publish an exact-version encrypted checkpoint.
+
+    Host operator only. Failure intentionally leaves maintenance in place.
+    Credentials are read from dedicated environment variables, never arguments.
+    """
+    import os, signal, threading
+    import psycopg
+    from photo_worker.runtime.backup_operator import load_operator_config, minio_client, create_checkpoint
+    cancelled=threading.Event()
+    previous={}
+    def stop(signum,frame):cancelled.set()
+    def active():return not cancelled.is_set()
+    for name in (signal.SIGINT,signal.SIGTERM):
+        previous[name]=signal.signal(name,stop)
+    try:
+        settings=load_operator_config(config)
+        source=minio_client(settings['source_endpoint'],os.environ.get('PHOTO_BACKUP_SOURCE_ACCESS_KEY'),os.environ.get('PHOTO_BACKUP_SOURCE_SECRET_KEY'))
+        offhost=minio_client(settings['offhost_endpoint'],os.environ.get('PHOTO_BACKUP_OFFHOST_ACCESS_KEY'),os.environ.get('PHOTO_BACKUP_OFFHOST_SECRET_KEY'))
+        dsn=os.environ.get('PHOTO_BACKUP_DATABASE_URL')
+        if not dsn:raise ValueError('BACKUP_DATABASE_INSTALLATION')
+        with psycopg.connect(dsn,connect_timeout=5,autocommit=True) as connection:
+            result=create_checkpoint(settings,connection,source,offhost,check_active=active)
+        typer.echo(json.dumps(result))
+    except Exception:
+        typer.echo('Backup failed. Writers may remain paused; inspect operator state before resuming.',err=True)
+        raise typer.Exit(1)
+    finally:
+        for name,handler in previous.items():signal.signal(name,handler)
+
+@app.command('backup-restore')
+def backup_restore(config:Path,backup_id:str,publication_version:str):
+    """Materialize an authenticated checkpoint into isolated empty storage.
+
+    Completes reconciliation without opening writers. Final probe/cutover is a
+    separately authorized operator phase; a restored backup never grants it.
+    """
+    import os, signal, threading
+    import psycopg
+    from photo_worker.runtime.backup_operator import minio_client
+    from photo_worker.runtime.backup_restore_operator import (
+        load_restore_operator_config,read_checkpoint,restore_physical_checkpoint,reconcile_checkpoint,bind_operator_postgres,connect_restored_postgres)
+    from photo_worker.runtime.backup_operator_lock import restore_operator_lease
+    cancelled=threading.Event();previous={}
+    def stop(signum,frame):cancelled.set()
+    def active():
+        if cancelled.is_set():raise RuntimeError('RESTORE_OPERATOR_INACTIVE')
+        return True
+    try:
+        for name in (signal.SIGINT,signal.SIGTERM):previous[name]=signal.signal(name,stop)
+        settings=load_restore_operator_config(config)
+        with restore_operator_lease(settings,check_active=active):
+            remote=minio_client(settings['offhost_endpoint'],os.environ.get('PHOTO_BACKUP_OFFHOST_ACCESS_KEY'),os.environ.get('PHOTO_BACKUP_OFFHOST_SECRET_KEY'))
+            manifest=read_checkpoint(remote,settings['offhost_bucket'],backup_id,publication_version,
+                settings['public_key_file'],settings['public_key_sha256'],active)
+            target=restore_physical_checkpoint(settings,manifest,remote,check_active=active)
+            source=minio_client(settings['source_endpoint'],os.environ.get('PHOTO_RESTORE_SOURCE_ACCESS_KEY'),os.environ.get('PHOTO_RESTORE_SOURCE_SECRET_KEY'))
+            restored_dsn=os.environ.get('PHOTO_RESTORE_DATABASE_URL')
+            consent_dsn=os.environ.get('PHOTO_RESTORE_CONSENT_DATABASE_URL')
+            if not restored_dsn or not consent_dsn or restored_dsn==consent_dsn:
+                raise ValueError('RESTORE_DATABASE_INSTALLATION')
+            restored_options=bind_operator_postgres(settings,target,restored_dsn)
+            restored_options.pop('connect_timeout',None)
+            restored_options['options']='-c statement_timeout=5000 -c lock_timeout=1000'
+            restored_options.update(connect_timeout=5,autocommit=True)
+            with connect_restored_postgres(restored_options,check_active=active) as connection:
+                with psycopg.connect(consent_dsn,connect_timeout=5,autocommit=True,
+                        options="-c statement_timeout=5000 -c lock_timeout=1000") as consents:
+                    evidence,receipt=reconcile_checkpoint(settings,manifest,target,connection,consents,source,check_active=active)
+            typer.echo(json.dumps({'state':'reconciled_writers_paused','writers_authorized':False,
+                'run_id':str(evidence.preflight.run_id),'report':str(receipt.path),'sha256':receipt.sha256}))
+    except Exception:
+        typer.echo('Restore failed; isolated writers remain disabled. Preserve evidence and inspect operator state.',err=True)
+        raise typer.Exit(1)
+    finally:
+        for name,handler in previous.items():signal.signal(name,handler)
+
+@app.command('backup-prune')
+def backup_prune(config:Path):
+    """Withdraw expired checkpoints, then delete their exact encrypted versions."""
+    import os
+    from photo_worker.runtime.backup_operator import load_operator_config,minio_client,prune_operator_checkpoints
+    try:
+        settings=load_operator_config(config)
+        client=minio_client(settings['offhost_endpoint'],os.environ.get('PHOTO_BACKUP_OFFHOST_ACCESS_KEY'),os.environ.get('PHOTO_BACKUP_OFFHOST_SECRET_KEY'))
+        result=prune_operator_checkpoints(settings,client,check_active=lambda:True)
+        typer.echo(json.dumps(result))
+    except Exception:
+        typer.echo('Retention failed; withdrawn checkpoints remain unavailable and cleanup can be retried.',err=True)
+        raise typer.Exit(1)
+
+@app.command('backup-accept')
+def backup_accept(config:Path,accept_config:Path,accept_config_sha256:str):
+    """Execute isolated acceptance using independently reviewed report/probe pins."""
+    import os,signal,threading
+    import psycopg
+    from psycopg import sql
+    from photo_worker.runtime.backup_restore_operator import load_restore_operator_config,bind_operator_postgres
+    from photo_worker.runtime.backup_host import HostCommands,PinnedTool,ComposeMaintenance
+    from photo_worker.runtime.backup_accept_operator import run_operator_restore_acceptance
+    from photo_worker.runtime.backup_operator_lock import restore_operator_lease
+    from contextlib import ExitStack
+    lease=ExitStack()
+    cancelled=threading.Event();previous={}
+    def stop(signum,frame):cancelled.set()
+    def active():
+        if cancelled.is_set():raise RuntimeError('RESTORE_OPERATOR_INACTIVE')
+        return True
+    try:
+        for name in (signal.SIGINT,signal.SIGTERM):previous[name]=signal.signal(name,stop)
+        settings=load_restore_operator_config(config)
+        lease.enter_context(restore_operator_lease(settings,check_active=active))
+        commands=HostCommands({k:PinnedTool(**v) for k,v in settings['tools'].items()},check_active=active)
+        target=ComposeMaintenance(commands,settings['compose_file'],settings['compose_sha256'],settings['project'],settings['compose_rendered_sha256'])
+        dsn=os.environ.get('PHOTO_RESTORE_DATABASE_URL');control_dsn=os.environ.get('PHOTO_RESTORE_CONTROL_DATABASE_URL')
+        if not dsn or not control_dsn:raise ValueError('RESTORE_ACCEPT_DATABASE_INSTALLATION')
+        restored=bind_operator_postgres(settings,target,dsn)
+        control=bind_operator_postgres(settings,target,control_dsn,control=True)
+        restored.pop('connect_timeout',None);control.pop('connect_timeout',None)
+        for options in (restored, control):
+            options['options']='-c statement_timeout=5000 -c lock_timeout=1000'
+        with psycopg.connect(**control,connect_timeout=5,autocommit=True) as administrator:
+            row=administrator.execute("SELECT system_identifier::text,(SELECT rolsuper FROM pg_roles WHERE rolname=current_user) FROM pg_control_system()").fetchone()
+            if row!=(settings['system_identifier'],True):raise ValueError('RESTORE_ACCEPT_CONTROL_AUTHORITY')
+            try:
+                administrator.execute(sql.SQL('ALTER DATABASE {} ALLOW_CONNECTIONS true').format(sql.Identifier(settings['database'])))
+                with psycopg.connect(**restored,connect_timeout=5,autocommit=True) as connection:
+                    administrator.execute(sql.SQL('ALTER DATABASE {} ALLOW_CONNECTIONS false').format(sql.Identifier(settings['database'])))
+                    result=run_operator_restore_acceptance(accept_config,accept_config_sha256,
+                        settings=settings,connection=connection,client=None,target=target,check_active=active,
+                        cleanup_connection=administrator)
+                active()
+            finally:
+                administrator.execute(sql.SQL('ALTER DATABASE {} ALLOW_CONNECTIONS false').format(sql.Identifier(settings['database'])))
+        acceptance,receipt=result
+        typer.echo(json.dumps({'state':'accepted_isolated_writers_paused','writers_authorized':False,
+            'run_id':str(acceptance.replay.run_id),'report':str(receipt.path),'sha256':receipt.sha256}))
+    except Exception:
+        typer.echo('Acceptance failed; production cutover is not authorized.',err=True);raise typer.Exit(1)
+    finally:
+        try:
+            lease.close()
+        finally:
+            for name,handler in previous.items():signal.signal(name,handler)
+
+@app.command('backup-cutover')
+def backup_cutover(config:Path,approval_config:Path,approval_config_sha256:str,confirm_run_id:str):
+    """Activate a reviewed restoration only after explicit run-ID approval."""
+    import os,signal,threading
+    from contextlib import ExitStack
+    import psycopg
+    from psycopg import sql
+    from photo_worker.runtime.backup_restore_operator import load_restore_operator_config,bind_operator_postgres
+    from photo_worker.runtime.backup_host import HostCommands,PinnedTool,ComposeMaintenance
+    from photo_worker.runtime.backup_operator import minio_client
+    from photo_worker.runtime.backup_operator_lock import restore_operator_lease
+    from photo_worker.runtime.backup_cutover_operator import run_operator_restore_cutover
+    cancelled=threading.Event();previous={};lease=ExitStack();activated=False
+    def stop(signum,frame):cancelled.set()
+    def active():
+        if cancelled.is_set():raise RuntimeError('RESTORE_OPERATOR_INACTIVE')
+        return True
+    try:
+        for name in (signal.SIGINT,signal.SIGTERM):previous[name]=signal.signal(name,stop)
+        settings=load_restore_operator_config(config)
+        lease.enter_context(restore_operator_lease(settings,check_active=active))
+        commands=HostCommands({k:PinnedTool(**v) for k,v in settings['tools'].items()},check_active=active)
+        target=ComposeMaintenance(commands,settings['compose_file'],settings['compose_sha256'],settings['project'],settings['compose_rendered_sha256'])
+        dsn=os.environ.get('PHOTO_RESTORE_DATABASE_URL');control_dsn=os.environ.get('PHOTO_RESTORE_CONTROL_DATABASE_URL')
+        if not dsn or not control_dsn:raise ValueError('RESTORE_CUTOVER_DATABASE_INSTALLATION')
+        restored=bind_operator_postgres(settings,target,dsn)
+        control=bind_operator_postgres(settings,target,control_dsn,control=True)
+        restored.pop('connect_timeout',None);control.pop('connect_timeout',None)
+        for options in (restored,control):
+            options['options']='-c statement_timeout=5000 -c lock_timeout=1000'
+        remote=minio_client(settings['offhost_endpoint'],os.environ.get('PHOTO_BACKUP_OFFHOST_ACCESS_KEY'),os.environ.get('PHOTO_BACKUP_OFFHOST_SECRET_KEY'))
+        with psycopg.connect(**control,connect_timeout=5,autocommit=True) as administrator:
+            row=administrator.execute("SELECT system_identifier::text,(SELECT rolsuper FROM pg_roles WHERE rolname=current_user) FROM pg_control_system()").fetchone()
+            if row!=(settings['system_identifier'],True):raise ValueError('RESTORE_CUTOVER_CONTROL_AUTHORITY')
+            try:
+                administrator.execute(sql.SQL('ALTER DATABASE {} ALLOW_CONNECTIONS true').format(sql.Identifier(settings['database'])))
+                with psycopg.connect(**restored,connect_timeout=5,autocommit=True) as connection:
+                    administrator.execute(sql.SQL('ALTER DATABASE {} ALLOW_CONNECTIONS false').format(sql.Identifier(settings['database'])))
+                    result=run_operator_restore_cutover(approval_config,approval_config_sha256,
+                        settings=settings,connection=connection,target=target,offhost=remote,
+                        confirmation=confirm_run_id,check_active=active)
+                    activated=True
+            finally:
+                if not activated:
+                    administrator.execute(sql.SQL('ALTER DATABASE {} ALLOW_CONNECTIONS false').format(sql.Identifier(settings['database'])))
+        typer.echo(json.dumps(result))
+    except Exception:
+        typer.echo('Cutover did not complete; preserve approval and restoration evidence.',err=True);raise typer.Exit(1)
+    finally:
+        try:
+            lease.close()
+        finally:
+            for name,handler in previous.items():signal.signal(name,handler)
+
+@app.command('backup-replay')
+def backup_replay(config:Path,replay_config:Path,replay_config_sha256:str):
+    """Run the pinned Go outbox replay in a broker-only isolated phase."""
+    import os,signal,threading
+    import psycopg
+    from photo_worker.runtime.backup_restore_operator import load_restore_operator_config,bind_operator_postgres
+    from photo_worker.runtime.backup_host import HostCommands,PinnedTool,ComposeMaintenance
+    from photo_worker.runtime.backup_replay_operator import run_operator_restore_replay
+    cancelled=threading.Event();previous={}
+    def stop(signum,frame):cancelled.set()
+    def active():
+        if cancelled.is_set():raise RuntimeError('RESTORE_OPERATOR_INACTIVE')
+        return True
+    try:
+        for name in (signal.SIGINT,signal.SIGTERM):previous[name]=signal.signal(name,stop)
+        settings=load_restore_operator_config(config)
+        commands=HostCommands({k:PinnedTool(**v) for k,v in settings['tools'].items()},check_active=active)
+        target=ComposeMaintenance(commands,settings['compose_file'],settings['compose_sha256'],settings['project'],settings['compose_rendered_sha256'])
+        dsn=os.environ.get('PHOTO_RESTORE_CONTROL_DATABASE_URL')
+        if not dsn:raise ValueError('RESTORE_REPLAY_CONTROL_INSTALLATION')
+        control=bind_operator_postgres(settings,target,dsn,control=True);control.pop('connect_timeout',None)
+        control['options']='-c statement_timeout=5000 -c lock_timeout=1000'
+        with psycopg.connect(**control,connect_timeout=5,autocommit=True) as connection:
+            row=connection.execute("SELECT system_identifier::text,(SELECT rolsuper FROM pg_roles WHERE rolname=current_user) FROM pg_control_system()").fetchone()
+            if row!=(settings['system_identifier'],True):raise ValueError('RESTORE_REPLAY_CONTROL_AUTHORITY')
+            result=run_operator_restore_replay(replay_config,replay_config_sha256,
+                settings=settings,connection=connection,target=target,check_active=active)
+        active();typer.echo(json.dumps(result))
+    except Exception:
+        typer.echo('Replay failed; isolated writers remain disabled.',err=True);raise typer.Exit(1)
+    finally:
+        for name,handler in previous.items():signal.signal(name,handler)
+
+@app.command('backup-status')
+def backup_status(config:Path):
+    """Report signed checkpoint freshness; this is not an RPO drill result."""
+    from photo_worker.runtime.backup_operator import load_operator_config,checkpoint_freshness
+    try:result=checkpoint_freshness(load_operator_config(config),check_active=lambda:True)
+    except Exception:
+        typer.echo('Backup freshness unavailable',err=True);raise typer.Exit(1)
+    typer.echo(json.dumps(result))
+    if not result['fresh']:raise typer.Exit(1)
+
 @app.command('validate-config')
 def validate_config(path:Path,allow_example:bool=False):
     """Validate a portable style without touching source images."""
@@ -88,6 +331,22 @@ def run():
         assembly=semantic_assembly_from_environment(config)
         from photo_worker.runtime.exposure_config import local_exposure_from_environment
         exposure=local_exposure_from_environment(config)
+        from photo_worker.runtime.preview_config import exposure_preview_from_environment
+        exposure_preview=exposure_preview_from_environment(config)
+        from photo_worker.runtime.shown_exposure_config import shown_exposure_from_environment
+        shown_exposure=shown_exposure_from_environment(config)
+        from photo_worker.runtime.removal_preview_config import removal_preview_from_environment
+        removal_preview=removal_preview_from_environment(config)
+        from photo_worker.runtime.background_cleanup_preview_config import background_cleanup_preview_from_environment
+        background_cleanup_preview=background_cleanup_preview_from_environment(config)
+        from photo_worker.runtime.retouch_preview_config import retouch_preview_from_environment
+        retouch_preview=retouch_preview_from_environment(config)
+        from photo_worker.runtime.shown_removal_config import shown_removal_from_environment
+        shown_removal=shown_removal_from_environment(config)
+        from photo_worker.runtime.shown_background_cleanup_config import shown_background_cleanup_from_environment
+        shown_background_cleanup=shown_background_cleanup_from_environment(config)
+        from photo_worker.runtime.shown_retouch_config import shown_retouch_from_environment
+        shown_retouch=shown_retouch_from_environment(config)
         from photo_worker.runtime.donor_config import donor_installation_from_environment
         donor=donor_installation_from_environment(config)
         from photo_worker.runtime.negative_config import negative_installation_from_environment
@@ -109,7 +368,13 @@ def run():
             if (item:=multi_installation_from_environment(config,operation)) is not None)
         from photo_worker.runtime.learning_config import learning_evaluation_from_environment
         learning_evaluation=learning_evaluation_from_environment(config)
+        from photo_worker.runtime.native_render_config import native_render_from_environment
+        native_render=native_render_from_environment(config)
+        from photo_worker.runtime.semantic_scene_config import semantic_scene_from_environment
+        semantic_scene=semantic_scene_from_environment(config)
         installations={}
+        if semantic_scene is not None:installations['semantic_artifact_installation_factory']=semantic_scene
+        if native_render is not None:installations['render_renderer']=native_render
         if learning_evaluation is not None:
             installations['learning_evaluation_installation']=learning_evaluation
         if multi:installations['multi_installations']=multi
@@ -122,6 +387,14 @@ def run():
         if negative is not None:installations['negative_installation']=negative
         if donor is not None:installations['donor_installation']=donor
         if assembly is not None:installations['semantic_assembly_installation_factory']=assembly
+        if shown_exposure is not None:installations['shown_exposure_installation_factory']=shown_exposure
+        if exposure_preview is not None:installations['exposure_preview_installation_factory']=exposure_preview
+        if removal_preview is not None:installations['removal_preview_installation_factory']=removal_preview
+        if background_cleanup_preview is not None:installations['background_cleanup_preview_installation_factory']=background_cleanup_preview
+        if retouch_preview is not None:installations['retouch_preview_startup']=retouch_preview
+        if shown_removal is not None:installations['shown_removal_installation_factory']=shown_removal
+        if shown_background_cleanup is not None:installations['shown_background_cleanup_installation_factory']=shown_background_cleanup
+        if shown_retouch is not None:installations['shown_retouch_installation_factory']=shown_retouch
         if exposure is not None:installations['local_exposure_installation_factory']=exposure
         run_worker(config,**installations)
     except WorkerConfigurationError as exc:
@@ -206,7 +479,17 @@ def v2_adopter():
         import_operator=import_adopter_operator_from_environment()
         if import_operator is not None:
             options['interchange_recipe_operator_factory']=import_operator
-        run_adopter(AdopterConfig.from_env(),stop,**options)
+        adopter_config=AdopterConfig.from_env()
+        from photo_worker.v2.semantic_scene_config import semantic_scene_adopter_from_environment
+        semantic_scene=semantic_scene_adopter_from_environment(adopter_config)
+        if semantic_scene is not None:
+            options['semantic_scene_verifier'],options['semantic_ram_bytes']=semantic_scene
+        from photo_worker.runtime.native_render_config import native_render_from_environment
+        native_render=native_render_from_environment(adopter_config,role='photo_scheduler')
+        if native_render is not None:
+            options['render_replay']=native_render
+            options['render_max_tile_bytes']=native_render.tile_bytes
+        run_adopter(adopter_config,stop,**options)
     except ValueError:
         typer.echo('V2 adopter configuration invalid',err=True);raise typer.Exit(2)
     except Exception:

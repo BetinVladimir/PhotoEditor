@@ -11,7 +11,7 @@ func TestBatchPreservesOmittedTargetsAndParentUntilExplicitClose(t *testing.T) {
 	sha := strings.Repeat("a", 64)
 	child := uuid.New()
 	batch := uuid.New()
-	decision := ApplyDecision{sha, []TargetDecision{{approve, "approve"}, {reject, "reject"}}, "4"}
+	decision := ApplyDecision{sha, []TargetDecision{{TargetID: approve, Decision: "approve"}, {TargetID: reject, Decision: "reject"}}, "4"}
 	states := map[uuid.UUID]string{approve: "proposed", reject: "proposed", omitted: "proposed", done: "applied"}
 	result, err := PlanBatch(decision, sha, "4", "waiting_review", states, batch, &child)
 	if err != nil || result.Remaining != 1 || result.NextRevision != "5" || result.ParentState != "waiting_review" || len(result.Targets) != 2 {
@@ -29,7 +29,7 @@ func TestBatchPreservesOmittedTargetsAndParentUntilExplicitClose(t *testing.T) {
 	if states[approve] != "proposed" || states[omitted] != "proposed" {
 		t.Fatal("input mutation")
 	}
-	decision.TargetDecisions = []TargetDecision{{omitted, "reject"}}
+	decision.TargetDecisions = []TargetDecision{{TargetID: omitted, Decision: "reject"}}
 	result, err = PlanBatch(decision, sha, "4", "waiting_review", states, batch, nil)
 	if err != nil || result.Targets[0].ChildRunID != nil {
 		t.Fatal(result, err)
@@ -47,7 +47,7 @@ func TestBatchRequiresChildExactlyForApprovals(t *testing.T) {
 	states := map[uuid.UUID]string{id: "proposed"}
 	batch := uuid.New()
 	child := uuid.New()
-	decision := ApplyDecision{sha, []TargetDecision{{id, "approve"}}, "1"}
+	decision := ApplyDecision{sha, []TargetDecision{{TargetID: id, Decision: "approve"}}, "1"}
 	if _, err := PlanBatch(decision, sha, "1", "waiting_review", states, batch, nil); err == nil {
 		t.Fatal("missing child")
 	}

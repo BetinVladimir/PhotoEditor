@@ -27,7 +27,7 @@ def test_invalid_policy_sha_refuses_before_sql(monkeypatch,pin):
         database.heartbeat_policy_worker(uuid4(),'gpu','mps',frozenset({'a'}),1,1,1,pin)
 
 
-@pytest.mark.parametrize('resource,backend',[('gpu','mps'),('cpu','cpu'),('media','cpu'),('archive','cpu')])
+@pytest.mark.parametrize('resource,backend',[('gpu','mps'),('gpu','cuda'),('gpu','cpu'),('cpu','cpu'),('media','cpu'),('archive','cpu')])
 def test_runtime_reports_canonical_policy_sha(resource,backend):
     policy=load_capacity_policy(Path(__file__).resolve().parents[2]/'configs/capacity-metal-verification.json')
     calls=[]
@@ -38,25 +38,17 @@ def test_runtime_reports_canonical_policy_sha(resource,backend):
     assert calls[0][5]==(200 if resource=='gpu' else 0)
 
 
-@pytest.mark.parametrize('capacity_ok,residency_ok',[(True,True),(True,False),(False,True)])
-def test_policy_heartbeat_publishes_live_residency_after_capacity(capacity_ok,residency_ok):
+@pytest.mark.parametrize('accepted',[True,False])
+def test_policy_heartbeat_publishes_residency_atomically(accepted):
     from photo_worker.models.pool import ResidentModel
     policy=load_capacity_policy(Path(__file__).resolve().parents[2]/'configs/capacity-metal-verification.json')
     config=SimpleNamespace(worker_id=uuid4(),resource_class='gpu',backend='mps',capacity_policy=policy)
-    resident=ResidentModel('a'*64,'u2net','mps','b'*64,3)
-    state=[(resident,)]
+    resident=ResidentModel('a'*64,'sfd','mps','b'*64,3)
     calls=[]
-    database=SimpleNamespace(
-        heartbeat_policy_worker=lambda *args:calls.append('capacity') or capacity_ok,
-        report_model_residency=lambda *args:calls.append(('residency',args)) or residency_ok)
-    assert _report_capacity(config,database,frozenset({'a'}),Capacity(100,300,200),lambda:state[0]) is (capacity_ok and residency_ok)
-    if not capacity_ok:
-        assert calls==['capacity']
-    else:
-        assert calls[1]==('residency',(config.worker_id,policy.sha256,(resident,)))
-        state[0]=()
-        _report_capacity(config,database,frozenset({'a'}),Capacity(100,300,200),lambda:state[0])
-        assert calls[-1]==('residency',(config.worker_id,policy.sha256,()))
+    database=SimpleNamespace(heartbeat_policy_worker_with_residency=lambda *args:calls.append(args) or accepted)
+    assert _report_capacity(config,database,frozenset({'a'}),Capacity(100,300,200),lambda:(resident,)) is accepted
+    assert calls[0][-2:] == (policy.sha256,(resident,))
+
 
 
 def test_model_residency_database_detaches_wire(monkeypatch):
@@ -69,3 +61,14 @@ def test_model_residency_database_detaches_wire(monkeypatch):
     assert calls[0][1][2].obj==[{'model_lock_sha':'a'*64,'model_id':'u2net','backend':'mps','qualification_report_sha':'b'*64,'generation':2}]
     monkeypatch.setattr(database,'_query',lambda *args:pytest.fail('invalid residency reached SQL'))
     with pytest.raises(ValueError):database.report_model_residency(worker,'c'*64,[resident])
+
+
+
+def test_residency_snapshot_failure_does_not_publish_capacity():
+    policy=load_capacity_policy(Path(__file__).resolve().parents[2]/'configs/capacity-metal-verification.json')
+    config=SimpleNamespace(worker_id=uuid4(),resource_class='gpu',backend='mps',capacity_policy=policy)
+    def unexpected(*args):pytest.fail('snapshot failure must precede SQL publication')
+    database=SimpleNamespace(heartbeat_policy_worker_with_residency=unexpected)
+    def failed_snapshot():raise RuntimeError('model snapshot unavailable')
+    with pytest.raises(RuntimeError,match='snapshot unavailable'):
+        _report_capacity(config,database,frozenset({'a'}),Capacity(100,300,200),failed_snapshot)

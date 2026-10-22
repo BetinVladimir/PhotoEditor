@@ -23,7 +23,7 @@ func(r ExportJSONNodeResolver)ResolveExportNode(ctx context.Context,entry v2inpu
  if err:=ctx.Err();err!=nil{return ExportClosureNode{},err}
  if r.Catalog==nil||r.Objects==nil||r.Validator==nil||!validImportRef(entry.Ref){return ExportClosureNode{},v2input.ErrInvalid}
  switch entry.Contract{
- case "EncodedImage","StyleBackgroundAsset","WorkingPixels","WorkingAlpha","PixelArray","MaskPixels","MaskArray","DenseWarpField","DenseWarpArray","DefectLabelMap","AbsoluteLUTArray":return ExportClosureNode{},v2input.ErrInvalid
+ case "EncodedImage","StyleBackgroundAsset","WorkingPixels","WorkingAlpha","PixelArray","MaskPixels","MaskArray","DenseWarpField","DenseWarpArray","DefectLabelMap","DefectLabelPNG","AbsoluteLUTArray":return ExportClosureNode{},v2input.ErrInvalid
  }
  return (ImportJSONNodeResolver{Catalog:exportCatalogBridge{r.Catalog},Objects:r.Objects,Validator:exportValidatorBridge{r.Validator}}).ResolveImportNode(ctx,entry)
 }

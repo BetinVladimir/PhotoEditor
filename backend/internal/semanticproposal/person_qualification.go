@@ -77,7 +77,7 @@ func (s SQLTransferSourceReader) ReadQualifiedPersonEvidence(ctx context.Context
 	if err != nil {
 		return empty, err
 	}
-	if _, err := v2qualification.Verify(raw, pin.ref.SHA256, expected); err != nil {
+	if _, err := v2qualification.VerifyTyped(raw, pin.ref.SHA256, expected); err != nil {
 		return empty, err
 	}
 	mask, err := s.ReadPersonEvidence(ctx, who, tenantID, binding, root, expected.ModelLockSHA, expected.Backend)
@@ -121,7 +121,7 @@ func (s SQLTransferSourceReader) verifyQualifiedPersonProtectionCoveragePinned(c
 	if err != nil {
 		return 0, nil, personEvidenceObject{}, err
 	}
-	if _, err := v2qualification.Verify(raw, pin.ref.SHA256, expected); err != nil {
+	if _, err := v2qualification.VerifyTyped(raw, pin.ref.SHA256, expected); err != nil {
 		return 0, nil, personEvidenceObject{}, err
 	}
 	mask, err := s.ReadPersonMask(ctx, who, tenantID, binding, personRoot, expected.ModelLockSHA)

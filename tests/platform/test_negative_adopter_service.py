@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from contextlib import nullcontext
 from threading import Event
 import pytest
@@ -7,12 +8,19 @@ from photo_worker.operations.optical.negative_adapter import NegativeRuntimeOpti
 from test_negative_runtime_lock import lock as current_runtime
 
 
+def role_connection():
+    def execute(query, params=()):
+        assert "current_user=" in query
+        return SimpleNamespace(fetchone=lambda:(True,))
+    return SimpleNamespace(autocommit=True,execute=execute)
+
+
 def test_service_carries_owned_negative_installation_to_adopter(tmp_path,monkeypatch):
     config=service.AdopterConfig('postgres://unused','https://objects.example','bucket','key','secret')
     policy={'owned':True}
     installation=NegativeAdoptionInstallation(policy,NegativeRuntimeOptions(current_runtime().model_copy(deep=True),
         'b'*64,100,1<<30),tmp_path,300,lambda image:True)
-    connections=[object(),object()];seen=[]
+    connections=[role_connection(),role_connection()];seen=[]
     def connect(*args,**kwargs):
         assert kwargs['autocommit'] is True and 'role=photo_scheduler' in kwargs['options']
         return nullcontext(connections.pop(0))

@@ -11,6 +11,7 @@ from photo_worker.runtime.service import WorkerConfigurationError
 from photo_worker.runtime.executor import OperationFailure
 from photo_worker.runtime.v28_installation import installed_v28_operations
 from photo_worker.runtime.database import TaskDatabase
+from photo_worker.runtime.v28_installation import _LeaseBoundGlareAdmission
 
 
 def config(backend='cpu', resource_class='gpu'):
@@ -21,11 +22,38 @@ def config(backend='cpu', resource_class='gpu'):
 def database(ready=True, qualified=True):
     return SimpleNamespace(restoration_lease_ready=lambda *_: ready,
                            restoration_qualification_ready=lambda *_: qualified,
-                           glare_donor_source_ready=lambda *_: ready)
+                           glare_donor_source_ready=lambda *_: ready,
+                           glare_generative_source_ready=lambda *_: ready)
 
 
 def test_no_installation_leaves_both_operations_unregistered():
     assert installed_v28_operations(object(), object(), config()) == []
+
+def test_generative_glare_provider_cannot_bypass_source_person_authority():
+    provider = SimpleNamespace(admit_generative=Mock(return_value=True))
+    db = SimpleNamespace(glare_generative_source_ready=Mock(return_value=False))
+    ctx = SimpleNamespace(check_active=Mock(), lease=object())
+    admission = _LeaseBoundGlareAdmission(provider, db)
+    with pytest.raises(OperationFailure, match='GLARE_SOURCE_AUTHORITY_UNAVAILABLE'):
+        admission.admit_generative(ctx, {'mode': 'generative'}, b'proof', object(), object())
+    provider.admit_generative.assert_not_called()
+    assert db.glare_generative_source_ready.call_args.args == (
+        ctx.lease, b'{"mode":"generative"}', b'proof')
+    db.glare_generative_source_ready.return_value = True
+    assert admission.admit_generative(ctx, {'mode': 'generative'}, b'proof', object(), object()) is True
+    assert provider.admit_generative.call_count == 1
+
+def test_generative_glare_sql_adapter_preserves_canonical_lease_pins(monkeypatch):
+    db = TaskDatabase('unused')
+    query = Mock(return_value=(True,))
+    monkeypatch.setattr(db, '_query', query)
+    command = SimpleNamespace(tenant_id=uuid4(), run_id=uuid4(), task_id=uuid4(),
+        attempt=3, params=SimpleNamespace(artifact_id=uuid4(), sha256='a' * 64))
+    lease = SimpleNamespace(command=command, fence=7, worker_id=uuid4(), input_digest='b' * 64)
+    assert db.glare_generative_source_ready(lease, b'{"mode":"generative"}', b'proof') is True
+    assert query.call_args.args[1] == (command.tenant_id, command.run_id, command.task_id,
+        3, 7, lease.worker_id, command.params.artifact_id, 'a' * 64,
+        '{"mode":"generative"}', 'b' * 64, 'proof')
 
 
 def test_restoration_sql_gates_require_worker_only_owner_functions(monkeypatch):
@@ -49,9 +77,10 @@ def test_glare_donor_sql_gate_requires_worker_only_owner(monkeypatch):
     query = Mock(return_value=ready)
     monkeypatch.setattr(db, '_query', query)
     assert db.glare_donor_runtime_ready() is True
-    assert query.call_count == 2
+    assert query.call_count == 3
     assert 'v28_glare_donor_source_ready' in query.call_args_list[0].args[1][0]
-    assert 'v28_glare_donor_input_evidence' in query.call_args_list[1].args[1][0]
+    assert 'v28_glare_generative_source_ready' in query.call_args_list[1].args[1][0]
+    assert 'v28_glare_donor_input_evidence' in query.call_args_list[2].args[1][0]
     query.return_value = (*ready[:4], True, False)
     assert db.glare_donor_runtime_ready() is False
 
@@ -81,7 +110,7 @@ def test_glare_donor_sql_adapter_binds_exact_attempt_and_proof(monkeypatch):
     assert db.glare_donor_input_evidence(lease, b'{}', b'{"proof":1}', ref) == location
     sql, args = query.call_args.args
     assert 'v28_glare_donor_input_evidence' in sql
-    assert args[-3:] == ('{"proof":1', ref.artifact_id, ref.sha256)
+    assert args[-3:] == ('{"proof":1}', ref.artifact_id, ref.sha256)
 
 
 @pytest.mark.parametrize('backend,resource_class', [

@@ -8,7 +8,7 @@ import pytest
 
 from photo_worker.contracts.base import ArtifactRef, canonical_bytes
 from photo_worker.runtime.scratch import ScratchSpace
-from photo_worker.v2.contract_lock import SCHEMAS_SHA256, SCENE_BOARD_PREVIOUS_SCHEMAS_SHA256, SQL_TRANSPORT_SCHEMAS_SHA256, WORKFLOW_PREVIOUS_SCHEMAS_SHA256, RENDER_PREVIOUS_SCHEMAS_SHA256
+from photo_worker.v2.contract_lock import SCHEMAS_SHA256, COPY_FENCE_SCHEMAS_SHA256, COPY_FENCE_DUAL_PREVIOUS_SCHEMAS_SHA256, COPY_FENCE_PREVIOUS_SCHEMAS_SHA256, SEMANTIC_PREVIEW_PREVIOUS_SCHEMAS_SHA256, SCENE_BOARD_PREVIOUS_SCHEMAS_SHA256, SQL_TRANSPORT_SCHEMAS_SHA256, WORKFLOW_PREVIOUS_SCHEMAS_SHA256, RENDER_PREVIOUS_SCHEMAS_SHA256
 from photo_worker.v2.input_closure import (
     InputClosureChunk, InputClosureEntry, InputClosureManifest,
     V2InputIndex, V2InputsInvalid,
@@ -16,7 +16,7 @@ from photo_worker.v2.input_closure import (
 from photo_worker.v2.input_closure_builder import build_input_closure_from_sorted
 
 
-def fixture(tmp_path, *, reverse=False, wrong_digest=False):
+def fixture(tmp_path, *, reverse=False, wrong_digest=False, entry_count=2):
     task_id = uuid4()
     tenant_id = uuid4()
     bodies = {}
@@ -28,20 +28,20 @@ def fixture(tmp_path, *, reverse=False, wrong_digest=False):
         return ref
 
     entries = sorted(
-        [InputClosureEntry(ref=ArtifactRef(artifact_id=uuid4(), sha256="a" * 64), contract="image/tiff"),
-         InputClosureEntry(ref=ArtifactRef(artifact_id=uuid4(), sha256="b" * 64), contract="image/tiff")],
+        [InputClosureEntry(ref=ArtifactRef(artifact_id=uuid4(), sha256="a" * 64), contract="image/tiff")
+         for _ in range(entry_count)],
         key=lambda e: (e.ref.artifact_id.bytes, e.ref.sha256, e.contract),
         reverse=reverse,
     )
     chunk = put(InputClosureChunk(schema_version=1, entries=entries))
     digest = sha256(canonical_bytes([entry.model_dump(mode="json") for entry in entries])).hexdigest()
-    manifest = put(InputClosureManifest(schema_version=1, task_id=task_id, entry_count=2,
+    manifest = put(InputClosureManifest(schema_version=1, task_id=task_id, entry_count=entry_count,
                                          entries_sha=("0" * 64 if wrong_digest else digest), chunks=[chunk]))
     params = ArtifactRef(artifact_id=uuid4(), sha256="c" * 64)
     scratch = ScratchSpace(tmp_path, tenant_id, task_id, 1, 32 * 1024 * 1024)
     profile = {"renderer_version": "v2.2", "contracts_sha": SCHEMAS_SHA256,
                "v2_input_manifest": manifest.model_dump(mode="json"),
-               "v2_entry_count": 2, "v2_entries_sha": "0" * 64 if wrong_digest else digest}
+               "v2_entry_count": entry_count, "v2_entries_sha": "0" * 64 if wrong_digest else digest}
 
     def open_stream(ref):
         return BytesIO(bodies[ref.artifact_id])
@@ -49,7 +49,46 @@ def fixture(tmp_path, *, reverse=False, wrong_digest=False):
     return task_id, entries, manifest, params, scratch, profile, open_stream
 
 
-@pytest.mark.parametrize("contracts_sha", [SCHEMAS_SHA256, SCENE_BOARD_PREVIOUS_SCHEMAS_SHA256, SQL_TRANSPORT_SCHEMAS_SHA256, WORKFLOW_PREVIOUS_SCHEMAS_SHA256, RENDER_PREVIOUS_SCHEMAS_SHA256])
+@pytest.mark.parametrize("direct_count", [128, 129, 512])
+def test_wire_sized_direct_inputs_keep_complete_verified_closure(tmp_path, direct_count):
+    task, entries, manifest, params, scratch, profile, open_stream = fixture(
+        tmp_path, entry_count=512)
+    index = None
+    try:
+        index = V2InputIndex.build(
+            task_id=task, inputs=[manifest, *(entry.ref for entry in entries[:direct_count - 1])],
+            params=params, execution_profile=profile, scratch=scratch,
+            open_stream=open_stream, check_active=lambda: None)
+        # Entries omitted from the direct envelope remain available only through
+        # the verified manifest/chunk inventory, with their exact SHA and type.
+        assert index.refs_for_contract("image/tiff", maximum=512) == tuple(e.ref for e in entries)
+        for entry in entries:
+            index.require_entry(entry.ref, entry.contract)
+        assert not index.allows(ArtifactRef(artifact_id=entries[-1].ref.artifact_id, sha256="f" * 64))
+    finally:
+        if index is not None:
+            index.close()
+        scratch.cleanup()
+
+
+def test_oversized_direct_envelope_refused_before_object_io(tmp_path):
+    task, entries, manifest, params, scratch, profile, _ = fixture(tmp_path, entry_count=512)
+
+    def forbidden_io(ref):
+        raise AssertionError("oversized command must be refused before storage IO")
+
+    try:
+        with pytest.raises(V2InputsInvalid, match="TASK_INPUTS_INVALID"):
+            V2InputIndex.build(
+                task_id=task, inputs=[manifest, *(entry.ref for entry in entries)],
+                params=params, execution_profile=profile, scratch=scratch,
+                open_stream=forbidden_io, check_active=lambda: None)
+        assert not list(scratch.directory.iterdir())
+    finally:
+        scratch.cleanup()
+
+
+@pytest.mark.parametrize("contracts_sha", [SCHEMAS_SHA256, COPY_FENCE_SCHEMAS_SHA256, COPY_FENCE_DUAL_PREVIOUS_SCHEMAS_SHA256, COPY_FENCE_PREVIOUS_SCHEMAS_SHA256, SEMANTIC_PREVIEW_PREVIOUS_SCHEMAS_SHA256, SCENE_BOARD_PREVIOUS_SCHEMAS_SHA256, SQL_TRANSPORT_SCHEMAS_SHA256, WORKFLOW_PREVIOUS_SCHEMAS_SHA256, RENDER_PREVIOUS_SCHEMAS_SHA256])
 def test_exact_disk_backed_allowlist_and_cleanup(tmp_path, contracts_sha):
     task, entries, manifest, params, scratch, profile, open_stream = fixture(tmp_path)
     profile["contracts_sha"] = contracts_sha

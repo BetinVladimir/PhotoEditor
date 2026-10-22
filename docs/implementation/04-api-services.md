@@ -417,3 +417,8 @@ Live PostgreSQL test под реальной ролью `photo_api` подтве
 ### Contact-sheet export
 
 `POST /api/v1/tenants/{t}/contact-sheets` принимает `ContactSheetCreate={selection_snapshot_id,locale:ru|bg|en,columns:1..8,rows:1..10}` и требует роль Editor. Сервис повторно авторизует project immutable selection snapshot, требует готовый `preview1600` для каждого frozen item и ограничивает результат 128 страницами. Idempotency создаёт один run kind `export` с `output_kind=contact_sheet`; ответ `202 RunAccepted`. Отсутствующий preview даёт `MEDIA_NOT_READY`, отсутствие qualified media worker — `CONTACT_SHEET_CAPABILITY_UNAVAILABLE`. Страницы и manifest доступны через обычный run outputs только после canonical task result.
+
+
+### GenerationResolution и прекращение uncertain запроса
+
+`POST /api/v1/tenants/{t}/generations/abandon` принимает неизменный `GenerateRequest` и исходный ключ. `GenerationResolution` —200 `{status:"abandoned",key}` либо202 существующий `RunAccepted`. Оба действия сериализуются в scope `Generation.CreateCandidate`; после tombstone под тем же ключом новая генерация запрещена. Полный контракт, права и восстановление клиента определены в [generation-recovery.json](../implementation-v2/contracts/generation-recovery.json). Обычная ошибка запроса не является подтверждением отсутствия admission.

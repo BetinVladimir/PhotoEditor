@@ -72,7 +72,7 @@ func TestAnalysisPlanStableIdentityOwnedInputsAndChangedRequestBinding(t *testin
 		t.Fatal("operation namespace", err)
 	}
 }
-func TestAnalysisPlanRefusesCapacityAndMetalOverTenGB(t *testing.T) {
+func TestAnalysisPlanRefusesUnderCapacityAndAcceptsExplicitMetalBudget(t *testing.T) {
 	request := analysisPlanFixture(t)
 	request.Capacity.RAMBytes--
 	if _, err := CompileRelightAnalysisPlan(context.Background(), request); err == nil {
@@ -82,8 +82,8 @@ func TestAnalysisPlanRefusesCapacityAndMetalOverTenGB(t *testing.T) {
 	request.Runtime.Backend = "mps"
 	request.Runtime.Resources.VRAMBytes = 10000000001
 	request.Capacity.VRAMBytes = 10000000001
-	if _, err := CompileRelightAnalysisPlan(context.Background(), request); err == nil {
-		t.Fatal("Metal ceiling")
+	if _, err := CompileRelightAnalysisPlan(context.Background(), request); err != nil {
+		t.Fatal("explicit Metal budget rejected", err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()

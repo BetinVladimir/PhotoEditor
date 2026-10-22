@@ -18,6 +18,10 @@ type FrozenSemanticPersonTask struct {
 }
 
 func CompileSemanticPersonTask(ctx context.Context, workflow uuid.UUID, ordinal int, binding SessionVersionBinding, imageBody json.RawMessage, paramsRef Ref, modelLock string, guidedTile int, sizes []SemanticInputSize, costs SemanticQualifiedCosts, ram, vram, scratch, output int64) (FrozenSemanticPersonTask, error) {
+	return CompileSemanticPersonTaskForBackend("cuda", ctx, workflow, ordinal, binding, imageBody, paramsRef, modelLock, guidedTile, sizes, costs, ram, vram, scratch, output)
+}
+
+func CompileSemanticPersonTaskForBackend(backend string, ctx context.Context, workflow uuid.UUID, ordinal int, binding SessionVersionBinding, imageBody json.RawMessage, paramsRef Ref, modelLock string, guidedTile int, sizes []SemanticInputSize, costs SemanticQualifiedCosts, ram, vram, scratch, output int64) (FrozenSemanticPersonTask, error) {
 	var zero FrozenSemanticPersonTask
 	closure, err := CompileSemanticPersonClosure(ctx, workflow, ordinal, binding, imageBody, paramsRef, modelLock, guidedTile)
 	if err != nil {
@@ -35,7 +39,7 @@ func CompileSemanticPersonTask(ctx context.Context, workflow uuid.UUID, ordinal 
 	if err != nil {
 		return zero, ErrInvalid
 	}
-	profile, err := CompileSemanticPersonProfileFromInputs(int64(image.Canvas.Width), int64(image.Canvas.Height), paramsRef, refs, sizes, costs, ram, vram, scratch, output)
+	profile, err := CompileSemanticPersonProfileFromInputsForBackend(backend, int64(image.Canvas.Width), int64(image.Canvas.Height), paramsRef, refs, sizes, costs, ram, vram, scratch, output)
 	if err != nil {
 		return zero, err
 	}

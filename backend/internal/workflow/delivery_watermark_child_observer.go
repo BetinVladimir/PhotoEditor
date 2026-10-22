@@ -11,7 +11,8 @@ import (
 // ObserveChild reconstructs presentation and watermark from verified physical
 // outputs, then admits encode. It reports new admission, not export completion.
 // Pending-slot discovery and assembly remain independent integration contracts.
-func(p DeliveryWatermarkChildPipeline)ObserveChild(ctx context.Context,lease delivery.ExpansionLease,plan delivery.PreparePlan,child delivery.ExportChildIntent)(bool,error){
+func(p DeliveryWatermarkChildPipeline)ObserveChild(ctx context.Context,lease delivery.ExpansionLease,plan delivery.PreparePlan,child delivery.ExportChildIntent)(changed bool,failure error){
+ defer func(){bindDeliveryCanonicalFailure(&failure,child.SlotIndex)}()
  if err:=ctx.Err();err!=nil{return false,err}
  if p.DB==nil||p.Objects==nil||p.Reader==nil||p.Resolver==nil||!lease.Valid()||lease.ParentTask!=plan.TaskID()||child.SlotIndex<0||child.SlotIndex>=lease.SlotCount{return false,v2input.ErrInvalid}
  source,err:=p.Resolver.ResolveWatermarkChild(ctx,lease,plan,child);if err!=nil{return false,err}

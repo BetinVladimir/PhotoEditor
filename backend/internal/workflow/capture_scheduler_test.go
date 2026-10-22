@@ -52,13 +52,21 @@ func TestCaptureSchedulerEnvironmentRequiresQualifiedDeploymentInputs(t *testing
 	}
 	env["PHOTO_CAPTURE_MODEL_LOCK_SHA"] = strings.Repeat("a", 64)
 	cfg, enabled, err := CaptureConfigFromEnvironment(get)
-	if err != nil || !enabled || cfg.Backend != "cuda" || cfg.VRAMLimit != 10<<30 || cfg.RAMLimit != 16<<30 {
+	if err != nil || !enabled || cfg.Backend != "cuda" || cfg.VRAMLimit != 10_000_000_000 || cfg.RAMLimit != 16<<30 {
 		t.Fatalf("config=%v enabled=%v error=%v", cfg, enabled, err)
 	}
 	env["PHOTO_CAPTURE_BACKEND"] = "mps"
+	if _, _, err := CaptureConfigFromEnvironment(get); err == nil {
+		t.Fatal("Metal capture accepted an implicit fixed VRAM budget")
+	}
+	env["PHOTO_CAPTURE_VRAM_BYTES"] = "12884901888"
 	cfg, enabled, err = CaptureConfigFromEnvironment(get)
-	if err != nil || !enabled || cfg.Backend != "mps" || cfg.VRAMLimit != 10_000_000_000 {
+	if err != nil || !enabled || cfg.Backend != "mps" || cfg.VRAMLimit != 12884901888 {
 		t.Fatalf("Metal config=%v enabled=%v error=%v", cfg, enabled, err)
+	}
+	env["PHOTO_CAPTURE_VRAM_BYTES"] = "9007199254740992"
+	if _, _, err := CaptureConfigFromEnvironment(get); err == nil {
+		t.Fatal("unrepresentable Metal budget accepted")
 	}
 	env["PHOTO_CAPTURE_VRAM_BYTES"] = "1"
 	if _, _, err := CaptureConfigFromEnvironment(get); err == nil {

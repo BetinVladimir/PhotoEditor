@@ -16,7 +16,7 @@ func TestExportValidatorInstallationBuildsOwnedScopedChain(t *testing.T){
  render,ok:=working.Dependencies.(ExportFrozenDocumentValidator);if !ok||render.icc!=installed.ICCSHA||render.model!=installed.ModelSHA||len(render.recipes)!=1{t.Fatal("missing frozen model/source pins")}
  portable,ok:=render.Dependencies.(ExportRecipeDocumentValidator);if !ok||len(portable.recipes)!=1{t.Fatal("missing portable source pins")}
  dependency,ok:=portable.Dependencies.(ExportDependencyDocumentValidator);if !ok||dependency.Other==nil{t.Fatal("missing mandatory semantics")}
- masks,ok:=dependency.Semantics.(*ExportCanonicalMaskSemantics);if !ok||masks.fallback!=semantics{t.Fatal("missing canonical mask/source semantics")}
+ masks,ok:=dependency.Semantics.(*ExportCanonicalMaskSemantics);if !ok{t.Fatal("missing canonical mask semantics")};source,ok:=masks.fallback.(*ExportSourceSemantics);if !ok||source.fallback!=semantics{t.Fatal("missing canonical source semantics")}
  installed.ICCSHA=rawSHA([]byte("caller changed"));if working.icc==installed.ICCSHA{t.Fatal("caller changed installed lock")}
  // Synthetic graph fixture's {} master must still fail actual typed validation.
  for _,master:=range working.masters{

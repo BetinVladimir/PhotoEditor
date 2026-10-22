@@ -40,7 +40,7 @@ func (s SQLTransferSourceReader) prepareNativeDefectStageQualification(ctx conte
 	if !reflect.DeepEqual(policy, prepared.landmarksPlan.detector.policy) {
 		return zero, v2input.ErrConflict
 	}
-	selected, err := selectQualificationPolicies(policy, []string{"defects.propose"})
+	selected, err := selectNativeQualificationPolicies(policy, []string{"defects.propose"})
 	if err != nil {
 		return zero, err
 	}

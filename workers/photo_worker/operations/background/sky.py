@@ -57,6 +57,7 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts) -> OperationResult:
             for x in range(0, width, tile):
                 ctx.check_active(); y1, x1 = min(y + tile, height), min(x + tile, width)
                 effective = np.clip(sky[y:y1, x:x1] * (1 - protected[y:y1, x:x1]), 0, 1).astype(np.float32)
+                effective[protected[y:y1, x:x1] > 0] = 0
                 rendered = render_asset_tile(asset, (height, width), (y, y1, x, x1), geometry)
                 source_linear = np.power(rgb[y:y1, x:x1], np.float32(2.4), dtype=np.float32)
                 asset_linear = np.power(rendered, np.float32(2.4), dtype=np.float32)

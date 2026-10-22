@@ -1,0 +1,9 @@
+export type SessionAnalysisResource={id:string;revision:'1';document:{artifact_id:string;sha256:string};data:{resource_type:'session_analyses';id:string;tenant_id:string;project_id:string;session_id:string;workflow_id:string;snapshot_id:string;plan_artifact_id:string;policy_sha:string;model_lock_sha:string;created_at:string}};
+const uuid=(v:unknown):v is string=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(v)&&v!=='00000000-0000-0000-0000-000000000000';
+const hash=(v:unknown)=>typeof v==='string'&&/^[0-9a-f]{64}$/.test(v);
+export function readSessionAnalysis(value:unknown,scope:{tenant?:string;session:string;id?:string;project?:string}):SessionAnalysisResource{
+ if(!uuid(scope.session)||scope.tenant!==undefined&&!uuid(scope.tenant)||scope.id!==undefined&&!uuid(scope.id)||scope.project!==undefined&&!uuid(scope.project)||!value||typeof value!=='object'||Array.isArray(value))throw Error('SESSION_ANALYSIS_INVALID');
+ const v=value as SessionAnalysisResource,d=v.data,p=v.document;
+ if(!uuid(v.id)||scope.id!==undefined&&v.id!==scope.id||v.revision!=='1'||!d||typeof d!=='object'||Array.isArray(d)||d.resource_type!=='session_analyses'||d.id!==v.id||!uuid(d.tenant_id)||scope.tenant!==undefined&&d.tenant_id!==scope.tenant||!uuid(d.project_id)||scope.project!==undefined&&d.project_id!==scope.project||d.session_id!==scope.session||!uuid(d.workflow_id)||!uuid(d.snapshot_id)||!hash(d.policy_sha)||!hash(d.model_lock_sha)||typeof d.created_at!=='string'||!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{1,9})?(?:Z|[+-]\d\d:\d\d)$/.test(d.created_at)||!Number.isFinite(Date.parse(d.created_at))||!p||typeof p!=='object'||!uuid(p.artifact_id)||p.artifact_id!==d.plan_artifact_id||!hash(p.sha256))throw Error('SESSION_ANALYSIS_INVALID');
+ return structuredClone(v);
+}

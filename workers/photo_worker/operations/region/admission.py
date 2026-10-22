@@ -17,7 +17,7 @@ class SQLRegionAdmission:
         if (command.operation != 'region.preview' or command.operation_version != '1'
                 or command.resource_class != 'gpu'
                 or params.tenant_id != command.tenant_id
-                or lease.execution_profile.get('backend') != 'cuda'
+                or lease.execution_profile.get('backend') not in ('cuda', 'mps')
                 or lease.execution_profile.get('renderer_version') != 'v2.2'):
             raise OperationFailure('REGION_SCOPE_STALE')
         raw = canonical_bytes(params)

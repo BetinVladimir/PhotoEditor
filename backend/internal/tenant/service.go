@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+ "github.com/jackc/pgx/v5/pgconn"
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/database"
@@ -109,6 +110,23 @@ func (s *Service) Invite(ctx context.Context, who auth.Identity, tid uuid.UUID, 
 	if err != nil {
 		return out, err
 	}
+    // Accepted recovery precedes random-token generation and mail encryption.
+    // The SQL reader checks the original actor/session/hash under receipt lock.
+    var receiptOutcome string
+    var receiptID *uuid.UUID
+    var receiptEmail,receiptRole *string
+    var receiptExpiry *time.Time
+    err = s.DB.QueryRow(ctx,`SELECT outcome,invitation_id,email_normalized,role,expires_at FROM photo.read_invitation_receipt($1,$2,$3,$4,$5)`,who.UserID,who.SessionID,tid,key,hash).Scan(&receiptOutcome,&receiptID,&receiptEmail,&receiptRole,&receiptExpiry)
+    if err != nil { return out,err }
+    switch receiptOutcome {
+    case "replayed":
+        if receiptID==nil||*receiptID==uuid.Nil||receiptEmail==nil||*receiptEmail!=request.Email||receiptRole==nil||*receiptRole!=string(request.Role)||receiptExpiry==nil||receiptExpiry.IsZero(){return out,domain.NewError("IDEMPOTENCY_CONFLICT",409)}
+        return Invitation{*receiptID,*receiptEmail,domain.Role(*receiptRole),*receiptExpiry},nil
+    case "conflict":return out,domain.NewError("IDEMPOTENCY_CONFLICT",409)
+    case "not_found":return out,domain.NewError("NOT_FOUND",404)
+    case "missing":
+    default:return out,domain.NewError("IDEMPOTENCY_CONFLICT",409)
+    }
 	token, err := auth.NewSecret(rand.Reader)
 	if err != nil {
 		return out, err
@@ -116,9 +134,7 @@ func (s *Service) Invite(ctx context.Context, who auth.Identity, tid uuid.UUID, 
 	invitationID, payloadID, eventID := uuid.New(), uuid.New(), uuid.New()
 	expires := time.Now().UTC().Add(7 * 24 * time.Hour)
 	var tenantName string
-	if err = s.DB.QueryRow(ctx, "SELECT name FROM photo.tenants WHERE id=$1", tid).Scan(&tenantName); err != nil {
-		return out, err
-	}
+    if err = WithTenant(ctx,s.DB,who,tid,domain.Admin,func(tx pgx.Tx,_ domain.Role)error{return tx.QueryRow(ctx,"SELECT name FROM photo.tenants WHERE id=$1",tid).Scan(&tenantName)});err!=nil{return out,err}
 	kid, recipient, err := s.MailKeys.Seal([]byte(email), []byte(payloadID.String()+":recipient"))
 	if err != nil {
 		return out, err
@@ -129,13 +145,16 @@ func (s *Service) Invite(ctx context.Context, who auth.Identity, tid uuid.UUID, 
 		return out, errors.New("mail encryption unavailable")
 	}
 	var outcome string
-	err = s.DB.QueryRow(ctx, `SELECT outcome,invitation_id,email_normalized,role,expires_at FROM photo.create_invitation($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`, who.UserID, who.SessionID, tid, invitationID, email, request.Role, auth.HashSecret(token), expires, payloadID, recipient, cipher, kid, "<"+invitationID.String()+"@photoeditor.local>", eventID, key, hash).Scan(&outcome, &out.ID, &out.Email, &out.Role, &out.ExpiresAt)
+	err = s.DB.QueryRow(ctx, `SELECT outcome,invitation_id,email_normalized,role,expires_at FROM photo.create_invitation($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`, who.UserID, who.SessionID, tid, invitationID, email, request.Role, auth.HashSecret(token), expires, payloadID, recipient, cipher, kid, "<"+invitationID.String()+"@photoeditor.local>", eventID, key, hash).Scan(&outcome, &receiptID, &receiptEmail, &receiptRole, &receiptExpiry)
 	if err != nil {
-		return out, err
-	}
+        var refusal *pgconn.PgError
+        if errors.As(err,&refusal)&&refusal.Code=="42501"&&refusal.Message=="TENANT_ADMIN_AUTHORITY_CHANGED"{return Invitation{},domain.NewError("NOT_FOUND",404)}
+        return out,err
+    }
 	switch outcome {
 	case "created", "replayed":
-		return out, nil
+        if receiptID==nil||*receiptID==uuid.Nil||receiptEmail==nil||*receiptEmail!=request.Email||receiptRole==nil||*receiptRole!=string(request.Role)||receiptExpiry==nil||receiptExpiry.IsZero(){return Invitation{},domain.NewError("IDEMPOTENCY_CONFLICT",409)}
+        return Invitation{*receiptID,*receiptEmail,domain.Role(*receiptRole),*receiptExpiry},nil
 	case "conflict":
 		return Invitation{}, domain.NewError("IDEMPOTENCY_CONFLICT", 409)
 	default:
@@ -149,16 +168,22 @@ func (s *Service) AcceptInvite(ctx context.Context, who auth.Identity, request I
 		return out, domain.NewError("VALIDATION_FAILED", 422)
 	}
 	var outcome string
-	var revision int64
-	err := s.DB.QueryRow(ctx, "SELECT outcome,membership_id,tenant_id,role,status,revision FROM photo.accept_invitation($1,$2,$3)", who.UserID, who.SessionID, auth.HashSecret(request.Token)).Scan(&outcome, &out.ID, &out.TenantID, &out.Role, &out.Status, &revision)
+	var membershipID, tenantID *uuid.UUID
+	var role, status *string
+	var revision *int64
+	err := s.DB.QueryRow(ctx, "SELECT outcome,membership_id,tenant_id,role,status,revision FROM photo.accept_invitation($1,$2,$3)", who.UserID, who.SessionID, auth.HashSecret(request.Token)).Scan(&outcome, &membershipID, &tenantID, &role, &status, &revision)
 	if err != nil {
 		return out, err
 	}
 	if outcome != "accepted" {
 		return AcceptedMembership{}, domain.NewError("INVITATION_INVALID", 404)
 	}
+	if membershipID == nil || *membershipID == uuid.Nil || tenantID == nil || *tenantID == uuid.Nil || role == nil || status == nil || revision == nil || *revision < 1 {
+		return AcceptedMembership{}, domain.NewError("INVITATION_INVALID", 404)
+	}
+	out.ID, out.TenantID, out.Role, out.Status = *membershipID, *tenantID, domain.Role(*role), *status
 	out.UserID = who.UserID
-	out.Revision = strconv.FormatInt(revision, 10)
+	out.Revision = strconv.FormatInt(*revision, 10)
 	return out, nil
 }
 
@@ -214,9 +239,9 @@ func (s *Service) ListMembers(ctx context.Context, who auth.Identity, tid uuid.U
 		after = &id
 	}
 	err := WithTenant(ctx, s.DB, who, tid, domain.Viewer, func(tx pgx.Tx, _ domain.Role) error {
-		rows, err := tx.Query(ctx, `SELECT m.id,m.user_id,u.email_normalized,m.role,m.status,m.revision
-			FROM photo.memberships m JOIN photo.users u ON u.id=m.user_id
-			WHERE m.tenant_id=$1 AND ($2::uuid IS NULL OR m.id>$2) ORDER BY m.id LIMIT $3`, tid, after, limit+1)
+		rows, err := tx.Query(ctx, `SELECT m.id,m.user_id,photo.tenant_member_email($4,$5,$1,m.user_id),m.role,m.status,m.revision
+			FROM photo.memberships m
+			WHERE m.tenant_id=$1 AND ($2::uuid IS NULL OR m.id>$2) ORDER BY m.id LIMIT $3`, tid, after, limit+1, who.UserID, who.SessionID)
 		if err != nil {
 			return err
 		}
@@ -256,15 +281,44 @@ func authorize(ctx context.Context, tx pgx.Tx, who auth.Identity, tid uuid.UUID)
 	}
 	return role, err
 }
+// AuthorizeInTransaction rechecks live authority in the caller's tenant-scoped
+// transaction. Call it again after a blocking mutation/receipt lock, rather than
+// opening another transaction while the original transaction holds those locks.
+func AuthorizeInTransaction(ctx context.Context, tx pgx.Tx, who auth.Identity, tid uuid.UUID, required domain.Role) (domain.Role, error) {
+	role, err := authorize(ctx, tx, who, tid)
+	if err != nil {
+		return "", err
+	}
+	if !role.Allows(required) {
+		return "", domain.NewError("FORBIDDEN", 403)
+	}
+	return role, nil
+}
+
 func WithTenant(ctx context.Context, pool *pgxpool.Pool, who auth.Identity, tid uuid.UUID, required domain.Role, fn func(pgx.Tx, domain.Role) error) error {
 	return database.TenantTransaction(ctx, pool, tid, func(tx pgx.Tx) error {
-		role, err := authorize(ctx, tx, who, tid)
+		role, err := AuthorizeInTransaction(ctx, tx, who, tid, required)
 		if err != nil {
 			return err
 		}
-		if !role.Allows(required) {
-			return domain.NewError("FORBIDDEN", 403)
+		authorizedTx := &authorityTransaction{Tx: tx, who: who, tenant: tid, required: required}
+		if err = fn(authorizedTx, role); err != nil {
+			return err
 		}
+		// A receipt/domain lock may have waited past revocation or expiry. Never
+		// commit a mutation or expose its replay using only entry-time authority.
+		_, err = AuthorizeInTransaction(ctx, tx, who, tid, required)
+		return err
+	})
+}
+
+// withAuthorityChange is deliberately private: the three membership operations
+// below reauthorize after their parent lock and then may revoke their own role.
+// Applying the ordinary postcondition would undo a valid self-demotion/removal.
+func withAuthorityChange(ctx context.Context, pool *pgxpool.Pool, who auth.Identity, tid uuid.UUID, required domain.Role, fn func(pgx.Tx, domain.Role) error) error {
+	return database.TenantTransaction(ctx, pool, tid, func(tx pgx.Tx) error {
+		role, err := AuthorizeInTransaction(ctx, tx, who, tid, required)
+		if err != nil { return err }
 		return fn(tx, role)
 	})
 }
@@ -360,7 +414,9 @@ func (s *Service) Update(ctx context.Context, who auth.Identity, tid uuid.UUID, 
 	}
 	err := WithTenant(ctx, s.DB, who, tid, domain.Admin, func(tx pgx.Tx, role domain.Role) error {
 		var revision int64
-		err := tx.QueryRow(ctx, `UPDATE photo.tenants SET name=coalesce($3,name),quotas=coalesce($4,quotas),retention=coalesce($5,retention),revision=revision+1
+		// Policy DTOs contain the editable canonical fields; historical/custom
+		// stored metadata is not part of that DTO and must survive policy edits.
+		err := tx.QueryRow(ctx, `UPDATE photo.tenants SET name=coalesce($3,name),quotas=CASE WHEN $4::jsonb IS NULL THEN quotas ELSE quotas || $4::jsonb END,retention=CASE WHEN $5::jsonb IS NULL THEN retention ELSE retention || $5::jsonb END,revision=revision+1
 			WHERE id=$1 AND revision=$2 RETURNING id,name,revision,quotas,retention`, tid, expected, request.Name, request.Quotas, request.Retention).Scan(&out.ID, &out.Name, &revision, &out.Quotas, &out.Retention)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.NewError("REVISION_CONFLICT", 409)
@@ -377,14 +433,21 @@ func (s *Service) Delete(ctx context.Context, who auth.Identity, tid uuid.UUID, 
 		return JobAccepted{}, domain.NewError("VALIDATION_FAILED", 422)
 	}
 	var outcome string
-	err := s.DB.QueryRow(ctx, "SELECT outcome,job_id FROM photo.request_tenant_deletion($1,$2,$3,$4,$5)", who.UserID, who.SessionID, tid, expected, out.JobID).Scan(&outcome, &out.JobID)
+    var jobID *uuid.UUID
+	err := s.DB.QueryRow(ctx, "SELECT outcome,job_id FROM photo.request_tenant_deletion($1,$2,$3,$4,$5)", who.UserID, who.SessionID, tid, expected, out.JobID).Scan(&outcome, &jobID)
 	if err != nil {
+        var refusal *pgconn.PgError
+        if errors.As(err,&refusal) && refusal.Code=="42501" && refusal.Message=="TENANT_ADMIN_AUTHORITY_CHANGED" { return JobAccepted{},domain.NewError("NOT_FOUND",404) }
 		return JobAccepted{}, err
 	}
 	switch outcome {
 	case "queued":
+        if jobID==nil||*jobID==uuid.Nil{return JobAccepted{},errors.New("invalid tenant deletion receipt")}
+        out.JobID=*jobID
 		return out, nil
 	case "deleting":
+        if jobID==nil||*jobID==uuid.Nil{return JobAccepted{},errors.New("invalid tenant deletion receipt")}
+        out.JobID=*jobID
 		out.Status = "queued"
 		return out, nil
 	case "revision_conflict":
@@ -396,7 +459,8 @@ func (s *Service) Delete(ctx context.Context, who auth.Identity, tid uuid.UUID, 
 	}
 }
 func (s *Service) TransferOwner(ctx context.Context, who auth.Identity, tid, target uuid.UUID, expected int64) error {
-	return WithTenant(ctx, s.DB, who, tid, domain.Owner, func(tx pgx.Tx, _ domain.Role) error {
+    if tid == uuid.Nil || target == uuid.Nil || expected < 1 { return domain.NewError("VALIDATION_FAILED",422) }
+	return withAuthorityChange(ctx, s.DB, who, tid, domain.Owner, func(tx pgx.Tx, _ domain.Role) error {
 		var current uuid.UUID
 		var rev int64
 		if err := tx.QueryRow(ctx, "SELECT owner_user_id,revision FROM photo.tenants WHERE id=$1 FOR UPDATE", tid).Scan(&current, &rev); err != nil {
@@ -407,6 +471,9 @@ func (s *Service) TransferOwner(ctx context.Context, who auth.Identity, tid, tar
 		}
 		if current != who.UserID {
 			return domain.NewError("FORBIDDEN", 403)
+		}
+		if _, err := AuthorizeInTransaction(ctx, tx, who, tid, domain.Owner); err != nil {
+			return err
 		}
 		if target == current {
 			return nil
@@ -421,6 +488,9 @@ func (s *Service) TransferOwner(ctx context.Context, who auth.Identity, tid, tar
 		}
 		if status != "active" {
 			return domain.NewError("MEMBER_INACTIVE", 409)
+		}
+		if _, err = AuthorizeInTransaction(ctx, tx, who, tid, domain.Owner); err != nil {
+			return err
 		}
 		if _, err = tx.Exec(ctx, "UPDATE photo.memberships SET role='admin',revision=revision+1 WHERE tenant_id=$1 AND user_id=$2", tid, current); err != nil {
 			return err
@@ -440,7 +510,7 @@ func (s *Service) UpdateMember(ctx context.Context, who auth.Identity, tid, targ
 	if newRole != domain.Admin && newRole != domain.Editor && newRole != domain.Viewer || status != "active" && status != "suspended" || expected < 1 {
 		return out, domain.NewError("VALIDATION_FAILED", 422)
 	}
-	err := WithTenant(ctx, s.DB, who, tid, domain.Admin, func(tx pgx.Tx, _ domain.Role) error {
+	err := withAuthorityChange(ctx, s.DB, who, tid, domain.Admin, func(tx pgx.Tx, _ domain.Role) error {
 		// Parent row serializes owner transfer and member mutations before membership locks.
 		var owner uuid.UUID
 		if err := tx.QueryRow(ctx, "SELECT owner_user_id FROM photo.tenants WHERE id=$1 FOR UPDATE", tid).Scan(&owner); err != nil {
@@ -457,8 +527,29 @@ func (s *Service) UpdateMember(ctx context.Context, who auth.Identity, tid, targ
 		if !role.Allows(domain.Admin) {
 			return domain.NewError("FORBIDDEN", 403)
 		}
+		// Own the target before the final authority check: UPDATE must not wait
+		// on this membership using authority checked before session withdrawal.
+		var targetID uuid.UUID
+		err = tx.QueryRow(ctx, "SELECT user_id FROM photo.memberships WHERE tenant_id=$1 AND user_id=$2 FOR UPDATE", tid, target).Scan(&targetID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.NewError("NOT_FOUND", 404)
+		}
+		if err != nil {
+			return err
+		}
+		if _, err = AuthorizeInTransaction(ctx, tx, who, tid, domain.Admin); err != nil {
+			return err
+		}
+		// Resolve the authorized target before mutation: an admin may suspend or demote themself.
+		err = tx.QueryRow(ctx, `SELECT photo.tenant_member_email($1,$2,$3,m.user_id) FROM photo.memberships m WHERE m.tenant_id=$3 AND m.user_id=$4`, who.UserID, who.SessionID, tid, target).Scan(&out.Email)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.NewError("NOT_FOUND", 404)
+		}
+		if err != nil {
+			return err
+		}
 		var rev int64
-		err = tx.QueryRow(ctx, `UPDATE photo.memberships m SET role=$4,status=$5,revision=m.revision+1 FROM photo.users u WHERE m.tenant_id=$1 AND m.user_id=$2 AND m.revision=$3 AND u.id=m.user_id RETURNING m.id,m.user_id,u.email_normalized,m.role,m.status,m.revision`, tid, target, expected, newRole, status).Scan(&out.ID, &out.UserID, &out.Email, &out.Role, &out.Status, &rev)
+		err = tx.QueryRow(ctx, `UPDATE photo.memberships m SET role=$4,status=$5,revision=m.revision+1 WHERE m.tenant_id=$1 AND m.user_id=$2 AND m.revision=$3 RETURNING m.id,m.user_id,m.role,m.status,m.revision`, tid, target, expected, newRole, status).Scan(&out.ID, &out.UserID, &out.Role, &out.Status, &rev)
 		if errors.Is(err, pgx.ErrNoRows) {
 			var exists bool
 			if e := tx.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM photo.memberships WHERE tenant_id=$1 AND user_id=$2)", tid, target).Scan(&exists); e != nil {
@@ -479,7 +570,7 @@ func (s *Service) RemoveMember(ctx context.Context, who auth.Identity, tid, targ
 	if target == uuid.Nil || expected < 1 {
 		return domain.NewError("VALIDATION_FAILED", 422)
 	}
-	return WithTenant(ctx, s.DB, who, tid, domain.Admin, func(tx pgx.Tx, _ domain.Role) error {
+	return withAuthorityChange(ctx, s.DB, who, tid, domain.Admin, func(tx pgx.Tx, _ domain.Role) error {
 		var owner uuid.UUID
 		if err := tx.QueryRow(ctx, "SELECT owner_user_id FROM photo.tenants WHERE id=$1 FOR UPDATE", tid).Scan(&owner); err != nil {
 			return err
@@ -494,6 +585,14 @@ func (s *Service) RemoveMember(ctx context.Context, who auth.Identity, tid, targ
 			}
 			return domain.NewError("FORBIDDEN", 403)
 		}
+        // Own the target before the last authority check. The DELETE may
+        // otherwise wait for a concurrent membership operation after checking
+        // a session that expires or is withdrawn during that wait.
+        var targetID uuid.UUID
+        err = tx.QueryRow(ctx, "SELECT user_id FROM photo.memberships WHERE tenant_id=$1 AND user_id=$2 FOR UPDATE",tid,target).Scan(&targetID)
+        if errors.Is(err,pgx.ErrNoRows) { return domain.NewError("NOT_FOUND",404) }
+        if err != nil { return err }
+        if _,err = AuthorizeInTransaction(ctx,tx,who,tid,domain.Admin);err != nil { return err }
 		result, err := tx.Exec(ctx, "DELETE FROM photo.memberships WHERE tenant_id=$1 AND user_id=$2 AND revision=$3", tid, target, expected)
 		if err != nil {
 			return err

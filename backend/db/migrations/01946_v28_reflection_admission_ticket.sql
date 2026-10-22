@@ -123,7 +123,7 @@ ALTER FUNCTION photo.read_v28_reflection_admission_ticket(uuid,uuid,uuid,uuid,
 REVOKE ALL ON FUNCTION photo.read_v28_reflection_admission_ticket(uuid,uuid,uuid,uuid,
  uuid,uuid,text,text,jsonb,jsonb) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION photo.read_v28_reflection_admission_ticket(uuid,uuid,uuid,
- uuid,uuid,text,text,jsonb,jsonb) TO photo_scheduler;
+ uuid,uuid,uuid,text,text,jsonb,jsonb) TO photo_scheduler;
 -- +goose Down
 -- +goose StatementBegin
 DO $$ BEGIN RAISE EXCEPTION 'Forward-only migration';END $$;

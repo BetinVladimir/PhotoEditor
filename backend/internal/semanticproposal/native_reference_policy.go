@@ -14,7 +14,7 @@ func matchNativeReferencePolicy(proof nativeReferenceProtectionProof) error {
 	if err != nil || sha != proof.policySHA {
 		return v2input.ErrInvalid
 	}
-	selected, err := selectQualificationPolicies(proof.policy, []string{"defects.propose", "face.detect", "face.landmarks", "face.parse", "mask.person"})
+	selected, err := selectNativeQualificationPolicies(proof.policy, []string{"defects.propose", "face.detect", "face.landmarks", "face.parse", "mask.person"})
 	if err != nil {
 		return err
 	}

@@ -298,7 +298,7 @@ func (s Service) analysisApplyReplay(ctx context.Context, who auth.Identity,
 			case "conflict":
 				return domain.NewError("IDEMPOTENCY_CONFLICT", 409)
 			case "replayed":
-				if child == nil || *child == uuid.Nil {
+				if child == nil || *child == uuid.Nil || workflowID == uuid.Nil {
 					return domain.NewError("ANALYSIS_CONFLICT", 409)
 				}
 				ticket = v2input.JobTicket{RunID: *child,
@@ -318,6 +318,9 @@ func (s Service) ApplyAnalysis(ctx context.Context, who auth.Identity,
 	tenantID, analysisID uuid.UUID, key string, req ApplyDecision) (
 	v2input.JobTicket, bool, error) {
 	var empty v2input.JobTicket
+	if err := ctx.Err(); err != nil {
+		return empty, false, err
+	}
 	if s.DB == nil {
 		return empty, false, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
 	}
@@ -339,6 +342,9 @@ func (s Service) ApplyAnalysis(ctx context.Context, who auth.Identity,
 	}
 	if ticket, replayed, err := s.analysisApplyReplay(ctx, who, tenantID,
 		analysisID, key, decisionSHA); err != nil || replayed {
+		if cancelled := ctx.Err(); cancelled != nil {
+			return empty, false, cancelled
+		}
 		return ticket, replayed, err
 	}
 	if s.Objects == nil || s.Bucket == "" {
@@ -414,6 +420,9 @@ func (s Service) ApplyAnalysis(ctx context.Context, who auth.Identity,
 			AssetVersionID: item.AssetVersionID, InputSHA256: item.SHA256,
 			Body: body}
 	}
+	if err := ctx.Err(); err != nil {
+		return empty, false, err
+	}
 	response, err := (run.Service{DB: s.DB}).ApplyWithCommit(ctx, who, tenantID,
 		state.SourceCollection, key, run.ApplyRequest{
 			SourceRevision: state.SourceRevision,
@@ -437,6 +446,9 @@ func (s Service) ApplyAnalysis(ctx context.Context, who auth.Identity,
 		})
 	if err != nil {
 		return empty, false, analysisError(err)
+	}
+	if err := ctx.Err(); err != nil {
+		return empty, false, err
 	}
 	var accepted run.ApplyAccepted
 	if json.Unmarshal(response.Body, &accepted) != nil || accepted.RunID == uuid.Nil {

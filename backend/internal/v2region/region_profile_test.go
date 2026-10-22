@@ -30,6 +30,24 @@ func regionCostFixture(t *testing.T, plan FrozenRegionPlan) RegionQualifiedCost 
 	return cost
 }
 
+func TestMPSRegionProfileUsesIndependentBackendCalibration(t *testing.T) {
+    plan,_,_,_:=regionNodeFixture(t)
+    calibration:=regionCalibrationFixture(t,plan)
+    calibration.Qualification.Backend="mps"
+    raw,pin:=regionCalibrationBytes(t,[]RegionCalibration{calibration})
+    catalog,err:=NewPinnedRegionCalibrationCatalog(raw,pin)
+    if err!=nil {t.Fatal(err)}
+    cost,err:=catalog.Select(context.Background(),calibration.Qualification,plan)
+    if err!=nil {t.Fatal(err)}
+    policy,err:=CompileRegionExecutionPolicy(plan,cost)
+    if err!=nil {t.Fatal(err)}
+    var profile struct {Backend string `json:"backend"`;Pin RegionCalibrationPin `json:"region_qualification"`}
+    if err=json.Unmarshal(policy.Profile,&profile);err!=nil {t.Fatal(err)}
+    if profile.Backend!="mps" || profile.Pin.Qualification!=calibration.Qualification {t.Fatal("backend pin rewritten",profile)}
+    foreign:=calibration.Qualification;foreign.Backend="cuda"
+    if _,err=catalog.Select(context.Background(),foreign,plan);err==nil {t.Fatal("MPS catalog reused as CUDA calibration")}
+}
+
 func TestCompiledRegionPolicyBindsPlanAndCompleteResources(t *testing.T) {
 	plan, task, params, _ := regionNodeFixture(t)
 	policy, err := CompileRegionExecutionPolicy(plan, regionCostFixture(t, plan))

@@ -34,6 +34,30 @@ type SQLRestorationParamsPublisher struct {
 	Publisher v2input.DocumentPublisher
 }
 
+// PublishSourceGlare retains the same immutable Params intent protocol with
+// source-only SQL authority; donor-mode request validation remains unchanged.
+func(s SQLRestorationParamsPublisher)PublishSourceGlare(ctx context.Context,who auth.Identity,
+ tenant,run,workflow uuid.UUID,ordinal int,paramsRaw []byte,pin v2portrait.RestorationQualificationPin,
+ origin RestorationManualOrigin)(v2input.Ref,error){
+ var zero v2input.Ref
+ if err:=ctx.Err();err!=nil{return zero,err}
+ p,err:=v2portrait.ParseGlareSourceParams(paramsRaw);if err!=nil{return zero,err}
+ if s.DB==nil||s.Publisher==nil||tenant==uuid.Nil||run==uuid.Nil||workflow==uuid.Nil||who.UserID==uuid.Nil||who.SessionID==uuid.Nil||pin.Operation!="portrait.glare"||p.ModelLockSHA!=pin.ModelLockSHA||p.Calibration!=pin.Calibration{return zero,v2input.ErrInvalid}
+ if _,err=pin.Compile();err!=nil{return zero,err}
+ for _,r:=range []v2input.Ref{origin.Root,origin.Params,origin.TargetPixel,origin.ProtectedPixel}{if !isDocumentRef(r){return zero,v2input.ErrInvalid}}
+ owner,err:=v2input.TaskID(workflow,"portrait.glare",ordinal);if err!=nil{return zero,err}
+ key,err:=v2input.NodeKey("portrait.glare",ordinal);if err!=nil{return zero,err}
+ sum:=sha256.Sum256(paramsRaw);sha:=hex.EncodeToString(sum[:])
+ request,err:=canonical.Marshal(restorationParamsIntent{who.UserID,who.SessionID,key,origin,owner,string(paramsRaw),sha,pin});if err!=nil{return zero,err}
+ if err=s.saveIntent(ctx,tenant,run,request);err!=nil{return zero,err}
+ ref,err:=s.Publisher.Publish(ctx,artifactjson.Scope{Tenant:tenant,Run:run,Owner:owner,Purpose:"task_params",RestorationPortrait:true},append([]byte(nil),paramsRaw...));if err!=nil{return zero,err}
+ if err=ctx.Err();err!=nil{return zero,err}
+ if ref.ID==uuid.Nil||ref.SHA256!=sha{return zero,v2input.ErrInvalid}
+ for _,r:=range []v2input.Ref{origin.Root,origin.Params,origin.TargetPixel,origin.ProtectedPixel,p.Base.Source,p.GlassesMask,p.Protected,p.Confirmation,p.SourceFaces,p.Calibration,pin.Report}{if r.ArtifactID==ref.ID{return zero,v2input.ErrInvalid}}
+ if err=s.saveIntent(ctx,tenant,run,request);err!=nil{return zero,err};if err=ctx.Err();err!=nil{return zero,err}
+ return v2input.Ref{ArtifactID:ref.ID,SHA256:ref.SHA256},nil
+}
+
 func (s SQLRestorationParamsPublisher) PublishDonorGlare(ctx context.Context,
 	who auth.Identity, tenant, run, workflow uuid.UUID, ordinal int,
 	paramsRaw []byte, pin v2portrait.RestorationQualificationPin,

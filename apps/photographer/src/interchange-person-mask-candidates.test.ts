@@ -32,3 +32,9 @@ describe('import person-mask candidates',()=>{
     ])expect(()=>readImportPersonMaskEntries(invalid,workflow)).toThrow('INTERCHANGE_MASK_ENTRIES_INVALID');
   });
 });
+
+it('uses the server UTF-8 byte budget for external frame identifiers',()=>{
+ const one={entry_id:id(2),target_version_id:id(3),asset_id:id(10),external_id:'я'.repeat(120)};
+ expect(readImportPersonMaskEntries({workflow_id:id(1),entries:[one]},id(1)).entries[0].external_id).toBe(one.external_id);
+ expect(()=>readImportPersonMaskEntries({workflow_id:id(1),entries:[{...one,external_id:'я'.repeat(121)}]},id(1))).toThrow('INTERCHANGE_MASK_ENTRIES_INVALID');
+});

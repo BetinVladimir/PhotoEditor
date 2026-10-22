@@ -49,7 +49,7 @@ BEGIN
  END IF;
  IF jsonb_typeof(body->'frames') IS DISTINCT FROM 'array' THEN RETURN NULL;END IF;
  frame_count:=jsonb_array_length(body->'frames');
- IF frame_count NOT BETWEEN 2 AND CASE operation WHEN 'optical.panorama' THEN 20 ELSE 30 END
+ IF frame_count NOT BETWEEN 2 AND (CASE operation WHEN 'optical.panorama' THEN 20 ELSE 30 END)
  OR jsonb_typeof(body->'reference_ordinal') IS DISTINCT FROM 'number'
  OR (body->>'reference_ordinal') !~ '^[0-9]+$'
  OR (body->>'reference_ordinal')::integer NOT BETWEEN 0 AND frame_count-1

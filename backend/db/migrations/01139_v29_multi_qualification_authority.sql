@@ -179,7 +179,7 @@ BEGIN
  END IF;
  IF jsonb_typeof(body->'frames') IS DISTINCT FROM 'array' THEN RETURN false;END IF;
  frame_count:=jsonb_array_length(body->'frames');
- IF frame_count NOT BETWEEN 2 AND CASE operation WHEN 'optical.panorama' THEN 20 ELSE 30 END
+ IF frame_count NOT BETWEEN 2 AND (CASE operation WHEN 'optical.panorama' THEN 20 ELSE 30 END)
  OR jsonb_typeof(body->'reference_ordinal') IS DISTINCT FROM 'number'
  OR (body->>'reference_ordinal') !~ '^[0-9]+$'
  OR (body->>'reference_ordinal')::integer NOT BETWEEN 0 AND frame_count-1
@@ -198,7 +198,7 @@ BEGIN
  OR (binding-'asset_version_id'-'source'-'canvas_hash')<>'{}'::jsonb
  OR jsonb_typeof(binding->'source') IS DISTINCT FROM 'object'
  OR NOT(binding->'source' ?& ARRAY['artifact_id','sha256'])
- OR (binding->'source'-'artifact_id'-'sha256')<>'{}'::jsonb
+ OR ((binding->'source')-'artifact_id'-'sha256')<>'{}'::jsonb
  OR coalesce(binding->>'canvas_hash','') !~ '^[0-9a-f]{64}$'
  OR coalesce(binding->'source'->>'sha256','') !~ '^[0-9a-f]{64}$' THEN RETURN false;END IF;
  IF photo.v28_local_portrait_source_scope(p_tenant,w.project_id,r.input_snapshot_id,r.created_by,auth_session,binding) IS DISTINCT FROM true THEN RETURN false;END IF;

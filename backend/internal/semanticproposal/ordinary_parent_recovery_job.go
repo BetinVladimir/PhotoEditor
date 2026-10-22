@@ -18,48 +18,58 @@ type SQLOrdinaryParentRecovery struct {
 
 func (j SQLOrdinaryParentRecovery) Recover(ctx context.Context, who auth.Identity, tenantID, parent uuid.UUID) (bool, bool, error) {
 	if err := j.validate(ctx); err != nil {
-		return false, false, err
+		return false, false, ordinaryRecoveryError("validate", err)
 	}
 	work, cancel := context.WithTimeout(ctx, j.Timeout)
 	defer cancel()
 	completed := false
 	locked, err := withNativeManualParentLock(work, j.Preparer.Scheduler, tenantID, parent, func(work context.Context) error {
+		request,key,accepted,err:=j.Preparer.Reader.readOrdinaryParentReceiptRequest(work,who,tenantID,parent)
+		if err!=nil{return ordinaryRecoveryError("receipt_locator",err)}
+		if accepted {
+			if _,found,err:=replayCreateReceipt(work,j.Preparer.Reader.DB,who,request,key);err!=nil{return ordinaryRecoveryError("accepted_receipt",err)}else if found{completed=true;return nil}
+			return ordinaryRecoveryError("accepted_receipt_missing", v2input.ErrConflict)
+		}
 		capacity := ownTransferPreparation(j.Preparer.Configuration)
 		anchor, err := j.Preparer.Reader.loadPersonPreparationAnchor(work, who, tenantID, parent, capacity.Color, capacity.MetadataBytes)
 		if err != nil {
-			return err
+			return ordinaryRecoveryError("load_anchor", err)
 		}
 		catalog, err := resolveNativeParentRecoveryCatalog(work, who, anchor, j.Preparer.Reader.ProjectID, nil, j.CatalogForReference)
 		if err != nil {
-			return err
+			return ordinaryRecoveryError("resolve_catalog", err)
 		}
 		person, err := j.Preparer.Reader.restorePersonDraftPlan(work, catalog, who, anchor)
 		if err != nil {
-			return err
+			return ordinaryRecoveryError("restore_person", err)
 		}
 		if person.prepared.continuation != "ordinary_parent" {
-			return v2input.ErrConflict
+			return ordinaryRecoveryError("continuation", v2input.ErrConflict)
 		}
 		policy := person.prepared.ordinaryPolicy
 		if policy == nil || policy.ProjectID != j.Preparer.Reader.ProjectID {
-			return v2input.ErrConflict
+			return ordinaryRecoveryError("policy_scope", v2input.ErrConflict)
 		}
 		configuration, err := policy.preparation(anchor.Color)
 		if err != nil {
-			return err
+			return ordinaryRecoveryError("frozen_configuration", err)
 		}
 		if configuration.RAM > capacity.RAM || configuration.VRAM > capacity.VRAM || configuration.Scratch > capacity.Scratch || configuration.Output > capacity.Output || configuration.MetadataBytes > capacity.MetadataBytes || policy.Reserved > j.Preparer.ReservedBytes {
-			return v2input.ErrInvalid
+			return ordinaryRecoveryError("capacity", v2input.ErrInvalid)
 		}
 		configuration, err = j.Preparer.Reader.selectOrdinaryTransferConfiguration(work, who, anchor.Request, anchor.Published, configuration)
 		if err != nil {
-			return err
+			return ordinaryRecoveryError("select_protection", err)
 		}
 		preparer := j.Preparer
 		preparer.ReservedBytes = policy.Reserved
+		if configuration.Scene!=nil {
+			preparer.Configuration=configuration
+			return ordinaryRecoveryError("scene_parent", preparer.prepareOrdinarySceneParentMode(work,who,anchor.Request,anchor.Key,true))
+		}
 		_, err = preparer.admitOrdinaryCreateRequest(work, who, anchor.Request, anchor.Key, configuration)
 		completed = err == nil
-		return err
+		return ordinaryRecoveryError("admit_parent", err)
 	})
 	if err != nil {
 		return false, locked, err

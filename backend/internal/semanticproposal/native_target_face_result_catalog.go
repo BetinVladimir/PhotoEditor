@@ -24,8 +24,19 @@ func (s SQLTransferSourceReader) nativeTargetFaceResultCatalog(ctx context.Conte
 	if rebuilt.seal != plan.seal || s.DB == nil {
 		return zero, v2input.ErrConflict
 	}
+	return s.nativeTargetFaceResultCatalogCurrent(ctx, who, plan)
+}
+
+func (s SQLTransferSourceReader) nativeTargetFaceResultCatalogCurrent(ctx context.Context, who auth.Identity, plan nativeTargetFaceDraftPlan) (nativeFaceResultCatalog, error) {
+	var zero nativeFaceResultCatalog
+	if err := verifyNativeTargetFacePlanSeal(ctx, plan); err != nil {
+		return zero, err
+	}
+	if s.DB == nil {
+		return zero, v2input.ErrInvalid
+	}
 	var out nativeFaceResultCatalog
-	err = tenant.WithTenant(ctx, s.DB, who, plan.shell.Tenant, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
+	err := tenant.WithTenant(ctx, s.DB, who, plan.shell.Tenant, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
 		var raw []byte
 		if err := tx.QueryRow(ctx, "SELECT photo.semantic_target_face_canonical_outputs($1,$2,$3,$4,$5,$6)", plan.shell.Tenant, s.ProjectID, who.UserID, who.SessionID, plan.shell.Run, plan.shell.ConfigSHA).Scan(&raw); err != nil {
 			return err

@@ -37,7 +37,7 @@ func (s *Service) ReadRestorationResultSelection(ctx context.Context, who auth.I
    JOIN photo.runs r ON r.tenant_id=v.tenant_id AND r.id=v.run_id
    JOIN photo.v2_workflows w ON w.tenant_id=r.tenant_id AND w.run_id=r.id
    JOIN photo.artifacts b ON b.tenant_id=v.tenant_id AND b.id=v.base_artifact_id
-   WHERE v.tenant_id=$1 AND v.id=$2 AND v.kind IN('portrait.glare','portrait.open_eyes','image.reflection') AND v.state='decided'
+   WHERE v.tenant_id=$1 AND v.id=$2 AND v.kind IN('portrait.glare','portrait.open_eyes','image.reflection','image.relight','portrait.hair','portrait.clothing') AND v.state='decided'
     AND v.revision=2 AND v.decided_by IS NOT NULL AND v.decided_at IS NOT NULL
    FOR SHARE OF v,task,r`, tid, reviewID).
 			Scan(&projectID, &kind, &snapshot.RunID, &actor, &decision, &route, &hash, &selection,
@@ -48,6 +48,9 @@ func (s *Service) ReadRestorationResultSelection(ctx context.Context, who auth.I
 		if err != nil {
 			return err
 		}
+		// The review/task/run share locks can outlive an admin role change.
+		role, err = tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Editor)
+		if err != nil { return err }
 		if _, err = project.Authorize(ctx, tx, tid, projectID, who.UserID, role, domain.Editor, false); err != nil {
 			return err
 		}
@@ -75,8 +78,14 @@ func (s *Service) ReadRestorationResultSelection(ctx context.Context, who auth.I
 		var imageID *uuid.UUID
 		var imageSHA *string
 		selectionFunction := "photo.get_v28_restoration_review_selection"
+		if localPortraitKind(kind) {
+			selectionFunction = "photo.get_v28_local_portrait_review_selection"
+		}
 		if kind == "portrait.open_eyes" {
 			selectionFunction = "photo.get_v28_open_eyes_review_selection"
+		}
+		if kind == "image.relight" {
+			selectionFunction = "photo.get_v28_relight_review_selection"
 		}
 		err = tx.QueryRow(ctx, `SELECT review_id,decision_hash,route,image_id,image_sha
  FROM `+selectionFunction+`($1,$2,$3,$4)`, tid, who.UserID, who.SessionID, reviewID).

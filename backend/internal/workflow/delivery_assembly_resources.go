@@ -90,3 +90,33 @@ func PrepareCurrentDeliveryAssemblyTask(ctx context.Context, store DeliveryAssem
 	}
 	return frozen, nil
 }
+
+
+// Refuse incomplete inventory or impossible budgets before durable Params IO.
+// SQL publication and registration still repeat current lease/source authority.
+func prepareDeliveryAssemblyBeforePublication(ctx context.Context, store DeliveryAssemblyPreparationReader, lease delivery.ExpansionLease, plan delivery.PreparePlan, root v2input.Ref, limits DeliveryDerivativeLimits, publish func() (v2input.Ref, error)) (FrozenDeliveryAssemblyTask, error) {
+ zero := FrozenDeliveryAssemblyTask{}
+ if err := ctx.Err(); err != nil { return zero, err }
+ if store == nil || publish == nil { return zero, v2input.ErrInvalid }
+ evidence, err := store.ReadAssemblyPreparation(ctx, lease, plan, root)
+ if err != nil { return zero, err }
+ // Own the evidence across renewal and publication callbacks.
+ evidence.RootJCS = append([]byte(nil), evidence.RootJCS...)
+ shards := make([][]byte, len(evidence.ShardsJCS))
+ for i, raw := range evidence.ShardsJCS { shards[i] = append([]byte(nil), raw...) }
+ evidence.ShardsJCS = shards
+ evidence.Inventory = append([]v2input.Entry(nil), evidence.Inventory...)
+ profile, err := CompileDeliveryAssemblyProfile(ctx, plan, lease.Run, root, evidence.RootJCS, evidence.ShardsJCS, evidence.Inventory, limits)
+ if err != nil { return zero, err }
+ if err := ctx.Err(); err != nil { return zero, err }
+ if err := store.Renew(ctx, lease); err != nil { return zero, err }
+ if err := ctx.Err(); err != nil { return zero, err }
+ params, err := publish()
+ if err != nil { return zero, err }
+ if err := ctx.Err(); err != nil { return zero, err }
+ frozen, err := FreezePublishedDeliveryAssemblyTask(ctx, lease, plan, root, params, evidence.RootJCS, evidence.ShardsJCS, evidence.Inventory, profile)
+ if err != nil { return zero, err }
+ if err := store.Renew(ctx, lease); err != nil { return zero, err }
+ if err := ctx.Err(); err != nil { return zero, err }
+ return frozen, nil
+}

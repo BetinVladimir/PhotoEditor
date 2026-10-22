@@ -16,7 +16,7 @@ def _scope(db):
 
 def _task(db, scope, resource='gpu', state='queued', kind='v2'):
     tenant, user, artifact, snapshot = scope
-    run = db.execute("INSERT INTO photo.runs(tenant_id,kind,status,input_snapshot_id,config_snapshot,config_hash,created_by,graph_sealed) VALUES(%s,%s,'running',%s,%s,%s,%s,true) RETURNING id", (tenant, kind, snapshot, Jsonb({'queue_class':'batch'} if kind=='v2' else {}), 'b'*64, user)).fetchone()[0]
+    run = db.execute("INSERT INTO photo.runs(tenant_id,kind,status,input_snapshot_id,config_snapshot,config_hash,created_by,graph_sealed,failure_policy) VALUES(%s,%s,'running',%s,%s,%s,%s,true,'fail_fast') RETURNING id", (tenant, kind, snapshot, Jsonb({'queue_class':'batch'} if kind=='v2' else {}), 'b'*64, user)).fetchone()[0]
     return db.execute("INSERT INTO photo.tasks(tenant_id,run_id,node_key,operation,operation_version,resource_class,state,inputs,params_artifact_id,input_digest,execution_profile,lease_until) VALUES(%s,%s,'heavy:0','asset.verify','1',%s,%s,'[]',%s,%s,%s,CASE WHEN %s='running' THEN clock_timestamp()+interval '60 seconds' ELSE NULL END) RETURNING id", (tenant, run, resource, state, artifact, 'b'*64, Jsonb({'backend':'cuda' if resource=='gpu' else 'cpu'}), state)).fetchone()[0]
 
 

@@ -142,7 +142,7 @@ func (s SQLExportDocumentCatalog) QualifyExportRenderFrame(ctx context.Context, 
 	return qualifyExportRenderFrame(ctx, s, s, node, raw)
 }
 func (s SQLExportResultInputCatalog) QualifyExportRenderFrame(ctx context.Context, node v2draft.LayerRef, raw []byte) error {
-	return qualifyExportRenderFrame(ctx, s, s.Export, node, raw)
+	return qualifyExportRenderFrame(ctx, s, SQLExportDocumentCatalog(s.Export), node, raw)
 }
 func qualifyExportRenderFrame(ctx context.Context, documents ExportDocumentCatalog, source SQLExportDocumentCatalog, node v2draft.LayerRef, raw []byte) error {
 	if err := ctx.Err(); err != nil {

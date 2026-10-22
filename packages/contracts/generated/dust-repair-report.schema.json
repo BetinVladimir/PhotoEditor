@@ -25,6 +25,7 @@
       "additionalProperties": false,
       "properties": {
         "applied_pixels": {
+          "maximum": 200000000,
           "minimum": 0,
           "title": "Applied Pixels",
           "type": "integer"
@@ -44,6 +45,7 @@
         },
         "radius": {
           "exclusiveMinimum": 0,
+          "maximum": 200000000,
           "title": "Radius",
           "type": "number"
         }
@@ -85,6 +87,8 @@
       ]
     },
     "review_revision": {
+      "maximum": 9007199254740991,
+      "minimum": 1,
       "title": "Review Revision",
       "type": "integer"
     },
@@ -93,6 +97,7 @@
         "const": "no_accepted_candidates",
         "type": "string"
       },
+      "maxItems": 1,
       "title": "Warnings",
       "type": "array"
     }

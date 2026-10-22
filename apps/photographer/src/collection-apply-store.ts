@@ -58,6 +58,11 @@ export class CollectionApplyStore {
    return structuredClone(current);
   });
  }
+ /** Release only the exact pending request after a definitive server rejection. */
+ discardRejected(key:string){return this.transaction(async()=>{
+  await this.fence();const raw=await this.storage.getItem(this.key);this.current();
+  if(raw!==null){const record=this.decode(raw);if(record.key!==key||record.accepted!==null)throw new Error('COLLECTION_APPLY_JOURNAL_CONFLICT');await this.storage.removeItem(this.key);this.current();}
+ });}
  /** Only an acknowledged attempt can be discarded to author another operation. */
  clear(key:string){return this.transaction(async()=>{
   await this.fence();const raw=await this.storage.getItem(this.key);this.current();

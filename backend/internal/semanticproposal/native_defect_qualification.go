@@ -40,7 +40,7 @@ func (s SQLTransferSourceReader) prepareQualifiedNativeDefectResult(ctx context.
 	if err != nil {
 		return zero, err
 	}
-	expected, err := selectQualificationPolicies(policy, []string{"defects.propose", "face.landmarks", "face.detect", "face.parse"})
+	expected, err := selectNativeQualificationPolicies(policy, []string{"defects.propose", "face.landmarks", "face.detect", "face.parse"})
 	if err != nil {
 		return zero, err
 	}
@@ -128,7 +128,7 @@ func (s SQLTransferSourceReader) lockQualifiedNativeDefectResult(ctx context.Con
 	if err != nil || faceSet != proof.faceSet || parserSet != proof.parserSet {
 		return v2input.ErrInvalid
 	}
-	expected, err := selectQualificationPolicies(proof.policy, []string{"defects.propose", "face.landmarks", "face.detect", "face.parse"})
+	expected, err := selectNativeQualificationPolicies(proof.policy, []string{"defects.propose", "face.landmarks", "face.detect", "face.parse"})
 	if err != nil {
 		return err
 	}

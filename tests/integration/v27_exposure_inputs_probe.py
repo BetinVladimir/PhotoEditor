@@ -5,6 +5,8 @@ TaskDatabase.claim establish the actual reservation and worker lease.
 This helper alone does not exercise authenticated gateway staging or adoption.
 CPU compute and output bytes use an explicitly fixture-owned MinIO transport.
 """
+from specialized_go_child_evidence import run_named_go
+from pathlib import Path as _PhotoRepositoryPath
 from hashlib import sha256
 from io import BytesIO
 from pathlib import Path
@@ -33,15 +35,85 @@ def verify_http_exposure_worker_inputs(db,database,client,bucket,tenant,root):
     db.commit()
     import os,subprocess
     repo=Path(__file__).resolve().parents[2]
-    environment=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_TEST_V27_DISPATCH_TASK=str(task),GOCACHE='/private/tmp/photoeditor-go-cache')
-    dispatched=subprocess.run(['go','test','./internal/workflow','-run','^TestIntegrationSemanticExposureDispatcher$','-count=1','-timeout=30s','-v'],cwd=repo/'backend',env=environment,capture_output=True,text=True,timeout=40)
-    assert dispatched.returncode==0,dispatched.stdout+dispatched.stderr
-    assert 'V27_DISPATCHER_OK' in dispatched.stdout
-    envelope=db.execute('SELECT dispatch_command FROM photo.tasks WHERE tenant_id=%s AND id=%s',(tenant,task)).fetchone()[0]
+    environment=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_TEST_V27_DISPATCH_TASK=str(task),GOCACHE=str(_PhotoRepositoryPath(__file__).resolve().parents[2]/'work/go-cache'))
+    # Qualification is a trusted synthetic fixture pin; explicit operator
+    # activation is separate and never bypasses dispatcher/claim admission.
+    state=db.execute("""SELECT t.operation,t.operation_version,t.resource_class,
+        t.execution_profile->>'backend',op.v2_enabled,op.resource_class,op.backends
+        FROM photo.tasks t JOIN photo.operation_registry op
+          ON op.operation=t.operation AND op.version=t.operation_version
+        WHERE t.tenant_id=%s AND t.id=%s""",(tenant,task)).fetchone()
+    assert state is not None and state[:4]==('semantic.local_exposure','1','cpu','cpu')
+    assert state[5]=='cpu' and 'cpu' in state[6]
+    qualification_ready=db.execute("""SELECT photo.v27_downstream_profile_ready(t.tenant_id,i.project_id,
+        t.operation,t.operation_version,t.resource_class,t.execution_profile)
+        FROM photo.tasks t JOIN photo.semantic_targets target ON target.tenant_id=t.tenant_id AND target.child_run_id=t.run_id
+        JOIN photo.semantic_intents i ON i.tenant_id=target.tenant_id AND i.id=target.intent_id
+        WHERE t.tenant_id=%s AND t.id=%s""",(tenant,task)).fetchall()
+    assert qualification_ready==[(True,)]
+    original_enabled=state[4]
     db.commit()
-    from photo_worker.contracts.wire import TaskCommand
-    command=TaskCommand.model_validate_json(canonical_bytes(envelope))
-    claimed=TaskDatabase(make_conninfo(**database)).claim(command,worker)
+    # Persist only nonsecret exact activation predicates for this owned graph.
+    import json
+    evidence=root.parent/'exposure-dispatch-activation.json'
+    diagnostic=dict(operation=state[0],version=state[1],
+        task_resource_class=state[2],backend=state[3],original_enabled=original_enabled,
+        registry_resource_class=state[5],registry_backends=state[6],qualification_ready=True,
+        negative={'attempted':False},restoration={'attempted':False})
+    def save_diagnostic():
+        evidence.write_text(json.dumps(diagnostic,sort_keys=True))
+    save_diagnostic()
+    try:
+        if not original_enabled:
+            before_refusal=db.execute("""SELECT
+                (SELECT count(*) FROM photo.resource_reservations WHERE tenant_id=%s AND task_id=%s),
+                (SELECT count(*) FROM photo.outbox WHERE tenant_id=%s)""",(tenant,task,tenant)).fetchone()
+            db.commit()
+            denied=run_named_go(['go','test','./internal/workflow','-run','^TestIntegrationSemanticExposureDispatcher$','-count=1','-timeout=30s','-v'],cwd=repo/'backend',env=environment,capture_output=True,text=True,timeout=40,expect_failure=True)
+            diagnostic['negative']={'attempted':True,'returncode':denied.returncode,
+                'activation_stale':'V2_OPERATION_DISPATCH_ACTIVATION_STALE' in denied.stdout+denied.stderr}
+            save_diagnostic()
+            assert denied.returncode!=0 and diagnostic['negative']['activation_stale']
+            after_refusal=db.execute("""SELECT
+                (SELECT count(*) FROM photo.resource_reservations WHERE tenant_id=%s AND task_id=%s),
+                (SELECT count(*) FROM photo.outbox WHERE tenant_id=%s)""",(tenant,task,tenant)).fetchone()
+            ready=db.execute('SELECT state,dispatch_command IS NULL FROM photo.tasks WHERE tenant_id=%s AND id=%s',(tenant,task)).fetchone()
+            diagnostic['negative'].update(before_counts=before_refusal,after_counts=after_refusal,
+                counts_unchanged=after_refusal==before_refusal,task_state=ready[0],command_absent=ready[1])
+            save_diagnostic()
+            assert after_refusal==before_refusal
+            assert ready==('ready',True)
+            assert db.execute("UPDATE photo.operation_registry SET v2_enabled=true WHERE operation='semantic.local_exposure' AND version='1' AND resource_class='cpu' AND backends ? 'cpu' AND NOT v2_enabled").rowcount==1
+            db.commit()
+        dispatched=run_named_go(['go','test','./internal/workflow','-run','^TestIntegrationSemanticExposureDispatcher$','-count=1','-timeout=30s','-v'],cwd=repo/'backend',env=environment,capture_output=True,text=True,timeout=40)
+        assert dispatched.returncode==0,dispatched.stdout+dispatched.stderr
+        assert 'V27_DISPATCHER_OK' in dispatched.stdout
+        envelope=db.execute('SELECT dispatch_command FROM photo.tasks WHERE tenant_id=%s AND id=%s',(tenant,task)).fetchone()[0]
+        db.commit()
+        from photo_worker.contracts.wire import TaskCommand
+        command=TaskCommand.model_validate_json(canonical_bytes(envelope))
+        from wire_runtime_login import worker_login
+        with worker_login(make_conninfo(**database), task, pending_dispatch=True) as runtime_dsn:
+            return _execute_http_exposure_worker_inputs(db,database,client,bucket,tenant,root,
+                task,run,params,digest,profile,inputs,worker,runtime_dsn,command)
+    finally:
+        # Isolated operator state only; never restore before actual claim/compute.
+        db.rollback()
+        diagnostic['restoration']={'attempted':True,'expected_enabled':original_enabled}
+        save_diagnostic()
+        restored=db.execute("UPDATE photo.operation_registry SET v2_enabled=%s WHERE operation='semantic.local_exposure' AND version='1' AND resource_class='cpu' AND backends ? 'cpu'",(original_enabled,)).rowcount
+        db.commit()
+        actual=db.execute("SELECT v2_enabled FROM photo.operation_registry WHERE operation='semantic.local_exposure' AND version='1' AND resource_class='cpu' AND backends ? 'cpu'").fetchall()
+        db.commit()
+        diagnostic['restoration'].update(rowcount=restored,actual_enabled=None if len(actual)!=1 else actual[0][0],
+            matched=restored==1 and actual==[(original_enabled,)])
+        save_diagnostic()
+        assert diagnostic['restoration']['matched']
+
+
+def _execute_http_exposure_worker_inputs(db,database,client,bucket,tenant,root,
+        task,run,params,digest,profile,inputs,worker,runtime_dsn,command):
+    claimed=TaskDatabase(runtime_dsn).claim(command,worker)
     assert claimed.outcome=='claimed'
     lease=claimed.lease
     assert lease is not None and lease.fence==1
@@ -72,7 +144,7 @@ def verify_http_exposure_worker_inputs(db,database,client,bucket,tenant,root):
         return ref
     progress=[]
     ctx=SimpleNamespace(lease=lease,check_active=lambda:None,progress=lambda done,total:progress.append((done,total)))
-    database_port=TaskDatabase(make_conninfo(**database))
+    database_port=TaskDatabase(runtime_dsn)
     icc=ICCRegistry(Path(__file__).resolve().parents[2]/'resources'/'icc')
     factory=sql_local_exposure_factory(database=database_port,objects=client,bucket=bucket,icc_registry=icc,**{k:profile[k] for k in ('model_lock_sha','runtime_lock_sha','device_profile_sha','dataset_sha')})
     root.mkdir(mode=0o700,parents=True,exist_ok=False)

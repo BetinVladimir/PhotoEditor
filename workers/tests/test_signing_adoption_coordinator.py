@@ -1,4 +1,5 @@
 from contextlib import contextmanager, nullcontext
+from hashlib import sha256
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -57,8 +58,9 @@ def test_signer_coordinator_uses_dedicated_atomic_commit(monkeypatch, tmp_path, 
         events.append('verify')
         if mode == 'rejected':
             raise AdoptionInvalid('SIGNING_PHYSICAL_VERIFICATION_FAILED')
+        inventory = tuple({'ordinal':n,'artifact_id':str(uuid4()),'sha256':'a'*64,'purpose':'b'*64} for n in range(3))
         return PreparedSigningAdoption(VerifiedSigningResult(b'{}', b'{}', b'{}', b'{}', 'f'*64, 10),
-                                       PreparedAdoption((), 'd'*64))
+                                       PreparedAdoption(inventory, sha256(canonical_bytes(list(inventory))).hexdigest()))
     monkeypatch.setattr(provenance_adoption_prepare, 'prepare_current_signing', prepare)
     coordinator = adoption_service.AdoptionCoordinator(Read(), Write(), object(), 'bucket',
         layer_scratch_root=tmp_path, layer_scratch_bytes=2 << 20,

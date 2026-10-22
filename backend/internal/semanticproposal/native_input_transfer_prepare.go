@@ -95,7 +95,7 @@ func (s SQLTransferSourceReader) prepareNativeInputTransferInputs(ctx context.Co
 			}
 			targetPerson = &proof
 		}
-		profile, err := v2input.CompileSemanticTransferProfile(reference.Width, reference.Height, metadata.Width, metadata.Height, reference.Gamma, metadata.Gamma, configuration.Costs, configuration.RAM, configuration.VRAM, configuration.Scratch, configuration.Output)
+		profile, err := v2input.CompileSemanticTransferProfileForBackend(configuration.Expected.Backend, reference.Width, reference.Height, metadata.Width, metadata.Height, reference.Gamma, metadata.Gamma, configuration.Costs, configuration.RAM, configuration.VRAM, configuration.Scratch, configuration.Output)
 		if err != nil {
 			return nil, nil, err
 		}

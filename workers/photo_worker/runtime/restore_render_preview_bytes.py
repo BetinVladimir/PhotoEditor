@@ -61,7 +61,7 @@ def verify_render_preview_bytes(api_raw,manifest_raw,image_raw,*,review_id,side,
                 or not isinstance(item['url'],str) or not item['url']
                 or not isinstance(item['expires_at'],str)):
             raise ValueError('RESTORE_RENDER_PREVIEW_LINK')
-        try:ref=ArtifactRef.model_validate(item['artifact'])
+        try:ref=ArtifactRef.model_validate_json(canonical_bytes(item['artifact']))
         except Exception:raise ValueError('RESTORE_RENDER_PREVIEW_LINK') from None
         raw=manifest_raw if name=='manifest' else image_raw
         if len(raw)!=item['bytes'] or sha256(raw).hexdigest()!=ref.sha256:

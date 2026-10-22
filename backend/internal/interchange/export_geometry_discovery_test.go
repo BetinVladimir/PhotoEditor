@@ -18,7 +18,7 @@ func TestExportGeometryDiscoveryDoesNotAdmitBinaryInputs(t *testing.T){
  cause:=errors.New("native qualifier not installed")
  resolver:=&exportDiscoveryJSONOnly{source:stub,cause:cause}
  parents,err:=DiscoverExportGeometryParents(context.Background(),compiled,resolver)
- if err!=nil||len(parents)!=1||parents[0].Contract!="WorkingImage"||resolver.binaryCalls!=0||stub.calls!=6{t.Fatal("incorrect JSON discovery",parents,err,stub.calls)}
+ if err!=nil||len(parents)!=1||parents[0].Contract!="WorkingImage"||resolver.binaryCalls!=0||stub.calls!=7{t.Fatal("incorrect JSON discovery",parents,err,stub.calls)}
  // These fixtures prove graph discovery only; their {} bodies do not pass
  // real typed WorkingImage schemas. Full admission still requires a native leaf.
  if _,err:=ResolveExportInputInventory(context.Background(),compiled,resolver);!errors.Is(err,cause)||resolver.binaryCalls!=1{t.Fatal("discovery bypassed full physical admission",err)}

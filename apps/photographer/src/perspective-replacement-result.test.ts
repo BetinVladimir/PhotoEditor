@@ -24,9 +24,10 @@ it('loads exact replacement producer with owned mapped base',async()=>{
  expect(result.state).toBe('available');expect(service.perspectiveProposal).toHaveBeenCalledWith(body.project,body.task,scope().base,signal);
 });
 it('rejects failed workflows and late cancellation',async()=>{
- for(const state of ['failed','cancelled','completed_with_errors','unknown']){
-  const service=api(state);await expect(readPerspectiveReplacementResult(service as unknown as Pick<OwnerAPI,'get'|'perspectiveProposal'>,scope(),new AbortController().signal)).rejects.toThrow('PERSPECTIVE_RESULT_UNAVAILABLE');expect(service.perspectiveProposal).not.toHaveBeenCalled();
+ for(const state of ['failed','cancelled','completed_with_errors']){
+  const service=api(state);expect(await readPerspectiveReplacementResult(service as unknown as Pick<OwnerAPI,'get'|'perspectiveProposal'>,scope(),new AbortController().signal)).toEqual({state:'terminal',workflow_state:state});expect(service.perspectiveProposal).not.toHaveBeenCalled();
  }
+ const unknown=api('unknown');await expect(readPerspectiveReplacementResult(unknown as unknown as Pick<OwnerAPI,'get'|'perspectiveProposal'>,scope(),new AbortController().signal)).rejects.toThrow('PERSPECTIVE_RESULT_UNAVAILABLE');
  const controller=new AbortController(),service=api('completed');service.get.mockImplementation(async()=>{controller.abort();return {run_id:scope().run,workflow_id:scope().workflow,state:'completed'};});
  await expect(readPerspectiveReplacementResult(service as unknown as Pick<OwnerAPI,'get'|'perspectiveProposal'>,scope(),controller.signal)).rejects.toThrow('PERSPECTIVE_RESULT_CANCELLED');expect(service.perspectiveProposal).not.toHaveBeenCalled();
 });
@@ -36,4 +37,8 @@ it('decodes only exact current discovery scope and owns the mapped base',()=>{
  const read=(value:unknown)=>readPerspectiveReplacementScope(value,v.tenant,v.project,v.review,v.originalTask,v.decisionHash);
  const owned=read(wire);wire.base.canvas_hash='f'.repeat(64);expect(owned).toEqual(v);
  expect(()=>read({...wire,unknown:true})).toThrow();expect(()=>read({...wire,review_id:v.project})).toThrow();expect(()=>read({...wire,task_id:v.originalTask})).toThrow();expect(()=>read(null)).toThrow();
+});
+
+it('keeps cancelling observable without proposal IO',async()=>{
+ const service=api('cancelling');expect(await readPerspectiveReplacementResult(service as unknown as Pick<OwnerAPI,'get'|'perspectiveProposal'>,scope(),new AbortController().signal)).toEqual({state:'pending',workflow_state:'cancelling'});expect(service.perspectiveProposal).not.toHaveBeenCalled();
 });

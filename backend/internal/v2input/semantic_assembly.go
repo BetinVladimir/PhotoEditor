@@ -211,5 +211,5 @@ func PublishSemanticAssemblyTask(ctx context.Context, f FrozenSemanticAssembly, 
 	if err != nil {
 		return PreparedSemanticTask{}, err
 	}
-	return PreparedSemanticTask{Graph: GraphTask{f.task, built, f.closure.Open, append([]Ref(nil), f.closure.Direct...)}, Params: f.params, ParamsJCS: append(json.RawMessage(nil), f.closure.ParamsJCS...), Profile: append(json.RawMessage(nil), f.profile...), InputDigest: f.closure.InputDigest, NodeKey: draft.NodeKey}, nil
+	return PreparedSemanticTask{Graph: GraphTask{ID: f.task, Built: built, Open: f.closure.Open, Direct: append([]Ref(nil), f.closure.Direct...)}, Params: f.params, ParamsJCS: append(json.RawMessage(nil), f.closure.ParamsJCS...), Profile: append(json.RawMessage(nil), f.profile...), InputDigest: f.closure.InputDigest, NodeKey: draft.NodeKey}, nil
 }

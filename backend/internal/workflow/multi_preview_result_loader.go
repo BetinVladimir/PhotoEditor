@@ -24,7 +24,7 @@ func LoadMultiPreviewResult(ctx context.Context, results MultiPreviewResults, ob
 	if err := validateMultiPreviewPlan(plan); err != nil {
 		return zero, err
 	}
-	rebuilt, err := CompileMultiPreviewPlan(plan.source, content, plan.srgb)
+	rebuilt, err := CompileMultiPreviewPlan(plan.source, content, plan.srgb,plan.policy)
 	if err != nil {
 		return zero, err
 	}

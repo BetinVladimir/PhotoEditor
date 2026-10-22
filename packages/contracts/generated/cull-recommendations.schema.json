@@ -38,7 +38,7 @@
           "type": "boolean"
         },
         "rank": {
-          "maximum": 2000,
+          "maximum": 5000,
           "minimum": 1,
           "title": "Rank",
           "type": "integer"
@@ -82,7 +82,7 @@
       "items": {
         "$ref": "#/$defs/CullItem"
       },
-      "maxItems": 2000,
+      "maxItems": 5000,
       "minItems": 1,
       "title": "Items",
       "type": "array"
@@ -94,13 +94,13 @@
       "type": "boolean"
     },
     "selected_count": {
-      "maximum": 2000,
+      "maximum": 5000,
       "minimum": 1,
       "title": "Selected Count",
       "type": "integer"
     },
     "target_count": {
-      "maximum": 2000,
+      "maximum": 5000,
       "minimum": 1,
       "title": "Target Count",
       "type": "integer"

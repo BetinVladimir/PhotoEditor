@@ -29,6 +29,8 @@ def component_paths() -> dict[str, Path]:
         paths['session_' + name] = root / 'operations/session' / (name + '.py')
     for name in ('model_delta',):
         paths['algorithm_' + name] = root / 'algorithms' / (name + '.py')
+    for name in ('onnx_session', 'backend_support'):
+        paths['models_' + name] = root / 'models' / (name + '.py')
     paths['identity_config'] = root / 'runtime/identity_config.py'
     for label, module in (('onnxruntime', onnxruntime), ('scipy', scipy)):
         folder = Path(module.__file__).parent
@@ -43,7 +45,24 @@ def component_paths() -> dict[str, Path]:
     return paths
 
 
-def measure_runtime() -> str:
+def runtime_packages(backend: str) -> dict[str, str]:
+    if backend not in ('cpu', 'cuda'):
+        raise OperationFailure('IDENTITY_BACKEND_UNAVAILABLE')
+    selected = 'onnxruntime-gpu' if backend == 'cuda' else 'onnxruntime'
+    other = 'onnxruntime' if backend == 'cuda' else 'onnxruntime-gpu'
+    # Both wheels install the same Python namespace; mixed installations cannot
+    # be identified by a package version receipt and must not be qualified.
+    try:
+        metadata.version(other)
+    except metadata.PackageNotFoundError:
+        pass
+    else:
+        raise OperationFailure('IDENTITY_RUNTIME_DISTRIBUTION_AMBIGUOUS')
+    return {name: metadata.version(name) for name in
+            ('numpy', 'pydantic', 'rfc8785', 'torch', 'torchvision', selected, 'scipy')}
+
+
+def measure_runtime(backend: str = 'cpu') -> str:
     import torch
 
     components = {}
@@ -56,9 +75,7 @@ def measure_runtime() -> str:
     return canonical_hash(dict(schema_version=1, operation='identity.compare',
         python_version=platform.python_version(),
         implementation=platform.python_implementation(), machine=platform.machine(),
-        packages={name: metadata.version(name) for name in
-                  ('numpy', 'pydantic', 'rfc8785', 'torch', 'torchvision',
-                   'onnxruntime', 'scipy')},
+        packages=runtime_packages(backend),
         torch_build=sha256(torch.__config__.show().encode()).hexdigest(),
         components=components))
 
@@ -79,7 +96,7 @@ def installed_identity_measurements(pool, backend: str) -> dict[str, str]:
                 raise OperationFailure('IDENTITY_MODEL_UNQUALIFIED')
             verify_model(pool.root / pool.lock.lock_id / model_id, entry)
         return dict(model_lock_sha=pool.lock.lock_id,
-                    runtime_lock_sha=measure_runtime(),
+                    runtime_lock_sha=measure_runtime(backend),
                     device_profile_sha=measure_device(backend), backend=backend)
     except ModelError as error:
         raise OperationFailure(str(error)) from error

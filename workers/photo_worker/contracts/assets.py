@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Annotated,Literal
-from pydantic import Field,field_validator,model_validator
+from pydantic import Field,field_validator,model_validator,model_serializer
+from datetime import datetime
 from .base import Contract,ArtifactRef,SHA256
 
 SOURCE_SUFFIXES=frozenset({'.jpg','.jpeg','.png','.tif','.tiff','.nef','.nrw','.crw','.cr2','.cr3','.arw','.srf','.sr2','.mrw','.dng','.rw2','.orf','.raf','.pef','.srw','.3fr','.fff','.iiq','.mos','.kdc','.mef','.x3f'})
@@ -58,9 +59,21 @@ class AssetMetadata(Contract):
     icc_sha256:SHA256|None
     format:Literal['jpeg','png','tiff','raw']
     sensor_alignment:SensorAlignment|None=None
+    captured_at:Annotated[str,Field(pattern=r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$')]|None=None
+    captured_local:Annotated[str,Field(pattern=r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$')]|None=None
+
+    @model_serializer(mode='wrap')
+    def capture_sideband(self,handler):
+        result=handler(self)
+        for key in ('captured_at','captured_local'):
+            if result.get(key) is None:result.pop(key,None)
+        return result
 
     @model_validator(mode='after')
     def pixels(self):
+        if self.captured_at is not None and self.captured_local is not None:raise ValueError('Capture timestamp has conflicting timezone evidence')
+        if self.captured_at is not None:datetime.strptime(self.captured_at,'%Y-%m-%dT%H:%M:%SZ')
+        if self.captured_local is not None:datetime.strptime(self.captured_local,'%Y-%m-%dT%H:%M:%S')
         if self.width*self.height>200000000:raise ValueError('Pixel limit exceeded')
         if self.sensor_alignment is not None and self.format!='raw':raise ValueError('Sensor alignment requires RAW')
         return self

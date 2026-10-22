@@ -47,7 +47,7 @@ func (s SQLTransferSourceReader) readCompletedNativeTargetFaceParse(ctx context.
 	if err != nil {
 		return zero, err
 	}
-	labels, counts, err := s.ReadFaceParsePreparation(ctx, who, plan.shell.Tenant, binding, catalog.Outputs[1])
+	labels, counts, pixels, err := s.readFaceParsePreparationPinned(ctx, who, plan.shell.Tenant, binding, catalog.Outputs[1])
 	if err != nil {
 		return zero, err
 	}
@@ -55,17 +55,17 @@ func (s SQLTransferSourceReader) readCompletedNativeTargetFaceParse(ctx context.
 		return zero, v2input.ErrConflict
 	}
 	var expected v2qualification.Expected
-	if json.Unmarshal([]byte(plan.prepared.expected), &expected) != nil || labels.Backend != "cuda" || labels.ModelLockID != expected.ModelLockSHA {
+	if json.Unmarshal([]byte(plan.prepared.expected), &expected) != nil || labels.Backend != expected.Backend || labels.ModelLockID != expected.ModelLockSHA {
 		return zero, v2qualification.ErrUnqualified
 	}
-	selected, err := selectQualificationPolicies(plan.detector.detector.policy, []string{"face.parse"})
+	selected, err := selectNativeQualificationPolicies(plan.detector.detector.policy, []string{"face.parse"})
 	if err != nil {
 		return zero, err
 	}
 	if !sameQualificationPolicyExpected(expected, selected["face.parse"]) {
 		return zero, v2qualification.ErrUnqualified
 	}
-	current, err := s.nativeTargetFaceResultCatalog(ctx, who, plan)
+	current, err := s.nativeTargetFaceResultCatalogCurrent(ctx, who, plan)
 	if err != nil {
 		return zero, err
 	}
@@ -101,5 +101,5 @@ func (s SQLTransferSourceReader) readCompletedNativeTargetFaceParse(ctx context.
 	if err := ctx.Err(); err != nil {
 		return zero, err
 	}
-	return completedNativeFaceParse{catalog: catalog, body: string(raw), paramsBody: string(params), labels: labels, counts: counts, objects: objects, detector: detector}, nil
+	return completedNativeFaceParse{catalog: catalog, body: string(raw), paramsBody: string(params), labels: labels, counts: counts, objects: objects, detector: detector, pixels: pixels}, nil
 }

@@ -1,0 +1,28 @@
+{
+  "status": "SOURCE_FIXED_QT_WIDGET_SMOKE_PASS_AT_UNRUN",
+  "source": "apps/local-editor/src/photoeditor/studio.py",
+  "sha256": "ff70f53b5ed9ff2c9a5fc3770e91f35b1233a108e7595ee7c3602452371016cb",
+  "changes": [
+    "Accessible names/descriptions for source file list, YAML and read-only processing log",
+    "Original/processed preview names with actual filename and image dimensions",
+    "Explicit image-unavailable text and description on failed QPixmap load",
+    "Wrapping processing status label"
+  ],
+  "verification": {
+    "python_source_compile": "PASS",
+    "PySide6_in_platform_environment": false,
+    "actual_Qt_widget_smoke": {
+      "result": "work/native-accessibility-smoke-r1/result.json",
+      "sha256": "7e0162c2b87ecee93cfea5a1b5c4524921d90d6ed92d65f15e884ca0e893a872",
+      "checks": 8,
+      "status": "PASS",
+      "environment": ".venv; QT_QPA_PLATFORM=offscreen"
+    },
+    "PySide6_in_main_venv": true
+  },
+  "limits": [
+    "Filename/dimensions identify the preview; they do not describe photographic content",
+    "VoiceOver exposure, live status announcements, keyboard traversal, scaling and full native AA remain NOT_TESTED",
+    "No WCAG conformance claim"
+  ]
+}

@@ -16,6 +16,8 @@ from photo_worker.contracts.base import ArtifactRef,canonical_bytes
 from photo_worker.contracts.images import MaskRef,WorkingImage
 from photo_worker.contracts.relight import ImageRelightParams
 from photo_worker.runtime.database import TaskDatabase
+from wire_runtime_login import worker_login
+from photo_worker.runtime.executor import OperationFailure
 from photo_worker.operations.portrait.relight_manual_authority import SQLRelightManualOrigin,RelightManualMaskAuthority
 from test_v28_relight_manual import seed_manual_inputs
 from test_v28_relight_lease import relight_lease_fixture
@@ -68,18 +70,21 @@ def test_live_manual_origin_original_versions_and_vector_replay(database,lens_ob
                 stream=BytesIO();np.save(stream,array,allow_pickle=False);raw=stream.getvalue()
             path=tmp_path/(str(ref.artifact_id)+suffix);path.write_bytes(raw)
             yield SimpleNamespace(path=path)
-    artifacts=Artifacts();database_reader=TaskDatabase(make_conninfo(**database))
-    authority=RelightManualMaskAuthority(artifacts,SQLRelightManualOrigin(database_reader,artifacts))
-    guard=MaskRef.model_validate_json(retained['guard_raw'])
-    if failure:
-        from minio.error import S3Error
-        expected=S3Error if failure=='missing-params' else ValueError
-        match=None if failure=='missing-params' else ('RASTER_VECTOR_MISMATCH' if failure=='wrong-raster' else 'PINNED_BYTES_MISMATCH')
-        with pytest.raises(expected,match=match):
-            authority.verify(ctx,params,source,guard,protected=True)
-    else:
-        assert authority.verify(ctx,params,source,guard,protected=True) is True
-        target=MaskRef.model_validate_json(retained['target_raw'])
-        assert authority.verify(ctx,params,source,target,protected=False) is True
-        with psycopg.connect(**database) as db:db.execute('UPDATE photo.artifacts SET produced_fence=2 WHERE id=%s',(retained['pins']['mask_protected'].artifact_id,))
-        with pytest.raises(RuntimeError):authority.verify(ctx,params,source,guard,protected=True)
+    # Attest the isolated runtime identity before any expected negative outcome.
+    with worker_login(make_conninfo(**database),args[2]) as runtime_dsn:
+        artifacts=Artifacts();database_reader=TaskDatabase(runtime_dsn)
+        database_reader.ping()
+        authority=RelightManualMaskAuthority(artifacts,SQLRelightManualOrigin(database_reader,artifacts))
+        guard=MaskRef.model_validate_json(retained['guard_raw'])
+        if failure:
+            from minio.error import S3Error
+            expected=S3Error if failure=='missing-params' else ValueError
+            match=None if failure=='missing-params' else ('RASTER_VECTOR_MISMATCH' if failure=='wrong-raster' else 'PINNED_BYTES_MISMATCH')
+            with pytest.raises(expected,match=match):
+                authority.verify(ctx,params,source,guard,protected=True)
+        else:
+            assert authority.verify(ctx,params,source,guard,protected=True) is True
+            target=MaskRef.model_validate_json(retained['target_raw'])
+            assert authority.verify(ctx,params,source,target,protected=False) is True
+            with psycopg.connect(**database) as db:db.execute('UPDATE photo.artifacts SET produced_fence=2 WHERE id=%s',(retained['pins']['mask_protected'].artifact_id,))
+            with pytest.raises(OperationFailure,match='^RELIGHT_MANUAL_ORIGIN_INVALID$'):authority.verify(ctx,params,source,guard,protected=True)

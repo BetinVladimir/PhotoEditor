@@ -63,10 +63,21 @@ func (s *UploadService) Upload(ctx context.Context, request UploadRequest, body 
 	if !request.Identity.valid() || request.IdempotencyKey == uuid.Nil || request.Certificate == nil || request.Certificate.IsCA || len(request.Certificate.Raw) == 0 || !uploadRole.MatchString(request.Role) || !uploadHash.MatchString(request.SHA256) || !uploadMedia.MatchString(request.MediaType) || request.Bytes < 0 || body == nil {
 		return ArtifactRef{}, false, objectstore.ErrInvalid
 	}
+	if err := ctx.Err(); err != nil {
+		return ArtifactRef{}, false, err
+	}
 	beginCtx, endBegin := context.WithTimeout(ctx, 5*time.Second)
 	ticket, err := s.Repository.Begin(beginCtx, request)
+	beginContextErr := beginCtx.Err()
 	endBegin()
 	if err != nil {
+		dependencyObservation("output_reservation", err)
+		return ArtifactRef{}, false, err
+	}
+	if beginContextErr != nil {
+		return ArtifactRef{}, false, beginContextErr
+	}
+	if err := ctx.Err(); err != nil {
 		return ArtifactRef{}, false, err
 	}
 	if ticket.Replay != nil {
@@ -81,6 +92,10 @@ func (s *UploadService) Upload(ctx context.Context, request UploadRequest, body 
 	}
 	object, err := s.Objects.PutImmutable(ctx, key, body, request.Bytes, request.SHA256, request.MediaType)
 	if err != nil {
+		dependencyObservation("output_storage", err)
+		return ArtifactRef{}, false, err
+	}
+	if err := ctx.Err(); err != nil {
 		return ArtifactRef{}, false, err
 	}
 	if object.Key != key || object.VersionID == "" || object.VersionID == "null" || object.Bytes != request.Bytes || object.SHA256 != request.SHA256 || object.ContentType != request.MediaType {
@@ -88,8 +103,16 @@ func (s *UploadService) Upload(ctx context.Context, request UploadRequest, body 
 	}
 	commitCtx, endCommit := context.WithTimeout(ctx, 5*time.Second)
 	ref, err := s.Repository.Complete(commitCtx, request, ticket, object)
+	commitContextErr := commitCtx.Err()
 	endCommit()
 	if err != nil {
+		dependencyObservation("output_commit", err)
+		return ArtifactRef{}, false, err
+	}
+	if commitContextErr != nil {
+		return ArtifactRef{}, false, commitContextErr
+	}
+	if err := ctx.Err(); err != nil {
 		return ArtifactRef{}, false, err
 	}
 	if ref.ArtifactID != ticket.ArtifactID || ref.SHA256 != request.SHA256 {

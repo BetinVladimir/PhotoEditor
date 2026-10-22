@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
+import {expectEnabled,clickWhenEnabled} from './test/ui-readiness';
 import {afterEach,expect,it,vi} from 'vitest';
-import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
-vi.mock('react-native',async()=>import('react-native-web'));
+import {act,cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
+const lifecycle=vi.hoisted(()=>({listeners:new Set<(state:string)=>void>()}));
+vi.mock('react-native',async()=>({...await import('react-native-web'),AppState:{currentState:'active',addEventListener:(_event:string,listener:(state:string)=>void)=>{lifecycle.listeners.add(listener);return{remove:()=>lifecycle.listeners.delete(listener)};}}}));
 const memory=vi.hoisted(()=>new Map<string,string>());
 vi.mock('@react-native-async-storage/async-storage',()=>({default:{
  getItem:async(key:string)=>memory.get(key)??null,
@@ -31,11 +33,11 @@ it('selects exact manual pair and submits server-prepared reflection intent',asy
  } as unknown as OwnerAPI;
  const onSubmitted=vi.fn();render(<EditorReflection api={api} origin="https://photo.test" tenant={id(32)} project={id(6)} asset={id(31)} version={base.asset_version_id} onSubmitted={onSubmitted}/>);
  const radio=await screen.findByRole('radio',{name:'Mask pair 1'});
- await waitFor(()=>expect(radio.getAttribute('aria-disabled')).not.toBe('true'));
- fireEvent.click(radio);
+ await waitFor(()=>expectEnabled(radio));
+ await clickWhenEnabled(radio);
  fireEvent.click(screen.getByRole('button',{name:'Review reflection request'}));
- await waitFor(()=>expect(screen.getByRole('button',{name:'Prepare and submit'}).getAttribute('aria-disabled')).not.toBe('true'));
- fireEvent.click(screen.getByRole('button',{name:'Prepare and submit'}));
+ await waitFor(()=>expectEnabled(screen.getByRole('button',{name:'Prepare and submit'})));
+ await clickWhenEnabled(screen.getByRole('button',{name:'Prepare and submit'}));
  await waitFor(()=>expect(onSubmitted).toHaveBeenCalledWith(ticket));
  expect(prepareReflection.mock.calls[0][1]).toMatchObject({mask:mask.mask,protected:mask.protected,target_pixel:mask.target_pixel,protected_pixel:mask.protected_pixel});
  expect(prepareReflection.mock.calls[0][2]).toBe(submitReflection.mock.calls[0][2]);
@@ -51,8 +53,8 @@ it('recovers the same reflection intent and key after an ambiguous response',asy
   submitReflection,get:vi.fn(async()=>({run_id:ticket.run_id,workflow_id:ticket.workflow_id}))} as unknown as OwnerAPI;
  const onSubmitted=vi.fn();render(<EditorReflection api={api} origin={origin} tenant={tenant} project={project} asset={id(31)} version={base.asset_version_id} onSubmitted={onSubmitted}/>);
  const button=await screen.findByRole('button',{name:'Retry submission'});
- await waitFor(()=>expect(button.getAttribute('aria-disabled')).not.toBe('true'));
- fireEvent.click(button);
+ await waitFor(()=>expectEnabled(button));
+ await clickWhenEnabled(button);
  await waitFor(()=>expect(onSubmitted).toHaveBeenCalledWith(ticket));
  expect(submitReflection.mock.calls[0][2]).toBe(key);
  expect(api.createRenderInputSnapshot).not.toHaveBeenCalled();
@@ -68,4 +70,54 @@ it('refuses to replay a stored reflection for a changed live source binding',asy
  expect((await screen.findByRole('alert')).textContent).toBe('Reflection mask choices are unavailable.');
  expect(api.submitReflection).not.toHaveBeenCalled();
  expect(api.createRenderInputSnapshot).not.toHaveBeenCalled();
+});
+
+it('does not admit a reflection if capability is lost during server preparation',async()=>{
+ let finish!:(value:typeof prepared)=>void;
+ const prepareReflection=vi.fn(()=>new Promise<typeof prepared>(resolve=>{finish=resolve;}));
+ const submitReflection=vi.fn();
+ const api={me:vi.fn().mockResolvedValue({id:id(30)}),v2Binding:vi.fn().mockResolvedValue(base),createRenderInputSnapshot:vi.fn().mockResolvedValue({id:id(17)}),reflectionMaskPairs:vi.fn().mockResolvedValue({items:[mask],next_cursor:null}),prepareReflection,submitReflection} as unknown as OwnerAPI;
+ const props={api,origin:'https://photo.test',tenant:id(32),project:id(6),asset:id(31),version:base.asset_version_id,onSubmitted:vi.fn()};
+ const view=render(<EditorReflection {...props}/>);
+ const radio=await screen.findByRole('radio',{name:'Mask pair 1'});fireEvent.click(radio);
+ fireEvent.click(screen.getByRole('button',{name:'Review reflection request'}));
+ await waitFor(()=>expectEnabled(screen.getByRole('button',{name:'Prepare and submit'})));
+ await clickWhenEnabled(screen.getByRole('button',{name:'Prepare and submit'}));await waitFor(()=>expect(prepareReflection).toHaveBeenCalledOnce());
+ view.rerender(<EditorReflection {...props} disabled/>);await act(async()=>finish(prepared));
+ expect(submitReflection).not.toHaveBeenCalled();expect(props.onSubmitted).not.toHaveBeenCalled();
+});
+
+it('blocks reflection after live capability withdrawal without rerender',async()=>{
+ let available=true;
+ let finish!:(value:typeof prepared)=>void;
+ const prepareReflection=vi.fn(()=>new Promise<typeof prepared>(resolve=>{finish=resolve;}));
+ const submitReflection=vi.fn();
+ const api={me:vi.fn().mockResolvedValue({id:id(30)}),v2Binding:vi.fn().mockResolvedValue(base),createRenderInputSnapshot:vi.fn().mockResolvedValue({id:id(17)}),reflectionMaskPairs:vi.fn().mockResolvedValue({items:[mask],next_cursor:null}),prepareReflection,submitReflection} as unknown as OwnerAPI;
+ const props={api,origin:'https://photo.test',tenant:id(32),project:id(6),asset:id(31),version:base.asset_version_id,onSubmitted:vi.fn(),operationAvailable:()=>available};
+ render(<EditorReflection {...props}/>);
+ const radio=await screen.findByRole('radio',{name:'Mask pair 1'});fireEvent.click(radio);
+ fireEvent.click(screen.getByRole('button',{name:'Review reflection request'}));
+ await waitFor(()=>expectEnabled(screen.getByRole('button',{name:'Prepare and submit'})));
+ await clickWhenEnabled(screen.getByRole('button',{name:'Prepare and submit'}));await waitFor(()=>expect(prepareReflection).toHaveBeenCalledOnce());
+ available=false;await act(async()=>finish(prepared));
+ expect(submitReflection).not.toHaveBeenCalled();expect(props.onSubmitted).not.toHaveBeenCalled();
+});
+
+it('does not continue discovery from a late identity response after backgrounding',async()=>{
+ let identity!:(value:{id:string})=>void;
+ const v2Binding=vi.fn(),onSubmitted=vi.fn();
+ const api={me:vi.fn(()=>new Promise<{id:string}>(resolve=>{identity=resolve;})),v2Binding} as unknown as OwnerAPI;
+ render(<EditorReflection api={api} origin="https://photo.test" tenant={id(32)} project={id(6)} asset={id(31)} version={base.asset_version_id} onSubmitted={onSubmitted}/>);
+ await act(async()=>{for(const listener of lifecycle.listeners)listener('background');});
+ await act(async()=>{identity({id:id(30)});});
+ expect(v2Binding).not.toHaveBeenCalled();expect(onSubmitted).not.toHaveBeenCalled();
+});
+it('does not create a snapshot from a late binding after the source scope changes',async()=>{
+ let binding!:(value:typeof base)=>void;
+ const snapshots=vi.fn(),first={me:vi.fn(async()=>({id:id(30)})),v2Binding:vi.fn(()=>new Promise<typeof base>(resolve=>{binding=resolve;})),createRenderInputSnapshot:snapshots} as unknown as OwnerAPI;
+ const next={me:vi.fn(()=>new Promise(()=>{}))} as unknown as OwnerAPI;
+ const view=render(<EditorReflection api={first} origin="https://photo.test" tenant={id(32)} project={id(6)} asset={id(31)} version={base.asset_version_id} onSubmitted={vi.fn()}/>);
+ await waitFor(()=>expect(first.v2Binding).toHaveBeenCalled());
+ view.rerender(<EditorReflection api={next} origin="https://photo.test" tenant={id(32)} project={id(6)} asset={id(31)} version={id(99)} onSubmitted={vi.fn()}/>);
+ await act(async()=>{binding(base);});expect(snapshots).not.toHaveBeenCalled();
 });

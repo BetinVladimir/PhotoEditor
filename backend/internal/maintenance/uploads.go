@@ -34,18 +34,23 @@ type UploadCleaner struct {
 // CleanOne first expires one stale session and then drains one durable abort.
 // Both operations are bounded, so a large expiry backlog cannot starve cleanup.
 func (c UploadCleaner) CleanOne(ctx context.Context) (bool, error) {
+	if err := ctx.Err(); err != nil { return false, err }
 	if c.Repository == nil || c.Objects == nil {
 		return false, errors.New("invalid upload cleanup configuration")
 	}
 	expire, cancel := context.WithTimeout(ctx, 5*time.Second)
 	expired, err := c.Repository.ExpireOne(expire)
+	expireErr := expire.Err()
 	cancel()
 	if err != nil {
 		return false, err
 	}
+	if expireErr != nil { return expired, expireErr }
 	claim, cancel := context.WithTimeout(ctx, 5*time.Second)
 	ticket, err := c.Repository.Claim(claim)
+	claimErr := claim.Err()
 	cancel()
+	if err == nil { err = claimErr }
 	if err != nil || ticket == nil {
 		return expired, err
 	}
@@ -54,13 +59,17 @@ func (c UploadCleaner) CleanOne(ctx context.Context) (bool, error) {
 	}
 	abort, cancel := context.WithTimeout(ctx, 30*time.Second)
 	err = c.Objects.AbortMultipart(abort, ticket.ObjectKey, ticket.MultipartID)
+	abortErr := abort.Err()
 	cancel()
 	if err != nil && !errors.Is(err, objectstore.ErrMissing) {
 		return false, err
 	}
+	if abortErr != nil { return expired, abortErr }
 	finish, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
+	if err := finish.Err(); err != nil { return expired, err }
 	done, err := c.Repository.Finish(finish, *ticket)
+	if err == nil { err = finish.Err() }
 	return expired || done, err
 }
 

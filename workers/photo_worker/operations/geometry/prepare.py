@@ -31,14 +31,42 @@ def prepare_crop(rgb, alpha, plan, scratch, *, check_active=lambda: None):
             or alpha is not None and (alpha.shape != (h, w) or alpha.dtype != np.uint16)):
         raise ValueError('CROP_SOURCE_INVALID')
     matrix = np.asarray(plan.forward_matrix, np.float64).reshape(3, 3)
+    # Integer in-bounds crop has no interpolation. Preserve exact encoded
+    # pixels (and hidden RGB) instead of a lossy gamma/premult round trip.
+    left,top=-matrix[0,2],-matrix[1,2]
+    direct=(np.isfinite(matrix).all() and np.array_equal(matrix[:2,:2],np.eye(2))
+        and np.array_equal(matrix[2],np.array([0.,0.,1.]))
+        and left.is_integer() and top.is_integer()
+        and 0<=left<=w-ow and 0<=top<=h-oh)
+    if direct:left,top=int(left),int(top)
     reserve = ow * oh * (12 + (2 if alpha is not None else 0)) + 65536
     with scratch.reserve(reserve) as reservation:
         path = reservation.path('crop-rgb', '.npy')
         out = np.lib.format.open_memmap(path, mode='w+', dtype='<f4', shape=(oh, ow, 3))
         try:
             check_active()
-            out[:] = to_encoded(cv2.warpPerspective(to_linear(np.asarray(rgb)), matrix,
-                (ow, oh), flags=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_REFLECT_101)).clip(0, 1)
+            if direct:
+                for row in range(0,oh,256):
+                    check_active();stop=min(row+256,oh)
+                    out[row:stop]=rgb[top+row:top+stop,left:left+ow]
+            else:
+                linear = to_linear(np.asarray(rgb))
+                translucent = alpha is not None and np.any(alpha != 65535)
+                if translucent:
+                    opacity = np.asarray(alpha, np.float32) / 65535
+                    premultiplied = cv2.warpPerspective(linear * opacity[..., None], matrix,
+                        (ow, oh), flags=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_REFLECT_101)
+                    warped_opacity = np.clip(cv2.warpPerspective(opacity, matrix, (ow, oh),
+                        flags=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_REFLECT_101), 0, 1)
+                    linear_output = np.zeros_like(premultiplied)
+                    np.divide(premultiplied, warped_opacity[..., None], out=linear_output,
+                        where=warped_opacity[..., None] > 1e-6)
+                    out[:] = to_encoded(linear_output).clip(0, 1)
+                    del opacity, premultiplied, warped_opacity, linear_output
+                else:
+                    out[:] = to_encoded(cv2.warpPerspective(linear, matrix,
+                        (ow, oh), flags=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_REFLECT_101)).clip(0, 1)
+                del linear
             check_active()
             out.flush()
         finally:
@@ -49,9 +77,14 @@ def prepare_crop(rgb, alpha, plan, scratch, *, check_active=lambda: None):
             aout = np.lib.format.open_memmap(alpha_path, mode='w+', dtype='<u2', shape=(oh, ow))
             try:
                 check_active()
-                aout[:] = np.rint(np.clip(cv2.warpPerspective(np.asarray(alpha, np.float32),
-                    matrix, (ow, oh), flags=cv2.INTER_LANCZOS4,
-                    borderMode=cv2.BORDER_REFLECT_101), 0, 65535)).astype(np.uint16)
+                if direct:
+                    for row in range(0,oh,256):
+                        check_active();stop=min(row+256,oh)
+                        aout[row:stop]=alpha[top+row:top+stop,left:left+ow]
+                else:
+                    aout[:] = np.rint(np.clip(cv2.warpPerspective(np.asarray(alpha, np.float32),
+                        matrix, (ow, oh), flags=cv2.INTER_LANCZOS4,
+                        borderMode=cv2.BORDER_REFLECT_101), 0, 65535)).astype(np.uint16)
                 check_active()
                 aout.flush()
             finally:
@@ -129,8 +162,8 @@ def crop_provider_peak(image_ref, image, plan_ref, plan):
     if source_pixels > 200000000:
         raise ValueError('CROP_SOURCE_PIXEL_LIMIT')
     alpha = image.alpha is not None
-    peak = dict(ram_bytes=(64 + (8 if alpha else 0)) * source_pixels
-        + (96 + (24 if alpha else 0)) * output_pixels + 128 * 1024 * 1024,
+    peak = dict(ram_bytes=(64 + (24 if alpha else 0)) * source_pixels
+        + (96 + (40 if alpha else 0)) * output_pixels + 128 * 1024 * 1024,
         scratch_bytes=(12 + (2 if alpha else 0)) * output_pixels + 65536,
         vram_bytes=0, output_bytes=0)
     if any(value > 2**53-1 for value in peak.values()):

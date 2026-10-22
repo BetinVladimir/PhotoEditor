@@ -82,7 +82,7 @@ func RegionWorkloadSHA(plan FrozenRegionPlan) (string, error) {
 	}{doc.FrozenRecipe.BaseStyle, doc.FrozenRecipe.EffectiveDelta, doc.FrozenRecipe.Renderer, doc.FrozenRecipe.ModelLockSHA, doc.FrozenRecipe.ICCLockSHA})
 }
 func (q RegionQualification) valid() bool {
-	if q.Backend != "cuda" {
+	if q.Backend != "cuda" && q.Backend != "mps" {
 		return false
 	}
 	for _, s := range []string{q.RuntimeSHA, q.ModelSHA, q.ICCSHA, q.DeviceSHA, q.DatasetSHA, q.PolicySHA} {

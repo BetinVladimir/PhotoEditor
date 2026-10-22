@@ -79,7 +79,7 @@ def validate_fit_detail_inputs(artifacts: TaskArtifacts, case,
                                    FrozenPortraitDetailHoldoutEvidence)
     parsed = FrozenPortraitDetailHoldoutEvidence.model_validate_json(raw)
     expected = PortraitDetailHoldoutExpected.model_validate(
-        parsed.model_dump(mode='json', exclude={'schema_version'}))
+        parsed.model_dump(mode='python', exclude={'schema_version'}))
     evidence = decode_frozen_detail_evidence(raw,
         case.detail_evidence, expected)
     validate_holdout_detail_binding(case, event_id, training_run_id,

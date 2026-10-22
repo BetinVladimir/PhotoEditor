@@ -17,7 +17,7 @@ func TestBoundImportMaskSemanticsRechecksSourceAfterPolicy(t *testing.T){
   image,err:=review.ParseWorkingImage(raw);if err!=nil{t.Fatal(err)}
   canvas,err:=canonical.Hash(image.Canvas);if err!=nil{t.Fatal(err)}
   binding:=v2input.SessionVersionBinding{AssetVersionID:uuid.New(),Source:entry.Ref,CanvasHash:canvas}
-  maskRaw,err:=canonical.Marshal(map[string]any{"artifact":v2input.Ref{ArtifactID:uuid.New(),SHA256:rawSHA([]byte("pixels"))},"canvas":image.Canvas,"transform_chain":json.RawMessage(image.TransformChain),"selector":"manual","confidence":1,"protected":true});if err!=nil{t.Fatal(err)}
+  maskRaw,err:=canonical.Marshal(map[string]any{"artifact":v2input.Ref{ArtifactID:uuid.New(),SHA256:rawSHA([]byte("pixels"))},"canvas":image.Canvas,"transform_chain":json.RawMessage(image.TransformChain),"object_id":nil,"model_lock_id":nil,"selector":"manual","confidence":1,"protected":true});if err!=nil{t.Fatal(err)}
   mask,err:=review.ParseMaskRef(maskRaw);if err!=nil{t.Fatal(err)}
   master:=&recipeSourceMasterReader{body:raw};targets:=&maskSemanticTargets{}
   sentinel:=errors.New("policy revoked");policyCalls:=0

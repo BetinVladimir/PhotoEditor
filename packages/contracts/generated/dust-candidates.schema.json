@@ -127,6 +127,7 @@
       "type": "string"
     },
     "camera_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$",
       "title": "Camera Id",
       "type": "string"
     },
@@ -151,10 +152,14 @@
       "$ref": "#/$defs/SensorCrop"
     },
     "sensor_height": {
+      "maximum": 200000,
+      "minimum": 8,
       "title": "Sensor Height",
       "type": "integer"
     },
     "sensor_width": {
+      "maximum": 200000,
+      "minimum": 8,
       "title": "Sensor Width",
       "type": "integer"
     },

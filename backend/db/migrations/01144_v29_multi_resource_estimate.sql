@@ -13,7 +13,7 @@ BEGIN
  IF p_operation IS NULL OR p_operation NOT IN ('optical.panorama','optical.focus_stack')
  OR jsonb_typeof(p_params->'frames') IS DISTINCT FROM 'array' OR jsonb_typeof(p_sources) IS DISTINCT FROM 'array' THEN RETURN NULL;END IF;
  n:=jsonb_array_length(p_sources);
- IF n NOT BETWEEN 2 AND CASE p_operation WHEN 'optical.panorama' THEN 20 ELSE 30 END
+ IF n NOT BETWEEN 2 AND (CASE p_operation WHEN 'optical.panorama' THEN 20 ELSE 30 END)
  OR jsonb_array_length(p_params->'frames')<>n THEN RETURN NULL;END IF;
  reference:=(p_params->>'reference_ordinal')::integer;maximum:=(p_params->>'max_pixels')::bigint;
  IF reference IS NULL OR reference NOT BETWEEN 0 AND n-1 OR maximum IS NULL OR maximum NOT BETWEEN 1 AND 200000000 THEN RETURN NULL;END IF;

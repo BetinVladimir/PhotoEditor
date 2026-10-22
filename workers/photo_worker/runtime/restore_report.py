@@ -46,6 +46,8 @@ def _open_report_directory(root, active):
         active()
         result,descriptor=descriptor,None
         return result
+    except OSError as error:
+        raise ValueError('RESTORE_REPORT_ROOT_CHANGED') from error
     finally:
         if descriptor is not None:os.close(descriptor)
 

@@ -1,4 +1,5 @@
 """Real region Params publication; parent source/recipe metadata remain synthetic."""
+from pathlib import Path as _PhotoRepositoryPath
 from pathlib import Path
 import json
 import os
@@ -25,7 +26,7 @@ def test_region_params_publication_replay_and_content_conflict(database,lens_obj
         before=db.execute('SELECT storage_bytes,reserved_bytes FROM photo.tenant_usage WHERE tenant_id=%s',(tenant,)).fetchone()
         case={k:str(v) for k,v in dict(Tenant=tenant,Actor=actor,Session=session,Project=project,Asset=asset,Version=version).items()}
         case['Objects']=client._photo_test_config
-        env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_REGION_PUBLISH_CASE=json.dumps(case),GOCACHE='/private/tmp/photoeditor-go-cache')
+        env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_REGION_PUBLISH_CASE=json.dumps(case),GOCACHE=str(_PhotoRepositoryPath(__file__).resolve().parents[2]/'work/go-cache'))
         result=subprocess.run(['go','test','./internal/v2region','-run','^TestIntegrationRegionParamsPublication$','-count=1'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=45)
         assert result.returncode==0,result.stdout+result.stderr
         assert db.execute("SELECT count(*) FROM photo.tasks WHERE tenant_id=%s AND operation='region.preview'",(tenant,)).fetchone()==(0,)
@@ -85,7 +86,7 @@ def test_live_region_preparation_pins_source_and_recipe_versions(database,lens_o
         case={k:str(v) for k,v in dict(Tenant=tenant,Actor=actor,Session=session,Project=project,Asset=asset,Version=version).items()}
         case['Objects']=client._photo_test_config
         case['Request']=dict(version_id=str(version),recipe=dict(artifact_id=str(recipe_id),sha256=recipe_sha),rect=dict(x0=0,y0=0,x1=1,y1=1),max_edge=1024)
-        env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_REGION_PUBLISH_CASE=json.dumps(case),GOCACHE='/private/tmp/photoeditor-go-cache')
+        env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_REGION_PUBLISH_CASE=json.dumps(case),GOCACHE=str(_PhotoRepositoryPath(__file__).resolve().parents[2]/'work/go-cache'))
         result=subprocess.run(['go','test','./internal/v2region','-run','^TestIntegrationRegionParamsPublication$','-count=1'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=45)
         assert result.returncode==0,result.stdout+result.stderr
         assert db.execute("SELECT count(*) FROM photo.tasks WHERE tenant_id=%s AND operation='region.preview'",(tenant,)).fetchone()==(0,)

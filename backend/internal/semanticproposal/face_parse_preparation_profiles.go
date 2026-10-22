@@ -17,7 +17,7 @@ func (s SQLTransferSourceReader) verifyFaceParsePreparationProfiles(ctx context.
 		return err
 	}
 	for i, value := range expected {
-		if value.Operation != [2]string{"face.parse", "face.detect"}[i] || value.Version != "1" || (value.Backend != "cpu" && value.Backend != "cuda") {
+		if value.Operation != [2]string{"face.parse", "face.detect"}[i] || value.Version != "1" || (value.Backend != "cpu" && value.Backend != "cuda" && value.Backend != "mps") {
 			return v2qualification.ErrUnqualified
 		}
 		for _, digest := range []string{value.ModelLockSHA, value.RuntimeLockSHA, value.DeviceProfileSHA} {

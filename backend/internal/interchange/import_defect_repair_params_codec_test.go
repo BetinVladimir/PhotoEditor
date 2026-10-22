@@ -29,7 +29,7 @@ func TestImportDefectRepairParamsRebindsTypedDependencies(t *testing.T) {
 		return v2input.Ref{ArtifactID: uuid.New(), SHA256: rawSHA([]byte(label))}
 	}
 	proposal, decision, resolved, pixels := ref("proposal"), ref("decision"), ref("resolved"), ref("pixels")
-	mask := map[string]any{"artifact": pixels, "canvas": image.Canvas, "transform_chain": json.RawMessage(image.TransformChain), "selector": "face", "confidence": 1, "protected": true}
+	mask := map[string]any{"artifact": pixels, "canvas": image.Canvas, "transform_chain": json.RawMessage(image.TransformChain), "object_id":nil,"model_lock_id":nil,"selector": "face", "confidence": 1, "protected": true}
 	raw, err := canonical.Marshal(map[string]any{"image": old.Source, "proposal": proposal, "review": decision, "resolved": resolved, "protected": mask})
 	if err != nil {
 		t.Fatal(err)

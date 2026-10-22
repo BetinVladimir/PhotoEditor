@@ -34,7 +34,7 @@ func (s SQLTransferSourceReader) prepareNativeInputManualReferencePerson(ctx con
 	if !reflect.DeepEqual(policy, retained) {
 		return zero, v2input.ErrConflict
 	}
-	selected, err := selectQualificationPolicies(policy, []string{"mask.person"})
+	selected, err := selectNativeQualificationPolicies(policy, []string{"mask.person"})
 	if err != nil {
 		return zero, err
 	}
@@ -77,7 +77,7 @@ func (s SQLTransferSourceReader) lockNativeInputManualReferencePerson(ctx contex
 	if !validQualificationPolicySnapshot(s, who, request.TenantID, proof.policy) {
 		return v2input.ErrInvalid
 	}
-	selected, err := selectQualificationPolicies(proof.policy, []string{"mask.person"})
+	selected, err := selectNativeQualificationPolicies(proof.policy, []string{"mask.person"})
 	if err != nil {
 		return err
 	}

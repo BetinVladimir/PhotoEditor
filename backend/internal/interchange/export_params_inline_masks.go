@@ -13,6 +13,15 @@ import (
 // function is not admission and never recursively guesses masks from JSON.
 func exportParamsInlineMasks(entry v2input.Entry,raw []byte)([]json.RawMessage,error){
  if entry.Contract!="Params"||!validImportRef(entry.Ref)||len(raw)<2||len(raw)>8<<20||rawSHA(raw)!=entry.Ref.SHA256{return nil,v2input.ErrInvalid}
+ // Automatic repair uses a bounded list of protected masks, unlike the
+ // reviewed repair's single protected mask. Decode the closed schema first.
+ if isImportConservativeParams("Params",raw){
+  params,_,err:=decodeImportConservativeParams(raw);if err!=nil{return nil,err}
+  if _,err:=v2draft.DocumentChildren(raw,"Params",entry.Ref);err!=nil{return nil,err}
+  masks:=make([]json.RawMessage,0,len(params.Protected))
+  for _,mask:=range params.Protected{masks=append(masks,append(json.RawMessage(nil),mask...))}
+  return masks,nil
+ }
  var fields map[string]json.RawMessage;if json.Unmarshal(raw,&fields)!=nil{return nil,v2input.ErrInvalid}
  if fields["base_aligned"]!=nil{
   if _,err:=v2draft.DocumentChildren(raw,"Params",entry.Ref);err!=nil{return nil,err}
@@ -54,7 +63,9 @@ func qualifyExportParamsMaskSource(ctx context.Context,reader ExportClosureNodeR
  if err:=ctx.Err();err!=nil{return err}
  if reader==nil||len(masks)==0{return v2input.ErrInvalid}
  var params struct{Image v2input.Ref `json:"image"`}
- if json.Unmarshal(parent.Body,&params)!=nil||!validImportRef(params.Image){return v2input.ErrInvalid}
+ if json.Unmarshal(parent.Body,&params)!=nil{return v2input.ErrInvalid}
+ if parent.Entry.Contract=="DefectProposeReport"{var report struct{Params struct{Image v2input.Ref `json:"image"`} `json:"params"`};if json.Unmarshal(parent.Body,&report)!=nil{return v2input.ErrInvalid};params.Image=report.Params.Image}
+ if !validImportRef(params.Image){return v2input.ErrInvalid}
  imageEntry:=v2input.Entry{Ref:params.Image,Contract:"WorkingImage"}
  edge:=false;for _,child:=range parent.Children{if child.Ref.ArtifactID==params.Image.ArtifactID{if child!=imageEntry{return v2input.ErrInvalid};edge=true}}
  if !edge{return v2input.ErrInvalid}

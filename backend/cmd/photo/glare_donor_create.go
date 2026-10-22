@@ -1,6 +1,7 @@
 package main
 
 import (
+ "photoeditor/backend/internal/database"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -26,6 +27,7 @@ type glareDonorProjectConfig struct {
 	BaseProfile    json.RawMessage                        `json:"base_profile"`
 	ReservedBytes  int64                                  `json:"reserved_bytes"`
 	LicenseCleared bool                                   `json:"license_cleared"`
+ GenerativeEnabled bool `json:"generative_enabled"`
 }
 
 type glareDonorDeploymentConfig struct {
@@ -36,6 +38,10 @@ type glareDonorDeploymentConfig struct {
 type glareDonorProjectServices struct {
 	projects map[[2]uuid.UUID]*v2draft.GlareDonorSubmissionService
 }
+
+func(s glareDonorProjectServices)PrepareSourceProjectKeyed(ctx context.Context,who auth.Identity,tenant,project uuid.UUID,key string,r v2draft.GlareSourcePreparationRequest)(v2draft.GlareSourceClientIntent,error){service:=s.projects[[2]uuid.UUID{tenant,project}];if service==nil{return v2draft.GlareSourceClientIntent{},v2input.ErrInvalid};return service.PrepareSourceProjectKeyed(ctx,who,tenant,project,key,r)}
+func(s glareDonorProjectServices)SubmitSourceProjectKeyed(ctx context.Context,who auth.Identity,tenant,project uuid.UUID,key string,r v2draft.GlareSourceClientIntent)(v2draft.RestorationAdmissionTicket,error){service:=s.projects[[2]uuid.UUID{tenant,project}];if service==nil{return v2draft.RestorationAdmissionTicket{},v2input.ErrInvalid};return service.SubmitSourceProjectKeyed(ctx,who,tenant,project,key,r)}
+func(s glareDonorProjectServices)SourceGlareAvailable(ctx context.Context,who auth.Identity,tenant,project uuid.UUID)(bool,error){service:=s.projects[[2]uuid.UUID{tenant,project}];if service==nil{return false,v2input.ErrInvalid};return service.SourceGlareAvailable(ctx,who,tenant,project)}
 
 func (s glareDonorProjectServices) SubmitProjectKeyed(ctx context.Context,
 	who auth.Identity, tenant, project uuid.UUID, key string,
@@ -132,6 +138,7 @@ func buildGlareDonorCreate(ctx context.Context, catalog *pgxpool.Pool,
 		return nil, noop, errors.New("glare donor scheduler configuration invalid")
 	}
 	poolConfig.ConnConfig.RuntimeParams["role"] = "photo_scheduler"
+	database.GuardApplicationRole(poolConfig)
 	scheduler, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
 		return nil, noop, errors.New("glare donor scheduler unavailable")
@@ -144,6 +151,7 @@ func buildGlareDonorCreate(ctx context.Context, catalog *pgxpool.Pool,
 	var installed bool
 	err = scheduler.QueryRow(ctx, `SELECT current_user,
   to_regprocedure('photo.begin_v28_restoration_draft(text,text,text,bigint)') IS NOT NULL
+  AND to_regprocedure('photo.v28_glare_completed_source_ready(uuid,uuid,uuid)') IS NOT NULL
   AND to_regprocedure('photo.read_v28_restoration_admission_ticket(uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid)') IS NOT NULL
   AND to_regprocedure('photo.v28_glare_donor_face_choice(uuid,uuid,uuid,uuid,uuid,uuid,jsonb,uuid,uuid)') IS NOT NULL
   AND to_regprocedure('photo.read_v28_glare_donor_preparation_proof(uuid,uuid,uuid,uuid,uuid,uuid,jsonb,jsonb,uuid,uuid)') IS NOT NULL
@@ -154,6 +162,17 @@ func buildGlareDonorCreate(ctx context.Context, catalog *pgxpool.Pool,
 		return closeOnError("glare donor SQL installation unavailable")
 	}
 	services := glareDonorProjectServices{projects: map[[2]uuid.UUID]*v2draft.GlareDonorSubmissionService{}}
+ for _,p:=range config.Projects{if p.GenerativeEnabled{
+  var sourceInstalled bool
+  if e:=scheduler.QueryRow(ctx,`SELECT
+   to_regprocedure('photo.begin_v28_glare_source_draft(text,text,text,bigint)') IS NOT NULL
+   AND to_regprocedure('photo.build_v28_glare_source_confirmation(uuid,uuid,uuid,uuid,uuid,jsonb,uuid)') IS NOT NULL
+   AND to_regprocedure('photo.reserve_v28_glare_source_document(uuid,uuid,uuid,jsonb,text,bigint,text)') IS NOT NULL
+   AND to_regprocedure('photo.complete_v28_glare_source_document(uuid,uuid,uuid,jsonb,uuid,uuid,text,bigint,text,text)') IS NOT NULL
+   AND to_regprocedure('photo.read_v28_glare_source_admission_ticket(uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,uuid)') IS NOT NULL
+   AND to_regprocedure('photo.v28_glare_generative_source_ready(uuid,uuid,uuid,integer,bigint,uuid,uuid,text,text,text,text)') IS NOT NULL`).Scan(&sourceInstalled);e!=nil||!sourceInstalled{return closeOnError("generative glare SQL installation unavailable")}
+  break
+ }}
 	for _, p := range config.Projects {
 		if !p.LicenseCleared || p.Tenant == uuid.Nil || p.Project == uuid.Nil {
 			return closeOnError("glare donor project unavailable")
@@ -168,6 +187,7 @@ func buildGlareDonorCreate(ctx context.Context, catalog *pgxpool.Pool,
 			return closeOnError("glare donor project configuration invalid")
 		}
 		services.projects[key] = service
+  service.ConfigureGenerativeGlare(p.GenerativeEnabled)
 	}
 	return services, scheduler.Close, nil
 }

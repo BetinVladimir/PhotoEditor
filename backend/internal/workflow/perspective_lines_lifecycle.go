@@ -29,11 +29,12 @@ func (p PerspectiveLinesLifecycle) ProcessOne(ctx context.Context) (bool, error)
 		"SELECT photo.finalize_failed_v29_perspective_lines()",
 		"SELECT photo.release_next_v29_perspective_lines_quota()",
 	} {
+		if err := work.Err(); err != nil { return progress, err }
 		var changed bool
 		if err := p.DB.QueryRow(work, query).Scan(&changed); err != nil {
 			return progress, err
 		}
 		progress = progress || changed
 	}
-	return progress, nil
+	return progress, work.Err()
 }

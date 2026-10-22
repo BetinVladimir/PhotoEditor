@@ -385,6 +385,43 @@
       ],
       "title": "TransformChain",
       "type": "object"
+    },
+    "TransformRegion": {
+      "additionalProperties": false,
+      "properties": {
+        "mask": {
+          "$ref": "#/$defs/MaskRef"
+        },
+        "purpose": {
+          "default": "region_adjustment",
+          "enum": [
+            "region_adjustment",
+            "portrait_teeth",
+            "portrait_sclera",
+            "portrait_shine",
+            "portrait_under_eye",
+            "portrait_cloth",
+            "portrait_glasses",
+            "inpaint_target",
+            "generation_target",
+            "protected"
+          ],
+          "title": "Purpose",
+          "type": "string"
+        },
+        "region_id": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Region Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "region_id",
+        "mask"
+      ],
+      "title": "TransformRegion",
+      "type": "object"
     }
   },
   "$id": "https://photoeditor.local/contracts/mask-transform-params.schema.json",
@@ -402,6 +439,14 @@
     },
     "mask": {
       "$ref": "#/$defs/MaskRef"
+    },
+    "regions": {
+      "items": {
+        "$ref": "#/$defs/TransformRegion"
+      },
+      "maxItems": 128,
+      "title": "Regions",
+      "type": "array"
     },
     "step": {
       "discriminator": {

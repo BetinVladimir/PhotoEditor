@@ -1,7 +1,8 @@
+import {APIError} from '@photoeditor/api-client';
 // @vitest-environment jsdom
 import {afterEach,expect,it,vi} from 'vitest';
 import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
-vi.mock('./locale-context',async()=>{const en=await import('../../../locales/en/common.json');return {useLocale:()=>({t:(key:keyof typeof en.default)=>en.default[key]})}});
+vi.mock('./locale-context',async()=>{const __factory=async()=>{const en=await import('../../../locales/en/common.json');return {useLocale:()=>({t:(key:keyof typeof en.default)=>en.default[key]})}};const __out=await __factory();const {withUILocaleDouble}=await import('./test/locale-double');return {...__out,useLocale:()=>withUILocaleDouble(__out.useLocale())};});
 vi.mock('react-native',async()=>import('react-native-web'));
 import {RAWUploadSettings} from './raw-upload-settings';
 import type {OwnerAPI} from './owner-api';
@@ -22,4 +23,10 @@ it('does not advertise options when unavailable and aborts on unmount',async()=>
  const view=render(<RAWUploadSettings api={{rawCapabilities} as unknown as OwnerAPI} project={project} disabled={false} onChange={onChange}/>);
  await screen.findByText('Custom RAW settings are unavailable. Original import defaults remain available.');expect(screen.queryByText('Use custom RAW settings')).toBeNull();
  const signal=rawCapabilities.mock.calls[0][1] as AbortSignal;view.unmount();expect(signal.aborted).toBe(true);
+});
+
+it('propagates revoked RAW catalogue authority to the import scope',async()=>{
+ const lost=vi.fn(),onChange=vi.fn(),api={rawCapabilities:vi.fn().mockRejectedValue(new APIError(403,'FORBIDDEN'))} as unknown as OwnerAPI;
+ render(<RAWUploadSettings api={api} project={project} disabled={false} onChange={onChange} onAuthorityLost={lost}/>);
+ await waitFor(()=>expect(lost).toHaveBeenCalledTimes(1));
 });

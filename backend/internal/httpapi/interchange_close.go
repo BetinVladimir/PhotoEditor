@@ -26,6 +26,7 @@ func serveCloseInterchangeReview(w http.ResponseWriter,r *http.Request,who auth.
  raw,err:=canonical.Marshal(request);if err!=nil{writeError(w,r,err);return}
  if closer==nil{writeError(w,r,domain.NewError("INTERCHANGE_UNAVAILABLE",503));return}
  response,err:=closer.CloseInterchangeReview(r.Context(),who,tid,id,r.Header.Get("Idempotency-Key"),raw);if err!=nil{writeError(w,r,err);return}
+ if r.Context().Err()!=nil{return}
  var status struct{Run uuid.UUID `json:"run_id"`;Workflow uuid.UUID `json:"workflow_id"`;Revision string `json:"revision"`;State string `json:"state"`;Outputs []json.RawMessage `json:"outputs"`;Error *string `json:"error_code"`}
  decoder:=json.NewDecoder(bytes.NewReader(response.Body));decoder.DisallowUnknownFields();revision,_:=strconv.ParseInt(request.ExpectedRevision,10,64)
  if response.Status!=200||response.ResourceID==nil||*response.ResourceID!=id||len(response.Body)>65536||decoder.Decode(&status)!=nil||decoder.Decode(new(any))!=io.EOF||status.Run==uuid.Nil||status.Workflow!=id||status.Revision!=strconv.FormatInt(revision+1,10)||status.State!="completed"||status.Outputs==nil||len(status.Outputs)!=0||status.Error!=nil{writeError(w,r,domain.NewError("INTERCHANGE_CLOSE_INVALID_RECEIPT",503));return}

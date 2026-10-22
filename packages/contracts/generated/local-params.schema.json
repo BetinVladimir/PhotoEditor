@@ -300,6 +300,11 @@
     "RegionMask": {
       "additionalProperties": false,
       "properties": {
+        "invert": {
+          "default": false,
+          "title": "Invert",
+          "type": "boolean"
+        },
         "mask": {
           "$ref": "#/$defs/MaskRef"
         },

@@ -20,3 +20,9 @@ export function freezePerspectiveIntent(v:PerspectiveIntent):PerspectiveIntent{
  }else if(p.mode==='auto'){if(p.corners!==null||!ref(p.lines))invalid();}else invalid();
  return structuredClone(v);
 }
+
+export function verifyPerspectiveRecoverySource(v:PerspectiveIntent,live:V2VersionBinding):PerspectiveIntent{
+ const frozen=freezePerspectiveIntent(v),base=frozen.params.base;
+ if(!fields(live,['asset_version_id','source','canvas_hash'])||!uuid(live.asset_version_id)||!ref(live.source)||!sha(live.canvas_hash)||base.asset_version_id!==live.asset_version_id||base.source.artifact_id!==live.source.artifact_id||base.source.sha256!==live.source.sha256||base.canvas_hash!==live.canvas_hash)throw new Error('PERSPECTIVE_RECOVERY_SOURCE_CHANGED');
+ return frozen;
+}

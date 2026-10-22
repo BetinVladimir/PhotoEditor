@@ -34,8 +34,19 @@ func (s SQLTransferSourceReader) nativeTargetDetectorResultCatalog(ctx context.C
 	if rebuilt.seal != plan.seal || s.DB == nil {
 		return zero, v2input.ErrConflict
 	}
+	return s.nativeTargetDetectorResultCatalogCurrent(ctx, who, plan)
+}
+
+func (s SQLTransferSourceReader) nativeTargetDetectorResultCatalogCurrent(ctx context.Context, who auth.Identity, plan nativeTargetDetectorPlan) (nativeDetectorResultCatalog, error) {
+	var zero nativeDetectorResultCatalog
+	if err := verifyNativeTargetDetectorPlan(ctx, plan); err != nil {
+		return zero, err
+	}
+	if s.DB == nil {
+		return zero, v2input.ErrInvalid
+	}
 	var out nativeDetectorResultCatalog
-	err = tenant.WithTenant(ctx, s.DB, who, plan.anchor.request.TenantID, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
+	err := tenant.WithTenant(ctx, s.DB, who, plan.anchor.request.TenantID, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
 		var raw []byte
 		if err := tx.QueryRow(ctx, "SELECT photo.semantic_target_detector_canonical_outputs($1,$2,$3,$4,$5,$6)", plan.anchor.request.TenantID, s.ProjectID, who.UserID, who.SessionID, plan.detector.shell.Run, plan.detector.shell.ConfigSHA).Scan(&raw); err != nil {
 			return err
@@ -115,12 +126,12 @@ func (s SQLTransferSourceReader) lockNativeTargetDetectorResult(ctx context.Cont
 	}
 	return ctx.Err()
 }
-func (s SQLTransferSourceReader) readCompletedNativeTargetDetector(ctx context.Context, who auth.Identity, plan nativeTargetDetectorPlan, color TransferColorProfile) (completedNativeDetector, error) {
+func (s SQLTransferSourceReader) readCompletedNativeTargetDetectorUncached(ctx context.Context, who auth.Identity, plan nativeTargetDetectorPlan, color TransferColorProfile) (completedNativeDetector, error) {
 	var zero completedNativeDetector
 	if err := verifyNativeTargetDetectorPlan(ctx, plan); err != nil {
 		return zero, err
 	}
-	selected, err := selectQualificationPolicies(plan.detector.policy, []string{"face.detect"})
+	selected, err := selectNativeQualificationPolicies(plan.detector.policy, []string{"face.detect"})
 	if err != nil {
 		return zero, err
 	}
@@ -174,10 +185,10 @@ func (s SQLTransferSourceReader) readCompletedNativeTargetDetector(ctx context.C
 	if err != nil {
 		return zero, err
 	}
-	if boxes.Backend != "cuda" || boxes.ModelLockID != expected.ModelLockSHA {
+	if boxes.Backend != expected.Backend || boxes.ModelLockID != expected.ModelLockSHA {
 		return zero, v2input.ErrInvalid
 	}
-	current, err := s.nativeTargetDetectorResultCatalog(ctx, who, plan)
+	current, err := s.nativeTargetDetectorResultCatalogCurrent(ctx, who, plan)
 	if err != nil {
 		return zero, err
 	}

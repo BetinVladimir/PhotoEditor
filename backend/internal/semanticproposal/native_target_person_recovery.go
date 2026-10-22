@@ -114,7 +114,7 @@ func (s SQLTransferSourceReader) restoreNativeTargetPersonPlan(ctx context.Conte
 	if err != nil {
 		return zero, err
 	}
-	selected, err := selectQualificationPolicies(policy, []string{"mask.person"})
+	selected, err := selectNativeQualificationPolicies(policy, []string{"mask.person"})
 	if err != nil {
 		return zero, err
 	}
@@ -123,7 +123,9 @@ func (s SQLTransferSourceReader) restoreNativeTargetPersonPlan(ctx context.Conte
 		return zero, err
 	}
 	prepared.legacyQueueOmitted, err = nativePreparationLegacyQueue(string(saved.Config))
-	if err != nil { return zero, err }
+	if err != nil {
+		return zero, err
+	}
 	plan, err := s.compileNativeTargetPersonPlan(ctx, who, a, prepared, policy, metadata.Reserved)
 	if err != nil {
 		return zero, err

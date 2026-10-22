@@ -1,0 +1,27 @@
+{
+  "status": "LOCAL_LOGIN_FONT_CONTRAST_SAMPLE_PASS",
+  "url": "http://localhost:19007/login",
+  "devserver_session": 53612,
+  "api_origin": "http://127.0.0.1:8080",
+  "authentication_request_sent": false,
+  "measurements": {
+    "locale_text_px": 16,
+    "email_input_px": 18,
+    "button_label_px": 14,
+    "title_px": 30,
+    "locale_input_text_contrast": 11.375,
+    "enabled_button_contrast": 7.715
+  },
+  "method": "Actual Chrome computed styles after Paper hydration; enabled button by disposable example.invalid value without submitting",
+  "source": {
+    "apps/photographer/app/login.tsx": "c46a7a859619da8363d5dd680eaa09d4d5d50e67b861af7d990aeb53d03e44a4",
+    "apps/photographer/src/paper-readable-fonts.ts": "3fed69dce81038fd414191b64c2477a65449ade84f3d08d8bffe04e7e96f5ed6",
+    "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+  },
+  "limits": [
+    "One desktop login state, not all routes/themes/native",
+    "Initial styles before Paper hydration differed; only settled actual Paper values retained",
+    "Disabled button contrast exempt; no fullAA claim",
+    "Existing unrelated service on19006 not used as PhotoEditor evidence"
+  ]
+}

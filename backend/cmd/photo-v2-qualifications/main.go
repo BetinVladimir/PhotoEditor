@@ -1,14 +1,16 @@
-// photo-v2-qualifications is an operator-only, one-shot import command.
+// photo-v2-qualifications publishes and imports independently verified operator reports.
 package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"os"
 	"os/signal"
+	"photoeditor/backend/internal/database"
 	"syscall"
 	"time"
 
@@ -65,13 +67,38 @@ func parseImportArgs(args []string) (importArgs, error) {
 }
 
 func run(ctx context.Context, args []string, output io.Writer) error {
-	selected, err := parseImportArgs(args)
-	if err != nil {
-		return err
+	if len(args) > 0 && args[0] == "observe-lineage" {
+		return runObserveLineage(ctx, args, output)
+	}
+	if len(args) > 0 && args[0] == "configure-render" {
+		return runConfigureRender(ctx, args, output)
+	}
+	var selected importArgs
+	var publication *publishArgs
+	var err error
+	if len(args) > 0 && args[0] == "publish" {
+		parsed, parseErr := parsePublishArgs(args)
+		if parseErr != nil {
+			return parseErr
+		}
+		publication = &parsed
+		selected = parsed.importArgs
+	} else {
+		selected, err = parseImportArgs(args)
+		if err != nil {
+			return err
+		}
 	}
 	expected, err := v2qualification.LoadLocks(selected.locks)
 	if err != nil {
 		return err
+	}
+	var report []byte
+	if publication != nil {
+		report, err = readPublishReport(publication.file, selected.sha, expected)
+		if err != nil {
+			return err
+		}
 	}
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
@@ -82,6 +109,7 @@ func run(ctx context.Context, args []string, output io.Writer) error {
 		return errors.New("invalid database configuration")
 	}
 	dbConfig.ConnConfig.RuntimeParams["role"] = "photo_maintenance"
+	database.GuardApplicationRole(dbConfig)
 	dbConfig.ConnConfig.RuntimeParams["statement_timeout"] = "15000"
 	dbConfig.ConnConfig.RuntimeParams["lock_timeout"] = "3000"
 	db, err := pgxpool.NewWithConfig(ctx, dbConfig)
@@ -100,6 +128,23 @@ func run(ctx context.Context, args []string, output io.Writer) error {
 	}
 	limit, cancel := context.WithTimeout(ctx, 45*time.Second)
 	defer cancel()
+	if publication != nil {
+		operator, err := v2qualification.NewReportOperator(limit, db, storage, storageConfig.Bucket)
+		if err != nil {
+			return err
+		}
+		artifact, qualified, err := operator.PublishAndImport(limit, v2qualification.ReportPublicationScope{
+			Tenant: selected.tenant, Project: selected.project, Operator: selected.operator, Key: publication.key,
+		}, report, expected)
+		if err != nil {
+			return err
+		}
+		return json.NewEncoder(output).Encode(struct {
+			Artifact      uuid.UUID `json:"artifact_id"`
+			SHA           string    `json:"sha256"`
+			Qualification uuid.UUID `json:"qualification_id"`
+		}{artifact.ID, artifact.SHA256, qualified})
+	}
 	qualified, err := (v2qualification.Importer{DB: db, Objects: storage,
 		Bucket: storageConfig.Bucket}).Import(limit, selected.tenant,
 		selected.project, selected.report, selected.sha, selected.operator,

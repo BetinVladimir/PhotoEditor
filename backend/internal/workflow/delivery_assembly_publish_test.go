@@ -58,7 +58,7 @@ func TestPublishDeliveryAssemblyInputCarriesExactPublishedShardBytes(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	lease := delivery.ExpansionLease{Expansion: uuid.New(), Token: uuid.New(), Tenant: uuid.New(), Run: parent, Workflow: workflow, ParentTask: plan.TaskID(), Until: time.Now().Add(time.Minute), SlotCount: 1, Cursor: 1}
+	lease := delivery.ExpansionLease{Package: uuid.New(), Expansion: uuid.New(), Token: uuid.New(), Tenant: uuid.New(), Run: parent, Workflow: workflow, ParentTask: plan.TaskID(), Until: time.Now().Add(time.Minute), SlotCount: 1, Cursor: 1}
 	artifact := v2input.Ref{ArtifactID: uuid.New(), SHA256: downloadDigest("raster")}
 	for _, scenario := range []string{"ready", "pending", "lose_before_root", "lose_after_root"} {
 		t.Run(scenario, func(t *testing.T) {

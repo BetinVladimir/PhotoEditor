@@ -27,10 +27,11 @@ def test_explicit_worker_runtime_precedes_object_storage(monkeypatch,tmp_path,mo
         assert 'objects' not in calls
 
 
-def test_build_worker_rejects_untyped_relight_before_tls(monkeypatch):
+def test_build_worker_rejects_untyped_relight_before_tls(monkeypatch,tmp_path):
     from photo_worker.runtime import service
     monkeypatch.setattr(service,'client_tls',lambda *a:pytest.fail('TLS before validation'))
-    config=SimpleNamespace(resource_class='cpu',backend='cpu',person_runtime_locks=None)
+    from test_worker_service import environment
+    config=service.WorkerConfig.from_env({**environment(tmp_path),'PHOTO_WORKER_CLASS':'cpu'})
     with pytest.raises(ValueError,match='Invalid relight'):
         service.build_worker(config,relight_installation=object())
 
@@ -62,5 +63,13 @@ def test_run_worker_forwards_relight_installation(monkeypatch):
         calls.append(kwargs);raise RuntimeError('stop before network')
     monkeypatch.setattr(service,'build_worker',build)
     with pytest.raises(RuntimeError,match='stop before network'):
-        service.run_worker(None,relight_installation=marker)
+        service.run_worker(SimpleNamespace(capacity_policy=None,backend='cpu',resource_class='cpu'),relight_installation=marker)
     assert calls==[{'relight_installation':marker}]
+
+
+@pytest.fixture(autouse=True)
+def installed_startup_schema(monkeypatch):
+    from photo_worker.runtime.database import TaskDatabase
+    monkeypatch.setattr(TaskDatabase, 'media_renderer_policy_ready', lambda self: True)
+    monkeypatch.setattr(TaskDatabase, 'task_result_fence_ready', lambda self: True)
+    monkeypatch.setattr(TaskDatabase, 'editor_internal_dispatch_installed', lambda self, operation: True)

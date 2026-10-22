@@ -3,6 +3,9 @@ from copy import deepcopy
 from hashlib import sha256
 
 from photo_worker.contracts.base import canonical_bytes, canonical_hash, parse_json
+from photo_worker.contracts.conservative import DefectAutoRepairParams,DustAutoRepairParams
+from photo_worker.contracts.defects import DefectProposeReport
+from photo_worker.contracts.face import FaceLandmarks,FaceBoxes
 from photo_worker.contracts.images import WorkingImage, MaskRef, Stats20
 from photo_worker.contracts.override import OverrideV1
 from photo_worker.contracts.portrait_local import PortraitHairParams, PortraitClothingParams
@@ -27,7 +30,7 @@ class PreparedRecipeDocumentQualifier:
     layers. It proves model/operator support; source geometry is checked here.
     Extra validators enable installed operator Params without weakening builtins.
     """
-    MODELS = {'WorkingImage': WorkingImage, 'MaskRef': MaskRef, 'Override': OverrideV1,
+    MODELS = {'DefectProposeReport':DefectProposeReport,'FaceLandmarks':FaceLandmarks,'FaceBoxes':FaceBoxes,'WorkingImage': WorkingImage, 'MaskRef': MaskRef, 'Override': OverrideV1,
               'StyleV2': StyleV2, 'CorrectionPlan': CorrectionPlan,
               'LayerStack': RenderLayerStack, 'EditingRecipeV3': EditingRecipeV3,
               'ResolvedStyle': ResolvedStyle, 'DustCandidates': DustCandidates,
@@ -69,7 +72,7 @@ class PreparedRecipeDocumentQualifier:
 
     PARAM_MODELS = {model.__name__: model for model in
         (PortraitHairParams, PortraitClothingParams, DenoiseParams, UpscaleParams, StatsParams, PortraitParams,
-         DustRepairParams, DefectRepairParams)}
+         DustRepairParams, DefectRepairParams,DefectAutoRepairParams,DustAutoRepairParams)}
 
     def qualify_params(self, schema_name, value, binding):
         return self('Params', value, binding, params_schema=schema_name)
@@ -112,7 +115,7 @@ class PreparedRecipeDocumentQualifier:
         elif contract == 'Params' and isinstance(typed, (PortraitHairParams, PortraitClothingParams)):
             if typed.base != binding:
                 raise AdoptionInvalid('INTERCHANGE_SEMANTICS_PARAMS_SOURCE')
-        elif contract == 'Params' and isinstance(typed, (DenoiseParams, UpscaleParams, StatsParams, PortraitParams, DustRepairParams, DefectRepairParams)):
+        elif contract == 'Params' and isinstance(typed, (DenoiseParams, UpscaleParams, StatsParams, PortraitParams, DustRepairParams, DefectRepairParams,DefectAutoRepairParams,DustAutoRepairParams)):
             if typed.image != binding.source:
                 raise AdoptionInvalid('INTERCHANGE_SEMANTICS_PARAMS_SOURCE')
             if isinstance(typed, UpscaleParams) and source.canvas.width * source.canvas.height * typed.scale ** 2 > 200_000_000:
@@ -127,6 +130,7 @@ class PreparedRecipeDocumentQualifier:
                 masks = [typed.person]
             elif isinstance(typed, DefectRepairParams):
                 masks = [typed.protected]
+            elif isinstance(typed,DustAutoRepairParams):masks=list(typed.protected)
             for mask in masks:
                 if mask.canvas != source.canvas or mask.transform_chain != source.transform_chain:
                     raise AdoptionInvalid('INTERCHANGE_SEMANTICS_MASK_GEOMETRY')
@@ -143,6 +147,15 @@ class PreparedRecipeDocumentQualifier:
             if (typed.image != binding.source or typed.source_pixels != source.pixels
                     or typed.canvas != source.canvas or typed.transform_chain != source.transform_chain):
                 raise AdoptionInvalid('INTERCHANGE_SEMANTICS_DEFECT_SOURCE')
+        elif contract=='DefectProposeReport':
+            if typed.params.image!=binding.source or any(face.object_id is None for face in typed.params.faces):raise AdoptionInvalid('INTERCHANGE_SEMANTICS_DEFECT_REPORT_SOURCE')
+            masks=[typed.protection,*typed.params.protections]
+            if typed.params.permanent is not None:masks.append(typed.params.permanent)
+            for face in typed.params.faces:
+                masks.extend(mask for mask in (face.skin,face.manual) if mask is not None)
+            if not typed.protection.protected or any(mask.canvas!=source.canvas or mask.transform_chain!=source.transform_chain for mask in masks):raise AdoptionInvalid('INTERCHANGE_SEMANTICS_MASK_GEOMETRY')
+        elif contract=='FaceLandmarks':
+            if any(face.canvas!=source.canvas or face.transform_chain!=source.transform_chain for face in typed.landmarks):raise AdoptionInvalid('INTERCHANGE_SEMANTICS_FACE_GEOMETRY')
         elif contract == 'DefectReview':
             if typed.image != binding.source:
                 raise AdoptionInvalid('INTERCHANGE_SEMANTICS_DEFECT_REVIEW_SOURCE')
@@ -179,6 +192,14 @@ class PreparedRecipeDocumentQualifier:
         if self.arrays is not None:
             if contract == 'DefectCandidates':
                 self.arrays.register_defect_proposal(binding.model_copy(deep=True), typed.model_copy(deep=True))
+            elif contract=='DefectProposeReport':
+                self.arrays.register_defect_report(binding.model_copy(deep=True),typed.model_copy(deep=True))
+                masks=[typed.protection,*typed.params.protections]
+                if typed.params.permanent is not None:masks.append(typed.params.permanent)
+                for face in typed.params.faces:masks.extend(mask for mask in (face.skin,face.manual) if mask is not None)
+                for mask in masks:self.arrays.register_mask(binding.model_copy(deep=True),mask.model_copy(deep=True))
+            elif contract=='Params' and isinstance(typed,DustAutoRepairParams):
+                for mask in typed.protected:self.arrays.register_mask(binding.model_copy(deep=True),mask.model_copy(deep=True))
             elif contract == 'MaskRef':
                 self.arrays.register_mask(binding.model_copy(deep=True), typed.model_copy(deep=True))
             elif contract == 'Params' and isinstance(typed, StatsParams):
@@ -225,7 +246,7 @@ def build_prepared_import_recipe_qualifier(*, canonical_images, work_icc_sha,
         entries, schemas_jcs, schemas_sha, read_document, evidence_reader, scratch,
         max_file_bytes, qualify_runtime, extra_validators=None, check_active=lambda: None, recheck_inputs=None,
         qualify_occurrence=None, operation_schemas=None, qualify_confirmation=None,
-        background_mappings=None):
+        background_mappings=None, prepared_ancestors=(), qualify_ancestor=None):
     """Install source semantics and physical arrays into the frozen stage port."""
     from .interchange_recipe_arrays import PreparedImportArrayQualifier
     from .interchange_recipe_closure import PreparedRecipeClosureQualifier
@@ -236,6 +257,8 @@ def build_prepared_import_recipe_qualifier(*, canonical_images, work_icc_sha,
         work_icc_sha=work_icc_sha, qualify_runtime=qualify_runtime,
         extra_validators=extra_validators, array_qualifier=arrays, check_active=check_active,
         qualify_confirmation=qualify_confirmation)
+    from .interchange_recipe_ancestors import install_prepared_ancestors
+    install_prepared_ancestors(documents, arrays, prepared_ancestors, qualify_ancestor, check_active)
     from .interchange_recipe_backgrounds import PreparedImportBackgroundQualifier
     backgrounds = PreparedImportBackgroundQualifier(canonical_images=images, reader=evidence_reader,
         scratch=scratch, check_active=check_active)

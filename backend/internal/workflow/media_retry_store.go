@@ -10,13 +10,15 @@ import (
 	"github.com/jackc/pgx/v5"
 	"photoeditor/backend/internal/artifactjson"
 	"photoeditor/backend/internal/canonical"
+ "photoeditor/backend/internal/media"
 	"photoeditor/backend/internal/objectstore"
 	"photoeditor/backend/internal/review"
 )
 
 type MediaRetryLease struct {
 	EventID, Token, TenantID, BulkID, ItemID, AssetVersionID uuid.UUID
-	Variants                                                 []string
+	RendererPolicy                                           string
+ Variants                                                 []string
 	Master                                                   MediaMaster
 }
 
@@ -27,6 +29,7 @@ type MediaRetryStore struct {
 }
 
 func (s MediaRetryStore) Claim(ctx context.Context) (*MediaRetryLease, error) {
+ if err:=ctx.Err();err!=nil{return nil,err}
 	if s.DB == nil || s.Objects == nil || s.Bucket == "" {
 		return nil, errors.New("media retry store unavailable")
 	}
@@ -37,26 +40,42 @@ func (s MediaRetryStore) Claim(ctx context.Context) (*MediaRetryLease, error) {
 	var role string
 	claim, cancel := context.WithTimeout(ctx, 5*time.Second)
 	err := s.DB.QueryRow(claim, "SELECT event_id,materialize_token,tenant_id,bulk_id,item_id,asset_version_id,variants,master_artifact_id,bucket,object_key,object_version,sha256,bytes,media_type,width,height,output_role FROM photo.claim_media_retry_job()").Scan(&lease.EventID, &lease.Token, &lease.TenantID, &lease.BulkID, &lease.ItemID, &lease.AssetVersionID, &variants, &a.ArtifactID, &a.Bucket, &a.Key, &a.VersionID, &a.SHA256, &a.Bytes, &a.MediaType, &width, &height, &role)
-	cancel()
+	claimErr:=claim.Err()
+ cancel()
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
+ accepted:=false
+ // Claim owns cleanup until the fully loaded lease reaches the coordinator.
+ defer func(){if !accepted && lease.EventID!=uuid.Nil && lease.Token!=uuid.Nil{
+  cleanup,stop:=context.WithTimeout(context.WithoutCancel(ctx),5*time.Second);defer stop()
+  _,_=s.Release(cleanup,lease)
+ }}()
+ if claimErr!=nil{return nil,claimErr}
 	if lease.EventID == uuid.Nil || lease.Token == uuid.Nil || a.Bucket != s.Bucket || role != "working_image" || a.MediaType != "application/json" {
 		return nil, errors.New("invalid media retry lease")
 	}
 	if json.Unmarshal(variants, &lease.Variants) != nil || len(lease.Variants) < 1 || len(lease.Variants) > 2 {
 		return nil, errors.New("invalid media retry variants")
 	}
+ // The durable queued event owns the policy even before a run exists.
+ // Never interpret a missing child run as a newly authored retry.
+ lease.RendererPolicy, err = media.PolicyForRetry(ctx,s.DB,lease.TenantID,lease.EventID,lease.Token)
+ if err!=nil{return nil,err}
 	read, cancel := context.WithTimeout(ctx, 20*time.Second)
 	image, err := readWorking(read, s.Objects, s.Bucket, a)
+ readErr:=read.Err()
 	cancel()
 	if err != nil {
 		return nil, err
 	}
+ if readErr!=nil{return nil,readErr}
+ if err=ctx.Err();err!=nil{return nil,err}
 	lease.Master = MediaMaster{Artifact: review.ArtifactRef{ID: a.ArtifactID, SHA256: a.SHA256}, Bytes: a.Bytes, Width: int64(image.Canvas.Width), Height: int64(image.Canvas.Height), MediaType: a.MediaType, Working: &image}
+ accepted=true
 	return &lease, nil
 }
 

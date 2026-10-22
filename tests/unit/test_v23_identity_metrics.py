@@ -19,7 +19,7 @@ def _face(*, x=.2, y=.2, embedding=True, quality=1.0):
                            box=FaceRect(x0=x, y0=y, x1=x + .2, y1=y + .2),
                            landmarks=[FacePoint(x=x + .1, y=y + .1)] * 68,
                            embedding=vector if embedding else None,
-                           quality=quality, person_id=None)
+                           quality=quality, person_id=uuid4() if embedding else None)
 
 
 def _observations(faces, canvas='a' * 64):
@@ -133,7 +133,7 @@ def test_pixel_guards_include_alpha_outside_mask_and_under_protection():
 
 def test_invalid_canvas_and_duplicate_identity_rejected():
     face = _face()
-    with pytest.raises(ValueError, match='DUPLICATE_FACE_ID'):
+    with pytest.raises(ValueError, match='INVALID_FACE_OBSERVATIONS_SCOPE'):
         _compare([face, face], [_face()])
     calibration = SimpleNamespace(qualified=True, identity_similarity_min=.8,
                                   landmark_drift_max=.1,min_face_edge_px=32)

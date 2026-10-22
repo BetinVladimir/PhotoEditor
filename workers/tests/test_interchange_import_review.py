@@ -13,7 +13,7 @@ def fixture():
     args, _ = adoption_fixture()
     proof = verify_import_output(**args)
     params = json.loads(proof.params_jcs)
-    plan_ref = ArtifactRef.model_validate(params['plan'])
+    plan_ref = ArtifactRef.model_validate_json(json.dumps(params['plan']))
     return proof, dict(workflow_id=args['workflow_id'], project_id=args['project_id'],
         snapshot_digest=args['snapshot_digest'], plan_jcs=args['read_input'](plan_ref, 8 << 20))
 

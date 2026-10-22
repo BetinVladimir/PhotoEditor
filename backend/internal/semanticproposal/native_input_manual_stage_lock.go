@@ -25,7 +25,7 @@ func (s SQLTransferSourceReader) lockNativeInputManualStageInTransaction(ctx con
 	if qualified.dependencySeal == "" || qualified.dependencySeal != dependencies.seal || q.landmarksSeal != dependencies.producers.landmarks.seal || q.skinSeal != dependencies.producers.skin.seal || !validQualificationPolicySnapshot(s, who, tenant, q.policy) || !reflect.DeepEqual(q.policy, d.policy) {
 		return v2input.ErrConflict
 	}
-	selected, err := selectQualificationPolicies(q.policy, []string{"defects.propose"})
+	selected, err := selectNativeQualificationPolicies(q.policy, []string{"defects.propose"})
 	if err != nil {
 		return err
 	}

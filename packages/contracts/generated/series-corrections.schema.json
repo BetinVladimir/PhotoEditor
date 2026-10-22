@@ -101,7 +101,7 @@
       "items": {
         "$ref": "#/$defs/ItemCorrection"
       },
-      "maxItems": 2000,
+      "maxItems": 5000,
       "minItems": 2,
       "title": "Items",
       "type": "array"

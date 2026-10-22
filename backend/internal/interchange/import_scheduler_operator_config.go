@@ -15,6 +15,7 @@ import (
 
 type importSchedulerOperatorConfig struct {
 	Schema string `json:"schema_version"`
+ HistoricalOrigins *ImportHistoricalSignerFiles `json:"historical_origins,omitempty"`
 	Native struct {
 		Path string `json:"path"`
 		SHA  string `json:"sha256"`
@@ -64,7 +65,7 @@ func DecodeImportSchedulerOperatorFiles(raw []byte, pin string) (ImportScheduler
 	if wire.Schema != "interchange-import-scheduler-operator/v1" {
 		return zero, v2input.ErrInvalid
 	}
-	files := ImportSchedulerOperatorFiles{
+	files := ImportSchedulerOperatorFiles{HistoricalOrigins:wire.HistoricalOrigins,
 		NativePath: wire.Native.Path, NativeSHA: wire.Native.SHA,
 		StylePath: wire.Style.Path, StyleSHA: wire.Style.SHA,
 		Recipes: ImportRecipeDeploymentFiles{

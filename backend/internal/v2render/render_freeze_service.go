@@ -122,8 +122,12 @@ func (s SQLRenderFreezeService) Freeze(ctx context.Context, who auth.Identity, t
 		return idempotency.Response{}, v2input.ErrInvalid
 	}
 	var response idempotency.Response
-	err = tenant.WithTenant(ctx, s.Drafts.DB, who, tid, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
-		var err error
+	err = tenant.WithTenant(ctx, s.Drafts.DB, who, tid, domain.Editor, func(tx pgx.Tx, role domain.Role) error {
+		var pid uuid.UUID
+		err := tx.QueryRow(ctx, `SELECT project_id FROM photo.assets WHERE tenant_id=$1 AND id=$2 AND deleted_at IS NULL`, tid, asset).Scan(&pid)
+		if errors.Is(err, pgx.ErrNoRows) { return domain.NewError("NOT_FOUND",404) }
+		if err != nil { return err }
+		if _, err = project.Authorize(ctx,tx,tid,pid,who.UserID,role,domain.Editor,false); err != nil { return err }
 		response, err = idempotency.Use(ctx, tx, scope, request, time.Now().Add(24*time.Hour), func() (idempotency.Response, error) {
 			var outcome string
 			err := tx.QueryRow(ctx, `SELECT photo.register_v26_render_draft_recipe_result($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, tid, binding.AssetVersionID, id, who.UserID, who.SessionID, ref.ArtifactID, ref.SHA256, binding.Source.ArtifactID, binding.Source.SHA256, string(body), request.DocumentID, expected).Scan(&outcome)

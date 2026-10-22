@@ -1,3 +1,4 @@
+from pathlib import Path as _PhotoRepositoryPath
 from pathlib import Path
 import json
 import os
@@ -23,7 +24,7 @@ def test_full_json_documents_through_actual_freeze_service(database):
     from photo_worker.v2.render_style import prepare_render_style
     with tempfile.TemporaryDirectory(prefix='freeze-cross-',dir=root/'work') as directory:
         output=Path(directory)/'frozen.json'
-        env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_RENDER_FREEZE_FRESH=json.dumps(fixture),PHOTO_RENDER_FREEZE_RESULT=str(output),GOCACHE='/private/tmp/photoeditor-go-cache')
+        env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_RENDER_FREEZE_FRESH=json.dumps(fixture),PHOTO_RENDER_FREEZE_RESULT=str(output),GOCACHE=str(_PhotoRepositoryPath(__file__).resolve().parents[2]/'work/go-cache'))
         result=subprocess.run(['go','test','./internal/v2render','-run','^TestIntegrationRenderFreezeFreshDocuments$','-count=1'],cwd=root/'backend',env=env,capture_output=True,text=True,timeout=90)
         assert result.returncode==0,result.stdout+result.stderr
         frozen=decode_frozen_render_recipe(output.read_bytes())

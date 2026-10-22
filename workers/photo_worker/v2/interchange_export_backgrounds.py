@@ -51,7 +51,7 @@ def resolve_export_background_pins(plan, reader, *, active=lambda: None):
         if sha256(style_raw).hexdigest() != style_ref.sha256:
             raise ValueError('INTERCHANGE_EXPORT_BACKGROUND_STYLE_PIN')
         style = StyleV2.from_bytes(style_raw)
-        if canonical_bytes(style) != style_raw:
+        if canonical_bytes(parse_json(style_raw, max_bytes=8 << 20)) != style_raw:
             raise ValueError('INTERCHANGE_EXPORT_BACKGROUND_STYLE_CANONICAL')
         background = style.extensions.background
         if frozen.recipe.overrides:

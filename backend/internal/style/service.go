@@ -18,6 +18,7 @@ import (
 	"photoeditor/backend/internal/objectstore"
 	"photoeditor/backend/internal/pagination"
 	"photoeditor/backend/internal/project"
+	"photoeditor/backend/internal/review"
 	"photoeditor/backend/internal/tenant"
 )
 
@@ -381,46 +382,71 @@ func (s Service) ListVersions(ctx context.Context, who auth.Identity, tid, style
 }
 func (s Service) Export(ctx context.Context, who auth.Identity, tid, styleID, versionID uuid.UUID) (ArtifactDownload, error) {
 	var out ArtifactDownload
+	if err := ctx.Err(); err != nil {
+		return out, err
+	}
+	if styleID == uuid.Nil || versionID == uuid.Nil {
+		return out, domain.NewError("VALIDATION_FAILED", 422)
+	}
 	if s.Objects == nil {
 		return out, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
 	}
 	var object objectstore.Object
-	err := tenant.WithTenant(ctx, s.DB, who, tid, domain.Viewer, func(tx pgx.Tx, role domain.Role) error {
-		style, e := authorizeStyle(ctx, tx, who, tid, styleID, role, domain.Editor, false)
-		if e != nil {
-			return e
-		}
-		var config json.RawMessage
-		var configHash, bucket, key string
-		var version *string
-		var expires *time.Time
-		e = tx.QueryRow(ctx, `SELECT v.config_json,v.config_hash,a.bucket,a.object_key,a.object_version,a.sha256,a.bytes,a.media_type,a.expires_at FROM photo.style_versions v JOIN photo.artifacts a ON a.tenant_id=v.tenant_id AND a.id=v.export_artifact_id AND a.sha256=v.config_hash WHERE v.tenant_id=$1 AND v.style_id=$2 AND v.id=$3 AND a.state='ready'`, tid, styleID, versionID).Scan(&config, &configHash, &bucket, &key, &version, &object.SHA256, &object.Bytes, &object.ContentType, &expires)
-		if errors.Is(e, pgx.ErrNoRows) {
-			return domain.NewError("STYLE_PACKAGE_NOT_READY", 409)
-		}
-		if e != nil {
-			return e
-		}
-		if version == nil || *version == "" || object.ContentType != "application/json" || expires != nil && !expires.After(time.Now()) {
-			return domain.NewError("STYLE_PACKAGE_NOT_READY", 409)
-		}
-		actual, e := canonical.Hash(json.RawMessage(config))
-		if e != nil || actual != configHash {
-			return errors.New("stored style config hash mismatch")
-		}
-		if s.Bucket == "" || bucket != s.Bucket {
-			return errors.New("style package bucket mismatch")
-		}
-		object.Key = key
-		object.VersionID = *version
-		out.Filename = "style-" + style.ID.String() + "-" + versionID.String() + ".json"
-		return nil
-	})
+	resolve := func() error {
+		return tenant.WithTenant(ctx, s.DB, who, tid, domain.Editor, func(tx pgx.Tx, role domain.Role) error {
+			style, e := authorizeStyle(ctx, tx, who, tid, styleID, role, domain.Editor, false)
+			if e != nil {
+				return e
+			}
+			var config json.RawMessage
+			var configHash, bucket, key string
+			var version *string
+			var expires *time.Time
+			e = tx.QueryRow(ctx, `SELECT v.config_json,v.config_hash,a.bucket,a.object_key,a.object_version,a.sha256,a.bytes,a.media_type,a.expires_at FROM photo.style_versions v JOIN photo.artifacts a ON a.tenant_id=v.tenant_id AND a.id=v.export_artifact_id AND a.sha256=v.config_hash WHERE v.tenant_id=$1 AND v.style_id=$2 AND v.id=$3 AND a.state='ready'`, tid, styleID, versionID).Scan(&config, &configHash, &bucket, &key, &version, &object.SHA256, &object.Bytes, &object.ContentType, &expires)
+			if errors.Is(e, pgx.ErrNoRows) {
+				return domain.NewError("STYLE_PACKAGE_NOT_READY", 409)
+			}
+			if e != nil {
+				return e
+			}
+			if version == nil || *version == "" || object.ContentType != "application/json" || expires != nil && !expires.After(time.Now()) {
+				return domain.NewError("STYLE_PACKAGE_NOT_READY", 409)
+			}
+			actual, e := canonical.Hash(json.RawMessage(config))
+			if e != nil || actual != configHash {
+				return errors.New("stored style config hash mismatch")
+			}
+			if s.Bucket == "" || bucket != s.Bucket {
+				return errors.New("style package bucket mismatch")
+			}
+			object.Key = key
+			object.VersionID = *version
+			out.Filename = "style-" + style.ID.String() + "-" + versionID.String() + ".json"
+			return nil
+		})
+	}
+	err := resolve()
 	if err != nil {
 		return out, err
 	}
+	expectedObject, expectedFilename := object, out.Filename
 	signed, err := s.Objects.SignDownload(ctx, object, out.Filename, 5*time.Minute)
 	if err != nil {
+		return ArtifactDownload{}, err
+	}
+	if err = ctx.Err(); err != nil {
+		return ArtifactDownload{}, err
+	}
+	if err = resolve(); err != nil {
+		return ArtifactDownload{}, err
+	}
+	if object != expectedObject || out.Filename != expectedFilename {
+		return ArtifactDownload{}, domain.NewError("STYLE_PACKAGE_NOT_READY", 409)
+	}
+	if !objectstore.ValidSignedReadURL(signed.URL, object.VersionID) || !signed.ExpiresAt.After(time.Now()) || signed.ExpiresAt.After(time.Now().Add(5*time.Minute+5*time.Second)) {
+		return ArtifactDownload{}, domain.NewError("STYLE_PACKAGE_NOT_READY", 409)
+	}
+	if err = ctx.Err(); err != nil {
 		return ArtifactDownload{}, err
 	}
 	out.URL = signed.URL
@@ -519,6 +545,20 @@ func (s Service) AcceptCandidate(ctx context.Context, who auth.Identity, tid, st
 			body, e := canonical.Marshal(item)
 			return idempotency.Response{Status: 201, Body: body, ResourceID: &item.ID}, e
 		})
+		if e != nil {
+			return e
+		}
+		if e = bindReceiptParent(ctx, tx, who, tid, "Style.AcceptCandidate", key, out, "style:"+styleID.String(), `SELECT EXISTS(SELECT 1 FROM photo.style_versions WHERE tenant_id=$1 AND id=$2 AND style_id=$3)`, styleID); e != nil {
+			return e
+		}
+		if e != nil {
+			return e
+		}
+		currentRole, e := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Editor)
+		if e != nil {
+			return e
+		}
+		_, e = authorizeStyle(ctx, tx, who, tid, styleID, currentRole, domain.Editor, false)
 		return e
 	})
 	return out, err
@@ -553,20 +593,11 @@ func (s Service) Analyze(ctx context.Context, who auth.Identity, tid, styleID uu
 				return idempotency.Response{}, domain.NewError("REVISION_CONFLICT", 409)
 			}
 			var holdoutSnapshotDigest *string
-			var fitBackend, fitRuntimeLock, aggregateRuntimeLock string
-			e = tx.QueryRow(ctx, `SELECT fit_lock_id,fit_backend,aggregate_lock_id FROM photo.select_style_analysis_runtimes($1,$2)`, tid, req.AnalysisOptions.GeometryEnabled).Scan(&fitRuntimeLock, &fitBackend, &aggregateRuntimeLock)
-			if errors.Is(e, pgx.ErrNoRows) {
-				return idempotency.Response{}, domain.NewError("STYLE_FIT_CAPABILITY_UNAVAILABLE", 409)
-			}
+			selected, e := selectAnalysisRuntimes(ctx, tx, tid, req.AnalysisOptions.GeometryEnabled)
 			if e != nil {
 				return idempotency.Response{}, e
 			}
-			if fitRuntimeLock == "" || fitBackend == "" {
-				return idempotency.Response{}, domain.NewError("STYLE_FIT_CAPABILITY_UNAVAILABLE", 409)
-			}
-			if aggregateRuntimeLock == "" {
-				return idempotency.Response{}, domain.NewError("STYLE_AGGREGATE_CAPABILITY_UNAVAILABLE", 409)
-			}
+			fitBackend, fitRuntimeLock, aggregateRuntimeLock := selected.FitBackend, selected.FitLock, selected.AggregateLock
 			rows, e := tx.Query(ctx, `SELECT p.id,p.session_id,
 			 bv.master_artifact_id,ba.sha256,ba.bucket,ba.object_key,ba.object_version,ba.bytes,ba.media_type,
 			 av.master_artifact_id,aa.sha256,aa.bucket,aa.object_key,aa.object_version,aa.bytes,aa.media_type,
@@ -680,6 +711,20 @@ func (s Service) Analyze(ctx context.Context, who auth.Identity, tid, styleID uu
 			body, e := canonical.Marshal(RunAccepted{RunID: runID, Status: "queued"})
 			return idempotency.Response{Status: 202, Body: body, ResourceID: &runID}, e
 		})
+		if e != nil {
+			return e
+		}
+		if e = bindReceiptParent(ctx, tx, who, tid, "Style.Analyze", key, out, "style:"+styleID.String(), `SELECT EXISTS(SELECT 1 FROM photo.runs WHERE tenant_id=$1 AND id=$2 AND kind='analyze' AND config_snapshot->>'style_id'=$3::text)`, styleID); e != nil {
+			return e
+		}
+		if e != nil {
+			return e
+		}
+		currentRole, e := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Editor)
+		if e != nil {
+			return e
+		}
+		_, e = authorizeStyle(ctx, tx, who, tid, styleID, currentRole, domain.Editor, false)
 		return e
 	})
 	return out, err
@@ -768,7 +813,32 @@ func (s Service) CreateHoldoutSnapshot(ctx context.Context, who auth.Identity, t
 			body, e := canonical.Marshal(HoldoutSnapshot{snapshotID, digest, len(pairs), revision})
 			return idempotency.Response{Status: 201, Body: body, ResourceID: &snapshotID}, e
 		})
-		return e
+		if e != nil {
+			return e
+		}
+		if e = bindReceiptParent(ctx, tx, who, tid, "Style.CreateHoldoutSnapshot", key, out, "training-set:"+setID.String(), `SELECT EXISTS(SELECT 1 FROM photo.snapshots WHERE tenant_id=$1 AND id=$2 AND kind='holdout' AND training_set_id=$3)`, setID); e != nil {
+			return e
+		}
+		if e != nil {
+			return e
+		}
+		currentRole, e := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Editor)
+		if e != nil {
+			return e
+		}
+		var currentProject uuid.UUID
+		e = tx.QueryRow(ctx, `SELECT s.project_id FROM photo.training_sets t JOIN photo.styles s ON s.tenant_id=t.tenant_id AND s.id=t.style_id WHERE t.tenant_id=$1 AND t.id=$2 AND s.archived_at IS NULL`, tid, setID).Scan(&currentProject)
+		if errors.Is(e, pgx.ErrNoRows) {
+			return domain.NewError("NOT_FOUND", 404)
+		}
+		if e != nil {
+			return e
+		}
+		_, e = project.Authorize(ctx, tx, tid, currentProject, who.UserID, currentRole, domain.Editor, false)
+		if e != nil {
+			return e
+		}
+		return nil
 	})
 	return out, err
 }
@@ -829,13 +899,13 @@ func (s Service) Import(ctx context.Context, who auth.Identity, tid uuid.UUID, k
 				return idempotency.Response{}, e
 			}
 			cfg := struct {
-				Schema   string       `json:"schema"`
-				StyleID  uuid.UUID    `json:"style_id"`
-				Package  artifactRef  `json:"package"`
-				Manifest *artifactRef `json:"assets_manifest,omitempty"`
-			}{Schema: "style-import/v1", StyleID: styleID, Package: artifactRef{ArtifactID: pkg.ID, SHA256: pkg.SHA}}
+				Schema   string              `json:"schema"`
+				StyleID  uuid.UUID           `json:"style_id"`
+				Package  review.ArtifactRef  `json:"package"`
+				Manifest *review.ArtifactRef `json:"assets_manifest,omitempty"`
+			}{Schema: "style-import/v1", StyleID: styleID, Package: review.ArtifactRef{ID: pkg.ID, SHA256: pkg.SHA}}
 			if manifest != nil {
-				cfg.Manifest = &artifactRef{ArtifactID: manifest.ID, SHA256: manifest.SHA}
+				cfg.Manifest = &review.ArtifactRef{ID: manifest.ID, SHA256: manifest.SHA}
 			}
 			cfgRaw, e := canonical.Marshal(cfg)
 			if e != nil {
@@ -849,10 +919,10 @@ func (s Service) Import(ctx context.Context, who auth.Identity, tid uuid.UUID, k
 				return idempotency.Response{}, e
 			}
 			params := struct {
-				Package  artifactRef  `json:"package"`
-				Target   uuid.UUID    `json:"target_style_id"`
-				Manifest *artifactRef `json:"assets_manifest,omitempty"`
-				Version  string       `json:"package_version"`
+				Package  review.ArtifactRef  `json:"package"`
+				Target   uuid.UUID           `json:"target_style_id"`
+				Manifest *review.ArtifactRef `json:"assets_manifest,omitempty"`
+				Version  string              `json:"package_version"`
 			}{cfg.Package, styleID, cfg.Manifest, "style_import_v1"}
 			paramsRaw, e := canonical.Marshal(params)
 			if e != nil {
@@ -871,6 +941,14 @@ func (s Service) Import(ctx context.Context, who auth.Identity, tid uuid.UUID, k
 			body, e := canonical.Marshal(RunAccepted{RunID: runID, Status: "queued"})
 			return idempotency.Response{Status: 202, Body: body, ResourceID: &runID}, e
 		})
+		if e != nil {
+			return e
+		}
+		currentRole, e := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Editor)
+		if e != nil {
+			return e
+		}
+		_, e = project.Authorize(ctx, tx, tid, req.ProjectID, who.UserID, currentRole, domain.Editor, false)
 		return e
 	})
 	return out, err
@@ -963,7 +1041,25 @@ func (s Service) Create(ctx context.Context, who auth.Identity, tid uuid.UUID, k
 			body, e := canonical.Marshal(item)
 			return idempotency.Response{Status: 201, Body: body, ResourceID: &item.ID}, e
 		})
-		return e
+		if e != nil {
+			return e
+		}
+		created, e := readCreatedStyleReceipt(out, tid, req)
+		if e != nil {
+			return e
+		}
+		currentRole, e := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Editor)
+		if e != nil {
+			return e
+		}
+		current, e := authorizeStyle(ctx, tx, who, tid, created.ID, currentRole, domain.Editor, false)
+		if e != nil {
+			return e
+		}
+		if current.ProjectID != req.ProjectID {
+			return domain.NewError("IDEMPOTENCY_CONFLICT", 409)
+		}
+		return nil
 	})
 	return out, err
 }
@@ -972,7 +1068,7 @@ func (s Service) Update(ctx context.Context, who auth.Identity, tid, id uuid.UUI
 	if expected < 1 || patch.ExpectedRevision != expected {
 		return out, domain.NewError("VALIDATION_FAILED", 422)
 	}
-	err := tenant.WithTenant(ctx, s.DB, who, tid, domain.Viewer, func(tx pgx.Tx, role domain.Role) error {
+	err := tenant.WithTenant(ctx, s.DB, who, tid, domain.Editor, func(tx pgx.Tx, role domain.Role) error {
 		current, e := authorizeStyle(ctx, tx, who, tid, id, role, domain.Editor, true)
 		if e != nil {
 			return e
@@ -997,7 +1093,15 @@ func (s Service) Update(ctx context.Context, who auth.Identity, tid, id uuid.UUI
 		if e != nil {
 			return e
 		}
-		return audit(ctx, tx, who, tid, id, "style.update")
+		if e = audit(ctx, tx, who, tid, id, "style.update"); e != nil {
+			return e
+		}
+		currentRole, e := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Editor)
+		if e != nil {
+			return e
+		}
+		_, e = project.Authorize(ctx, tx, tid, current.ProjectID, who.UserID, currentRole, domain.Editor, false)
+		return e
 	})
 	return out, err
 }
@@ -1024,6 +1128,14 @@ func (s Service) CreateTrainingSet(ctx context.Context, who auth.Identity, tid, 
 			body, e := canonical.Marshal(item)
 			return idempotency.Response{Status: 201, Body: body, ResourceID: &item.ID}, e
 		})
+		if e != nil {
+			return e
+		}
+		currentRole, e := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Editor)
+		if e != nil {
+			return e
+		}
+		_, e = authorizeStyle(ctx, tx, who, tid, styleID, currentRole, domain.Editor, false)
 		return e
 	})
 	return out, err
@@ -1036,14 +1148,18 @@ func (s Service) GetTrainingSet(ctx context.Context, who auth.Identity, tid, id 
 	err := tenant.WithTenant(ctx, s.DB, who, tid, domain.Viewer, func(tx pgx.Tx, role domain.Role) error {
 		var rev int64
 		var projectID uuid.UUID
-		e := tx.QueryRow(ctx, `SELECT t.id,t.style_id,t.revision,t.state,t.created_at,s.project_id FROM photo.training_sets t JOIN photo.styles s ON s.tenant_id=t.tenant_id AND s.id=t.style_id WHERE t.tenant_id=$1 AND t.id=$2`, tid, id).Scan(&out.ID, &out.StyleID, &rev, &out.State, &out.CreatedAt, &projectID)
+		e := tx.QueryRow(ctx, `SELECT t.id,t.style_id,t.revision,t.state,t.created_at,s.project_id FROM photo.training_sets t JOIN photo.styles s ON s.tenant_id=t.tenant_id AND s.id=t.style_id WHERE t.tenant_id=$1 AND t.id=$2 FOR SHARE OF t`, tid, id).Scan(&out.ID, &out.StyleID, &rev, &out.State, &out.CreatedAt, &projectID)
 		if errors.Is(e, pgx.ErrNoRows) {
 			return domain.NewError("NOT_FOUND", 404)
 		}
 		if e != nil {
 			return e
 		}
-		if _, e = project.Authorize(ctx, tx, tid, projectID, who.UserID, role, domain.Editor, false); e != nil {
+		currentRole, e := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Viewer)
+		if e != nil {
+			return e
+		}
+		if _, e = project.Authorize(ctx, tx, tid, projectID, who.UserID, currentRole, domain.Editor, false); e != nil {
 			return e
 		}
 		out.Revision = strconv.FormatInt(rev, 10)
@@ -1153,6 +1269,20 @@ func (s Service) AddPair(ctx context.Context, who auth.Identity, tid, setID uuid
 			body, e := canonical.Marshal(pair)
 			return idempotency.Response{Status: 201, Body: body, ResourceID: &pair.ID}, e
 		})
+		if e != nil {
+			return e
+		}
+		if e = bindReceiptParent(ctx, tx, who, tid, "Training.AddPair", key, out, "training-set:"+setID.String(), `SELECT EXISTS(SELECT 1 FROM photo.training_pairs WHERE tenant_id=$1 AND id=$2 AND training_set_id=$3)`, setID); e != nil {
+			return e
+		}
+		if e != nil {
+			return e
+		}
+		currentRole, e := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Editor)
+		if e != nil {
+			return e
+		}
+		_, e = project.Authorize(ctx, tx, tid, projectID, who.UserID, currentRole, domain.Editor, false)
 		return e
 	})
 	return out, err
@@ -1216,7 +1346,43 @@ func (s Service) AddFeedback(ctx context.Context, who auth.Identity, tid, collec
 			body, insertErr := canonical.Marshal(pair)
 			return idempotency.Response{Status: 201, Body: body, ResourceID: &pair.ID}, insertErr
 		})
-		return e
+		if e != nil {
+			return e
+		}
+		if e = bindReceiptParent(ctx, tx, who, tid, "Training.AddFeedback", key, out, "feedback:"+collectionID.String()+":"+req.TrainingSetID.String(), ``); e != nil {
+			return e
+		}
+		if e != nil {
+			return e
+		}
+		currentRole, e := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Editor)
+		if e != nil {
+			return e
+		}
+		var currentProject uuid.UUID
+		e = tx.QueryRow(ctx, `SELECT s.project_id FROM photo.training_sets t JOIN photo.styles s ON s.tenant_id=t.tenant_id AND s.id=t.style_id WHERE t.tenant_id=$1 AND t.id=$2 AND s.archived_at IS NULL`, tid, req.TrainingSetID).Scan(&currentProject)
+		if errors.Is(e, pgx.ErrNoRows) {
+			return domain.NewError("NOT_FOUND", 404)
+		}
+		if e != nil {
+			return e
+		}
+		_, e = project.Authorize(ctx, tx, tid, currentProject, who.UserID, currentRole, domain.Editor, false)
+		if e != nil {
+			return e
+		}
+		var collectionProject uuid.UUID
+		e = tx.QueryRow(ctx, `SELECT project_id FROM photo.collections WHERE tenant_id=$1 AND id=$2 AND deleted_at IS NULL`, tid, collectionID).Scan(&collectionProject)
+		if errors.Is(e, pgx.ErrNoRows) {
+			return domain.NewError("NOT_FOUND", 404)
+		}
+		if e != nil {
+			return e
+		}
+		if collectionProject != currentProject {
+			return domain.NewError("IDEMPOTENCY_CONFLICT", 409)
+		}
+		return nil
 	})
 	return out, err
 }
@@ -1268,6 +1434,13 @@ func (s Service) UpdatePair(ctx context.Context, who auth.Identity, tid, setID, 
 			if !valid {
 				return domain.NewError("NOT_FOUND", 404)
 			}
+		}
+		currentRole, e := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Editor)
+		if e != nil {
+			return e
+		}
+		if _, e = project.Authorize(ctx, tx, tid, projectID, who.UserID, currentRole, domain.Editor, false); e != nil {
+			return e
 		}
 		out, e = scanPair(tx.QueryRow(ctx, `UPDATE photo.training_pairs AS p SET confirmed=$4,included=$5,ignore_mask_artifact_id=$6,validation_status='pending',revision=revision+1 WHERE tenant_id=$1 AND training_set_id=$2 AND id=$3 RETURNING `+pairFields, tid, setID, pairID, current.Confirmed, current.Included, current.IgnoreMaskArtifactID))
 		if e != nil {

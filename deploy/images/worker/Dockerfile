@@ -3,7 +3,8 @@ ARG UV_IMAGE
 ARG PYTHON_BASE_IMAGE
 FROM ${UV_IMAGE} AS uv
 FROM ${PYTHON_BASE_IMAGE}
-RUN addgroup --system photo && adduser --system --uid 10001 --ingroup photo photo
+RUN addgroup --system photo && adduser --system --uid 10001 --ingroup photo photo \
+    && mkdir -p /scratch && chown photo:photo /scratch
 COPY --from=uv /uv /uvx /bin/
 WORKDIR /opt/photo
 COPY workers/pyproject.toml workers/uv.lock ./workers/

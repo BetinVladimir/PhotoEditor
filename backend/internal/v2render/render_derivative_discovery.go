@@ -3,6 +3,7 @@ package v2render
 import (
 	"context"
 	"errors"
+	"time"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -16,6 +17,7 @@ type RenderDerivativeIntent struct {
 	SourceAttempt                      int
 	SourceFence                        int64
 	SRGBSHA                            string
+	RendererPolicy                     string
 }
 type SQLRenderDerivativeIntents struct{ DB *pgxpool.Pool }
 
@@ -38,6 +40,10 @@ func (s SQLRenderDerivativeIntents) Next(ctx context.Context, after uuid.UUID) (
 	if err != nil {
 		return nil, err
 	}
+	policyContext,stopPolicy:=context.WithTimeout(ctx,5*time.Second)
+	err=s.DB.QueryRow(policyContext,"SELECT photo.media_renderer_policy_for_run($1,$2)",value.Tenant,value.Run).Scan(&value.RendererPolicy)
+	if err==nil {err=policyContext.Err()};stopPolicy();if err!=nil{return nil,err}
+	if value.RendererPolicy!="legacy_v1" && value.RendererPolicy!="declared_encoding_alpha8_icc_v2" {return nil,v2input.ErrInvalid}
 	if value.Tenant == uuid.Nil || value.Run == uuid.Nil || value.Project == uuid.Nil || value.Task == uuid.Nil || value.Result == uuid.Nil || value.Root.ArtifactID == uuid.Nil || value.SourceAttempt < 1 || value.SourceFence < 1 {
 		return nil, v2input.ErrInvalid
 	}

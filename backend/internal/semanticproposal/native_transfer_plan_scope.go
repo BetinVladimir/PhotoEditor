@@ -37,7 +37,7 @@ func validateNativeTransferPlanScope(who auth.Identity, request Request, plan Wo
 	if err := matchNativeReferenceContinuation(native.native); err != nil {
 		return err
 	}
-	selected, err := selectQualificationPolicies(native.native.defect.policy, []string{"semantic.transfer"})
+	selected, err := selectNativeQualificationPolicies(native.native.defect.policy, []string{"semantic.transfer"})
 	if err != nil {
 		return err
 	}

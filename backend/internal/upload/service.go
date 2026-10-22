@@ -1,6 +1,7 @@
 package upload
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -232,12 +233,16 @@ func (s Service) Begin(ctx context.Context, who auth.Identity, tenantID uuid.UUI
 				return idempotency.Response{}, err
 			}
 			if request.CollectionID != nil {
-				var valid bool
-				if err := tx.QueryRow(ctx, "SELECT EXISTS(SELECT FROM photo.collections WHERE tenant_id=$1 AND id=$2 AND project_id=$3 AND deleted_at IS NULL)", tenantID, *request.CollectionID, request.ProjectID).Scan(&valid); err != nil {
+				var state string
+				if err := tx.QueryRow(ctx, "SELECT state FROM photo.collections WHERE tenant_id=$1 AND id=$2 AND project_id=$3 AND deleted_at IS NULL FOR UPDATE", tenantID, *request.CollectionID, request.ProjectID).Scan(&state); err != nil {
+					if errors.Is(err, pgx.ErrNoRows) { return idempotency.Response{}, domain.NewError("NOT_FOUND", 404) }
 					return idempotency.Response{}, err
 				}
-				if !valid {
-					return idempotency.Response{}, domain.NewError("NOT_FOUND", 404)
+				if state == "archived" {
+					return idempotency.Response{}, domain.NewError("COLLECTION_ARCHIVED", 409)
+				}
+				if state != "draft" && state != "published" {
+					return idempotency.Response{}, domain.NewError("REVISION_CONFLICT", 409)
 				}
 			}
 			var storage, reserved, files, reservedFiles, byteLimit, fileLimit int64
@@ -281,7 +286,9 @@ func (s Service) Begin(ctx context.Context, who auth.Identity, tenantID uuid.UUI
 		if err != nil {
 			return err
 		}
-		return authorizeSession(ctx, tx, who, tenantID, role, current, false)
+		currentRole, err := tenant.AuthorizeInTransaction(ctx, tx, who, tenantID, domain.Editor)
+		if err != nil { return err }
+		return authorizeSession(ctx, tx, who, tenantID, currentRole, current, false)
 	})
 	if err != nil {
 		return Session{}, err
@@ -299,12 +306,14 @@ func (s Service) ensureMultipart(ctx context.Context, who auth.Identity, tenantI
 		return Session{}, err
 	}
 	attached := false
-	err = tenant.WithTenant(ctx, s.DB, who, tenantID, domain.Editor, func(tx pgx.Tx, role domain.Role) error {
+	err = tenant.WithTenant(ctx, s.DB, who, tenantID, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
 		locked, err := load(ctx, tx, tenantID, id, true)
 		if err != nil {
 			return err
 		}
-		if err = authorizeSession(ctx, tx, who, tenantID, role, locked, false); err != nil {
+		currentRole, err := tenant.AuthorizeInTransaction(ctx, tx, who, tenantID, domain.Editor)
+		if err != nil { return err }
+		if err = authorizeSession(ctx, tx, who, tenantID, currentRole, locked, false); err != nil {
 			return err
 		}
 		if locked.State == "initializing" && locked.multipartID == nil && locked.ExpiresAt.After(s.now()) {
@@ -340,6 +349,7 @@ func (s Service) Get(ctx context.Context, who auth.Identity, tenantID, id uuid.U
 }
 
 func (s Service) SignParts(ctx context.Context, who auth.Identity, tenantID, id uuid.UUID, request PartRequest) (PartURLs, error) {
+	if err := ctx.Err(); err != nil { return PartURLs{}, err }
 	if len(request.PartNumbers) < 1 || len(request.PartNumbers) > 100 {
 		return PartURLs{}, domain.NewError("VALIDATION_FAILED", 422)
 	}
@@ -357,7 +367,23 @@ func (s Service) SignParts(ctx context.Context, who auth.Identity, tenantID, id 
 	if errors.Is(err, objectstore.ErrInvalid) {
 		return PartURLs{}, domain.NewError("VALIDATION_FAILED", 422)
 	}
-	return PartURLs{UploadID: id, Items: items}, err
+	if err != nil { return PartURLs{}, err }
+	if err = ctx.Err(); err != nil { return PartURLs{}, err }
+	// Signing is external I/O. A pre-sign read does not authorize disclosure
+	// after a concurrent abort, expiry or tenant/project permission change.
+	current, err := s.Get(ctx, who, tenantID, id)
+	if err != nil { return PartURLs{}, err }
+	if !sameSignedSession(session, current) || current.State != "uploading" || !current.ExpiresAt.After(s.now()) {
+		return PartURLs{}, domain.NewError("UPLOAD_STATE_INVALID", 409)
+	}
+	if err = ctx.Err(); err != nil { return PartURLs{}, err }
+	return PartURLs{UploadID: id, Items: items}, nil
+}
+
+func sameSignedSession(a, b Session) bool {
+	if a.ID != b.ID || a.ProjectID != b.ProjectID || a.Revision != b.Revision || a.objectKey != b.objectKey || a.multipartID == nil || b.multipartID == nil || *a.multipartID != *b.multipartID || !a.ExpiresAt.Equal(b.ExpiresAt) { return false }
+	if a.CollectionID == nil || b.CollectionID == nil { return a.CollectionID == nil && b.CollectionID == nil }
+	return *a.CollectionID == *b.CollectionID
 }
 
 func validPartNumbers(numbers []int, session Session) bool {
@@ -435,12 +461,24 @@ func (s Service) Complete(ctx context.Context, who auth.Identity, tenantID, id u
 		if err != nil {
 			return err
 		}
-		if err = authorizeSession(ctx, tx, who, tenantID, role, session, false); err != nil {
+		currentRole, err := tenant.AuthorizeInTransaction(ctx, tx, who, tenantID, domain.Editor)
+		if err != nil { return err }
+		if err = authorizeSession(ctx, tx, who, tenantID, currentRole, session, false); err != nil {
 			return err
 		}
-		return json.Unmarshal(response.Body, &out)
+		out, err = readCompletionReceipt(response, id)
+		return err
 	})
 	return out, err
+}
+
+func readCompletionReceipt(response idempotency.Response, id uuid.UUID) (Accepted, error) {
+	var out Accepted
+	if response.Status != 202 || response.ResourceID == nil || *response.ResourceID != id || json.Unmarshal(response.Body, &out) != nil || out.JobID != id || out.Status != "queued" { return Accepted{}, errors.New("upload completion receipt invalid") }
+	expected, err := canonical.Marshal(out); if err != nil { return Accepted{}, err }
+	actual, err := canonical.Bytes(response.Body); if err != nil { return Accepted{}, err }
+	if !bytes.Equal(expected, actual) { return Accepted{}, errors.New("upload completion receipt shape invalid") }
+	return out, nil
 }
 
 func (s Service) Abort(ctx context.Context, who auth.Identity, tenantID, id uuid.UUID) (Session, error) {
@@ -470,6 +508,9 @@ func (s Service) Abort(ctx context.Context, who auth.Identity, tenantID, id uuid
 		if err != nil {
 			return err
 		}
+		currentRole, err := tenant.AuthorizeInTransaction(ctx, tx, who, tenantID, domain.Editor)
+		if err != nil { return err }
+		if err = authorizeSession(ctx, tx, who, tenantID, currentRole, locked, false); err != nil { return err }
 		if locked.State == "aborted" {
 			out = locked
 			return nil
@@ -486,6 +527,9 @@ func (s Service) Abort(ctx context.Context, who auth.Identity, tenantID, id uuid
 		if reservationState != "reserved" || reservationBytes != locked.ExpectedSize {
 			return errors.New("upload reservation invariant failed")
 		}
+		currentRole, err = tenant.AuthorizeInTransaction(ctx, tx, who, tenantID, domain.Editor)
+		if err != nil { return err }
+		if err = authorizeSession(ctx, tx, who, tenantID, currentRole, locked, false); err != nil { return err }
 		tag, err := tx.Exec(ctx, `UPDATE photo.tenant_usage SET reserved_bytes=reserved_bytes-$2
 		 WHERE tenant_id=$1 AND reserved_bytes>=$2 AND reserved_files>=1`, tenantID, reservationBytes)
 		if err != nil {
@@ -549,11 +593,15 @@ func (s Service) Moderate(ctx context.Context, who auth.Identity, tenantID, id u
 			return domain.NewError("UPLOAD_STATE_INVALID", 409)
 		}
 		var collectionRevision int64
-		if err = tx.QueryRow(ctx, `SELECT revision FROM photo.collections
-			WHERE tenant_id=$1 AND id=$2 AND project_id=$3 AND deleted_at IS NULL FOR UPDATE`, tenantID, *hint.CollectionID, hint.ProjectID).Scan(&collectionRevision); errors.Is(err, pgx.ErrNoRows) {
+		var collectionState string
+		if err = tx.QueryRow(ctx, `SELECT revision,state FROM photo.collections
+			WHERE tenant_id=$1 AND id=$2 AND project_id=$3 AND deleted_at IS NULL FOR UPDATE`, tenantID, *hint.CollectionID, hint.ProjectID).Scan(&collectionRevision,&collectionState); errors.Is(err, pgx.ErrNoRows) {
 			return domain.NewError("NOT_FOUND", 404)
 		} else if err != nil {
 			return err
+		}
+		if collectionState != "draft" && collectionState != "published" {
+			return domain.NewError("REVISION_CONFLICT",409)
 		}
 		if collectionRevision >= 9007199254740991 {
 			return errors.New("collection revision exhausted")
@@ -604,7 +652,10 @@ func (s Service) Moderate(ctx context.Context, who auth.Identity, tenantID, id u
 		}
 		_, err = tx.Exec(ctx, `INSERT INTO photo.audit_log(tenant_id,actor_type,actor_id,action,resource_type,resource_id,request_id,details)
 			VALUES($1,'user',$2,$3,'upload',$4,$5,jsonb_build_object('item_id',$6,'decision',$7))`, tenantID, who.UserID, "upload.moderate."+request.Decision, id, uuid.New(), out.ID, decision)
-		return err
+		if err != nil { return err }
+		currentRole, err := tenant.AuthorizeInTransaction(ctx, tx, who, tenantID, domain.Editor)
+		if err != nil { return err }
+		return authorizeSession(ctx, tx, who, tenantID, currentRole, locked, false)
 	})
 	return out, err
 }

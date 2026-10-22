@@ -9,6 +9,7 @@ import (
 	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/idempotency"
 	"photoeditor/backend/internal/v2input"
+	"photoeditor/backend/internal/v2qualification"
 )
 
 // CreateService owns deployment policy. Source/target protection locators are
@@ -25,17 +26,6 @@ func (s CreateService) Propose(ctx context.Context, who auth.Identity, tenant uu
 	if who.UserID == uuid.Nil || who.SessionID == uuid.Nil || tenant == uuid.Nil || !idempotency.ValidKey(key) {
 		return zero, v2input.ErrInvalid
 	}
-	p := s.Preparer
-	p.Configuration = ownTransferPreparation(p.Configuration)
-	if p.Configuration.PersonProtection == nil || p.Configuration.SourceProtection != (v2input.Ref{}) || len(p.Configuration.TargetProtection) != 0 {
-		return zero, v2input.ErrInvalid
-	}
-	if err := validateTransferPolicyConfiguration(p.Configuration); err != nil {
-		return zero, err
-	}
-	if err := validateCreatePreparer(ctx, p); err != nil {
-		return zero, err
-	}
 	raw, err := canonical.Marshal(intent)
 	if err != nil {
 		return zero, err
@@ -43,6 +33,30 @@ func (s CreateService) Propose(ctx context.Context, who auth.Identity, tenant uu
 	request, err := CompileRequest(tenant, who.UserID, key, raw)
 	if err != nil {
 		return zero, err
+	}
+	if replay,found,e:=replayCreateReceipt(ctx,s.Preparer.Reader.DB,who,request,key);e!=nil{return zero,e}else if found{return replay,nil}
+	p := s.Preparer
+	p.Configuration = ownTransferPreparation(p.Configuration)
+	// Existing accepted commands above retain their original receipt. New
+	// scientific transfers require independently qualified scene/depth evidence.
+	if p.Configuration.Scene == nil {
+		return zero, v2qualification.ErrUnqualified
+	}
+	if p.Configuration.PersonProtection == nil || p.Configuration.SourceProtection != (v2input.Ref{}) || len(p.Configuration.TargetProtection) != 0 {
+		return zero, v2input.ErrInvalid
+	}
+	p.Reader.scenePolicy=ordinaryParentPolicy(p).Scene
+	if err := validateTransferPolicyConfiguration(p.Configuration); err != nil {
+		return zero, err
+	}
+	if err := validateCreatePreparer(ctx, p); err != nil {
+		return zero, err
+	}
+	if p.Configuration.Scene!=nil {
+		// The bootstrap owns intent publication only for a genuinely new
+		// checkpoint. Existing accepted anchors must not be republished here.
+		// A private child admission is never a parent HTTP receipt.
+		return zero,p.prepareOrdinarySceneParent(ctx,who,request,key)
 	}
 	published, err := PublishIntent(ctx, p.Documents, who, request)
 	if err != nil {
@@ -65,6 +79,11 @@ func (s CreateService) Propose(ctx context.Context, who auth.Identity, tenant uu
 func (p TransferDraftPreparer) admitOrdinaryCreateRequest(ctx context.Context, who auth.Identity, request Request, key string, configuration TransferPreparation) (idempotency.Response, error) {
 	var zero idempotency.Response
 	p.Configuration = configuration
+	if configuration.Scene!=nil {
+		if replay,found,err:=replayCreateReceipt(ctx,p.Reader.DB,who,request,key);err!=nil{return zero,err}else if found{return replay,nil}
+		p.Reader.scenePolicy=ordinaryParentPolicy(p).Scene
+		return zero,p.prepareOrdinarySceneParent(ctx,who,request,key)
+	}
 	prepared, err := p.Prepare(ctx, who, request.TenantID, key, request.Body)
 	if err != nil {
 		return zero, err

@@ -60,7 +60,7 @@ def validate_export_override(raw, expected_sha, installed_models):
     return override
 
 
-def validate_export_composition(raw, expected_sha, installed_models):
+def validate_export_composition(raw, expected_sha, installed_models, *, icc_registry=None):
     """Qualify an ordered, physically pinned bundle using production merging.
 
     The caller must prove each bundle ref is the corresponding frozen recipe
@@ -105,7 +105,14 @@ def validate_export_composition(raw, expected_sha, installed_models):
         raise ValueError('INTERCHANGE_EXPORT_COMPOSITION_SOURCE')
     base_raw = document(bundle['base'])
     base = validate_export_style(base_raw, bundle['base']['sha256'], style_models)
-    if base.color.icc_sha256 != source.color.icc_sha256:
+    # StyleV2 selects a named profile, whereas WorkingImage pins its physical
+    # bytes. Resolve the installed registry rather than trusting archive fields.
+    if icc_registry is None:
+        from pathlib import Path
+        from photo_worker.color.icc import ICCRegistry
+        icc_registry = ICCRegistry(Path(__file__).resolve().parents[3] / 'resources' / 'icc')
+    installed_profile = icc_registry.resolve(base.color.profile_id)
+    if installed_profile.sha256 != source.color.icc_sha256:
         raise ValueError('INTERCHANGE_EXPORT_COMPOSITION_ICC')
     overrides = tuple(validate_export_override(document(pin), pin['sha256'], operation_models)
                       for pin in bundle['overrides'])
@@ -182,6 +189,7 @@ def validate_export_operation_params(raw, expected_sha, installed_models):
     This does not establish producer identity, source/consent/model eligibility
     or physical mask validity. Those remain independent mandatory checks.
     """
+    from photo_worker.contracts.conservative import DefectAutoRepairParams,DustAutoRepairParams
     from photo_worker.contracts.restoration import DenoiseParams, UpscaleParams
     from photo_worker.contracts.image_local import LocalParams
     from photo_worker.contracts.body import BodyParams
@@ -205,7 +213,7 @@ def validate_export_operation_params(raw, expected_sha, installed_models):
             or bundle['version'] != '1' or canonical_bytes(bundle) != raw
             or not isinstance(bundle['operation'], str)):
         raise ValueError('INTERCHANGE_EXPORT_OPERATION_PARAMS_ENVELOPE')
-    models = {'geometry.body': BodyParams, 'image.local': LocalParams, 'color.stats': StatsParams, 'defects.repair': DefectRepairParams,
+    models = {'defects.auto_repair':DefectAutoRepairParams,'sensor.dust_auto_repair':DustAutoRepairParams,'geometry.body': BodyParams, 'image.local': LocalParams, 'color.stats': StatsParams, 'defects.repair': DefectRepairParams,
               'portrait.detail': PortraitParams, 'portrait.hair': PortraitHairParams,
               'portrait.clothing': PortraitClothingParams, 'image.denoise': DenoiseParams, 'image.upscale': UpscaleParams}
     model = models.get(bundle['operation'])

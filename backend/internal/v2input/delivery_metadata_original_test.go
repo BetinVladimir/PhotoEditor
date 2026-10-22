@@ -49,7 +49,7 @@ func TestDeliveryMetadataOriginalVerifiesSourceBeforeCatalog(t *testing.T) {
 	sha := hex.EncodeToString(digest[:])
 	binding := SessionVersionBinding{uuid.New(), Ref{uuid.New(), sha}, canvas}
 	obj := objectstore.Object{Key: "source", VersionID: "v1", SHA256: sha, Bytes: int64(len(body)), ContentType: "application/json"}
-	db := &deliveryMetadataOriginalDB{row: lensOriginalRow{Ref{uuid.New(), image.Canvas.SourceSHA256}, image.Canvas.SourceSHA256}}
+	db := &deliveryMetadataOriginalDB{row: lensOriginalRow{Ref{uuid.New(), image.Canvas.SourceSHA256}, image.Canvas.SourceSHA256, "image/jpeg"}}
 	source := SQLDeliveryMetadataOriginal{DB: db, Bucket: "photos", Objects: sessionImageBytes(body)}
 	tenant, project, actor, session := uuid.New(), uuid.New(), uuid.New(), uuid.New()
 	if _, err = source.Load(context.Background(), tenant, project, actor, session, binding, obj); err != nil {

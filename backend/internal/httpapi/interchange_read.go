@@ -5,6 +5,7 @@ func serveInterchangeJob(w http.ResponseWriter,r *http.Request,who auth.Identity
  id,err:=uuid.Parse(chi.URLParam(r,"id"));if err!=nil||id==uuid.Nil{writeError(w,r,domain.NewError("VALIDATION_FAILED",422));return}
  if reader==nil{writeError(w,r,domain.NewError("INTERCHANGE_UNAVAILABLE",503));return}
  resource,err:=reader.Get(r.Context(),who,tid,id);if err!=nil{writeError(w,r,err);return}
+ if r.Context().Err()!=nil{return}
  writeJSON(w,http.StatusOK,resource)
 }
 
@@ -13,5 +14,6 @@ func serveInterchangeInspection(w http.ResponseWriter,r *http.Request,who auth.I
  id,err:=uuid.Parse(chi.URLParam(r,"id"));if err!=nil||id==uuid.Nil{writeError(w,r,domain.NewError("VALIDATION_FAILED",422));return}
  if reader==nil{writeError(w,r,domain.NewError("INTERCHANGE_UNAVAILABLE",503));return}
  result,err:=reader.Inspect(r.Context(),who,tid,id);if err!=nil{writeError(w,r,err);return}
+ if r.Context().Err()!=nil{return}
  writeJSON(w,http.StatusOK,result)
 }

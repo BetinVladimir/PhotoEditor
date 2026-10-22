@@ -14,7 +14,7 @@ import (
 func (s SQLTransferSourceReader) activateNativeAllTargetTransfer(ctx context.Context, scheduler *pgxpool.Pool, who auth.Identity, request Request, key string, published PublishedIntent, plan nativeAllTargetTransferWorkflowPlan, configuration TransferPreparation, defectBuilt v2input.Built, transports []v2input.Built) (v2input.JobTicket, error) {
 	var zero v2input.JobTicket
 	if err := ctx.Err(); err != nil {
-		return zero, err
+		return zero, nativeAllTargetAdmissionError("context", err)
 	}
 	if scheduler == nil {
 		return zero, v2input.ErrInvalid
@@ -32,7 +32,7 @@ func (s SQLTransferSourceReader) activateNativeAllTargetTransfer(ctx context.Con
 	p := plan.reference.person.source.protection.published.preparation
 	completed, err := s.marshalNativeDefectCompletedEvidence(ctx, who, p.plan, configuration.Color, p.result, defectBuilt)
 	if err != nil {
-		return zero, err
+		return zero, nativeAllTargetAdmissionError("completed_evidence", err)
 	}
 	return nativeTicketWithRetry(ctx, scheduler.Begin, func(tx pgx.Tx) (v2input.JobTicket, error) {
 		if err := s.lockNativeAllTargetTransferAdmissionEvidence(ctx, tx, who, request, published, plan, configuration, completed); err != nil {
@@ -40,11 +40,13 @@ func (s SQLTransferSourceReader) activateNativeAllTargetTransfer(ctx context.Con
 		}
 		var receipt []byte
 		if err := tx.QueryRow(ctx, "SELECT photo.v2_admission_ticket($1,$2,$3,$4)", request.TenantID, who.UserID, key, request.RequestSHA).Scan(&receipt); err != nil {
-			return zero, err
+			return zero, nativeAllTargetAdmissionError("admission_receipt", err)
 		}
 		if len(receipt) != 0 {
-			return s.replayNativeAllTargetTransferInTransaction(ctx, tx, who, request, key, published, plan, configuration, completed, transports)
+			ticket, err := s.replayNativeAllTargetTransferInTransaction(ctx, tx, who, request, key, published, plan, configuration, completed, transports)
+			return ticket, nativeAllTargetAdmissionError("replay_sealed_parent", err)
 		}
-		return s.sealNativeAllTargetTransferInTransaction(ctx, tx, who, request, key, published, plan, configuration, completed, transports)
+		ticket, err := s.sealNativeAllTargetTransferInTransaction(ctx, tx, who, request, key, published, plan, configuration, completed, transports)
+		return ticket, nativeAllTargetAdmissionError("seal_parent", err)
 	})
 }

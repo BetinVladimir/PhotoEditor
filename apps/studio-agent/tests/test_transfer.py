@@ -4,6 +4,7 @@ import unittest
 import threading
 import json
 import uuid
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 from pathlib import Path
 
@@ -311,7 +312,8 @@ class TransferTest(unittest.TestCase):
         self.assertEqual(failed.state, "error")
         self.assertEqual(failed.last_error, "protocol_invalid")
         self.assertEqual(failed.upload_id, "upload")
-        self.assertEqual(failed.retries, 0)
+        self.assertEqual(failed.retries, 1)
+        self.assertEqual(self.journal.due("device", 10000), [])
 
     def test_revoked_device_stops_runner_without_retry_storm(self):
         def revoked(upload_id):
@@ -374,8 +376,10 @@ class TransferTest(unittest.TestCase):
         self.api.begin = original
         now[0] = 310
         self.assertEqual(runner.tick(), 1)
-        self.assertEqual(self.api.keys, ["capture/device/1/begin"])
+        self.assertEqual(self.api.keys, ["capture/device/1/begin", "capture/device/1/complete"])
         self.assertEqual(self.journal.get("device", 1).upload_id, "upload")
+        self.assertEqual(self.journal.get("device", 1).retries, 0)
+        self.assertEqual(len(self.journal.completed_parts("device", 1)), 2)
 
 
     @unittest.skipUnless(hasattr(os, "mkfifo"), "requires POSIX named pipes")
@@ -424,19 +428,20 @@ class TransferTest(unittest.TestCase):
                     counters[number] += 1
                     signed.append(number)
                     generation = counters[number]
-                return json.dumps({"items": [{"part_no": number,
+                return json.dumps({"upload_id": upload_id, "items": [{"part_no": number,
+                    "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat(),
                     "url": f"https://storage.example.test/part-{number}?signature={generation}"}]}).encode(), {}
             if url.endswith("/complete"):
                 completions.append(payload)
                 state[0] = "verified"
-                return b"{}", {}
+                return json.dumps({"job_id": upload_id, "status": "queued"}).encode(), {}
             if url.endswith("/capture-receipts"):
                 return json.dumps({"resource_type": "capture_receipts", "id": str(uuid.uuid4()),
                     "tenant_id": ids[0], "project_id": ids[1], "session_id": ids[2],
                     "device_id": ids[4], "sequence": "1", "content_sha": watch.journal.get(ids[4], 1).sha256,
                     "upload_id": upload_id}).encode(), {}
             return json.dumps({"id": upload_id, "project_id": ids[1], "collection_id": ids[3],
-                "expected_size": 7, "part_bytes": 4, "parts_total": 2, "state": state[0]}).encode(), {}
+                "filename": "frame.jpg", "expected_size": 7, "part_bytes": 4, "parts_total": 2, "state": state[0]}).encode(), {}
 
         client._request = request
         now = [12]

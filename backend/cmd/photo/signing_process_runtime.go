@@ -1,6 +1,7 @@
 package main
 
 import (
+ "photoeditor/backend/internal/database"
 	"context"
 	"crypto/sha256"
 	"crypto/tls"
@@ -167,6 +168,7 @@ func installProcessSigningRuntime(ctx context.Context, path, pin, certPath, keyP
 				return dependencies, noop, err
 			}
 			config.ConnConfig.RuntimeParams["role"] = "photo_api"
+			database.GuardApplicationRole(config)
 			timestampDB, err = pgxpool.NewWithConfig(ctx, config)
 			if err != nil {
 				return dependencies, noop, err

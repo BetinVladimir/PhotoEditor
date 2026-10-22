@@ -2,7 +2,6 @@ package upload
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"math"
 	"time"
@@ -297,8 +296,13 @@ func (s Service) SignDeviceParts(ctx context.Context, principal v2capture.Device
 		if errors.Is(err, objectstore.ErrInvalid) {
 			return domain.NewError("VALIDATION_FAILED", 422)
 		}
+		if err != nil { return err }
+		if err = ctx.Err(); err != nil { return err }
+		current, err := deviceSession(ctx, tx, principal, id, false)
+		if err != nil { return err }
+		if !sameSignedSession(session,current) || current.State!="uploading" || !current.ExpiresAt.After(s.now()) { return domain.NewError("UPLOAD_STATE_INVALID",409) }
 		out = PartURLs{UploadID: id, Items: items}
-		return err
+		return ctx.Err()
 	})
 	return out, err
 }
@@ -346,7 +350,8 @@ func (s Service) CompleteDevice(ctx context.Context, principal v2capture.DeviceP
 		if _, err = deviceSession(ctx, tx, principal, id, false); err != nil {
 			return err
 		}
-		return json.Unmarshal(response.Body, &out)
+		out,err=readCompletionReceipt(response,id)
+		return err
 	})
 	return out, err
 }

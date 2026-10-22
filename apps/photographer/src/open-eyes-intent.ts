@@ -30,6 +30,13 @@ export function freezeOpenEyesIntent(v:OpenEyesIntent):OpenEyesIntent{
  return structuredClone(v);
 }
 
+// Recovery must retain the exact source, not merely its asset-version UUID.
+export function verifyOpenEyesRecoverySource(v:OpenEyesIntent,live:V2VersionBinding):OpenEyesIntent{
+ const frozen=freezeOpenEyesIntent(v);
+ if(!binding(live)||!sameBinding(frozen.params_proposal.base,live))throw new Error('OPEN_EYES_RECOVERY_SOURCE_CHANGED');
+ return frozen;
+}
+
 export function readPreparedOpenEyesIntent(v:unknown,selected:OpenEyesSelection):OpenEyesIntent{
  const intent=freezeOpenEyesIntent(v as OpenEyesIntent),p=intent.params_proposal;
  if(intent.shoot_session_id!==selected.shoot_session_id||intent.snapshot_id!==selected.snapshot_id||intent.ordinal!==selected.ordinal||intent.source_observation_id!==selected.source_observation_id||intent.donor_observation_id!==selected.donor_observation_id||p.strength!==selected.strength||!sameBinding(p.base,selected.base)||!sameBinding(p.donor,selected.donor)||!sameRef(p.eyes_mask,selected.eyes_mask)||!sameRef(p.protected,selected.protected)||!sameRef(p.source_faces,selected.source_faces)||!sameRef(p.donor_faces,selected.donor_faces)||!sameRef(intent.target_pixel,selected.target_pixel)||!sameRef(intent.protected_pixel,selected.protected_pixel))throw new Error('OPEN_EYES_PREPARATION_MISMATCH');

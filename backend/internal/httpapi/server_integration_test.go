@@ -26,6 +26,10 @@ func httpFixtureWithQueues(t *testing.T, region RegionQueue, render RenderQueue)
 }
 
 func httpFixtureWithRenderFreezer(t *testing.T, region RegionQueue, render RenderQueue, freezer RenderFreezer) (http.Handler, *pgxpool.Pool, string, uuid.UUID) {
+ return httpFixtureWithServerOptions(t,region,render,freezer,nil)
+}
+
+func httpFixtureWithServerOptions(t *testing.T, region RegionQueue, render RenderQueue, freezer RenderFreezer, configure func(*Server)) (http.Handler, *pgxpool.Pool, string, uuid.UUID) {
 	t.Helper()
 	dsn := os.Getenv("PHOTO_TEST_DATABASE_URL")
 	if dsn == "" {
@@ -72,7 +76,9 @@ func httpFixtureWithRenderFreezer(t *testing.T, region RegionQueue, render Rende
 	if err = admin.QueryRow(ctx, "SELECT id FROM photo.tenants WHERE owner_user_id=$1", user).Scan(&tid); err != nil {
 		t.Fatal(err)
 	}
-	return (&Server{DB: pool("photo_api"), Auth: a, RegionQueue: region, RenderQueue: render, RenderFreezer: freezer, Config: config.Config{Environment: "development", CaptureOrigin: "http://localhost:3333", AppOrigin: "http://localhost:8080", PortalOrigin: "http://localhost:3000", MaxJSONBytes: 1048576}}).Routes(), admin, access, tid
+	server := &Server{DB: pool("photo_api"), Auth: a, RegionQueue: region, RenderQueue: render, RenderFreezer: freezer, Config: config.Config{Environment: "development", CaptureOrigin: "http://localhost:3333", AppOrigin: "http://localhost:8080", PortalOrigin: "http://localhost:3000", MaxJSONBytes: 1048576}}
+ if configure!=nil {configure(server)}
+ return server.Routes(),admin,access,tid
 }
 func httpFixture(t *testing.T) (http.Handler, *pgxpool.Pool, string, uuid.UUID) {
 	return httpFixtureWithRegion(t, nil)

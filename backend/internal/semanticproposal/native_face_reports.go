@@ -37,7 +37,7 @@ func (s SQLTransferSourceReader) readNativeFaceReports(ctx context.Context, who 
 		if expected.Operation != op {
 			return zero, v2qualification.ErrUnqualified
 		}
-		if _, err := s.VerifyFaceQualification(ctx, who, tenant, refs[i], expected); err != nil {
+		if _, err := s.VerifyFaceQualificationTyped(ctx, who, tenant, refs[i], expected); err != nil {
 			return zero, err
 		}
 		pin, err := s.faceQualificationObject(ctx, who, tenant, expected, refs[i])

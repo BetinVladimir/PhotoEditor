@@ -8,6 +8,7 @@ import (
 )
 
 type ReviewStatus struct {
+	Kind       *string   `json:"kind,omitempty"`
 	RunID      uuid.UUID `json:"run_id"`
 	WorkflowID uuid.UUID `json:"workflow_id"`
 	Revision   string    `json:"revision"`
@@ -39,7 +40,7 @@ func ReadStatus(ctx context.Context, db *pgxpool.Pool, who auth.Identity, tenant
 	default:
 		return ReviewStatus{}, ErrInvalid
 	}
-	if result.CanClose && (result.State != "waiting_review" || result.Remaining != 0 || result.PlanSHA == nil) {
+	if result.CanClose && (result.State != "waiting_review" || result.Remaining != 0 || result.PlanSHA == nil || result.Revision == "9007199254740991") {
 		return ReviewStatus{}, ErrInvalid
 	}
 	return result, nil

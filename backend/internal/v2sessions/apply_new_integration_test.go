@@ -28,6 +28,16 @@ func (s applyObjectStore) Open(_ context.Context, object objectstore.Object) (io
 }
 
 func TestIntegrationAnalysisApplyNew(t *testing.T) {
+	testIntegrationAnalysisApply(t, "")
+}
+
+func TestIntegrationAnalysisApplyFinalAuthorityAfterWait(t *testing.T) {
+	for _, blocked := range []string{"parent", "event_cursor"} {
+		t.Run(blocked, func(t *testing.T) { testIntegrationAnalysisApply(t, blocked) })
+	}
+}
+
+func testIntegrationAnalysisApply(t *testing.T, blocked string) {
 	dsn := os.Getenv("PHOTO_TEST_DATABASE_URL")
 	if dsn == "" {
 		t.Skip("isolated PostgreSQL with V22 migrations required")
@@ -59,6 +69,19 @@ func TestIntegrationAnalysisApplyNew(t *testing.T) {
 	if err = admin.QueryRow(ctx, `SELECT id FROM photo.tenants
 	 WHERE owner_user_id=$1`, actor).Scan(&tenantID); err != nil {
 		t.Fatal(err)
+	}
+
+	billingEnabled := os.Getenv("PHOTO_BILLING_ANALYSIS_INTEGRATION") == "1"
+	if billingEnabled {
+		for _, query := range []string{
+			`INSERT INTO photo.billing_accounting_controls(tenant_id) VALUES($1)`,
+			`INSERT INTO photo.billing_workflow_controls(tenant_id,enabled) VALUES($1,true)`,
+			`INSERT INTO photo.billing_periods(tenant_id,starts_at,ends_at,anchor_kind) VALUES($1,now()-interval '1 hour',now()+interval '1 day','trial_calendar')`,
+		} {
+			if _, err = admin.Exec(ctx, query, tenantID); err != nil {
+				t.Fatal(err)
+			}
+		}
 	}
 	if _, err = admin.Exec(ctx, `INSERT INTO photo.tenant_usage(tenant_id)
 	 VALUES($1) ON CONFLICT DO NOTHING`, tenantID); err != nil {
@@ -336,6 +359,81 @@ func TestIntegrationAnalysisApplyNew(t *testing.T) {
 		premature != 0 {
 		t.Fatalf("failed admission left child run: %d %v", premature, err)
 	}
+	if blocked != "" {
+		// The ordinary positive fixture above supplies every source/plan/recipe
+		// and child admission proof. Only the publication wait is introduced.
+		if _, err = admin.Exec(ctx, `INSERT INTO photo.tenant_event_cursors(tenant_id,last_cursor)
+		 VALUES($1,0) ON CONFLICT DO NOTHING`, tenantID); err != nil {
+			t.Fatal(err)
+		}
+		blocker, beginErr := admin.Begin(ctx)
+		if beginErr != nil {
+			t.Fatal(beginErr)
+		}
+		defer blocker.Rollback(context.Background())
+		var blockerPID int
+		if err = blocker.QueryRow(ctx, `SELECT pg_backend_pid()`).Scan(&blockerPID); err != nil {
+			t.Fatal(err)
+		}
+		if blocked == "parent" {
+			_, err = blocker.Exec(ctx, `SELECT id FROM photo.runs WHERE tenant_id=$1 AND id=$2 FOR UPDATE`, tenantID, parentID)
+		} else {
+			_, err = blocker.Exec(ctx, `SELECT tenant_id FROM photo.tenant_event_cursors WHERE tenant_id=$1 FOR UPDATE`, tenantID)
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		done := make(chan error, 1)
+		go func() {
+			_, _, applyErr := service.ApplyAnalysis(ctx, who, tenantID, analysisID, key, request)
+			done <- applyErr
+		}()
+		ticker := time.NewTicker(10 * time.Millisecond)
+		defer ticker.Stop()
+		for {
+			var waiting bool
+			if err = admin.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_stat_activity a
+			 WHERE $1=ANY(pg_blocking_pids(a.pid)))`, blockerPID).Scan(&waiting); err != nil {
+				t.Fatal(err)
+			}
+			if waiting {
+				break
+			}
+			select {
+			case early := <-done:
+				t.Fatalf("Apply did not reach observed wait: %v", early)
+			case <-ctx.Done():
+				t.Fatal(ctx.Err())
+			case <-ticker.C:
+			}
+		}
+		if _, err = admin.Exec(ctx, `UPDATE photo.sessions SET expires_at=clock_timestamp()-interval '1 second' WHERE id=$1`, authSession); err != nil {
+			t.Fatal(err)
+		}
+		if err = blocker.Commit(ctx); err != nil {
+			t.Fatal(err)
+		}
+		select {
+		case refused := <-done:
+			if refused == nil {
+				t.Fatal("revoked session completed Apply after observed lock wait")
+			}
+		case <-ctx.Done():
+			t.Fatal(ctx.Err())
+		}
+		var decisions, children int
+		var status string
+		if err = admin.QueryRow(ctx, `SELECT
+		 (SELECT count(*) FROM photo.v22_analysis_decisions WHERE tenant_id=$1 AND analysis_id=$2),
+		 (SELECT count(*) FROM photo.runs WHERE tenant_id=$1 AND kind='apply'),
+		 (SELECT status FROM photo.runs WHERE tenant_id=$1 AND id=$3)`, tenantID, analysisID, parentID).Scan(&decisions, &children, &status); err != nil {
+			t.Fatal(err)
+		}
+		if decisions != 0 || children != 0 || status != "waiting_review" {
+			t.Fatalf("revocation did not rollback decision/child/parent: %d %d %s", decisions, children, status)
+		}
+		return
+	}
 	ticket, replayed, err := service.ApplyAnalysis(ctx, who, tenantID,
 		analysisID, key, request)
 	if err != nil || replayed || ticket.RunID == uuid.Nil ||
@@ -374,5 +472,24 @@ func TestIntegrationAnalysisApplyNew(t *testing.T) {
 	if err != nil || !replayed || second != ticket {
 		t.Fatalf("new apply replay: %+v replay=%v err=%v", second,
 			replayed, err)
+	}
+
+	if billingEnabled {
+		var requests, tickets, claims int
+		if err = admin.QueryRow(ctx, `SELECT
+       (SELECT count(*) FROM photo.billing_usage_requests WHERE tenant_id=$1 AND run_id=$2 AND route='SessionAnalysis.Apply'),
+       (SELECT count(*) FROM photo.billing_usage_tickets WHERE tenant_id=$1),
+       (SELECT count(*) FROM photo.billing_funding_claims WHERE tenant_id=$1)`, tenantID, ticket.RunID).Scan(&requests, &tickets, &claims); err != nil || requests != 1 || tickets != 1 || claims != 1 {
+			t.Fatal("parent/child double debit", requests, tickets, claims, err)
+		}
+		if _, err = admin.Exec(ctx, `UPDATE photo.runs SET cancel_requested=true,status='cancelling' WHERE tenant_id=$1 AND id=$2`, tenantID, ticket.RunID); err != nil {
+			t.Fatal(err)
+		}
+		if _, err = admin.Exec(ctx, `SELECT photo.finalize_run_cancellation()`); err != nil {
+			t.Fatal(err)
+		}
+		if err = admin.QueryRow(ctx, `SELECT count(*) FROM photo.billing_usage_tickets WHERE tenant_id=$1 AND state='released'`, tenantID).Scan(&tickets); err != nil || tickets != 1 {
+			t.Fatal("parent child refund", tickets, err)
+		}
 	}
 }

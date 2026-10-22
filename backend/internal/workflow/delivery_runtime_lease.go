@@ -24,7 +24,7 @@ func validateDeliveryRuntimeSQL(ctx context.Context, db *pgxpool.Pool) error {
 		return errors.New("delivery runtime database unavailable")
 	}
 	var installed bool
-	err := db.QueryRow(ctx, `SELECT current_user='photo_scheduler' AND count(*)=4
+	err := db.QueryRow(ctx, `SELECT current_user='photo_scheduler' AND count(*)=6
  AND NOT has_function_privilege('photo_scheduler',
   'photo.claim_v30_delivery_expansion()'::regprocedure,'EXECUTE')
  AND coalesce(bool_and(p.prosecdef AND owner.rolname='photo_fn_owner'
@@ -36,7 +36,9 @@ func validateDeliveryRuntimeSQL(ctx context.Context, db *pgxpool.Pool) error {
  FROM (VALUES ('photo.announce_v30_delivery_runtime_complete(uuid,text,uuid[],jsonb,boolean)'::regprocedure),
  ('photo.withdraw_v30_delivery_runtime(uuid)'::regprocedure),
  ('photo.claim_v30_delivery_expansion_bound(uuid,text)'::regprocedure),
- ('photo.fail_v31_delivery_expired_policy(uuid,uuid,uuid)'::regprocedure)) signatures(oid)
+ ('photo.fail_v31_delivery_expired_policy(uuid,uuid,uuid)'::regprocedure),
+ ('photo.fail_next_v30_delivery_missing_source(uuid,text)'::regprocedure),
+ ('photo.fail_v30_delivery_physical_source(uuid,text,uuid,uuid,uuid,text,text,text,integer,text,boolean)'::regprocedure)) signatures(oid)
  JOIN pg_proc p ON p.oid=signatures.oid JOIN pg_roles owner ON owner.oid=p.proowner`).Scan(&installed)
 	if err != nil || !installed {
 		return errors.New("delivery runtime SQL unavailable")

@@ -5,9 +5,9 @@ const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`,sha
 const selection=()=>({source:{asset_version_id:id(1),source:{artifact_id:id(2),sha256:sha},canvas_hash:sha},recipe:{artifact_id:id(3),sha256:sha}});
 const request=()=>({input_snapshot_id:id(4),policy_sha:sha,selection:[selection()]});
 it('queues owned frozen refs with a stable key and cancellation',async()=>{
- let resolve!:(v:unknown)=>void;const transport=vi.fn((..._args:unknown[])=>new Promise(r=>{resolve=r}));const api=new OwnerAPI({request:transport} as never,'tenant/id'),signal=new AbortController().signal;
- const body=request(),pending=api.queueRenderBatch('project/id',body,'same-key',signal);body.selection[0].recipe.sha256='b'.repeat(64);
- expect(transport.mock.calls[0]).toEqual(['/api/v1/tenants/tenant%2Fid/projects/project%2Fid/render-batches',expect.objectContaining({body:request(),idempotencyKey:'same-key',signal})]);
+ let resolve!:(v:unknown)=>void;const transport=vi.fn((..._args:unknown[])=>new Promise(r=>{resolve=r}));const api=new OwnerAPI({request:transport} as never,'00000000-0000-4000-8000-000000000010'),signal=new AbortController().signal;
+ const body=request(),pending=api.queueRenderBatch('00000000-0000-4000-8000-000000000011',body,'same-key',signal);body.selection[0].recipe.sha256='b'.repeat(64);
+ expect(transport.mock.calls[0]).toEqual(['/api/v1/tenants/00000000-0000-4000-8000-000000000010/projects/00000000-0000-4000-8000-000000000011/render-batches',expect.objectContaining({body:request(),idempotencyKey:'same-key',signal})]);
  const wire={run_id:id(5),state:'queued',child_run_ids:[id(6)]};resolve(wire);const accepted=await pending;wire.child_run_ids[0]=id(7);expect(accepted.child_run_ids).toEqual([id(6)]);
 });
 it('retains snapshot order and denies duplicate versions/client runtime',()=>{

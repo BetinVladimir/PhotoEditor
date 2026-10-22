@@ -27,6 +27,7 @@ func RecoverExportTicket(ctx context.Context,tx ProofTransaction,who auth.Identi
  var hash string;var body []byte;var live bool;var status *int;var resource *uuid.UUID
  err=tx.QueryRow(ctx,`SELECT request_hash,response_body,expires_at>clock_timestamp(),response_status,resource_id FROM photo.idempotency_records WHERE tenant_id=$1 AND principal_type='user' AND principal_id=$2 AND route='Interchange.Export.Ticket' AND key=$3 FOR SHARE`,tid,who.UserID,key).Scan(&hash,&body,&live,&status,&resource)
  if errors.Is(err,pgx.ErrNoRows){return zero,false,nil};if err!=nil{return zero,false,err}
+ if err:=requireReceiptAuthority(ctx,tx,who,tid,request.ProjectID);err!=nil{return zero,false,err}
  if hash!=intent.RequestSHA{return zero,false,domain.NewError("IDEMPOTENCY_CONFLICT",409)}
  if !live{return zero,false,domain.NewError("SNAPSHOT_EXPIRED",410)}
  if status==nil||*status!=202||resource==nil||*resource!=intent.Identity.Workflow||len(body)>4096{return zero,false,v2input.ErrInvalid}

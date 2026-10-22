@@ -15,11 +15,11 @@ export function ownRenderReviewBinding(value:Review):Review{
 }
 
 export function hasBoundCandidatePreview(kind:string):boolean{
- return kind==='render.compose'||kind==='optical.negative'||kind==='portrait.open_eyes'||isRestorationReview(kind);
+ return kind==='portrait.hair'||kind==='portrait.clothing'||kind==='render.compose'||kind==='optical.negative'||kind==='portrait.open_eyes'||isRestorationReview(kind);
 }
 
 // Restoration uses the same bound candidate shape for pending previews and
 // decided selections; its mutation route remains separately gated.
 export function isRestorationReview(kind:string):boolean{
- return kind==='portrait.glare'||kind==='image.reflection';
+ return kind==='portrait.glare'||kind==='image.reflection'||kind==='image.relight';
 }

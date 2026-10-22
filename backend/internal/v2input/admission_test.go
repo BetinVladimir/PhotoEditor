@@ -135,7 +135,7 @@ func TestGraphAdmissionSealsOnlyAfterAllTaskInputs(t *testing.T) {
 	if err := SealGraphInTransaction(ctx, tx, tenant, run, graph); err != nil {
 		t.Fatal(err)
 	}
-	if len(tx.calls) != 5 || !strings.Contains(tx.calls[4].query, "seal_v2_graph") {
+	if len(tx.calls) != 6 || !strings.Contains(tx.calls[0].query, "billing_prepare_operations") || !strings.Contains(tx.calls[5].query, "seal_v2_graph") {
 		t.Fatalf("graph sealed before all task inputs: %+v", tx.calls)
 	}
 	tx = &admissionTx{}

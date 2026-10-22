@@ -9,7 +9,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/v2draft"
-	"photoeditor/backend/internal/v2input"
 )
 
 // SQLTrainingSeriesPreparer discovers the original Apply series only for an

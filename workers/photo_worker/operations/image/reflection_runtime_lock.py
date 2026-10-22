@@ -19,6 +19,8 @@ def component_paths() -> dict[str, Path]:
     root = Path(__file__).resolve().parents[2]
     return {
         'reflection_onnx': root / 'models/reflection_onnx.py',
+        'onnx_session': root / 'models/onnx_session.py',
+        'backend_support': root / 'models/backend_support.py',
         'model_lock': root / 'models/lock.py',
         'model_pool': root / 'models/pool.py',
         'model_adapters': root / 'models/adapters.py',

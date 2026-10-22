@@ -26,7 +26,7 @@ class SchedulerImportRecipeAdoptionInstallation:
                  scratch_root, scratch_bytes, max_file_bytes, qualify_runtime,
                  check_active, extra_validators=None, qualify_confirmation=None,
                  qualify_occurrence=None, operation_schemas=None,
-                 background_mappings=None):
+                 background_mappings=None, historical_authority=None, historical_trusted_keys=None):
         if (not connection.autocommit or not isinstance(schemas_jcs, bytes)
                 or not 2 <= len(schemas_jcs) <= 16 << 20
                 or sha256(schemas_jcs).hexdigest() != schemas_sha
@@ -55,6 +55,14 @@ class SchedulerImportRecipeAdoptionInstallation:
         self.confirmation, self.occurrence = qualify_confirmation, qualify_occurrence
         self.operation_schemas = None if operation_schemas is None else dict(operation_schemas)
         self.background_mappings = background_mappings
+        if historical_trusted_keys is not None:
+            if historical_authority is not None:
+                raise ValueError('INTERCHANGE_HISTORICAL_INSTALLATION_CONFLICT')
+            from .interchange_historical_origin import SignedHistoricalOriginAuthority
+            historical_authority = SignedHistoricalOriginAuthority(historical_trusted_keys)
+        if historical_authority is not None and not (callable(getattr(historical_authority, "bind_inputs", None)) or all(callable(getattr(historical_authority, name, None)) for name in ("ancestors", "qualify_ancestor", "qualify_faces"))):
+            raise ValueError("INTERCHANGE_HISTORICAL_AUTHORITY_INSTALLATION")
+        self.historical = historical_authority
         if any(not callable(callback) for callback in self.extra_validators.values()):
             raise ValueError('INTERCHANGE_IMPORT_ADOPTER_VALIDATORS')
 
@@ -91,7 +99,7 @@ class SchedulerImportRecipeAdoptionInstallation:
 
         authority = current()
         try:
-            params_ref = WireRef.model_validate(authority['params'])
+            params_ref = WireRef.model_validate_json(canonical_bytes(authority['params']))
             workflow = UUID(str(authority['workflow_id']))
             project = UUID(str(authority['project_id']))
             snapshot_digest = authority['snapshot_digest']
@@ -161,8 +169,27 @@ class SchedulerImportRecipeAdoptionInstallation:
             if type(self.runtime) is SchedulerImportAdoptionRuntimeAuthority
             else (None, None))
 
+        historical = self.historical
+        if historical is not None and callable(getattr(historical, 'bind_inputs', None)):
+            row = self.connection.execute(
+                'SELECT photo.v30_import_historical_adoption_run(%s,%s,%s,%s,%s)', scope).fetchone()
+            if row is None or row[0] is None:
+                raise AdoptionInvalid('INTERCHANGE_HISTORICAL_ADOPTION_SCOPE')
+            run_id = UUID(str(row[0]))
+            historical = historical.bind_inputs(entries=inventory.entries, read=read_document,
+                tenant_id=tenant_id, project_id=project, workflow_id=workflow,
+                run_id=run_id, plan=plan, check_active=self.active,
+                recheck_inputs=inventory.recheck)
         def runtime(contract, typed, binding):
             self.active()
+            from .interchange_conservative_semantics import qualify_conservative_document
+            def require_contract(reference, expected):
+                if not any(entry[0].artifact_id == reference.artifact_id and entry[0].sha256 == reference.sha256 and entry[1] == expected for entry in inventory.entries):
+                    raise AdoptionInvalid('INTERCHANGE_CONSERVATIVE_INPUT_CONTRACT')
+            conservative = qualify_conservative_document(contract, typed, binding, read_document, require_contract, self.active,
+                None if historical is None else lambda *args: historical.qualify_faces(scope, context, *args))
+            if conservative is False:
+                return False
             accepted = (bound_runtime(contract, typed, binding)
                         if bound_runtime is not None else
                         self.runtime(scope, context, contract, typed, binding))
@@ -185,6 +212,10 @@ class SchedulerImportRecipeAdoptionInstallation:
         background = None
         if self.background_mappings is not None:
             background = self.background_mappings(context, plan, inventory.entries)
+        def historical_contract(reference, expected):
+            if not any(entry[0] == reference and entry[1] == expected for entry in inventory.entries):
+                raise AdoptionInvalid("INTERCHANGE_HISTORICAL_INPUT_CONTRACT")
+        ancestors = () if historical is None else historical.ancestors(scope, context, plan, read_document, historical_contract)
         with ScratchSpace(self.scratch_root, tenant_id, task_id, context.attempt,
                           self.scratch_bytes) as scratch:
             qualifier = build_prepared_import_recipe_qualifier(
@@ -199,7 +230,8 @@ class SchedulerImportRecipeAdoptionInstallation:
                 qualify_occurrence=occurrence if self.occurrence is not None else None,
                 operation_schemas=self.operation_schemas,
                 qualify_confirmation=confirmation,
-                background_mappings=background)
+                background_mappings=background, prepared_ancestors=ancestors,
+                qualify_ancestor=None if historical is None else lambda *args: historical.qualify_ancestor(scope, context, *args))
             try:
                 yield qualifier
             finally:

@@ -1,11 +1,11 @@
 import {describe,expect,it} from 'vitest';
-import {freezePreparedReviewDecision,freezeSavedPreparedRevoke,preparedReviewCursor,projectDustCandidateToCrop,readPreparedReviewPage,readPreparedReviewReceipt,readPreparedReviews,readSavedPreparedReviewPage,readSavedPreparedReviews,savedPreparedReviewCursor} from './interchange-prepared-review';
+import {readPreparedReviewDecision,freezePreparedReviewDecision,freezeSavedPreparedRevoke,preparedReviewCursor,projectDustCandidateToCrop,readPreparedReviewPage,readPreparedReviewReceipt,readPreparedReviews,readSavedPreparedReviewPage,readSavedPreparedReviews,savedPreparedReviewCursor} from './interchange-prepared-review';
 
 const id=(n:number)=>`00000000-0000-0000-0000-${String(n).padStart(12,'0')}`;
 const ref=(n:number)=>({artifact_id:id(n),sha256:String(n).padStart(64,'a')});
 const candidate={id:'f'.repeat(64),decision:'pending',bbox:{x:10,y:20,width:5,height:6},score:0.9};
 const item={entry_id:id(1),target_version_id:id(2),kind:'defects',proposal:ref(3),base:ref(4),document:{version:'defect_candidates_v1',image:ref(4),label_map:ref(5),canvas:{width:100,height:100},candidates:[candidate]},decision_epoch:0};
-const dust={entry_id:id(1),target_version_id:id(2),kind:'dust',proposal:ref(30),base:ref(4),document:{algorithm:'sensor_dust_log_v1',camera_id:`raw-${'f'.repeat(64)}`,sensor_width:420,sensor_height:320,raw_crop:{x:10,y:10,width:400,height:300},frames:[ref(4),ref(5),ref(6),ref(7),ref(8)],candidates:[{id:'e'.repeat(64),decision:'pending',sensor_x:12.5,sensor_y:18.5,radius_sensor_px:2,observed_frames:5,eligible_frames:5,recurrence:1}],warnings:[]},decision_epoch:0};
+const dust={entry_id:id(1),target_version_id:id(2),kind:'dust',proposal:ref(30),base:ref(4),document:{algorithm:'sensor_dust_log_v1',camera_id:`raw-${'f'.repeat(64)}`,sensor_width:420,sensor_height:320,raw_crop:{x:10,y:10,width:400,height:300},frames:[ref(4),ref(5),ref(6),ref(7),ref(8)],candidates:[{id:'e'.repeat(64),decision:'pending',sensor_x:12.5,sensor_y:18.5,radius_sensor_px:2,observed_frames:5,eligible_frames:5,recurrence:1}],warnings:[] as string[]},decision_epoch:0};
 
 describe('prepared import review contract',()=>{
  it('binds displayed proposal and candidate ids to a CAS grant',()=>{
@@ -64,4 +64,47 @@ describe('prepared import review contract',()=>{
   expect(()=>readPreparedReviewPage({workflow_id:id(9),items,next_after:'foreign'},id(9))).toThrow();
   expect(()=>readPreparedReviewPage({workflow_id:id(9),items:items.slice(0,1),next_after},id(9))).toThrow();
  });
+});
+
+it('rejects stale and skipped epoch receipts for the same prepared proposal',()=>{
+ const request=freezePreparedReviewDecision({...readPreparedReviews({workflow_id:id(9),items:[item]},id(9))[0],decision_epoch:3,decision_status:'granted'},'revoke');
+ const receipt={workflow_id:id(9),entry_id:id(1),kind:'defects',target_version_id:id(2),proposal_id:id(3),status:'revoked',epoch:4};
+ expect(readPreparedReviewReceipt(receipt,id(9),request).epoch).toBe(4);
+ for(const epoch of [1,3,5])expect(()=>readPreparedReviewReceipt({...receipt,epoch},id(9),request)).toThrow('INTERCHANGE_PREPARED_REVIEW_INVALID');
+});
+
+it('rejects inconsistent saved selections and owns the decoded snapshot',()=>{
+ const row={entry_id:id(1),target_version_id:id(2),kind:'defects',proposal:ref(3),base:ref(4),label_map:ref(5),decision:'accept',accepted_candidate_ids:['a'.repeat(64)],rejected_candidate_ids:['b'.repeat(64)],status:'granted',epoch:3};
+ const decoded=readSavedPreparedReviews({workflow_id:id(9),items:[row]},id(9))[0];
+ row.accepted_candidate_ids[0]='c'.repeat(64);row.proposal.sha256='d'.repeat(64);
+ expect(decoded.accepted_candidate_ids).toEqual(['a'.repeat(64)]);expect(decoded.proposal.sha256).toBe(ref(3).sha256);
+ for(const changes of [{accepted_candidate_ids:['b'.repeat(64),'a'.repeat(64)]},{accepted_candidate_ids:['a'.repeat(64),'a'.repeat(64)]},{accepted_candidate_ids:['b'.repeat(64)]},{decision:'skip'},{decision:'reject'}])expect(()=>readSavedPreparedReviews({workflow_id:id(9),items:[{...row,...changes}]},id(9))).toThrow('INTERCHANGE_PREPARED_REVIEW_INVALID');
+});
+
+it('validates durable decision bodies without trusting journal data',()=>{
+ const body=freezePreparedReviewDecision(readPreparedReviews({workflow_id:id(9),items:[item]},id(9))[0],'grant','accept',[candidate.id]);
+ expect(readPreparedReviewDecision(body)).toEqual(body);
+ for(const changes of [{extra:true},{entry_id:'foreign'},{action:'unknown'},{base:body.proposal},{accepted_candidate_ids:[candidate.id,candidate.id]},{rejected_candidate_ids:[candidate.id]},{decision:'skip'}])expect(()=>readPreparedReviewDecision({...body,...changes})).toThrow('INTERCHANGE_PREPARED_REVIEW_INVALID');
+ const restored=readPreparedReviewDecision(body);body.accepted_candidate_ids![0]='a'.repeat(64);expect(restored.accepted_candidate_ids).toEqual([candidate.id]);
+});
+
+it('rejects enum arrays in restored journal decisions rather than coercing them',()=>{
+ const body={action:'grant',kind:'dust',entry_id:id(1),target_version_id:id(2),proposal:ref(3),base:ref(4),expected_epoch:0,decision:'skip',accepted_candidate_ids:[],rejected_candidate_ids:[]};
+ expect(readPreparedReviewDecision(body).decision).toBe('skip');
+ for(const field of ['action','kind','decision'])expect(()=>readPreparedReviewDecision({...body,[field]:[body[field as keyof typeof body]]})).toThrow('INTERCHANGE_PREPARED_REVIEW_INVALID');
+});
+
+it('owns the validated prepared receipt rather than sharing mutable transport data',()=>{
+ const request=freezePreparedReviewDecision(readPreparedReviews({workflow_id:id(9),items:[item]},id(9))[0],'grant','skip');
+ const response={workflow_id:id(9),entry_id:id(1),kind:'defects',target_version_id:id(2),proposal_id:id(3),status:'granted',epoch:1};
+ const receipt=readPreparedReviewReceipt(response,id(9),request);response.epoch=7;response.proposal_id=id(10);
+ expect(receipt.epoch).toBe(1);expect(receipt.proposal_id).toBe(id(3));
+});
+
+it('accepts the final safe receipt but refuses another decision at exhausted epoch',()=>{
+ const current={...readPreparedReviews({workflow_id:id(9),items:[item]},id(9))[0],decision_epoch:Number.MAX_SAFE_INTEGER-1,decision_status:'granted' as const};
+ const request=freezePreparedReviewDecision(current,'revoke');
+ expect(readPreparedReviewReceipt({workflow_id:id(9),entry_id:id(1),kind:'defects',target_version_id:id(2),proposal_id:id(3),status:'revoked',epoch:Number.MAX_SAFE_INTEGER},id(9),request).epoch).toBe(Number.MAX_SAFE_INTEGER);
+ expect(()=>freezePreparedReviewDecision({...current,decision_epoch:Number.MAX_SAFE_INTEGER},'revoke')).toThrow('INTERCHANGE_PREPARED_REVIEW_INVALID');
+ expect(()=>readPreparedReviewDecision({...request,expected_epoch:Number.MAX_SAFE_INTEGER})).toThrow('INTERCHANGE_PREPARED_REVIEW_INVALID');
 });

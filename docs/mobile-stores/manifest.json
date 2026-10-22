@@ -1,0 +1,15 @@
+{
+  "status": "DRAFT_INTERNAL_TESTING_ONLY",
+  "files": {
+    "README.md": "7af8420c4d0f60eb52c0cdbdbada6cb4e2c5049cf36ebf3af8c191a485bdd65a",
+    "beta-testing.md": "7658bb1d4dd7b1cb9d760271c60d6135bcaeee577e95805e5f4e746bc619dbd0",
+    "listing-bg.json": "ba1343796a7f41363d069eab06f691b12b03cbbd0ec845264b55230cea003fc7",
+    "listing-en.json": "1d6477488659a0c66bec6ead4a44b6f5c8881774245b6d2b3d1aabf64783d418",
+    "listing-ru.json": "9adcd52f18261381a6330fca60ba163934bef365396b1ab714031e4c75047776",
+    "privacy-data-inventory.md": "990d5cacb8ccc174c67ae5cc45f043a0e5357094c8e68775834f48c85bd6198d",
+    "reviewer-access.md": "2982cb08883a0ebcfc7d57dc7ce1f7e1e4c1a963c2f3cc6022083a392dda2852",
+    "source-pins.json": "2e7d995ad94c40782c1af67c004110dd1c3f430dc4f62f3706c64376c178290b",
+    "validate.py": "e0c86951d42a157c491d5f555447c0b1d8c7e0113cabd7e0e0d95afdeba23dcb",
+    "validation.json": "3e3d196cc1d0e0fe72f4e0f470e3f8a4f5532b4b6d1f5c716f35f21b260b4e3b"
+  }
+}

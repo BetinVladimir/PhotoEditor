@@ -16,7 +16,7 @@ type personQualificationProof struct {
 	tenant, project, actor, session uuid.UUID
 	bucket, expected                string
 	report                          personEvidenceObject
-	metrics                         v2qualification.Metrics
+	metrics                         v2qualification.ResourceEvidence
 }
 type qualifiedPersonPreparation struct {
 	inputs        string
@@ -44,7 +44,7 @@ func (s SQLTransferSourceReader) prepareQualifiedCatalogPersonTask(ctx context.C
 		return zero, err
 	}
 	expected = ownQualificationExpected(expected)
-	if expected.Operation != "mask.person" || expected.Version != "1" || expected.Backend != "cuda" {
+	if expected.Operation != "mask.person" || expected.Version != "1" || (expected.Backend != "cuda" && expected.Backend != "mps") {
 		return zero, v2qualification.ErrUnqualified
 	}
 	if err := validateTransferMeasuredCosts(costs, v2qualification.Metrics{}); err != nil {
@@ -67,11 +67,11 @@ func (s SQLTransferSourceReader) prepareQualifiedCatalogPersonTask(ctx context.C
 	if err != nil {
 		return zero, err
 	}
-	verified, err := v2qualification.Verify(raw, original.ref.SHA256, expected)
+	verified, err := v2qualification.VerifyTyped(raw, original.ref.SHA256, expected)
 	if err != nil {
 		return zero, err
 	}
-	if err := validateTransferMeasuredCosts(costs, verified.Metrics); err != nil {
+	if err := validateTransferResourceCosts(costs, verified.Resources()); err != nil {
 		return zero, err
 	}
 	current, err := s.personQualificationObject(ctx, who, tenantID, expected, report)
@@ -81,7 +81,7 @@ func (s SQLTransferSourceReader) prepareQualifiedCatalogPersonTask(ctx context.C
 	if current != original {
 		return zero, v2input.ErrConflict
 	}
-	frozen, err := prepareCatalogPersonTask(ctx, catalog, who, tenantID, workflow, ordinal, binding, imageBody, params, expected.ModelLockSHA, guidedTile, costs, ram, vram, scratch, output)
+	frozen, err := prepareCatalogPersonTaskForBackend(expected.Backend, ctx, catalog, who, tenantID, workflow, ordinal, binding, imageBody, params, expected.ModelLockSHA, guidedTile, costs, ram, vram, scratch, output)
 	if err != nil {
 		return zero, err
 	}
@@ -120,5 +120,5 @@ func (s SQLTransferSourceReader) prepareQualifiedCatalogPersonTask(ctx context.C
 	if err != nil {
 		return zero, err
 	}
-	return qualifiedPersonPreparation{frozen: frozen.frozen, inputs: frozen.inputs, qualification: personQualificationProof{taskSHA: taskSHA, tenant: tenantID, project: s.ProjectID, actor: who.UserID, session: who.SessionID, bucket: s.Bucket, expected: string(expectedBody), report: original, metrics: verified.Metrics}}, nil
+	return qualifiedPersonPreparation{frozen: frozen.frozen, inputs: frozen.inputs, qualification: personQualificationProof{taskSHA: taskSHA, tenant: tenantID, project: s.ProjectID, actor: who.UserID, session: who.SessionID, bucket: s.Bucket, expected: string(expectedBody), report: original, metrics: verified.Resources()}}, nil
 }

@@ -1,0 +1,35 @@
+{
+  "cli": {
+    "version": ">=20.3.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "store-beta": {
+      "distribution": "store",
+      "developmentClient": false,
+      "environment": "preview",
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_ORIGIN": "https://api.framevela.com"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "ios": {
+        "simulator": false
+      }
+    }
+  },
+  "submit": {
+    "store-beta": {
+      "android": {
+        "track": "internal",
+        "releaseStatus": "completed"
+      },
+      "ios": {
+        "ascAppId": "6824850193",
+        "appleTeamId": "U6TTUVHSL6"
+      }
+    }
+  }
+}

@@ -137,3 +137,15 @@ func TestValidateOverrideManualGeometry(t *testing.T) {
 		}
 	}
 }
+
+
+func TestRegionalOverrideRequiresExplicitApprovalAndSupportedSelector(t *testing.T) {
+ sha := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+ mask := `{"artifact":{"artifact_id":"11111111-1111-4111-8111-111111111111","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"canvas":{"width":32,"height":24,"orientation":1,"space_id":"source","source_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"transform_chain":{"steps":[],"hash":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"},"object_id":null,"selector":"sky","confidence":1,"model_lock_id":null,"protected":false}`
+ valid := json.RawMessage(`{"schema_version":1,"input_sha256":"`+sha+`","modules":{"strength":1},"mask_refs":[{"binding_id":"sky-1","purpose":"region_adjustment","mask":`+mask+`,"confirmed":true,"strength":1}],"revision":1}`)
+ if err:=validateOverride(valid,sha);err!=nil { t.Fatal(err) }
+ for _, replacement:=range [][2]string{{`"confirmed":true`,`"confirmed":false`},{`"selector":"sky"`,`"selector":"person"`},{`"protected":false`,`"protected":true`}} {
+  invalid:=bytes.Replace(valid,[]byte(replacement[0]),[]byte(replacement[1]),1)
+  if validateOverride(invalid,sha)==nil { t.Fatal("unapproved or unsupported regional mask accepted") }
+ }
+}

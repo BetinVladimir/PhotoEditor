@@ -94,3 +94,28 @@ def test_report_limit_and_canonical_number_representation():
     raw=raw.replace(b'"p50_ms":10',b'"p50_ms":10.0')
     pin=replace(pin,report=replace(pin.report,sha256=sha256(raw).hexdigest()))
     with pytest.raises(AdoptionInvalid):verify_semantic_qualification_report(raw,pin,policy)
+
+
+@pytest.mark.parametrize('exception_type', [ValueError, TypeError, AdoptionInvalid])
+@pytest.mark.parametrize('checkpoint', ['loop', 'final'])
+def test_authority_checkpoint_preserves_exact_exception(exception_type, checkpoint):
+    policy, report, raw, pin = fixture()
+    revoke_at = 2 if checkpoint == 'loop' else len(report['checks']) + 2
+    calls = 0
+    failure = exception_type('LIVE_AUTHORITY_WITHDRAWN')
+    def active():
+        nonlocal calls
+        calls += 1
+        if calls == revoke_at:
+            raise failure
+    with pytest.raises(exception_type) as caught:
+        verify_semantic_qualification_report(raw, pin, policy, check_active=active)
+    assert caught.value is failure
+    assert calls == revoke_at
+
+
+@pytest.mark.parametrize('invalid', [None, [], {'schema_version': 1}])
+def test_malformed_policy_still_normalizes_validation_failure(invalid):
+    _, _, raw, pin = fixture()
+    with pytest.raises(AdoptionInvalid, match='SEMANTIC_QUALIFICATION_REPORT_INVALID'):
+        verify_semantic_qualification_report(raw, pin, invalid)

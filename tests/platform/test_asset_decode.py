@@ -61,6 +61,19 @@ def test_alpha_preserved_and_analyze_rejected(tmp_path,registry):
     result=icc_to_work(source,tmp_path/'alpha.npy',registry)
     assert np.array_equal(np.load(result.alpha_path),pixels[...,3].astype(np.uint16)*257)
 
+
+def test_profiled_png16_roundtrip_keeps_hidden_rgb_and_all_alpha_codes(tmp_path,registry):
+    # The baseline must preserve straight RGB even at alpha zero. Cover every
+    # uint16 alpha code rather than a few opaque/transparent endpoints.
+    codes=np.arange(65536,dtype=np.uint16).reshape(256,256)
+    pixels=np.stack((codes,np.flip(codes,axis=1),np.full_like(codes,12345),codes),axis=-1)
+    raster=pyvips.Image.new_from_memory(pixels.data,256,256,4,'ushort').copy(interpretation='rgb16')
+    raster.set_type(pyvips.GValue.blob_type,'icc-profile-data',registry.resolve('work_rec2020_gamma24_v1').data)
+    path=tmp_path/'straight.png';raster.pngsave(str(path),bitdepth=16)
+    decoded=icc_to_work(verify_decode(path),tmp_path/'rgb.npy',registry)
+    assert np.array_equal(np.load(decoded.alpha_path),codes)
+    assert np.array_equal(np.round(np.load(decoded.rgb_path)*65535).astype(np.uint16),pixels[...,:3])
+
 def test_reject_cmyk_multipage_and_spoof(tmp_path):
     path=tmp_path/'cmyk.jpg';Image.new('CMYK',(10,10)).save(path)
     with pytest.raises(AssetError,match='RGB_8_OR_16_REQUIRED'):verify_decode(path)
@@ -96,3 +109,34 @@ def test_cancel_between_tiles_removes_unpublished_buffers(tmp_path,registry):
     with pytest.raises(RuntimeError,match='cancelled'):
         icc_to_work(source,tmp_path/'result.npy',registry,tile=256,check_active=active)
     assert list(tmp_path.iterdir())==[path]
+
+
+@pytest.mark.parametrize('dtype',[np.uint8,np.uint16])
+def test_tiff_explicit_straight_alpha_is_preserved_without_unpremultiplication(tmp_path,registry,dtype):
+    import tifffile
+    from photo_worker.color.icc import LittleCMS
+    maximum=np.iinfo(dtype).max
+    rgba=np.zeros((5,7,4),dtype=dtype)
+    rgba[...,:3]=np.array([maximum//3,maximum//2,maximum],dtype=dtype)
+    rgba[...,3]=np.resize(np.array([0,1,maximum//4,maximum//2,maximum],dtype=dtype),(5,7))
+    path=tmp_path/'straight.tiff'
+    tifffile.imwrite(path,rgba,photometric='rgb',extrasamples='unassalpha')
+    result=icc_to_work(verify_decode(path),tmp_path/'working.npy',registry,assume_profile='srgb_v1')
+    samples=rgba.astype(np.uint16)*(257 if dtype==np.uint8 else 1)
+    expected=LittleCMS().convert(samples[...,:3],registry.resolve('srgb_v1').data,registry.resolve('work_rec2020_gamma24_v1').data).astype(np.float32)/65535
+    assert np.array_equal(np.load(result.alpha_path),samples[...,3])
+    assert np.array_equal(np.load(result.rgb_path),expected)
+    # Hidden RGB is still color transformed even where alpha is exactly zero.
+    assert np.array_equal(np.load(result.rgb_path)[rgba[...,3]==0],expected[rgba[...,3]==0])
+
+@pytest.mark.parametrize('extra',['assocalpha','unspecified'])
+def test_tiff_ambiguous_or_associated_alpha_refused_before_publication(tmp_path,registry,extra):
+    import tifffile
+    rgba=np.full((4,6,4),128,dtype=np.uint8);rgba[0,0,3]=0
+    path=tmp_path/'unsupported-alpha.tiff'
+    tifffile.imwrite(path,rgba,photometric='rgb',extrasamples=extra)
+    output=tmp_path/'working.npy'
+    with pytest.raises(AssetError,match='TIFF_ALPHA_SEMANTICS_UNSUPPORTED'):
+        icc_to_work(verify_decode(path),output,registry,assume_profile='srgb_v1')
+    assert not output.exists()
+    assert not output.with_name('working.alpha.npy').exists()

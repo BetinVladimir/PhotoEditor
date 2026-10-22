@@ -110,3 +110,29 @@ def test_planned_output_stays_owned_and_requires_publication(tmp_path):
             r.validate_file(path)
         assert not path.exists()
         with scratch.reserve(100) as r:r.planned_path('unused','.npy')
+
+
+def test_failed_stream_releases_partial_bytes_and_allows_retry(tmp_path):
+    import hashlib
+    from io import BytesIO
+    from photo_worker.contracts.base import ArtifactRef
+    from photo_worker.runtime.materialize import materialize
+
+    data = b'partial then retry'
+    ref = ArtifactRef(artifact_id=uuid4(), sha256=hashlib.sha256(data).hexdigest())
+
+    class InterruptedStream(BytesIO):
+        def read(self, size=-1):
+            if self.tell():
+                raise OSError('connection interrupted after partial input')
+            return super().read(3)
+
+    stream = InterruptedStream(data)
+    with space(tmp_path, budget=len(data)) as scratch:
+        with pytest.raises(OSError, match='connection interrupted'):
+            materialize(ref, len(data), scratch, lambda _: stream, lambda: None)
+        assert stream.closed
+        assert list(scratch.directory.iterdir()) == []
+        with materialize(ref, len(data), scratch, lambda _: BytesIO(data), lambda: None) as result:
+            assert result.path.read_bytes() == data
+        assert list(scratch.directory.iterdir()) == []

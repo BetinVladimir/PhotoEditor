@@ -33,7 +33,7 @@ DECLARE x photo.graph_expansions%ROWTYPE;frozen jsonb;body jsonb;c photo.deliver
 BEGIN
  IF p_purpose IS NULL OR p_purpose NOT IN('v30_delivery_signed_closure','v30_delivery_signed_envelope')
   OR p_body IS NULL OR octet_length(p_body) NOT BETWEEN 2 AND
-   CASE WHEN p_purpose='v30_delivery_signed_closure' THEN 8388608 ELSE 65536 END THEN RETURN NULL;END IF;
+   (CASE WHEN p_purpose='v30_delivery_signed_closure' THEN 8388608 ELSE 65536 END) THEN RETURN NULL;END IF;
  SELECT * INTO x FROM photo.graph_expansions WHERE id=p_expansion AND kind='v2.delivery/1'
   AND state='open' AND expansion_token=p_token AND expansion_lease_until>clock_timestamp();
  IF NOT FOUND OR NOT EXISTS(SELECT 1 FROM photo.tenants WHERE id=x.tenant_id AND status='active')

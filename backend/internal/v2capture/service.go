@@ -130,7 +130,7 @@ func (s Service) Revoke(ctx context.Context, who auth.Identity,
 		return idempotency.Response{}, domain.NewError("VALIDATION_FAILED", 422)
 	}
 	revision, err := strconv.ParseInt(req.ExpectedRevision, 10, 64)
-	if err != nil || revision < 1 {
+	if err != nil || revision < 1 || strconv.FormatInt(revision, 10) != req.ExpectedRevision {
 		return idempotency.Response{}, domain.NewError("VALIDATION_FAILED", 422)
 	}
 	if !idempotency.ValidKey(key) {
@@ -150,6 +150,14 @@ func (s Service) Revoke(ctx context.Context, who auth.Identity,
 						tenantID, deviceID, revision, who.UserID, who.SessionID).Scan(&body)
 					return idempotency.Response{Status: 200, Body: body}, e
 				})
+			if e != nil { return e }
+			// Replaying the stored public credential still requires the current
+			// project; the SQL revoke factory is not called on replay.
+			var projectID uuid.UUID
+			e=tx.QueryRow(ctx,`SELECT project_id FROM photo.capture_devices WHERE tenant_id=$1 AND id=$2`,tenantID,deviceID).Scan(&projectID)
+			if errors.Is(e,pgx.ErrNoRows) { return domain.NewError("NOT_FOUND",404) };if e!=nil{return e}
+			currentRole,e:=tenant.AuthorizeInTransaction(ctx,tx,who,tenantID,domain.Admin);if e!=nil{return e}
+			_,e=project.Authorize(ctx,tx,tenantID,projectID,who.UserID,currentRole,domain.Admin,false)
 			return e
 		})
 	return out, mutationError(err)

@@ -11,7 +11,6 @@ import (
  "photoeditor/backend/internal/canonical"
  "photoeditor/backend/internal/objectstore"
  "photoeditor/backend/internal/review"
- "photoeditor/backend/internal/v2input"
 )
 
 type negativeArrayCatalogDouble struct { object objectstore.Object; mode string; calls int }

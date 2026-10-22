@@ -65,13 +65,13 @@ export function archiveUploadID(tenant:string,user:string,key:string):string{
  const namespace=hexToBytes(tenant.replaceAll('-','')),name=new TextEncoder().encode(`interchange:archive-upload:${user}:${key}`);
  const bytes=new Uint8Array(16+name.length);bytes.set(namespace);bytes.set(name,16);
  const hash=sha1(bytes).slice(0,16);hash[6]=(hash[6]&15)|80;hash[8]=(hash[8]&63)|128;
- const hex=bytesToHex(hash);return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}`;
+ const hex=bytesToHex(hash);return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
 }
 export function readArchiveStatus(value:unknown,receipt:ArchiveUploadReceipt,request:ArchiveUploadRequest):ArchiveStatus{
  if(!value||typeof value!=='object'||Array.isArray(value))return fail();const v=value as Record<string,unknown>;
  if(Object.keys(v).some(k=>!['upload_id','state','request_sha256','expires_at','ready','begin_recovery','error_code','artifact'].includes(k))||v.upload_id!==receipt.upload_id||v.request_sha256!==receipt.request_sha256||typeof v.state!=='string'||!['reserved','uploading','completing','verified','aborting','aborted','failed'].includes(v.state)||typeof v.expires_at!=='string'||!Number.isFinite(Date.parse(v.expires_at))||typeof v.ready!=='boolean')return fail();
  const out:ArchiveStatus={upload_id:receipt.upload_id,state:v.state,request_sha256:receipt.request_sha256,expires_at:v.expires_at,ready:v.ready};
- if(v.begin_recovery!==undefined){if(typeof v.begin_recovery!=='string'||!['none','reconciliation_required','receipt_pending_bind','resolved'].includes(v.begin_recovery)||['reconciliation_required','receipt_pending_bind'].includes(v.begin_recovery)&&v.state!=='reserved'||v.begin_recovery==='resolved'&&v.state==='reserved')return fail();out.begin_recovery=v.begin_recovery as ArchiveStatus['begin_recovery'];}
+ if(v.begin_recovery!==undefined){if(typeof v.begin_recovery!=='string'||!['none','reconciliation_required','receipt_pending_bind','resolved'].includes(v.begin_recovery)||v.begin_recovery==='reconciliation_required'&&v.state!=='reserved'&&v.state!=='aborting'||v.begin_recovery==='receipt_pending_bind'&&v.state!=='reserved'||v.begin_recovery==='resolved'&&v.state==='reserved')return fail();out.begin_recovery=v.begin_recovery as ArchiveStatus['begin_recovery'];}
  if(v.error_code!==undefined){if(typeof v.error_code!=='string'||!['ARCHIVE_INTEGRITY','UPLOAD_ABORTED','UPLOAD_EXPIRED'].includes(v.error_code))return fail();out.error_code=v.error_code;}
  if((v.state==='aborting'||v.state==='aborted')!==(out.error_code!==undefined))return fail();
  if(v.ready){if(v.state!=='verified'||!fields(v.artifact,['artifact_id','sha256'])||v.artifact.artifact_id!==archiveArtifactID(receipt.upload_id)||v.artifact.sha256!==request.sha256)return fail();out.artifact={artifact_id:v.artifact.artifact_id,sha256:request.sha256};}

@@ -2,15 +2,23 @@
 """Mount a repository-owned, bounded sparse image for macOS development MinIO."""
 from pathlib import Path
 import json
+import argparse
+import re
 import plistlib
 import subprocess
 ROOT=Path(__file__).resolve().parents[1]
 work=ROOT/'work'
-image=work/'minio-dev.sparseimage'
-mount=work/'minio-volume'
-marker=work/'minio-volume.json'
-identity={'format_version':1,'image':'minio-dev.sparseimage','mount':'minio-volume','size':'2g','volume_name':'PhotoEditorMinioDev'}
 def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--name',default='minio-dev',help='Repository-owned volume identity')
+    args=parser.parse_args()
+    if not re.fullmatch(r'[a-z][a-z0-9-]{0,48}',args.name):parser.error('Invalid volume name')
+    image=work/(args.name+'.sparseimage')
+    mount=work/('minio-volume' if args.name=='minio-dev' else args.name+'-volume')
+    marker=work/('minio-volume.json' if args.name=='minio-dev' else args.name+'-volume.json')
+    identity={'format_version':1,'image':image.name,'mount':mount.name,'size':'2g','volume_name':'PhotoEditorMinioDev' if args.name=='minio-dev' else 'PhotoEditor-'+args.name}
+    if work.is_symlink() or image.is_symlink() or marker.is_symlink() or mount.is_symlink():
+        raise SystemExit('Refusing symlinked development volume paths')
     work.mkdir(exist_ok=True)
     if not image.exists():
         subprocess.run(['hdiutil','create','-size','2g','-fs','APFS','-type','SPARSE','-volname',identity['volume_name'],str(image)],check=True,cwd=ROOT)

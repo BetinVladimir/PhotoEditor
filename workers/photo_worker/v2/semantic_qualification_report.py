@@ -34,7 +34,15 @@ def _set(value,maximum,*,digests):
 
 def _verify_qualification_report(raw,pin,policy,*,operation,backend,check_active):
     """Own and validate current policy, then exact canonical report bytes."""
-    check_active()
+    callback_error = None
+    def active():
+        nonlocal callback_error
+        try:
+            check_active()
+        except Exception as error:
+            callback_error = error
+            raise
+    active()
     if not isinstance(pin,SemanticQualificationPin) or not isinstance(raw,bytes) or not 2<=len(raw)<=8*1024*1024:_invalid()
     try:
         policy=parse_json(canonical_bytes(policy),8*1024*1024)
@@ -70,16 +78,18 @@ def _verify_qualification_report(raw,pin,policy,*,operation,backend,check_active
         if not isinstance(checks,list) or not 1<=len(checks)<=1000:_invalid()
         ids=set();evidence=set(policy['evidence_shas'])
         for check in checks:
-            check_active()
+            active()
             if not isinstance(check,dict) or set(check)!= {'id','passed','evidence_sha'}:_invalid()
             key=check['id']
             if (not isinstance(key,str) or not 1<=len(key.encode('utf-8'))<=100 or key in ids
                     or check['passed'] is not True or not _sha(check['evidence_sha']) or check['evidence_sha'] not in evidence):_invalid()
             ids.add(key)
         if not set(policy['required_checks'])<=ids:_invalid()
-        check_active()
+        active()
         return report
     except (ValueError,TypeError,OverflowError,UnicodeError) as error:
+        if error is callback_error:
+            raise
         raise AdoptionInvalid('SEMANTIC_QUALIFICATION_REPORT_INVALID') from error
 
 

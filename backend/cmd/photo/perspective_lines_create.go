@@ -1,6 +1,7 @@
 package main
 
 import (
+ "photoeditor/backend/internal/database"
 	"context"
 	"errors"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -39,6 +40,7 @@ func buildPerspectiveLines(ctx context.Context, objects *objectstore.Store, buck
 		return nil, noop, errors.New("perspective lines database configuration invalid")
 	}
 	config.ConnConfig.RuntimeParams["role"] = "photo_scheduler"
+	database.GuardApplicationRole(config)
 	config.ConnConfig.RuntimeParams["statement_timeout"] = "5000"
 	config.ConnConfig.RuntimeParams["lock_timeout"] = "3000"
 	config.MaxConns = 4

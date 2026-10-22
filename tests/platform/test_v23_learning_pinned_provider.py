@@ -276,7 +276,7 @@ def test_pinned_color_provider_resolves_adaptive_style_with_person_stats(
             features=np.zeros(20),
             coverage_counts=coverage_counts_bounded(
                 source, alpha=alpha, encoding='gamma24'),
-            reliable=True)
+            reliable=True, confidence=.9)
 
     monkeypatch.setattr(
         'photo_worker.operations.learning.pinned_provider.open_holdout_person_stats',
@@ -299,6 +299,7 @@ def test_pinned_holdout_renders_beauty_for_all_three_frozen_styles(tmp_path, mon
     provider, ctx, artifacts, item, calibration, scratch = _setup(tmp_path, monkeypatch)
     base = profile().model_copy(deep=True)
     base.strength = .5
+    base.models = [ModelReference(id=name, weight_id='test') for name in ('sfd','fan2d')]
     base.beauty = Beauty(enabled=True, algorithm='beautyfilter_v1', smoothing=.6,
                          tone_evenness=.2, texture_keep=1,
                          skin_mask='face68_conservative_v1', protect_features=True)
@@ -334,6 +335,7 @@ def test_holdout_beauty_rejects_skipped_face_instead_of_measured_success(tmp_pat
     from test_v23_learning_source import _fixture
     artifacts, case = _fixture(tmp_path)
     style = profile().model_copy(deep=True)
+    style.models = [ModelReference(id=name, weight_id='test') for name in ('sfd','fan2d')]
     style.beauty = Beauty(enabled=True, algorithm='beautyfilter_v1', smoothing=.6,
                          tone_evenness=0, texture_keep=1,
                          skin_mask='face68_conservative_v1', protect_features=True)
@@ -368,7 +370,9 @@ def test_holdout_beauty_matches_production_face_composition(tmp_path):
             box=FaceRect(x0=.1,y0=.1,x1=.9,y1=.9),
             landmarks=[FacePoint(x=point.x,y=point.y) for point in entry.face.points],
             embedding=None, quality=1, person_id=None) for entry in faces])
-    style=profile().model_copy(deep=True);style.beauty=params();style.strength=.5
+    style=profile().model_copy(deep=True)
+    style.models = [ModelReference(id=name, weight_id='test') for name in ('sfd','fan2d')]
+    style.beauty=params();style.strength=.5
     protected=np.zeros(rgb.shape[:2],np.float32);protected[:,100:110]=1
     target=rgb.copy()
     with ScratchSpace(tmp_path,uuid4(),uuid4(),1,40*1024**2,min_free_bytes=0) as scratch:

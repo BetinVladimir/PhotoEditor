@@ -1,4 +1,5 @@
 """Actual SQL freeze plus versioned S3 IO; qualification remains controlled."""
+from pathlib import Path as _PhotoRepositoryPath
 from pathlib import Path
 from io import BytesIO
 from hashlib import sha256
@@ -22,6 +23,6 @@ def test_freeze_reads_pinned_documents_and_recovers_s3_publication(database,lens
     with psycopg.connect(**database) as db:
         fixture=seed_full_render_freeze(db,bucket=bucket,publish_document=publish)
     root=Path(__file__).resolve().parents[2]
-    env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_RENDER_FREEZE_FRESH=json.dumps(fixture),PHOTO_RENDER_FREEZE_S3_CONFIG=json.dumps(client._photo_test_config),GOCACHE='/private/tmp/photoeditor-go-cache')
+    env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_RENDER_FREEZE_FRESH=json.dumps(fixture),PHOTO_RENDER_FREEZE_S3_CONFIG=json.dumps(client._photo_test_config),GOCACHE=str(_PhotoRepositoryPath(__file__).resolve().parents[2]/'work/go-cache'))
     result=subprocess.run(['go','test','./internal/v2render','-run','^TestIntegrationRenderFreezeS3Recovery$','-count=1'],cwd=root/'backend',env=env,capture_output=True,text=True,timeout=90)
     assert result.returncode==0,result.stdout+result.stderr

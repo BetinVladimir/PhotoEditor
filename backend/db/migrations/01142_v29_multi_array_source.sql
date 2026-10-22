@@ -12,7 +12,7 @@ BEGIN
  body:=p_params::jsonb;
  IF jsonb_typeof(body->'frames') IS DISTINCT FROM 'array' OR body->'schema_version' IS DISTINCT FROM '1'::jsonb THEN RETURN NULL;END IF;
  count_frames:=jsonb_array_length(body->'frames');
- IF count_frames NOT BETWEEN 2 AND CASE p_operation WHEN 'optical.panorama' THEN 20 ELSE 30 END
+ IF count_frames NOT BETWEEN 2 AND (CASE p_operation WHEN 'optical.panorama' THEN 20 ELSE 30 END)
  OR p_ordinal>=count_frames THEN RETURN NULL;END IF;
  binding:=body->'frames'->p_ordinal;
  IF photo.lock_v29_perspective_source_child(p_tenant,p_project,p_snapshot,p_actor,p_session,binding,p_source,p_child,p_sha,p_role) IS DISTINCT FROM true THEN RETURN NULL;END IF;

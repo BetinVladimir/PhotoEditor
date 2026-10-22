@@ -46,7 +46,11 @@ def solid(rgb: np.ndarray, alpha: np.ndarray, background: tuple[float, float, fl
     foreground_linear = np.power(rgb, np.float32(2.4), dtype=np.float32)
     background_linear = np.power(background_array, np.float32(2.4), dtype=np.float32)
     mixed = foreground_linear * alpha[..., None] + background_linear * (np.float32(1.0) - alpha[..., None])
-    return np.power(np.clip(mixed, 0.0, 1.0), np.float32(1.0 / 2.4), dtype=np.float32)
+    encoded = np.power(np.clip(mixed, 0.0, 1.0), np.float32(1.0 / 2.4), dtype=np.float32)
+    encoded[alpha == 1] = rgb[alpha == 1]
+    background_values = np.broadcast_to(background_array, rgb.shape)
+    encoded[alpha == 0] = background_values[alpha == 0]
+    return encoded
 
 
 def asset_geometry(source_width: int, source_height: int, output_width: int, output_height: int,
@@ -128,7 +132,7 @@ def sky_gains(source_sum: np.ndarray, asset_sum: np.ndarray, weight: float, limi
     if (not isinstance(source_sum, np.ndarray) or source_sum.shape != (3,) or
             not isinstance(asset_sum, np.ndarray) or asset_sum.shape != (3,) or
             not np.isfinite(source_sum).all() or not np.isfinite(asset_sum).all() or
-            type(weight) not in (int, float) or weight <= 0 or type(limit) not in (int, float) or not 0 <= limit <= .25):
+            type(weight) not in (int, float) or not np.isfinite(weight) or weight <= 0 or type(limit) not in (int, float) or not 0 <= limit <= .25):
         raise ValueError("SKY_STATS_INVALID")
     source_mean = source_sum.astype(np.float64) / weight
     asset_mean = asset_sum.astype(np.float64) / weight
@@ -144,9 +148,10 @@ def replace_sky_tile(source: np.ndarray, asset: np.ndarray, sky: np.ndarray,
             or not isinstance(protected, np.ndarray) or protected.dtype != np.float32 or protected.shape != sky.shape
             or not np.isfinite(protected).all() or np.any(protected < 0) or np.any(protected > 1)
             or not isinstance(gains, np.ndarray) or gains.dtype != np.float32 or gains.shape != (3,)
-            or np.any(gains < .75) or np.any(gains > 1.25)):
+            or not np.isfinite(gains).all() or np.any(gains < .75) or np.any(gains > 1.25)):
         raise ValueError("SKY_INPUT_INVALID")
     effective = np.clip(sky * (1 - protected), 0, 1).astype(np.float32)
+    effective[protected>0]=0  # hard exclusion includes feathered guard edges
     source_linear = np.power(source, np.float32(2.4), dtype=np.float32)
     asset_linear = np.clip(np.power(asset, np.float32(2.4), dtype=np.float32) * gains, 0, 1)
     mixed = source_linear * (1 - effective[..., None]) + asset_linear * effective[..., None]
@@ -184,12 +189,14 @@ def blur_background_tile(rgb: np.ndarray, subject: np.ndarray, depth: np.ndarray
     output = np.empty((*subject[crop].shape, 3), dtype=np.float32)
     source_core = linear[crop]
     subject_core = subject[crop]
+    unchanged = subject_core == 1
     for layer, radius in enumerate(radii):
         selected = layer_index[crop] == layer
         if not np.any(selected):
             continue
         if radius == 0:
             reconstructed = source_core
+            unchanged |= selected
         else:
             sigma = max(radius / 3.0, .5)
             numerator = cv2.GaussianBlur(linear * background_weight[..., None], (0, 0), sigma,
@@ -199,6 +206,9 @@ def blur_background_tile(rgb: np.ndarray, subject: np.ndarray, depth: np.ndarray
             reconstructed = numerator[crop] / np.maximum(denominator[crop][..., None], np.float32(1e-6))
             # A tile containing no known background cannot invent texture.
             reconstructed = np.where((denominator[crop] > 1e-6)[..., None], reconstructed, source_core)
+            unchanged |= selected & (denominator[crop] <= 1e-6)
         mixed = source_core * subject_core[..., None] + reconstructed * (np.float32(1.0) - subject_core[..., None])
         output[selected] = mixed[selected]
-    return np.power(np.clip(output, 0.0, 1.0), np.float32(1.0 / 2.4), dtype=np.float32)
+    encoded = np.power(np.clip(output, 0.0, 1.0), np.float32(1.0 / 2.4), dtype=np.float32)
+    encoded[unchanged] = rgb[crop][unchanged]
+    return encoded

@@ -41,6 +41,17 @@
       "title": "Candidate Requires Review",
       "type": "boolean"
     },
+    "generated_mask": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
     "generated_pixels": {
       "maximum": 200000000,
       "minimum": 1,
@@ -49,7 +60,7 @@
     },
     "guidance_scale": {
       "maximum": 20,
-      "minimum": 1,
+      "minimum": 0,
       "title": "Guidance Scale",
       "type": "number"
     },
@@ -121,10 +132,18 @@
       "type": "array"
     },
     "steps": {
-      "const": 25,
       "default": 25,
+      "maximum": 50,
+      "minimum": 1,
       "title": "Steps",
       "type": "integer"
+    },
+    "strength": {
+      "default": 1.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Strength",
+      "type": "number"
     }
   },
   "required": [

@@ -117,8 +117,9 @@ def run_job(raw,*,getenv=None):
             cert_reqs='CERT_REQUIRED',ca_certs=certifi.where()))
     with psycopg.connect(config.database_url,autocommit=True,connect_timeout=5,
             options='-c role=photo_api -c statement_timeout=30000 -c lock_timeout=3000') as connection:
-        active();row=connection.execute('SELECT current_user').fetchone()
-        if row is None or row[0]!='photo_api':raise AdoptionInvalid('METADATA_SOURCE_JOB_ROLE')
+        from photo_worker.runtime.application_role import require_application_role
+        require_application_role(connection, 'photo_api')
+        active()
         return prepare_job(connection,objects,job,scope,bucket=config.bucket,scratch_root=scratch,max_bytes=size,
                            raw_executable=raw_executable,raw_tool_sha=raw_tool_sha,check_active=active)
 

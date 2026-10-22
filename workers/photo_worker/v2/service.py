@@ -34,6 +34,12 @@ class AdopterConfig:
     delivery_encode_max_pixels: int | None = None
     derivative_linear_icc_sha: str | None = None
     restoration_preview_enabled: bool = False
+    shown_exposure_enabled: bool = False
+    shown_removal_enabled: bool = False
+    shown_background_cleanup_enabled: bool = False
+    shown_retouch_enabled: bool = False
+    lens_preview_enabled: bool = False
+    region_adoption: object = None
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> "AdopterConfig":
@@ -104,23 +110,63 @@ class AdopterConfig:
             delivery_pixels=int(raw)
             if not 1<=delivery_pixels<=200000000 or scratch is None or budget is None:
                 raise ValueError('Delivery encode adopter requires bounded scratch and pixels')
+        lens_preview=env.get('PHOTO_ADOPTER_V25_LENS_PREVIEW_ENABLED','false')
+        if lens_preview not in ('true','false'):
+            raise ValueError('Invalid Lens preview adopter enablement')
+        if lens_preview=='true' and (icc_sha is None or work_icc_sha is None):
+            raise ValueError('Lens preview adopter requires deployed ICC profiles')
         restoration_preview=env.get('PHOTO_ADOPTER_V28_RESTORATION_PREVIEW_ENABLED','false')
         if restoration_preview not in ('true','false'):
             raise ValueError('Invalid V28 restoration preview adopter enablement')
         if restoration_preview=='true' and (icc_sha is None or work_icc_sha is None):
             raise ValueError('V28 restoration preview adopter requires deployed ICC profiles')
-        return cls(values[0], values[1], values[2], values[3], values[4], development,scratch,budget,icc_sha,work_icc_sha,exposure=='true',delivery_pixels,linear_icc_sha,restoration_preview=='true')
+        shown=env.get('PHOTO_ADOPTER_SHOWN_EXPOSURE_ENABLED','false')
+        if shown not in ('true','false'):
+            raise ValueError('Invalid shown exposure adopter enablement')
+        shown_removal=env.get('PHOTO_ADOPTER_SHOWN_REMOVAL_ENABLED','false')
+        if shown_removal not in ('true','false'):
+            raise ValueError('Invalid shown removal adopter enablement')
+        shown_cleanup=env.get('PHOTO_ADOPTER_SHOWN_BACKGROUND_CLEANUP_ENABLED','false')
+        if shown_cleanup not in ('true','false'):
+            raise ValueError('Invalid shown background cleanup adopter enablement')
+        _validate_cleanup_pixel_scratch(shown_cleanup=='true',scratch,budget)
+        shown_retouch=env.get('PHOTO_ADOPTER_SHOWN_RETOUCH_ENABLED','false')
+        if shown_retouch not in ('true','false'):
+            raise ValueError('Invalid shown retouch adopter enablement')
+        _validate_retouch_pixel_scratch(shown_retouch=='true',scratch,budget)
+        from .region_adopter_config import RegionAdopterConfig
+        region_adoption=RegionAdopterConfig.from_env(env)
+        if region_adoption is not None and (scratch is None or budget is None or icc_sha is None):
+            raise ValueError('Region adopter requires scratch and deployed ICC')
+        return cls(values[0], values[1], values[2], values[3], values[4], development,scratch,budget,icc_sha,work_icc_sha,exposure=='true',delivery_pixels,linear_icc_sha,restoration_preview=='true',shown=='true',shown_removal=='true',shown_cleanup=='true',shown_retouch=='true',lens_preview=='true',region_adoption)
 
 
 def _advisory_key(task_id: UUID) -> str:
     return "v2-adopt:" + str(task_id)
 
 
+def _validate_cleanup_pixel_scratch(enabled,root,max_bytes):
+    if type(enabled) is not bool:
+        raise ValueError('Invalid shown background cleanup adopter enablement')
+    if enabled and (not isinstance(root,(str,Path)) or not str(root)
+            or type(max_bytes) is not int or not 1<=max_bytes<=2**53-1):
+        raise ValueError('Invalid shown background cleanup adopter scratch configuration')
+
+def _validate_retouch_pixel_scratch(enabled,root,max_bytes):
+    if type(enabled) is not bool:
+        raise ValueError('Invalid shown retouch adopter enablement')
+    if enabled and (not isinstance(root,(str,Path)) or not str(root)
+            or type(max_bytes) is not int or not 1<=max_bytes<=2**53-1):
+        raise ValueError('Invalid shown retouch adopter scratch configuration')
+
+
 class Adopter:
     def __init__(self, read_connection, write_connection, objects, bucket: str, *, layer_scratch_root=None, layer_scratch_bytes=None,
-                 render_replay=None,render_max_tile_bytes=None,region_target_icc_sha=None,derivative_work_icc_sha=None,derivative_linear_icc_sha=None,
+                 render_replay=None,render_max_tile_bytes=None,region_target_icc_sha=None,region_replay=None,derivative_work_icc_sha=None,derivative_linear_icc_sha=None,
                  semantic_authority=None,semantic_ram_bytes=None,semantic_scene_verifier=None,
-                 semantic_working_icc_sha=None,exposure_working_icc_sha=None,donor_installation=None,negative_installation=None,relight_installation=None,perspective_installation=None,perspective_lines_installation=None,multi_installations=(),interchange_recipe_qualifier_factory=None,signing_operator=None,signing_sdk=None,delivery_encode_max_pixels=None,restoration_preview_enabled=False,stop: Event | None = None):
+                 semantic_working_icc_sha=None,exposure_working_icc_sha=None,donor_installation=None,negative_installation=None,relight_installation=None,perspective_installation=None,perspective_lines_installation=None,multi_installations=(),interchange_recipe_qualifier_factory=None,signing_operator=None,signing_sdk=None,delivery_encode_max_pixels=None,restoration_preview_enabled=False,shown_exposure_enabled=False,shown_removal_enabled=False,shown_background_cleanup_enabled=False,shown_retouch_enabled=False,lens_preview_enabled=False,stop: Event | None = None):
+        _validate_cleanup_pixel_scratch(shown_background_cleanup_enabled,layer_scratch_root,layer_scratch_bytes)
+        _validate_retouch_pixel_scratch(shown_retouch_enabled,layer_scratch_root,layer_scratch_bytes)
         self.stop = Event() if stop is None else stop
         self.read = read_connection
         self.write = write_connection
@@ -142,6 +188,38 @@ class Adopter:
                 check_active=self.check_active)
         elif semantic_working_icc_sha is not None:
             raise ValueError('Semantic ICC pin requires scene authority installation')
+        if type(shown_exposure_enabled) is not bool:
+            raise ValueError('Invalid shown exposure adopter enablement')
+        shown_exposure_installation=None
+        if shown_exposure_enabled:
+            from .shown_exposure_installation import versioned_shown_exposure_adoption_installation
+            shown_exposure_installation=versioned_shown_exposure_adoption_installation(
+                read_connection,objects,bucket,check_active=self.check_active)
+        self.shown_exposure_enabled=shown_exposure_installation is not None
+        if type(shown_removal_enabled) is not bool:
+            raise ValueError('Invalid shown removal adopter enablement')
+        shown_removal_installation=None
+        if shown_removal_enabled:
+            from .shown_removal_installation import versioned_shown_removal_adoption_installation
+            shown_removal_installation=versioned_shown_removal_adoption_installation(
+                read_connection,objects,bucket,check_active=self.check_active)
+        self.shown_removal_enabled=shown_removal_installation is not None
+        if type(shown_background_cleanup_enabled) is not bool:
+            raise ValueError('Invalid shown background cleanup adopter enablement')
+        shown_background_cleanup_installation=None
+        if shown_background_cleanup_enabled:
+            from .shown_background_cleanup_installation import versioned_shown_background_cleanup_adoption_installation
+            shown_background_cleanup_installation=versioned_shown_background_cleanup_adoption_installation(
+                read_connection,objects,bucket,check_active=self.check_active)
+        self.shown_background_cleanup_enabled=shown_background_cleanup_installation is not None
+        if type(shown_retouch_enabled) is not bool:
+            raise ValueError('Invalid shown retouch adopter enablement')
+        shown_retouch_installation=None
+        if shown_retouch_enabled:
+            from .shown_retouch_installation import versioned_shown_retouch_adoption_installation
+            shown_retouch_installation=versioned_shown_retouch_adoption_installation(
+                read_connection,objects,bucket,check_active=self.check_active)
+        self.shown_retouch_enabled=shown_retouch_installation is not None
         exposure_installation=None
         if exposure_working_icc_sha is not None:
             from photo_worker.operations.semantic.exposure_color import WORKING_PROFILE_SHA
@@ -159,12 +237,13 @@ class Adopter:
         self.coordinator = AdoptionCoordinator(read_connection, write_connection, objects, bucket,
             layer_scratch_root=layer_scratch_root,layer_scratch_bytes=layer_scratch_bytes,
             render_replay=render_replay,render_max_tile_bytes=render_max_tile_bytes,
-            region_target_icc_sha=region_target_icc_sha,semantic_authority=semantic_authority,
+            region_target_icc_sha=region_target_icc_sha,region_replay=region_replay,semantic_authority=semantic_authority,
             semantic_ram_bytes=semantic_ram_bytes,semantic_plan_snapshot=snapshot,
-            semantic_plan_provenance=provenance,exposure_installation=exposure_installation,donor_installation=donor_installation,negative_installation=negative_installation,relight_installation=relight_installation,perspective_installation=perspective_installation,perspective_lines_installation=perspective_lines_installation,multi_installations=multi_installations,interchange_recipe_qualifier_factory=interchange_recipe_qualifier_factory,signing_operator=signing_operator,signing_sdk=signing_sdk,check_active=self.check_active)
+            semantic_plan_provenance=provenance,exposure_installation=exposure_installation,shown_exposure_installation=shown_exposure_installation,shown_removal_installation=shown_removal_installation,shown_background_cleanup_installation=shown_background_cleanup_installation,shown_retouch_installation=shown_retouch_installation,donor_installation=donor_installation,negative_installation=negative_installation,relight_installation=relight_installation,perspective_installation=perspective_installation,perspective_lines_installation=perspective_lines_installation,multi_installations=multi_installations,interchange_recipe_qualifier_factory=interchange_recipe_qualifier_factory,signing_operator=signing_operator,signing_sdk=signing_sdk,check_active=self.check_active)
 
         self.multi_preview_runner = None
         self.multi_quality_runner = None
+        self.lens_preview_runner = None
         self.perspective_preview_runner = None
         self.perspective_quality_runner = None
         self.restoration_preview_runner = None
@@ -203,6 +282,16 @@ class Adopter:
                     target_icc_sha256=region_target_icc_sha, working_icc_sha256=derivative_work_icc_sha,
                     check_active=self.check_active))
 
+        if lens_preview_enabled:
+            if derivative_work_icc_sha is None or region_target_icc_sha is None:
+                raise ValueError('Lens preview requires trusted working and target ICC profiles')
+            from .lens_preview_adoption import LensPreviewAdoptionCoordinator
+            from .lens_preview_runner import LensPreviewRunner
+            self.lens_preview_runner = LensPreviewRunner(
+                LensPreviewAdoptionCoordinator(read_connection, write_connection, objects, bucket,
+                    target_icc_sha256=region_target_icc_sha, working_icc_sha256=derivative_work_icc_sha,
+                    check_active=self.check_active))
+
         if perspective_installation is not None:
             if derivative_work_icc_sha is None or region_target_icc_sha is None:
                 raise ValueError('Perspective preview requires trusted working and target ICC profiles')
@@ -232,8 +321,18 @@ class Adopter:
         if self.stop.is_set():
             return counts
         candidates = self.read.execute("SELECT * FROM photo.v2_pending_adoptions()").fetchall()
+        candidates += self.read.execute("SELECT * FROM photo.editor_effect_pending_seal_adoptions()").fetchall()
         if self.exposure_enabled:
             candidates += self.read.execute("SELECT * FROM photo.v27_pending_exposure_adoptions()").fetchall()
+        if self.shown_exposure_enabled:
+            candidates += self.read.execute("SELECT * FROM photo.v27_pending_shown_exposure_adoptions()").fetchall()
+        if getattr(self,'shown_removal_enabled',False):
+            candidates += self.read.execute("SELECT * FROM photo.v27_pending_shown_removal_adoptions()").fetchall()
+        if getattr(self,'shown_background_cleanup_enabled',False):
+            candidates += self.read.execute("SELECT * FROM photo.v27_pending_shown_background_cleanup_adoptions()").fetchall()
+        if getattr(self,'shown_retouch_enabled',False):
+            candidates += self.read.execute("SELECT * FROM photo.v27_pending_shown_retouch_adoptions()").fetchall()
+        candidates=list(dict.fromkeys(candidates))
         for tenant_id, _, task_id in candidates:
             if self.stop.is_set():
                 return counts
@@ -254,7 +353,13 @@ class Adopter:
                     if code in {"V2_ADOPTION_CONTEXT_STALE", "RETRYABLE_CONFLICT", "LAYER_ADOPTION_SCRATCH_REQUIRED", "ADOPTION_SCRATCH_EXCEEDED",
                                 "RENDER_ADOPTION_REPLAY_REQUIRED", "RENDER_ADOPTION_SCRATCH_REQUIRED",
                                 "RENDER_ADOPTION_INPUTS_STALE", "RENDER_REPLAY_QUALIFICATION_MISMATCH",
-                                "REGION_ADOPTION_ICC_REQUIRED", "SEMANTIC_REPLAY_AUTHORITY_REQUIRED",
+                                "REGION_ADOPTION_ICC_REQUIRED", "REGION_REPLAY_INSTALLATION_REQUIRED",
+                                "LOCAL_PORTRAIT_SCRATCH_REQUIRED", "EDITOR_SEAL_ADOPTION_SCRATCH_REQUIRED",
+                                "INTERCHANGE_ADOPTION_SCRATCH_REQUIRED", "RELIGHT_ADOPTION_INSTALLATION_REQUIRED",
+                                "PERSPECTIVE_LINES_ADOPTION_INSTALLATION_REQUIRED", "MULTI_ADOPTION_INSTALLATION_REQUIRED",
+                                "PERSPECTIVE_ADOPTION_INSTALLATION_REQUIRED", "NEGATIVE_ADOPTION_INSTALLATION_REQUIRED",
+                                "SEMANTIC_SHOWN_INSTALLATION_REQUIRED", "SEMANTIC_EXPOSURE_INSTALLATION_REQUIRED",
+                                "SEMANTIC_REPLAY_AUTHORITY_REQUIRED",
                                 "SEMANTIC_ADOPTION_SCRATCH_REQUIRED", "SEMANTIC_REPLAY_RAM_EXCEEDED",
                                 "DONOR_ADOPTION_SCRATCH_REQUIRED", "DONOR_ADOPTION_RAM_REQUIRED", "DONOR_ADOPTION_INSTALLATION_REQUIRED", "DONOR_ADOPTION_RUNTIME_CHANGED",
                                 "DONOR_ADOPTION_CONTEXT_STALE", "DONOR_ADOPTION_CONTEXT_CHANGED",
@@ -363,6 +468,10 @@ class Adopter:
             changes = self.restoration_preview_runner.run_once()
             for key in ('adopted', 'rejected', 'finalized', 'retry'):
                 counts[key] += changes[key]
+        if self.lens_preview_runner is not None and not self.stop.is_set():
+            changes = self.lens_preview_runner.run_once()
+            for key in ('adopted', 'rejected', 'finalized', 'retry'):
+                counts[key] += changes[key]
         if self.perspective_preview_runner is not None and not self.stop.is_set():
             changes = self.perspective_preview_runner.run_once()
             for key in ('adopted', 'rejected', 'finalized', 'retry'):
@@ -375,13 +484,15 @@ class Adopter:
 
 
 def run_adopter(config: AdopterConfig, stop: Event | None = None, *,
-                render_replay=None, render_max_tile_bytes=None, region_target_icc_sha=None,
+                render_replay=None, render_max_tile_bytes=None, region_target_icc_sha=None, region_replay=None,
                 semantic_scene_verifier=None,semantic_ram_bytes=None,exposure_working_icc_sha=None,donor_installation=None,negative_installation=None,relight_installation=None,perspective_installation=None,perspective_lines_installation=None,multi_installations=(),interchange_recipe_qualifier_factory=None,interchange_recipe_qualifier_builder=None,interchange_recipe_operator_factory=None,signing_operator=None,signing_sdk=None) -> None:
     """Run with explicitly installed, trusted Render replay dependencies.
 
     Environment/client data cannot import a provider or manufacture qualification.
     The deployment runtime installer supplies the replay context and tile bound.
     """
+    _validate_cleanup_pixel_scratch(config.shown_background_cleanup_enabled,config.layer_scratch_root,config.layer_scratch_bytes)
+    _validate_retouch_pixel_scratch(config.shown_retouch_enabled,config.layer_scratch_root,config.layer_scratch_bytes)
     delivery_options={}
     signing_pins=None
     if signing_operator is not None or signing_sdk is not None:
@@ -473,7 +584,23 @@ def run_adopter(config: AdopterConfig, stop: Event | None = None, *,
         from photo_worker.operations.semantic.exposure_color import WORKING_PROFILE_SHA
         if exposure_working_icc_sha is None:
             exposure_working_icc_sha=WORKING_PROFILE_SHA
+    if type(config.shown_exposure_enabled) is not bool:
+        raise ValueError('Invalid shown exposure adopter enablement')
+    if type(config.shown_removal_enabled) is not bool:
+        raise ValueError('Invalid shown removal adopter enablement')
+    if type(config.shown_background_cleanup_enabled) is not bool:
+        raise ValueError('Invalid shown background cleanup adopter enablement')
+    if type(config.shown_retouch_enabled) is not bool:
+        raise ValueError('Invalid shown retouch adopter enablement')
     exposure_options={}
+    if config.shown_removal_enabled:
+        exposure_options['shown_removal_enabled']=True
+    if config.shown_background_cleanup_enabled:
+        exposure_options['shown_background_cleanup_enabled']=True
+    if config.shown_retouch_enabled:
+        exposure_options['shown_retouch_enabled']=True
+    if config.shown_exposure_enabled:
+        exposure_options['shown_exposure_enabled']=True
     if exposure_working_icc_sha is not None:
         from photo_worker.operations.semantic.exposure_color import WORKING_PROFILE_SHA
         if (exposure_working_icc_sha!=WORKING_PROFILE_SHA or config.derivative_work_icc_sha!=WORKING_PROFILE_SHA
@@ -501,6 +628,11 @@ def run_adopter(config: AdopterConfig, stop: Event | None = None, *,
             or len(region_target_icc_sha)!=64
             or any(c not in '0123456789abcdef' for c in region_target_icc_sha)):
         raise ValueError('Invalid Region adopter ICC pin')
+    from .render_native_installation import NativeRenderInstallation
+    if isinstance(render_replay, NativeRenderInstallation):
+        if render_max_tile_bytes != render_replay.tile_bytes:
+            raise ValueError('Render native installation tile budget mismatch')
+        render_replay = render_replay.replay(config.layer_scratch_root, config.layer_scratch_bytes)
     if (render_replay is None) != (render_max_tile_bytes is None):
         raise ValueError('Render replay and tile budget must be paired')
     if config.derivative_work_icc_sha is not None and (
@@ -527,7 +659,7 @@ def run_adopter(config: AdopterConfig, stop: Event | None = None, *,
     stop = Event() if stop is None else stop
     endpoint = urlsplit(config.endpoint)
     object_options={}
-    if config.delivery_encode_max_pixels is not None or donor_installation is not None or negative_installation is not None or relight_installation is not None or perspective_installation is not None or perspective_lines_installation is not None or multi_installations or config.restoration_preview_enabled or interchange_recipe_operator_factory is not None or signing_pins is not None:
+    if config.region_adoption is not None or region_replay is not None or config.delivery_encode_max_pixels is not None or donor_installation is not None or negative_installation is not None or relight_installation is not None or perspective_installation is not None or perspective_lines_installation is not None or multi_installations or config.restoration_preview_enabled or config.lens_preview_enabled or interchange_recipe_operator_factory is not None or signing_pins is not None:
         import certifi
         import urllib3
         object_options['http_client']=urllib3.PoolManager(
@@ -540,11 +672,19 @@ def run_adopter(config: AdopterConfig, stop: Event | None = None, *,
             objects, config.bucket)
         if not callable(interchange_recipe_qualifier_builder):
             raise ValueError('Invalid import adopter operator builder')
+    from photo_worker.runtime.application_role import require_application_role
     options = "-c role=photo_scheduler -c statement_timeout=30000 -c lock_timeout=3000"
     with psycopg.connect(config.database_url, autocommit=True, connect_timeout=5,
                          options=options) as read_connection:
+        require_application_role(read_connection, 'photo_scheduler')
         with psycopg.connect(config.database_url, autocommit=True, connect_timeout=5,
                              options=options) as write_connection:
+            require_application_role(write_connection, 'photo_scheduler')
+            if (config.shown_exposure_enabled or config.shown_removal_enabled
+                    or config.shown_background_cleanup_enabled or config.shown_retouch_enabled):
+                from .shown_adoption_schema import require_shown_adoption_evidence_schema
+                require_shown_adoption_evidence_schema(read_connection)
+                require_shown_adoption_evidence_schema(write_connection)
             if (interchange_recipe_qualifier_factory is not None
                     or interchange_recipe_qualifier_builder is not None):
                 from .interchange_import_adopter_schema import require_interchange_import_adopter_schema
@@ -587,18 +727,34 @@ def run_adopter(config: AdopterConfig, stop: Event | None = None, *,
                 from .perspective_quality_schema import require_perspective_quality_schema
                 require_perspective_quality_schema(read_connection)
                 require_perspective_quality_schema(write_connection)
+            if config.lens_preview_enabled:
+                from .lens_preview_schema import require_lens_preview_schema
+                require_lens_preview_schema(read_connection)
+                require_lens_preview_schema(write_connection)
+                derivative_options['lens_preview_enabled'] = True
             if config.restoration_preview_enabled:
                 from .restoration_preview_schema import require_restoration_preview_schema
                 require_restoration_preview_schema(read_connection)
                 require_restoration_preview_schema(write_connection)
                 derivative_options['restoration_preview_enabled'] = True
             with ExitStack() as runtime_scope:
+                if config.region_adoption is not None:
+                    if region_replay is not None:raise ValueError('Region adopter installation conflicts with explicit dependency')
+                    from .region_adopter_config import configured_region_adopter
+                    region_replay,region_pool=configured_region_adopter(config.region_adoption,
+                        config.layer_scratch_root,config.layer_scratch_bytes)
+                    runtime_scope.callback(region_pool.close)
+                if region_replay is not None:
+                    from .region_replay_schema import require_region_replay_schema
+                    require_region_replay_schema(read_connection)
+                    require_region_replay_schema(write_connection)
                 lease_connection = None
                 signing_connection = None
                 if interchange_recipe_operator_factory is not None:
                     lease_connection = runtime_scope.enter_context(psycopg.connect(
                         config.database_url, autocommit=True, connect_timeout=5,
                         options='-c role=photo_scheduler -c statement_timeout=3000 -c lock_timeout=1000'))
+                    require_application_role(lease_connection, 'photo_scheduler')
                     from .interchange_import_adopter_runtime import (
                         require_import_adopter_runtime_schema, ImportAdopterRuntimeLease)
                     require_import_adopter_runtime_schema(lease_connection)
@@ -606,13 +762,14 @@ def run_adopter(config: AdopterConfig, stop: Event | None = None, *,
                     signing_connection = runtime_scope.enter_context(psycopg.connect(
                         config.database_url, autocommit=True, connect_timeout=5,
                         options='-c role=photo_scheduler -c statement_timeout=3000 -c lock_timeout=1000'))
+                    require_application_role(signing_connection, 'photo_scheduler')
                     from .signing_adopter_runtime import (
                         require_signing_adopter_runtime_schema, SigningAdopterRuntimeLease)
                     require_signing_adopter_runtime_schema(signing_connection)
                 adopter = Adopter(read_connection, write_connection, objects, config.bucket,
                     layer_scratch_root=config.layer_scratch_root,layer_scratch_bytes=config.layer_scratch_bytes,
                     render_replay=render_replay,render_max_tile_bytes=render_max_tile_bytes,
-                    region_target_icc_sha=region_target_icc_sha,stop=stop,**delivery_options,**derivative_options,**semantic_options,**exposure_options,**donor_options)
+                    region_target_icc_sha=region_target_icc_sha,region_replay=region_replay,stop=stop,**delivery_options,**derivative_options,**semantic_options,**exposure_options,**donor_options)
                 if signing_connection is not None:
                     while not stop.is_set():
                         first = adopter.run_once()

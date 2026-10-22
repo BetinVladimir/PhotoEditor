@@ -53,11 +53,17 @@ func (s RelightBootstrapCoordinator) readRelightQueuedReceipt(ctx context.Contex
 	var raw []byte
 	if binding == nil {
 		err = tx.QueryRow(ctx, "SELECT photo.read_v28_relight_queued_receipt($1,$2,$3,$4)", tenant, run, who.UserID, who.SessionID).Scan(&raw)
+	} else if binding.pin == nil {
+		err = tx.QueryRow(ctx, "SELECT photo.read_v28_relight_stored_request_outcome($1,$2,$3,$4,$5,$6::jsonb)", tenant, binding.project, run, who.UserID, who.SessionID, string(binding.request)).Scan(&raw)
 	} else {
-		err = tx.QueryRow(ctx, "SELECT photo.read_v28_relight_request_receipt($1,$2,$3,$4,$5,$6::jsonb,$7::jsonb)", tenant, binding.project, run, who.UserID, who.SessionID, string(binding.request), string(binding.pin)).Scan(&raw)
+		err = tx.QueryRow(ctx, "SELECT photo.read_v28_relight_request_outcome($1,$2,$3,$4,$5,$6::jsonb,$7::jsonb)", tenant, binding.project, run, who.UserID, who.SessionID, string(binding.request), string(binding.pin)).Scan(&raw)
 	}
 	if err != nil {
 		return nil, err
+	}
+	if binding != nil {
+		raw, err = decodeRelightReceiptOutcome(raw)
+		if err != nil { return nil, err }
 	}
 	if len(raw) < 2 || len(raw) > 65536 {
 		return nil, v2input.ErrExpired

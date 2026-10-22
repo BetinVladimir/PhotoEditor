@@ -7,7 +7,7 @@ from photo_worker.contracts.style import Adaptation,Prototype,Disabled,LUT,Model
 from photo_worker.contracts.resolved import ResolvedStyle
 from photo_worker.operations.style.resolve import execute
 from photo_worker.runtime.scratch import ScratchSpace
-from photo_worker.runtime.executor import OperationFailure
+from photo_worker.runtime.executor import OperationFailure,TaskCancelled
 from test_color_fit_adapter import Artifacts
 from test_style_resolve import profile
 from test_asset_adapters import context_for
@@ -119,3 +119,80 @@ def test_identity_recipe_resolves_without_a_style_artifact(tmp_path):
     assert manifest.mode=='fixed' and manifest.strength==.6
     assert manifest.fixed.residual_lut.values==[0.,0.,0.]
     assert manifest.modules.models==[] and not result.review_required
+
+
+def test_identity_item_strength_keeps_job_color_module(tmp_path):
+    from photo_worker.algorithms.fitting import identity_color
+    artifacts,ctx=setup(tmp_path)
+    color=identity_color().model_dump(mode='json',by_alias=True)
+    color['gains_rgb']=[1.2,.9,1.1]
+    color['saturation']=.75
+    artifacts.raw.update(style=None,identity=True,stats=None,
+        job_override={'schema_version':1,'modules':{'global':color,'strength':.2}},
+        override={'schema_version':1,'input_sha256':artifacts.before.sha256,
+                  'modules':{'strength':.8},'revision':1})
+    root=tmp_path/'scratch';root.mkdir()
+    with ScratchSpace(root,uuid4(),uuid4(),1,1048576,min_free_bytes=0) as scratch:
+        artifacts.scratch=scratch;result=execute(ctx,artifacts)
+    manifest=artifacts.staged[0][1]
+    assert manifest.strength==.8
+    assert manifest.fixed.model_dump(mode='json',by_alias=True)==color
+    assert manifest.params.job_override.modules.strength==.2
+    assert len(result.outputs)==1
+
+
+def test_identity_item_extension_keeps_other_job_extensions(tmp_path):
+    artifacts,ctx=setup(tmp_path)
+    artifacts.raw.update(style=None,identity=True,stats=None,
+        job_override={'schema_version':1,'modules':{'extensions':{
+            'restoration':{'denoise':'off','denoise_strength':0.,'upscale':'2x','sensor_dust':'off'}}}},
+        override={'schema_version':1,'input_sha256':artifacts.before.sha256,
+                  'modules':{'extensions':{'region_adjustments':[]}},'revision':1})
+    root=tmp_path/'scratch';root.mkdir()
+    with ScratchSpace(root,uuid4(),uuid4(),1,1048576,min_free_bytes=0) as scratch:
+        artifacts.scratch=scratch;execute(ctx,artifacts)
+    manifest=artifacts.staged[0][1]
+    assert manifest.modules.extensions.restoration.upscale=='2x'
+    assert manifest.modules.extensions.region_adjustments==[]
+
+
+def test_identity_without_explicit_modules_is_rejected(tmp_path):
+    artifacts,ctx=setup(tmp_path)
+    artifacts.raw.update(style=None,identity=True,stats=None)
+    with pytest.raises(OperationFailure) as error:
+        execute(ctx,artifacts)
+    assert error.value.error.code=='INPUT_INVALID'
+    assert not artifacts.staged and artifacts.opens==0
+
+
+@pytest.mark.parametrize('cancel_at',[0,3])
+def test_resolver_cancelled_before_input_or_publication(tmp_path,cancel_at):
+    artifacts,ctx=setup(tmp_path)
+    progress=ctx.progress
+    def cancelling_progress(done,total):
+        if done==cancel_at:
+            ctx._cancelled.set()
+        progress(done,total)
+    ctx.progress=cancelling_progress
+    root=tmp_path/'scratch';root.mkdir()
+    with ScratchSpace(root,uuid4(),uuid4(),1,1048576,min_free_bytes=0) as scratch:
+        artifacts.scratch=scratch
+        with pytest.raises(TaskCancelled):
+            execute(ctx,artifacts)
+        assert list(scratch.directory.iterdir())==[]
+    assert not artifacts.staged and artifacts.opens==0
+
+
+@pytest.mark.parametrize('item_strength',[None,0.,.8])
+def test_resolver_frozen_request_strength_and_item_precedence(tmp_path,item_strength):
+    artifacts,ctx=setup(tmp_path)
+    artifacts.raw['job_override']={'schema_version':1,'modules':{'strength':.35}}
+    if item_strength is not None:
+        artifacts.raw['override']={'schema_version':1,'input_sha256':artifacts.before.sha256,
+                                  'modules':{'strength':item_strength},'revision':1}
+    root=tmp_path/'scratch';root.mkdir()
+    with ScratchSpace(root,uuid4(),uuid4(),1,1048576,min_free_bytes=0) as scratch:
+        artifacts.scratch=scratch;execute(ctx,artifacts)
+    manifest=artifacts.staged[0][1]
+    assert manifest.strength==(.35 if item_strength is None else item_strength)
+    ResolvedStyle.model_validate_json(canonical_bytes(manifest))

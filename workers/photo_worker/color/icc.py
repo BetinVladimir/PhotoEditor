@@ -140,7 +140,7 @@ class LittleCMS:
         finally:
             self.lib.cmsCloseProfile(handle)
 
-    def convert(self, image: np.ndarray, source: bytes, destination: bytes) -> np.ndarray:
+    def convert(self, image: np.ndarray, source: bytes, destination: bytes, *, preserve_identity: bool = False) -> np.ndarray:
         if image.dtype != np.uint16 or image.ndim < 2 or image.shape[-1] != 3:
             raise ICCError('ICC_RGB16_REQUIRED')
         pixels = int(np.prod(image.shape[:-1]))
@@ -149,6 +149,11 @@ class LittleCMS:
         a, buffer_a = self.open(source)
         b = transform = None
         try:
+            # Identical validated RGB profiles need no color transform. Keep
+            # every RGB16 code exact and return owned contiguous storage, just
+            # as the transform path does; do not alias the caller's pixels.
+            if preserve_identity and source == destination:
+                return np.array(image,dtype=np.uint16,order='C',copy=True)
             b, buffer_b = self.open(destination)
             # Relative colorimetric intent=1; BPC off, NOOPTIMIZE prevents a coarse
             # precalculated CLUT from reducing RGB16 accuracy.

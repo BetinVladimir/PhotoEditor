@@ -18,6 +18,10 @@ type FrozenSemanticFaceParseTask struct {
 }
 
 func CompileSemanticFaceParseTask(ctx context.Context, workflow uuid.UUID, ordinal int, binding SessionVersionBinding, imageBody json.RawMessage, faces Ref, facesBody json.RawMessage, detectorParams Ref, detectorBody json.RawMessage, paramsRef Ref, modelLock string, sizes []SemanticInputSize, costs SemanticQualifiedCosts, ram, vram, scratch, output int64) (FrozenSemanticFaceParseTask, error) {
+	return CompileSemanticFaceParseTaskForBackend("cuda", ctx, workflow, ordinal, binding, imageBody, faces, facesBody, detectorParams, detectorBody, paramsRef, modelLock, sizes, costs, ram, vram, scratch, output)
+}
+
+func CompileSemanticFaceParseTaskForBackend(backend string, ctx context.Context, workflow uuid.UUID, ordinal int, binding SessionVersionBinding, imageBody json.RawMessage, faces Ref, facesBody json.RawMessage, detectorParams Ref, detectorBody json.RawMessage, paramsRef Ref, modelLock string, sizes []SemanticInputSize, costs SemanticQualifiedCosts, ram, vram, scratch, output int64) (FrozenSemanticFaceParseTask, error) {
 	var zero FrozenSemanticFaceParseTask
 	closure, err := CompileSemanticFaceParseClosure(ctx, workflow, ordinal, binding, imageBody, faces, facesBody, detectorParams, detectorBody, paramsRef, modelLock)
 	if err != nil {
@@ -35,7 +39,7 @@ func CompileSemanticFaceParseTask(ctx context.Context, workflow uuid.UUID, ordin
 	if err != nil {
 		return zero, ErrInvalid
 	}
-	profile, err := CompileSemanticFaceParseProfileFromInputs(int64(image.Canvas.Width), int64(image.Canvas.Height), paramsRef, refs, sizes, costs, ram, vram, scratch, output)
+	profile, err := CompileSemanticFaceParseProfileFromInputsForBackend(backend, int64(image.Canvas.Width), int64(image.Canvas.Height), paramsRef, refs, sizes, costs, ram, vram, scratch, output)
 	if err != nil {
 		return zero, err
 	}

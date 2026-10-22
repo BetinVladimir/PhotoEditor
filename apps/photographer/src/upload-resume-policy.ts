@@ -1,8 +1,10 @@
-import {readRAWDevelopment, type RAWDevelopment, type UploadRecord, type UploadSource, uploadRequiresRestart} from '@photoeditor/api-client';
+import {readUploadAssumeProfile,type UploadAssumeProfile,readRAWDevelopment, type RAWDevelopment, type UploadRecord, type UploadSource, uploadRequiresRestart} from '@photoeditor/api-client';
 
 /** A picked file may resume only the immutable development choice admitted at Begin. */
-export function findResumableUpload(records:readonly UploadRecord[], source:UploadSource, selected?:RAWDevelopment):UploadRecord|undefined {
+export function findResumableUpload(records:readonly UploadRecord[], source:UploadSource, selected?:RAWDevelopment,assumeProfile?:UploadAssumeProfile):UploadRecord|undefined {
  const sameFile=records.filter(x=>(x.state==='paused'||x.state==='error')&&!uploadRequiresRestart(x)&&x.name===source.name&&x.size===source.size&&x.lastModified===source.lastModified&&x.sha256===source.sha256);
+ const profile=readUploadAssumeProfile(assumeProfile);
+ if(sameFile.some(x=>readUploadAssumeProfile(x.assumeProfile)!==profile))throw new Error('UPLOAD_PROFILE_CHANGED');
  const policy=/\.(dng|cr2|nef|arw|raf|orf|rw2)$/i.test(source.name)?selected:undefined;
  const frozen=policy===undefined?undefined:readRAWDevelopment(policy);
  const matches=sameFile.filter(x=>{
@@ -15,7 +17,8 @@ export function findResumableUpload(records:readonly UploadRecord[], source:Uplo
  return undefined;
 }
 
-export function uploadPickerErrorKey(error:unknown):'import_raw_policy_changed'|'import_resume_ambiguous'|'import_add_failed' {
+export function uploadPickerErrorKey(error:unknown):'import_profile_changed'|'import_raw_policy_changed'|'import_resume_ambiguous'|'import_add_failed' {
+ if(error instanceof Error&&error.message==='UPLOAD_PROFILE_CHANGED')return 'import_profile_changed';
  if(error instanceof Error&&error.message==='UPLOAD_RAW_POLICY_CHANGED')return 'import_raw_policy_changed';
  if(error instanceof Error&&error.message==='UPLOAD_RESUME_AMBIGUOUS')return 'import_resume_ambiguous';
  return 'import_add_failed';

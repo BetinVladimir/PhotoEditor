@@ -19,6 +19,7 @@ import (
 )
 
 type ImportPersonMaskDecisionRequest struct {
+	ExpectedEpoch      *int64    `json:"expected_epoch,omitempty"`
 	Action             string    `json:"action"`
 	EntryID            uuid.UUID `json:"entry_id"`
 	TargetVersionID    uuid.UUID `json:"target_version_id"`
@@ -51,6 +52,9 @@ func canonicalImportDecisionDocument(raw string, limit int) bool {
 func validateImportPersonMaskDecision(ctx context.Context, req ImportPersonMaskDecisionRequest) error {
 	if err := ctx.Err(); err != nil {
 		return err
+	}
+	if req.ExpectedEpoch == nil || *req.ExpectedEpoch < 0 || *req.ExpectedEpoch >= 9007199254740991 {
+		return domain.NewError("VALIDATION_FAILED", 422)
 	}
 	if req.EntryID == uuid.Nil || req.TargetVersionID == uuid.Nil || req.OverrideArtifactID == uuid.Nil || req.MaskArtifactID == uuid.Nil {
 		return domain.NewError("VALIDATION_FAILED", 422)
@@ -101,6 +105,8 @@ func (s ImportPersonMaskDecisionService) Decide(ctx context.Context, who auth.Id
 	if err := validateImportPersonMaskDecision(ctx, req); err != nil {
 		return zero, err
 	}
+	// Own the caller-provided pointer before asynchronous transaction work.
+	expectedEpoch := *req.ExpectedEpoch
 	var epoch *int64
 	err := database.TenantTransaction(ctx, s.DB, tenant, func(tx pgx.Tx) error {
 		var actualProject uuid.UUID
@@ -114,20 +120,23 @@ func (s ImportPersonMaskDecisionService) Decide(ctx context.Context, who auth.Id
 			return domain.NewError("NOT_FOUND", 404)
 		}
 		if req.Action == "grant" {
-			return tx.QueryRow(ctx, `SELECT photo.grant_v30_import_person_mask($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+			return tx.QueryRow(ctx, `SELECT photo.grant_v30_import_person_mask_cas($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
 				tenant, who.UserID, who.SessionID, workflow, req.EntryID,
 				req.ParsedJCS, req.RecipeArtifactID, req.RecipeJCS, req.OverrideArtifactID,
-				req.OverrideJCS, req.MaskJCS, req.TargetVersionID).Scan(&epoch)
+				req.OverrideJCS, req.MaskJCS, req.TargetVersionID, expectedEpoch).Scan(&epoch)
 		}
-		return tx.QueryRow(ctx, `SELECT photo.revoke_v30_import_person_mask($1,$2,$3,$4,$5,$6,$7,$8)`,
+		return tx.QueryRow(ctx, `SELECT photo.revoke_v30_import_person_mask_cas($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
 			tenant, who.UserID, who.SessionID, workflow, req.EntryID,
-			req.OverrideArtifactID, req.MaskArtifactID, req.TargetVersionID).Scan(&epoch)
+			req.OverrideArtifactID, req.MaskArtifactID, req.TargetVersionID, expectedEpoch).Scan(&epoch)
 	})
 	if err != nil {
 		return zero, err
 	}
 	if epoch == nil || *epoch < 1 {
-		return zero, domain.NewError("NOT_FOUND", 404)
+		return zero, domain.NewError("INTERCHANGE_MASK_REVISION_CONFLICT", 409)
+	}
+	if *epoch != expectedEpoch+1 {
+		return zero, domain.NewError("INTERCHANGE_MASK_DECISION_INVALID_RECEIPT", 503)
 	}
 	status := "granted"
 	if req.Action == "revoke" {

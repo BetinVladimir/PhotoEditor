@@ -4,6 +4,7 @@ from pathlib import Path
 import os
 import numpy as np
 from .install import ModelError
+from .onnx_session import create_session
 
 DIFFUSERS_ARCHITECTURE='diffusers.stable_diffusion_inpaint.v1'
 LRASPP_ARCHITECTURE='torchvision.lraspp_mobilenet_v3_large.coco_voc_v1'
@@ -68,10 +69,12 @@ class DiffusersInpaint:
         except Exception as exc:raise ModelError('MODEL_ARCHITECTURE_INVALID') from exc
     def generate(self,rgb,mask,*,prompt,negative_prompt,seed,steps,guidance_scale,scheduler):
         from PIL import Image
-        if scheduler!='ddim_v1' or steps!=25:raise ValueError('GENERATION_CONFIG_INVALID')
+        if scheduler!='ddim_v1' or type(steps) is not int or not 1<=steps<=50:raise ValueError('GENERATION_CONFIG_INVALID')
         image=Image.fromarray(np.round(np.clip(rgb,0,1)*255).astype(np.uint8),'RGB')
         matte=Image.fromarray(np.where(mask>.5,255,0).astype(np.uint8),'L')
-        generator=self.torch.Generator(device=self.device).manual_seed(seed)
+        # Metal has no torch.Generator implementation. Diffusers accepts CPU
+        # seeded noise and transfers it to the pipeline's actual MPS device.
+        generator=self.torch.Generator(device='cpu' if self.device=='mps' else self.device).manual_seed(seed)
         result=self.pipe(prompt=prompt,negative_prompt=negative_prompt,image=image,mask_image=matte,
             num_inference_steps=steps,guidance_scale=guidance_scale,generator=generator,height=512,width=512).images
         if len(result)!=1:raise ValueError('MODEL_OUTPUT_INVALID')
@@ -308,7 +311,7 @@ class ONNXIdentity512:
             import onnxruntime as ort
             provider='CUDAExecutionProvider' if backend=='cuda' else 'CPUExecutionProvider'
             if provider not in ort.get_available_providers():raise ModelError('BACKEND_UNAVAILABLE')
-            self.session=ort.InferenceSession(str(path),providers=[provider])
+            self.session=create_session(ort, path, backend)
             if self.session.get_providers()!=[provider]:raise ModelError('BACKEND_UNAVAILABLE')
             inputs=self.session.get_inputs();outputs=self.session.get_outputs()
             if (len(inputs)!=1 or len(outputs)!=1 or

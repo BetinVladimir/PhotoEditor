@@ -94,6 +94,7 @@ services:
     command: ["server", "/data"]
     networks: [backend]
     environment:
+      MINIO_API_CORS_ALLOW_ORIGIN: "${APP_ORIGIN:?required},${PORTAL_ORIGIN:?required}"
       MINIO_ROOT_USER_FILE: /run/secrets/minio_access
       MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_secret
     secrets: [minio_access, minio_secret]
@@ -121,6 +122,7 @@ services:
     environment:
       <<: *go-env
       PHOTO_ROLE: bootstrap-storage
+      S3_CORS_STRATEGY: minio-server
     depends_on:
       minio: {condition: service_healthy}
 
@@ -142,6 +144,8 @@ services:
       PHOTO_ROLE: api
       HTTP_LISTEN: 0.0.0.0:8080
       AUTH_DATABASE_URL: ${AUTH_DATABASE_URL:?required}
+      PHOTO_ADMISSION_SCHEDULER_DATABASE_URL: ${PHOTO_ADMISSION_SCHEDULER_DATABASE_URL:-}
+      V23_TRAINING_SCHEDULER_DATABASE_URL: ${V23_TRAINING_SCHEDULER_DATABASE_URL:-}
       AUTH_KEYS_FILE: /run/photo/auth/keys.json
       JWT_ISSUER: ${JWT_ISSUER:?required}
       JWT_AUDIENCE: ${JWT_AUDIENCE:?required}
@@ -200,7 +204,7 @@ services:
       PHOTO_CAPTURE_BACKEND: ${PHOTO_CAPTURE_BACKEND:-cuda}
       PHOTO_CAPTURE_MODEL_LOCK_SHA: ${PHOTO_CAPTURE_MODEL_LOCK_SHA:-}
       PHOTO_CAPTURE_RAM_BYTES: ${PHOTO_CAPTURE_RAM_BYTES:-17179869184}
-      PHOTO_CAPTURE_VRAM_BYTES: ${PHOTO_CAPTURE_VRAM_BYTES:-10737418240}
+      PHOTO_CAPTURE_VRAM_BYTES: ${PHOTO_CAPTURE_VRAM_BYTES:-10000000000}
       PHOTO_CAPTURE_SCRATCH_BYTES: ${PHOTO_CAPTURE_SCRATCH_BYTES:-68719476736}
       PHOTO_CAPTURE_RESERVED_BYTES: ${PHOTO_CAPTURE_RESERVED_BYTES:-1073741824}
     depends_on: {migrate: {condition: service_completed_successfully}}

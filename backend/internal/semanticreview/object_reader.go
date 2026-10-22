@@ -28,6 +28,9 @@ func NewPlanObjectReader(store planObjectStore, bucket string) (PlanObjectReader
 		if err != nil {
 			return nil, err
 		}
+        if reader == nil {
+            return nil, ErrInvalid
+        }
 		body, readErr := io.ReadAll(io.LimitReader(reader, source.Bytes+1))
 		closeErr := reader.Close()
 		if readErr != nil {

@@ -83,9 +83,6 @@ func CompileRelightAnalysisPlan(ctx context.Context, r RelightAnalysisPlanReques
 	if cost.PixelCount != pixels || cost.RAMBytes < minimum.RAMBytes || cost.ScratchBytes < minimum.ScratchBytes || cost.OutputBytes < minimum.OutputBytes || cost.VRAMBytes < 0 || runtime.Backend == "cpu" && cost.VRAMBytes != 0 || runtime.Backend != "cpu" && cost.VRAMBytes < 1 {
 		return zero, v2input.ErrInvalid
 	}
-	if runtime.Backend == "mps" && (cost.VRAMBytes > 10000000000 || r.Capacity.VRAMBytes > 10000000000) {
-		return zero, v2input.ErrInvalid
-	}
 	need := []int64{cost.PixelCount, cost.RAMBytes, cost.ScratchBytes, cost.OutputBytes, cost.VRAMBytes}
 	have := []int64{r.Capacity.PixelCount, r.Capacity.RAMBytes, r.Capacity.ScratchBytes, r.Capacity.OutputBytes, r.Capacity.VRAMBytes}
 	for i, n := range need {

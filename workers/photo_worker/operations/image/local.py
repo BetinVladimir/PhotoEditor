@@ -36,7 +36,7 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts) -> OperationResult:
         if h*w>200000000:raise ValueError('Pixel limit')
         rules=resolved.modules.extensions.region_adjustments
         if len({r.region_id for r in rules})!=len(rules):raise ValueError('Duplicate regional rule')
-        bindings={r.region_id:r.mask for r in params.regions}
+        bindings={r.region_id:r for r in params.regions}
         if set(bindings)-{r.region_id for r in rules}:raise ValueError('Unused regional binding')
         correction=None
         if params.series is not None:
@@ -54,11 +54,15 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts) -> OperationResult:
     if local_skip is not None:local=Disabled()
     skips=[]; usable=[]
     for rule in rules:
-        mask=bindings.get(rule.region_id)
-        reason=('missing_mask' if mask is None else 'selector_mismatch' if mask.selector!=rule.selector
+        binding=bindings.get(rule.region_id)
+        mask=None if binding is None else binding.mask
+        if binding is not None and binding.invert and rule.selector!='background':
+            raise OperationFailure('INPUT_INVALID')
+        expected='person' if binding is not None and binding.invert else rule.selector
+        reason=('missing_mask' if mask is None else 'selector_mismatch' if mask.selector!=expected
                 else 'mask_unreliable' if mask.confidence<.75 else None)
         if reason:skips.append(RegionSkip(region_id=rule.region_id,reason=reason))
-        else:usable.append((rule,mask))
+        else:usable.append((rule,mask,binding.invert))
     sums={}
     total=((h+tile-1)//tile)*((w+tile-1)//tile)+2;ctx.progress(0,total)
     with ExitStack() as stack:
@@ -68,7 +72,7 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts) -> OperationResult:
         rgb=mapped(image.pixels,(h,w,3)); original=mapped(base.pixels,(h,w,3))
         person=mapped(params.person.artifact,(h,w)) if local.enabled else None
         # Mask mappings are files, not full RAM arrays; all artifacts reserve scratch.
-        masks=[(rule,mapped(mask.artifact,(h,w))) for rule,mask in usable]
+        masks=[(rule,mapped(mask.artifact,(h,w)),invert) for rule,mask,invert in usable]
         with artifacts.scratch.reserve(h*w*12+8192) as reservation:
             path=reservation.path('local-rgb','.npy')
             target=np.lib.format.open_memmap(path,mode='w+',dtype='<f4',shape=(h,w,3))
@@ -82,7 +86,7 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts) -> OperationResult:
                         if correction is not None:
                             source=apply_series(source,correction.applied_ev,correction.applied_gains,diagnostic)
                         output=apply_local(source,None if person is None else person[sl],local,diagnostic)
-                        if masks:output=apply_regions(output,[(r,m[sl]) for r,m in masks],diagnostic=diagnostic,check_active=ctx.check_active).rgb
+                        if masks:output=apply_regions(output,[(r,1-m[sl] if invert else m[sl]) for r,m,invert in masks],diagnostic=diagnostic,check_active=ctx.check_active).rgb
                         target[sl]=apply_strength(original[sl],output,resolved.strength)
                         for stage,values in diagnostic.clipping.items():
                             counts=sums.setdefault(stage,[0,0]);size=rgb[sl].size

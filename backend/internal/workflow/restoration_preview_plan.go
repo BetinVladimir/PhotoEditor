@@ -19,6 +19,7 @@ type RestorationPreviewPlan struct {
 	source RestorationPreviewSource
 	run    uuid.UUID
 	srgb   string
+	policy string
 	docs   [4]RestorationPreviewDocument
 }
 
@@ -61,8 +62,9 @@ func PrepareRestorationPreviewTask(document RestorationPreviewDocument, params r
 // Caller supplies canonical, independently authorized WorkingImage bodies.
 // This compiler proves document identity and metadata continuity, not pixels.
 func CompileRestorationPreviewPlan(source RestorationPreviewSource, srgb string,
-	baseRaw, candidateRaw []byte) (RestorationPreviewPlan, error) {
+	baseRaw, candidateRaw []byte, policies ...string) (RestorationPreviewPlan, error) {
 	var zero RestorationPreviewPlan
+	policy,policyErr:=media.ResolveRendererPolicy(policies...);if policyErr!=nil{return zero,policyErr}
 	if validateRestorationPreviewSource(source) != nil {
 		return zero, v2input.ErrInvalid
 	}
@@ -96,7 +98,7 @@ func CompileRestorationPreviewPlan(source RestorationPreviewSource, srgb string,
 	run := uuid.NewSHA1(source.Run, []byte("V28.RestorationPreview:"+
 		source.Producer.String()+":"+source.ResultID.String()+":"+
 		source.Result.SHA256+":"+source.Review.String()+":"+srgb))
-	plan := RestorationPreviewPlan{source: source, run: run, srgb: srgb}
+	plan := RestorationPreviewPlan{source: source, run: run, srgb: srgb,policy:policy}
 	for i, side := range []string{"before", "after"} {
 		imageRef := review.ArtifactRef{ID: refs[i].ArtifactID, SHA256: refs[i].SHA256}
 		inputs := workingInputs(imageRef, images[i])
@@ -108,7 +110,7 @@ func CompileRestorationPreviewPlan(source RestorationPreviewSource, srgb string,
 			seen[ref.ID] = true
 		}
 		for j, variant := range []string{"preview1600", "preview2560"} {
-			profileHash, err := media.ProfileHash(variant, srgb)
+			profileHash, err := media.ProfileHashForPolicy(variant, srgb,policy)
 			if err != nil {
 				return zero, err
 			}

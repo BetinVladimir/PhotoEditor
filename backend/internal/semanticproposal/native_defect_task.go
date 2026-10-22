@@ -13,12 +13,12 @@ import (
 
 type nativeDefectTaskPreparation struct {
 	legacyQueueOmitted bool
-	frozen         v2input.FrozenSemanticDefectTask
-	dependencies   nativeDefectDependencies
-	qualification  nativeDefectStageQualification
-	params         defectEvidenceObject
-	entries, sizes string
-	additional     []nativeDefectInputPin
+	frozen             v2input.FrozenSemanticDefectTask
+	dependencies       nativeDefectDependencies
+	qualification      nativeDefectStageQualification
+	params             defectEvidenceObject
+	entries, sizes     string
+	additional         []nativeDefectInputPin
 }
 
 // Pure task compilation: pins are selected/verified by preceding readers; SQL
@@ -51,7 +51,7 @@ func (s SQLTransferSourceReader) compileNativeDefectTask(ctx context.Context, wh
 	if !validQualificationPolicySnapshot(s, who, tenant, qualification.policy) {
 		return zero, v2input.ErrInvalid
 	}
-	selected, err := selectQualificationPolicies(qualification.policy, []string{"defects.propose"})
+	selected, err := selectNativeQualificationPolicies(qualification.policy, []string{"defects.propose"})
 	if err != nil {
 		return zero, err
 	}

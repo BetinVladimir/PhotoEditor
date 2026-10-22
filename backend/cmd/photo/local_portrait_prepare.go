@@ -1,6 +1,7 @@
 package main
 
 import (
+ "photoeditor/backend/internal/database"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -110,6 +111,7 @@ func buildLocalPortraitPrepare(ctx context.Context, catalog *pgxpool.Pool,
 		return nil, noop, errors.New("local portrait scheduler configuration invalid")
 	}
 	poolConfig.ConnConfig.RuntimeParams["role"] = "photo_scheduler"
+	database.GuardApplicationRole(poolConfig)
 	scheduler, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
 		return nil, noop, errors.New("local portrait scheduler unavailable")
@@ -127,6 +129,7 @@ func buildLocalPortraitPrepare(ctx context.Context, catalog *pgxpool.Pool,
   AND to_regprocedure('photo.begin_v28_local_portrait_draft(text,text,bigint)') IS NOT NULL
   AND to_regprocedure('photo.read_v28_local_recovery_owner(uuid,uuid,uuid,uuid)') IS NOT NULL
   AND to_regprocedure('photo.v28_local_runtime_qualification_ready(uuid,uuid,text,text)') IS NOT NULL
+  AND to_regprocedure('photo.discover_v28_local_portrait_result(uuid,uuid,uuid,uuid)') IS NOT NULL
   AND to_regprocedure('photo.v32_local_portrait_queue(jsonb)') IS NOT NULL`).Scan(&role, &installed)
 	if err != nil || role != "photo_scheduler" || !installed {
 		return closeOnError("local portrait SQL installation unavailable")

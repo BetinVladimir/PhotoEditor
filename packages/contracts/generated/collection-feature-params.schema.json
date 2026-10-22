@@ -1,0 +1,72 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/collection-feature-params.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "captured_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Captured At"
+    },
+    "clock_offset_seconds": {
+      "default": 0,
+      "maximum": 86400,
+      "minimum": -86400,
+      "title": "Clock Offset Seconds",
+      "type": "integer"
+    },
+    "embedding": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "item_id": {
+      "format": "uuid",
+      "title": "Item Id",
+      "type": "string"
+    },
+    "stats": {
+      "$ref": "#/$defs/ArtifactRef"
+    }
+  },
+  "required": [
+    "item_id",
+    "image",
+    "embedding",
+    "stats"
+  ],
+  "title": "CollectionFeatureParams",
+  "type": "object"
+}

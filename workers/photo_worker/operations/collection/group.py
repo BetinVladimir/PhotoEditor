@@ -1,4 +1,5 @@
 from datetime import timezone
+from .feature_inputs import load_features
 import numpy as np
 from photo_worker.contracts.base import canonical_bytes
 from photo_worker.contracts.collection import GroupParams,GroupedItem,SceneFeatures,SceneGroups
@@ -16,9 +17,9 @@ def _scene_distance(a,b,scale):
 def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
     if ctx.lease.execution_profile.get('backend')!='cpu':raise OperationFailure('CONFIG_INVALID')
     try:
-        p=artifacts.params(GroupParams);features=[artifacts.contract(r,SceneFeatures) for r in p.features]
-        if len({f.item_id for f in features})!=len(features) or len({(r.artifact_id,r.sha256) for r in p.features})!=len(p.features):raise ValueError('Duplicate group feature')
-        by_id={f.item_id:(f,r) for f,r in zip(features,p.features)};known=set(by_id);separate={frozenset((x.left,x.right)) for x in p.forced_separate}
+        p=artifacts.params(GroupParams);feature_refs,features=load_features(artifacts,p,ctx.check_active)
+        if len({f.item_id for f in features})!=len(features) or len({(r.artifact_id,r.sha256) for r in feature_refs})!=len(feature_refs):raise ValueError('Duplicate group feature')
+        by_id={f.item_id:(f,r) for f,r in zip(features,feature_refs)};known=set(by_id);separate={frozenset((x.left,x.right)) for x in p.forced_separate}
         if any(x.left not in known or x.right not in known for x in p.forced_separate):raise ValueError('Unknown separate item')
         manual={}
         for group in p.manual_groups:
@@ -26,13 +27,20 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
             if any(i in manual for i in group.item_ids) or any(frozenset(pair) in separate for pair in __import__('itertools').combinations(group.item_ids,2)):raise ValueError('Conflicting manual group')
             for i in group.item_ids:manual[i]=group.group_id
     except ValueError as exc:raise OperationFailure('INPUT_INVALID') from exc
-    ordered=sorted(features,key=lambda f:str(f.item_id));ref_by={f.item_id:r for f,r in zip(features,p.features)}
+    ordered=sorted(features,key=lambda f:str(f.item_id));ref_by={f.item_id:r for f,r in zip(features,feature_refs)}
     def clustered(predicate,prefix,seed_groups=None):
+        checks=0
+        def matches(f,x):
+            nonlocal checks
+            checks+=1
+            if checks%128==0:ctx.check_active()
+            return frozenset((f.item_id,x.item_id)) not in separate and predicate(f,x)
         clusters=[] if seed_groups is None else [list(g) for g in seed_groups]
         assigned={x.item_id for g in clusters for x in g}
         for f in ordered:
+            ctx.check_active()
             if f.item_id in assigned:continue
-            candidates=[c for c in clusters if all(frozenset((f.item_id,x.item_id)) not in separate and predicate(f,x) for x in c)]
+            candidates=[c for c in clusters if all(matches(f,x) for x in c)]
             if candidates:min(candidates,key=lambda c:str(min(x.item_id for x in c))).append(f)
             else:clusters.append([f])
         return clusters,{x.item_id:f'{prefix}:{min(str(y.item_id) for y in c)}' for c in clusters for x in c}

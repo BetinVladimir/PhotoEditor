@@ -184,7 +184,7 @@ def test_render_image_result_through_real_media_encoder(tmp_path,transparent,mon
         import base64
         def output(ref,role,media_type,payload):
             return dict(artifact_id=str(ref.artifact_id),role=role,sha256=ref.sha256,
-                bytes=len(payload),media_type=media_type,url='https://photo.test/'+str(ref.artifact_id),expires_at='2099-01-01T00:00:00Z')
+                bytes=len(payload),media_type=media_type,url='https://photo.test/'+str(ref.artifact_id)+'?versionId=fixture-object-version',expires_at='2099-01-01T00:00:00Z')
         client_cases.append(dict(alpha=transparent,encoded=base64.b64encode(body).decode(),
             image=output(document.derivative,'derivative',mime,body),
             manifest=output(result.outputs[1],'derivative_manifest','application/json',canonical_bytes(document))))

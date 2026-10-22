@@ -6,6 +6,7 @@ from uuid import uuid4
 import pytest
 
 from photo_worker.contracts.base import canonical_hash
+from photo_worker.contracts.base import ArtifactRef
 from photo_worker.contracts.images import Canvas, ColorSpace, TransformChain, WorkingImage
 from photo_worker.contracts.portrait_restoration import ImageReflectionParams
 from photo_worker.operations.image.reflection_result import ReflectionFiles, stage_reflection_result
@@ -13,7 +14,7 @@ from photo_worker.operations.optical.contracts import ImageResult, ImageReport
 
 
 def ref():
-    return {'artifact_id': uuid4(), 'sha256': 'a' * 64}
+    return ArtifactRef(artifact_id=uuid4(), sha256='a'*64)
 
 
 def test_reflection_result_declares_review_and_generated_mask(tmp_path):

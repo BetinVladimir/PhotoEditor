@@ -19,7 +19,7 @@ func (s SQLTransferSourceReader) verifyFacePreparationProfiles(ctx context.Conte
 		return err
 	}
 	for i, value := range expected {
-		if value.Operation != [2]string{"face.landmarks", "face.detect"}[i] || value.Version != "1" || (value.Backend != "cpu" && value.Backend != "cuda") {
+		if value.Operation != [2]string{"face.landmarks", "face.detect"}[i] || value.Version != "1" || (value.Backend != "cpu" && value.Backend != "cuda" && value.Backend != "mps") {
 			return v2qualification.ErrUnqualified
 		}
 		for _, digest := range []string{value.ModelLockSHA, value.RuntimeLockSHA, value.DeviceProfileSHA} {
@@ -77,7 +77,7 @@ func (s SQLTransferSourceReader) readQualifiedFacePreparationProof(ctx context.C
 		if err != nil {
 			return nil, facePreparationProof{}, err
 		}
-		if _, err = v2qualification.Verify(raw, pin.ref.SHA256, expected[i]); err != nil {
+		if _, err = v2qualification.VerifyTyped(raw, pin.ref.SHA256, expected[i]); err != nil {
 			return nil, facePreparationProof{}, err
 		}
 		qualificationPins[i] = pin

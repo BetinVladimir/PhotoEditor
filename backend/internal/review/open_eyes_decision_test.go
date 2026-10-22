@@ -12,3 +12,9 @@ func TestOpenEyesDecisionUsesDedicatedSQLAuthority(t *testing.T) {
 		}
 	}
 }
+
+func TestRelightDecisionUsesDedicatedSQLAuthority(t *testing.T) {
+	if got := candidateDecisionFunction("image.relight"); got != "photo.decide_v28_relight_review" {
+		t.Fatalf("relight decision bypassed source and qualification authority: %s", got)
+	}
+}

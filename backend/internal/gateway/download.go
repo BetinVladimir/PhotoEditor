@@ -2,13 +2,14 @@ package gateway
 
 import (
 	"context"
- "crypto/sha256"
- "encoding/hex"
+	"crypto/sha256"
 	"crypto/x509"
+	"encoding/hex"
 	"errors"
 	"github.com/google/uuid"
 	"io"
 	"net/http"
+	"os"
 	"photoeditor/backend/internal/objectstore"
 	"strconv"
 	"strings"
@@ -44,6 +45,7 @@ func boundedRange(raw string, size int64) (int64, int64, error) {
 func (h *HTTP) download(w http.ResponseWriter, r *http.Request) {
 	task, err := h.AuthorizeRequest(r, ReadObjects)
 	if err != nil {
+		dependencyObservation("download_authorization", err)
 		downloadError(w, err)
 		return
 	}
@@ -65,8 +67,13 @@ func (h *HTTP) download(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	lookup, stop := context.WithTimeout(ctx, 5*time.Second)
 	object, err := h.Inputs.Input(lookup, task.Identity, cert, artifact, h.Bucket)
+	lookupErr := lookup.Err()
 	stop()
+	if err == nil {
+		err = lookupErr
+	}
 	if err != nil {
+		dependencyObservation("download_input", err)
 		downloadError(w, err)
 		return
 	}
@@ -74,11 +81,11 @@ func (h *HTTP) download(w http.ResponseWriter, r *http.Request) {
 		gatewayError(w, 413, "DISK_QUOTA")
 		return
 	}
- // A metadata version digest must never certify an absent/null version.
- if object.VersionID == "" || object.VersionID == "null" || object.ContentType == "" {
-  downloadError(w, objectstore.ErrIntegrity)
-  return
- }
+	// A metadata version digest must never certify an absent/null version.
+	if object.VersionID == "" || object.VersionID == "null" || object.ContentType == "" {
+		downloadError(w, objectstore.ErrIntegrity)
+		return
+	}
 	status := http.StatusOK
 	length := object.Bytes
 	var body io.ReadCloser
@@ -104,20 +111,29 @@ func (h *HTTP) download(w http.ResponseWriter, r *http.Request) {
 		body, err = h.Objects.Open(ctx, object)
 	}
 	if err != nil {
+		dependencyObservation("download_storage", err)
 		downloadError(w, err)
 		return
 	}
+	if body == nil {
+		downloadError(w, objectstore.ErrUnavailable)
+		return
+	}
 	defer body.Close()
+	if err := ctx.Err(); err != nil {
+		downloadError(w, err)
+		return
+	}
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Length", strconv.FormatInt(length, 10))
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("X-Photo-SHA256", object.SHA256)
 	w.Header().Set("X-Photo-Artifact-ID", artifact.String())
- // Expose immutable metadata without disclosing storage keys or version IDs.
- w.Header().Set("X-Photo-Media-Type", object.ContentType)
- versionDigest := sha256.Sum256([]byte(object.VersionID))
- w.Header().Set("X-Photo-Object-Version-SHA256", hex.EncodeToString(versionDigest[:]))
+	// Expose immutable metadata without disclosing storage keys or version IDs.
+	w.Header().Set("X-Photo-Media-Type", object.ContentType)
+	versionDigest := sha256.Sum256([]byte(object.VersionID))
+	w.Header().Set("X-Photo-Object-Version-SHA256", hex.EncodeToString(versionDigest[:]))
 	w.Header().Set("Accept-Ranges", "bytes")
 	// Revalidate live DB state while streaming, without keeping a SQL transaction
 	// open over network IO. Token expiry gates new requests; the DB lease gates this stream.
@@ -125,36 +141,90 @@ func (h *HTTP) download(w http.ResponseWriter, r *http.Request) {
 	defer controller.SetWriteDeadline(time.Time{})
 	nextCheck := time.Time{}
 	remaining := length
+	var observedWritten int64
+	observation := downloadStreamObservation{}
+	revalidate := func(boundary string) {
+		if err := ctx.Err(); err != nil {
+			observation.emit("context_done", boundary, observedWritten, length)
+			panic(http.ErrAbortHandler)
+		}
+		// Refresh before entering IO with a nearly exhausted authority window.
+		// The returned lease/deadline still caps every write; no grace is added.
+		if time.Now().Add(time.Second).Before(nextCheck) {
+			return
+		}
+		checkCtx, done := context.WithTimeout(ctx, 5*time.Second)
+		current, e := h.Tasks.Resolve(checkCtx, task.Identity.TaskID, task.Identity.Attempt, task.Identity.Fence, task.Identity.WorkerID, cert)
+		checkErr := checkCtx.Err()
+		done()
+		if e != nil || checkErr != nil || current.Identity != task.Identity {
+			stage := "authority_identity_changed"
+			if checkErr != nil {
+				stage = "authority_context_done"
+			} else if e != nil {
+				stage = "authority_query_failed"
+			}
+			observation.emit(stage, boundary, observedWritten, length)
+			panic(http.ErrAbortHandler)
+		}
+		nextCheck = time.Now().Add(5 * time.Second)
+		if !current.LeaseUntil.IsZero() && current.LeaseUntil.Before(nextCheck) {
+			nextCheck = current.LeaseUntil
+		}
+		if !current.Deadline.IsZero() && current.Deadline.Before(nextCheck) {
+			nextCheck = current.Deadline
+		}
+		if !time.Now().Before(nextCheck) {
+			observation.emit("authority_expired", boundary, observedWritten, length)
+			panic(http.ErrAbortHandler)
+		}
+	}
 	buffer := make([]byte, 64*1024)
+	revalidate("initial")
 	w.WriteHeader(status)
 	for {
-		if !time.Now().Before(nextCheck) {
-			checkCtx, done := context.WithTimeout(ctx, 5*time.Second)
-			current, e := h.Tasks.Resolve(checkCtx, task.Identity.TaskID, task.Identity.Attempt, task.Identity.Fence, task.Identity.WorkerID, cert)
-			done()
-			if e != nil || current.Identity != task.Identity {
-				panic(http.ErrAbortHandler)
-			}
-			nextCheck = time.Now().Add(5 * time.Second)
-		}
+		revalidate("before_read")
 		n, e := body.Read(buffer)
+		// Read may block past lease, deadline, cancellation or the next DB check.
+		revalidate("after_read")
 		if int64(n) > remaining {
+			observation.emit("read_overrun", "after_read", observedWritten, length)
 			panic(http.ErrAbortHandler)
 		}
 		if n > 0 {
-			_ = controller.SetWriteDeadline(time.Now().Add(15 * time.Second))
-			if _, writeErr := w.Write(buffer[:n]); writeErr != nil {
+			// A blocked client write must not outlive the next live-authority check.
+			writeUntil := time.Now().Add(15 * time.Second)
+			if nextCheck.Before(writeUntil) {
+				writeUntil = nextCheck
+			}
+			_ = controller.SetWriteDeadline(writeUntil)
+			written, writeErr := w.Write(buffer[:n])
+			if written >= 0 && written <= n {
+				observedWritten += int64(written)
+			}
+			if writeErr != nil {
+				stage := "write_failed"
+				if errors.Is(writeErr, os.ErrDeadlineExceeded) {
+					stage = "write_timeout"
+				}
+				observation.emit(stage, "write", observedWritten, length)
 				return
+			}
+			if written != n {
+				// Observe only: preserve the existing writer/remaining semantics.
+				observation.emit("short_write", "write", observedWritten, length)
 			}
 			remaining -= int64(n)
 		}
 		if e == io.EOF {
 			if remaining != 0 {
+				observation.emit("short_eof", "eof", observedWritten, length)
 				panic(http.ErrAbortHandler)
 			}
 			return
 		}
 		if e != nil {
+			observation.emit("read_failed", "after_read", observedWritten, length)
 			panic(http.ErrAbortHandler)
 		}
 	}

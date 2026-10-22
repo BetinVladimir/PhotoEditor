@@ -50,6 +50,12 @@ func (s Service) StageWatermarkCreatePrepare(ctx context.Context, who auth.Ident
 	if err != nil {
 		return FrozenPrepareTask{}, err
 	}
+	selection, err := intent.DecodeWatermarkSelectionPending(ctx, who.SessionID, pendingRaw)
+	if err != nil { return FrozenPrepareTask{}, err }
+	// Only independently restored physical pins can promote selection evidence
+	// into a fully compiled watermark prepare envelope.
+	pendingRaw, err = intent.EncodeWatermarkPending(ctx, who.SessionID, selection.Catalog, selection.Items, pins)
+	if err != nil { return FrozenPrepareTask{}, err }
 	pending, err := intent.DecodeWatermarkPending(ctx, who.SessionID, pendingRaw, pins)
 	if err != nil {
 		return FrozenPrepareTask{}, err

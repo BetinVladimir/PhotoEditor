@@ -53,6 +53,7 @@ func submitRelightAnalysis(ctx context.Context, steps analysisSubmissionSteps, w
 	if !errors.Is(err, v2input.ErrExpired) {
 		return zero, err
 	}
+	if IsRelightReplayOnly(ctx) { return zero, err }
 	recoverFailure := func(original error) (RelightAnalysisReceipt, error) {
 		if ctx.Err() != nil {
 			return zero, original

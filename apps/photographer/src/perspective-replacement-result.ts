@@ -4,6 +4,7 @@ import type {V2VersionBinding} from './catalog-types';
 import {perspectiveProposalScope,readPerspectiveProposal} from './perspective-proposal';
 import type {PerspectiveResultObservation} from './perspective-result';
 
+export type PerspectiveReplacementObservation=PerspectiveResultObservation|{state:'terminal';workflow_state:'failed'|'cancelled'|'completed_with_errors'};
 export type PerspectiveReplacementResultScope={tenant:string;project:string;review:string;decisionHash:string;originalRun:string;originalTask:string;run:string;workflow:string;task:string;base:V2VersionBinding};
 const uuid=(v:unknown):v is string=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(v)&&v!=='00000000-0000-0000-0000-000000000000';
 function uuid5(namespace:string,name:string):string {
@@ -29,13 +30,14 @@ export function readPerspectiveReplacementScope(value:unknown,tenant:string,proj
 }
 /** Caller supplies the current mapped base, never an old intent's source binding.
  * Admission identity does not establish completion or authorize Apply. */
-export async function readPerspectiveReplacementResult(api:Pick<OwnerAPI,'get'|'perspectiveProposal'>,scope:PerspectiveReplacementResultScope,signal:AbortSignal):Promise<PerspectiveResultObservation> {
+export async function readPerspectiveReplacementResult(api:Pick<OwnerAPI,'get'|'perspectiveProposal'>,scope:PerspectiveReplacementResultScope,signal:AbortSignal):Promise<PerspectiveReplacementObservation> {
  const owned=structuredClone(scope);
  const active=()=>{if(signal.aborted)throw new Error('PERSPECTIVE_RESULT_CANCELLED');};active();
  validatePerspectiveReplacementScope(owned);
  const status=await api.get<{run_id:string;workflow_id:string;state:string}>(`/api/v1/tenants/{t}/v2-workflows/${encodeURIComponent(owned.workflow)}`,signal);active();
  if(status.run_id!==owned.run||status.workflow_id!==owned.workflow)throw new Error('PERSPECTIVE_RESULT_SCOPE_CHANGED');
- if(['draft','queued','running'].includes(status.state))return {state:'pending',workflow_state:status.state};
+ if(['failed','cancelled','completed_with_errors'].includes(status.state))return {state:'terminal',workflow_state:status.state as 'failed'|'cancelled'|'completed_with_errors'};
+ if(['draft','queued','running','cancelling'].includes(status.state))return {state:'pending',workflow_state:status.state};
  if(!['waiting_review','completed'].includes(status.state))throw new Error('PERSPECTIVE_RESULT_UNAVAILABLE');
  const value=await api.perspectiveProposal(owned.project,owned.task,owned.base,signal);active();
  return {state:'available',proposal:readPerspectiveProposal(value,owned.tenant,owned.project,owned.task,owned.base)};

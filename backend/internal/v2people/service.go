@@ -52,7 +52,7 @@ func revision(raw string) (int64, error) {
 		return 0, domain.NewError("VALIDATION_FAILED", 422)
 	}
 	n, err := strconv.ParseInt(raw, 10, 64)
-	if err != nil || n < 1 || n > 9007199254740991 {
+	if err != nil || n < 1 || n > 9007199254740991 || strconv.FormatInt(n, 10) != raw {
 		return 0, domain.NewError("VALIDATION_FAILED", 422)
 	}
 	return n, nil

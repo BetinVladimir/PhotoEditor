@@ -33,7 +33,7 @@ describe('perspective apply decision',()=>{
  it('requires geometry and warning confirmation and refuses fail',()=>{
   const v=fixture();expect(()=>preparePerspectiveApply(v,false,false)).toThrow();
   const decision=preparePerspectiveApply(v,true,false);v.proposal.result.sha256='b'.repeat(64);expect(decision.root.sha256).toBe('a'.repeat(64));
-  const review=fixture();review.quality.technical.clipped_black_fraction=.03;review.quality.status='review';review.quality.reasons=['excessive_black_clipping'];
+  const review=fixture();review.quality.technical.clipped_black_fraction=.03;review.quality.status='review';review.quality.reasons=['excessive_black_clipping'];seal(review);
   expect(()=>preparePerspectiveApply(review,true,false)).toThrow();expect(preparePerspectiveApply(review,true,true).accept_quality_warnings).toBe(true);
   review.quality.technical.clipped_black_fraction=.11;review.quality.status='fail';expect(()=>preparePerspectiveApply(review,true,true)).toThrow();
  });

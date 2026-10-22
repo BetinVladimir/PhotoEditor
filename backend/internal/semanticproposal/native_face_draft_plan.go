@@ -43,16 +43,16 @@ func (s SQLTransferSourceReader) compileNativeFaceDraftPlan(ctx context.Context,
 	if prepared.document != uuid.NewSHA1(owned.request.RunID, []byte("semantic."+prepared.operation+".params:reference")) || prepared.detector.ResultID == uuid.Nil || prepared.detector.Params != (v2input.Ref{ArtifactID: owned.shell.Tasks[0].ParamsArtifactID, SHA256: owned.shell.Tasks[0].ParamsSHA}) {
 		return zero, v2input.ErrInvalid
 	}
-	selected, err := selectQualificationPolicies(owned.policy, []string{prepared.operation})
+	selected, err := selectNativeQualificationPolicies(owned.policy, []string{prepared.operation})
 	if err != nil {
 		return zero, err
 	}
 	var expected v2qualification.Expected
-	if len(prepared.expected) > 4<<20 || json.Unmarshal([]byte(prepared.expected), &expected) != nil || !sameQualificationPolicyExpected(expected, selected[prepared.operation]) || expected.Backend != "cuda" {
+	if len(prepared.expected) > 4<<20 || json.Unmarshal([]byte(prepared.expected), &expected) != nil || !sameQualificationPolicyExpected(expected, selected[prepared.operation]) || (expected.Backend != "cuda" && expected.Backend != "mps") {
 		return zero, v2qualification.ErrUnqualified
 	}
 	report := prepared.report
-	if report.contract != "QualificationReport" || report.backend != "cuda" || report.ref.ArtifactID == uuid.Nil || report.object.SHA256 != report.ref.SHA256 || report.object.Key == "" || report.object.VersionID == "" || report.object.VersionID == "null" || report.object.Bytes < 2 || report.object.Bytes > 8<<20 {
+	if report.contract != "QualificationReport" || report.backend != expected.Backend || report.ref.ArtifactID == uuid.Nil || report.object.SHA256 != report.ref.SHA256 || report.object.Key == "" || report.object.VersionID == "" || report.object.VersionID == "null" || report.object.Bytes < 2 || report.object.Bytes > 8<<20 {
 		return zero, v2input.ErrInvalid
 	}
 	if _, err := domain.ParseDigest(report.ref.SHA256); err != nil {
@@ -110,7 +110,7 @@ func (s SQLTransferSourceReader) compileNativeFaceDraftPlan(ctx context.Context,
 			Output int64 `json:"output_bytes"`
 		} `json:"resource_estimate"`
 	}
-	if json.Unmarshal(task.ExecutionProfile, &profile) != nil || profile.Backend != "cuda" || profile.Resources.Output < 1 || reserved < profile.Resources.Output+(8<<20) || reserved > 9007199254740991 {
+	if json.Unmarshal(task.ExecutionProfile, &profile) != nil || profile.Backend != expected.Backend || profile.Resources.Output < 1 || reserved < profile.Resources.Output+(8<<20) || reserved > 9007199254740991 {
 		return zero, v2input.ErrInvalid
 	}
 	policySHA, err := canonical.Hash(json.RawMessage(owned.policy.body))
@@ -122,8 +122,10 @@ func (s SQLTransferSourceReader) compileNativeFaceDraftPlan(ctx context.Context,
 		return zero, err
 	}
 	configValue := map[string]any{"project_id": s.ProjectID, "v27_face_prepare": map[string]any{"recovery": recovery, "schema_version": 1, "operation": prepared.operation, "parent_run_id": owned.request.RunID, "request_sha": owned.request.RequestSHA, "auth_session_id": who.SessionID, "source": owned.request.Intent.Reference, "intent": owned.published.Ref, "snapshot": owned.anchor.snapshotRef, "params_document": prepared.document, "params": prepared.params, "task_id": task.ID, "input_digest": task.InputDigest, "policy_sha": policySHA, "detector_run_id": owned.shell.Run, "detector_task_id": owned.shell.Tasks[0].ID, "detector_result_id": prepared.detector.ResultID, "detector_output": prepared.detector.Output, "detector_params": prepared.detector.Params}}
- if !prepared.legacyQueueOmitted { configValue["queue_class"]="batch" }
- config, err := canonical.Marshal(configValue)
+	if !prepared.legacyQueueOmitted {
+		configValue["queue_class"] = "batch"
+	}
+	config, err := canonical.Marshal(configValue)
 	if err != nil {
 		return zero, err
 	}
@@ -156,7 +158,7 @@ func nativeFacePlanDigest(plan nativeFaceDraftPlan) (string, error) {
 		return "", err
 	}
 	p := plan.prepared
-	return canonical.Hash(map[string]any{"detector_plan": parent, "key": plan.key, "shell": plan.shell, "qualified_costs": p.costs, "operation": p.operation, "params": p.params, "document": p.document, "detector_result": p.detector, "task": task, "task_sha": p.taskSHA, "input_objects": p.inputs, "expected": p.expected, "report_ref": p.report.ref, "report_object": p.report.object, "report_contract": p.report.contract, "report_backend": p.report.backend, "metrics": p.metrics, "scope": map[string]any{"tenant": p.tenant, "project": p.project, "actor": p.actor, "session": p.session, "parent": p.parent, "bucket": p.bucket, "policy_sha": p.policySHA}})
+	return canonical.Hash(map[string]any{"detector_plan": parent, "key": plan.key, "shell": plan.shell, "qualified_costs": p.costs, "operation": p.operation, "params": p.params, "document": p.document, "detector_result": p.detector, "task": task, "task_sha": p.taskSHA, "input_objects": p.inputs, "expected": p.expected, "report_ref": p.report.ref, "report_object": p.report.object, "report_contract": p.report.contract, "report_backend": p.report.backend, "metrics": qualificationResourceSeal(p.metrics), "scope": map[string]any{"tenant": p.tenant, "project": p.project, "actor": p.actor, "session": p.session, "parent": p.parent, "bucket": p.bucket, "policy_sha": p.policySHA}})
 }
 func verifyNativeFacePlanSeal(ctx context.Context, plan nativeFaceDraftPlan) error {
 	if err := ctx.Err(); err != nil {

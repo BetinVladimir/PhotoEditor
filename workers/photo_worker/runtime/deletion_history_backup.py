@@ -82,6 +82,8 @@ def export_deletion_history_backup(store,destination_root,backup_id,*,check_acti
             os.chmod(pending/'manifest.json',0o600)
             stream.write(manifest);stream.flush();os.fsync(stream.fileno())
         _sync_directory(pending);check_active()
+        if _directory_identity(root)!=root_identity:
+            raise ValueError('DELETION_BACKUP_ROOT_CHANGED')
         if set(os.listdir(pending))!={'history.sqlite','manifest.json'}:
             raise ValueError('DELETION_BACKUP_CLOSURE')
         if final.exists():raise ValueError('DELETION_BACKUP_EXISTS')
@@ -98,4 +100,6 @@ def export_deletion_history_backup(store,destination_root,backup_id,*,check_acti
         finally:os.close(root_fd)
         return DeletionHistoryBackup(final,sha256(manifest).hexdigest(),digest.hexdigest(),checkpoint)
     finally:
-        if pending.exists():shutil.rmtree(pending)
+        # Never traverse a replacement root during failure cleanup. The original
+        # private pending directory remains available for operator recovery.
+        if _directory_identity(root)==root_identity and pending.exists():shutil.rmtree(pending)

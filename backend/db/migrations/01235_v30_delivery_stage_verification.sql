@@ -33,7 +33,7 @@ BEGIN
  IF image_ref IS NULL OR report_ref IS NULL OR pixels_ref IS NULL
  OR image->'pixels' IS DISTINCT FROM pixels_ref
  OR coalesce(image->'alpha','null'::jsonb) IS DISTINCT FROM coalesce(alpha_ref,'null'::jsonb)
- OR report->>'operation' IS DISTINCT FROM CASE p_operation WHEN 'derivative.resize' THEN 'resize' ELSE 'sharpen' END
+ OR report->>'operation' IS DISTINCT FROM (CASE p_operation WHEN 'derivative.resize' THEN 'resize' ELSE 'sharpen' END)
  OR image->>'dtype' IS DISTINCT FROM 'float32'
  OR image->'color'->>'profile_id' IS DISTINCT FROM 'work_rec2020_gamma24_v1' THEN RETURN false;END IF;
  -- Physical NPY/geometry checks are performed by the scheduler verifier before

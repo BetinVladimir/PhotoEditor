@@ -24,40 +24,40 @@ func (s SQLTransferSourceReader) persistNativeAllTargetTransfer(ctx context.Cont
 // may expose prepared transports. External publication stays outside it.
 func (s SQLTransferSourceReader) persistNativeAllTargetTransferWithTransaction(ctx context.Context, transaction func(func(pgx.Tx) error) error, publisher v2input.Publisher, who auth.Identity, request Request, key string, published PublishedIntent, plan nativeAllTargetTransferWorkflowPlan, configuration TransferPreparation, defectBuilt v2input.Built, reservedBytes int64) ([]v2input.PreparedSemanticTask, error) {
 	if err := ctx.Err(); err != nil {
-		return nil, err
+		return nil, nativeAllTargetAdmissionError("context", err)
 	}
 	if transaction == nil || publisher == nil {
 		return nil, v2input.ErrInvalid
 	}
 	configuration = ownTransferPreparation(configuration)
 	if err := s.validateNativeAllTargetTransferPlanScope(ctx, who, request, plan, configuration); err != nil {
-		return nil, err
+		return nil, nativeAllTargetAdmissionError("plan_scope", err)
 	}
 	if err := s.recheckNativeAllTargetTransferPhysical(ctx, who, request, plan, configuration); err != nil {
-		return nil, err
+		return nil, nativeAllTargetAdmissionError("physical_before", err)
 	}
 	p := plan.reference.person.source.protection.published.preparation
 	completed, err := s.marshalNativeDefectCompletedEvidence(ctx, who, p.plan, configuration.Color, p.result, defectBuilt)
 	if err != nil {
-		return nil, err
+		return nil, nativeAllTargetAdmissionError("completed_before", err)
 	}
 	return persistNativeInputTransferStages(ctx,
 		transaction,
 		func(tx pgx.Tx) error {
 			_, err := s.beginNativeAllTargetTransferInTransaction(ctx, tx, who, request, key, published, plan, configuration, completed, reservedBytes)
-			return err
+			return nativeAllTargetAdmissionError("begin_draft", err)
 		},
 		func() ([]v2input.PreparedSemanticTask, error) {
 			prepared, err := PublishWorkflowTasks(ctx, plan.core, publisher)
 			if err != nil {
-				return nil, err
+				return nil, nativeAllTargetAdmissionError("publish_workflow", err)
 			}
 			if err := s.recheckNativeAllTargetTransferPhysical(ctx, who, request, plan, configuration); err != nil {
-				return nil, err
+				return nil, nativeAllTargetAdmissionError("physical_after", err)
 			}
 			completed, err = s.marshalNativeDefectCompletedEvidence(ctx, who, p.plan, configuration.Color, p.result, defectBuilt)
 			if err != nil {
-				return nil, err
+				return nil, nativeAllTargetAdmissionError("completed_after", err)
 			}
 			return prepared, nil
 		},
@@ -66,6 +66,6 @@ func (s SQLTransferSourceReader) persistNativeAllTargetTransferWithTransaction(c
 			for i, task := range prepared {
 				built[i] = task.Graph.Built
 			}
-			return s.registerNativeAllTargetTransferInTransaction(ctx, tx, who, request, published, plan, configuration, completed, built)
+			return nativeAllTargetAdmissionError("register_inputs", s.registerNativeAllTargetTransferInTransaction(ctx, tx, who, request, published, plan, configuration, completed, built))
 		})
 }

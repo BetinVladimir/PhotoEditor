@@ -2,7 +2,7 @@
 
 
 def build_interchange_operator_schemas(definitions, supplied=None):
-    defaults = {('portrait.hair', '1'): 'PortraitHairParams',
+    defaults = {('defects.auto_repair','1'):'DefectAutoRepairParams',('sensor.dust_auto_repair','1'):'DustAutoRepairParams',('portrait.hair', '1'): 'PortraitHairParams',
                 ('portrait.clothing', '1'): 'PortraitClothingParams',
                 ('image.denoise', '1'): 'DenoiseParams',
                 ('image.upscale', '1'): 'UpscaleParams',

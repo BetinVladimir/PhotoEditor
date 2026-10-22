@@ -3,6 +3,7 @@ package workflow
 import (
 	"context"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"photoeditor/backend/internal/canonical"
 	"testing"
 )
@@ -70,4 +71,31 @@ func TestIngestFinishPreservesPendingAndTerminalStatuses(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCatalogRefusalChecksArchivedDestinationWithoutClaimingAdoption(t *testing.T) {
+	img, outputs, metadata, icc := decodedFixture(t)
+ raw,_:=canonical.Marshal(img);outputs.Manifest=metadataRef(raw)
+	input := CatalogImage{Ordinal: 0, Source: metadata.Source, DecodeTaskID: uuid.New(), MetadataRef: metadataRef([]byte("{}")), Metadata: metadata, Outputs: outputs, Image: img}
+	db := &archiveAdoptionQueries{}
+	repo := IngestCatalogRepository{DB: db, WorkICCSHA: icc}
+	tenant, run := uuid.New(), uuid.New()
+	ok, err := repo.AdoptImage(context.Background(), tenant, run, input)
+	if err != nil || ok || len(db.calls) != 2 || db.calls[1] != "SELECT photo.request_archived_ingest_cancel($1,$2)" {
+		t.Fatal("archive refusal lifecycle lost", ok, err, db.calls)
+	}
+	if len(db.args[1]) != 2 || db.args[1][0] != tenant || db.args[1][1] != run {
+		t.Fatal("archive cancellation scope changed")
+	}
+}
+
+type archiveAdoptionQueries struct {
+	calls []string
+	args  [][]any
+}
+
+func (q *archiveAdoptionQueries) QueryRow(_ context.Context, sql string, args ...any) pgx.Row {
+	q.calls = append(q.calls, sql)
+	q.args = append(q.args, args)
+	return expansionRow{values: []any{len(q.calls) == 2}}
 }

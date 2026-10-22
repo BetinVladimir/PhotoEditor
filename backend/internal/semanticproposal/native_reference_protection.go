@@ -33,7 +33,7 @@ func (s SQLTransferSourceReader) prepareNativeReferenceProtection(ctx context.Co
 	if err != nil {
 		return zero, err
 	}
-	selectedPolicies, err := selectQualificationPolicies(policy, []string{"defects.propose", "face.detect", "face.landmarks", "face.parse", "mask.person"})
+	selectedPolicies, err := selectNativeQualificationPolicies(policy, []string{"defects.propose", "face.detect", "face.landmarks", "face.parse", "mask.person"})
 	if err != nil || !sameQualificationPolicyExpected(selectedPolicies["mask.person"], expected) {
 		return zero, v2qualification.ErrUnqualified
 	}

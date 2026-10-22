@@ -27,7 +27,7 @@ func validInterchangeArchiveStatus(status interchange.ArchiveUploadStatus,upload
  switch status.State{case "reserved","uploading","completing","verified","aborting","aborted","failed":default:valid=false}
  switch status.ErrorCode{case "","ARCHIVE_INTEGRITY","UPLOAD_ABORTED","UPLOAD_EXPIRED":default:valid=false}
  switch status.BeginRecovery{case "none","reconciliation_required","receipt_pending_bind","resolved":default:valid=false}
- if status.BeginRecovery=="reconciliation_required"&&status.State!="reserved"{valid=false}
+ if status.BeginRecovery=="reconciliation_required"&&status.State!="reserved"&&status.State!="aborting"{valid=false}
  if status.BeginRecovery=="receipt_pending_bind"&&status.State!="reserved"{valid=false}
  if status.BeginRecovery=="resolved"&&status.State=="reserved"{valid=false}
  if (status.State=="aborting"||status.State=="aborted")!=(status.ErrorCode!=""){valid=false}

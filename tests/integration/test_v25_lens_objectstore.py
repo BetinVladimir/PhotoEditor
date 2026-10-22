@@ -12,10 +12,13 @@ import os
 import shutil
 import subprocess
 import time
+import socket
+from contextlib import contextmanager
 
 import numpy as np
 import pytest
 from minio import Minio
+from minio.error import S3Error
 from minio.versioningconfig import VersioningConfig, ENABLED
 import urllib3
 import psycopg
@@ -140,25 +143,99 @@ def test_lens_array_reads_exact_old_version_and_rejects_new_wrong_bytes(lens_obj
             verify_lens_array(reader(),bad,array.shape,'pixels')
 
 
+@contextmanager
+def native_object_server(binary, values):
+    """Start only an absent local service, owning its process/data exclusively."""
+    try:
+        with socket.create_connection(('127.0.0.1', 59010), timeout=1):
+            pass
+    except ConnectionRefusedError:
+        folder=ROOT/'.runtime/v25-objectstore'/('native-'+uuid4().hex)
+        folder.mkdir(parents=True,mode=0o700)
+        volume=os.environ.get('PHOTO_TEST_NATIVE_MINIO_DATA_ROOT')
+        if volume:
+            base=Path(volume)
+            # A separately mounted repository-owned volume keeps the real
+            # server's free-space guard intact on nearly full developer disks.
+            if (not base.is_absolute() or base.is_symlink() or not base.is_relative_to(ROOT/'work')
+                    or base.resolve()!=base or not os.path.ismount(base)
+                    or base.stat().st_dev==base.parent.stat().st_dev):
+                raise RuntimeError('Native MinIO data root must be a mounted repository-owned volume')
+            data=base/('native-'+uuid4().hex)
+        else:
+            data=folder/'data'
+        data.mkdir(mode=0o700)
+        log=(folder/'server.log').open('wb')
+        process=None
+        try:
+            process=subprocess.Popen([str(binary),'server',str(data),
+                '--address','127.0.0.1:59010','--console-address','127.0.0.1:59011'],
+                env=dict(os.environ,MINIO_ROOT_USER=values['MINIO_ROOT_USER'],
+                         MINIO_ROOT_PASSWORD=values['MINIO_ROOT_PASSWORD']),
+                stdout=log,stderr=subprocess.STDOUT,cwd=ROOT)
+            deadline=time.monotonic()+20
+            while True:
+                if process.poll() is not None:
+                    raise RuntimeError('Owned native MinIO exited; see '+str(folder/'server.log'))
+                def remaining_timeout():
+                    remaining=deadline-time.monotonic()
+                    if remaining<=0:raise TimeoutError('Owned native MinIO readiness deadline')
+                    return urllib3.Timeout(total=remaining,connect=min(1,remaining),read=min(1,remaining))
+                try:
+                    response=urllib3.PoolManager().request('GET',
+                        'http://127.0.0.1:59010/minio/health/ready',
+                        timeout=remaining_timeout(),retries=False)
+                    if response.status==200:
+                        # The health endpoint can precede authenticated S3
+                        # initialization on a freshly formatted owned volume.
+                        try:
+                            Minio('127.0.0.1:59010',access_key=values['MINIO_ROOT_USER'],
+                                secret_key=values['MINIO_ROOT_PASSWORD'],secure=False,
+                                http_client=urllib3.PoolManager(timeout=remaining_timeout(),retries=False)).list_buckets()
+                            remaining_timeout()
+                            break
+                        except S3Error as error:
+                            if error.code!='XMinioServerNotInitialized':raise
+                except urllib3.exceptions.HTTPError:
+                    pass
+                if time.monotonic()>=deadline:
+                    raise TimeoutError('Owned native MinIO readiness deadline')
+                time.sleep(.1)
+            yield
+        finally:
+            if process is not None and process.poll() is None:
+                process.terminate()
+                try:process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.kill();process.wait(timeout=5)
+            log.close()
+            shutil.rmtree(data)
+        return
+    # Existing process is not ours: never stop it or remove its data.
+    yield
+
+
 def native_lens_objects():
-    """Opt-in local native server; each case owns only its fresh bucket."""
+    """Pinned local server; each case owns only its fresh versioned bucket."""
     from hashlib import sha256
     credential_file=ROOT/'work/minio-native-audit.env'
     assert credential_file.stat().st_mode&0o077==0,'Unsafe native credentials permissions'
     manifest=json.loads((ROOT/'.runtime/minio-native/source-manifest.json').read_text())
     lock=json.loads((ROOT/'resources/minio-source.lock.json').read_text())
     assert manifest['commit']==lock['commit'] and manifest['sum']==lock['sum']
-    assert sha256((ROOT/'.runtime/minio-native/minio-server').read_bytes()).hexdigest()==manifest['binary_sha256']
+    binary=ROOT/'.runtime/minio-native/minio-server'
+    assert sha256(binary.read_bytes()).hexdigest()==manifest['binary_sha256']
     values=dict(line.split('=',1) for line in credential_file.read_text().splitlines())
-    client=Minio('127.0.0.1:59010',access_key=values['MINIO_ROOT_USER'],secret_key=values['MINIO_ROOT_PASSWORD'],secure=False,
-        http_client=urllib3.PoolManager(timeout=urllib3.Timeout(connect=2,read=10),retries=False))
-    bucket='native-lens-'+uuid4().hex
-    client.make_bucket(bucket)
-    try:
-        client.set_bucket_versioning(bucket,VersioningConfig(ENABLED))
-        client._photo_test_config=dict(Endpoint='http://127.0.0.1:59010',Bucket=bucket,AccessKey=values['MINIO_ROOT_USER'],SecretKey=values['MINIO_ROOT_PASSWORD'],Development=True)
-        yield client,bucket
-    finally:
-        for item in client.list_objects(bucket,recursive=True,include_version=True):
-            client.remove_object(bucket,item.object_name,version_id=item.version_id)
-        client.remove_bucket(bucket)
+    with native_object_server(binary,values):
+        client=Minio('127.0.0.1:59010',access_key=values['MINIO_ROOT_USER'],secret_key=values['MINIO_ROOT_PASSWORD'],secure=False,
+            http_client=urllib3.PoolManager(timeout=urllib3.Timeout(connect=2,read=10),retries=False))
+        bucket='native-lens-'+uuid4().hex
+        client.make_bucket(bucket)
+        try:
+            client.set_bucket_versioning(bucket,VersioningConfig(ENABLED))
+            client._photo_test_config=dict(Endpoint='http://127.0.0.1:59010',Bucket=bucket,AccessKey=values['MINIO_ROOT_USER'],SecretKey=values['MINIO_ROOT_PASSWORD'],Development=True)
+            yield client,bucket
+        finally:
+            for item in client.list_objects(bucket,recursive=True,include_version=True):
+                client.remove_object(bucket,item.object_name,version_id=item.version_id)
+            client.remove_bucket(bucket)

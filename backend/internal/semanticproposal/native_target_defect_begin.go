@@ -40,7 +40,7 @@ func (s SQLTransferSourceReader) beginNativeTargetDefectDraftInTransaction(ctx c
 		return zero, err
 	}
 	q := owned.prepared.qualification
-	selected, err := selectQualificationPolicies(q.policy, []string{"defects.propose"})
+	selected, err := selectNativeQualificationPolicies(q.policy, []string{"defects.propose"})
 	if err != nil {
 		return zero, err
 	}

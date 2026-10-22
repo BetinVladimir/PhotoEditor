@@ -27,7 +27,8 @@ func (s *Service) ReadCandidatePreviewSource(ctx context.Context, who auth.Ident
 				return domain.NewError("INPUT_INVALID", 422)
 			}
 			_, err = project.Authorize(ctx, tx, tid, value.ProjectID, who.UserID, role, domain.Editor, false)
-			return err
+			if err != nil { return err }
+			return requireRelightReadAuthority(ctx, tx, who, tid, id, value.Kind)
 		})
 		return value, err
 	}
@@ -64,7 +65,7 @@ var _ CandidatePreviewCatalog = SQLCandidatePreviewCatalog{}
 
 func candidatePreviewKind(kind string) bool {
 	switch kind {
-	case "render.compose", "optical.negative", "portrait.glare", "portrait.open_eyes", "image.reflection":
+	case "render.compose", "optical.negative", "portrait.glare", "portrait.open_eyes", "image.reflection", "image.relight", "portrait.hair", "portrait.clothing":
 		return true
 	}
 	return false

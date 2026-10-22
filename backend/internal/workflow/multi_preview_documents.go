@@ -117,7 +117,7 @@ func PublishMultiPreviewTasks(ctx context.Context, db *pgxpool.Pool, objects art
 	if err := validateMultiPreviewPlan(plan); err != nil {
 		return nil, err
 	}
-	rebuilt, err := CompileMultiPreviewPlan(plan.source, content, plan.srgb)
+	rebuilt, err := CompileMultiPreviewPlan(plan.source, content, plan.srgb,plan.policy)
 	if err != nil {
 		return nil, err
 	}

@@ -52,7 +52,7 @@ func TestNegativeSourceArraysPhysicalVerification(t *testing.T){
    verifier:=BoundSigningNegativeSourceArraysVerifier{Catalog:catalog,Objects:objects};if mode=="missing_catalog"{verifier.Catalog=nil};if mode=="missing_objects"{verifier.Objects=nil}
    ctx,cancel:=context.WithCancel(context.Background());defer cancel();if mode=="cancelled"{cancel()}
    err=verifier.Verify(ctx,auth.Identity{},ReadySigningExport{},task,evidence)
-   valid:=mode=="valid_hdr_alpha"||mode=="valid_rgb_only"||mode=="alpha_channel_axis"||mode=="valid_inverse"
+   valid:=mode=="valid_hdr_alpha"||mode=="valid_rgb_only"||mode=="valid_inverse"
    if valid{expected:=2;if evidence.source.Alpha==nil{expected=1};if mode=="valid_inverse"{expected=3};if err!=nil||opens!=expected||calls["pixels"]!=2{t.Fatal("valid source refused",err,calls,opens)};if evidence.source.Alpha!=nil&&calls["alpha"]!=2{t.Fatal("alpha was not rechecked")};return}
    if err==nil{t.Fatal("invalid source accepted",mode)}
    if (mode=="cancelled"||mode=="wrong_task"||mode=="missing_catalog"||mode=="missing_objects")&&opens!=0{t.Fatal("invalid preflight opened objects")}

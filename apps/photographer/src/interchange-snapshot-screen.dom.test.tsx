@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
+import {expectEnabled,clickWhenEnabled} from './test/ui-readiness';
 import {afterEach,expect,it,vi} from 'vitest';
 import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
 import {canonicalJSON} from '@photoeditor/api-client';
 import {sha256} from '@noble/hashes/sha2.js';
 import {bytesToHex} from '@noble/hashes/utils.js';
 vi.mock('react-native',async()=>import('react-native-web'));
-vi.mock('./locale-context',()=>({useLocale:()=>({t:(key:string)=>key})}));
+vi.mock('./locale-context',async()=>{const __factory=()=>({useLocale:()=>({t:(key:string)=>key})});const __out=await __factory();const {withUILocaleDouble}=await import('./test/locale-double');return {...__out,useLocale:()=>withUILocaleDouble(__out.useLocale())};});
 import {InterchangeSnapshotScreen} from './interchange-snapshot-screen';
 import {InterchangeSnapshotAttemptStore} from './interchange-snapshot-attempt-store';
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
@@ -17,7 +18,7 @@ function storage(){const values=new Map<string,string>();return {getItem:vi.fn(a
 const journal=(s:ReturnType<typeof storage>)=>new InterchangeSnapshotAttemptStore(s,'https://snapshot-screen.test',id(9),id(1),id(2),body,async(_origin,action)=>action());
 const props=(request:ReturnType<typeof vi.fn>,store:InterchangeSnapshotAttemptStore,onPrepared=vi.fn())=>({client:{request} as never,tenant:id(1),project:id(2),request:body,journal:store,onPrepared});
 afterEach(cleanup);
-async function prepare(){await waitFor(()=>expect(screen.getByRole('checkbox').getAttribute('aria-disabled')).not.toBe('true'));fireEvent.click(screen.getByRole('checkbox'));fireEvent.click(screen.getByText('interchange_snapshot_submit'));}
+async function prepare(){await waitFor(()=>expectEnabled(screen.getByRole('checkbox')));await clickWhenEnabled(screen.getByRole('checkbox'));fireEvent.click(screen.getByText('interchange_snapshot_submit'));}
 it('replays saved original source/recipe/key after lost reply and remount',async()=>{
  const s=storage(),request=vi.fn().mockRejectedValueOnce(new Error('lost reply')).mockResolvedValueOnce(receipt),onPrepared=vi.fn();
  const view=render(<InterchangeSnapshotScreen {...props(request,journal(s),onPrepared)}/>);await prepare();await screen.findByRole('alert');const first=request.mock.calls[0][1];
@@ -39,8 +40,8 @@ it('stops waiting while retaining the original snapshot key for retry',async()=>
  const s=storage(),request=vi.fn().mockImplementationOnce(async(_path:string,options:{signal:AbortSignal})=>await new Promise((_resolve,reject)=>options.signal.addEventListener('abort',()=>reject(new DOMException('Aborted','AbortError')),{once:true}))).mockResolvedValueOnce(receipt);
  render(<InterchangeSnapshotScreen {...props(request,journal(s))}/>);await prepare();
  await screen.findByText('interchange_snapshot_stop');fireEvent.click(screen.getByText('interchange_snapshot_stop'));
- await waitFor(()=>expect(screen.getByText('interchange_snapshot_retry').getAttribute('aria-disabled')).not.toBe('true'));
- fireEvent.click(screen.getByText('interchange_snapshot_retry'));await screen.findByText('interchange_snapshot_open');
+ await waitFor(()=>expectEnabled(screen.getByText('interchange_snapshot_retry')));
+ await clickWhenEnabled(screen.getByText('interchange_snapshot_retry'));await screen.findByText('interchange_snapshot_open');
  expect(request.mock.calls[1][1].idempotencyKey).toBe(request.mock.calls[0][1].idempotencyKey);
 });
 
@@ -50,7 +51,7 @@ it('retries cancelled journal restoration without preparing a snapshot',async()=
  render(<InterchangeSnapshotScreen {...props(request,store)}/>);
  await screen.findByText('interchange_snapshot_stop');fireEvent.click(screen.getByText('interchange_snapshot_stop'));release(null);
  await screen.findByText('interchange_snapshot_restore');fireEvent.click(screen.getByText('interchange_snapshot_restore'));
- await waitFor(()=>expect(screen.getByRole('checkbox').getAttribute('aria-disabled')).not.toBe('true'));
+ await waitFor(()=>expectEnabled(screen.getByRole('checkbox')));
  expect(request).not.toHaveBeenCalled();
 });
 it('ignores a late snapshot response after unmount and restores original pending key',async()=>{

@@ -171,3 +171,29 @@ def test_copy_entry_refuses_invalid_or_oversized_stream_blocks():
     with pytest.raises(OperationFailure):
         _copy_entry(Context(),source,io.BytesIO(),2*1024*1024,'a'*64)
     assert source.calls==1
+
+
+@pytest.mark.parametrize('code,expected,retryable', [
+    ('ARTIFACT_MISSING', 'ARTIFACT_MISSING', False),
+    ('ARTIFACT_HASH_MISMATCH', 'ARTIFACT_HASH_MISMATCH', False),
+    ('ARTIFACT_SIZE_MISMATCH', 'ARTIFACT_HASH_MISMATCH', False),
+    ('DEPENDENCY_UNAVAILABLE', 'DEPENDENCY_UNAVAILABLE', True),
+])
+def test_archive_failure_retains_exact_declared_member_and_retry_class(code, expected, retryable):
+    from photo_worker.operations.archive.build import _entry_failure
+    from photo_worker.runtime.gateway import GatewayError
+    entry = ArchiveEntry(artifact=ref(), bytes=12, entry_name='photo.jpg')
+    failure = _entry_failure(GatewayError(code, retryable=True), entry)
+    assert failure.error.code == expected
+    assert failure.error.retryable is retryable
+    assert failure.error.args == {'artifact_id': str(entry.artifact.artifact_id),
+                                  'sha256': entry.artifact.sha256}
+
+
+def test_archive_failure_does_not_relabel_lease_loss_as_a_member_failure():
+    from photo_worker.operations.archive.build import _entry_failure
+    from photo_worker.runtime.gateway import GatewayError
+    original = GatewayError('LEASE_LOST')
+    with pytest.raises(GatewayError) as caught:
+        _entry_failure(original, ArchiveEntry(artifact=ref(), bytes=1, entry_name='photo.jpg'))
+    assert caught.value is original

@@ -1,0 +1,26 @@
+{
+  "status": "SOURCE_CONTRAST_FIXED_RENDER_PENDING",
+  "local_only": true,
+  "source": "apps/portal/src/app/global.css",
+  "sha256": "aaf415ee4b0d33acd5b5e4a4aabeaf26812425200e75e3decfa41d518df069a9",
+  "scope": "Shared secondary text including unavailable-thumbnail placeholder and header navigation",
+  "before": {
+    "foreground": "#69736e",
+    "thumbnail_background": "#e7e8e4",
+    "contrast": 3.9879,
+    "paper_background": "#f6f5f0",
+    "paper_contrast": 4.496802
+  },
+  "after": {
+    "foreground": "#625f55",
+    "thumbnail_background": "#e7e8e4",
+    "contrast": 5.189740568224404,
+    "paper_background": "#f6f5f0",
+    "paper_contrast": 5.851987527388863
+  },
+  "limits": [
+    "Opaque source color calculation; actual gallery state rendering pending",
+    "No full WCAG claim",
+    "No deployment"
+  ]
+}

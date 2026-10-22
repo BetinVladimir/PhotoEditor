@@ -111,7 +111,14 @@ def prepare_planar_transfer(reference,target,source_mask,*,source_protected,targ
         if estimate[key]<costs[key]:raise OperationFailure(code)
     if not isinstance(source_mask,np.ndarray) or source_mask.shape!=reference.shape[:2]:
         raise ValueError('SEMANTIC_MASK_INVALID')
-    verify_scene();check_active()
+    from .scene_refusal import SceneUnsupported
+    try:verify_scene()
+    except SceneUnsupported as refusal:
+        from photo_worker.algorithms.semantic_transfer import PlanarMatch
+        check_active()
+        yield PreparedPlanarTransfer(PlanarMatch(None,0.,str(refusal)),None)
+        check_active();return
+    check_active()
     match=match_planar_linear_images(reference,target,match_error_px_max=match_error_px_max,
         match_inlier_min=match_inlier_min,check_active=check_active)
     if match.reference_to_target is None:

@@ -12,6 +12,8 @@ import (
 	"github.com/google/uuid"
 	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/domain"
+ "photoeditor/backend/internal/delivery"
+ "photoeditor/backend/internal/v2input"
 	"photoeditor/backend/internal/objectstore"
 	"photoeditor/backend/internal/review"
 )
@@ -153,40 +155,54 @@ func (l DownloadExportLoader) Load(ctx context.Context, tenant, run uuid.UUID) (
 	}
 	inputRows.Close()
 	for _, master := range masters {
-		roles := nested[master.ordinal]
-		pixels, ok := roles["working_rgb"]
-		if !ok {
-			return fail()
-		}
-		binding := DecodeOutputBinding{Manifest: objectRef(master.object), Pixels: objectRef(pixels)}
-		if alpha, exists := roles["alpha"]; exists {
-			ref := objectRef(alpha)
-			binding.Alpha = &ref
-		}
+  sourceFailure:=func(code string)(DownloadExportBatch,error){return DownloadExportBatch{},&downloadSourceFailure{master.ordinal,master.object.ID,master.object.SHA,code}}
 		reader, e := l.Objects.Open(ctx, objectstore.Object{Key: master.object.Key, VersionID: master.object.Version,
 			SHA256: master.object.SHA, Bytes: master.object.Bytes, ContentType: master.object.MediaType})
 		if e != nil {
-			return DownloadExportBatch{}, e
+			return DownloadExportBatch{}, downloadPhysicalSourceFailure(master,e)
 		}
+		if reader==nil{return fail()}
 		raw, readErr := io.ReadAll(io.LimitReader(reader, master.object.Bytes+1))
 		closeErr := reader.Close()
+		// Production readers verify SHA/size while reading, before the manual
+		// hash below can run. Preserve that stable physical observation, but
+		// never terminalize work after cancellation or a lost build lease.
+		if err := ctx.Err(); err != nil {
+			return DownloadExportBatch{}, err
+		}
 		if readErr != nil {
-			return DownloadExportBatch{}, readErr
+			return DownloadExportBatch{}, downloadPhysicalSourceFailure(master, readErr)
 		}
 		if closeErr != nil {
-			return DownloadExportBatch{}, closeErr
+			return DownloadExportBatch{}, downloadPhysicalSourceFailure(master, closeErr)
 		}
 		hash := sha256.Sum256(raw)
-		if int64(len(raw)) != master.object.Bytes || hex.EncodeToString(hash[:]) != master.object.SHA {
-			return fail()
-		}
+		if int64(len(raw)) != master.object.Bytes || hex.EncodeToString(hash[:]) != master.object.SHA { return sourceFailure("ARTIFACT_HASH_MISMATCH") }
 		image, e := review.ParseWorkingImage(raw)
-		if e != nil || image.Pixels != binding.Pixels || (image.Alpha == nil) != (binding.Alpha == nil) ||
-			image.Alpha != nil && *image.Alpha != *binding.Alpha || image.Color.ProfileID != "work_rec2020_gamma24_v1" ||
-			image.DType != "float32" || image.Color.ICCSHA256 != l.WorkICCSHA256 {
-			return fail()
+		if e != nil || image.Color.ProfileID != "work_rec2020_gamma24_v1" || image.Color.Encoding!="gamma24" || image.DType != "float32" || image.Color.ICCSHA256 != l.WorkICCSHA256 { return sourceFailure("SOURCE_INPUT_INVALID") }
+		roles:=nested[master.ordinal]
+		expected:=[]struct{role string;ref review.ArtifactRef}{{"working_rgb",image.Pixels}}
+		if image.Alpha!=nil{expected=append(expected,struct{role string;ref review.ArtifactRef}{"alpha",*image.Alpha})}
+		arrays:=make([]delivery.WatermarkArrayObject,0,len(expected))
+		for _,pin:=range expected{
+			object,ok:=roles[pin.role]
+			if !ok||objectRef(object)!=pin.ref{
+				// Exact modern render refs may be inherited declared inputs. The
+				// accessor independently proves the frozen master/current producer;
+				// document-supplied IDs alone never authorize another object.
+				bound,queryErr:=l.DB.Query(ctx,"SELECT ordinal,role,artifact_id,sha256,bytes,bucket,object_key,object_version,media_type FROM photo.download_export_bound_input($1,$2,$3,$4,$5,$6,$7,$8)",tenant,run,master.ordinal,master.object.ID,master.object.SHA,pin.ref.ID,pin.ref.SHA256,pin.role)
+				if queryErr!=nil{return DownloadExportBatch{},queryErr}
+				count:=0
+				for bound.Next(){var ordinal int64;var role string;count++;if queryErr=bound.Scan(&ordinal,&role,&object.ID,&object.SHA,&object.Bytes,&object.Bucket,&object.Key,&object.Version,&object.MediaType);queryErr!=nil{bound.Close();return DownloadExportBatch{},queryErr};if count!=1||ordinal!=master.ordinal||role!=pin.role{bound.Close();return fail()}}
+				queryErr=bound.Err();bound.Close();if queryErr!=nil{return DownloadExportBatch{},queryErr};if count!=1{return sourceFailure("SOURCE_OUTPUT_UNAVAILABLE")}
+			}
+			if objectRef(object)!=pin.ref||object.Bucket!=l.Bucket||object.Bytes<1||object.Bytes>2401048576||object.Key==""||!objectstore.ValidInterchangeVersionID(object.Version)||(object.MediaType!="application/octet-stream"&&object.MediaType!="application/x-npy"){return fail()}
+			out.Sizes[object.ID]=object.Bytes
+			contract:="WorkingPixels";if pin.role=="alpha"{contract="WorkingAlpha"}
+			arrays=append(arrays,delivery.WatermarkArrayObject{Contract:contract,Ref:v2input.Ref{ArtifactID:pin.ref.ID,SHA256:pin.ref.SHA256},Object:objectstore.Object{Key:object.Key,VersionID:object.Version,SHA256:object.SHA,Bytes:object.Bytes,ContentType:object.MediaType}})
 		}
-		out.Spec.Items = append(out.Spec.Items, DownloadExportItem{Ordinal: master.ordinal, Manifest: binding.Manifest, Image: image})
+		if e=verifyExportWorkingImageArrays(ctx,l.Objects,v2input.Ref{ArtifactID:master.object.ID,SHA256:master.object.SHA},raw,arrays);e!=nil{return DownloadExportBatch{},downloadPhysicalSourceFailure(master,e)}
+		out.Spec.Items = append(out.Spec.Items, DownloadExportItem{Ordinal: master.ordinal, Manifest: objectRef(master.object), Image: image})
 	}
 	registry, err := LoadRegistry()
 	if err != nil {

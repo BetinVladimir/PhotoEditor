@@ -83,7 +83,7 @@ BEGIN
  OR params->>'motion_policy' IS NULL OR params->>'motion_policy' NOT IN('review','reject') THEN RETURN false;END IF;
  END IF;
  count_frames:=jsonb_array_length(params->'frames');
- IF count_frames NOT BETWEEN 2 AND CASE operation WHEN 'optical.panorama' THEN 20 ELSE 30 END
+ IF count_frames NOT BETWEEN 2 AND (CASE operation WHEN 'optical.panorama' THEN 20 ELSE 30 END)
  OR jsonb_array_length(descriptor->'sources_jcs')<>count_frames
  OR (params->>'reference_ordinal')::integer NOT BETWEEN 0 AND count_frames-1
  OR (params->>'max_pixels')::bigint NOT BETWEEN 1 AND 200000000

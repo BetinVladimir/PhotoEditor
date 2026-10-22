@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -19,7 +20,46 @@ import (
 	"photoeditor/backend/internal/review"
 )
 
+// applyResolveJobOverride seeds the request-level strength below explicit job
+// and per-image overrides. Missing strength preserves historical frozen runs.
+func applyResolveJobOverride(strength *float64, raw json.RawMessage) (json.RawMessage, error) {
+	if strength == nil {
+		return raw, nil
+	}
+	if math.IsNaN(*strength) || math.IsInf(*strength, 0) || *strength < 0 || *strength > 1 {
+		return nil, errors.New("invalid apply strength")
+	}
+	body := map[string]json.RawMessage{"schema_version": json.RawMessage(`1`)}
+	if len(raw) > 0 {
+		if err := json.Unmarshal(raw, &body); err != nil || body == nil {
+			return nil, errors.New("invalid apply job override")
+		}
+	}
+	modules := map[string]json.RawMessage{}
+	if value, ok := body["modules"]; ok {
+		if err := json.Unmarshal(value, &modules); err != nil || modules == nil {
+			return nil, errors.New("invalid apply job modules")
+		}
+	}
+	if value, ok := modules["strength"]; !ok || bytes.Equal(bytes.TrimSpace(value), []byte("null")) {
+		value, err := canonical.Marshal(*strength)
+		if err != nil {
+			return nil, err
+		}
+		modules["strength"] = value
+	}
+	value, err := canonical.Marshal(modules)
+	if err != nil {
+		return nil, err
+	}
+	body["modules"] = value
+	return canonical.Marshal(body)
+}
+
 type ApplyLease struct {
+	FrozenPlan                                 []ApplyV4Stage
+	PlanContractVersion                        int
+	PlanRestartRequested                       bool
 	TenantID, RunID, SourceCollectionID, Token uuid.UUID
 	StyleVersionID                             *uuid.UUID
 	Phase                                      string
@@ -136,17 +176,36 @@ func (s ApplyStore) Claim(ctx context.Context) (*ApplyLease, error) {
 	if s.DB == nil {
 		return nil, errors.New("apply database required")
 	}
+	var cancelled int
+	if err := s.DB.QueryRow(ctx, `SELECT photo.cancel_unsupported_apply_plans()`).Scan(&cancelled); err != nil {
+		return nil, err
+	}
+	if cancelled > 0 {
+		return nil, nil
+	}
 	v := new(ApplyLease)
 	var until any
-	err := s.DB.QueryRow(ctx, `SELECT tenant_id,run_id,source_collection_id,style_version_id,phase,item_count,lease_token,lease_until,graph_version,stage_index FROM photo.claim_apply_build_versioned()`).Scan(&v.TenantID, &v.RunID, &v.SourceCollectionID, &v.StyleVersionID, &v.Phase, &v.ItemCount, &v.Token, &until, &v.GraphVersion, &v.StageIndex)
+	var source *uuid.UUID
+	err := s.DB.QueryRow(ctx, `SELECT tenant_id,run_id,source_collection_id,style_version_id,phase,item_count,lease_token,lease_until,graph_version,stage_index FROM photo.claim_apply_build_versioned()`).Scan(&v.TenantID, &v.RunID, &source, &v.StyleVersionID, &v.Phase, &v.ItemCount, &v.Token, &until, &v.GraphVersion, &v.StageIndex)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
+	if source != nil {
+		v.SourceCollectionID = *source
+	}
 	if v.TenantID == uuid.Nil || v.RunID == uuid.Nil || v.Token == uuid.Nil || v.ItemCount < 1 || v.ItemCount > 5000 || v.GraphVersion != 3 && v.GraphVersion != 4 || v.GraphVersion == 3 && v.StageIndex != nil {
 		return nil, errors.New("invalid apply lease")
+	}
+	if v.GraphVersion == 4 {
+		if err = s.loadFrozenPlan(ctx, v); err != nil {
+			return nil, err
+		}
+		if v.PlanRestartRequested {
+			return nil, nil
+		}
 	}
 	return v, nil
 }
@@ -401,7 +460,7 @@ func (r ApplyDocuments) Complete(ctx context.Context, s artifactjson.Scope, t ar
 }
 
 type ApplyCoordinator struct {
-	Store     ApplyStore
+	Store     ApplyPhaseStore
 	Publisher ContractPublisher
 	Objects   ArtifactOpener
 	Bucket    string
@@ -415,6 +474,83 @@ func applyProfile(pixels, inputBytes int64) (json.RawMessage, error) {
 		Tile      int              `json:"tile_size"`
 		Estimate  ResourceEstimate `json:"resource_estimate"`
 	}{"cpu", "float32", 512, ResourceEstimate{RAMBytes: 3 << 30, ScratchBytes: inputBytes + out, OutputBytes: out, PixelCount: pixels}})
+}
+
+// Per-operation peaks mirror worker ExitStack/reservation lifetimes. Input NPY
+// envelopes are bounded by arrays.py (4096-byte header +12-byte preamble);
+// 8192 also matches the worker's explicit output reservation allowance.
+// Typed JSON is streamed into RAM, then staged only after array scopes close.
+type applyLegacySizing struct {
+	Adaptive, Alpha, Baseline bool
+	LUTSize                   int // Actual resolved color LUT edge (33/65), zero for fixed color.
+	Masks                     int // Materialized float32 person/region/protection masks, including repeats.
+}
+
+func applyLegacyResourceProfile(operation string, raw json.RawMessage, sizing applyLegacySizing) (json.RawMessage, error) {
+	switch operation {
+	case "style.resolve", "image.color", "image.local", "quality.check":
+	default:
+		return raw, nil
+	}
+	var profile struct {
+		Backend   string           `json:"backend"`
+		Precision string           `json:"precision"`
+		Tile      int              `json:"tile_size"`
+		Estimate  ResourceEstimate `json:"resource_estimate"`
+	}
+	if json.Unmarshal(raw, &profile) != nil || profile.Backend != "cpu" || profile.Estimate.PixelCount < 1 || profile.Estimate.PixelCount > 200000000 || sizing.Masks < 0 || sizing.Masks > 160 || sizing.LUTSize != 0 && sizing.LUTSize != 33 && sizing.LUTSize != 65 {
+		return nil, errors.New("invalid legacy Apply resource inputs")
+	}
+	const document int64 = 1 << 20
+	const envelope int64 = 8192
+	pixels := profile.Estimate.PixelCount
+	rgb := 12*pixels + envelope
+	mask := 4*pixels + envelope
+	// Resolve's adaptive alpha reader is uint16; quality supports float32 alpha.
+	alpha := 2*pixels + envelope
+	lut := int64(65*65*65*3*4) + envelope
+	peak, output := document, document
+	switch operation {
+	case "style.resolve":
+		if sizing.Adaptive {
+			peak = rgb
+			if sizing.Alpha {
+				peak += alpha
+			}
+			if lut > peak {
+				peak = lut
+			}
+			if peak < document {
+				peak = document
+			}
+			output = lut + document
+		}
+	case "image.color":
+		peak = 2 * rgb
+		if sizing.LUTSize != 0 {
+			edge := int64(sizing.LUTSize)
+			peak += edge*edge*edge*12 + envelope
+		}
+		output = rgb + 2*document
+	case "image.local":
+		peak = 3*rgb + int64(sizing.Masks)*mask
+		output = rgb + 2*document
+	case "quality.check":
+		peak = rgb
+		if sizing.Alpha {
+			peak += mask
+		}
+		if sizing.Baseline {
+			peak += rgb
+		}
+		peak += int64(sizing.Masks) * mask
+	}
+	if peak < document {
+		peak = document
+	}
+	profile.Estimate.ScratchBytes = peak
+	profile.Estimate.OutputBytes = output
+	return canonical.Marshal(profile)
 }
 
 func applySeriesBalanceProfile(inputBytes int64,
@@ -589,7 +725,10 @@ type applyOverrideMaskBinding struct {
 }
 
 func readApplyJSON(ctx context.Context, objects ArtifactOpener, bucket string, a styleArtifact) ([]byte, error) {
-	if objects == nil || a.Bucket != bucket || !a.valid() || a.Bytes > 1048576 {
+	return readApplyJSONBound(ctx, objects, bucket, a, 1048576)
+}
+func readApplyJSONBound(ctx context.Context, objects ArtifactOpener, bucket string, a styleArtifact, maximum int64) ([]byte, error) {
+	if objects == nil || a.Bucket != bucket || !a.valid() || a.Bytes > maximum {
 		return nil, objectstore.ErrInvalid
 	}
 	r, e := objects.Open(ctx, a.object())
@@ -597,7 +736,7 @@ func readApplyJSON(ctx context.Context, objects ArtifactOpener, bucket string, a
 		return nil, e
 	}
 	defer r.Close()
-	raw, e := io.ReadAll(io.LimitReader(r, 1048577))
+	raw, e := io.ReadAll(io.LimitReader(r, maximum+1))
 	if e != nil {
 		return nil, e
 	}
@@ -617,12 +756,7 @@ func (c ApplyCoordinator) materializeNode(ctx context.Context, l ApplyLease, reg
 	if err != nil {
 		return err
 	}
-	o, found := reg[plan.Operation]
-	if !found {
-		return errors.New("apply operation missing from registry")
-	}
-	task := PreparedTask{ID: plan.ID, NodeKey: plan.NodeKey, Operation: plan.Operation, Version: o.Version, ResourceClass: o.ResourceClass, TimeoutSeconds: o.TimeoutSeconds, Params: review.ArtifactRef{ID: ref.ID, SHA256: ref.SHA256}, Inputs: plan.Inputs, ExecutionProfile: profile}
-	task.InputDigest, err = repairInputDigest(task.Operation, o.Version, task.Params, plan.Inputs)
+	task, err := prepareApplyMaterialization(reg, plan, review.ArtifactRef{ID: ref.ID, SHA256: ref.SHA256}, profile)
 	if err != nil {
 		return err
 	}
@@ -720,6 +854,7 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 				} `json:"restoration"`
 				Background struct {
 					Mode           string    `json:"mode"`
+					AssetID        string    `json:"asset_id"`
 					SolidRGB       []float64 `json:"solid_rgb"`
 					BlurStrength   float64   `json:"blur_strength"`
 					ProtectSubject bool      `json:"protect_subject"`
@@ -732,7 +867,9 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 					Prompt   string  `json:"prompt"`
 					Negative string  `json:"negative_prompt"`
 					Seed     uint32  `json:"seed"`
+					Steps    int     `json:"steps"`
 					Guidance float64 `json:"guidance_scale"`
+					Strength float64 `json:"strength"`
 				} `json:"generation"`
 				Composition struct {
 					Enabled          bool    `json:"enabled"`
@@ -747,27 +884,30 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 				} `json:"composition"`
 			} `json:"extensions"`
 		} `json:"style_config"`
-		PersonRequired      bool                     `json:"person_mask_required"`
-		PersonBackend       string                   `json:"person_backend"`
-		PersonLock          string                   `json:"person_runtime_lock_id"`
-		OverrideConfig      json.RawMessage          `json:"override_config"`
-		JobOverrides        json.RawMessage          `json:"job_overrides"`
-		GraphStyleConfig    json.RawMessage          `json:"graph_style_config"`
-		AnalysisDecisionSHA string                   `json:"analysis_decision_sha"`
-		ItemOverrides       []applyBoundItemOverride `json:"item_overrides"`
-		Identity            bool                     `json:"identity_style"`
-		SeriesEnabled       bool                     `json:"series_enabled"`
-		SeriesModelLock     string                   `json:"series_model_lock_sha"`
-		SeriesRuntimeLock   string                   `json:"series_runtime_lock_sha"`
-		SeriesDeviceProfile string                   `json:"series_device_profile_sha"`
-		GeometryEnabled     bool                     `json:"geometry_enabled"`
-		BeautyEnabled       bool                     `json:"beauty_enabled"`
-		PortraitDetail      bool                     `json:"portrait_detail_enabled"`
-		DefectsEnabled      bool                     `json:"defects_enabled"`
-		RestorationBackend  string                   `json:"restoration_backend"`
-		RestorationLock     string                   `json:"restoration_runtime_lock_id"`
-		CreativeBackend     string                   `json:"creative_backend"`
-		CreativeLock        string                   `json:"creative_runtime_lock_id"`
+		PersonRequired      bool                         `json:"person_mask_required"`
+		PersonBackend       string                       `json:"person_backend"`
+		PersonLock          string                       `json:"person_runtime_lock_id"`
+		OverrideConfig      json.RawMessage              `json:"override_config"`
+		JobOverrides        json.RawMessage              `json:"job_overrides"`
+		Strength            *float64                     `json:"strength"`
+		GraphStyleConfig    json.RawMessage              `json:"graph_style_config"`
+		AnalysisDecisionSHA string                       `json:"analysis_decision_sha"`
+		ItemOverrides       []applyBoundItemOverride     `json:"item_overrides"`
+		ItemMaskInputs      []applyItemMaskInput         `json:"item_mask_inputs"`
+		Identity            bool                         `json:"identity_style"`
+		SeriesEnabled       bool                         `json:"series_enabled"`
+		SeriesModelLock     string                       `json:"series_model_lock_sha"`
+		SeriesRuntimeLock   string                       `json:"series_runtime_lock_sha"`
+		SeriesDeviceProfile string                       `json:"series_device_profile_sha"`
+		GeometryEnabled     bool                         `json:"geometry_enabled"`
+		BeautyEnabled       bool                         `json:"beauty_enabled"`
+		PortraitDetail      bool                         `json:"portrait_detail_enabled"`
+		DefectsEnabled      bool                         `json:"defects_enabled"`
+		RestorationBackend  string                       `json:"restoration_backend"`
+		RestorationLock     string                       `json:"restoration_runtime_lock_id"`
+		CreativeBackend     string                       `json:"creative_backend"`
+		CreativeLock        string                       `json:"creative_runtime_lock_id"`
+		BackgroundAsset     *review.ApplyBackgroundAsset `json:"background_asset"`
 	}
 	var planConfig struct {
 		StyleConfig json.RawMessage `json:"style_config"`
@@ -790,7 +930,10 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 	}
 	effectiveStyle := planConfig.StyleConfig
 	if l.GraphVersion == 4 {
-		effectiveStyle, e = EffectiveApplyV4Style(planConfig.StyleConfig, cfg.OverrideConfig)
+		effectiveStyle, e = EffectiveApplyV4Style(planConfig.StyleConfig, cfg.JobOverrides)
+		if e == nil {
+			effectiveStyle, e = EffectiveApplyV4Style(effectiveStyle, cfg.OverrideConfig)
+		}
 		if e == nil && len(cfg.GraphStyleConfig) != 0 {
 			effectiveStyle, e = canonical.Bytes(cfg.GraphStyleConfig)
 		}
@@ -802,7 +945,7 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 	denoiseEnabled := cfg.StyleConfig.Extensions.Restoration.Denoise == "scunet_color_real_psnr"
 	upscaleEnabled := cfg.StyleConfig.Extensions.Restoration.Upscale == "2x" || cfg.StyleConfig.Extensions.Restoration.Upscale == "4x"
 	backgroundMode := cfg.StyleConfig.Extensions.Background.Mode
-	backgroundEnabled := backgroundMode == "transparent" || backgroundMode == "solid" || backgroundMode == "blur" || backgroundMode == "generate"
+	backgroundEnabled := backgroundMode == "asset" || backgroundMode == "transparent" || backgroundMode == "solid" || backgroundMode == "blur" || backgroundMode == "generate"
 	backgroundOp := "background.compose"
 	if backgroundMode == "blur" {
 		backgroundOp = "background.blur"
@@ -815,10 +958,71 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 	if len(cfg.OverrideConfig) > 0 && json.Unmarshal(cfg.OverrideConfig, &overrideMasks) != nil {
 		return false, errors.New("invalid apply override mask bindings")
 	}
+	if backgroundMode == "asset" {
+		if items[0].Style == nil {
+			return false, errors.New("asset background requires accepted style")
+		}
+		if e = validateApplyBackgroundAsset(cfg.BackgroundAsset, cfg.StyleConfig.Extensions.Background.AssetID, items[0].Style.ref()); e != nil {
+			return false, e
+		}
+	} else if cfg.BackgroundAsset != nil {
+		return false, errors.New("unexpected background asset binding")
+	}
+	itemMaskBindings, maskBindErr := boundApplyItemMasks(items, cfg.ItemMaskInputs)
+	if maskBindErr != nil {
+		return false, maskBindErr
+	}
+	globalMaskBindings := append([]applyOverrideMaskBinding(nil), overrideMasks.MaskRefs...)
+	var activeMaskItem uuid.UUID
 	creativeMasks := func(working review.WorkingImage, purpose string) (review.MaskRef, []review.MaskRef, error) {
 		var target review.MaskRef
 		protected := make([]review.MaskRef, 0)
-		for _, binding := range overrideMasks.MaskRefs {
+		bindings := overrideMasks.MaskRefs
+		if purpose == "" && len(bindings) == 0 {
+			return target, protected, nil
+		}
+		if cfg.GeometryEnabled {
+			geometry, bindErr := c.Store.Outputs(ctx, l, "geometry.body", "working_image")
+			if bindErr != nil {
+				return target, nil, bindErr
+			}
+			matching := []applyOutput{}
+			for _, row := range geometry {
+				if row.ItemID == activeMaskItem {
+					matching = append(matching, row)
+				}
+			}
+			geometry = matching
+			if len(geometry) != 1 {
+				return target, nil, errors.New("creative geometry binding count mismatch")
+			}
+			transforms, bindErr := c.Store.Outputs(ctx, l, "mask.transform", "mask_transform_result")
+			if bindErr != nil {
+				return target, nil, bindErr
+			}
+			selected := []applyOutput{}
+			for _, row := range transforms {
+				if row.ItemID == activeMaskItem {
+					selected = append(selected, row)
+				}
+			}
+			transforms = selected
+			if len(transforms) != 1 || transforms[0].ItemID != geometry[0].ItemID {
+				return target, nil, errors.New("creative transform binding count mismatch")
+			}
+			root, bindErr := readApplyJSON(ctx, c.Objects, c.Bucket, transforms[0].Artifact)
+			if bindErr != nil {
+				return target, nil, bindErr
+			}
+			bindings, bindErr = transformedApplyRegionBindings(root, bindings, geometry[0].Artifact.ref(), working)
+			if bindErr != nil {
+				return target, nil, bindErr
+			}
+		}
+		for _, binding := range bindings {
+			if binding.Purpose != purpose && binding.Purpose != "protected" {
+				continue
+			}
 			if binding.Mask.Canvas != working.Canvas || !bytes.Equal(binding.Mask.TransformChain, working.TransformChain) {
 				return target, nil, errors.New("creative mask geometry mismatch")
 			}
@@ -835,14 +1039,21 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 				protected = append(protected, binding.Mask)
 			}
 		}
-		if target.Artifact.ID == uuid.Nil {
+		if purpose != "" && target.Artifact.ID == uuid.Nil {
 			return target, nil, errors.New("creative target mask missing")
 		}
 		return target, protected, nil
 	}
 	var v4Plan []ApplyV4Stage
 	if l.GraphVersion == 4 {
-		plan, planErr := CompileApplyV4Plan(effectiveStyle, l.ItemCount)
+		plan := l.FrozenPlan
+		var planErr error
+		if len(plan) == 0 {
+			plan, planErr = CompileApplyV4Plan(effectiveStyle, l.ItemCount)
+			if planErr == nil {
+				plan, planErr = editorPrecomposeStages(items[0].Config, plan)
+			}
+		}
 		if planErr != nil {
 			return false, planErr
 		}
@@ -857,6 +1068,26 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 			return false, registerErr
 		}
 		v4Plan = plan
+		editorMode, editorErr := editorPrecomposeFromConfig(items[0].Config)
+		if editorErr != nil {
+			return false, editorErr
+		}
+		if editorMode != nil {
+			if l.Phase == "editor_precompose" {
+				return c.buildEditorPrecompose(ctx, l, reg, items, plan)
+			}
+			items, e = c.editorEffectInputs(ctx, l, items)
+			if e != nil {
+				return false, e
+			}
+		}
+
+		if l.Phase == "series_pack" {
+			return c.buildSeriesPacks(ctx, l, reg, items)
+		}
+		if len(l.Phase) >= 5 && l.Phase[:5] == "cull_" {
+			return c.buildCulling(ctx, l, reg, items, effectiveStyle, cfg.PersonBackend, cfg.PersonLock)
+		}
 		if l.Phase == "defects_review" {
 			outcome, reviewErr := c.Store.ProcessDefectReviews(ctx, l)
 			if reviewErr != nil || outcome != "opened" && outcome != "activated" && outcome != "advanced" {
@@ -888,7 +1119,23 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 			return true, nil
 		}
 	}
-	dustEnabled := cfg.StyleConfig.Extensions.Restoration.SensorDust == "review"
+	autoDust := cfg.StyleConfig.Extensions.Restoration.SensorDust == "conservative_auto"
+	dustEnabled := cfg.StyleConfig.Extensions.Restoration.SensorDust == "review" || autoDust
+	var effectiveAutoPolicy struct {
+		Defects struct {
+			Policy string `json:"policy"`
+		} `json:"defects"`
+	}
+	if json.Unmarshal(effectiveStyle, &effectiveAutoPolicy) != nil {
+		return false, errors.New("invalid conservative style")
+	}
+	autoDefects := cfg.DefectsEnabled && effectiveAutoPolicy.Defects.Policy == "conservative_auto"
+	defectOutputs := func() ([]applyOutput, error) {
+		if autoDefects {
+			return c.Store.Outputs(ctx, l, "defects.auto_repair", "working_image")
+		}
+		return c.Store.DefectOutputs(ctx, l)
+	}
 	if l.GraphVersion == 4 && l.Phase == "dust_detect" {
 		if !dustEnabled {
 			return false, errors.New("dust detect phase not authorized")
@@ -974,6 +1221,9 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 			return false, errors.New("apply dust detection advance rejected")
 		}
 		return true, nil
+	}
+	if l.GraphVersion == 4 && l.Phase == "dust_repair" && autoDust {
+		return c.materializeConservativeDust(ctx, l, reg, items, cfg.GeometryEnabled, cfg.PersonLock, creativeMasks)
 	}
 	if l.GraphVersion == 4 && l.Phase == "dust_repair" {
 		if !dustEnabled {
@@ -1083,7 +1333,7 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 	}
 	creativeOutputs := func() ([]applyOutput, error) {
 		if cfg.DefectsEnabled {
-			return c.Store.DefectOutputs(ctx, l)
+			return defectOutputs()
 		}
 		if cfg.PortraitDetail {
 			return c.Store.Outputs(ctx, l, "portrait.detail", "working_image")
@@ -1095,16 +1345,16 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 	}
 	var prev []applyOutput
 	previousReview := ""
-	if l.GraphVersion == 4 && l.StageIndex != nil && *l.StageIndex > 0 && *l.StageIndex < len(v4Plan) && v4Plan[*l.StageIndex-1].Cardinality == "review" {
+	if l.GraphVersion == 4 && l.StageIndex != nil && *l.StageIndex > 0 && *l.StageIndex < len(v4Plan) && v4Plan[*l.StageIndex-1].Cardinality == "review" && v4Plan[*l.StageIndex-1].Phase != "cull_review" {
 		previousReview = v4Plan[*l.StageIndex-1].Phase
 		if previousReview == "defects_review" {
-			prev, e = c.Store.DefectOutputs(ctx, l)
+			prev, e = defectOutputs()
 		} else {
 			prev, e = c.Store.CandidateOutputs(ctx, l, previousReview)
 		}
 	} else if l.Phase == "stats" {
 		prev, e = c.Store.Outputs(ctx, l, "mask.person", "person_mask_ref")
-	} else if l.Phase == "resolve" && adaptive {
+	} else if l.Phase == "resolve" && (adaptive || applyStyleCullingEnabled(effectiveStyle)) {
 		prev, e = c.Store.Outputs(ctx, l, "color.stats", "stats")
 	} else if l.Phase == "color" {
 		if cfg.GeometryEnabled && l.GraphVersion == 4 {
@@ -1129,10 +1379,18 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 	} else if l.Phase == "series_measure" {
 		prev, e = c.Store.Outputs(ctx, l, "image.color", "working_image")
 	} else if l.Phase == "series_balance" {
-		prev, e = c.Store.Outputs(ctx, l, "series.measure", "series_stats")
+		if applyUsesDirectSeries(l) {
+			prev, e = c.Store.Outputs(ctx, l, "series.measure", "series_stats")
+		} else {
+			prev, e = c.Store.Outputs(ctx, l, "series.pack", "series_stats_pack")
+		}
 	} else if l.Phase == "local" {
 		if dustEnabled {
-			prev, e = c.Store.Outputs(ctx, l, "sensor.dust_repair", "working_image")
+			dustOp := "sensor.dust_repair"
+			if autoDust {
+				dustOp = "sensor.dust_auto_repair"
+			}
+			prev, e = c.Store.Outputs(ctx, l, dustOp, "working_image")
 		} else {
 			prev, e = c.Store.Outputs(ctx, l, "image.color", "working_image")
 		}
@@ -1152,10 +1410,16 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 		} else {
 			prev, e = c.Store.Outputs(ctx, l, "image.local", "working_image")
 		}
+	} else if l.Phase == "defects_auto_repair" {
+		prev, e = c.Store.Outputs(ctx, l, "defects.propose", "defect_candidates")
 	} else if l.Phase == "defects_propose" {
 		prev, e = c.Store.Outputs(ctx, l, "mask.face_skin", "skin_mask_ref")
 	} else if l.Phase == "depth" {
 		prev, e = creativeOutputs()
+	} else if l.Phase == "background_inspect" {
+		prev, e = creativeOutputs()
+	} else if l.Phase == "background_decode" {
+		prev, e = c.Store.Outputs(ctx, l, "asset.inspect", "metadata")
 	} else if l.Phase == "background" {
 		if backgroundMode == "blur" {
 			prev, e = c.Store.Outputs(ctx, l, "depth.predict", "relative_depth_ref")
@@ -1190,7 +1454,7 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 		if backgroundEnabled {
 			prev, e = c.Store.Outputs(ctx, l, backgroundOp, "working_image")
 		} else if cfg.DefectsEnabled {
-			prev, e = c.Store.DefectOutputs(ctx, l)
+			prev, e = defectOutputs()
 		} else if cfg.PortraitDetail {
 			prev, e = c.Store.Outputs(ctx, l, "portrait.detail", "working_image")
 		} else if cfg.BeautyEnabled {
@@ -1206,7 +1470,7 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 		} else if backgroundEnabled {
 			prev, e = c.Store.Outputs(ctx, l, backgroundOp, "working_image")
 		} else if cfg.DefectsEnabled {
-			prev, e = c.Store.DefectOutputs(ctx, l)
+			prev, e = defectOutputs()
 		} else if cfg.PortraitDetail {
 			prev, e = c.Store.Outputs(ctx, l, "portrait.detail", "working_image")
 		} else if cfg.BeautyEnabled {
@@ -1218,7 +1482,7 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 	if e != nil {
 		return false, e
 	}
-	if l.Phase != "mask" && !(l.Phase == "resolve" && !adaptive) && len(prev) != len(items) {
+	if l.Phase != "series_balance" && l.Phase != "mask" && !(l.Phase == "resolve" && !adaptive) && len(prev) != len(items) {
 		return false, errors.New("apply predecessor count mismatch")
 	}
 	byItem := map[uuid.UUID]applyOutput{}
@@ -1226,7 +1490,7 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 		byItem[v.ItemID] = v
 	}
 	if l.Phase == "series_balance" {
-		if !cfg.SeriesEnabled || len(prev) < 2 || len(prev) > 2000 {
+		if !cfg.SeriesEnabled || !applyUsesDirectSeries(l) && len(prev) != (len(items)+79)/80 || applyUsesDirectSeries(l) && (len(prev) != len(items) || len(prev) > 128) {
 			return false, errors.New("invalid series aggregate cardinality")
 		}
 		if ok, er := c.Store.Renew(ctx, l); er != nil || !ok {
@@ -1243,7 +1507,7 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 		}
 		params, _ := canonical.Marshal(struct {
 			Scene      string               `json:"scene_id"`
-			Stats      []review.ArtifactRef `json:"stats"`
+			Stats      []review.ArtifactRef `json:"stats_batches"`
 			Reference  *uuid.UUID           `json:"reference_item_id"`
 			EV         float64              `json:"ev_limit"`
 			GainMin    float64              `json:"gain_min"`
@@ -1251,6 +1515,13 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 			Confidence float64              `json:"min_confidence"`
 			Algorithm  string               `json:"algorithm"`
 		}{"collection:" + l.SourceCollectionID.String(), inputs, nil, .35, .95, 1.05, .75, "seriesmatch_v1"})
+		if applyUsesDirectSeries(l) {
+			var legacy map[string]json.RawMessage
+			_ = json.Unmarshal(params, &legacy)
+			legacy["stats"] = legacy["stats_batches"]
+			delete(legacy, "stats_batches")
+			params, _ = canonical.Marshal(legacy)
+		}
 		item := items[0]
 		key := "series.balance/0000"
 		id := nodeID(l.RunID, key)
@@ -1270,9 +1541,13 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 		if er != nil {
 			return false, er
 		}
-		o := reg["series.balance"]
-		task := PreparedTask{ID: id, NodeKey: key, Operation: "series.balance", Version: o.Version, ResourceClass: o.ResourceClass, TimeoutSeconds: o.TimeoutSeconds, Params: review.ArtifactRef{ID: ref.ID, SHA256: ref.SHA256}, Inputs: inputs, ExecutionProfile: profile}
-		task.InputDigest, er = repairInputDigest(task.Operation, o.Version, task.Params, inputs)
+		if !applyUsesDirectSeries(l) {
+			profile, er = applySeriesAggregateResources(profile, prev, int64(len(params)))
+		}
+		if er != nil {
+			return false, er
+		}
+		task, er := prepareApplyMaterialization(reg, plan, review.ArtifactRef{ID: ref.ID, SHA256: ref.SHA256}, profile)
 		if er != nil {
 			return false, er
 		}
@@ -1286,7 +1561,20 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 		}
 		return true, nil
 	}
+	var qualityCompositionAdopted []applyOutput
+	if l.Phase == "quality" && compositionEnabled && !upscaleEnabled {
+		qualityCompositionAdopted, e = c.Store.CandidateOutputs(ctx, l, "composition_review")
+		if e != nil {
+			return false, e
+		}
+	}
+
 	for _, item := range items {
+		activeMaskItem = item.ItemID
+		overrideMasks.MaskRefs = globalMaskBindings
+		if masks, exists := itemMaskBindings[item.ItemID]; exists {
+			overrideMasks.MaskRefs = masks
+		}
 		if ok, er := c.Store.Renew(ctx, l); er != nil || !ok {
 			if er == nil {
 				er = errors.New("apply lease lost")
@@ -1296,10 +1584,12 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 		var params []byte
 		var inputs []review.ArtifactRef
 		var prereq []uuid.UUID
-		op := map[string]string{"mask": "mask.person", "stats": "color.stats", "resolve": "style.resolve", "denoise": "image.denoise", "pose": "pose.detect", "geometry": "geometry.body", "mask_transform": "mask.transform", "color": "image.color", "series_measure": "series.measure", "local": "image.local", "face_detect": "face.detect", "face_landmarks": "face.landmarks", "face_parse": "face.parse", "face_skin": "mask.face_skin", "beauty": "portrait.beauty", "portrait_detail": "portrait.detail", "defects_propose": "defects.propose", "depth": "depth.predict", "background": backgroundOp, "inpaint": "image.inpaint", "generate": "image.generate", "composition_structure": "composition.structure", "composition": "composition.plan", "composition_render": "geometry.crop", "upscale": "image.upscale", "quality": "quality.check"}[l.Phase]
+		op := map[string]string{"mask": "mask.person", "stats": "color.stats", "resolve": "style.resolve", "denoise": "image.denoise", "pose": "pose.detect", "geometry": "geometry.body", "mask_transform": "mask.transform", "color": "image.color", "series_measure": "series.measure", "local": "image.local", "face_detect": "face.detect", "face_landmarks": "face.landmarks", "face_parse": "face.parse", "face_skin": "mask.face_skin", "beauty": "portrait.beauty", "portrait_detail": "portrait.detail", "defects_propose": "defects.propose", "defects_auto_repair": "defects.auto_repair", "depth": "depth.predict", "background": backgroundOp, "background_inspect": "asset.inspect", "background_decode": "asset.decode", "inpaint": "image.inpaint", "generate": "image.generate", "composition_structure": "composition.structure", "composition": "composition.plan", "composition_render": "geometry.crop", "upscale": "image.upscale", "quality": "quality.check"}[l.Phase]
 		manifest := item.Image.ref()
 		p := byItem[item.ItemID]
 		var cropProfile json.RawMessage
+		var backgroundProfile json.RawMessage
+		legacySizing := applyLegacySizing{Adaptive: adaptive, Alpha: item.Working.Alpha != nil}
 		profilePixels, profileBytes := item.Working.Canvas.Width*item.Working.Canvas.Height, item.Image.Bytes
 		switch l.Phase {
 		case "mask":
@@ -1331,6 +1621,9 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 			inputs = append(refsForImage(manifest, item.Working), mask.Artifact)
 			prereq = []uuid.UUID{p.TaskID}
 		case "resolve":
+			if applyStyleCullingEnabled(effectiveStyle) {
+				prereq = []uuid.UUID{p.TaskID}
+			}
 			var stats *review.ArtifactRef
 			if adaptive {
 				v := p.Artifact.ref()
@@ -1346,6 +1639,10 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 			if cfg.AnalysisDecisionSHA != "" {
 				resolvedOverride = itemOverride[item.ItemID]
 			}
+			resolveJobOverride, resolveErr := applyResolveJobOverride(cfg.Strength, cfg.JobOverrides)
+			if resolveErr != nil {
+				return false, resolveErr
+			}
 			params, _ = canonical.Marshal(struct {
 				Style       *review.ArtifactRef `json:"style,omitempty"`
 				Identity    bool                `json:"identity"`
@@ -1355,7 +1652,7 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 				Group       *string             `json:"group_prototype_id"`
 				Override    json.RawMessage     `json:"override,omitempty"`
 				JobOverride json.RawMessage     `json:"job_override,omitempty"`
-			}{style, cfg.Identity, manifest, stats, false, nil, resolvedOverride, cfg.JobOverrides})
+			}{style, cfg.Identity, manifest, stats, false, nil, resolvedOverride, resolveJobOverride})
 			inputs = []review.ArtifactRef{manifest}
 			if style != nil {
 				inputs = append(inputs, *style)
@@ -1416,6 +1713,21 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 						resolvedOutput = x
 					}
 				}
+			}
+			resolvedBytes, resourceErr := readApplyJSON(ctx, c.Objects, c.Bucket, resolvedOutput.Artifact)
+			if resourceErr != nil {
+				return false, resourceErr
+			}
+			var resolvedResources struct {
+				LUT *struct {
+					Size int `json:"size"`
+				} `json:"absolute_lut"`
+			}
+			if json.Unmarshal(resolvedBytes, &resolvedResources) != nil {
+				return false, errors.New("color resource binding invalid")
+			}
+			if resolvedResources.LUT != nil {
+				legacySizing.LUTSize = resolvedResources.LUT.Size
 			}
 			params, _ = canonical.Marshal(struct {
 				Image    review.ArtifactRef `json:"image"`
@@ -1570,13 +1882,34 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 					maskTask = x.TaskID
 				}
 			}
+			regionRules, regionErr := applyStyleRegionRules(effectiveStyle)
+			if regionErr != nil {
+				return false, regionErr
+			}
+			regionSources, regionErr := explicitApplyRegionSources(regionRules, overrideMasks.MaskRefs, mask)
+			if regionErr != nil {
+				return false, regionErr
+			}
 			params, _ = canonical.Marshal(struct {
-				Mask   review.MaskRef     `json:"mask"`
-				Target review.ArtifactRef `json:"target"`
-				Step   json.RawMessage    `json:"step"`
-				DType  string             `json:"dtype"`
-			}{mask, p.Artifact.ref(), step, "float32"})
+				Mask    review.MaskRef            `json:"mask"`
+				Target  review.ArtifactRef        `json:"target"`
+				Step    json.RawMessage           `json:"step"`
+				DType   string                    `json:"dtype"`
+				Regions []applyLocalRegionBinding `json:"regions,omitempty"`
+			}{mask, p.Artifact.ref(), step, "float32", regionSources})
 			inputs = append(refsForImage(p.Artifact.ref(), target), mask.Artifact)
+			for _, region := range regionSources {
+				found := false
+				for _, ref := range inputs {
+					if ref == region.Mask.Artifact {
+						found = true
+						break
+					}
+				}
+				if !found {
+					inputs = append(inputs, region.Mask.Artifact)
+				}
+			}
 			var stepDoc struct {
 				InverseField *review.ArtifactRef `json:"inverse_field"`
 			}
@@ -1690,6 +2023,7 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 				}
 			}
 			var person any
+			var transformedRegionalRoot []byte
 			var personRef *review.ArtifactRef
 			var personTask uuid.UUID
 			if cfg.PersonRequired {
@@ -1709,6 +2043,7 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 						}
 						var bound review.MaskRef
 						if cfg.GeometryEnabled {
+							transformedRegionalRoot = raw
 							bound, e3 = review.ParseTransformedMask(raw)
 						} else {
 							bound, e3 = review.ParseMaskRef(raw)
@@ -1740,20 +2075,66 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 				seriesRef = &v
 				seriesTask = series[0].TaskID
 			}
+			resolvedRaw, regionErr := readApplyJSON(ctx, c.Objects, c.Bucket, rr.Artifact)
+			if regionErr != nil {
+				return false, regionErr
+			}
+			regionRules, regionErr := resolvedApplyRegionRules(resolvedRaw)
+			if regionErr != nil {
+				return false, regionErr
+			}
+			var regionalPerson *review.MaskRef
+			if bound, ok := person.(review.MaskRef); ok {
+				regionalPerson = &bound
+			}
+			regionalMasks := overrideMasks.MaskRefs
+			if cfg.GeometryEnabled {
+				regionalMasks, regionErr = transformedApplyRegionBindings(transformedRegionalRoot, regionalMasks, baseRef, baseWorking)
+				if regionErr != nil {
+					return false, regionErr
+				}
+			}
+			regionalBindings, regionErr := bindApplyLocalRegions(regionRules, regionalPerson, regionalMasks, baseWorking)
+			if regionErr != nil {
+				return false, regionErr
+			}
+			var resolvedLocal struct {
+				Local struct {
+					Enabled bool `json:"enabled"`
+				} `json:"local"`
+			}
+			if json.Unmarshal(resolvedRaw, &resolvedLocal) != nil {
+				return false, errors.New("local resource binding invalid")
+			}
+			if bound, ok := person.(review.MaskRef); ok && resolvedLocal.Local.Enabled && bound.Confidence >= .75 {
+				legacySizing.Masks++
+			}
+			for _, binding := range regionalBindings {
+				for _, rule := range regionRules {
+					expected := rule.Selector
+					if binding.Invert {
+						expected = "person"
+					}
+					if binding.ID == rule.ID && binding.Mask.Selector == expected && binding.Mask.Confidence >= .75 {
+						legacySizing.Masks++
+						break
+					}
+				}
+			}
 			params, _ = canonical.Marshal(struct {
-				Item     *uuid.UUID          `json:"item_id,omitempty"`
-				Image    review.ArtifactRef  `json:"image"`
-				Base     review.ArtifactRef  `json:"base_aligned"`
-				Resolved review.ArtifactRef  `json:"resolved"`
-				Series   *review.ArtifactRef `json:"series,omitempty"`
-				Person   any                 `json:"person"`
-				Regions  []any               `json:"regions"`
+				Item     *uuid.UUID                `json:"item_id,omitempty"`
+				Image    review.ArtifactRef        `json:"image"`
+				Base     review.ArtifactRef        `json:"base_aligned"`
+				Resolved review.ArtifactRef        `json:"resolved"`
+				Series   *review.ArtifactRef       `json:"series,omitempty"`
+				Person   any                       `json:"person"`
+				Regions  []applyLocalRegionBinding `json:"regions"`
 			}{func() *uuid.UUID {
 				if seriesRef != nil {
 					return &item.ItemID
 				}
 				return nil
-			}(), p.Artifact.ref(), baseRef, rr.Artifact.ref(), seriesRef, person, []any{}})
+			}(), p.Artifact.ref(), baseRef, rr.Artifact.ref(), seriesRef, person, regionalBindings})
 			inputs = append(refsForImage(p.Artifact.ref(), colored), refsForImage(baseRef, baseWorking)...)
 			inputs = append(inputs, rr.Artifact.ref())
 			prereq = []uuid.UUID{p.TaskID, rr.TaskID}
@@ -1764,9 +2145,33 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 				inputs = append(inputs, *personRef)
 				prereq = append(prereq, personTask)
 			}
+			for _, region := range regionalBindings {
+				found := false
+				for _, ref := range inputs {
+					if ref == region.Mask.Artifact {
+						found = true
+						break
+					}
+				}
+				if !found {
+					inputs = append(inputs, region.Mask.Artifact)
+				}
+			}
 			if seriesRef != nil {
 				inputs = append(inputs, *seriesRef)
 				prereq = append(prereq, seriesTask)
+			}
+			uniqueInputs := make([]review.ArtifactRef, 0, len(inputs))
+			seenInputs := map[review.ArtifactRef]bool{}
+			for _, ref := range inputs {
+				if !seenInputs[ref] {
+					uniqueInputs = append(uniqueInputs, ref)
+					seenInputs[ref] = true
+				}
+			}
+			inputs = uniqueInputs
+			if len(inputs) > 128 {
+				return false, errors.New("local input limit exceeded")
 			}
 		case "face_detect":
 			working, er := readWorking(ctx, c.Objects, c.Bucket, p.Artifact)
@@ -1945,7 +2350,7 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 			inputs = append(refsForImage(imageOut.Artifact.ref(), working), resolvedOut.Artifact.ref(), landmarkOut.Artifact.ref(), skin.Artifact)
 			prereq = []uuid.UUID{p.TaskID, imageOut.TaskID, landmarkOut.TaskID, resolvedOut.TaskID}
 		case "portrait_detail":
-			if !cfg.PortraitDetail || cfg.GeometryEnabled {
+			if !cfg.PortraitDetail {
 				return false, errors.New("portrait detail phase not authorized")
 			}
 			working, er := readWorking(ctx, c.Objects, c.Bucket, p.Artifact)
@@ -1962,6 +2367,37 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 					resolvedOut = candidate
 				}
 			}
+			detailMasks := overrideMasks.MaskRefs
+			if cfg.GeometryEnabled {
+				geometry, bindErr := c.Store.Outputs(ctx, l, "geometry.body", "working_image")
+				if bindErr != nil || len(geometry) != len(items) {
+					return false, errors.New("portrait geometry binding count mismatch")
+				}
+				var geometryRef review.ArtifactRef
+				for _, candidate := range geometry {
+					if candidate.ItemID == item.ItemID {
+						geometryRef = candidate.Artifact.ref()
+					}
+				}
+				transforms, bindErr := c.Store.Outputs(ctx, l, "mask.transform", "mask_transform_result")
+				if bindErr != nil || len(transforms) != len(items) || geometryRef.ID == uuid.Nil {
+					return false, errors.New("portrait transform binding count mismatch")
+				}
+				var transformRoot []byte
+				for _, candidate := range transforms {
+					if candidate.ItemID == item.ItemID {
+						transformRoot, bindErr = readApplyJSON(ctx, c.Objects, c.Bucket, candidate.Artifact)
+						if bindErr != nil {
+							return false, bindErr
+						}
+						prereq = append(prereq, candidate.TaskID)
+					}
+				}
+				detailMasks, bindErr = transformedApplyRegionBindings(transformRoot, detailMasks, geometryRef, working)
+				if bindErr != nil {
+					return false, bindErr
+				}
+			}
 			type detailRegion struct {
 				RegionID  string         `json:"region_id"`
 				Kind      string         `json:"kind"`
@@ -1973,7 +2409,12 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 			regions := make([]detailRegion, 0, len(overrideMasks.MaskRefs))
 			protected := make([]review.MaskRef, 0, len(overrideMasks.MaskRefs))
 			seen := map[string]bool{}
-			for _, binding := range overrideMasks.MaskRefs {
+			for _, binding := range detailMasks {
+				if binding.Purpose != "protected" {
+					if _, relevant := kinds[binding.Purpose]; !relevant {
+						continue
+					}
+				}
 				if binding.Mask.Canvas != working.Canvas || !bytes.Equal(binding.Mask.TransformChain, working.TransformChain) || binding.Strength < 0 || binding.Strength > 1 || seen[binding.BindingID] {
 					return false, errors.New("invalid portrait detail mask geometry")
 				}
@@ -2003,7 +2444,16 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 				Protected []review.MaskRef   `json:"protected"`
 			}{p.Artifact.ref(), resolvedOut.Artifact.ref(), regions, protected})
 			inputs = append(refsForImage(p.Artifact.ref(), working), append([]review.ArtifactRef{resolvedOut.Artifact.ref()}, inputs...)...)
-			prereq = []uuid.UUID{p.TaskID, resolvedOut.TaskID}
+			prereq = append(prereq, p.TaskID, resolvedOut.TaskID)
+		case "defects_auto_repair":
+			if !autoDefects {
+				return false, errors.New("conservative defects not authorized")
+			}
+			var er error
+			params, inputs, prereq, profilePixels, profileBytes, er = c.conservativeDefectParams(ctx, l, p, item.ItemID)
+			if er != nil {
+				return false, er
+			}
 		case "defects_propose":
 			if !cfg.DefectsEnabled {
 				return false, errors.New("defects proposal phase not authorized")
@@ -2074,13 +2524,21 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 				}
 				faces[i] = defectFace{landmarkOut.Artifact.ref(), face.ObjectID, skin, nil, false}
 			}
+			_, defectProtected, protectErr := creativeMasks(working, "")
+			if protectErr != nil {
+				return false, protectErr
+			}
 			params, _ = canonical.Marshal(struct {
-				Image     review.ArtifactRef `json:"image"`
-				Faces     []defectFace       `json:"faces"`
-				Permanent any                `json:"permanent"`
-				Diameter  []float64          `json:"diameter_face_fraction"`
-			}{imageOut.Artifact.ref(), faces, nil, []float64{.002, .012}})
+				Protections []review.MaskRef   `json:"protections,omitempty"`
+				Image       review.ArtifactRef `json:"image"`
+				Faces       []defectFace       `json:"faces"`
+				Permanent   any                `json:"permanent"`
+				Diameter    []float64          `json:"diameter_face_fraction"`
+			}{defectProtected, imageOut.Artifact.ref(), faces, nil, []float64{.002, .012}})
 			inputs = append(refsForImage(imageOut.Artifact.ref(), working), landmarkOut.Artifact.ref(), skin.Artifact)
+			for _, mask := range defectProtected {
+				inputs = append(inputs, mask.Artifact)
+			}
 			prereq = []uuid.UUID{p.TaskID, imageOut.TaskID, landmarkOut.TaskID}
 		case "depth":
 			if backgroundMode != "blur" || cfg.PersonBackend == "" || cfg.PersonLock == "" {
@@ -2099,6 +2557,49 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 			}{p.Artifact.ref(), "depth_anything_v2_small", cfg.PersonLock, "depth_anything_v2_small_518_v1", 518})
 			inputs = refsForImage(p.Artifact.ref(), working)
 			prereq = []uuid.UUID{p.TaskID}
+		case "background_inspect":
+			if backgroundMode != "asset" || cfg.BackgroundAsset == nil {
+				return false, errors.New("background inspection not authorized")
+			}
+			pin := cfg.BackgroundAsset
+			params, _ = canonical.Marshal(struct {
+				Source review.ArtifactRef `json:"source"`
+				Bytes  int64              `json:"expected_bytes"`
+				Suffix string             `json:"suffix"`
+			}{pin.Source, pin.ExpectedBytes, pin.Suffix})
+			inputs = []review.ArtifactRef{pin.Source}
+			prereq = []uuid.UUID{p.TaskID}
+			backgroundProfile, e = applyBackgroundAssetProfile(pin, nil, int64(len(params)))
+			if e != nil {
+				return false, e
+			}
+		case "background_decode":
+			if backgroundMode != "asset" || cfg.BackgroundAsset == nil {
+				return false, errors.New("background decoding not authorized")
+			}
+			raw, readErr := readApplyJSON(ctx, c.Objects, c.Bucket, p.Artifact)
+			if readErr != nil {
+				return false, readErr
+			}
+			metadata, parseErr := applyBackgroundAssetMetadata(raw, cfg.BackgroundAsset)
+			if parseErr != nil {
+				return false, parseErr
+			}
+			pin := cfg.BackgroundAsset
+			params, _ = canonical.Marshal(struct {
+				Source  review.ArtifactRef `json:"source"`
+				Bytes   int64              `json:"expected_bytes"`
+				Suffix  string             `json:"suffix"`
+				Assume  *string            `json:"assume_profile"`
+				Analyze bool               `json:"analyze"`
+				Tile    int                `json:"tile"`
+			}{pin.Source, pin.ExpectedBytes, pin.Suffix, nil, false, 512})
+			inputs = []review.ArtifactRef{pin.Source}
+			prereq = []uuid.UUID{p.TaskID}
+			backgroundProfile, e = applyBackgroundAssetProfile(pin, &metadata, int64(len(params)))
+			if e != nil {
+				return false, e
+			}
 		case "background":
 			if !backgroundEnabled || !cfg.PersonRequired || !cfg.StyleConfig.Extensions.Background.ProtectSubject {
 				return false, errors.New("background phase not authorized")
@@ -2168,7 +2669,7 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 				subject.Protected = true
 				protected = append(protected, subject)
 				g := cfg.StyleConfig.Extensions.Generation
-				if !g.Enabled || g.Prompt == "" || g.Guidance < 1 || g.Guidance > 20 {
+				if !g.Enabled || len([]rune(g.Prompt)) > 2000 || len([]rune(g.Negative)) > 2000 || g.Steps < 1 || g.Steps > 50 || g.Guidance < 0 || g.Guidance > 20 || g.Strength < 0 || g.Strength > 1 {
 					return false, errors.New("invalid background generation config")
 				}
 				params, _ = canonical.Marshal(struct {
@@ -2184,7 +2685,8 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 					Model     string             `json:"model_id"`
 					Lock      string             `json:"model_lock_id"`
 					Feather   int                `json:"feather_pixels"`
-				}{imageOut.Artifact.ref(), target, protected, true, g.Prompt, g.Negative, g.Seed, 25, g.Guidance, "sd15_inpaint", cfg.CreativeLock, 8})
+					Strength  float64            `json:"strength"`
+				}{imageOut.Artifact.ref(), target, protected, true, g.Prompt, g.Negative, g.Seed, g.Steps, g.Guidance, "sd15_inpaint", cfg.CreativeLock, 8, g.Strength})
 				inputs = append(refsForImage(imageOut.Artifact.ref(), working), target.Artifact, subject.Artifact)
 				for _, m := range protected {
 					if m.Artifact != subject.Artifact {
@@ -2214,6 +2716,33 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 				prereq = []uuid.UUID{p.TaskID, imageOut.TaskID, maskTask}
 				break
 			}
+			var backgroundRef *review.ArtifactRef
+			var backgroundInputs []review.ArtifactRef
+			var backgroundTask uuid.UUID
+			if mode == "asset" {
+				decoded, loadErr := c.Store.Outputs(ctx, l, "asset.decode", "working_image")
+				if loadErr != nil || len(decoded) != len(items) {
+					return false, errors.New("background decode output count mismatch")
+				}
+				for _, candidate := range decoded {
+					if candidate.ItemID == item.ItemID {
+						bg, readErr := readWorking(ctx, c.Objects, c.Bucket, candidate.Artifact)
+						if readErr != nil {
+							return false, readErr
+						}
+						if readErr = validateApplyDecodedBackground(cfg.BackgroundAsset, bg, working); readErr != nil {
+							return false, readErr
+						}
+						ref := candidate.Artifact.ref()
+						backgroundRef = &ref
+						backgroundInputs = refsForImage(ref, bg)
+						backgroundTask = candidate.TaskID
+					}
+				}
+				if backgroundRef == nil {
+					return false, errors.New("background item binding missing")
+				}
+			}
 			params, _ = canonical.Marshal(struct {
 				Image         review.ArtifactRef `json:"image"`
 				Subject       review.MaskRef     `json:"subject"`
@@ -2228,9 +2757,13 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 				ShadowOffsetX float64            `json:"shadow_offset_x"`
 				ShadowOffsetY float64            `json:"shadow_offset_y"`
 				Tile          int                `json:"tile"`
-			}{imageOut.Artifact.ref(), subject, mode, solid, nil, 1, .5, .5, 0, 0, 0, 0, 512})
+			}{imageOut.Artifact.ref(), subject, mode, solid, backgroundRef, 1, .5, .5, 0, 0, 0, 0, 512})
 			inputs = append(refsForImage(imageOut.Artifact.ref(), working), subject.Artifact)
 			prereq = []uuid.UUID{imageOut.TaskID, maskTask}
+			inputs = append(inputs, backgroundInputs...)
+			if backgroundTask != uuid.Nil {
+				prereq = append(prereq, backgroundTask)
+			}
 		case "inpaint":
 			if !cfg.StyleConfig.Extensions.Inpainting.Enabled {
 				return false, errors.New("inpaint phase not authorized")
@@ -2260,7 +2793,7 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 			prereq = []uuid.UUID{p.TaskID}
 		case "generate":
 			g := cfg.StyleConfig.Extensions.Generation
-			if !g.Enabled || g.Prompt == "" || g.Guidance < 1 || g.Guidance > 20 {
+			if !g.Enabled || len([]rune(g.Prompt)) > 2000 || len([]rune(g.Negative)) > 2000 || g.Steps < 1 || g.Steps > 50 || g.Guidance < 0 || g.Guidance > 20 || g.Strength < 0 || g.Strength > 1 {
 				return false, errors.New("generation phase not authorized")
 			}
 			working, er := readWorking(ctx, c.Objects, c.Bucket, p.Artifact)
@@ -2284,7 +2817,8 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 				Model     string             `json:"model_id"`
 				Lock      string             `json:"model_lock_id"`
 				Feather   int                `json:"feather_pixels"`
-			}{p.Artifact.ref(), target, protected, true, g.Prompt, g.Negative, g.Seed, 25, g.Guidance, "sd15_inpaint", cfg.CreativeLock, 8})
+				Strength  float64            `json:"strength"`
+			}{p.Artifact.ref(), target, protected, true, g.Prompt, g.Negative, g.Seed, g.Steps, g.Guidance, "sd15_inpaint", cfg.CreativeLock, 8, g.Strength})
 			inputs = append(refsForImage(p.Artifact.ref(), working), target.Artifact)
 			for _, m := range protected {
 				inputs = append(inputs, m.Artifact)
@@ -2458,7 +2992,7 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 			}
 			baselineRef, baselineWorking := manifest, item.Working
 			var baseline *review.ArtifactRef
-			if cfg.GeometryEnabled {
+			if cfg.GeometryEnabled && !compositionEnabled && !upscaleEnabled {
 				geometry, er := c.Store.Outputs(ctx, l, "geometry.body", "working_image")
 				if er != nil || len(geometry) != len(items) {
 					return false, errors.New("quality geometry baseline missing")
@@ -2473,12 +3007,22 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 					}
 				}
 			}
-			if !upscaleEnabled && (finalImage.Canvas != baselineWorking.Canvas || !bytes.Equal(finalImage.TransformChain, baselineWorking.TransformChain)) {
+			// Composition changes coordinates. Its approved candidate/base is a
+			// provenance anchor, never a pixel reference to itself. MAE/PSNR
+			// against the uncropped source are not defined in this geometry.
+			if compositionEnabled && !upscaleEnabled {
+				if er := validateApplyCompositionQualityTarget(item.ItemID, p.Artifact.ref(), qualityCompositionAdopted, len(items)); er != nil {
+					return false, er
+				}
+			}
+			if !upscaleEnabled && !compositionEnabled && (finalImage.Canvas != baselineWorking.Canvas || !bytes.Equal(finalImage.TransformChain, baselineWorking.TransformChain)) {
 				return false, errors.New("quality image geometry changed")
 			}
-			if !upscaleEnabled {
+			if !upscaleEnabled && !compositionEnabled {
 				baseline = &baselineRef
 			}
+			legacySizing.Baseline = baseline != nil
+			legacySizing.Alpha = finalImage.Alpha != nil
 			params, _ = canonical.Marshal(struct {
 				Target             review.ArtifactRef  `json:"target"`
 				TargetKind         string              `json:"target_kind"`
@@ -2521,6 +3065,8 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 				return false, profileErr
 			}
 			profile, e2 = applyUpscaleProfile(cfg.RestorationBackend, cfg.RestorationLock, working.Canvas.Width*working.Canvas.Height, p.Artifact.Bytes, scale, working.Alpha != nil)
+		} else if l.Phase == "background_inspect" || l.Phase == "background_decode" {
+			profile = backgroundProfile
 		} else if l.Phase == "background" && backgroundMode != "generate" {
 			working, profileErr := readWorking(ctx, c.Objects, c.Bucket, p.Artifact)
 			if profileErr != nil {
@@ -2530,22 +3076,38 @@ func (c ApplyCoordinator) build(ctx context.Context, l ApplyLease) (bool, error)
 		} else if l.Phase == "composition_render" && op == "geometry.crop" {
 			profile = cropProfile
 		} else if l.Phase == "composition_render" && op == "image.outpaint" {
-			profile, e2 = applyModelProfile(cfg.CreativeBackend, cfg.CreativeLock, profilePixels, profileBytes)
+			profile, e2 = applyCreativeProfile(cfg.CreativeBackend, cfg.CreativeLock, profilePixels, profileBytes)
 		} else if l.Phase == "background" || l.Phase == "inpaint" || l.Phase == "generate" {
 			working, profileErr := readWorking(ctx, c.Objects, c.Bucket, p.Artifact)
 			if profileErr != nil {
 				return false, profileErr
 			}
-			profile, e2 = applyModelProfile(cfg.CreativeBackend, cfg.CreativeLock, working.Canvas.Width*working.Canvas.Height, p.Artifact.Bytes)
+			profile, e2 = applyCreativeProfile(cfg.CreativeBackend, cfg.CreativeLock, working.Canvas.Width*working.Canvas.Height, p.Artifact.Bytes)
+		} else if l.Phase == "geometry" {
+			profile, e2 = applyBodyProfile(item.Working.Canvas.Width*item.Working.Canvas.Height, item.Image.Bytes, item.Working.Alpha != nil)
+		} else if l.Phase == "mask_transform" {
+			profile, e2 = applyRegionTransformProfile(item.Working.Canvas.Width*item.Working.Canvas.Height, p.Artifact.Bytes, params)
+		} else if l.Phase == "defects_auto_repair" {
+			profile, e2 = applyConservativeProfile(profilePixels, profileBytes)
+		} else if l.Phase == "quality" {
+			working, profileErr := readWorking(ctx, c.Objects, c.Bucket, p.Artifact)
+			if profileErr != nil {
+				return false, profileErr
+			}
+			profile, e2 = applyProfile(working.Canvas.Width*working.Canvas.Height, p.Artifact.Bytes)
 		} else {
 			profile, e2 = applyProfile(item.Working.Canvas.Width*item.Working.Canvas.Height, item.Image.Bytes)
 		}
 		if e2 != nil {
 			return false, e2
 		}
-		o := reg[op]
-		task := PreparedTask{ID: id, NodeKey: key, Operation: op, Version: o.Version, ResourceClass: o.ResourceClass, TimeoutSeconds: o.TimeoutSeconds, Params: review.ArtifactRef{ID: ref.ID, SHA256: ref.SHA256}, Inputs: inputs, ExecutionProfile: profile}
-		task.InputDigest, e2 = repairInputDigest(op, o.Version, task.Params, inputs)
+		if profile, e2 = applyLegacyResourceProfile(op, profile, legacySizing); e2 != nil {
+			return false, e2
+		}
+		if profile, e2 = c.qualifyMixedProfile(items[0].Config, l.TenantID, op, profile); e2 != nil {
+			return false, e2
+		}
+		task, e2 := prepareApplyMaterialization(reg, plan, review.ArtifactRef{ID: ref.ID, SHA256: ref.SHA256}, profile)
 		if e2 != nil {
 			return false, e2
 		}

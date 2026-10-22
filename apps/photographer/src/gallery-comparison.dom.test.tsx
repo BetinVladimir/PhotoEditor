@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 import {afterEach,expect,it,vi} from 'vitest';
 import {act,cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
-import {canonicalJSON} from '@photoeditor/api-client';
+import {APIError,canonicalJSON} from '@photoeditor/api-client';
 import {sha256} from '@noble/hashes/sha2.js';
 import {bytesToHex} from '@noble/hashes/utils.js';
 import en from '../../../locales/en/common.json';
 import type {CollectionItem,EditorDraft,MediaLink} from './catalog-types';
 vi.mock('react-native',async()=>import('react-native-web'));
-vi.mock('./locale-context',()=>({useLocale:()=>({t:(key:keyof typeof en)=>en[key]})}));
+vi.mock('./locale-context',async()=>{const __factory=()=>({useLocale:()=>({t:(key:keyof typeof en)=>en[key]})});const __out=await __factory();const {withUILocaleDouble}=await import('./test/locale-double');return {...__out,useLocale:()=>withUILocaleDouble(__out.useLocale())};});
 import {GalleryComparison} from './gallery-comparison';
 afterEach(()=>{cleanup();vi.useRealTimers();});
 const icc='b'.repeat(64),source='a'.repeat(64);
@@ -38,4 +38,21 @@ it('removes comparison when the earliest authorized preview expires',async()=>{
  render(<GalleryComparison items={items} api={owner}/>);fireEvent.click(screen.getByLabelText('Select frame 1'));fireEvent.click(screen.getByLabelText('Select frame 2'));
  await act(async()=>{await Promise.resolve();await Promise.resolve();});expect(screen.getByText(en.compare_local_decisions)).toBeDefined();
  await act(async()=>vi.advanceTimersByTime(1000));expect(screen.queryByText(en.compare_local_decisions)).toBeNull();expect(screen.getByText(en.compare_unavailable)).toBeDefined();
+});
+
+it.each([401,403])('reports preview access loss %s and cancels sibling reads',async status=>{
+ const owner=api(),denied=vi.fn(),error=new APIError(status,'ACCESS_UNAVAILABLE');
+ owner.mediaLinks.mockRejectedValue(error);
+ render(<GalleryComparison items={items} api={owner} onAccessDenied={denied}/>);
+ fireEvent.click(screen.getByLabelText('Select frame 1'));fireEvent.click(screen.getByLabelText('Select frame 2'));
+ await waitFor(()=>expect(denied).toHaveBeenCalledWith(error));
+ expect(denied).toHaveBeenCalledTimes(1);
+ expect(owner.mediaLinks.mock.calls.every(call=>call[3]?.aborted)).toBe(true);
+ expect(screen.queryByText(en.compare_local_decisions)).toBeNull();
+});
+it('keeps missing derivative separate from revoked collection access',async()=>{
+ const owner=api(),denied=vi.fn();owner.mediaLinks.mockRejectedValue(new APIError(404,'NOT_FOUND'));
+ render(<GalleryComparison items={items} api={owner} onAccessDenied={denied}/>);
+ fireEvent.click(screen.getByLabelText('Select frame 1'));fireEvent.click(screen.getByLabelText('Select frame 2'));
+ await screen.findByText(en.compare_unavailable);expect(denied).not.toHaveBeenCalled();
 });

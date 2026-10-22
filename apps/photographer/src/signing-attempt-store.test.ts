@@ -1,7 +1,8 @@
-import {expect,it,vi} from 'vitest';
+import {afterEach,expect,it,vi} from 'vitest';
 import {SigningAttemptStore,clearSigningAttempts} from './signing-attempt-store';
 import {submitSigning} from './signing-submit';
 import type {SemanticJournalLock} from './semantic-attempt-store';
+afterEach(()=>vi.useRealTimers());
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const lock:SemanticJournalLock=async(_origin,action)=>action();
 function storage(){const data=new Map<string,string>();return {getItem:async(k:string)=>data.get(k)??null,setItem:async(k:string,v:string)=>{data.set(k,v)},removeItem:async(k:string)=>{data.delete(k)},getAllKeys:async()=>[...data.keys()]};}
@@ -13,7 +14,7 @@ it('persists before network and restores the same key across mounts after ambigu
  await expect(submitSigning(first,api,{signing_policy_id:id(4)},'original-key')).rejects.toThrow('network');
  const second=new SigningAttemptStore(data,'origin-a',id(1),id(2),id(3),lock),success={signExport:vi.fn().mockResolvedValue(ticket())};
  expect(await submitSigning(second,success,{signing_policy_id:id(4)},'new-key-not-used')).toEqual(ticket());
- expect(success.signExport).toHaveBeenCalledWith(id(3),{signing_policy_id:id(4)},'original-key',undefined);
+ expect(success.signExport).toHaveBeenCalledWith(id(3),{signing_policy_id:id(4)},'original-key',expect.any(AbortSignal));
  await submitSigning(second,success,{signing_policy_id:id(4)},'another-unused-key');
  expect(success.signExport).toHaveBeenCalledTimes(1);
 });
@@ -50,7 +51,7 @@ it('keeps the pending original key when cancellation arrives with the server res
  expect(await store.read()).toEqual({version:1,key:'original',body:{signing_policy_id:id(4)},ticket:null});
  const retry={signExport:vi.fn().mockResolvedValue(ticket())};
  await submitSigning(store,retry,{signing_policy_id:id(4)},'ignored-replacement');
- expect(retry.signExport).toHaveBeenCalledWith(id(3),{signing_policy_id:id(4)},'original',undefined);
+ expect(retry.signExport).toHaveBeenCalledWith(id(3),{signing_policy_id:id(4)},'original',expect.any(AbortSignal));
 });
 
 it('retains pending intent when storing an acknowledged ticket fails',async()=>{
@@ -90,4 +91,23 @@ it('owns the API callback request so mutation cannot replace the persisted polic
  const api={signExport:vi.fn(async(_export:string,body:{signing_policy_id:string})=>{body.signing_policy_id=id(7);return ticket()})};
  await submitSigning(store,api,{signing_policy_id:id(4)},'key');
  expect((await store.read())?.body.signing_policy_id).toBe(id(4));
+});
+
+it('times out a stalled intent read and never dispatches after its late completion',async()=>{
+ let finish!:(value:unknown)=>void;
+ const store={exportID:id(3),read:vi.fn(()=>new Promise(resolve=>{finish=resolve})),write:vi.fn()},api={signExport:vi.fn()};
+ vi.useFakeTimers();const result=submitSigning(store as never,api,{signing_policy_id:id(4)},'frozen');const rejected=expect(result).rejects.toThrow('timed out');
+ await vi.advanceTimersByTimeAsync(8000);await rejected;finish(null);await Promise.resolve();await Promise.resolve();expect(store.write).not.toHaveBeenCalled();expect(api.signExport).not.toHaveBeenCalled();
+});
+it('times out stalled persistence and never dispatches when its late write completes',async()=>{
+ let finish!:()=>void;
+ const store={exportID:id(3),read:vi.fn().mockResolvedValue(null),write:vi.fn(()=>new Promise<void>(resolve=>{finish=resolve}))},api={signExport:vi.fn()};
+ vi.useFakeTimers();const result=submitSigning(store as never,api,{signing_policy_id:id(4)},'frozen');const rejected=expect(result).rejects.toThrow('timed out');
+ await vi.advanceTimersByTimeAsync(8000);await rejected;finish();await Promise.resolve();await Promise.resolve();expect(api.signExport).not.toHaveBeenCalled();
+});
+it('rejects late accepted network tickets after the bounded submit expires without writing them',async()=>{
+ let finish!:(value:unknown)=>void;
+ const store={exportID:id(3),read:vi.fn().mockResolvedValue(null),write:vi.fn().mockResolvedValue(undefined)},api={signExport:vi.fn(()=>new Promise(resolve=>{finish=resolve}))};
+ vi.useFakeTimers();const result=submitSigning(store as never,api as never,{signing_policy_id:id(4)},'frozen');const rejected=expect(result).rejects.toThrow('timed out');
+ await vi.advanceTimersByTimeAsync(15000);await rejected;finish(ticket());await Promise.resolve();await Promise.resolve();expect(store.write).toHaveBeenCalledTimes(1);expect(store.write.mock.calls[0][0].ticket).toBeNull();
 });

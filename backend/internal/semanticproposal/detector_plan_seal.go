@@ -15,7 +15,7 @@ func detectorPlanDigest(plan detectorDraftPlan) (string, error) {
 		"policy": plan.policy.body, "input_objects": plan.prepared.inputs, "source_objects": plan.prepared.source.pins,
 		"qualified_costs": plan.prepared.costs, "parent": plan.prepared.parent, "params_document": plan.prepared.document,
 		"expected": plan.prepared.qualification.expected, "report_ref": plan.prepared.qualification.report.ref,
-		"report_object": plan.prepared.qualification.report.object, "metrics": plan.prepared.qualification.metrics,
+		"report_object": plan.prepared.qualification.report.object, "metrics": qualificationResourceSeal(plan.prepared.qualification.metrics),
 		"task_sha":            plan.prepared.qualification.taskSHA,
 		"source_scope":        map[string]any{"tenant": plan.prepared.source.tenant, "project": plan.prepared.source.project, "actor": plan.prepared.source.actor, "session": plan.prepared.source.session, "bucket": plan.prepared.source.bucket, "binding": plan.prepared.source.binding, "icc_sha": plan.prepared.source.iccSHA, "unit_rgb": plan.prepared.source.unitRGB},
 		"qualification_scope": map[string]any{"tenant": plan.prepared.qualification.tenant, "project": plan.prepared.qualification.project, "actor": plan.prepared.qualification.actor, "session": plan.prepared.qualification.session, "bucket": plan.prepared.qualification.bucket, "contract": plan.prepared.qualification.report.contract, "backend": plan.prepared.qualification.report.backend},

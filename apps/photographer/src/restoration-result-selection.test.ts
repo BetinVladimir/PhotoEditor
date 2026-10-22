@@ -4,9 +4,9 @@ import {readRestorationResultSelection} from './negative-result-selection';
 import {OwnerAPI} from './owner-api';
 
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
-const review=(kind:'portrait.glare'|'portrait.open_eyes'|'image.reflection',decision:'accept'|'reject'|'skip'):Review=>({id:id(1),run_id:id(2),kind,state:'decided',revision:2,candidate_hash:'a'.repeat(64),candidate:{artifact_id:id(3),sha256:'a'.repeat(64)},base:{artifact_id:id(4),sha256:'b'.repeat(64)},decision,decision_route:decision==='accept'?'candidate':decision==='reject'?'base':'skip',reasons:[],created_at:'2026-10-13T00:00:00Z'});
+const review=(kind:'portrait.glare'|'portrait.open_eyes'|'image.reflection'|'image.relight',decision:'accept'|'reject'|'skip'):Review=>({id:id(1),run_id:id(2),kind,state:'decided',revision:2,candidate_hash:'a'.repeat(64),candidate:{artifact_id:id(3),sha256:'a'.repeat(64)},base:{artifact_id:id(4),sha256:'b'.repeat(64)},decision,decision_route:decision==='accept'?'candidate':decision==='reject'?'base':'skip',reasons:[],created_at:'2026-10-13T00:00:00Z'});
 
-it.each(['portrait.glare','portrait.open_eyes','image.reflection'] as const)('binds %s selected image to the human route',kind=>{
+it.each(['portrait.glare','portrait.open_eyes','image.reflection','image.relight'] as const)('binds %s selected image to the human route',kind=>{
  for(const decision of ['accept','reject','skip'] as const){
   const current=review(kind,decision),image=decision==='accept'?current.candidate:decision==='reject'?current.base:null;
   const raw={schema_version:1,review_id:current.id,decision_hash:'c'.repeat(64),route:current.decision_route,image};
@@ -28,6 +28,24 @@ it('uses only the decided restoration selection and preview routes',async()=>{
  ]);
  current.state='pending';current.revision=1;
  await expect(api.restorationResultSelection(current)).rejects.toThrow();
- expect(()=>api.restorationSelectedPreview(current,signal)).toThrow();
+ await expect(api.restorationSelectedPreview(current,signal)).rejects.toThrow();
+ expect(request).toHaveBeenCalledTimes(2);
+});
+
+
+it('uses relight bound selected-preview endpoints without accepting a pending decision',async()=>{
+ const current=review('image.relight','accept'),signal=new AbortController().signal;
+ const raw={schema_version:1,review_id:current.id,decision_hash:'c'.repeat(64),route:'candidate',image:current.candidate};
+ const request=vi.fn().mockResolvedValueOnce(raw).mockResolvedValueOnce({review_id:current.id});
+ const api=new OwnerAPI({request} as never,id(5));
+ expect((await api.restorationResultSelection(current)).image).toEqual(current.candidate);
+ await api.restorationSelectedPreview(current,signal);
+ expect(request.mock.calls.map(call=>call[0])).toEqual([
+  `/api/v1/tenants/${id(5)}/reviews/${current.id}/restoration-result-selection`,
+  `/api/v1/tenants/${id(5)}/reviews/${current.id}/restoration-selected-preview/preview1600`,
+ ]);
+ current.state='pending';current.revision=1;
+ await expect(api.restorationResultSelection(current)).rejects.toThrow();
+ await expect(api.restorationSelectedPreview(current,signal)).rejects.toThrow();
  expect(request).toHaveBeenCalledTimes(2);
 });

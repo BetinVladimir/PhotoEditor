@@ -20,6 +20,8 @@ func multiOriginals(t *testing.T) (PanoramaParams, [][]byte) {
 		t.Fatal(err)
 	}
 	p := PanoramaParams{SchemaVersion: 1, Frames: multiFrames(2), ReferenceOrdinal: 1, MaxPixels: 10000, Calibration: multiCalibration(), Projection: "planar"}
+	// The baseline covers opaque frames; alpha-specific cases add their own plane.
+	image.Alpha = nil
 	originals := make([][]byte, 2)
 	for i := range originals {
 		image.Pixels.ID = uuid.New()
@@ -89,7 +91,7 @@ func TestMultiOriginalsRefuseColorAndChildConflicts(t *testing.T) {
 			}
 			switch mode {
 			case "color":
-				second.Color.ICCSHA256 = p.Calibration.SHA256
+				second.Color.ICCSHA256 = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
 			case "child_digest":
 				second.Pixels.ID = first.Pixels.ID
 				second.Pixels.SHA256 = p.Calibration.SHA256

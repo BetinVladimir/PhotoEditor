@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"time"
 
 	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/domain"
@@ -23,6 +24,8 @@ type inspectedAsset struct {
 	Orientation int                `json:"orientation"`
 	ICCSHA256   *string            `json:"icc_sha256"`
 	Format      string             `json:"format"`
+	CapturedAt *string `json:"captured_at,omitempty"`
+	CapturedLocal *string `json:"captured_local,omitempty"`
 	Sensor      *struct {
 		CameraID     string `json:"camera_id"`
 		SensorWidth  int64  `json:"sensor_width"`
@@ -78,6 +81,9 @@ func ReadIngestMetadata(ctx context.Context, reader io.Reader, ref, source revie
 	if d.Source != source || d.Width < 1 || d.Height < 1 || d.Width > 200000000 || d.Height > 200000000 || d.Width*d.Height > 200000000 || (d.BitDepth != 8 && d.BitDepth != 16) || d.Orientation < 1 || d.Orientation > 8 {
 		return fail()
 	}
+	if d.CapturedAt!=nil&&d.CapturedLocal!=nil{return fail()}
+	if d.CapturedAt!=nil{parsed,e:=time.Parse("2006-01-02T15:04:05Z",*d.CapturedAt);if e!=nil||parsed.Year()<1||parsed.Format("2006-01-02T15:04:05Z")!=*d.CapturedAt{return fail()}}
+	if d.CapturedLocal!=nil{parsed,e:=time.Parse("2006-01-02T15:04:05",*d.CapturedLocal);if e!=nil||parsed.Year()<1||parsed.Format("2006-01-02T15:04:05")!=*d.CapturedLocal{return fail()}}
 	if d.ICCSHA256 != nil {
 		if _, err = domain.ParseDigest(*d.ICCSHA256); err != nil {
 			return fail()
@@ -98,5 +104,5 @@ func ReadIngestMetadata(ctx context.Context, reader io.Reader, ref, source revie
 		}
 		sensor = &SensorAlignment{CameraID: d.Sensor.CameraID, SensorWidth: d.Sensor.SensorWidth, SensorHeight: d.Sensor.SensorHeight, CropX: d.Sensor.CropX, CropY: d.Sensor.CropY, CropWidth: d.Sensor.CropWidth, CropHeight: d.Sensor.CropHeight, Orientation: 1}
 	}
-	return IngestMetadata{Source: d.Source, Width: d.Width, Height: d.Height, Orientation: d.Orientation, HasAlpha: d.HasAlpha, Format: d.Format, Sensor: sensor}, nil
+	return IngestMetadata{Source: d.Source, Width: d.Width, Height: d.Height, Orientation: d.Orientation, HasAlpha: d.HasAlpha, Format: d.Format, Sensor: sensor,CapturedAt:d.CapturedAt,CapturedLocal:d.CapturedLocal}, nil
 }

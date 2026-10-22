@@ -53,7 +53,7 @@ func (s SQLTransferSourceReader) marshalDetectorAdmissionEvidence(ctx context.Co
 	if err := verifyDetectorSourceInputPins(ctx, plan.prepared); err != nil {
 		return nil, err
 	}
-	selected, err := selectQualificationPolicies(plan.policy, []string{"face.detect"})
+	selected, err := selectNativeQualificationPolicies(plan.policy, []string{"face.detect"})
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func (s SQLTransferSourceReader) marshalPersonAdmissionEvidence(ctx context.Cont
 	if err := verifyPersonSourceInputPins(ctx, plan.prepared.catalog, plan.prepared.source); err != nil {
 		return nil, err
 	}
-	selected, err := selectQualificationPolicies(plan.policy, []string{"mask.person"})
+	selected, err := selectNativeQualificationPolicies(plan.policy, []string{"mask.person"})
 	if err != nil {
 		return nil, err
 	}

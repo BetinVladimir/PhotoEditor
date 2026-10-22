@@ -37,6 +37,7 @@ func (s SQLCandidatePreviewCatalog) Lookup(ctx context.Context, who auth.Identit
 	if err != nil {
 		return zero, err
 	}
+	legacyProfile,_:=media.LegacyProfileHash(variant,s.SRGBSHA)
 	var out CandidatePreviewObjects
 	err = tenant.WithTenant(ctx, s.DB, who, tid, domain.Editor, func(tx pgx.Tx, role domain.Role) error {
 		current, err := loadDecisionContext(ctx, tx, tid, reviewID, s.Bucket)
@@ -49,6 +50,7 @@ func (s SQLCandidatePreviewCatalog) Lookup(ctx context.Context, who auth.Identit
 		if _, err = project.Authorize(ctx, tx, tid, current.ProjectID, who.UserID, role, domain.Editor, false); err != nil {
 			return err
 		}
+		if err = requireRelightReadAuthority(ctx, tx, who, tid, reviewID, current.Kind); err != nil { return err }
 		source := current.Proposal
 		if side == "before" {
 			source = current.Image
@@ -58,12 +60,13 @@ func (s SQLCandidatePreviewCatalog) Lookup(ctx context.Context, who auth.Identit
 		originColumn, receiptColumn := candidatePreviewSQLColumns(current.Kind)
 		var manifestBucket, derivativeBucket string
 		err = tx.QueryRow(ctx, fmt.Sprintf(`SELECT m.id,m.sha256,m.bucket,m.object_key,m.object_version,m.bytes,m.media_type,
-   a.id,a.sha256,a.bucket,a.object_key,a.object_version,a.bytes,a.media_type
+   a.id,a.sha256,a.bucket,a.object_key,a.object_version,a.bytes,a.media_type,
+   receipt.body->'manifest'->>'profile_hash'
    FROM photo.backend_documents d JOIN photo.tasks t ON t.tenant_id=d.tenant_id AND t.id=d.owner_id AND t.run_id=d.run_id
    JOIN photo.runs r ON r.tenant_id=t.tenant_id AND r.id=t.run_id
    JOIN photo.tasks origin ON origin.tenant_id=r.tenant_id AND origin.id=%s
    JOIN photo.v2_workflows workflow ON workflow.tenant_id=origin.tenant_id AND workflow.run_id=origin.run_id
-   CROSS JOIN LATERAL (SELECT %s AS body) receipt
+   CROSS JOIN LATERAL (SELECT photo.v26_derivative_receipt_document(%s) AS body) receipt
    CROSS JOIN LATERAL jsonb_array_elements(receipt.body->'objects') mo
    CROSS JOIN LATERAL jsonb_array_elements(receipt.body->'objects') io
    JOIN photo.artifacts m ON m.tenant_id=d.tenant_id AND m.id::text=mo->>'artifact_id' AND m.sha256=mo->>'sha256'
@@ -85,7 +88,7 @@ func (s SQLCandidatePreviewCatalog) Lookup(ctx context.Context, who auth.Identit
    AND receipt.body->>'result_id'=t.canonical_result_id::text
    AND receipt.body->>'attempt'=t.attempt::text AND receipt.body->>'fence'=t.fencing_token::text
    AND receipt.body->'manifest'->'source'=jsonb_build_object('artifact_id',$2::text,'sha256',$3::text)
-   AND receipt.body->'manifest'->>'variant'=$4 AND receipt.body->'manifest'->>'profile_hash'=$5
+   AND receipt.body->'manifest'->>'variant'=$4 AND receipt.body->'manifest'->>'profile_hash'=ANY($5::text[])
    AND m.id::text=receipt.body->>'manifest_id'
    AND a.id::text=receipt.body->'manifest'->'derivative'->>'artifact_id'
    AND a.sha256=receipt.body->'manifest'->'derivative'->>'sha256'
@@ -100,17 +103,19 @@ func (s SQLCandidatePreviewCatalog) Lookup(ctx context.Context, who auth.Identit
    AND mu.bucket=m.bucket AND mu.object_key=m.object_key AND mu.sha256=m.sha256 AND mu.bytes=m.bytes AND mu.media_type=m.media_type AND mu.role=m.output_role
    AND iu.bucket=a.bucket AND iu.object_key=a.object_key AND iu.sha256=a.sha256 AND iu.bytes=a.bytes AND iu.media_type=a.media_type AND iu.role=a.output_role
    AND (m.expires_at IS NULL OR m.expires_at>clock_timestamp()) AND (a.expires_at IS NULL OR a.expires_at>clock_timestamp())
-   ORDER BY r.created_at DESC,t.id LIMIT 1`, originColumn, receiptColumn), tid, source.ID, source.SHA256, variant, profile, current.ProjectID, reviewID,
-			isRestoration, nodeKey, s.SRGBSHA, side).Scan(&out.Manifest.ID, &out.Manifest.SHA256, &manifestBucket, &out.ManifestObject.Key, &out.ManifestObject.VersionID, &out.ManifestObject.Bytes, &out.ManifestObject.ContentType, &out.Derivative.ID, &out.Derivative.SHA256, &derivativeBucket, &out.DerivativeObject.Key, &out.DerivativeObject.VersionID, &out.DerivativeObject.Bytes, &out.DerivativeObject.ContentType)
+   ORDER BY (receipt.body->'manifest'->>'profile_hash'=($5::text[])[1]) DESC,r.created_at DESC,t.id LIMIT 1`, originColumn, receiptColumn), tid, source.ID, source.SHA256, variant, []string{profile,legacyProfile}, current.ProjectID, reviewID,
+			isRestoration, nodeKey, s.SRGBSHA, side).Scan(&out.Manifest.ID, &out.Manifest.SHA256, &manifestBucket, &out.ManifestObject.Key, &out.ManifestObject.VersionID, &out.ManifestObject.Bytes, &out.ManifestObject.ContentType, &out.Derivative.ID, &out.Derivative.SHA256, &derivativeBucket, &out.DerivativeObject.Key, &out.DerivativeObject.VersionID, &out.DerivativeObject.Bytes, &out.DerivativeObject.ContentType,&out.ProfileHash)
 		if errors.Is(err, pgx.ErrNoRows) && candidatePreviewAssetFallbackAllowed(current.Kind, side) {
 			out, err = lookupCandidateAssetPreview(ctx, tx, tid, current.ProjectID, source, variant, profile, s.Bucket)
+			if errors.Is(err,pgx.ErrNoRows) {
+				out,err=lookupCandidateAssetPreview(ctx,tx,tid,current.ProjectID,source,variant,legacyProfile,s.Bucket)
+			}
 			return err
 		}
 		if err != nil {
 			return err
 		}
 		out.Source = source
-		out.ProfileHash = profile
 		out.ManifestObject.SHA256 = out.Manifest.SHA256
 		out.DerivativeObject.SHA256 = out.Derivative.SHA256
 		if err := validateCandidatePreviewObjects(out, manifestBucket, derivativeBucket, s.Bucket); err != nil {

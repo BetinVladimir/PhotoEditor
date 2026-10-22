@@ -59,7 +59,7 @@ func (f SQLImportEntryRecipeAuthorityFactory) ValidateImportRecipeInstallation(c
 			return err
 		}
 	}
-	if f.Codecs.DefectReview != nil && f.Codecs.DefectCandidates == nil {
+	if (f.Codecs.DefectReview != nil || f.Codecs.DefectProposeReport != nil) && f.Codecs.DefectCandidates == nil {
 		return v2input.ErrInvalid
 	}
 	if f.DustSensors != nil && f.Codecs.DustSeries != nil {

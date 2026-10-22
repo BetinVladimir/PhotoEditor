@@ -1,6 +1,7 @@
 package main
 
 import (
+ "photoeditor/backend/internal/database"
 	"context"
 	"errors"
 	"os"
@@ -54,6 +55,7 @@ func buildInterchangeCreateWithFactory(ctx context.Context, api *pgxpool.Pool, o
 		return nil, noop, errors.New("interchange scheduler configuration invalid")
 	}
 	config.ConnConfig.RuntimeParams["role"] = "photo_scheduler"
+	database.GuardApplicationRole(config)
 	config.ConnConfig.RuntimeParams["statement_timeout"] = "30000"
 	config.MaxConns = 4
 	config.MinConns = 0

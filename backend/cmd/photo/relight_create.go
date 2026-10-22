@@ -1,6 +1,7 @@
 package main
 
 import (
+ "photoeditor/backend/internal/database"
 	"context"
 	"errors"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -14,9 +15,15 @@ import (
 func buildRelightCreate(ctx context.Context, objects *objectstore.Store, bucket string) (httpapi.RelightSubmit, func(), error) {
 	noop := func() {}
 	path := os.Getenv("PHOTO_V28_RELIGHT_CONFIG")
-	if path == "" {
-		return nil, noop, nil
-	}
+ if path == "" {
+  dsn:=os.Getenv("V28_RELIGHT_SCHEDULER_DATABASE_URL")
+  if dsn=="" {return nil,noop,nil}
+  pool,err:=buildRelightReceiptReader(ctx,dsn,false)
+  if err!=nil {return nil,noop,err}
+  service,err:=v2portrait.NewRelightReceiptOnlyProjects(pool)
+  if err!=nil {pool.Close();return nil,noop,err}
+  return service,pool.Close,nil
+ }
 	dsn := os.Getenv("V28_RELIGHT_SCHEDULER_DATABASE_URL")
 	if dsn == "" {
 		return nil, noop, errors.New("relight scheduler configuration unavailable")
@@ -43,13 +50,14 @@ func buildRelightCreate(ctx context.Context, objects *objectstore.Store, bucket 
 		return nil, noop, errors.New("relight scheduler configuration invalid")
 	}
 	config.ConnConfig.RuntimeParams["role"] = "photo_scheduler"
+	database.GuardApplicationRole(config)
 	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
 		return nil, noop, errors.New("relight scheduler unavailable")
 	}
 	var role string
 	var installed bool
-	err = pool.QueryRow(ctx, `SELECT current_user,to_regprocedure('photo.create_v28_relight_initial_draft(uuid,uuid,uuid,uuid,text,jsonb,text)') IS NOT NULL AND to_regprocedure('photo.read_v28_relight_request_receipt(uuid,uuid,uuid,uuid,uuid,jsonb,jsonb)') IS NOT NULL AND to_regprocedure('photo.list_v28_relight_candidates(uuid,uuid,uuid,uuid,uuid,jsonb,text,uuid)') IS NOT NULL`).Scan(&role, &installed)
+	err = pool.QueryRow(ctx, `SELECT current_user,to_regprocedure('photo.create_v28_relight_initial_draft(uuid,uuid,uuid,uuid,text,jsonb,text)') IS NOT NULL AND to_regprocedure('photo.read_v28_relight_request_receipt(uuid,uuid,uuid,uuid,uuid,jsonb,jsonb)') IS NOT NULL AND to_regprocedure('photo.read_v28_relight_stored_request_outcome(uuid,uuid,uuid,uuid,uuid,jsonb)') IS NOT NULL AND to_regprocedure('photo.v32_relight_receipt_authored_config(jsonb)') IS NOT NULL AND to_regprocedure('photo.list_v28_relight_candidates(uuid,uuid,uuid,uuid,uuid,jsonb,text,uuid)') IS NOT NULL`).Scan(&role, &installed)
 	if err != nil || role != "photo_scheduler" || !installed {
 		pool.Close()
 		return nil, noop, errors.New("relight installation unavailable")

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "9785352a8fcb628361881595df51aa5f7158ffd6",
+  "source_commit": "1787516465261faf9bb332e353228cfbc6c33cd7",
   "method": "source inspection only; no tests, migrations, builds or runtime calls",
   "status_semantics": "declaration presence and known defects; all other behavioral links remain unproven",
   "operations": [
@@ -383,7 +383,7 @@
       "confirmed_code_gaps": [
         "D-01: proposed target lacks pre-Apply candidate/evidence presentation"
       ],
-      "platform_qualification_blocker": "D-04: semantic installation requires CUDA; no MPS positive path",
+      "platform_qualification_blocker": "D-04: mandatory MVP CUDA qualification on dedicated RTX",
       "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
     },
     {
@@ -519,7 +519,7 @@
         "backend/internal/v2portrait/restoration_draft_test.go"
       ],
       "confirmed_code_gaps": [],
-      "platform_qualification_blocker": "D-04: model installation permits CPU/CUDA GPU-class backend, not MPS",
+      "platform_qualification_blocker": "D-04: qualify CPU/CUDA deployment; MPS is not required for MVP",
       "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
     },
     {
@@ -581,7 +581,7 @@
         "backend/internal/v2draft/restoration_adoption_service_test.go"
       ],
       "confirmed_code_gaps": [],
-      "platform_qualification_blocker": "D-04: model installation permits CPU/CUDA GPU-class backend, not MPS",
+      "platform_qualification_blocker": "D-04: qualify CPU/CUDA deployment; MPS is not required for MVP",
       "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
     },
     {
@@ -1543,7 +1543,7 @@
         "backend/internal/v2region/region_seal_test.go"
       ],
       "confirmed_code_gaps": [],
-      "platform_qualification_blocker": "D-04: region renderer requires CUDA; no MPS positive path",
+      "platform_qualification_blocker": "D-04: mandatory MVP CUDA qualification on dedicated RTX",
       "remaining_static_review": "admission/authorization, exact runtime installation, result/adoption, UI/Apply and cleanup are not proved by literal matches"
     },
     {

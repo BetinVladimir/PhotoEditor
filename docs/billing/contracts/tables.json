@@ -1,0 +1,878 @@
+{
+  "schema_version": 1,
+  "stage": "catalog_scaffold",
+  "publication_gate": "closed_until_runtime_and_policy_migration",
+  "tables": [
+    {
+      "name": "billing_plans",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "revision",
+          "type": "bigint",
+          "nullable": false,
+          "default": "1"
+        },
+        {
+          "name": "code",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "name_key",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "description_key",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "is_public",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
+        },
+        {
+          "name": "self_service_enabled",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "nullable": false,
+          "default": "true"
+        },
+        {
+          "name": "sort_order",
+          "type": "integer",
+          "nullable": false
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "checks": [
+        "code ~ '^[a-z][a-z0-9_]{0,63}$'",
+        "code <> 'custom' OR (NOT is_public AND NOT self_service_enabled)",
+        "code <> 'studio_pro' OR NOT self_service_enabled",
+        "NOT self_service_enabled",
+        "revision > 0"
+      ],
+      "constraints": [
+        "UNIQUE(code)"
+      ],
+      "indexes": [],
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT"
+        ]
+      },
+      "rls": "force_no_runtime_policy"
+    },
+    {
+      "name": "billing_plan_versions",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "plan_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "version",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "catalog_scope",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "effective_from",
+          "type": "timestamptz",
+          "nullable": false
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "default": "'draft'"
+        },
+        {
+          "name": "policy_hash",
+          "type": "bytea",
+          "nullable": true
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "checks": [
+        "version > 0",
+        "catalog_scope IN ('sandbox','live')",
+        "status = 'draft'",
+        "policy_hash IS NULL OR octet_length(policy_hash)=32"
+      ],
+      "constraints": [
+        "FOREIGN KEY(plan_id) REFERENCES photo.billing_plans(id)",
+        "UNIQUE(plan_id,version,catalog_scope)",
+        "UNIQUE(id,catalog_scope)"
+      ],
+      "indexes": [],
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT"
+        ]
+      },
+      "rls": "force_no_runtime_policy"
+    },
+    {
+      "name": "billing_plan_prices",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "plan_version_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "catalog_scope",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "version",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "currency",
+          "type": "text",
+          "nullable": false,
+          "default": "'EUR'"
+        },
+        {
+          "name": "amount_net_minor",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "interval",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "tax_behavior",
+          "type": "text",
+          "nullable": false,
+          "default": "'exclusive'"
+        },
+        {
+          "name": "is_default",
+          "type": "boolean",
+          "nullable": false,
+          "default": "true"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "checks": [
+        "version > 0",
+        "amount_net_minor >= 0",
+        "currency = 'EUR'",
+        "interval IN ('once','month')",
+        "tax_behavior = 'exclusive'"
+      ],
+      "constraints": [
+        "FOREIGN KEY(plan_version_id,catalog_scope) REFERENCES photo.billing_plan_versions(id,catalog_scope)",
+        "UNIQUE(plan_version_id,version,currency,interval,catalog_scope)",
+        "UNIQUE(id,catalog_scope)"
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX billing_plan_price_default ON photo.billing_plan_prices(plan_version_id,currency,interval,catalog_scope) WHERE is_default"
+      ],
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT"
+        ]
+      },
+      "rls": "force_no_runtime_policy"
+    },
+    {
+      "name": "billing_resource_types",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "code",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "unit",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "value_type",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "nullable": false
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "checks": [
+        "code ~ '^[a-z][a-z0-9_.]{0,119}$'",
+        "unit IN ('credit','byte','count','enum')",
+        "kind IN ('consumable','capacity','policy')",
+        "value_type IN ('integer','enum')",
+        "(value_type='enum') = (unit='enum')",
+        "kind <> 'capacity' OR unit='byte'",
+        "kind <> 'consumable' OR value_type='integer'"
+      ],
+      "constraints": [
+        "UNIQUE(code)",
+        "UNIQUE(code,value_type)"
+      ],
+      "indexes": [],
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT"
+        ]
+      },
+      "rls": "force_no_runtime_policy"
+    },
+    {
+      "name": "billing_plan_limits",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "plan_version_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "resource_code",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "value_type",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "integer_value",
+          "type": "bigint",
+          "nullable": true
+        },
+        {
+          "name": "enum_value",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "grant_period",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "rollover_periods",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "checks": [
+        "(value_type='integer' AND integer_value IS NOT NULL AND enum_value IS NULL) OR (value_type='enum' AND integer_value IS NULL AND enum_value IS NOT NULL)",
+        "integer_value IS NULL OR integer_value>=0",
+        "enum_value IS NULL OR length(enum_value) BETWEEN 1 AND 120",
+        "grant_period IN ('once','month','none')",
+        "rollover_periods IN (0,1)",
+        "resource_code <> 'retention_mode' OR enum_value='manual'",
+        "rollover_periods=0 OR (resource_code='standard_photo' AND grant_period='month')"
+      ],
+      "constraints": [
+        "FOREIGN KEY(plan_version_id) REFERENCES photo.billing_plan_versions(id)",
+        "FOREIGN KEY(resource_code,value_type) REFERENCES photo.billing_resource_types(code,value_type)",
+        "UNIQUE(plan_version_id,resource_code)"
+      ],
+      "indexes": [],
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT"
+        ]
+      },
+      "rls": "force_no_runtime_policy"
+    },
+    {
+      "name": "billing_topup_offers",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "plan_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "catalog_scope",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "offer_code",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "version",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "resource_code",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "quantity",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "amount_net_minor",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "currency",
+          "type": "text",
+          "nullable": false,
+          "default": "'EUR'"
+        },
+        {
+          "name": "billing_kind",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "interval",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "ttl_days",
+          "type": "integer",
+          "nullable": true
+        },
+        {
+          "name": "expiry_policy",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "bundled_egress_bytes",
+          "type": "bigint",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "checks": [
+        "catalog_scope IN ('sandbox','live')",
+        "version>0",
+        "quantity>0",
+        "amount_net_minor>=0",
+        "currency='EUR'",
+        "bundled_egress_bytes>=0",
+        "NOT is_active",
+        "(billing_kind='recurring_capacity' AND interval='month' AND expiry_policy='none' AND ttl_days IS NULL AND resource_code='storage_bytes') OR (billing_kind='one_time_credit' AND interval='once' AND bundled_egress_bytes=0 AND resource_code<>'storage_bytes' AND ((expiry_policy='fixed_ttl' AND ttl_days>0) OR (expiry_policy='period_end' AND ttl_days IS NULL)))",
+        "expiry_policy <> 'fixed_ttl' OR ttl_days IS NOT NULL"
+      ],
+      "constraints": [
+        "FOREIGN KEY(plan_id) REFERENCES photo.billing_plans(id)",
+        "FOREIGN KEY(resource_code) REFERENCES photo.billing_resource_types(code)",
+        "UNIQUE(plan_id,offer_code,version,catalog_scope)",
+        "UNIQUE(id,catalog_scope)"
+      ],
+      "indexes": [
+        "CREATE INDEX billing_topup_plan_active ON photo.billing_topup_offers(plan_id,is_active)"
+      ],
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT"
+        ]
+      },
+      "rls": "force_no_runtime_policy"
+    },
+    {
+      "name": "billing_provider_accounts",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "revision",
+          "type": "bigint",
+          "nullable": false,
+          "default": "1"
+        },
+        {
+          "name": "provider",
+          "type": "text",
+          "nullable": false,
+          "default": "'stripe'"
+        },
+        {
+          "name": "environment",
+          "type": "text",
+          "nullable": false,
+          "default": "'test'"
+        },
+        {
+          "name": "catalog_scope",
+          "type": "text",
+          "nullable": false,
+          "default": "'sandbox'"
+        },
+        {
+          "name": "external_account_id",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "sandbox_reference",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "api_version",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "webhook_format",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "checks": [
+        "provider='stripe'",
+        "environment='test'",
+        "catalog_scope='sandbox'",
+        "external_account_id ~ '^acct_[A-Za-z0-9]+$'",
+        "length(api_version) BETWEEN 1 AND 80",
+        "webhook_format IN ('snapshot','thin')",
+        "NOT enabled",
+        "sandbox_reference IS NULL OR length(sandbox_reference) BETWEEN 1 AND 200",
+        "revision > 0"
+      ],
+      "constraints": [
+        "UNIQUE NULLS NOT DISTINCT(provider,environment,external_account_id,sandbox_reference)",
+        "UNIQUE(id,catalog_scope)"
+      ],
+      "indexes": [],
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT"
+        ]
+      },
+      "rls": "force_no_runtime_policy"
+    },
+    {
+      "name": "billing_provider_prices",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "provider_account_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "catalog_scope",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "price_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "offer_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "external_product_id",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "external_price_id",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "verified_at",
+          "type": "timestamptz",
+          "nullable": false
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "checks": [
+        "(price_id IS NULL) <> (offer_id IS NULL)",
+        "external_product_id ~ '^prod_[A-Za-z0-9]+$'",
+        "external_price_id ~ '^price_[A-Za-z0-9]+$'"
+      ],
+      "constraints": [
+        "FOREIGN KEY(provider_account_id,catalog_scope) REFERENCES photo.billing_provider_accounts(id,catalog_scope)",
+        "FOREIGN KEY(price_id,catalog_scope) REFERENCES photo.billing_plan_prices(id,catalog_scope)",
+        "FOREIGN KEY(offer_id,catalog_scope) REFERENCES photo.billing_topup_offers(id,catalog_scope)",
+        "UNIQUE(provider_account_id,external_price_id)"
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX billing_provider_plan_binding ON photo.billing_provider_prices(provider_account_id,price_id) WHERE price_id IS NOT NULL",
+        "CREATE UNIQUE INDEX billing_provider_offer_binding ON photo.billing_provider_prices(provider_account_id,offer_id) WHERE offer_id IS NOT NULL"
+      ],
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT"
+        ]
+      },
+      "rls": "force_no_runtime_policy"
+    },
+    {
+      "name": "billing_operation_policies",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "operation_code",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "operation_version",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "charge_context",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "policy_version",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "billing_class",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "resource_code",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "units_per_success",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "success_contract",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "rerun_policy",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "beta_budget",
+          "type": "bigint",
+          "nullable": true
+        },
+        {
+          "name": "effective_from",
+          "type": "timestamptz",
+          "nullable": false
+        },
+        {
+          "name": "benchmark_ref",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "policy_snapshot_hash",
+          "type": "bytea",
+          "nullable": false
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "checks": [
+        "policy_version>0",
+        "charge_context IN ('standard_root','standalone','preview','internal')",
+        "billing_class IN ('included_standard','paid_operation','free_beta','disabled')",
+        "units_per_success>=0",
+        "beta_budget IS NULL OR beta_budget>=0",
+        "octet_length(policy_snapshot_hash)=32",
+        "rerun_policy IN ('standard_window','none')",
+        "billing_class <> 'paid_operation' OR (resource_code IS NOT NULL AND resource_code LIKE 'operation.%' AND units_per_success>0 AND benchmark_ref IS NOT NULL AND length(benchmark_ref)>0 AND length(success_contract)>0)",
+        "billing_class='paid_operation' OR units_per_success=0",
+        "billing_class<>'free_beta' OR beta_budget IS NOT NULL"
+      ],
+      "constraints": [
+        "FOREIGN KEY(operation_code,operation_version) REFERENCES photo.operation_registry(operation,version)",
+        "FOREIGN KEY(resource_code) REFERENCES photo.billing_resource_types(code)",
+        "UNIQUE(operation_code,operation_version,charge_context,policy_version)"
+      ],
+      "indexes": [],
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT"
+        ]
+      },
+      "rls": "force_no_runtime_policy"
+    },
+    {
+      "name": "billing_admission_policies",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "resource_code",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "policy_version",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "chunk_quantity",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "lease_seconds",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "cache_ttl_seconds",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "optimistic_allowance",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "max_local_leases",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "cold_timeout_ms",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "checks": [
+        "policy_version>0",
+        "chunk_quantity>0",
+        "lease_seconds BETWEEN 1 AND 3600",
+        "cache_ttl_seconds BETWEEN 1 AND lease_seconds",
+        "optimistic_allowance>=0 AND optimistic_allowance<=chunk_quantity",
+        "max_local_leases BETWEEN 1 AND 16",
+        "cold_timeout_ms BETWEEN 1 AND 10000",
+        "NOT enabled"
+      ],
+      "constraints": [
+        "FOREIGN KEY(resource_code) REFERENCES photo.billing_resource_types(code)",
+        "UNIQUE(resource_code,policy_version)"
+      ],
+      "indexes": [],
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT"
+        ]
+      },
+      "rls": "force_no_runtime_policy"
+    }
+  ]
+}

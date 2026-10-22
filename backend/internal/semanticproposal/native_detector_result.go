@@ -23,15 +23,19 @@ type nativeDetectorResultCatalog struct {
 // Catalog identity is tied to the retained parent plan, not a caller-selected
 // source-wide latest detector. This read is preflight, never admission authority.
 func (s SQLTransferSourceReader) nativeDetectorResultCatalog(ctx context.Context, who auth.Identity, plan detectorDraftPlan) (nativeDetectorResultCatalog, error) {
+	if _, err := s.recompileDetectorDraftPlan(ctx, who, plan); err != nil {
+		return nativeDetectorResultCatalog{}, err
+	}
+	return s.nativeDetectorResultCatalogCurrent(ctx, who, plan)
+}
+
+func (s SQLTransferSourceReader) nativeDetectorResultCatalogCurrent(ctx context.Context, who auth.Identity, plan detectorDraftPlan) (nativeDetectorResultCatalog, error) {
 	var zero nativeDetectorResultCatalog
 	if err := verifyDetectorPlanSeal(ctx, plan); err != nil {
 		return zero, err
 	}
 	if s.DB == nil {
 		return zero, v2input.ErrInvalid
-	}
-	if _, err := s.recompileDetectorDraftPlan(ctx, who, plan); err != nil {
-		return zero, err
 	}
 	task, err := plan.prepared.frozen.DraftTask()
 	if err != nil {
@@ -100,12 +104,12 @@ type completedNativeDetector struct {
 	objects                        [2]defectEvidenceObject
 }
 
-func (s SQLTransferSourceReader) readCompletedDetectorPreparation(ctx context.Context, who auth.Identity, plan detectorDraftPlan, color TransferColorProfile) (completedNativeDetector, error) {
+func (s SQLTransferSourceReader) readCompletedDetectorPreparationUncached(ctx context.Context, who auth.Identity, plan detectorDraftPlan, color TransferColorProfile) (completedNativeDetector, error) {
 	var zero completedNativeDetector
 	if err := verifyDetectorPlanSeal(ctx, plan); err != nil {
 		return zero, err
 	}
-	selected, err := selectQualificationPolicies(plan.policy, []string{"face.detect"})
+	selected, err := selectNativeQualificationPolicies(plan.policy, []string{"face.detect"})
 	if err != nil {
 		return zero, err
 	}
@@ -159,10 +163,10 @@ func (s SQLTransferSourceReader) readCompletedDetectorPreparation(ctx context.Co
 	if err != nil {
 		return zero, err
 	}
-	if boxes.Backend != "cuda" || boxes.ModelLockID != expected.ModelLockSHA {
+	if boxes.Backend != expected.Backend || boxes.ModelLockID != expected.ModelLockSHA {
 		return zero, v2input.ErrInvalid
 	}
-	current, err := s.nativeDetectorResultCatalog(ctx, who, plan)
+	current, err := s.nativeDetectorResultCatalogCurrent(ctx, who, plan)
 	if err != nil {
 		return zero, err
 	}

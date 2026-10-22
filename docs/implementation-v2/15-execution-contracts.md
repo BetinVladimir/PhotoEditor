@@ -2,6 +2,10 @@
 
 Этот документ уточняет 02, 09, 10 и 13. Поля определены JSON Schema; алгоритмы фотоопераций — в [16](16-imaging-algorithms.md), транзакционные границы — в [17](17-integration-security.md). Обязательны обе части, а не только DTO. Ограничение 5000 означает максимальное число кадров одного workflow; фактический запрос также обязан проходить byte/resource limits.
 
+## Generic acceptance retention
+
+Обязателен [MVP contract хранения generic idempotency receipts](generic-idempotency-retention-contract.md): completed identity/fingerprint/response сохраняются до tenant purge; expires_at не разрешает повторную admission. Specialized pending, one-use и OTP TTL определяются собственными контрактами.
+
 ## Artifact closure и привязка к исходнику
 
 `ResolveInputs(params, principal) -> FrozenInputs` выполняется до admission. VersionBinding.source — canonical WorkingImage artifact данной asset_version, а не encoded RAW. Его Canvas.source_sha256 указывает исходный content SHA. Сравнивать binding.canvas_hash с JCS(Canvas), а source.sha256 — с байтами документа WorkingImage. Оригинал и его content SHA разрешаются сервером через asset lineage. В задаче эта информация уже заморожена; worker не ищет её в БД.
@@ -3255,3 +3259,157 @@ V30 routed review uses `executeInterchangeReview` with a durable journal and `in
 ### V25 immutable RAW selection at re-pick (authored, tests not run)
 
 The import picker compares a selected file to paused/error uploads using name, size, last-modified time and SHA-256, then also requires the exact frozen RAW development fields (including decoder version). A different policy, including switching between explicit and legacy development, refuses the re-pick rather than silently resuming an earlier Begin under changed controls or creating an ambiguous duplicate. Raster uploads compare no RAW policy. More than one matching resumable record refuses as ambiguous. Both conflicts have localized recovery guidance; the original durable record can still be resumed or cancelled through its row. This is client identity fencing; it does not establish decoder qualification or physical camera-image acceptance.
+
+
+## Восстановление legacy image generation в MVP
+
+Нормативное уточнение действующего `POST /api/v1/tenants/{t}/generations`: [generation-recovery.json](contracts/generation-recovery.json). Необязательный `Generation-Replay-Only: true` повторяет исходные body/key и запрещает новое admission при отсутствии сохранённого receipt (`GENERATION_REPLAY_PENDING`,409). Заголовок не меняет fingerprint; другое непустое значение отклоняется422. CORS разрешает его только в рамках существующих configured-origin правил. Receipt replay не проверяет старую draft revision/наличие worker повторно, но обязательно повторяет live tenant/session/source/project authority после ожидания блокировки.02417 использует текущее время срока сессии; миграция ещё не запускалась.
+
+Клиент сохраняет uncertain/accepted попытку при сетевой ошибке и не создаёт новую генерацию при ошибке чтения результата. `failed`/`cancelled` допускают явное подтверждение исхода с повторным чтением того же run перед очисткой журнала. `completed_with_errors` сначала отдаёт доступные derivative варианты; подтверждение неудачи допустимо только при повторно подтверждённом отсутствии таких результатов. Смена экрана/background отменяет чтение и не позволяет позднему ответу изменить новый scope. Сценарии написаны, runtime acceptance остаётся следующей фазе.
+
+
+Неопределённую receipt-less попытку пользователь может прекратить через `POST /api/v1/tenants/{t}/generations/abandon` с исходными `GenerateRequest` и ключом. Этот endpoint использует тот же scope `Generation.CreateCandidate` и блокировку idempotency, поэтому конкурирующие admission и отказ сериализованы. Уже принятый запуск возвращается202 без отмены; клиент сохраняет receipt и читает результат. При отсутствии admission сервер фиксирует200 `{status:"abandoned",key}` и не допускает последующее создание генерации под этим ключом. Tombstone хранится до tenant purge (`expires_at` год9999); ключ не переиспользуется. Отказ не требует availability worker, текущей draft revision или валидности параметров нового admission, но требует canonical fingerprint и действующего доступа к исходнику до/после ожидания. Только подтверждённый matching-key ответ очищает uncertain journal; ошибки связи/прав/валидации и поздние ответы после background/scope change его сохраняют. Это прекращение ещё не принятого запроса; принятый run возвращается для восстановления.
+
+## Relight: восстановление подтверждения без нового admission
+
+POST `relight-intents` и `relight-analyses` принимают необязательный заголовок `Relight-Replay-Only: true`. Отсутствие заголовка сохраняет обычный режим; любое другое значение, повторный заголовок или список значений отклоняется422. Body, tenant/project, actor/session и Idempotency-Key остаются исходными. CORS разрешает этот заголовок.
+
+В replay-only coordinator выполняет обычное авторизованное чтение exact receipt. Найденное подтверждение возвращается202 с прежними run/workflow; только подтверждённое отсутствие возвращает410 без CreateDraft, PrepareParams, PublishTransport или Admit. Отказ в доступе и конфликт запроса не превращаются в отсутствие. Replay не даёт права worker исполнять работу: действующие source/qualification проверки сохраняются.
+
+Статус реализации этого дополнения: серверные guards и OwnerAPI transport option написаны; UI подключён для сохранённых uncertain попыток при недоступной capability. Возвращение capability во время journal IO не повышает replay-only до нового admission; отказ/отсутствие не очищает попытку. Восстановление при замене project provider и квалифицированные fixture трассы ещё не закрыты. Выполнение сценариев отложено до этапа тестирования.
+
+
+Для `relight-intents` production project dispatch сначала читает exact request receipt через `read_v28_relight_stored_request_outcome`: qualification pin берётся только из сохранённого run.config_snapshot. Клиент не выбирает pin. Внутренний strict reader повторяет request/project/actor/session binding, source/qualification/closure validation. Только явное отсутствие допускает обычный поиск текущего service; replay-only при отсутствии завершается без нового admission. Миграция02420 forward-only. Восстановление сохранённого analysis plan реализовано02421 и production project dispatch; данный пункт не закрывает весь04.4.1. Сценарии не запускались.
+
+
+`relight-analyses` восстанавливает receipt по сохранённому plan независимо от текущих runtime pins установленного project provider. Run ID вычисляется из прежних tenant/project/actor/operation/key. SQL сопоставляет полный публичный intent(snapshot/base/operation/schema), текущие actor/session и scope с persisted config, затем выполняет strict validator02419 со stored plan. Go проверяет канонический полный receipt и ожидаемые run/workflow/task/identity/operation. Это read-only acknowledgement, не запуск и не разрешение на исполнение. Startup без deployment services устанавливает receipt-only provider при наличии dedicated scheduler DSN; квалифицированные replay/startup fixtures и итоговая трасса остаются открытыми04.4.1.
+
+
+Миграция02423 исправляет границу V32 scheduling metadata и V28 exact request binding. Только внешнее поле `queue_class="interactive"` исключается из сравнения авторского config в strict request outcome и историческом request receipt. Исторический config без queue_class сохраняется. Любое другое значение queue_class или лишнее авторское поле не игнорируется и приводит к отказу/конфликту. Stored-pin recovery наследует это правило через strict reader. Нормализатор private для fn owner; scheduler не имеет прямого EXECUTE. Startup relight/receipt-only проверяет наличие нормализатора, не разрешая запуск нового recovery wiring до установки исправления. Написаны13 metadata/privacy сценариев; миграции и сценарии не запускались.
+
+## Apply v4: качество после изменения геометрии
+
+После `composition_review` quality проверяет exact immutable WorkingImage выбранного `candidate` либо `base` (включая `skip`, разрешающий исходный base) через `apply_v4_candidate_outputs` под текущим lease. Cardinality, уникальность item_id и exact artifact ID/SHA обязательны; canvas, transform chain и pixels принадлежат этому принятому документу. Это provenance anchor, не self-baseline. Crop и outpaint поступают через один review resolver, независимо от operation producer.
+
+MAE/PSNR исходника и crop/outpaint нельзя вычислять по одинаковым индексам пикселей: координаты/область различаются. В данном Apply-контуре protected masks не передаются и reference MAE/PSNR являются только информационными, не критериями `_decision`. Поэтому composition, как существующий upscale, использует технический master_v1 gate без pixel baseline. Все thresholds finite/clipping/sharpness сохраняются; обязательный composition review не обходится. Это не доказательство perceptual similarity или сохранности защищённых областей: будущие protected masks требуют явного геометрического преобразования и отдельного reference contract, нельзя передавать исходную маску как совместимую.
+
+При отсутствии composition/upscale сохраняется source/body baseline и строгая проверка совпадения canvas/transform chain. Resource estimate quality вычисляется по фактическому final canvas, включая расширенный outpaint/upscale, а не по исходным размерам.
+
+
+### Apply regional corrections: exact mask binding (2026-10-17)
+
+Apply admission merges style, job and source-bound overrides before deriving regional requirements. Nonempty person/background rules require the qualified person-mask stage, including mask.transform after body geometry. Local task params bind each effective region_id to the exact current person probability mask; background uses explicit invert=true and computes its complement per tile. Inversion is valid only for a background rule over an unprotected person mask. Low-confidence automatic masks retain the worker's explicit review/skip outcome.
+
+Skin/sky/clothing/manual rules require one confirmed region_adjustment override binding with identical binding_id and selector, unprotected mask and confidence at least0.75. Editor and Apply repeat the existing canonical interactive mask provenance for the same source asset version; regional use additionally requires the ready, unexpired exact producer attempt/fence. A saved override is not current source authority. Unavailable bindings refuse admission; external masks combined with body warp pass through the exact existing mask.transform stage before local correction. At most120 distinct external mask artifacts reserve room for the task's other declared inputs; all local inputs are deduplicated and remain bounded at128. Regional masks are included in declared local task inputs. New purpose and optional invert field are reflected in checked-in contracts. Scenarios authored only; SQL/runtime/image qualification remains deferred.
+
+
+Apply mask.transform now carries optional regional source bindings and publishes one canonical TransformedMask root with transformed regional entries. Each external probability mask uses the same exact body inverse field, target canvas/chain and RGB guide as the person mask. Sources are source-version-approved, unprotected and confidence>=0.75; region IDs are unique. Masks sharing an exact pixel artifact are transformed once, while selector/object identity/confidence/model-lock metadata remain attached to each original region. Processing is sequential with bounded scratch and cancellation checks, and all original mask/inverse-field/guide refs are declared inputs. Local validates the canonical root's original region Params, target and retained metadata before using transformed refs. The wire128-output limit bounds body correction to62 distinct external pixel masks (person2 + regional124 + root1); up to128 region rules can share those masks. Old no-region transform Params/results omit the new fields. Tests authored only; real dense-warp/photo quality and SQL/current-build execution remain deferred.
+
+
+Regional mask.transform admission uses a dedicated sequential resource profile. Output budget includes all distinct transformed array/PNG pairs and the canonical root; scratch covers target RGB, inverse field, source probabilities and bounded intermediate files instead of multiplying RAM by the region count. Forward-only02444 raises the installed mask.transform v1 timeout to the existing SQL maximum7200 seconds; operations.json matches it. Real maximum-size batch duration remains a deferred qualification gate, not a timing claim. Migration NOT APPLIED; tests NOT RUN.
+
+### Apply generation inference steps (coding, unverified)
+
+StyleV2 `generation.steps` admits an integer from 1 through 50. Apply v4 preserves that exact value in both the background-generation and explicit generation task Params. GenerationParams, the Diffusers adapter call, and GenerationReport retain the same value; no silent substitution with 25 is allowed. The scheduler remains `ddim_v1`, source/protection masks and photographer review remain mandatory. Outpaint has its separate fixed 25-step contract. The range does not establish photographic quality or hardware performance qualification: current-build tests and runtime qualification remain deferred. Regression sources: `backend/internal/run/apply_v4_test.go` and `workers/tests/test_generation_steps.py`; authored, NOT RUN.
+
+### Apply body geometry with authored portrait/protection masks (coding, unverified)
+
+`mask.transform` batch entries additionally carry an optional `purpose`, defaulting to `region_adjustment`. Supported portrait purposes mirror the editor allowlist: teeth, sclera, shine, under-eye, cloth and glasses; `protected` denotes an independently retained protection probability. Each mask follows the same exact body inverse field and target canvas/chain. Protected masks require `protected=true`, retain their original confidence and are never complemented, unioned into target masks, or dropped by a synthetic confidence threshold. Pixel-equivalent aliases may share transformed artifacts while retaining their independent purpose, selector, confidence and protection metadata. Regional adjustments retain the existing unprotected selector/confidence rules.
+
+Admission revalidates approved source artifacts against the same source asset version, canonical producer attempt/fence and lifetime. The whole body-transform batch has at most 62 unique external mask artifacts. Portrait detail consumes canonical transformed bindings anchored to the exact geometry WorkingImage, preserves the transform task prerequisite, and repeats source/purpose/identity/protection checks. Unrelated override purposes are excluded from portrait consumer validation. Authored regression coverage includes `backend/internal/workflow/apply_regions_test.go`, `tests/platform/test_mask_transform_adapter.py` and `tests/platform/test_mask_transform_batch_outputs.py`; tests NOT RUN. Whole Apply remains open for conservative-auto defect/dust policies, culling/selection contract reconciliation, photographic/runtime qualification is deferred separately. Creative inpaint/generation targets additionally use the same batch mapping (manual selectors only); creative consumers validate the canonical single-item geometry target before retaining mandatory confirmation and protection checks.
+
+### Portable asset background Apply stages (coding, unverified)
+
+Apply resolves background `asset_id` through the existing accepted-style `style_asset_bindings` authority using `SQLBackgroundAssetResolver.ResolveTx` in the admission transaction. Editor project ACL, exact accepted style/export hash, canonical imported asset registration, object version, lifetime, verified bytes and permitted raster MIME remain mandatory. The immutable Apply config freezes style version/style artifact, portable ID, source artifact/SHA, byte count and suffix; it never stores a user URL.
+
+V4 appends item stages `background_inspect` (`asset.inspect` → metadata), `background_decode` (`asset.decode` → WorkingImage), then `background` (`background.compose`). Decoder resource limits use canonical source-bound dimensions before allocation, permit at most 200 million pixels and 512 MiB input, and reserve source/output/Params scratch. Composition verifies decoded source SHA, float32, exact working ICC/profile/encoding equality with the edited image, absent background alpha, and canonical same-item producer bindings. Alpha backgrounds are explicitly unsupported, matching the existing V2 normalizer; no implicit flattening occurs. The raster decoder preserves orientation and uses the pinned local ICC registry. Untagged images require a separately specified assumed profile; this style contract provides none, so a missing ICC fails explicitly rather than silently assigning one.
+
+Forward-only migration `02447_apply_portable_background_stages.sql` extends the installed v4 plan operation allowlist with asset inspect/decode and the separately implemented automatic defect/dust repair operations. Existing node registration already checks exact stage operation/cardinality; task/output contracts remain the existing registered asset operations. Tests: `backend/internal/workflow/apply_background_asset_test.go`, existing portable background resolver ACL integration scenarios, `tests/integration/test_apply_portable_background_stages.py`. NOT RUN; migration NOT APPLIED.
+
+Generation additionally preserves the full StyleV2 prompt/negative prompt limit of 2000 Unicode characters, empty prompts, guidance from 0 through 20, and authored strength from 0 through 1. Strength controls the transferred model delta before feathered masked composition; zero retains the original source and one applies the full generated delta. Params and GenerationReport retain the exact strength. Outpaint retains its separate existing contract. This specifies effect strength without changing protection, alpha or photographer confirmation.
+
+### Apply culling: source-bound ranking and photographer selection
+
+Coding contract (runtime qualification remains deferred): enabled `culling` runs
+`features.scene` DINO on each exact snapshot WorkingImage, then
+`collection.features` binds its normalized embedding and exact `color.stats`
+measurements to that same image and item. pHash uses 32×32 grayscale DCT (top
+8×8, median excluding DC); sharpness is grayscale Laplacian variance on a
+preview of at most 1024 pixels per side; blur is `1/(1+1000*sharpness)`; clipping
+is the measured fraction of RGB pixels having a channel at zero or one.
+Capture time is absent unless an approved source supplies it; no time or eye
+observation is invented. Derived eye state is `unknown` and every selected
+image requires explicit photographer eye confirmation.
+
+Immutable feature packs contain at most 80 complete features and their exact
+producer refs. A 5,000-item selection therefore has at most 63 pack inputs per
+aggregate task, below the 128-input transport ceiling. Grouping retains the
+existing complete-link scene/group algorithm and adds cancellation checkpoints;
+its bounded CPU timeout is 7200 seconds. Group/recommendation documents permit
+8 MiB, while individual feature/pack documents retain the 1 MiB limit.
+
+Order: mask → stats (also in fixed mode) → resolve → embedding → measurements →
+packs → grouping → recommendations → persisted `culling` review → rendering →
+quality → adoption. A missing culling target recommends all source items;
+`target_count` above source count is clamped to the source count. Count/fraction
+are mutually exclusive. Recommendations never mutate the input snapshot or
+remove source assets. The photographer's dedicated decision stores sorted unique
+`selected_item_ids`, `confirmed_eyes_item_ids` and `never_delete:true`. Pending
+review blocks the scheduler. Only selected items are adopted into the output
+collection; nonselected items remain intact. Cancellation and stale lease or
+snapshot pins reject review transitions. Whole-module integration, image
+ranking quality, Metal/CUDA and 5,000-item performance remain test-phase gates;
+these authored paths and tests are not historical PASS evidence.
+
+Apply series aggregation now supports the full frozen 5,000-item snapshot using
+`series.pack` batches of at most 80 exact `series.measure` results. Each batch
+contains the source ArtifactRef and its validated immutable SeriesStats; the
+aggregate reads only declared batch objects (at most 63) and performs no nested
+undeclared downloads. Legacy direct `stats` remains supported by the worker;
+`stats` and `stats_batches` are mutually exclusive. Corrections retain the exact
+existing reference medoid, robust fit, confidence, residual improvement, clipping
+and ±0.35 EV / 0.95–1.05 gain bounds. Runtime/model/device qualification fields
+and final worker authorization for `series.balance` remain intact. Full reports
+allow 8 MiB and the CPU task timeout is 7200 seconds; cancellation checkpoints
+remain in medoid comparison and fitting. Actual 5,000-image performance and
+pixel quality are deferred to the test phase, not asserted by source changes.
+
+### Apply plan contract versions and accepted runs
+
+Migration 02455 pins existing Apply builds to plan contract 1 and defaults new
+builds to contract 2. Registered stage order, approved Params, plan hash and input
+snapshot are never rewritten. The scheduler reloads exact saved stages before
+building or adopting. Runnable contract-1 series plans keep their direct-stat
+builder for at most 128 source inputs; contract-2 plans use bounded packs.
+
+Affected predicate for an explicit restart diagnostic: contract version 1,
+nonterminal Apply v4, and either effective culling enabled without a saved
+`cull_review` human barrier, or effective series enabled with more than 128 source
+items and no saved `series_pack` stage. Effective module precedence is job override,
+per-image override, then the frozen analysis graph when present. These runs
+request normal cancellation with `APPLY_PLAN_RESTART_REQUIRED` and an exact reason,
+then use existing task fencing/cancellation, quota release and temporary artifact
+GC. The API returns the diagnostic in run errors. The photographer may start a
+new run explicitly; no automatic retry, snapshot replacement, source deletion or
+silent replan occurs. Runtime deployment/migration and resume/cancel regressions
+remain unexecuted until the agreed test phase.
+
+## Output cleanup retry holding
+
+При повторе после output allocations применяется [контракт удержания квоты](output-cleanup-retry-holding-contract.md): renewal существующего live reservation до bounded cleanup grace, без новой capacity и revival истёкшего резерва. Это исправление открытых P0.6.04/P0.6.06, не evidence выполненных проверок.
+
+
+### Internal Editor CPU operation activation (02547)
+
+`editor.effects_seal` and `editor.layers_precompose` are private required V2 operations. Installed SQL authority and live deployment activation are separate. Runtime startup probes `editor_internal_dispatch_installed(operation)` before mounting: exact registry CPU/routing/timeout/backend, reachable output-role policies, exact origin/worker/adoption/coordinator function signatures with owner/SECDEF/search_path and role boundaries. The probe deliberately does not require v2_enabled, avoiding enable→mount→qualification circularity. Seal mounts on CPU; precompose mounts only with the real installed CPU NativeRenderInstallation. Existing startup compares registered operations with actually mounted executors before starting heartbeats.
+
+After the actual executable runtime registration and fresh worker/node heartbeat exist, maintenance explicitly calls `configure_editor_internal_dispatch(tenant_id,worker_id,operation,true)`. Activation refuses absent installed authority, inactive tenant, foreign/disabled/stale worker, wrong CPU qualification/backend/class, stale/disabled node or worker_authorized refusal. This is deployment registration evidence, not photographic quality evidence. No worker/API/scheduler can set activation. Maintenance may revoke with false; no migration unconditionally enables or disables a previously running operation. Capability, dispatch and claim include both operations in their activation inventory. Their exact origin/Params/canonical-result/adoption predicates remain mandatory; registry activation never replaces source authority. Mounting alone does not change the flag.
+
+
+### Optional shared CPU/archive physical capacity (implementation, not deployed)
+
+`runtime/shared_capacity.py` and WorkerConfig support explicit `PHOTO_SHARED_CAPACITY_PARENT`, `PHOTO_SHARED_CAPACITY_RAM_BYTES`, `PHOTO_SHARED_CAPACITY_IDLE_MARGIN_BYTES`, `PHOTO_SHARED_CAPACITY_CONFIG_SHA256`. All four must be present together. This mode is restricted to CPU backend with resource_class cpu/archive and both installed policy RAM caps equal to the configured parent budget. The canonical config hash pins parent/budget/margin/policy reference as an operator launch check; existing database policy hash does not attest the parent configuration.
+
+Before worker startup and on each report, validate genuine unified cgroup2 membership, strict ancestor of current process, no symlinks, trusted root/euid ownership and no group/world write, exact numeric memory.max and memory.swap.max=0. Reject path/membership/limit drift. Sample RAM as min(actual host availability, parent maximum minus current usage minus explicit idle margin), clamped at zero; do not infer shared headroom from an archive child limit. Scratch/VRAM and default individual CPU/CUDA/Metal reporting stay unchanged. SQL reservations remain an additional conservative aggregate bound.
+
+This implementation alone does not enable shared deployment. Required gates: guarded attachment of a distinct archive identity/class/queue to the existing physical node; explicit reviewed policy rotation; real parent cgroup placement and limits for both workers; measured idle margin; actual target Doctor; cross-class concurrent reservation tests and genuine queued ZIP/download acceptance. No parent, registration, policy, or live runtime has been changed by the source implementation. Root independent checks: 155 tests PASS, work/rtx-archive-permanent-r1/root-sampler-review.json.

@@ -6,6 +6,7 @@ import (
     "crypto/sha256"
     "encoding/hex"
     "errors"
+    "fmt"
     "strings"
     "testing"
     "github.com/google/uuid"
@@ -18,6 +19,29 @@ type archivePublicationRow struct{}
 func (archivePublicationRow) Scan(values ...any) error { *(values[0].(*bool)) = true; return nil }
 type archivePublicationDB struct{}
 func (archivePublicationDB) QueryRow(context.Context, string, ...any) pgx.Row { return archivePublicationRow{} }
+
+func TestArchiveMaterializeRejectsOversizedInputsBeforeSQL(t *testing.T) {
+    registry, err := LoadRegistry(); if err != nil { t.Fatal(err) }
+    entries := make([]DownloadArchiveEntry, MaxDownloadArchiveInputs)
+    for i := range entries { entries[i] = DownloadArchiveEntry{Ordinal:int64(i),Artifact:review.ArtifactRef{ID:uuid.New(),SHA256:strings.Repeat("a",64)},Bytes:1,EntryName:fmt.Sprintf("%04d.jpg",i),ProducerTask:uuid.New()} }
+    run := uuid.New()
+    nodes,err:=CompileDownloadArchives(DownloadArchiveSpec{RunID:run,SnapshotID:uuid.New(),SnapshotDigest:strings.Repeat("b",64),Volumes:[]DownloadArchiveVolume{{Number:1,Entries:entries}}},registry)
+    if err!=nil {t.Fatal(err)}
+    sum:=sha256.Sum256(nodes[0].Params)
+    valid,err:=PrepareDownloadArchiveTask(PublishedDownloadArchive{Node:nodes[0],Params:review.ArtifactRef{ID:uuid.New(),SHA256:hex.EncodeToString(sum[:])}})
+    if err!=nil {t.Fatal(err)}
+    for _,count:=range []int{512,513} {
+        task:=valid
+        task.Inputs=append([]review.ArtifactRef(nil),valid.Inputs...)
+        if count==513 {task.Inputs=append(task.Inputs,review.ArtifactRef{ID:uuid.New(),SHA256:strings.Repeat("c",64)})}
+        task.InputDigest,err=repairInputDigest(task.Operation,task.Version,task.Params,task.Inputs)
+        if err!=nil {t.Fatal(err)}
+        calls:=0
+        repository:=DownloadArchiveTaskRepository{DB:archiveRegistrationCallbackDB{callback:func(context.Context,string,...any)pgx.Row {calls++;return archivePublicationRow{}}}}
+        ok,err:=repository.Materialize(context.Background(),uuid.New(),run,task)
+        if count==512 {if !ok || err!=nil || calls!=1 {t.Fatal("valid boundary refused",ok,err,calls)}} else if ok || err==nil || calls!=0 {t.Fatal("oversized inventory reached SQL",ok,err,calls)}
+    }
+}
 type archivePublicationCallback func(context.Context, artifactjson.Scope, []byte) (artifactjson.Ref, error)
 func (f archivePublicationCallback) Publish(ctx context.Context, scope artifactjson.Scope, body []byte) (artifactjson.Ref, error) { return f(ctx, scope, body) }
 

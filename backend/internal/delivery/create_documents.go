@@ -74,7 +74,7 @@ func(i CreateIntent)projectCreateDocuments(ctx context.Context,whoSession uuid.U
 		if err := ctx.Err(); err != nil {
 			return CreateDocuments{}, err
 		}
-		if preset.ID != ids[index] || !shaPattern.MatchString(preset.SHA256) || digest(preset.ConfigJCS) != preset.SHA256 {
+		if (i.request.ExpectedPresetSHA != nil && i.request.ExpectedPresetSHA[preset.ID] != preset.SHA256) || preset.ID != ids[index] || !shaPattern.MatchString(preset.SHA256) || digest(preset.ConfigJCS) != preset.SHA256 {
 			return invalid()
 		}
 		var config exportpreset.Config

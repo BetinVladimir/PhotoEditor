@@ -14,13 +14,13 @@ import (
 // preparatory only; model/policy and every task-input pin still need SQL locks.
 type sourceDetectorPreparation struct {
 	legacyTargetQueueOmitted bool
-	costs         v2input.SemanticQualifiedCosts
-	parent        uuid.UUID
-	document      uuid.UUID
-	inputs        string
-	qualification detectorQualificationProof
-	frozen        v2input.FrozenSemanticDetectorTask
-	source        sourcePreparationProof
+	costs                    v2input.SemanticQualifiedCosts
+	parent                   uuid.UUID
+	document                 uuid.UUID
+	inputs                   string
+	qualification            detectorQualificationProof
+	frozen                   v2input.FrozenSemanticDetectorTask
+	source                   sourcePreparationProof
 }
 
 // prepareSourceDetectorTask verifies actual original RGB/alpha/geometry and ICC
@@ -39,7 +39,7 @@ func (s SQLTransferSourceReader) prepareSourceDetectorTask(ctx context.Context, 
 		return zero, v2input.ErrInvalid
 	}
 	expected = ownQualificationExpected(expected)
-	if expected.Operation != "face.detect" || expected.Version != "1" || expected.Backend != "cuda" || catalog == nil {
+	if expected.Operation != "face.detect" || expected.Version != "1" || (expected.Backend != "cuda" && expected.Backend != "mps") || catalog == nil {
 		return zero, v2qualification.ErrUnqualified
 	}
 	_, source, err := s.readQualifiedSourcePreparationProof(ctx, who, tenantID, binding, color, true)

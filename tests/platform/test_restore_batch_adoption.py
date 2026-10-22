@@ -28,7 +28,7 @@ def test_batch_ticket_requires_independent_registered_graph(monkeypatch,mode):
             queries.append(q);row=None
             if q.startswith('SELECT current_database'):row=('foreign' if mode=='foreign_database' else 'isolated',True)
             elif q.startswith('SELECT EXISTS'):
-                assert params[0]==child and params[5]==batch and params[12]==str(session)
+                assert params[0]==child and params[5]==batch and params[11]==str(session)
                 row=(mode!='missing_graph',)
             return NS(fetchone=lambda:row)
     def scope(*args):

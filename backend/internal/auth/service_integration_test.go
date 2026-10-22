@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"photoeditor/backend/internal/database"
 )
 
 func testService(t *testing.T) *Service {
@@ -20,11 +21,14 @@ func testService(t *testing.T) *Service {
 		t.Skip("requires isolated PostgreSQL fixture")
 	}
 	ctx := context.Background()
-	cfg, err := pgxpool.ParseConfig(dsn)
+	runtimeDSN := os.Getenv("PHOTO_TEST_RUNTIME_DATABASE_URL")
+	if runtimeDSN == "" { t.Fatal("isolated nonprivileged auth runtime connection required") }
+	cfg, err := pgxpool.ParseConfig(runtimeDSN)
 	if err != nil {
 		t.Fatal(err)
 	}
 	cfg.ConnConfig.RuntimeParams["role"] = "photo_auth"
+	database.GuardApplicationRole(cfg)
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		t.Fatal(err)

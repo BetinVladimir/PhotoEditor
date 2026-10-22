@@ -25,7 +25,7 @@ def test_invalid_config_never_silently_normalizes(change):
     value = fixture()
     if change == 'quality': value['quality'] = 101
     elif change == 'alpha': value['alpha'] = 'preserve'
-    elif change == 'metadata': value['metadata_policy'] = 'copyright'
+    elif change == 'metadata': value['metadata_policy'] = 'all'
     elif change == 'size': value['size']['width'] = 100
     elif change == 'unknown': value['extra'] = True
     elif change == 'null': value['watermark'] = None
@@ -44,3 +44,11 @@ def test_preserve_png_has_no_matte_or_quality_fields():
 
 def test_duplicate_keys_refused():
     with pytest.raises(ValueError): validate_frozen_export_preset(b'{"format":"jpeg","format":"png"}')
+
+
+@pytest.mark.parametrize('policy',['strip','copyright','approved_exif'])
+def test_exact_supported_go_metadata_policies_are_preserved(policy):
+    value=fixture();value['metadata_policy']=policy
+    raw=canonical_bytes(value)
+    validate_frozen_export_preset(raw)
+    assert canonical_bytes(value)==raw

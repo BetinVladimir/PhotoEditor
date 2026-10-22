@@ -89,18 +89,18 @@ func TestRepairDocumentRejectsUnboundSelections(t *testing.T) {
 				mask.Protected = false
 			case "geometry":
 				mask.Canvas.Width++
-   case "nil-rejected":
-    s.Rejected = nil
-   case "revision-one":
-    s.Revision = 1
-   case "revision-overflow":
-    s.Revision = maxRevision+1
-   case "invalid-id":
-    s.Accepted = []string{"not-a-hash"}
+			case "nil-rejected":
+				s.Rejected = nil
+			case "revision-one":
+				s.Revision = 1
+			case "revision-overflow":
+				s.Revision = maxRevision + 1
+			case "invalid-id":
+				s.Accepted = []string{"not-a-hash"}
 			case "colliding-ref":
 				resolved.ID = p.ref.ID
 			}
-			if variant != "sha" {
+			if variant != "sha" && variant != "revision-overflow" {
 				r.SHA256 = selectionDigest(t, s)
 			}
 			if _, err := BuildRepairDocument(p, s, r, resolved, p.document.Image, mask, nil); err == nil {

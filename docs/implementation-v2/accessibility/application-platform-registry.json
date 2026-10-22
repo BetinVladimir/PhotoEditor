@@ -1,0 +1,5475 @@
+{
+  "schema": 1,
+  "criteria_catalog": "wcag22-aa-criteria.json",
+  "route_inventory": "route-inventory.json",
+  "native_inventory": "native-screen-state-inventory.json",
+  "criterion_results": {
+    "PASS": 0,
+    "FAIL": 0,
+    "NOT_APPLICABLE": 0,
+    "NOT_TESTED": 880
+  },
+  "policies": {
+    "NA": "Only reviewed content/process applicability with evidence; no automatic N/A for CLI/media absence",
+    "PASS": "Requires actual supported-platform process evidence; source/unit checks alone insufficient",
+    "support": "Explicitly confirm supported platforms before release; untested inventory not new support claim",
+    "typography": "product minimum16CSSpxbody/14secondary separate from WCAG criteria"
+  },
+  "profiles": [
+    {
+      "id": "photographer-macos",
+      "application": "photographer",
+      "platform": "macOS",
+      "interface": "WEB",
+      "support_declaration": "TO_CONFIRM; inventory is not a support promise",
+      "test_stack": "Chrome and Safari plus VoiceOver",
+      "status": "NOT_TESTED",
+      "criteria": [
+        {
+          "id": "1.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.10",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.12",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.13",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "id": "photographer-windows",
+      "application": "photographer",
+      "platform": "Windows",
+      "interface": "WEB",
+      "support_declaration": "TO_CONFIRM; inventory is not a support promise",
+      "test_stack": "supported browser plus NVDA",
+      "status": "NOT_TESTED",
+      "criteria": [
+        {
+          "id": "1.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.10",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.12",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.13",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "id": "photographer-linux",
+      "application": "photographer",
+      "platform": "Linux",
+      "interface": "WEB",
+      "support_declaration": "TO_CONFIRM; inventory is not a support promise",
+      "test_stack": "declared browser/AT combination required",
+      "status": "NOT_TESTED",
+      "criteria": [
+        {
+          "id": "1.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.10",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.12",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.13",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "id": "portal-macos",
+      "application": "portal",
+      "platform": "macOS",
+      "interface": "WEB",
+      "support_declaration": "TO_CONFIRM; inventory is not a support promise",
+      "test_stack": "Chrome and Safari plus VoiceOver",
+      "status": "NOT_TESTED",
+      "criteria": [
+        {
+          "id": "1.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.10",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.12",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.13",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "id": "portal-windows",
+      "application": "portal",
+      "platform": "Windows",
+      "interface": "WEB",
+      "support_declaration": "TO_CONFIRM; inventory is not a support promise",
+      "test_stack": "supported browser plus NVDA",
+      "status": "NOT_TESTED",
+      "criteria": [
+        {
+          "id": "1.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.10",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.12",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.13",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "id": "portal-linux",
+      "application": "portal",
+      "platform": "Linux",
+      "interface": "WEB",
+      "support_declaration": "TO_CONFIRM; inventory is not a support promise",
+      "test_stack": "declared browser/AT combination required",
+      "status": "NOT_TESTED",
+      "criteria": [
+        {
+          "id": "1.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.10",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.12",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.13",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "id": "local-editor-desktop-macos",
+      "application": "local-editor-desktop",
+      "platform": "macOS",
+      "interface": "NATIVE_QT",
+      "support_declaration": "TO_CONFIRM; inventory is not a support promise",
+      "test_stack": "Qt accessibility bridge plus actual platform AT",
+      "status": "NOT_TESTED",
+      "criteria": [
+        {
+          "id": "1.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.10",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.12",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.13",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "id": "local-editor-desktop-windows",
+      "application": "local-editor-desktop",
+      "platform": "Windows",
+      "interface": "NATIVE_QT",
+      "support_declaration": "TO_CONFIRM; inventory is not a support promise",
+      "test_stack": "Qt accessibility bridge plus actual platform AT",
+      "status": "NOT_TESTED",
+      "criteria": [
+        {
+          "id": "1.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.10",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.12",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.13",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "id": "local-editor-desktop-linux",
+      "application": "local-editor-desktop",
+      "platform": "Linux",
+      "interface": "NATIVE_QT",
+      "support_declaration": "TO_CONFIRM; inventory is not a support promise",
+      "test_stack": "Qt accessibility bridge plus actual platform AT",
+      "status": "NOT_TESTED",
+      "criteria": [
+        {
+          "id": "1.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.10",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.12",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.13",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "id": "local-editor-cli-macos",
+      "application": "local-editor-cli",
+      "platform": "macOS",
+      "interface": "TERMINAL",
+      "support_declaration": "TO_CONFIRM; inventory is not a support promise",
+      "test_stack": "accessible terminal plus platform AT; WCAG2ICT applicability review required",
+      "status": "NOT_TESTED",
+      "criteria": [
+        {
+          "id": "1.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.10",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.12",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.13",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "id": "local-editor-cli-windows",
+      "application": "local-editor-cli",
+      "platform": "Windows",
+      "interface": "TERMINAL",
+      "support_declaration": "TO_CONFIRM; inventory is not a support promise",
+      "test_stack": "accessible terminal plus platform AT; WCAG2ICT applicability review required",
+      "status": "NOT_TESTED",
+      "criteria": [
+        {
+          "id": "1.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.10",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.12",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.13",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "id": "local-editor-cli-linux",
+      "application": "local-editor-cli",
+      "platform": "Linux",
+      "interface": "TERMINAL",
+      "support_declaration": "TO_CONFIRM; inventory is not a support promise",
+      "test_stack": "accessible terminal plus platform AT; WCAG2ICT applicability review required",
+      "status": "NOT_TESTED",
+      "criteria": [
+        {
+          "id": "1.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.10",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.12",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.13",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "id": "studio-agent-cli-macos",
+      "application": "studio-agent-cli",
+      "platform": "macOS",
+      "interface": "TERMINAL",
+      "support_declaration": "TO_CONFIRM; inventory is not a support promise",
+      "test_stack": "accessible terminal plus platform AT; WCAG2ICT applicability review required",
+      "status": "NOT_TESTED",
+      "criteria": [
+        {
+          "id": "1.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.10",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.12",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.13",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "id": "studio-agent-cli-windows",
+      "application": "studio-agent-cli",
+      "platform": "Windows",
+      "interface": "TERMINAL",
+      "support_declaration": "TO_CONFIRM; inventory is not a support promise",
+      "test_stack": "accessible terminal plus platform AT; WCAG2ICT applicability review required",
+      "status": "NOT_TESTED",
+      "criteria": [
+        {
+          "id": "1.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.10",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.12",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.13",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "id": "studio-agent-cli-linux",
+      "application": "studio-agent-cli",
+      "platform": "Linux",
+      "interface": "TERMINAL",
+      "support_declaration": "TO_CONFIRM; inventory is not a support promise",
+      "test_stack": "accessible terminal plus platform AT; WCAG2ICT applicability review required",
+      "status": "NOT_TESTED",
+      "criteria": [
+        {
+          "id": "1.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.10",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.12",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.13",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "id": "admin-exposed-surfaces",
+      "application": "admin/operator",
+      "platform": "TO_INVENTORY",
+      "interface": "UNRESOLVED",
+      "support_declaration": "No dedicated frontend found; actual exposed third-party panels must be inventoried",
+      "status": "NOT_TESTED",
+      "criteria": [
+        {
+          "id": "1.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.2.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.3.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.10",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.12",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "1.4.13",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.1.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.5",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.4.11",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "2.5.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.2.6",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.1",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.4",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.7",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "3.3.8",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.2",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        },
+        {
+          "id": "4.1.3",
+          "status": "NOT_TESTED",
+          "applicability": "UNASSESSED",
+          "evidence": []
+        }
+      ]
+    }
+  ]
+}

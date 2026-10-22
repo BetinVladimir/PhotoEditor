@@ -1,6 +1,7 @@
 package workflow
 
 import (
+	"photoeditor/backend/internal/media"
 	"context"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -47,6 +48,8 @@ func (c PerspectivePreviewCoordinator) Prepare(ctx context.Context, tenant, prod
 	if err != nil {
 		return zero, err
 	}
+	policy,err:=media.PolicyForPreview(ctx,c.DB,tenant,plan.run,producer);if err!=nil{return zero,err}
+	plan,err=CompilePerspectivePreviewPlan(bundle,c.SRGBSHA,policy);if err!=nil{return zero,err}
 	store := PerspectivePreviewIntentStore{DB: c.DB}
 	if receipt, found, err := store.ReadReceipt(ctx, plan); err != nil {
 		return zero, err

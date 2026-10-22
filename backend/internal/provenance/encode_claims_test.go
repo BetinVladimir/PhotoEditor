@@ -13,7 +13,7 @@ import (
 	"photoeditor/backend/internal/objectstore"
 	"photoeditor/backend/internal/review"
 	"photoeditor/backend/internal/v2input"
-	"photoeditor/backend/internal/workflow"
+	workflow "photoeditor/backend/internal/encodecontract"
 )
 
 type signingDocumentsFunc func(context.Context, auth.Identity, ReadySigningExport, CanonicalSigningTask, v2input.Ref, int) ([]byte, error)

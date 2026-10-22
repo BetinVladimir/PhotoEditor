@@ -19,3 +19,21 @@ it('clears confirmed attempt after disposal while retaining a newer attempt unde
 it('explicit comparison preserves untouched current fields and retains partial local changes without writing',async()=>{const {p,store}=setup();await p.load();await p.changed({...local,name:session.name,neighbors:String(session.policy.neighbor_count),gap:'-',cameraId:'partial'});const current={...session,revision:'4',name:'Server rename',policy:{...session.policy,neighbor_count:8,protect_manual_picks:false,camera_offsets:[{camera_hash:'b'.repeat(64),seconds:10}]}};const next=new SessionPolicyPersistence(store,current);await next.load();const merged=next.restoreCompared();expect(merged).toMatchObject({name:'Server rename',neighbors:'8',protect:false,gap:'-',cameraId:'partial',offsets:[{camera_hash:'b'.repeat(64),seconds:'10'}]});expect((await store.read())?.base_revision).toBe('3');await next.changed(merged);expect((await store.read())?.base_revision).toBe('4');});
 
 it('rejects invalid attempts before pinning so corrected input can be admitted',async()=>{const {p,store}=setup();await p.load();await p.changed(local);const request={expected_revision:'3',name:'Updated',state:'open' as const,policy:session.policy,capture_policy:null};await expect(p.prepare(request,'invalid')).rejects.toThrow('ATTEMPT_INVALID');expect((await store.read())?.attempt).toBeUndefined();await p.prepare(request,id(9));expect((await store.read())?.attempt?.key).toBe(id(9));});
+
+it('rejects stale draft writes over an uncertain lifecycle attempt',async()=>{
+ const {store}=setup(),request={expected_revision:'3',name:session.name,state:'closed' as const,policy:session.policy,capture_policy:null};
+ const record={schema_version:1 as const,session_id:session.id,base_revision:'3',name:session.name,policy:session.policy,uncertain:true,attempt:{key:id(9),request},saved_at:Date.now()};
+ await store.reserveLifecycle(record);
+ const stale={...record,uncertain:false};delete (stale as Partial<typeof record>).attempt;
+ await expect(store.write(stale)).rejects.toThrow('ATTEMPT_CHANGED');
+ expect((await store.read())?.attempt?.key).toBe(id(9));
+ await store.write(stale,id(9));expect((await store.read())?.attempt).toBeUndefined();
+});
+
+it('does not let stale field cleanup delete a reserved lifecycle request',async()=>{
+ const {store}=setup();const request={expected_revision:'3',name:session.name,state:'closed' as const,policy:session.policy,capture_policy:null};
+ await store.reserveLifecycle({schema_version:1,session_id:session.id,base_revision:'3',name:session.name,policy:session.policy,uncertain:true,attempt:{key:id(9),request},saved_at:Date.now()});
+ await expect(store.clear()).rejects.toThrow('ATTEMPT_CHANGED');
+ expect((await store.read())?.attempt?.key).toBe(id(9));
+ await store.clear(id(9));expect(await store.read()).toBeNull();
+});

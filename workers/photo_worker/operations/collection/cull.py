@@ -1,4 +1,5 @@
 import math
+from .feature_inputs import load_features
 import numpy as np
 from photo_worker.contracts.base import canonical_bytes
 from photo_worker.contracts.collection import CullItem,CullParams,CullRecommendations,SceneFeatures,SceneGroups
@@ -13,8 +14,8 @@ def _normalize(values):
 def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
     if ctx.lease.execution_profile.get('backend')!='cpu':raise OperationFailure('CONFIG_INVALID')
     try:
-        p=artifacts.params(CullParams);groups=artifacts.contract(p.groups,SceneGroups);features=[artifacts.contract(r,SceneFeatures) for r in p.features];by={f.item_id:f for f in features}
-        if set(by)!={i.item_id for i in groups.items} or {(i.feature.artifact_id,i.feature.sha256) for i in groups.items}!={(r.artifact_id,r.sha256) for r in p.features}:raise ValueError('Cull feature binding mismatch')
+        p=artifacts.params(CullParams);groups=artifacts.contract(p.groups,SceneGroups);feature_refs,features=load_features(artifacts,p,ctx.check_active);by={f.item_id:f for f in features}
+        if set(by)!={i.item_id for i in groups.items} or {(i.feature.artifact_id,i.feature.sha256) for i in groups.items}!={(r.artifact_id,r.sha256) for r in feature_refs}:raise ValueError('Cull feature binding mismatch')
         if not set(p.manual_picks+p.intentional_closed)<=set(by):raise ValueError('Unknown cull override')
     except ValueError as exc:raise OperationFailure('INPUT_INVALID') from exc
     scene_items={}

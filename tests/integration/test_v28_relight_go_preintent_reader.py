@@ -1,4 +1,5 @@
 """Original documents read before any relight intent, using actual Go/SQL/S3."""
+from physical_go_child_evidence import run_evidenced_go
 from pathlib import Path
 from io import BytesIO
 from uuid import uuid4
@@ -49,5 +50,5 @@ def test_go_preintent_original_documents(database,lens_objects,tmp_path,kind):
     seed_file.write_text(json.dumps(dict(tenant=str(tenant),project=str(scope['project']),snapshot=str(scope['snapshot']),actor=str(scope['actor']),session=str(scope['session']),kind='manual_guard' if 'external' in kind else kind.removesuffix('_full'),params=params,source=source,original=original.decode(),original_id=str(retained['params']),external='external' in kind,full=kind.endswith('_full'))))
     credentials=client._provider.retrieve()
     env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_TEST_RELIGHT_PREINTENT_SEED=str(seed_file),PHOTO_TEST_MINIO_URL='http://'+client._base_url.host,PHOTO_TEST_MINIO_BUCKET=bucket,PHOTO_TEST_MINIO_ACCESS=credentials.access_key,PHOTO_TEST_MINIO_SECRET=credentials.secret_key,GOCACHE=str(ROOT/'work/go-cache'))
-    result=subprocess.run(['go','test','./internal/v2portrait','-run','^TestIntegrationRelightPreintentReader$','-count=1','-timeout=60s','-v'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=90)
+    result=run_evidenced_go(['go','test','./internal/v2portrait','-run','^TestIntegrationRelightPreintentReader$','-count=1','-timeout=60s','-v'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=90)
     assert result.returncode==0,result.stdout+result.stderr

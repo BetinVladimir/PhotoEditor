@@ -16,8 +16,13 @@ import (
 // This is preflight only; qualification, RGB/ICC closure and transaction locks
 // remain mandatory before admission. Failure returns no partial metadata/counts.
 func (s SQLTransferSourceReader) ReadFaceParsePreparation(ctx context.Context, who auth.Identity, tenantID uuid.UUID, binding v2input.SessionVersionBinding, parse v2input.Ref) (review.FaceLabels19, [19]int64, error) {
-	fail := func(err error) (review.FaceLabels19, [19]int64, error) {
-		return review.FaceLabels19{}, [19]int64{}, err
+	labels, counts, _, err := s.readFaceParsePreparationPinned(ctx, who, tenantID, binding, parse)
+	return labels, counts, err
+}
+
+func (s SQLTransferSourceReader) readFaceParsePreparationPinned(ctx context.Context, who auth.Identity, tenantID uuid.UUID, binding v2input.SessionVersionBinding, parse v2input.Ref) (review.FaceLabels19, [19]int64, defectEvidenceObject, error) {
+	fail := func(err error) (review.FaceLabels19, [19]int64, defectEvidenceObject, error) {
+		return review.FaceLabels19{}, [19]int64{}, defectEvidenceObject{}, err
 	}
 	parser, err := s.facePreparationObjects(ctx, who, tenantID, binding, parse, "face.parse")
 	if err != nil {
@@ -117,5 +122,5 @@ func (s SQLTransferSourceReader) ReadFaceParsePreparation(ctx context.Context, w
 	if err := ctx.Err(); err != nil {
 		return fail(err)
 	}
-	return labels, counts, nil
+	return labels, counts, pixels, nil
 }

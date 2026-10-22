@@ -1,0 +1,55 @@
+# Explicit Lens opt-in; no generated registry, photographic qualification or pins.
+# Supply existing regular registry bytes and the accepted ICC manifest/profiles.
+x-lens-registry: &lens-registry
+  type: bind
+  source: ${PHOTO_LENS_REGISTRY_HOST_FILE:?absolute qualified registry file required}
+  target: /run/photo/lens/registry.json
+  read_only: true
+  bind:
+    create_host_path: false
+x-lens-icc: &lens-icc
+  type: bind
+  source: ${PHOTO_LENS_ICC_HOST_DIR:?absolute accepted ICC bundle directory required}
+  target: /run/photo/lens/icc
+  read_only: true
+  bind:
+    create_host_path: false
+services:
+  api:
+    environment:
+      DATABASE_URL: ${PHOTO_LENS_API_DATABASE_URL:?least-privileged photo_api login required}
+      PHOTO_ICC_ROOT: /run/photo/lens/icc
+      PHOTO_V25_LENS_REGISTRY: /run/photo/lens/registry.json
+      PHOTO_V25_LENS_REGISTRY_SHA256: ${PHOTO_LENS_REGISTRY_SHA256:?operator raw registry SHA required}
+      PHOTO_V25_LENS_POLICY_SHA256: ${PHOTO_LENS_POLICY_SHA256:?accepted capacity policy SHA required}
+      PHOTO_V25_LENS_RAM_BYTES: ${PHOTO_LENS_RAM_BYTES:?positive qualified Lens RAM budget required}
+      PHOTO_V25_LENS_SCRATCH_BYTES: ${PHOTO_LENS_SCRATCH_BYTES:?positive qualified Lens scratch budget required}
+      PHOTO_V25_LENS_OUTPUT_BYTES: ${PHOTO_LENS_OUTPUT_BYTES:?positive qualified Lens output budget required}
+      V25_LENS_SCHEDULER_DATABASE_URL: ${PHOTO_LENS_SCHEDULER_DATABASE_URL:?least-privileged photo_scheduler login required}
+    volumes:
+      - *lens-registry
+      - *lens-icc
+  scheduler:
+    environment:
+      DATABASE_URL: ${PHOTO_LENS_SCHEDULER_DATABASE_URL:?least-privileged photo_scheduler login required}
+      PHOTO_ICC_ROOT: /run/photo/lens/icc
+    volumes:
+      - *lens-icc
+  worker-cpu:
+    environment:
+      DATABASE_URL: ${PHOTO_LENS_WORKER_DATABASE_URL:?least-privileged photo_worker login required}
+      PHOTO_LENS_REGISTRY: /run/photo/lens/registry.json
+      PHOTO_LENS_REGISTRY_SHA256: ${PHOTO_LENS_REGISTRY_SHA256:?operator raw registry SHA required}
+      PHOTO_ICC_ROOT: /run/photo/lens/icc
+    volumes:
+      - *lens-registry
+      - *lens-icc
+  v2-adopter:
+    environment:
+      DATABASE_URL: ${PHOTO_LENS_SCHEDULER_DATABASE_URL:?least-privileged photo_scheduler login required}
+      PHOTO_ADOPTER_V25_LENS_PREVIEW_ENABLED: "true"
+      # ICCRegistry derives and verifies working_rec2020/sRGB SHA pins from the
+      # same immutable accepted manifest used by API/scheduler/native preview.
+      PHOTO_ICC_ROOT: /run/photo/lens/icc
+    volumes:
+      - *lens-icc

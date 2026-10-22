@@ -1,0 +1,2378 @@
+{
+  "schema": 1,
+  "authority": "CURRENT-SCOPE.md",
+  "scope": "font size and text/control contrast only",
+  "logical_displayed_screens": 44,
+  "historical_full_wcag_results_unchanged": true,
+  "requirements": {
+    "body_input_min_px": 16,
+    "secondary_min_px": 14,
+    "ordinary_text_contrast": 4.5,
+    "large_text_contrast": 3.0,
+    "applicable_control_contrast": 3.0
+  },
+  "measurement_fields": [
+    "platform",
+    "route",
+    "state",
+    "locale",
+    "theme",
+    "element",
+    "font_size",
+    "foreground",
+    "background",
+    "contrast_ratio",
+    "evidence"
+  ],
+  "screens": [
+    {
+      "application": "photographer",
+      "route": "/[locale]/capture/[id]",
+      "source": "apps/photographer/screens/capture/[id].tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/capture",
+      "source": "apps/photographer/screens/capture/index.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/collections/[id]/apply",
+      "source": "apps/photographer/screens/collections/[id]/apply.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/collections/[id]",
+      "source": "apps/photographer/screens/collections/[id]/index.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/collections/[id]/lens",
+      "source": "apps/photographer/screens/collections/[id]/lens.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/collections/[id]/multi",
+      "source": "apps/photographer/screens/collections/[id]/multi.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/deliveries/[id]",
+      "source": "apps/photographer/screens/deliveries/[id].tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/deliveries",
+      "source": "apps/photographer/screens/deliveries/index.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/deliveries/new",
+      "source": "apps/photographer/screens/deliveries/new.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/editor/[version]",
+      "source": "apps/photographer/screens/editor/[version].tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/exports",
+      "source": "apps/photographer/screens/exports/index.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/exports/sign",
+      "source": "apps/photographer/screens/exports/sign.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/imports/new",
+      "source": "apps/photographer/screens/imports/new.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]",
+      "source": "apps/photographer/screens/index.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/interchange/[id]",
+      "source": "apps/photographer/screens/interchange/[id].tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/interchange/format",
+      "source": "apps/photographer/screens/interchange/format.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/interchange/import-format",
+      "source": "apps/photographer/screens/interchange/import-format.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/interchange/masks/[id]",
+      "source": "apps/photographer/screens/interchange/masks/[id].tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/interchange/new",
+      "source": "apps/photographer/screens/interchange/new.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/interchange/prepare",
+      "source": "apps/photographer/screens/interchange/prepare.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/interchange/prepared/[id]",
+      "source": "apps/photographer/screens/interchange/prepared/[id].tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/interchange/upload",
+      "source": "apps/photographer/screens/interchange/upload.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/login",
+      "source": "apps/photographer/screens/login.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "PARTIALLY_TESTED",
+      "measurements": [
+        {
+          "platform": "web",
+          "route": "/en/login",
+          "state": "initial",
+          "locale": "en",
+          "theme": "dark",
+          "element": "Русский",
+          "font_size": 16.0,
+          "foreground": "rgb(238, 238, 238)",
+          "background": "rgb(34, 34, 34)",
+          "contrast_ratio": 13.713,
+          "evidence": "work/ui-login-font-contrast-20261020/result.json",
+          "evidence_sha256": "ddb56ec2a03bbe304ffcdb1ccd22509469bfcb1ad5f6523dfc1dcb93f3705453",
+          "source_sha256": {
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/en/login",
+          "state": "initial",
+          "locale": "en",
+          "theme": "dark",
+          "element": "Български",
+          "font_size": 16.0,
+          "foreground": "rgb(238, 238, 238)",
+          "background": "rgb(34, 34, 34)",
+          "contrast_ratio": 13.713,
+          "evidence": "work/ui-login-font-contrast-20261020/result.json",
+          "evidence_sha256": "ddb56ec2a03bbe304ffcdb1ccd22509469bfcb1ad5f6523dfc1dcb93f3705453",
+          "source_sha256": {
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/en/login",
+          "state": "initial",
+          "locale": "en",
+          "theme": "dark",
+          "element": "English",
+          "font_size": 16.0,
+          "foreground": "rgb(238, 238, 238)",
+          "background": "rgb(34, 34, 34)",
+          "contrast_ratio": 13.713,
+          "evidence": "work/ui-login-font-contrast-20261020/result.json",
+          "evidence_sha256": "ddb56ec2a03bbe304ffcdb1ccd22509469bfcb1ad5f6523dfc1dcb93f3705453",
+          "source_sha256": {
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/en/login",
+          "state": "initial",
+          "locale": "en",
+          "theme": "dark",
+          "element": "Create your account",
+          "font_size": 14.0,
+          "foreground": "rgb(208, 188, 255)",
+          "background": "rgb(48, 48, 48)",
+          "contrast_ratio": 7.742,
+          "evidence": "work/ui-login-font-contrast-20261020/result.json",
+          "evidence_sha256": "ddb56ec2a03bbe304ffcdb1ccd22509469bfcb1ad5f6523dfc1dcb93f3705453",
+          "source_sha256": {
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/en/login",
+          "state": "initial",
+          "locale": "en",
+          "theme": "dark",
+          "element": "Sign in to Framevela",
+          "font_size": 30.0,
+          "foreground": "rgb(255, 255, 255)",
+          "background": "rgb(48, 48, 48)",
+          "contrast_ratio": 13.198,
+          "evidence": "work/ui-login-font-contrast-20261020/result.json",
+          "evidence_sha256": "ddb56ec2a03bbe304ffcdb1ccd22509469bfcb1ad5f6523dfc1dcb93f3705453",
+          "source_sha256": {
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/en/login",
+          "state": "initial",
+          "locale": "en",
+          "theme": "dark",
+          "element": "Use the one-time code sent to your email.",
+          "font_size": 16.0,
+          "foreground": "rgb(238, 238, 238)",
+          "background": "rgb(48, 48, 48)",
+          "contrast_ratio": 11.375,
+          "evidence": "work/ui-login-font-contrast-20261020/result.json",
+          "evidence_sha256": "ddb56ec2a03bbe304ffcdb1ccd22509469bfcb1ad5f6523dfc1dcb93f3705453",
+          "source_sha256": {
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/en/login",
+          "state": "initial",
+          "locale": "en",
+          "theme": "dark",
+          "element": "Email",
+          "font_size": 16.0,
+          "foreground": "rgb(221, 221, 221)",
+          "background": "rgb(48, 48, 48)",
+          "contrast_ratio": 9.717,
+          "evidence": "work/ui-login-font-contrast-20261020/result.json",
+          "evidence_sha256": "ddb56ec2a03bbe304ffcdb1ccd22509469bfcb1ad5f6523dfc1dcb93f3705453",
+          "source_sha256": {
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/ru/login",
+          "state": "initial",
+          "locale": "ru",
+          "theme": "dark",
+          "element": "Български",
+          "font_size": 16.0,
+          "foreground": "rgb(238, 238, 238)",
+          "background": "rgb(34, 34, 34)",
+          "contrast_ratio": 13.713,
+          "evidence": "work/ui-login-font-contrast-20261020/result.json",
+          "evidence_sha256": "ddb56ec2a03bbe304ffcdb1ccd22509469bfcb1ad5f6523dfc1dcb93f3705453",
+          "source_sha256": {
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/ru/login",
+          "state": "initial",
+          "locale": "ru",
+          "theme": "dark",
+          "element": "English",
+          "font_size": 16.0,
+          "foreground": "rgb(238, 238, 238)",
+          "background": "rgb(34, 34, 34)",
+          "contrast_ratio": 13.713,
+          "evidence": "work/ui-login-font-contrast-20261020/result.json",
+          "evidence_sha256": "ddb56ec2a03bbe304ffcdb1ccd22509469bfcb1ad5f6523dfc1dcb93f3705453",
+          "source_sha256": {
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/ru/login",
+          "state": "initial",
+          "locale": "ru",
+          "theme": "dark",
+          "element": "Создайте аккаунт",
+          "font_size": 14.0,
+          "foreground": "rgb(208, 188, 255)",
+          "background": "rgb(48, 48, 48)",
+          "contrast_ratio": 7.742,
+          "evidence": "work/ui-login-font-contrast-20261020/result.json",
+          "evidence_sha256": "ddb56ec2a03bbe304ffcdb1ccd22509469bfcb1ad5f6523dfc1dcb93f3705453",
+          "source_sha256": {
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/ru/login",
+          "state": "initial",
+          "locale": "ru",
+          "theme": "dark",
+          "element": "Вход в Framevela",
+          "font_size": 30.0,
+          "foreground": "rgb(255, 255, 255)",
+          "background": "rgb(48, 48, 48)",
+          "contrast_ratio": 13.198,
+          "evidence": "work/ui-login-font-contrast-20261020/result.json",
+          "evidence_sha256": "ddb56ec2a03bbe304ffcdb1ccd22509469bfcb1ad5f6523dfc1dcb93f3705453",
+          "source_sha256": {
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/ru/login",
+          "state": "initial",
+          "locale": "ru",
+          "theme": "dark",
+          "element": "Используйте одноразовый код, отправленный на вашу электронную почту.",
+          "font_size": 16.0,
+          "foreground": "rgb(238, 238, 238)",
+          "background": "rgb(48, 48, 48)",
+          "contrast_ratio": 11.375,
+          "evidence": "work/ui-login-font-contrast-20261020/result.json",
+          "evidence_sha256": "ddb56ec2a03bbe304ffcdb1ccd22509469bfcb1ad5f6523dfc1dcb93f3705453",
+          "source_sha256": {
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/ru/login",
+          "state": "initial",
+          "locale": "ru",
+          "theme": "dark",
+          "element": "Электронная почта",
+          "font_size": 16.0,
+          "foreground": "rgb(221, 221, 221)",
+          "background": "rgb(48, 48, 48)",
+          "contrast_ratio": 9.717,
+          "evidence": "work/ui-login-font-contrast-20261020/result.json",
+          "evidence_sha256": "ddb56ec2a03bbe304ffcdb1ccd22509469bfcb1ad5f6523dfc1dcb93f3705453",
+          "source_sha256": {
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/bg/login",
+          "state": "initial",
+          "locale": "bg",
+          "theme": "dark",
+          "element": "Русский",
+          "font_size": 16.0,
+          "foreground": "rgb(238, 238, 238)",
+          "background": "rgb(34, 34, 34)",
+          "contrast_ratio": 13.713,
+          "evidence": "work/ui-login-font-contrast-20261020/result.json",
+          "evidence_sha256": "ddb56ec2a03bbe304ffcdb1ccd22509469bfcb1ad5f6523dfc1dcb93f3705453",
+          "source_sha256": {
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/bg/login",
+          "state": "initial",
+          "locale": "bg",
+          "theme": "dark",
+          "element": "English",
+          "font_size": 16.0,
+          "foreground": "rgb(238, 238, 238)",
+          "background": "rgb(34, 34, 34)",
+          "contrast_ratio": 13.713,
+          "evidence": "work/ui-login-font-contrast-20261020/result.json",
+          "evidence_sha256": "ddb56ec2a03bbe304ffcdb1ccd22509469bfcb1ad5f6523dfc1dcb93f3705453",
+          "source_sha256": {
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/bg/login",
+          "state": "initial",
+          "locale": "bg",
+          "theme": "dark",
+          "element": "Създайте своя акаунт",
+          "font_size": 14.0,
+          "foreground": "rgb(208, 188, 255)",
+          "background": "rgb(48, 48, 48)",
+          "contrast_ratio": 7.742,
+          "evidence": "work/ui-login-font-contrast-20261020/result.json",
+          "evidence_sha256": "ddb56ec2a03bbe304ffcdb1ccd22509469bfcb1ad5f6523dfc1dcb93f3705453",
+          "source_sha256": {
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/bg/login",
+          "state": "initial",
+          "locale": "bg",
+          "theme": "dark",
+          "element": "Влезте във Framevela",
+          "font_size": 30.0,
+          "foreground": "rgb(255, 255, 255)",
+          "background": "rgb(48, 48, 48)",
+          "contrast_ratio": 13.198,
+          "evidence": "work/ui-login-font-contrast-20261020/result.json",
+          "evidence_sha256": "ddb56ec2a03bbe304ffcdb1ccd22509469bfcb1ad5f6523dfc1dcb93f3705453",
+          "source_sha256": {
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/bg/login",
+          "state": "initial",
+          "locale": "bg",
+          "theme": "dark",
+          "element": "Използвайте единичния код, изпратен на имейл адреса ви.",
+          "font_size": 16.0,
+          "foreground": "rgb(238, 238, 238)",
+          "background": "rgb(48, 48, 48)",
+          "contrast_ratio": 11.375,
+          "evidence": "work/ui-login-font-contrast-20261020/result.json",
+          "evidence_sha256": "ddb56ec2a03bbe304ffcdb1ccd22509469bfcb1ad5f6523dfc1dcb93f3705453",
+          "source_sha256": {
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/bg/login",
+          "state": "initial",
+          "locale": "bg",
+          "theme": "dark",
+          "element": "Имейл",
+          "font_size": 16.0,
+          "foreground": "rgb(221, 221, 221)",
+          "background": "rgb(48, 48, 48)",
+          "contrast_ratio": 9.717,
+          "evidence": "work/ui-login-font-contrast-20261020/result.json",
+          "evidence_sha256": "ddb56ec2a03bbe304ffcdb1ccd22509469bfcb1ad5f6523dfc1dcb93f3705453",
+          "source_sha256": {
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/bg/login",
+          "state": "populated focused",
+          "locale": "bg",
+          "theme": "dark",
+          "element": "synthetic email input",
+          "font_size": 18.0,
+          "foreground": "rgb(238, 238, 238)",
+          "background": "rgb(48, 48, 48)",
+          "contrast_ratio": 11.375,
+          "evidence": "work/ui-login-font-contrast-20261020/result.json",
+          "evidence_sha256": "ddb56ec2a03bbe304ffcdb1ccd22509469bfcb1ad5f6523dfc1dcb93f3705453",
+          "source_sha256": {
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        }
+      ],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A",
+      "remaining_coverage": [
+        "input text/focus",
+        "enabled/pending/cancel/error",
+        "OTP",
+        "light/native",
+        "control outlines",
+        "whole module",
+        "selected locale alpha backgrounds and disabled control composite colors"
+      ]
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/multi-replacements/[original]",
+      "source": "apps/photographer/screens/multi-replacements/[original].tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/perspective-replacements/[original]",
+      "source": "apps/photographer/screens/perspective-replacements/[original].tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/projects/[id]",
+      "source": "apps/photographer/screens/projects/[id]/index.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/projects",
+      "source": "apps/photographer/screens/projects/index.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/reviews/[id]",
+      "source": "apps/photographer/screens/reviews/[id].tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/reviews",
+      "source": "apps/photographer/screens/reviews/index.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/runs/[id]",
+      "source": "apps/photographer/screens/runs/[id].tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/semantic/[id]",
+      "source": "apps/photographer/screens/semantic/[id].tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/sessions/[id]",
+      "source": "apps/photographer/screens/sessions/[id]/index.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/sessions/[id]/scenes",
+      "source": "apps/photographer/screens/sessions/[id]/scenes.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/settings/members",
+      "source": "apps/photographer/screens/settings/members.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/settings/profile",
+      "source": "apps/photographer/screens/settings/profile.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/settings/quotas",
+      "source": "apps/photographer/screens/settings/quotas.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/settings/retention",
+      "source": "apps/photographer/screens/settings/retention.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/styles/[id]",
+      "source": "apps/photographer/screens/styles/[id]/index.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/styles/[id]/training",
+      "source": "apps/photographer/screens/styles/[id]/training.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/styles",
+      "source": "apps/photographer/screens/styles/index.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/workspaces",
+      "source": "apps/photographer/screens/workspaces.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "photographer",
+      "route": "/[locale]/register",
+      "source": "apps/photographer/screens/register.tsx",
+      "platforms": [
+        "web",
+        "iOS",
+        "Android"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "PARTIALLY_TESTED",
+      "measurements": [
+        {
+          "platform": "web",
+          "route": "/en/register",
+          "state": "initial",
+          "locale": "en",
+          "theme": "dark",
+          "element": "Русский",
+          "font_size": 16.0,
+          "foreground": "rgb(238, 238, 238)",
+          "background": "rgb(34, 34, 34)",
+          "contrast_ratio": 13.713,
+          "evidence": "work/ui-registration-font-contrast-20261020/result.json",
+          "evidence_sha256": "3341ab05cde76727b584e2e3ee7672fec5346082d91a0eefde5aff1de2a1e291",
+          "source_sha256": {
+            "apps/photographer/screens/register.tsx": "1808b5db2dbc369e20e5d3de46cc0c9a55b785ae726b7cabe7c7075870ab848d",
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/en/register",
+          "state": "initial",
+          "locale": "en",
+          "theme": "dark",
+          "element": "Български",
+          "font_size": 16.0,
+          "foreground": "rgb(238, 238, 238)",
+          "background": "rgb(34, 34, 34)",
+          "contrast_ratio": 13.713,
+          "evidence": "work/ui-registration-font-contrast-20261020/result.json",
+          "evidence_sha256": "3341ab05cde76727b584e2e3ee7672fec5346082d91a0eefde5aff1de2a1e291",
+          "source_sha256": {
+            "apps/photographer/screens/register.tsx": "1808b5db2dbc369e20e5d3de46cc0c9a55b785ae726b7cabe7c7075870ab848d",
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/en/register",
+          "state": "initial",
+          "locale": "en",
+          "theme": "dark",
+          "element": "English",
+          "font_size": 16.0,
+          "foreground": "rgb(238, 238, 238)",
+          "background": "rgb(34, 34, 34)",
+          "contrast_ratio": 13.713,
+          "evidence": "work/ui-registration-font-contrast-20261020/result.json",
+          "evidence_sha256": "3341ab05cde76727b584e2e3ee7672fec5346082d91a0eefde5aff1de2a1e291",
+          "source_sha256": {
+            "apps/photographer/screens/register.tsx": "1808b5db2dbc369e20e5d3de46cc0c9a55b785ae726b7cabe7c7075870ab848d",
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/en/register",
+          "state": "initial",
+          "locale": "en",
+          "theme": "dark",
+          "element": "Sign in",
+          "font_size": 14.0,
+          "foreground": "rgb(208, 188, 255)",
+          "background": "rgb(48, 48, 48)",
+          "contrast_ratio": 7.742,
+          "evidence": "work/ui-registration-font-contrast-20261020/result.json",
+          "evidence_sha256": "3341ab05cde76727b584e2e3ee7672fec5346082d91a0eefde5aff1de2a1e291",
+          "source_sha256": {
+            "apps/photographer/screens/register.tsx": "1808b5db2dbc369e20e5d3de46cc0c9a55b785ae726b7cabe7c7075870ab848d",
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/en/register",
+          "state": "initial",
+          "locale": "en",
+          "theme": "dark",
+          "element": "Create your account",
+          "font_size": 30.0,
+          "foreground": "rgb(255, 255, 255)",
+          "background": "rgb(48, 48, 48)",
+          "contrast_ratio": 13.198,
+          "evidence": "work/ui-registration-font-contrast-20261020/result.json",
+          "evidence_sha256": "3341ab05cde76727b584e2e3ee7672fec5346082d91a0eefde5aff1de2a1e291",
+          "source_sha256": {
+            "apps/photographer/screens/register.tsx": "1808b5db2dbc369e20e5d3de46cc0c9a55b785ae726b7cabe7c7075870ab848d",
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/en/register",
+          "state": "initial",
+          "locale": "en",
+          "theme": "dark",
+          "element": "Continue with your email to request a sign-in code. New accounts are created only when registration is enabled by the service.",
+          "font_size": 16.0,
+          "foreground": "rgb(238, 238, 238)",
+          "background": "rgb(48, 48, 48)",
+          "contrast_ratio": 11.375,
+          "evidence": "work/ui-registration-font-contrast-20261020/result.json",
+          "evidence_sha256": "3341ab05cde76727b584e2e3ee7672fec5346082d91a0eefde5aff1de2a1e291",
+          "source_sha256": {
+            "apps/photographer/screens/register.tsx": "1808b5db2dbc369e20e5d3de46cc0c9a55b785ae726b7cabe7c7075870ab848d",
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/en/register",
+          "state": "initial",
+          "locale": "en",
+          "theme": "dark",
+          "element": "Email",
+          "font_size": 16.0,
+          "foreground": "rgb(221, 221, 221)",
+          "background": "rgb(48, 48, 48)",
+          "contrast_ratio": 9.717,
+          "evidence": "work/ui-registration-font-contrast-20261020/result.json",
+          "evidence_sha256": "3341ab05cde76727b584e2e3ee7672fec5346082d91a0eefde5aff1de2a1e291",
+          "source_sha256": {
+            "apps/photographer/screens/register.tsx": "1808b5db2dbc369e20e5d3de46cc0c9a55b785ae726b7cabe7c7075870ab848d",
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/ru/register",
+          "state": "populated enabled",
+          "locale": "ru",
+          "theme": "dark",
+          "element": "Русский",
+          "font_size": 16.0,
+          "foreground": "rgb(238, 238, 238)",
+          "background": "rgb(34, 34, 34)",
+          "contrast_ratio": 13.713,
+          "evidence": "work/ui-registration-font-contrast-20261020/locale-enabled-result.json",
+          "evidence_sha256": "7dc3cea1c30608d1b77b27debaa4e138fb68b72ecf4c812c4fe7d124d3a62717",
+          "source_sha256": {
+            "apps/photographer/screens/register.tsx": "1808b5db2dbc369e20e5d3de46cc0c9a55b785ae726b7cabe7c7075870ab848d",
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/ru/register",
+          "state": "populated enabled",
+          "locale": "ru",
+          "theme": "dark",
+          "element": "Български",
+          "font_size": 16.0,
+          "foreground": "rgb(238, 238, 238)",
+          "background": "rgb(34, 34, 34)",
+          "contrast_ratio": 13.713,
+          "evidence": "work/ui-registration-font-contrast-20261020/locale-enabled-result.json",
+          "evidence_sha256": "7dc3cea1c30608d1b77b27debaa4e138fb68b72ecf4c812c4fe7d124d3a62717",
+          "source_sha256": {
+            "apps/photographer/screens/register.tsx": "1808b5db2dbc369e20e5d3de46cc0c9a55b785ae726b7cabe7c7075870ab848d",
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/ru/register",
+          "state": "populated enabled",
+          "locale": "ru",
+          "theme": "dark",
+          "element": "English",
+          "font_size": 16.0,
+          "foreground": "rgb(238, 238, 238)",
+          "background": "rgb(34, 34, 34)",
+          "contrast_ratio": 13.713,
+          "evidence": "work/ui-registration-font-contrast-20261020/locale-enabled-result.json",
+          "evidence_sha256": "7dc3cea1c30608d1b77b27debaa4e138fb68b72ecf4c812c4fe7d124d3a62717",
+          "source_sha256": {
+            "apps/photographer/screens/register.tsx": "1808b5db2dbc369e20e5d3de46cc0c9a55b785ae726b7cabe7c7075870ab848d",
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/ru/register",
+          "state": "populated enabled",
+          "locale": "ru",
+          "theme": "dark",
+          "element": "Войти",
+          "font_size": 14.0,
+          "foreground": "rgb(208, 188, 255)",
+          "background": "rgb(48, 48, 48)",
+          "contrast_ratio": 7.742,
+          "evidence": "work/ui-registration-font-contrast-20261020/locale-enabled-result.json",
+          "evidence_sha256": "7dc3cea1c30608d1b77b27debaa4e138fb68b72ecf4c812c4fe7d124d3a62717",
+          "source_sha256": {
+            "apps/photographer/screens/register.tsx": "1808b5db2dbc369e20e5d3de46cc0c9a55b785ae726b7cabe7c7075870ab848d",
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/ru/register",
+          "state": "populated enabled",
+          "locale": "ru",
+          "theme": "dark",
+          "element": "Создайте аккаунт",
+          "font_size": 30.0,
+          "foreground": "rgb(255, 255, 255)",
+          "background": "rgb(48, 48, 48)",
+          "contrast_ratio": 13.198,
+          "evidence": "work/ui-registration-font-contrast-20261020/locale-enabled-result.json",
+          "evidence_sha256": "7dc3cea1c30608d1b77b27debaa4e138fb68b72ecf4c812c4fe7d124d3a62717",
+          "source_sha256": {
+            "apps/photographer/screens/register.tsx": "1808b5db2dbc369e20e5d3de46cc0c9a55b785ae726b7cabe7c7075870ab848d",
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/ru/register",
+          "state": "populated enabled",
+          "locale": "ru",
+          "theme": "dark",
+          "element": "Продолжите с вашей электронной почтой, чтобы запросить код для входа. Новые аккаунты создаются только при включенной регистрации в сервисе.",
+          "font_size": 16.0,
+          "foreground": "rgb(238, 238, 238)",
+          "background": "rgb(48, 48, 48)",
+          "contrast_ratio": 11.375,
+          "evidence": "work/ui-registration-font-contrast-20261020/locale-enabled-result.json",
+          "evidence_sha256": "7dc3cea1c30608d1b77b27debaa4e138fb68b72ecf4c812c4fe7d124d3a62717",
+          "source_sha256": {
+            "apps/photographer/screens/register.tsx": "1808b5db2dbc369e20e5d3de46cc0c9a55b785ae726b7cabe7c7075870ab848d",
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/ru/register",
+          "state": "populated enabled",
+          "locale": "ru",
+          "theme": "dark",
+          "element": "Электронная почта",
+          "font_size": 16.0,
+          "foreground": "rgb(221, 221, 221)",
+          "background": "rgb(48, 48, 48)",
+          "contrast_ratio": 9.717,
+          "evidence": "work/ui-registration-font-contrast-20261020/locale-enabled-result.json",
+          "evidence_sha256": "7dc3cea1c30608d1b77b27debaa4e138fb68b72ecf4c812c4fe7d124d3a62717",
+          "source_sha256": {
+            "apps/photographer/screens/register.tsx": "1808b5db2dbc369e20e5d3de46cc0c9a55b785ae726b7cabe7c7075870ab848d",
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/ru/register",
+          "state": "populated enabled",
+          "locale": "ru",
+          "theme": "dark",
+          "element": "Продолжить",
+          "font_size": 14.0,
+          "foreground": "rgb(56, 30, 114)",
+          "background": "rgb(208, 188, 255)",
+          "contrast_ratio": 7.715,
+          "evidence": "work/ui-registration-font-contrast-20261020/locale-enabled-result.json",
+          "evidence_sha256": "7dc3cea1c30608d1b77b27debaa4e138fb68b72ecf4c812c4fe7d124d3a62717",
+          "source_sha256": {
+            "apps/photographer/screens/register.tsx": "1808b5db2dbc369e20e5d3de46cc0c9a55b785ae726b7cabe7c7075870ab848d",
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/bg/register",
+          "state": "populated enabled",
+          "locale": "bg",
+          "theme": "dark",
+          "element": "Русский",
+          "font_size": 16.0,
+          "foreground": "rgb(238, 238, 238)",
+          "background": "rgb(34, 34, 34)",
+          "contrast_ratio": 13.713,
+          "evidence": "work/ui-registration-font-contrast-20261020/locale-enabled-result.json",
+          "evidence_sha256": "7dc3cea1c30608d1b77b27debaa4e138fb68b72ecf4c812c4fe7d124d3a62717",
+          "source_sha256": {
+            "apps/photographer/screens/register.tsx": "1808b5db2dbc369e20e5d3de46cc0c9a55b785ae726b7cabe7c7075870ab848d",
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/bg/register",
+          "state": "populated enabled",
+          "locale": "bg",
+          "theme": "dark",
+          "element": "Български",
+          "font_size": 16.0,
+          "foreground": "rgb(238, 238, 238)",
+          "background": "rgb(34, 34, 34)",
+          "contrast_ratio": 13.713,
+          "evidence": "work/ui-registration-font-contrast-20261020/locale-enabled-result.json",
+          "evidence_sha256": "7dc3cea1c30608d1b77b27debaa4e138fb68b72ecf4c812c4fe7d124d3a62717",
+          "source_sha256": {
+            "apps/photographer/screens/register.tsx": "1808b5db2dbc369e20e5d3de46cc0c9a55b785ae726b7cabe7c7075870ab848d",
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/bg/register",
+          "state": "populated enabled",
+          "locale": "bg",
+          "theme": "dark",
+          "element": "English",
+          "font_size": 16.0,
+          "foreground": "rgb(238, 238, 238)",
+          "background": "rgb(34, 34, 34)",
+          "contrast_ratio": 13.713,
+          "evidence": "work/ui-registration-font-contrast-20261020/locale-enabled-result.json",
+          "evidence_sha256": "7dc3cea1c30608d1b77b27debaa4e138fb68b72ecf4c812c4fe7d124d3a62717",
+          "source_sha256": {
+            "apps/photographer/screens/register.tsx": "1808b5db2dbc369e20e5d3de46cc0c9a55b785ae726b7cabe7c7075870ab848d",
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/bg/register",
+          "state": "populated enabled",
+          "locale": "bg",
+          "theme": "dark",
+          "element": "Вход",
+          "font_size": 14.0,
+          "foreground": "rgb(208, 188, 255)",
+          "background": "rgb(48, 48, 48)",
+          "contrast_ratio": 7.742,
+          "evidence": "work/ui-registration-font-contrast-20261020/locale-enabled-result.json",
+          "evidence_sha256": "7dc3cea1c30608d1b77b27debaa4e138fb68b72ecf4c812c4fe7d124d3a62717",
+          "source_sha256": {
+            "apps/photographer/screens/register.tsx": "1808b5db2dbc369e20e5d3de46cc0c9a55b785ae726b7cabe7c7075870ab848d",
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/bg/register",
+          "state": "populated enabled",
+          "locale": "bg",
+          "theme": "dark",
+          "element": "Създайте своя акаунт",
+          "font_size": 30.0,
+          "foreground": "rgb(255, 255, 255)",
+          "background": "rgb(48, 48, 48)",
+          "contrast_ratio": 13.198,
+          "evidence": "work/ui-registration-font-contrast-20261020/locale-enabled-result.json",
+          "evidence_sha256": "7dc3cea1c30608d1b77b27debaa4e138fb68b72ecf4c812c4fe7d124d3a62717",
+          "source_sha256": {
+            "apps/photographer/screens/register.tsx": "1808b5db2dbc369e20e5d3de46cc0c9a55b785ae726b7cabe7c7075870ab848d",
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/bg/register",
+          "state": "populated enabled",
+          "locale": "bg",
+          "theme": "dark",
+          "element": "Продължете с имейл адреса си, за да поискате код за влизане. Новите акаунти се създават само когато регистрацията е активирана от услугата.",
+          "font_size": 16.0,
+          "foreground": "rgb(238, 238, 238)",
+          "background": "rgb(48, 48, 48)",
+          "contrast_ratio": 11.375,
+          "evidence": "work/ui-registration-font-contrast-20261020/locale-enabled-result.json",
+          "evidence_sha256": "7dc3cea1c30608d1b77b27debaa4e138fb68b72ecf4c812c4fe7d124d3a62717",
+          "source_sha256": {
+            "apps/photographer/screens/register.tsx": "1808b5db2dbc369e20e5d3de46cc0c9a55b785ae726b7cabe7c7075870ab848d",
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/bg/register",
+          "state": "populated enabled",
+          "locale": "bg",
+          "theme": "dark",
+          "element": "Имейл",
+          "font_size": 16.0,
+          "foreground": "rgb(221, 221, 221)",
+          "background": "rgb(48, 48, 48)",
+          "contrast_ratio": 9.717,
+          "evidence": "work/ui-registration-font-contrast-20261020/locale-enabled-result.json",
+          "evidence_sha256": "7dc3cea1c30608d1b77b27debaa4e138fb68b72ecf4c812c4fe7d124d3a62717",
+          "source_sha256": {
+            "apps/photographer/screens/register.tsx": "1808b5db2dbc369e20e5d3de46cc0c9a55b785ae726b7cabe7c7075870ab848d",
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        },
+        {
+          "platform": "web",
+          "route": "/bg/register",
+          "state": "populated enabled",
+          "locale": "bg",
+          "theme": "dark",
+          "element": "Продължи",
+          "font_size": 14.0,
+          "foreground": "rgb(56, 30, 114)",
+          "background": "rgb(208, 188, 255)",
+          "contrast_ratio": 7.715,
+          "evidence": "work/ui-registration-font-contrast-20261020/locale-enabled-result.json",
+          "evidence_sha256": "7dc3cea1c30608d1b77b27debaa4e138fb68b72ecf4c812c4fe7d124d3a62717",
+          "source_sha256": {
+            "apps/photographer/screens/register.tsx": "1808b5db2dbc369e20e5d3de46cc0c9a55b785ae726b7cabe7c7075870ab848d",
+            "apps/photographer/screens/login.tsx": "a1ef13b31971fda7a722b28e6005b04daa62382bf30535b85b10f9f595bbe10e",
+            "apps/photographer/src/paper-theme.ts": "a34b7c64ecc475d11c06fe1840b0e27d0f128c1d641e31ec9c29faf3e998a644"
+          }
+        }
+      ],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A",
+      "remaining_coverage": [
+        "OTP/code/pending/error states",
+        "light theme",
+        "iOS",
+        "Android",
+        "control outlines",
+        "input focus/populated contrast final pairing"
+      ]
+    },
+    {
+      "application": "portal",
+      "route": "/[locale]",
+      "source": "apps/portal/src/app/(localized)/[locale]/page.tsx",
+      "platforms": [
+        "web"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    },
+    {
+      "application": "portal",
+      "route": "/[locale]/s/[share_id]",
+      "source": "apps/portal/src/app/(localized)/[locale]/s/[share_id]/page.tsx",
+      "platforms": [
+        "web"
+      ],
+      "locales": [
+        "en",
+        "ru",
+        "bg"
+      ],
+      "themes": [
+        "light",
+        "dark_if_supported"
+      ],
+      "states": [
+        "initial",
+        "ready",
+        "empty_if_reachable",
+        "loading_pending_if_reachable",
+        "disabled_if_reachable",
+        "error_retry_if_reachable",
+        "denied_if_reachable",
+        "dialog_if_reachable",
+        "progress_if_reachable",
+        "image_background_if_reachable"
+      ],
+      "status": "NOT_TESTED",
+      "measurements": [],
+      "unreachable_state_policy": "Record observed reason; do not invent PASS or N/A"
+    }
+  ],
+  "shared_surfaces": [
+    {
+      "id": "LocalePicker selected/unselected/disabled",
+      "status": "NOT_TESTED",
+      "measurements": []
+    },
+    {
+      "id": "invalid-locale alert",
+      "status": "NOT_TESTED",
+      "measurements": []
+    },
+    {
+      "id": "registration/sign-in navigation",
+      "status": "NOT_TESTED",
+      "measurements": []
+    },
+    {
+      "id": "registration email/code/pending/cancel/timeout/retry/new-challenge",
+      "status": "NOT_TESTED",
+      "measurements": []
+    },
+    {
+      "id": "journal/recovery",
+      "status": "NOT_TESTED",
+      "measurements": []
+    },
+    {
+      "id": "lightbox/image-backed labels",
+      "status": "NOT_TESTED",
+      "measurements": []
+    }
+  ],
+  "native_local_editor": {
+    "source": "native-screen-state-inventory.json",
+    "states": 15,
+    "status": "NOT_TESTED",
+    "checks": [
+      "rendered font size/scaling",
+      "actual text/control contrast"
+    ]
+  }
+}

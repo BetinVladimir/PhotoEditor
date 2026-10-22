@@ -13,14 +13,20 @@ import (
 )
 
 type intentRow struct {
+ id *uuid.UUID
+ expires *time.Time
+ ttl int
+ err error
 	mode    string
 	current bool
 }
 
 func (r intentRow) Scan(dest ...any) error {
+ if r.err!=nil { return r.err }
 	switch r.mode {
 	case "create":
 		id, expiry := uuid.New(), time.Now().Add(time.Minute)
+  if r.id!=nil{id=*r.id};if r.expires!=nil{expiry=*r.expires}
 		*dest[0].(*string) = "created"
 		*dest[1].(**uuid.UUID) = &id
 		*dest[2].(**time.Time) = &expiry
@@ -33,13 +39,18 @@ func (r intentRow) Scan(dest ...any) error {
 		*dest[4].(**int64) = &size
 		*dest[5].(**string) = &media
 		*dest[6].(**string) = &name
-	case "current":
+	case "ttl":
+  if r.ttl>=0{ttl:=r.ttl;*dest[0].(**int)=&ttl}
+ case "current":
 		*dest[0].(*bool) = r.current
 	}
 	return nil
 }
 
 type intentDB struct {
+ ttl int
+ currentErr error
+ onCurrent func()
 	mode    string
 	current bool
 	args    []any
@@ -47,10 +58,16 @@ type intentDB struct {
 
 func (d *intentDB) QueryRow(_ context.Context, query string, args ...any) pgx.Row {
 	d.args = args
+ if strings.Contains(query,"download_intent_signing_seconds") { ttl:=d.ttl;if ttl==0{ttl=60};return intentRow{mode:"ttl",ttl:ttl} }
 	if strings.Contains(query, "v30_delivery_download_intent_current") {
-		return intentRow{mode: "current", current: d.current}
+  if d.onCurrent != nil { d.onCurrent() }
+		return intentRow{mode: "current", current: d.current, err:d.currentErr}
 	}
-	return intentRow{mode: d.mode}
+	if d.mode=="create" && len(args)>=9 {
+  id, idOK:=args[6].(uuid.UUID);expires,expiryOK:=args[8].(time.Time)
+  if idOK&&expiryOK{return intentRow{mode:"create",id:&id,expires:&expires}}
+ }
+ return intentRow{mode: d.mode}
 }
 func (d *intentDB) Query(context.Context, string, ...any) (pgx.Rows, error) { return nil, nil }
 
@@ -63,15 +80,19 @@ type intentStore struct {
 	checkErr     error
 	signedURL    string
 	signedExpiry time.Time
+	onCheck func()
+	onSign func()
 }
 
 func (s *intentStore) Check(_ context.Context, object objectstore.Object) error {
 	s.checked = object
+	if s.onCheck != nil { s.onCheck() }
 	return s.checkErr
 }
 
 func (s *intentStore) SignDownload(_ context.Context, o objectstore.Object, name string, ttl time.Duration) (objectstore.ReadURL, error) {
 	s.name, s.object, s.ttl = name, o, ttl
+	if s.onSign != nil { s.onSign() }
 	raw := s.signedURL
 	if raw == "" {
 		raw = "https://storage.test/download?versionId=v1"
@@ -210,4 +231,77 @@ func TestDownloadIntentRejectsMalformedBearerBeforeSQL(t *testing.T) {
 	if _, err := service.RedeemDownloadIntent(context.Background(), DownloadRedeemRequest{Token: "bad"}); err == nil || db.args != nil {
 		t.Fatal("malformed bearer reached database")
 	}
+}
+
+func TestRedeemDownloadStopsOnCancellationBetweenStorageStages(t *testing.T) {
+ for _, stage := range []string{"before", "check", "sign", "authority"} {
+  t.Run(stage, func(t *testing.T) {
+   ctx, cancel := context.WithCancel(context.Background())
+   defer cancel()
+   db := &intentDB{mode: "redeem", current: true}
+   store := &intentStore{}
+   switch stage { case "before": cancel(); case "check": store.onCheck = cancel; case "sign": store.onSign = cancel; case "authority": db.onCurrent = cancel }
+   service := Service{DB: db, Pepper: []byte(strings.Repeat("p",32)), Objects: store, Bucket:"photo-test"}
+   link, err := service.RedeemDownloadIntent(ctx, DownloadRedeemRequest{Token:strings.Repeat("A",43)})
+   if !errors.Is(err, context.Canceled) || link.URL != "" { t.Fatal("cancelled redemption exposed a URL", link, err) }
+   if stage == "before" && len(db.args) != 0 { t.Fatal("cancelled request reached database") }
+   if stage == "check" && store.object.Key != "" { t.Fatal("cancelled storage check proceeded to signing") }
+  })
+ }
+}
+
+func TestRedeemDownloadRejectsNoncanonicalBearerBeforeDatabase(t *testing.T) {
+ for _, token := range []string{"", strings.Repeat("A",42), strings.Repeat("A",44), strings.Repeat("A",43)+"\n", strings.Repeat("A",42)+"B"} {
+  db := &intentDB{mode:"redeem",current:true}
+  store := &intentStore{}
+  service := Service{DB:db,Pepper:[]byte(strings.Repeat("p",32)),Objects:store,Bucket:"photo-test"}
+  link, err := service.RedeemDownloadIntent(context.Background(),DownloadRedeemRequest{Token:token})
+  if err == nil || link.URL != "" || len(db.args) != 0 { t.Fatal("noncanonical bearer reached redemption", token, link, err) }
+ }
+}
+
+
+func TestDownloadIntentPostSignDatabaseFailureRemainsRetryable(t *testing.T) {
+ for _,cause:=range []error{errors.New("database unavailable"),context.Canceled,context.DeadlineExceeded} {
+  db:=&intentDB{mode:"redeem",current:true,currentErr:cause}
+  store:=&intentStore{}
+  service:=Service{DB:db,Pepper:[]byte(strings.Repeat("p",32)),Objects:store,Bucket:"photo-test"}
+  link,err:=service.RedeemDownloadIntent(context.Background(),DownloadRedeemRequest{Token:strings.Repeat("A",43)})
+  if !errors.Is(err,cause)||link.URL!="" { t.Fatal("post-sign infrastructure failure masked or URL exposed",err) }
+  if store.object.VersionID!="v1" { t.Fatal("scenario did not reach post-sign recheck") }
+ }
+}
+
+func TestGuestIntentResponseLifetimeAndCancellation(t *testing.T) {
+ now:=time.Date(2026,10,17,12,0,0,0,time.UTC)
+ service:=Service{Pepper:[]byte(strings.Repeat("p",32)),Now:func()time.Time{return now}}
+ id:=uuid.New()
+ for _,offset:=range []time.Duration{-time.Second,0,66*time.Second}{
+  expires:=now.Add(offset)
+  if _,err:=service.finishDownloadIntent(context.Background(),&id,&expires);err==nil{t.Fatal("invalid guest intent lifetime exposed",offset)}
+ }
+ expires:=now.Add(time.Minute)
+ if value,err:=service.finishDownloadIntent(context.Background(),&id,&expires);err!=nil||len(value.Token)!=43{t.Fatal("live guest intent refused",err)}
+ ctx,cancel:=context.WithCancel(context.Background());cancel()
+ if _,err:=service.finishDownloadIntent(ctx,&id,&expires);!errors.Is(err,context.Canceled){t.Fatal("late cancellation lost",err)}
+}
+
+// The signer uses the immutable intent policy returned by current SQL authority,
+// rather than the process policy (which may have changed since admission).
+func TestDownloadPolicyTTLComesFromConsumedIntent(t *testing.T){
+ db:=&intentDB{mode:"redeem",current:true,ttl:15}
+ store:=&intentStore{signedExpiry:time.Now().Add(15*time.Second)}
+ service:=&Service{DB:db,Pepper:[]byte(strings.Repeat("p",32)),Objects:store,Bucket:"bucket"}
+ _,err := service.RedeemDownloadIntent(context.Background(),DownloadRedeemRequest{Token:strings.Repeat("A",43)})
+ if err!=nil{t.Fatal(err)}
+ // Existing signer tests cover expiry upper bounds; the fake captures the requested TTL.
+ if store.ttl!=15*time.Second{t.Fatalf("signer TTL=%v",store.ttl)}
+}
+
+func TestDownloadPolicyRevokedTTLStopsBeforeSigning(t *testing.T){
+ db:=&intentDB{mode:"redeem",current:true,ttl:-1}
+ store:=&intentStore{}
+ service:=&Service{DB:db,Pepper:[]byte(strings.Repeat("p",32)),Objects:store,Bucket:"bucket"}
+ if _,err:=service.RedeemDownloadIntent(context.Background(),DownloadRedeemRequest{Token:strings.Repeat("A",43)});err==nil{t.Fatal("accepted missing signing authority")}
+ if store.ttl!=0{t.Fatal("signed without current TTL authority")}
 }

@@ -26,7 +26,9 @@ def test_revoke_report_read_side_closure(mutation):
     if mutation=='same_grant':fixture['running']['fixture']['consent_id']=fixture['admission']['fixture']['consent_id']
     if mutation=='wrong_child':running['running']['child_run_id']=str(uuid4())
     if mutation=='no_barrier':running['barrier_cancelled']=False
-    if mutation=='changed_attempt':running['cancelled']['running']['attempt']=2
+    if mutation=='changed_attempt':
+        running['cancelled']['running']=deepcopy(running['cancelled']['running'])
+        running['cancelled']['running']['attempt']=2
     if mutation=='result_present':running['cancelled']['result_absent']=False
     if mutation=='not_cancelled':running['cancelled']['state']='succeeded'
     if mutation=='unrevoked_running':running['committed_consent']['revoked']=False

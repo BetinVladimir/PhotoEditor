@@ -65,3 +65,42 @@ def test_invalid_pixels_outside_requested_roi_are_rejected():
     rgb[0,0,0]=np.nan
     with pytest.raises(ValueError,match='REGION_RENDER_INVALID'):
         extract_rendered_region(params,body,rgb)
+
+
+def test_projected_upscale_extracts_actual_processed_canvas_without_resizeback():
+    from photo_worker.contracts.images import WorkingImage,ResizeTransform,TransformChain,Rect
+    from photo_worker.operations.region.pixels import extract_projected_rendered_region
+    plan,document=region_fixture();params=RegionPreviewParams.model_validate_json(canonical_bytes(plan))
+    source=WorkingImage.model_validate_json(canonical_bytes(document))
+    target=source.canvas.model_copy(update=dict(width=800,height=600,space_id='upscaled'))
+    step=ResizeTransform(kind='resize',from_canvas=source.canvas,to_canvas=target,invertibility='invertible',
+        valid_region=Rect(x=0,y=0,width=800,height=600),pixel_centers='half_pixel')
+    chain=TransformChain.create([*source.transform_chain.steps,step])
+    from photo_worker.operations.region.execution import RegionExecutionDescriptor,RegionGeometryStage
+    from photo_worker.contracts.base import ArtifactRef,canonical_hash
+    from uuid import uuid4
+    params.execution=RegionExecutionDescriptor(schema_version=1,source=params.source.ref,style=params.frozen_recipe.base_style,
+        source_canvas_hash=canonical_hash(source.canvas),stages=[RegionGeometryStage(operation='image.upscale',operation_version=1,
+        task_id=uuid4(),result_id=uuid4(),attempt=1,fencing_token=1,params=ArtifactRef(artifact_id=uuid4(),sha256='a'*64),
+        source=params.source.ref,output=ArtifactRef(artifact_id=uuid4(),sha256='b'*64),source_canvas=source.canvas,target_canvas=target,
+        transform=step,target_has_alpha=False)])
+    rendered=np.random.default_rng(27).random((600,800,3),dtype=np.float32)
+    def field(*args):raise AssertionError('Resize has no dense field')
+    rgb,alpha,geometry=extract_projected_rendered_region(params,canonical_bytes(document),rendered,None,
+        target_canvas=target,target_chain=chain,load_inverse_field=field)
+    assert geometry.width==800 and geometry.height==600
+    assert geometry.output_width==800 and geometry.output_height==600
+    assert np.array_equal(rgb,rendered) and not np.shares_memory(rgb,rendered)
+    assert alpha is None
+
+
+def test_projected_extraction_rejects_target_shape_substitution():
+    from photo_worker.contracts.images import WorkingImage,ResizeTransform,TransformChain,Rect
+    from photo_worker.operations.region.pixels import extract_projected_rendered_region
+    plan,document=region_fixture();params=RegionPreviewParams.model_validate_json(canonical_bytes(plan));source=WorkingImage.model_validate_json(canonical_bytes(document))
+    target=source.canvas.model_copy(update=dict(width=800,height=600,space_id='upscaled'))
+    step=ResizeTransform(kind='resize',from_canvas=source.canvas,to_canvas=target,invertibility='invertible',
+        valid_region=Rect(x=0,y=0,width=800,height=600),pixel_centers='half_pixel')
+    with pytest.raises(ValueError,match='REGION_RENDER_INVALID'):
+        extract_projected_rendered_region(params,canonical_bytes(document),np.zeros((300,400,3),np.float32),None,
+            target_canvas=target,target_chain=TransformChain.create([*source.transform_chain.steps,step]),load_inverse_field=lambda *args:None)

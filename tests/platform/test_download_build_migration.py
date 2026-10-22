@@ -24,7 +24,7 @@ def test_download_build_migration_has_fenced_complete_barrier():
     assert "r.graph_sealed" in sql
 
 
-def test_working_image_producer_allowlist_matches_registry_contract():
+def test_working_image_producer_contract_uses_forward_policy_authority():
     registry = json.loads((ROOT / "backend/internal/workflow/operations.json").read_text())
     expected = {
         op["name"]
@@ -34,7 +34,15 @@ def test_working_image_producer_allowlist_matches_registry_contract():
     sql = (ROOT / "backend/db/migrations/00090_download_export_build.sql").read_text()
     fragment = sql.split("t.operation IN (", 1)[1].split(")", 1)[0]
     actual = {part.strip().strip("'") for part in fragment.split(",")}
-    assert actual == expected
+    # Immutable historical list is replaced by the exact forward policy patch.
+    assert actual <= expected
+    current=(ROOT / "backend/db/migrations/02476_download_lifecycle_source_closure.sql").read_text()
+    assert "anchor:=$a$t.operation IN (" + fragment + ")$a$;" in current
+    assert "policy.operation=t.operation AND policy.version=t.operation_version" in current
+    assert "policy.role='working_image' AND policy.media_types ? 'application/json'" in current
+    assert "policy.role='working_rgb' AND policy.media_types ? 'application/octet-stream'" in current
+    assert "RAISE EXCEPTION 'DOWNLOAD_MASTER_PRODUCER_SOURCE'" in current
+    assert "source:=replace(source,anchor,replacement)" in current
 
 
 def test_download_packaging_and_archive_barriers_are_durable():

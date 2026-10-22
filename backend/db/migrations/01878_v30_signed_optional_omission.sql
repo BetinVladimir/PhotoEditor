@@ -6,8 +6,8 @@
 -- +goose StatementBegin
 DO $$
 DECLARE definition text;
- old_predicate text := 'i.state NOT IN(''ready'',''omitted'')';
- new_predicate text := '(i.state NOT IN(''ready'',''pending'',''omitted'') OR (i.state IN(''pending'',''omitted'') AND i.required))';
+ old_predicate text := 'state NOT IN(''ready'',''omitted'')';
+ new_predicate text := '(state NOT IN(''ready'',''pending'',''omitted'') OR (state IN(''pending'',''omitted'') AND required))';
 BEGIN
  SELECT pg_get_functiondef('photo.v30_delivery_signed_current_receipts(uuid,uuid,uuid,uuid,text,text)'::regprocedure)
  INTO definition;
@@ -15,7 +15,7 @@ BEGIN
   OR position(new_predicate IN definition)>0
   OR position('ready_count<>jsonb_array_length(closure->''entries'')' IN definition)=0
   OR position('photo.v30_delivery_signed_runtime_documents(' IN definition)=0
-  OR position('photo.delivery_items i' IN definition)=0 THEN
+  OR position('FROM photo.delivery_items' IN definition)=0 THEN
   RAISE EXCEPTION 'DELIVERY_SIGNED_OPTIONAL_OMISSION_SOURCE_SHAPE';
  END IF;
  definition:=replace(definition,old_predicate,new_predicate);

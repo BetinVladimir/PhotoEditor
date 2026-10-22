@@ -14,6 +14,9 @@ func TestTenantDeletionHistoryStartupConfiguration(t *testing.T) {
 			t.Setenv("V32_DELETION_HISTORY_ROOT", "")
 			if mode == "valid" || mode == "shared_root" || mode == "symlink_root" {
 				root := t.TempDir()
+				if err := os.Chmod(root, 0700); err != nil {
+					t.Fatal(err)
+				}
 				python := filepath.Join(t.TempDir(), "python")
 				if err := os.WriteFile(python, []byte("operator-installed fixture"), 0700); err != nil {
 					t.Fatal(err)
@@ -25,7 +28,9 @@ func TestTenantDeletionHistoryStartupConfiguration(t *testing.T) {
 				}
 				if mode == "symlink_root" {
 					link := filepath.Join(t.TempDir(), "history-link")
-					if err := os.Symlink(root, link); err != nil { t.Fatal(err) }
+					if err := os.Symlink(root, link); err != nil {
+						t.Fatal(err)
+					}
 					root = link
 				}
 				t.Setenv("V32_DELETION_HISTORY_PYTHON", python)

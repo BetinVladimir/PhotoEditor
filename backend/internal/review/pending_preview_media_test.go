@@ -18,19 +18,25 @@ func TestIssuePendingPreviewRechecksCatalogueAfterCreatingLinks(t *testing.T) {
 	now := time.Date(2026, 10, 14, 12, 0, 0, 0, time.UTC)
 	raw := imageFixtures(t)[0]
 	image, err := ParseWorkingImage(raw)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	source := ArtifactRef{ID: uuid.New(), SHA256: derivativeManifestSHA(raw)}
 	derivative := ArtifactRef{ID: uuid.New(), SHA256: strings.Repeat("a", 64)}
 	icc := strings.Repeat("b", 64)
 	profile, err := media.ProfileHash("preview1600", icc)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	manifestBody, err := canonical.Marshal(RenderDerivativeManifest{Source: source, Derivative: derivative,
-		Variant: "preview1600", ProfileHash: profile, Width: image.Canvas.Width, Height: image.Canvas.Height,
+		Variant: "preview1600", ProfileHash: profile, Width: int(image.Canvas.Width), Height: int(image.Canvas.Height),
 		MediaType: "image/jpeg", ColorProfile: "srgb", MetadataPolicy: "stripped", Alpha: false})
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	manifest := ArtifactRef{ID: uuid.New(), SHA256: derivativeManifestSHA(manifestBody)}
 	objects := CandidatePreviewObjects{Source: source, Manifest: manifest, Derivative: derivative, ProfileHash: profile,
-		ManifestObject: objectstore.Object{Key: "manifest", VersionID: "v1", SHA256: manifest.SHA256, ContentType: "application/json", Bytes: int64(len(manifestBody))},
+		ManifestObject:   objectstore.Object{Key: "manifest", VersionID: "v1", SHA256: manifest.SHA256, ContentType: "application/json", Bytes: int64(len(manifestBody))},
 		DerivativeObject: objectstore.Object{Key: "image", VersionID: "v2", SHA256: derivative.SHA256, ContentType: "image/jpeg", Bytes: 100}}
 	for _, changed := range []bool{false, true} {
 		t.Run(map[bool]string{false: "stable", true: "changed"}[changed], func(t *testing.T) {
@@ -39,7 +45,9 @@ func TestIssuePendingPreviewRechecksCatalogueAfterCreatingLinks(t *testing.T) {
 				Catalog: previewCatalogFunc(func(context.Context, auth.Identity, uuid.UUID, uuid.UUID, string, string) (CandidatePreviewObjects, error) {
 					lookups++
 					current := objects
-					if changed && lookups == 4 { current.DerivativeObject.VersionID = "v3" }
+					if changed && lookups == 4 {
+						current.DerivativeObject.VersionID = "v3"
+					}
 					return current, nil
 				}),
 				Source: previewSourceFunc(func(context.Context, auth.Identity, uuid.UUID, uuid.UUID, string) (ArtifactRef, []byte, error) {
@@ -52,7 +60,9 @@ func TestIssuePendingPreviewRechecksCatalogueAfterCreatingLinks(t *testing.T) {
 			issued, err := service.IssuePendingPreview(context.Background(), auth.Identity{UserID: uuid.New(), SessionID: uuid.New()},
 				uuid.New(), uuid.New(), "before", "preview1600", []byte(strings.Repeat("k", 32)), "https://api.test")
 			if changed {
-				if domain.AsError(err).Code != "STALE_CANDIDATE_REVIEW" || issued.Review != uuid.Nil { t.Fatal("stale pending links issued", err) }
+				if domain.AsError(err).Code != "STALE_CANDIDATE_REVIEW" || issued.Review != uuid.Nil {
+					t.Fatal("stale pending links issued", err)
+				}
 			} else if err != nil || issued.Review == uuid.Nil || lookups != 4 {
 				t.Fatal("stable pending preview unavailable", err, lookups)
 			}

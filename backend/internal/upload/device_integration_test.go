@@ -98,6 +98,22 @@ func TestIntegrationCaptureDeviceUpload(t *testing.T) {
 		t.Fatal("valid part signing", urls, err)
 	}
 	complete := CompleteRequest{ExpectedSize: 1024, Parts: []objectstore.UploadedPart{{PartNumber: 1, ETag: "part-one"}}}
+	// The real device admission SHARE lock prevents revocation during signing;
+	// it does not stop time advancing while the object store returns a URL.
+	clock := time.Now()
+	service.Now = func() time.Time { return clock }
+	barrier := &signingBarrierStore{afterSign: func() { clock = first.ExpiresAt.Add(time.Second) }}
+	service.Objects = barrier
+	if signed, signErr := service.SignDeviceParts(ctx, principal, first.ID, PartRequest{PartNumbers: []int{1}}); domain.AsError(signErr).Code != "UPLOAD_STATE_INVALID" || len(signed.Items) != 0 {
+		t.Fatal("expired device session disclosed signed bearer", signed, signErr)
+	}
+	service.Now = nil
+	signCtx, signCancel := context.WithCancel(ctx)
+	barrier.afterSign = signCancel
+	if signed, signErr := service.SignDeviceParts(signCtx, principal, first.ID, PartRequest{PartNumbers: []int{1}}); !errors.Is(signErr, context.Canceled) || len(signed.Items) != 0 {
+		t.Fatal("cancelled device signing disclosed bearer", signed, signErr)
+	}
+	service.Objects = objects
 	accepted, err := service.CompleteDevice(ctx, principal, first.ID, "device-complete", complete)
 	if err != nil || accepted.Status != "queued" {
 		t.Fatal("device complete", accepted, err)

@@ -16,6 +16,7 @@ type decisionDocumentTarget struct {
 	Decision       string                        `json:"decision"`
 	Source         v2input.SessionVersionBinding `json:"source"`
 	Candidate      v2input.Ref                   `json:"candidate"`
+	Preview        *PreviewSelection             `json:"preview,omitempty"`
 }
 type decisionDocument struct {
 	SchemaVersion    int                      `json:"schema_version"`
@@ -90,7 +91,7 @@ func BuildDecisionProof(prepared PreparedReview, targets []LockedTarget, request
 			return empty, ErrConflict
 		}
 		artifact := *target.CandidateArtifactID
-		doc.Targets = append(doc.Targets, decisionDocumentTarget{TargetID: target.ID, TargetRevision: strconv.FormatInt(target.Revision, 10), Decision: selection.Decision, Source: bindings[artifact], Candidate: refs[artifact]})
+		doc.Targets = append(doc.Targets, decisionDocumentTarget{TargetID: target.ID, TargetRevision: strconv.FormatInt(target.Revision, 10), Decision: selection.Decision, Source: bindings[artifact], Candidate: refs[artifact], Preview: selection.Preview})
 		if selection.Decision == "approve" {
 			proof.Approved = append(proof.Approved, target.ID)
 		}

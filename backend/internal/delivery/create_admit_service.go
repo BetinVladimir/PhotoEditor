@@ -48,6 +48,12 @@ func(s Service)admitPreparedCreate(ctx context.Context,who auth.Identity,tid uui
 		if err != nil {
 			return err
 		}
+		if err := tx.QueryRow(ctx, `SELECT photo.v2_editor_authorized($1,$2,$3,$4)`, tid, request.ProjectID, who.UserID, who.SessionID).Scan(&authorized); err != nil {
+			return err
+		}
+		if !authorized {
+			return domain.NewError("NOT_FOUND", 404)
+		}
 		if hash != intent.requestSHA {
 			return domain.NewError("IDEMPOTENCY_CONFLICT", 409)
 		}

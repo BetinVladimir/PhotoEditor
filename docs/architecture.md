@@ -390,7 +390,7 @@ M2 Max использует общую память CPU/GPU. Для RGB float32 
 PhotoEditor/
   pyproject.toml
   uv.lock
-  src/photoeditor/
+  apps/local-editor/src/photoeditor/
     cli.py
     config/ catalog/ decode/ analysis/ collection/
     engine/ effects/ models/ quality/ export/ jobs/

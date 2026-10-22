@@ -6,11 +6,12 @@ from time import monotonic
 from typing import Callable
 from uuid import UUID
 import psutil
+import psycopg
 import sys
 from pydantic import ValidationError
 from photo_worker.contracts.base import ArtifactRef, canonical_bytes, parse_json
 from photo_worker.contracts.wire import TaskCommand, TaskError, TaskMetrics
-from .database import Lease, TaskDatabase
+from .database import Heartbeat, Lease, TaskDatabase
 from .gateway import GatewayError
 from .materialize import ArtifactTransferError
 from .scratch import DiskQuota, ScratchError
@@ -52,17 +53,38 @@ class ExecutionContext:
         self._lock = Lock()
         self._progress: dict = {}
         # Convert once from database UTC to a monotonic local deadline. Clock
-        # skew can only stop computation early; SQL remains the authority.
+        # skew can change the local estimate; SQL remains the authority for
+        # every input/output operation and terminal commit.
         self._deadline = monotonic() + max(0, (lease.deadline-datetime.now(timezone.utc)).total_seconds())
         self._lease_until = monotonic() + max(0, (lease.until-datetime.now(timezone.utc)).total_seconds())
 
     def check_active(self):
-        if self._lost.is_set() or monotonic() >= self._lease_until:
-            raise LeaseLost('Task lease lost')
-        if self._cancelled.is_set():
-            raise TaskCancelled('Task cancelled')
-        if monotonic() >= self._deadline:
-            raise OperationFailure('TIMEOUT', True)
+        with self._lock:
+            if self._lost.is_set() or monotonic() >= self._lease_until:
+                # Once this attempt observes expiry, a delayed heartbeat must
+                # never revive its local authority.
+                self._lost.set()
+                raise LeaseLost('Task lease lost')
+            if self._cancelled.is_set():
+                raise TaskCancelled('Task cancelled')
+            if monotonic() >= self._deadline:
+                raise OperationFailure('TIMEOUT', True)
+
+    def accept_heartbeat(self, beat: Heartbeat) -> bool:
+        with self._lock:
+            if (self._lost.is_set() or monotonic() >= self._lease_until
+                    or beat.accepted is not True or beat.until is None):
+                self._lost.set()
+                return False
+            if beat.cancel_requested:
+                self._cancelled.set()
+                return False
+            until = monotonic() + max(0, (beat.until-datetime.now(timezone.utc)).total_seconds())
+            if until <= monotonic():
+                self._lost.set()
+                return False
+            self._lease_until = until
+            return True
 
     def progress(self, done: int, total: int):
         if isinstance(done, bool) or isinstance(total, bool) or not isinstance(done,int) or not isinstance(total,int) or not 0 <= done <= total:
@@ -97,6 +119,15 @@ class Executor:
                  heartbeat_seconds: float = 10):
         if not 0 < heartbeat_seconds <= 10:
             raise ValueError('Heartbeat interval must be in (0,10]')
+        # Registration is advertised before the first task arrives. Reject a
+        # malformed supplied factory now, rather than reporting a non-executable
+        # operation as installed and consuming its first real command later.
+        for op in operations:
+            if (not isinstance(op, Operation) or not isinstance(op.name, str)
+                    or not 1 <= len(op.name) <= 120 or op.version != '1'
+                    or op.resource_class not in ('cpu', 'gpu', 'media', 'archive', 'collection', 'mail')
+                    or not callable(op.execute)):
+                raise ValueError('Invalid operation installation')
         self.database, self.worker_id = database, worker_id
         self.operations = {op.name: op for op in operations}
         if len(self.operations) != len(operations):
@@ -147,11 +178,8 @@ class Executor:
                 try:
                     peak_memory = max(peak_memory,process.memory_info().rss)
                     beat = self.database.heartbeat(ctx.lease,ctx.snapshot_progress())
-                    if not beat.accepted or beat.until is None:
-                        ctx._lost.set(); return
-                    ctx._lease_until = monotonic()+max(0,(beat.until-datetime.now(timezone.utc)).total_seconds())
-                    if beat.cancel_requested:
-                        ctx._cancelled.set(); return
+                    if not ctx.accept_heartbeat(beat):
+                        return
                 except Exception:
                     # A transient unknown heartbeat result does not justify
                     # continued writes. Stop conservatively; reaper retries.
@@ -196,6 +224,12 @@ class Executor:
                 failure=TaskError(code='CONFIG_INVALID',retryable=False,message_key='errors.config_invalid',args={})
             except MemoryError:
                 failure = TaskError(code='RESOURCE_OOM',retryable=True,message_key='errors.resource_oom',args={})
+            except (psycopg.errors.SerializationFailure, psycopg.errors.DeadlockDetected):
+                # The DB adapter already exhausted its bounded transaction retry.
+                # Preserve this as a dependency failure for normal fenced task
+                # recovery, never replay the operation inline or persist SQL text.
+                failure = TaskError(code='DEPENDENCY_UNAVAILABLE',retryable=True,
+                                    message_key='errors.dependency_unavailable',args={})
             except Exception as exc:
                 # Never persist paths, SQL, tokens or arbitrary exception text.
                 torch = sys.modules.get('torch')

@@ -9,7 +9,7 @@ import (
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/review"
 	"photoeditor/backend/internal/v2input"
-	"photoeditor/backend/internal/workflow"
+	workflow "photoeditor/backend/internal/encodecontract"
 )
 
 // Readers must authorize exact task-scoped immutable artifacts and verify

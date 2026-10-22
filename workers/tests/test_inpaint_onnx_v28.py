@@ -15,8 +15,12 @@ def fake_runtime(monkeypatch, *, output_name='output'):
     size = 256
 
     class Session:
-        def __init__(self, path, providers):
+        def __init__(self, path, providers, enable_fallback):
+            assert enable_fallback is False
             self.providers = providers
+
+        def disable_fallback(self):
+            pass
 
         def get_providers(self):
             return self.providers

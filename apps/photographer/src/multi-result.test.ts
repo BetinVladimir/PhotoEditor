@@ -11,9 +11,9 @@ describe('multi durable result handoff',()=>{
  it('keeps pending and failed workflows out of result reads',async()=>{
   let reads=0,state='running';const api={get:async()=>({...ticket,state}),multiProposal:async()=>{reads++;return proposal();}} as unknown as Pick<OwnerAPI,'get'|'multiProposal'>;
   expect(await readMultiAttemptResult(api,id(6),id(7),'optical.panorama',body(),ticket,new AbortController().signal)).toEqual({state:'pending',workflow_state:'running'});
-  for(state of ['failed','cancelled'])expect(await readMultiAttemptResult(api,id(6),id(7),'optical.panorama',body(),ticket,new AbortController().signal)).toEqual({state:'terminal',workflow_state:state});
+  for(state of ['failed','cancelled','completed_with_errors'])expect(await readMultiAttemptResult(api,id(6),id(7),'optical.panorama',body(),ticket,new AbortController().signal)).toEqual({state:'terminal',workflow_state:state});
   state='cancelling';expect(await readMultiAttemptResult(api,id(6),id(7),'optical.panorama',body(),ticket,new AbortController().signal)).toEqual({state:'pending',workflow_state:'cancelling'});
-  for(state of ['completed_with_errors','unknown'])await expect(readMultiAttemptResult(api,id(6),id(7),'optical.panorama',body(),ticket,new AbortController().signal)).rejects.toThrow('MULTI_RESULT_UNAVAILABLE');expect(reads).toBe(0);
+  for(state of ['unknown'])await expect(readMultiAttemptResult(api,id(6),id(7),'optical.panorama',body(),ticket,new AbortController().signal)).rejects.toThrow('MULTI_RESULT_UNAVAILABLE');expect(reads).toBe(0);
  });
  it('binds completed result to exact producer and frozen frame order',async()=>{
   const intent=body();let finish!:(v:unknown)=>void;

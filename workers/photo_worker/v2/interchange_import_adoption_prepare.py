@@ -2,7 +2,7 @@
 from copy import deepcopy
 from hashlib import sha256
 from uuid import UUID, uuid5
-from photo_worker.contracts.base import ArtifactRef
+from photo_worker.contracts.base import ArtifactRef, canonical_bytes
 from .adoption import ArtifactRef as EvidenceRef, AdoptionInvalid, require_adoption_active
 from .interchange_import_adoption import verify_import_output
 
@@ -35,7 +35,7 @@ def prepare_current_interchange_import(connection, reader, tenant_id, task_id,
             raise AdoptionInvalid('INTERCHANGE_IMPORT_ADOPTION_STALE')
         value = deepcopy(row[0])
         try:
-            params = ArtifactRef.model_validate(value['params'])
+            params = ArtifactRef.model_validate_json(canonical_bytes(value['params']))
             workflow, project = UUID(str(value['workflow_id'])), UUID(str(value['project_id']))
             digest, budget = value['snapshot_digest'], value['max_output_bytes']
             if (workflow.int == 0 or project.int == 0 or params.artifact_id.int == 0

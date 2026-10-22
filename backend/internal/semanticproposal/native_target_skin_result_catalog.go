@@ -23,6 +23,16 @@ func (s SQLTransferSourceReader) nativeTargetSkinResultCatalog(ctx context.Conte
 	if _, err := s.compileNativeTargetSkinDraftPlan(ctx, who, plan.parser, plan.prepared, plan.shell.Bytes); err != nil {
 		return zero, err
 	}
+	return s.nativeTargetSkinResultCatalogCurrent(ctx, who, plan)
+}
+func (s SQLTransferSourceReader) nativeTargetSkinResultCatalogCurrent(ctx context.Context, who auth.Identity, plan nativeTargetSkinDraftPlan) (nativeSkinResultCatalog, error) {
+	var zero nativeSkinResultCatalog
+	if err := verifyNativeTargetSkinPlanSeal(ctx, plan); err != nil {
+		return zero, err
+	}
+	if s.DB == nil {
+		return zero, v2input.ErrInvalid
+	}
 	task, err := plan.prepared.frozen.DraftTask()
 	if err != nil {
 		return zero, err

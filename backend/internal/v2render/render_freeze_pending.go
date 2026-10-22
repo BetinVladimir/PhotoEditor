@@ -84,6 +84,7 @@ func (s SQLRenderFreezeService) pinFreezePending(ctx context.Context, who auth.I
 		if err := tx.QueryRow(ctx, `SELECT request_hash,response_status,response_body,expires_at>clock_timestamp() FROM photo.idempotency_records WHERE tenant_id=$1 AND principal_type='user' AND principal_id=$2 AND route=$3 AND key=$4 FOR UPDATE`, scope.Tenant, scope.Principal, scope.Route, scope.Key).Scan(&storedHash, &status, &stored, &live); err != nil {
 			return err
 		}
+		if err := idempotency.ValidateReceiptAuthority(ctx,tx); err != nil { return err }
 		if storedHash != hash {
 			return domain.NewError("IDEMPOTENCY_CONFLICT", 409)
 		}

@@ -60,9 +60,9 @@ BEGIN
   SELECT * INTO a FROM photo.artifacts WHERE tenant_id=p_tenant AND id=(entry->>'artifact_id')::uuid FOR SHARE;
   IF a.id IS NULL OR a.sha256 IS DISTINCT FROM entry->>'sha256' OR a.created_by_task_id IS DISTINCT FROM p_task
    OR a.produced_attempt IS DISTINCT FROM p_attempt OR a.produced_fence IS DISTINCT FROM p_fence
-   OR a.output_role IS DISTINCT FROM CASE ordinal WHEN 0 THEN 'document' WHEN 1 THEN 'signed_export' ELSE 'manifest' END
-   OR a.media_type IS DISTINCT FROM CASE ordinal WHEN 0 THEN 'application/json' WHEN 1 THEN media ELSE 'application/c2pa' END
-   OR a.bytes NOT BETWEEN 1 AND CASE ordinal WHEN 1 THEN 536870912 ELSE 8388608 END THEN RETURN false;END IF;
+   OR a.output_role IS DISTINCT FROM (CASE ordinal WHEN 0 THEN 'document' WHEN 1 THEN 'signed_export' ELSE 'manifest' END)
+   OR a.media_type IS DISTINCT FROM (CASE ordinal WHEN 0 THEN 'application/json' WHEN 1 THEN media ELSE 'application/c2pa' END)
+   OR a.bytes NOT BETWEEN 1 AND (CASE ordinal WHEN 1 THEN 536870912 ELSE 8388608 END) THEN RETURN false;END IF;
   ordinal:=ordinal+1;
  END LOOP;
  IF p_inventory IS DISTINCT FROM expected THEN RETURN false;END IF;

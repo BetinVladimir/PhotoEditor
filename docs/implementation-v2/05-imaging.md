@@ -54,4 +54,11 @@ qualify_operation(operation,model,device,dataset)->QualificationReport: actual i
 
 ## RAW и цвет
 
+Media presentation policy revision: новые задания и общий cache lookup используют canonical profile с `renderer_policy="declared_encoding_alpha8_icc_v2"`. Кодировка рабочего изображения определяет linear-premult resize. RGB16 с одинаковыми валидными ICC копируется точно. WebP alpha проверяется после той же 8-bit квантизации, что writer; RGB вместо RGBA допустим только при quantized alpha=255 на всём изображении. Реальный RGBA alpha сравнивается по всем samples; ICC/layout/metadata и декодируемость payload проверяются до публикации.
+
+`runs.media_renderer_policy` — immutable execution pin: существующие при 02545 runs получают `legacy_v1`, новые — текущую policy. Historical task Params/profile hash не переписываются. Legacy worker dispatch сохраняет прежний gamma24 resize и LCMS transform; возобновляемые compilers повторно читают frozen run policy. Только source-bound historical review receipts допускают обе известные policy; новые cache readers не возвращают legacy bytes как текущую policy. Unknown policy и неполная SQL installation блокируют admission/startup. Это совместимость воспроизведения, а не подтверждение photographic qualification.
+
 Переиспользовать существующий asset.decode/ICCRegistry; добавить camera/lens fixture matrix, explicit RAW development params (demosaic, WB source, exposure compensation, highlight policy), decoder version в cache key. Никакой автокоррекции без записи параметров. Metadata export использует whitelist EXIF/IPTC, GPS off по умолчанию. JPEG/PNG/TIFF — round-trip pixel/ICC/alpha проверки. PSD/PSB interoperability сначала отдельный exporter и format qualification, не переименование TIFF.
+
+
+TIFF import alpha contract: RGB8/RGB16 с четырьмя samples принимает только явный ExtraSamples=2 (unassociated/straight alpha). RGB и alpha читаются раздельно; ICC преобразует RGB без деления на alpha, включая hidden RGB при alpha0. Associated (ExtraSamples=1), unspecified (0) и неоднозначные дополнительные samples отклоняются TIFF_ALPHA_SEMANTICS_UNSUPPORTED до публикации working image. Generic libvips loader не считается доказательством нормализации associated alpha; будущая поддержка потребует отдельного закреплённого decoder contract и физических fixtures. Трёхканальный TIFF RGB без extra samples сохраняется.

@@ -47,7 +47,7 @@ func(s SQLSigningExportCatalog)LookupSigningExport(ctx context.Context,who auth.
  if err:=ctx.Err();err!=nil{return ready,err}
  if s.DB==nil||len(s.Bucket)<3||len(s.Bucket)>63||tid==uuid.Nil||id==uuid.Nil||who.UserID==uuid.Nil||who.SessionID==uuid.Nil{return ready,ErrInvalid}
  ready.Tenant=tid;ready.ExportID=id
- err:=tenant.WithTenant(ctx,s.DB,who,tid,domain.Editor,func(tx pgx.Tx,role domain.Role)error{
+ err:=tenant.WithTenant(ctx,s.DB,who,tid,domain.Editor,func(tx pgx.Tx,_ domain.Role)error{
   var bucket string
   err:=tx.QueryRow(ctx,`SELECT asset.project_id,v.id,t.id,t.run_id,a.id,a.sha256,a.bucket,a.object_key,a.object_version,a.bytes,a.media_type
    FROM photo.exports e JOIN photo.asset_versions v ON v.tenant_id=e.tenant_id AND v.id=e.asset_version_id
@@ -68,7 +68,10 @@ func(s SQLSigningExportCatalog)LookupSigningExport(ctx context.Context,who auth.
    FOR SHARE OF e,v,asset,p,tenant_row,t,z,a`,tid,id).Scan(&ready.Project,&ready.Version,&ready.Task,&ready.Run,&ready.Ref.ArtifactID,&ready.Ref.SHA256,&bucket,&ready.Object.Key,&ready.Object.VersionID,&ready.Object.Bytes,&ready.Object.ContentType)
   if err!=nil{return err}
   if bucket!=s.Bucket||!ref(ready.Ref)||ready.Object.Key==""{return ErrInvalid}
-  if _,err:=project.Authorize(ctx,tx,tid,ready.Project,who.UserID,role,domain.Editor,false);err!=nil{return err}
+  // The canonical export query above may wait on publication/lifecycle locks.
+  // Never carry a pre-wait Admin role into the project ACL decision.
+  currentRole,err:=tenant.AuthorizeInTransaction(ctx,tx,who,tid,domain.Editor);if err!=nil{return err}
+  if _,err:=project.Authorize(ctx,tx,tid,ready.Project,who.UserID,currentRole,domain.Editor,false);err!=nil{return err}
   ready.Object.SHA256=ready.Ref.SHA256;return nil
  })
  if err!=nil{return ReadySigningExport{},err};return ready,nil

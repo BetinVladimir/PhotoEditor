@@ -1,4 +1,5 @@
 """Isolated metadata lifecycle test; no native worker/model admission is implied."""
+from pathlib import Path as _PhotoRepositoryPath
 import json
 from uuid import uuid4
 from psycopg.types.json import Jsonb
@@ -98,7 +99,7 @@ def test_native_registry_purge_uses_real_tenant_cleaner(database,lens_objects):
     neighbor_version=client.put_object(bucket,neighbor_key,BytesIO(neighbor_body),len(neighbor_body),content_type='application/octet-stream',metadata={'sha256':neighbor_sha}).version_id
     config=client._photo_test_config
     fixture=dict(Tenant=tenant,Neighbor=dict(Key=neighbor_key,VersionID=neighbor_version,SHA256=neighbor_sha,ContentType='application/octet-stream',Bytes=len(neighbor_body)))
-    env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_TEST_NATIVE_TENANT_PURGE=json.dumps(fixture),PHOTO_TEST_MINIO_URL=config['Endpoint'],PHOTO_TEST_MINIO_BUCKET=bucket,PHOTO_TEST_MINIO_ACCESS=config['AccessKey'],PHOTO_TEST_MINIO_SECRET=config['SecretKey'],GOCACHE='/private/tmp/photoeditor-go-cache')
+    env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_TEST_NATIVE_TENANT_PURGE=json.dumps(fixture),PHOTO_TEST_MINIO_URL=config['Endpoint'],PHOTO_TEST_MINIO_BUCKET=bucket,PHOTO_TEST_MINIO_ACCESS=config['AccessKey'],PHOTO_TEST_MINIO_SECRET=config['SecretKey'],GOCACHE=str(_PhotoRepositoryPath(__file__).resolve().parents[2]/'work/go-cache'))
     result=subprocess.run(['go','test','-tags','integration','./internal/maintenance','-run','^TestIntegrationNativeRegistryTenantPurge$','-count=1','-timeout','90s','-v'],cwd=root_dir/'backend',env=env,capture_output=True,text=True,timeout=120)
     assert result.returncode==0,result.stdout+result.stderr
     assert 'V27_NATIVE_REGISTRY_PHYSICAL_TENANT_PURGE_OK' in result.stdout

@@ -30,14 +30,14 @@ func TestSchedulerExportMigrationSignatures(t *testing.T) {
 		for _, match := range createPattern.FindAllStringSubmatch(sql, -1) {
 			name := match[1]
 			create := sqlFunctionSignature(sql, "CREATE FUNCTION "+name, true)
-			if create == "" {
+			if create == "" && !strings.Contains(sql, "CREATE FUNCTION "+name+"()") {
 				t.Fatalf("%s: missing CREATE signature for %s", path, name)
 			}
 			for _, prefix := range []string{
 				"ALTER FUNCTION ", "REVOKE ALL ON FUNCTION ",
 			} {
 				actual := sqlFunctionSignature(sql, prefix+name, false)
-				if actual == "" || actual != create {
+				if (actual == "" && !strings.Contains(sql, prefix+name+"()")) || actual != create {
 					t.Errorf("%s: %s signature differs from CREATE", path, prefix+name)
 				}
 			}

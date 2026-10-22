@@ -3,18 +3,18 @@
   "lockfiles": [
     {
       "bytes": 737,
-      "path": "requirements.lock",
+      "path": "apps/local-editor/requirements.lock",
       "sha256": "f730323d3235515d9cfd95d50277ae20ff0ef2a78f96c9dd5fce843f51c7c66c"
     },
     {
-      "bytes": 1573,
+      "bytes": 2725,
       "path": "backend/go.mod",
-      "sha256": "c46e832ffc63240e2faa7df003c734bdc13cbe75efa338c783e5c00e91d2d761"
+      "sha256": "51855db30615da35e3c1ad7357ad9f3a7432e76edc3ac6197a4a16a6aa1ed7d1"
     },
     {
-      "bytes": 7053,
+      "bytes": 12359,
       "path": "backend/go.sum",
-      "sha256": "34b11e3b1fb3383bc495936d0d0d51be2db31a6d8e8c2cb7821e193377357f62"
+      "sha256": "2ee334b9ce0b2c4be2d8e7b19fdbf18920347ec629a2b5600116a3a6e3292492"
     },
     {
       "bytes": 52207,
@@ -22,17 +22,17 @@
       "sha256": "c3305538f46480c5219b124062ffa393a0b66c590da5d132b0cbadfe107b26dd"
     },
     {
-      "bytes": 372436,
+      "bytes": 399295,
       "path": "apps/photographer/package-lock.json",
-      "sha256": "55f1bbd1cfcde099bdd10728df3ba0d8da1aedce933f952dabd1cd3f8c6faa1d"
+      "sha256": "b1dbe6dbd543197fbbe3b4c283f5e776f99d74d682982f56f9763e65f38e3a6c"
     },
     {
       "bytes": 610,
       "path": "configs/capacity-rtx3060.json",
-      "sha256": "ee59250b35f6b3f5431e95673339d9f0be5caaffdc319b955a2b95eca9e2ecbf"
+      "sha256": "12d115355467c1b714760d7da5a9c17dbac99e803f20c7c380a38b5dbafe37d0"
     }
   ],
-  "sbom_sha256": "3b14303e9636f4c4ccc58c11d9cfab422843b79a485c6a312f4f094342e20391",
+  "sbom_sha256": "39692154f6ed5fbbd9c00157e31caae771ba6922cf077e56c152f8696cba08b0",
   "schema_version": 1,
-  "source_commit": "fee5be46bca3afff31e953676627b20834bc3084"
+  "source_commit": "1787516465261faf9bb332e353228cfbc6c33cd7"
 }

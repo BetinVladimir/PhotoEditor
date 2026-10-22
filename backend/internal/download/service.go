@@ -2,6 +2,8 @@ package download
 
 import (
 	"context"
+ "bytes"
+ "io"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -13,12 +15,14 @@ import (
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/domain"
+ "photoeditor/backend/internal/downloadpolicy"
 	"photoeditor/backend/internal/idempotency"
 	"photoeditor/backend/internal/project"
 	"photoeditor/backend/internal/tenant"
 )
 
 type Service struct {
+ DownloadPolicy downloadpolicy.Policy
 	DB     *pgxpool.Pool
 	Pepper []byte
 	Now    func() time.Time
@@ -84,20 +88,20 @@ func (s Service) Start(ctx context.Context, who auth.Identity, tid uuid.UUID, ke
 		} else if err != nil {
 			return err
 		}
-		if expires != nil && !s.now().Before(*expires) {
-			return domain.NewError("SNAPSHOT_STALE", 409)
-		}
-		p, err := project.Authorize(ctx, tx, tid, projectID, who.UserID, role, domain.Viewer, false)
+		currentRole, err := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Viewer)
+ if err != nil { return err }
+ p, err := project.Authorize(ctx, tx, tid, projectID, who.UserID, currentRole, domain.Viewer, false)
 		if err != nil {
 			return err
 		}
 		if !p.DownloadAllowed {
 			return domain.NewError("DOWNLOAD_FORBIDDEN", 403)
 		}
-		var presetRevision int64
+		var presetArchived *time.Time
+  var presetRevision int64
 		var presetHash string
 		var preset json.RawMessage
-		if err := tx.QueryRow(ctx, `SELECT revision,config_hash,config FROM photo.export_presets WHERE tenant_id=$1 AND id=$2 AND archived_at IS NULL`, tid, req.PresetID).Scan(&presetRevision, &presetHash, &preset); errors.Is(err, pgx.ErrNoRows) {
+		if err := tx.QueryRow(ctx, `SELECT revision,config_hash,config,archived_at FROM photo.export_presets WHERE tenant_id=$1 AND id=$2`, tid, req.PresetID).Scan(&presetRevision, &presetHash, &preset,&presetArchived); errors.Is(err, pgx.ErrNoRows) {
 			return domain.NewError("NOT_FOUND", 404)
 		} else if err != nil {
 			return err
@@ -105,8 +109,15 @@ func (s Service) Start(ctx context.Context, who auth.Identity, tid uuid.UUID, ke
 		return func() error {
 			var err error
 			result, err = idempotency.Use(ctx, tx, idempotency.Scope{Tenant: tid, Principal: who.UserID, PrincipalType: "user", Route: "Download.Start", Key: key}, req, s.now().Add(30*24*time.Hour), func() (idempotency.Response, error) {
-				job, run := uuid.New(), uuid.New()
-				cfg := map[string]any{"schema_version": 1, "pipeline": "download", "pipeline_version": 3, "input_snapshot_id": req.SelectionSnapshotID, "input_snapshot_digest": digest, "preset_id": req.PresetID, "preset_revision": presetRevision, "preset_hash": presetHash, "preset": preset, "failure_policy": "continue_items", "scope": "selected"}
+				// Expiry gates new work; authenticated exact idempotent replay may
+				// recover an already created job after its selection expires.
+				if expires != nil && !s.now().Before(*expires) { return idempotency.Response{}, domain.NewError("SNAPSHOT_STALE",409) }
+                if presetArchived!=nil{return idempotency.Response{},domain.NewError("PRESET_NOT_ALLOWED",409)}
+                var compatible bool
+                if e:=tx.QueryRow(ctx,"SELECT photo.download_preset_compatible($1::jsonb)",preset).Scan(&compatible);e!=nil{return idempotency.Response{},e};if !compatible{return idempotency.Response{},domain.NewError("PRESET_NOT_ALLOWED",409)}
+				if !s.policy().Valid(){return idempotency.Response{},errors.New("invalid download TTL policy")}
+    job, run := uuid.New(), uuid.New()
+				cfg := map[string]any{"schema_version": 1, "pipeline": "download", "pipeline_version": 3, "input_snapshot_id": req.SelectionSnapshotID, "input_snapshot_digest": digest, "preset_id": req.PresetID, "preset_revision": presetRevision, "preset_hash": presetHash, "preset": preset, "failure_policy": "continue_items", "scope": "selected", "download_policy":s.policy()}
 				cfgHash, e := canonical.Hash(cfg)
 				if e != nil {
 					return idempotency.Response{}, e
@@ -121,7 +132,15 @@ func (s Service) Start(ctx context.Context, who auth.Identity, tid uuid.UUID, ke
 				body, e := canonical.Marshal(Accepted{job, "queued"})
 				return idempotency.Response{Status: 202, Body: body, ResourceID: &job}, e
 			})
-			return err
+            if err != nil { return err }
+            accepted, err := readAcceptedReceipt(result)
+            if err != nil { return err }
+            var bound bool
+            if err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT FROM photo.download_jobs WHERE tenant_id=$1 AND id=$2 AND principal_type='user' AND principal_id=$3 AND collection_id=$4 AND snapshot_id=$5 AND preset->>'id'=$6)`,tid,accepted.DownloadJobID,who.UserID,collectionID,req.SelectionSnapshotID,req.PresetID.String()).Scan(&bound); err != nil { return err }
+            if !bound { return domain.NewError("IDEMPOTENCY_CONFLICT",409) }
+            _, _, err = authorizeJob(ctx,tx,who,tid,accepted.DownloadJobID,role,false)
+            if err != nil { return err }
+            return ctx.Err()
 		}()
 	})
 	if err != nil {
@@ -152,7 +171,7 @@ func scanStatus(row pgx.Row) (Status, error) {
 	return out, nil
 }
 func statusRow(ctx context.Context, tx pgx.Tx, tid, user, id uuid.UUID) pgx.Row {
-	return tx.QueryRow(ctx, `SELECT j.id,j.status,(SELECT count(*) FROM photo.download_job_items i WHERE i.tenant_id=j.tenant_id AND i.download_job_id=j.id AND i.artifact_id IS NOT NULL),(SELECT count(*) FROM photo.download_job_items i WHERE i.tenant_id=j.tenant_id AND i.download_job_id=j.id),coalesce((SELECT sum(v.bytes_written) FROM photo.download_volumes v WHERE v.tenant_id=j.tenant_id AND v.download_job_id=j.id),0),coalesce((SELECT jsonb_agg(jsonb_build_object('number',v.volume_no,'status',v.status,'bytes',v.bytes_written,'delivery_kind',coalesce((SELECT CASE WHEN bool_and(i.delivery_kind='single') THEN 'single' ELSE 'zip' END FROM photo.download_job_items i WHERE i.tenant_id=v.tenant_id AND i.download_job_id=v.download_job_id AND i.volume_no=v.volume_no),'zip')) ORDER BY v.volume_no) FROM photo.download_volumes v WHERE v.tenant_id=j.tenant_id AND v.download_job_id=j.id),'[]'::jsonb),j.expires_at,NULL::jsonb FROM photo.download_jobs j WHERE j.tenant_id=$1 AND j.id=$2 AND j.principal_type='user' AND j.principal_id=$3`, tid, id, user)
+	return tx.QueryRow(ctx, `SELECT j.id,j.status,greatest((SELECT count(*) FROM photo.download_job_items i WHERE i.tenant_id=j.tenant_id AND i.download_job_id=j.id AND i.artifact_id IS NOT NULL),(SELECT count(*) FROM photo.tasks t WHERE t.tenant_id=j.tenant_id AND t.run_id=j.run_id AND t.operation='export.encode' AND t.state IN ('succeeded','failed','cancelled','skipped'))),coalesce((SELECT s.item_count FROM photo.snapshots s WHERE s.tenant_id=j.tenant_id AND s.id=j.snapshot_id),(SELECT count(*) FROM photo.download_job_items i WHERE i.tenant_id=j.tenant_id AND i.download_job_id=j.id)),coalesce((SELECT sum(v.bytes_written) FROM photo.download_volumes v WHERE v.tenant_id=j.tenant_id AND v.download_job_id=j.id),0),coalesce((SELECT jsonb_agg(jsonb_build_object('number',v.volume_no,'status',v.status,'bytes',v.bytes_written,'delivery_kind',coalesce((SELECT CASE WHEN bool_and(i.delivery_kind='single') THEN 'single' ELSE 'zip' END FROM photo.download_job_items i WHERE i.tenant_id=v.tenant_id AND i.download_job_id=v.download_job_id AND i.volume_no=v.volume_no),'zip')) ORDER BY v.volume_no) FROM photo.download_volumes v WHERE v.tenant_id=j.tenant_id AND v.download_job_id=j.id),'[]'::jsonb),j.expires_at,j.failure FROM photo.download_jobs j WHERE j.tenant_id=$1 AND j.id=$2 AND j.principal_type='user' AND j.principal_id=$3`, tid, id, user)
 }
 func authorizeJob(ctx context.Context, tx pgx.Tx, who auth.Identity, tid, id uuid.UUID, role domain.Role, lock bool) (uuid.UUID, string, error) {
 	suffix := ""
@@ -168,7 +187,9 @@ func authorizeJob(ctx context.Context, tx pgx.Tx, who auth.Identity, tid, id uui
 	if err != nil {
 		return uuid.Nil, "", err
 	}
-	p, err := project.Authorize(ctx, tx, tid, projectID, who.UserID, role, domain.Viewer, false)
+	currentRole, err := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Viewer)
+ if err != nil { return uuid.Nil, "", err }
+ p, err := project.Authorize(ctx, tx, tid, projectID, who.UserID, currentRole, domain.Viewer, false)
 	if err != nil {
 		return uuid.Nil, "", err
 	}
@@ -188,18 +209,25 @@ func (s Service) Get(ctx context.Context, who auth.Identity, tid, id uuid.UUID) 
 		if errors.Is(e, pgx.ErrNoRows) {
 			return domain.NewError("NOT_FOUND", 404)
 		}
-		return e
+        if e != nil { return e }
+        _, _, e = authorizeJob(ctx,tx,who,tid,id,role,false)
+        if e != nil { return e }
+        return ctx.Err()
 	})
 	return out, err
 }
 func (s Service) Cancel(ctx context.Context, who auth.Identity, tid, id uuid.UUID) (Status, error) {
 	var out Status
 	err := tenant.WithTenant(ctx, s.DB, who, tid, domain.Viewer, func(tx pgx.Tx, role domain.Role) error {
-		run, status, e := authorizeJob(ctx, tx, who, tid, id, role, true)
-		if e != nil {
-			return e
-		}
-		if status == "queued" || status == "preparing" || status == "building" || status == "uploading" {
+		// Publication locks the run before its job; repeat authorization/status
+		// after both locks so a completed publication cannot become cancelling.
+		run, _, e := authorizeJob(ctx, tx, who, tid, id, role, false)
+		if e != nil { return e }
+		var runState string
+		if e=tx.QueryRow(ctx,`SELECT status FROM photo.runs WHERE tenant_id=$1 AND id=$2 AND kind='download' FOR UPDATE`,tid,run).Scan(&runState);e!=nil{return e}
+		lockedRun,status,e:=authorizeJob(ctx,tx,who,tid,id,role,true)
+		if e!=nil{return e};if lockedRun!=run{return errors.New("download run binding changed")}
+		if (runState=="queued"||runState=="running"||runState=="draft"||runState=="waiting_review") && (status == "queued" || status == "preparing" || status == "building" || status == "uploading") {
 			if _, e := tx.Exec(ctx, `UPDATE photo.download_jobs SET cancel_requested=true,status='cancelling' WHERE tenant_id=$1 AND id=$2`, tid, id); e != nil {
 				return e
 			}
@@ -208,11 +236,16 @@ func (s Service) Cancel(ctx context.Context, who auth.Identity, tid, id uuid.UUI
 			}
 		}
 		out, e = scanStatus(statusRow(ctx, tx, tid, who.UserID, id))
-		return e
+        if e != nil { return e }
+        _, _, e = authorizeJob(ctx,tx,who,tid,id,role,false)
+        if e != nil { return e }
+        return ctx.Err()
 	})
 	return out, err
 }
 func (s Service) CreateIntent(ctx context.Context, who auth.Identity, tid, job uuid.UUID, key string, req IntentRequest) (Intent, error) {
+	if err := ctx.Err(); err != nil { return Intent{}, err }
+	if s.DB == nil || len(s.Pepper) < 32 { return Intent{}, errors.New("download dependencies unavailable") }
 	if job == uuid.Nil || req.Volume < 1 || req.Volume > 5000 {
 		return Intent{}, domain.NewError("VALIDATION_FAILED", 422)
 	}
@@ -239,33 +272,63 @@ func (s Service) CreateIntent(ctx context.Context, who auth.Identity, tid, job u
 			}{job, req.Volume}, s.now().Add(30*24*time.Hour), func() (idempotency.Response, error) {
 				var artifact uuid.UUID
 				var jobExpires time.Time
-				if e := tx.QueryRow(ctx, `SELECT v.artifact_id,j.expires_at FROM photo.download_jobs j JOIN photo.download_volumes v ON v.tenant_id=j.tenant_id AND v.download_job_id=j.id AND v.volume_no=$4 AND v.status='ready' JOIN photo.artifacts a ON a.tenant_id=v.tenant_id AND a.id=v.artifact_id AND a.state='ready' AND a.expires_at>clock_timestamp() AND a.object_version IS NOT NULL AND a.object_version NOT IN ('','null') WHERE j.tenant_id=$1 AND j.id=$2 AND j.principal_type='user' AND j.principal_id=$3 AND j.status='ready' AND NOT j.cancel_requested AND j.expires_at>clock_timestamp()`, tid, job, who.UserID, req.Volume).Scan(&artifact, &jobExpires); errors.Is(e, pgx.ErrNoRows) {
+    var linkSeconds int
+				if e := tx.QueryRow(ctx, `SELECT v.artifact_id,j.expires_at,photo.download_link_seconds(r.config_snapshot) FROM photo.download_jobs j JOIN photo.runs r ON r.tenant_id=j.tenant_id AND r.id=j.run_id JOIN photo.download_volumes v ON v.tenant_id=j.tenant_id AND v.download_job_id=j.id AND v.volume_no=$4 AND v.status='ready' JOIN photo.artifacts a ON a.tenant_id=v.tenant_id AND a.id=v.artifact_id AND a.state='ready' AND a.expires_at>clock_timestamp() AND a.object_version IS NOT NULL AND a.object_version NOT IN ('','null') WHERE j.tenant_id=$1 AND j.id=$2 AND j.principal_type='user' AND j.principal_id=$3 AND j.status='ready' AND NOT j.cancel_requested AND j.expires_at>clock_timestamp()`, tid, job, who.UserID, req.Volume).Scan(&artifact, &jobExpires,&linkSeconds); errors.Is(e, pgx.ErrNoRows) {
 					return idempotency.Response{}, domain.NewError("DOWNLOAD_NOT_READY", 409)
 				} else if e != nil {
 					return idempotency.Response{}, e
 				}
 				id := uuid.New()
 				token := base64.RawURLEncoding.EncodeToString(auth.MAC(s.Pepper, "portal-download-bearer", id.String()))
-				expires := s.now().Add(time.Minute)
+				if linkSeconds<1||linkSeconds>downloadpolicy.MaxLinkSeconds{return idempotency.Response{},domain.NewError("DOWNLOAD_INTENT_INVALID",404)}
+    expires := s.now().Add(time.Duration(linkSeconds)*time.Second)
 				if jobExpires.Before(expires) {
 					expires = jobExpires
 				}
-				if _, e = tx.Exec(ctx, `INSERT INTO photo.download_intents(id,tenant_id,principal_type,principal_id,artifact_id,token_hash,expires_at) VALUES($1,$2,'user',$3,$4,$5,$6)`, id, tid, who.UserID, artifact, auth.MAC(s.Pepper, "portal-download-intent", token), expires); e != nil {
+				if _, e = tx.Exec(ctx, `INSERT INTO photo.download_intents(id,tenant_id,principal_type,principal_id,artifact_id,token_hash,expires_at,url_ttl_seconds) VALUES($1,$2,'user',$3,$4,$5,$6,$7)`, id, tid, who.UserID, artifact, auth.MAC(s.Pepper, "portal-download-intent", token), expires, linkSeconds); e != nil {
 					return idempotency.Response{}, e
 				}
 				body, e := canonical.Marshal(intentRecord{id, expires})
 				return idempotency.Response{Status: 201, Body: body, ResourceID: &id}, e
 			})
-			return e
+			if e != nil { return e }
+			var saved intentRecord
+			if e = json.Unmarshal(response.Body, &saved); e != nil || !validIntentRecord(saved, s.now()) { return domain.NewError("DOWNLOAD_INTENT_INVALID", 404) }
+			var current bool
+			e = tx.QueryRow(ctx, `SELECT EXISTS(SELECT FROM photo.download_intents i
+ JOIN photo.download_volumes v ON v.tenant_id=i.tenant_id AND v.artifact_id=i.artifact_id AND v.download_job_id=$4 AND v.volume_no=$5 AND v.status='ready'
+ JOIN photo.download_jobs j ON j.tenant_id=v.tenant_id AND j.id=v.download_job_id AND j.principal_type='user' AND j.principal_id=$3 AND j.status='ready' AND NOT j.cancel_requested AND j.expires_at>clock_timestamp()
+ WHERE i.tenant_id=$1 AND i.id=$2 AND i.principal_type='user' AND i.principal_id=$3 AND i.consumed_at IS NULL AND i.expires_at=$6 AND i.expires_at>clock_timestamp())`, tid, saved.ID, who.UserID, job, req.Volume, saved.ExpiresAt).Scan(&current)
+			if e != nil { return e }
+			if !current { return domain.NewError("DOWNLOAD_INTENT_INVALID", 404) }
+            if _,_,e = authorizeJob(ctx,tx,who,tid,job,role,false); e != nil { return e }
+			return ctx.Err()
 		}()
 	})
 	if err != nil {
 		return Intent{}, err
 	}
 	var saved intentRecord
-	if err = json.Unmarshal(response.Body, &saved); err != nil || saved.ID == uuid.Nil {
+	if err = json.Unmarshal(response.Body, &saved); err != nil || !validIntentRecord(saved, s.now()) {
 		return Intent{}, errors.New("invalid download intent replay")
 	}
+	if err := ctx.Err(); err != nil { return Intent{}, err }
 	token := base64.RawURLEncoding.EncodeToString(auth.MAC(s.Pepper, "portal-download-bearer", saved.ID.String()))
 	return Intent{Token: token, ExpiresAt: saved.ExpiresAt}, nil
+}
+
+func validIntentRecord(saved intentRecord, now time.Time) bool {
+ return saved.ID != uuid.Nil && saved.ExpiresAt.After(now) && !saved.ExpiresAt.After(now.Add(time.Minute+5*time.Second))
+}
+
+func(s Service)policy()downloadpolicy.Policy{if s.DownloadPolicy==(downloadpolicy.Policy{}){return downloadpolicy.Default()};return s.DownloadPolicy}
+
+// Read only the immutable acceptance, not a mutable job-status projection.
+func readAcceptedReceipt(response idempotency.Response) (Accepted,error) {
+ var out Accepted
+ conflict:=func()(Accepted,error){return Accepted{},domain.NewError("IDEMPOTENCY_CONFLICT",409)}
+ if response.Status!=202||response.ResourceID==nil||*response.ResourceID==uuid.Nil{return conflict()}
+ decoder:=json.NewDecoder(bytes.NewReader(response.Body));decoder.DisallowUnknownFields()
+ if decoder.Decode(&out)!=nil||decoder.Decode(new(any))!=io.EOF||out.DownloadJobID!=*response.ResourceID||out.Status!="queued"{return conflict()}
+ return out,nil
 }

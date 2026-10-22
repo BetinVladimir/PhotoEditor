@@ -8,7 +8,7 @@ BEGIN
  params:=(p_plan->>'params_jcs')::jsonb;
  IF jsonb_typeof(params->'frames') IS DISTINCT FROM 'array' OR jsonb_typeof(p_plan->'sources_jcs') IS DISTINCT FROM 'array' THEN RETURN false;END IF;
  n:=jsonb_array_length(params->'frames');
- IF n NOT BETWEEN 2 AND CASE p_plan->>'operation' WHEN 'optical.panorama' THEN 20 ELSE 30 END OR jsonb_array_length(p_plan->'sources_jcs')<>n THEN RETURN false;END IF;
+ IF n NOT BETWEEN 2 AND (CASE p_plan->>'operation' WHEN 'optical.panorama' THEN 20 ELSE 30 END) OR jsonb_array_length(p_plan->'sources_jcs')<>n THEN RETURN false;END IF;
  FOR ordinal IN 0..n-1 LOOP
  binding:=params->'frames'->ordinal;source_raw:=p_plan->'sources_jcs'->>ordinal;source:=source_raw::jsonb;
  IF source_raw IS NULL OR octet_length(source_raw) NOT BETWEEN 2 AND 1048576

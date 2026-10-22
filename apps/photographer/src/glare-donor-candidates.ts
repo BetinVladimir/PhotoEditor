@@ -52,7 +52,7 @@ export function readGlareMaskPairPage(v:unknown,query:GlareMaskPairQuery):GlareM
  if(!fields(v,['items','next_cursor'])||!Array.isArray(v.items)||v.items.length>100||v.next_cursor!==null&&!uuid(v.next_cursor))throw new Error('GLARE_MASK_PAIR_PAGE_INVALID');
  let previous=query.after??'';
  for(const item of v.items){
-  if(!fields(item,['glasses_mask','protected','target_pixel','protected_pixel'])||![item.glasses_mask,item.protected,item.target_pixel,item.protected_pixel].every(ref))throw new Error('GLARE_MASK_PAIR_PAGE_INVALID');
+  if(!fields(item,['glasses_mask','protected','target_pixel','protected_pixel'])||!ref(item.glasses_mask)||!ref(item.protected)||!ref(item.target_pixel)||!ref(item.protected_pixel))throw new Error('GLARE_MASK_PAIR_PAGE_INVALID');
   const ids=[item.glasses_mask.artifact_id,item.protected.artifact_id,item.target_pixel.artifact_id,item.protected_pixel.artifact_id];
   if(new Set(ids).size!==ids.length||item.glasses_mask.artifact_id<=previous)throw new Error('GLARE_MASK_PAIR_PAGE_INVALID');
   previous=item.glasses_mask.artifact_id;

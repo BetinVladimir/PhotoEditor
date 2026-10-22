@@ -26,6 +26,7 @@ func (s Service) Approve(ctx context.Context, who auth.Identity, tenantID,
 	if err != nil || expected < 1 || request.DocumentID == uuid.Nil {
 		return idempotency.Response{}, domain.NewError("VALIDATION_FAILED", 422)
 	}
+ if response,found,e:=s.replayApproval(ctx,who,tenantID,assetID,key,request);e!=nil||found{return response,e}
 	draft, err := s.ReadApprovalDraft(ctx, who, tenantID, assetID,
 		request.DocumentID, expected)
 	if err != nil {

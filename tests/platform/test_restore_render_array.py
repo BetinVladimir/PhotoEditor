@@ -32,5 +32,5 @@ def test_exact_version_arrays_use_real_streaming_adoption_validator(mode):
     if mode in ('pixels','alpha','mask'):assert run().shape==shape
     else:
         with pytest.raises((ValueError,RuntimeError)):run()
-    if mode in ('fixture_false','activity_false'):assert requests==[] and closed==[]
+    if mode in ('fixture_false','activity_false','wrong_shape'):assert requests==[] and closed==[]
     else:assert closed==[True]

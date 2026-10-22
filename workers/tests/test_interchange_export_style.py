@@ -16,7 +16,11 @@ def test_export_style_preserves_complete_processing_document():
     value = style_fixture();raw = canonical_bytes(value)
     models = {model['id']: model['weight_id'] for model in value['models']}
     style = validate_export_style(raw, sha256(raw).hexdigest(), models)
-    assert canonical_bytes(style) == raw
+    # Pydantic materializes optional processing defaults; authored bytes remain
+    # untouched while the normalized document matches the production contract.
+    from photo_worker.contracts.style import StyleV2
+    assert canonical_bytes(style) == canonical_bytes(StyleV2.model_validate(value))
+    assert canonical_bytes(value) == raw
 
 
 @pytest.mark.parametrize('mode', ['hash', 'canonical', 'example', 'curve', 'unknown', 'model'])
@@ -94,9 +98,11 @@ def composition_fixture():
     from photo_worker.contracts.base import ArtifactRef
     from photo_worker.contracts.images import Canvas, ColorSpace, TransformChain, WorkingImage
     value = style_fixture()
+    from photo_worker.color.icc import ICCRegistry
+    icc = ICCRegistry(Path(__file__).resolve().parents[2] / 'resources' / 'icc').resolve(value['color']['profile_id'])
     source = WorkingImage(pixels=ArtifactRef(artifact_id=uuid4(), sha256='d' * 64),
         canvas=Canvas(width=32, height=24, orientation=1, space_id='canonical', source_sha256='a' * 64),
-        color=ColorSpace(profile_id='work_rec2020_gamma24_v1', icc_sha256=value['color']['icc_sha256'], encoding='gamma24'),
+        color=ColorSpace(profile_id='work_rec2020_gamma24_v1', icc_sha256=icc.sha256, encoding='gamma24'),
         dtype='float32', alpha=None, transform_chain=TransformChain.create([]))
     def pin(body):
         raw = canonical_bytes(body)

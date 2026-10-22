@@ -1,0 +1,903 @@
+{
+  "schema": 1,
+  "standard": "WCAG2.2",
+  "target_level": "AA",
+  "includes_levels": [
+    "A",
+    "AA"
+  ],
+  "verified_primary_source": "https://www.w3.org/TR/2024/REC-WCAG22-20241212/",
+  "verified_date": "2026-10-20",
+  "criteria_count": 55,
+  "level_counts": {
+    "A": 31,
+    "AA": 24
+  },
+  "criteria": [
+    {
+      "id": "1.1.1",
+      "level": "A",
+      "title": "Non-text Content",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#non-text-content",
+      "method": "Inspect all meaningful images, controls, canvas and native pixmaps; verify useful alternatives with assistive technology.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "1.2.1",
+      "level": "A",
+      "title": "Audio-only and Video-only (Prerecorded)",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#audio-only-and-video-only-prerecorded",
+      "method": "Inventory actual prerecorded media and verify equivalent alternatives.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "1.2.2",
+      "level": "A",
+      "title": "Captions (Prerecorded)",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#captions-prerecorded",
+      "method": "For actual synchronized prerecorded media verify accurate captions including meaningful sounds.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "1.2.3",
+      "level": "A",
+      "title": "Audio Description or Media Alternative (Prerecorded)",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#audio-description-or-media-alternative-prerecorded",
+      "method": "Review visual information in actual prerecorded media and its alternative.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "1.2.4",
+      "level": "AA",
+      "title": "Captions (Live)",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#captions-live",
+      "method": "Inventory live synchronized media and verify real-time captions when present.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "1.2.5",
+      "level": "AA",
+      "title": "Audio Description (Prerecorded)",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#audio-description-prerecorded",
+      "method": "Review actual prerecorded synchronized media for required audio description.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "1.3.1",
+      "level": "A",
+      "title": "Info and Relationships",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#info-and-relationships",
+      "method": "Inspect headings, lists, form/error relationships and native accessibility tree; listen to structure.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "1.3.2",
+      "level": "A",
+      "title": "Meaningful Sequence",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#meaningful-sequence",
+      "method": "Compare reading and focus order with visual meaning including responsive and virtualized layouts.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "1.3.3",
+      "level": "A",
+      "title": "Sensory Characteristics",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#sensory-characteristics",
+      "method": "Check instructions do not require shape, location, sound or color alone.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "1.3.4",
+      "level": "AA",
+      "title": "Orientation",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#orientation",
+      "method": "Operate supported content in portrait and landscape; justify essential orientation exceptions.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "1.3.5",
+      "level": "AA",
+      "title": "Identify Input Purpose",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#identify-input-purpose",
+      "method": "Check applicable personal-data fields expose recognized input purpose and autofill semantics.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "1.4.1",
+      "level": "A",
+      "title": "Use of Color",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#use-of-color",
+      "method": "Review selection, error, protection, progress and role states with color removed.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "1.4.2",
+      "level": "A",
+      "title": "Audio Control",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#audio-control",
+      "method": "Inventory automatically playing audio and test independent pause/stop or volume where required.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "1.4.3",
+      "level": "AA",
+      "title": "Contrast (Minimum)",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#contrast-minimum",
+      "method": "Measure actual foreground/background composites in every active state; normal text4.5:1 and large text3:1 with documented exceptions.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "1.4.4",
+      "level": "AA",
+      "title": "Resize Text",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#resize-text",
+      "method": "Increase text to200percent without lost content or operation; include dialogs and errors.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "1.4.5",
+      "level": "AA",
+      "title": "Images of Text",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#images-of-text",
+      "method": "Inventory rasterized text; retain real text except documented essential/customizable exceptions.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "1.4.10",
+      "level": "AA",
+      "title": "Reflow",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#reflow",
+      "method": "At320CSSpx width or equivalent400percent zoom verify reading without two-dimensional scrolling except essential2D content.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "1.4.11",
+      "level": "AA",
+      "title": "Non-text Contrast",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#non-text-contrast",
+      "method": "Measure necessary component boundaries, states and graphical objects against adjacent colors at3:1.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "1.4.12",
+      "level": "AA",
+      "title": "Text Spacing",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#text-spacing",
+      "method": "Override line1.5, paragraph2em, letter0.12em and word0.16em; inspect clipping and control operation.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "1.4.13",
+      "level": "AA",
+      "title": "Content on Hover or Focus",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#content-on-hover-or-focus",
+      "method": "Open actual hover/focus content; verify dismissibility, hoverability and persistence as applicable.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "2.1.1",
+      "level": "A",
+      "title": "Keyboard",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#keyboard",
+      "method": "Complete every action with keyboard including gallery, uploads, editor alternatives and native dialogs.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "2.1.2",
+      "level": "A",
+      "title": "No Keyboard Trap",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#no-keyboard-trap",
+      "method": "Enter and leave every component using keyboard; test modals and native editor panes.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "2.1.4",
+      "level": "A",
+      "title": "Character Key Shortcuts",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#character-key-shortcuts",
+      "method": "Inventory printable-key shortcuts; verify disable/remap or focus-only behavior.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "2.2.1",
+      "level": "A",
+      "title": "Timing Adjustable",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#timing-adjustable",
+      "method": "Review actual time limits and extension controls; document genuine security/essential exceptions.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "2.2.2",
+      "level": "A",
+      "title": "Pause, Stop, Hide",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#pause-stop-hide",
+      "method": "Inventory moving/updating information; verify pause/stop/hide or frequency control where required.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "2.3.1",
+      "level": "A",
+      "title": "Three Flashes or Below Threshold",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#three-flashes-or-below-threshold",
+      "method": "Review supplied media and animated effects; assess any flash sequences against thresholds.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "2.4.1",
+      "level": "A",
+      "title": "Bypass Blocks",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#bypass-blocks",
+      "method": "Use actual skip/landmark/navigation mechanisms to bypass repeated blocks.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "2.4.2",
+      "level": "A",
+      "title": "Page Titled",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#page-titled",
+      "method": "Check meaningful document/window titles on route, modal/process and locale changes.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "2.4.3",
+      "level": "A",
+      "title": "Focus Order",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#focus-order",
+      "method": "Walk sequential focus; verify route entry, modal entry/exit and virtualized opener fallback.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "2.4.4",
+      "level": "A",
+      "title": "Link Purpose (In Context)",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#link-purpose-in-context",
+      "method": "Review computed link names and programmatic context, not visible text alone.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "2.4.5",
+      "level": "AA",
+      "title": "Multiple Ways",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#multiple-ways",
+      "method": "Inventory ways to locate pages in a set; document process-step exceptions explicitly.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "2.4.6",
+      "level": "AA",
+      "title": "Headings and Labels",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#headings-and-labels",
+      "method": "Review headings and field/control labels for descriptive purpose across locales.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "2.4.7",
+      "level": "AA",
+      "title": "Focus Visible",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#focus-visible",
+      "method": "Observe keyboard focus indicators on every component/theme/state.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "2.4.11",
+      "level": "AA",
+      "title": "Focus Not Obscured (Minimum)",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#focus-not-obscured-minimum",
+      "method": "Ensure focused components are not entirely hidden by sticky headers, overlays or download panels.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "2.5.1",
+      "level": "A",
+      "title": "Pointer Gestures",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#pointer-gestures",
+      "method": "Test single-pointer alternatives for multipoint/path-based gestures unless essential.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "2.5.2",
+      "level": "A",
+      "title": "Pointer Cancellation",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#pointer-cancellation",
+      "method": "Check down/up activation, abort and undo behavior for pointer operations.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "2.5.3",
+      "level": "A",
+      "title": "Label in Name",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#label-in-name",
+      "method": "Compare visible labels with computed accessible names; include speech input use.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "2.5.4",
+      "level": "A",
+      "title": "Motion Actuation",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#motion-actuation",
+      "method": "Inventory motion-triggered operations; verify UI alternatives and disabling accidental motion.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "2.5.7",
+      "level": "AA",
+      "title": "Dragging Movements",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#dragging-movements",
+      "method": "Test a single-pointer non-drag method for every drag operation unless essential or unmodified user-agent behavior.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "2.5.8",
+      "level": "AA",
+      "title": "Target Size (Minimum)",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#target-size-minimum",
+      "method": "Measure24by24CSSpx targets or valid spacing/other exceptions; include mobile and zoom.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "3.1.1",
+      "level": "A",
+      "title": "Language of Page",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#language-of-page",
+      "method": "Check actual document language or native language metadata and screenreader pronunciation.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "3.1.2",
+      "level": "AA",
+      "title": "Language of Parts",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#language-of-parts",
+      "method": "Check meaningful language changes in content and controls with assistive technology.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "3.2.1",
+      "level": "A",
+      "title": "On Focus",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#on-focus",
+      "method": "Focus each control without unexpected context changes.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "3.2.2",
+      "level": "A",
+      "title": "On Input",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#on-input",
+      "method": "Change fields/settings; verify context changes are expected or explained in advance.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "3.2.3",
+      "level": "AA",
+      "title": "Consistent Navigation",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#consistent-navigation",
+      "method": "Compare repeated navigation order across real routes/states.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "3.2.4",
+      "level": "AA",
+      "title": "Consistent Identification",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#consistent-identification",
+      "method": "Compare names and symbols for the same functionality across the product.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "3.2.6",
+      "level": "A",
+      "title": "Consistent Help",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#consistent-help",
+      "method": "Inventory repeated help mechanisms and compare their relative order.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "3.3.1",
+      "level": "A",
+      "title": "Error Identification",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#error-identification",
+      "method": "Trigger genuine validation/server errors and verify text identifies affected input.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "3.3.2",
+      "level": "A",
+      "title": "Labels or Instructions",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#labels-or-instructions",
+      "method": "Check all required input instructions, formats and accessible labels before entry.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "3.3.3",
+      "level": "AA",
+      "title": "Error Suggestion",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#error-suggestion",
+      "method": "Trigger correctable errors and verify useful safe correction guidance.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "3.3.4",
+      "level": "AA",
+      "title": "Error Prevention (Legal, Financial, Data)",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#error-prevention-legal-financial-data",
+      "method": "Exercise destructive/data-changing operations and verify reversal, checking or confirmation as applicable.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "3.3.7",
+      "level": "A",
+      "title": "Redundant Entry",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#redundant-entry",
+      "method": "Walk complete processes; verify prior required information is reusable except documented exceptions.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "3.3.8",
+      "level": "AA",
+      "title": "Accessible Authentication (Minimum)",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#accessible-authentication-minimum",
+      "method": "Use paste/autofill/password managers and real OTP flow; review cognitive-test requirements and supported alternatives.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "4.1.2",
+      "level": "A",
+      "title": "Name, Role, Value",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#name-role-value",
+      "method": "Inspect DOM/native accessibility trees for names, roles, states and programmatic updates.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    },
+    {
+      "id": "4.1.3",
+      "level": "AA",
+      "title": "Status Messages",
+      "normative_url": "https://www.w3.org/TR/WCAG22/#status-messages",
+      "method": "Listen to loading, cancel, progress, error, uncertain and success messages without forced focus or announcement spam.",
+      "automation": "SUPPORTING_CHECKS_ONLY; tool limitations and human review required",
+      "evidence_expected": [
+        "exact build/source vector and tool/platform versions",
+        "route or native screen plus actual state/locale/theme/viewport",
+        "reproduction steps, observed result and criterion-specific manual reasoning",
+        "machine report where supported; screenshot/AT transcript where meaningful"
+      ],
+      "applicability": "UNASSESSED",
+      "status": "NOT_TESTED"
+    }
+  ],
+  "removed_criterion": {
+    "id": "4.1.1",
+    "reason": "obsolete and removed in WCAG2.2; not an acceptance criterion here"
+  },
+  "conformance": "NOT_ASSESSED"
+}

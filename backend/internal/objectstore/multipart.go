@@ -148,7 +148,7 @@ func validETag(value string) bool {
 }
 
 func (s *Store) CompleteMultipart(ctx context.Context, key, uploadID, contentType string, expectedBytes int64, parts []UploadedPart) (PendingObject, error) {
- return s.completeMultipartBounded(ctx, key, uploadID, contentType, expectedBytes, parts, MaxUploadBytes)
+	return s.completeMultipartBounded(ctx, key, uploadID, contentType, expectedBytes, parts, MaxUploadBytes)
 }
 func (s *Store) completeMultipartBounded(ctx context.Context, key, uploadID, contentType string, expectedBytes int64, parts []UploadedPart, maxBytes int64) (PendingObject, error) {
 	if s == nil || s.client == nil || !validKey(key) || !validUploadID(uploadID) || !mimePattern.MatchString(contentType) || expectedBytes < 1 || expectedBytes > maxBytes || len(parts) < 1 || len(parts) > MaxUploadParts {
@@ -184,7 +184,7 @@ func (s *Store) completeMultipartBounded(ctx context.Context, key, uploadID, con
 // single-owner staging key. Versioning is mandatory; an unversioned latest
 // object is never accepted as the completion result.
 func (s *Store) RecoverCompletedMultipart(ctx context.Context, key, contentType string, expectedBytes int64) (PendingObject, error) {
- return s.recoverCompletedMultipartBounded(ctx, key, contentType, expectedBytes, MaxUploadBytes)
+	return s.recoverCompletedMultipartBounded(ctx, key, contentType, expectedBytes, MaxUploadBytes)
 }
 func (s *Store) recoverCompletedMultipartBounded(ctx context.Context, key, contentType string, expectedBytes int64, maxBytes int64) (PendingObject, error) {
 	if s == nil || s.client == nil || !validKey(key) || !mimePattern.MatchString(contentType) || expectedBytes < 1 || expectedBytes > maxBytes {
@@ -211,7 +211,7 @@ func (s *Store) AbortMultipart(ctx context.Context, key, uploadID string) error 
 // canonical SHA-256. expectedSHA may be empty; a supplied value is a check, not
 // trusted metadata. ETag is deliberately ignored.
 func (s *Store) VerifyPending(ctx context.Context, pending PendingObject, expectedSHA string) (Object, error) {
- return s.verifyPendingBounded(ctx, pending, expectedSHA, MaxUploadBytes)
+	return s.verifyPendingBounded(ctx, pending, expectedSHA, MaxUploadBytes)
 }
 func (s *Store) verifyPendingBounded(ctx context.Context, pending PendingObject, expectedSHA string, maxBytes int64) (Object, error) {
 	if s == nil || s.client == nil || !validKey(pending.Key) || pending.VersionID == "" || pending.VersionID == "null" || pending.Bytes < 1 || pending.Bytes > maxBytes || !mimePattern.MatchString(pending.ContentType) || (expectedSHA != "" && !hashPattern.MatchString(expectedSHA)) {
@@ -239,4 +239,23 @@ func (s *Store) verifyPendingBounded(ctx context.Context, pending PendingObject,
 		return object, ErrIntegrity
 	}
 	return object, nil
+}
+
+// isMultipartSourceKey admits only the canonical key produced by StagingKey.
+// Other objects still require the metadata SHA set by PutImmutable.
+func isMultipartSourceKey(key string) bool {
+	parts := strings.Split(key, "/")
+	if len(parts) != 5 || parts[0] != "staging" || parts[1] != "tenants" || parts[3] != "uploads" {
+		return false
+	}
+	tenant, e := uuid.Parse(parts[2])
+	if e != nil {
+		return false
+	}
+	upload, e := uuid.Parse(parts[4])
+	if e != nil {
+		return false
+	}
+	canonical, e := StagingKey(tenant, upload)
+	return e == nil && key == canonical
 }

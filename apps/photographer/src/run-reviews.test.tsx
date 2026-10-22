@@ -33,8 +33,8 @@ it('loads paged open-eyes reviews and opens the selected review',async()=>{
  fireEvent.click(screen.getByText('Load more reviews'));
  await waitFor(()=>expect(reviewsForRun).toHaveBeenCalledTimes(2));
  expect(reviewsForRun.mock.calls[1][1]).toBe('page2');
- await waitFor(()=>expect(screen.getAllByText('portrait.open_eyes · pending')).toHaveLength(2));
- fireEvent.click(screen.getAllByText('portrait.open_eyes · pending')[1]);
+ await waitFor(()=>expect(screen.getAllByText('Open eyes · Pending')).toHaveLength(2));
+ fireEvent.click(screen.getAllByText('Open eyes · Pending')[1]);
  expect(onOpen).toHaveBeenCalledWith(second);
 });
 it('does not append a page that repeats its requested cursor',async()=>{
@@ -42,12 +42,26 @@ it('does not append a page that repeats its requested cursor',async()=>{
  render(<RunReviews api={{reviewsForRun} as unknown as OwnerAPI} run={run} onOpen={vi.fn()}/>);
  await screen.findByText('Load more reviews');fireEvent.click(screen.getByText('Load more reviews'));
  await screen.findByText('Unable to load reviews. Retry');
- expect(screen.getAllByText('portrait.open_eyes · pending')).toHaveLength(1);
+ expect(screen.getAllByText('Open eyes · Pending')).toHaveLength(1);
 });
 it('clears previously displayed reviews when access is revoked during pagination',async()=>{
  const reviewsForRun=vi.fn().mockResolvedValueOnce({items:[review(first)],next_cursor:'page2'}).mockRejectedValueOnce(new APIError(403,'FORBIDDEN'));
  render(<RunReviews api={{reviewsForRun} as unknown as OwnerAPI} run={run} onOpen={vi.fn()}/>);
  await screen.findByText('Load more reviews');fireEvent.click(screen.getByText('Load more reviews'));
  await screen.findByText('Unable to load reviews. Retry');
- expect(screen.queryByText('portrait.open_eyes · pending')).toBeNull();
+ expect(screen.queryByText('Open eyes · Pending')).toBeNull();
+});
+
+it.each([401,403])('reports revoked run authority on review status %s',async(status)=>{
+ const onAccessDenied=vi.fn();
+ const reviewsForRun=vi.fn().mockRejectedValue(new APIError(status,'FORBIDDEN'));
+ render(<RunReviews api={{reviewsForRun} as unknown as OwnerAPI} run={run} onOpen={vi.fn()} onAccessDenied={onAccessDenied}/>);
+ await waitFor(()=>expect(onAccessDenied).toHaveBeenCalledTimes(1));
+ expect(screen.queryByText('Open eyes · Pending')).toBeNull();
+});
+it('keeps a missing review page local to its list',async()=>{
+ const onAccessDenied=vi.fn();
+ render(<RunReviews api={{reviewsForRun:vi.fn().mockRejectedValue(new APIError(404,'NOT_FOUND'))} as unknown as OwnerAPI} run={run} onOpen={vi.fn()} onAccessDenied={onAccessDenied}/>);
+ await screen.findByText('Unable to load reviews. Retry');
+ expect(onAccessDenied).not.toHaveBeenCalled();
 });

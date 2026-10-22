@@ -49,9 +49,11 @@ BEGIN
  IF (length(definition)-length(replace(definition,needle,'')))/length(needle)<>1 THEN RAISE EXCEPTION 'WATERMARK_ENCODE_CONTEXT_DEFINITION_DRIFT';END IF;
  EXECUTE replace(definition,needle,needle||' IF photo.v30_watermark_encode_completion_ready(p_tenant,p_task,NULL) IS DISTINCT FROM true THEN RETURN;END IF;');
  definition:=pg_get_functiondef('photo.adopt_v30_delivery_encode(uuid,uuid,integer,bigint,uuid,text,text,text,bigint)'::regprocedure);
- needle:='IF EXISTS(SELECT 1 FROM photo.inbox WHERE tenant_id=p_tenant AND consumer=''v2-adopt'' AND event_id=marker) THEN';
+ -- The public adopter is the metadata/strip dispatcher introduced in 01710.
+ -- Guard both branches, after resolving the current child and before mutation.
+ needle:='IF child IS NULL OR mode IS NULL THEN RETURN false;END IF;';
  IF (length(definition)-length(replace(definition,needle,'')))/length(needle)<>1 THEN RAISE EXCEPTION 'WATERMARK_ENCODE_ADOPTION_DEFINITION_DRIFT';END IF;
- EXECUTE replace(definition,needle,'IF photo.v30_watermark_encode_completion_ready(p_tenant,p_task,p_params) IS DISTINCT FROM true THEN RETURN false;END IF; '||needle);
+ EXECUTE replace(definition,needle,needle||' IF photo.v30_watermark_encode_completion_ready(p_tenant,p_task,p_params) IS DISTINCT FROM true THEN RETURN false;END IF;');
 END $$;
 -- +goose StatementEnd
 -- +goose Down

@@ -82,16 +82,16 @@ check-fitting-backends:
 
 .PHONY: test-zip64-large-io
 test-zip64-large-io:
-	PHOTO_RUN_ZIP64_LARGE_IO=1 PYTHONPATH=$(ROOT)/workers:$(ROOT)/src $(RUN) $(PYTHON) -m pytest tests/integration/test_v25_zip64_large_io.py -q -s
+	PHOTO_RUN_ZIP64_LARGE_IO=1 PYTHONPATH=$(ROOT)/workers:$(ROOT)/apps/local-editor/src $(RUN) $(PYTHON) -m pytest tests/integration/test_v25_zip64_large_io.py -q -s
 
 .PHONY: test-s3-large-io
 test-s3-large-io:
-	PHOTO_RUN_S3_LARGE_IO=1 PYTHONPATH=$(ROOT)/workers:$(ROOT)/src $(RUN) $(PYTHON) -m pytest tests/integration/test_v25_s3_large_io.py -q -s
+	PHOTO_RUN_S3_LARGE_IO=1 PYTHONPATH=$(ROOT)/workers:$(ROOT)/apps/local-editor/src $(RUN) $(PYTHON) -m pytest tests/integration/test_v25_s3_large_io.py -q -s
 
 .PHONY: test-gateway-large-io
 test-gateway-large-io:
-	PHOTO_RUN_GATEWAY_LARGE_IO=1 PYTHONPATH=$(ROOT)/workers:$(ROOT)/src $(RUN) $(PYTHON) -m pytest tests/integration/test_v25_gateway_large_io.py -q -s
+	PHOTO_RUN_GATEWAY_LARGE_IO=1 PYTHONPATH=$(ROOT)/workers:$(ROOT)/apps/local-editor/src $(RUN) $(PYTHON) -m pytest tests/integration/test_v25_gateway_large_io.py -q -s
 
 .PHONY: test-gateway-wire-large-io
 test-gateway-wire-large-io:
-	PHOTO_RUN_GATEWAY_WIRE_LARGE_IO=1 PYTHONPATH=$(ROOT)/workers:$(ROOT)/src $(RUN) $(PYTHON) -m pytest tests/integration/test_v25_gateway_wire.py -q -s
+	PHOTO_RUN_GATEWAY_WIRE_LARGE_IO=1 PYTHONPATH=$(ROOT)/workers:$(ROOT)/apps/local-editor/src $(RUN) $(PYTHON) -m pytest tests/integration/test_v25_gateway_wire.py -q -s

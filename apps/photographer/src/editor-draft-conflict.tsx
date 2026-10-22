@@ -1,4 +1,5 @@
-import {Pressable,Text,View} from 'react-native';
+import {Button,Text} from 'react-native-paper';
+import {View} from 'react-native';
 import type {EditorDraft} from './catalog-types';
 import {catalogStyle as s} from './catalog-style';
 import {useLocale} from './locale-context';
@@ -12,7 +13,7 @@ export function EditorDraftConflict({localRecipe,localMasks,server,busy,onResolv
   <Text selectable style={s.meta}>{JSON.stringify(localMasks)}</Text>
   <Text style={s.name}>{t('editor_conflict_server')} · {server.revision}</Text>
   <Text selectable style={s.meta}>{JSON.stringify({params:server.params,mask_refs:server.mask_refs},null,2)}</Text>
-  <Pressable accessibilityRole="button" disabled={busy} onPress={()=>onResolve('local')} style={s.button}><Text style={s.buttonText}>{t('editor_conflict_keep_local')}</Text></Pressable>
-  <Pressable accessibilityRole="button" disabled={busy} onPress={()=>onResolve('server')} style={s.button}><Text style={s.buttonText}>{t('editor_conflict_use_server')}</Text></Pressable>
+  <Button accessibilityRole="button" disabled={busy} onPress={()=>onResolve('local')}    mode="contained" contentStyle={{minHeight:48}}>{t('editor_conflict_keep_local')}</Button>
+  <Button accessibilityRole="button" disabled={busy} onPress={()=>onResolve('server')}    mode="contained" contentStyle={{minHeight:48}}>{t('editor_conflict_use_server')}</Button>
  </View>;
 }

@@ -50,7 +50,7 @@ BEGIN
    RAISE EXCEPTION 'INTERCHANGE_DRAFT_CHANGED' USING ERRCODE='40001';END IF;
   IF decision->>'decision'='approve' THEN
    SELECT value INTO resolved FROM jsonb_array_elements(p_resolved) WHERE value->'entry_id'=decision->'entry_id';
-   IF resolved IS NULL OR (SELECT count(*) FROM jsonb_object_keys(resolved))<>CASE WHEN resolved ? 'style_registration' THEN 5 ELSE 4 END
+   IF resolved IS NULL OR (SELECT count(*) FROM jsonb_object_keys(resolved))<>(CASE WHEN resolved ? 'style_registration' THEN 5 ELSE 4 END)
     OR NOT(resolved ?& ARRAY['entry_id','stream_revision','artifact_id','sha256']) OR resolved->>'stream_revision' IS DISTINCT FROM stream.revision::text THEN
     RAISE EXCEPTION 'INTERCHANGE_RESOLVED_REQUIRED' USING ERRCODE='23514';END IF;
    IF resolved ? 'style_registration' THEN

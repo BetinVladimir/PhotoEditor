@@ -18,8 +18,8 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,photo AS $$
   WHERE link.tenant_id=p_tenant AND link.version_id=p_version
    AND (grant_row.id IS NULL OR grant_row.status<>'granted' OR
     grant_row.epoch<>link.consent_epoch OR
-    grant_row.purpose<>CASE WHEN profile.person_id IS NULL THEN
-     'learning_photographer' ELSE 'learning_person' END OR
+    grant_row.purpose<>(CASE WHEN profile.person_id IS NULL THEN
+     'learning_photographer' ELSE 'learning_person' END) OR
     grant_row.person_id IS DISTINCT FROM profile.person_id))
  AND NOT EXISTS(SELECT 1 FROM photo.learning_versions version
   JOIN photo.learning_profiles profile ON profile.tenant_id=version.tenant_id

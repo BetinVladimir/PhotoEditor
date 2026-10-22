@@ -1,0 +1,153 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "VersionBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "asset_version_id": {
+          "format": "uuid",
+          "title": "Asset Version Id",
+          "type": "string"
+        },
+        "canvas_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Canvas Hash",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/ArtifactRef"
+        }
+      },
+      "required": [
+        "asset_version_id",
+        "source",
+        "canvas_hash"
+      ],
+      "title": "VersionBinding",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/semantic-retouch-preview-input.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Region-retouch proposal; downstream qualification owns the retouch adapter.\n\nCandidate/intent pin the same transfer mask and strength. Inpaint model and\ncontext/feather controls are not part of this operation's wire contract.",
+  "properties": {
+    "candidate": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "device_profile_sha": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Device Profile Sha",
+      "type": "string"
+    },
+    "intent": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "intent_id": {
+      "format": "uuid",
+      "title": "Intent Id",
+      "type": "string"
+    },
+    "kind": {
+      "const": "retouch_region",
+      "title": "Kind",
+      "type": "string"
+    },
+    "model_lock_sha": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Model Lock Sha",
+      "type": "string"
+    },
+    "plan": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "protection": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "runtime_lock_sha": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Runtime Lock Sha",
+      "type": "string"
+    },
+    "schema_version": {
+      "maximum": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "snapshot_id": {
+      "format": "uuid",
+      "title": "Snapshot Id",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/VersionBinding"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_revision": {
+      "pattern": "^[1-9][0-9]{0,18}$",
+      "title": "Target Revision",
+      "type": "string"
+    },
+    "tenant_id": {
+      "format": "uuid",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "format": "uuid",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "workflow_revision": {
+      "pattern": "^[1-9][0-9]{0,18}$",
+      "title": "Workflow Revision",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "tenant_id",
+    "intent_id",
+    "target_id",
+    "workflow_id",
+    "workflow_revision",
+    "target_revision",
+    "snapshot_id",
+    "plan",
+    "intent",
+    "candidate",
+    "source",
+    "protection",
+    "model_lock_sha",
+    "runtime_lock_sha",
+    "device_profile_sha",
+    "kind"
+  ],
+  "title": "SemanticRetouchPreviewInput",
+  "type": "object"
+}

@@ -24,7 +24,7 @@ func (s SQLTransferSourceReader) lockNativeDefectStageInTransaction(ctx context.
 	if qualification.landmarksSeal == "" || qualification.landmarksSeal != prepared.landmarksPlan.seal || qualification.skinSeal != prepared.skinPlan.seal || !validQualificationPolicySnapshot(s, who, tenant, qualification.policy) || !reflect.DeepEqual(qualification.policy, prepared.landmarksPlan.detector.policy) {
 		return v2input.ErrConflict
 	}
-	selected, err := selectQualificationPolicies(qualification.policy, []string{"defects.propose"})
+	selected, err := selectNativeQualificationPolicies(qualification.policy, []string{"defects.propose"})
 	if err != nil {
 		return err
 	}

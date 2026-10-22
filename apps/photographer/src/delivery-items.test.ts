@@ -3,7 +3,7 @@ import {collectDeliveryItems,readDeliveryItemsPage} from './delivery-items';
 import type {DeliveryPackage} from './delivery-package';
 import {OwnerAPI} from './owner-api';
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
-const pkg:DeliveryPackage={id:id(1),tenant_id:id(2),project_id:id(3),revision:'2',workflow_id:id(4),snapshot_id:id(5),name:'Delivery',policy_artifact_id:id(6),manifest_artifact_id:id(7),document:{artifact_id:id(7),sha256:'a'.repeat(64)},state:'review',published_at:null};
+const pkg:DeliveryPackage={created_at:'2026-10-10T11:00:00Z',updated_at:'2026-10-10T12:00:00Z',id:id(1),tenant_id:id(2),project_id:id(3),revision:'2',workflow_id:id(4),snapshot_id:id(5),name:'Delivery',policy_artifact_id:id(6),manifest_artifact_id:id(7),document:{artifact_id:id(7),sha256:'a'.repeat(64)},state:'review',published_at:null};
 const item=(ordinal:number)=>({id:id(10+ordinal),ordinal,preset_id:id(8),preset_sha:'b'.repeat(64),required:true,export_id:id(100+ordinal),state:'ready',reason:null});
 const page=(ordinals:number[],more=false)=>({package_id:pkg.id,revision:pkg.revision,manifest:pkg.document,items:ordinals.map(item),next:more?{ordinal:ordinals[ordinals.length-1],preset_id:id(8)}:null});
 it('collects ordered pages using the exact returned cursor and owns records',async()=>{

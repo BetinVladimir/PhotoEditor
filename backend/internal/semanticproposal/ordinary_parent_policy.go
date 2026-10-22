@@ -1,6 +1,7 @@
 package semanticproposal
 
 import (
+	"encoding/json"
 	"photoeditor/backend/internal/v2qualification"
 	"sort"
 )
@@ -18,5 +19,10 @@ func ordinaryExpectation(e v2qualification.Expected) createExpectation {
 }
 func ordinaryParentPolicy(p TransferDraftPreparer) *createProjectPolicy {
 	c := ownTransferPreparation(p.Configuration)
-	return &createProjectPolicy{ProjectID: p.Reader.ProjectID, Qualification: c.Qualification, Expected: ordinaryExpectation(c.Expected), Person: createPersonPolicy{Report: c.PersonProtection.Report, Expected: ordinaryExpectation(c.PersonProtection.Expected)}, Costs: createResourceCosts{RAM: c.Costs.RAMBytes, VRAM: c.Costs.VRAMBytes, Scratch: c.Costs.ScratchBytes}, RAM: c.RAM, VRAM: c.VRAM, Scratch: c.Scratch, Output: c.Output, Metadata: c.MetadataBytes, Reserved: p.ReservedBytes}
+	policy:= &createProjectPolicy{ProjectID: p.Reader.ProjectID, Qualification: c.Qualification, Expected: ordinaryExpectation(c.Expected), Person: createPersonPolicy{Report: c.PersonProtection.Report, Expected: ordinaryExpectation(c.PersonProtection.Expected)}, Costs: createResourceCosts{RAM: c.Costs.RAMBytes, VRAM: c.Costs.VRAMBytes, Scratch: c.Costs.ScratchBytes}, RAM: c.RAM, VRAM: c.VRAM, Scratch: c.Scratch, Output: c.Output, Metadata: c.MetadataBytes, Reserved: p.ReservedBytes}
+	if c.Scene!=nil {
+		producer:=func(value TransferSceneProducer)createSceneProducer{return createSceneProducer{Report:value.Report,Expected:ordinaryExpectation(value.Expected),Costs:createResourceCosts{RAM:value.Costs.RAMBytes,VRAM:value.Costs.VRAMBytes,Scratch:value.Costs.ScratchBytes}}}
+		policy.Scene=&createScenePolicy{Policy:append(json.RawMessage(nil),c.Scene.Policy...),Scene:producer(c.Scene.Scene),Depth:producer(c.Scene.Depth)}
+	}
+	return policy
 }

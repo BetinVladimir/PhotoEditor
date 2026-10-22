@@ -18,7 +18,7 @@ func TestOpenEyesBeforePreviewSQLProfileMatchesMediaCompiler(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		wire := fmt.Sprintf(`{"icc_sha256":"%s","long_edge":1600,"metadata_policy":"stripped","no_upscale":true,"quality":88,"schema_version":1,"variant":"preview1600"}`, srgb)
+		wire := fmt.Sprintf(`{"icc_sha256":"%s","long_edge":1600,"metadata_policy":"stripped","no_upscale":true,"quality":88,"renderer_policy":"declared_encoding_alpha8_icc_v2","schema_version":1,"variant":"preview1600"}`, srgb)
 		digest := sha256.Sum256([]byte(wire))
 		if profile != hex.EncodeToString(digest[:]) {
 			t.Fatal("donor before-preview SQL profile drift")

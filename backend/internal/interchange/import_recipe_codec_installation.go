@@ -12,6 +12,7 @@ type ImportRecipeCodecDependencies struct {
 	LocalPortrait         *ImportLocalPortraitInstallation
 	OperationSchema       *ImportNativeOperationInstallation
 	StatsQualification    *ImportStatsQualificationInstallation
+ ConservativeQualifications map[ImportOperationVersion]ImportConservativeQualificationInstallation
 	DenoiseQualification  *ImportDenoiseQualificationInstallation
 	DenoiseModelLock      string
 	UpscaleModelLocks     map[int]string
@@ -30,6 +31,8 @@ type ImportRecipeCodecDependencies struct {
 	ConfirmedMasks        ImportConfirmedMaskAuthority
 	ConfirmedRegions      ImportPortraitRegionConfirmation
 	DefectReview          ImportDefectReviewAuthority
+	DefectProposeReport    ImportDefectProposeReportQualifier
+ Historical ImportHistoricalDocumentAuthority
 	DefectCandidates      ImportDefectCandidatesQualifier
 	DustSeries            ImportDustSeriesAuthority
 	DustReview            ImportDustReviewAuthority
@@ -63,7 +66,8 @@ func NewImportRecipeCodecGraph(ctx context.Context, d ImportRecipeCodecDependenc
 	overrides := ImportOverrideCodec{Masters: d.Masters, Masks: masks, Confirmed: d.ConfirmedMasks, Archive: d.OverrideArchive, Backgrounds: d.OverrideBackgrounds, Qualifier: ImportPreparedOverrideQualifier{Masters: d.Masters, Masks: d.Masks, Content: d.OverrideContent, Confirmed: d.ConfirmedMasks}}
 	layers := ImportLayerStackCodec{Qualifier: ImportPreparedLayerQualifier{Documents: d.Documents, Masks: d.Masks, Operations: d.Operations}}
 	params := ImportLocalPortraitParamsCodec{Qualifier: d.Operations, Fallback: ImportDenoiseParamsCodec{Qualifier: d.Operations, Fallback: ImportUpscaleParamsCodec{Qualifier: d.Operations, Fallback: ImportStatsParamsCodec{Qualifier: d.Operations, Masks: masks, Fallback: ImportPortraitDetailParamsCodec{Qualifier: d.Operations, Masks: masks, Confirmed: d.ConfirmedRegions, Fallback: ImportDefectRepairParamsCodec{Qualifier: d.Operations, Masks: masks, Fallback: ImportDustRepairParamsCodec{Qualifier: d.Operations, Authority: d.DustReview, Fallback: d.Params}}}}}}}
-	router, err := NewImportRecipeCodecRouter(ImportStyleCodec{Qualifier: d.Style, Backgrounds: d.Backgrounds}, corrections, overrides, layers, masks, params)
+	conservativeParams := ImportConservativeParamsCodec{Qualifier: d.Operations, Masks: masks, Fallback: params}
+	router, err := NewImportRecipeCodecRouter(ImportStyleCodec{Qualifier: d.Style, Backgrounds: d.Backgrounds}, corrections, overrides, layers, masks, conservativeParams)
 	if err != nil {
 		return nil, err
 	}
@@ -89,6 +93,13 @@ func NewImportRecipeCodecGraph(ctx context.Context, d ImportRecipeCodecDependenc
 			return nil, err
 		}
 	}
+	if d.DefectProposeReport != nil {
+		router, err = router.WithDefectProposeReport(ImportDefectProposeReportCodec{Qualifier: d.DefectProposeReport, Masks: masks})
+		if err != nil { return nil, err }
+	}
+ if d.Historical!=nil{
+  for _,kind:=range []string{"WorkingImage","FaceLandmarks","FaceBoxes"}{if router.codecs[kind]!=nil{return nil,v2input.ErrInvalid};router.codecs[kind]=ImportHistoricalDocumentCodec{Authority:d.Historical}}
+ }
 	if d.DustSeries != nil {
 		router, err = router.WithDustCandidates(ImportDustCandidatesCodec{Authority: d.DustSeries})
 		if err != nil {
@@ -147,6 +158,19 @@ func NewSQLImportEntryRecipeAuthority(ctx context.Context, resolverDeps Prepared
 		}
 		codecDeps.Operations = installed
 	}
+ if len(codecDeps.ConservativeQualifications)>0{
+  if len(codecDeps.ConservativeQualifications)>2||codecDeps.Operations==nil{return nil,nil,v2input.ErrInvalid}
+  operations:=map[ImportOperationVersion]ImportLayerOperationQualifier{}
+  for key,value:=range codecDeps.Operations.operations{operations[key]=value}
+  for key,installation:=range codecDeps.ConservativeQualifications{
+   if (key.Operation!="defects.auto_repair"&&key.Operation!="sensor.dust_auto_repair")||key.Version!="1"{return nil,nil,v2input.ErrInvalid}
+   semantic:=operations[key];if semantic==nil{return nil,nil,v2input.ErrInvalid}
+   if installation.Locks.Operation!=key.Operation||installation.Locks.Version!=key.Version{return nil,nil,v2input.ErrInvalid}
+   runtime,_,err:=installation.owned().Build(ctx,catalog.Store,resolverDeps.Objects);if err!=nil{return nil,nil,err}
+   operations[key]=importConservativeQualifiedOperation{Runtime:runtime,Semantic:semantic}
+  }
+  installed,err:=NewImportOperationRouter(ctx,operations);if err!=nil{return nil,nil,err};codecDeps.Operations=installed
+ }
 	if codecDeps.DenoiseQualification != nil {
 		policy, lock, err := codecDeps.DenoiseQualification.Build(ctx, catalog.Store, resolverDeps.Objects)
 		if err != nil {
@@ -259,7 +283,7 @@ func NewSQLImportEntryRecipeAuthority(ctx context.Context, resolverDeps Prepared
 	}
 	var qualifier ImportPreparedRecipeQualifier = BoundImportPreparedRecipeQualifier{Scope: scope, Resolver: resolver}
 	if resolverDeps.Registry != nil {
-		qualifier = registeredPreparedImportRecipeQualifier{Scope: scope, Resolver: resolver, Catalog: catalog, Objects: resolverDeps.Objects, Registry: resolverDeps.Registry, Composition: resolverDeps.Composition, Masters: resolverDeps.Masters}
+		qualifier = registeredPreparedImportRecipeQualifier{Historical:resolverDeps.HistoricalIssuer,HistoricalSource:resolverDeps.Historical,Publisher:resolverDeps.HistoricalPublisher,Scope: scope, Resolver: resolver, Catalog: catalog, Objects: resolverDeps.Objects, Registry: resolverDeps.Registry, Composition: resolverDeps.Composition, Masters: resolverDeps.Masters}
 	} else if resolverDeps.Composition != nil {
 		qualifier = ImportPreparedCompositionQualifier{Inner: qualifier, Scope: scope, Resolver: resolver, Masters: resolverDeps.Masters, Native: resolverDeps.Composition}
 	}

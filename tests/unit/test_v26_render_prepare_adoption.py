@@ -112,6 +112,9 @@ def test_coordinator_prepares_real_bytes_before_canonical_sql(monkeypatch,tmp_pa
             if 'v2_adoption_context' in query:
                 return Cursor((1,2,result,'render.compose','1',root.artifact_id,root.sha256))
             if 'v26_render_adoption_qualification' in query:return Cursor((asdict(inputs.qualification_pin),))
+            if 'editor_effect_render_adoption_receipt' in query:
+                assert args==(tenant,task,1,2,result)
+                return Cursor(None)
             assert 'v26_render_adoption_inputs' in query and args==(tenant,task,1,2,result)
             return Cursor((inputs.recipe.artifact_id,inputs.recipe.sha256,inputs.execution_profile(),
                 [{'artifact_id':str(ref.artifact_id),'sha256':ref.sha256} for ref in inputs.parent_roots]))

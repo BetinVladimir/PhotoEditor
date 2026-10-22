@@ -47,7 +47,7 @@ def test_run_cli_forwards_assembly_installation(monkeypatch):
     from photo_worker.cli import app
     import photo_worker.runtime.service as service
     import photo_worker.runtime.semantic_assembly_config as module
-    config=object();factory=object();calls=[]
+    config=SimpleNamespace(resource_class='cpu',backend='cpu',development=False);factory=object();calls=[]
     monkeypatch.setattr(service.WorkerConfig,'from_env',classmethod(lambda cls:config))
     monkeypatch.setattr(module,'semantic_assembly_from_environment',lambda value:factory if value is config else None)
     monkeypatch.setattr(service,'run_worker',lambda value,**kwargs:calls.append((value,kwargs)))

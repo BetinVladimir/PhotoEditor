@@ -69,7 +69,7 @@ def compile_qualified_export_inventory(plan, reader, qualifier, *, active=lambda
         add(entry.content, 'EncodedImage', entry.path)
         add(entry.recipe, 'EditingRecipeV3', f'recipes/{entry.recipe.artifact_id}.json')
         for receipt in receipts:
-            reference = ArtifactRef(artifact_id=receipt['artifact_id'], sha256=receipt['sha256'])
+            reference = ArtifactRef.model_validate_json(canonical_bytes({name:receipt[name] for name in ('artifact_id','sha256')}))
             if reference.artifact_id in seen:
                 raise ValueError('INTERCHANGE_EXPORT_INVENTORY_RECEIPT')
             seen.add(reference.artifact_id)

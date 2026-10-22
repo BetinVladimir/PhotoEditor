@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "route": {
+    "method": "POST",
+    "path": "/api/v1/tenants/{t}/generations",
+    "handler": "Generation.CreateCandidate",
+    "request": "GenerateRequest",
+    "response": "RunAccepted",
+    "success_status": 202,
+    "authorization": "live tenant membership and editor access to source project"
+  },
+  "headers": {
+    "Idempotency-Key": {
+      "required": true,
+      "scope": [
+        "tenant",
+        "user",
+        "Generation.CreateCandidate"
+      ],
+      "max_bytes": 128
+    },
+    "Generation-Replay-Only": {
+      "required": false,
+      "allowed_values": [
+        "true"
+      ],
+      "absent": "normal admission",
+      "invalid": "VALIDATION_FAILED/422",
+      "fingerprint": "not included; request JSON and key remain identical"
+    },
+    "Idempotency-Replayed": {
+      "direction": "response",
+      "value": "true on stored receipt replay"
+    }
+  },
+  "replay": {
+    "existing_receipt": "202 and canonical original RunAccepted after current source/session/project authorization; mutable draft/backend admission is skipped",
+    "missing_receipt_replay_only": "GENERATION_REPLAY_PENDING/409, transaction rollback, no receipt/tasks/run admitted",
+    "changed_body": "IDEMPOTENCY_CONFLICT/409",
+    "after_wait": "live session, tenant role, source and project authorization repeated in same transaction; failure returns no receipt body",
+    "session_expiry": "clock_timestamp, forward-only migration 02417"
+  },
+  "client": {
+    "uncertain": "preserve original key/body; replay-only when current generation unavailable; do not resave draft",
+    "accepted": "read original run/output, never create another generation",
+    "transient_read_failure": "keep journal, allow retry, no terminal acknowledgement",
+    "failed_or_cancelled": "explicit acknowledgement rereads same run status before clearing accepted journal",
+    "completed_with_errors": "read available derivative variants; no usable derivative permits acknowledgement only after repeated status/output read",
+    "storage_failure": "keep recovery state; acknowledgement marker prevents old writers reviving cleared attempt",
+    "foreground_scope": "abort/detach on background/source change; reload scoped journal; ignore late responses"
+  },
+  "execution_status": "authored_unexecuted",
+  "abandonment": {
+    "method": "POST",
+    "path": "/api/v1/tenants/{t}/generations/abandon",
+    "request": "identical frozen GenerateRequest and original Idempotency-Key",
+    "receipt_scope": "Generation.CreateCandidate, shared with ordinary generation",
+    "existing_accepted": "202 original RunAccepted; do not clear local attempt, persist receipt and resume output read",
+    "absent_admission": "200 {status:abandoned,key:original-key}; atomic tombstone under same receipt lock, no run/task admission",
+    "late_original_send": "GENERATION_REQUEST_ABANDONED/409 for valid original request; invalid original requests may fail earlier validation, but cannot admit work",
+    "retention": "tombstone expires_at year9999, retained until tenant purge; do not reuse abandoned key",
+    "changed_body": "IDEMPOTENCY_CONFLICT/409",
+    "live_authority": "source/project authorization before and after wait; callback reauthorizes too",
+    "validation": "abandon does not require draft/runtime/GenerationParams to pass new-admission validation; canonical body/key plus live source authority required",
+    "client_clear": "only validated matching-key abandoned receipt permits clearAbandoned; accepted journal cannot be cleared by this path",
+    "transport_or_malformed_response": "preserve original journal/key, allow retry of resolution",
+    "source_or_foreground_change": "abort and ignore late response; preserve scoped journal"
+  }
+}

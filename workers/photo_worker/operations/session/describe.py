@@ -125,6 +125,7 @@ def _person_fraction(rgb: np.ndarray, pool: ModelPool, backend: str) -> float:
 
 def execute(ctx: ExecutionContext, artifacts: TaskArtifacts,
             pool: ModelPool, backend: str) -> OperationResult:
+    ctx.check_active()
     profile = ctx.lease.execution_profile
     if profile.get('renderer_version') != 'v2.2' or profile.get('backend') != backend:
         raise OperationFailure('CONFIG_INVALID')
@@ -184,12 +185,16 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts,
                         (image.canvas.height, image.canvas.width), 'uint16', ctx.check_active))
                     alpha_proxy = _preview(alpha, 2048)
                     srgb = np.where(alpha_proxy[..., None] > 0, srgb, 0).astype(np.float32)
+                ctx.check_active()
                 with pool.acquire('dinov2_vits14', backend) as engine:
                     embedding = normalize_scene_embedding(engine.infer(pad_preview(srgb)))
+                ctx.check_active()
                 faces = _face_observations(srgb, item.binding, pool, backend,
                                            calibration.min_face_edge_px, ctx.check_active,
                                            confirmed.get(item.binding.asset_version_id))
+                ctx.check_active()
                 person_fraction = _person_fraction(srgb, pool, backend)
+            ctx.check_active()
             face_ref = artifacts.stage_contract(faces, 'faces')
             bytes_written += len(canonical_bytes(faces))
             frames.append(FrameDescriptor(schema_version=1, binding=item.binding,
@@ -205,6 +210,7 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts,
         raise OperationFailure('INPUT_INVALID') from exc
     result = DescriptorShard(schema_version=1, snapshot_digest=snapshot.snapshot_digest,
                              frames=frames)
+    ctx.check_active()
     root = artifacts.stage_contract(result, 'document')
     bytes_written += len(canonical_bytes(result))
     return OperationResult(outputs=[root], bytes_written=bytes_written)

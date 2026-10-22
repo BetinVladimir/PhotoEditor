@@ -12,6 +12,8 @@ import (
 // DeploymentLocks is provisioned with the DBA qualification policy. The CLI
 // reads this local file; ordinary API requests never supply these values.
 type DeploymentLocks struct {
+	MPSResources *MPSResourcePolicy `json:"mps_resources,omitempty"`
+
 	Operation        string   `json:"operation"`
 	Version          string   `json:"version"`
 	Backend          string   `json:"backend"`
@@ -30,6 +32,10 @@ type DeploymentLocks struct {
 // Expected validates and owns an in-memory trusted policy using the same rules
 // as the deployment lock-file loader. Callers must independently authenticate it.
 func (locks DeploymentLocks) Expected() (Expected, error) {
+	if locks.MPSResources != nil {
+		owned := *locks.MPSResources
+		locks.MPSResources = &owned
+	}
 	locks.RequiredChecks = append([]string(nil), locks.RequiredChecks...)
 	locks.CalibrationSHAs = append([]string(nil), locks.CalibrationSHAs...)
 	locks.TestFixtureSHAs = append([]string(nil), locks.TestFixtureSHAs...)
@@ -94,7 +100,10 @@ func (locks DeploymentLocks) expected() (Expected, error) {
 			return result, ErrUnqualified
 		}
 	}
-	return Expected{Operation: locks.Operation, Version: locks.Version,
+	if locks.MPSResources != nil && (locks.Backend != "mps" || !MPSOperation(locks.Operation) || locks.Version != "1" || !validMPSResourcePolicy(*locks.MPSResources)) {
+		return result, ErrUnqualified
+	}
+	return Expected{MPSResources: locks.MPSResources, Operation: locks.Operation, Version: locks.Version,
 		Backend: locks.Backend, ModelLockSHA: locks.ModelLockSHA,
 		RuntimeLockSHA:   locks.RuntimeLockSHA,
 		DeviceProfileSHA: locks.DeviceProfileSHA, DatasetSHA: locks.DatasetSHA,

@@ -28,14 +28,14 @@ def donor_compiler_profile(profile):
     validation. This extractor is not input closure or attempt authorization.
     """
     from photo_worker.contracts.base import ArtifactRef as WireRef
-    from .contract_lock import SCHEMAS_SHA256,DETAIL_MANIFEST_PREVIOUS_SCHEMAS_SHA256,DETAIL_LINK_PREVIOUS_SCHEMAS_SHA256,HOLDOUT_EVIDENCE_PREVIOUS_SCHEMAS_SHA256,SQL_TRANSPORT_SCHEMAS_SHA256,PREVIOUS_SCHEMAS_SHA256
+    from .contract_lock import SCHEMAS_SHA256, COPY_FENCE_SCHEMAS_SHA256, COPY_FENCE_DUAL_PREVIOUS_SCHEMAS_SHA256, COPY_FENCE_PREVIOUS_SCHEMAS_SHA256, RETOUCH_PREVIOUS_SCHEMAS_SHA256,DETAIL_MANIFEST_PREVIOUS_SCHEMAS_SHA256,DETAIL_LINK_PREVIOUS_SCHEMAS_SHA256,HOLDOUT_EVIDENCE_PREVIOUS_SCHEMAS_SHA256,SQL_TRANSPORT_SCHEMAS_SHA256,PREVIOUS_SCHEMAS_SHA256
     owned=parse_json(canonical_bytes(profile),1<<20)
     compiler={'backend','renderer_version','portrait_runtime_sha','resource_estimate','donor_qualification'}
     transport={'contracts_sha','v2_input_manifest','v2_entry_count','v2_entries_sha'}
     if not isinstance(owned,dict) or set(owned) not in (compiler,compiler|transport):
         raise AdoptionInvalid('DONOR_QUALIFICATION_PROFILE_INVALID')
     if set(owned)==compiler|transport:
-        if (owned['contracts_sha'] not in (SCHEMAS_SHA256,DETAIL_MANIFEST_PREVIOUS_SCHEMAS_SHA256,DETAIL_LINK_PREVIOUS_SCHEMAS_SHA256,HOLDOUT_EVIDENCE_PREVIOUS_SCHEMAS_SHA256,SQL_TRANSPORT_SCHEMAS_SHA256,PREVIOUS_SCHEMAS_SHA256)
+        if (owned['contracts_sha'] not in (SCHEMAS_SHA256, COPY_FENCE_SCHEMAS_SHA256, COPY_FENCE_DUAL_PREVIOUS_SCHEMAS_SHA256, COPY_FENCE_PREVIOUS_SCHEMAS_SHA256, RETOUCH_PREVIOUS_SCHEMAS_SHA256,DETAIL_MANIFEST_PREVIOUS_SCHEMAS_SHA256,DETAIL_LINK_PREVIOUS_SCHEMAS_SHA256,HOLDOUT_EVIDENCE_PREVIOUS_SCHEMAS_SHA256,SQL_TRANSPORT_SCHEMAS_SHA256,PREVIOUS_SCHEMAS_SHA256)
                 or type(owned['v2_entry_count']) is not int or not 1<=owned['v2_entry_count']<=127
                 or not _sha(owned['v2_entries_sha'])):
             raise AdoptionInvalid('DONOR_TRANSPORT_PROFILE_INVALID')

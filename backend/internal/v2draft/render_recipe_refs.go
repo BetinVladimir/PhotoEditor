@@ -18,6 +18,7 @@ func renderRecipeRefs(raw []byte, path string, parent v2input.Ref) ([]LayerRef, 
 		Overrides  []v2input.Ref `json:"overrides"`
 		Layers     *v2input.Ref  `json:"layer_stack"`
 		Protection *v2input.Ref  `json:"protected_mask"`
+		ExecutedBase *v2input.Ref `json:"executed_base_receipt"`
 	}
 	if json.Unmarshal(frozen.Recipe, &recipe) != nil {
 		return nil, v2input.ErrInvalid
@@ -40,6 +41,9 @@ func renderRecipeRefs(raw []byte, path string, parent v2input.Ref) ([]LayerRef, 
 	}
 	if recipe.Protection != nil {
 		add(".recipe.protected_mask", "MaskRef", *recipe.Protection)
+	}
+	if recipe.ExecutedBase != nil {
+		add(".recipe.executed_base_receipt", "EditorExecutedBaseReceipt", *recipe.ExecutedBase)
 	}
 	if frozen.Learning != nil {
 		add(".learning.model", "CandidateProfile", frozen.Learning.Model)

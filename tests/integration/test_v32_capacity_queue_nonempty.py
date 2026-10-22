@@ -37,7 +37,7 @@ def test_v2_snapshot_and_selected_picker_do_not_consume_legacy_run(db, backlog):
     for kind, config in [('apply', {}), ('v2', {'queue_class':'batch'})]:
         run = db.execute(
             'INSERT INTO photo.runs(tenant_id,kind,status,input_snapshot_id,config_snapshot,'
-            'config_hash,created_by,graph_sealed) VALUES(%s,%s,\'running\',%s,%s,%s,%s,true) RETURNING id',
+            'config_hash,created_by,graph_sealed,failure_policy) VALUES(%s,%s,\'running\',%s,%s,%s,%s,true,\'fail_fast\') RETURNING id',
             (tenant, kind, snapshot, Jsonb(config), 'b'*64, user),
         ).fetchone()[0]
         tasks[kind] = db.execute(

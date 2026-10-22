@@ -18,7 +18,7 @@ func TestSemanticSkinProfileCapacityBoundaries(t *testing.T) {
 	e := profile.ResourceEstimate
 	raw := int64(4000 * (6000*2 + 1))
 	expected := int64(4*24000000+8192) + raw + raw/50 + 2*(1<<20)
-	if profile.Backend != "cpu" || e.VRAMBytes != 0 || e.PixelCount != 24000000 || e.OutputBytes != expected || e.ScratchBytes != inputs+expected || e.RAMBytes != inputs+(256<<20)+16*24000000 {
+	if profile.Backend != "cpu" || e.VRAMBytes != 0 || e.PixelCount != 24000000 || e.OutputBytes != expected || e.ScratchBytes != inputs+expected || e.RAMBytes != inputs+(256<<20)+64*24000000 {
 		t.Fatal("worker allocations omitted")
 	}
 	limits := [3]int64{e.RAMBytes, e.ScratchBytes, e.OutputBytes}
@@ -39,5 +39,30 @@ func TestSemanticSkinProfileCapacityBoundaries(t *testing.T) {
 	}
 	if _, err := CompileSemanticFaceSkinProfile(8, 8, 9007199254740991, 9007199254740991, 9007199254740991, 9007199254740991); err == nil {
 		t.Fatal("overflow accepted")
+	}
+}
+
+func TestSemanticSkinSmallFrameMeetsWorkerRAMGuard(t *testing.T) {
+	const width, height, inputs int64 = 256, 256, 200000
+	body, err := CompileSemanticFaceSkinProfile(width, height, inputs, 1<<30, 1<<30, 1<<30)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var profile sessionDescribeExecutionProfile
+	if err := json.Unmarshal(body, &profile); err != nil {
+		t.Fatal(err)
+	}
+	workerMinimum := int64(256<<20) + 64*width*height
+	if profile.ResourceEstimate.RAMBytes != workerMinimum+inputs {
+		t.Fatal("worker RAM guard mismatch", profile.ResourceEstimate.RAMBytes, workerMinimum)
+	}
+	// Former16P estimate fails even on a small photograph; don't mask it by
+	// increasing a fixture limit or relaxing the worker's hard guard.
+	oldBudget := int64(256<<20) + 16*width*height + inputs
+	if oldBudget >= workerMinimum {
+		t.Fatal("regression fixture does not expose under-reservation")
+	}
+	if result, err := CompileSemanticFaceSkinProfile(width, height, inputs, oldBudget, 1<<30, 1<<30); err == nil || result != nil {
+		t.Fatal("old under-reservation admitted")
 	}
 }

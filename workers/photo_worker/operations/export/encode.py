@@ -97,7 +97,12 @@ def _composite_matte(rgb: np.ndarray, alpha: np.ndarray,
         raise ValueError('MATTE_ICC_INVALID')
     linear = decode(np.clip(rgb, 0, 1)) * alpha[:, :, None]
     linear += decode(matte)[None, None, :] * (1 - alpha[:, :, None])
-    return np.clip(encode(np.clip(linear, 0, 1)), 0, 1).astype(np.float32)
+    output = np.clip(encode(np.clip(linear, 0, 1)), 0, 1).astype(np.float32)
+    # Mixed transparency must not gamma-roundtrip fully retained foreground
+    # or the exact matte. Fractional opacity keeps the linear-light blend.
+    np.copyto(output, np.clip(rgb, 0, 1), where=(alpha == 1)[:, :, None])
+    np.copyto(output, matte[None, None, :], where=(alpha == 0)[:, :, None])
+    return output
 
 
 def _write(path, pixels: np.ndarray, profile: bytes, params: EncodeParams):
@@ -106,16 +111,16 @@ def _write(path, pixels: np.ndarray, profile: bytes, params: EncodeParams):
     alpha16 = np.round(np.clip(pixels[:, :, 3], 0, 1) * 65535).astype('<u2') if bands == 4 else None
     if params.format == 'tiff':
         value = rgb16 if alpha16 is None else np.dstack((rgb16, alpha16))
-        tifffile.imwrite(path, value, photometric='rgb', compression='deflate', predictor=True, metadata=None,
+        tifffile.imwrite(path, value, photometric='rgb', compression='deflate', predictor=True, metadata=None, software=False,
             extratags=[(34675, 'B', len(profile), profile, False)])
     else:
         value = rgb16 if alpha16 is None else np.dstack((rgb16, alpha16))
         image = pyvips.Image.new_from_memory(value.data, width, height, value.shape[2], 'ushort').copy(interpretation='rgb16')
         image.set_type(pyvips.GValue.blob_type, 'icc-profile-data', profile)
         if params.format == 'png':
-            image.pngsave(str(path), compression=6, bitdepth=16, strip=False)
+            image.pngsave(str(path), compression=6, bitdepth=16, keep='icc')
         else:
-            image.jpegsave(str(path), Q=params.quality, subsample_mode='off', optimize_coding=True, strip=False)
+            image.jpegsave(str(path), Q=params.quality, subsample_mode='off', optimize_coding=True, keep='icc')
 
 
 def _verify_png_layout(path, width, height, alpha):

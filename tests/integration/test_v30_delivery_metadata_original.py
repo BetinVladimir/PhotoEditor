@@ -1,6 +1,7 @@
 """Delivery original provenance boundary; authored, NOT RUN."""
 from uuid import uuid4
 import pytest
+import psycopg
 
 @pytest.mark.parametrize('role,allowed',[('photo_api',True),('photo_worker',False),('photo_scheduler',False),('photo_gateway',False),('photo_portal',False)])
 def test_delivery_metadata_original_acl(db,role,allowed):
@@ -36,11 +37,16 @@ def test_delivery_original_positive_and_live_authority(db):
         assert read()==[]
         db.execute("SELECT set_config('app.tenant_id',%s,true)",(str(tid),))
         assert read()==expected
+        # Object-version replacement is rejected at the immutable-content
+        # boundary, rather than pretending it is a legal runtime transition.
+        with pytest.raises(psycopg.errors.CheckViolation, match='immutable field artifacts.object_version'):
+            with db.transaction():
+                db.execute("UPDATE photo.artifacts SET object_version='null' WHERE id=%s", (original,))
+        assert read()==expected
         for statement,reset,identity in [
             ('UPDATE photo.projects SET download_allowed=false WHERE id=%s','UPDATE photo.projects SET download_allowed=true WHERE id=%s',project),
             ("UPDATE photo.artifacts SET expires_at=clock_timestamp()-interval '1 second' WHERE id=%s",'UPDATE photo.artifacts SET expires_at=NULL WHERE id=%s',original),
             ('UPDATE photo.artifacts SET verified_at=NULL WHERE id=%s','UPDATE photo.artifacts SET verified_at=clock_timestamp() WHERE id=%s',original),
-            ("UPDATE photo.artifacts SET object_version='null' WHERE id=%s","UPDATE photo.artifacts SET object_version='v1' WHERE id=%s",original),
             ('UPDATE photo.sessions SET revoked_at=clock_timestamp() WHERE id=%s','UPDATE photo.sessions SET revoked_at=NULL WHERE id=%s',session),
         ]:
             db.execute(statement,(identity,));assert read()==[]

@@ -13,42 +13,42 @@ import (
 // Caller owns rollback; this function itself does not seal or queue the graph.
 func (s SQLTransferSourceReader) lockRegisteredDefectPersonAdmission(ctx context.Context, tx pgx.Tx, who auth.Identity, prepared defectPersonAdmissionPreparation, built v2input.Built) error {
 	if err := ctx.Err(); err != nil {
-		return err
+		return defectAdmissionStageError(defectStageRegisteredContext, err)
 	}
 	if tx == nil {
-		return v2input.ErrInvalid
+		return defectAdmissionStageError(defectStageRegisteredTransaction, v2input.ErrInvalid)
 	}
 	binding, err := marshalDefectRegistrationBinding(ctx, prepared.plan, built)
 	if err != nil {
-		return err
+		return defectAdmissionStageError(defectStageRegistrationPacket, err)
 	}
 	evidence, err := s.marshalDefectAdmissionEvidence(ctx, who, prepared, built)
 	if err != nil {
-		return err
+		return defectAdmissionStageError(defectStageAdmissionPacket, err)
 	}
 	if err := s.lockDefectPersonAdmissionInTransaction(ctx, tx, who, prepared); err != nil {
-		return err
+		return defectAdmissionStageError(defectStagePersonAuthority, err)
 	}
 	request := prepared.plan.request
 	request.RunID = prepared.plan.shell.Run
 	var state string
 	err = tx.QueryRow(ctx, "SELECT photo.semantic_defect_registration_binding_state($1,$2,$3::jsonb)", request.TenantID, request.RunID, string(binding)).Scan(&state)
 	if err != nil {
-		return err
+		return defectAdmissionStageError(defectStageRegistrationQuery, err)
 	}
 	if state != "replayed" {
-		return v2input.ErrConflict
+		return defectAdmissionStageError(defectStageRegistrationState, v2input.ErrConflict)
 	}
 	// Recheck live actor/session and complete policy after the final registry read.
 	if err := s.lockDefectPolicyExecutionInTransaction(ctx, tx, who, request.TenantID, request.Intent.Reference, prepared.plan.execution); err != nil {
-		return err
+		return defectAdmissionStageError(defectStageRegisteredPolicy, err)
 	}
 	var matches bool
 	if err := tx.QueryRow(ctx, "SELECT photo.lock_semantic_defect_admission_evidence($1,$2,$3::jsonb)", request.TenantID, request.RunID, string(evidence)).Scan(&matches); err != nil {
-		return err
+		return defectAdmissionStageError(defectStageEvidenceQuery, err)
 	}
 	if !matches {
-		return v2input.ErrConflict
+		return defectAdmissionStageError(defectStageEvidenceState, defectAdmissionClosedDiagnostic(ctx, tx, request.TenantID, request.RunID, string(evidence), v2input.ErrConflict))
 	}
-	return ctx.Err()
+	return defectAdmissionStageError(defectStageRegisteredCompletion, ctx.Err())
 }

@@ -21,6 +21,25 @@ func TestCompileDownloadArchivesStableAndOrdered(t *testing.T) {
 		t.Fatal(a, e)
 	}
 }
+
+func TestArchiveCompilerTransportBoundary(t *testing.T) {
+    registry, err := LoadRegistry(); if err != nil { t.Fatal(err) }
+    for _, count := range []int{512, 513} {
+        t.Run(fmt.Sprint(count), func(t *testing.T) {
+            entries := make([]DownloadArchiveEntry, count)
+            for i := range entries { entries[i] = DownloadArchiveEntry{Ordinal:int64(i),Artifact:review.ArtifactRef{ID:uuid.New(),SHA256:strings.Repeat("a",64)},Bytes:1,EntryName:fmt.Sprintf("%04d.jpg",i),ProducerTask:uuid.New()} }
+            spec := DownloadArchiveSpec{RunID:uuid.New(),SnapshotID:uuid.New(),SnapshotDigest:strings.Repeat("b",64),Volumes:[]DownloadArchiveVolume{{Number:1,Entries:entries}}}
+            nodes, err := CompileDownloadArchives(spec, registry)
+            if count == 513 { if err == nil || nodes != nil {t.Fatal("oversized command compiled")}; return }
+            if err != nil || len(nodes)!=1 {t.Fatal("full command refused",err)}
+            sum:=sha256.Sum256(nodes[0].Params)
+            params:=review.ArtifactRef{ID:uuid.New(),SHA256:hex.EncodeToString(sum[:])}
+            task,err:=PrepareDownloadArchiveTask(PublishedDownloadArchive{Node:nodes[0],Params:params})
+            if err!=nil || len(task.Inputs)!=512 || task.Params!=params {t.Fatal("wire shape changed",err)}
+            for _,input:=range task.Inputs {if input.ID==params.ID {t.Fatal("params consumed a declared input slot")}}
+        })
+    }
+}
 func TestCompileDownloadArchivesRejectsOversizeAndDuplicateNames(t *testing.T) {
 	r, _ := LoadRegistry()
 	ref := review.ArtifactRef{ID: uuid.New(), SHA256: strings.Repeat("a", 64)}
@@ -40,17 +59,22 @@ func TestArchiveMaximumTinyInventoryResourceProfileMatchesWorker(t *testing.T) {
             Artifact: review.ArtifactRef{ID: uuid.New(), SHA256: strings.Repeat("a", 64)},
             Bytes: 1, EntryName: fmt.Sprintf("%04d.jpg", index), ProducerTask: uuid.New()}
     }
-    spec := DownloadArchiveSpec{RunID: uuid.New(), SnapshotID: uuid.New(),
-        SnapshotDigest: strings.Repeat("b", 64), Volumes: []DownloadArchiveVolume{
-            {Number: 1, Entries: entries[:2500]}, {Number: 2, Entries: entries[2500:]}}}
+    spec := DownloadArchiveSpec{RunID: uuid.New(), SnapshotID: uuid.New(),SnapshotDigest: strings.Repeat("b",64)}
+    for start:=0;start<len(entries);start+=MaxDownloadArchiveInputs {
+        end:=start+MaxDownloadArchiveInputs;if end>len(entries){end=len(entries)}
+        spec.Volumes=append(spec.Volumes,DownloadArchiveVolume{Number:len(spec.Volumes)+1,Entries:entries[start:end]})
+    }
     nodes, err := CompileDownloadArchives(spec, registry)
-    if err != nil || len(nodes) != 2 { t.Fatal("maximum inventory failed compile", err) }
+    if err != nil || len(nodes) != 10 { t.Fatal("maximum inventory failed compile", err) }
     count := 0
     for _, node := range nodes {
         sum := sha256.Sum256(node.Params)
         task, err := PrepareDownloadArchiveTask(PublishedDownloadArchive{Node: node,
             Params: review.ArtifactRef{ID: uuid.New(), SHA256: hex.EncodeToString(sum[:])}})
         if err != nil { t.Fatal(err) }
+        if len(task.Inputs) > MaxDownloadArchiveInputs || len(task.Inputs) != len(node.Inputs) {
+            t.Fatal("archive TaskCommand inputs exceed wire shape", len(task.Inputs))
+        }
         estimate, err := ParseResourceEstimate(task.ExecutionProfile)
         if err != nil { t.Fatal(err) }
         workerReservation := node.InputBytes + 1048576 + 4096*int64(len(node.Inputs))
@@ -62,7 +86,7 @@ func TestArchiveMaximumTinyInventoryResourceProfileMatchesWorker(t *testing.T) {
     if count != MaxDownloadItems { t.Fatal("inventory truncated") }
     spec.Volumes = []DownloadArchiveVolume{{Number: 1, Entries: entries}}
     if nodes, err := CompileDownloadArchives(spec, registry); err == nil || nodes != nil {
-        t.Fatal("oversized external manifest compiled")
+        t.Fatal("oversized command input inventory compiled")
     }
 }
 

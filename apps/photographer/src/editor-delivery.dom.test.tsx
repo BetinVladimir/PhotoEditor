@@ -32,3 +32,18 @@ it('ignores snapshot completion after scope change',async()=>{
  view.rerender(<EditorDelivery {...props(api,onPrepared)} version={id(9)}/>);expect(signal.aborted).toBe(true);
  await act(async()=>finish({id:id(6)}));expect(onPrepared).not.toHaveBeenCalled();
 });
+
+it('blocks snapshot creation after the editor is disabled during source loading and retains the frozen retry',async()=>{
+ const api=setup(),onPrepared=vi.fn();let finish!:(value:typeof base)=>void;
+ api.v2Binding.mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve}));
+ const value=props(api,onPrepared),view=render(<EditorDelivery {...value}/>);
+ fireEvent.click(screen.getByText('Create delivery'));await waitFor(()=>expect(api.v2Binding).toHaveBeenCalledTimes(1));
+ view.rerender(<EditorDelivery {...value} disabled/>);
+ await act(async()=>finish(base));await screen.findByRole('alert');
+ expect(api.createRenderInputSnapshot).not.toHaveBeenCalled();expect(onPrepared).not.toHaveBeenCalled();
+ view.rerender(<EditorDelivery {...value}/>);
+ fireEvent.click(screen.getByText('Retry photo selection'));
+ await waitFor(()=>expect(onPrepared).toHaveBeenCalledWith(id(6)));
+ expect(api.v2Binding).toHaveBeenCalledTimes(1);
+ expect(api.createRenderInputSnapshot.mock.calls[0][1]).toEqual({sources:[base]});
+});

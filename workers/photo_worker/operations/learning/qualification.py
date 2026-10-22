@@ -104,20 +104,29 @@ def source_tree_sha(root: Path) -> str:
 
 
 @contextmanager
+def _directory_descriptor(descriptor):
+    # Directory FDs are not byte streams (fdopen rejects them on macOS).
+    try:
+        yield descriptor
+    finally:
+        os.close(descriptor)
+
+
+@contextmanager
 def _pinned_directory(path: Path):
     path = Path(path)
     if not path.is_absolute() or '..' in path.parts:
         raise ValueError('LEARNING_PINNED_DIRECTORY_INVALID')
     with ExitStack() as descriptors:
-        directory = descriptors.enter_context(os.fdopen(os.open(
+        directory = descriptors.enter_context(_directory_descriptor(os.open(
             path.anchor, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW |
-            os.O_CLOEXEC), 'rb')).fileno()
+            os.O_CLOEXEC)))
         for component in path.parts[1:]:
             if component in ('', '.', '..'):
                 raise ValueError('LEARNING_PINNED_DIRECTORY_INVALID')
-            directory = descriptors.enter_context(os.fdopen(os.open(
+            directory = descriptors.enter_context(_directory_descriptor(os.open(
                 component, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW |
-                os.O_CLOEXEC, dir_fd=directory), 'rb')).fileno()
+                os.O_CLOEXEC, dir_fd=directory)))
         yield directory
 
 
@@ -152,12 +161,12 @@ def _hash_source_tree(root: Path, root_directory: int,
             if stat.S_ISLNK(metadata.st_mode):
                 raise ValueError('LEARNING_SOURCE_TREE_INVALID')
             if stat.S_ISDIR(metadata.st_mode):
-                with os.fdopen(os.open(name, os.O_RDONLY | os.O_DIRECTORY |
-                        os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=directory), 'rb') as child:
-                    opened = os.fstat(child.fileno())
+                with _directory_descriptor(os.open(name, os.O_RDONLY | os.O_DIRECTORY |
+                        os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=directory)) as child:
+                    opened = os.fstat(child)
                     if (opened.st_dev, opened.st_ino) != (metadata.st_dev, metadata.st_ino):
                         raise ValueError('LEARNING_SOURCE_TREE_INVALID')
-                    collect(child.fileno(), (*prefix, name))
+                    collect(child, (*prefix, name))
                     current = os.stat(name, dir_fd=directory, follow_symlinks=False)
                     if (not stat.S_ISDIR(current.st_mode) or
                             (current.st_dev, current.st_ino) !=
@@ -180,12 +189,12 @@ def _hash_source_tree(root: Path, root_directory: int,
         if len(name) > 4096:
             raise ValueError('LEARNING_SOURCE_TREE_INVALID')
         with ExitStack() as descriptors:
-            directory = descriptors.enter_context(os.fdopen(os.dup(
-                root_directory), 'rb')).fileno()
+            directory = descriptors.enter_context(_directory_descriptor(os.dup(
+                root_directory)))
             for component in relative[:-1]:
-                directory = descriptors.enter_context(os.fdopen(os.open(
+                directory = descriptors.enter_context(_directory_descriptor(os.open(
                     component, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW |
-                    os.O_CLOEXEC, dir_fd=directory), 'rb')).fileno()
+                    os.O_CLOEXEC, dir_fd=directory)))
             descriptor = os.open(relative[-1],
                 os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC,
                 dir_fd=directory)

@@ -57,6 +57,17 @@
       "title": "Feather Pixels",
       "type": "integer"
     },
+    "generated_mask": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
     "global_pass": {
       "title": "Global Pass",
       "type": "boolean"

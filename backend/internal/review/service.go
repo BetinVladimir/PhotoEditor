@@ -28,6 +28,7 @@ type Objects interface {
 }
 
 type Service struct {
+ ViewedKey []byte
 	DB      *pgxpool.Pool
 	Objects Objects
 	Bucket  string
@@ -51,12 +52,16 @@ type View struct {
 type DetailView struct {
 	View
 	CandidateIDs []string     `json:"candidate_ids,omitempty"`
+	Proposal *ArtifactRef `json:"proposal,omitempty"`
+	Image *ArtifactRef `json:"image,omitempty"`
+	LabelMap *ArtifactRef `json:"label_map,omitempty"`
 	Candidate    *ArtifactRef `json:"candidate,omitempty"`
 	Base         *ArtifactRef `json:"base,omitempty"`
 }
 
 func (s *Service) Detail(ctx context.Context, who auth.Identity, tid, reviewID uuid.UUID) (DetailView, error) {
 	var out DetailView
+ if s!=nil&&s.DB!=nil {if value,handled,e:=s.detailCulling(ctx,who,tid,reviewID);handled||e!=nil{return value,e}}
 	ctx = context.WithValue(ctx, allowDecidedReviewContextKey{}, true)
 	if s == nil || s.DB == nil || s.Objects == nil {
 		return out, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
@@ -71,6 +76,7 @@ func (s *Service) Detail(ctx context.Context, who auth.Identity, tid, reviewID u
 		if _, e = project.Authorize(ctx, tx, tid, loaded.ProjectID, who.UserID, role, domain.Editor, false); e != nil {
 			return e
 		}
+		if e = requireRelightReadAuthority(ctx, tx, who, tid, reviewID, loaded.Kind); e != nil { return e }
 		return tx.QueryRow(ctx, `SELECT id,run_id,kind,state,revision,candidate_hash,decision,decision_route,decision_hash,reasons,created_at FROM photo.reviews WHERE tenant_id=$1 AND id=$2`, tid, reviewID).Scan(&out.ID, &out.RunID, &out.Kind, &out.State, &out.Revision, &out.CandidateHash, &out.Decision, &out.DecisionRoute, &out.DecisionHash, &out.Reasons, &out.CreatedAt)
 	})
 	if err != nil {
@@ -85,6 +91,8 @@ func (s *Service) Detail(ctx context.Context, who auth.Identity, tid, reviewID u
 		if e != nil {
 			return out, domain.NewError("INPUT_INVALID", 422)
 		}
+		proposalRef, baseRef := loaded.Proposal, loaded.Image
+		out.Proposal, out.Base = &proposalRef, &baseRef
 		out.CandidateIDs = make([]string, len(proposal.document.Candidates))
 		for i, c := range proposal.document.Candidates {
 			out.CandidateIDs[i] = c.ID
@@ -103,6 +111,8 @@ func (s *Service) Detail(ctx context.Context, who auth.Identity, tid, reviewID u
 		if e != nil {
 			return out, domain.NewError("INPUT_INVALID", 422)
 		}
+		proposalRef, imageRef, labelRef := loaded.Proposal, loaded.Image, proposal.document.LabelMap
+		out.Proposal, out.Image, out.LabelMap = &proposalRef, &imageRef, &labelRef
 		out.CandidateIDs = make([]string, len(proposal.document.Candidates))
 		for i, c := range proposal.document.Candidates {
 			out.CandidateIDs[i] = c.ID
@@ -131,7 +141,8 @@ func (s *Service) Detail(ctx context.Context, who auth.Identity, tid, reviewID u
 			return domain.NewError("STALE_CANDIDATE_REVIEW", 409)
 		}
 		_, e = project.Authorize(ctx, tx, tid, current.ProjectID, who.UserID, role, domain.Editor, false)
-		return e
+		if e != nil { return e }
+		return requireRelightReadAuthority(ctx, tx, who, tid, reviewID, current.Kind)
 	})
 	if err != nil {
 		return DetailView{}, err
@@ -164,7 +175,7 @@ func artifactObject(id uuid.UUID, bucket, key, version, sha, media string, size 
 	return ref, objectstore.Object{Key: key, VersionID: version, SHA256: sha, ContentType: media, Bytes: size}, nil
 }
 
-// Only detail and selected-result readers may resolve a decided candidate.
+// Only detail and selected-result readers may resolve a decided review receipt.
 // The ordinary before/after preview and decision paths keep pending-only access.
 type allowDecidedReviewContextKey struct{}
 
@@ -173,7 +184,7 @@ func loadDecisionContext(ctx context.Context, tx pgx.Tx, tid, reviewID uuid.UUID
 	var proposalID, imageID uuid.UUID
 	var pb, pk, pv, ps, pm, ib, ik, iv, is, im string
 	var pn, in int64
-	err := tx.QueryRow(ctx, `SELECT CASE WHEN r.kind='v2' THEN workflow.project_id ELSE coalesce(src.project_id,dst.project_id) END,v.kind,v.candidate_artifact_id,v.base_artifact_id,
+	err := tx.QueryRow(ctx, `SELECT CASE WHEN r.kind='v2' THEN workflow.project_id ELSE coalesce(src.project_id,dst.project_id,effects.project_id) END,v.kind,v.candidate_artifact_id,v.base_artifact_id,
  p.bucket,p.object_key,p.object_version,p.sha256,p.media_type,p.bytes,
  i.bucket,i.object_key,i.object_version,i.sha256,i.media_type,i.bytes
  FROM photo.reviews v JOIN photo.runs r ON r.tenant_id=v.tenant_id AND r.id=v.run_id
@@ -181,10 +192,11 @@ func loadDecisionContext(ctx context.Context, tx pgx.Tx, tid, reviewID uuid.UUID
  LEFT JOIN photo.collections src ON src.tenant_id=s.tenant_id AND src.id=s.collection_id
  LEFT JOIN photo.collections dst ON dst.tenant_id=r.tenant_id AND dst.id=r.output_collection_id
  LEFT JOIN photo.v2_workflows workflow ON workflow.tenant_id=r.tenant_id AND workflow.run_id=r.id
+ LEFT JOIN photo.editor_effect_builds effects ON effects.tenant_id=r.tenant_id AND effects.run_id=r.id
  JOIN photo.artifacts p ON p.tenant_id=v.tenant_id AND p.id=v.candidate_artifact_id
  JOIN photo.artifacts i ON i.tenant_id=v.tenant_id AND i.id=v.base_artifact_id
  WHERE v.tenant_id=$1 AND v.id=$2 AND (v.state='pending'
-  OR ($3::boolean AND v.kind IN ('render.compose','optical.negative','portrait.glare','portrait.open_eyes','image.reflection') AND v.state='decided' AND v.revision=2))
+  OR ($3::boolean AND v.state='decided' AND v.revision>=2))
  AND (v.kind NOT IN ('portrait.glare','image.reflection') OR EXISTS(
   SELECT 1 FROM photo.tasks restoration_task
   JOIN photo.task_results restoration_result ON restoration_result.tenant_id=restoration_task.tenant_id
@@ -199,6 +211,11 @@ func loadDecisionContext(ctx context.Context, tx pgx.Tx, tid, reviewID uuid.UUID
     jsonb_build_object('artifact_id',p.id,'sha256',p.sha256)
    AND (r.v28_restoration_descriptor_jcs::jsonb)->'params'->'base'->'source'=
     jsonb_build_object('artifact_id',i.id,'sha256',i.sha256)))
+ AND (v.kind NOT IN('portrait.hair','portrait.clothing') OR (
+  r.v28_local_result_receipt->>'review_id'=v.id::text
+  AND r.v28_local_result_receipt->>'task_id'=v.task_id::text
+  AND r.v28_local_result_receipt->'base'=jsonb_build_object('artifact_id',i.id::text,'sha256',i.sha256)
+  AND r.v28_local_result_receipt->'candidate'=jsonb_build_object('artifact_id',p.id::text,'sha256',p.sha256)))
  AND p.state='ready' AND i.state='ready'
  AND (p.expires_at IS NULL OR p.expires_at>clock_timestamp())
 	AND (i.expires_at IS NULL OR i.expires_at>clock_timestamp())`, tid, reviewID, ctx.Value(allowDecidedReviewContextKey{}) == true).Scan(&c.ProjectID, &c.Kind, &proposalID, &imageID,
@@ -269,9 +286,9 @@ func sameContext(a, b decisionContext) bool {
 }
 
 func compatibleCandidate(kind string, candidate, base WorkingImage) bool {
-	if kind == "portrait.glare" || kind == "portrait.open_eyes" || kind == "image.reflection" {
+	if kind == "portrait.glare" || kind == "portrait.open_eyes" || kind == "image.reflection" || kind == "image.relight" {
 		if candidate.DType != "float32" || base.DType != "float32" ||
-			candidate.Pixels.ID == base.Pixels.ID || candidate.Pixels.SHA256 == base.Pixels.SHA256 {
+			candidate.Pixels.ID == base.Pixels.ID || (kind != "image.relight" && candidate.Pixels.SHA256 == base.Pixels.SHA256) {
 			return false
 		}
 		expected := base
@@ -283,7 +300,7 @@ func compatibleCandidate(kind string, candidate, base WorkingImage) bool {
 		actualRaw, err := canonical.Marshal(candidate)
 		return err == nil && bytes.Equal(expectedRaw, actualRaw)
 	}
-	if kind == "optical.negative" {
+	if kind == "optical.negative" || kind == "portrait.hair" || kind == "portrait.clothing" {
 		if candidate.DType != "float32" || base.DType != "float32" {
 			return false
 		}
@@ -335,6 +352,9 @@ func (s *Service) Decide(ctx context.Context, who auth.Identity, tid, reviewID, 
 	if err != nil {
 		return out, err
 	}
+ req,err=bindRelightViewedDecision(req,s.ViewedKey,who,tid,reviewID,loaded.Kind,loaded.Image,loaded.Proposal,time.Now())
+ if err!=nil{return out,err}
+
 	imageRaw, err := readObject(ctx, s.Objects, loaded.ImageObject)
 	if err != nil {
 		return out, err
@@ -404,7 +424,15 @@ func (s *Service) Decide(ctx context.Context, who auth.Identity, tid, reviewID, 
 			}
 			out = View{ID: reviewID, Kind: loaded.Kind, State: "decided", Revision: plan.Revision, CandidateHash: loaded.Proposal.SHA256, Decision: &req.Decision, DecisionRoute: &plan.Route}
 		}
-		return tx.QueryRow(ctx, `SELECT run_id FROM photo.reviews WHERE tenant_id=$1 AND id=$2`, tid, reviewID).Scan(&out.RunID)
+		// Persistence may wait on run/review/accounting locks after the project
+		// preflight. Refresh the role before returning a committed decision.
+		currentRole, err := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Editor)
+		if err != nil { return err }
+		if _, err = project.Authorize(ctx, tx, tid, current.ProjectID, who.UserID, currentRole, domain.Editor, false); err != nil { return err }
+		// Return the actual durable View, including decision_hash, reasons and
+		// creation time. A partially constructed View emitted a zero timestamp
+		// and omitted the hash needed by selected-result recovery.
+		return tx.QueryRow(ctx, `SELECT id,run_id,kind,state,revision,candidate_hash,decision,decision_route,decision_hash,reasons,created_at FROM photo.reviews WHERE tenant_id=$1 AND id=$2`, tid, reviewID).Scan(&out.ID,&out.RunID,&out.Kind,&out.State,&out.Revision,&out.CandidateHash,&out.Decision,&out.DecisionRoute,&out.DecisionHash,&out.Reasons,&out.CreatedAt)
 	})
 	return out, err
 }
@@ -452,7 +480,8 @@ func (s *Service) List(ctx context.Context, who auth.Identity, tid uuid.UUID, li
  LEFT JOIN photo.collections src ON src.tenant_id=s.tenant_id AND src.id=s.collection_id
  LEFT JOIN photo.collections dst ON dst.tenant_id=r.tenant_id AND dst.id=r.output_collection_id
  LEFT JOIN photo.v2_workflows workflow ON workflow.tenant_id=r.tenant_id AND workflow.run_id=r.id
- JOIN photo.projects p ON p.tenant_id=v.tenant_id AND p.id=CASE WHEN r.kind='v2' THEN workflow.project_id ELSE coalesce(src.project_id,dst.project_id) END AND p.archived_at IS NULL
+ LEFT JOIN photo.editor_effect_builds effects ON effects.tenant_id=r.tenant_id AND effects.run_id=r.id
+ JOIN photo.projects p ON p.tenant_id=v.tenant_id AND p.id=CASE WHEN r.kind='v2' THEN workflow.project_id ELSE coalesce(src.project_id,dst.project_id,effects.project_id) END AND p.archived_at IS NULL
  WHERE v.tenant_id=$1 AND ($2::uuid IS NULL OR v.run_id=$2) AND ($3='' OR v.state=$3) AND ($4='' OR v.kind=$4)
  AND ($5 OR p.visibility='workspace' OR EXISTS(SELECT FROM photo.project_acl a WHERE a.tenant_id=p.tenant_id AND a.project_id=p.id AND a.user_id=$6 AND a.role IN('owner','admin','editor')))
  AND ($7::uuid IS NULL OR (v.created_at,v.id)>($8::timestamptz,$7::uuid))

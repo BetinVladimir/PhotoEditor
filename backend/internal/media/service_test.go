@@ -1,6 +1,8 @@
 package media
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"github.com/google/uuid"
 	"photoeditor/backend/internal/objectstore"
 	"strings"
@@ -36,9 +38,13 @@ func TestProfileHashIsPolicyBound(t *testing.T) {
 	if err != nil || len(a) != 64 {
 		t.Fatal(a, err)
 	}
-	if a != "ebe90336177eb9b7dd29dd048d5a4ede9fcfaa9e87ede89e1391c7ea57f259f4" {
+	wire:=`{"icc_sha256":"`+strings.Repeat("a",64)+`","long_edge":320,"metadata_policy":"stripped","no_upscale":true,"quality":82,"renderer_policy":"declared_encoding_alpha8_icc_v2","schema_version":1,"variant":"thumb320"}`
+	digest:=sha256.Sum256([]byte(wire))
+	if a != hex.EncodeToString(digest[:]) {
 		t.Fatal("profile hash differs from worker contract", a)
 	}
+	legacy,_:=LegacyProfileHash("thumb320",strings.Repeat("a",64))
+	if legacy!="ebe90336177eb9b7dd29dd048d5a4ede9fcfaa9e87ede89e1391c7ea57f259f4" || legacy==a {t.Fatal("legacy/current media policies collided")}
 	b, _ := ProfileHash("thumb640", strings.Repeat("a", 64))
 	if a == b {
 		t.Fatal("variant omitted from profile hash")

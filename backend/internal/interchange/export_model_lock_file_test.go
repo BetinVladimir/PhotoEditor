@@ -65,6 +65,7 @@ func TestExportModelLockRequiresPinnedCanonicalFileAndInternalID(t *testing.T) {
 		t.Fatal(err)
 	}
 	unapproved.Models[0].ApprovedForInstall = false
+	var err error
 	unapproved.LockID, err = canonical.Hash(struct {
 		Schema int                `json:"schema_version"`
 		Models []exportModelEntry `json:"models"`
@@ -88,7 +89,7 @@ func TestExportModelLockRequiresPinnedCanonicalFileAndInternalID(t *testing.T) {
 		t.Fatal(err)
 	}
 	changed.LockID = rawSHA([]byte("wrong"))
-	invalid, err := canonical.Marshal(changed)
+	invalid, err = canonical.Marshal(changed)
 	if err != nil {
 		t.Fatal(err)
 	}

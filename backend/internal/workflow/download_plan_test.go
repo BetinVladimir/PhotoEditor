@@ -13,6 +13,25 @@ func downloadSource(ordinal int64, bytes int64, name, hash string) DownloadSourc
 	return DownloadSource{Ordinal: ordinal, AssetVersionID: uuid.New(), ArtifactID: uuid.New(), SHA256: hash, Bytes: bytes, Filename: name}
 }
 
+func TestDownloadPlannerTransportBoundaries(t *testing.T) {
+    for _, count := range []int{512, 513, 5000} {
+        t.Run(fmt.Sprint(count), func(t *testing.T) {
+            sources := make([]DownloadSource, count)
+            for i := range sources { sources[i] = downloadSource(int64(i), 1, fmt.Sprintf("%04d.jpg", i), fmt.Sprintf("%064x", i+1)) }
+            plan, err := PlanDownloadVolumesWithLimits(sources, DefaultVolumeByteLimit, 5000)
+            if err != nil || len(plan) != count { t.Fatal("inventory lost", err, len(plan)) }
+            sizes := map[int]int{}
+            for i, item := range plan {
+                if item.Ordinal != int64(i) || item.ArtifactID != sources[i].ArtifactID { t.Fatal("selection changed", i) }
+                sizes[item.Volume]++
+                if sizes[item.Volume] > MaxDownloadArchiveInputs { t.Fatal("wire input ceiling exceeded") }
+            }
+            if len(sizes) != (count+511)/512 { t.Fatal("wrong split", sizes) }
+            if sizes[1] != 512 { t.Fatal("unnecessarily reduced first volume", sizes) }
+        })
+    }
+}
+
 func TestPlanDownloadVolumesStablePackingAndSingles(t *testing.T) {
 	items := []DownloadSource{
 		downloadSource(0, 6, "a.jpg", strings.Repeat("a", 64)),

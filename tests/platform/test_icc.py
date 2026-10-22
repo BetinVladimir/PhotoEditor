@@ -53,3 +53,33 @@ def test_reject_invalid_profile_and_hash(profiles,tmp_path):
     (tmp_path/entry['path']).write_bytes(b'changed')
     with pytest.raises(ICCError,match='HASH_MISMATCH'):
         ICCRegistry(tmp_path).resolve(entry['id'])
+
+
+def test_identical_profile_keeps_all_codes_and_owned_noncontiguous_input(engine,profiles):
+    values=np.arange(65536,dtype=np.uint16)
+    rgb=np.repeat(values[:,None,None],3,axis=2)[::-1]
+    assert not rgb.flags.c_contiguous
+    result=engine.convert(rgb,profiles['work_rec2020_gamma24_v1'],profiles['work_rec2020_gamma24_v1'],preserve_identity=True)
+    assert result.flags.c_contiguous and not np.shares_memory(result,rgb)
+    assert np.array_equal(result,rgb)
+    result[0,0,0]=0
+    assert rgb[0,0,0]==65535
+
+
+def test_identical_invalid_profile_still_refused(engine):
+    with pytest.raises(ICCError):
+        engine.convert(np.zeros((1,1,3),np.uint16),b'invalid',b'invalid',preserve_identity=True)
+
+
+@pytest.mark.parametrize('identity',[None,False,True])
+def test_identity_copy_is_explicit_optin_default_keeps_real_lcms_transform(engine,profiles,monkeypatch,identity):
+    original=engine.lib.cmsCreateTransform;calls=[]
+    def transform(*args):
+        calls.append(args)
+        return original(*args)
+    monkeypatch.setattr(engine.lib,'cmsCreateTransform',transform)
+    rgb=np.random.default_rng(19).integers(0,65536,(8,9,3),dtype=np.uint16)
+    kwargs={} if identity is None else {'preserve_identity':identity}
+    result=engine.convert(rgb,profiles['work_rec2020_gamma24_v1'],profiles['work_rec2020_gamma24_v1'],**kwargs)
+    assert len(calls)==(0 if identity is True else 1)
+    assert np.array_equal(result,rgb)

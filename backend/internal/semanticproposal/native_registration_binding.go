@@ -32,7 +32,7 @@ func marshalNativeRegistrationBinding(ctx context.Context, frozen nativeRegistra
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	if frozen == nil || (operation != "face.detect" && operation != "mask.person" && operation != "face.landmarks" && operation != "face.parse") {
+	if frozen == nil || (operation != "face.detect" && operation != "mask.person" && operation != "face.landmarks" && operation != "face.parse" && operation != "scene.parse" && operation != "depth.predict") {
 		return nil, v2input.ErrInvalid
 	}
 	task, err := frozen.DraftTask()

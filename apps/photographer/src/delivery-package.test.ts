@@ -1,6 +1,6 @@
 import {expect,it,vi} from 'vitest';
 import {OwnerAPI} from './owner-api';
-import {freezeDeliveryPublish,prepareDeliveryPublication,readDeliveryPackage,readPublishedDelivery} from './delivery-package';
+import {deliveryPackageEnvelope,freezeDeliveryPublish,prepareDeliveryPublication,readDeliveryPackage,readPublishedDelivery} from './delivery-package';
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const intent=()=>({id:id(1),project_id:id(3),expected_revision:'1'});
 function resource(){return {id:id(1),revision:'2',document:{artifact_id:id(7),sha256:'a'.repeat(64)},data:{resource_type:'delivery_packages',id:id(1),tenant_id:id(2),project_id:id(3),created_at:'2026-10-10T11:00:00Z',revision:'2',updated_at:'2026-10-10T12:00:00Z',workflow_id:id(4),snapshot_id:id(5),name:'Client delivery',policy_artifact_id:id(6),manifest_artifact_id:id(7),state:'ready',published_at:'2026-10-10T12:00:00Z'}};}
@@ -107,4 +107,13 @@ it.each(['😀','я','𐍈'])('accepts exactly 200 Unicode code points in packag
  wire.data.name+=character;
  expect(()=>readDeliveryPackage(wire,id(2),id(3),id(1))).toThrow('DELIVERY_PACKAGE_INVALID');
  expect(()=>readPublishedDelivery(wire,id(2),intent())).toThrow('DELIVERY_PACKAGE_INVALID');
+});
+
+it('preserves timestamps and reconstructs a strict published resource for journal recovery',()=>{
+ const wire=resource(),pkg=readDeliveryPackage(wire,id(2),id(3),id(1));
+ expect(pkg.created_at).toBe(wire.data.created_at);expect(pkg.updated_at).toBe(wire.data.updated_at);
+ const reconstructed=deliveryPackageEnvelope(pkg);
+ expect(reconstructed).toEqual(wire);expect('document' in reconstructed.data).toBe(false);
+ expect(readPublishedDelivery(reconstructed,id(2),intent())).toEqual(pkg);
+ reconstructed.document!.sha256='b'.repeat(64);expect(pkg.document?.sha256).toBe('a'.repeat(64));
 });

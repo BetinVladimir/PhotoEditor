@@ -1,5 +1,6 @@
 """One-side deterministic SD1.5 outpaint operation with exact source restoration."""
 from __future__ import annotations
+from .generated_coverage import stage_generated_coverage
 from contextlib import ExitStack
 import cv2
 import numpy as np
@@ -79,14 +80,15 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts,pool:ModelPool,backend:
     matrix=[1.,0.,float(dx),0.,1.,float(dy),0.,0.,1.]
     step=MatrixTransform(kind='matrix',from_canvas=image.canvas,to_canvas=canvas,invertibility='partial',valid_region=Rect(x=dx,y=dy,width=w,height=h),forward_matrix=matrix)
     chain=TransformChain.create([*image.transform_chain.steps,step]);output_image=WorkingImage(pixels=pixel_ref,canvas=canvas,color=image.color,dtype='float32',alpha=alpha_ref,transform_chain=chain)
-    report=GenerationReport(image=params.image,mask=None,model_id=params.model_id,model_lock_id=params.model_lock_id,backend=backend,
+    generated_pixels_ref, generated_mask_ref, generated_written = stage_generated_coverage(artifacts, output_image, mask, ctx.check_active)
+    report=GenerationReport(generated_mask=generated_mask_ref,image=params.image,mask=None,model_id=params.model_id,model_lock_id=params.model_lock_id,backend=backend,
         seed=params.seed,guidance_scale=params.guidance_scale,generated_pixels=int(np.count_nonzero(mask)),protected_pixels=w*h,
         side=params.side,source_rect=source_rect)
     ctx.progress(2,5);image_ref=artifacts.stage_contract(output_image,'working_image');ctx.progress(4,5);report_ref=artifacts.stage_contract(report,'generation_report');ctx.progress(5,5)
-    return OperationResult(outputs=[pixel_ref,*([alpha_ref] if alpha_ref else []),image_ref,report_ref],review_required=True,
-        bytes_written=written+len(canonical_bytes(output_image))+len(canonical_bytes(report)))
+    return OperationResult(outputs=[generated_pixels_ref,generated_mask_ref,pixel_ref,*([alpha_ref] if alpha_ref else []),image_ref,report_ref],review_required=True,
+        bytes_written=generated_written+written+len(canonical_bytes(output_image))+len(canonical_bytes(report)))
 
 def outpaint_operations(config:ArtifactConfig,pool:ModelPool,backend:str)->list[Operation]:
     def outpainted(ctx):
-        with TaskArtifacts.create(ctx,config,frozenset({'working_rgb','working_alpha','working_image','generation_report'})) as artifacts:return execute(ctx,artifacts,pool,backend)
+        with TaskArtifacts.create(ctx,config,frozenset({'working_rgb','working_alpha','working_image','generation_report','generated_pixels','generated_mask'})) as artifacts:return execute(ctx,artifacts,pool,backend)
     return [Operation('image.outpaint','gpu',outpainted)]

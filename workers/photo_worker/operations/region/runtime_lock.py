@@ -13,7 +13,7 @@ from photo_worker.contracts.base import Contract, SHA256, canonical_hash, canoni
 from photo_worker.runtime.executor import OperationFailure
 
 REGION_COMPONENTS = ('adapter', 'admission', 'contracts', 'inputs', 'pixels',
-    'presentation', 'resources', 'result', 'stage', 'runtime_lock', 'renderer', 'mapped', 'calibration')
+    'presentation', 'resources', 'result', 'stage', 'runtime_lock', 'renderer', 'mapped', 'calibration', 'installation', 'analysis', 'portrait', 'denoise', 'projection', 'execution', 'geometry_native', 'geometry_policy', 'geometry_replay', 'detail','background','color_inputs','native_order','conservative','reviewed','collection_selection','private_frames','private_repairs','private_sources','inpaint','generation','outpaint')
 
 
 def component_paths():
@@ -26,6 +26,27 @@ def component_paths():
         result['region_' + name] = root / 'operations/region' / (name + '.py')
     for name, relative in {
         'region_adoption': 'v2/region_adoption.py',
+        'region_replay': 'v2/region_replay.py',
+        'region_replay_schema': 'v2/region_replay_schema.py',
+        'region_adopter_startup': 'v2/region_adopter_config.py',
+        'region_startup': 'runtime/region_config.py',
+        'region_person_stats': 'operations/learning/person_stats.py',
+        'region_skin': 'operations/learning/skin.py',
+        'region_face_detect': 'operations/face/detect.py',
+        'region_face_landmarks': 'operations/face/landmarks.py',
+        'region_face_parse': 'operations/face/parse.py',
+        'region_beauty_prepare': 'operations/portrait/prepare.py',
+        'region_statistics': 'algorithms/statistics.py',
+        'region_body_warp': 'algorithms/body_warp.py',
+        'region_body_contract': 'contracts/body.py',
+        'region_composition_contract': 'contracts/composition.py',
+        'region_inpaint_operation': 'operations/image/inpaint.py',
+        'region_generation_operation': 'operations/image/generate.py',
+        'region_outpaint_operation': 'operations/image/outpaint.py',
+        'region_candidate_inpaint': 'operations/semantic/candidate_inpaint.py',
+        'region_candidate_blend': 'operations/semantic/candidate_blend.py',
+        'region_candidate_preservation': 'operations/semantic/candidate_preservation.py',
+        'region_restoration_contract': 'contracts/restoration.py',
         'icc_registry': 'color/icc.py',
     }.items():
         result[name] = root / relative

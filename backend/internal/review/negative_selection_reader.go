@@ -3,6 +3,7 @@ package review
 import (
  "bytes"
  "context"
+ "errors"
 
  "github.com/google/uuid"
  "github.com/jackc/pgx/v5"
@@ -16,6 +17,7 @@ import (
 func(s *Service)ReadNegativeResultSelection(ctx context.Context,who auth.Identity,tid,reviewID uuid.UUID)(NegativeResultSelection,error){
  var out NegativeResultSelection
  if s==nil||s.DB==nil{return out,domain.NewError("DEPENDENCY_UNAVAILABLE",503)}
+ if tid==uuid.Nil||reviewID==uuid.Nil{return out,domain.NewError("VALIDATION_FAILED",422)}
  err:=tenant.WithTenant(ctx,s.DB,who,tid,domain.Editor,func(tx pgx.Tx,role domain.Role)error{
   var snapshot CandidateSnapshot;var projectID,taskID,actor uuid.UUID
   var decision,route,hash string;var selection []byte
@@ -27,6 +29,11 @@ func(s *Service)ReadNegativeResultSelection(ctx context.Context,who auth.Identit
    JOIN photo.artifacts b ON b.tenant_id=v.tenant_id AND b.id=v.base_artifact_id
    WHERE v.tenant_id=$1 AND v.id=$2 AND v.kind='optical.negative' AND v.state='decided' AND v.revision=2
    AND v.decided_by IS NOT NULL AND v.decided_at IS NOT NULL FOR SHARE OF v,t,r`,tid,reviewID).Scan(&projectID,&taskID,&snapshot.RunID,&actor,&decision,&route,&hash,&selection,&snapshot.Candidate.ID,&snapshot.Candidate.SHA256,&snapshot.Base.ID,&snapshot.Base.SHA256)
+  if errors.Is(err,pgx.ErrNoRows){return domain.NewError("NOT_FOUND",404)}
+  if err!=nil{return err}
+  // Row locks may wait after the initial tenant role was read. Refresh it
+  // before using the admin bypass in project authorization.
+  role,err=tenant.AuthorizeInTransaction(ctx,tx,who,tid,domain.Editor)
   if err!=nil{return err}
   if _,err:=project.Authorize(ctx,tx,tid,projectID,who.UserID,role,domain.Editor,false);err!=nil{return err}
   snapshot.TenantID=tid;snapshot.ReviewID=reviewID;snapshot.Kind="optical.negative";snapshot.State="pending";snapshot.Revision=1
@@ -38,6 +45,7 @@ func(s *Service)ReadNegativeResultSelection(ctx context.Context,who auth.Identit
   compiled,err:=CompileNegativeResultSelection(snapshot,actor,request,plan);if err!=nil{return err}
   var selectedReview uuid.UUID;var selectedHash,selectedRoute string;var imageID *uuid.UUID;var imageSHA *string
   err=tx.QueryRow(ctx,negativeSelectionAuthoritySQL,tid,taskID).Scan(&selectedReview,&selectedHash,&selectedRoute,&imageID,&imageSHA)
+  if errors.Is(err,pgx.ErrNoRows){return domain.NewError("STALE_CANDIDATE_REVIEW",409)}
   if err!=nil{return err}
   if selectedReview!=reviewID||selectedHash!=hash||selectedRoute!=route||(imageID==nil)!=(compiled.Image==nil)||(imageSHA==nil)!=(compiled.Image==nil){return domain.NewError("STALE_CANDIDATE_REVIEW",409)}
   if compiled.Image!=nil&&(*imageID!=compiled.Image.ID||*imageSHA!=compiled.Image.SHA256){return domain.NewError("STALE_CANDIDATE_REVIEW",409)}

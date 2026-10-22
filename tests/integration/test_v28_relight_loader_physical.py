@@ -10,6 +10,8 @@ from photo_worker.contracts.base import ArtifactRef,canonical_bytes,canonical_ha
 from photo_worker.contracts.relight import ImageRelightParams
 from photo_worker.operations.session.contracts import Calibration
 from photo_worker.runtime.database import TaskDatabase
+from wire_runtime_login import worker_login
+from photo_worker.v2.adoption import AdoptionInvalid
 from photo_worker.v2.relight_qualification_loader import load_relight_qualification
 from test_v28_relight_lease import relight_lease_fixture
 from test_v25_lens_objectstore import lens_objects
@@ -49,16 +51,20 @@ def test_relight_original_qualification_versions(database,lens_objects,failure):
     command=SimpleNamespace(operation='image.relight',operation_version='1',tenant_id=args[0],run_id=args[1],
         task_id=args[2],attempt=1,params=ArtifactRef(artifact_id=args[6],sha256=args[7]))
     lease=SimpleNamespace(command=command,fence=1,worker_id=args[5],input_digest=args[9],execution_profile=profile)
-    database_port=TaskDatabase(make_conninfo(**database))
-    def load():return load_relight_qualification(database_port,lease,args[8].encode(),client,bucket,
-        expected_runtime_sha='b'*64,check_active=lambda:None)
-    if failure:
-        from minio.error import S3Error
-        with pytest.raises(ValueError if failure=='corrupt-report' else S3Error):load()
-    else:
-        report,actual,policy,current=load()
-        assert actual==craw and sha256(report).hexdigest()==pin['report']['sha256']
-        assert policy['operation']=='image.relight' and current()==pin
-        with psycopg.connect(**database) as db:
-            db.execute('UPDATE photo.v2_qualification_policies SET admission_enabled=false WHERE id=%s',(pin['policy_id'],))
-        with pytest.raises(ValueError):current()
+    # Attest the isolated runtime identity before any expected negative outcome.
+    with worker_login(make_conninfo(**database),args[2]) as runtime_dsn:
+        database_port=TaskDatabase(runtime_dsn)
+        database_port.ping()
+        def load():return load_relight_qualification(database_port,lease,args[8].encode(),client,bucket,
+            expected_runtime_sha='b'*64,check_active=lambda:None)
+        if failure:
+            from minio.error import S3Error
+            with pytest.raises(AdoptionInvalid if failure=='corrupt-report' else S3Error) as caught:load()
+            if failure=='corrupt-report':assert str(caught.value)=='SEMANTIC_QUALIFICATION_REPORT_INVALID'
+        else:
+            report,actual,policy,current=load()
+            assert actual==craw and sha256(report).hexdigest()==pin['report']['sha256']
+            assert policy['operation']=='image.relight' and current()==pin
+            with psycopg.connect(**database) as db:
+                db.execute('UPDATE photo.v2_qualification_policies SET admission_enabled=false WHERE id=%s',(pin['policy_id'],))
+            with pytest.raises(AdoptionInvalid,match='^RELIGHT_QUALIFICATION_SCOPE_STALE$'):current()

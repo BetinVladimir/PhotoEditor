@@ -11,3 +11,7 @@ describe('persisted imported person mask decisions',()=>{
     expect(()=>readImportPersonMaskStatuses({workflow_id:workflow,items:[{...item,status:'pending'}]},workflow)).toThrow();
   });
 });
+
+it('rejects non-string persisted status values',()=>{
+ for(const status of [['granted'],['revoked'],{toString:()=> 'granted'}])expect(()=>readImportPersonMaskStatuses({workflow_id:workflow,items:[{...item,status}]},workflow)).toThrow('INTERCHANGE_MASK_STATUS_INVALID');
+});

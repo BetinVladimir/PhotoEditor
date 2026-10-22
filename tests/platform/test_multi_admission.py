@@ -43,7 +43,7 @@ def installed(monkeypatch,operation='optical.panorama'):
         canvas_hash=canonical_hash(image.canvas)) for image in images]
     model=OpticalPanoramaParams if operation=='optical.panorama' else OpticalFocusStackParams
     intent=model(schema_version=1,frames=bindings,reference_ordinal=1,max_pixels=10000,
-        calibration=ArtifactRef(**pin['calibration']),**({'projection':'planar'} if operation=='optical.panorama' else {'motion_policy':'review'}))
+        calibration=ArtifactRef.model_validate_json(canonical_bytes(pin['calibration'])),**({'projection':'planar'} if operation=='optical.panorama' else {'motion_policy':'review'}))
     record=module.MultiImageEvidence(pin,policy,canonical_bytes(report),canonical_bytes(calibration),operation,canonical_bytes(intent))
     records=[record];calls=[];colors=[]
     def resolve(*args):

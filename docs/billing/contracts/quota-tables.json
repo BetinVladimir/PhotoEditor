@@ -1,0 +1,911 @@
+{
+  "schema_version": 1,
+  "stage": "quota_kernel_shadow",
+  "tables": [
+    {
+      "name": "billing_accounting_controls",
+      "columns": [
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "mode",
+          "type": "text",
+          "nullable": false,
+          "default": "'shadow'"
+        },
+        {
+          "name": "lifecycle",
+          "type": "text",
+          "nullable": false,
+          "default": "'active'"
+        },
+        {
+          "name": "revision",
+          "type": "bigint",
+          "nullable": false,
+          "default": "1"
+        }
+      ],
+      "primary_key": [
+        "tenant_id"
+      ],
+      "constraints": [
+        "FOREIGN KEY(tenant_id) REFERENCES photo.tenants(id)",
+        "CHECK(mode='shadow')",
+        "CHECK(lifecycle IN ('active','deleting','closed'))",
+        "CHECK(revision>0)"
+      ],
+      "indexes": [],
+      "append_only": false,
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "billing_periods",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "starts_at",
+          "type": "timestamptz",
+          "nullable": false
+        },
+        {
+          "name": "ends_at",
+          "type": "timestamptz",
+          "nullable": false
+        },
+        {
+          "name": "anchor_kind",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "nullable": false,
+          "default": "'open'"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "constraints": [
+        "FOREIGN KEY(tenant_id) REFERENCES photo.tenants(id)",
+        "UNIQUE(tenant_id,id)",
+        "CHECK(ends_at>starts_at)",
+        "CHECK(anchor_kind IN ('trial_calendar','subscription'))",
+        "CHECK(state IN ('open','closing','closed'))"
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX billing_one_open_period ON photo.billing_periods(tenant_id) WHERE state='open'"
+      ],
+      "append_only": false,
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "billing_resource_balances",
+      "columns": [
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "resource_code",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "overrun_quantity",
+          "type": "bigint",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "revision",
+          "type": "bigint",
+          "nullable": false,
+          "default": "1"
+        }
+      ],
+      "primary_key": [
+        "tenant_id",
+        "resource_code"
+      ],
+      "constraints": [
+        "FOREIGN KEY(tenant_id) REFERENCES photo.tenants(id)",
+        "FOREIGN KEY(resource_code) REFERENCES photo.billing_resource_types(code)",
+        "CHECK(overrun_quantity>=0)",
+        "CHECK(revision>0)"
+      ],
+      "indexes": [],
+      "append_only": false,
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "billing_allowance_budgets",
+      "columns": [
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "resource_code",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "period_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "configured_quantity",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "outstanding_quantity",
+          "type": "bigint",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "settled_quantity",
+          "type": "bigint",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "policy_version",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "revision",
+          "type": "bigint",
+          "nullable": false,
+          "default": "1"
+        }
+      ],
+      "primary_key": [
+        "tenant_id",
+        "resource_code",
+        "period_id"
+      ],
+      "constraints": [
+        "FOREIGN KEY(tenant_id,period_id) REFERENCES photo.billing_periods(tenant_id,id)",
+        "FOREIGN KEY(tenant_id,resource_code) REFERENCES photo.billing_resource_balances(tenant_id,resource_code)",
+        "FOREIGN KEY(resource_code,policy_version) REFERENCES photo.billing_admission_policies(resource_code,policy_version)",
+        "CHECK(configured_quantity>=0 AND outstanding_quantity>=0 AND settled_quantity>=0)",
+        "CHECK(outstanding_quantity::numeric+settled_quantity<=configured_quantity)",
+        "CHECK(revision>0)"
+      ],
+      "indexes": [],
+      "append_only": false,
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "billing_bootstrap_grants",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "resource_code",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "quantity",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "starts_at",
+          "type": "timestamptz",
+          "nullable": false
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamptz",
+          "nullable": true
+        },
+        {
+          "name": "expiry_policy",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "policy_snapshot_hash",
+          "type": "bytea",
+          "nullable": false
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "constraints": [
+        "FOREIGN KEY(tenant_id) REFERENCES photo.tenants(id)",
+        "FOREIGN KEY(resource_code) REFERENCES photo.billing_resource_types(code)",
+        "UNIQUE(tenant_id,id,resource_code)",
+        "UNIQUE(tenant_id,reason,resource_code)",
+        "CHECK(reason IN ('trial_once','beta_transition'))",
+        "CHECK(quantity>0)",
+        "CHECK(octet_length(policy_snapshot_hash)=32)",
+        "CHECK((expiry_policy='fixed' AND expires_at IS NOT NULL AND expires_at>starts_at) OR (expiry_policy='never' AND expires_at IS NULL AND reason='trial_once' AND resource_code='standard_photo'))",
+        "CHECK(reason<>'trial_once' OR (resource_code='standard_photo' AND quantity=20 AND expiry_policy='never'))"
+      ],
+      "indexes": [],
+      "append_only": true,
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT",
+          "INSERT"
+        ]
+      },
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "billing_credit_buckets",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "resource_code",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "bootstrap_grant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "original_quantity",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "remaining_quantity",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "leased_quantity",
+          "type": "bigint",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "consumed_quantity",
+          "type": "bigint",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "revoked_quantity",
+          "type": "bigint",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "transferred_quantity",
+          "type": "bigint",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "starts_at",
+          "type": "timestamptz",
+          "nullable": false
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamptz",
+          "nullable": true
+        },
+        {
+          "name": "expiry_policy",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "source_type",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "nullable": false,
+          "default": "'active'"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "constraints": [
+        "FOREIGN KEY(tenant_id) REFERENCES photo.tenants(id)",
+        "FOREIGN KEY(tenant_id,bootstrap_grant_id,resource_code) REFERENCES photo.billing_bootstrap_grants(tenant_id,id,resource_code)",
+        "UNIQUE(tenant_id,id,resource_code)",
+        "UNIQUE(tenant_id,bootstrap_grant_id)",
+        "CHECK(original_quantity>0 AND remaining_quantity>=0 AND leased_quantity>=0 AND consumed_quantity>=0 AND revoked_quantity>=0 AND transferred_quantity>=0)",
+        "CHECK(original_quantity::numeric=remaining_quantity::numeric+leased_quantity+consumed_quantity+revoked_quantity+transferred_quantity)",
+        "CHECK(source_type IN ('trial','beta_transition'))",
+        "CHECK((expiry_policy='fixed' AND expires_at IS NOT NULL AND expires_at>starts_at) OR (expiry_policy='never' AND expires_at IS NULL AND source_type='trial' AND resource_code='standard_photo'))",
+        "CHECK(state IN ('active','draining','expired','closed'))"
+      ],
+      "indexes": [
+        "CREATE INDEX billing_bucket_available ON photo.billing_credit_buckets(tenant_id,resource_code,expires_at,id) WHERE remaining_quantity>0",
+        "CREATE INDEX billing_bucket_scope ON photo.billing_credit_buckets(tenant_id,resource_code)"
+      ],
+      "append_only": false,
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "billing_admission_leases",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "resource_code",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "period_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "instance_id",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "generation",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "fence_token",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "request_key",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "policy_version",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "allocated_quantity",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "allowance_quantity",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "issued_quantity",
+          "type": "bigint",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "returned_quantity",
+          "type": "bigint",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamptz",
+          "nullable": false
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "nullable": false,
+          "default": "'active'"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "constraints": [
+        "FOREIGN KEY(tenant_id,period_id) REFERENCES photo.billing_periods(tenant_id,id)",
+        "FOREIGN KEY(resource_code,policy_version) REFERENCES photo.billing_admission_policies(resource_code,policy_version)",
+        "UNIQUE(tenant_id,id,resource_code,period_id)",
+        "UNIQUE(tenant_id,resource_code,period_id,request_key)",
+        "UNIQUE(tenant_id,resource_code,period_id,instance_id,generation)",
+        "UNIQUE(fence_token)",
+        "CHECK(length(instance_id) BETWEEN 1 AND 120 AND length(request_key) BETWEEN 1 AND 128)",
+        "CHECK(generation>0 AND allocated_quantity>=0 AND allowance_quantity>=0 AND allocated_quantity::numeric+allowance_quantity>0)",
+        "CHECK(issued_quantity>=0 AND returned_quantity>=0 AND issued_quantity::numeric+returned_quantity<=allocated_quantity::numeric+allowance_quantity)",
+        "CHECK(state IN ('active','draining','closed'))"
+      ],
+      "indexes": [
+        "CREATE INDEX billing_lease_instance ON photo.billing_admission_leases(tenant_id,resource_code,period_id,instance_id,state)"
+      ],
+      "append_only": false,
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "billing_lease_allocations",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "resource_code",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "period_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "lease_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "bucket_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "source",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "quantity",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "issued_quantity",
+          "type": "bigint",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "returned_quantity",
+          "type": "bigint",
+          "nullable": false,
+          "default": "0"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "constraints": [
+        "FOREIGN KEY(tenant_id,lease_id,resource_code,period_id) REFERENCES photo.billing_admission_leases(tenant_id,id,resource_code,period_id)",
+        "FOREIGN KEY(tenant_id,bucket_id,resource_code) REFERENCES photo.billing_credit_buckets(tenant_id,id,resource_code)",
+        "FOREIGN KEY(tenant_id,resource_code,period_id) REFERENCES photo.billing_allowance_budgets(tenant_id,resource_code,period_id)",
+        "UNIQUE(tenant_id,id,resource_code,period_id,lease_id)",
+        "UNIQUE NULLS NOT DISTINCT(tenant_id,lease_id,bucket_id,source)",
+        "CHECK((source='paid' AND bucket_id IS NOT NULL) OR (source='allowance' AND bucket_id IS NULL))",
+        "CHECK(quantity>0 AND issued_quantity>=0 AND returned_quantity>=0 AND issued_quantity::numeric+returned_quantity<=quantity)"
+      ],
+      "indexes": [],
+      "append_only": false,
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "billing_funding_claims",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "resource_code",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "period_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "lease_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "request_key",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "request_hash",
+          "type": "bytea",
+          "nullable": false
+        },
+        {
+          "name": "quantity",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "nullable": false,
+          "default": "'accepted'"
+        },
+        {
+          "name": "confirmed_quantity",
+          "type": "bigint",
+          "nullable": true
+        },
+        {
+          "name": "terminal_proof_hash",
+          "type": "bytea",
+          "nullable": true
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "constraints": [
+        "FOREIGN KEY(tenant_id,lease_id,resource_code,period_id) REFERENCES photo.billing_admission_leases(tenant_id,id,resource_code,period_id)",
+        "UNIQUE(tenant_id,id,resource_code,period_id,lease_id)",
+        "UNIQUE(tenant_id,resource_code,request_key)",
+        "CHECK(quantity>0 AND length(request_key) BETWEEN 1 AND 128 AND octet_length(request_hash)=32)",
+        "CHECK((state='accepted' AND confirmed_quantity IS NULL AND terminal_proof_hash IS NULL) OR (state IN ('settled','released') AND confirmed_quantity IS NOT NULL AND terminal_proof_hash IS NOT NULL AND octet_length(terminal_proof_hash)=32 AND confirmed_quantity BETWEEN 0 AND quantity AND ((state='released')=(confirmed_quantity=0))))"
+      ],
+      "indexes": [
+        "CREATE INDEX billing_claim_lease ON photo.billing_funding_claims(tenant_id,lease_id,state)"
+      ],
+      "append_only": false,
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "billing_funding_claim_allocations",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "resource_code",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "period_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "lease_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "claim_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "lease_allocation_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "quantity",
+          "type": "bigint",
+          "nullable": false
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "constraints": [
+        "FOREIGN KEY(tenant_id,claim_id,resource_code,period_id,lease_id) REFERENCES photo.billing_funding_claims(tenant_id,id,resource_code,period_id,lease_id)",
+        "FOREIGN KEY(tenant_id,lease_allocation_id,resource_code,period_id,lease_id) REFERENCES photo.billing_lease_allocations(tenant_id,id,resource_code,period_id,lease_id)",
+        "UNIQUE(tenant_id,claim_id,lease_allocation_id)",
+        "CHECK(quantity>0)"
+      ],
+      "indexes": [
+        "CREATE INDEX billing_claim_allocation_lookup ON photo.billing_funding_claim_allocations(tenant_id,lease_allocation_id)"
+      ],
+      "append_only": true,
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT",
+          "INSERT"
+        ]
+      },
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "billing_resource_ledger",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "resource_code",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "bucket_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "lease_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "period_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "claim_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "event_type",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "quantity",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "direction",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "business_key",
+          "type": "text",
+          "nullable": false
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "constraints": [
+        "FOREIGN KEY(tenant_id,resource_code) REFERENCES photo.billing_resource_balances(tenant_id,resource_code)",
+        "FOREIGN KEY(tenant_id,bucket_id,resource_code) REFERENCES photo.billing_credit_buckets(tenant_id,id,resource_code)",
+        "FOREIGN KEY(tenant_id,lease_id,resource_code,period_id) REFERENCES photo.billing_admission_leases(tenant_id,id,resource_code,period_id)",
+        "FOREIGN KEY(tenant_id,claim_id,resource_code,period_id,lease_id) REFERENCES photo.billing_funding_claims(tenant_id,id,resource_code,period_id,lease_id)",
+        "UNIQUE(tenant_id,business_key)",
+        "CHECK(event_type IN ('grant','allocate','issue','settle','release','expire','overrun','overrun_cover'))",
+        "CHECK(quantity>0 AND length(business_key) BETWEEN 1 AND 300)",
+        "CHECK((event_type='grant' AND direction='credit') OR (event_type IN ('allocate','issue','release') AND direction='transfer') OR (event_type IN ('settle','expire','overrun','overrun_cover') AND direction='debit'))",
+        "CHECK((lease_id IS NULL AND period_id IS NULL AND claim_id IS NULL) OR (lease_id IS NOT NULL AND period_id IS NOT NULL))"
+      ],
+      "indexes": [
+        "CREATE INDEX billing_ledger_cursor ON photo.billing_resource_ledger(tenant_id,resource_code,created_at,id)"
+      ],
+      "append_only": true,
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT",
+          "INSERT"
+        ]
+      },
+      "rls": "force_trusted_functions"
+    }
+  ]
+}

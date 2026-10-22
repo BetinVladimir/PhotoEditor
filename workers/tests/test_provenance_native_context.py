@@ -1,3 +1,4 @@
+from photo_worker.contracts.base import canonical_bytes
 """Settings construction tests; no native qualification evidence."""
 from contextlib import contextmanager
 from hashlib import sha256
@@ -13,10 +14,10 @@ TRUST = b'-----BEGIN CERTIFICATE-----\nfixture-not-a-real-certificate\n-----END 
 
 
 def policy():
-    return SigningPolicy.model_validate(dict(schema_version=1, id=str(uuid4()), revision='1',
+    return SigningPolicy.model_validate_json(canonical_bytes(dict(schema_version=1, id=str(uuid4()), revision='1',
         sdk_lock_sha='a'*64, key_handle='fixture', certificate_chain_sha='b'*64,
         timestamp_mode='off', timestamp_service_id=None, allowed_mime=['image/png'],
-        trust_bundle_sha=sha256(TRUST).hexdigest(), revocation_mode='off'))
+        trust_bundle_sha=sha256(TRUST).hexdigest(), revocation_mode='off')))
 
 
 def test_fresh_pinned_settings_and_cleanup():

@@ -61,7 +61,7 @@ func deliveryResizeGeometry(node CompiledDownloadNode, source review.WorkingImag
 		return fail()
 	}
 	chain.Steps = append(chain.Steps, step)
-	chain.Hash, err = canonical.Hash(chain.Steps)
+	chain.Hash, err = canonical.Hash(map[string]any{"steps": chain.Steps})
 	if err != nil {
 		return fail()
 	}

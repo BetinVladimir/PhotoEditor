@@ -37,7 +37,7 @@ func TestPreparedMaskQualificationSequenceAndIsolation(t *testing.T){
  for _,failure:=range []string{"none","physical","semantic","recheck","cancel"}{t.Run(failure,func(t *testing.T){
   _,_,imageRaw:=importWorkingValidatorFixture(t)
   image,err:=review.ParseWorkingImage(imageRaw);if err!=nil{t.Fatal(err)}
-  raw,err:=canonical.Marshal(map[string]any{"artifact":v2input.Ref{ArtifactID:uuid.New(),SHA256:rawSHA([]byte("pixels"))},"canvas":image.Canvas,"transform_chain":json.RawMessage(image.TransformChain),"selector":"manual","confidence":1,"protected":true});if err!=nil{t.Fatal(err)}
+  raw,err:=canonical.Marshal(map[string]any{"artifact":v2input.Ref{ArtifactID:uuid.New(),SHA256:rawSHA([]byte("pixels"))},"canvas":image.Canvas,"transform_chain":json.RawMessage(image.TransformChain),"object_id":nil,"model_lock_id":nil,"selector":"manual","confidence":1,"protected":true});if err!=nil{t.Fatal(err)}
   mask,err:=review.ParseMaskRef(raw);if err!=nil{t.Fatal(err)}
   raw,err=canonical.Marshal(mask);if err!=nil{t.Fatal(err)}
   sentinel:=errors.New("authority changed")

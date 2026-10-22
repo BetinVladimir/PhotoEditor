@@ -162,7 +162,7 @@ def test_delivery_tiff_copyright_preserves_16bit_verification(tmp_path,extra):
     params,source,manifest,profile=fixture(path,'tiff')
     tags=[(34675,'B',len(profile),profile,False),(315,'s',0,'Author',False),(33432,'s',0,'Copyright',False)]
     if extra:tags.append((272,'s',0,'private camera',False))
-    tifffile.imwrite(path,np.zeros((3,4,3),dtype=np.uint16),photometric='rgb',metadata=None,software=None,extratags=tags)
+    tifffile.imwrite(path,np.zeros((3,4,3),dtype=np.uint16),photometric='rgb',metadata=None,software=False,extratags=tags)
     manifest=manifest.model_copy(update={'metadata_policy':'copyright_only',
         'artifact':ArtifactRef(artifact_id=manifest.artifact.artifact_id,sha256=sha256(path.read_bytes()).hexdigest())})
     def verify():

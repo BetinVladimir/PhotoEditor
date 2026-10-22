@@ -38,6 +38,8 @@
         },
         "mean_rgb": {
           "items": {
+            "maximum": 1,
+            "minimum": 0,
             "type": "number"
           },
           "maxItems": 3,
@@ -52,6 +54,7 @@
           "type": "number"
         },
         "region_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$",
           "title": "Region Id",
           "type": "string"
         }

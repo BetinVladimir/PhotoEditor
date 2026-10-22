@@ -228,6 +228,14 @@
         "mask": {
           "$ref": "#/$defs/MaskRef"
         },
+        "regions": {
+          "items": {
+            "$ref": "#/$defs/TransformRegion"
+          },
+          "maxItems": 128,
+          "title": "Regions",
+          "type": "array"
+        },
         "step": {
           "discriminator": {
             "mapping": {
@@ -438,6 +446,90 @@
       ],
       "title": "TransformChain",
       "type": "object"
+    },
+    "TransformRegion": {
+      "additionalProperties": false,
+      "properties": {
+        "mask": {
+          "$ref": "#/$defs/MaskRef"
+        },
+        "purpose": {
+          "default": "region_adjustment",
+          "enum": [
+            "region_adjustment",
+            "portrait_teeth",
+            "portrait_sclera",
+            "portrait_shine",
+            "portrait_under_eye",
+            "portrait_cloth",
+            "portrait_glasses",
+            "inpaint_target",
+            "generation_target",
+            "protected"
+          ],
+          "title": "Purpose",
+          "type": "string"
+        },
+        "region_id": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Region Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "region_id",
+        "mask"
+      ],
+      "title": "TransformRegion",
+      "type": "object"
+    },
+    "TransformedRegion": {
+      "additionalProperties": false,
+      "properties": {
+        "guided_radius": {
+          "minimum": 1,
+          "title": "Guided Radius",
+          "type": "integer"
+        },
+        "mask": {
+          "$ref": "#/$defs/MaskRef"
+        },
+        "png": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "purpose": {
+          "default": "region_adjustment",
+          "enum": [
+            "region_adjustment",
+            "portrait_teeth",
+            "portrait_sclera",
+            "portrait_shine",
+            "portrait_under_eye",
+            "portrait_cloth",
+            "portrait_glasses",
+            "inpaint_target",
+            "generation_target",
+            "protected"
+          ],
+          "title": "Purpose",
+          "type": "string"
+        },
+        "region_id": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Region Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "region_id",
+        "mask",
+        "png",
+        "guided_radius"
+      ],
+      "title": "TransformedRegion",
+      "type": "object"
     }
   },
   "$id": "https://photoeditor.local/contracts/transformed-mask.schema.json",
@@ -478,6 +570,14 @@
     },
     "png": {
       "$ref": "#/$defs/ArtifactRef"
+    },
+    "regions": {
+      "items": {
+        "$ref": "#/$defs/TransformedRegion"
+      },
+      "maxItems": 128,
+      "title": "Regions",
+      "type": "array"
     }
   },
   "required": [

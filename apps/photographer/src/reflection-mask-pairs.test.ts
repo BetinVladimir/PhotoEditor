@@ -11,3 +11,9 @@ it('binds complete reflection mask producers and rejects donor-shaped responses'
  expect(()=>readReflectionMaskPairPage({items:[{...pair,protected_pixel:pair.target_pixel}],next_cursor:null},query)).toThrow();
  expect(()=>readReflectionMaskPairPage({items:[pair],next_cursor:pair.mask.artifact_id},query)).toThrow();
 });
+it('rejects UUIDs missing a canonical group instead of accepting shortened identifiers',()=>{
+ const shortened='00000000-0000-4000-000000000001';
+ expect(()=>freezeReflectionMaskPairQuery({...query,snapshot_id:shortened})).toThrow('REFLECTION_MASK_PAIR_QUERY_INVALID');
+ const pair={mask:ref(4),protected:ref(5),target_pixel:ref(6),protected_pixel:ref(7)};
+ expect(()=>readReflectionMaskPairPage({items:[{...pair,mask:{...pair.mask,artifact_id:shortened}}],next_cursor:null},query)).toThrow('REFLECTION_MASK_PAIR_PAGE_INVALID');
+});

@@ -50,40 +50,137 @@ def face_anchors(face:Face68,amount:float,strength:float,w:int,h:int)->tuple[np.
     return np.stack(out),np.stack(disp)
 
 
-def solve_inverse_field(width:int,height:int,sets:list[tuple[np.ndarray,np.ndarray,np.ndarray]],person:np.ndarray)->np.ndarray:
-    yy,xx=np.mgrid[0:height,0:width];field=np.stack((xx,yy),axis=-1).astype(np.float32)
+def identity_inverse_field(width:int,height:int,*,check_active=lambda:None)->np.ndarray:
+    if type(width) is not int or type(height) is not int or min(width,height)<1 or width*height>40000000:
+        raise ValueError('BODY_FIELD_LAYOUT_INVALID')
+    check_active()
+    field=np.empty((height,width,2),np.float32)
+    rows=max(1,min(256,65536//width))
+    xs=np.arange(width,dtype=np.float32)
+    for y in range(0,height,rows):
+        check_active();stop=min(y+rows,height)
+        field[y:stop,:,0]=xs
+        field[y:stop,:,1]=np.arange(y,stop,dtype=np.float32)[:,None]
+    check_active()
+    return field
+
+
+def solve_inverse_field(width:int,height:int,sets:list[tuple[np.ndarray,np.ndarray,np.ndarray]],person:np.ndarray,*,check_active=lambda:None)->np.ndarray:
+    field=identity_inverse_field(width,height,check_active=check_active)
     coverage=np.zeros((height,width),np.uint8)
     for points,values,roi in sets:
+        check_active()
         x0,y0,x1,y1=np.floor(roi).astype(int);x1=min(width-1,int(np.ceil(roi[2])));y1=min(height-1,int(np.ceil(roi[3])))
         if x1<x0 or y1<y0:continue
         sigma=max(.2*max(x1-x0+1,y1-y0+1),1.);delta=points[:,None,:]-points[None,:,:]
         kernel=np.exp(-np.sum(delta*delta,axis=2)/(2*sigma*sigma));weights=np.linalg.solve(kernel+np.eye(len(points))*1e-4,values)
-        ry,rx=np.mgrid[y0:y1+1,x0:x1+1];query=np.stack((rx,ry),axis=-1);d=query[...,None,:]-points
-        moved=np.exp(-np.sum(d*d,axis=-1)/(2*sigma*sigma))@weights
-        gate=np.clip(person[y0:y1+1,x0:x1+1,...],0,1)[...,None]
-        active=np.linalg.norm(moved,axis=-1)>.05
-        prior=coverage[y0:y1+1,x0:x1+1]
-        if np.any(active&(prior>0)):raise ValueError('AMBIGUOUS_OVERLAP')
-        field[y0:y1+1,x0:x1+1]+=np.asarray(moved*gate,np.float32);coverage[y0:y1+1,x0:x1+1]+=active
+        # RBF query tensors scale with anchors as well as pixels. Bound both.
+        tile_pixels=max(1,65536//max(1,len(points)))
+        tile_width=min(x1-x0+1,tile_pixels)
+        tile_rows=max(1,min(256,tile_pixels//tile_width))
+        for y in range(y0,y1+1,tile_rows):
+            for x in range(x0,x1+1,tile_width):
+                check_active();stop_y=min(y+tile_rows,y1+1);stop_x=min(x+tile_width,x1+1)
+                ry,rx=np.mgrid[y:stop_y,x:stop_x];query=np.stack((rx,ry),axis=-1);d=query[...,None,:]-points
+                moved=np.exp(-np.sum(d*d,axis=-1)/(2*sigma*sigma))@weights
+                gate=np.clip(person[y:stop_y,x:stop_x,...],0,1)[...,None]
+                active=np.linalg.norm(moved,axis=-1)>.05
+                prior=coverage[y:stop_y,x:stop_x]
+                if np.any(active&(prior>0)):raise ValueError('AMBIGUOUS_OVERLAP')
+                field[y:stop_y,x:stop_x]+=np.asarray(moved*gate,np.float32)
+                coverage[y:stop_y,x:stop_x]+=active
+    check_active()
     return field
 
 
-def validate_field(field:np.ndarray,max_displacement:float,person:np.ndarray)->WarpValidation:
-    h,w,_=field.shape;yy,xx=np.mgrid[0:h,0:w];dx=field[...,0]-xx;dy=field[...,1]-yy
-    maximum=float(np.max(np.hypot(dx,dy)))
-    ys=np.unique(np.r_[np.arange(0,h,4),h-1]);xs=np.unique(np.r_[np.arange(0,w,4),w-1])
-    # Central differences of the inverse map. A positive lower bound excludes folds.
-    gx_x=np.gradient(field[...,0],axis=1);gx_y=np.gradient(field[...,0],axis=0)
-    gy_x=np.gradient(field[...,1],axis=1);gy_y=np.gradient(field[...,1],axis=0)
-    det=gx_x*gy_y-gx_y*gy_x;minimum=float(np.min(det[np.ix_(ys,xs)]))
-    protected=person<.01;center=float(np.max(np.hypot(dx[protected],dy[protected]))) if np.any(protected) else 0.
+def validate_field(field:np.ndarray,max_displacement:float,person:np.ndarray,*,check_active=lambda:None)->WarpValidation:
+    check_active()
+    h,w,_=field.shape
+    if h<2 or w<2 or field.shape!=(h,w,2) or person.shape!=(h,w):
+        raise ValueError('BODY_FIELD_LAYOUT_INVALID')
+    maximum=0.;minimum=float('inf');center=0.
+    # One-pixel halo preserves NumPy central/edge differences at tile seams.
+    for y in range(0,h,256):
+        for x in range(0,w,256):
+            check_active();ey=min(y+256,h);ex=min(x+256,w)
+            yy,xx=np.mgrid[y:ey,x:ex];part=field[y:ey,x:ex]
+            if not np.isfinite(part).all():raise ValueError('BODY_FIELD_NONFINITE')
+            distance=np.hypot(part[...,0]-xx,part[...,1]-yy)
+            maximum=max(maximum,float(np.max(distance)))
+            protected=person[y:ey,x:ex]<.01
+            if np.any(protected):center=max(center,float(np.max(distance[protected])))
+            hy=max(0,y-1);hx=max(0,x-1);hey=min(h,ey+1);hex_=min(w,ex+1)
+            local=field[hy:hey,hx:hex_]
+            gx_x=np.gradient(local[...,0],axis=1);gx_y=np.gradient(local[...,0],axis=0)
+            gy_x=np.gradient(local[...,1],axis=1);gy_y=np.gradient(local[...,1],axis=0)
+            det=(gx_x*gy_y-gx_y*gy_x)[y-hy:ey-hy,x-hx:ex-hx]
+            ys=np.arange(y,ey);xs=np.arange(x,ex)
+            sy=(ys%4==0)|(ys==h-1);sx=(xs%4==0)|(xs==w-1)
+            if np.any(sy) and np.any(sx):minimum=min(minimum,float(np.min(det[np.ix_(sy,sx)])))
+    check_active()
     protected_limit=.1*max(h,w)/1024
     return WarpValidation(maximum<=max_displacement and minimum>=.5 and center<=protected_limit,maximum,minimum,center)
 
 
 def bilinear(source:np.ndarray,field:np.ndarray)->np.ndarray:
-    h,w=field.shape[:2];sx=np.clip(field[...,0],0,w-1);sy=np.clip(field[...,1],0,h-1)
+    h,w=source.shape[:2];sx=np.clip(field[...,0],0,w-1);sy=np.clip(field[...,1],0,h-1)
     x0=np.floor(sx).astype(np.int64);y0=np.floor(sy).astype(np.int64);x1=np.minimum(x0+1,w-1);y1=np.minimum(y0+1,h-1)
     fx=sx-x0;fy=sy-y0
     if source.ndim==3:fx=fx[...,None];fy=fy[...,None]
     return ((source[y0,x0]*(1-fx)+source[y0,x1]*fx)*(1-fy)+(source[y1,x0]*(1-fx)+source[y1,x1]*fx)*fy)
+
+
+def warp_rgb_into(rgb, alpha, field, output, *, check_active=lambda: None):
+    """Linear-light body resampling; hidden RGB never contributes through alpha.
+
+    Tile the inverse sampler to bound temporary index/interpolation arrays.
+    Alpha output remains the caller's existing uint16 bilinear contract.
+    """
+    from photo_worker.algorithms.color import to_linear, to_encoded
+    check_active()
+    h,w=rgb.shape[:2]
+    if (rgb.dtype!=np.float32 or rgb.shape!=(h,w,3) or output.shape!=rgb.shape
+            or output.dtype!=np.float32 or field.shape!=(h,w,2) or field.dtype!=np.float32
+            or alpha is not None and (alpha.shape!=(h,w) or alpha.dtype!=np.uint16)):
+        raise ValueError('BODY_RGBA_LAYOUT_INVALID')
+    linear=to_linear(np.asarray(rgb))
+    translucent=alpha is not None and np.any(alpha!=65535)
+    opacity=None
+    if translucent:
+        opacity=np.asarray(alpha,np.float32)/65535
+        linear*=opacity[...,None]
+    rows=max(1,min(256,65536//w))
+    for y in range(0,h,rows):
+        check_active();sl=slice(y,min(y+rows,h));tile=field[sl]
+        if not np.isfinite(tile).all():raise ValueError('BODY_RGBA_FIELD_INVALID')
+        warped=np.asarray(bilinear(linear,tile),np.float32)
+        if opacity is not None:
+            coverage=np.clip(bilinear(opacity,tile),0,1)
+            decoded=np.zeros_like(warped)
+            np.divide(warped,coverage[...,None],out=decoded,where=coverage[...,None]>1e-6)
+            warped=decoded
+        output[sl]=to_encoded(warped)
+        # Exact identity coordinates represent protected/unmodified pixels.
+        # Preserve encoded values rather than round-tripping through gamma or
+        # unpremultiplication (including invisible RGB at zero alpha).
+        stationary=(tile[...,0]==np.arange(w,dtype=np.float32)[None,:]) & (
+            tile[...,1]==np.arange(y,sl.stop,dtype=np.float32)[:,None])
+        np.copyto(output[sl],rgb[sl],where=stationary[...,None])
+    check_active()
+
+
+def warp_alpha_into(alpha, field, output, *, check_active=lambda: None):
+    """Preserve uint16 bilinear alpha math with bounded temporary arrays."""
+    check_active()
+    if (alpha.ndim!=2 or alpha.dtype!=np.uint16 or output.shape!=alpha.shape
+            or output.dtype!=np.uint16 or field.shape!=(*alpha.shape,2)
+            or field.dtype!=np.float32):
+        raise ValueError('BODY_ALPHA_LAYOUT_INVALID')
+    h,w=alpha.shape
+    source=np.asarray(alpha,np.float32)
+    rows=max(1,min(256,65536//w))
+    for y in range(0,h,rows):
+        check_active();sl=slice(y,min(y+rows,h));tile=field[sl]
+        if not np.isfinite(tile).all():raise ValueError('BODY_ALPHA_FIELD_INVALID')
+        output[sl]=np.rint(np.clip(bilinear(source,tile),0,65535)).astype(np.uint16)
+    check_active()

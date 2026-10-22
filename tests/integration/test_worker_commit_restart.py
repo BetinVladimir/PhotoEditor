@@ -28,7 +28,7 @@ def test_worker_death_after_commit_redelivers_without_duplicate_effects(database
         channel.queue_declare(queue,durable=True,arguments={'x-queue-type':'quorum'})
         channel.confirm_delivery()
         channel.basic_publish('',queue,json.dumps(case['command']).encode(),pika.BasicProperties(content_type='application/json',delivery_mode=2),mandatory=True)
-        env={**os.environ,'PYTHONPATH':str(ROOT/'workers')+':'+str(ROOT/'src'),
+        env={**os.environ,'PYTHONPATH':str(ROOT/'workers')+':'+str(ROOT/'apps'/'local-editor'/'src'),
              'PHOTO_TEST_RESTART_DSN':make_conninfo(**database),
              'PHOTO_TEST_RESTART_BROKER':str(rabbit_vhost),
              'PHOTO_TEST_RESTART_WORKER':str(case['worker'])}

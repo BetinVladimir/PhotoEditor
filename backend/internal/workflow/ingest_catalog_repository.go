@@ -35,6 +35,12 @@ func (r IngestCatalogRepository) AdoptImage(ctx context.Context, tenant, run uui
 	}
 	var ok bool
 	err = r.DB.QueryRow(ctx, "SELECT photo.adopt_ingest_image($1,$2,$3,$4,$5,$6,$7)", tenant, run, image.Ordinal, image.Outputs.Manifest.ID, image.Outputs.Manifest.SHA256, raw, metadataRaw).Scan(&ok)
+	if err == nil && !ok {
+		// SQL attests an archived destination; other refusal reasons remain
+		// conflicts. Existing cancellation settlement handles prepared originals.
+		var cancelling bool
+		err = r.DB.QueryRow(ctx, "SELECT photo.request_archived_ingest_cancel($1,$2)", tenant, run).Scan(&cancelling)
+	}
 	return ok, err
 }
 

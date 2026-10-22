@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "functions": [
+    {
+      "signature": "billing_allocate_paid_operation_lease(uuid,text,uuid,text,bigint,integer,text,bigint)",
+      "execute_roles": []
+    },
+    {
+      "signature": "billing_bind_operations(uuid,uuid)",
+      "execute_roles": []
+    }
+  ]
+}

@@ -2,6 +2,7 @@ from datetime import datetime,timezone
 from hashlib import sha256
 from uuid import uuid4
 import sqlite3
+import os
 import pytest
 from photo_worker.contracts.base import parse_json
 from photo_worker.runtime.deletion_history_store import DeletionHistoryStore
@@ -44,7 +45,7 @@ def test_deletion_history_backup_never_replaces_concurrent_empty_final(tmp_path,
     backup_id=uuid4()
     original=module._rename_exclusive
     def raced(root,pending,final):
-        (root/final).mkdir()
+        os.mkdir(final,dir_fd=root)
         original(root,pending,final)
     monkeypatch.setattr(module,'_rename_exclusive',raced)
     with pytest.raises(FileExistsError):
@@ -88,3 +89,26 @@ def test_deletion_history_backup_rejects_extra_file_before_publication(tmp_path)
     with pytest.raises(ValueError,match='CLOSURE'):
         export_deletion_history_backup(store,destination,uuid4(),check_active=active)
     assert injected and list(destination.iterdir())==[]
+
+
+def test_replaced_root_cleanup_preserves_foreign_same_named_pending(tmp_path):
+    source=tmp_path/'source';source.mkdir(mode=0o700)
+    destination=tmp_path/'backup';destination.mkdir(mode=0o700)
+    store=DeletionHistoryStore(source,check_active=lambda:None)
+    store.append(uuid4(),uuid4(),'requested',datetime.now(timezone.utc))
+    foreign=None
+    def active():
+        nonlocal foreign
+        if foreign is not None:return
+        pending=list(destination.glob('.deletion-backup-*'))
+        if pending and (pending[0]/'manifest.json').exists():
+            name=pending[0].name
+            destination.rename(tmp_path/'original-backup')
+            destination.mkdir(mode=0o700)
+            foreign=destination/name;foreign.mkdir(mode=0o700)
+            (foreign/'owned-by-other-process').write_bytes(b'preserve')
+    with pytest.raises(ValueError,match='ROOT_CHANGED'):
+        export_deletion_history_backup(store,destination,uuid4(),check_active=active)
+    assert foreign is not None
+    assert (foreign/'owned-by-other-process').read_bytes()==b'preserve'
+    assert list((tmp_path/'original-backup').glob('.deletion-backup-*/manifest.json'))

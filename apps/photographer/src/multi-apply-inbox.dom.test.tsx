@@ -6,7 +6,7 @@ import en from '../../../locales/en/common.json';
 const mocks=vi.hoisted(()=>({list:vi.fn()}));
 vi.mock('react-native',async()=>import('react-native-web'));
 vi.mock('@react-native-async-storage/async-storage',()=>({default:{}}));
-vi.mock('./locale-context',()=>({useLocale:()=>({t:(key:keyof typeof en)=>en[key]})}));
+vi.mock('./locale-context',async()=>{const __factory=()=>({useLocale:()=>({t:(key:keyof typeof en)=>en[key]})});const __out=await __factory();const {withUILocaleDouble}=await import('./test/locale-double');return {...__out,useLocale:()=>withUILocaleDouble(__out.useLocale())};});
 vi.mock('./multi-apply-store',()=>({listMultiApplyAttempts:mocks.list}));
 vi.mock('./multi-apply-recovery',()=>({MultiApplyRecovery:({producer}:{producer:string})=><div data-testid="recovery">{producer}</div>}));
 import {MultiApplyInbox} from './multi-apply-inbox';

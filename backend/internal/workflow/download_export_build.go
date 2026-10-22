@@ -181,8 +181,11 @@ type DownloadExportCoordinator struct {
 }
 
 func (c DownloadExportCoordinator) Build(ctx context.Context, tenant, run uuid.UUID) (bool, error) {
+	if changed,preflightErr:=c.Tasks.FailPlanningSource(ctx,tenant,run,nil);preflightErr!=nil||changed{return changed,preflightErr}
 	batch, err := c.Source.Load(ctx, tenant, run)
 	if err != nil {
+		var observation *downloadSourceFailure
+		if errors.As(err,&observation){changed,saveErr:=c.Tasks.FailPlanningSource(ctx,tenant,run,observation);if saveErr!=nil{return false,saveErr};if changed{return true,nil}}
 		return false, err
 	}
 	published, err := c.Builder.Publish(ctx, tenant, batch)

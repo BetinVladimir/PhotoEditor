@@ -1,4 +1,5 @@
 """Real API draft publication and scheduler scope; synthetic parent metadata."""
+from pathlib import Path as _PhotoRepositoryPath
 from pathlib import Path
 import json
 from hashlib import sha256
@@ -21,7 +22,7 @@ def test_composition_params_publication_replay(database, lens_objects):
             db.execute("UPDATE photo.tenants SET quotas=jsonb_set(quotas,'{storage_bytes}','100000000') WHERE id=%s",(case['Tenant'],))
         case['Objects'] = client._photo_test_config
         before = db.execute('SELECT storage_bytes,reserved_bytes FROM photo.tenant_usage WHERE tenant_id=%s', (case['Tenant'],)).fetchone()
-        env = dict(os.environ, PHOTO_TEST_DATABASE_URL=make_conninfo(**database), PHOTO_COMPOSITION_PUBLISH_CASE=json.dumps(case), GOCACHE='/private/tmp/photoeditor-go-cache')
+        env = dict(os.environ, PHOTO_TEST_DATABASE_URL=make_conninfo(**database), PHOTO_COMPOSITION_PUBLISH_CASE=json.dumps(case), GOCACHE=str(_PhotoRepositoryPath(__file__).resolve().parents[2]/'work/go-cache'))
         result = subprocess.run(['go','test','./internal/v2render','-run','^TestIntegrationCompositionParamsPublication$','-count=1'], cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=45)
         assert result.returncode == 0, result.stdout + result.stderr
         rows = db.execute('SELECT a.bytes,a.object_version,u.object_version FROM photo.v2_draft_uploads u JOIN photo.artifacts a ON a.tenant_id=u.tenant_id AND a.id=u.artifact_id WHERE u.tenant_id=%s AND u.bucket=%s AND u.state=\'ready\'', (case['Tenant'],bucket)).fetchall()

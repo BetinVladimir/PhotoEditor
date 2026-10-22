@@ -9,6 +9,13 @@ RegionId = Annotated[str, Field(min_length=1,max_length=120)]
 class RegionMask(Contract):
     region_id: RegionId
     mask: MaskRef
+    invert: bool = False
+
+    @model_validator(mode="after")
+    def inversion_source(self):
+        if self.invert and (self.mask.selector != "person" or self.mask.protected):
+            raise ValueError("Background inversion requires an unprotected person probability mask")
+        return self
 
 class LocalParams(Contract):
     item_id: UUID | None = None

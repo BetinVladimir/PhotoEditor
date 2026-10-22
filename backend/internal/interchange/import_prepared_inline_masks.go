@@ -10,6 +10,26 @@ import (
 )
 
 func inlinePreparedMasks(raw []byte) ([][]byte, error) {
+ if isImportConservativeParams("Params",raw) {
+  params,_,err:=decodeImportConservativeParams(raw);if err!=nil{return nil,err}
+  result:=make([][]byte,0,len(params.Protected))
+  for _,mask:=range params.Protected{result=append(result,append([]byte(nil),mask...))}
+  return result,nil
+ }
+ var report struct{
+  Algorithm string `json:"algorithm"`
+  Protection json.RawMessage `json:"protection"`
+  Params struct{Image v2input.Ref `json:"image"`;Permanent json.RawMessage `json:"permanent"`;Protections []json.RawMessage `json:"protections"`;Faces []struct{Skin json.RawMessage `json:"skin"`;Manual json.RawMessage `json:"manual"`} `json:"faces"`} `json:"params"`
+ }
+ if json.Unmarshal(raw,&report)==nil&&report.Algorithm=="defect_dog_v1" {
+  if err:=validateImportDefectProposeReport(raw,report.Params.Image);err!=nil{return nil,err}
+  masks:=[]json.RawMessage{report.Protection,report.Params.Permanent}
+  masks=append(masks,report.Params.Protections...)
+  for _,face:=range report.Params.Faces{masks=append(masks,face.Skin,face.Manual)}
+  result:=[][]byte{}
+  for _,mask:=range masks{if len(mask)!=0&&string(mask)!="null"{result=append(result,append([]byte(nil),mask...))}}
+  return result,nil
+ }
 	if isImportStatsParams("Params", raw) {
 		p, err := decodeImportStatsParams(raw)
 		if err != nil {

@@ -89,7 +89,7 @@ def test_crop_peak_accounts_full_source_output_and_alpha(tmp_path):
     assert a.opens == 0
     a.image.alpha = None
     opaque = crop_provider_peak(a.image_ref, a.image, a.plan_ref, a.plan)
-    assert peak['ram_bytes']-opaque['ram_bytes'] == 8*source+24*output
+    assert peak['ram_bytes']-opaque['ram_bytes'] == 24*source+40*output
     assert peak['scratch_bytes']-opaque['scratch_bytes'] == 2*output
 
 

@@ -2225,6 +2225,566 @@
           ]
         }
       }
+    },
+    {
+      "id": "semantic.adopt_shown_exposure",
+      "version": "1",
+      "package": "V27",
+      "params": "ShownExposureAdoptionInput",
+      "output": "WorkingImage",
+      "resource_class": "cpu",
+      "output_roles": [
+        "working_image",
+        "pixels"
+      ],
+      "timeout_seconds": 1800,
+      "max_output_bytes": 2401064960,
+      "max_output_count": 2,
+      "execution_pool": "cpu",
+      "role_policies": {
+        "working_image": {
+          "contract": "WorkingImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 1048576,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "pixels": {
+          "contract": "PixelArray",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 2400016384,
+          "media_types": [
+            "application/x-npy"
+          ]
+        }
+      },
+      "envelope_schema": "WorkingImage",
+      "nested_outputs": "Exact selected preview byte copy; only pixel artifact identity may change. Live receipt admission and full typed closure are mandatory.",
+      "algorithm_spec": "16-imaging-algorithms.md"
+    },
+    {
+      "id": "semantic.preview_remove_object",
+      "version": "1",
+      "package": "V27",
+      "params": "SemanticRemovalPreviewInput",
+      "output": "RemovalPreviewPresentation",
+      "resource_class": "gpu",
+      "output_roles": [
+        "working_image",
+        "pixels",
+        "preview_evidence",
+        "preview_presentation",
+        "before",
+        "after",
+        "affected",
+        "protected"
+      ],
+      "timeout_seconds": 1800,
+      "max_output_bytes": 2536593408,
+      "max_output_count": 8,
+      "execution_pool": "gpu",
+      "role_policies": {
+        "working_image": {
+          "contract": "WorkingImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 1048576,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "pixels": {
+          "contract": "PixelArray",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 2400016384,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "preview_evidence": {
+          "contract": "RemovalPreviewNumericalEvidence",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 1048576,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "preview_presentation": {
+          "contract": "RemovalPreviewPresentation",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 1048576,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "before": {
+          "contract": "EncodedImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 33882112,
+          "media_types": [
+            "image/png"
+          ]
+        },
+        "after": {
+          "contract": "EncodedImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 33882112,
+          "media_types": [
+            "image/png"
+          ]
+        },
+        "affected": {
+          "contract": "EncodedImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 32833536,
+          "media_types": [
+            "image/png"
+          ]
+        },
+        "protected": {
+          "contract": "EncodedImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 32833536,
+          "media_types": [
+            "image/png"
+          ]
+        }
+      },
+      "envelope_schema": "RemovalPreviewPresentation",
+      "nested_outputs": "Independent proposal inpainting with exact protected/outside preservation; full working image, numerical evidence and before/after/affected/protected PNG sidecars. No approval granted.",
+      "algorithm_spec": "16-imaging-algorithms.md"
+    },
+    {
+      "id": "semantic.adopt_shown_removal",
+      "version": "1",
+      "package": "V27",
+      "params": "ShownRemovalAdoptionInput",
+      "output": "WorkingImage",
+      "resource_class": "cpu",
+      "output_roles": [
+        "working_image",
+        "pixels"
+      ],
+      "timeout_seconds": 1800,
+      "max_output_bytes": 2401064960,
+      "max_output_count": 2,
+      "execution_pool": "cpu",
+      "role_policies": {
+        "working_image": {
+          "contract": "WorkingImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 1048576,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "pixels": {
+          "contract": "PixelArray",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 2400016384,
+          "media_types": [
+            "application/x-npy"
+          ]
+        }
+      },
+      "envelope_schema": "WorkingImage",
+      "nested_outputs": "Exact selected preview byte copy; only pixel artifact identity may change. Live receipt admission and full typed closure are mandatory.",
+      "algorithm_spec": "16-imaging-algorithms.md"
+    },
+    {
+      "id": "semantic.preview_background_cleanup",
+      "version": "1",
+      "package": "V27",
+      "params": "SemanticBackgroundCleanupPreviewInput",
+      "output": "BackgroundCleanupPreviewPresentation",
+      "resource_class": "gpu",
+      "output_roles": [
+        "working_image",
+        "pixels",
+        "preview_evidence",
+        "preview_presentation",
+        "before",
+        "after",
+        "affected",
+        "protected"
+      ],
+      "timeout_seconds": 1800,
+      "max_output_bytes": 2536593408,
+      "max_output_count": 8,
+      "execution_pool": "gpu",
+      "role_policies": {
+        "working_image": {
+          "contract": "WorkingImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 1048576,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "pixels": {
+          "contract": "PixelArray",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 2400016384,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "preview_evidence": {
+          "contract": "BackgroundCleanupPreviewNumericalEvidence",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 1048576,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "preview_presentation": {
+          "contract": "BackgroundCleanupPreviewPresentation",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 1048576,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "before": {
+          "contract": "EncodedImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 33882112,
+          "media_types": [
+            "image/png"
+          ]
+        },
+        "after": {
+          "contract": "EncodedImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 33882112,
+          "media_types": [
+            "image/png"
+          ]
+        },
+        "affected": {
+          "contract": "EncodedImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 32833536,
+          "media_types": [
+            "image/png"
+          ]
+        },
+        "protected": {
+          "contract": "EncodedImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 32833536,
+          "media_types": [
+            "image/png"
+          ]
+        }
+      },
+      "envelope_schema": "BackgroundCleanupPreviewPresentation",
+      "nested_outputs": "Independent proposal inpainting with exact protected/outside preservation; full working image, numerical evidence and before/after/affected/protected PNG sidecars. No approval granted.",
+      "algorithm_spec": "16-imaging-algorithms.md"
+    },
+    {
+      "id": "semantic.adopt_shown_background_cleanup",
+      "version": "1",
+      "package": "V27",
+      "params": "ShownBackgroundCleanupAdoptionInput",
+      "output": "WorkingImage",
+      "resource_class": "cpu",
+      "output_roles": [
+        "working_image",
+        "pixels"
+      ],
+      "timeout_seconds": 1800,
+      "max_output_bytes": 2401064960,
+      "max_output_count": 2,
+      "execution_pool": "cpu",
+      "role_policies": {
+        "working_image": {
+          "contract": "WorkingImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 1048576,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "pixels": {
+          "contract": "PixelArray",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 2400016384,
+          "media_types": [
+            "application/x-npy"
+          ]
+        }
+      },
+      "envelope_schema": "WorkingImage",
+      "nested_outputs": "Exact selected preview byte copy; only pixel artifact identity may change. Live receipt admission and full typed closure are mandatory.",
+      "algorithm_spec": "16-imaging-algorithms.md"
+    },
+    {
+      "id": "semantic.adopt_shown_retouch_region",
+      "version": "1",
+      "package": "V27",
+      "params": "ShownRetouchAdoptionInput",
+      "output": "WorkingImage",
+      "resource_class": "cpu",
+      "output_roles": [
+        "working_image",
+        "pixels"
+      ],
+      "timeout_seconds": 1800,
+      "max_output_bytes": 2401064960,
+      "max_output_count": 2,
+      "execution_pool": "cpu",
+      "role_policies": {
+        "working_image": {
+          "contract": "WorkingImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 1048576,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "pixels": {
+          "contract": "PixelArray",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 2400016384,
+          "media_types": [
+            "application/x-npy"
+          ]
+        }
+      },
+      "envelope_schema": "WorkingImage",
+      "nested_outputs": "Exact selected preview byte copy; only pixel artifact identity may change. Live receipt admission and full typed closure are mandatory.",
+      "algorithm_spec": "16-imaging-algorithms.md"
+    },
+    {
+      "id": "semantic.preview_retouch_region",
+      "version": "1",
+      "package": "V27",
+      "params": "SemanticRetouchPreviewInput",
+      "output": "RetouchPreviewPresentation",
+      "resource_class": "cpu",
+      "output_roles": [
+        "working_image",
+        "pixels",
+        "preview_evidence",
+        "preview_presentation",
+        "before",
+        "after",
+        "affected",
+        "protected"
+      ],
+      "timeout_seconds": 1800,
+      "max_output_bytes": 2536593408,
+      "max_output_count": 8,
+      "execution_pool": "cpu",
+      "role_policies": {
+        "working_image": {
+          "contract": "WorkingImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 1048576,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "pixels": {
+          "contract": "PixelArray",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 2400016384,
+          "media_types": [
+            "application/x-npy"
+          ]
+        },
+        "preview_evidence": {
+          "contract": "RetouchPreviewNumericalEvidence",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 1048576,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "preview_presentation": {
+          "contract": "RetouchPreviewPresentation",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 1048576,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "before": {
+          "contract": "EncodedImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 33882112,
+          "media_types": [
+            "image/png"
+          ]
+        },
+        "after": {
+          "contract": "EncodedImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 33882112,
+          "media_types": [
+            "image/png"
+          ]
+        },
+        "affected": {
+          "contract": "EncodedImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 32833536,
+          "media_types": [
+            "image/png"
+          ]
+        },
+        "protected": {
+          "contract": "EncodedImage",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 32833536,
+          "media_types": [
+            "image/png"
+          ]
+        }
+      },
+      "envelope_schema": "RetouchPreviewPresentation",
+      "nested_outputs": "Own full-face BeautyFilterV1 proposal with continuous transferred mask, exact protected/outside/alpha preservation, numerical evidence and four PNG sidecars. Photographer chooses result; no approval granted.",
+      "algorithm_spec": "16-imaging-algorithms.md"
+    },
+    {
+      "id": "editor.layers_precompose",
+      "version": "1",
+      "package": "Editor",
+      "params": "EditorLayersPrecomposeParams",
+      "output": "ImageResult",
+      "resource_class": "cpu",
+      "output_roles": [
+        "pixels",
+        "alpha",
+        "mask_pixels",
+        "mask",
+        "working_image",
+        "image_report",
+        "image_result"
+      ],
+      "backends": [
+        "cpu"
+      ],
+      "status": "implemented-unqualified"
+    },
+    {
+      "id": "editor.effects_seal",
+      "version": "1",
+      "package": "V25",
+      "params": "EditorEffectsSealParams",
+      "output": "EditorExecutedBaseReceipt",
+      "resource_class": "cpu",
+      "output_roles": [
+        "changed_pixels",
+        "changed_mask",
+        "generated_pixels",
+        "generated_mask",
+        "image_report",
+        "image_result",
+        "executed_base_receipt"
+      ],
+      "timeout_seconds": 300,
+      "max_output_bytes": 1610502144,
+      "max_output_count": 7,
+      "execution_pool": "cpu",
+      "role_policies": {
+        "changed_pixels": {
+          "contract": "MaskArray",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 800008192,
+          "media_types": [
+            "application/octet-stream"
+          ]
+        },
+        "changed_mask": {
+          "contract": "MaskRef",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 2097152,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "generated_pixels": {
+          "contract": "MaskArray",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 800008192,
+          "media_types": [
+            "application/octet-stream"
+          ]
+        },
+        "generated_mask": {
+          "contract": "MaskRef",
+          "max_count": 1,
+          "required": false,
+          "max_bytes": 2097152,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "image_report": {
+          "contract": "ImageReport",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 2097152,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "image_result": {
+          "contract": "ImageResult",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 2097152,
+          "media_types": [
+            "application/json"
+          ]
+        },
+        "executed_base_receipt": {
+          "contract": "EditorExecutedBaseReceipt",
+          "max_count": 1,
+          "required": true,
+          "max_bytes": 2097152,
+          "media_types": [
+            "application/json"
+          ]
+        }
+      }
     }
   ]
 }

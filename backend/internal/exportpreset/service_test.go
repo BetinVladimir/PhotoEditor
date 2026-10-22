@@ -5,7 +5,7 @@ import "testing"
 func validCreate() Create {
 	long := 2400
 	quality := 90
-	return Create{Name: "Web", Config: Config{Format: "jpeg", ICCID: "srgb_v1", Size: &Size{LongEdge: &long, Fit: "contain"}, Quality: &quality, Subsampling: "444", Alpha: "matte", MatteRGB: []float64{1, 1, 1}, MetadataPolicy: "strip", NamingTemplate: "{name}-{version}"}}
+	return Create{Name: "Web", Config: Config{Format: "jpeg", ICCID: "srgb_v1", Size: &Size{LongEdge: &long, Fit: "contain"}, Quality: &quality, Subsampling: "444", Alpha: "matte", MatteRGB: []float64{1, 1, 1}, MetadataPolicy: "strip", NamingTemplate: "{original_name}-{ordinal}"}}
 }
 func TestValidatePreset(t *testing.T) {
 	if err := validate(validCreate()); err != nil {

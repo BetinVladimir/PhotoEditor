@@ -11,16 +11,16 @@ from test_interchange_descriptor_occurrences import fixture
 def setup():
     pin, _ = fixture()
     snapshot_id = uuid4()
-    items = [dict(ordinal=0, binding=pin['selected_binding'], working_image=pin['selected_binding'].source,
-        captured_at=None, camera_hash=None, recipe=pin['root'])]
-    digest = canonical_hash(dict(schema_version=1, snapshot_id=snapshot_id, items=items))
-    raw = canonical_bytes(dict(schema_version=1, snapshot_id=snapshot_id, snapshot_digest=digest, items=items))
+    items = [dict(ordinal=0, binding=pin['selected_binding'].model_dump(mode='json'), working_image=pin['selected_binding'].source.model_dump(mode='json'),
+        captured_at=None, camera_hash=None, recipe=pin['root'].model_dump(mode='json'))]
+    digest = canonical_hash(dict(schema_version=1, snapshot_id=str(snapshot_id), items=items))
+    raw = canonical_bytes(dict(schema_version=1, snapshot_id=str(snapshot_id), snapshot_digest=digest, items=items))
     snapshot = ArtifactRef(artifact_id=uuid4(), sha256=sha256(raw).hexdigest())
     recipe = ArtifactRef(artifact_id=uuid4(), sha256=parse_json(pin['root_body'])['recipe_sha256'])
-    plan = dict(schema_version=1, project_id=uuid4(), direction='export', format='photoeditor_bundle',
-        snapshot_digest=digest, entries=[dict(entry_id=uuid4(), external_id='one', path='one.tif',
-            content=ArtifactRef(artifact_id=uuid4(), sha256='a' * 64), binding=pin['selected_binding'],
-            recipe=recipe, rating=0, pick='unmarked', crop=None)], max_archive_bytes=1 << 20,
+    plan = dict(schema_version=1, project_id=str(uuid4()), direction='export', format='photoeditor_bundle',
+        snapshot_digest=digest, entries=[dict(entry_id=str(uuid4()), external_id='one', path='one.tif',
+            content=ArtifactRef(artifact_id=uuid4(), sha256='a' * 64).model_dump(mode='json'), binding=pin['selected_binding'].model_dump(mode='json'),
+            recipe=recipe.model_dump(mode='json'), rating=0, pick='unmarked', crop=None)], max_archive_bytes=1 << 20,
         max_expanded_bytes=1 << 20, max_files=100)
     bodies = {snapshot.artifact_id: raw, pin['root'].artifact_id: pin['root_body'],
         pin['descriptor'].artifact_id: pin['descriptor_body'],
@@ -45,8 +45,8 @@ def test_descriptor_pin_loader_derives_exact_frozen_and_analysis_context():
 def test_descriptor_pin_loader_rejects_changed_declared_inputs(mode):
     pin, snapshot, plan, reader, bodies = setup()
     if mode == 'digest': plan['snapshot_digest'] = 'f' * 64
-    elif mode == 'binding': plan['entries'][0]['binding'] = plan['entries'][0]['binding'].model_copy(update={'canvas_hash':'f' * 64})
-    elif mode == 'recipe': plan['entries'][0]['recipe'].sha256 = 'f' * 64
+    elif mode == 'binding': plan['entries'][0]['binding']['canvas_hash'] = 'f' * 64
+    elif mode == 'recipe': plan['entries'][0]['recipe']['sha256'] = 'f' * 64
     elif mode == 'undeclared': del reader.entries[(pin['descriptor'].artifact_id,pin['descriptor'].sha256)]
     elif mode == 'contract': reader.entries[(pin['descriptor'].artifact_id,pin['descriptor'].sha256)].contract = 'CandidateProfile'
     elif mode == 'bytes': bodies[pin['root'].artifact_id] += b' '
@@ -133,12 +133,12 @@ def test_descriptor_loader_rejects_noncontiguous_snapshot_ordinals(ordinal):
 @pytest.mark.parametrize('mode', ['absent', 'contract', 'bytes', 'alias'])
 def test_descriptor_loader_requires_exact_declared_portable_recipe(mode):
     pin, snapshot, plan, reader, bodies = setup()
-    recipe = plan['entries'][0]['recipe']
+    recipe = ArtifactRef.model_validate_json(canonical_bytes(plan['entries'][0]['recipe']))
     if mode == 'absent': del reader.entries[(recipe.artifact_id,recipe.sha256)]
     elif mode == 'contract': reader.entries[(recipe.artifact_id,recipe.sha256)].contract = 'FrozenRenderRecipe'
     elif mode == 'bytes': bodies[recipe.artifact_id] += b' '
     elif mode == 'alias':
-        plan['entries'][0]['recipe'] = ArtifactRef(artifact_id=pin['root'].artifact_id, sha256=recipe.sha256)
+        plan['entries'][0]['recipe'] = ArtifactRef(artifact_id=pin['root'].artifact_id, sha256=recipe.sha256).model_dump(mode='json')
     with pytest.raises(AdoptionInvalid):
         load_export_descriptor_pins(reader, snapshot, plan)
 
@@ -155,7 +155,7 @@ def test_descriptor_loader_refuses_incomplete_export_selection(field):
     _, snapshot, plan, reader, _ = setup()
     plan['entries'][0][field] = None
     if field == 'binding': plan['entries'][0]['recipe'] = None
-    with pytest.raises(AdoptionInvalid, match='SELECTION'):
+    with pytest.raises(ValueError, match='SELECTION|INCOMPLETE'):
         load_export_descriptor_pins(reader, snapshot, plan)
 
 

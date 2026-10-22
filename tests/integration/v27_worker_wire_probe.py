@@ -16,7 +16,7 @@ from photo_worker.runtime.artifacts import ArtifactConfig,TaskArtifacts
 from photo_worker.operations.semantic.adapter import sql_semantic_artifact_factory
 
 
-def main():
+def main(runtime_dsn):
     expected_state=os.environ['PHOTO_TEST_V27_EXPECTED_STATE']
     proposed=expected_state=='proposed'
     edge=256 if proposed else 16
@@ -33,7 +33,7 @@ def main():
     tls=client_tls(directory/'ca.pem',directory/'client.pem',directory/'client.key')
     scratch=directory/'scratch';scratch.mkdir()
     config=ArtifactConfig(scratch,os.environ['PHOTO_TEST_V27_GATEWAY_ORIGIN'],tls,1024**3,8*1024**2,1024**3)
-    database=TaskDatabase(dsn);pin=database.semantic_qualification(lease)
+    database=TaskDatabase(runtime_dsn);pin=database.semantic_qualification(lease)
     objects=Minio(os.environ['PHOTO_TEST_MINIO_URL'].removeprefix('http://'),access_key=os.environ['PHOTO_TEST_MINIO_ACCESS'],secret_key=os.environ['PHOTO_TEST_MINIO_SECRET'],secure=False)
     from photo_worker.color.icc import ICCRegistry
     working_profile=ICCRegistry(Path(__file__).resolve().parents[2]/'resources/icc').resolve('work_rec2020_gamma24_v1')
@@ -94,4 +94,6 @@ def main():
     print('V27_WORKER_WIRE_OK')
 
 
-if __name__=='__main__':main()
+if __name__ == '__main__':
+    from wire_runtime_login import run_worker_probe
+    run_worker_probe(main, os.environ['PHOTO_TEST_DATABASE_URL'])

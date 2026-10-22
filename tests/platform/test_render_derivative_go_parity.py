@@ -1,9 +1,6 @@
 """Actual Go compiler output consumed by Python worker contracts and memory admission."""
-from pathlib import Path
+from go_parity_owner import go_parity_owner
 import json
-import os
-import subprocess
-import tempfile
 from photo_worker.contracts.base import ArtifactRef,canonical_bytes
 from photo_worker.contracts.media import MediaParams
 from photo_worker.contracts.images import WorkingImage
@@ -13,11 +10,10 @@ from photo_worker.v2.render_derivative import compile_render_derivative
 
 
 def test_go_render_derivative_wire_matches_worker_compiler():
-    root=Path(__file__).resolve().parents[2]
-    with tempfile.TemporaryDirectory(prefix='derivative-parity-',dir=root/'work') as directory:
-        output=Path(directory)/'wire.json'
-        env=dict(os.environ,PHOTO_RENDER_DERIVATIVE_WIRE=str(output),GOCACHE='/private/tmp/photoeditor-go-cache')
-        result=subprocess.run(['go','test','./internal/workflow','-run','^TestRenderDerivativeDocumentsBindCanonicalRootAndSource$','-count=1'],cwd=root/'backend',env=env,capture_output=True,text=True,timeout=60)
+    with go_parity_owner(__file__) as owner:
+        output=owner.temporary/'wire.json'
+        extra_env={'PHOTO_RENDER_DERIVATIVE_WIRE':str(output)}
+        result=owner.run(['go','test','./internal/workflow','-run','^TestRenderDerivativeDocumentsBindCanonicalRootAndSource$','-count=1'],extra_env=extra_env,timeout=60)
         assert result.returncode==0,result.stdout+result.stderr
         cases=json.loads(output.read_bytes())
     assert len(cases)==4

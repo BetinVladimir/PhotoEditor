@@ -64,7 +64,7 @@ func TestIntegrationCapacityHeadSnapshotAndAffinitySemantics(t *testing.T){
  if err=tx.QueryRow(ctx,"INSERT INTO photo.snapshots(tenant_id,kind,principal_type,principal_id,digest,item_count) VALUES($1,'v2','user',$2,$3,0) RETURNING id",otherTenant,otherActor,hash).Scan(&otherSnapshot);err!=nil{t.Fatal(err)}
  for _,entry:=range []struct{class string;dest *uuid.UUID}{{"interactive",&otherRun},{"capture",&otherCaptureRun}}{
   if err=tx.QueryRow(ctx,`INSERT INTO photo.runs(tenant_id,kind,status,input_snapshot_id,config_snapshot,config_hash,created_by,failure_policy,graph_sealed)
- VALUES($1,'v2','running',$2,jsonb_build_object('queue_class',$3),$4,$5,'fail_fast',true) RETURNING id`,otherTenant,otherSnapshot,entry.class,hash,otherActor).Scan(entry.dest);err!=nil{t.Fatal(err)}
+ VALUES($1,'v2','running',$2,jsonb_build_object('queue_class',$3::text),$4,$5,'fail_fast',true) RETURNING id`,otherTenant,otherSnapshot,entry.class,hash,otherActor).Scan(entry.dest);err!=nil{t.Fatal(err)}
   taskID:=uuid.New()
   if _,err=tx.Exec(ctx,`INSERT INTO photo.tasks(id,created_at,tenant_id,run_id,node_key,operation,operation_version,resource_class,state,inputs,params_artifact_id,input_digest,execution_profile)
  VALUES($1,$2,$3,$4,$5,'asset.verify','1','cpu','ready','[]'::jsonb,$6,$7,'{"backend":"cpu"}'::jsonb)`,taskID,now.Add(-time.Minute),otherTenant,*entry.dest,taskID.String(),otherParams,hash);err!=nil{t.Fatal(err)}
@@ -107,10 +107,15 @@ func TestIntegrationCapacityHeadSnapshotAndAffinitySemantics(t *testing.T){
  if _,err=ReadCapacityHeadAffinity(ctx,tx,"gpu",selection,now,policy,nil);!errors.Is(err,pgx.ErrNoRows){t.Fatal("cross-pool head accepted",err)}
  // A previously valid head must become stale when an earlier eligible task
  // arrives after the snapshot, before this transaction chooses affinity.
+ // Queue mutation is fixture setup under the original isolated DB role.
+ // Scheduler reads remain under its production EXECUTE-only authority.
+ if _,err=tx.Exec(ctx,"RESET ROLE");err!=nil{t.Fatal(err)}
  newHead:=uuid.New();insert(newHead,"cpu","ready",now.Add(-90*time.Second))
+ if _,err=tx.Exec(ctx,"SET LOCAL ROLE photo_scheduler");err!=nil{t.Fatal(err)}
  if _,err=ReadCapacityHeadAffinity(ctx,tx,"cpu",selection,now,policy,nil);!errors.Is(err,pgx.ErrNoRows){t.Fatal("stale FIFO head accepted after queue change",err)}
  // A 5,000-task burst must still yield the same bounded DRR choice and
  // tenant FIFO head without returning those tasks to the application.
+ if _,err=tx.Exec(ctx,"RESET ROLE");err!=nil{t.Fatal(err)}
  if _,err=tx.Exec(ctx,`WITH ids AS (
   SELECT gen_random_uuid() AS task_id FROM generate_series(1,5000)
  ) INSERT INTO photo.tasks(id,created_at,tenant_id,run_id,node_key,operation,operation_version,
@@ -118,6 +123,7 @@ func TestIntegrationCapacityHeadSnapshotAndAffinitySemantics(t *testing.T){
  SELECT task_id,$1,$2,$3,task_id::text,'asset.verify','1','cpu','ready',
    '[]'::jsonb,$4,$5,'{"backend":"cpu"}'::jsonb FROM ids`,
   now.Add(-10*time.Second),tenant,run,params,hash);err!=nil{t.Fatal(err)}
+ if _,err=tx.Exec(ctx,"SET LOCAL ROLE photo_scheduler");err!=nil{t.Fatal(err)}
  largeHeads,err:=ReadCapacityHeadSnapshot(ctx,tx,"cpu",now,policy);if err!=nil{t.Fatal(err)}
  largeSelector,err:=NewCapacityDRR(policy);if err!=nil{t.Fatal(err)}
  for _,class:=range capacityClasses{largeSelector.deficits[class]=1800}

@@ -42,7 +42,7 @@ func bindNativeTransferPlanReference(request Request, session uuid.UUID, plan *W
 	if owned.source.tenant != request.TenantID || owned.source.project != plan.project || owned.source.actor != request.ActorID || owned.source.session != session || owned.source.binding != request.Intent.Reference || owned.native.protection.selection.root != request.Intent.ReferenceMask {
 		return v2input.ErrInvalid
 	}
-	selected, err := selectQualificationPolicies(owned.native.defect.policy, []string{"semantic.transfer"})
+	selected, err := selectNativeQualificationPolicies(owned.native.defect.policy, []string{"semantic.transfer"})
 	if err != nil {
 		return err
 	}

@@ -50,3 +50,14 @@ describe('authenticated SSE transport',()=>{
   expect(refreshes).toBe(1);expect(events).toHaveLength(1);
  });
 });
+it('preserves frozen keyed OTP bootstrap across a network retry without replacing it with owner CSRF',async()=>{
+ const headers:string[]=[],auth:AuthStore={principal:()=>null,refresh:async()=>'',clear:()=>{},csrfToken:()=> 'different'};
+ const transport:typeof fetch=async(_url,init)=>{headers.push(new Headers(init?.headers).get('X-CSRF-Token')||'');if(headers.length===1)throw new TypeError('lost response');return response(200,{challenge_id:'same'});};
+ await new ApiClient('',auth,transport).request('/api/v1/auth/otp/request',{method:'POST',headers:{'X-CSRF-Token':'frozen'},body:{email:'a@example.test',locale:'en'},idempotencyKey:'same'});
+ expect(headers).toEqual(['frozen','frozen']);
+});
+it('still derives CSRF for ordinary mutations even if a caller supplies another header',async()=>{
+ const auth:AuthStore={principal:()=>null,refresh:async()=>'',clear:()=>{},csrfToken:()=> 'actual'};let token='';
+ const transport:typeof fetch=async(_url,init)=>{token=new Headers(init?.headers).get('X-CSRF-Token')||'';return response(200,{});};
+ await new ApiClient('',auth,transport).request('/api/v1/tenants',{method:'POST',headers:{'X-CSRF-Token':'unrelated'},body:{},idempotencyKey:'key'});expect(token).toBe('actual');
+});

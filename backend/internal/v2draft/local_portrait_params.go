@@ -9,7 +9,19 @@ import (
 )
 
 func operationParamRefs(raw []byte, path string, parent v2input.Ref) ([]LayerRef, bool, error) {
-	children, handled, err := compositionParamRefs(raw, path, parent)
+	children, handled, err := authoredGeometryTaskParamRefs(raw, path, parent)
+	if err != nil || handled {
+		return children, handled, err
+	}
+	children, handled, err = authoredSegmentParamRefs(raw, path, parent)
+	if err != nil || handled {
+		return children, handled, err
+	}
+	children, handled, err = conservativeParamRefs(raw, path, parent)
+	if err != nil || handled {
+		return children, handled, err
+	}
+	children, handled, err = compositionParamRefs(raw, path, parent)
 	if err != nil || handled {
 		return children, handled, err
 	}

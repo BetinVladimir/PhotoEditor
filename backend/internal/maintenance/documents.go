@@ -29,12 +29,15 @@ type DocumentCleaner struct {
 }
 
 func (c DocumentCleaner) CleanOne(ctx context.Context) (bool, error) {
+	if err := ctx.Err(); err != nil { return false, err }
 	if c.Repository == nil || c.Objects == nil || c.Bucket == "" {
 		return false, errors.New("invalid document cleanup configuration")
 	}
 	claim, cancel := context.WithTimeout(ctx, 5*time.Second)
 	ticket, err := c.Repository.Claim(claim)
+	claimErr := claim.Err()
 	cancel()
+	if err == nil { err = claimErr }
 	if err != nil || ticket == nil {
 		return false, err
 	}
@@ -43,13 +46,18 @@ func (c DocumentCleaner) CleanOne(ctx context.Context) (bool, error) {
 	}
 	purge, cancel := context.WithTimeout(ctx, 40*time.Second)
 	err = c.Objects.PurgeDocument(purge, ticket.TenantID, ticket.RunID, ticket.ArtifactID)
+	purgeErr := purge.Err()
 	cancel()
 	if err != nil {
 		return false, err
 	}
+	if purgeErr != nil { return false, purgeErr }
 	finish, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	return c.Repository.Finish(finish, *ticket)
+	if err := finish.Err(); err != nil { return false, err }
+	accepted, err := c.Repository.Finish(finish, *ticket)
+	if err == nil { err = finish.Err() }
+	return accepted, err
 }
 
 type SQLDocumentCleanup struct{ DB *pgxpool.Pool }

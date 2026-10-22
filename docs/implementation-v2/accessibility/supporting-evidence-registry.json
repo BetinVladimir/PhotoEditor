@@ -1,0 +1,162 @@
+{
+  "schema": 1,
+  "source_snapshot_date": "2026-10-20",
+  "records": [
+    {
+      "path": "portal-source-fixes-2026-10-20.json",
+      "sha256": "a7cfda2f7c163ac34faf24a22b5986a7246f96217d0741a6771e0ce533cc991d",
+      "scope": "SOURCE_AND_UNIT_ONLY",
+      "related_criteria": [
+        "1.4.3",
+        "1.4.4",
+        "2.1.1",
+        "2.4.7",
+        "3.1.1",
+        "3.1.2",
+        "4.1.2"
+      ],
+      "criterion_result": "NOT_TESTED",
+      "source_hash_comparison": [
+        {
+          "path": "apps/portal/src/app/landing.css",
+          "recorded_sha256": "9bfbdf41a1a97b4a27333ea01d86f9c3cf6e31b87bb1370900efddc94017e3ec",
+          "current_sha256": "9bfbdf41a1a97b4a27333ea01d86f9c3cf6e31b87bb1370900efddc94017e3ec",
+          "matches_current": true
+        },
+        {
+          "path": "apps/portal/src/app/global.css",
+          "recorded_sha256": "aac9785901a46c160986391678d89aa19770697d8b8662e42ead9fa83d3d8557",
+          "current_sha256": "78cc9ddf72d32479b6c709bbc8b122c817e2c3e35584e88cf3da8857fcccce7b",
+          "matches_current": false
+        },
+        {
+          "path": "apps/portal/src/app/layout.tsx",
+          "recorded_sha256": "9b5e4ea63434360f382af68ba8dde953db091e16af190a243f6829a0dad9c225",
+          "current_sha256": "9b5e4ea63434360f382af68ba8dde953db091e16af190a243f6829a0dad9c225",
+          "matches_current": true
+        },
+        {
+          "path": "apps/portal/src/app/[locale]/page.tsx",
+          "recorded_sha256": "6d7a70a03ac533e8f413f81f4ba1332aeeada4e5fc2708285fecd4e5284eacec",
+          "current_sha256": "6d7a70a03ac533e8f413f81f4ba1332aeeada4e5fc2708285fecd4e5284eacec",
+          "matches_current": true
+        },
+        {
+          "path": "apps/portal/src/components/Portal.tsx",
+          "recorded_sha256": "b6e148bdd936d43be46fa6c4b7f311561349a041fef72f6796f3f78eeb4bbfbe",
+          "current_sha256": "8ea4f555c90c66dbaca9bc1228e9b1bad53e906df4a2fe363217c0f18d055b2c",
+          "matches_current": false
+        }
+      ],
+      "limitations": "No complete supported-platform/state/process conformance; historical measurements stay tied to their original exact scope; source drift is not silently repinned."
+    },
+    {
+      "path": "lightbox-source-fix-2026-10-20.json",
+      "sha256": "f6877ab1a909a0dfafe9c6c2058ab77591b6f65300d41233e19b3298f81a91c8",
+      "scope": "SOURCE_AND_COMPONENT_DOM_ONLY",
+      "related_criteria": [
+        "2.1.1",
+        "2.1.2",
+        "2.4.3",
+        "2.4.7",
+        "2.4.11",
+        "4.1.2"
+      ],
+      "criterion_result": "NOT_TESTED",
+      "source_hash_comparison": [
+        {
+          "path": "apps/portal/src/components/AccessibleLightbox.tsx",
+          "recorded_sha256": "2f0582377993f4f8ce1989ea074a9bcd337c9d32b3da1625f29b9ffc9624e859",
+          "current_sha256": "2f0582377993f4f8ce1989ea074a9bcd337c9d32b3da1625f29b9ffc9624e859",
+          "matches_current": true
+        },
+        {
+          "path": "apps/portal/src/components/Portal.tsx",
+          "recorded_sha256": "8ea4f555c90c66dbaca9bc1228e9b1bad53e906df4a2fe363217c0f18d055b2c",
+          "current_sha256": "8ea4f555c90c66dbaca9bc1228e9b1bad53e906df4a2fe363217c0f18d055b2c",
+          "matches_current": true
+        },
+        {
+          "path": "apps/portal/src/app/global.css",
+          "recorded_sha256": "78cc9ddf72d32479b6c709bbc8b122c817e2c3e35584e88cf3da8857fcccce7b",
+          "current_sha256": "78cc9ddf72d32479b6c709bbc8b122c817e2c3e35584e88cf3da8857fcccce7b",
+          "matches_current": true
+        },
+        {
+          "path": "apps/portal/src/components/AccessibleLightbox.test.tsx",
+          "recorded_sha256": "e663794f5f98d0afbd3e11f627c2946167de758ca0d38b571ad59a4cd86146a8",
+          "current_sha256": "e663794f5f98d0afbd3e11f627c2946167de758ca0d38b571ad59a4cd86146a8",
+          "matches_current": true
+        },
+        {
+          "path": "apps/portal/package.json",
+          "recorded_sha256": "b1831754e01cff875ab4cdf8304eba462a5d4ea61d9f86c8232f3be633a72c02",
+          "current_sha256": "b1831754e01cff875ab4cdf8304eba462a5d4ea61d9f86c8232f3be633a72c02",
+          "matches_current": true
+        },
+        {
+          "path": "apps/portal/package-lock.json",
+          "recorded_sha256": "8bd21c91100de6bc55cf092151dff121283de3ecaf89507ef9c048faac1f7f80",
+          "current_sha256": "93aefac3a887c364357cecdc190d3c1cdbba4bbe74b6d1cfd832c44aff20dc13",
+          "matches_current": false
+        }
+      ],
+      "limitations": "No complete supported-platform/state/process conformance; historical measurements stay tied to their original exact scope; source drift is not silently repinned."
+    },
+    {
+      "path": "portal-browser-desktop-2026-10-20.json",
+      "sha256": "4d3d8b4cebdde607fce91f7a879b153f508fadf4d3fa1fefa86e950488f2459a",
+      "scope": "SINGLE_DESKTOP_LANDING_SAMPLE_ONLY",
+      "related_criteria": [
+        "1.4.3",
+        "1.4.4",
+        "2.4.7",
+        "3.1.1"
+      ],
+      "criterion_result": "NOT_TESTED",
+      "source_hash_comparison": [],
+      "limitations": "No complete supported-platform/state/process conformance; historical measurements stay tied to their original exact scope; source drift is not silently repinned."
+    },
+    {
+      "path": "native-source-fixes-2026-10-20.json",
+      "sha256": "1b400799f81502b9cf1b3818f7da9bff2e1d5c9103687d4fd68c77f39f4e44ec",
+      "scope": "SOURCE_AND_OFFSCREEN_QT_WIDGET_PROPERTIES_ONLY",
+      "related_criteria": [
+        "1.1.1",
+        "1.3.1",
+        "4.1.2"
+      ],
+      "criterion_result": "NOT_TESTED",
+      "source_hash_comparison": [
+        {
+          "path": "apps/local-editor/src/photoeditor/studio.py",
+          "recorded_sha256": "ff70f53b5ed9ff2c9a5fc3770e91f35b1233a108e7595ee7c3602452371016cb",
+          "current_sha256": "ff70f53b5ed9ff2c9a5fc3770e91f35b1233a108e7595ee7c3602452371016cb",
+          "matches_current": true
+        }
+      ],
+      "limitations": "Actual Qt smoke does not prove assistive technology exposure, photographic content alternatives, complete state/process or platform conformance."
+    }
+  ],
+  "current_source_snapshot": {
+    "apps/portal/src/components/AccessibleLightbox.tsx": "2f0582377993f4f8ce1989ea074a9bcd337c9d32b3da1625f29b9ffc9624e859",
+    "apps/portal/src/components/Portal.tsx": "8ea4f555c90c66dbaca9bc1228e9b1bad53e906df4a2fe363217c0f18d055b2c",
+    "apps/portal/src/app/global.css": "78cc9ddf72d32479b6c709bbc8b122c817e2c3e35584e88cf3da8857fcccce7b",
+    "apps/portal/src/app/landing.css": "9bfbdf41a1a97b4a27333ea01d86f9c3cf6e31b87bb1370900efddc94017e3ec",
+    "apps/portal/src/app/layout.tsx": "9b5e4ea63434360f382af68ba8dde953db091e16af190a243f6829a0dad9c225",
+    "apps/portal/src/app/[locale]/page.tsx": "6d7a70a03ac533e8f413f81f4ba1332aeeada4e5fc2708285fecd4e5284eacec",
+    "apps/portal/package.json": "b1831754e01cff875ab4cdf8304eba462a5d4ea61d9f86c8232f3be633a72c02",
+    "apps/portal/package-lock.json": "93aefac3a887c364357cecdc190d3c1cdbba4bbe74b6d1cfd832c44aff20dc13",
+    "apps/local-editor/src/photoeditor/studio.py": "ff70f53b5ed9ff2c9a5fc3770e91f35b1233a108e7595ee7c3602452371016cb"
+  },
+  "source_changes": [
+    "landing readable16/14typography and palette",
+    "global focus and captions",
+    "root lang ru and locale shell",
+    "keyboard reachable visually-hidden file input",
+    "lightbox focus/inert/restore and wrapping CSS",
+    "Native Studio accessible control names and preview identity/error descriptions; actual Qt widget smoke only"
+  ],
+  "current_browser_conformance": "NOT_TESTED",
+  "note": "Snapshot hashes document reviewed source, not build/deployment qualification; current source fixes supersede old PLAN source-defect wording, not old evidence files."
+}

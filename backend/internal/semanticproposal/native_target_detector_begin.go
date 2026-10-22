@@ -25,7 +25,7 @@ func (s SQLTransferSourceReader) beginNativeTargetDetectorInTransaction(ctx cont
 	if err := lockNativeTargetAnchorInTransaction(ctx, tx, who, d, rebuilt.anchor); err != nil {
 		return zero, err
 	}
-	selected, err := selectQualificationPolicies(rebuilt.detector.policy, []string{"face.detect"})
+	selected, err := selectNativeQualificationPolicies(rebuilt.detector.policy, []string{"face.detect"})
 	if err != nil {
 		return zero, err
 	}

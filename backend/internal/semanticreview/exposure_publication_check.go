@@ -47,25 +47,44 @@ func VerifyExposurePublication(ctx context.Context, frozen FrozenExposureTask, p
 	if err != nil {
 		return empty, err
 	}
+	return verifyPublishedExposureInputs(ctx, draft, frozen.task, frozen.params, frozen.closure, published)
+}
+
+// VerifyExposurePreviewPublication replays the independent preview compiler's
+// transport and ignores caller cursors. SQL must still verify ready objects.
+func VerifyExposurePreviewPublication(ctx context.Context, frozen FrozenPreviewTask, published PreparedExposureTask) (PreparedExposureTask, error) {
+	if err := ctx.Err(); err != nil {
+		return PreparedExposureTask{}, err
+	}
+	draft, err := frozen.DraftTask()
+	if err != nil {
+		return PreparedExposureTask{}, err
+	}
+	return verifyPublishedExposureInputs(ctx, draft, draft.ID, frozen.params, frozen.closure, published)
+}
+
+func verifyPublishedExposureInputs(ctx context.Context, draft v2input.DraftTask, task uuid.UUID, params v2input.Ref,
+	closure v2input.CaptureClosure, published PreparedExposureTask) (PreparedExposureTask, error) {
+	empty := PreparedExposureTask{}
 	expectedDraft, err := canonical.Marshal(draft)
 	if err != nil {
 		return empty, ErrInvalid
 	}
 	actualDraft, err := canonical.Marshal(published.Draft)
-	if err != nil || !bytes.Equal(expectedDraft, actualDraft) || published.Graph.ID != frozen.task || published.Params != frozen.params ||
-		!bytes.Equal(published.ParamsJCS, frozen.closure.ParamsJCS) || published.Graph.Built.Count != len(frozen.closure.Direct) ||
-		len(published.Graph.Direct) != len(frozen.closure.Direct) || len(published.Graph.Built.Chunks) != (len(frozen.closure.Direct)+v2input.ChunkSize-1)/v2input.ChunkSize {
+	if err != nil || !bytes.Equal(expectedDraft, actualDraft) || published.Graph.ID != task || published.Params != params ||
+		!bytes.Equal(published.ParamsJCS, closure.ParamsJCS) || published.Graph.Built.Count != len(closure.Direct) ||
+		len(published.Graph.Direct) != len(closure.Direct) || len(published.Graph.Built.Chunks) != (len(closure.Direct)+v2input.ChunkSize-1)/v2input.ChunkSize {
 		return empty, ErrInvalid
 	}
-	for i, ref := range frozen.closure.Direct {
+	for i, ref := range closure.Direct {
 		if published.Graph.Direct[i] != ref {
 			return empty, ErrInvalid
 		}
 	}
 	refs := append([]v2input.Ref(nil), published.Graph.Built.Chunks...)
 	refs = append(refs, published.Graph.Built.Manifest)
-	seen := make(map[uuid.UUID]bool, len(refs)+len(frozen.closure.Direct))
-	for _, ref := range frozen.closure.Direct {
+	seen := make(map[uuid.UUID]bool, len(refs)+len(closure.Direct))
+	for _, ref := range closure.Direct {
 		seen[ref.ArtifactID] = true
 	}
 	for _, ref := range refs {
@@ -74,12 +93,12 @@ func VerifyExposurePublication(ctx context.Context, frozen FrozenExposureTask, p
 		}
 		seen[ref.ArtifactID] = true
 	}
-	cursor, err := frozen.closure.Open(ctx)
+	cursor, err := closure.Open(ctx)
 	if err != nil {
 		return empty, err
 	}
-	replay := &exposureReplayPublisher{task: frozen.task, refs: refs}
-	built, err := v2input.BuildInputClosure(ctx, frozen.task, cursor, replay)
+	replay := &exposureReplayPublisher{task: task, refs: refs}
+	built, err := v2input.BuildInputClosure(ctx, task, cursor, replay)
 	if err != nil {
 		return empty, err
 	}
@@ -89,6 +108,6 @@ func VerifyExposurePublication(ctx context.Context, frozen FrozenExposureTask, p
 	if err := ctx.Err(); err != nil {
 		return empty, err
 	}
-	return PreparedExposureTask{Graph: v2input.GraphTask{ID: frozen.task, Built: built, Open: frozen.closure.Open, Direct: append([]v2input.Ref(nil), frozen.closure.Direct...)},
-		Draft: draft, Params: frozen.params, ParamsJCS: append(json.RawMessage(nil), frozen.closure.ParamsJCS...)}, nil
+	return PreparedExposureTask{Graph: v2input.GraphTask{ID: task, Built: built, Open: closure.Open, Direct: append([]v2input.Ref(nil), closure.Direct...)},
+		Draft: draft, Params: params, ParamsJCS: append(json.RawMessage(nil), closure.ParamsJCS...)}, nil
 }

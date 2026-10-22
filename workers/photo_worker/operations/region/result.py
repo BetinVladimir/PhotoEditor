@@ -8,12 +8,13 @@ from PIL import Image
 from pydantic import Field, model_validator
 
 from photo_worker.contracts.base import ArtifactRef, Contract, SHA256, canonical_hash
-from .contracts import RegionGeometry, RegionPreviewParams, RegionRect
+from .contracts import RegionGeometry, RegionPreviewParams, RegionRect,RegionProjection
 from .presentation import RegionPresentation, region_cache_key
 
 
 class RegionDerivativeManifest(Contract):
     schema_version: Literal[1]
+    projection: RegionProjection | None = Field(default=None,exclude_if=lambda value:value is None)
     params_sha256: SHA256
     asset_version_id: UUID
     source: ArtifactRef
@@ -40,19 +41,25 @@ class RegionDerivativeManifest(Contract):
 
     def validate_for(self, params: RegionPreviewParams, target_sha256: str,
                      expected_alpha: bool) -> None:
+        if (params.execution is None)!=(self.projection is None):
+            raise ValueError('REGION_RESULT_PROJECTION_REQUIRED')
+        if self.projection is not None:
+            if (params.execution is None or self.projection.execution_sha256!=canonical_hash(params.execution)
+                    or self.projection.target_canvas!=params.execution.stages[-1].target_canvas):
+                raise ValueError('REGION_RESULT_PROJECTION_INVALID')
         if (self.params_sha256 != canonical_hash(params)
                 or self.asset_version_id != params.request.version_id
                 or self.source != params.source.ref or self.recipe != params.recipe.ref
                 or self.rect != params.request.rect or self.geometry != params.geometry
                 or self.icc_sha256 != target_sha256 or self.alpha != expected_alpha
-                or self.cache_key != region_cache_key(params, target_sha256, expected_alpha)):
+                or self.cache_key != region_cache_key(params, target_sha256, expected_alpha,projection=self.projection)):
             raise ValueError('REGION_RESULT_BINDING_INVALID')
 
 
 def build_region_manifest(params: RegionPreviewParams, presentation: RegionPresentation,
                           derivative: ArtifactRef, size: int) -> RegionDerivativeManifest:
     manifest = RegionDerivativeManifest(schema_version=1,
-        params_sha256=canonical_hash(params), asset_version_id=params.request.version_id,
+        params_sha256=canonical_hash(params), asset_version_id=params.request.version_id,projection=presentation.projection,
         source=params.source.ref, recipe=params.recipe.ref, rect=params.request.rect,
         geometry=params.geometry, derivative=derivative, bytes=size,
         icc_sha256=presentation.profile_sha256, cache_key=presentation.cache_key,
@@ -69,9 +76,10 @@ def verify_region_encoded(manifest: RegionDerivativeManifest,
     manifest.validate_for(params, target_sha256, expected_alpha)
     if len(body) != manifest.bytes or sha256(body).hexdigest() != manifest.derivative.sha256:
         raise ValueError('REGION_RESULT_BYTES_INVALID')
+    geometry=params.geometry if manifest.projection is None else manifest.projection.geometry
     with Image.open(BytesIO(body)) as image:
         if (image.format != ('WEBP' if expected_alpha else 'JPEG')
-                or image.size != (params.geometry.output_width, params.geometry.output_height)
+                or image.size != (geometry.output_width, geometry.output_height)
                 or image.mode != ('RGBA' if expected_alpha else 'RGB')
                 or sha256(image.info.get('icc_profile', b'')).hexdigest() != target_sha256
                 or image.info.get('exif') or image.info.get('xmp')):

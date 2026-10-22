@@ -1,0 +1,1 @@
+export function localeQuery(query:Record<string,string|string[]|undefined>){const result=new URLSearchParams();for(const [key,value] of Object.entries(query)){if(Array.isArray(value))for(const item of value)result.append(key,item);else if(value!==undefined)result.append(key,value);}const text=result.toString();return text?'?'+text:'';}

@@ -80,7 +80,8 @@ func TestRestorationMaterialClosesSourceAndMaskArrays(t *testing.T) {
 	}
 	sort.Slice(entries, func(i, j int) bool { return entries[i].Ref.ArtifactID.String() < entries[j].Ref.ArtifactID.String() })
 	_, profile := restorationProfileFixture(t, pin)
-	draft, err := CompileRestorationDraftTask(context.Background(), uuid.New(), 0,
+	workflow := uuid.New()
+	draft, err := CompileRestorationDraftTask(context.Background(), workflow, 0,
 		"image.reflection", paramsRaw, profile, pin, paramsRef, entries)
 	if err != nil {
 		t.Fatal(err)
@@ -94,7 +95,7 @@ func TestRestorationMaterialClosesSourceAndMaskArrays(t *testing.T) {
 	if err := VerifyRestorationMaterialInputs(context.Background(), draft, paramsRaw, docs); err != nil {
 		t.Fatal("valid material refused", err)
 	}
-	verified, err := CompileVerifiedRestorationDraftTask(context.Background(), uuid.New(), 0,
+	verified, err := CompileVerifiedRestorationDraftTask(context.Background(), workflow, 0,
 		"image.reflection", paramsRaw, profile, pin, paramsRef, entries, docs)
 	if err != nil || verified.Task.InputDigest != draft.Task.InputDigest {
 		t.Fatal("publication compiler rejected closed inventory", err)
@@ -103,7 +104,7 @@ func TestRestorationMaterialClosesSourceAndMaskArrays(t *testing.T) {
 	if err := VerifyRestorationMaterialInputs(context.Background(), draft, paramsRaw, docs); err == nil {
 		t.Fatal("changed mask bytes accepted")
 	}
-	if _, err := CompileVerifiedRestorationDraftTask(context.Background(), uuid.New(), 0,
+	if _, err := CompileVerifiedRestorationDraftTask(context.Background(), workflow, 0,
 		"image.reflection", paramsRaw, profile, pin, paramsRef, entries, docs); err == nil {
 		t.Fatal("publication compiler accepted changed material")
 	}

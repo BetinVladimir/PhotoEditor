@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   reactStrictMode: true,
+  // Bound page generation on shared development and release hosts.
+  experimental: { cpus: 2 },
   async headers() {
     return [{
       source: "/:path*",

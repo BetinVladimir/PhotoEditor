@@ -1,0 +1,104 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/conservative-repair-report.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "applied_candidate_ids": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 4096,
+      "title": "Applied Candidate Ids",
+      "type": "array"
+    },
+    "image": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "operation": {
+      "enum": [
+        "defects.auto_repair",
+        "sensor.dust_auto_repair"
+      ],
+      "title": "Operation",
+      "type": "string"
+    },
+    "policy": {
+      "const": "conservative_auto_v1",
+      "title": "Policy",
+      "type": "string"
+    },
+    "proposal": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "resolved": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "selected_candidate_ids": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 4096,
+      "title": "Selected Candidate Ids",
+      "type": "array"
+    },
+    "skipped_candidate_ids": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 4096,
+      "title": "Skipped Candidate Ids",
+      "type": "array"
+    },
+    "version": {
+      "const": "conservative_repair_report_v1",
+      "default": "conservative_repair_report_v1",
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "policy",
+    "operation",
+    "image",
+    "proposal",
+    "resolved",
+    "selected_candidate_ids",
+    "applied_candidate_ids",
+    "skipped_candidate_ids"
+  ],
+  "title": "ConservativeRepairReport",
+  "type": "object"
+}

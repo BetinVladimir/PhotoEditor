@@ -10,7 +10,7 @@ from PIL import Image
 from photo_worker.color.icc import ICCRegistry, LittleCMS
 from photo_worker.contracts.base import canonical_hash
 from photo_worker.operations.media.derivative import _write
-from .contracts import RegionPreviewParams
+from .contracts import RegionPreviewParams,RegionProjection
 from .pixels import extract_rendered_region
 
 
@@ -21,6 +21,7 @@ class RegionPresentation:
     profile: bytes
     profile_sha256: str
     cache_key: str
+    projection: RegionProjection | None = None
 
     @property
     def media_type(self) -> str:
@@ -32,6 +33,7 @@ def prepare_region_presentation(params: RegionPreviewParams, source_body: bytes,
                                 rendered_alpha: np.ndarray | None,
                                 icc_root: Path, *,
                                 runtime_icc_lock_sha: str,
+                                target_canvas=None,target_chain=None,load_inverse_field=None,
                                 check_active: Callable[[], None] = lambda: None,
                                 ) -> RegionPresentation:
     """Check the qualified runtime pin without guessing its ICC-lock semantics."""
@@ -49,15 +51,25 @@ def prepare_region_presentation(params: RegionPreviewParams, source_body: bytes,
         raise ValueError('REGION_ICC_LOCK_MISMATCH')
     if source.sha256 != image.color.icc_sha256:
         raise ValueError('REGION_ICC_SOURCE_MISMATCH')
-    rgb, alpha = extract_rendered_region(params, source_body, rendered_rgb,
-        rendered_alpha, check_active=check_active)
+    projection=None
+    if target_canvas is None and target_chain is None:
+        rgb, alpha = extract_rendered_region(params, source_body, rendered_rgb,
+            rendered_alpha, check_active=check_active)
+    else:
+        if params.execution is None or target_canvas is None or target_chain is None or not callable(load_inverse_field):
+            raise ValueError('REGION_PROJECTION_PROOF_REQUIRED')
+        from .pixels import extract_projected_rendered_region
+        rgb,alpha,geometry=extract_projected_rendered_region(params,source_body,rendered_rgb,rendered_alpha,
+            target_canvas=target_canvas,target_chain=target_chain,load_inverse_field=load_inverse_field,check_active=check_active)
+        projection=RegionProjection(execution_sha256=canonical_hash(params.execution),target_canvas=target_canvas,
+            target_transform_chain=target_chain,geometry=geometry)
     check_active()
     rgb16 = np.round(rgb * 65535).astype(np.uint16)
     converted = LittleCMS().convert(rgb16, source.data, target.data)
     check_active()
     output = converted.astype(np.float32) / 65535
-    key = region_cache_key(params, target.sha256, alpha is not None)
-    return RegionPresentation(output, alpha, target.data, target.sha256, key)
+    key = region_cache_key(params, target.sha256, alpha is not None,projection=projection)
+    return RegionPresentation(output, alpha, target.data, target.sha256, key,projection)
 
 
 def write_region_presentation(path: Path, presentation: RegionPresentation, *,
@@ -80,8 +92,10 @@ def write_region_presentation(path: Path, presentation: RegionPresentation, *,
     return path.stat().st_size
 
 
-def region_cache_key(params: RegionPreviewParams, target_sha256: str, alpha: bool) -> str:
-    return canonical_hash(dict(schema_version=1, params=canonical_hash(params),
+def region_cache_key(params: RegionPreviewParams, target_sha256: str, alpha: bool, *,projection=None) -> str:
+    value=dict(schema_version=1, params=canonical_hash(params),
         target_icc_sha256=target_sha256, quality=88,
         format='webp' if alpha else 'jpeg', metadata_policy='stripped',
-        resize='area_linear_premult_v1'))
+        resize='area_linear_premult_v1')
+    if projection is not None:value['projection']=projection.model_dump(mode='json')
+    return canonical_hash(value)

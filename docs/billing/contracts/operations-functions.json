@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "functions": [
+    {
+      "signature": "billing_prepare_operations(uuid,uuid)",
+      "execute_roles": [
+        "photo_api",
+        "photo_scheduler"
+      ]
+    },
+    {
+      "signature": "billing_bind_operations(uuid,uuid)",
+      "execute_roles": []
+    },
+    {
+      "signature": "billing_settle_operations(uuid,uuid)",
+      "execute_roles": []
+    },
+    {
+      "signature": "billing_settle_next_operations()",
+      "execute_roles": [
+        "photo_scheduler"
+      ]
+    },
+    {
+      "signature": "billing_link_operation_child(uuid,uuid,uuid)",
+      "execute_roles": []
+    },
+    {
+      "signature": "seal_v2_graph(uuid,uuid)",
+      "execute_roles": [
+        "photo_scheduler"
+      ]
+    },
+    {
+      "signature": "billing_guard_operation_terminal()",
+      "execute_roles": []
+    },
+    {
+      "signature": "billing_check_operation_claim()",
+      "execute_roles": []
+    },
+    {
+      "signature": "billing_guard_operation_item()",
+      "execute_roles": []
+    }
+  ]
+}

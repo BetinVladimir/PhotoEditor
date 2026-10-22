@@ -22,7 +22,7 @@ def test_explicit_barrier_preserves_profiled_dispatch_and_cancel_before_compute(
     if mode=='timeout':
         clock=iter([0.,1.]);monkeypatch.setattr(m,'monotonic',lambda:next(clock))
     def run():return barrier.execute(ctx,object(),object(),authoritative_inputs='scoped')
-    if mode in ('release','reuse'):
+    if mode in ('release','reuse','foreign_task'):
         assert run()=='result' and calls==['scoped']
         if mode=='reuse':
             with pytest.raises(m.OperationFailure):run()

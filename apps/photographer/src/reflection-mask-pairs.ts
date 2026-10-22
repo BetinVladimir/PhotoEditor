@@ -3,7 +3,7 @@ import type {ArtifactRef,V2VersionBinding} from './catalog-types';
 export type ReflectionMaskPairQuery={snapshot_id:string;base:V2VersionBinding;after:string|null};
 export type ReflectionMaskPair={mask:ArtifactRef;protected:ArtifactRef;target_pixel:ArtifactRef;protected_pixel:ArtifactRef};
 export type ReflectionMaskPairPage={items:ReflectionMaskPair[];next_cursor:string|null};
-const uuid=(v:unknown):v is string=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(v)&&v!=='00000000-0000-0000-0000-000000000000';
+const uuid=(v:unknown):v is string=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(v)&&v!=='00000000-0000-0000-0000-000000000000';
 const sha=(v:unknown):v is string=>typeof v==='string'&&/^[0-9a-f]{64}$/.test(v);
 const fields=(v:unknown,keys:string[]):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).length===keys.length&&keys.every(k=>Object.prototype.hasOwnProperty.call(v,k));
 const ref=(v:unknown):v is ArtifactRef=>fields(v,['artifact_id','sha256'])&&uuid(v.artifact_id)&&sha(v.sha256);
@@ -18,7 +18,7 @@ export function readReflectionMaskPairPage(v:unknown,query:ReflectionMaskPairQue
  if(!fields(v,['items','next_cursor'])||!Array.isArray(v.items)||v.items.length>100||v.next_cursor!==null&&!uuid(v.next_cursor))throw new Error('REFLECTION_MASK_PAIR_PAGE_INVALID');
  let previous=query.after??'';
  for(const item of v.items){
-  if(!fields(item,['mask','protected','target_pixel','protected_pixel'])||![item.mask,item.protected,item.target_pixel,item.protected_pixel].every(ref))throw new Error('REFLECTION_MASK_PAIR_PAGE_INVALID');
+  if(!fields(item,['mask','protected','target_pixel','protected_pixel'])||!ref(item.mask)||!ref(item.protected)||!ref(item.target_pixel)||!ref(item.protected_pixel))throw new Error('REFLECTION_MASK_PAIR_PAGE_INVALID');
   const ids=[item.mask.artifact_id,item.protected.artifact_id,item.target_pixel.artifact_id,item.protected_pixel.artifact_id];
   if(new Set(ids).size!==ids.length||item.mask.artifact_id<=previous)throw new Error('REFLECTION_MASK_PAIR_PAGE_INVALID');
   previous=item.mask.artifact_id;

@@ -20,6 +20,7 @@ type RestorationCandidateAdopter interface {
 type RestorationAdoptionDispatcher struct {
 	Candidates RestorationAdoptionCandidates
 	Adopter    RestorationCandidateAdopter
+	Withdrawal RestorationAdoptionMaintenance
 	Timeout    time.Duration
 	mu         sync.Mutex
 	after      uuid.UUID
@@ -37,6 +38,14 @@ func (d *RestorationAdoptionDispatcher) ProcessOne(ctx context.Context) (bool, e
 		return false, nil
 	}
 	defer d.mu.Unlock()
+	if d.Withdrawal != nil {
+		maintenance, stop := context.WithTimeout(ctx, 20*time.Second)
+		changed, err := d.Withdrawal.ProcessOne(maintenance)
+		stop()
+		if err != nil { return false, err }
+		if err := ctx.Err(); err != nil { return false, err }
+		if changed { return true, nil }
+	}
 	query, cancel := context.WithTimeout(ctx, 10*time.Second)
 	candidate, err := d.Candidates.Next(query, d.after)
 	cancel()

@@ -2,6 +2,7 @@ package semanticproposal
 
 import (
 	"context"
+	"encoding/json"
 	"reflect"
 
 	"github.com/google/uuid"
@@ -88,11 +89,15 @@ func (s SQLTransferSourceReader) restoreNativeFaceDraftPlan(ctx context.Context,
 	if err != nil {
 		return zero, err
 	}
- var queue map[string]json.RawMessage
- if json.Unmarshal([]byte(saved.config),&queue)!=nil{return zero,v2input.ErrInvalid}
- rawQueue,present:=queue["queue_class"]
- if present&&string(rawQueue)!=`"batch"`{return zero,v2input.ErrInvalid}
- prepared.legacyQueueOmitted=!present
+	var queue map[string]json.RawMessage
+	if json.Unmarshal([]byte(saved.config), &queue) != nil {
+		return zero, v2input.ErrInvalid
+	}
+	rawQueue, present := queue["queue_class"]
+	if present && string(rawQueue) != `"batch"` {
+		return zero, v2input.ErrInvalid
+	}
+	prepared.legacyQueueOmitted = !present
 	plan, err := s.compileNativeFaceDraftPlan(ctx, who, detector, prepared, m.Reserved)
 	if err != nil {
 		return zero, err
@@ -144,11 +149,15 @@ func (s SQLTransferSourceReader) restoreNativeSkinDraftPlan(ctx context.Context,
 	if err != nil {
 		return zero, err
 	}
- var queue map[string]json.RawMessage
- if json.Unmarshal([]byte(saved.config),&queue)!=nil{return zero,v2input.ErrInvalid}
- rawQueue,present:=queue["queue_class"]
- if present&&string(rawQueue)!=`"batch"`{return zero,v2input.ErrInvalid}
- prepared.legacyQueueOmitted=!present
+	var queue map[string]json.RawMessage
+	if json.Unmarshal([]byte(saved.config), &queue) != nil {
+		return zero, v2input.ErrInvalid
+	}
+	rawQueue, present := queue["queue_class"]
+	if present && string(rawQueue) != `"batch"` {
+		return zero, v2input.ErrInvalid
+	}
+	prepared.legacyQueueOmitted = !present
 	plan, err := s.compileNativeSkinDraftPlan(ctx, who, parser, prepared, m.Reserved)
 	if err != nil {
 		return zero, err

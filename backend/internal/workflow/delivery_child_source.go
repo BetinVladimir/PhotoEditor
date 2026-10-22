@@ -27,7 +27,8 @@ type deliverySourceEntry struct {
 
 // SQLDeliveryChildResolver inherits the adopted prepare input inventory. SQL
 // repeats current project/session/source/lease authority on every bounded page.
-// Physical JSON roots are checked here; binary contents remain worker-verified.
+// Physical JSON roots and exact declared RGB/alpha arrays are verified here;
+// workers independently verify the same immutable inventory.
 // TargetICCs must come from the scheduler's verified deployment ICC catalogue.
 type SQLDeliveryChildResolver struct {
 	DB            artifactjson.RowQuerier
@@ -37,7 +38,7 @@ type SQLDeliveryChildResolver struct {
 	WorkingICCSHA string
 }
 
-func (s SQLDeliveryChildResolver) ResolveChild(ctx context.Context, l delivery.ExpansionLease, p delivery.PreparePlan, c delivery.ExportChildIntent) (DeliveryResolvedChild, error) {
+func (s SQLDeliveryChildResolver) ResolveChild(ctx context.Context, l delivery.ExpansionLease, p delivery.PreparePlan, c delivery.ExportChildIntent) (result DeliveryResolvedChild, failure error) {
 	zero := DeliveryResolvedChild{}
 	if err := ctx.Err(); err != nil {
 		return zero, err
@@ -49,6 +50,7 @@ func (s SQLDeliveryChildResolver) ResolveChild(ctx context.Context, l delivery.E
 	if err != nil {
 		return zero, err
 	}
+	defer func(){bindDeliveryPhysicalFailure(&failure,c.SlotIndex,string(requestRaw),false)}()
 	config, err := exportpreset.DecodeFrozenConfig([]byte(request.ConfigJCS), request.Preset.PresetSHA)
 	if err != nil {
 		return zero, err
@@ -137,6 +139,8 @@ func (s SQLDeliveryChildResolver) ResolveChild(ctx context.Context, l delivery.E
 	if err := validateDeliverySourceContracts(image, rootBodies[c.Recipe.ArtifactID], c.Binding, s.WorkingICCSHA); err != nil {
 		return zero, err
 	}
+	arrays,arrayErr:=watermarkSourceDescriptors(image,metadata);if arrayErr!=nil{return zero,arrayErr}
+	if arrayErr=verifyExportWorkingImageArrays(ctx,s.Objects,c.Binding.Source,image,arrays);arrayErr!=nil{return zero,arrayErr}
 	projected, err := projectDeliverySources(ctx, []v2input.Ref{c.Binding.Source, c.Recipe, c.Preset.Config}, metadata, func(ctx context.Context, item deliverySourceEntry) ([]byte, error) {
 		if body, ok := rootBodies[item.Ref.ArtifactID]; ok {
 			return body, nil
@@ -152,22 +156,23 @@ func (s SQLDeliveryChildResolver) readJSON(ctx context.Context, item deliverySou
 	object := objectstore.Object{Key: item.Key, VersionID: item.Version, SHA256: item.Ref.SHA256, ContentType: item.MediaType, Bytes: item.Bytes}
 	reader, err := s.Objects.Open(ctx, object)
 	if err != nil {
-		return nil, err
+		return nil, physicalDeliveryFailure(item.Ref,item.Version,err)
 	}
 	if reader == nil {
 		return nil, v2input.ErrInvalid
 	}
-	defer reader.Close()
 	body, err := io.ReadAll(io.LimitReader(reader, max+1))
+ closeErr:=reader.Close()
 	if err != nil {
-		return nil, err
+		return nil, physicalDeliveryFailure(item.Ref,item.Version,err)
 	}
+	if closeErr!=nil{return nil,physicalDeliveryFailure(item.Ref,item.Version,closeErr)}
 	if int64(len(body)) != item.Bytes || int64(len(body)) > max || renderDerivativeBytesSHA(body) != item.Ref.SHA256 {
-		return nil, v2input.ErrInvalid
+		return nil, physicalDeliveryFailure(item.Ref,item.Version,objectstore.ErrIntegrity)
 	}
 	exact, err := canonical.Marshal(json.RawMessage(body))
 	if err != nil || !bytes.Equal(exact, body) {
-		return nil, v2input.ErrInvalid
+		return nil, physicalDeliveryFailure(item.Ref,item.Version,objectstore.ErrIntegrity)
 	}
 	return body, nil
 }

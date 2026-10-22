@@ -2,7 +2,7 @@ import {expect,it,vi} from 'vitest';
 import {assertInterchangeSnapshot,readInterchangeJob,readInterchangeInspection} from './interchange-job';
 import {OwnerAPI} from './owner-api';
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
-const inspection=()=>({schema_version:1,workflow_id:id(1),tenant_id:id(2),project_id:id(3),run_id:id(4),revision:'2',status:'running',stage:'parsing',ingest_run_id:null,collection_id:null,review:null});
+const inspection=()=>({schema_version:1 as const,workflow_id:id(1),tenant_id:id(2),project_id:id(3),run_id:id(4),revision:'2',status:'running' as const,stage:'parsing' as const,ingest_run_id:null,collection_id:null,review:null});
 it('binds runtime inspection to current scope and consistent states',()=>{
  const wire=inspection(),owned=readInterchangeInspection(wire,id(2),id(3),id(1));wire.run_id=id(9);expect(owned.run_id).toBe(id(4));
  for(const patch of [{tenant_id:id(9)},{project_id:id(9)},{workflow_id:id(9)},{revision:'9007199254740992'},{status:'completed',stage:'parsing'},{stage:'unknown'}])expect(()=>readInterchangeInspection({...inspection(),...patch},id(2),id(3),id(1))).toThrow();
@@ -76,7 +76,7 @@ it('accepts export stages and rejects mixed import state',()=>{
 
 it('binds job direction, available outputs and inspection stage',()=>{
  const job={id:id(1),tenant_id:id(2),project_id:id(3),workflow_id:id(1),revision:'2',direction:'export' as const,format:'xmp' as const,mapping_artifact_id:null,report_artifact_id:null,bundle_artifact_id:null};
- const exporting={...inspection(),stage:'exporting'};
+ const exporting={...inspection(),stage:'exporting' as const};
  expect(()=>assertInterchangeSnapshot(job,exporting)).not.toThrow();
  const ready={...job,report_artifact_id:id(7),bundle_artifact_id:id(8)};
  expect(()=>assertInterchangeSnapshot(ready,{...exporting,stage:'finalizing'})).not.toThrow();

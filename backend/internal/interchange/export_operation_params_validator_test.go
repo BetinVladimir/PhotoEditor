@@ -32,3 +32,19 @@ func TestExportParamsOperationShapeSeparatesLocalPortraitAndPersonConsumers(t *t
   {`{"image":{},"person":{},"base_aligned":{},"regions":[],"resolved":{}}`,"image.local",false},
  }{operation,err:=exportParamsOperationShape([]byte(test.raw));if (err!=nil)!=test.invalid||operation!=test.operation{t.Fatal(test.raw,operation,err)}}
 }
+
+// Shape admission is deliberately narrower than schema/provenance admission.
+// Exact refs, masks and producer fences are verified by the native and policy ports.
+func TestExportAutomaticRepairShapeCannotFallThrough(t *testing.T){
+ for _,tc:=range []struct{raw,operation string;invalid bool}{
+  {`{"policy":"conservative_auto_v1","image":{},"proposal":{},"proposal_report":{},"resolved":{}}`,"defects.auto_repair",false},
+  {`{"policy":"conservative_auto_v1","image":{},"proposal":null,"resolved":{},"protected":[]}`,"sensor.dust_auto_repair",false},
+  {`{"policy":"other","image":{},"proposal":{},"proposal_report":{},"resolved":{}}`,"",true},
+  {`{"policy":"copyright_only","image":{}}`,"",false},
+  {`{"policy":{"artifact_id":"x"},"image":{},"manifest":{}}`,"",false},
+  {`{"policy":null,"image":{},"proposal":{},"proposal_report":{},"resolved":{}}`,"",true},
+  {`{"policy":"conservative_auto_v1","image":{},"proposal":{},"resolved":{}}`,"",true},
+  {`{"policy":"conservative_auto_v1","image":{},"proposal":{},"proposal_report":{},"resolved":{},"review":{}}`,"",true},
+  {`{"policy":"conservative_auto_v1","image":{},"proposal":{},"proposal_report":{},"resolved":{},"protected":[]}`,"",true},
+ }{op,err:=exportParamsOperationShape([]byte(tc.raw));if (err!=nil)!=tc.invalid||op!=tc.operation{t.Fatal(tc.raw,op,err)}}
+}

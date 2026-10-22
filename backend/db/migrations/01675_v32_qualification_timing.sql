@@ -1,7 +1,7 @@
 -- +goose Up
 -- Historical immutable qualifications retain unknown timing; no backfill.
 ALTER TABLE photo.model_qualifications ADD COLUMN measured_p95_ms bigint
- CHECK(measured_p95_ms BETWEEN 1 AND 9007199254740991 AND trusted_import AND status='passed');
+ CHECK(measured_p95_ms IS NULL OR (measured_p95_ms BETWEEN 1 AND 9007199254740991 AND trusted_import AND status='passed'));
 -- +goose StatementBegin
 CREATE FUNCTION photo.qualification_timing_ms(p_metrics jsonb) RETURNS bigint
 LANGUAGE plpgsql IMMUTABLE SET search_path=pg_catalog,photo AS $$

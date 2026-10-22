@@ -15,13 +15,13 @@ import (
 	"photoeditor/backend/internal/artifactjson"
 	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/objectstore"
- "photoeditor/backend/internal/rawdevelopment"
+	"photoeditor/backend/internal/rawdevelopment"
 )
 
 var ErrCompletionLeaseLost = errors.New("upload completion lease lost")
 
 type CompletionLease struct {
- RAWDevelopment *rawdevelopment.Policy
+	RAWDevelopment                                           *rawdevelopment.Policy
 	UploadID, Token, TenantID, ArtifactID, SnapshotID, RunID uuid.UUID
 	ObjectKey, MultipartID, MediaType, Filename              string
 	AssumeProfile                                            *string
@@ -55,7 +55,7 @@ func (s SQLCompletionLeases) Claim(ctx context.Context) (*CompletionLease, error
 	}
 	lease := new(CompletionLease)
 	var raw []byte
- var rawPolicy []byte
+	var rawPolicy []byte
 	err := s.DB.QueryRow(ctx, `SELECT upload_id,completion_token,tenant_id,object_key,multipart_id,media_type,filename,assume_profile,
 	 expected_bytes,expected_sha,artifact_id,snapshot_id,run_id,parts,raw_development FROM photo.claim_upload_completion_v2()`).Scan(
 		&lease.UploadID, &lease.Token, &lease.TenantID, &lease.ObjectKey, &lease.MultipartID, &lease.MediaType, &lease.Filename,
@@ -92,6 +92,11 @@ func decodeCompletionParts(raw []byte, parts *[]objectstore.UploadedPart) error 
 	}
 	if len(*parts) < 1 || len(*parts) > objectstore.MaxUploadParts {
 		return errors.New("invalid part count")
+	}
+	for i, part := range *parts {
+		if part.PartNumber != i+1 || !validCompletionETag(part.ETag) {
+			return errors.New("invalid persisted upload part")
+		}
 	}
 	var trailing any
 	if err := decoder.Decode(&trailing); err != io.EOF {
@@ -142,16 +147,20 @@ func completionDocuments(lease CompletionLease, sha string) (json.RawMessage, st
 		return nil, "", nil, "", errors.New("invalid upload completion source")
 	}
 	suffix := strings.ToLower(filepath.Ext(lease.Filename))
-    if !rawdevelopment.Valid(lease.RAWDevelopment) {return nil,"",nil,"",errors.New("invalid RAW policy")}
-    version:=1
-    if lease.RAWDevelopment!=nil {version=2}
+	if !rawdevelopment.Valid(lease.RAWDevelopment) {
+		return nil, "", nil, "", errors.New("invalid RAW policy")
+	}
+	version := 1
+	if lease.RAWDevelopment != nil {
+		version = 2
+	}
 	payload, err := canonical.Marshal(struct {
-		SchemaVersion int     `json:"schema_version"`
-		Suffix        string  `json:"suffix"`
-		AssumeProfile *string `json:"assume_profile"`
-		Analyze       bool    `json:"analyze"`
-		Tile          int     `json:"tile"`
-        RAWDevelopment *rawdevelopment.Policy `json:"raw_development,omitempty"`
+		SchemaVersion  int                    `json:"schema_version"`
+		Suffix         string                 `json:"suffix"`
+		AssumeProfile  *string                `json:"assume_profile"`
+		Analyze        bool                   `json:"analyze"`
+		Tile           int                    `json:"tile"`
+		RAWDevelopment *rawdevelopment.Policy `json:"raw_development,omitempty"`
 	}{version, suffix, lease.AssumeProfile, true, 512, lease.RAWDevelopment})
 	if err != nil {
 		return nil, "", nil, "", err

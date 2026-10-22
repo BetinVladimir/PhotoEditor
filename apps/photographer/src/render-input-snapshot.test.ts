@@ -4,9 +4,9 @@ import {renderInputSnapshotRequest,renderInputSnapshotDigest,renderInputSnapshot
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`,sha='a'.repeat(64);
 const request=()=>({sources:[{asset_version_id:id(1),source:{artifact_id:id(2),sha256:sha},canvas_hash:sha}]});
 it('pins exact source inventory and validates returned digest/count',async()=>{
- let resolve!:(v:unknown)=>void;const transport=vi.fn((..._args:unknown[])=>new Promise(r=>{resolve=r}));const api=new OwnerAPI({request:transport} as never,'tenant/id'),signal=new AbortController().signal;
- const body=request(),digest=renderInputSnapshotDigest(body),pending=api.createRenderInputSnapshot('project/id',body,'snapshot-key',signal);body.sources[0].source.sha256='b'.repeat(64);
- expect(transport.mock.calls[0]).toEqual(['/api/v1/tenants/tenant%2Fid/projects/project%2Fid/render-input-snapshots',expect.objectContaining({body:request(),idempotencyKey:'snapshot-key',signal})]);
+ let resolve!:(v:unknown)=>void;const transport=vi.fn((..._args:unknown[])=>new Promise(r=>{resolve=r}));const api=new OwnerAPI({request:transport} as never,'00000000-0000-4000-8000-000000000010'),signal=new AbortController().signal;
+ const body=request(),digest=renderInputSnapshotDigest(body),pending=api.createRenderInputSnapshot('00000000-0000-4000-8000-000000000011',body,'snapshot-key',signal);body.sources[0].source.sha256='b'.repeat(64);
+ expect(transport.mock.calls[0]).toEqual(['/api/v1/tenants/00000000-0000-4000-8000-000000000010/projects/00000000-0000-4000-8000-000000000011/render-input-snapshots',expect.objectContaining({body:request(),idempotencyKey:'snapshot-key',signal})]);
  resolve({id:id(3),digest,item_count:1});expect(await pending).toEqual({id:id(3),digest,item_count:1});
 });
 it('rejects duplicate versions, extra fields and mismatched snapshot evidence',()=>{

@@ -36,7 +36,7 @@ func (s SQLTransferSourceReader) beginNativeSkinDraftInTransaction(ctx context.C
 	if err := LockSnapshotInTransaction(ctx, tx, who, parent.request, parent.anchor); err != nil {
 		return zero, err
 	}
-	selected, err := selectQualificationPolicies(parent.policy, []string{"face.detect"})
+	selected, err := selectNativeQualificationPolicies(parent.policy, []string{"face.detect"})
 	if err != nil {
 		return zero, err
 	}

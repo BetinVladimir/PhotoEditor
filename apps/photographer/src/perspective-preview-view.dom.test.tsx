@@ -1,4 +1,6 @@
+import {clickWhenEnabled} from './test/ui-readiness';
 // @vitest-environment jsdom
+vi.mock('expo-router',async()=> (await import('./test/locale-router')).localeRouterFixture);
 import {afterEach,expect,it,vi} from 'vitest';
 import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
 vi.mock('react-native',async()=>import('react-native-web'));
@@ -37,8 +39,8 @@ it('retries unavailable preview and selects the larger variant',async()=>{
  const api={perspectivePreview} as unknown as OwnerAPI;
  render(<LocaleProvider><PerspectivePreviewView api={api} proposal={proposal}/></LocaleProvider>);
  await screen.findByText('The result is unavailable. Retry after processing finishes.');
- fireEvent.click(screen.getByRole('button',{name:'Reload perspective preview'}));
+ await clickWhenEnabled(screen.getByRole('button',{name:'Reload perspective preview'}));
  await waitFor(()=>expect(perspectivePreview).toHaveBeenCalledTimes(2));
- fireEvent.click(screen.getByRole('button',{name:'Show 2560px perspective preview'}));
+ await clickWhenEnabled(screen.getByRole('button',{name:'Show 2560px perspective preview'}));
  await waitFor(()=>expect(perspectivePreview.mock.calls[2]?.[1]).toBe('preview2560'));
 });

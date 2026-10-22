@@ -49,7 +49,7 @@ def compose_render_adjustments(source,alpha,layers,masks,scratch,render_proposal
                 with render_proposal(deepcopy(item),current) as proposal:
                     check_active()
                     effect=None
-                    if layer.operation in ('defects.repair','portrait.detail','image.denoise','sensor.dust_repair') and not isinstance(proposal,RenderLayerProposal):
+                    if layer.operation in ('defects.repair','portrait.detail','image.denoise','sensor.dust_repair','defects.auto_repair','sensor.dust_auto_repair') and not isinstance(proposal,RenderLayerProposal):
                         raise ValueError('RENDER_LAYER_EFFECT_REQUIRED')
                     if isinstance(proposal,RenderLayerProposal):
                         from .render_effects import RenderLayerEffect,effect_review_required

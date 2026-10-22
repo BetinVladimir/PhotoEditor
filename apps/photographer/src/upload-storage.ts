@@ -7,7 +7,7 @@ const generationKey=(origin:string)=>prefix+'generation:'+origin;
 export class ScopedUploadStorage implements UploadPersistence{
  readonly key:string;private epoch:number;private generation:string|null|undefined;
  constructor(private storage:UploadStorageIO,private origin:string,user:string,private tenant:string,private project:string,private collection?:string){
-  if(!origin||![user,tenant,project].every(archiveUUID)||(collection!==undefined&&!archiveUUID(collection)))throw new Error('UPLOAD_SCOPE_INVALID');
+  if(typeof origin!=='string'||![user,tenant,project].every(archiveUUID)||(collection!==undefined&&!archiveUUID(collection)))throw new Error('UPLOAD_SCOPE_INVALID');
   this.key=prefix+JSON.stringify([origin,user,tenant,project,collection??null]);this.epoch=epochs.get(origin)??0;
  }
  private async fence(){

@@ -1,6 +1,7 @@
 package main
 
 import (
+ "photoeditor/backend/internal/database"
 	"context"
 	"errors"
 	"os"
@@ -43,6 +44,7 @@ func buildDeliveryCreate(ctx context.Context, api *pgxpool.Pool, objects *object
 		return nil, noop, errors.New("delivery scheduler configuration invalid")
 	}
 	config.ConnConfig.RuntimeParams["role"] = "photo_scheduler"
+	database.GuardApplicationRole(config)
 	config.ConnConfig.RuntimeParams["statement_timeout"] = "30000"
 	config.MaxConns = 4
 	config.MinConns = 0

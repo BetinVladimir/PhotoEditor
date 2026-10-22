@@ -209,7 +209,26 @@ def warp_planar_mask_into(source,matrix,output,*,source_protected,target_protect
             check_active();part=np.s_[y:y+256,x:x+256]
             if np.any((source[part]>0)&(source_protected[part]>0)):
                 raise ValueError('SEMANTIC_PROTECTED_OVERLAP')
-    inverse=np.linalg.inv(matrix);h,w=output.shape
+    for part,tile in iter_planar_mask_warp_tiles(source,matrix,output.shape,check_active=check_active):
+        if np.any((tile>0)&(target_protected[part]>0)):
+            raise ValueError('SEMANTIC_PROTECTED_OVERLAP')
+        output[part]=tile
+    check_active()
+
+
+def iter_planar_mask_warp_tiles(source,matrix,target_shape,*,check_active=lambda:None):
+    """The exact published mask sampler, also used for physical scene support.
+
+    Source arrays are caller-validated; this iterator never publishes or relaxes
+    source/protection authority. It retains only a256x256 destination tile.
+    """
+    if (not isinstance(source,np.ndarray) or source.dtype!=np.float32 or source.ndim!=2
+            or not isinstance(target_shape,tuple) or len(target_shape)!=2
+            or any(type(n) is not int or n<8 for n in target_shape)
+            or target_shape[0]*target_shape[1]>200000000
+            or not validate_planar_homography(matrix,source.shape)):
+        raise ValueError('SEMANTIC_MASK_INVALID')
+    check_active();inverse=np.linalg.inv(matrix);h,w=target_shape
     for y in range(0,h,256):
         for x in range(0,w,256):
             check_active();th,tw=min(256,h-y),min(256,w-x)
@@ -233,7 +252,5 @@ def warp_planar_mask_into(source,matrix,output,*,source_protected,target_protect
                 tile[~valid]=0
                 np.clip(tile,0,1,out=tile)
             part=np.s_[y:y+th,x:x+tw]
-            if np.any((tile>0)&(target_protected[part]>0)):
-                raise ValueError('SEMANTIC_PROTECTED_OVERLAP')
-            output[part]=tile
+            yield part,tile
     check_active()

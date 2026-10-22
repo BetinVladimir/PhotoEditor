@@ -85,7 +85,7 @@ func TestIntegrationNativeTargetTerminalProcessOne(t *testing.T) {
 			t.Fatal("healthy target terminal", observed, err)
 		}
 		for i := 0; i < 2; i++ {
-			status, err := (runservice.Service{DB: api}).Cancel(ctx, who, f.Tenant, f.Run)
+			status, err := (runservice.Service{DB: api}).Cancel(ctx, who, f.Tenant, f.Run, "terminal-probe-cancel")
 			if err != nil || status.State != "cancelling" {
 				t.Fatal("authenticated target cancellation", status.State, err)
 			}

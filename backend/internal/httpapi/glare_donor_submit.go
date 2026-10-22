@@ -47,6 +47,7 @@ type GlareSourceCandidates interface {
 }
 
 func (s *Server) glareDonorRoutes(router chi.Router) {
+ s.glareSourceRoutes(router)
 	router.Post("/api/v1/tenants/{t}/projects/{id}/glare-mask-pairs", s.maskPairHandler)
 	router.Post("/api/v1/tenants/{t}/projects/{id}/glare-source-candidates",
 		func(w http.ResponseWriter, r *http.Request) {

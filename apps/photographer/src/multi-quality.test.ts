@@ -1,3 +1,4 @@
+import {perspectiveQualityTask} from './perspective-quality';
 import {prepareMultiApply,readMultiApplied} from './multi-apply';
 import {canonicalJSON} from '@photoeditor/api-client';
 import {sha256} from '@noble/hashes/sha2.js';
@@ -18,7 +19,7 @@ function fixture(op:MultiOperation){
  return {intent,proposal};
 }
 
-function quality(proposal:MultiProposal):MultiQuality{const value:MultiQuality={proposal:structuredClone(proposal),quality_run_id:id(40),quality_task_id:id(41),quality_result_id:id(42),quality_report:ref(43),quality:{target:proposal.working_image,target_kind:'working',stage:'master',threshold_profile_id:'master_v1',status:'pass',reference:null,reasons:[],technical:{below_zero_fraction:0,above_one_fraction:0,clipped_black_fraction:0,clipped_white_fraction:0,sharpness_laplacian:.01,seam_p99_delta:0,finite:true}}};seal(value);return value;}
+function quality(proposal:MultiProposal):MultiQuality{const value:MultiQuality={proposal:structuredClone(proposal),quality_run_id:id(40),quality_task_id:perspectiveQualityTask(id(40)),quality_result_id:id(42),quality_report:ref(43),quality:{target:proposal.working_image,target_kind:'working',stage:'master',threshold_profile_id:'master_v1',status:'pass',reference:null,reasons:[],technical:{below_zero_fraction:0,above_one_fraction:0,clipped_black_fraction:0,clipped_white_fraction:0,sharpness_laplacian:.01,seam_p99_delta:0,finite:true}}};seal(value);return value;}
 function seal(v:MultiQuality){v.quality_report.sha256=bytesToHex(sha256(new TextEncoder().encode(canonicalJSON(v.quality))));}
 for(const op of ['optical.panorama','optical.focus_stack'] as const){
  it(op+' retains decisions and owns response',()=>{
@@ -71,4 +72,10 @@ it('multi Apply requires explicit confirmations and exact new reference-parent v
  const current=quality(proposal),result={asset_version_id:id(70),parent_asset_version_id:proposal.sources[1].asset_version_id,source:proposal.working_image};
  expect(readMultiApplied(result,current).asset_version_id).toBe(id(70));
  for(const patch of [{asset_version_id:proposal.sources[0].asset_version_id},{parent_asset_version_id:proposal.sources[0].asset_version_id},{source:ref(71)},{extra:true}])expect(()=>readMultiApplied({...result,...patch},current)).toThrow();
+});
+
+it('binds independent quality task identity to its actual admitted run',()=>{
+ const {proposal,intent}=fixture('optical.panorama'),value=quality(proposal);
+ expect(readMultiQuality(value,proposal,intent).quality_task_id).toBe(perspectiveQualityTask(value.quality_run_id));
+ value.quality_task_id=id(99);expect(()=>readMultiQuality(value,proposal,intent)).toThrow('MULTI_QUALITY_INVALID');
 });

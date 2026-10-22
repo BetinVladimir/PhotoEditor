@@ -40,6 +40,38 @@ func TestPublishSignedAssemblyBundleOrdersAndBindsDocuments(t *testing.T) {
 		order[2]!="v30_delivery_signed_closure" || order[3]!="v30_delivery_signed_envelope" { t.Fatal("publication order",order) }
 	if bundle.Envelope.Assembly!=bundle.AssemblyRef || bundle.Envelope.SigningClosure!=bundle.ClosureRef ||
 		bundle.EnvelopeRef.SHA256!=digest(bundle.EnvelopeJCS) { t.Fatal("envelope binding") }
+ // A publisher/factory may retain or mutate its argument; compiled documents
+ // and shard inventory must remain owned by this invocation.
+ mutatingPublisher:=func(_ context.Context,_ string,raw []byte)(v2input.Ref,error){
+  ref:=v2input.Ref{ArtifactID:uuid.New(),SHA256:digest(raw)}
+  for index:=range raw{raw[index]='x'}
+  return ref,nil
+ }
+ mutatingFactory:=func(bodies [][]byte)(PublishDocument,error){
+  for _,body:=range bodies{for index:=range body{body[index]='x'}}
+  return mutatingPublisher,nil
+ }
+ isolated,err:=PublishSignedAssemblyBundle(context.Background(),frozen,snapshot,slots,tenant,actor,parent,dependencies,[]SignedDependencyReceipt{receipt},mutatingPublisher,mutatingFactory,mutatingPublisher)
+ if err!=nil||isolated.AssemblyRef.SHA256!=digest(isolated.Documents.AssemblyJCS)||isolated.ClosureRef.SHA256!=digest(isolated.Documents.ClosureJCS)||isolated.EnvelopeRef.SHA256!=digest(isolated.EnvelopeJCS){t.Fatal("callback mutation escaped owned documents",err)}
+ cancelled,cancel:=context.WithCancel(context.Background())
+ cancelLast:=func(call context.Context,purpose string,raw []byte)(v2input.Ref,error){
+  ref:=v2input.Ref{ArtifactID:uuid.New(),SHA256:digest(raw)}
+  if purpose=="v30_delivery_signed_envelope"{cancel()}
+  return ref,nil
+ }
+ if _,err:=PublishSignedAssemblyBundle(cancelled,frozen,snapshot,slots,tenant,actor,parent,dependencies,[]SignedDependencyReceipt{receipt},publish,rootFactory,cancelLast);err!=context.Canceled{t.Fatal("late envelope cancellation lost",err)}
+ cancel()
+ mutableSlots:=append([]Slot(nil),slots...)
+ mutableDependencies:=append([]SigningDependency(nil),dependencies...)
+ mutableReceipts:=[]SignedDependencyReceipt{receipt}
+ publisherMutatesInputs:=func(call context.Context,purpose string,raw []byte)(v2input.Ref,error){
+  mutableSlots[0].State="omitted"
+  mutableDependencies[0].Export.SHA256=strings.Repeat("b",64)
+  mutableReceipts[0].Signed.SHA256=strings.Repeat("c",64)
+  return v2input.Ref{ArtifactID:uuid.New(),SHA256:digest(raw)},nil
+ }
+ preserved,err:=PublishSignedAssemblyBundle(context.Background(),frozen,snapshot,mutableSlots,tenant,actor,parent,mutableDependencies,mutableReceipts,publisherMutatesInputs,func([][]byte)(PublishDocument,error){return publisherMutatesInputs,nil},publisherMutatesInputs)
+ if err!=nil||preserved.EnvelopeRef.SHA256!=digest(preserved.EnvelopeJCS){t.Fatal("external mutation changed frozen assembly invocation",err)}
 	order=nil
 	bad:=receipt;bad.TaskID=uuid.New()
 	if _,err:=PublishSignedAssemblyBundle(context.Background(),frozen,snapshot,slots,tenant,actor,parent,

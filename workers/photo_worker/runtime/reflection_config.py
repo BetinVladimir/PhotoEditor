@@ -26,6 +26,10 @@ def reflection_installation_from_environment(config, getenv=os.environ.get):
         raise WorkerConfigurationError('Invalid reflection enablement')
     if enabled == 'false':
         return None
+    # This installation has no qualified Metal implementation. Omit it before
+    # reading model/runtime/object-store configuration on Apple Silicon.
+    if config.resource_class == 'gpu' and config.backend == 'mps':
+        return None
     if (config.resource_class != 'gpu' or config.backend not in ('cpu', 'cuda')
             or config.model_root is None or config.model_lock is None):
         raise WorkerConfigurationError('Reflection requires a locked CPU/CUDA GPU-class worker')

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from hashlib import sha256
+from collections.abc import Callable
 
 from photo_worker.contracts.base import canonical_bytes
 from photo_worker.runtime.artifacts import ArtifactConfig, TaskArtifacts
@@ -13,7 +14,9 @@ from .plan import (Frame, SceneCalibration, ScenePolicy, group_scenes,
                    solve_consistency, validate_scene_groups)
 
 
-def _plan(artifacts: TaskArtifacts, backend: str) -> tuple[ScenePlan, int]:
+def _plan(artifacts: TaskArtifacts, backend: str,
+          check_active: Callable[[], None] = lambda: None) -> tuple[ScenePlan, int]:
+    check_active()
     if backend != 'cpu':
         raise OperationFailure('CONFIG_INVALID')
     params = artifacts.params(SessionPlanParams)
@@ -28,6 +31,7 @@ def _plan(artifacts: TaskArtifacts, backend: str) -> tuple[ScenePlan, int]:
         raise ValueError('DUPLICATE_CAMERA_OFFSET')
     descriptors = []
     for ref in params.shards:
+        check_active()
         shard = artifacts.contract(ref, DescriptorShard)
         if shard.snapshot_digest != context.snapshot_digest:
             raise ValueError('SNAPSHOT_DIGEST_MISMATCH')
@@ -65,6 +69,7 @@ def _plan(artifacts: TaskArtifacts, backend: str) -> tuple[ScenePlan, int]:
                                   calibration.cluster_diameter_max, calibration.sharpness_scale,
                                   calibration.clipping_penalty)
     policy_sha = sha256(canonical_bytes(params.policy)).hexdigest()
+    check_active()
     groups = group_scenes(frames, context.snapshot_id, policy_sha, policy, calibrated)
     validate_scene_groups(groups, frames, context.snapshot_id, policy_sha)
     for asset_id, expected in manual.items():
@@ -75,6 +80,7 @@ def _plan(artifacts: TaskArtifacts, backend: str) -> tuple[ScenePlan, int]:
     staged = []
     total_bytes = 0
     for group in groups:
+        check_active()
         group_frames = [frames[o] for o in group.ordinals]
         member_ids = frozenset(by_ordinal[o].binding.asset_version_id for o in group.ordinals)
         manual_asset = manual_groups.get(member_ids)
@@ -96,6 +102,7 @@ def _plan(artifacts: TaskArtifacts, backend: str) -> tuple[ScenePlan, int]:
                                                         disposition=c.disposition, reason=c.reason)
                                          for c in corrections])
         total_bytes += len(canonical_bytes(document))
+        check_active()
         ref = artifacts.stage_contract(document, 'correction_plan')
         staged.append(ScenePlanGroup(id=group.id, ordinals=list(group.ordinals),
                                      reference_ordinal=reference_ordinal,
@@ -110,9 +117,11 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts) -> OperationResult:
     if ctx.lease.execution_profile.get('renderer_version') != 'v2.2':
         raise OperationFailure('CONFIG_INVALID')
     try:
-        result, total_bytes = _plan(artifacts, ctx.lease.execution_profile.get('backend'))
+        result, total_bytes = _plan(artifacts, ctx.lease.execution_profile.get('backend'),
+                                    ctx.check_active)
     except ValueError as exc:
         raise OperationFailure('INPUT_INVALID') from exc
+    ctx.check_active()
     root = artifacts.stage_contract(result, 'document')
     # A scene plan is a decision proposal. The parent workflow must remain
     # waiting_review until ApplyAnalysis records the final group selection.

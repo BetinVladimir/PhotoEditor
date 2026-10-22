@@ -22,15 +22,19 @@ type nativeInputDefectResultCatalog struct {
 
 // Lookup never substitutes source-wide latest output or delegates admission.
 func (s SQLTransferSourceReader) nativeInputDefectResultCatalog(ctx context.Context, who auth.Identity, plan nativeDefectDraftPlan) (nativeInputDefectResultCatalog, error) {
+	if _, err := s.compileNativeDefectDraftPlan(ctx, who, plan.prepared, plan.shell.Bytes); err != nil {
+		return nativeInputDefectResultCatalog{}, err
+	}
+	return s.nativeInputDefectResultCatalogCurrent(ctx, who, plan)
+}
+
+func (s SQLTransferSourceReader) nativeInputDefectResultCatalogCurrent(ctx context.Context, who auth.Identity, plan nativeDefectDraftPlan) (nativeInputDefectResultCatalog, error) {
 	var zero nativeInputDefectResultCatalog
 	if err := verifyNativeDefectDraftSeal(ctx, plan); err != nil {
 		return zero, err
 	}
 	if s.DB == nil {
 		return zero, v2input.ErrInvalid
-	}
-	if _, err := s.compileNativeDefectDraftPlan(ctx, who, plan.prepared, plan.shell.Bytes); err != nil {
-		return zero, err
 	}
 	task, err := plan.prepared.frozen.DraftTask()
 	if err != nil {

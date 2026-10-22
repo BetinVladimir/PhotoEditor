@@ -15,7 +15,7 @@ func TestListRejectsInvalidCursorAndLimitBeforeDatabase(t *testing.T) {
 	for _, tc := range []struct {
 		after string
 		limit int
-	}{{"-1", 50}, {"x", 50}, {"0", 0}, {"0", 101}} {
+	}{{"+1",50},{"01",50},{"-0",50},{" 1",50},{"9223372036854775808",50},{"-1", 50}, {"x", 50}, {"0", 0}, {"0", 101}} {
 		_, err := s.List(context.Background(), who, tid, tc.after, tc.limit)
 		if domain.AsError(err).Code != "VALIDATION_FAILED" {
 			t.Fatalf("expected validation failure, got %v", err)

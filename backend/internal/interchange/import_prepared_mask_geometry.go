@@ -52,12 +52,12 @@ func(s ImportPreparedMaskGeometry)resolveWitnessGeometry(ctx context.Context,ent
  if err:=ctx.Err();err!=nil{return zero,err}
  reader:=ImportJSONNodeResolver{Catalog:s.Catalog,Objects:s.Objects,Validator:preparedMaskGeometryValidator{}}
  contract:=witness.contract;if contract==""{contract="MaskRef"}
- if contract=="Override"||contract=="Params"{reader.Validator=ImportPreparedSchemaChildren{}}
+ if contract=="Override"||contract=="Params"||contract=="DefectProposeReport"{reader.Validator=ImportPreparedSchemaChildren{}}
  parent:=v2input.Entry{Ref:witness.parent,Contract:contract}
  node,err:=reader.ResolveImportNode(ctx,parent);if err!=nil{return zero,err}
  if !bytes.Equal(node.Body,witness.body){return zero,v2input.ErrInvalid}
  maskRaw:=node.Body
- if contract=="Override"||contract=="Params"{
+ if contract=="Override"||contract=="Params"||contract=="DefectProposeReport"{
   if err:=validateInlinePreparedMaskWitness(node.Body,witness.maskBody,entry);err!=nil{return zero,err}
   maskRaw=witness.maskBody
  }

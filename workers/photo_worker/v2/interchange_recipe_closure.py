@@ -39,6 +39,20 @@ def prepared_child_contract(contract, schema_name, path):
         ('mask_refs', '*', 'mask', 'transform_chain', 'steps', '*', 'inverse_field'): 'DenseWarpField',
         ('manual_landmarks', 'transform_chain', 'steps', '*', 'inverse_field'): 'DenseWarpField',
     }
+    typed_roles['FaceLandmarks']={('image',):'WorkingImage',('faces',):'FaceBoxes',('landmarks','*','transform_chain','steps','*','inverse_field'):'DenseWarpField'}
+    typed_roles['FaceBoxes']={('image',):'WorkingImage'}
+    typed_roles['DefectProposeReport']={('proposal',):'DefectCandidates',('label_png',):'DefectLabelPNG',('params','image'):'WorkingImage',('params','faces','*','landmarks'):'FaceLandmarks'}
+    for prefix in [('protection',),('params','permanent'),('params','protections','*'),('params','faces','*','skin'),('params','faces','*','manual')]:
+        typed_roles['DefectProposeReport'][prefix+('artifact',)]='MaskPixels'
+        typed_roles['DefectProposeReport'][prefix+('transform_chain','steps','*','inverse_field')]='DenseWarpField'
+    if contract=='Params' and schema_name in ('DefectAutoRepairParams','DustAutoRepairParams'):
+        roles={('image',):'WorkingImage',('resolved',):'ResolvedStyle',('proposal',):'DefectCandidates' if schema_name=='DefectAutoRepairParams' else 'DustCandidates'}
+        if schema_name=='DefectAutoRepairParams':roles[('proposal_report',)]='DefectProposeReport'
+        else:
+            roles[('protected','*','artifact')]='MaskPixels'
+            roles[('protected','*','transform_chain','steps','*','inverse_field')]='DenseWarpField'
+        if path not in roles:raise AdoptionInvalid('INTERCHANGE_CLOSURE_PARAMS_CHILD')
+        return roles[path]
     if contract in typed_roles:
         expected = typed_roles[contract].get(path)
         if expected is None:
@@ -105,6 +119,7 @@ class PreparedRecipeClosureQualifier:
         for reference, contract, media_type in entries:
             media_ok = (media_type in ('image/jpeg', 'image/png', 'image/tiff')
                         if contract == 'StyleBackgroundAsset' else
+                        media_type == 'image/png' if contract=='DefectLabelPNG' else
                         media_type in ('application/json', 'application/octet-stream', 'application/x-npy'))
             if (not isinstance(reference, ArtifactRef) or reference.artifact_id.int == 0
                     or not isinstance(contract, str) or not 1 <= len(contract) <= 120
@@ -249,7 +264,12 @@ class PreparedRecipeClosureQualifier:
                                     else ('modules', 'extensions', 'background', 'asset_id'))
                             visit(background_entry[0].model_copy(deep=True), depth + 1,
                                   'StyleBackgroundAsset', ref, contract, path, value)
-                    for path, child in _schema_refs(self.schemas['$defs'][schema_name], value, self.schemas['$defs'], validator):
+                    children = list(_schema_refs(self.schemas['$defs'][schema_name], value, self.schemas['$defs'], validator))
+                    # The diagnostic PNG is qualified against the independently
+                    # attested proposal labels, irrespective of JSON key order.
+                    if contract == 'DefectProposeReport':
+                        children.sort(key=lambda child: 0 if child[0] == ('proposal',) else 1)
+                    for path, child in children:
                         expected_child = prepared_child_contract(contract, schema_name, path)
                         visit(ArtifactRef(artifact_id=child.artifact_id, sha256=child.sha256), depth + 1, expected_child,
                               ref, contract, path, value)

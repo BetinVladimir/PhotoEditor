@@ -54,7 +54,7 @@ func (p FrozenRegionPlan) CompileNode(task uuid.UUID, params v2input.Ref, resolv
 		}
 	}
 	value := func(key string) string { var v string; _ = json.Unmarshal(fields[key], &v); return v }
-	if value("renderer_version") != "v2.2" || value("backend") != "cuda" ||
+	if value("renderer_version") != "v2.2" || (value("backend") != "cuda" && value("backend") != "mps") ||
 		value("icc_lock_sha") != document.FrozenRecipe.ICCLockSHA ||
 		value("model_lock_sha") != document.FrozenRecipe.ModelLockSHA ||
 		!validRegionSHA(value("region_runtime_sha256")) {

@@ -15,6 +15,14 @@ func tenantNamespaces(tenant uuid.UUID) ([]string, error) {
 	return []string{prefix, "staging/" + prefix, "originals/" + prefix}, nil
 }
 
+// S3 explicitly identifies objects predating versioning as the literal "null"
+// version. Tenant-wide purge must remove that version rather than leave legacy
+// data forever. Empty identifiers remain forbidden: omission is a different DELETE.
+// Live immutable artifact readers/writers retain their stricter version policy.
+func validTenantPurgeVersionID(version string) bool {
+ return version == "null" || ValidInterchangeVersionID(version)
+}
+
 type tenantPurgeIO struct {
 	versions      func(context.Context, string) <-chan minio.ObjectInfo
 	uploads       func(context.Context, string) <-chan minio.ObjectMultipartInfo
@@ -100,7 +108,7 @@ func purgeTenantBatch(ctx context.Context, tenant uuid.UUID, limit int, io tenan
 			if row.Err != nil {
 				return false, classify(row.Err)
 			}
-			if !strings.HasPrefix(row.Key, prefix) || !ValidInterchangeVersionID(row.VersionID) {
+			if !strings.HasPrefix(row.Key, prefix) || !validTenantPurgeVersionID(row.VersionID) {
 				return false, ErrInvalid
 			}
 			if !remove {

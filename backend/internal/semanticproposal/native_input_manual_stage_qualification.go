@@ -54,7 +54,7 @@ func (s SQLTransferSourceReader) prepareNativeInputManualQualification(ctx conte
 	if !reflect.DeepEqual(policy, d.policy) {
 		return zero, v2input.ErrConflict
 	}
-	selected, err := selectQualificationPolicies(policy, []string{"defects.propose"})
+	selected, err := selectNativeQualificationPolicies(policy, []string{"defects.propose"})
 	if err != nil {
 		return zero, err
 	}

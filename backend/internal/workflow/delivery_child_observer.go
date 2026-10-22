@@ -22,7 +22,8 @@ func (p DeliveryChildPipeline) PendingSlots(ctx context.Context, lease delivery.
 // ObserveChild reconstructs a maximum two-stage prefix from exact physical
 // producer outputs. SQL repeats authority/fence checks at every mutation. No
 // object IO occurs in transactions. Encode completion remains a separate path.
-func (p DeliveryChildPipeline) ObserveChild(ctx context.Context, lease delivery.ExpansionLease, plan delivery.PreparePlan, child delivery.ExportChildIntent) (bool, error) {
+func (p DeliveryChildPipeline) ObserveChild(ctx context.Context, lease delivery.ExpansionLease, plan delivery.PreparePlan, child delivery.ExportChildIntent) (changed bool, failure error) {
+ defer func(){bindDeliveryCanonicalFailure(&failure,child.SlotIndex)}()
 	if err := ctx.Err(); err != nil {
 		return false, err
 	}
@@ -171,10 +172,13 @@ func resumeDeliveryContinuation(ctx context.Context, saved *v2input.Ref, a deliv
 		return false, v2input.ErrInvalid
 	}
 	if saved != nil {
-		recovered, err := a.activated(*saved)
-		if err != nil || recovered {
-			return recovered, err
-		}
+		// Own the exact retry descriptor before callbacks can mutate its caller.
+		owned := *saved
+		saved = &owned
+		recovered, err := a.activated(owned)
+		if err != nil { return false, err }
+		if err := ctx.Err(); err != nil { return false, err }
+		if recovered { return true, nil }
 	}
 	if err := ctx.Err(); err != nil {
 		return false, err
@@ -198,5 +202,8 @@ func resumeDeliveryContinuation(ctx context.Context, saved *v2input.Ref, a deliv
 	if err := ctx.Err(); err != nil {
 		return false, err
 	}
-	return a.admit(ref)
+	recovered, err := a.admit(ref)
+	if err != nil { return false, err }
+	if err := ctx.Err(); err != nil { return false, err }
+	return recovered, nil
 }

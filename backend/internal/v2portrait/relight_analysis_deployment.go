@@ -68,7 +68,7 @@ func (p analysisDeploymentEntry) expected() (v2qualification.Expected, error) {
 	if p.Runtime.Backend != "cpu" && p.Runtime.Backend != "mps" && p.Runtime.Backend != "cuda" {
 		return zero, v2input.ErrInvalid
 	}
-	if p.Capacity.PixelCount < 1 || p.Capacity.PixelCount > 200000000 || p.Capacity.RAMBytes < 1<<30 || p.Capacity.ScratchBytes < 32<<20 || p.Capacity.OutputBytes < 1 || p.Capacity.VRAMBytes < 0 || p.Runtime.Backend == "mps" && p.Capacity.VRAMBytes > 10000000000 {
+	if p.Capacity.PixelCount < 1 || p.Capacity.PixelCount > 200000000 || p.Capacity.RAMBytes < 1<<30 || p.Capacity.ScratchBytes < 32<<20 || p.Capacity.OutputBytes < 1 || p.Capacity.VRAMBytes < 0 {
 		return zero, v2input.ErrInvalid
 	}
 	return v2qualification.Expected{Operation: p.Operation, Version: "1", Backend: p.Runtime.Backend, ModelLockSHA: p.Runtime.ModelLockSHA, RuntimeLockSHA: p.Runtime.RuntimeLockSHA, DeviceProfileSHA: p.Runtime.DeviceProfileSHA, DatasetSHA: p.DatasetSHA, IssuerID: p.Issuer, RequiredChecks: append([]string(nil), p.Checks...), TestFixtureSHAs: fixtures, EvidenceSHAs: evidence, CalibrationSHAs: calibrations, LicenseCleared: true}, nil

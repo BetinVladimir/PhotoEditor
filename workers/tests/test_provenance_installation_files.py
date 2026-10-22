@@ -80,10 +80,10 @@ def test_runtime_file_integrity(tmp_path, mode):
 @pytest.mark.parametrize('mode', ['valid', 'denied', 'truthy', 'replace_during_authority'])
 def test_native_authority_still_required_and_files_rechecked(tmp_path, mode):
     files, path, digest = installed(tmp_path)
-    policy = SigningPolicy.model_validate(dict(schema_version=1, id=str(uuid4()), revision='1',
+    policy = SigningPolicy.model_validate_json(canonical_bytes(dict(schema_version=1, id=str(uuid4()), revision='1',
         sdk_lock_sha=digest, key_handle='key', certificate_chain_sha='b'*64,
         timestamp_mode='off', timestamp_service_id=None, allowed_mime=['image/png'],
-        trust_bundle_sha='c'*64, revocation_mode='off'))
+        trust_bundle_sha='c'*64, revocation_mode='off')))
     def authority(copy, algorithm, cert):
         assert copy is not policy
         if mode == 'replace_during_authority': path.write_bytes(b'replaced-runtime!')
@@ -180,8 +180,8 @@ def test_runtime_file_cancellation_after_read_closes_descriptor(tmp_path, monkey
         return data
 
     monkeypatch.setattr(module.os, 'read', cancel_after_read)
-    with signing_task_scope(active):
-        with pytest.raises(RuntimeError, match='cancelled'):
+    with pytest.raises(RuntimeError, match='cancelled'):
+        with signing_task_scope(active):
             files.check()
     assert len(descriptors) == 1
     with pytest.raises(OSError):

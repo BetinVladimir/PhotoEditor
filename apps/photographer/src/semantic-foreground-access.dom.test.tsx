@@ -2,9 +2,12 @@
 import React from 'react';
 import {act,cleanup,render,screen,waitFor} from '@testing-library/react';
 import {afterEach,expect,it,vi} from 'vitest';
+vi.mock('./localized-router',()=>({router:{push:vi.fn()},useFocusEffect:()=>{}}));
+vi.mock('@react-native-async-storage/async-storage',()=>({default:{getItem:async()=>null,setItem:async()=>{},removeItem:async()=>{},getAllKeys:async()=>[]}}));
 import {APIError,type SemanticTargetResource} from '@photoeditor/api-client';
 const app=vi.hoisted(()=>({currentState:'active',listeners:new Set<(s:string)=>void>()}));
 vi.mock('react-native',async()=>({...await import('react-native-web'),AppState:{get currentState(){return app.currentState},addEventListener:(_event:string,callback:(s:string)=>void)=>{app.listeners.add(callback);return{remove:()=>app.listeners.delete(callback)}}}}));
+vi.mock('./workspace-access-context',()=>({useWorkspaceAccess:()=>({actor:'11111111-1111-4111-8111-111111111111',canEdit:true})}));
 import {SemanticTargetScreen} from './semantic-target-screen';
 const id='11111111-1111-4111-8111-111111111111';
 const item:SemanticTargetResource={id,revision:'3',document:null,data:{resource_type:'semantic_targets',id,tenant_id:id,project_id:id,created_at:'2026-10-04T12:00:00Z',revision:'3',updated_at:'2026-10-04T12:00:00Z',intent_id:id,child_run_id:id,batch_id:id,asset_version_id:id,candidate_artifact_id:null,review_id:null,override_id:null,state:'applied'}};
@@ -27,3 +30,5 @@ it('revalidates a reviewable batch on foreground, removes revoked results and cl
  await waitFor(()=>expect(screen.getByText('Close review')).toBeTruthy());
  expect(client.semanticTargets.mock.calls.length).toBeGreaterThan(before);
 });
+
+vi.mock('./locale-context',async()=>{const {default:en}=await import('../../../locales/en/common.json');const {withUILocaleDouble}=await import('./test/locale-double');return {useLocale:()=>withUILocaleDouble({locale:'en',setLocale:()=>{},t:(key:keyof typeof en)=>en[key]})};});

@@ -74,16 +74,27 @@ func loadSource(ctx context.Context, tx pgx.Tx, who auth.Identity, tid, version 
 	if e != nil {
 		return v, e
 	}
+	// The source query can wait on a relation lock. Do not carry an earlier
+	// administrator role across that wait into project authorization.
+	role, e = tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Viewer)
+	if e != nil {
+		return v, e
+	}
 	_, e = project.Authorize(ctx, tx, tid, v.ProjectID, who.UserID, role, domain.Editor, false)
 	return v, e
 }
-func runtime(ctx context.Context, tx pgx.Tx, tid uuid.UUID, op string) (backend, lock string, e error) {
-	e = tx.QueryRow(ctx, `SELECT CASE WHEN (w.qualified_operations->$2) ? 'cuda' AND w.backends ? 'cuda' THEN 'cuda' WHEN (w.qualified_operations->$2) ? 'mps' AND w.backends ? 'mps' THEN 'mps' ELSE 'cpu' END,w.lock_id FROM photo.worker_registrations w WHERE w.tenant_id=$1 AND w.enabled AND w.last_seen>clock_timestamp()-interval '30 seconds' AND w.resource_classes ? 'gpu' AND (((w.qualified_operations->$2) ? 'cuda' AND w.backends ? 'cuda') OR ((w.qualified_operations->$2) ? 'mps' AND w.backends ? 'mps') OR ((w.qualified_operations->$2) ? 'cpu' AND w.backends ? 'cpu')) AND w.lock_id~'^[0-9a-f]{64}$' ORDER BY CASE WHEN (w.qualified_operations->$2) ? 'cuda' AND w.backends ? 'cuda' THEN 0 WHEN (w.qualified_operations->$2) ? 'mps' AND w.backends ? 'mps' THEN 1 ELSE 2 END,w.worker_id LIMIT 1`, tid, op).Scan(&backend, &lock)
-	if errors.Is(e, pgx.ErrNoRows) {
-		e = domain.NewError("INTERACTIVE_CAPABILITY_UNAVAILABLE", 409)
-	}
-	return
+type runtimeQuery interface { QueryRow(context.Context,string,...any) pgx.Row }
+func runtime(ctx context.Context, tx runtimeQuery, tid, projectID uuid.UUID, who auth.Identity, op string) (backend, lock string, e error) {
+ if e=ctx.Err();e!=nil{return}
+ if tx==nil || tid==uuid.Nil || projectID==uuid.Nil || who.UserID==uuid.Nil || who.SessionID==uuid.Nil || (op!="mask.prompt" && op!="image.generate") {
+  e=domain.NewError("VALIDATION_FAILED",422);return
+ }
+ e=tx.QueryRow(ctx,`SELECT backend,lock_id FROM photo.select_interactive_runtime($1,$2,$3,$4,$5)`,tid,projectID,who.UserID,who.SessionID,op).Scan(&backend,&lock)
+ if errors.Is(e,pgx.ErrNoRows){e=domain.NewError("INTERACTIVE_CAPABILITY_UNAVAILABLE",409)}
+ if e==nil {if _,err:=domain.ParseDigest(lock);err!=nil || (backend!="cuda" && backend!="mps" && backend!="cpu"){e=domain.NewError("INTERACTIVE_CAPABILITY_UNAVAILABLE",409)}}
+ if e==nil {e=ctx.Err()};return
 }
+
 func object(raw json.RawMessage, max int) (map[string]any, error) {
 	if len(raw) < 2 || len(raw) > max {
 		return nil, domain.NewError("VALIDATION_FAILED", 422)
@@ -201,7 +212,7 @@ func (s Service) CreateMask(ctx context.Context, who auth.Identity, tid uuid.UUI
 				template := map[string]any{"source_sha256": req.InputSHA256, "object_id": req.ObjectID, "shapes": shapes}
 				e = insertTask(ctx, tx, tid, run, task, "mask_manual", "mask.rasterize", 0, src, []ArtifactRef{{src.ArtifactID, src.SHA}}, template, "cpu", "")
 			} else {
-				backend, lock, e := runtime(ctx, tx, tid, "mask.prompt")
+				backend, lock, e := runtime(ctx, tx, tid, src.ProjectID, who, "mask.prompt")
 				if e != nil {
 					return idempotency.Response{}, e
 				}
@@ -221,11 +232,55 @@ func (s Service) CreateMask(ctx context.Context, who auth.Identity, tid uuid.UUI
 			body, e := canonical.Marshal(MaskAccepted{run, req.InputSHA256, "queued"})
 			return idempotency.Response{Status: 202, Body: body, ResourceID: &run}, e
 		})
+		if e != nil {
+			return e
+		}
+		// Receipt acquisition may wait behind another request. Both new work
+		// and accepted replay must still belong to a currently visible source.
+		if e = validateReceipt(out, req.InputSHA256, key, false); e != nil {
+			return e
+		}
+		_, e = loadSource(ctx, tx, who, tid, req.AssetVersionID, role)
 		return e
 	})
 	return out, err
 }
 func (s Service) Generate(ctx context.Context, who auth.Identity, tid uuid.UUID, key string, req GenerateRequest) (idempotency.Response, error) {
+ return s.generate(ctx,who,tid,key,req,false)
+}
+// ReplayGeneration may read an existing receipt but never admits new GPU work.
+func (s Service) ReplayGeneration(ctx context.Context, who auth.Identity, tid uuid.UUID, key string, req GenerateRequest) (idempotency.Response, error) {
+ return s.generate(ctx,who,tid,key,req,true)
+}
+// AbandonGeneration serializes with normal admission under the SAME receipt
+// scope/body/key. A prior accepted run wins; otherwise a durable tombstone wins.
+// Generic validation/transport errors never establish that admission was absent.
+func (s Service) AbandonGeneration(ctx context.Context, who auth.Identity, tid uuid.UUID, key string, req GenerateRequest) (idempotency.Response, error) {
+	var out idempotency.Response
+	err := tenant.WithTenant(ctx, s.DB, who, tid, domain.Viewer, func(tx pgx.Tx, role domain.Role) error {
+		if _, e := loadSource(ctx, tx, who, tid, req.AssetVersionID, role); e != nil {
+			return e
+		}
+		var e error
+		out, e = idempotency.Use(ctx, tx, idempotency.Scope{Tenant: tid, Principal: who.UserID, PrincipalType: "user", Route: "Generation.CreateCandidate", Key: key}, req, time.Date(9999, 12, 31, 23, 59, 59, 0, time.UTC), func() (idempotency.Response, error) {
+			currentRole, e := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Viewer)
+			if e != nil { return idempotency.Response{}, e }
+			if _, e = loadSource(ctx, tx, who, tid, req.AssetVersionID, currentRole); e != nil { return idempotency.Response{}, e }
+			body, e := canonical.Marshal(map[string]string{"status": "abandoned", "key": key})
+			return idempotency.Response{Status: 200, Body: body}, e
+		})
+		if e != nil { return e }
+		if e = validateReceipt(out, "", key, true); e != nil { return e }
+		currentRole, e := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Viewer)
+		if e != nil { return e }
+		_, e = loadSource(ctx, tx, who, tid, req.AssetVersionID, currentRole)
+		return e
+	})
+	if err != nil { return idempotency.Response{}, err }
+	return out, nil
+}
+
+func (s Service) generate(ctx context.Context, who auth.Identity, tid uuid.UUID, key string, req GenerateRequest, replayOnly bool) (idempotency.Response, error) {
 	var out idempotency.Response
 	if req.AssetVersionID == uuid.Nil || req.DraftRevision < 0 || req.VariantCount < 1 || req.VariantCount > 4 {
 		return out, domain.NewError("VALIDATION_FAILED", 422)
@@ -256,22 +311,36 @@ func (s Service) Generate(ctx context.Context, who auth.Identity, tid uuid.UUID,
 		if e != nil {
 			return e
 		}
-		var rev int64
-		e = tx.QueryRow(ctx, `SELECT revision FROM photo.editor_drafts WHERE tenant_id=$1 AND asset_version_id=$2 AND user_id=$3`, tid, req.AssetVersionID, who.UserID).Scan(&rev)
-		if errors.Is(e, pgx.ErrNoRows) && req.DraftRevision == 0 {
-			e = nil
-		}
-		if e != nil {
-			return e
-		}
-		if rev != req.DraftRevision {
-			return domain.NewError("REVISION_CONFLICT", 409)
-		}
-		backend, lock, e := runtime(ctx, tx, tid, "image.generate")
-		if e != nil {
-			return e
-		}
+
 		out, e = idempotency.Use(ctx, tx, idempotency.Scope{Tenant: tid, Principal: who.UserID, PrincipalType: "user", Route: "Generation.CreateCandidate", Key: key}, req, time.Now().Add(24*time.Hour), func() (idempotency.Response, error) {
+			// Use may wait on another request. Recheck before admitting fresh work.
+			currentRole, authErr := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Viewer)
+			if authErr != nil {
+				return idempotency.Response{}, authErr
+			}
+			src, authErr = loadSource(ctx, tx, who, tid, req.AssetVersionID, currentRole)
+			if authErr != nil {
+				return idempotency.Response{}, authErr
+			}
+			if replayOnly {
+				return idempotency.Response{}, domain.NewError("GENERATION_REPLAY_PENDING", 409)
+			}
+			// Mutable draft/backend admission applies only to a new operation.
+			var rev int64
+			e = tx.QueryRow(ctx, `SELECT revision FROM photo.editor_drafts WHERE tenant_id=$1 AND asset_version_id=$2 AND user_id=$3`, tid, req.AssetVersionID, who.UserID).Scan(&rev)
+			if errors.Is(e, pgx.ErrNoRows) && req.DraftRevision == 0 {
+				e = nil
+			}
+			if e != nil {
+				return idempotency.Response{}, e
+			}
+			if rev != req.DraftRevision {
+				return idempotency.Response{}, domain.NewError("REVISION_CONFLICT", 409)
+			}
+			backend, lock, e := runtime(ctx, tx, tid, src.ProjectID, who, "image.generate")
+			if e != nil {
+				return idempotency.Response{}, e
+			}
 			run, e := insertBase(ctx, tx, tid, who.UserID, "preview", src, map[string]any{"schema_version": 1, "explicit_generation": true, "asset_version_id": req.AssetVersionID, "draft_revision": req.DraftRevision, "variant_count": req.VariantCount})
 			if e != nil {
 				return idempotency.Response{}, e
@@ -308,9 +377,28 @@ func (s Service) Generate(ctx context.Context, who auth.Identity, tid uuid.UUID,
 			body, e := canonical.Marshal(RunAccepted{run, "queued"})
 			return idempotency.Response{Status: 202, Body: body, ResourceID: &run}, e
 		})
+		if e != nil {
+			return e
+		}
+		if out.Status == 200 {
+			// Only AbandonGeneration writes a 200 tombstone into this scope.
+			if e = validateReceipt(out, "", key, true); e != nil { return e }
+			return domain.NewError("GENERATION_REQUEST_ABANDONED", 409)
+		}
+		if e = validateReceipt(out, "", key, false); e != nil { return e }
+		// A committed receipt bypasses the callback; authorize again after Use's
+		// receipt lock wait before exposing its saved body to this caller.
+		currentRole, e := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Viewer)
+		if e != nil {
+			return e
+		}
+		_, e = loadSource(ctx, tx, who, tid, req.AssetVersionID, currentRole)
 		return e
 	})
-	return out, err
+	if err != nil {
+		return idempotency.Response{}, err
+	}
+	return out, nil
 }
 
 func (s Service) Preview(ctx context.Context, who auth.Identity, tid uuid.UUID, key string, req PreviewRequest) (idempotency.Response, error) {
@@ -347,34 +435,41 @@ func (s Service) Preview(ctx context.Context, who auth.Identity, tid uuid.UUID, 
 		if e != nil {
 			return e
 		}
-		var revision int64
-		e = tx.QueryRow(ctx, `SELECT revision FROM photo.editor_drafts WHERE tenant_id=$1 AND asset_version_id=$2 AND user_id=$3`, tid, req.AssetVersionID, who.UserID).Scan(&revision)
-		if errors.Is(e, pgx.ErrNoRows) && req.DraftRevision == 0 {
-			e = nil
-		}
-		if e != nil {
-			return e
-		}
-		if revision != req.DraftRevision {
-			return domain.NewError("REVISION_CONFLICT", 409)
-		}
-		var styleRef *ArtifactRef
-		if req.StyleVersionID != nil {
-			var ref ArtifactRef
-			var approval, mode string
-			e = tx.QueryRow(ctx, `SELECT v.export_artifact_id,v.config_hash,v.approval_status,v.config_json->>'mode' FROM photo.style_versions v JOIN photo.styles s ON s.tenant_id=v.tenant_id AND s.id=v.style_id JOIN photo.artifacts a ON a.tenant_id=v.tenant_id AND a.id=v.export_artifact_id AND a.sha256=v.config_hash AND a.state='ready' AND a.object_version IS NOT NULL WHERE v.tenant_id=$1 AND v.id=$2 AND s.project_id=$3 AND s.archived_at IS NULL`, tid, *req.StyleVersionID, src.ProjectID).Scan(&ref.ArtifactID, &ref.SHA256, &approval, &mode)
-			if errors.Is(e, pgx.ErrNoRows) {
-				return domain.NewError("NOT_FOUND", 404)
+
+		out, e = idempotency.Use(ctx, tx, idempotency.Scope{Tenant: tid, Principal: who.UserID, PrincipalType: "user", Route: "Preview.Request", Key: key}, req, time.Now().Add(24*time.Hour), func() (idempotency.Response, error) {
+			var revision int64
+			e = tx.QueryRow(ctx, `SELECT revision FROM photo.editor_drafts WHERE tenant_id=$1 AND asset_version_id=$2 AND user_id=$3`, tid, req.AssetVersionID, who.UserID).Scan(&revision)
+			if errors.Is(e, pgx.ErrNoRows) && req.DraftRevision == 0 {
+				e = nil
 			}
 			if e != nil {
-				return e
+				return idempotency.Response{}, e
 			}
-			if approval != "accepted" || mode != "fixed" {
-				return domain.NewError("STYLE_NOT_ACCEPTED", 409)
+			if revision != req.DraftRevision {
+				return idempotency.Response{}, domain.NewError("REVISION_CONFLICT", 409)
 			}
-			styleRef = &ref
-		}
-		out, e = idempotency.Use(ctx, tx, idempotency.Scope{Tenant: tid, Principal: who.UserID, PrincipalType: "user", Route: "Preview.Request", Key: key}, req, time.Now().Add(24*time.Hour), func() (idempotency.Response, error) {
+			var styleRef *ArtifactRef
+			if req.StyleVersionID != nil {
+				var ref ArtifactRef
+				var approval, mode string
+				e = tx.QueryRow(ctx, `SELECT v.export_artifact_id,v.config_hash,v.approval_status,v.config_json->>'mode' FROM photo.style_versions v JOIN photo.styles s ON s.tenant_id=v.tenant_id AND s.id=v.style_id JOIN photo.artifacts a ON a.tenant_id=v.tenant_id AND a.id=v.export_artifact_id AND a.sha256=v.config_hash AND a.state='ready' AND a.object_version IS NOT NULL WHERE v.tenant_id=$1 AND v.id=$2 AND s.project_id=$3 AND s.archived_at IS NULL`, tid, *req.StyleVersionID, src.ProjectID).Scan(&ref.ArtifactID, &ref.SHA256, &approval, &mode)
+				if errors.Is(e, pgx.ErrNoRows) {
+					return idempotency.Response{}, domain.NewError("NOT_FOUND", 404)
+				}
+				if e != nil {
+					return idempotency.Response{}, e
+				}
+				if approval != "accepted" || mode != "fixed" {
+					return idempotency.Response{}, domain.NewError("STYLE_NOT_ACCEPTED", 409)
+				}
+				styleRef = &ref
+			}
+
+			// Completed idempotent responses remain recoverable after a worker
+			// disappears. Only a new preview must pass current CPU admission.
+			if e := admitPreviewWorker(ctx, tx); e != nil {
+				return idempotency.Response{}, e
+			}
 			run, e := insertBase(ctx, tx, tid, who.UserID, "preview", src, map[string]any{"schema_version": 1, "explicit_generation": false, "asset_version_id": req.AssetVersionID, "draft_revision": req.DraftRevision, "style_version_id": req.StyleVersionID, "scale": req.Scale, "roi": req.ROI})
 			if e != nil {
 				return idempotency.Response{}, e
@@ -399,6 +494,11 @@ func (s Service) Preview(ctx context.Context, who auth.Identity, tid uuid.UUID, 
 			body, e := canonical.Marshal(RunAccepted{run, "queued"})
 			return idempotency.Response{Status: 202, Body: body, ResourceID: &run}, e
 		})
+		if e != nil {
+			return e
+		}
+		if e = validateReceipt(out, "", key, false); e != nil { return e }
+		_, e = loadSource(ctx, tx, who, tid, req.AssetVersionID, role)
 		return e
 	})
 	return out, err

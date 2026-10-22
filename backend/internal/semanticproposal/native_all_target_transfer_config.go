@@ -56,6 +56,7 @@ type nativeAllTargetTransferMarker struct {
 	OriginalPerson      nativeDefectPersonRecovery             `json:"original_person"`
 	Capacity            nativeAllTargetTransferCapacity        `json:"capacity"`
 	Targets             []nativeAllTargetTransferTargetLocator `json:"targets"`
+	SceneEvidence       []json.RawMessage                      `json:"scene_evidence,omitempty"`
 }
 type nativeAllTargetTransferConfig struct {
 	v2input.SemanticDraftConfig
@@ -95,7 +96,9 @@ func compileNativeAllTargetTransferConfig(ctx context.Context, who auth.Identity
 		return nil, "", v2input.ErrInvalid
 	}
 	// Select saved serialization only after verifying the complete base config.
-	if c.legacyAllTargetQueueOmitted { config.QueueClass = "" }
+	if c.legacyAllTargetQueueOmitted {
+		config.QueueClass = ""
+	}
 	registered := reference.person.source.protection
 	prep := registered.published.preparation
 	person := prep.plan.prepared.dependencies.preparation.person
@@ -139,6 +142,9 @@ func compileNativeAllTargetTransferConfig(ctx context.Context, who auth.Identity
 		marker.Targets[i] = locator
 	}
 	config.Native = marker
+	if len(c.sceneEvidence) > 0 {
+		config.Native.SceneEvidence = ownTransferPreparation(c).sceneEvidence
+	}
 	if err := validateNativeAllTargetTransferConfigLocators(config); err != nil {
 		return nil, "", err
 	}
@@ -190,7 +196,9 @@ func decodeNativeAllTargetTransferConfig(raw json.RawMessage, sha string) (nativ
 }
 
 func validateNativeAllTargetTransferConfigLocators(config nativeAllTargetTransferConfig) error {
-	if config.QueueClass != "" && config.QueueClass != "batch" { return v2input.ErrInvalid }
+	if config.QueueClass != "" && config.QueueClass != "batch" {
+		return v2input.ErrInvalid
+	}
 	m := config.Native
 	if m.Schema != 1 || len(m.Targets) < 1 || len(m.Targets) > 5000 || len(m.Targets) != len(config.Semantic.Nodes) {
 		return v2input.ErrInvalid
@@ -237,8 +245,32 @@ func validateNativeAllTargetTransferConfigLocators(config nativeAllTargetTransfe
 		return v2input.ErrInvalid
 	}
 	var expected v2qualification.Expected
-	if json.Unmarshal(capacity.Expected, &expected) != nil || expected.Operation != "semantic.transfer" || expected.Version != "1" || expected.Backend != "cuda" || capacity.Report != config.Semantic.Qualification.Report || verifyQualificationConfiguration(*config.Semantic.Qualification, expected) != nil {
+	if json.Unmarshal(capacity.Expected, &expected) != nil || expected.Operation != "semantic.transfer" || expected.Version != "1" || (expected.Backend != "cuda" && expected.Backend != "mps") || capacity.Report != config.Semantic.Qualification.Report || verifyQualificationConfiguration(*config.Semantic.Qualification, expected) != nil {
 		return v2input.ErrInvalid
+	}
+	if m.SceneEvidence != nil {
+		if len(m.SceneEvidence) != len(m.Targets) {
+			return v2input.ErrInvalid
+		}
+		required := false
+		for _, check := range expected.RequiredChecks {
+			if check == semanticSceneCheck {
+				required = true
+			}
+		}
+		if !required {
+			return v2input.ErrInvalid
+		}
+		pin := *config.Semantic.Qualification
+		for i, raw := range m.SceneEvidence {
+			scene, err := v2input.DecodeSemanticSceneEvidence(raw)
+			if err != nil || scene.Reference.Binding != m.Reference || scene.Target.Binding != m.Targets[i].Binding || scene.Intent != m.Intent || scene.Calibration != pin.Calibration || scene.ModelLockSHA != pin.ModelLockSHA || scene.RuntimeLockSHA != pin.RuntimeLockSHA || scene.DeviceProfileSHA != pin.DeviceProfileSHA || scene.DatasetSHA != pin.DatasetSHA {
+				return v2input.ErrInvalid
+			}
+			if _, ok := expected.EvidenceSHAs[scene.PolicySHA]; !ok {
+				return v2input.ErrInvalid
+			}
+		}
 	}
 	expectedRaw, err := canonical.Marshal(expected)
 	if err != nil {

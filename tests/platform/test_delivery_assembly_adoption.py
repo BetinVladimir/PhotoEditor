@@ -80,6 +80,9 @@ def test_service_uses_dedicated_assembly_commit_after_physical_reads(monkeypatch
     class Read:
         autocommit = True
         def execute(self, query, args):
+            if 'v30_delivery_signed_adoption_scope' in query:
+                assert args==(tenant,task,2,7,result,reader.objects[params.artifact_id].decode())
+                calls.append('scope');return Cursor(None)
             calls.append('params')
             assert 'v30_delivery_assembly_adoption_params' in query
             assert args == (tenant, task, 2, 7, result)
@@ -105,7 +108,7 @@ def test_service_uses_dedicated_assembly_commit_after_physical_reads(monkeypatch
     if mode == 'corrupt_output': reader.objects[root.artifact_id] = b'{}'
     if mode in ('stale_params', 'corrupt_output'):
         with pytest.raises(AdoptionInvalid): coordinator.adopt(tenant, task)
-        assert calls == ['params']
+        assert calls == (['params'] if mode=='stale_params' else ['params','scope'])
     else:
         assert coordinator.adopt(tenant, task) is (mode == 'accepted')
-        assert calls == ['params', 'prepare', 'transaction', 'commit']
+        assert calls == ['params', 'scope', 'prepare', 'transaction', 'commit']

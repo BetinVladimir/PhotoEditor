@@ -24,7 +24,7 @@ func(t *negativeSelectedProofTx)QueryRow(ctx context.Context,q string,args ...an
 func TestNegativeSelectedProofLockBindsIdentityAndPinsBeforeSQL(t *testing.T){
  _,source,_,_:=negativeDraftFixture(t);spec,object,_:=perspectiveArrayFixture(t,3,[]float32{-0.5,1.5,0.25})
  image,err:=review.ParseWorkingImage(source);if err!=nil {t.Fatal(err)}
- image.Canvas.Width=1;image.Canvas.Height=1;image.Pixels.ID=spec.Ref.ArtifactID;image.Pixels.SHA256=spec.Ref.SHA256
+ image.Canvas.Width=1;image.Canvas.Height=1;image.Pixels.ID=spec.Ref.ArtifactID;image.Pixels.SHA256=spec.Ref.SHA256;image.Alpha=nil
  source,err=canonical.Marshal(image);if err!=nil {t.Fatal(err)};sum:=sha256.Sum256(source)
  tenant,project,reviewID:=uuid.New(),uuid.New(),uuid.New();who:=auth.Identity{UserID:uuid.New(),SessionID:uuid.New()};hash:="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
  selection:=VerifiedNegativeSelection{source:negativeSelectedSource{SchemaVersion:1,Tenant:tenant,Project:project,Review:reviewID,Task:uuid.New(),Run:uuid.New(),Hash:hash,Route:"base",Source:&negativeSourceLocator{ArtifactID:uuid.New(),SHA256:hex.EncodeToString(sum[:]),Bytes:int64(len(source)),Bucket:"photos",Key:"source",Version:"original",Media:"application/json"}},raw:string(source)}

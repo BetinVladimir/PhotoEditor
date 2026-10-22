@@ -18,6 +18,10 @@ type FrozenSemanticDetectorTask struct {
 }
 
 func CompileSemanticDetectorTask(ctx context.Context, workflow uuid.UUID, ordinal int, binding SessionVersionBinding, imageBody json.RawMessage, paramsRef Ref, modelLock string, score float64, maxFaces int, sizes []SemanticInputSize, costs SemanticQualifiedCosts, ram, vram, scratch, output int64) (FrozenSemanticDetectorTask, error) {
+	return CompileSemanticDetectorTaskForBackend("cuda", ctx, workflow, ordinal, binding, imageBody, paramsRef, modelLock, score, maxFaces, sizes, costs, ram, vram, scratch, output)
+}
+
+func CompileSemanticDetectorTaskForBackend(backend string, ctx context.Context, workflow uuid.UUID, ordinal int, binding SessionVersionBinding, imageBody json.RawMessage, paramsRef Ref, modelLock string, score float64, maxFaces int, sizes []SemanticInputSize, costs SemanticQualifiedCosts, ram, vram, scratch, output int64) (FrozenSemanticDetectorTask, error) {
 	var zero FrozenSemanticDetectorTask
 	closure, err := CompileSemanticDetectorClosure(ctx, workflow, ordinal, binding, imageBody, paramsRef, modelLock, score, maxFaces)
 	if err != nil {
@@ -35,7 +39,7 @@ func CompileSemanticDetectorTask(ctx context.Context, workflow uuid.UUID, ordina
 	if err != nil {
 		return zero, ErrInvalid
 	}
-	profile, err := CompileSemanticDetectorProfileFromInputs(int64(image.Canvas.Width), int64(image.Canvas.Height), paramsRef, refs, sizes, costs, ram, vram, scratch, output)
+	profile, err := CompileSemanticDetectorProfileFromInputsForBackend(backend, int64(image.Canvas.Width), int64(image.Canvas.Height), paramsRef, refs, sizes, costs, ram, vram, scratch, output)
 	if err != nil {
 		return zero, err
 	}

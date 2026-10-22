@@ -127,7 +127,7 @@ Worker Render cache reuse is now mounted for SQLRenderTaskAdmission after normal
 
 Render cross-task cache requires00452 and matching worker code. Cache schema2 excludes only task-bound v2_input_manifest; semantic closure entries/count/contracts and all processing/qualification pins remain included. Older schema1 rows are misses for new callers and expire normally. Full task transport is still checked at admission and gateway access.
 
-Versioned Render cache S3 byte checks: run `PHOTO_TEST_MINIO_TMPFS=1 PYTHONPATH=workers:src .venv-platform/bin/python -m pytest tests/integration/test_v26_render_cache_objectstore.py -q`. The isolated test verifies old-version reads despite wrong latest versions, deleted-version refusal, real fresh object writes and independent typed recomposition. It uses controlled catalog/gateway adapters, so is not combined production mTLS/SQL commit acceptance. Tmpfs does not test restart durability. After a Docker launch observation timeout, confirm the exact original container is running before using the explicit PHOTO_TEST_EXISTING_MINIO_NAME recovery option for the affected single parameter case; do not create a replacement solely due to timeout.
+Versioned Render cache S3 byte checks: run `PHOTO_TEST_MINIO_TMPFS=1 PYTHONPATH=workers:apps/local-editor/src .venv-platform/bin/python -m pytest tests/integration/test_v26_render_cache_objectstore.py -q`. The isolated test verifies old-version reads despite wrong latest versions, deleted-version refusal, real fresh object writes and independent typed recomposition. It uses controlled catalog/gateway adapters, so is not combined production mTLS/SQL commit acceptance. Tmpfs does not test restart durability. After a Docker launch observation timeout, confirm the exact original container is running before using the explicit PHOTO_TEST_EXISTING_MINIO_NAME recovery option for the affected single parameter case; do not create a replacement solely due to timeout.
 
 Render cache lifecycle requires00453: trusted accepted publication can refresh an expired matching content entry without DELETE. Live entries and tenant/key/context identity remain immutable; refresh expiry is at most24 hours and output expiry still bounds it. No additional purge permissions are required.
 
@@ -290,3 +290,110 @@ Set `API_PUBLIC_ORIGIN` to the exact externally reachable HTTPS origin of the AP
 ## Локальные предупреждения о ёмкости V32
 
 После установки миграций V32 и задания `PHOTO_V32_SCHEDULER_POLICY_SHA256` scheduler можно запустить с `PHOTO_V32_LOCAL_SCALE_ALERTS=true`. Он каждые 10 секунд читает агрегаты CPU/GPU/signer из существующих бронирований и квалифицированной очереди; предупреждение появляется после непрерывного превышения порога и снимается при восстановлении. Режим только сообщает о давлении на локальный узел и не создаёт облачные машины. Для signer требуется отдельная ёмкость: смешанный signer/general CPU-узел отклоняется как недостоверный источник utilization.
+
+
+### Dedicated remote RTX worker
+
+`compose.rtx-worker.yaml` starts only the GPU worker on the dedicated RTX server. It connects to existing PostgreSQL, RabbitMQ and HTTPS object gateway endpoints through the deployment's private network. It does not publish ports or start a second database/scheduler. Use `env/rtx-worker.env.example` as input; provision a unique worker UUID, database principal, queue identity and client certificate bound to the same registered node/worker. The gateway certificate SAN must match the configured remote hostname. PostgreSQL uses server verification; place its trusted CA at `postgres-ca.crt` inside the mounted TLS directory. The container explicitly sets `PGSSLROOTCERT=/run/photo/tls/postgres-ca.crt`; this CA may differ from the gateway CA.
+
+The operator installation environment file carries the enabled operation flags, exact runtime/model/qualification pins and any required object-store credentials. Keep real secrets outside the repository. Model weights and TLS files are read-only mounts; missing paths are refused. Fresh named scratch volumes inherit UID/GID 10001 from the worker image. Existing volumes or host-mounted scratch directories must already be writable by UID 10001; startup must not change ownership of an existing installation.
+
+The image must be immutable and qualified for the actual NVIDIA driver, CUDA runtime, PyTorch and required ONNX CUDA providers. The repository's generic worker image currently installs CPU `onnxruntime` through the media extra; it is not sufficient evidence for CUDA ONNX operations. `images/worker/Dockerfile.cuda` installs the frozen shared environment and replaces CPU ONNX with the exact Linux x86_64 CPython 3.11 GPU wheel in `workers/requirements-cuda.txt`, verified by SHA256. It checks dependency consistency and provider installation during the future image build. Supply immutable `UV_IMAGE` and `CUDA_PYTHON_BASE_IMAGE` digests; the latter must provide Python 3.11, glibc >=2.28, CUDA 12 and cuDNN 9. ONNX stable GPU uses CUDA 12 ([official installation documentation](https://onnxruntime.ai/docs/install/)); the Torch CUDA libraries in `uv.lock` do not replace this base contract. Selection and qualification of that base digest, image build and actual CUDA model sessions remain open release gates. No package/provider fallback is allowed. Do not run `uv sync` inside the final image: it would restore the CPU ONNX distribution.
+
+After completing coding, validate the resolved configuration and execute startup, tenant registration, qualification import, lease, actual photo operation, recovery and download on the target server. The decimal 10 GB CUDA allocator/admission limit is enforced by worker startup; real provider peaks and external CUDA allocations still require measurement. Metal continues to run natively with its separate capacity policy.
+
+
+`provision-rtx-worker.sql` is an operator-only, transactional psql template for the initial tenant registration. Supply every named variable explicitly and create the dedicated nonprivileged LOGIN with `photo_worker` membership separately. The template refuses existing worker/principal identities and node conflicts, pins model and certificate SHA256 values, and creates a disabled node with a decimal 10 GB VRAM budget and a disabled CUDA GPU-class worker. It does not create qualification, resource slots or enable dispatch. Actual doctor/model/operation qualification and activation remain separate installation gates; never run the template using application or worker credentials. Additional tenants require an explicit enrollment workflow rather than rerunning this first-registration template.
+
+
+Before initial RTX registration, install `configs/capacity-rtx3060.json` with the existing operator command `photo-worker capacity-policy-install` using the operator connection configured by that command. Supply its returned canonical SHA as `capacity_policy_sha` to the registration template. The template requires that exact immutable policy in `photo.capacity_policy_timings`, one concurrent GPU task, decimal 10 GB GPU budget, and a node RAM budget equal to the policy's photo RAM budget. It stores the SHA on the worker registration so startup timing checks and capacity heartbeats use the same policy as the mounted file. A missing or mismatched policy aborts the entire registration transaction.
+
+
+The Python/CUDA base can be built from `images/worker/Dockerfile.cuda-base`. Supply immutable `UV_IMAGE` and `CUDA_RUNTIME_IMAGE` digests; the NVIDIA runtime input must contain CUDA 12, cuDNN 9 and Ubuntu 24.04 for Linux amd64. The recipe installs managed CPython 3.11.14 using the pinned uv build's interpreter download metadata, makes it readable to the nonroot worker, and checks that CUDA/cuDNN shared libraries load without creating a GPU context. Subsequent builds cannot download a different Python interpreter. Publish and record the resulting base digest as `CUDA_PYTHON_BASE_IMAGE` for `Dockerfile.cuda`. Managed Python behavior follows [uv's Python installation documentation](https://docs.astral.sh/uv/guides/install-python/). Input/output image digests, interpreter archive provenance, host driver compatibility and actual ONNX/Torch interoperability must be recorded during release qualification; no target image has been built or qualified by authoring these recipes.
+
+
+`activate-rtx-worker.sql` completes **initial** operator activation after reviewing the target-host doctor report and operation qualification. Supply the exact doctor report file bytes and their SHA256, pinned registration identity, and a reviewed operation allowlist shaped as `{"operation.name":["cuda"]}`. The script does not infer operation quality from model smoke results: independent quality/policy gates remain required. It checks the report's backend/model lock and passing locked models for model-backed registry entries, rejects identity changes, existing slots, shared nodes and drained/running installations, and creates one GPU slot. Activation starts with zero available capacity and stale heartbeat fields; only the authenticated worker can refresh readiness. Report integrity here is a trusted operator file pin, not a signature or independent quality certification. Existing deployments and additional tenant enrollment require their own workflow; this template deliberately refuses to overwrite them.
+
+The migrate role now checks embedded bundle filenames, unique versions and Up-section structure before SQL application; legacy absent/comment-only Down sections are accepted and the production command exposes only Goose Up and checks final SECURITY DEFINER ownership, fixed search paths and PUBLIC execution denial afterward under a bounded deadline. A failed final security check leaves already committed forward-only migrations applied and does not authorize destructive rollback; preserve the database and add a reviewed forward-only correction. Fresh/upgrade and role scenarios are authored but remain unexecuted.
+
+
+Runtime database identity isolation (P0.6.03)
+
+All application pool constructors attest each new physical connection after startup
+`SET ROLE` and any existing `AfterConnect` initializer. The selected role must
+match the constructor exactly. Both selected role and authenticated `session_user`
+must be non-superuser, without BYPASSRLS and without membership in any superuser,
+BYPASSRLS role or `photo_fn_owner`. A migration/admin DSN is rejected even if
+`SET ROLE photo_api` succeeds. Use separate operator-provisioned nonprivileged LOGIN
+credentials with membership only in required service roles; never give runtime
+logins `photo_fn_owner` membership. API auxiliary scheduler/admission pools require
+those explicit memberships; worker credentials must match their registered worker
+principal. `DATABASE_URL`, `AUTH_DATABASE_URL`, and donor/RTX URLs must follow this
+rule. Migration/admin credentials are used only by their operator commands.
+No runtime LOGIN passwords or additional grants are generated by migrations.
+Credential provisioning and actual fresh/upgrade role qualification remain deployment
+work, not a claimed completed test.
+
+Owner/DDL privilege separation: connection guards also refuse CREATEROLE and
+REPLICATION attributes or memberships; `photo_runtime_owner`, every actual photo
+schema/relation owner and every photo SECURITY DEFINER function owner are protected
+by catalog ownership checks. Schema CREATE is forbidden for both runtime identities.
+The owner checks use transitive membership, independently of INHERIT. Authored
+transactional PostgreSQL scenarios cover runtime-owner/function-owner membership,
+CREATEROLE, REPLICATION, schema CREATE, schema ownership, table ownership and
+SECURITY DEFINER ownership; these scenarios have not been executed.
+
+RTX immutable installation launcher (P0.2.06)
+
+`rtx_installation.py` connects the two existing Docker recipes and the dedicated
+Compose deployment through a single operator-reviewed image lock. Copy
+`env/rtx-images.lock.example.json` outside the repository. Its null values mean
+**unknown**, not an approved image. No NVIDIA, uv, Python/CUDA base or worker
+registry digest has been verified locally during coding. Record reviewed
+`repository@sha256:<64 lowercase hex>` values before each corresponding phase.
+The runtime contract is Linux amd64, CPython **3.11.14**, CUDA12/cuDNN9.
+Both CUDA Docker recipes refuse mutable image arguments; the worker refuses an
+incorrect interpreter patch and cannot download another managed Python.
+
+The CUDA worker image explicitly selects LCMS from the frozen Pillow wheel rather
+than relying on a system library in the NVIDIA base. Its installer checks the
+wheel RECORD hash and size, then exercises the production LCMS API before writing
+`/opt/photo/native/lcms-manifest.json`. `LCMS2_LIBRARY` points at that verified
+binary. Retain the manifest with image evidence; this build check is not a
+photographic quality qualification. Existing default ICC discovery and historical
+processing policies remain unchanged.
+
+The launcher prints argument arrays by default and runs nothing. After coding
+and release approval, the operator may use its explicit `--execute` switch:
+
+```text
+python3 deploy/rtx_installation.py base --lock /srv/photoeditor/rtx/images.json --output-tag registry.example/photo/cuda-python:release --metadata-file /srv/photoeditor/rtx/base-build.json
+python3 deploy/rtx_installation.py worker --lock /srv/photoeditor/rtx/images.json --output-tag registry.example/photo/worker:release --metadata-file /srv/photoeditor/rtx/worker-build.json
+python3 deploy/rtx_installation.py start --lock /srv/photoeditor/rtx/images.json --env-file /srv/photoeditor/rtx/worker.env
+```
+
+Build phases publish provenance and Docker metadata; review the resulting registry
+manifest digest and record it as `cuda_python_base_image`, then `worker_image`
+respectively. A local image ID is not a registry manifest digest. Never substitute
+an unreviewed tag. `start` overrides the Compose image with the immutable lock;
+operation/model/runtime installation settings remain in the existing mounted
+`PHOTO_RTX_INSTALLATION_ENV_FILE` and are independently checked at startup.
+
+Registration order remains capacity-policy-install → provision-rtx-worker.sql
+(disabled node/worker) → real target-host doctor and operation qualification →
+activate-rtx-worker.sql → authenticated heartbeat/dispatch. Provisioning and
+activation now reject replication/privileged memberships and schema CREATE that
+would fail the production connection guard, including privileges added between
+those phases. These operator scripts never create passwords, qualification or
+ready capacity. CUDA remains capped at **10 000 000 000 bytes**; Metal retains its
+native availability policy without this artificial cap. Installation, builds,
+network access and physical qualification have not been performed here.
+### Advanced personal learning installation
+
+Set `V23_TRAINING_SCHEDULER_DATABASE_URL` on the API service only when installing
+the qualified personal-learning admission pipeline. Use a dedicated scheduler
+credential with the existing `photo_scheduler` role; the API database URL is not
+used as a fallback. Empty configuration leaves this optional pipeline unavailable
+and preserves baseline style training. Explicit configuration requires the complete
+SQL installation and valid dependencies, with startup bounded to15 seconds.
+Qualified fit/evaluate workers and operator promotion/safety rules remain required.

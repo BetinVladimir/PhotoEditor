@@ -81,7 +81,7 @@ func ValidateConfig(c Config) error {
 	if _, err := canonical.Marshal(c); err != nil {
 		return domain.NewError("VALIDATION_FAILED", 422)
 	}
-	if !map[string]bool{"tiff": true, "png": true, "jpeg": true}[c.Format] || !map[string]bool{"srgb_v1": true, "work_rec2020_gamma24_v1": true}[c.ICCID] || c.Subsampling != "444" || !map[string]bool{"preserve": true, "matte": true}[c.Alpha] || !map[string]bool{"strip": true, "copyright": true, "approved_exif": true}[c.MetadataPolicy] || strings.TrimSpace(c.NamingTemplate) == "" || len(c.NamingTemplate) > 200 {
+	if !map[string]bool{"tiff": true, "png": true, "jpeg": true}[c.Format] || !map[string]bool{"srgb_v1": true, "work_rec2020_gamma24_v1": true}[c.ICCID] || c.Subsampling != "444" || !map[string]bool{"preserve": true, "matte": true}[c.Alpha] || !map[string]bool{"strip": true, "copyright": true, "approved_exif": true}[c.MetadataPolicy] || !ValidNamingTemplate(c.NamingTemplate) {
 		return domain.NewError("VALIDATION_FAILED", 422)
 	}
 	dims := 0
@@ -198,6 +198,10 @@ func (s Service) List(ctx context.Context, who auth.Identity, tid uuid.UUID, lim
 }
 func (s Service) Create(ctx context.Context, who auth.Identity, tid uuid.UUID, key string, req Create) (idempotency.Response, error) {
 	var out idempotency.Response
+	// Own nested slices/pointers before any receipt/database wait.
+	frozen, freezeErr := canonical.Marshal(req)
+	if freezeErr != nil { return out, domain.NewError("VALIDATION_FAILED",422) }
+	if freezeErr = json.Unmarshal(frozen,&req); freezeErr != nil { return out, freezeErr }
 	if err := validate(req); err != nil {
 		return out, err
 	}
@@ -233,7 +237,8 @@ func (s Service) Create(ctx context.Context, who auth.Identity, tid uuid.UUID, k
 			body, e := canonical.Marshal(p)
 			return idempotency.Response{Status: 201, Body: body, ResourceID: &p.ID}, e
 		})
-		return e
+		if e != nil { return e }
+		return validateCreatedPresetReceipt(out,req)
 	})
 	return out, err
 }

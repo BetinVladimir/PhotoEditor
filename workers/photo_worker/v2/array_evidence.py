@@ -3,7 +3,7 @@ from contextlib import ExitStack
 from hashlib import sha256
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from photo_worker.runtime.arrays import read_array,read_alpha_array,read_inverse_field
+from photo_worker.runtime.arrays import read_array,read_alpha_array,read_inverse_field,read_lut
 from .adoption import AdoptionInvalid
 
 
@@ -27,8 +27,12 @@ class ArrayEvidenceSession:
         try:return self.stack.__exit__(*args)
         finally:self.stack=None;self.directory=None;self.cache.clear()
 
-    def array(self,ref,shape,*,source,role=None,unit=False,legacy_alpha=False,legacy_input_npy=False,inverse_field=False):
+    def array(self,ref,shape,*,source,role=None,unit=False,legacy_alpha=False,legacy_input_npy=False,inverse_field=False,lut=False,labels=False):
         self.check()
+        if type(labels) is not bool or labels and (source!='input' or len(shape)!=2 or unit or legacy_alpha or inverse_field or lut):
+            raise AdoptionInvalid('ARRAY_LABEL_POLICY_INVALID')
+        if type(lut) is not bool or lut and (source!='input' or tuple(shape) not in ((33,33,33,3),(65,65,65,3)) or not unit or legacy_alpha or inverse_field):
+            raise AdoptionInvalid('ARRAY_LUT_POLICY_INVALID')
         if type(inverse_field) is not bool or inverse_field and (source not in ('input','output') or source=='output' and role!='warp_field' or len(shape)!=3 or shape[2]!=2 or unit or legacy_alpha):
             raise AdoptionInvalid('ARRAY_FIELD_POLICY_INVALID')
         if type(legacy_input_npy) is not bool or legacy_input_npy and source!='input':
@@ -37,12 +41,13 @@ class ArrayEvidenceSession:
             raise AdoptionInvalid("ARRAY_ALPHA_POLICY_INVALID")
         if self.stack is None:raise ValueError('ADOPTION_SESSION_CLOSED')
         evidence=self.reader.evidence(ref)
+        self.check()
         if (evidence.ref!=ref or evidence.source!=source or source not in ('input','output')
                 or role is not None and evidence.role!=role
                 or (evidence.media_type!='application/x-npy' and not (legacy_input_npy and evidence.media_type=='application/octet-stream'))
                 or type(evidence.bytes) is not int or evidence.bytes<1):
             raise AdoptionInvalid('ARRAY_EVIDENCE_INVALID')
-        key=(ref,tuple(shape),source,role,unit,legacy_alpha,legacy_input_npy,inverse_field)
+        key=(ref,tuple(shape),source,role,unit,legacy_alpha,legacy_input_npy,inverse_field,lut,labels)
         if key in self.cache:return self.cache[key]
         # Reserve before reading; even failed materialization consumes this session's budget.
         if evidence.bytes>self.limit-self.used:raise AdoptionInvalid('ADOPTION_SCRATCH_EXCEEDED')
@@ -57,11 +62,13 @@ class ArrayEvidenceSession:
                     if not isinstance(block,bytes) or not 1<=len(block)<=65536 or count+len(block)>evidence.bytes:
                         raise AdoptionInvalid('ARRAY_STREAM_INVALID')
                     target.write(block);digest.update(block);count+=len(block)
+            self.check()
             if count!=evidence.bytes or digest.hexdigest()!=ref.sha256:
                 raise AdoptionInvalid('ARRAY_BYTES_INVALID')
-            mapped=self.stack.enter_context(read_alpha_array(path,tuple(shape),self.check) if legacy_alpha
+            mapped=self.stack.enter_context(read_lut(path,shape[0],self.check) if lut
+                else read_alpha_array(path,tuple(shape),self.check) if legacy_alpha
                 else read_inverse_field(path,tuple(shape[:2]),self.check) if inverse_field
-                else read_array(path,tuple(shape),'float32',self.check,unit_interval=unit))
+                else read_array(path,tuple(shape),'uint16' if labels else 'float32',self.check,unit_interval=unit))
             self.cache[key]=mapped
             return mapped
         except BaseException:

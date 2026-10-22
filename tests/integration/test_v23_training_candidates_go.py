@@ -1,5 +1,6 @@
 """Read one frozen candidate inventory through the API-role Go adapter."""
 
+import json
 import os
 import subprocess
 
@@ -9,6 +10,39 @@ from psycopg.conninfo import make_conninfo
 from conftest import ROOT
 from test_v23_record_correction import _fixture, _record
 
+
+
+
+def _assert_exact_go_root_executed(result, package, root):
+    """A successful exit alone may hide a skipped or unmatched Go selector."""
+    from hashlib import sha256
+    from pathlib import Path
+    from uuid import uuid4
+    events=[]
+    invalid_json=False
+    for line in result.stdout.splitlines():
+        if not line.startswith('{'):continue
+        try:event=json.loads(line)
+        except (ValueError,TypeError):
+            invalid_json=True
+            continue
+        if not isinstance(event,dict):
+            invalid_json=True
+            continue
+        events.append({key:event[key] for key in ('Action','Package','Test','Elapsed') if key in event})
+    evidence=Path(__file__).resolve().parents[2]/'work/specialized-three-go-evidence'
+    evidence.mkdir(parents=True,exist_ok=True)
+    path=evidence/(root+'-'+uuid4().hex+'.json')
+    path.write_text(json.dumps(dict(selector='^'+root+'$',package=package,
+        exit_code=result.returncode,events=events,invalid_json=invalid_json,
+        stdout_sha256=sha256(result.stdout.encode()).hexdigest(),
+        stderr_sha256=sha256(result.stderr.encode()).hexdigest()),indent=2)+'\n')
+    assert not invalid_json,str(path)
+    assert events, 'Go JSON events required'
+    assert not [event for event in events if event.get('Action') in ('skip','fail')], 'Go root/child SKIP or FAIL is not execution evidence'
+    for action in ('run','pass'):
+        assert sum(event.get('Action')==action and event.get('Test')==root
+            and event.get('Package')==package for event in events)==1, 'exact selected Go root '+action+' required once'
 
 def test_v23_candidate_source_go(database):
     with psycopg.connect(**database) as db:
@@ -34,9 +68,10 @@ def test_v23_candidate_source_go(database):
                                                          auth_session, *sessions]))
     env['GOCACHE'] = str(ROOT / 'work' / 'go-cache')
     result = subprocess.run(
-        ['go', 'test', './internal/v2learning',
+        ['go', 'test', '-json', './internal/v2learning',
          '-run', '^TestIntegrationTrainingCandidateSource$', '-count=1'],
         cwd=ROOT / 'backend', env=env, capture_output=True, text=True,
         timeout=60,
     )
+    _assert_exact_go_root_executed(result,'photoeditor/backend/internal/v2learning','TestIntegrationTrainingCandidateSource')
     assert result.returncode == 0, result.stdout + result.stderr

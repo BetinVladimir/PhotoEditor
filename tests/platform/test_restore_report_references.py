@@ -21,6 +21,10 @@ def test_parent_report_artifact_pins_survive_nested_dataclass_serialization():
         'review_required':True}
 
 
-@pytest.mark.parametrize('value',[object(),b'private source bytes',1.5])
+@pytest.mark.parametrize('value',[object(),b'private source bytes',float('nan'),float('inf'),float('-inf')])
 def test_reference_support_does_not_silently_stringify_unknown_evidence(value):
     with pytest.raises(ValueError,match='RESTORE_REPORT_VALUE'):_json({'nested':[value]})
+
+
+def test_finite_numeric_metrics_remain_json_numbers():
+    assert parse_json(canonical_bytes(_json({'metric':1.5})))=={'metric':1.5}

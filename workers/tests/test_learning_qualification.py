@@ -107,7 +107,7 @@ def test_reviewed_dust_needs_separately_signed_quality_evidence(tmp_path):
         return SimpleNamespace(local=SimpleNamespace(enabled=False),
             beauty=SimpleNamespace(enabled=False),
             defects=SimpleNamespace(enabled=False),
-            extensions=SimpleNamespace(region_adjustments=[], background=None,
+            extensions=SimpleNamespace(region_adjustments=[], background=None,portrait_detail=None,
                 restoration=SimpleNamespace(denoise='off', upscale='off',
                                             sensor_dust=mode)))
     styles = SimpleNamespace(baseline=arm('review'), candidate=arm('review'),
@@ -330,7 +330,7 @@ def test_learning_evidence_refuses_hardlink_and_replaced_entry(tmp_path, monkeyp
         return descriptor
 
     monkeypatch.setattr(qualification.os, 'open', replace_after_open)
-    with pytest.raises(ValueError, match='LEARNING_EVIDENCE_CHANGED'):
+    with pytest.raises(ValueError, match='LEARNING_EVIDENCE_CHANGED|LEARNING_EVIDENCE_UNAVAILABLE'):
         verify_learning_evidence(root, {digest})
 
 

@@ -81,8 +81,10 @@ def test_adopter_runtime_merges_preview_counts_without_other_candidates():
     adopter.multi_preview_runner = None
     adopter.perspective_preview_runner = None
     adopter.perspective_quality_runner = None
-    adopter.stop = Event(); adopter.read = Read(); adopter.exposure_enabled = False
+    adopter.stop = Event(); adopter.read = Read(); adopter.exposure_enabled = False; adopter.shown_exposure_enabled = False
     adopter.derivative_coordinator = None
+    adopter.restoration_preview_runner = None
+    adopter.lens_preview_runner = None
     adopter.multi_quality_runner = SimpleNamespace(run_once=lambda: {
         'adopted': 2, 'rejected': 1, 'finalized': 3, 'retry': 4,
         'cancel_requested': 1, 'released': 1})

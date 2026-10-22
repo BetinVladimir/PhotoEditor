@@ -71,6 +71,8 @@ def prepare_dust_repair(rgb,crop,selected,scratch,*,check_active=lambda:None):
         check_active()
         repaired[:,:,channel]=cv2.inpaint(rgb[:,:,channel],mask,inpaint_radius,cv2.INPAINT_TELEA)
     np.clip(repaired,0,1,out=repaired)
+    # Explicitly preserve all non-selected float32 pixels, including signed zero.
+    np.copyto(repaired,rgb,where=(mask==0)[:,:,None])
     evidence=[]
     for candidate,x,y,radius in mapped:
         check_active()

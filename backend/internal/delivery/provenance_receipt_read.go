@@ -69,6 +69,8 @@ func ReadSignedDependencyReceipt(ctx context.Context,db *pgxpool.Pool,who auth.I
   found=true
   receipt.SignedObject.SHA256=receipt.Signed.SHA256
   receipt.ManifestObject.SHA256=receipt.Manifest.SHA256
+  // The SQL projection admits only manifest.media_type='application/c2pa'.
+  receipt.ManifestObject.ContentType="application/c2pa"
   if receipt.Bucket!=bucket||!validSignedDependencyReceipt(dependency,receipt){return v2input.ErrInvalid}
   return nil
  })

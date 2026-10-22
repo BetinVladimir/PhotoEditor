@@ -22,7 +22,7 @@ class Qualification(Contract):
     device_profile_sha: SHA256
     dataset_sha: SHA256
     policy_sha: SHA256
-    backend: Literal['cuda']
+    backend: Literal['cuda', 'mps']
 
 
 class Peak(Contract):
@@ -170,9 +170,43 @@ class PinnedRegionCalibrationCatalog:
                 src=region_source_resources(width,height,has_alpha=source.alpha is not None,alpha_mode='normalize_uint16')
                 pixels=width*height
                 roi=params.geometry.output_width*params.geometry.output_height
+                retained=pixels;geometry_ram=geometry_scratch=0
+                if params.execution is not None:
+                    for stage in params.execution.stages:
+                        target_pixels=stage.target_canvas.width*stage.target_canvas.height
+                        if not 1<=target_pixels<=200000000:raise ValueError('REGION_CALIBRATION_GEOMETRY_INVALID')
+                        if stage.transform is not None:retained+=target_pixels
+                        if stage.operation=='image.color':
+                            geometry_ram+=12*target_pixels+8192
+                            geometry_scratch+=12*target_pixels+8192
+                        if stage.operation=='geometry.body':
+                            geometry_ram+=44*target_pixels+16*65536
+                            geometry_scratch+=24*target_pixels+2*1024**2
+                        if stage.operation=='portrait.detail':
+                            geometry_ram+=max(1073741824,(164+4*stage.input_mask_count)*target_pixels+1048576)
+                            geometry_scratch+=(16+4*stage.input_mask_count)*target_pixels+16384
+                        if stage.operation=='image.local':
+                            geometry_ram+=(4+4*stage.input_mask_count)*target_pixels+1048576
+                            geometry_scratch+=4*stage.input_mask_count*target_pixels+1048576
+                        if stage.operation in ('sensor.dust_auto_repair','defects.auto_repair','sensor.dust_repair','defects.repair'):
+                            geometry_ram+=max(1073741824,(164+4*stage.input_mask_count)*target_pixels+268435456)
+                            geometry_scratch+=(48+4*stage.input_mask_count)*target_pixels+1048576
+                        if stage.operation in ('image.inpaint','image.generate'):
+                            geometry_ram+=max(2147483648,(256+4*stage.input_mask_count)*target_pixels+536870912)
+                            geometry_scratch+=(24+4*stage.input_mask_count)*target_pixels+16384
+                        if stage.operation=='image.outpaint':
+                            geometry_ram+=max(2147483648,192*target_pixels+536870912)
+                            geometry_scratch+=32*target_pixels+16384
+                        if stage.operation in ('background.compose','background.blur'):
+                            geometry_ram+=max(1073741824,256*target_pixels+1048576)
+                            geometry_scratch+=20*target_pixels+16384
+                        if stage.background_canvas is not None:
+                            asset_pixels=stage.background_canvas.width*stage.background_canvas.height
+                            geometry_ram+=64*asset_pixels
+                            geometry_scratch+=32*asset_pixels+536870912
                 peak=pin.sample.operator_peak
-                expected=dict(pixel_count=pixels,ram_bytes=max(3*1024**3,src['ram_bytes']+16*pixels+64*roi)+peak.ram_bytes,
-                    scratch_bytes=src['scratch_bytes']+16*pixels+5*roi+26*1024**2+peak.scratch_bytes,
+                expected=dict(pixel_count=pixels,ram_bytes=max(3*1024**3,src['ram_bytes']+16*retained+geometry_ram+64*roi)+peak.ram_bytes,
+                    scratch_bytes=src['scratch_bytes']+16*retained+geometry_scratch+5*roi+26*1024**2+peak.scratch_bytes,
                     vram_bytes=peak.vram_bytes,output_bytes=24*1024**2+peak.output_bytes)
                 if estimate!=expected:
                     raise ValueError('REGION_CALIBRATION_BUDGET_INVALID')

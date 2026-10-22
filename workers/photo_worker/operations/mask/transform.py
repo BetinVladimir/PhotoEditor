@@ -1,12 +1,12 @@
 from contextlib import ExitStack
 from photo_worker.contracts.base import canonical_bytes
-from photo_worker.contracts.mask_transform import MaskTransformParams,TransformedMask
+from photo_worker.contracts.mask_transform import MaskTransformParams,TransformedMask,TransformedRegion
 from photo_worker.contracts.images import WorkingImage,MaskRef,DenseWarpTransform
 from photo_worker.runtime.arrays import read_array,read_inverse_field
 from photo_worker.runtime.artifacts import TaskArtifacts,ArtifactConfig
 from photo_worker.runtime.executor import ExecutionContext,Operation,OperationResult,OperationFailure
 from .transform_prepare import prepare_transform
-from .transform_publish import stage_transform,finish_transform
+from .transform_publish import stage_transform,finish_transform,PublishedTransform
 
 
 def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
@@ -34,7 +34,35 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
         with prepare_transform(source,params.step,artifacts.scratch,guide=guide,labels=labels,inverse_field=field,tile=tile,
                                max_work_pixels=min(4194304,ram//256),check_active=ctx.check_active) as files:
             ctx.progress(1,2)
-            published=stage_transform(artifacts,files,params,target,check_active=ctx.check_active)
+            published=stage_transform(artifacts,files,params.model_copy(update={'regions':[]}),target,check_active=ctx.check_active)
+    if params.regions:
+        regional=[];cache={};outputs=list(published.outputs);written=published.bytes_written-len(canonical_bytes(published.result))
+        for region in params.regions:
+            ctx.check_active()
+            key=(region.mask.artifact.artifact_id,region.mask.artifact.sha256)
+            if key not in cache:
+                single=params.model_copy(update={'mask':region.mask,'regions':[]})
+                with ExitStack() as regional_inputs:
+                    def regional_array(ref,shape):
+                        item=regional_inputs.enter_context(artifacts.input(ref,suffix='.npy'))
+                        return regional_inputs.enter_context(read_array(item.path,shape,'float32',ctx.check_active,unit_interval=True))
+                    source=regional_array(region.mask.artifact,(sh,sw))
+                    guide=regional_array(target.pixels,(h,w,3))
+                    field=None
+                    if isinstance(params.step,DenseWarpTransform):
+                        item=regional_inputs.enter_context(artifacts.input(params.step.inverse_field,suffix='.npy'))
+                        field=regional_inputs.enter_context(read_inverse_field(item.path,(h,w),ctx.check_active))
+                    with prepare_transform(source,params.step,artifacts.scratch,guide=guide,labels=False,inverse_field=field,tile=tile,
+                                           max_work_pixels=min(4194304,ram//256),check_active=ctx.check_active) as files:
+                        transformed=stage_transform(artifacts,files,single,target,check_active=ctx.check_active)
+                cache[key]=transformed
+                outputs.extend(transformed.outputs)
+                written+=transformed.bytes_written-len(canonical_bytes(transformed.result))
+            transformed=cache[key].result
+            mask=region.mask.model_copy(update={'artifact':transformed.mask.artifact,'canvas':target.canvas,'transform_chain':chain})
+            regional.append(TransformedRegion(region_id=region.region_id,purpose=region.purpose,mask=mask,png=transformed.png,guided_radius=transformed.guided_radius))
+        root=published.result.model_copy(update={'params':params,'regions':regional})
+        published=PublishedTransform(root,tuple(outputs),written+len(canonical_bytes(root)))
     published=finish_transform(artifacts,published,check_active=ctx.check_active)
     ctx.progress(2,2)
     return OperationResult(outputs=list(published.outputs),bytes_written=published.bytes_written)

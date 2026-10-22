@@ -54,5 +54,8 @@ func (s Service) GetLayerStack(ctx context.Context, who auth.Identity, tid, asse
 	if _, err = ValidateLayerStack(body, binding); err != nil {
 		return nil, domain.NewError("DOCUMENT_INVALID", 422)
 	}
-	return body, nil
+ current,err:=(BindingResolver{DB:s.DB,Objects:s.Objects,Bucket:s.Bucket}).Current(ctx,who,tid,assetID)
+ if err!=nil{return nil,err};if current!=binding{return nil,domain.NewError("REVISION_CONFLICT",409)}
+ if err=ctx.Err();err!=nil{return nil,err}
+ return body, nil
 }

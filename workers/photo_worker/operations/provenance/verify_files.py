@@ -44,7 +44,7 @@ def verify_signed_files(source_path, signed_path, mime, source_sha, signed_sha,
         streams = []
         for path, expected in ((source_path, source_sha), (signed_path, signed_sha)):
             descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
-            stream = stack.enter_context(os.fdopen(descriptor, 'rb'))
+            stream = stack.enter_context(os.fdopen(descriptor, 'rb', buffering=0))
             info = os.fstat(stream.fileno())
             if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or not 1 <= info.st_size <= 512 << 20:
                 raise ValueError('SIGNER_VERIFICATION_FILE')

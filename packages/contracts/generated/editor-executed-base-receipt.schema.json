@@ -1,0 +1,117 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "format": "uuid",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "VersionBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "asset_version_id": {
+          "format": "uuid",
+          "title": "Asset Version Id",
+          "type": "string"
+        },
+        "canvas_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Canvas Hash",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/ArtifactRef"
+        }
+      },
+      "required": [
+        "asset_version_id",
+        "source",
+        "canvas_hash"
+      ],
+      "title": "VersionBinding",
+      "type": "object"
+    }
+  },
+  "$id": "https://photoeditor.local/contracts/editor-executed-base-receipt.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "build_run_id": {
+      "format": "uuid",
+      "title": "Build Run Id",
+      "type": "string"
+    },
+    "compilation_sha": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Compilation Sha",
+      "type": "string"
+    },
+    "executed_style": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "generative_requested": {
+      "title": "Generative Requested",
+      "type": "boolean"
+    },
+    "image_result": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "inherited_review": {
+      "title": "Inherited Review",
+      "type": "boolean"
+    },
+    "original_recipe": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "original_source": {
+      "$ref": "#/$defs/VersionBinding"
+    },
+    "processed_source": {
+      "$ref": "#/$defs/VersionBinding"
+    },
+    "quality": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "schema_version": {
+      "const": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "trace_sha": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Trace Sha",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "build_run_id",
+    "original_recipe",
+    "original_source",
+    "processed_source",
+    "executed_style",
+    "compilation_sha",
+    "trace_sha",
+    "quality",
+    "image_result",
+    "generative_requested",
+    "inherited_review"
+  ],
+  "title": "EditorExecutedBaseReceipt",
+  "type": "object"
+}

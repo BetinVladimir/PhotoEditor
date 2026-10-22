@@ -18,15 +18,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"photoeditor/backend/internal/auth"
-	"photoeditor/backend/internal/config"
-	"photoeditor/backend/internal/httpapi"
+	"photoeditor/backend/internal/idempotency"
 	"photoeditor/backend/internal/v2input"
 )
 
 // Uses a real listening HTTP server and the production access-token/session
 // verifier. The first accepted request must create the parent, before direct
 // service replay probes run.
-func probeCreateHTTP(t *testing.T, ctx context.Context, service httpapi.SemanticPropose, preparer TransferDraftPreparer, owner *pgxpool.Pool, who auth.Identity, request Request, measuredPerson bool) func() {
+func probeCreateHTTP(t *testing.T, ctx context.Context, service CreateHTTPProposer, preparer TransferDraftPreparer, owner *pgxpool.Pool, who auth.Identity, request Request, measuredPerson bool) func() {
 	t.Helper()
 	reader := preparer.Reader
 	ordinaryRecovery := SQLOrdinaryParentRecovery{SQLNativePersonAdmissionRecovery: SQLNativePersonAdmissionRecovery{SQLNativeInitialPipelineRecovery: SQLNativeInitialPipelineRecovery{Preparer: preparer, CatalogForReference: (SQLNativeParentArtifactCatalogFactory{API: preparer.Reader.DB, Bucket: preparer.Reader.Bucket}).ForReference, Timeout: time.Minute}}}
@@ -51,7 +50,10 @@ func probeCreateHTTP(t *testing.T, ctx context.Context, service httpapi.Semantic
 	if err != nil {
 		t.Fatal("create HTTP access token unavailable")
 	}
-	server := httptest.NewServer((&httpapi.Server{DB: reader.DB, Auth: authService, SemanticPropose: service, Config: config.Config{Environment: "development", AppOrigin: "http://localhost:8080", PortalOrigin: "http://localhost:3000", MaxJSONBytes: 65536}}).Routes())
+	if CreateHTTPHandler == nil {
+		t.Fatal("external HTTP harness not installed")
+	}
+	server := httptest.NewServer(CreateHTTPHandler(reader.DB, authService, service))
 	t.Cleanup(server.Close)
 	client := server.Client()
 	client.Timeout = 30 * time.Second
@@ -323,3 +325,11 @@ func probeCreateHTTP(t *testing.T, ctx context.Context, service httpapi.Semantic
 		t.Log("V27_CREATE_HTTP_AUTH_ADMISSION_REPLAY_OK")
 	}
 }
+
+// The external test package supplies the actual HTTP route assembly, avoiding a
+// test-only semanticproposal -> httpapi -> semanticproposal import cycle.
+type CreateHTTPProposer interface {
+	Propose(context.Context, auth.Identity, uuid.UUID, string, v2input.SemanticEditIntent) (idempotency.Response, error)
+}
+
+var CreateHTTPHandler func(*pgxpool.Pool, *auth.Service, CreateHTTPProposer) http.Handler

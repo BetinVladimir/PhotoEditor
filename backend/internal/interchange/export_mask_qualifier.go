@@ -59,9 +59,10 @@ var _ ExportBinaryQualifier=NativeExportMaskQualifier{}
 
 // Closed dispatch: unsupported contracts cannot accidentally use image or mask
 // qualification. Each installed adapter still validates its exact contract.
-type ExportNativeQualifierRouter struct{Images,Masks,Arrays,Backgrounds,DefectLabels,LUTs ExportBinaryQualifier}
+type ExportNativeQualifierRouter struct{Images,Masks,Arrays,Backgrounds,DefectLabels,DefectPNGs,LUTs ExportBinaryQualifier}
 func(r ExportNativeQualifierRouter)QualifyExportBinary(ctx context.Context,e v2input.Entry,o objectstore.Object)error{
  if err:=ctx.Err();err!=nil{return err}
+ if e.Contract=="DefectLabelPNG"{if r.DefectPNGs==nil{return v2input.ErrInvalid};return r.DefectPNGs.QualifyExportBinary(ctx,e,o)}
  if e.Contract=="DefectLabelMap"&&r.DefectLabels!=nil{return r.DefectLabels.QualifyExportBinary(ctx,e,o)}
  switch e.Contract{case "EncodedImage":if r.Images!=nil{return r.Images.QualifyExportBinary(ctx,e,o)};case "MaskArray","MaskPixels":if r.Masks!=nil{return r.Masks.QualifyExportBinary(ctx,e,o)}}
  if e.Contract=="AbsoluteLUTArray"{if r.LUTs==nil{return v2input.ErrInvalid};return r.LUTs.QualifyExportBinary(ctx,e,o)}

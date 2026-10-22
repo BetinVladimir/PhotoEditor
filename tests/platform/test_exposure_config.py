@@ -47,7 +47,7 @@ def test_cli_composes_assembly_and_exposure(monkeypatch):
     import photo_worker.runtime.service as service
     import photo_worker.runtime.exposure_config as exposure
     import photo_worker.runtime.semantic_assembly_config as assembly
-    config=object();one=object();two=object();calls=[]
+    config=SimpleNamespace(resource_class='cpu',backend='cpu',development=False);one=object();two=object();calls=[]
     monkeypatch.setattr(service.WorkerConfig,'from_env',classmethod(lambda cls:config))
     monkeypatch.setattr(exposure,'local_exposure_from_environment',lambda value:one)
     monkeypatch.setattr(assembly,'semantic_assembly_from_environment',lambda value:two)

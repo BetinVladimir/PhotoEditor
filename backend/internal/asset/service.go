@@ -113,10 +113,10 @@ func (s Service) SearchSimilar(ctx context.Context, who auth.Identity, tid uuid.
 		return out, domain.NewError("VALIDATION_FAILED", 422)
 	}
 	err := tenant.WithTenant(ctx, s.DB, who, tid, domain.Viewer, func(tx pgx.Tx, role domain.Role) error {
-		var sourceProject uuid.UUID
+		var sourceProject, sourceAsset uuid.UUID
 		var source []float64
 		var lock string
-		e := tx.QueryRow(ctx, `SELECT a.project_id,e.values,e.model_lock_id FROM photo.asset_versions v JOIN photo.assets a ON a.tenant_id=v.tenant_id AND a.id=v.asset_id AND a.deleted_at IS NULL JOIN photo.asset_embeddings e ON e.tenant_id=v.tenant_id AND e.asset_version_id=v.id AND e.state='ready' WHERE v.tenant_id=$1 AND v.id=$2`, tid, req.AssetVersionID).Scan(&sourceProject, &source, &lock)
+		e := tx.QueryRow(ctx, `SELECT a.project_id,a.id,e.values,e.model_lock_id FROM photo.asset_versions v JOIN photo.assets a ON a.tenant_id=v.tenant_id AND a.id=v.asset_id AND a.deleted_at IS NULL JOIN photo.asset_embeddings e ON e.tenant_id=v.tenant_id AND e.asset_version_id=v.id AND e.state='ready' WHERE v.tenant_id=$1 AND v.id=$2`, tid, req.AssetVersionID).Scan(&sourceProject, &sourceAsset, &source, &lock)
 		if errors.Is(e, pgx.ErrNoRows) {
 			return domain.NewError("FEATURES_NOT_READY", 409)
 		}
@@ -126,20 +126,23 @@ func (s Service) SearchSimilar(ctx context.Context, who auth.Identity, tid uuid.
 		if _, e = project.Authorize(ctx, tx, tid, sourceProject, who.UserID, role, domain.Viewer, false); e != nil {
 			return e
 		}
-		rows, e := tx.Query(ctx, `SELECT a.id,e.values FROM photo.asset_embeddings e JOIN photo.asset_versions v ON v.tenant_id=e.tenant_id AND v.id=e.asset_version_id JOIN photo.assets a ON a.tenant_id=v.tenant_id AND a.id=v.asset_id AND a.deleted_at IS NULL JOIN photo.projects p ON p.tenant_id=a.tenant_id AND p.id=a.project_id AND p.archived_at IS NULL WHERE e.tenant_id=$1 AND e.state='ready' AND e.model_lock_id=$2 AND v.id<>$3 AND ($4::uuid IS NULL OR a.project_id=$4) AND ($5::boolean OR p.visibility='workspace' OR EXISTS(SELECT FROM photo.project_acl acl WHERE acl.tenant_id=a.tenant_id AND acl.project_id=a.project_id AND acl.user_id=$6))`, tid, lock, req.AssetVersionID, req.ProjectID, role.Allows(domain.Admin), who.UserID)
+		// Asset DTOs expose the latest version. Score that exact version once,
+		// rather than returning a latest preview with a historical embedding.
+		rows, e := tx.Query(ctx, `SELECT a.id,v.id,e.values FROM photo.asset_embeddings e JOIN photo.asset_versions v ON v.tenant_id=e.tenant_id AND v.id=e.asset_version_id JOIN photo.assets a ON a.tenant_id=v.tenant_id AND a.id=v.asset_id AND a.deleted_at IS NULL JOIN photo.projects p ON p.tenant_id=a.tenant_id AND p.id=a.project_id AND p.archived_at IS NULL WHERE e.tenant_id=$1 AND e.state='ready' AND e.model_lock_id=$2 AND a.id<>$3 AND v.id=(SELECT latest.id FROM photo.asset_versions latest WHERE latest.tenant_id=a.tenant_id AND latest.asset_id=a.id ORDER BY latest.version_no DESC,latest.id DESC LIMIT 1) AND ($4::uuid IS NULL OR a.project_id=$4) AND ($5::boolean OR p.visibility='workspace' OR EXISTS(SELECT FROM photo.project_acl acl WHERE acl.tenant_id=a.tenant_id AND acl.project_id=a.project_id AND acl.user_id=$6))`, tid, lock, sourceAsset, req.ProjectID, role.Allows(domain.Admin), who.UserID)
 		if e != nil {
 			return e
 		}
 		defer rows.Close()
 		type scored struct {
 			id    uuid.UUID
+			version uuid.UUID
 			score float64
 		}
 		var scores []scored
 		for rows.Next() {
-			var id uuid.UUID
+			var id, version uuid.UUID
 			var v []float64
-			if e = rows.Scan(&id, &v); e != nil {
+			if e = rows.Scan(&id, &version, &v); e != nil {
 				return e
 			}
 			if len(v) != len(source) {
@@ -150,12 +153,13 @@ func (s Service) SearchSimilar(ctx context.Context, who auth.Identity, tid uuid.
 				dot += source[i] * v[i]
 			}
 			if dot >= req.MinCosine {
-				scores = append(scores, scored{id, dot})
+				scores = append(scores, scored{id: id, version: version, score: dot})
 			}
 		}
 		if e = rows.Err(); e != nil {
 			return e
 		}
+		rows.Close()
 		sort.Slice(scores, func(i, j int) bool {
 			if scores[i].score == scores[j].score {
 				return scores[i].id.String() < scores[j].id.String()
@@ -166,8 +170,14 @@ func (s Service) SearchSimilar(ctx context.Context, who auth.Identity, tid uuid.
 			scores = scores[:req.Limit]
 		}
 		for _, v := range scores {
-			item, e := scan(tx.QueryRow(ctx, `SELECT `+assetFields+` FROM photo.assets a`+versionJoin()+` WHERE a.tenant_id=$1 AND a.id=$2`, tid, v.id))
+			item, e := scan(tx.QueryRow(ctx, `SELECT `+assetFields+` FROM photo.assets a`+versionJoin()+` WHERE a.tenant_id=$1 AND a.id=$2 AND a.deleted_at IS NULL AND v.id=$3`, tid, v.id, v.version))
+			if errors.Is(e, pgx.ErrNoRows) {
+				return domain.NewError("SEARCH_RESULTS_CHANGED", 409)
+			}
 			if e != nil {
+				return e
+			}
+			if _, e = project.Authorize(ctx, tx, tid, item.ProjectID, who.UserID, role, domain.Viewer, false); e != nil {
 				return e
 			}
 			out.Items = append(out.Items, SimilarAsset{Asset: item, Cosine: v.score})
@@ -185,7 +195,7 @@ func (s Service) List(ctx context.Context, who auth.Identity, tid uuid.UUID, lim
 	var projectID *uuid.UUID
 	if projectRaw != "" {
 		id, err := uuid.Parse(projectRaw)
-		if err != nil {
+		if err != nil || id == uuid.Nil {
 			return out, domain.NewError("VALIDATION_FAILED", 422)
 		}
 		projectID = &id
@@ -250,7 +260,7 @@ func (s Service) Delete(ctx context.Context, who auth.Identity, tid, id uuid.UUI
 	if expected < 1 || req.ExpectedRevision != expected || req.ConfirmResourceID != id {
 		return out, domain.NewError("VALIDATION_FAILED", 422)
 	}
-	err := tenant.WithTenant(ctx, s.DB, who, tid, domain.Viewer, func(tx pgx.Tx, role domain.Role) error {
+	err := tenant.WithTenant(ctx, s.DB, who, tid, domain.Editor, func(tx pgx.Tx, _ domain.Role) error {
 		var projectID uuid.UUID
 		var revision int64
 		err := tx.QueryRow(ctx, `SELECT project_id,revision FROM photo.assets WHERE tenant_id=$1 AND id=$2 AND deleted_at IS NULL FOR UPDATE`, tid, id).Scan(&projectID, &revision)
@@ -260,7 +270,13 @@ func (s Service) Delete(ctx context.Context, who auth.Identity, tid, id uuid.UUI
 		if err != nil {
 			return err
 		}
-		if _, err = project.Authorize(ctx, tx, tid, projectID, who.UserID, role, domain.Editor, false); err != nil {
+		// The asset row lock may have waited beyond tenant demotion or ACL
+		// withdrawal. An entry-time administrator role cannot bypass that ACL.
+		currentRole, err := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Editor)
+		if err != nil {
+			return err
+		}
+		if _, err = project.Authorize(ctx, tx, tid, projectID, who.UserID, currentRole, domain.Editor, false); err != nil {
 			return err
 		}
 		if revision != expected {
@@ -281,6 +297,14 @@ func (s Service) Delete(ctx context.Context, who auth.Identity, tid, id uuid.UUI
 			return err
 		}
 		_, err = tx.Exec(ctx, `INSERT INTO photo.audit_log(tenant_id,actor_type,actor_id,action,resource_type,resource_id,request_id,details) VALUES($1,'user',$2,'asset.delete','asset',$3,$4,'{}')`, tid, who.UserID, id, uuid.New())
+		if err != nil {
+			return err
+		}
+		currentRole, err = tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Editor)
+		if err != nil {
+			return err
+		}
+		_, err = project.Authorize(ctx, tx, tid, projectID, who.UserID, currentRole, domain.Editor, false)
 		return err
 	})
 	return out, err

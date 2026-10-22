@@ -1,0 +1,67 @@
+"""Complete display preparation from independently replay-verified pixels."""
+from dataclasses import dataclass
+import numpy as np
+from .preview_binding import bind_exposure_preview_documents,bind_exposure_preview_source
+from .preview_exposure import PreviewExposureArrays
+from .exposure_quality import verify_exposure_pixels
+from .preview_presentation import prepare_exposure_display,ExposureDisplay
+from .preview_overlay import prepare_preview_mask_overlay
+
+
+@dataclass(frozen=True)
+class PreparedPreviewMedia:
+    before: ExposureDisplay
+    after: ExposureDisplay
+    affected: np.ndarray
+    protected: np.ndarray
+    width: int
+    height: int
+
+
+def prepare_exposure_preview_media(params,candidate_raw,intent_raw,source_raw,arrays,encoded,alpha,
+        *,icc_root,icc_lock_sha,srgb_sha,max_bytes,verify_admission,verify_runtime,verify_color,check_active):
+    """Array producer/geometry provenance is mandatory at the caller's loader.
+
+    Own all input arrays before runtime callbacks. Repeat independent exact
+    replay before display conversion; never use display clipping as edit output.
+    """
+    if not all(callable(fn) for fn in (verify_admission,verify_runtime,verify_color,check_active)):
+        raise ValueError('SEMANTIC_PREVIEW_INSTALLATION_REQUIRED')
+    owned,candidate,intent=bind_exposure_preview_documents(params,candidate_raw,intent_raw)
+    image=bind_exposure_preview_source(owned,source_raw)
+    shape=(image.canvas.height,image.canvas.width);pixels=shape[0]*shape[1]
+    if (type(max_bytes) is not int or not 640*pixels+128*1024**2<=max_bytes<=2**53-1
+            or not isinstance(arrays,PreviewExposureArrays)
+            or any(not isinstance(value,np.ndarray) or value.dtype!=np.float32
+                or value.shape!=(*shape,3) for value in (arrays.original,encoded))
+            or any(not isinstance(value,np.ndarray) or value.dtype!=np.float32
+                or value.shape!=shape for value in (arrays.mask,arrays.protected))
+            or (image.alpha is None)!=(alpha is None)
+            or (alpha is not None and (not isinstance(alpha,np.ndarray)
+                or alpha.dtype!=np.float32 or alpha.shape!=shape))):
+        raise ValueError('SEMANTIC_PREVIEW_MEDIA_INVALID')
+    check_active()
+    original=arrays.original.copy();changed=encoded.copy()
+    mask=arrays.mask.copy();protection=arrays.protected.copy()
+    opacity=alpha.copy() if alpha is not None else None
+    def admitted():
+        check_active()
+        if verify_admission(owned.model_copy(deep=True)) is not True or verify_runtime() is not True:
+            raise ValueError('SEMANTIC_PREVIEW_MEDIA_ADMISSION_DENIED')
+        check_active()
+    admitted()
+    available=max_bytes-128*pixels-64*1024**2
+    verify_exposure_pixels(original,changed,mask,protection,image.color,ev=intent.ev,
+        strength=intent.strength,max_bytes=available,verify_color=verify_color,check_active=check_active)
+    # Same no-upscale 2560 edge convention as existing media preview2560.
+    scale=min(1.,2560/max(shape));width=max(1,round(shape[1]*scale));height=max(1,round(shape[0]*scale))
+    common=dict(width=width,height=height,icc_root=icc_root,icc_lock_sha=icc_lock_sha,
+        srgb_sha=srgb_sha,verify_runtime=verify_runtime,check_active=check_active,max_bytes=available)
+    admitted();before=prepare_exposure_display(image,original,opacity,**common)
+    admitted();after=prepare_exposure_display(image,changed,opacity,**common)
+    admitted();affected=prepare_preview_mask_overlay(mask,width=width,height=height,protected=False,
+        max_bytes=available,check_active=check_active)
+    admitted();protected=prepare_preview_mask_overlay(protection,width=width,height=height,protected=True,
+        max_bytes=available,check_active=check_active)
+    admitted()
+    return PreparedPreviewMedia(before,after,affected,protected,width,height)

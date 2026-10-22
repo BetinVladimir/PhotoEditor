@@ -32,9 +32,12 @@ export function readEditorRenderSubmission(value:unknown,version?:string):Return
  return {policySHA:checked.policy_sha,snapshotKey:v.snapshotKey as string,renderKey:v.renderKey as string,selection:checked.selection,input};
 }
 
-export async function submitEditorRender(api:Pick<OwnerAPI,'createRenderInputSnapshot'|'queueRenderBatch'>,project:string,attempt:ReturnType<typeof prepareEditorRenderSubmission>,signal:AbortSignal){
+export async function submitEditorRender(api:Pick<OwnerAPI,'createRenderInputSnapshot'|'queueRenderBatch'>,project:string,attempt:ReturnType<typeof prepareEditorRenderSubmission>,signal:AbortSignal,available?:()=>boolean){
  const owned=readEditorRenderSubmission(attempt);signal.throwIfAborted();
+ const admit=()=>{signal.throwIfAborted();if(available&&!available())throw new Error('OPERATION_UNAVAILABLE');};
+ admit();
  const inventory=await api.createRenderInputSnapshot(project,owned.input,owned.snapshotKey,signal);signal.throwIfAborted();
+ admit();
  const ticket=await api.queueRenderBatch(project,{input_snapshot_id:inventory.id,policy_sha:owned.policySHA,selection:owned.selection},owned.renderKey,signal);signal.throwIfAborted();return ticket;
 }
 
@@ -44,4 +47,12 @@ export async function prepareEditorRenderFromServerPolicy(api:Pick<OwnerAPI,'ren
  const owned=structuredClone(frozen);signal.throwIfAborted();
  const policy=readRenderPolicy(await api.renderPolicy(project,signal));signal.throwIfAborted();
  return prepareEditorRenderSubmission(owned,policy.policy_sha,snapshotKey,renderKey);
+}
+
+/** Recover only the validated immutable saved command. Capability discovery is
+ * advisory for fresh work; both endpoints retain authorization and the server
+ * performs receipt lookup before fresh admission. Scope loss still stops either
+ * transport stage. No policy, source, recipe or idempotency key is regenerated. */
+export function recoverEditorRender(api:Pick<OwnerAPI,'createRenderInputSnapshot'|'queueRenderBatch'>,project:string,attempt:ReturnType<typeof prepareEditorRenderSubmission>,signal:AbortSignal,current:()=>boolean){
+ return submitEditorRender(api,project,attempt,signal,current);
 }

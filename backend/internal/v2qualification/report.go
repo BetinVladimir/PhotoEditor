@@ -49,6 +49,8 @@ type Report struct {
 // never from the report or a public API request. Backend is stored in SQL only
 // after this binding has succeeded.
 type Expected struct {
+	MPSResources *MPSResourcePolicy `json:",omitempty"`
+
 	Operation, Version, Backend                                string
 	ModelLockSHA, RuntimeLockSHA, DeviceProfileSHA, DatasetSHA string
 	IssuerID                                                   uuid.UUID
@@ -113,7 +115,7 @@ func exactObject(raw []byte, names []string) bool {
 // fixture/evidence sets from verified objects before insertion.
 func Verify(raw []byte, expectedSHA string, expected Expected) (Report, error) {
 	var report Report
-	if len(raw) < 2 || len(raw) > 8*1024*1024 || !digest(expectedSHA) ||
+	if expected.MPSResources != nil || len(raw) < 2 || len(raw) > 8*1024*1024 || !digest(expectedSHA) ||
 		!expected.LicenseCleared || expected.IssuerID == uuid.Nil ||
 		len(expected.RequiredChecks) == 0 || len(expected.TestFixtureSHAs) == 0 ||
 		len(expected.EvidenceSHAs) == 0 ||

@@ -31,7 +31,7 @@ func TestDeliveryFailureCoordinatorUsesCurrentFrozenWitness(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	lease := delivery.ExpansionLease{Expansion: uuid.New(), Token: uuid.New(), Tenant: uuid.New(), Run: parent, Workflow: workflow, ParentTask: plan.TaskID(), Until: time.Now().Add(time.Minute), SlotCount: 1, Cursor: 1}
+	lease := delivery.ExpansionLease{Package: uuid.New(), Expansion: uuid.New(), Token: uuid.New(), Tenant: uuid.New(), Run: parent, Workflow: workflow, ParentTask: plan.TaskID(), Until: time.Now().Add(time.Minute), SlotCount: 1, Cursor: 1}
 	for _, scenario := range []string{"failed", "pending", "foreign", "lost", "write_error", "cancel"} {
 		t.Run(scenario, func(t *testing.T) {
 			reader := &deliveryAssemblyMatrix{observation: delivery.ExportObservation{ExportID: export, SnapshotDigest: child.SnapshotDigest, Binding: child.Binding, PresetSHA: child.Preset.PresetSHA, RunState: "failed", ExportState: "failed"}}

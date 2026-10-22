@@ -1,6 +1,7 @@
 package workflow
 
 import (
+ "photoeditor/backend/internal/database"
 	"context"
 	"errors"
 	"time"
@@ -53,6 +54,9 @@ func NewRestorationAdoptionProcessor(ctx context.Context, schedulerDB *pgxpool.P
 		"photo.v28_restoration_result_array(uuid,uuid,uuid,uuid,text,text,uuid,text,text)",
 		"photo.adopt_v28_restoration_verified(uuid,uuid,uuid,text)",
 		"photo.create_v28_restoration_review(uuid,uuid,uuid)",
+		"photo.v28_glare_completed_source_ready(uuid,uuid,uuid)",
+		"photo.withdraw_completed_glare_consent()",
+		"photo.release_next_glare_withdrawn_quota()",
 	}
 	var installed bool
 	err := schedulerDB.QueryRow(bounded, `SELECT current_user='photo_scheduler'
@@ -69,6 +73,7 @@ func NewRestorationAdoptionProcessor(ctx context.Context, schedulerDB *pgxpool.P
 		return nil, noop, errors.New("restoration editor catalog database configuration invalid")
 	}
 	poolConfig.ConnConfig.RuntimeParams["role"] = "photo_api"
+	database.GuardApplicationRole(poolConfig)
 	poolConfig.ConnConfig.RuntimeParams["statement_timeout"] = "5000"
 	poolConfig.ConnConfig.RuntimeParams["lock_timeout"] = "3000"
 	catalogDB, err := pgxpool.NewWithConfig(bounded, poolConfig)
@@ -87,5 +92,6 @@ func NewRestorationAdoptionProcessor(ctx context.Context, schedulerDB *pgxpool.P
 	processor := &v2draft.RestorationAdoptionDispatcher{
 		Candidates: v2draft.SQLRestorationAdoptionQueue{DB: schedulerDB},
 		Adopter:    adopter, Timeout: 10 * time.Minute}
+	processor.Withdrawal = v2draft.SQLGlareAdoptionWithdrawal{DB: schedulerDB}
 	return processor, catalogDB.Close, nil
 }

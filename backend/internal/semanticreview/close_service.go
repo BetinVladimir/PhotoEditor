@@ -24,6 +24,9 @@ type CloseService struct {
 // The final transaction repeats all source and target admission checks.
 func (s *CloseService) Close(ctx context.Context, who auth.Identity, tenant, intent uuid.UUID, key string, request ReviewClose) (idempotency.Response, error) {
 	empty := idempotency.Response{}
+	if err := ctx.Err(); err != nil {
+		return empty, err
+	}
 	if tenant == uuid.Nil || intent == uuid.Nil || who.UserID == uuid.Nil || who.SessionID == uuid.Nil || !idempotency.ValidKey(key) {
 		return empty, ErrInvalid
 	}
@@ -58,10 +61,13 @@ func (s *CloseService) Close(ctx context.Context, who auth.Identity, tenant, int
 	if rollbackErr != nil {
 		return empty, rollbackErr
 	}
+	if err := ctx.Err(); err != nil { return empty, err }
 	switch replay.Outcome {
 	case "replayed":
-		if _, err := DecodeCloseResult(replay.Body); err != nil {
+		if result, err := DecodeCloseResult(replay.Body); err != nil {
 			return empty, err
+		} else if result.RunID != identity.RunID || result.WorkflowID != identity.WorkflowID {
+			return empty, ErrInvalid
 		}
 		// Resource is the immutable close batch, derived from the same fingerprint.
 		sha, _ := HashCloseRequest(identity.RunID, owned)
@@ -92,5 +98,6 @@ func (s *CloseService) Close(ctx context.Context, who auth.Identity, tenant, int
 	if err = tx.Commit(ctx); err != nil {
 		return empty, err
 	}
+	if err := ctx.Err(); err != nil { return empty, err }
 	return response, nil
 }

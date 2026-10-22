@@ -8,3 +8,11 @@ it('binds the admitted request and returns copied manifest evidence',()=>{const 
 it('rejects substituted request, source, asset, geometry and unexpected fields',()=>{
  for(const raw of [{...descriptor(),asset_id:id(5)},{...descriptor(),source:{...source,sha256:'c'.repeat(64)}},{...descriptor(),request:{...request,max_edge:512}},{...descriptor(),canvas:{width:1.5,height:4000}},{...descriptor(),bucket:'private'},{...descriptor(),icc_sha256:'invalid'}])expect(()=>readRegionDescriptor(raw,id(4),request,source)).toThrow();
 });
+
+it('pins projected execution only from the admitted descriptor and copies target canvas',()=>{
+ const target={width:12000,height:8000,orientation:1,space_id:'upscale',source_sha256:sha};
+ const raw={...descriptor(),execution:{sha256:'c'.repeat(64),target_canvas:target}};
+ const bound=readRegionDescriptor(raw,id(4),request,source);target.width=1;
+ expect(bound.execution?.target_canvas.width).toBe(12000);
+ expect(()=>readRegionDescriptor({...raw,execution:{...raw.execution,sha256:'invalid'}},id(4),request,source)).toThrow();
+});

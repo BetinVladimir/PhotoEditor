@@ -26,7 +26,7 @@ func DecodeCloseResult(raw []byte) (CloseResult, error) {
 	var result CloseResult
 	var fields map[string]json.RawMessage
 	if decodeStrict(raw, &result) != nil || json.Unmarshal(raw, &fields) != nil || len(fields) != 6 ||
-		result.RunID == uuid.Nil || result.WorkflowID == uuid.Nil || !validRevision(result.Revision) ||
+		result.RunID == uuid.Nil || result.WorkflowID == uuid.Nil || !validRevision(result.Revision) || result.Revision == "1" ||
 		result.State != "completed" || result.Outputs == nil || len(result.Outputs) != 0 || result.ErrorCode != nil {
 		return CloseResult{}, ErrInvalid
 	}

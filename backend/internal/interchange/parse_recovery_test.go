@@ -1,6 +1,6 @@
 package interchange
 import("context";"encoding/json";"strings";"testing";"github.com/google/uuid";"github.com/jackc/pgx/v5";"photoeditor/backend/internal/v2input")
-type completedParseRecoveryTx struct{calls int;hash string;body []byte;workflow uuid.UUID;committed bool}
+type completedParseRecoveryTx struct{calls int;hash string;body []byte;workflow uuid.UUID;committed bool;revokedAfterWait bool}
 type completedParseRecoveryRow struct{scan func(...any)error}
 func(r completedParseRecoveryRow)Scan(dest ...any)error{return r.scan(dest...)}
 func(tx *completedParseRecoveryTx)QueryRow(_ context.Context,query string,args ...any)pgx.Row{
@@ -11,7 +11,8 @@ func(tx *completedParseRecoveryTx)QueryRow(_ context.Context,query string,args .
   *dest[0].(*string)=tx.hash;*dest[1].(*[]byte)=tx.body;*dest[2].(*bool)=true
   status:=202;*dest[3].(**int)=&status;*dest[4].(**uuid.UUID)=&tx.workflow;return nil
  }}
- case 3:
+ case 3:return completedParseRecoveryRow{func(dest ...any)error{*dest[0].(*bool)=!tx.revokedAfterWait;return nil}}
+ case 4:
   if !strings.Contains(query,"photo.backend_documents")||!strings.Contains(query,"v30_interchange_proof")||len(args)!=11{panic("committed replay omitted params proof")}
   return completedParseRecoveryRow{func(dest ...any)error{*dest[0].(*bool)=tx.committed;return nil}}
  default:panic("completed ticket read attempted pending or source lookup")
@@ -31,11 +32,20 @@ func TestRecoverParseCompletedTicketDoesNotRequireExpiredSource(t *testing.T){
  body,err:=json.Marshal(ticket);if err!=nil{t.Fatal(err)}
  tx:=&completedParseRecoveryTx{hash:intent.RequestSHA,body:body,workflow:intent.Identity.Workflow,committed:true}
  result,err:=RecoverParse(context.Background(),tx,who,tenant,request,"key")
- if err!=nil||!result.Completed||result.Response.Status!=202||!result.Response.Replayed||tx.calls!=3{t.Fatal("completed ticket was not replayed directly",err,result,tx.calls)}
+ if err!=nil||!result.Completed||result.Response.Status!=202||!result.Response.Replayed||tx.calls!=4{t.Fatal("completed ticket was not replayed directly",err,result,tx.calls)}
  tx=&completedParseRecoveryTx{hash:"different-request",body:body,workflow:intent.Identity.Workflow}
- if _,err:=RecoverParse(context.Background(),tx,who,tenant,request,"key");err==nil||tx.calls!=2{t.Fatal("conflicting ticket accepted or source queried",err,tx.calls)}
+ if _,err:=RecoverParse(context.Background(),tx,who,tenant,request,"key");err==nil||tx.calls!=3{t.Fatal("conflicting ticket accepted or source queried",err,tx.calls)}
  tx=&completedParseRecoveryTx{hash:intent.RequestSHA,body:body,workflow:uuid.New()}
- if _,err:=RecoverParse(context.Background(),tx,who,tenant,request,"key");err==nil||tx.calls!=2{t.Fatal("foreign workflow ticket accepted or source queried",err,tx.calls)}
+ if _,err:=RecoverParse(context.Background(),tx,who,tenant,request,"key");err==nil||tx.calls!=3{t.Fatal("foreign workflow ticket accepted or source queried",err,tx.calls)}
  tx=&completedParseRecoveryTx{hash:intent.RequestSHA,body:body,workflow:intent.Identity.Workflow}
- if _,err:=RecoverParse(context.Background(),tx,who,tenant,request,"key");err==nil||tx.calls!=3{t.Fatal("orphan ticket accepted",err,tx.calls)}
+ if _,err:=RecoverParse(context.Background(),tx,who,tenant,request,"key");err==nil||tx.calls!=4{t.Fatal("orphan ticket accepted",err,tx.calls)}
+}
+
+func TestRecoverParseRefusesRevocationDuringReceiptWait(t *testing.T){
+ tenant,who,request,_,_:=pendingFixture()
+ intent,err:=FreezeCreateIntent(tenant,who,request,"key");if err!=nil{t.Fatal(err)}
+ body,err:=json.Marshal(v2input.JobTicket{RunID:intent.Identity.Run,WorkflowID:intent.Identity.Workflow,State:"queued"});if err!=nil{t.Fatal(err)}
+ tx:=&completedParseRecoveryTx{hash:intent.RequestSHA,body:body,workflow:intent.Identity.Workflow,committed:true,revokedAfterWait:true}
+ result,err:=RecoverParse(context.Background(),tx,who,tenant,request,"key")
+ if err==nil||result.Completed||tx.calls!=3{t.Fatal("revoked caller obtained receipt or queried child proof",err,result,tx.calls)}
 }

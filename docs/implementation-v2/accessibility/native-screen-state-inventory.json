@@ -1,0 +1,205 @@
+{
+  "schema": 1,
+  "local_editor": {
+    "source": "apps/local-editor/src/photoeditor/studio.py",
+    "screens": [
+      {
+        "id": "main.file_list",
+        "status": "NOT_TESTED",
+        "required_checks": [
+          "keyboard",
+          "native accessibility tree",
+          "platform AT",
+          "OS font scaling/high contrast",
+          "focus/error/status announcement"
+        ]
+      },
+      {
+        "id": "main.before_after",
+        "status": "NOT_TESTED",
+        "required_checks": [
+          "keyboard",
+          "native accessibility tree",
+          "platform AT",
+          "OS font scaling/high contrast",
+          "focus/error/status announcement"
+        ]
+      },
+      {
+        "id": "main.yaml_editor",
+        "status": "NOT_TESTED",
+        "required_checks": [
+          "keyboard",
+          "native accessibility tree",
+          "platform AT",
+          "OS font scaling/high contrast",
+          "focus/error/status announcement"
+        ]
+      },
+      {
+        "id": "main.log",
+        "status": "NOT_TESTED",
+        "required_checks": [
+          "keyboard",
+          "native accessibility tree",
+          "platform AT",
+          "OS font scaling/high contrast",
+          "focus/error/status announcement"
+        ]
+      },
+      {
+        "id": "validate.valid",
+        "status": "NOT_TESTED",
+        "required_checks": [
+          "keyboard",
+          "native accessibility tree",
+          "platform AT",
+          "OS font scaling/high contrast",
+          "focus/error/status announcement"
+        ]
+      },
+      {
+        "id": "validate.invalid_dialog",
+        "status": "NOT_TESTED",
+        "required_checks": [
+          "keyboard",
+          "native accessibility tree",
+          "platform AT",
+          "OS font scaling/high contrast",
+          "focus/error/status announcement"
+        ]
+      },
+      {
+        "id": "save.success",
+        "status": "NOT_TESTED",
+        "required_checks": [
+          "keyboard",
+          "native accessibility tree",
+          "platform AT",
+          "OS font scaling/high contrast",
+          "focus/error/status announcement"
+        ]
+      },
+      {
+        "id": "preview.running",
+        "status": "NOT_TESTED",
+        "required_checks": [
+          "keyboard",
+          "native accessibility tree",
+          "platform AT",
+          "OS font scaling/high contrast",
+          "focus/error/status announcement"
+        ]
+      },
+      {
+        "id": "preview.ready",
+        "status": "NOT_TESTED",
+        "required_checks": [
+          "keyboard",
+          "native accessibility tree",
+          "platform AT",
+          "OS font scaling/high contrast",
+          "focus/error/status announcement"
+        ]
+      },
+      {
+        "id": "render.running",
+        "status": "NOT_TESTED",
+        "required_checks": [
+          "keyboard",
+          "native accessibility tree",
+          "platform AT",
+          "OS font scaling/high contrast",
+          "focus/error/status announcement"
+        ]
+      },
+      {
+        "id": "render.finished",
+        "status": "NOT_TESTED",
+        "required_checks": [
+          "keyboard",
+          "native accessibility tree",
+          "platform AT",
+          "OS font scaling/high contrast",
+          "focus/error/status announcement"
+        ]
+      },
+      {
+        "id": "cancel.pending",
+        "status": "NOT_TESTED",
+        "required_checks": [
+          "keyboard",
+          "native accessibility tree",
+          "platform AT",
+          "OS font scaling/high contrast",
+          "focus/error/status announcement"
+        ]
+      },
+      {
+        "id": "close.busy",
+        "status": "NOT_TESTED",
+        "required_checks": [
+          "keyboard",
+          "native accessibility tree",
+          "platform AT",
+          "OS font scaling/high contrast",
+          "focus/error/status announcement"
+        ]
+      },
+      {
+        "id": "config_changed.stale_result",
+        "status": "NOT_TESTED",
+        "required_checks": [
+          "keyboard",
+          "native accessibility tree",
+          "platform AT",
+          "OS font scaling/high contrast",
+          "focus/error/status announcement"
+        ]
+      },
+      {
+        "id": "busy.dialog",
+        "status": "NOT_TESTED",
+        "required_checks": [
+          "keyboard",
+          "native accessibility tree",
+          "platform AT",
+          "OS font scaling/high contrast",
+          "focus/error/status announcement"
+        ]
+      }
+    ]
+  },
+  "local_editor_cli": {
+    "source": "apps/local-editor/src/photoeditor/cli.py",
+    "states": [
+      "help",
+      "config_error",
+      "scan",
+      "preview",
+      "render_progress",
+      "cancel",
+      "success",
+      "failure"
+    ],
+    "status": "NOT_TESTED"
+  },
+  "studio_agent_cli": {
+    "source": "apps/studio-agent/studio_agent/cli.py",
+    "states": [
+      "help",
+      "key/config_error",
+      "run/watch",
+      "status.empty",
+      "status.queued",
+      "status.failed",
+      "retry.valid",
+      "retry.refused",
+      "lock_conflict",
+      "device_authorization_failure",
+      "shutdown"
+    ],
+    "status": "NOT_TESTED"
+  },
+  "qualification": "state inventory, not executed or conformance evidence"
+}

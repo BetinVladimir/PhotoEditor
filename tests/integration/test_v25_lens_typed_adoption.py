@@ -2,6 +2,7 @@
 
 Metadata setup bypasses worker dispatch/gateway, so this is not qualification.
 """
+from pathlib import Path as _PhotoRepositoryPath
 from hashlib import sha256
 from io import BytesIO
 from pathlib import Path
@@ -190,7 +191,7 @@ def test_typed_lens_adoption_and_authority_change(lens_objects,database,strength
                         if strength:
                             case['WarpField']=mask_doc['transform_chain']['steps'][0]['inverse_field']
                         case.update(Bucket=bucket,Object=dict(Key=key,VersionID=obj_version,Bytes=len(payload),ContentType=media,SHA256=staged.document.sha256))
-                        env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_ADOPTED_LENS_CASE=json.dumps(case),PHOTO_ADOPTED_ROOT_STORE=json.dumps(client._photo_test_config),GOCACHE='/private/tmp/photoeditor-go-cache')
+                        env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_ADOPTED_LENS_CASE=json.dumps(case),PHOTO_ADOPTED_ROOT_STORE=json.dumps(client._photo_test_config),GOCACHE=str(_PhotoRepositoryPath(__file__).resolve().parents[2]/'work/go-cache'))
                         checked=subprocess.run(['go','test','./internal/v2render','-run','^TestIntegrationAdoptedLensSource$','-count=1'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=45)
                         assert checked.returncode==0,checked.stdout+checked.stderr
                     if strength==1:

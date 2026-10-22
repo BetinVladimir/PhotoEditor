@@ -1,4 +1,5 @@
 """Real Go scheduler transactions and versioned MinIO original Params reads."""
+from physical_go_child_evidence import run_evidenced_go
 from pathlib import Path
 from io import BytesIO
 import json
@@ -42,6 +43,6 @@ def test_go_relight_depth_reader_real_sql_and_original_object(database,lens_obje
         PHOTO_TEST_MINIO_URL='http://'+client._base_url.host,PHOTO_TEST_MINIO_BUCKET=bucket,
         PHOTO_TEST_MINIO_ACCESS=credentials.access_key,PHOTO_TEST_MINIO_SECRET=credentials.secret_key,
         GOCACHE=str(ROOT/'work/go-cache'))
-    result=subprocess.run(['go','test','./internal/v2portrait','-run','^TestIntegrationRelightDepthReader$',
+    result=run_evidenced_go(['go','test','./internal/v2portrait','-run','^TestIntegrationRelightDepthReader$',
         '-count=1','-timeout=60s','-v'],cwd=ROOT/'backend',env=env,capture_output=True,text=True,timeout=90)
     assert result.returncode==0,result.stdout+result.stderr

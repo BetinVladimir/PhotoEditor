@@ -52,3 +52,11 @@ it('retains exact pending identity when accepted receipt persistence fails',asyn
  await expect(store.resume(fixture(),send)).rejects.toThrow('receipt disk failure');expect(await store.read()).toEqual(fixture());
  const result=await store.resume(fixture(),send);expect(keys).toEqual([id(6),id(6)]);expect(result.accepted?.run_id).toBe(id(7));
 });
+
+it('releases only the exact rejected pending identity and never an accepted receipt',async()=>{
+ const disk=storage(),store=new CollectionApplyStore(disk,'https://studio.test',id(1),id(2),id(3),id(4),lock);
+ await store.write(fixture());await expect(store.discardRejected(id(99))).rejects.toThrow('CONFLICT');expect(await store.read()).toEqual(fixture());
+ await store.discardRejected(fixture().key);expect(await store.read()).toBeNull();
+ await store.resume(fixture(),async()=>({run_id:id(7),output_collection_id:id(8),status:'queued'}));
+ await expect(store.discardRejected(fixture().key)).rejects.toThrow('CONFLICT');expect((await store.read())?.accepted?.run_id).toBe(id(7));
+});

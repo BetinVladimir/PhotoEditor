@@ -16,7 +16,7 @@ type detectorQualificationProof struct {
 	tenant, project, actor, session uuid.UUID
 	bucket, expected                string
 	report                          personEvidenceObject
-	metrics                         v2qualification.Metrics
+	metrics                         v2qualification.ResourceEvidence
 }
 type qualifiedDetectorPreparation struct {
 	inputs        string
@@ -38,7 +38,7 @@ func (s SQLTransferSourceReader) prepareQualifiedCatalogDetectorTask(ctx context
 		return zero, err
 	}
 	expected = ownQualificationExpected(expected)
-	if expected.Operation != "face.detect" || expected.Version != "1" || expected.Backend != "cuda" {
+	if expected.Operation != "face.detect" || expected.Version != "1" || (expected.Backend != "cuda" && expected.Backend != "mps") {
 		return zero, v2qualification.ErrUnqualified
 	}
 	if err := validateTransferMeasuredCosts(costs, v2qualification.Metrics{}); err != nil {
@@ -61,11 +61,11 @@ func (s SQLTransferSourceReader) prepareQualifiedCatalogDetectorTask(ctx context
 	if err != nil {
 		return zero, err
 	}
-	verified, err := v2qualification.Verify(raw, original.ref.SHA256, expected)
+	verified, err := v2qualification.VerifyTyped(raw, original.ref.SHA256, expected)
 	if err != nil {
 		return zero, err
 	}
-	if err := validateTransferMeasuredCosts(costs, verified.Metrics); err != nil {
+	if err := validateTransferResourceCosts(costs, verified.Resources()); err != nil {
 		return zero, err
 	}
 	current, err := s.faceQualificationObject(ctx, who, tenantID, expected, report)
@@ -75,7 +75,7 @@ func (s SQLTransferSourceReader) prepareQualifiedCatalogDetectorTask(ctx context
 	if current != original {
 		return zero, v2input.ErrConflict
 	}
-	frozen, err := prepareCatalogDetectorTask(ctx, catalog, who, tenantID, workflow, ordinal, binding, imageBody, params, expected.ModelLockSHA, score, maxFaces, costs, ram, vram, scratch, output)
+	frozen, err := prepareCatalogDetectorTaskForBackend(expected.Backend, ctx, catalog, who, tenantID, workflow, ordinal, binding, imageBody, params, expected.ModelLockSHA, score, maxFaces, costs, ram, vram, scratch, output)
 	if err != nil {
 		return zero, err
 	}
@@ -106,5 +106,5 @@ func (s SQLTransferSourceReader) prepareQualifiedCatalogDetectorTask(ctx context
 	if err != nil {
 		return zero, err
 	}
-	return qualifiedDetectorPreparation{frozen: frozen.frozen, inputs: frozen.inputs, qualification: detectorQualificationProof{taskSHA: taskSHA, tenant: tenantID, project: s.ProjectID, actor: who.UserID, session: who.SessionID, bucket: s.Bucket, expected: string(expectedBody), report: original, metrics: verified.Metrics}}, nil
+	return qualifiedDetectorPreparation{frozen: frozen.frozen, inputs: frozen.inputs, qualification: detectorQualificationProof{taskSHA: taskSHA, tenant: tenantID, project: s.ProjectID, actor: who.UserID, session: who.SessionID, bucket: s.Bucket, expected: string(expectedBody), report: original, metrics: verified.Resources()}}, nil
 }

@@ -19,6 +19,21 @@ type importMaskConfirmationStatus struct {
 	Epoch           int64     `json:"epoch"`
 }
 
+func validateImportMaskStatuses(items []importMaskConfirmationStatus) error {
+	if len(items) > 5000 {
+		return domain.NewError("INTERCHANGE_MASK_STATUS_INVALID", 503)
+	}
+	seen := make(map[[4]uuid.UUID]bool, len(items))
+	for _, item := range items {
+		key := [4]uuid.UUID{item.EntryID, item.OverrideID, item.MaskID, item.TargetVersionID}
+		if item.EntryID == uuid.Nil || item.OverrideID == uuid.Nil || item.MaskID == uuid.Nil || item.TargetVersionID == uuid.Nil || item.Epoch < 1 || item.Epoch > 9007199254740991 || (item.Status != "granted" && item.Status != "revoked") || seen[key] {
+			return domain.NewError("INTERCHANGE_MASK_STATUS_INVALID", 503)
+		}
+		seen[key] = true
+	}
+	return nil
+}
+
 func (s *Server) serveInterchangeMaskStatus(w http.ResponseWriter, r *http.Request, who auth.Identity, tenantID, project, workflow uuid.UUID) {
 	if s.DB == nil {
 		writeError(w, r, domain.NewError("INTERCHANGE_UNAVAILABLE", 503))
@@ -47,6 +62,11 @@ func (s *Server) serveInterchangeMaskStatus(w http.ResponseWriter, r *http.Reque
 		writeError(w, r, err)
 		return
 	}
+	if err := validateImportMaskStatuses(items); err != nil {
+		writeError(w, r, err)
+		return
+	}
+	if r.Context().Err()!=nil{return}
 	writeJSON(w, http.StatusOK, struct {
 		WorkflowID uuid.UUID                      `json:"workflow_id"`
 		Items      []importMaskConfirmationStatus `json:"items"`

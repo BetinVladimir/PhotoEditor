@@ -59,12 +59,13 @@ func (ImportPreparedSchemaChildren) ImportDocumentChildren(ctx context.Context, 
 		}
 		return children, ctx.Err()
 	}
+ if entry.Contract=="WorkingImage"||entry.Contract=="FaceLandmarks"||entry.Contract=="FaceBoxes"{return importedHistoricalChildren(ctx,entry,body)}
 	if entry.Contract == "ResolvedStyle" {
 		return exportResolvedChildren(entry, body)
 	}
 	var refs []v2draft.LayerRef
 	switch entry.Contract {
-	case "LayerStack", "CorrectionPlan", "MaskRef", "Params", "Stats20", "DefectCandidates", "DefectReview", "DustCandidates":
+	case "LayerStack", "CorrectionPlan", "MaskRef", "Params", "Stats20", "DefectCandidates", "DefectReview", "DustCandidates", "DefectProposeReport":
 		refs, err = v2draft.DocumentChildren(body, entry.Contract, entry.Ref)
 	case "StyleV2", "Override":
 		refs, err = v2draft.OpaqueDocumentChildren(body, entry.Contract, entry.Ref)

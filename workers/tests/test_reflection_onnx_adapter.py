@@ -17,8 +17,12 @@ def fake_runtime(monkeypatch, *, output_shape=None, output_name='output',
                  provider='CPUExecutionProvider', run_result=None, run_error=None):
     size = 128
     class Session:
-        def __init__(self, _path, providers):
+        def __init__(self, _path, providers, enable_fallback):
+            assert enable_fallback is False
             self.providers = providers
+        def disable_fallback(self):
+            pass
+
         def get_providers(self):
             return self.providers
         def get_inputs(self):

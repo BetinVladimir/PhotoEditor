@@ -176,7 +176,7 @@ func (s Service) CreateSelection(ctx context.Context, who auth.Identity, tid, co
 			if e != nil {
 				return idempotency.Response{}, e
 			}
-			if collection.State == "archived" || collection.Revision != strconv.FormatInt(revision, 10) {
+			if !writableCollectionState(collection.State) || collection.Revision != strconv.FormatInt(revision, 10) {
 				return idempotency.Response{}, domain.NewError("SNAPSHOT_STALE", 409)
 			}
 			if request.Filter != nil && request.Filter.SectionID != nil {
@@ -210,6 +210,25 @@ func (s Service) CreateSelection(ctx context.Context, who auth.Identity, tid, co
 			body, e := canonical.Marshal(result)
 			return idempotency.Response{Status: 201, Body: body, ResourceID: &result.ID}, e
 		})
+		if e != nil { return e }
+        if isBulkAbandoned(out, collectionID, key) {
+            if e = bindBulkAbandoned(ctx, tx, who, tid, collectionID, "Selection.Create", key, out); e != nil { return e }
+            return domain.NewError("SELECTION_ABANDONED", 409)
+        }
+		// Legacy request hashes omit the collection path parameter. Validate the
+		// receipt resource before returning it, without invalidating old keys.
+		if out.ResourceID == nil { return domain.NewError("IDEMPOTENCY_CONFLICT", 409) }
+        if e = bindCollectionReceipt(ctx, tx, who, tid, collectionID, "Selection.Create", key, out, `SELECT EXISTS(SELECT 1 FROM photo.snapshots WHERE tenant_id=$1 AND id=$2 AND collection_id=$3 AND kind='selection')`); e != nil { return e }
+		var bound bool
+		e = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM photo.snapshots
+		 WHERE tenant_id=$1 AND id=$2 AND collection_id=$3 AND kind='selection'
+		 AND principal_type='user' AND principal_id=$4)`, tid, *out.ResourceID,
+			collectionID, who.UserID).Scan(&bound)
+		if e != nil { return e }
+		if !bound { return domain.NewError("IDEMPOTENCY_CONFLICT", 409) }
+		currentRole, e := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Viewer)
+		if e != nil { return e }
+		_, e = project.Authorize(ctx, tx, tid, projectID, who.UserID, currentRole, domain.Viewer, false)
 		return e
 	})
 	return out, err

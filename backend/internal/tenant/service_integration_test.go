@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"os"
 	"photoeditor/backend/internal/auth"
+	"photoeditor/backend/internal/database"
 	"photoeditor/backend/internal/domain"
 	"sync"
 	"testing"
@@ -24,8 +25,12 @@ func tenantFixture(t *testing.T) (*Service, *pgxpool.Pool, auth.Identity, uuid.U
 		t.Fatal(err)
 	}
 	t.Cleanup(admin.Close)
-	cfg, _ := pgxpool.ParseConfig(dsn)
+	runtimeDSN := os.Getenv("PHOTO_TEST_RUNTIME_DATABASE_URL")
+	if runtimeDSN == "" { t.Fatal("isolated nonprivileged API runtime connection required") }
+	cfg, err := pgxpool.ParseConfig(runtimeDSN)
+	if err != nil { t.Fatal(err) }
 	cfg.ConnConfig.RuntimeParams["role"] = "photo_api"
+	database.GuardApplicationRole(cfg)
 	api, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		t.Fatal(err)

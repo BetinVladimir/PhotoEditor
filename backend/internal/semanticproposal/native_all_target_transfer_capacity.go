@@ -73,6 +73,7 @@ func (s SQLTransferSourceReader) restoreNativeAllTargetTransferCapacity(ctx cont
 	for i, target := range marker.Targets {
 		c.TargetProtection[i] = target.Protection.Ref
 	}
+	c.sceneEvidence=marker.SceneEvidence
 	if err := validateTransferConfiguration(c); err != nil {
 		return zero, err
 	}

@@ -1,0 +1,504 @@
+[
+  {
+    "operation": "portrait.glare",
+    "version": "1",
+    "resource_class": "gpu",
+    "routing_key": "gpu.portrait_glare",
+    "model_id": null,
+    "timeout_seconds": 1800,
+    "backends": [
+      "cpu"
+    ],
+    "v2_enabled": false,
+    "policies": [
+      {
+        "role": "document",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 1
+      },
+      {
+        "role": "working_image",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 1
+      },
+      {
+        "role": "pixels",
+        "media_types": [
+          "application/x-npy"
+        ],
+        "max_bytes": 2400004096,
+        "max_count": 1
+      },
+      {
+        "role": "report",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 1
+      },
+      {
+        "role": "mask",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 2
+      },
+      {
+        "role": "mask_pixels",
+        "media_types": [
+          "application/x-npy"
+        ],
+        "max_bytes": 800004096,
+        "max_count": 2
+      },
+      {
+        "role": "transform",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 1
+      },
+      {
+        "role": "registration",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 30
+      },
+      {
+        "role": "alpha",
+        "media_types": [
+          "application/x-npy"
+        ],
+        "max_bytes": 800004096,
+        "max_count": 1
+      },
+      {
+        "role": "warp_field",
+        "media_types": [
+          "application/x-npy"
+        ],
+        "max_bytes": 1600004096,
+        "max_count": 32
+      }
+    ]
+  },
+  {
+    "operation": "image.reflection",
+    "version": "1",
+    "resource_class": "gpu",
+    "routing_key": "gpu.image_reflection",
+    "model_id": null,
+    "timeout_seconds": 1800,
+    "backends": [
+      "cpu",
+      "cuda"
+    ],
+    "v2_enabled": false,
+    "policies": [
+      {
+        "role": "document",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 1
+      },
+      {
+        "role": "working_image",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 1
+      },
+      {
+        "role": "pixels",
+        "media_types": [
+          "application/x-npy"
+        ],
+        "max_bytes": 2400004096,
+        "max_count": 1
+      },
+      {
+        "role": "report",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 1
+      },
+      {
+        "role": "mask",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 2
+      },
+      {
+        "role": "mask_pixels",
+        "media_types": [
+          "application/x-npy"
+        ],
+        "max_bytes": 800004096,
+        "max_count": 2
+      },
+      {
+        "role": "transform",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 1
+      },
+      {
+        "role": "registration",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 30
+      },
+      {
+        "role": "alpha",
+        "media_types": [
+          "application/x-npy"
+        ],
+        "max_bytes": 800004096,
+        "max_count": 1
+      },
+      {
+        "role": "warp_field",
+        "media_types": [
+          "application/x-npy"
+        ],
+        "max_bytes": 1600004096,
+        "max_count": 32
+      }
+    ]
+  },
+  {
+    "operation": "optical.perspective",
+    "version": "1",
+    "resource_class": "cpu",
+    "routing_key": "cpu.optical_perspective",
+    "model_id": null,
+    "timeout_seconds": 600,
+    "backends": [
+      "cpu"
+    ],
+    "v2_enabled": false,
+    "policies": [
+      {
+        "role": "document",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 1
+      },
+      {
+        "role": "working_image",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 1
+      },
+      {
+        "role": "pixels",
+        "media_types": [
+          "application/x-npy"
+        ],
+        "max_bytes": 2400004096,
+        "max_count": 1
+      },
+      {
+        "role": "report",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 1
+      },
+      {
+        "role": "mask",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 2
+      },
+      {
+        "role": "mask_pixels",
+        "media_types": [
+          "application/x-npy"
+        ],
+        "max_bytes": 800004096,
+        "max_count": 2
+      },
+      {
+        "role": "transform",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 1
+      },
+      {
+        "role": "registration",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 30
+      },
+      {
+        "role": "alpha",
+        "media_types": [
+          "application/x-npy"
+        ],
+        "max_bytes": 800004096,
+        "max_count": 1
+      },
+      {
+        "role": "warp_field",
+        "media_types": [
+          "application/x-npy"
+        ],
+        "max_bytes": 1600004096,
+        "max_count": 32
+      }
+    ]
+  },
+  {
+    "operation": "provenance.sign",
+    "version": "1",
+    "resource_class": "cpu",
+    "routing_key": "cpu.provenance_sign",
+    "model_id": null,
+    "timeout_seconds": 600,
+    "backends": [
+      "cpu"
+    ],
+    "v2_enabled": false,
+    "policies": [
+      {
+        "role": "document",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 1
+      },
+      {
+        "role": "signed_export",
+        "media_types": [
+          "image/jpeg",
+          "image/png"
+        ],
+        "max_bytes": 2400004096,
+        "max_count": 1
+      },
+      {
+        "role": "manifest",
+        "media_types": [
+          "application/c2pa"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 1
+      }
+    ]
+  },
+  {
+    "operation": "v2.delivery.assemble",
+    "version": "1",
+    "resource_class": "cpu",
+    "routing_key": "cpu.v2_delivery_assemble",
+    "model_id": null,
+    "timeout_seconds": 600,
+    "backends": [
+      "cpu"
+    ],
+    "v2_enabled": false,
+    "policies": [
+      {
+        "role": "document",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 1
+      }
+    ]
+  },
+  {
+    "operation": "v2.interchange.import",
+    "version": "1",
+    "resource_class": "cpu",
+    "routing_key": "cpu.v2_interchange_import",
+    "model_id": null,
+    "timeout_seconds": 600,
+    "backends": [
+      "cpu"
+    ],
+    "v2_enabled": false,
+    "policies": [
+      {
+        "role": "document",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 1
+      },
+      {
+        "role": "report",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 1
+      },
+      {
+        "role": "mapping_shard",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 50
+      },
+      {
+        "role": "draft",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 5000
+      }
+    ]
+  },
+  {
+    "operation": "v2.interchange.export",
+    "version": "1",
+    "resource_class": "cpu",
+    "routing_key": "cpu.v2_interchange_export",
+    "model_id": null,
+    "timeout_seconds": 600,
+    "backends": [
+      "cpu"
+    ],
+    "v2_enabled": false,
+    "policies": [
+      {
+        "role": "document",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 1
+      },
+      {
+        "role": "report",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 1
+      },
+      {
+        "role": "mapping_shard",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 50
+      },
+      {
+        "role": "draft",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 5000
+      },
+      {
+        "role": "bundle",
+        "media_types": [
+          "application/zip"
+        ],
+        "max_bytes": 68719476736,
+        "max_count": 1
+      }
+    ]
+  },
+  {
+    "operation": "v2.interchange.parse",
+    "version": "1",
+    "resource_class": "cpu",
+    "routing_key": "cpu.v2_interchange_parse",
+    "model_id": null,
+    "timeout_seconds": 600,
+    "backends": [
+      "cpu"
+    ],
+    "v2_enabled": false,
+    "policies": [
+      {
+        "role": "document",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 1
+      },
+      {
+        "role": "imported_file",
+        "media_types": [
+          "image/jpeg",
+          "image/png",
+          "image/tiff",
+          "application/octet-stream",
+          "application/json",
+          "application/rdf+xml",
+          "application/x-npy"
+        ],
+        "max_bytes": 68719476736,
+        "max_count": 30000
+      }
+    ]
+  },
+  {
+    "operation": "v2.delivery.prepare",
+    "version": "1",
+    "resource_class": "cpu",
+    "routing_key": "cpu.v2_delivery_prepare",
+    "model_id": null,
+    "timeout_seconds": 600,
+    "backends": [
+      "cpu"
+    ],
+    "v2_enabled": false,
+    "policies": [
+      {
+        "role": "document",
+        "media_types": [
+          "application/json"
+        ],
+        "max_bytes": 8388608,
+        "max_count": 1
+      }
+    ]
+  }
+]

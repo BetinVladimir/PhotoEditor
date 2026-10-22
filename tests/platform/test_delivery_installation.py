@@ -1,3 +1,4 @@
+import json
 """Production configuration and SQL admission wiring; no live DB in these units."""
 from types import SimpleNamespace
 from uuid import uuid4
@@ -23,13 +24,14 @@ def test_explicit_cpu_enablement_and_closed_default():
 
 def test_installed_admission_uses_same_database_without_source_bypass():
     database = SimpleNamespace(delivery_lease_ready=lambda lease, raw: True,
-                               delivery_source_ready=lambda lease, raw: False)
+                               delivery_source_ready=lambda lease, raw: False,
+                               delivery_signed_source_scope=lambda lease, raw: None)
     installation = resolve_delivery_installation(database, True)
     assert isinstance(installation, DeliveryInstallation)
     assert isinstance(installation.admission, SQLDeliveryAdmission)
     assert installation.admission.database is database
     assert installation.admission.verify_source(SimpleNamespace(lease=object()),
-        V2DeliveryPrepareParams.model_validate({"schema_version":1,"input":{"artifact_id":str(uuid4()),"sha256":"a"*64}})) is False
+        V2DeliveryPrepareParams.model_validate_json(json.dumps({"schema_version":1,"input":{"artifact_id":str(uuid4()),"sha256":"a"*64}}))) is False
 
 
 def test_disabled_and_conflicting_installations():

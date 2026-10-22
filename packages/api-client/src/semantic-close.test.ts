@@ -1,14 +1,14 @@
 import {describe,it,expect,vi} from 'vitest';
 import {closeSemanticReview,decodeSemanticReviewClosed} from './semantic-close';
 const tenant='11111111-1111-1111-1111-111111111111',intent='22222222-2222-2222-2222-222222222222';
-const body={expected_revision:'9007199254740993',plan_sha:'a'.repeat(64)};
-const response=()=>({run_id:tenant,workflow_id:intent,revision:'9007199254740994',state:'completed',outputs:[],error_code:null});
+const body={expected_revision:'9007199254740990',plan_sha:'a'.repeat(64)};
+const response=()=>({run_id:tenant,workflow_id:intent,revision:'9007199254740991',state:'completed',outputs:[],error_code:null});
 describe('semantic close',()=>{
- it('preserves bigint revision and sends retry identity and cancellation',async()=>{
+ it('preserves safe boundary revision and sends retry identity and cancellation',async()=>{
   const signal=new AbortController().signal;
   const request=vi.fn().mockResolvedValue(response());
   const result=await closeSemanticReview({request},tenant,intent,body,'stable-key',signal);
-  expect(result.revision).toBe('9007199254740994');
+  expect(result.revision).toBe('9007199254740991');
   expect(request).toHaveBeenCalledWith(`/api/v1/tenants/${tenant}/semantic-intents/${intent}/close-review`,{method:'POST',body,idempotencyKey:'stable-key',signal});
  });
  it.each(['scope','overflow','key','extra'])('rejects %s before IO',async(kind)=>{

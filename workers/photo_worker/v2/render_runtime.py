@@ -11,7 +11,7 @@ from photo_worker.operations.layers.runtime_lock import component_paths as layer
 from photo_worker.runtime.executor import OperationFailure
 
 RENDER_COMPONENTS = ('recipe','inputs','layers','layer_params','providers','learning','scalars','overrides',
-    'style','color','native_base','background','background_binding','background_decode','beauty','defects','detail','denoise','dust','upscale','geometry_masks','effects','portrait','portrait_background','protection','masks','adjustments','changes','composition','source','reports','prepare','files',
+    'style','color','native_base','native_compute','native_installation','background','background_binding','background_decode','beauty','defects','detail','denoise','dust','upscale','geometry_masks','effects','portrait','portrait_background','protection','masks','adjustments','changes','composition','source','reports','prepare','files',
     'stage','quality','result','publish','resources','modules','authored','execute','task','adoption','adoption_inputs','prepare_adoption','profiled_replay','qualification_pin','cache_identity','cache_lookup','cache_store','cache_bytes','cache_republish','cache_worker','replay_artifacts','replay_reader','recomposition_adoption','runtime')
 
 
@@ -22,7 +22,9 @@ def component_paths():
         result['render_'+name] = root/'v2'/('render_'+name+'.py')
     for name in ('style','override'):
         result['contract_'+name] = root/'contracts'/(name+'.py')
-    for name, relative in {'learning_contracts':'operations/learning/contracts.py',
+    for name, relative in {'native_operator_configuration':'runtime/native_render_config.py',
+            'editor_precompose_operation':'operations/editor/layers_precompose.py',
+            'learning_contracts':'operations/learning/contracts.py',
             'learning_model':'operations/learning/model.py',
             'learning_recipe':'operations/learning/recipe.py',
             'portrait_prepare':'operations/portrait/prepare.py',
@@ -45,7 +47,7 @@ def component_paths():
             'asset_decode':'operations/asset/decode.py','asset_verify':'operations/asset/verify.py',
             'asset_inspect':'operations/asset/inspect.py','contract_assets':'contracts/assets.py',
             'defects_prepare':'operations/defects/prepare.py','contract_defects':'contracts/defects.py',
-            'algorithm_defect_labels':'algorithms/defect_labels.py','algorithm_defect_repair':'algorithms/defect_repair.py',
+            'defect_proposal_operation':'operations/defects/propose.py','defect_proposal_algorithm':'algorithms/defect_propose.py','algorithm_defect_labels':'algorithms/defect_labels.py','algorithm_defect_repair':'algorithms/defect_repair.py',
             'algorithm_effective':'algorithms/effective.py',
             'algorithm_beauty':'algorithms/beauty.py','algorithm_beauty_roi':'algorithms/beauty_roi.py',
             'algorithm_skin_mask':'algorithms/skin_mask.py','algorithm_masks':'algorithms/masks.py',
@@ -67,7 +69,7 @@ def component_paths():
             'object_evidence_reader':'v2/adoption_store.py',
             'media_derivative_encoder':'operations/media/derivative.py',
             'media_contract':'contracts/media.py',
-            'dust_prepare':'operations/sensor/prepare_repair.py','dust_contract':'contracts/dust.py'}.items():
+            'native_installation':'v2/render_native_installation.py','executed_base':'v2/render_executed_base.py','executed_base_contract':'contracts/editor_effects.py','conservative_provider':'v2/render_conservative.py','conservative_engine':'operations/conservative.py','conservative_algorithm':'algorithms/conservative.py','conservative_contract':'contracts/conservative.py','dust_prepare':'operations/sensor/prepare_repair.py','dust_contract':'contracts/dust.py'}.items():
         result[name] = root/relative
     return result
 

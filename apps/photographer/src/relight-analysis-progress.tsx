@@ -1,5 +1,6 @@
+import {Button,Text} from 'react-native-paper';
 import {useEffect,useRef,useState} from 'react';
-import {AppState,Pressable,Text,View} from 'react-native';
+import {AppState,View} from 'react-native';
 import {APIError} from '@photoeditor/api-client';
 import type {OwnerAPI} from './owner-api';
 import type {RegionJobTicket} from './region-preview';
@@ -44,6 +45,6 @@ export function RelightAnalysisProgress({api,ticket,labels,onRefresh}:Props){
   void poll();return()=>{active=false;stop();listener.remove()};
  },[api,ticket.run_id,ticket.workflow_id,epoch]);
  return <View>{status?<Text accessibilityLiveRegion="polite">{labels[status.state]}</Text>:null}
-  {failed?<><Text accessibilityRole="alert">{labels.unavailable}</Text><Pressable accessibilityRole="button" onPress={()=>{setFailed(false);setEpoch(value=>value+1)}}><Text>{labels.refresh}</Text></Pressable></>:null}
-  {status?.state==='completed'?<Pressable accessibilityRole="button" onPress={onRefresh}><Text>{labels.refresh}</Text></Pressable>:null}</View>;
+  {failed?<><Text accessibilityRole="alert">{labels.unavailable}</Text><Button accessibilityRole="button" onPress={()=>{setFailed(false);setEpoch(value=>value+1)}} mode="outlined">{labels.refresh}</Button></>:null}
+  {status?.state==='completed'?<Button accessibilityRole="button" onPress={onRefresh} mode="outlined">{labels.refresh}</Button>:null}</View>;
 }

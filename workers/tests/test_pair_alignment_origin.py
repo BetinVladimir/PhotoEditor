@@ -7,8 +7,8 @@ from photo_worker.contracts.pair import RegistrationParams, PairAlignment, valid
 @pytest.mark.parametrize('manual', [False, True])
 @pytest.mark.parametrize('mode', ['valid', 'before', 'after', 'crop', 'confirmation', 'matrix'])
 def test_alignment_original_params_binding(manual, mode):
-    before = dict(artifact_id=str(uuid4()), sha256='a' * 64)
-    after = dict(artifact_id=str(uuid4()), sha256='b' * 64)
+    before = dict(artifact_id=uuid4(), sha256='a' * 64)
+    after = dict(artifact_id=uuid4(), sha256='b' * 64)
     identity = [1., 0., 0., 0., 1., 0., 0., 0., 1.]
     params = RegistrationParams(before=before, after=after,
                                 manual_transform=identity if manual else None,
@@ -19,7 +19,7 @@ def test_alignment_original_params_binding(manual, mode):
                   inlier_count=0 if manual else 12,
                   confidence='user_confirmed' if manual else 'measured', crop_aware=False, warnings=[])
     if mode in ('before', 'after'):
-        result[mode] = dict(result[mode], artifact_id=str(uuid4()))
+        result[mode] = dict(result[mode], artifact_id=uuid4())
     if mode == 'crop': result['crop_aware'] = True
     if mode == 'confirmation':
         result.update(confidence='measured' if manual else 'user_confirmed',

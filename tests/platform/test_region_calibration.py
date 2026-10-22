@@ -11,12 +11,12 @@ from photo_worker.runtime.executor import OperationFailure
 from test_region_preview_presentation import fixture
 
 
-def calibrated(alpha=False,runtime_sha='a'*64):
+def calibrated(alpha=False,runtime_sha='a'*64,backend='cuda'):
     params,body=fixture(alpha)
     source=params.validate_source(body)
     q=dict(runtime_lock_sha=runtime_sha,model_lock_sha=params.frozen_recipe.model_lock_sha,
         icc_lock_sha=params.frozen_recipe.icc_lock_sha,device_profile_sha='b'*64,
-        dataset_sha='c'*64,policy_sha='d'*64,backend='cuda')
+        dataset_sha='c'*64,policy_sha='d'*64,backend=backend)
     peak=dict(ram_bytes=100,scratch_bytes=200,vram_bytes=300,output_bytes=400)
     sample=dict(width=400,height=300,operator_peak=peak)
     calibration=dict(qualification=q,workload_sha=region_workload_sha(params.frozen_recipe),
@@ -26,7 +26,7 @@ def calibrated(alpha=False,runtime_sha='a'*64):
         workload_sha=calibration['workload_sha'],evidence_sha=calibration['evidence_sha'],sample=sample)
     src=region_source_resources(400,300,has_alpha=alpha,alpha_mode='normalize_uint16')
     pixels=120000;roi=params.geometry.output_width*params.geometry.output_height
-    profile=dict(backend='cuda',renderer_version='v2.2',region_runtime_sha256=runtime_sha,
+    profile=dict(backend=backend,renderer_version='v2.2',region_runtime_sha256=runtime_sha,
         model_lock_sha=q['model_lock_sha'],icc_lock_sha=q['icc_lock_sha'],alpha_mode='normalize_uint16',
         region_qualification=pin,resource_estimate=dict(pixel_count=pixels,
             ram_bytes=max(3*1024**3,src['ram_bytes']+16*pixels+64*roi)+100,
@@ -145,3 +145,34 @@ def test_calibrated_renderer_rejects_another_qualified_device(tmp_path):
     delegate.device_profile_sha='b'*64
     with pytest.raises(OperationFailure,match='RUNTIME_LOCK_MISMATCH'):
         installed.verify_runtime()
+
+@pytest.mark.parametrize('backend',['cuda','mps'])
+def test_region_backend_calibration_cannot_cross_device_family(backend):
+    raw,profile,params,source=calibrated(backend=backend)
+    catalog=PinnedRegionCalibrationCatalog(raw,sha256(raw).hexdigest())
+    catalog.admit(profile,params,source)
+    profile['backend']='cuda' if backend=='mps' else 'mps'
+    with pytest.raises(OperationFailure,match='REGION_CALIBRATION_UNAVAILABLE'):
+        catalog.admit(profile,params,source)
+
+
+def test_mps_pinned_region_requires_catalog_and_preserves_backend(tmp_path):
+    from test_region_pinned_renderer import provider
+    from photo_worker.operations.region.renderer import PinnedRegionRenderer
+    delegate,path,events=provider(tmp_path)
+    delegate.backend='mps'
+    with pytest.raises(ValueError,match='independent device calibration'):
+        PinnedRegionRenderer(delegate,path,delegate.runtime_sha256)
+    raw,profile,params,source=calibrated(runtime_sha=delegate.runtime_sha256,backend='mps')
+    delegate.device_profile_sha=profile['region_qualification']['qualification']['device_profile_sha']
+    delegate.model_lock_sha=params.frozen_recipe.model_lock_sha
+    delegate.icc_lock_sha=params.frozen_recipe.icc_lock_sha
+    catalog=PinnedRegionCalibrationCatalog(raw,sha256(raw).hexdigest())
+    installed=PinnedRegionRenderer(delegate,path,delegate.runtime_sha256,calibration_catalog=catalog)
+    ctx=SimpleNamespace(check_active=lambda:None,lease=SimpleNamespace(execution_profile=profile))
+    installed.admit_resources(ctx,params)
+    with installed.render(ctx,None,params,source,None):pass
+    assert installed.backend=='mps'
+    delegate.backend='cuda'
+    with pytest.raises(OperationFailure,match='RUNTIME_LOCK_MISMATCH'):
+        installed.admit_resources(ctx,params)

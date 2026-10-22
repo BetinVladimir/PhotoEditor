@@ -5,7 +5,11 @@ from .color import to_linear,to_encoded,LUMA
 
 def apply_region(rgb,mask,kind,strength,protected,check_active=lambda:None):
     if rgb.dtype!=np.float32 or mask.shape!=rgb.shape[:2] or protected.shape!=mask.shape:raise ValueError('Invalid portrait detail arrays')
-    weight=np.clip(mask,0,1)*(1-np.clip(protected,0,1));changed=int(np.count_nonzero(weight>1/65535))
+    weight=np.clip(mask,0,1)*(1-np.clip(protected,0,1))
+    # Protected probabilities are a hard exclusion, including feathered edges.
+    # A fractional guard must never become permission for a smaller edit.
+    weight=np.where(protected>0,0,weight)
+    changed=int(np.count_nonzero(weight>1/65535))
     if strength==0:return rgb.copy(),0,0.,0.,'zero_strength'
     if changed==0:return rgb.copy(),0,0.,0.,'empty_mask'
     if kind=='glasses':return rgb.copy(),0,0.,0.,'review_required'

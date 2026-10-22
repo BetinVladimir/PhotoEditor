@@ -1,16 +1,23 @@
 // @vitest-environment jsdom
+vi.mock('expo-router',async()=> (await import('./test/locale-router')).localeRouterFixture);
 import {afterEach,expect,it,vi} from 'vitest';
-import {act,cleanup,render,screen} from '@testing-library/react';
+import {act,cleanup,render,screen,waitFor} from '@testing-library/react';
 vi.mock('react-native',async()=>import('react-native-web'));
 import {PerspectiveQualityView,perspectiveQualityDisplayScope} from './perspective-quality-view';
 import {LocaleProvider} from './locale-context';
 import type {PerspectiveProposal} from './perspective-proposal';
 import type {OwnerAPI} from './owner-api';
+import {APIError} from '@photoeditor/api-client';
 
 // Transport-only fixture; quality payload validity is covered by the parser tests.
 const proposal={tenant_id:'tenant',project_id:'project',producer_task_id:'producer',result_id:'result',
  result:{sha256:'a'.repeat(64)},changed_mask:{sha256:'b'.repeat(64)},canvas:{width:100,height:80}} as PerspectiveProposal;
 afterEach(()=>{cleanup();vi.restoreAllMocks();});
+it.each([401,403,404,410])('withdraws parent quality authority on definitive denial %s',async(status)=>{
+ const onAccessDenied=vi.fn(),perspectiveQuality=vi.fn().mockRejectedValue(new APIError(status,'FORBIDDEN'));
+ render(<LocaleProvider><PerspectiveQualityView api={{perspectiveQuality} as unknown as OwnerAPI} proposal={proposal} origin="https://app.example" onAccessDenied={onAccessDenied}/></LocaleProvider>);
+ await screen.findByText('Access is no longer available.');await waitFor(()=>expect(onAccessDenied).toHaveBeenCalledOnce());expect(perspectiveQuality).toHaveBeenCalledOnce();expect(screen.queryByRole('button')).toBeNull();
+});
 
 it('invalidates quality display when geometry or mask changes under the same result',()=>{
  expect(perspectiveQualityDisplayScope({...proposal,canvas:{...proposal.canvas,width:101}})).not.toBe(perspectiveQualityDisplayScope(proposal));

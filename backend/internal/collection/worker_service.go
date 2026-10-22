@@ -1,6 +1,7 @@
 package collection
 
 import (
+ "photoeditor/backend/internal/database"
 	"context"
 	"errors"
 	"net"
@@ -18,6 +19,7 @@ func RunWorker(ctx context.Context, dsn, amqpURL, listen string) error {
 		return errors.New("collection worker database configuration invalid")
 	}
 	cfg.ConnConfig.RuntimeParams["role"] = "photo_worker"
+	database.GuardApplicationRole(cfg)
 	cfg.ConnConfig.RuntimeParams["statement_timeout"] = "45000"
 	cfg.ConnConfig.RuntimeParams["lock_timeout"] = "3000"
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
@@ -25,6 +27,8 @@ func RunWorker(ctx context.Context, dsn, amqpURL, listen string) error {
 		return errors.New("collection worker database unavailable")
 	}
 	defer pool.Close()
+	if err = database.RequireApplicationRole(ctx, pool, "photo_worker"); err != nil { return err }
+ if err = RequireCollectionPublicationHistoryForRole(ctx,pool,"photo_worker"); err != nil { return err }
 	var installed bool
 	if err = pool.QueryRow(ctx, "SELECT to_regprocedure('photo.process_bulk_chunk(uuid,uuid)') IS NOT NULL").Scan(&installed); err != nil || !installed {
 		return errors.New("collection worker database function unavailable")

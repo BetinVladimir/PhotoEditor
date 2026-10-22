@@ -47,7 +47,7 @@ def open_holdout_person_stats(source: np.ndarray, alpha: np.ndarray | None,
                               ) -> Iterator[HoldoutPersonStats]:
     """Mirror mask.person and color.stats without publishing intermediate refs."""
     check_active()
-    if (pool.lock.lock_id != model_lock_sha or backend != 'cuda' or
+    if (pool.lock.lock_id != model_lock_sha or backend not in ('cuda','mps') or
             'lraspp_mobilenet_v3_large' not in
             {entry.id for entry in pool.lock.models} or
             not isinstance(source, np.ndarray) or source.ndim != 3 or

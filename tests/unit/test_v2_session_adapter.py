@@ -102,9 +102,34 @@ def test_manual_lock_is_applied_only_to_its_scene_group():
 
 def test_session_plan_requires_review_before_parent_finalization():
     artifacts = Artifacts()
-    ctx = SimpleNamespace(lease=SimpleNamespace(execution_profile={
+    ctx = SimpleNamespace(check_active=lambda: None, lease=SimpleNamespace(execution_profile={
         'renderer_version': 'v2.2', 'backend': 'cpu'}))
     result = execute(ctx, artifacts)
     assert result.review_required is True
     assert [role for role, _ in artifacts.staged] == ['correction_plan', 'document']
     assert result.outputs == [ref(52)]
+
+
+def test_session_plan_cancelled_before_input_read_stages_nothing():
+    artifacts = Artifacts()
+    class Cancelled(RuntimeError):
+        pass
+    def cancel():
+        raise Cancelled()
+    with pytest.raises(Cancelled):
+        _plan(artifacts, 'cpu', cancel)
+    assert artifacts.staged == []
+
+
+def test_session_plan_cancelled_before_root_cannot_publish_review_result():
+    artifacts = Artifacts()
+    class Cancelled(RuntimeError):
+        pass
+    def active():
+        if artifacts.staged:
+            raise Cancelled()
+    ctx = SimpleNamespace(check_active=active, lease=SimpleNamespace(
+        execution_profile={'renderer_version': 'v2.2', 'backend': 'cpu'}))
+    with pytest.raises(Cancelled):
+        execute(ctx, artifacts)
+    assert [role for role, _ in artifacts.staged] == ['correction_plan']

@@ -21,6 +21,8 @@ type SQLTransferSourceReader struct {
 	ManualRasterLimits      ManualRasterVerificationLimits
 	ManualRasterBatchLimits ManualRasterVerificationLimits
 	manualRasterBudget      *manualRasterBudget
+	scenePolicy             *createScenePolicy
+	nativePhase             *nativeReadPhase
 }
 
 func (s SQLTransferSourceReader) Read(ctx context.Context, who auth.Identity, tenantID uuid.UUID, binding v2input.SessionVersionBinding) (json.RawMessage, error) {

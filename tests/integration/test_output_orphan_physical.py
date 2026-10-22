@@ -2,6 +2,7 @@
 
 Owner-seeded retirement/cleanup expiry; object PUT is a fixture, not HTTP fault.
 """
+from pathlib import Path as _PhotoRepositoryPath
 import json
 import os
 import subprocess
@@ -32,7 +33,7 @@ def test_pending_output_physical_cleanup_releases_quota_after_storage(database,l
         db.execute("UPDATE photo.tasks SET state='cancelled',lease_until=NULL WHERE id=%s",(case['task'],))
         db.execute("UPDATE photo.output_uploads SET cleanup_after=clock_timestamp()-interval '1 second' WHERE id=%s",(ticket[1],))
     cfg=client._photo_test_config;root=Path(__file__).resolve().parents[2]
-    env={**os.environ,'PHOTO_TEST_ORPHAN_PHYSICAL':'1','PHOTO_TEST_DATABASE_URL':make_conninfo(**database),'PHOTO_TEST_MINIO_URL':cfg['Endpoint'],'PHOTO_TEST_MINIO_BUCKET':bucket,'PHOTO_TEST_MINIO_ACCESS':cfg['AccessKey'],'PHOTO_TEST_MINIO_SECRET':cfg['SecretKey'],'GOCACHE':'/private/tmp/photoeditor-go-cache'}
+    env={**os.environ,'PHOTO_TEST_ORPHAN_PHYSICAL':'1','PHOTO_TEST_DATABASE_URL':make_conninfo(**database),'PHOTO_TEST_MINIO_URL':cfg['Endpoint'],'PHOTO_TEST_MINIO_BUCKET':bucket,'PHOTO_TEST_MINIO_ACCESS':cfg['AccessKey'],'PHOTO_TEST_MINIO_SECRET':cfg['SecretKey'],'GOCACHE':str(_PhotoRepositoryPath(__file__).resolve().parents[2]/'work/go-cache')}
     result=subprocess.run(['go','test','-tags','integration','./internal/maintenance','-run','^TestIntegrationOutputOrphanPhysicalCleanup$','-count=1','-timeout=45s','-v'],cwd=root/'backend',env=env,capture_output=True,text=True,timeout=60)
     assert result.returncode==0,result.stdout+result.stderr
     assert 'OUTPUT_ORPHAN_PHYSICAL_CLEANED_OK' in result.stdout

@@ -101,7 +101,7 @@ func TestImageReportWorkerWire(t *testing.T) {
 		}
 		raw, _ := canonical.Marshal(fields)
 		command := exec.Command(python, "-c", "import sys; from photo_worker.operations.optical.contracts import ImageReport; from photo_worker.contracts.base import canonical_bytes; raw=sys.stdin.buffer.read(); sys.stdout.buffer.write(canonical_bytes(ImageReport.model_validate_json(raw)))")
-		command.Env = append(os.Environ(), "PYTHONPATH="+filepath.Join(repo, "workers")+string(os.PathListSeparator)+filepath.Join(repo, "src"))
+		command.Env = append(os.Environ(), "PYTHONPATH="+filepath.Join(repo, "workers")+string(os.PathListSeparator)+filepath.Join(repo, "apps", "local-editor", "src"))
 		command.Stdin = bytes.NewReader(raw)
 		wire, err := command.Output()
 		if err != nil {

@@ -14,19 +14,19 @@ func SemanticAssemblyQualification(db *pgxpool.Pool, objects SessionAnalysisObje
 		if db == nil || objects == nil || bucket == "" || !validSemanticAssemblyLease(l) || !validRef(calibration) || !digestPattern.MatchString(model) {
 			return ErrInvalid
 		}
-		expected := v2qualification.Expected{Operation: "semantic.transfer", Version: "1", Backend: "cuda", ModelLockSHA: model, LicenseCleared: true}
+		expected := v2qualification.Expected{Operation: "semantic.transfer", Version: "1", ModelLockSHA: model, LicenseCleared: true}
 		var fixtures, calibrations, evidence []string
 		var report Ref
 		var obj objectstore.Object
 		var reportBucket string
-		err := db.QueryRow(ctx, `SELECT dataset_sha,runtime_lock_sha,device_profile_sha,issuer_id,required_checks,test_fixture_shas,calibration_shas,evidence_shas,report_id,report_sha,bucket,object_key,object_version,bytes FROM photo.v27_semantic_frozen_assembly_qualification($1,$2,$3,$4,$5,$6,$7)`, l.TenantID, l.RunID, l.ExpansionID, l.Token, model, calibration.SHA256, calibration.ArtifactID).Scan(&expected.DatasetSHA, &expected.RuntimeLockSHA, &expected.DeviceProfileSHA, &expected.IssuerID, &expected.RequiredChecks, &fixtures, &calibrations, &evidence, &report.ArtifactID, &report.SHA256, &reportBucket, &obj.Key, &obj.VersionID, &obj.Bytes)
+		err := db.QueryRow(ctx, `SELECT dataset_sha,runtime_lock_sha,device_profile_sha,issuer_id,required_checks,test_fixture_shas,calibration_shas,evidence_shas,report_id,report_sha,bucket,object_key,object_version,bytes ,qualified_backend FROM photo.v27_semantic_frozen_assembly_qualification_backend($1,$2,$3,$4,$5,$6,$7)`, l.TenantID, l.RunID, l.ExpansionID, l.Token, model, calibration.SHA256, calibration.ArtifactID).Scan(&expected.DatasetSHA, &expected.RuntimeLockSHA, &expected.DeviceProfileSHA, &expected.IssuerID, &expected.RequiredChecks, &fixtures, &calibrations, &evidence, &report.ArtifactID, &report.SHA256, &reportBucket, &obj.Key, &obj.VersionID, &obj.Bytes, &expected.Backend)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrExpired
 		}
 		if err != nil {
 			return err
 		}
-		if reportBucket != bucket {
+		if reportBucket != bucket || (expected.Backend != "cuda" && expected.Backend != "mps") {
 			return ErrInvalid
 		}
 		set := func(values []string) (map[string]struct{}, error) {

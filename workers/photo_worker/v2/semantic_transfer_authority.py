@@ -36,10 +36,15 @@ def sql_semantic_adoption_authority(connection,objects,bucket,*,working_icc_sha,
             raise AdoptionInvalid('SEMANTIC_PROTECTION_INPUTS_CHANGED')
         if selected is None and guards!=[]:
             raise AdoptionInvalid('SEMANTIC_PROTECTION_INPUTS_CHANGED')
-        verify_scene(*deepcopy((params,intent,calibration,images,selected,masks)))
+        scoped_scene=verify_scene
+        bind_scene=getattr(verify_scene,'for_result',None)
+        if callable(bind_scene):
+            scoped_scene=bind_scene(connection,reader,tenant_id,task_id,context,check_active)
+        outcome=scoped_scene(*deepcopy((params,intent,calibration,images,selected,masks)))
         check_active();report()
         after=catalog()
         if tuple(tuple(canonical_bytes(value) for value in group) for group in after)!=tuple(tuple(canonical_bytes(value) for value in group) for group in (images,masks)):
             raise AdoptionInvalid('SEMANTIC_CATALOG_BINDING_CHANGED')
         check_active()
+        return outcome
     return verify

@@ -1,8 +1,10 @@
 package main
 
 import (
+ "photoeditor/backend/internal/database"
 	"context"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"photoeditor/backend/internal/objectstore"
@@ -17,9 +19,16 @@ func buildTrainingAdmission(ctx context.Context, api *pgxpool.Pool,
 	dsn string, objects *objectstore.Store, bucket string) (
 	v2learning.TrainingAdmission, func(), error) {
 	noop := func() {}
+	if err := ctx.Err(); err != nil { return nil, noop, err }
+	// Advanced personal learning is an explicit installation. Never fall back
+	// to the API credential (or libpq defaults) for scheduler authority.
+	if dsn == "" { return nil, noop, nil }
 	if api == nil || objects == nil || bucket == "" {
 		return nil, noop, errors.New("training dependencies unavailable")
 	}
+	bounded, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	ctx = bounded
 	var installed bool
 	err := api.QueryRow(ctx, `SELECT
 	 to_regproc('photo.v23_training_replay') IS NOT NULL AND
@@ -49,13 +58,14 @@ func buildTrainingAdmission(ctx context.Context, api *pgxpool.Pool,
 		return nil, noop, err
 	}
 	if !installed {
-		return nil, noop, nil
+		return nil, noop, errors.New("training SQL installation unavailable")
 	}
 	config, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
 		return nil, noop, errors.New("training database configuration invalid")
 	}
 	config.ConnConfig.RuntimeParams["role"] = "photo_scheduler"
+	database.GuardApplicationRole(config)
 	config.ConnConfig.RuntimeParams["statement_timeout"] = "30000"
 	scheduler, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {

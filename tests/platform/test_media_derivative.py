@@ -77,7 +77,11 @@ def test_media_output_policies_are_bounded():
 
 def test_media_profile_hash_binds_every_rendering_choice():
     sha = 'a' * 64
-    assert media_profile_hash('thumb320', sha) == 'ebe90336177eb9b7dd29dd048d5a4ede9fcfaa9e87ede89e1391c7ea57f259f4'
+    from hashlib import sha256
+    assert media_profile_hash('thumb320', sha,legacy=True) == 'ebe90336177eb9b7dd29dd048d5a4ede9fcfaa9e87ede89e1391c7ea57f259f4'
+    wire='{"icc_sha256":"'+sha+'","long_edge":320,"metadata_policy":"stripped","no_upscale":true,"quality":82,"renderer_policy":"declared_encoding_alpha8_icc_v2","schema_version":1,"variant":"thumb320"}'
+    assert media_profile_hash('thumb320',sha)==sha256(wire.encode()).hexdigest()
+    assert media_profile_hash('thumb320',sha)!=media_profile_hash('thumb320',sha,legacy=True)
     assert media_profile_hash('thumb320', sha) != media_profile_hash('thumb640', sha)
 
 

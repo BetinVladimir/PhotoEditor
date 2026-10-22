@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import {afterEach,expect,it,vi} from 'vitest';
 import {cleanup,fireEvent,render,screen} from '@testing-library/react';
-vi.mock('./locale-context',async()=>{const en=await import('../../../locales/en/common.json');return {useLocale:()=>({t:(key:keyof typeof en.default)=>en.default[key]})}});
+vi.mock('./locale-context',async()=>{const __factory=async()=>{const en=await import('../../../locales/en/common.json');return {useLocale:()=>({t:(key:keyof typeof en.default)=>en.default[key]})}};const __out=await __factory();const {withUILocaleDouble}=await import('./test/locale-double');return {...__out,useLocale:()=>withUILocaleDouble(__out.useLocale())};});
 vi.mock('react-native',async()=>import('react-native-web'));
 import {UploadItemControls} from './upload-item-controls';
 afterEach(cleanup);

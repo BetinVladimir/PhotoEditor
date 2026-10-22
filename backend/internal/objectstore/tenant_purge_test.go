@@ -92,6 +92,7 @@ func TestTenantPurgeRemovesOpaqueLegacyKeysWithinExactNamespace(t *testing.T) {
 	objects := map[string]string{
 		prefixes[0] + "old file ☃.jpg":                     "version-1",
 		prefixes[2] + "legacy/../raw image":                "version-2",
+        prefixes[1] + "before-versioning.raw":             "null",
 		"tenants/" + neighbor.String() + "/old file ☃.jpg": "foreign",
 	}
 	uploads := map[string]string{prefixes[1] + "stale multipart +": "upload-1"}
@@ -358,4 +359,13 @@ func TestTenantPurgeRefusesUnidentifiedMultipartSession(t *testing.T) {
 	if _, err := purgeTenantBatch(context.Background(), tenant, 1, io); !errors.Is(err, ErrInvalid) || deletes != 0 {
 		t.Fatal("unidentified upload was accepted", err, deletes)
 	}
+}
+
+
+func TestTenantPurgeVersionIdentityKeepsNullExplicit(t *testing.T) {
+ if !validTenantPurgeVersionID("null") { t.Fatal("explicit legacy null version refused") }
+ if ValidInterchangeVersionID("null") { t.Fatal("live immutable artifact version policy weakened") }
+ for _,version:=range []string{"", "v\n", strings.Repeat("v",1025)} {
+  if validTenantPurgeVersionID(version) { t.Fatal("invalid version accepted",len(version)) }
+ }
 }

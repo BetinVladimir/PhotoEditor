@@ -7,7 +7,7 @@ from photo_worker.runtime.artifacts import ArtifactConfig,TaskArtifacts
 from photo_worker.runtime.executor import ExecutionContext,Operation,OperationResult,OperationFailure
 from .verify import verify_decode,verify_magic,verify_size,verify_suffix,VerifiedSource
 from .inspect import read_metadata
-from .decode import icc_to_work
+from .decode import icc_to_work,RAWThreadControlError
 from photo_worker.color.icc import ICCRegistry
 from photo_worker.contracts.base import canonical_bytes
 from photo_worker.contracts.images import WorkingImage,Canvas,ColorSpace,TransformChain
@@ -29,6 +29,8 @@ def _execute(ctx:ExecutionContext,artifacts:TaskArtifacts,verify:bool)->Operatio
                 source=VerifiedSource(local.path,kind,size,sha)
             ctx.check_active()
             metadata=read_metadata(source)
+            # Bind inspected metadata to the same immutable source bytes.
+            verify_size(local.path,source.bytes,source.sha256,check_active=ctx.check_active)
         except ValueError as exc:
             # ICC/format/size failures are deterministic input errors; do not
             # expose source paths or decoder exception text in task diagnostics.
@@ -36,7 +38,8 @@ def _execute(ctx:ExecutionContext,artifacts:TaskArtifacts,verify:bool)->Operatio
         ctx.progress(2,3)
         manifest=AssetMetadata(source=params.source,width=metadata.width,height=metadata.height,
             bit_depth=metadata.bit_depth,has_alpha=metadata.has_alpha,orientation=metadata.orientation,
-            icc_sha256=metadata.icc_sha256,format=metadata.format,sensor_alignment=metadata.sensor_alignment)
+            icc_sha256=metadata.icc_sha256,format=metadata.format,sensor_alignment=metadata.sensor_alignment,
+            captured_at=metadata.captured_at,captured_local=metadata.captured_local)
         if verify:
             output=artifacts.stage_contract(VerifiedAsset(source=params.source,bytes=source.bytes,metadata=manifest),'verified')
         else:output=artifacts.stage_contract(manifest,'metadata')
@@ -67,6 +70,7 @@ def _decode(ctx:ExecutionContext,artifacts:TaskArtifacts,registry:ICCRegistry)->
             try:
                 decoded=icc_to_work(source,pixels,registry,params.assume_profile,analyze=params.analyze,
                     tile=params.tile,alpha_output=alpha,raw_development=params.raw_development,check_active=ctx.check_active)
+            except RAWThreadControlError as exc:raise OperationFailure('CONFIG_INVALID') from exc
             except ValueError as exc:raise OperationFailure('INPUT_INVALID') from exc
             ctx.progress(2,4)
             pixel_ref=artifacts.stage(pixels,reservation,'working_rgb','application/octet-stream')

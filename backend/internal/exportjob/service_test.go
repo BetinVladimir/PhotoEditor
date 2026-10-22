@@ -28,3 +28,8 @@ func TestTerminalCodeIsStrictAndBounded(t *testing.T) {
 		}
 	}
 }
+
+func TestCreateRejectsMissingDependenciesBeforeTenantTransaction(t *testing.T){
+ _,err:=(Service{}).Create(context.Background(),auth.Identity{UserID:uuid.New()},uuid.New(),"key",CreateRequest{SnapshotID:uuid.New(),Presets:[]uuid.UUID{uuid.New()}})
+ if domain.AsError(err).Code!="VALIDATION_FAILED"{t.Fatal(err)}
+}

@@ -2,7 +2,7 @@ import numpy as np
 from collections.abc import Callable
 from scipy.optimize import least_squares
 from photo_worker.contracts.base import canonical_bytes
-from photo_worker.contracts.series import ItemCorrection,SeriesCorrections,SeriesParams,SeriesStats
+from photo_worker.contracts.series import ItemCorrection,SeriesCorrections,SeriesParams,SeriesStats,SeriesStatsPack
 from photo_worker.runtime.artifacts import ArtifactConfig,TaskArtifacts
 from photo_worker.runtime.executor import ExecutionContext,Operation,OperationFailure,OperationResult
 
@@ -14,7 +14,7 @@ def _vector(stats,ids):
 def compute_series_corrections(p:SeriesParams,values:list[SeriesStats],check_active:Callable[[],None]|None=None)->SeriesCorrections:
     if check_active is None:check_active=lambda:None
     check_active()
-    if len(values) < 2 or len(values) > 2000:
+    if len(values) < 2 or len(values) > 5000:
         raise ValueError('Invalid series size')
     by={v.item_id:v for v in values}
     if len(by)!=len(values) or (p.reference_item_id is not None and p.reference_item_id not in by):
@@ -78,7 +78,15 @@ def require_series_runtime(ctx:ExecutionContext,runtime_locks:tuple[str,str,str]
 def execute(ctx:ExecutionContext,artifacts:TaskArtifacts,runtime_locks:tuple[str,str,str]|None=None)->OperationResult:
     require_series_runtime(ctx,runtime_locks)
     try:
-        p=artifacts.params(SeriesParams);values=[artifacts.contract(r,SeriesStats) for r in p.stats]
+        p=artifacts.params(SeriesParams);values=[];sources=[]
+        if p.stats_batches:
+            for ref in p.stats_batches:
+                ctx.check_active();batch=artifacts.contract(ref,SeriesStatsPack)
+                values.extend(s.value for s in batch.stats);sources.extend((s.source.artifact_id,s.source.sha256) for s in batch.stats)
+        else:
+            for ref in p.stats:
+                ctx.check_active();values.append(artifacts.contract(ref,SeriesStats));sources.append((ref.artifact_id,ref.sha256))
+        if len(set(sources))!=len(sources):raise ValueError('Duplicate series source')
         result=compute_series_corrections(p,values,ctx.check_active)
     except ValueError as exc:raise OperationFailure('INPUT_INVALID') from exc
     ref=artifacts.stage_contract(result,'series_corrections');return OperationResult(outputs=[ref],review_required=bool(result.warnings),bytes_written=len(canonical_bytes(result)))

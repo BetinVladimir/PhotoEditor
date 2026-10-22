@@ -39,3 +39,14 @@ it('exposes one bounded prepared review page to the screen',async()=>{
  expect(page.items).toHaveLength(1);
  expect(request).toHaveBeenCalledTimes(1);
 });
+
+it('rejects malformed decision admission before HTTP and owns the posted body',async()=>{
+ let resolve!:(value:unknown)=>void;
+ const request=vi.fn((_path:string,_options:unknown)=>new Promise<unknown>(done=>{resolve=done;}));const api=new OwnerAPI({request} as never,id(7));
+ const body={action:'grant' as const,kind:'dust' as const,entry_id:id(1),target_version_id:id(2),proposal:ref(3),base:ref(4),expected_epoch:0,decision:'accept' as const,accepted_candidate_ids:['f'.repeat(64)],rejected_candidate_ids:[]};
+ await expect(api.decidePreparedImportReview(id(8),id(9),{...body,action:['grant']} as never,id(10))).rejects.toThrow('INTERCHANGE_PREPARED_REVIEW_INVALID');expect(request).not.toHaveBeenCalled();
+ const pending=api.decidePreparedImportReview(id(8),id(9),body,id(10));
+ body.proposal.artifact_id=id(11);body.accepted_candidate_ids[0]='e'.repeat(64);
+ const posted=request.mock.calls[0][1] as {body:typeof body};expect(posted.body.proposal.artifact_id).toBe(id(3));expect(posted.body.accepted_candidate_ids).toEqual(['f'.repeat(64)]);
+ resolve({workflow_id:id(9),entry_id:id(1),target_version_id:id(2),kind:'dust',proposal_id:id(3),status:'granted',epoch:1});await expect(pending).resolves.toMatchObject({proposal_id:id(3),epoch:1});
+});

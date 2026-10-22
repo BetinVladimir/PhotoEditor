@@ -25,7 +25,7 @@ func (v ImportCodecDocumentValidator) ImportDocumentChildren(ctx context.Context
 		return nil, v2input.ErrInvalid
 	}
 	switch entry.Contract {
-	case "StyleV2", "CorrectionPlan", "Override", "LayerStack", "MaskRef", "Params", "Stats20", "ResolvedStyle", "DefectCandidates", "DefectReview", "DustCandidates":
+	case "StyleV2", "CorrectionPlan", "Override", "LayerStack", "MaskRef", "Params", "Stats20", "ResolvedStyle", "DefectCandidates", "DefectReview", "DustCandidates", "DefectProposeReport", "WorkingImage", "FaceLandmarks", "FaceBoxes":
 	default:
 		return nil, &ImportRecipeUnsupported{Reason: "dependency_contract_not_installed"}
 	}

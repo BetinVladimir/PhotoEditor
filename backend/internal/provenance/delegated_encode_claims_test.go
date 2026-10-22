@@ -12,7 +12,7 @@ import (
  "photoeditor/backend/internal/objectstore"
  "photoeditor/backend/internal/review"
  "photoeditor/backend/internal/v2input"
- "photoeditor/backend/internal/workflow"
+ workflow "photoeditor/backend/internal/encodecontract"
 )
 
 type delegatedDocumentsFunc func(context.Context,CanonicalSigningTask,v2input.Ref,int)([]byte,error)

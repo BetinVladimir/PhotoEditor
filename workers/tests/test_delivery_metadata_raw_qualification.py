@@ -25,7 +25,9 @@ def fixture_matrix(tmp_path):
         fixtures.append({'filename':name,'mime':mime,'original_sha256':sha256(body).hexdigest(),
                          'original_bytes':len(body),'expected_with_gps':{
                              'author':'A','gps':{'latitude':42,'longitude':23,'altitude_m':None}}})
-    return executable,canonical_bytes({'schema_version':1,'fixtures':fixtures})
+    from photo_worker.v2.delivery_metadata_raw_qualification import RawMetadataMatrix
+    matrix=RawMetadataMatrix.model_validate({'schema_version':1,'fixtures':fixtures})
+    return executable,canonical_bytes(matrix)
 
 
 def test_raw_matrix_covers_all_formats_and_gps_consent(tmp_path):

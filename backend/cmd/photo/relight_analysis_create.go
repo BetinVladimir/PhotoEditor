@@ -1,6 +1,7 @@
 package main
 
 import (
+ "photoeditor/backend/internal/database"
 	"context"
 	"errors"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -14,9 +15,15 @@ import (
 func buildRelightAnalysis(ctx context.Context, objects *objectstore.Store, bucket string) (httpapi.RelightAnalysisSubmit, func(), error) {
 	noop := func() {}
 	path := os.Getenv("PHOTO_V28_RELIGHT_ANALYSIS_CONFIG")
-	if path == "" {
-		return nil, noop, nil
-	}
+ if path == "" {
+  dsn:=os.Getenv("V28_RELIGHT_SCHEDULER_DATABASE_URL")
+  if dsn=="" {return nil,noop,nil}
+  pool,err:=buildRelightReceiptReader(ctx,dsn,true)
+  if err!=nil {return nil,noop,err}
+  service,err:=v2portrait.NewRelightAnalysisReceiptOnlyProjects(pool)
+  if err!=nil {pool.Close();return nil,noop,err}
+  return service,pool.Close,nil
+ }
 	dsn := os.Getenv("V28_RELIGHT_SCHEDULER_DATABASE_URL")
 	if dsn == "" {
 		return nil, noop, errors.New("relight scheduler configuration unavailable")
@@ -43,6 +50,7 @@ func buildRelightAnalysis(ctx context.Context, objects *objectstore.Store, bucke
 		return nil, noop, errors.New("relight scheduler configuration invalid")
 	}
 	config.ConnConfig.RuntimeParams["role"] = "photo_scheduler"
+	database.GuardApplicationRole(config)
 	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
 		return nil, noop, errors.New("relight scheduler unavailable")
@@ -52,6 +60,7 @@ func buildRelightAnalysis(ctx context.Context, objects *objectstore.Store, bucke
 	err = pool.QueryRow(ctx, `SELECT current_user,
  to_regprocedure('photo.seal_v28_relight_analysis_graph(uuid,uuid,uuid,text,jsonb)') IS NOT NULL
  AND to_regprocedure('photo.read_v28_relight_analysis_queued_receipt(uuid,uuid,uuid,uuid,jsonb)') IS NOT NULL
+ AND to_regprocedure('photo.read_v28_relight_analysis_stored_outcome(uuid,uuid,uuid,uuid,uuid,jsonb)') IS NOT NULL
  AND to_regprocedure('photo.v28_relight_analysis_array_source(uuid,uuid,uuid,uuid,uuid,jsonb,text,uuid,text,text)') IS NOT NULL
  AND to_regprocedure('photo.register_v28_relight_analysis_transport(uuid,uuid,text,jsonb,jsonb,text)') IS NOT NULL`).Scan(&role, &installed)
 	if err != nil || role != "photo_scheduler" || !installed {

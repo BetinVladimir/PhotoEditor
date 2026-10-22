@@ -1,22 +1,28 @@
+import {Button,Text} from 'react-native-paper';
 import {perspectivePreviewBase64} from './perspective-preview';
 import {useEffect,useState} from 'react';
-import {Image,Platform,Pressable,Text,View} from 'react-native';
+import {Image,Platform,View} from 'react-native';
 import type {OwnerAPI} from './owner-api';
 import type {PerspectiveProposal} from './perspective-proposal';
 import {downloadPerspectivePreview} from './perspective-preview-download';
 import {useLocale} from './locale-context';
+import {APIError} from '@photoeditor/api-client';
 
 export function perspectivePreviewDisplayScope(proposal:PerspectiveProposal):string{
  return JSON.stringify(proposal);
 }
 
-export function PerspectivePreviewView({api,proposal}:{api:OwnerAPI;proposal:PerspectiveProposal}){
+export function PerspectivePreviewView({api,proposal,onAccessDenied}:{onAccessDenied?:()=>void;api:OwnerAPI;proposal:PerspectiveProposal}){
+ const __uiT=useLocale().t;
+
  const {t}=useLocale();
  const scope=perspectivePreviewDisplayScope(proposal);
  const [variant,setVariant]=useState<'preview1600'|'preview2560'>('preview1600'),[refresh,setRefresh]=useState(0);
  const [display,setDisplay]=useState<{api:OwnerAPI;scope:string;uri:string;width:number;height:number}|null>(null),[failed,setFailed]=useState(false);
+ const [denied,setDenied]=useState(false);
  useEffect(()=>{
   const controller=new AbortController();let disposed=false,uri='',expiry:ReturnType<typeof setTimeout>|undefined;
+  if(denied)return()=>controller.abort();
   const active=()=>!disposed&&!controller.signal.aborted;
   const release=()=>{if(Platform.OS==='web'&&uri)URL.revokeObjectURL(uri);uri='';};
   setDisplay(null);setFailed(false);
@@ -37,9 +43,10 @@ export function PerspectivePreviewView({api,proposal}:{api:OwnerAPI;proposal:Per
    const remaining=Date.parse(ref.expires_at)-Date.now();if(remaining<=0)throw new Error('PERSPECTIVE_PREVIEW_EXPIRED');
    setDisplay({api,scope:scope+':'+variant,uri,width:ref.width,height:ref.height});
    expiry=setTimeout(()=>{release();setDisplay(null);setFailed(true);},remaining);
-  }catch{release();if(active())setFailed(true);}})();
+  }catch(error){release();if(active()){if(error instanceof APIError&&[401,403,404,410].includes(error.status)){setDenied(true);setDisplay(null);onAccessDenied?.();}else setFailed(true);}}})();
   return()=>{disposed=true;controller.abort();if(expiry!==undefined)clearTimeout(expiry);release();};
- },[api,scope,proposal,variant,refresh]);
+ },[api,scope,proposal,variant,refresh,denied]);
  const visible=display?.scope===scope+':'+variant&&display.api===api?display:null;
- return <View>{visible?<Image accessibilityLabel={t('perspective_title')} source={{uri:visible.uri}} resizeMode="contain" style={{width:'100%',height:Math.min(480,480*visible.height/visible.width),backgroundColor:'#777'}} onError={()=>{setDisplay(null);setFailed(true);}}/>:<Text>{t(failed?'perspective_result_unavailable':'perspective_result_pending')}</Text>}<Pressable accessibilityRole="button" onPress={()=>setRefresh(n=>n+1)}><Text>{t('perspective_preview_refresh')}</Text></Pressable><Pressable accessibilityRole="button" onPress={()=>setVariant(v=>v==='preview1600'?'preview2560':'preview1600')}><Text>{t('perspective_preview_variant').replace('{n}',variant==='preview1600'?'2560':'1600')}</Text></Pressable></View>;
+ if(denied)return <Text accessibilityRole="alert">{__uiT('ui_3bd6e2f1e27d')}</Text>;
+ return <View>{visible?<Image accessibilityLabel={t('perspective_title')} source={{uri:visible.uri}} resizeMode="contain" style={{width:'100%',height:Math.min(480,480*visible.height/visible.width),backgroundColor:'#777'}} onError={()=>{setDisplay(null);setFailed(true);}}/>:<Text>{t(failed?'perspective_result_unavailable':'perspective_result_pending')}</Text>}<Button accessibilityRole="button" onPress={()=>setRefresh(n=>n+1)} mode="outlined">{t('perspective_preview_refresh')}</Button><Button accessibilityRole="button" onPress={()=>setVariant(v=>v==='preview1600'?'preview2560':'preview1600')} mode="outlined">{t('perspective_preview_variant').replace('{n}',variant==='preview1600'?'2560':'1600')}</Button></View>;
 }

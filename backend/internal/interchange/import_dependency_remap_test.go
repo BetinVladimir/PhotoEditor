@@ -197,3 +197,30 @@ func TestRecursiveImportRemapperRoutesDefectLabelMapToBinaryCodec(t *testing.T) 
 		t.Fatal("binary label map entered JSON codec or was published")
 	}
 }
+
+func TestRecursiveImportRemapperRoutesDefectLabelPNGToBinaryCodec(t *testing.T) {
+	archived := v2input.Ref{ArtifactID: uuid.New(), SHA256: rawSHA([]byte("defect labels fixture"))}
+	parsed := importParsedValidatorFixture()
+	parsed.Manifest.Inventory = append(parsed.Manifest.Inventory, importBundleInventory{ID: archived.ArtifactID, Path: "arrays/defect_labels.png", SHA: archived.SHA256, Contract: "DefectLabelPNG"})
+	parsed.Files = append(parsed.Files, importParsedFile{Path: "arrays/defect_labels.png", Content: v2input.Ref{ArtifactID: uuid.New(), SHA256: archived.SHA256}, Contract: "DefectLabelPNG"})
+	parsedRaw, err := canonical.Marshal(parsed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	old := v2input.SessionVersionBinding{AssetVersionID: uuid.New()}
+	target := v2input.SessionVersionBinding{AssetVersionID: uuid.New()}
+	codec := &dependencyCodecStub{}
+	remapper, err := NewRecursiveImportDependencyRemapper(uuid.New(), parsedRaw, remapArchiveStub{}, &importRecipePorts{old: old, target: target}, codec, codec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = remapper.RemapImportRecipeDependency(context.Background(), parsed.Manifest.Entries[0].ID, archived, "DefectLabelPNG", old, target)
+	var unsupported *ImportRecipeUnsupported
+	if !errors.As(err, &unsupported) || unsupported.Reason != "binary_dependency_codec_not_installed" {
+		t.Fatalf("label PNG must require a physical binary codec: %v", err)
+	}
+	if codec.calls != 0 || len(codec.published) != 0 {
+		t.Fatal("binary label PNG entered JSON codec or was published")
+	}
+}
+

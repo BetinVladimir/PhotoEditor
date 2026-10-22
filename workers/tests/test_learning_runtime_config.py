@@ -43,9 +43,8 @@ def test_learning_evaluate_requires_complete_signed_installation(tmp_path):
 def test_learning_evaluate_rejects_wrong_worker_backend(tmp_path):
     report = tmp_path / 'report'
     report.write_bytes(b'signed-report')
-    with pytest.raises(WorkerConfigurationError, match='Incomplete'):
-        learning_evaluation_from_environment(_config(backend='mps'),
-            lambda name, default: str(report))
+    assert learning_evaluation_from_environment(_config(backend='mps'),
+        lambda name, default: str(report)) is None
 
 
 def test_learning_evaluate_detects_trust_file_rotation(tmp_path, monkeypatch):

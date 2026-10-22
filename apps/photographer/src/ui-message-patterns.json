@@ -1,0 +1,31 @@
+[
+  {
+    "source": "Full recipe processing: {p0}.",
+    "key": "ui_cff01e9412f2",
+    "parts": [
+      "Full recipe processing: ",
+      null,
+      "."
+    ]
+  },
+  {
+    "source": "Download job {p0} is {p1}.",
+    "key": "ui_f6ea34f968a1",
+    "parts": [
+      "Download job ",
+      null,
+      " is ",
+      null,
+      "."
+    ]
+  },
+  {
+    "source": "Unable to {p0} run",
+    "key": "ui_178841406aac",
+    "parts": [
+      "Unable to ",
+      null,
+      " run"
+    ]
+  }
+]

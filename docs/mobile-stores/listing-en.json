@@ -1,0 +1,15 @@
+{
+  "status": "DRAFT_INTERNAL_TESTING_ONLY",
+  "locale": "en",
+  "apple": {
+    "name": "Framevela",
+    "subtitle": "Your photography workspace",
+    "description": "Framevela brings a photographer’s workflow into one workspace: organize projects and photo collections, review edits and prepare images for clients.\n\nThis internal testing build includes screens for projects, imports, photo review, editing workflows, exports and deliveries. Manage workspace members and permissions, and adjust your profile, language, theme and retention settings.\n\nWhere a connected test environment provides the required processing services, explore photo processing and AI-assisted workflows, then review the result yourself. Processing availability depends on that environment and its configured models; the app does not promise that every operation is available on every device.\n\nClient galleries are opened through a link provided by the photographer. A reviewer or invited tester needs access to the designated test environment and workspace. Internet access is required for connected workflows.\n\nThis is an internal preview, not a public production release. Features and availability may change. Use only test photographs you have permission to upload. Video editing is not included in this description.",
+    "keywords": "photography,photos,workspace,collections,review,editing,galleries,clients"
+  },
+  "google": {
+    "name": "Framevela",
+    "short_description": "Organize photos, review edits and prepare private client galleries.",
+    "full_description": "Framevela brings a photographer’s workflow into one workspace: organize projects and photo collections, review edits and prepare images for clients.\n\nThis internal testing build includes screens for projects, imports, photo review, editing workflows, exports and deliveries. Manage workspace members and permissions, and adjust your profile, language, theme and retention settings.\n\nWhere a connected test environment provides the required processing services, explore photo processing and AI-assisted workflows, then review the result yourself. Processing availability depends on that environment and its configured models; the app does not promise that every operation is available on every device.\n\nClient galleries are opened through a link provided by the photographer. A reviewer or invited tester needs access to the designated test environment and workspace. Internet access is required for connected workflows.\n\nThis is an internal preview, not a public production release. Features and availability may change. Use only test photographs you have permission to upload. Video editing is not included in this description."
+  }
+}

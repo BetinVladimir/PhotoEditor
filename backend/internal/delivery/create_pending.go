@@ -24,6 +24,7 @@ type CreatePendingDocument struct {
 	Body    string      `json:"body_jcs"`
 }
 type CreatePending struct {
+	Stage string `json:"stage,omitempty"`
 	QueueClass string `json:"queue_class,omitempty"`
 	Project       uuid.UUID                     `json:"project_id"`
 	SchemaVersion int                           `json:"schema_version"`
@@ -46,7 +47,9 @@ func(i CreateIntent)encodePending(ctx context.Context,session uuid.UUID,catalog 
 	if err != nil {
 		return nil, err
 	}
-	raw, err := canonical.Marshal(CreatePending{QueueClass: "batch", Project: i.request.ProjectID, SchemaVersion: 1, Tenant: i.tenant, Actor: i.actor, RequestSHA: i.requestSHA, Catalog: catalog, Items: items, Documents: pendingCreateDocuments(docs)})
+	stage := "ordinary"
+	if watermark { stage = "watermark" }
+	raw, err := canonical.Marshal(CreatePending{Stage: stage, QueueClass: "batch", Project: i.request.ProjectID, SchemaVersion: 1, Tenant: i.tenant, Actor: i.actor, RequestSHA: i.requestSHA, Catalog: catalog, Items: items, Documents: pendingCreateDocuments(docs)})
 	if err != nil {
 		return nil, err
 	}
@@ -86,6 +89,14 @@ func(i CreateIntent)decodePendingProjection(ctx context.Context,session uuid.UUI
 	if decoder.Decode(&pending) != nil || pending.SchemaVersion != 1 || (pending.QueueClass != "" && pending.QueueClass != "batch") || pending.Project != i.request.ProjectID || pending.Tenant != i.tenant || pending.Actor != i.actor || pending.RequestSHA != i.requestSHA {
 		return invalid()
 	}
+	// Legacy envelopes omitted this distinction. They may be restored only as
+	// selection evidence, then independently revalidated and promoted under the
+	// receipt lock; missing stage is never executable authority.
+	if selection {
+		if pending.Stage != "" && pending.Stage != "selection" { return invalid() }
+	} else if watermark {
+		if pending.Stage != "watermark" { return invalid() }
+	} else if pending.Stage != "ordinary" { return invalid() }
 	exact, err := canonical.Marshal(pending)
 	if err != nil || !bytes.Equal(exact, body) {
 		return invalid()
@@ -154,6 +165,12 @@ func(s Service)pinCreatePendingProjection(ctx context.Context,who auth.Identity,
 		var live bool
 		if err := tx.QueryRow(ctx, `SELECT request_hash,response_status,response_body,expires_at>clock_timestamp() FROM photo.idempotency_records WHERE tenant_id=$1 AND principal_type='user' AND principal_id=$2 AND route=$3 AND key=$4 FOR UPDATE`, tid, who.UserID, route, key).Scan(&hash, &status, &saved, &live); err != nil {
 			return err
+		}
+		if err := tx.QueryRow(ctx, `SELECT photo.v2_editor_authorized($1,$2,$3,$4)`, tid, request.ProjectID, who.UserID, who.SessionID).Scan(&authorized); err != nil {
+			return err
+		}
+		if !authorized {
+			return domain.NewError("NOT_FOUND", 404)
 		}
 		if hash != intent.requestSHA {
 			return domain.NewError("IDEMPOTENCY_CONFLICT", 409)

@@ -14,5 +14,5 @@ func(p ReplacementDetectorQuotaCleanup)ProcessOne(ctx context.Context)(bool,erro
  ctx,cancel:=context.WithTimeout(ctx,10*time.Second);defer cancel()
  var changed bool
  if err:=p.DB.QueryRow(ctx,"SELECT photo.release_next_v29_replacement_detector_quota()").Scan(&changed);err!=nil {return false,err}
- return changed,nil
+ return changed,ctx.Err()
 }

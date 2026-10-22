@@ -36,7 +36,7 @@ func TestCloseProofDoesNotWaitForChildren(t *testing.T) {
 
 func TestCloseProofRejectsRevisionOverflowAndStalePlan(t *testing.T) {
 	targets := []LockedTarget{{ID: uuid.New(), State: "unsupported"}}
-	request := ReviewClose{"9223372036854775807", strings.Repeat("a", 64)}
+	request := ReviewClose{"9007199254740991", strings.Repeat("a", 64)}
 	if _, err := BuildCloseProof(uuid.New(), request, request.PlanSHA, request.ExpectedRevision, "waiting_review", targets); !errors.Is(err, ErrConflict) {
 		t.Fatal(err)
 	}

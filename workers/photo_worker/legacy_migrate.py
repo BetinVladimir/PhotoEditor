@@ -356,10 +356,21 @@ def reconcile_file(plan:LegacyImportPlan,item:ImportFile,upload:dict[str,Any],tr
         remaining=deadline-time.monotonic()
         if remaining<=0:raise MigrationError(f'upload {upload_id} verification timed out; rerun with the same plan')
         time.sleep(min(poll_seconds,remaining))
-    return transport.json('POST',f'/api/v1/tenants/{tenant_id}/legacy-imports/reconcile',{
+    result=transport.json('POST',f'/api/v1/tenants/{tenant_id}/legacy-imports/reconcile',{
         'plan_hash':plan.plan_hash,'source_relative':item.relative,'source_sha256':item.sha256,'upload_id':upload_id,
         'provenance':{'kind':item.kind,'run_id':item.run_id,'source_relative':item.source_relative},
     })
+    if not isinstance(result,dict) or set(result)!={'id','plan_hash','source_relative','source_sha256','asset_version_id','upload_id','provenance'}:
+        raise MigrationError('invalid legacy reconciliation receipt')
+    for field in ('id','asset_version_id','upload_id'):
+        try:
+            value=uuid.UUID(result[field])
+            if value.int==0 or str(value)!=result[field]:raise ValueError('noncanonical receipt identity')
+        except (ValueError,TypeError,AttributeError) as exc:
+            raise MigrationError('invalid legacy reconciliation identity') from exc
+    if result['upload_id']!=upload_id or result['plan_hash']!=plan.plan_hash or result['source_relative']!=item.relative or result['source_sha256']!=item.sha256 or not isinstance(result['provenance'],dict):
+        raise MigrationError('foreign legacy reconciliation receipt')
+    return json.loads(json.dumps(result))
 
 
 def execute(plan:LegacyImportPlan,transport:LegacyTransport,tenant_id:str,project_id:str,collection_id:str|None=None,*,wait_seconds:float=3600)->tuple[dict[str,Any],...]:

@@ -1,3 +1,4 @@
+import {verifyGlareDonorRecoverySource} from './glare-donor-intent';
 import {describe,expect,it} from 'vitest';
 import {freezeGlareDonorIntent,freezeGlareDonorPreparation,readPreparedGlareDonorIntent,readGlareDonorTicket,type GlareDonorIntent,type GlareDonorPreparation} from './glare-donor-intent';
 
@@ -36,4 +37,16 @@ describe('donor glare submission boundary',()=>{
   expect(readGlareDonorTicket({run_id:id(1),workflow_id:id(2),task_id:id(3),state:'queued'}).task_id).toBe(id(3));
   expect(()=>readGlareDonorTicket({run_id:id(1),workflow_id:id(2),state:'queued'})).toThrow();
  });
+});
+
+it('owns recovered donor intent and refuses changed live source pins',()=>{
+ const saved=intent(),base=saved.params_proposal.base;
+ const restored=verifyGlareDonorRecoverySource(saved,base);
+ expect(restored).toEqual(saved);expect(restored).not.toBe(saved);
+ for(const live of [
+  {...base,asset_version_id:id(99)},
+  {...base,canvas_hash:'c'.repeat(64)},
+  {...base,source:{...base.source,artifact_id:id(99)}},
+  {...base,source:{...base.source,sha256:'c'.repeat(64)}},
+ ])expect(()=>verifyGlareDonorRecoverySource(saved,live)).toThrow('RECOVERY_SOURCE_CHANGED');
 });

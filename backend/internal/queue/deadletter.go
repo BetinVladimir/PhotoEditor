@@ -1,6 +1,7 @@
 package queue
 
 import (
+ "photoeditor/backend/internal/database"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -100,11 +101,13 @@ func RunDeadLetterCollector(ctx context.Context, dsn, url, listen string) error 
 		return errors.New("dead-letter database configuration invalid")
 	}
 	cfg.ConnConfig.RuntimeParams["role"] = "photo_publisher"
+	database.GuardApplicationRole(cfg)
 	db, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		return errors.New("dead-letter database unavailable")
 	}
 	defer db.Close()
+	if err = database.RequireApplicationRole(ctx, db, "photo_publisher"); err != nil { return err }
 	conn, err := dial(url)
 	if err != nil {
 		return errors.New("dead-letter broker unavailable")

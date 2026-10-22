@@ -20,8 +20,8 @@ BEGIN
    OLD.state<>'pending' OR NEW.state<>'decided' OR NEW.revision<>OLD.revision+1 OR
    NEW.decided_by IS NULL OR NEW.decided_at IS NULL OR
    NEW.decision NOT IN('accept','reject','skip') OR
-   NEW.decision_route IS DISTINCT FROM CASE NEW.decision WHEN 'accept' THEN 'candidate'
-    WHEN 'reject' THEN 'base' ELSE 'skip' END OR
+   NEW.decision_route IS DISTINCT FROM (CASE NEW.decision WHEN 'accept' THEN 'candidate'
+    WHEN 'reject' THEN 'base' ELSE 'skip' END) OR
    NEW.decision_hash !~ '^[0-9a-f]{64}$' OR NEW.selection IS NULL
   THEN RAISE EXCEPTION 'V28 review decision requires dedicated authority' USING ERRCODE='42501';END IF;
  END IF;
@@ -42,8 +42,8 @@ BEGIN
   OR p_review IS NULL OR p_actor IS NULL OR p_session IS NULL OR
   p_expected_revision IS NULL OR p_expected_revision<1 OR p_expected_revision>=9007199254740991
   OR p_decision IS NULL OR p_decision NOT IN('accept','reject','skip') OR
-  p_route IS DISTINCT FROM CASE p_decision WHEN 'accept' THEN 'candidate'
-   WHEN 'reject' THEN 'base' ELSE 'skip' END OR
+  p_route IS DISTINCT FROM (CASE p_decision WHEN 'accept' THEN 'candidate'
+   WHEN 'reject' THEN 'base' ELSE 'skip' END) OR
   p_hash IS NULL OR p_hash !~ '^[0-9a-f]{64}$' OR p_selection IS NULL
   THEN RETURN false;END IF;
  IF NOT EXISTS(SELECT 1 FROM photo.tenants WHERE id=p_tenant AND status='active')

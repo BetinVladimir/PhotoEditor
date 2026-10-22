@@ -3,6 +3,7 @@ package interchange
 import (
 	"context"
 	"crypto/ed25519"
+	"os"
 
 	"github.com/google/uuid"
 	"photoeditor/backend/internal/v2input"
@@ -40,7 +41,8 @@ func (s ExportStyleDeploymentAuthority) BuildNativeExportAuthority(ctx context.C
 	if !ok {
 		return nil, v2input.ErrInvalid
 	}
-	style := PythonExportStyleProbe{Python: image.Python, WorkerRoot: image.WorkerRoot, Timeout: image.Timeout}
+	style := PythonExportStyleProbe{Python: image.Python, WorkerRoot: image.WorkerRoot, Timeout: image.Timeout, ICCRoot: image.ICCRoot}
+	if style.ICCRoot == "" { style.ICCRoot = os.Getenv("PHOTO_ICC_ROOT") }
 	runtime := s.BodyRuntime
 	if runtime.Scratch != nil || runtime.StyleProbe != nil || runtime.MaskProbe != nil || runtime.ArrayProbe != nil {
 		return nil, v2input.ErrInvalid

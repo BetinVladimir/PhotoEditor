@@ -97,9 +97,11 @@ func (c RelightAnalysisCoordinator) ReadQueuedReceipt(ctx context.Context, who a
 		return zero, err
 	}
 	var raw []byte
-	if err = tx.QueryRow(ctx, "SELECT photo.read_v28_relight_analysis_queued_receipt($1,$2,$3,$4,$5::jsonb)", request.Tenant, plan.snapshot.Run, who.UserID, who.SessionID, string(expected)).Scan(&raw); err != nil {
+	if err = tx.QueryRow(ctx, "SELECT photo.read_v28_relight_analysis_outcome($1,$2,$3,$4,$5::jsonb)", request.Tenant, plan.snapshot.Run, who.UserID, who.SessionID, string(expected)).Scan(&raw); err != nil {
 		return zero, err
 	}
+	raw, err = decodeRelightReceiptOutcome(raw)
+	if err != nil { return zero, err }
 	receipt, err := parseAnalysisReceipt(ctx, plan, request, raw)
 	if err != nil {
 		return zero, err

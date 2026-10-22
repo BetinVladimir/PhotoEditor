@@ -46,7 +46,7 @@ func TestAnalysisDeploymentRejectsCrossScopeAndUntrustedPolicy(t *testing.T) {
 			}
 		}
 		_, err = DecodeRelightAnalysisDeployment(raw)
-		if (err == nil) != (fault == "none") {
+		if (err == nil) != (fault == "none" || fault == "metal_budget") {
 			t.Fatal(fault, err)
 		}
 	}

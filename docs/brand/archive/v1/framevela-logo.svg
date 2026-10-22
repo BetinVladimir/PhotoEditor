@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-labelledby="framevela-title">
+  <title id="framevela-title">Framevela</title>
+  
+  <path d="M25 12H12v40h40V39" stroke="#292C29" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter"/>
+  <path d="m21 25 11 21 7-13" stroke="#292C29" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter"/>
+  <path d="M32 46 47 13l5-1-7 25Z" fill="#A66B32"/>
+</svg>

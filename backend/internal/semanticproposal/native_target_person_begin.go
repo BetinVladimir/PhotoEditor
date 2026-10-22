@@ -85,7 +85,7 @@ func (s SQLTransferSourceReader) beginNativeTargetPersonInTransaction(ctx contex
 	if err := lockNativeTargetAnchorInTransaction(ctx, tx, who, d, rebuilt.anchor); err != nil {
 		return zero, err
 	}
-	selected, err := selectQualificationPolicies(rebuilt.person.policy, []string{"mask.person"})
+	selected, err := selectNativeQualificationPolicies(rebuilt.person.policy, []string{"mask.person"})
 	if err != nil {
 		return zero, err
 	}

@@ -34,7 +34,7 @@
             "format": "uuid",
             "type": "string"
           },
-          "maxItems": 2000,
+          "maxItems": 5000,
           "minItems": 2,
           "title": "Item Ids",
           "type": "array"
@@ -91,12 +91,19 @@
       "title": "Dino Cosine",
       "type": "number"
     },
+    "feature_batches": {
+      "items": {
+        "$ref": "#/$defs/ArtifactRef"
+      },
+      "maxItems": 64,
+      "title": "Feature Batches",
+      "type": "array"
+    },
     "features": {
       "items": {
         "$ref": "#/$defs/ArtifactRef"
       },
-      "maxItems": 2000,
-      "minItems": 1,
+      "maxItems": 5000,
       "title": "Features",
       "type": "array"
     },
@@ -131,9 +138,6 @@
       "type": "number"
     }
   },
-  "required": [
-    "features"
-  ],
   "title": "GroupParams",
   "type": "object"
 }

@@ -1,15 +1,21 @@
 // @vitest-environment jsdom
+vi.mock('expo-router',async()=> (await import('./test/locale-router')).localeRouterFixture);
+import {clickWhenEnabled} from './test/ui-readiness';
 import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 import {act,cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
-const mocks=vi.hoisted(()=>({params:{id:'',tenant:'',operation:'optical.panorama'},values:new Map<string,string>(),request:vi.fn(),me:vi.fn(),caps:vi.fn(),binding:vi.fn(),snapshot:vi.fn(),submit:vi.fn(),media:vi.fn(),push:vi.fn(),review:vi.fn()}));
+const mocks=vi.hoisted(()=>({failAccepted:false,projectCanEdit:true,params:{id:'',tenant:'',operation:'optical.panorama'},values:new Map<string,string>(),request:vi.fn(),me:vi.fn(),caps:vi.fn(),availability:vi.fn(),binding:vi.fn(),snapshot:vi.fn(),submit:vi.fn(),media:vi.fn(),push:vi.fn(),review:vi.fn()}));
+// This standalone screen fixture explicitly grants current workspace edit authority.
+vi.mock('./workspace-access-context',()=>({useWorkspaceAccess:()=>({actor:'00000000-0000-4000-8000-000000000001',canEdit:true,canAdmin:true})}));
 vi.mock('react-native',async()=>import('react-native-web'));
+vi.mock('./use-review-foreground',()=>({useReviewForeground:()=>({active:true,generation:0})}));
 vi.mock('./multi-review-view',()=>({MultiReviewView:(props:unknown)=>{mocks.review(props);return 'Current multi review';}}));
-vi.mock('expo-router',()=>({useLocalSearchParams:()=>mocks.params,router:{push:mocks.push}}));
-vi.mock('@react-native-async-storage/async-storage',()=>({default:{getItem:async(k:string)=>mocks.values.get(k)??null,setItem:async(k:string,v:string)=>{mocks.values.set(k,v);},removeItem:async(k:string)=>{mocks.values.delete(k);},getAllKeys:async()=>[...mocks.values.keys()]}}));
+vi.mock('./localized-router',()=>({useLocalSearchParams:()=>mocks.params,router:{push:mocks.push}}));
+vi.mock('@react-native-async-storage/async-storage',()=>({default:{getItem:async(k:string)=>mocks.values.get(k)??null,setItem:async(k:string,v:string)=>{if(mocks.failAccepted&&JSON.parse(v)?.attempt?.ticket)throw new Error('accepted storage failed');mocks.values.set(k,v);},removeItem:async(k:string)=>{mocks.values.delete(k);},getAllKeys:async()=>[...mocks.values.keys()]}}));
 const client={request:mocks.request},auth={origin:'https://multi-route.test',client:()=>client};
 vi.mock('./auth-context',()=>({useAuth:()=>auth}));
-vi.mock('./owner-api',()=>({OwnerAPI:class {me=mocks.me;multiCapabilities=mocks.caps;v2Binding=mocks.binding;createRenderInputSnapshot=mocks.snapshot;submitMulti=mocks.submit;mediaLinks=mocks.media;}}));
-import MultiRoute from '../app/collections/[id]/multi';
+vi.mock('./owner-api',()=>({OwnerAPI:class {projectAccess=async(id:string)=>({id,can_edit:mocks.projectCanEdit});me=mocks.me;multiCapabilities=mocks.caps;capabilities=mocks.availability;v2Binding=mocks.binding;createRenderInputSnapshot=mocks.snapshot;submitMulti=mocks.submit;mediaLinks=mocks.media;}}));
+import MultiRoute from '../screens/collections/[id]/multi';
+import {APIError} from '@photoeditor/api-client';
 import {renderInputSnapshotDigest} from './render-input-snapshot';
 import {LocaleProvider} from './locale-context';
 import {LocalePicker} from './locale-picker';
@@ -20,6 +26,8 @@ const frame=(n:number)=>({asset_version_id:id(n),source:{artifact_id:id(n+1),sha
 const items=()=>[4,6,8].map((n,index)=>({id:id(100+n),collection_id:mocks.params.id,asset_id:id(200+n),asset_version_id:id(n),position:index,tags:[],moderation_state:'accepted'}));
 function deferred<T>(){let resolve!:(v:T)=>void;const promise=new Promise<T>(r=>resolve=r);return {promise,resolve};}
 beforeEach(()=>{
+ mocks.failAccepted=false;mocks.projectCanEdit=true;
+ mocks.availability.mockImplementation(async()=>({operations:['optical.panorama','optical.focus_stack'].map(operation=>({operation,available:true,status:'ready',supported_backends:['cpu'],available_backends:['cpu']}))}));
  mocks.values.clear();mocks.params={id:id(10),tenant:id(1),operation:'optical.panorama'};
  // Browser lock stub only; this is not proof of real browser lock serialization.
  Object.defineProperty(navigator,'locks',{value:{request:async(_name:string,_options:unknown,action:()=>unknown)=>action()},configurable:true});
@@ -38,6 +46,25 @@ async function addTwo(){
  await waitFor(()=>expect(screen.getByRole('button',{name:'Add photo 2'}).hasAttribute('disabled')).toBe(false));
  fireEvent.click(screen.getByRole('button',{name:'Add photo 2'}));await screen.findByText('Ordered frames · 2 / 20');
 }
+it.each([401,403,404,410])('withdraws original authoring authority after admission denial %s',async(status)=>{
+ mocks.submit.mockRejectedValue(new APIError(status,'FORBIDDEN'));render(<MultiRoute/>);await addTwo();
+ fireEvent.click(screen.getByRole('button',{name:'Create multi-image result'}));await waitFor(()=>expect(mocks.submit).toHaveBeenCalledOnce());
+ await waitFor(()=>expect(screen.queryByText('Current multi review')).toBeNull());
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Create multi-image result'}).hasAttribute('disabled')).toBe(true));
+ expect(mocks.push).not.toHaveBeenCalled();expect([...mocks.values.keys()].some(k=>k.includes('preparation'))).toBe(true);
+});
+it('refuses submission after actor changes and preserves existing state until explicit reload',async()=>{
+ render(<MultiRoute/>);await addTwo();mocks.me.mockResolvedValue({id:id(99)});
+ fireEvent.click(screen.getByRole('button',{name:'Create multi-image result'}));
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Create multi-image result'}).hasAttribute('disabled')).toBe(true));
+ expect(mocks.snapshot).not.toHaveBeenCalled();expect(mocks.submit).not.toHaveBeenCalled();expect(mocks.push).not.toHaveBeenCalled();
+});
+it('retains an accepted immutable ticket but refuses navigation after actor changes',async()=>{
+ mocks.submit.mockImplementation(async()=>{mocks.me.mockResolvedValue({id:id(99)});return {run_id:id(70),workflow_id:id(71),state:'queued'};});
+ render(<MultiRoute/>);await addTwo();fireEvent.click(screen.getByRole('button',{name:'Create multi-image result'}));
+ await waitFor(()=>expect([...mocks.values.values()].some(v=>JSON.parse(v).attempt?.ticket?.run_id===id(70))).toBe(true));
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Create multi-image result'}).hasAttribute('disabled')).toBe(true));expect(mocks.push).not.toHaveBeenCalled();
+});
 it('submits the edited order/reference and original keys, then navigates only after acknowledgement',async()=>{
  render(<MultiRoute/>);await addTwo();
  fireEvent.click(screen.getByRole('button',{name:'Use frame 2 as reference'}));fireEvent.click(screen.getByRole('button',{name:'Move frame 2 up'}));
@@ -65,9 +92,9 @@ it('refuses changed collection versions',async()=>{
 });
 it('keeps saved retry available when current capabilities are unavailable',async()=>{
  mocks.submit.mockRejectedValueOnce(new Error('response lost'));
- const view=render(<MultiRoute/>);await addTwo();fireEvent.click(screen.getByRole('button',{name:'Create multi-image result'}));await screen.findByText(/Submission was not confirmed/);view.unmount();
+ const view=render(<MultiRoute/>);await addTwo();await clickWhenEnabled(screen.getByRole('button',{name:'Create multi-image result'}));await screen.findByText(/Submission was not confirmed/);view.unmount();
  mocks.caps.mockRejectedValue(new Error('qualification unavailable'));render(<MultiRoute/>);await screen.findByText('Saved submission is available. New selections are currently unavailable.');
- fireEvent.click(screen.getByRole('button',{name:'Retry saved submission'}));await waitFor(()=>expect(mocks.push).toHaveBeenCalled());expect(mocks.snapshot).toHaveBeenCalledTimes(1);expect(mocks.submit).toHaveBeenCalledTimes(2);
+ await clickWhenEnabled(screen.getByRole('button',{name:'Retry saved submission'}));await waitFor(()=>expect(mocks.push).toHaveBeenCalled());expect(mocks.snapshot).toHaveBeenCalledTimes(1);expect(mocks.submit).toHaveBeenCalledTimes(2);
 });
 it('does not navigate a new route after a late old admission acknowledgement',async()=>{
  const pending=deferred<{run_id:string;workflow_id:string;state:string}>();mocks.submit.mockReturnValueOnce(pending.promise);
@@ -81,16 +108,16 @@ it('focus stack submits its explicit motion policy',async()=>{
  await screen.findByRole('button',{name:'Add photo 1'});await waitFor(()=>expect(screen.getByRole('button',{name:'Add photo 1'}).hasAttribute('disabled')).toBe(false));
  fireEvent.click(screen.getByRole('button',{name:'Add photo 1'}));await screen.findByText('Ordered frames · 1 / 30');
  await waitFor(()=>expect(screen.getByRole('button',{name:'Add photo 2'}).hasAttribute('disabled')).toBe(false));fireEvent.click(screen.getByRole('button',{name:'Add photo 2'}));await screen.findByText('Ordered frames · 2 / 30');
- fireEvent.click(screen.getByRole('button',{name:'Reject moving frames'}));fireEvent.click(screen.getByRole('button',{name:'Create multi-image result'}));await waitFor(()=>expect(mocks.push).toHaveBeenCalled());
+ fireEvent.click(screen.getByRole('button',{name:'Reject moving frames'}));await act(async()=>{});fireEvent.click(screen.getByRole('button',{name:'Create multi-image result'}));await waitFor(()=>expect(mocks.push).toHaveBeenCalled());
  expect(mocks.submit.mock.calls[0][0]).toBe('optical.focus_stack');expect(mocks.submit.mock.calls[0][2].params.motion_policy).toBe('reject');expect(mocks.submit.mock.calls[0][2].params).not.toHaveProperty('projection');
 });
 it('switches RU/BG labels without resetting an unresolved submission',async()=>{
  mocks.submit.mockRejectedValueOnce(new Error('lost'));
  render(<LocaleProvider><LocalePicker/><MultiRoute/></LocaleProvider>);await addTwo();fireEvent.click(screen.getByRole('button',{name:'Create multi-image result'}));await screen.findByText(/Submission was not confirmed/);
  const first=structuredClone(mocks.submit.mock.calls[0].slice(0,4));
- fireEvent.click(screen.getByRole('button',{name:'Русский'}));expect(screen.getByRole('button',{name:ru.multi_retry})).toBeDefined();expect(screen.getByRole('alert').textContent).toBe(ru.multi_unknown);
- fireEvent.click(screen.getByRole('button',{name:'Български'}));expect(screen.getByRole('button',{name:bg.multi_retry})).toBeDefined();expect(screen.getByRole('alert').textContent).toBe(bg.multi_unknown);
- fireEvent.click(screen.getByRole('button',{name:bg.multi_retry}));await waitFor(()=>expect(mocks.push).toHaveBeenCalled());expect(mocks.submit.mock.calls[1].slice(0,4)).toEqual(first);expect(mocks.me).toHaveBeenCalledTimes(1);
+ fireEvent.click(screen.getByRole('radio',{name:'Русский'}));expect(screen.getByRole('button',{name:ru.multi_retry})).toBeDefined();expect(screen.getByRole('alert').textContent).toBe(ru.multi_unknown);
+ fireEvent.click(screen.getByRole('radio',{name:'Български'}));expect(screen.getByRole('button',{name:bg.multi_retry})).toBeDefined();expect(screen.getByRole('alert').textContent).toBe(bg.multi_unknown);
+ fireEvent.click(screen.getByRole('button',{name:bg.multi_retry}));await waitFor(()=>expect(mocks.push).toHaveBeenCalled());expect(mocks.submit.mock.calls[1].slice(0,4)).toEqual(first);expect(mocks.me.mock.calls.every(call=>call[0] instanceof AbortSignal)).toBe(true);
 });
 
 it('retains Apply collection binding for acknowledged recovery without fresh capabilities',async()=>{
@@ -119,4 +146,43 @@ it('removes acknowledged review when collection route changes while next load is
  expect(screen.queryByText('Current multi review')).toBeNull();
  expect(mocks.submit).toHaveBeenCalledTimes(1);
  view.unmount();
+});
+
+it('retains acknowledged snapshot and original frames when renewed admission refuses submit',async()=>{
+ render(<MultiRoute/>);await addTwo();
+ const capability=mocks.caps.getMockImplementation()!;
+ mocks.caps.mockReset();mocks.caps.mockImplementationOnce(capability).mockRejectedValueOnce(new Error('qualification revoked')).mockImplementation(capability);
+ fireEvent.click(screen.getByRole('button',{name:'Create multi-image result'}));
+ await screen.findByText(/Submission was not confirmed/);
+ expect(mocks.snapshot).toHaveBeenCalledTimes(1);expect(mocks.submit).not.toHaveBeenCalled();
+ const snapshot=structuredClone(mocks.snapshot.mock.calls[0].slice(0,3));
+ const saved=[...mocks.values.values()].map(raw=>JSON.parse(raw)).find(value=>value.snapshot?.id);
+ expect(saved.params.frames.map((value:{asset_version_id:string})=>value.asset_version_id)).toEqual([id(4),id(6)]);
+ const retry=screen.getByRole('button',{name:'Retry saved submission'});
+ await waitFor(()=>expect(retry.hasAttribute('disabled')).toBe(false));fireEvent.click(retry);
+ await waitFor(()=>expect(mocks.push).toHaveBeenCalled());
+ expect(mocks.snapshot).toHaveBeenCalledTimes(1);expect(mocks.snapshot.mock.calls[0].slice(0,3)).toEqual(snapshot);
+ expect(mocks.submit.mock.calls[0][3]).toBe(saved.intent_key);
+});
+
+it('does not admit panorama processing for a restricted project Viewer',async()=>{
+ mocks.projectCanEdit=false;render(<LocaleProvider><MultiRoute/></LocaleProvider>);
+ await screen.findByText('Source collection');
+ fireEvent.click(screen.getByText('Create multi-image result'));expect(mocks.snapshot).not.toHaveBeenCalled();expect(mocks.submit).not.toHaveBeenCalled();
+});
+
+it('cancelled initial multi read can reload while a late old collection remains pending',async()=>{
+ const old=deferred<unknown>();mocks.request.mockImplementationOnce(()=>old.promise);
+ render(<MultiRoute/>);await waitFor(()=>expect(mocks.request).toHaveBeenCalledOnce());
+ fireEvent.click(screen.getByText('Stop loading'));fireEvent.click(screen.getByText('Reload multi-image selection'));await screen.findByRole('button',{name:'Add photo 1'});
+ await act(async()=>old.resolve({id:id(10),tenant_id:id(1),project_id:id(99),name:'Stale old collection',revision:'1'}));
+ expect(screen.queryByText('Stale old collection')).toBeNull();expect(mocks.snapshot).not.toHaveBeenCalled();expect(mocks.submit).not.toHaveBeenCalled();
+});
+
+it('keeps a known multi receipt across wrapper recreation after accepted persistence failure',async()=>{
+ mocks.failAccepted=true;render(<MultiRoute/>);await addTwo();await clickWhenEnabled(screen.getByRole('button',{name:'Create multi-image result'}));
+ await waitFor(()=>expect(mocks.push).toHaveBeenCalledTimes(1));expect(mocks.submit).toHaveBeenCalledTimes(1);
+ mocks.caps.mockRejectedValue(new Error('worker gone'));mocks.availability.mockRejectedValue(new Error('worker gone'));
+ await clickWhenEnabled(await screen.findByRole('button',{name:'Retry saved submission'}));
+ await waitFor(()=>expect(mocks.push).toHaveBeenCalledTimes(2));expect(mocks.submit).toHaveBeenCalledTimes(1);expect(mocks.snapshot).toHaveBeenCalledTimes(1);
 });

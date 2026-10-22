@@ -212,6 +212,7 @@ func TestIntegrationStageRenderRuntimeBatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+ assertRenderQualificationWithdrawnDuringLookup(t,ctx,admin,api,evidence)
 	calibration := RenderCalibration{Qualification: qualification, EvidenceSHA: strings.Repeat("e", 64), ICCSHA: frozen.Scalars.ICCLockSHA, TileSize: choice.TileSize, AlphaMode: choice.AlphaMode}
 	dimensions := map[[2]int64]bool{}
 	for _, request := range requests {

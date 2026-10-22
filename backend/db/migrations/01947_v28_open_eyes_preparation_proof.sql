@@ -49,7 +49,7 @@ END $$;
 ALTER FUNCTION photo.read_v28_open_eyes_preparation_proof(uuid,uuid,uuid,uuid,
  uuid,uuid,jsonb,jsonb,uuid,uuid) OWNER TO photo_fn_owner;
 REVOKE ALL ON FUNCTION photo.read_v28_open_eyes_preparation_proof(uuid,uuid,uuid,
- uuid,uuid,jsonb,jsonb,uuid,uuid) FROM PUBLIC;
+ uuid,uuid,uuid,jsonb,jsonb,uuid,uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION photo.read_v28_open_eyes_preparation_proof(uuid,uuid,
  uuid,uuid,uuid,uuid,jsonb,jsonb,uuid,uuid) TO photo_scheduler;
 -- +goose Down

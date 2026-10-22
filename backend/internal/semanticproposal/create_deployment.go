@@ -43,11 +43,31 @@ type createPersonPolicy struct {
 	Report   v2input.Ref       `json:"report"`
 	Expected createExpectation `json:"expected"`
 }
+type createSceneProducer struct {
+	Report v2input.Ref `json:"report"`
+	Expected createExpectation `json:"expected"`
+	Costs createResourceCosts `json:"costs"`
+}
+type createScenePolicy struct {
+	Policy json.RawMessage `json:"policy"`
+	Scene createSceneProducer `json:"scene"`
+	Depth createSceneProducer `json:"depth"`
+}
+func (p createScenePolicy) preparation() (*TransferScenePreparation,error) {
+	if _,_,err:=v2input.DecodeSemanticScenePolicy(p.Policy);err!=nil{return nil,err}
+	scene,err:=p.Scene.Expected.expected();if err!=nil{return nil,err}
+	depth,err:=p.Depth.Expected.expected();if err!=nil{return nil,err}
+	producer:=func(value createSceneProducer,pins v2qualification.Expected) TransferSceneProducer {
+		return TransferSceneProducer{Report:value.Report,Expected:pins,Costs:v2input.SemanticQualifiedCosts{RAMBytes:value.Costs.RAM,VRAMBytes:value.Costs.VRAM,ScratchBytes:value.Costs.Scratch}}
+	}
+	return &TransferScenePreparation{Policy:append(json.RawMessage(nil),p.Policy...),Scene:producer(p.Scene,scene),Depth:producer(p.Depth,depth)},nil
+}
 type createProjectPolicy struct {
 	ProjectID     uuid.UUID                        `json:"project_id"`
 	Qualification v2input.SemanticQualificationPin `json:"qualification"`
 	Expected      createExpectation                `json:"expected"`
 	Person        createPersonPolicy               `json:"person"`
+	Scene         *createScenePolicy               `json:"scene,omitempty"`
 	Costs         createResourceCosts              `json:"costs"`
 	RAM           int64                            `json:"ram_bytes"`
 	VRAM          int64                            `json:"vram_bytes"`
@@ -107,6 +127,10 @@ func (p createProjectPolicy) preparation(color TransferColorProfile) (TransferPr
 		return zero, v2input.ErrInvalid
 	}
 	c := TransferPreparation{Qualification: p.Qualification, Expected: expected, PersonProtection: &TransferPersonProtection{Report: p.Person.Report, Expected: person}, Color: color, Costs: v2input.SemanticQualifiedCosts{RAMBytes: p.Costs.RAM, VRAMBytes: p.Costs.VRAM, ScratchBytes: p.Costs.Scratch}, RAM: p.RAM, VRAM: p.VRAM, Scratch: p.Scratch, Output: p.Output, MetadataBytes: p.Metadata}
+	if p.Scene != nil {
+		c.Scene,err=p.Scene.preparation()
+		if err!=nil{return zero,err}
+	}
 	if err := validateTransferPolicyConfiguration(c); err != nil {
 		return zero, err
 	}

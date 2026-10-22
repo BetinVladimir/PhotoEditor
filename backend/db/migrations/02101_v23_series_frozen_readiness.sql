@@ -71,7 +71,7 @@ BEGIN
   series_count:=series_count+1;
   IF item->'render_case' ?| ARRAY['defect_evidence','dust_evidence','detail_evidence'] OR
    jsonb_typeof(item->'render_case'->'series_evidence') IS DISTINCT FROM 'object' OR
-   (item->'render_case'->'series_evidence'-'artifact_id'-'sha256')<>'{}'::jsonb THEN
+   ((item->'render_case'->'series_evidence')-'artifact_id'-'sha256')<>'{}'::jsonb THEN
    RETURN false; END IF;
   event_id:=(item->>'event_id')::uuid;
   evidence:=item->'render_case'->'series_evidence';

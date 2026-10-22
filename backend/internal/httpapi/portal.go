@@ -131,6 +131,13 @@ func (s *Server) portalRoutes(r chi.Router) {
 		}
 		writeJSON(w, http.StatusCreated, out)
 	})
+ r.Post("/api/v1/portal/download-preparations/abandon",func(w http.ResponseWriter,r *http.Request){
+  token,csrf,err:=s.portalMutation(r);if err!=nil{writeError(w,r,err);return}
+  var request portal.DownloadPreparationAbandonRequest
+  if err=decodeJSON(r,&request);err!=nil{writeError(w,r,err);return}
+  out,err:=s.Portal.AbandonDownloadPreparation(r.Context(),token,csrf,request)
+  if err!=nil{writeError(w,r,err);return};if r.Context().Err()!=nil{return};writeJSON(w,http.StatusOK,out)
+ })
 	r.Post("/api/v1/portal/download-jobs", func(w http.ResponseWriter, r *http.Request) {
 		token, csrf, err := s.portalMutation(r)
 		if err != nil {
@@ -232,18 +239,8 @@ func (s *Server) portalRoutes(r chi.Router) {
 		writeJSON(w, http.StatusCreated, out)
 	})
 	r.Post("/api/v1/downloads/redeem", func(w http.ResponseWriter, r *http.Request) {
-		var request portal.DownloadRedeemRequest
-		if err := decodeJSON(r, &request); err != nil {
-			writeError(w, r, err)
-			return
-		}
-		out, err := s.Portal.RedeemDownloadIntent(r.Context(), request)
-		if err != nil {
-			writeError(w, r, err)
-			return
-		}
-		writeJSON(w, http.StatusOK, out)
-	})
+  serveDownloadRedemption(w,r,s.Portal)
+ })
 	r.Post("/api/v1/portal/uploads", func(w http.ResponseWriter, r *http.Request) {
 		token, csrf, err := s.portalMutation(r)
 		if err != nil {

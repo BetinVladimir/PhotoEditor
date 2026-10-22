@@ -22,7 +22,7 @@ func SealMultiPreview(ctx context.Context, db *pgxpool.Pool, plan MultiPreviewPl
 	if db == nil {
 		return objectstore.ErrInvalid
 	}
-	rebuilt, err := CompileMultiPreviewPlan(plan.source, content, plan.srgb)
+	rebuilt, err := CompileMultiPreviewPlan(plan.source, content, plan.srgb,plan.policy)
 	if err != nil {
 		return err
 	}

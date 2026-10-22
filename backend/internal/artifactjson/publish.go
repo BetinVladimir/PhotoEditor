@@ -84,7 +84,7 @@ func DocumentKey(s Scope, id uuid.UUID) (string, error) {
 		return "", objectstore.ErrInvalid
 	}
 	if (s.AssemblyLease != uuid.Nil && s.Purpose != "task_params" && !v2InputPurpose(s.Purpose) && !v30DeliveryPurpose(s.Purpose)) || s.Tenant == uuid.Nil || s.Run == uuid.Nil || s.Owner == uuid.Nil || id == uuid.Nil ||
-		(s.Purpose != "task_params" && s.Purpose != "review_selection" && s.Purpose != "v30_metadata_source" &&
+		(s.Purpose != "task_params" && s.Purpose != "v26_authored_base_receipt" && s.Purpose != "v26_authored_phase_receipt" && s.Purpose != "v26_authored_continuation" && s.Purpose != "v26_authored_style_binding" && s.Purpose != "v26_authored_layer_params" && s.Purpose != "v26_authored_layer_mask" && s.Purpose != "v26_authored_current_layers" && s.Purpose != "v26_authored_nondetail_params" && s.Purpose != "review_selection" && s.Purpose != "v30_metadata_source" &&
 			s.Purpose != "v2_session_plan_params" && s.Purpose != "v23_evaluate_params" &&
 			s.Purpose != "v23_training_manifest" && !v24CapturePurpose(s.Purpose) && !v25LensPurpose(s.Purpose) &&
 			s.Purpose != "v23_training_snapshot" && s.Purpose != "v23_fit_params" &&

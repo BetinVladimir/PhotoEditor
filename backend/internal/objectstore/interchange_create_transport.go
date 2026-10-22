@@ -32,7 +32,11 @@ func(t *singleMultipartCreateTransport)RoundTrip(request *http.Request)(*http.Re
  if attempt!=nil&&request.Method==http.MethodPost&&request.URL!=nil{
   if _,create:=request.URL.Query()["uploads"];create&&!attempt.CompareAndSwap(false,true){return refuse(errInterchangeCreateRepeated)}
  }
- return t.base.RoundTrip(request)
+ response,err:=t.base.RoundTrip(request)
+ if outcome,ok:=request.Context().Value(stylePackageCreateOutcomeKey{}).(*stylePackageCreateOutcome);ok && request.Method==http.MethodPost && request.URL!=nil {
+  if _,create:=request.URL.Query()["uploads"];create && err==nil && response!=nil {outcome.record(response.StatusCode)}
+ }
+ return response,err
 }
 
 // Preserve http.Client cleanup when wrapping the shared SDK transport.

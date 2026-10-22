@@ -21,7 +21,14 @@ type sceneObject struct {
 }
 
 func (m PlanMaterializer) readSceneObject(ctx context.Context, source sceneObject) ([]byte, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if m.Objects == nil || m.Bucket == "" {
+		return nil, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
+	}
 	if source.ID == uuid.Nil || source.Bucket != m.Bucket ||
+		source.Object.Key == "" || source.Object.VersionID == "" || source.Object.VersionID == "null" ||
 		source.Object.ContentType != "application/json" ||
 		source.Object.Bytes < 2 || source.Object.Bytes > 8<<20 ||
 		!digestPattern.MatchString(source.Object.SHA256) {
@@ -34,6 +41,9 @@ func (m PlanMaterializer) readSceneObject(ctx context.Context, source sceneObjec
 	defer reader.Close()
 	raw, err := io.ReadAll(io.LimitReader(reader, 8<<20+1))
 	if err != nil {
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 	if int64(len(raw)) != source.Object.Bytes ||

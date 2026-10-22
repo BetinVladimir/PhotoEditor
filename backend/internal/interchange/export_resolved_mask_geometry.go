@@ -13,6 +13,7 @@ type ExportResolvedMaskGeometrySource struct {
  Warps ExportDenseWarpOccurrenceAuthority
  Reader ExportClosureNodeResolver
  ParamsAuthority ExportParamsMaskAuthority
+ ReportAuthority ExportReportMaskAuthority
  Origin ExportResolvedOriginSource
  Parents []v2input.Entry
 }
@@ -22,12 +23,15 @@ func(s ExportResolvedMaskGeometrySource)ResolveExportMaskGeometry(ctx context.Co
  if s.Reader==nil||!validImportRef(ref)||len(s.Parents)==0||len(s.Parents)>v2input.MaxEntries{return zero,v2input.ErrInvalid}
  seen:=map[uuid.UUID]bool{};found:=false
  for _,parent:=range s.Parents{
-  if (parent.Contract!="ResolvedStyle"&&parent.Contract!="Override"&&parent.Contract!="Params")||!validImportRef(parent.Ref)||seen[parent.Ref.ArtifactID]{return zero,v2input.ErrInvalid};seen[parent.Ref.ArtifactID]=true
+  if (parent.Contract!="ResolvedStyle"&&parent.Contract!="Override"&&parent.Contract!="Params"&&parent.Contract!="DefectProposeReport")||!validImportRef(parent.Ref)||seen[parent.Ref.ArtifactID]{return zero,v2input.ErrInvalid};seen[parent.Ref.ArtifactID]=true
   node,err:=s.Reader.ResolveExportNode(ctx,parent);if err!=nil{return zero,err}
   if node.Entry!=parent||len(node.Body)<2||len(node.Body)>8<<20||rawSHA(node.Body)!=parent.Ref.SHA256{return zero,v2input.ErrInvalid}
   if parent.Contract=="ResolvedStyle"{if s.Origin==nil{return zero,v2input.ErrInvalid};if err:=validateExportResolvedChildren(parent,node.Body,node.Children);err!=nil{return zero,err}}
   var maskBodies []json.RawMessage
-  if parent.Contract=="Params"{
+  if parent.Contract=="DefectProposeReport"{
+   maskBodies,err=exportReportInlineMasks(parent,node.Body);if err!=nil{return zero,err}
+   if err:=qualifyExportParamsMaskSource(ctx,s.Reader,s.Warps,node,maskBodies);err!=nil{return zero,err}
+  }else if parent.Contract=="Params"{
    maskBodies,err=exportParamsInlineMasks(parent,node.Body);if err!=nil{return zero,err}
    if len(maskBodies)>0{if err:=qualifyExportParamsMaskSource(ctx,s.Reader,s.Warps,node,maskBodies);err!=nil{return zero,err}}
   }else{
@@ -49,6 +53,7 @@ func(s ExportResolvedMaskGeometrySource)ResolveExportMaskGeometry(ctx context.Co
    if !validExportMaskGeometry(geometry,ref)||(found&&result!=geometry){return zero,v2input.ErrInvalid}
    result=geometry;found=true;parentMatched=true
   }
+  if parentMatched&&parent.Contract=="DefectProposeReport"{if s.ReportAuthority==nil{return zero,v2input.ErrInvalid};if err:=s.ReportAuthority.QualifyExportReportMask(ctx,parent,append([]byte(nil),node.Body...),ref);err!=nil{return zero,err}}
   if parentMatched&&parent.Contract=="Params"{if s.ParamsAuthority==nil{return zero,v2input.ErrInvalid};if err:=s.ParamsAuthority.QualifyExportParamsMask(ctx,parent,append([]byte(nil),node.Body...),ref);err!=nil{return zero,err}}
   if parentMatched&&parent.Contract=="ResolvedStyle"{if _,err:=s.Origin.LookupExportResolvedOrigin(ctx,parent,append([]byte(nil),node.Body...));err!=nil{return zero,err}}
  }

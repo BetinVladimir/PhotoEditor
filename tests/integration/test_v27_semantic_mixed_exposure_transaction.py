@@ -1,0 +1,162 @@
+"""Own exposure mixed review SQL scenarios; synthetic report/object metadata only."""
+from semantic_target_state_fixture import reject_target_with_revision
+from copy import deepcopy
+from uuid import UUID, uuid4
+import json
+import psycopg
+import pytest
+from semantic_mixed_exposure_fixture import mixed_decision_fixture, commit_mixed_decision
+from semantic_rejection_fixture import replay_rejection
+from removal_transaction_state import tenant_transaction_state
+
+
+@pytest.mark.parametrize('approved_count', [1, 2])
+@pytest.mark.parametrize('reverse', [False, True])
+def test_mixed_decisions_admit_only_approved_and_preserve_omitted(db, approved_count, reverse):
+    f = mixed_decision_fixture(db, approved_count=approved_count, reverse=reverse)
+    tenant, intent = f['args'][:2]
+    omitted = db.execute('SELECT to_jsonb(t) FROM photo.semantic_targets t WHERE tenant_id=%s AND id=ANY(%s) ORDER BY id',
+        (tenant, f['omitted'])).fetchall()
+    # Rejected/omitted targets have no preview, not a fabricated successful one.
+    assert db.execute("SELECT count(*) FROM photo.runs WHERE tenant_id=%s AND "
+        "config_snapshot->'semantic_preapply_preview'->'params'->>'target_id'=ANY(%s)",
+        (tenant, [str(target) for target in f['rejected']+f['omitted']])).fetchone() == (0,)
+    result = commit_mixed_decision(db, f)
+    batch = UUID(result['batch_id'])
+    assert result['remaining'] == 1 and result['revision'] == str(f['revision']+1)
+    assert result['child'] == dict(run_id=str(f['child']), state='queued')
+    for ids, state, child in ((f['approved'], 'queued', f['child']), (f['rejected'], 'rejected', None)):
+        assert db.execute('SELECT state,child_run_id,batch_id FROM photo.semantic_targets WHERE tenant_id=%s AND id=ANY(%s) ORDER BY id',
+            (tenant, ids)).fetchall() == [(state, child, batch)]*len(ids)
+    assert db.execute('SELECT to_jsonb(t) FROM photo.semantic_targets t WHERE tenant_id=%s AND id=ANY(%s) ORDER BY id',
+        (tenant, f['omitted'])).fetchall() == omitted
+    expected_tasks = sorted(UUID(task['node']['id']) for task in f['tasks'])
+    assert db.execute('SELECT id,state,operation FROM photo.tasks WHERE tenant_id=%s AND run_id=%s ORDER BY id',
+        (tenant, f['child'])).fetchall() == [(task, 'ready', 'semantic.adopt_shown_exposure') for task in expected_tasks]
+    total = sum(task['node']['execution_profile']['resource_estimate']['output_bytes'] for task in f['tasks'])
+    assert db.execute("SELECT bytes,files,state FROM photo.quota_reservations WHERE tenant_id=%s AND holder_type='run' AND holder_id=%s",
+        (tenant, f['child'])).fetchall() == [(total, 0, 'reserved')]
+    before = tenant_transaction_state(db, tenant)
+    assert replay_rejection(db, f) == ('replayed', result)
+    assert tenant_transaction_state(db, tenant) == before
+    assert replay_rejection(db, f, digest='0'*64) == ('conflict', None)
+    with pytest.raises(psycopg.Error):
+        commit_mixed_decision(db, f, key=str(uuid4()))
+    assert tenant_transaction_state(db, tenant) == before
+
+
+@pytest.mark.parametrize('mutation', ['missing_approved', 'duplicate_task', 'task_for_rejected',
+    'task_for_omitted', 'wrong_shown_image', 'legacy_operation', 'second_profile'])
+def test_mixed_decision_task_inventory_refusal_is_atomic(db, mutation):
+    f = mixed_decision_fixture(db, approved_count=2)
+    tasks = deepcopy(f['tasks'])
+    if mutation == 'missing_approved': tasks.pop()
+    elif mutation == 'duplicate_task': tasks.append(deepcopy(tasks[0]))
+    elif mutation in ('task_for_rejected', 'task_for_omitted'):
+        tasks[1]['target_id'] = str(f['rejected' if mutation == 'task_for_rejected' else 'omitted'][0])
+    elif mutation == 'wrong_shown_image':
+        body = json.loads(tasks[1]['params_body'])
+        body['working_image'] = json.loads(tasks[0]['params_body'])['working_image']
+        from hashlib import sha256
+        from photo_worker.contracts.base import canonical_bytes
+        tasks[1]['params_body'] = canonical_bytes(body).decode()
+        tasks[1]['params_sha'] = sha256(tasks[1]['params_body'].encode()).hexdigest()
+        tasks[1]['node']['params_sha'] = tasks[1]['params_sha']
+    elif mutation == 'legacy_operation': tasks[1]['node']['operation'] = 'semantic.local_exposure'
+    else: tasks[1]['node']['execution_profile']['resource_estimate']['output_bytes'] = 1
+    before = tenant_transaction_state(db, f['args'][0])
+    with pytest.raises(psycopg.Error):
+        commit_mixed_decision(db, f, tasks=tasks)
+    assert tenant_transaction_state(db, f['args'][0]) == before
+    assert commit_mixed_decision(db, f)['remaining'] == 1
+
+
+@pytest.mark.parametrize('mutation', ['rejected_revision', 'rejected_candidate', 'session'])
+def test_mixed_decision_rechecks_rejected_target_authority_before_any_activation(db, mutation):
+    f = mixed_decision_fixture(db)
+    tenant = f['args'][0]
+    with db.transaction(force_rollback=True):
+        if mutation == 'rejected_revision':
+            reject_target_with_revision(db, f['rejected'][0])
+        elif mutation == 'rejected_candidate':
+            aid = json.loads(f['reviews'][1][0][5])['candidate']['artifact_id']
+            db.execute('UPDATE photo.artifacts SET verified_at=NULL WHERE tenant_id=%s AND id=%s', (tenant, aid))
+        else:
+            db.execute('UPDATE photo.sessions SET revoked_at=clock_timestamp() WHERE id=%s', (f['args'][3],))
+        before = tenant_transaction_state(db, tenant)
+        with pytest.raises(psycopg.Error): commit_mixed_decision(db, f)
+        assert tenant_transaction_state(db, tenant) == before
+    assert commit_mixed_decision(db, f)['remaining'] == 1
+
+
+def test_mixed_decision_late_failure_rolls_back_both_acceptance_and_rejection(db):
+    f = mixed_decision_fixture(db, approved_count=2)
+    tenant = f['args'][0]
+    with db.transaction(force_rollback=True):
+        db.execute('INSERT INTO photo.tenant_event_cursors(tenant_id,last_cursor) VALUES(%s,9007199254740991) '
+            'ON CONFLICT(tenant_id) DO UPDATE SET last_cursor=excluded.last_cursor', (tenant,))
+        before = tenant_transaction_state(db, tenant)
+        with pytest.raises(psycopg.errors.CheckViolation, match='EVENT_CURSOR_EXHAUSTED'):
+            commit_mixed_decision(db, f)
+        assert tenant_transaction_state(db, tenant) == before
+    assert commit_mixed_decision(db, f)['remaining'] == 1
+
+
+def test_mixed_decision_caller_rollback_and_retry(db):
+    f = mixed_decision_fixture(db)
+    before = tenant_transaction_state(db, f['args'][0])
+    with db.transaction(force_rollback=True):
+        assert commit_mixed_decision(db, f)['remaining'] == 1
+    assert tenant_transaction_state(db, f['args'][0]) == before
+    assert commit_mixed_decision(db, f)['remaining'] == 1
+
+
+@pytest.mark.parametrize('mutation', ['storage_limit', 'missing_usage', 'disabled_copy_policy', 'unverified_copy_report'])
+def test_mixed_exposure_late_quota_and_qualification_refusal_rolls_back_all_targets(db, mutation):
+    f = mixed_decision_fixture(db, approved_count=2)
+    tenant = f['args'][0]
+    pin = f['tasks'][0]['node']['execution_profile']['qualification']
+    with db.transaction(force_rollback=True):
+        if mutation == 'storage_limit':
+            db.execute("UPDATE photo.tenants SET quotas=jsonb_set(quotas,'{storage_bytes}','0'::jsonb) WHERE id=%s", (tenant,))
+        elif mutation == 'missing_usage':
+            db.execute('DELETE FROM photo.tenant_usage WHERE tenant_id=%s', (tenant,))
+        elif mutation == 'disabled_copy_policy':
+            db.execute('UPDATE photo.v2_qualification_policies SET admission_enabled=false WHERE id=%s', (pin['policy_id'],))
+        else:
+            db.execute('UPDATE photo.artifacts SET verified_at=NULL WHERE tenant_id=%s AND id=%s', (tenant, pin['report']['artifact_id']))
+        before = tenant_transaction_state(db, tenant)
+        with pytest.raises(psycopg.Error):
+            commit_mixed_decision(db, f)
+        assert tenant_transaction_state(db, tenant) == before
+    assert commit_mixed_decision(db, f)['remaining'] == 1
+
+
+@pytest.mark.migration_head(2411)
+@pytest.mark.parametrize('phase', ['pending', 'completed'])
+def test_exposure_selection_forward_upgrade_preserves_rows_receipts_and_acl(db, phase):
+    from pathlib import Path
+    f = mixed_decision_fixture(db)
+    tenant = f['args'][0]
+    result = None
+    if phase == 'completed':
+        result = commit_mixed_decision(db, f)
+    else:
+        db.execute('INSERT INTO photo.idempotency_records(tenant_id,principal_type,principal_id,route,key,request_hash,expires_at) '
+            "VALUES(%s,'user',%s,'SemanticIntent.Apply',%s,%s,clock_timestamp()+interval '1 day')",
+            (tenant,f['args'][2],f['key'],f['request_sha']))
+    before = tenant_transaction_state(db, tenant)
+    signature = 'photo.lock_semantic_preapply_preview_selection(uuid,uuid,uuid,uuid,bigint,uuid,bigint,text,text,uuid,text,uuid,text)'
+    authority = db.execute('SELECT oid,proowner,proacl,proconfig,prosecdef FROM pg_proc WHERE oid=to_regprocedure(%s)', (signature,)).fetchone()
+    migration = Path(__file__).resolve().parents[2] / 'backend/db/migrations/02412_v27_exposure_selection_output_locks.sql'
+    # Complete Up, exactly as the isolated migration harness; never patch functions in place.
+    db.execute(migration.read_text().split('-- +goose Down',1)[0])
+    assert db.execute('SELECT oid,proowner,proacl,proconfig,prosecdef FROM pg_proc WHERE oid=to_regprocedure(%s)', (signature,)).fetchone() == authority
+    assert tenant_transaction_state(db, tenant) == before
+    assert db.execute("SELECT has_function_privilege('photo_semantic_admission',%s,'EXECUTE')", (signature,)).fetchone()[0] is True
+    for role in ('photo_api','photo_worker','photo_scheduler','photo_gateway','photo_portal'):
+        assert db.execute("SELECT has_function_privilege(%s,%s,'EXECUTE')", (role,signature)).fetchone()[0] is False
+    if phase == 'pending':
+        assert replay_rejection(db,f) == ('pending',None)
+        result = commit_mixed_decision(db,f,reserve_receipt=False)
+    assert replay_rejection(db,f) == ('replayed',result)

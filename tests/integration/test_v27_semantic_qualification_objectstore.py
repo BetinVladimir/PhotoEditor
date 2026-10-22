@@ -1,4 +1,6 @@
 """Real leased SQL + versioned MinIO report proof; no GPU/model quality claim."""
+from specialized_go_child_evidence import run_named_go
+from pathlib import Path as _PhotoRepositoryPath
 from contextlib import closing
 from io import BytesIO
 from types import SimpleNamespace
@@ -29,8 +31,21 @@ def assert_live_vitest_report(path, expected, record_property):
     record_property(path.stem, json.dumps({'passed': expected, 'skipped': 0,
         'cases': [case['fullName'] for case in cases]}, sort_keys=True))
 
-@pytest.mark.parametrize('proposed,deferred,exposure,with_alpha',[(False,False,False,False),(True,False,False,False),(True,True,False,False),(False,True,False,False),(True,True,True,False),(True,True,True,True),(True,True,True,"float32"),(True,True,True,"geometry"),(True,True,True,"geometry_half"),(True,True,True,"committed_replay"),(True,True,True,"bootstrap_fresh"),(True,True,True,"bootstrap_alpha"),(True,True,True,"bootstrap_alpha_float")],ids=['unsupported','proposed','fresh-assembly','fresh-unsupported','fresh-exposure','fresh-exposure-alpha','fresh-exposure-alpha-float32','fresh-exposure-geometry','fresh-exposure-geometry-half','fresh-exposure-committed-replay','fresh-exposure-bootstrap','fresh-exposure-bootstrap-alpha','fresh-exposure-bootstrap-alpha-float32'])
-def test_leased_qualification_reads_old_version_and_rechecks_revocation(database,lens_objects,tmp_path,proposed,deferred,exposure,with_alpha,record_property):
+@pytest.fixture
+def qualification_runtime_login(database):
+    """Keep administrative seed/readback separate from runtime authority.
+
+    The existing helper binds exactly this task's registration to a private
+    photo_worker-only login and restores it before the database is removed.
+    """
+    from contextlib import ExitStack
+    from wire_runtime_login import worker_login
+    with ExitStack() as stack:
+        yield lambda task: stack.enter_context(worker_login(make_conninfo(**database), task))
+
+
+@pytest.mark.parametrize('proposed,deferred,exposure,with_alpha',[(False,False,False,False),(True,False,False,False),(True,True,False,False),(False,True,False,False),(True,True,True,False),(True,True,True,True),(True,True,True,"float32"),(True,True,True,"geometry"),(True,True,True,"geometry_half"),(True,True,True,"committed_replay"),(True,True,True,"bootstrap_fresh"),(True,True,True,"bootstrap_alpha"),(True,True,True,"bootstrap_alpha_float"),(True,True,True,"bootstrap_shown")],ids=['unsupported','proposed','fresh-assembly','fresh-unsupported','fresh-exposure','fresh-exposure-alpha','fresh-exposure-alpha-float32','fresh-exposure-geometry','fresh-exposure-geometry-half','fresh-exposure-committed-replay','fresh-exposure-bootstrap','fresh-exposure-bootstrap-alpha','fresh-exposure-bootstrap-alpha-float32','fresh-exposure-bootstrap-shown'])
+def test_leased_qualification_reads_old_version_and_rechecks_revocation(database,lens_objects,tmp_path,proposed,deferred,exposure,with_alpha,record_property,qualification_runtime_login):
     import numpy as np
     edge=256 if proposed else 16
     expected_rgb=np.random.default_rng(2026).uniform(.05,.95,(edge,edge,3)).astype(np.float32) if proposed else np.full((edge,edge,3),.5,dtype=np.float32)
@@ -172,7 +187,7 @@ def test_leased_qualification_reads_old_version_and_rechecks_revocation(database
         from psycopg.types.json import Jsonb
         db.execute("INSERT INTO photo.task_attempts(tenant_id,task_id,attempt,fencing_token,worker_id,started_at,backend,profile) VALUES(%s,%s,2,2,%s,clock_timestamp(),'cuda',%s)",(tid,task,worker,Jsonb(profile)))
         db.commit()
-    transport=TaskDatabase(make_conninfo(**database))
+    transport=TaskDatabase(qualification_runtime_login(task))
     lease=SimpleNamespace(command=SimpleNamespace(tenant_id=tid,run_id=run,task_id=task,attempt=2,params=SimpleNamespace(artifact_id=params,sha256=scope['transfer_params_sha'])),fence=2,worker_id=worker,input_digest=digest)
     assert transport.semantic_assembly_qualification(lease) is None  # GPU transfer cannot acquire CPU assembly authority.
     assert transport.semantic_assembly_snapshot(lease)==[]
@@ -208,7 +223,13 @@ def test_leased_qualification_reads_old_version_and_rechecks_revocation(database
     with Image.open(BytesIO(original_bytes)) as decoded:
         assert decoded.size==(edge,edge) and decoded.mode=='RGB'
         decoded.load()
+    assert transport._query("SELECT nullif(current_setting('app.tenant_id',true),'') IS NULL",())[0] is True
     assert transport.semantic_source_ready(lease,typed_params.reference,target=False)
+    for field,value in (('tenant_id',uuid4()),('task_id',uuid4())):
+        altered=SimpleNamespace(**vars(lease.command));setattr(altered,field,value)
+        invalid=SimpleNamespace(**{**vars(lease),'command':altered})
+        assert not transport.semantic_source_ready(invalid,typed_params.reference,target=False)
+    assert not transport.semantic_source_ready(SimpleNamespace(**{**vars(lease),'fence':lease.fence+1}),typed_params.reference,target=False)
     assert transport.semantic_source_ready(lease,typed_params.target,target=True)
     from photo_worker.contracts.images import MaskRef
     assert transport.semantic_protection_pins(lease)==scope['protection']
@@ -299,8 +320,8 @@ def test_leased_qualification_reads_old_version_and_rechecks_revocation(database
     environment=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_TEST_V27_GATEWAY_TASK=str(task),PHOTO_TEST_V27_REPO_ROOT=str(repo),
         PHOTO_TEST_MINIO_URL='http://'+client._base_url.host,PHOTO_TEST_MINIO_BUCKET=bucket,
         PHOTO_TEST_MINIO_ACCESS=credentials.access_key,PHOTO_TEST_MINIO_SECRET=credentials.secret_key,
-        GOCACHE='/private/tmp/photoeditor-go-cache',PHOTO_TEST_V27_EXPECTED_STATE='proposed' if proposed else 'unsupported')
-    wire=subprocess.run(['go','test','./internal/gateway','-run','^TestIntegrationV27IndexedDownloads$','-count=1','-timeout=90s','-v'],cwd=repo/'backend',env=environment,capture_output=True,text=True,timeout=100)
+        GOCACHE=str(_PhotoRepositoryPath(__file__).resolve().parents[2]/'work/go-cache'),PHOTO_TEST_V27_EXPECTED_STATE='proposed' if proposed else 'unsupported')
+    wire=run_named_go(['go','test','./internal/gateway','-run','^TestIntegrationV27IndexedDownloads$','-count=1','-timeout=90s','-v'],cwd=repo/'backend',env=environment,capture_output=True,text=True,timeout=100)
     assert wire.returncode==0,wire.stdout+wire.stderr
     assert '--- PASS: TestIntegrationV27IndexedDownloads' in wire.stdout
     with psycopg.connect(**database) as registry:
@@ -381,6 +402,20 @@ def test_leased_qualification_reads_old_version_and_rechecks_revocation(database
         output=completed.execute("SELECT artifact_id,sha256,bytes FROM photo.output_uploads WHERE task_id=%s AND attempt=2 AND fence=2 AND role='document' AND state='ready'",(task,)).fetchone()
     assert output is not None
     payload=canonical_bytes(dict(outputs=[dict(artifact_id=str(output[0]),sha256=output[1])],metrics=dict(duration_ms=0,peak_memory_bytes=0,bytes_written=output[2]),review_required=proposed))
+    # This fixture imports qualification reports; activation here is an explicit
+    # isolated operator action, not measured model/photo qualification.
+    assert transport.commit_success(lease,payload)==('stale',None,None)
+    with psycopg.connect(**database) as activate:
+        assert activate.execute('SELECT canonical_result_id FROM photo.tasks WHERE id=%s',(task,)).fetchone()==(None,)
+        assert activate.execute("UPDATE photo.operation_registry SET v2_enabled=true WHERE operation='semantic.transfer' AND version='1' AND NOT v2_enabled").rowcount==1
+        assert activate.execute('SELECT photo.execution_source_live(%s)',(task,)).fetchone()==(True,)
+        # The same real, already sealed live graph distinguishes caller context
+        # from a missing/nonsealable graph. Roll back every probe transaction.
+        for value,expected in (('',False),(str(uuid4()),False),('invalid',False),(str(tid),True)):
+            with activate.transaction(force_rollback=True):
+                activate.execute('SET LOCAL ROLE photo_scheduler')
+                activate.execute("SELECT set_config('app.tenant_id',%s,true)",(value,))
+                assert activate.execute('SELECT photo.seal_v2_graph(%s,%s)',(tid,run)).fetchone()==(expected,)
     outcome,result_id,result_sha=transport.commit_success(lease,payload)
     assert outcome=='committed' and result_id is not None and result_sha
     assert transport.commit_success(lease,payload)==('replayed',result_id,result_sha)
@@ -476,8 +511,8 @@ def test_leased_qualification_reads_old_version_and_rechecks_revocation(database
             credentials=client._provider.retrieve()
             environment=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),PHOTO_TEST_V27_ASSEMBLY_RUN=str(run),
                 PHOTO_TEST_MINIO_URL='http://'+client._base_url.host,PHOTO_TEST_MINIO_BUCKET=bucket,
-                PHOTO_TEST_MINIO_ACCESS=credentials.access_key,PHOTO_TEST_MINIO_SECRET=credentials.secret_key,GOCACHE='/private/tmp/photoeditor-go-cache')
-            orchestration=subprocess.run(['go','test','./internal/v2input','-run','^TestIntegrationV27AssemblyRuntime$','-count=1','-timeout=90s','-v'],cwd=repo/'backend',env=environment,capture_output=True,text=True,timeout=100)
+                PHOTO_TEST_MINIO_ACCESS=credentials.access_key,PHOTO_TEST_MINIO_SECRET=credentials.secret_key,GOCACHE=str(_PhotoRepositoryPath(__file__).resolve().parents[2]/'work/go-cache'))
+            orchestration=run_named_go(['go','test','./internal/v2input','-run','^TestIntegrationV27AssemblyRuntime$','-count=1','-timeout=90s','-v'],cwd=repo/'backend',env=environment,capture_output=True,text=True,timeout=100)
             assert orchestration.returncode==0,orchestration.stdout+orchestration.stderr
             assert 'V27_ASSEMBLY_RUNTIME_OK' in orchestration.stdout
             with psycopg.connect(**database) as published:
@@ -494,22 +529,25 @@ def test_leased_qualification_reads_old_version_and_rechecks_revocation(database
                     cpu_pin=frozen_qualification(qualification_db,tid,scope['project'],scope['actor'],objects=(client,bucket),operation='semantic.local_exposure',backend='cpu')
                 environment['PHOTO_TEST_V27_EXPOSURE_PIN']=json.dumps(cpu_pin)
                 environment['PHOTO_TEST_V27_EXPOSURE_PROTECTION']=json.dumps(scope['protection']['target_protection'])
-                if with_alpha in ('committed_replay','bootstrap_fresh','bootstrap_alpha','bootstrap_alpha_float'):environment['PHOTO_TEST_V27_COMMITTED_REPLAY']='true'
+                if with_alpha in ('committed_replay','bootstrap_fresh','bootstrap_alpha','bootstrap_alpha_float','bootstrap_shown'):environment['PHOTO_TEST_V27_COMMITTED_REPLAY']='true'
             environment['PHOTO_TEST_V27_REVIEW_STATE']=expected_review_state
             if with_alpha=='committed_replay':
-                bootstrap=subprocess.run(['go','test','./cmd/photo','-run','^TestIntegrationSemanticExposureBootstrap$','-count=1','-timeout=90s','-v'],cwd=repo/'backend',env=environment,capture_output=True,text=True,timeout=100)
+                bootstrap=run_named_go(['go','test','./cmd/photo','-run','^TestIntegrationSemanticExposureBootstrap$','-count=1','-timeout=90s','-v'],cwd=repo/'backend',env=environment,capture_output=True,text=True,timeout=100)
                 assert bootstrap.returncode==0,bootstrap.stdout+bootstrap.stderr
                 assert 'V27_EXPOSURE_BOOTSTRAP_OK' in bootstrap.stdout
-            if with_alpha in ('bootstrap_fresh','bootstrap_alpha','bootstrap_alpha_float'):environment['PHOTO_TEST_V27_PREPARED_APPLY_FILE']=str(tmp_path/'prepared-apply.json')
-            review=subprocess.run(['go','test','./internal/semanticreview','-run','^TestIntegrationV27ReviewReadsAdoptedPlan$','-count=1','-timeout=90s','-v'],cwd=repo/'backend',env=environment,capture_output=True,text=True,timeout=100)
+            if with_alpha in ('bootstrap_fresh','bootstrap_alpha','bootstrap_alpha_float','bootstrap_shown'):environment['PHOTO_TEST_V27_PREPARED_APPLY_FILE']=str(tmp_path/'prepared-apply.json')
+            review=run_named_go(['go','test','./internal/semanticreview','-run','^TestIntegrationV27ReviewReadsAdoptedPlan$','-count=1','-timeout=90s','-v'],cwd=repo/'backend',env=environment,capture_output=True,text=True,timeout=100)
             assert review.returncode==0,review.stdout+review.stderr
             assert 'V27_REVIEW_READ_OK' in review.stdout
             assert 'V27_INITIALIZED_RUN_INTENT_AUTHORITY_OK' in review.stdout
             assert 'V27_RUN_INTENT_RESTRICTED_ACL_ARCHIVE_OK' in review.stdout
+            if with_alpha=='bootstrap_shown':
+                from v27_shown_capture_lifecycle import run_shown_capture_lifecycle
+                run_shown_capture_lifecycle(database,client,bucket,tid,scope,tmp_path,environment,record_property)
             if with_alpha in ('bootstrap_fresh','bootstrap_alpha','bootstrap_alpha_float'):
                 assert 'V27_REVIEW_PREPARED_OK' in review.stdout
                 environment['PHOTO_TEST_V27_APPLY_RESPONSE_FILE']=str(tmp_path/'apply-response.json')
-                fresh_bootstrap=subprocess.run(['go','test','./cmd/photo','-run','^TestIntegrationSemanticExposureBootstrap$','-count=1','-timeout=90s','-v'],cwd=repo/'backend',env=environment,capture_output=True,text=True,timeout=100)
+                fresh_bootstrap=run_named_go(['go','test','./cmd/photo','-run','^TestIntegrationSemanticExposureBootstrap$','-count=1','-timeout=90s','-v'],cwd=repo/'backend',env=environment,capture_output=True,text=True,timeout=100)
                 assert fresh_bootstrap.returncode==0,fresh_bootstrap.stdout+fresh_bootstrap.stderr
                 assert 'V27_EXPOSURE_FRESH_OK' in fresh_bootstrap.stdout
                 assert 'V27_CLOSE_QUEUED_CHILD_OK' in fresh_bootstrap.stdout
@@ -517,14 +555,14 @@ def test_leased_qualification_reads_old_version_and_rechecks_revocation(database
                 apply_sdk=subprocess.run(['npm','test','--','--run','src/semantic-apply.integration.test.ts','--reporter=json','--outputFile='+str(tmp_path/'apply_sdk-vitest.json')],cwd=repo/'packages'/'api-client',env=apply_sdk_environment,capture_output=True,text=True,timeout=40)
                 assert apply_sdk.returncode==0,apply_sdk.stdout+apply_sdk.stderr
                 assert_live_vitest_report(tmp_path/'apply_sdk-vitest.json', 1, record_property)
-                apply_ui=subprocess.run(['npm','test','--','--run','src/semantic-review-decisions.integration.test.tsx','--reporter=json','--outputFile='+str(tmp_path/'apply_ui-vitest.json')],cwd=repo/'apps'/'photographer',env=apply_sdk_environment,capture_output=True,text=True,timeout=40)
+                apply_ui=subprocess.run(['npm','test','--','--run','src/semantic-review-decisions.integration.test.tsx','--reporter=json','--outputFile='+str(tmp_path/'ordinary-decision-guard-ui-vitest.json')],cwd=repo/'apps'/'photographer',env=apply_sdk_environment,capture_output=True,text=True,timeout=40)
                 assert apply_ui.returncode==0,apply_ui.stdout+apply_ui.stderr
-                assert_live_vitest_report(tmp_path/'apply_ui-vitest.json', 1, record_property)
+                assert_live_vitest_report(tmp_path/'ordinary-decision-guard-ui-vitest.json', 1, record_property)
                 from v27_exposure_inputs_probe import verify_http_exposure_worker_inputs
                 with psycopg.connect(**database) as leased_exposure:
                     exposure_task=verify_http_exposure_worker_inputs(leased_exposure,database,client,bucket,tid,tmp_path/'exposure-inputs')
                 exposure_environment=dict(environment,PHOTO_TEST_V27_GATEWAY_TASK=str(exposure_task),PHOTO_TEST_V27_REPO_ROOT=str(repo))
-                exposure_wire=subprocess.run(['go','test','./internal/gateway','-run','^TestIntegrationV27IndexedDownloads$','-count=1','-timeout=90s','-v'],cwd=repo/'backend',env=exposure_environment,capture_output=True,text=True,timeout=100)
+                exposure_wire=run_named_go(['go','test','./internal/gateway','-run','^TestIntegrationV27IndexedDownloads$','-count=1','-timeout=90s','-v'],cwd=repo/'backend',env=exposure_environment,capture_output=True,text=True,timeout=100)
                 assert exposure_wire.returncode==0,exposure_wire.stdout+exposure_wire.stderr
                 if os.environ.get('PHOTO_TEST_V27_EARLY_CLOSE')=='true':
                     assert 'V27_CLOSE_EARLY_DURABLE_OK' in fresh_bootstrap.stdout
@@ -535,7 +573,7 @@ def test_leased_qualification_reads_old_version_and_rechecks_revocation(database
                     return
                 exposure_environment['PHOTO_TEST_V27_TARGETS_RESPONSE_FILE']=str(tmp_path/'targets-response.json')
                 exposure_environment['PHOTO_TEST_V27_OUTPUTS_RESPONSE_FILE']=str(tmp_path/'outputs-response.json')
-                targets_http=subprocess.run(['go','test','./internal/httpapi','-run','^TestIntegrationCompletedSemanticTargetsHTTP$','-count=1','-timeout=30s','-v'],cwd=repo/'backend',env=exposure_environment,capture_output=True,text=True,timeout=40)
+                targets_http=run_named_go(['go','test','./internal/httpapi','-run','^TestIntegrationCompletedSemanticTargetsHTTP$','-count=1','-timeout=30s','-v'],cwd=repo/'backend',env=exposure_environment,capture_output=True,text=True,timeout=40)
                 assert targets_http.returncode==0,targets_http.stdout+targets_http.stderr
                 assert 'V27_TARGETS_HTTP_OK' in targets_http.stdout
                 assert 'V27_CLOSE_HTTP_OK' in targets_http.stdout
@@ -554,14 +592,14 @@ def test_leased_qualification_reads_old_version_and_rechecks_revocation(database
                     output_sdk=subprocess.run(['npm','test','--','--run','src/run-outputs.integration.test.ts','--reporter=json','--outputFile='+str(tmp_path/'output_sdk-vitest.json')],cwd=repo/'packages'/'api-client',env=output_environment,capture_output=True,text=True,timeout=40)
                     assert output_sdk.returncode==0,output_sdk.stdout+output_sdk.stderr
                     assert_live_vitest_report(tmp_path/'output_sdk-vitest.json', 1, record_property)
-                    output_ui=subprocess.run(['npm','test','--','--run','src/semantic-preview.integration.test.tsx','--reporter=json','--outputFile='+str(tmp_path/'output_ui-vitest.json')],cwd=repo/'apps'/'photographer',env=output_environment,capture_output=True,text=True,timeout=40)
-                    assert output_ui.returncode==0,output_ui.stdout+output_ui.stderr
-                    assert_live_vitest_report(tmp_path/'output_ui-vitest.json', 1, record_property)
+                    # ShownAppliedPreview UI is exercised by bootstrap_shown's
+                    # real preview/selection/copy/adoption endpoint, separately.
+
                 finally:
                     output_capture.unlink(missing_ok=True)
             if with_alpha=='committed_replay':
                 environment['PHOTO_TEST_V27_BOOTSTRAP_REPLAY']='true'
-                replay_bootstrap=subprocess.run(['go','test','./cmd/photo','-run','^TestIntegrationSemanticExposureBootstrap$','-count=1','-timeout=90s','-v'],cwd=repo/'backend',env=environment,capture_output=True,text=True,timeout=100)
+                replay_bootstrap=run_named_go(['go','test','./cmd/photo','-run','^TestIntegrationSemanticExposureBootstrap$','-count=1','-timeout=90s','-v'],cwd=repo/'backend',env=environment,capture_output=True,text=True,timeout=100)
                 assert replay_bootstrap.returncode==0,replay_bootstrap.stdout+replay_bootstrap.stderr
                 assert 'V27_EXPOSURE_REPLAY_OK' in replay_bootstrap.stdout
         calls_before_missing=len(scene_calls)

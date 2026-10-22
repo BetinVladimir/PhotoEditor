@@ -30,7 +30,9 @@ class RepairFiles:
 def prepare_repair(rgb:np.ndarray,labels:np.ndarray,protected:np.ndarray,proposal:DefectCandidates,
                    selected:Sequence[DefectCandidate],scratch:ScratchSpace,*,strength:float=1.,
                    max_roi_pixels:int=4194304,check_active:Callable[[],None]=lambda:None)->Iterator[RepairFiles]:
-    """Selected must come from accepted_candidates against an authorized review.
+    """Caller must authorize selection through an owned review or pinned auto policy.
+
+    This native pixel engine does not manufacture or validate review authority.
 
     Patches read only original RGB. Output writes only the selected label pixels,
     so overlapping support windows never undo or compound neighboring repairs.

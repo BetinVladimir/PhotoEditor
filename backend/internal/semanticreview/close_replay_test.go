@@ -30,3 +30,14 @@ func TestCloseResponseCannotCarryChildOrIncompleteStatus(t *testing.T) {
 		}
 	}
 }
+
+func TestCloseResponseRevisionRequiresAnIncrementedSafeValue(t *testing.T) {
+    value:=map[string]any{"run_id":uuid.New().String(),"workflow_id":uuid.New().String(),"revision":"9007199254740991","state":"completed","outputs":[]any{},"error_code":nil}
+    raw,_:=json.Marshal(value)
+    if _,err:=DecodeCloseResult(raw);err!=nil { t.Fatal(err) }
+    for _,revision:=range []string{"1","9007199254740992","9223372036854775807"} {
+        value["revision"]=revision
+        raw,_=json.Marshal(value)
+        if _,err:=DecodeCloseResult(raw);err==nil { t.Fatal("invalid terminal revision",revision) }
+    }
+}

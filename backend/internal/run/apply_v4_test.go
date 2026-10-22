@@ -17,7 +17,7 @@ func TestSupportsApplyV4OnlyForMaterializedBuilders(t *testing.T) {
 		func(v *styleExecutionNeeds) { v.Defects.Enabled = true; v.Defects.Policy = "automatic" },
 		func(v *styleExecutionNeeds) { v.Extensions.PortraitDetail.Enabled = true },
 		func(v *styleExecutionNeeds) { v.Extensions.Restoration.Denoise = "unknown" }, func(v *styleExecutionNeeds) { v.Extensions.Restoration.Upscale = "8x" },
-		func(v *styleExecutionNeeds) { v.Extensions.Background.Mode = "asset" },
+		func(v *styleExecutionNeeds) { v.Extensions.Background.Mode = "unknown" },
 	}
 	for i, mutate := range mutations {
 		candidate := supported
@@ -99,7 +99,7 @@ func TestBackgroundBlurRequiresPinnedDepthModel(t *testing.T) {
 	}
 }
 
-func TestApplyV4PortraitDetailRequiresExplicitOverrideRegionsAndNoGeometry(t *testing.T) {
+func TestApplyV4PortraitDetailRequiresExplicitOverrideRegionsAndTransformsGeometry(t *testing.T) {
 	var style styleExecutionNeeds
 	if err := json.Unmarshal([]byte(`{"mode":"fixed","extensions":{"portrait_detail":{"enabled":true},"background":{"mode":"keep"}}}`), &style); err != nil {
 		t.Fatal(err)
@@ -112,8 +112,8 @@ func TestApplyV4PortraitDetailRequiresExplicitOverrideRegionsAndNoGeometry(t *te
 		t.Fatal("explicit portrait detail regions rejected")
 	}
 	style.Geometry.Enabled = true
-	if supportsApplyV4WithOverrides(style, override) {
-		t.Fatal("untransformed portrait regions accepted with geometry")
+	if !supportsApplyV4WithOverrides(style, override) {
+		t.Fatal("portrait regions with dedicated geometry transform rejected")
 	}
 }
 
@@ -171,4 +171,85 @@ func TestSupportsApplyV4GeometryAndRequiresExactPoseModel(t *testing.T) {
 	if !hasExactModel(style.Models, poseModelID, poseWeightID) {
 		t.Fatal("exact pose model binding rejected")
 	}
+}
+
+func TestApplyNeedsJobThenItemLocalPrecedence(t *testing.T) {
+	var needs styleExecutionNeeds
+	if err := mergeOverrideNeeds(&needs, json.RawMessage(`{"modules":{"local":{"enabled":true},"geometry":{"enabled":true}}}`)); err != nil { t.Fatal(err) }
+	if !needs.Local.Enabled || !needs.Geometry.Enabled { t.Fatal("job requirements lost") }
+	if err := mergeOverrideNeeds(&needs, json.RawMessage(`{"modules":{"local":{"enabled":false}}}`)); err != nil { t.Fatal(err) }
+	if needs.Local.Enabled || !needs.Geometry.Enabled { t.Fatal("item precedence lost inherited geometry") }
+}
+
+func TestApplyNeedsNullModulesKeepInheritedRequirements(t *testing.T) {
+	var needs styleExecutionNeeds
+	needs.Local.Enabled = true
+	needs.Geometry.Enabled = true
+	needs.Extensions.Restoration.Upscale = "2x"
+	if err := mergeOverrideNeeds(&needs, json.RawMessage(`{"modules":{"local":null,"geometry":null,"extensions":null}}`)); err != nil { t.Fatal(err) }
+	if !needs.Local.Enabled || !needs.Geometry.Enabled || needs.Extensions.Restoration.Upscale != "2x" { t.Fatal("null changed inherited requirements") }
+}
+
+func TestApplyNeedsNamedExtensionReplacesOldFields(t *testing.T) {
+	var needs styleExecutionNeeds
+	needs.Extensions.Restoration.Denoise = denoiseModelID
+	needs.Extensions.Restoration.Upscale = "4x"
+	needs.Extensions.Restoration.SensorDust = "review"
+	needs.Extensions.Background.Mode = "blur"
+	needs.Defects.Enabled = true
+	needs.Defects.Policy = "review"
+	if err := mergeOverrideNeeds(&needs, json.RawMessage(`{"modules":{"defects":{"enabled":false},"extensions":{"restoration":{"denoise":"off"}}}}`)); err != nil { t.Fatal(err) }
+	if needs.Extensions.Restoration.Upscale != "" || needs.Extensions.Restoration.SensorDust != "" || needs.Extensions.Restoration.Denoise != "off" { t.Fatal("old restoration requirements survived replacement") }
+	if needs.Defects.Enabled || needs.Defects.Policy != "" { t.Fatal("old defect policy survived replacement") }
+	if needs.Extensions.Background.Mode != "blur" { t.Fatal("unnamed extension lost") }
+}
+
+func TestApplyGeneratedBackgroundRequiresEffectiveGeneration(t *testing.T) {
+ var needs styleExecutionNeeds
+ needs.Extensions.Background.Mode = "generate"
+ needs.Extensions.Generation.Enabled = true
+ if err := validateApplyModuleDependencies(needs); err != nil { t.Fatal(err) }
+ if err := mergeOverrideNeeds(&needs,json.RawMessage(`{"modules":{"extensions":{"generation":{"enabled":false}}}}`)); err != nil { t.Fatal(err) }
+ if err := validateApplyModuleDependencies(needs); err == nil { t.Fatal("generated background accepted after generation disabled") }
+ if err := mergeOverrideNeeds(&needs,json.RawMessage(`{"modules":{"extensions":{"background":{"mode":"keep"}}}}`)); err != nil { t.Fatal(err) }
+ if err := validateApplyModuleDependencies(needs); err != nil { t.Fatal(err) }
+}
+
+func TestApplyMaskingOverrideRequiresStyleModels(t *testing.T) {
+ var needs styleExecutionNeeds
+ if err:=mergeOverrideNeeds(&needs,json.RawMessage(`{"modules":{"extensions":{"masking":{"scene":"segformer_b0_ade","face":"bisenet_face19","interactive":"mobilesam"}}}}`));err!=nil{t.Fatal(err)}
+ if applyMaskingModelsPresent(needs){t.Fatal("missing masking models accepted")}
+ needs.Models=[]styleModelReference{{ID:"segformer_b0_ade",WeightID:"scene"},{ID:"bisenet_face19",WeightID:"face"},{ID:"mobilesam",WeightID:"interactive"}}
+ if !applyMaskingModelsPresent(needs){t.Fatal("bound models rejected")}
+ if err:=mergeOverrideNeeds(&needs,json.RawMessage(`{"modules":{"extensions":{"masking":null}}}`));err!=nil{t.Fatal(err)}
+ needs.Models=nil
+ if !applyMaskingModelsPresent(needs){t.Fatal("cleared masking still needs models")}
+}
+
+func TestApplyV4GenerationPreservesAdmittedStepRange(t *testing.T) {
+	var style styleExecutionNeeds
+	if err := json.Unmarshal([]byte(`{"mode":"fixed","extensions":{"generation":{"enabled":true,"model":"sd15_inpaint","prompt":"fill","steps":1,"guidance_scale":7.5,"require_acceptance":true}}}`), &style); err != nil { t.Fatal(err) }
+	for _, steps := range []int{1, 12, 25, 50} {
+		style.Extensions.Generation.Steps = steps
+		if !supportsApplyV4WithOverrides(style, json.RawMessage(`{"mask_refs":[{"purpose":"generation_target"}]}`)) { t.Fatalf("valid generation steps %d fell back from v4", steps) }
+	}
+	for _, steps := range []int{0, 51} {
+		style.Extensions.Generation.Steps = steps
+		if supportsApplyV4WithOverrides(style, json.RawMessage(`{"mask_refs":[{"purpose":"generation_target"}]}`)) { t.Fatalf("invalid generation steps %d admitted", steps) }
+	}
+}
+
+func TestApplyV4FullGenerationBoundsDoNotFallBack(t *testing.T) {
+ var style styleExecutionNeeds
+ if err:=json.Unmarshal([]byte(`{"mode":"fixed","extensions":{"generation":{"enabled":true,"model":"sd15_inpaint","prompt":"","negative_prompt":"","steps":50,"guidance_scale":0,"strength":0.25,"require_acceptance":true}}}`),&style);err!=nil { t.Fatal(err) }
+ if !supportsApplyV4WithOverrides(style,json.RawMessage(`{"mask_refs":[{"purpose":"generation_target"}]}`)) { t.Fatal("valid zero guidance/empty prompt/partial strength fell back") }
+ style.Extensions.Generation.Strength=1.1
+ if supportsApplyV4WithOverrides(style,json.RawMessage(`{"mask_refs":[{"purpose":"generation_target"}]}`)) { t.Fatal("invalid strength admitted") }
+}
+
+func TestConservativePoliciesStayOnCompleteV4Graph(t *testing.T){
+ var style styleExecutionNeeds
+ style.Defects.Enabled=true;style.Defects.Policy="conservative_auto";style.Extensions.Restoration.SensorDust="conservative_auto"
+ if !supportsApplyV4(style){t.Fatal("conservative repair must not fall back to graph3")}
+ style.Defects.Policy="automatic";if supportsApplyV4(style){t.Fatal("unknown automatic policy admitted")}
 }

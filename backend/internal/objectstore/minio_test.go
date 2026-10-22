@@ -4,11 +4,17 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/hex"
 	"errors"
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 	"io"
+	"net"
+	"net/http"
+	"net/url"
 	"os"
 	"sync"
 	"testing"
@@ -31,52 +37,189 @@ func TestRejectUnsafeKeysAndEndpoints(t *testing.T) {
 		}
 	}
 }
-func digest(data []byte) string { h := sha256.Sum256(data); return hex.EncodeToString(h[:]) }
-func testStore(t *testing.T) *Store { return testStoreWithCORS(t,nil) }
-func testStoreWithCORS(t *testing.T,origins []string) *Store {
+func digest(data []byte) string     { h := sha256.Sum256(data); return hex.EncodeToString(h[:]) }
+func testStore(t *testing.T) *Store { return testStoreWithCORS(t, nil) }
+func testStoreWithCORS(t *testing.T, origins []string) *Store {
 	t.Helper()
 	endpoint := os.Getenv("PHOTO_TEST_MINIO_URL")
 	if endpoint == "" {
 		t.Skip("isolated MinIO required")
 	}
 	bucket := "photo-test-" + uuid.NewString()
-	s, err := New(Config{Endpoint: endpoint, Bucket: bucket, AccessKey: os.Getenv("PHOTO_TEST_MINIO_ACCESS"), SecretKey: os.Getenv("PHOTO_TEST_MINIO_SECRET"), Development: true,CORSOrigins:origins})
+	t.Logf("owned_fixture_bucket_intent=%s", bucket)
+	s, err := New(Config{Endpoint: endpoint, Bucket: bucket, AccessKey: os.Getenv("PHOTO_TEST_MINIO_ACCESS"), SecretKey: os.Getenv("PHOTO_TEST_MINIO_SECRET"), Development: true, CORSOrigins: origins})
 	if err != nil {
 		t.Fatal(err)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+	// A fresh UUID bucket is exclusively owned by this fixture. Register its
+	// inverse before Bootstrap, which may create it before a later setup error.
+	exists, err := s.client.BucketExists(ctx, bucket)
+	if err != nil || exists {
+		t.Fatal("fresh fixture bucket preflight failed")
+	}
+	t.Cleanup(func() { cleanupOwnedTestBucket(t, s) })
 	if err = s.Bootstrap(ctx); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		for object := range s.client.ListObjects(ctx, bucket, minio.ListObjectsOptions{Recursive: true, WithVersions: true}) {
-			if object.Err != nil {
-				t.Error("cleanup listing failed")
-				return
-			}
-			if err := s.client.RemoveObject(ctx, bucket, object.Key, minio.RemoveObjectOptions{VersionID: object.VersionID}); err != nil {
-				t.Error("cleanup version failed")
-			}
-		}
-		if err := s.client.RemoveBucket(ctx, bucket); err != nil {
-			t.Error("cleanup bucket failed")
-		}
-	})
+
 	return s
 }
-func TestIntegrationBootstrapArchiveCORSReadbackAndRotation(t *testing.T){
- origins:=[]string{"http://localhost:8080","http://127.0.0.2:3000"}
- s:=testStoreWithCORS(t,origins)
- ctx,cancel:=context.WithTimeout(context.Background(),30*time.Second);defer cancel()
- installed,err:=s.client.GetBucketCors(ctx,s.bucket)
- if err!=nil||!archiveCORSInstalled(installed,origins){t.Fatal("archive CORS missing after bootstrap",err,installed)}
- s.corsOrigins=[]string{origins[0]}
- if err=s.Bootstrap(ctx);err!=nil{t.Fatal("CORS rotation failed",err)}
- installed,err=s.client.GetBucketCors(ctx,s.bucket)
- if err!=nil||!archiveCORSInstalled(installed,s.corsOrigins){t.Fatal("old origin retained after rotation",err,installed)}
+
+// Cleanup uses explicit trusted administration when a public storage transport
+// does not support bucket deletion. All product assertions still use s.client
+// and public presigned URLs; no production policy or TLS validation is changed.
+func cleanupOwnedTestBucket(t *testing.T, s *Store) {
+	t.Helper()
+	const prefix = "photo-test-"
+	if len(s.bucket) <= len(prefix) || s.bucket[:len(prefix)] != prefix {
+		t.Error("unowned fixture bucket cleanup refused")
+		return
+	}
+	id, err := uuid.Parse(s.bucket[len(prefix):])
+	if err != nil || id == uuid.Nil || prefix+id.String() != s.bucket {
+		t.Error("noncanonical fixture bucket cleanup refused")
+		return
+	}
+	admin := s.client
+	if endpoint := os.Getenv("PHOTO_TEST_MINIO_ADMIN_URL"); endpoint != "" {
+		u, e := url.Parse(endpoint)
+		if e != nil || u.Scheme != "https" || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" || (u.Hostname() != "localhost" && (net.ParseIP(u.Hostname()) == nil || !net.ParseIP(u.Hostname()).IsLoopback())) {
+			t.Error("trusted fixture cleanup endpoint invalid")
+			return
+		}
+		pem, e := os.ReadFile(os.Getenv("PHOTO_TEST_MINIO_ADMIN_CA_FILE"))
+		if e != nil || digest(pem) != os.Getenv("PHOTO_TEST_MINIO_ADMIN_CA_SHA256") {
+			t.Error("trusted fixture cleanup CA pin invalid")
+			return
+		}
+		roots := x509.NewCertPool()
+		if !roots.AppendCertsFromPEM(pem) {
+			t.Error("trusted fixture cleanup CA invalid")
+			return
+		}
+		transport := &http.Transport{DialContext: (&net.Dialer{Timeout: 5 * time.Second}).DialContext, TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: roots}, TLSHandshakeTimeout: 5 * time.Second, ResponseHeaderTimeout: 10 * time.Second}
+		defer transport.CloseIdleConnections()
+		admin, e = minio.New(u.Host, &minio.Options{Creds: credentials.NewStaticV4(os.Getenv("PHOTO_TEST_MINIO_ACCESS"), os.Getenv("PHOTO_TEST_MINIO_SECRET"), ""), Secure: true, Region: "us-east-1", Transport: transport})
+		if e != nil {
+			t.Error("trusted fixture cleanup client invalid")
+			return
+		}
+
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	exists, e := admin.BucketExists(ctx, s.bucket)
+	if e != nil {
+		response := minio.ToErrorResponse(e)
+		t.Errorf("cleanup bucket existence failed code=%s status=%d error_type=%T detail=%v", response.Code, response.StatusCode, e, e)
+		return
+	}
+	if !exists {
+		return
+	}
+	count := 0
+	incomplete := map[string]bool{}
+	for object := range admin.ListIncompleteUploads(ctx, s.bucket, "", true) {
+		if object.Err != nil {
+			t.Error("cleanup multipart listing failed")
+			return
+		}
+		count++
+		if count > 1000 {
+			t.Error("cleanup multipart bound exceeded")
+			return
+		}
+		incomplete[object.Key] = true
+	}
+	for key := range incomplete {
+		if e = admin.RemoveIncompleteUpload(ctx, s.bucket, key); e != nil {
+			t.Error("cleanup multipart abort failed")
+			return
+		}
+	}
+	count = 0
+	drained := false
+	for pass := 0; pass < 3; pass++ {
+		versions := []minio.ObjectInfo{}
+		for object := range admin.ListObjects(ctx, s.bucket, minio.ListObjectsOptions{Recursive: true, WithVersions: true}) {
+			if object.Err != nil {
+				t.Error("cleanup version listing failed")
+				return
+			}
+			count++
+			if count > 10000 {
+				t.Error("cleanup total version bound exceeded")
+				return
+			}
+			if object.VersionID == "" {
+				t.Error("cleanup unpinned version refused")
+				return
+			}
+			versions = append(versions, object)
+		}
+		t.Logf("cleanup snapshot pass=%d versions=%d", pass, len(versions))
+		if len(versions) == 0 {
+			drained = true
+			break
+		}
+		for _, object := range versions {
+			if e = admin.RemoveObject(ctx, s.bucket, object.Key, minio.RemoveObjectOptions{VersionID: object.VersionID}); e != nil {
+				t.Error("cleanup version failed")
+				return
+			}
+		}
+	}
+	if !drained {
+		t.Error("cleanup version reconciliation bound exhausted")
+		return
+	}
+	for object := range admin.ListObjects(ctx, s.bucket, minio.ListObjectsOptions{Recursive: true, WithVersions: true}) {
+		if object.Err != nil {
+			t.Error("cleanup final absence listing failed")
+		} else {
+			t.Error("cleanup retained object version")
+		}
+		return
+	}
+
+	// Classify public transport separately; a successful trusted inverse is still
+	// mandatory, and neither bucketwide policy nor product assertions are relaxed.
+	if e = s.client.RemoveBucket(ctx, s.bucket); e != nil {
+		response := minio.ToErrorResponse(e)
+		t.Logf("public fixture DeleteBucket code=%s status=%d error_type=%T", response.Code, response.StatusCode, e)
+		if e = admin.RemoveBucket(ctx, s.bucket); e != nil {
+			response = minio.ToErrorResponse(e)
+			t.Errorf("trusted cleanup bucket failed code=%s status=%d error_type=%T", response.Code, response.StatusCode, e)
+			return
+		}
+	}
+	exists, e = admin.BucketExists(ctx, s.bucket)
+	if e != nil || exists {
+		t.Error("cleanup bucket absence not proven")
+		return
+	}
+	t.Logf("owned fixture bucket removed and absent: %s", s.bucket)
+}
+
+func TestIntegrationBootstrapArchiveCORSReadbackAndRotation(t *testing.T) {
+	origins := []string{"http://localhost:8080", "http://127.0.0.2:3000"}
+	s := testStoreWithCORS(t, origins)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	installed, err := s.client.GetBucketCors(ctx, s.bucket)
+	if err != nil || !archiveCORSInstalled(installed, origins) {
+		t.Fatal("archive CORS missing after bootstrap", err, installed)
+	}
+	s.corsOrigins = []string{origins[0]}
+	if err = s.Bootstrap(ctx); err != nil {
+		t.Fatal("CORS rotation failed", err)
+	}
+	installed, err = s.client.GetBucketCors(ctx, s.bucket)
+	if err != nil || !archiveCORSInstalled(installed, s.corsOrigins) {
+		t.Fatal("old origin retained after rotation", err, installed)
+	}
 }
 func TestIntegrationVersionedStreamAndMultipart(t *testing.T) {
 	s := testStore(t)
@@ -261,18 +404,49 @@ func TestIntegrationPurgeTenantBatchIsBoundedAndScoped(t *testing.T) {
 	}
 }
 
-func TestIntegrationPurgeTenantBatchCountsMultipartSessions(t *testing.T){
- s:=testStore(t);ctx,cancel:=context.WithTimeout(context.Background(),30*time.Second);defer cancel()
- tenant:=uuid.New();prefix,_:=tenantPrefix(tenant);key:=prefix+"two-sessions"
- core:=minio.Core{Client:s.client}
- first,err:=core.NewMultipartUpload(ctx,s.bucket,key,minio.PutObjectOptions{});if err!=nil{t.Fatal(err)}
- defer s.client.RemoveIncompleteUpload(context.Background(),s.bucket,key)
- second,err:=core.NewMultipartUpload(ctx,s.bucket,key,minio.PutObjectOptions{});if err!=nil{t.Fatal(err)}
- if first==second{t.Fatal("multipart sessions were not distinct")}
- more,err:=s.PurgeTenantBatch(ctx,tenant,1);if err!=nil||!more{t.Fatal("first exact session cleanup",more,err)}
- scan:=s.client.ListIncompleteUploads(ctx,s.bucket,key,true);remaining:=map[string]bool{}
- for row:=range scan{if row.Err!=nil{t.Fatal(row.Err)};if row.Key==key{remaining[row.UploadID]=true}}
- if len(remaining)!=1{t.Fatal("batch removed more than one multipart session",remaining)}
- more,err=s.PurgeTenantBatch(ctx,tenant,1);if err!=nil||!more{t.Fatal("second exact session cleanup",more,err)}
- more,err=s.PurgeTenantBatch(ctx,tenant,1);if err!=nil||more{t.Fatal("multipart cleanup did not converge",more,err)}
+func TestIntegrationPurgeTenantBatchCountsMultipartSessions(t *testing.T) {
+	s := testStore(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	tenant := uuid.New()
+	prefix, _ := tenantPrefix(tenant)
+	key := prefix + "two-sessions"
+	core := minio.Core{Client: s.client}
+	first, err := core.NewMultipartUpload(ctx, s.bucket, key, minio.PutObjectOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.client.RemoveIncompleteUpload(context.Background(), s.bucket, key)
+	second, err := core.NewMultipartUpload(ctx, s.bucket, key, minio.PutObjectOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first == second {
+		t.Fatal("multipart sessions were not distinct")
+	}
+	more, err := s.PurgeTenantBatch(ctx, tenant, 1)
+	if err != nil || !more {
+		t.Fatal("first exact session cleanup", more, err)
+	}
+	scan := s.client.ListIncompleteUploads(ctx, s.bucket, key, true)
+	remaining := map[string]bool{}
+	for row := range scan {
+		if row.Err != nil {
+			t.Fatal(row.Err)
+		}
+		if row.Key == key {
+			remaining[row.UploadID] = true
+		}
+	}
+	if len(remaining) != 1 {
+		t.Fatal("batch removed more than one multipart session", remaining)
+	}
+	more, err = s.PurgeTenantBatch(ctx, tenant, 1)
+	if err != nil || !more {
+		t.Fatal("second exact session cleanup", more, err)
+	}
+	more, err = s.PurgeTenantBatch(ctx, tenant, 1)
+	if err != nil || more {
+		t.Fatal("multipart cleanup did not converge", more, err)
+	}
 }

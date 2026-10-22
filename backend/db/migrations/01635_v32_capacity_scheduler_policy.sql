@@ -7,7 +7,7 @@ RETURNS boolean LANGUAGE sql IMMUTABLE SET search_path=pg_catalog,photo AS $$
  AND photo.capacity_policy_budget_valid(p_policy,'tenant_heavy_queued')
  AND photo.capacity_policy_budget_valid(p_policy,'heavy_admission_inflight')
  AND CASE WHEN jsonb_typeof(p_policy->'queue_weights')='object' THEN
- (p_policy->'queue_weights'-'interactive'-'capture'-'batch'-'training')='{}'::jsonb
+ ((p_policy->'queue_weights')-'interactive'-'capture'-'batch'-'training')='{}'::jsonb
  AND (p_policy->'queue_weights') ?& ARRAY['interactive','capture','batch','training']
  AND NOT EXISTS(SELECT 1 FROM jsonb_each(p_policy->'queue_weights') e
  WHERE NOT photo.capacity_policy_budget_valid(p_policy->'queue_weights',e.key)

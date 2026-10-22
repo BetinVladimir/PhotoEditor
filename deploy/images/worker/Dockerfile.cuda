@@ -1,0 +1,39 @@
+# syntax=docker/dockerfile:1.7
+# Build for linux/amd64. Both images must be supplied by immutable digest.
+# Base contract: Debian-compatible CPython 3.11, glibc >=2.28,
+# CUDA 12 and cuDNN 9 runtime libraries for ONNX. uv.lock separately pins Torch CUDA libraries.
+ARG UV_IMAGE
+ARG CUDA_PYTHON_BASE_IMAGE
+FROM ${UV_IMAGE} AS uv
+FROM ${CUDA_PYTHON_BASE_IMAGE}
+ARG UV_IMAGE
+ARG CUDA_PYTHON_BASE_IMAGE
+RUN printf '%s\n' "$UV_IMAGE" "$CUDA_PYTHON_BASE_IMAGE" | \
+    awk 'BEGIN {bad=0} !/^[A-Za-z0-9][A-Za-z0-9._:\/-]*@sha256:[0-9a-f]+$/ {bad=1} {n=split($0,a,"@sha256:"); if(n!=2 || length(a[2])!=64) bad=1} END {exit bad}'
+ENV UV_PYTHON_DOWNLOADS=never UV_PYTHON=/usr/local/bin/python3.11
+RUN /usr/local/bin/python3.11 -c "import ctypes, platform, sys; assert sys.version_info[:3] == (3, 11, 14); assert platform.machine() == 'x86_64'; ctypes.CDLL('libcudart.so.12'); ctypes.CDLL('libcudnn.so.9')"
+RUN addgroup --system photo && adduser --system --uid 10001 --ingroup photo photo \
+    && mkdir -p /scratch && chown photo:photo /scratch
+COPY --from=uv /uv /uvx /bin/
+WORKDIR /opt/photo
+COPY workers/pyproject.toml workers/uv.lock workers/requirements-cuda.txt ./workers/
+COPY workers/photo_worker ./workers/photo_worker
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --extra ml --extra media --extra learning --project workers \
+    && uv pip uninstall --python workers/.venv/bin/python onnxruntime \
+    && uv pip install --python workers/.venv/bin/python --no-deps --only-binary=:all: \
+       --require-hashes -r workers/requirements-cuda.txt \
+    && uv pip check --python workers/.venv/bin/python
+# This checks distribution/provider installation, not GPU operation or qualification.
+RUN workers/.venv/bin/python -c "import platform, sys, importlib.metadata as m; import onnxruntime as o; assert sys.version_info[:3] == (3, 11, 14); assert platform.machine() == 'x86_64'; assert m.version('onnxruntime-gpu') == '1.30.0'; assert 'CUDAExecutionProvider' in o.get_available_providers()"
+# Pillow's locked manylinux wheel owns the LCMS binary. Validate its RECORD and
+# production ctypes API before exposing one explicit library path to the worker.
+# pyvips[binary] is already supplied by the frozen media extra; no apt libraries.
+COPY deploy/images/worker/install_pillow_lcms.py /opt/photo/install_pillow_lcms.py
+RUN workers/.venv/bin/python /opt/photo/install_pillow_lcms.py
+COPY resources/icc ./resources/icc
+ENV LCMS2_LIBRARY=/opt/photo/native/liblcms2.so
+ENV PATH="/opt/photo/workers/.venv/bin:${PATH}" PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+USER 10001:10001
+ENTRYPOINT ["photo-worker"]
+CMD ["run"]

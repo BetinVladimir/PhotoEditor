@@ -38,6 +38,7 @@ type BulkCounts struct {
 	Skipped   int64 `json:"skipped"`
 }
 type BulkItemResult struct {
+	ItemID    uuid.UUID       `json:"item_id"`
 	Ordinal   int64           `json:"ordinal"`
 	Status    string          `json:"status"`
 	ErrorCode *string         `json:"error_code,omitempty"`
@@ -180,7 +181,7 @@ func lockBulkCollections(ctx context.Context, tx pgx.Tx, who auth.Identity, tid,
 		if err != nil {
 			return Collection{}, err
 		}
-		if targetCollection.ProjectID != sourceCollection.ProjectID || targetCollection.State == "archived" {
+		if targetCollection.ProjectID != sourceCollection.ProjectID || !writableCollectionState(targetCollection.State) {
 			return Collection{}, domain.NewError("VALIDATION_FAILED", 422)
 		}
 	}
@@ -226,7 +227,7 @@ func (s Service) StartBulk(ctx context.Context, who auth.Identity, tid, collecti
 			if e != nil {
 				return idempotency.Response{}, e
 			}
-			if collection.State == "archived" || collection.Revision != strconv.FormatInt(req.ExpectedRevision, 10) {
+			if !writableCollectionState(collection.State) || collection.Revision != strconv.FormatInt(req.ExpectedRevision, 10) {
 				return idempotency.Response{}, domain.NewError("REVISION_CONFLICT", 409)
 			}
 			var snapshotCount int64
@@ -274,7 +275,18 @@ func (s Service) StartBulk(ctx context.Context, who auth.Identity, tid, collecti
 			body, e := canonical.Marshal(accepted)
 			return idempotency.Response{Status: 202, Body: body, ResourceID: &bulkID}, e
 		})
-		return err
+		if err != nil { return err }
+		if isBulkAbandoned(out, collectionID, key) {
+            if err = bindBulkAbandoned(ctx, tx, who, tid, collectionID, "Bulk.Start", key, out); err != nil { return err }
+            return domain.NewError("BULK_ABANDONED", 409)
+        }
+		if err = bindCollectionReceipt(ctx, tx, who, tid, collectionID, "Bulk.Start", key, out, `SELECT EXISTS(SELECT 1 FROM photo.bulk_operations WHERE tenant_id=$1 AND id=$2 AND collection_id=$3)`); err != nil { return err }
+		if err != nil { return err }
+		currentRole, err := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Editor)
+		if err != nil { return err }
+		if err = currentEditorProject(ctx, tx, who, tid, collectionID, currentRole); err != nil { return err }
+		if target != nil { return currentEditorProject(ctx, tx, who, tid, *target, currentRole) }
+		return nil
 	})
 	return out, err
 }
@@ -314,15 +326,24 @@ func (s Service) GetBulk(ctx context.Context, who auth.Identity, tid, bulkID uui
 			}
 			after = &value
 		}
-		rows, e := tx.Query(ctx, `SELECT snapshot_ordinal,status,error_code,result FROM photo.bulk_item_results WHERE tenant_id=$1 AND bulk_operation_id=$2 AND ($3::bigint IS NULL OR snapshot_ordinal>$3) ORDER BY snapshot_ordinal LIMIT $4`, tid, bulkID, after, limit+1)
+		rows, e := tx.Query(ctx, `SELECT r.snapshot_ordinal,si.item_id,r.status,r.error_code,r.result
+ FROM photo.bulk_item_results r
+ LEFT JOIN photo.snapshot_items si ON si.tenant_id=r.tenant_id
+  AND si.snapshot_id=$5 AND si.ordinal=r.snapshot_ordinal
+ WHERE r.tenant_id=$1 AND r.bulk_operation_id=$2
+  AND ($3::bigint IS NULL OR r.snapshot_ordinal>$3)
+ ORDER BY r.snapshot_ordinal LIMIT $4`, tid, bulkID, after, limit+1, out.SnapshotID)
 		if e != nil {
 			return e
 		}
 		defer rows.Close()
 		for rows.Next() {
 			var item BulkItemResult
-			if e = rows.Scan(&item.Ordinal, &item.Status, &item.ErrorCode, &item.Result); e != nil {
+			if e = rows.Scan(&item.Ordinal, &item.ItemID, &item.Status, &item.ErrorCode, &item.Result); e != nil {
 				return e
+			}
+			if item.ItemID == uuid.Nil {
+				return domain.NewError("BULK_RESULT_SOURCE_INVALID", 409)
 			}
 			out.Results.Items = append(out.Results.Items, item)
 		}
@@ -366,6 +387,10 @@ func (s Service) CancelBulk(ctx context.Context, who auth.Identity, tid, bulkID 
 		if e = tx.QueryRow(ctx, `SELECT status FROM photo.bulk_operations WHERE tenant_id=$1 AND id=$2 FOR UPDATE`, tid, bulkID).Scan(&status); e != nil {
 			return e
 		}
+		// Locks may wait while membership or project access is withdrawn.
+		currentRole, authorityErr := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Editor)
+		if authorityErr != nil { return authorityErr }
+		if authorityErr = currentEditorProject(ctx, tx, who, tid, collectionID, currentRole); authorityErr != nil { return authorityErr }
 		switch status {
 		case "completed", "completed_with_errors", "failed", "cancelled":
 			return nil

@@ -11,15 +11,15 @@ import (
 )
 
 type sourcePersonPreparation struct {
- legacyQueueOmitted bool
-	continuation   string
-	ordinaryPolicy *createProjectPolicy
-	costs          v2input.SemanticQualifiedCosts
-	qualification  personQualificationProof
-	parent         uuid.UUID
-	document       uuid.UUID
-	catalog        catalogPersonPreparation
-	source         sourcePreparationProof
+	legacyQueueOmitted bool
+	continuation       string
+	ordinaryPolicy     *createProjectPolicy
+	costs              v2input.SemanticQualifiedCosts
+	qualification      personQualificationProof
+	parent             uuid.UUID
+	document           uuid.UUID
+	catalog            catalogPersonPreparation
+	source             sourcePreparationProof
 }
 
 func personPreparationIDs(parent uuid.UUID) (uuid.UUID, uuid.UUID, error) {
@@ -43,7 +43,7 @@ func (s SQLTransferSourceReader) prepareSourcePersonTask(ctx context.Context, ca
 		return zero, v2input.ErrInvalid
 	}
 	expected = ownQualificationExpected(expected)
-	if expected.Operation != "mask.person" || expected.Version != "1" || expected.Backend != "cuda" {
+	if expected.Operation != "mask.person" || expected.Version != "1" || (expected.Backend != "cuda" && expected.Backend != "mps") {
 		return zero, v2qualification.ErrUnqualified
 	}
 	_, workflow, err := personPreparationIDs(parent)

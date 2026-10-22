@@ -92,7 +92,7 @@ func CompileDownloadArchives(spec DownloadArchiveSpec, registry Registry) ([]Com
 	out := make([]CompiledDownloadArchive, 0, len(volumes))
 	previous := 0
 	for _, volume := range volumes {
-		if volume.Number < 1 || volume.Number > 5000 || volume.Number <= previous || len(volume.Entries) < 1 || len(volume.Entries) > MaxDownloadItems {
+		if volume.Number < 1 || volume.Number > 5000 || volume.Number <= previous || len(volume.Entries) < 1 || len(volume.Entries) > MaxDownloadArchiveInputs {
 			return fail()
 		}
 		previous = volume.Number
@@ -196,7 +196,7 @@ func (b DownloadArchiveBuilder) Publish(ctx context.Context, tenant uuid.UUID, s
 
 func PrepareDownloadArchiveTask(entry PublishedDownloadArchive) (PreparedTask, error) {
 	n := entry.Node
-	if n.Operation != "archive.build" || n.ResourceClass != "archive" || !validExpansionRef(entry.Params) || n.InputBytes < 1 || n.InputBytes > DefaultVolumeByteLimit || len(n.Inputs) < 1 || len(n.Inputs) > MaxDownloadItems {
+	if n.Operation != "archive.build" || n.ResourceClass != "archive" || !validExpansionRef(entry.Params) || n.InputBytes < 1 || n.InputBytes > DefaultVolumeByteLimit || len(n.Inputs) < 1 || len(n.Inputs) > MaxDownloadArchiveInputs {
 		return PreparedTask{}, errors.New("invalid archive task")
 	}
 	sum := sha256.Sum256(n.Params)

@@ -50,6 +50,14 @@ func (p DeliveryChildPipeline) ProcessChild(ctx context.Context, lease delivery.
 	// Own the resolver's result across publication/compilation stages.
 	source.ImageJCS = append([]byte(nil), source.ImageJCS...)
 	source.Entries = append([]v2input.Entry(nil), source.Entries...)
+	// Refuse impossible CPU/scratch/output budgets before reserving or writing
+	// immutable Params. Freeze below repeats this check for the final closure.
+	node, err := CompileDeliveryInitialNode(plan, lease.Run, child, source.ImageJCS, source.TargetICCSHA, p.Registry)
+	if err != nil { return DeliveryChildAdmission{}, err }
+	if _, err := compileDeliveryInitialProfile(node, source.ImageJCS, p.Limits); err != nil {
+		return DeliveryChildAdmission{}, err
+	}
+	if err := ctx.Err(); err != nil { return DeliveryChildAdmission{}, err }
 	params, err := PublishDeliveryInitialParams(ctx, p.DB, p.Objects, p.Bucket, lease, plan, child, source.ImageJCS, source.TargetICCSHA, p.Registry)
 	if err != nil {
 		return DeliveryChildAdmission{}, err

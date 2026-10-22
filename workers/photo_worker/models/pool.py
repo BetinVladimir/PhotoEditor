@@ -48,6 +48,8 @@ class ModelPool:
         entries=[m for m in self.lock.models if m.id==model_id]
         if len(entries)!=1 or model_id not in self.factories:raise ModelError('MODEL_UNAVAILABLE')
         entry=entries[0]
+        from .backend_support import model_backend_supported
+        if not model_backend_supported(model_id,backend):raise ModelError('BACKEND_UNAVAILABLE')
         if backend not in entry.backends or entry.backends[backend].status=='unsupported':raise ModelError('BACKEND_UNAVAILABLE')
         if not allow_unqualified and entry.backends[backend].status!='passed':raise ModelError('BACKEND_NOT_QUALIFIED')
         if not entry.approved_for_install:raise ModelError('MODEL_NOT_APPROVED')

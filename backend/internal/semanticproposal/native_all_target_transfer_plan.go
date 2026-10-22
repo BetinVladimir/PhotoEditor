@@ -15,6 +15,7 @@ type nativeAllTargetTransferTaskInput struct {
 	target    nativeTransferTargetProof
 	qualified transferQualificationPreparationProof
 	profile   string
+	scene     json.RawMessage
 }
 
 // This type deliberately has no generic personProtectionProof. Native target
@@ -34,7 +35,14 @@ func nativeAllTargetTransferProfile(request Request, reference nativeInputTransf
 	if err != nil {
 		return nil, err
 	}
-	return v2input.CompileSemanticTransferProfile(source.Width, source.Height, destination.Width, destination.Height, source.Gamma, destination.Gamma, c.Costs, c.RAM, c.VRAM, c.Scratch, c.Output)
+	if len(c.sceneEvidence) > 0 {
+		if target.ordinal < 0 || target.ordinal >= len(c.sceneEvidence) {
+			return nil, v2input.ErrInvalid
+		}
+		profile, _, err := semanticSceneTransferProfile(request.Intent.Reference, target.binding, reference.reference, json.RawMessage(target.image), c.sceneEvidence[target.ordinal], c)
+		return profile, err
+	}
+	return v2input.CompileSemanticTransferProfileForBackend(c.Expected.Backend, source.Width, source.Height, destination.Width, destination.Height, source.Gamma, destination.Gamma, c.Costs, c.RAM, c.VRAM, c.Scratch, c.Output)
 }
 func (s SQLTransferSourceReader) prepareNativeAllTargetTransferInputs(ctx context.Context, who auth.Identity, request Request, published PublishedIntent, c TransferPreparation, reference nativeInputTransferReferenceDocuments, targets []nativeTransferTargetProof) ([]nativeAllTargetTransferTaskInput, []v2input.SemanticPinnedDocuments, error) {
 	if err := ctx.Err(); err != nil {
@@ -51,6 +59,9 @@ func (s SQLTransferSourceReader) prepareNativeAllTargetTransferInputs(ctx contex
 		return nil, nil, err
 	}
 	n := len(targets)
+	if len(c.sceneEvidence) > 0 && len(c.sceneEvidence) != n {
+		return nil, nil, v2input.ErrInvalid
+	}
 	if n < 1 || n > 5000 || n != len(c.TargetProtection) || n != len(published.Inventory.Targets) || n != published.Inventory.Scope.ItemCount || published.Inventory.Scope.ProjectID != s.ProjectID {
 		return nil, nil, v2input.ErrInvalid
 	}
@@ -89,6 +100,9 @@ func (s SQLTransferSourceReader) prepareNativeAllTargetTransferInputs(ctx contex
 			return nil, nil, err
 		}
 		inputs[i] = nativeAllTargetTransferTaskInput{reference: reference, target: t, qualified: q, profile: string(profile)}
+		if len(c.sceneEvidence) > 0 {
+			inputs[i].scene = append(json.RawMessage(nil), c.sceneEvidence[i]...)
+		}
 		documents[i] = v2input.SemanticPinnedDocuments{Reference: append(json.RawMessage(nil), reference.reference...), SelectedMask: append(json.RawMessage(nil), reference.selected...), SourceProtection: append(json.RawMessage(nil), reference.protection...), Target: json.RawMessage(t.image), TargetProtection: append(json.RawMessage(nil), t.protection.Body...)}
 	}
 	after, err := ReadInventory(ctx, s.DB, who, request)
@@ -198,7 +212,19 @@ func (s SQLTransferSourceReader) compileNativeAllTargetTransferWorkflowPlan(ctx 
 			return zero, v2input.ErrConflict
 		}
 		parameters := v2input.SemanticTransferParams{SchemaVersion: 1, Intent: published.Ref, Reference: request.Intent.Reference, Target: target.binding, ModelLockSHA: c.Qualification.ModelLockSHA, Calibration: c.Qualification.Calibration}
-		tasks[i], err = v2input.CompileSemanticTransferTaskFromDocuments(request.WorkflowID, i, parameters, request.Intent, params[i], v2input.SemanticTransferDependencies{QualifiedCosts: c.Costs, SourceProtection: c.SourceProtection, TargetProtection: target.protection.Root}, documents[i], profile)
+		costs := c.Costs
+		if len(c.sceneEvidence) > 0 {
+			if string(input.scene) != string(c.sceneEvidence[i]) {
+				return zero, v2input.ErrConflict
+			}
+			_, costs, err = semanticSceneTransferProfile(request.Intent.Reference, target.binding, reference.reference, json.RawMessage(target.image), input.scene, c)
+			if err != nil {
+				return zero, err
+			}
+		} else if len(input.scene) > 0 {
+			return zero, v2input.ErrConflict
+		}
+		tasks[i], err = v2input.CompileSemanticTransferTaskFromDocuments(request.WorkflowID, i, parameters, request.Intent, params[i], v2input.SemanticTransferDependencies{QualifiedCosts: costs, Scene: input.scene, SourceProtection: c.SourceProtection, TargetProtection: target.protection.Root}, documents[i], profile)
 		if err != nil {
 			return zero, err
 		}
@@ -235,6 +261,9 @@ func (s SQLTransferSourceReader) validateNativeAllTargetTransferPlanScope(ctx co
 	if !core.nativeTargetsRequired || core.nativeReferenceRequired || core.nativeReference != nil || !core.sourcesRequired || !core.transferQualificationRequired || core.transferQualification == nil || len(core.person) != 0 || n < 1 || n > 5000 || n != len(core.frozen) || n != len(plan.targets) || len(core.sources) != 2*n || len(core.protection) != 2*n {
 		return v2input.ErrInvalid
 	}
+	if len(c.sceneEvidence) > 0 && len(c.sceneEvidence) != n {
+		return v2input.ErrInvalid
+	}
 	inputs := make([]nativeAllTargetTransferTaskInput, n)
 	documents := make([]v2input.SemanticPinnedDocuments, n)
 	params := make([]v2input.Ref, n)
@@ -255,6 +284,10 @@ func (s SQLTransferSourceReader) validateNativeAllTargetTransferPlanScope(ctx co
 			return v2input.ErrConflict
 		}
 		inputs[i] = nativeAllTargetTransferTaskInput{reference: plan.reference, target: t, qualified: *core.transferQualification, profile: string(draft.ExecutionProfile)}
+		// Revalidation must retain the same authenticated scene evidence as initial freezing.
+		if len(c.sceneEvidence) > 0 {
+			inputs[i].scene = append(json.RawMessage(nil), c.sceneEvidence[i]...)
+		}
 		documents[i] = v2input.SemanticPinnedDocuments{Reference: plan.reference.reference, SelectedMask: plan.reference.selected, SourceProtection: plan.reference.protection, Target: json.RawMessage(t.image), TargetProtection: t.protection.Body}
 	}
 	expected, err := s.compileNativeAllTargetTransferWorkflowPlan(ctx, who, request, PublishedIntent{Ref: core.intent, Inventory: core.inventory}, core.snapshotRef, core.snapshotBody, params, inputs, documents, c)

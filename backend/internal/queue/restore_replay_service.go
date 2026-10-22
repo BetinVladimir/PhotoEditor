@@ -1,6 +1,7 @@
 package queue
 
 import (
+ "photoeditor/backend/internal/database"
 	"context"
 	"errors"
 	"net/url"
@@ -30,6 +31,7 @@ func validateRestoreReplayInstallation(dsn, brokerURL string, installation Resto
 		return nil, errors.New("restore replay requires exact verified TLS database")
 	}
 	cfg.ConnConfig.RuntimeParams["role"] = "photo_publisher"
+	database.GuardApplicationRole(cfg)
 	cfg.ConnConfig.ConnectTimeout = 5 * time.Second
 	cfg.MaxConns = 2
 	cfg.MinConns = 0
@@ -62,6 +64,8 @@ func runRestoreReplay(ctx context.Context, dsn, brokerURL string, installation R
 		return evidence, errors.New("restore replay database unavailable")
 	}
 	defer pool.Close()
+	if err = database.RequireApplicationRole(ctx, pool, "photo_publisher"); err != nil { return evidence, err }
+	if err = RequireOutboxMarkFence(ctx, pool); err != nil { return evidence, err }
 	lease, err := pool.Acquire(ctx)
 	if err != nil {
 		return evidence, errors.New("restore replay session unavailable")

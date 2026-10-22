@@ -42,6 +42,16 @@ type SigningPolicyRegistry struct {
 	authority SigningOperatorAuthority
 }
 
+// The policy identity is inside the physically pinned document; its artifact ID
+// identifies storage and is deliberately independent of that policy identity.
+func decodeInstalledSigningPolicy(installed InstalledSigningPolicy) (SigningPolicy, error) {
+	var header SigningPolicy
+	if decode(installed.Body, &header, 1<<20) != nil {
+		return SigningPolicy{}, ErrInvalid
+	}
+	return DecodeSigningPolicy(installed.Body, installed.Ref, header.ID)
+}
+
 func NewSigningPolicyRegistry(config SigningInstallation, authority SigningOperatorAuthority) (*SigningPolicyRegistry, error) {
 	if authority == nil || !digest(config.SDKLockSHA) || !digest(config.CertificateChainSHA) || !digest(config.TrustBundleSHA) || len(config.Policies) < 1 || len(config.Policies) > MaxInstalledSigningPolicies || len(config.KeyHandles) < 1 || len(config.KeyHandles) > 1024 || len(config.TimestampServices) > 1024 {
 		return nil, ErrInvalid

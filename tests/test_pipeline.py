@@ -305,3 +305,167 @@ def test_post_white_balance_neutralizes_cast_and_protects_highlights():
     assert metrics['gains'][0]<1 and metrics['gains'][2]>1
     assert out[30,40].max()<rgb[30,40].max()
     assert metrics['clipped_after']<=metrics['clipped_before']
+
+
+# Provider doubles below test the consumer boundary, not model quality.
+def restoration_case(tmp_path, monkeypatch):
+    from photoeditor import jobs
+    source=tmp_path/'source';source.mkdir()
+    run=tmp_path/'run';(run/'delivery').mkdir(parents=True)
+    # A legitimate prior geometry edit may differ from the raw source canvas.
+    cv2.imwrite(str(source/'portrait.png'),np.full((60,90,3),100,np.uint8))
+    delivery=run/'delivery'/'portrait.jpg'
+    cv2.imwrite(str(delivery),np.full((40,70,3),100,np.uint8))
+    python=tmp_path/'model-python';python.touch()
+    model=tmp_path/'model';model.mkdir()
+    arcface=tmp_path/'arcface.pth';arcface.touch()
+    monkeypatch.setenv('PHOTO_CODEFORMER_PYTHON',str(python))
+    monkeypatch.setenv('PHOTO_CODEFORMER_DIR',str(model))
+    monkeypatch.setenv('PHOTO_ARCFACE_MODEL',str(arcface))
+    cfg=Config.model_validate({'detail':{'blur_detection':{'enabled':True,'auto_restore':True}}})
+    record=dict(source_id='face1',relative='portrait.png',status='ready',
+                metrics=dict(min_face_sharpness=0),outputs={'delivery/portrait.jpg':'original-delivery-hash'})
+    plan=dict(items=[dict(source_id='face1',relative='portrait.png',stats=dict(faces=[]))])
+    reviews=[]
+    monkeypatch.setattr(jobs,'save_review',lambda *args: reviews.append(args))
+    return jobs,source,run,cfg,record,plan,reviews
+
+
+def restoration_provider(monkeypatch,jobs,shapes,accepted):
+    calls=[]
+    def invoke(argv,**kwargs):
+        request=json.loads(Path(argv[argv.index('--request')+1]).read_text())
+        response=Path(argv[argv.index('--response')+1])
+        spec=request['images'][0];calls.append(spec)
+        shape=shapes[min(len(calls)-1,len(shapes)-1)]
+        output=Path(spec['output']);output.parent.mkdir(parents=True,exist_ok=True)
+        if shape is None:
+            output.write_bytes(b'not an image')
+        else:
+            cv2.imwrite(str(output),np.full(shape,120,np.uint8))
+        response.write_text(json.dumps(dict(images=[dict(source_id=spec['source_id'],
+            relative=spec['relative'],output=str(output),accepted_faces=accepted,faces=[])])))
+    monkeypatch.setattr(jobs.subprocess,'run',invoke)
+    return calls
+
+
+@pytest.mark.parametrize('shape', [(80,140,3),(20,35,3),(40,70),(40,70,4),None])
+@pytest.mark.parametrize('accepted', [0,1])
+def test_restoration_refuses_invalid_provider_geometry_before_acceptance(tmp_path,monkeypatch,shape,accepted):
+    jobs,source,run,cfg,record,plan,reviews=restoration_case(tmp_path,monkeypatch)
+    calls=restoration_provider(monkeypatch,jobs,[shape],accepted)
+    before=dict(record['outputs'])
+    jobs.restore_soft_faces(source,tmp_path,run,plan,[record],cfg)
+    assert len(calls)==1
+    assert 'face_restoration' not in record
+    assert record['outputs']==before
+    assert reviews==[]
+    assert not list((run/'restored').glob('*.jpg'))
+    assert not (run/'previews').exists()
+    assert not (run/'sidecars').exists()
+    assert any('output geometry differs from selected delivery input' in issue for issue in record['issues'])
+
+
+@pytest.mark.parametrize('accepted', [0,1])
+def test_restoration_accepts_same_delivery_geometry_and_completes_once(tmp_path,monkeypatch,accepted):
+    jobs,source,run,cfg,record,plan,reviews=restoration_case(tmp_path,monkeypatch)
+    calls=restoration_provider(monkeypatch,jobs,[(40,70,3)],accepted)
+    jobs.restore_soft_faces(source,tmp_path,run,plan,[record],cfg)
+    assert len(calls)==1
+    assert record['face_restoration']['accepted_faces']==accepted
+    persisted=json.loads((run/'sidecars'/'face1.json').read_text())
+    assert persisted['face_restoration']==record['face_restoration']
+    if accepted:
+        assert cv2.imread(str(run/'restored'/'portrait.jpg')).shape==(40,70,3)
+        assert 'restored/portrait.jpg' in record['outputs']
+        assert len(reviews)==1
+    else:
+        assert record['outputs']=={'delivery/portrait.jpg':'original-delivery-hash'}
+        assert reviews==[]
+    jobs.restore_soft_faces(source,tmp_path,run,plan,[record],cfg)
+    assert len(calls)==1
+
+
+def test_restoration_invalid_result_remains_retryable(tmp_path,monkeypatch):
+    jobs,source,run,cfg,record,plan,reviews=restoration_case(tmp_path,monkeypatch)
+    calls=restoration_provider(monkeypatch,jobs,[(80,140,3),(40,70,3)],1)
+    jobs.restore_soft_faces(source,tmp_path,run,plan,[record],cfg)
+    assert 'face_restoration' not in record
+    assert reviews==[]
+    jobs.restore_soft_faces(source,tmp_path,run,plan,[record],cfg)
+    assert len(calls)==2
+    assert record['face_restoration']['accepted_faces']==1
+    assert cv2.imread(str(run/'restored'/'portrait.jpg')).shape==(40,70,3)
+    assert len(reviews)==1
+
+
+@pytest.mark.parametrize('accepted', [0,1])
+def test_restoration_repairs_historical_bad_completion_without_losing_evidence(tmp_path,monkeypatch,accepted):
+    jobs,source,run,cfg,record,plan,reviews=restoration_case(tmp_path,monkeypatch)
+    output=run/'restored'/'portrait.png';output.parent.mkdir()
+    cv2.imwrite(str(output),np.full((80,140,3),210,np.uint8))
+    previous=dict(source_id='face1',relative='portrait.png',output=str(output),accepted_faces=1,faces=[])
+    record['face_restoration']=previous
+    restored=output.with_suffix('.jpg');cv2.imwrite(str(restored),np.full((80,140,3),210,np.uint8))
+    record['outputs']['restored/portrait.jpg']='historical-bad-jpeg'
+    preview=run/'previews'/'portrait__face1.jpg';preview.parent.mkdir()
+    cv2.imwrite(str(preview),np.full((80,140,3),210,np.uint8))
+    record['outputs']['previews/portrait__face1.jpg']='historical-bad-preview'
+    old={p.relative_to(run).as_posix():p.read_bytes() for p in (output,restored,preview)}
+    calls=restoration_provider(monkeypatch,jobs,[(40,70,3)],accepted)
+    jobs.restore_soft_faces(source,tmp_path,run,plan,[record],cfg)
+    assert len(calls)==1
+    assert record['face_restoration']['accepted_faces']==accepted
+    assert len(record['face_restoration_history'])==1
+    history=run/record['face_restoration_history'][0]
+    archived=json.loads((history/'record.json').read_text())
+    assert archived['record']['face_restoration']==previous
+    for relative,raw in old.items():
+        assert (history/'files'/relative).read_bytes()==raw
+    assert cv2.imread(str(output)).shape==(40,70,3)
+    if accepted:
+        assert cv2.imread(str(restored)).shape==(40,70,3)
+        assert 'restored/portrait.jpg' in record['outputs']
+    else:
+        assert restored.read_bytes()==old['restored/portrait.jpg']
+        assert 'restored/portrait.jpg' not in record['outputs']
+        assert 'previews/portrait__face1.jpg' not in record['outputs']
+    jobs.restore_soft_faces(source,tmp_path,run,plan,[record],cfg)
+    assert len(calls)==1
+    assert len(record['face_restoration_history'])==1
+
+
+def test_restoration_failed_historical_repair_keeps_previous_evidence_and_retries(tmp_path,monkeypatch):
+    jobs,source,run,cfg,record,plan,reviews=restoration_case(tmp_path,monkeypatch)
+    output=run/'restored'/'portrait.png';output.parent.mkdir()
+    cv2.imwrite(str(output),np.full((80,140,3),210,np.uint8))
+    original=output.read_bytes()
+    previous=dict(source_id='face1',relative='portrait.png',output=str(output),accepted_faces=0,faces=[])
+    record['face_restoration']=previous
+    calls=restoration_provider(monkeypatch,jobs,[(80,140,3),(40,70,3)],0)
+    jobs.restore_soft_faces(source,tmp_path,run,plan,[record],cfg)
+    assert record['face_restoration']==previous
+    assert len(record['face_restoration_history'])==1
+    history=run/record['face_restoration_history'][0]
+    assert (history/'files'/'restored'/'portrait.png').read_bytes()==original
+    assert reviews==[]
+    jobs.restore_soft_faces(source,tmp_path,run,plan,[record],cfg)
+    assert len(calls)==2
+    assert cv2.imread(str(output)).shape==(40,70,3)
+    jobs.restore_soft_faces(source,tmp_path,run,plan,[record],cfg)
+    assert len(calls)==2
+
+
+def test_restoration_history_failure_refuses_overwrite(tmp_path,monkeypatch):
+    jobs,source,run,cfg,record,plan,reviews=restoration_case(tmp_path,monkeypatch)
+    output=run/'restored'/'portrait.png';output.parent.mkdir()
+    cv2.imwrite(str(output),np.full((80,140,3),210,np.uint8))
+    old=output.read_bytes()
+    record['face_restoration']=dict(output=str(output),accepted_faces=0)
+    calls=restoration_provider(monkeypatch,jobs,[(40,70,3)],1)
+    def fail_history(*args):
+        raise OSError('archive unavailable')
+    monkeypatch.setattr(jobs,'preserve_restoration_history',fail_history)
+    jobs.restore_soft_faces(source,tmp_path,run,plan,[record],cfg)
+    assert calls==[] and output.read_bytes()==old
+    assert any('history_failed' in issue for issue in record['issues'])

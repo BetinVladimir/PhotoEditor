@@ -55,6 +55,9 @@ func ResolveImportInputInventory(ctx context.Context,tenant uuid.UUID,documents 
   states[entry.Ref.ArtifactID]=2;entries=append(entries,entry);return nil
  }
  for _,root:=range roots{if err:=visit(root,0);err!=nil{return ImportInputInventory{},err}}
+ var additional []v2input.Entry
+ if extra,ok:=resolver.(interface{AdditionalImportRootsFor(context.Context,[]v2input.Entry)([]v2input.Entry,error)});ok{additional,err=extra.AdditionalImportRootsFor(ctx,append([]v2input.Entry(nil),entries...))}else if extra,ok:=resolver.(interface{AdditionalImportRoots(context.Context)([]v2input.Entry,error)});ok{additional,err=extra.AdditionalImportRoots(ctx)}
+ if err!=nil{return ImportInputInventory{},err};for _,root:=range additional{if err:=visit(root,0);err!=nil{return ImportInputInventory{},err}}
  return FreezeImportInputs(tenant,documents,entries)
 }
 // Untrusted manifest.inventory identities are inline metadata, not ArtifactRef

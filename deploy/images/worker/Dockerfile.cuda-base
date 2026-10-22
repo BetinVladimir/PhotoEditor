@@ -1,0 +1,23 @@
+# syntax=docker/dockerfile:1.7
+# linux/amd64 only. Both build arguments must be immutable image digests.
+# CUDA_RUNTIME_IMAGE contract: NVIDIA CUDA 12 + cuDNN 9 runtime, Ubuntu 24.04.
+ARG UV_IMAGE
+ARG CUDA_RUNTIME_IMAGE
+FROM ${UV_IMAGE} AS uv
+FROM ${CUDA_RUNTIME_IMAGE}
+ARG UV_IMAGE
+ARG CUDA_RUNTIME_IMAGE
+# Refuse mutable build inputs even when bypassing the operator launcher.
+RUN printf '%s\n' "$UV_IMAGE" "$CUDA_RUNTIME_IMAGE" | \
+    awk 'BEGIN {bad=0} !/^[A-Za-z0-9][A-Za-z0-9._:\/-]*@sha256:[0-9a-f]+$/ {bad=1} {n=split($0,a,"@sha256:"); if(n!=2 || length(a[2])!=64) bad=1} END {exit bad}'
+COPY --from=uv /uv /uvx /bin/
+# Managed Python and its immutable download manifest come from the pinned uv build.
+ENV UV_PYTHON_INSTALL_DIR=/opt/photo-python UV_PYTHON_PREFERENCE=only-managed
+RUN uv python install 3.11.14 \
+    && mkdir -p /usr/local/bin \
+    && ln -s "$(uv python find 3.11.14)" /usr/local/bin/python3.11 \
+    && chmod -R a+rX /opt/photo-python
+# Check the native runtime contract without initializing a GPU or model.
+RUN /usr/local/bin/python3.11 -c "import ctypes, platform, sys; assert sys.version_info[:3] == (3, 11, 14); assert platform.machine() == 'x86_64'; ctypes.CDLL('libcudart.so.12'); ctypes.CDLL('libcudnn.so.9')"
+# Subsequent worker builds must use the installed interpreter, never fetch another.
+ENV UV_PYTHON_DOWNLOADS=never UV_PYTHON=/usr/local/bin/python3.11

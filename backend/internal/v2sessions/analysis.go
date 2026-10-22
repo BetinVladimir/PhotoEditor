@@ -46,6 +46,7 @@ type AnalysisAdmission interface {
 func (s Service) Analyze(ctx context.Context, who auth.Identity, tenantID,
 	sessionID uuid.UUID, key string, req AnalysisRequest) (v2input.JobTicket, bool, error) {
 	var empty v2input.JobTicket
+	if err := ctx.Err(); err != nil { return empty, false, err }
 	if s.Admission == nil || s.DB == nil {
 		return empty, false, domain.NewError("DEPENDENCY_UNAVAILABLE", 503)
 	}
@@ -78,17 +79,18 @@ func (s Service) Analyze(ctx context.Context, who auth.Identity, tenantID,
 	if err != nil {
 		return empty, false, analysisError(err)
 	}
+	if err := ctx.Err(); err != nil { return empty, false, err }
 	switch probe.Outcome {
 	case "conflict":
 		return empty, false, domain.NewError("ANALYSIS_CONFLICT", 409)
 	case "expired":
 		return empty, false, domain.NewError("ANALYSIS_EXPIRED", 409)
 	case "replayed":
-		ticket, err := s.Admission.Admit(ctx, start)
-		return ticket, true, analysisAdmissionError(err)
+		ticket, err := s.admitAnalysis(ctx, start)
+		return ticket, true, err
 	case "pending":
-		ticket, err := s.Admission.Admit(ctx, start)
-		return ticket, false, analysisAdmissionError(err)
+		ticket, err := s.admitAnalysis(ctx, start)
+		return ticket, false, err
 	case "missing":
 	default:
 		return empty, false, domain.NewError("INTERNAL_ERROR", 500)
@@ -109,8 +111,21 @@ func (s Service) Analyze(ctx context.Context, who auth.Identity, tenantID,
 	}
 	start.ModelLockSHA = preflight.ModelLockSHA
 	start.ReservedBytes = 128<<20 + count*(4<<20)
+	ticket, err := s.admitAnalysis(ctx, start)
+	return ticket, false, err
+}
+
+// Fresh, pending and sealed replay must acknowledge the same deterministic graph.
+func (s Service) admitAnalysis(ctx context.Context, start v2input.SessionAnalysisBeginRequest) (v2input.JobTicket, error) {
+	if err := ctx.Err(); err != nil { return v2input.JobTicket{}, err }
 	ticket, err := s.Admission.Admit(ctx, start)
-	return ticket, false, analysisAdmissionError(err)
+	if err != nil { return v2input.JobTicket{}, analysisAdmissionError(err) }
+	if err := ctx.Err(); err != nil { return v2input.JobTicket{}, err }
+	workflow, err := v2input.WorkflowID(start.Selection.Run)
+	if err != nil || ticket.RunID != start.Selection.Run || ticket.WorkflowID != workflow || ticket.State != "queued" {
+		return v2input.JobTicket{}, domain.NewError("ANALYSIS_TICKET_INVALID", 500)
+	}
+	return ticket, nil
 }
 
 func analysisAdmissionError(err error) error {
@@ -179,8 +194,9 @@ func analysisError(err error) error {
 }
 
 // Preflight freezes the relational facts a later V21 compiler needs. It is
-// deliberately not an HTTP success path: no draft shell, transport, seal or
-// queued run exists until AdmitV2 completes its full boundary.
+// also used by the read-only capability advisory. Advisory success is not
+// admission: no draft shell, transport, seal or queued run exists until AdmitV2
+// completes its full boundary.
 func (s Service) Preflight(ctx context.Context, who auth.Identity, tenantID, sessionID uuid.UUID,
 	req AnalysisRequest) (AnalysisPreflight, error) {
 	var out AnalysisPreflight

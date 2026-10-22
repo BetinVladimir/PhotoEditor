@@ -1,6 +1,7 @@
 package gateway
 
 import (
+ "photoeditor/backend/internal/database"
 	"bytes"
 	"context"
 	"crypto/ed25519"
@@ -194,6 +195,7 @@ func Run(ctx context.Context, c ServiceConfig) error {
 		return errors.New("invalid gateway database configuration")
 	}
 	config.ConnConfig.RuntimeParams["role"] = "photo_gateway"
+	database.GuardApplicationRole(config)
 	config.ConnConfig.RuntimeParams["statement_timeout"] = "5000"
 	config.ConnConfig.RuntimeParams["lock_timeout"] = "3000"
 	pool, err := pgxpool.NewWithConfig(ctx, config)
@@ -201,14 +203,11 @@ func Run(ctx context.Context, c ServiceConfig) error {
 		return errors.New("gateway database unavailable")
 	}
 	defer pool.Close()
+	if err = database.RequireApplicationRole(ctx, pool, "photo_gateway"); err != nil { return err }
 	startup, cancel := context.WithTimeout(ctx, 10*time.Second)
 	err = pool.Ping(startup)
 	if err == nil {
-		var installed bool
-		err = pool.QueryRow(startup, `SELECT to_regprocedure('photo.gateway_input(uuid,integer,bigint,uuid,text,uuid)') IS NOT NULL AND to_regprocedure('photo.begin_output(uuid,integer,bigint,uuid,text,uuid,text,bigint,text,text,text)') IS NOT NULL AND to_regprocedure('photo.complete_output(uuid,integer,bigint,uuid,text,uuid,text,bigint,text,text)') IS NOT NULL`).Scan(&installed)
-		if err == nil && !installed {
-			err = errors.New("gateway migrations missing")
-		}
+		err = RequireOutputFences(startup, pool)
 	}
 	if err == nil {
 		err = storage.Ready(startup)

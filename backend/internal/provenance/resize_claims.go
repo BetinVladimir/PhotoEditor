@@ -11,7 +11,7 @@ import (
 	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/review"
 	"photoeditor/backend/internal/v2input"
-	"photoeditor/backend/internal/workflow"
+	workflow "photoeditor/backend/internal/encodecontract"
 )
 
 type signingResizeParams struct {

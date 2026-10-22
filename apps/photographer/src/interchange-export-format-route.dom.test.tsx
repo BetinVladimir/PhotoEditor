@@ -7,9 +7,9 @@ const mocks=vi.hoisted(()=>({
  push:vi.fn(),
 }));
 vi.mock('react-native',async()=>import('react-native-web'));
-vi.mock('expo-router',()=>({router:{push:mocks.push},useLocalSearchParams:()=>mocks.params}));
-vi.mock('./locale-context',()=>({useLocale:()=>({t:(key:string)=>key})}));
-import Route from '../app/interchange/format';
+vi.mock('./localized-router',()=>({router:{push:mocks.push},useLocalSearchParams:()=>mocks.params}));
+vi.mock('./locale-context',async()=>{const __factory=()=>({useLocale:()=>({t:(key:string)=>key})});const __out=await __factory();const {withUILocaleDouble}=await import('./test/locale-double');return {...__out,useLocale:()=>withUILocaleDouble(__out.useLocale())};});
+import Route from '../screens/interchange/format';
 
 afterEach(cleanup);
 beforeEach(()=>{

@@ -30,7 +30,7 @@ func (s SQLTransferSourceReader) selectInitialFacePipelineConfiguration(ctx cont
 	if err != nil {
 		return zero, err
 	}
-	selected, err := selectQualificationPolicies(snapshot, []string{"face.landmarks", "face.parse"})
+	selected, err := selectNativeQualificationPolicies(snapshot, []string{"face.landmarks", "face.parse"})
 	if err != nil {
 		return zero, err
 	}
@@ -43,7 +43,7 @@ func (s SQLTransferSourceReader) selectInitialFacePipelineConfiguration(ctx cont
 	var pins [2]personEvidenceObject
 	for i, operation := range []string{"face.landmarks", "face.parse"} {
 		expected := ownQualificationExpected(selected[operation])
-		if expected.Backend != "cuda" {
+		if expected.Backend != "cuda" && expected.Backend != "mps" {
 			return zero, v2qualification.ErrUnqualified
 		}
 		report, err := s.discoverFaceQualificationReport(ctx, who, tenantID, expected)
@@ -60,7 +60,7 @@ func (s SQLTransferSourceReader) selectInitialFacePipelineConfiguration(ctx cont
 		if err := chargeMetadata(&used, capacity.MetadataBytes, int(pin.object.Bytes)); err != nil {
 			return zero, err
 		}
-		verified, err := s.VerifyFaceQualification(ctx, who, tenantID, report, expected)
+		verified, err := s.VerifyFaceQualificationTyped(ctx, who, tenantID, report, expected)
 		if err != nil {
 			return zero, err
 		}
@@ -71,7 +71,7 @@ func (s SQLTransferSourceReader) selectInitialFacePipelineConfiguration(ctx cont
 		if current != pin {
 			return zero, v2input.ErrConflict
 		}
-		budget, err := initialNativeFaceBudget(capacity, reserved, verified.Metrics)
+		budget, err := initialNativeFaceResourceBudget(capacity, reserved, verified.Resources())
 		if err != nil {
 			return zero, err
 		}

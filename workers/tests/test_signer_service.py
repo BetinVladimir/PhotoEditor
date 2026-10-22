@@ -5,7 +5,7 @@ from uuid import uuid4
 
 import pytest
 
-from photo_worker.runtime.executor import Executor
+from photo_worker.runtime.executor import Executor, Operation
 from photo_worker.runtime.service import WorkerConfigurationError
 from photo_worker.runtime import signer_service
 
@@ -27,7 +27,7 @@ def test_signer_transport_is_targeted_and_only_signs(monkeypatch):
     def factory(database, worker_id, artifacts):
         assert database is db and worker_id == candidate.worker_id
         assert artifacts.origin == candidate.gateway_origin
-        return Executor(db, worker_id, [SimpleNamespace(name='provenance.sign')])
+        return Executor(db, worker_id, [Operation('provenance.sign','cpu',lambda ctx:None)])
     database, transport = signer_service.build_signer_worker(candidate, factory)
     assert database is db
     assert transport.queue == f'q.worker.{candidate.worker_id}.cpu'
@@ -53,7 +53,7 @@ def test_wrong_executor_identity_or_operations_refused(monkeypatch, mode):
     def factory(database, worker_id, artifacts):
         return Executor(object() if mode == 'database' else database,
             uuid4() if mode == 'worker' else worker_id,
-            [SimpleNamespace(name='io.thumbnail' if mode == 'operation' else 'provenance.sign')])
+            [Operation('io.thumbnail' if mode == 'operation' else 'provenance.sign','cpu',lambda ctx:None)])
     with pytest.raises(WorkerConfigurationError):
         signer_service.build_signer_worker(candidate, factory)
 
@@ -250,7 +250,7 @@ def test_signer_registration_fenced_before_and_after_factory(monkeypatch, mode):
     monkeypatch.setattr(signer_service, 'client_tls', lambda *args: object())
     def factory(database, worker_id, artifacts):
         builds.append(True)
-        return Executor(database, worker_id, [SimpleNamespace(name='provenance.sign')])
+        return Executor(database, worker_id, [Operation('provenance.sign','cpu',lambda ctx:None)])
     with pytest.raises(WorkerConfigurationError, match='registration'):
         signer_service.build_signer_worker(candidate, factory)
     assert len(builds) == (1 if mode == 'changed' else 0)

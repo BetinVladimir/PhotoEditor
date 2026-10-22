@@ -71,7 +71,7 @@ def test_mps_capacity_without_policy_refuses_before_measurement(monkeypatch):
     disk.assert_not_called()
 
 
-@pytest.mark.parametrize('resource_class,backend', [('gpu', 'cuda'), ('cpu', 'cpu'), ('archive', 'cpu'), ('media', 'cpu')])
+@pytest.mark.parametrize('resource_class,backend', [('cpu', 'cpu'), ('archive', 'cpu'), ('media', 'cpu')])
 def test_non_mps_legacy_capacity_path_preserves_sample_without_policy(monkeypatch, resource_class, backend):
     config = SimpleNamespace(capacity_policy=None, resource_class=resource_class, backend=backend)
     sample = Capacity(100, 200, 300)
@@ -120,3 +120,13 @@ def test_run_worker_carries_prebuild_metal_receipt_to_lifecycle(monkeypatch):
     service.run_worker(config)
     installed.assert_called_once_with(config)
     run.assert_called_once_with(config, 'database', 'transport', metal_budget=receipt)
+
+
+def test_cuda_capacity_without_policy_retains_own_ceiling(monkeypatch):
+    from photo_worker.runtime import cuda_budget
+    config=SimpleNamespace(capacity_policy=None,resource_class='gpu',backend='cuda')
+    limits=[]
+    monkeypatch.setattr(cuda_budget,'remaining_cuda_budget',lambda limit:limits.append(limit) or 123)
+    sample=service._capacity_sample(config,Capacity(100,200,20_000_000_000))
+    assert limits==[10_000_000_000]
+    assert sample==Capacity(100,200,123)

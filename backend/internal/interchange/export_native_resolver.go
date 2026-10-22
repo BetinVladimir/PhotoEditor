@@ -31,7 +31,7 @@ func(s ExportNativeResolverInstallation)BindExportGraph(ctx context.Context,comp
   !validImportRef(v2input.Ref{ArtifactID:compiled.task,SHA256:s.ImageRuntimeSHA})||!validImportRef(v2input.Ref{ArtifactID:compiled.task,SHA256:s.ArrayRuntimeSHA}){return nil,v2input.ErrInvalid}
  authority,ok:=s.Catalog.(ExportWorkingArrayAuthority);if !ok{return nil,v2input.ErrInvalid}
  warpAuthority,ok:=s.Catalog.(ExportDenseWarpOccurrenceAuthority);if !ok{return nil,v2input.ErrInvalid}
- parents,defects,resolved,inlineParents,err:=discoverExportNativeParents(ctx,compiled,s.JSON);if err!=nil{return nil,err}
+ parents,defects,resolved,inlineParents,reports,err:=discoverExportNativeParents(ctx,compiled,s.JSON);if err!=nil{return nil,err}
  arrays,err:=NewExportTypedArrayGeometrySource(s.JSON,parents);if err!=nil{return nil,err}
  arrays.workingAuthority=authority
  arrays.warpAuthority=warpAuthority
@@ -52,6 +52,10 @@ func(s ExportNativeResolverInstallation)BindExportGraph(ctx context.Context,comp
   qualifiers.DefectLabels=ExportDefectLabelQualifier{Objects:s.Objects,Source:ExportTypedDefectLabelSource{
    Reader:s.JSON,Proposals:append([]v2input.Entry(nil),defects...),Authority:labelAuthority}}
  }
+ if len(reports)>0{
+  pngAuthority,ok:=s.Catalog.(ExportDefectPNGOccurrenceAuthority);if !ok{return nil,v2input.ErrInvalid}
+  qualifiers.DefectPNGs=ExportDefectPNGQualifier{Objects:s.Objects,Source:ExportTypedDefectPNGSource{Reader:s.JSON,Catalog:s.Catalog,Reports:append([]v2input.Entry(nil),reports...),Authority:pngAuthority}}
+ }
  frozenParents:=[]v2input.Entry{};for _,root:=range compiled.roots{if root.Contract=="FrozenRenderRecipe"{frozenParents=append(frozenParents,root)}}
  if s.Backgrounds!=nil{qualifiers.Backgrounds=ExportBackgroundQualifier{Reader:s.JSON,Parents:frozenParents,Authority:s.Backgrounds,Images:qualifiers.Images}}
  if len(masks)>0||len(inlineParents)>0{
@@ -59,7 +63,9 @@ func(s ExportNativeResolverInstallation)BindExportGraph(ctx context.Context,comp
   var origin ExportResolvedOriginSource
   if len(inlineParents)>0{var ok bool;origin,ok=s.Catalog.(ExportResolvedOriginSource);if !ok{return nil,v2input.ErrInvalid}}
   paramsAuthority,ok:=s.Catalog.(ExportParamsMaskAuthority);if !ok{return nil,v2input.ErrInvalid}
-  geometry:=ExportAllMaskGeometrySource{Warps:warpAuthority,ParamsAuthority:paramsAuthority,Reader:s.JSON,Parents:append(append([]v2input.Entry(nil),masks...),inlineParents...),MaskAuthority:maskAuthority,ResolvedOrigin:origin}
+  var reportAuthority ExportReportMaskAuthority
+  if len(reports)>0{var ok bool;reportAuthority,ok=s.Catalog.(ExportReportMaskAuthority);if !ok{return nil,v2input.ErrInvalid}}
+  geometry:=ExportAllMaskGeometrySource{Warps:warpAuthority,ParamsAuthority:paramsAuthority,ReportAuthority:reportAuthority,Reader:s.JSON,Parents:append(append([]v2input.Entry(nil),masks...),inlineParents...),MaskAuthority:maskAuthority,ResolvedOrigin:origin}
   qualifiers.Masks=NativeExportMaskQualifier{Objects:s.Objects,Scratch:s.Scratch,Probe:s.MaskProbe,Geometry:geometry,RuntimeSHA:s.ArrayRuntimeSHA}
  }
  return ExportNodeResolverRouter{JSON:s.JSON,Binary:ExportBinaryNodeResolver{Catalog:s.Catalog,Objects:s.Objects,Qualifier:qualifiers,MaxBytes:s.MaxBytes}},ctx.Err()

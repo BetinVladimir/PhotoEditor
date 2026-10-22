@@ -66,3 +66,16 @@ func TestApplyScaleUpRejectsUnpinnedDecision(t *testing.T) {
 		t.Fatal("invalid request reached provisioner")
 	}
 }
+
+func TestApplyScaleUpCancelledOperatorCannotProvision(t *testing.T) {
+	request := ScaleUpRequest{Pool: "gpu", PolicySHA: strings.Repeat("a", 64),
+		IdempotencyKey: uuid.NewString(), CurrentNodes: 1, MaximumNodes: 2,
+		Decision: ScaleDecision{Delta: 1, Reason: "eligible_wait"}}
+	provider := &recordingProvisioner{}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	node, err := ApplyScaleUp(ctx, request, provider)
+	if err != context.Canceled || node != "" || provider.calls != 0 {
+		t.Fatal("cancelled operator action reached paid provisioner", node, err, provider.calls)
+	}
+}

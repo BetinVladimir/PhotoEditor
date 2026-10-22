@@ -4,7 +4,7 @@ import type {DeliveryItem} from './delivery-items';
 import type {DeliveryPackage} from './delivery-package';
 import {OwnerAPI} from './owner-api';
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
-const pkg:DeliveryPackage={id:id(1),tenant_id:id(2),project_id:id(3),revision:'2',workflow_id:id(4),snapshot_id:id(5),name:'Package',policy_artifact_id:id(6),manifest_artifact_id:id(7),document:{artifact_id:id(7),sha256:'a'.repeat(64)},state:'review',published_at:null};
+const pkg:DeliveryPackage={created_at:'2026-10-10T11:00:00Z',updated_at:'2026-10-10T12:00:00Z',id:id(1),tenant_id:id(2),project_id:id(3),revision:'2',workflow_id:id(4),snapshot_id:id(5),name:'Package',policy_artifact_id:id(6),manifest_artifact_id:id(7),document:{artifact_id:id(7),sha256:'a'.repeat(64)},state:'review',published_at:null};
 const items:DeliveryItem[]=[{id:id(8),ordinal:0,preset_id:id(9),preset_sha:'b'.repeat(64),required:true,export_id:id(10),state:'ready',reason:null},{id:id(11),ordinal:1,preset_id:id(9),preset_sha:'b'.repeat(64),required:false,export_id:null,state:'omitted',reason:'optional export unavailable'}];
 const proof=()=>({package_id:pkg.id,revision:pkg.revision,manifest:{...pkg.document!},slot_count:2,ready_count:1,omitted_count:1});
 it('binds complete ready/optional omission set to immutable manifest and owns proof',()=>{

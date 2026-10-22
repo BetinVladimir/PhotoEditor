@@ -43,7 +43,7 @@ def test_operator_acknowledges_only_committed_atomic_installation(monkeypatch, r
 
     def write(connection, policy, **scope):
         events.append('write')
-        assert policy.gpu_budget_bytes == 10_000_000_000
+        assert policy.gpu_budget_bytes == 2**53 - 1
         assert scope == kwargs
         if failure == 'write':
             raise RuntimeError('write failed')

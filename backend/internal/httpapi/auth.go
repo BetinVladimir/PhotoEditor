@@ -68,12 +68,14 @@ func (s *Server) bootstrapGuard(r *http.Request) error {
 }
 func (s *Server) authRoutes(r chi.Router) {
 	r.Get("/api/v1/auth/csrf", func(w http.ResponseWriter, r *http.Request) {
-		// Fetch Metadata protects same-origin GET clients without an Origin header.
-		if origin := r.Header.Get("Origin"); origin != "" && origin != s.Config.AppOrigin && origin != s.Config.PortalOrigin {
+		// Fetch Metadata protects GET clients without an Origin header. An exact
+		// allowed Origin also supports a separately hosted same-site browser app.
+		origin := r.Header.Get("Origin")
+		if origin != "" && origin != s.Config.AppOrigin && origin != s.Config.PortalOrigin {
 			writeError(w, r, domain.NewError("ORIGIN_DENIED", 403))
 			return
 		}
-		if r.Header.Get("Sec-Fetch-Site") == "cross-site" || r.Header.Get("Sec-Fetch-Site") == "same-site" {
+		if site := r.Header.Get("Sec-Fetch-Site"); site == "cross-site" || (site == "same-site" && origin == "") {
 			writeError(w, r, domain.NewError("ORIGIN_DENIED", 403))
 			return
 		}
@@ -112,7 +114,21 @@ func (s *Server) authRoutes(r chi.Router) {
 		if err != nil {
 			ip = r.RemoteAddr
 		}
-		value, err := s.Auth.RequestOTP(r.Context(), req.Email, req.Locale, ip)
+		receipt, err := s.otpRecoveryScope(r)
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		var value auth.Challenge
+		if receipt == nil {
+			value, err = s.Auth.RequestOTP(r.Context(), req.Email, req.Locale, ip)
+		} else {
+			client := "web"
+			if s.native(r) {
+				client = "native"
+			}
+			value, err = s.Auth.RequestOTPWithReceipt(r.Context(), req.Email, req.Locale, ip, client, *receipt)
+		}
 		if err != nil {
 			if domain.AsError(err).HTTPStatus == 429 {
 				w.Header().Set("Retry-After", "3600")
@@ -140,7 +156,17 @@ func (s *Server) authRoutes(r chi.Router) {
 			writeError(w, r, domain.NewError("CLIENT_TYPE_INVALID", 422))
 			return
 		}
-		token, err := s.Auth.VerifyOTP(r.Context(), req.ChallengeID, req.Code, req.Client)
+		receipt, err := s.otpRecoveryScope(r)
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		var token auth.Tokens
+		if receipt == nil {
+			token, err = s.Auth.VerifyOTP(r.Context(), req.ChallengeID, req.Code, req.Client)
+		} else {
+			token, err = s.Auth.VerifyOTPWithReceipt(r.Context(), req.ChallengeID, req.Code, req.Client, *receipt)
+		}
 		if err != nil {
 			writeError(w, r, err)
 			return
@@ -220,4 +246,29 @@ func (s *Server) sendTokens(w http.ResponseWriter, token auth.Tokens, client str
 		token.Refresh = ""
 	}
 	writeJSON(w, 200, token)
+}
+
+// Recovery is opt-in for legacy clients. Keyed native clients hold an independent
+// random secret; a public challenge ID and six-digit code are not a replay token.
+func (s *Server) otpRecoveryScope(r *http.Request) (*auth.OTPReceiptRequest, error) {
+	keys := r.Header.Values("Idempotency-Key")
+	if len(keys) == 0 {
+		return nil, nil
+	}
+	if len(keys) != 1 {
+		return nil, domain.NewError("VALIDATION_FAILED", 422)
+	}
+	bootstrap := r.Header.Get("X-CSRF-Token")
+	if s.native(r) {
+		nonces := r.Header.Values("X-Photo-Auth-Nonce")
+		if len(nonces) != 1 {
+			return nil, domain.NewError("VALIDATION_FAILED", 422)
+		}
+		bootstrap = nonces[0]
+		raw, err := base64.RawURLEncoding.DecodeString(bootstrap)
+		if err != nil || len(raw) != 32 || len(bootstrap) != 43 {
+			return nil, domain.NewError("VALIDATION_FAILED", 422)
+		}
+	}
+	return &auth.OTPReceiptRequest{Key: keys[0], Bootstrap: bootstrap}, nil
 }

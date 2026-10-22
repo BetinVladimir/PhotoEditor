@@ -16,7 +16,7 @@ func (s *Server) cors(next http.Handler) http.Handler {
 			w.Header().Add("Vary", "Origin")
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
-			w.Header().Set("Access-Control-Expose-Headers", "X-Request-ID, Retry-After, ETag")
+			w.Header().Set("Access-Control-Expose-Headers", "X-Request-ID, Retry-After, ETag, X-Preview-Run-ID")
 		}
 		if r.Method == http.MethodOptions {
 			if origin == "" {
@@ -24,7 +24,7 @@ func (s *Server) cors(next http.Handler) http.Handler {
 				return
 			}
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-CSRF-Token, X-Photo-Client, Idempotency-Key, If-Match")
+			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-CSRF-Token, X-Photo-Client, X-Photo-Auth-Nonce, Idempotency-Key, Generation-Replay-Only, Relight-Replay-Only, Save-Edits-Resolve-Only, If-Match")
 			w.Header().Set("Access-Control-Max-Age", "600")
 			w.WriteHeader(204)
 			return

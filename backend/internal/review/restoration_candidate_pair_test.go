@@ -12,8 +12,8 @@ func TestRestorationReviewCandidateChangesOnlyRGBPixels(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, kind := range []string{"portrait.glare", "portrait.open_eyes", "image.reflection"} {
-		for _, mode := range []string{"valid", "same_pixels", "alpha", "canvas", "color", "dtype"} {
+	for _, kind := range []string{"portrait.glare", "portrait.open_eyes", "image.reflection", "image.relight"} {
+		for _, mode := range []string{"valid", "same_pixels", "same_content", "alpha", "canvas", "color", "dtype"} {
 			t.Run(kind+"/"+mode, func(t *testing.T) {
 				candidate := base
 				candidate.Pixels.ID = uuid.New()
@@ -22,6 +22,8 @@ func TestRestorationReviewCandidateChangesOnlyRGBPixels(t *testing.T) {
 					candidate.Pixels.SHA256 = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 				}
 				switch mode {
+				case "same_content":
+					candidate.Pixels.SHA256 = base.Pixels.SHA256
 				case "same_pixels":
 					candidate.Pixels = base.Pixels
 				case "alpha":
@@ -42,10 +44,11 @@ func TestRestorationReviewCandidateChangesOnlyRGBPixels(t *testing.T) {
 					t.Fatal(err)
 				}
 				err = validateCandidatePair(kind, raw, baseRaw)
-				if mode == "valid" && err != nil {
+				valid := mode == "valid" || (mode == "same_content" && kind == "image.relight")
+				if valid && err != nil {
 					t.Fatal("restoration image refused", err)
 				}
-				if mode != "valid" && err == nil {
+				if !valid && err == nil {
 					t.Fatal("restoration metadata change accepted", mode)
 				}
 			})

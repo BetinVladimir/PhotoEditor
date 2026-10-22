@@ -54,3 +54,43 @@ def test_identity_runtime_config_requires_complete_cpu_or_cuda_locks():
         identity_runtime_locks_from_env(env, 'gpu', 'cpu', False)
     with pytest.raises(WorkerConfigurationError):
         identity_runtime_locks_from_env({'PHOTO_IDENTITY_MODEL_LOCK_SHA': 'a' * 64}, 'gpu', 'cpu', True)
+
+
+def test_identity_lease_changed_during_measurement_cannot_authorize_result():
+    """A valid runtime measurement cannot bless a replaced execution profile."""
+    expected = _expected()
+    ctx = _context()
+
+    def measure():
+        ctx.lease.execution_profile['qualification_id'] = str(UUID(int=99))
+        return dict(expected)
+
+    verify = identity_runtime_authority(measure, **expected)
+    with pytest.raises(OperationFailure, match='IDENTITY_RUNTIME_UNQUALIFIED'):
+        verify(ctx)
+
+
+def test_identity_revocation_during_measurement_wins_over_matching_runtime():
+    from photo_worker.runtime.executor import LeaseLost
+
+    expected = _expected()
+    ctx = _context()
+    revoked = False
+    calls = []
+
+    def check_active():
+        calls.append('active')
+        if revoked:
+            raise LeaseLost()
+
+    def measure():
+        nonlocal revoked
+        calls.append('measure')
+        revoked = True
+        return dict(expected)
+
+    ctx.check_active = check_active
+    verify = identity_runtime_authority(measure, **expected)
+    with pytest.raises(LeaseLost):
+        verify(ctx)
+    assert calls == ['active', 'measure', 'active']

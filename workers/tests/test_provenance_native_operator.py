@@ -1,3 +1,4 @@
+from photo_worker.contracts.base import canonical_bytes
 """Native composition doubles only; not real certificate/SDK qualification."""
 from contextlib import contextmanager
 from concurrent.futures import ThreadPoolExecutor
@@ -34,10 +35,10 @@ def setup_delegate(*, inspect=None, sign=None, verify=None, timestamp=False):
     delegate = NativeSigningDelegate(sdk, 'a'*64, PEM, PEM, 'ES256', sign or default_sign,
         inspect or (lambda *args: True), verify or (lambda *args: True),
         {'tsa': 'https://tsa.example.com/sign'} if timestamp else {}, ['tsa.example.com'])
-    policy = SigningPolicy.model_validate(dict(schema_version=1, id=str(uuid4()), revision='1',
+    policy = SigningPolicy.model_validate_json(canonical_bytes(dict(schema_version=1, id=str(uuid4()), revision='1',
         sdk_lock_sha='a'*64, key_handle='external-key', certificate_chain_sha=sha256(PEM).hexdigest(),
         timestamp_mode='required' if timestamp else 'off', timestamp_service_id='tsa' if timestamp else None,
-        allowed_mime=['image/png'], trust_bundle_sha=sha256(PEM).hexdigest(), revocation_mode='off'))
+        allowed_mime=['image/png'], trust_bundle_sha=sha256(PEM).hexdigest(), revocation_mode='off')))
     return delegate, policy, handles, closed, signatures
 
 

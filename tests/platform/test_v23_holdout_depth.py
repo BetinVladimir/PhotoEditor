@@ -13,7 +13,7 @@ def test_shared_depth_normalization_preserves_native_math(flat):
     raw = np.ones((4,5),np.float32) if flat else np.arange(20,dtype=np.float32).reshape(4,5)
     resized = cv2.resize(raw,(13,9),interpolation=cv2.INTER_CUBIC)
     lo,hi = float(resized.min()),float(resized.max())
-    expected = np.zeros((9,13),np.float32) if hi-lo<=1e-12 else ((resized-lo)/(hi-lo)).astype(np.float32)
+    expected = np.zeros((9,13),np.float32) if flat or hi-lo<=1e-12 else ((resized-lo)/(hi-lo)).astype(np.float32)
     actual, review = normalize_depth(raw,13,9)
     assert np.array_equal(actual.view(np.uint32),expected.view(np.uint32))
     assert review == flat

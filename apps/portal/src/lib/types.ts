@@ -1,0 +1,11 @@
+export type CapabilityMap = Record<string, boolean>;
+export type Preset = string | { id: string; name?: string; label?: string };
+export type Section = { id: string; name?: string; title?: string };
+export type Collection = { name: string; description: string; revision: string; cover?: unknown; capabilities: CapabilityMap | string[]; allowed_presets: Preset[]; sections: Section[]; empty: boolean };
+export type GuestItem = { id: string; width: number; height: number; title: string; section_id?: string; thumbnail_status: string; media_variants: unknown };
+export type Page<T> = { items: T[]; next_cursor?: string; revision: string };
+export type MediaLink = { item_id: string; variant: string; url: string; expires_at: string; width: number; height: number; media_type: string };
+export type Upload = { id: string; state: string; revision: string; filename: string; expected_size: number; part_bytes: number; parts_total: number; expires_at: string };
+export type PartURL = { part_no: number; url: string; expires_at: string };
+export type DownloadStatus = { id: string; status: string; files_done: number; files_total: number; bytes_written: number; volumes: { number: number; status: string; bytes: number; delivery_kind: string }[]; error?: unknown };
+export type APIErrorBody = { error?: { code?: string; message?: string }; code?: string; message?: string };

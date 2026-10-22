@@ -25,7 +25,7 @@ func bindSemanticModelExecutionIdentity(original string, paramsJCS []byte, model
 		Lock string `json:"model_lock_id"`
 	}
 	var profile map[string]any
-	if json.Unmarshal(paramsJCS, &params) != nil || params.Lock != model || json.Unmarshal([]byte(original), &profile) != nil || profile["backend"] != "cuda" {
+	if json.Unmarshal(paramsJCS, &params) != nil || params.Lock != model || json.Unmarshal([]byte(original), &profile) != nil || (profile["backend"] != "cuda" && profile["backend"] != "mps") {
 		return zero, ErrInvalid
 	}
 	for _, key := range []string{"model_lock_id", "model_lock_sha", "runtime_lock_sha", "device_profile_sha"} {

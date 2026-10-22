@@ -241,7 +241,10 @@ def observe_fixture_before_render_preview(connection,tenant_id,review_id,source,
   a.id,a.sha256,a.bucket,a.object_key,a.object_version,a.bytes,a.media_type
  FROM photo.reviews v
  JOIN photo.v2_workflows w ON w.tenant_id=v.tenant_id AND w.run_id=v.run_id
- JOIN photo.tasks origin ON origin.tenant_id=v.tenant_id AND origin.id=v.task_id
+ JOIN photo.artifacts base ON base.tenant_id=v.tenant_id AND base.id=v.base_artifact_id
+ JOIN photo.tasks origin ON origin.tenant_id=base.tenant_id AND origin.id=base.created_by_task_id
+ JOIN photo.v2_workflows preview_workflow ON preview_workflow.tenant_id=origin.tenant_id
+  AND preview_workflow.run_id=origin.run_id AND preview_workflow.project_id=w.project_id
  JOIN photo.runs r ON r.tenant_id=origin.tenant_id AND r.v26_derivative_task_id=origin.id
  JOIN photo.tasks t ON t.tenant_id=r.tenant_id AND t.run_id=r.id
  JOIN photo.backend_documents d ON d.tenant_id=t.tenant_id AND d.owner_id=t.id AND d.run_id=t.run_id

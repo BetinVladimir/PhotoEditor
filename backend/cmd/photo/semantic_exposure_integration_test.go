@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/canonical"
+	"photoeditor/backend/internal/colorprofile"
 	"photoeditor/backend/internal/config"
 	"photoeditor/backend/internal/httpapi"
 	"photoeditor/backend/internal/objectstore"
@@ -91,6 +92,15 @@ func TestIntegrationSemanticExposureBootstrap(t *testing.T) {
 		t.Fatal("fixture qualification invalid")
 	}
 	catalog := semanticreview.ExposurePreparationCatalog{SchemaVersion: 1, Tenants: []semanticreview.ExposureTenantPreparation{{TenantID: tenant, Review: semanticreview.ReviewPreparationConfig{SchemaVersion: 1, ModelSHA: strings.Repeat("a", 64), DatasetSHA: strings.Repeat("d", 64), DocumentBudgetBytes: 64 << 20}, Execution: semanticreview.ExposureDeploymentBudget{Qualification: pin, OwnerCosts: semanticreview.ExposureOwnerCosts{RuntimeRAMBytes: 1 << 20, InputIndexScratchBytes: 16 << 20}, Limits: semanticreview.ExposureResourceEstimate{RAMBytes: 1 << 40, ScratchBytes: 1 << 40, OutputBytes: 1 << 40, PixelCount: 200000000}, ModelLockSHA: pin.ModelLockSHA, RuntimeLockSHA: pin.RuntimeLockSHA, DeviceProfileSHA: pin.DeviceProfileSHA, DatasetSHA: pin.DatasetSHA}}}}
+	if os.Getenv("PHOTO_TEST_V27_SHOWN_PHASE") != "" {
+		var shown semanticreview.ExposureQualificationPin
+		if json.Unmarshal([]byte(os.Getenv("PHOTO_TEST_V27_SHOWN_PIN")), &shown) != nil {
+			t.Fatal("shown qualification invalid")
+		}
+		budget := catalog.Tenants[0].Execution
+		budget.Qualification = shown
+		catalog.Tenants[0].ShownExecution = &budget
+	}
 	raw, _ := json.Marshal(catalog)
 	sum := sha256.Sum256(raw)
 	path := filepath.Join(t.TempDir(), "exposure.json")
@@ -108,7 +118,18 @@ func TestIntegrationSemanticExposureBootstrap(t *testing.T) {
 	t.Setenv("PHOTO_ICC_ROOT", icc)
 	loginURL := url.URL{Scheme: "postgres", User: url.UserPassword(role, password), Host: net.JoinHostPort(loginConfig.ConnConfig.Host, strconv.Itoa(int(loginConfig.ConnConfig.Port))), Path: "/" + loginConfig.ConnConfig.Database, RawQuery: "sslmode=disable"}
 	t.Setenv("PHOTO_SEMANTIC_ADMISSION_DATABASE_URL", loginURL.String())
-	service, closeFn, err := buildSemanticExposureApply(ctx, api, store, os.Getenv("PHOTO_TEST_MINIO_BUCKET"))
+	var preview *semanticreview.ExposurePreviewProvider
+	if os.Getenv("PHOTO_TEST_V27_SHOWN_PHASE") != "" {
+		pins, e := colorprofile.LoadSHAs(icc)
+		if e != nil {
+			t.Fatal(e)
+		}
+		preview, e = buildSemanticPreview(api, store, os.Getenv("PHOTO_TEST_MINIO_BUCKET"), pins["srgb_v1"])
+		if e != nil {
+			t.Fatal(e)
+		}
+	}
+	service, closeFn, err := buildSemanticExposureApply(ctx, api, store, os.Getenv("PHOTO_TEST_MINIO_BUCKET"), preview)
 	if err != nil || service == nil {
 		t.Fatal("dedicated login bootstrap failed", err)
 	}
@@ -145,6 +166,11 @@ func TestIntegrationSemanticExposureBootstrap(t *testing.T) {
 		token, err := authService.Signer.Issue(prepared.Actor, prepared.Session, epoch)
 		if err != nil {
 			t.Fatal("fixture access token unavailable")
+		}
+		var capturedReviewPreview json.RawMessage
+		if shownCapturePhase(t, ctx, api, owner, store, os.Getenv("PHOTO_TEST_MINIO_BUCKET"), authService, token,
+			auth.Identity{UserID: prepared.Actor, SessionID: prepared.Session}, tenant, prepared.Intent, &prepared.Request, &capturedReviewPreview, catalog, preview) {
+			return
 		}
 		handler := (&httpapi.Server{DB: api, Auth: authService, SemanticReviewApply: service, Config: config.Config{Environment: "development", AppOrigin: "http://localhost:8080", PortalOrigin: "http://localhost:3000", MaxJSONBytes: 65536}}).Routes()
 		requestBody, _ := json.Marshal(prepared.Request)
@@ -222,13 +248,18 @@ func TestIntegrationSemanticExposureBootstrap(t *testing.T) {
 				Response json.RawMessage              `json:"response"`
 				Targets  json.RawMessage              `json:"targets"`
 				Status   json.RawMessage              `json:"status"`
-			}{tenant, prepared.Intent, prepared.Key, prepared.Request, response.Body.Bytes(), proposedPage.Body.Bytes(), reviewStatus.Body.Bytes()})
+				Preview  json.RawMessage              `json:"preview,omitempty"`
+			}{tenant, prepared.Intent, prepared.Key, prepared.Request, response.Body.Bytes(), proposedPage.Body.Bytes(), reviewStatus.Body.Bytes(), capturedReviewPreview})
 			if err != nil {
 				t.Fatal(err)
 			}
 			if err := os.WriteFile(capture, raw, 0600); err != nil {
 				t.Fatal(err)
 			}
+		}
+		if os.Getenv("PHOTO_TEST_V27_SHOWN_PHASE") == "apply" {
+			t.Log("V27_SHOWN_APPLY_QUEUED")
+			return
 		}
 		var sealed bool
 		if err = owner.QueryRow(ctx, "SELECT graph_sealed AND status='queued' AND (SELECT count(*) FROM photo.tasks WHERE tenant_id=$1 AND run_id=$2 AND state='ready')=1 FROM photo.runs WHERE tenant_id=$1 AND id=$2", tenant, result.Child.RunID).Scan(&sealed); err != nil || !sealed {

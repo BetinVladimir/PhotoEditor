@@ -53,7 +53,8 @@ def validate_import_adoption_expected(expected):
     if not isinstance(expected, dict) or set(expected) != EXPECTED_KEYS:
         _invalid()
     if (expected['Operation'] not in ('image.denoise', 'image.upscale',
-            'color.stats', 'mask.person') or expected['Version'] != '1'
+            'color.stats', 'mask.person', 'defects.auto_repair', 'sensor.dust_auto_repair') or expected['Version'] != '1'
+            or expected['Operation'] in ('defects.auto_repair','sensor.dust_auto_repair') and expected['Backend'] != 'cpu'
             or expected['Backend'] not in ('cpu', 'cuda', 'mps')
             or expected['LicenseCleared'] is not True
             or any(not _digest(expected[key]) for key in ('ModelLockSHA',

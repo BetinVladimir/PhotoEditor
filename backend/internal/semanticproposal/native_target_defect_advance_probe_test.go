@@ -7,12 +7,20 @@ import (
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/v2input"
 	"testing"
+	"time"
 )
 
 func probeNativeTargetDefectAdvance(t *testing.T, ctx context.Context, p TransferDraftPreparer, who auth.Identity, original detectorDraftPlan, manifest nativeTargetPreparationManifest, ordinal int, owner *pgxpool.Pool) {
 	t.Helper()
 	factory := (SQLNativeParentArtifactCatalogFactory{API: p.Reader.DB, Bucket: p.Reader.Bucket}).ForReference
+	advanceCount := 0
 	advance := func(want string) error {
+		advanceCount++
+		started := time.Now()
+		t.Logf("NATIVE_DEFECT_ADVANCE_BEGIN call=%d want=%s", advanceCount, want)
+		defer func() {
+			t.Logf("NATIVE_DEFECT_ADVANCE_END call=%d elapsed=%s context_err=%v", advanceCount, time.Since(started), ctx.Err())
+		}()
 		ok, err := withNativeManualParentLock(ctx, p.Scheduler, original.request.TenantID, original.request.RunID, func(work context.Context) error {
 			out, err := p.advanceNativeTargetDefects(work, who, original, manifest, factory)
 			if err != nil {

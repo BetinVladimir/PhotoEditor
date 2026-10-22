@@ -145,6 +145,7 @@ func (h *HTTP) credentials(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	resolved, err := h.Tasks.Resolve(ctx, task, attempt, fence, worker, cert)
 	if err != nil {
+		dependencyObservation("credentials_authorization", err)
 		if errors.Is(err, ErrCapability) {
 			gatewayError(w, 403, "LEASE_LOST")
 		} else {
@@ -164,6 +165,7 @@ func (h *HTTP) credentials(w http.ResponseWriter, r *http.Request) {
 	}
 	claims, err := h.Signer.Verify(raw, cert, id, ReadObjects)
 	if err != nil {
+		dependencyObservation("credentials_signer_verification", err)
 		gatewayError(w, 503, "DEPENDENCY_UNAVAILABLE")
 		return
 	}

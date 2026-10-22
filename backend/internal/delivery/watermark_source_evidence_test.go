@@ -30,7 +30,7 @@ func(c *watermarkEvidenceCatalog)Lookup(_ context.Context,_ auth.Identity,_ uuid
  return c.arrays[node.Contract],nil
 }
 func TestWatermarkSourceEvidenceManifestAndArrays(t *testing.T){
- steps:=[]any{};hash,_:=canonical.Hash(steps);chain,_:=canonical.Marshal(map[string]any{"steps":steps,"hash":hash})
+ steps:=[]any{};hash,_:=canonical.Hash(map[string]any{"steps":steps});chain,_:=canonical.Marshal(map[string]any{"steps":steps,"hash":hash})
  pixel:=review.ArtifactRef{ID:uuid.New(),SHA256:strings.Repeat("a",64)};alpha:=review.ArtifactRef{ID:uuid.New(),SHA256:strings.Repeat("b",64)}
  image:=review.WorkingImage{Pixels:pixel,Alpha:&alpha,Canvas:review.Canvas{Width:100,Height:50,Orientation:1,SpaceID:"watermark:test",SourceSHA256:strings.Repeat("c",64)},Color:review.ColorSpace{ProfileID:"work_rec2020_gamma24_v1",ICCSHA256:strings.Repeat("d",64),Encoding:"gamma24"},DType:"float32",TransformChain:chain}
  raw,_:=canonical.Marshal(image)

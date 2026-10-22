@@ -79,15 +79,21 @@
       "items": {
         "$ref": "#/$defs/ArtifactRef"
       },
-      "maxItems": 2000,
-      "minItems": 2,
+      "maxItems": 5000,
       "title": "Stats",
+      "type": "array"
+    },
+    "stats_batches": {
+      "items": {
+        "$ref": "#/$defs/ArtifactRef"
+      },
+      "maxItems": 64,
+      "title": "Stats Batches",
       "type": "array"
     }
   },
   "required": [
-    "scene_id",
-    "stats"
+    "scene_id"
   ],
   "title": "SeriesParams",
   "type": "object"

@@ -18,5 +18,8 @@ export function decodeSemanticJobTicket(v:unknown):SemanticJobTicket {
 export async function proposeSemanticIntent(client:Pick<ApiClient,'request'>,tenant:string,input:SemanticEditIntent,key:string,signal?:AbortSignal):Promise<SemanticJobTicket>{
  if(!id(tenant)||typeof key!=='string'||!/^[!-~]{1,128}$/.test(key))throw new Error('SEMANTIC_PROPOSE_REQUEST_INVALID');
  const body=decodeSemanticEditIntent(input);
- return decodeSemanticJobTicket(await client.request<unknown>(`/api/v1/tenants/${tenant}/semantic-intents`,{method:'POST',body,idempotencyKey:key,signal}));
+ signal?.throwIfAborted();
+ const value=await client.request<unknown>(`/api/v1/tenants/${tenant}/semantic-intents`,{method:'POST',body,idempotencyKey:key,signal});
+ signal?.throwIfAborted();
+ return decodeSemanticJobTicket(value);
 }

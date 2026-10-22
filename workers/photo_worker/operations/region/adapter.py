@@ -24,6 +24,8 @@ from photo_worker.v2.render_modules import required_render_modules as required_r
 class RenderedRegionCanvas:
     rgb: np.ndarray
     alpha: np.ndarray | None
+    target_canvas: object = None
+    target_transform_chain: object = None
 
 
 class RegionAdmission(Protocol):
@@ -88,7 +90,7 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts,
     runtime_sha = getattr(renderer, 'runtime_sha256', None)
     if (not isinstance(runtime_sha, str) or re.fullmatch(r'[0-9a-f]{64}', runtime_sha) is None
             or profile.get('region_runtime_sha256') != runtime_sha
-            or getattr(renderer,'renderer_version',None) != 'v2.2' or getattr(renderer,'backend',None) not in ('cpu', 'cuda')
+            or getattr(renderer,'renderer_version',None) != 'v2.2' or getattr(renderer,'backend',None) not in ('cpu', 'cuda', 'mps')
             or profile.get('backend') != renderer.backend
             or profile.get('renderer_version') != renderer.renderer_version
             or profile.get('model_lock_sha') != renderer.model_lock_sha
@@ -143,9 +145,29 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts,
             check_active()
             if not isinstance(full,RenderedRegionCanvas):
                 raise ValueError('REGION_RENDER_INVALID')
+            from contextlib import contextmanager
+            from photo_worker.contracts.images import TransformChain
+            from photo_worker.runtime.arrays import read_inverse_field
+            @contextmanager
+            def projection_field(ref,canvas):
+                artifacts.require_declared_input(ref)
+                with artifacts.input(ref,suffix='.npy') as local:
+                    with read_inverse_field(local.path,(canvas.height,canvas.width),check_active) as field:
+                        yield field
+            if params.execution is not None:
+                if full.target_canvas!=params.execution.stages[-1].target_canvas:
+                    raise ValueError('REGION_RENDER_TARGET_INVALID')
+                expected=TransformChain.create([*source.transform_chain.steps,
+                    *(entry.transform for entry in params.execution.stages if entry.transform is not None)])
+                if full.target_transform_chain!=expected:
+                    raise ValueError('REGION_RENDER_TRANSFORM_INVALID')
+            elif full.target_canvas is not None or full.target_transform_chain is not None:
+                raise ValueError('REGION_RENDER_UNDECLARED_GEOMETRY')
             presentation = prepare_region_presentation(params, source_body,
                 full.rgb, full.alpha, renderer.icc_root,
-                runtime_icc_lock_sha=renderer.icc_lock_sha, check_active=check_active)
+                runtime_icc_lock_sha=renderer.icc_lock_sha, check_active=check_active,
+                target_canvas=full.target_canvas,target_chain=full.target_transform_chain,
+                load_inverse_field=projection_field)
             ctx.progress(1, 3)
         check_active()
         # Rendering/presentation may take time; recheck installed pinned runtime
@@ -167,8 +189,8 @@ def region_operations(config: ArtifactConfig, admission: RegionAdmission,
                       renderer: QualifiedRegionRenderer) -> list[Operation]:
     if admission is None or renderer is None:
         raise ValueError('Region admission and qualified complete renderer required')
-    if renderer.backend != "cuda":
-        raise ValueError("Registered RegionPreview requires qualified CUDA renderer")
+    if renderer.backend not in ("cuda", "mps"):
+        raise ValueError("Registered RegionPreview requires qualified CUDA or MPS renderer")
     runtime_sha = getattr(renderer, "runtime_sha256", None)
     if not isinstance(runtime_sha, str) or re.fullmatch(r"[0-9a-f]{64}", runtime_sha) is None:
         raise ValueError("Region renderer runtime digest required")
@@ -179,5 +201,5 @@ def region_operations(config: ArtifactConfig, admission: RegionAdmission,
     def run(ctx):
         with TaskArtifacts.create(ctx, config, frozenset({'derivative', 'document'})) as artifacts:
             return execute(ctx, artifacts, admission, renderer)
-    return [Operation('region.preview', 'gpu' if renderer.backend == 'cuda' else 'media', run)]
+    return [Operation('region.preview', 'gpu', run)]
 

@@ -32,4 +32,13 @@ describe('Capture alert response boundary',()=>{
   const row={...alert(),acknowledged_by:id,acknowledged_at:'2026-10-11T12:01:00Z'};
   expect(readCaptureAlertPage({items:[row],next_cursor:'signed-cursor'},id)).toEqual({items:[row],next_cursor:'signed-cursor'});
  });
+ it('requires an explicit timestamp offset for creation and acknowledgement',()=>{
+  for(const invalid of ['2026-10-11T12:00:00','2026-10-11T12:00Z','2026-10-11T12:00:00Z trailing']){
+   expect(()=>readCaptureAlertPage({items:[{...alert(),created_at:invalid}],next_cursor:null},id)).toThrow();
+   expect(()=>readCaptureAlertPage({items:[{...alert(),acknowledged_by:id,acknowledged_at:invalid}],next_cursor:null},id)).toThrow();
+  }
+  for(const valid of ['2026-10-11T12:00:00.123456789Z','2026-10-11T15:00:00+03:00']){
+   expect(readCaptureAlertPage({items:[{...alert(),created_at:valid}],next_cursor:null},id).items[0].created_at).toBe(valid);
+  }
+ });
 });

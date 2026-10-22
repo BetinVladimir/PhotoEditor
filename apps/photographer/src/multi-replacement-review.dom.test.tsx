@@ -1,13 +1,15 @@
 // @vitest-environment jsdom
 import React from 'react';
 import {it,expect,vi,afterEach} from 'vitest';
+vi.mock('./localized-router',()=>({router:{push:vi.fn()},useFocusEffect:()=>{}}));
+vi.mock('@react-native-async-storage/async-storage',()=>({default:{getItem:async()=>null,setItem:async()=>{},removeItem:async()=>{},getAllKeys:async()=>[]}}));
 import {render,screen,waitFor,cleanup,act,fireEvent} from '@testing-library/react';
 import type {OwnerAPI} from './owner-api';
 import {MultiReplacementReview} from './multi-replacement-review';
 import {readMultiReplacementResult} from './multi-replacement-result';
 const recovery=vi.hoisted(()=>({applied:false}));
-vi.mock('./locale-context',()=>({useLocale:()=>({t:(key:string)=>key})}));
-vi.mock('react-native',()=>({View:({children}:any)=><div>{children}</div>,Text:({children,accessibilityRole}:any)=><span role={accessibilityRole}>{children}</span>,Pressable:({children,onPress}:any)=><button onClick={onPress}>{children}</button>}));
+vi.mock('./locale-context',async()=>{const __factory=()=>({useLocale:()=>({t:(key:string)=>key})});const __out=await __factory();const {withUILocaleDouble}=await import('./test/locale-double');return {...__out,useLocale:()=>withUILocaleDouble(__out.useLocale())};});
+vi.mock('react-native',async()=>({...await import('react-native-web'),AppState:{currentState:'active',addEventListener:()=>({remove:()=>{}})}}));
 vi.mock('./multi-preview-view',()=>({MultiPreviewView:()=>null}));
 vi.mock('./multi-quality-view',()=>({MultiQualityView:()=>null}));
 vi.mock('./multi-replacement-result',()=>({readMultiReplacementResult:vi.fn().mockResolvedValue({state:'pending',workflow_state:'running'})}));

@@ -42,7 +42,8 @@ def load_export_descriptor_pins(reader, snapshot_ref, plan, *, check_active=lamb
         return documents[key]
     raw = read(snapshot_ref, 'InputSnapshot', 8 << 20)
     snapshot = InputSnapshot.model_validate_json(raw)
-    digest = canonical_hash(dict(schema_version=1, snapshot_id=snapshot.snapshot_id, items=snapshot.items))
+    snapshot_wire = snapshot.model_dump(mode='json')
+    digest = canonical_hash({key: snapshot_wire[key] for key in ('schema_version', 'snapshot_id', 'items')})
     if (canonical_bytes(snapshot) != raw or snapshot.snapshot_digest != digest
             or plan.snapshot_digest != digest or snapshot.snapshot_id.int == 0
             or [item.ordinal for item in snapshot.items] != list(range(len(snapshot.items)))

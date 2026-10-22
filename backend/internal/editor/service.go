@@ -1,6 +1,7 @@
 package editor
 
 import (
+ "photoeditor/backend/internal/stylevalidation"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -96,6 +97,14 @@ func validateOverride(raw json.RawMessage, inputSHA string) error {
 		if !allowed[name] || len(body) == 0 || string(body) == "null" {
 			return domain.NewError("VALIDATION_FAILED", 422)
 		}
+        valid:=false
+        switch name {
+        case "strength": var strength *float64;valid=json.Unmarshal(body,&strength)==nil&&strength!=nil&&*strength>=0&&*strength<=1
+        case "global": valid=stylevalidation.Color(body)
+        case "extensions": valid=stylevalidation.Extensions(body)
+        default: valid=stylevalidation.Module(name,body)
+        }
+        if !valid{return domain.NewError("VALIDATION_FAILED",422)}
 	}
 	decisions := map[string]bool{}
 	for _, id := range value.AcceptedCandidateIDs {
@@ -124,6 +133,7 @@ func validateOverride(raw json.RawMessage, inputSHA string) error {
 			"portrait_shine": {"skin": true, "manual": true}, "portrait_under_eye": {"skin": true, "manual": true},
 			"portrait_cloth": {"clothing": true, "manual": true}, "portrait_glasses": {"glasses": true, "manual": true},
 			"inpaint_target": {"manual": true}, "generation_target": {"manual": true},
+			"region_adjustment": {"skin": true, "sky": true, "clothing": true, "manual": true},
 		}
 		if binding.Purpose == "protected" {
 			if !binding.Mask.Protected {
@@ -139,7 +149,7 @@ func validateOverride(raw json.RawMessage, inputSHA string) error {
 		} else if allowedSelectors, ok := selectors[binding.Purpose]; !ok || binding.Mask.Protected || !allowedSelectors[binding.Mask.Selector] {
 			return domain.NewError("VALIDATION_FAILED", 422)
 		}
-		if (binding.Purpose == "portrait_cloth" || binding.Purpose == "portrait_glasses" || binding.Purpose == "inpaint_target" || binding.Purpose == "generation_target") && !binding.Confirmed {
+		if (binding.Purpose == "portrait_cloth" || binding.Purpose == "portrait_glasses" || binding.Purpose == "inpaint_target" || binding.Purpose == "generation_target" || binding.Purpose == "region_adjustment") && !binding.Confirmed {
 			return domain.NewError("VALIDATION_FAILED", 422)
 		}
 	}
@@ -205,8 +215,9 @@ func validateOverrideMaskProvenance(ctx context.Context, tx pgx.Tx, who auth.Ide
 			 WHERE a.tenant_id=$1 AND a.id=$2 AND a.sha256=$4 AND a.state='ready' AND a.object_version IS NOT NULL
 			  AND ((t.operation='mask.rasterize' AND a.output_role=CASE WHEN $5 THEN 'mask_protected' ELSE 'mask_target' END)
 			       OR (t.operation='mask.prompt' AND NOT $5 AND a.output_role='prompt_mask'))
+			  AND ($6 NOT IN ('region_adjustment','protected','portrait_teeth','portrait_sclera','portrait_shine','portrait_under_eye','portrait_cloth','portrait_glasses','inpaint_target','generation_target') OR (a.produced_attempt=z.attempt AND a.produced_fence=z.fencing_token AND (a.expires_at IS NULL OR a.expires_at>clock_timestamp())))
 			  AND z.outputs @> jsonb_build_array(jsonb_build_object('artifact_id',a.id,'sha256',a.sha256))
-			)`, tenantID, binding.Mask.Artifact.ID, versionID, binding.Mask.Artifact.SHA256, binding.Mask.Protected).Scan(&valid)
+			)`, tenantID, binding.Mask.Artifact.ID, versionID, binding.Mask.Artifact.SHA256, binding.Mask.Protected, binding.Purpose).Scan(&valid)
 		if err != nil {
 			return err
 		}
@@ -233,6 +244,15 @@ func validObject(raw json.RawMessage, max int, requireSchema bool) error {
 	}
 	return nil
 }
+// Draft masks are a list on the wire; null/object/scalar values cannot be
+// restored as an editor mask history. Per-mask authority remains an execution check.
+func validDraftMasks(raw json.RawMessage) error {
+ if err := validJSON(raw, 256<<10); err != nil { return err }
+ var entries []json.RawMessage
+ if json.Unmarshal(raw, &entries) != nil || entries == nil { return domain.NewError("VALIDATION_FAILED", 422) }
+ return nil
+}
+
 func validJSON(raw json.RawMessage, max int) error {
 	if len(raw) == 0 || len(raw) > max {
 		return domain.NewError("VALIDATION_FAILED", 422)
@@ -258,6 +278,12 @@ func authorizeAsset(ctx context.Context, tx pgx.Tx, who auth.Identity, tid, asse
 	if err != nil {
 		return uuid.Nil, "", err
 	}
+	// Asset reads (including FOR UPDATE) can outlive session or membership
+	// authority. Refresh the tenant role before applying project permissions.
+	role, err = tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Viewer)
+	if err != nil {
+		return uuid.Nil, "", err
+	}
 	_, err = project.Authorize(ctx, tx, tid, projectID, who.UserID, role, required, false)
 	return versionID, hash, err
 }
@@ -272,6 +298,11 @@ func authorizeVersion(ctx context.Context, tx pgx.Tx, who auth.Identity, tid, ve
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", domain.NewError("NOT_FOUND", 404)
 	}
+	if err != nil {
+		return "", err
+	}
+	// Recheck authority after the version read or lock before using its role.
+	role, err = tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Viewer)
 	if err != nil {
 		return "", err
 	}
@@ -309,7 +340,7 @@ func (s Service) SaveDraft(ctx context.Context, who auth.Identity, tid, assetID 
 	if err := validObject(req.Params, 256<<10, false); err != nil {
 		return out, err
 	}
-	if err := validJSON(req.MaskRefs, 256<<10); err != nil {
+	if err := validDraftMasks(req.MaskRefs); err != nil {
 		return out, err
 	}
 	err := tenant.WithTenant(ctx, s.DB, who, tid, domain.Viewer, func(tx pgx.Tx, role domain.Role) error {
@@ -402,7 +433,22 @@ func (s Service) CreateOverride(ctx context.Context, who auth.Identity, tid uuid
 			body, e := canonical.Marshal(item)
 			return idempotency.Response{Status: 201, Body: body, ResourceID: &item.ID}, e
 		})
+		if e != nil { return e }
+		// Replay skips the mutation callback, so repeat the resource gate with
+		// live tenant authority after the receipt lock as well as on new writes.
+		currentRole, e := tenant.AuthorizeInTransaction(ctx, tx, who, tid, domain.Viewer)
+		if e != nil { return e }
+		_, e = authorizeVersion(ctx, tx, who, tid, req.AssetVersionID, currentRole, domain.Editor, false)
 		return e
 	})
 	return out, err
+}
+
+// ValidateOverrideMaskSources repeats editor provenance at Apply admission for
+// exact source-version-bound, explicitly confirmed regional masks.
+func ValidateOverrideMaskSources(ctx context.Context, tx pgx.Tx, who auth.Identity, tenantID, versionID uuid.UUID, raw json.RawMessage, inputSHA string) error {
+ if err := validateOverride(raw,inputSHA); err != nil { return err }
+ bindings, err := overrideMaskBindings(raw)
+ if err != nil { return err }
+ return validateOverrideMaskProvenance(ctx,tx,who,tenantID,versionID,bindings)
 }

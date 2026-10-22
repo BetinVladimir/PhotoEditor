@@ -13,3 +13,9 @@ it('rejects changed revisions, duplicate IDs and repeated cursors',async()=>{
 it('does not fetch another page after cancellation',async()=>{
  const controller=new AbortController();const read=vi.fn(async()=>{controller.abort();return {revision:'7',items:[item('a')],next_cursor:'next'};});await expect(loadCollectionPages(collection,read,controller.signal)).rejects.toThrow();expect(read).toHaveBeenCalledTimes(1);
 });
+it('bounds opaque cursors before transport and keeps earlier page tags detached',async()=>{
+ const tooLong=vi.fn(async()=>({revision:'7',items:[item('a')],next_cursor:'x'.repeat(4097)}));await expect(loadCollectionPages(collection,tooLong,new AbortController().signal)).rejects.toThrow('COLLECTION_PAGE_INVALID');expect(tooLong).toHaveBeenCalledTimes(1);
+ const original={...item('a'),tags:['original']};let calls=0;
+ const rows=await loadCollectionPages(collection,async()=>{calls++;if(calls===1)return {revision:'7',items:[original],next_cursor:'second'};original.tags[0]='changed later';return {revision:'7',items:[item('b')],next_cursor:null};},new AbortController().signal);
+ expect(rows[0].tags).toEqual(['original']);
+});

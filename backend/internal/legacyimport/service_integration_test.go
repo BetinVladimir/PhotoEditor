@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"photoeditor/backend/internal/auth"
+	"photoeditor/backend/internal/domain"
 	"photoeditor/backend/internal/objectstore"
 	"photoeditor/backend/internal/upload"
 )
@@ -54,6 +55,10 @@ func TestIntegrationReconcileVerifiedUploadIsReplayable(t *testing.T) {
 	if err = admin.QueryRow(ctx, "SELECT id FROM photo.tenants WHERE owner_user_id=$1", user).Scan(&tenantID); err != nil {
 		t.Fatal(err)
 	}
+	// Keep the actual tenant owner intact. This caller is a removable Admin,
+	// so demotion leaves valid tenant Editor authority but no restricted ACL.
+	if err=admin.QueryRow(ctx,`SELECT user_id,auth_epoch FROM photo.auth_bootstrap_user($1,'en',true)`,uuid.NewString()+"@test.example").Scan(&user,&epoch);err!=nil{t.Fatal(err)}
+	if _,err=admin.Exec(ctx,`INSERT INTO photo.memberships(tenant_id,user_id,role,status) VALUES($1,$2,'admin','active')`,tenantID,user);err!=nil{t.Fatal(err)}
 	sessionID := uuid.New()
 	if _, err = admin.Exec(ctx, "INSERT INTO photo.sessions(id,user_id,refresh_hash,family_id,client_type,expires_at) VALUES($1,$2,$3,$4,'native',now()+interval '1 hour')", sessionID, user, auth.HashSecret(uuid.NewString()), uuid.New()); err != nil {
 		t.Fatal(err)
@@ -93,4 +98,22 @@ func TestIntegrationReconcileVerifiedUploadIsReplayable(t *testing.T) {
 	if err = admin.QueryRow(ctx, "SELECT count(*) FROM photo.legacy_imports WHERE tenant_id=$1", tenantID).Scan(&count); err != nil || count != 1 {
 		t.Fatal(count, err)
 	}
+	blocker, err := admin.Begin(ctx)
+	if err != nil { t.Fatal(err) };defer blocker.Rollback(ctx)
+	if _,err=admin.Exec(ctx,`UPDATE photo.projects SET visibility='restricted' WHERE tenant_id=$1 AND id=$2`,tenantID,projectID);err!=nil{t.Fatal(err)}
+	var blockerPID int32
+	if err=blocker.QueryRow(ctx,`SELECT pg_backend_pid()`).Scan(&blockerPID);err!=nil{t.Fatal(err)}
+	if _,err=blocker.Exec(ctx,`SELECT id FROM photo.upload_sessions WHERE tenant_id=$1 AND id=$2 FOR UPDATE`,tenantID,uploaded.ID);err!=nil{t.Fatal(err)}
+	pending:=request;pending.SourceRelative="input/after-wait.jpg"
+	done:=make(chan error,1)
+	go func(){_,e:=(Service{DB:api}).Reconcile(ctx,who,tenantID,pending);done<-e}()
+	tick:=time.NewTicker(10*time.Millisecond);defer tick.Stop()
+	for {var waiting bool
+		if err=admin.QueryRow(ctx,`SELECT EXISTS(SELECT FROM pg_stat_activity a WHERE $1=ANY(pg_blocking_pids(a.pid)))`,blockerPID).Scan(&waiting);err!=nil{t.Fatal(err)}
+		if waiting{break};select{case e:=<-done:t.Fatal("reconcile did not wait on upload",e);case <-ctx.Done():t.Fatal(ctx.Err());case <-tick.C:}
+	}
+	if _,err=admin.Exec(ctx,`UPDATE photo.memberships SET role='editor' WHERE tenant_id=$1 AND user_id=$2`,tenantID,user);err!=nil{t.Fatal(err)}
+	if err=blocker.Commit(ctx);err!=nil{t.Fatal(err)}
+	if err=<-done;err==nil||domain.AsError(err).HTTPStatus<400{t.Fatal("withdrawn authority reconciled upload",err)}
+	if err=admin.QueryRow(ctx,`SELECT count(*) FROM photo.legacy_imports WHERE tenant_id=$1`,tenantID).Scan(&count);err!=nil||count!=1{t.Fatal("late refusal wrote a record",count,err)}
 }

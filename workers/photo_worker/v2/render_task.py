@@ -57,6 +57,9 @@ class SQLRenderTaskAdmission:
                 raise AdoptionInvalid('RENDER_ADOPTION_INPUTS_STALE')
             scoped=replace(decode_render_adoption_inputs(row[:4]),
                 qualification_pin=RenderQualificationPin.from_value(row[4]))
+            from .render_adoption_inputs import decode_executed_base_reference
+            scoped=replace(scoped, executed_base_receipt=decode_executed_base_reference(
+                self.database.render_executed_base_receipt(ctx.lease, raw)))
             reference=ctx.lease.command.params
             if (scoped.recipe!=ArtifactRef(reference.artifact_id,reference.sha256)
                     or scoped.execution_profile()!=ctx.lease.execution_profile
@@ -120,7 +123,7 @@ def execute_render_task(ctx, artifacts, admission, renderer):
         inputs = load_frozen_render_inputs(artifacts, reference, check_active=ctx.check_active)
         if inputs.recipe != recipe:
             raise ValueError('RENDER_TASK_RECIPE_CHANGED')
-        admit_render_inputs(inputs, profile, renderer.provider_peak,
+        admit_render_inputs(inputs, profile, (renderer.provider_peak_for(inputs, profile) if hasattr(renderer, "provider_peak_for") else renderer.provider_peak),
             tile_size=profile['tile_size'], alpha_mode=profile['alpha_mode'])
         ctx.check_active()
         staged = None
@@ -165,7 +168,7 @@ class ProfiledTaskRenderer:
     cannot be supplied or replaced by that loader.
     """
     def __init__(self, *, backend, runtime_path, runtime_sha256, model_lock_sha,
-                 icc_lock_sha, provider_peak, verify_qualification, load_providers, qualification_pin=None):
+                 icc_lock_sha, provider_peak, verify_qualification, load_providers, qualification_pin=None, provider_peak_for=None):
         if not callable(verify_qualification) or not callable(load_providers):
             raise OperationFailure('RENDER_RUNTIME_UNAVAILABLE')
         self.backend = backend
@@ -174,9 +177,14 @@ class ProfiledTaskRenderer:
         self.model_lock_sha = model_lock_sha
         self.icc_lock_sha = icc_lock_sha
         self._provider_peak = tuple(dict(provider_peak).items())
+        if provider_peak_for is not None and not callable(provider_peak_for):raise OperationFailure("CONFIG_INVALID")
+        self._provider_peak_for=provider_peak_for
         self.qualification_pin = qualification_pin
         self.verify_qualification = verify_qualification
         self.load_providers = load_providers
+
+    def provider_peak_for(self, inputs, profile):
+        return self.provider_peak if self._provider_peak_for is None else self._provider_peak_for(inputs, profile)
 
     @property
     def provider_peak(self):
@@ -228,7 +236,7 @@ class ProfiledTaskRenderer:
             supplied['scalar_overrides'], supplied['render_base'], supplied['render_proposal'],
             self.verify_runtime, supplied['measure'], backend=self.backend,
             runtime_lock_path=self.runtime_path, runtime_lock_sha=self.runtime_sha256,
-            execution_profile=profile, provider_peak=self.provider_peak,
+            execution_profile=profile, provider_peak=self.provider_peak_for(inputs, profile),
             tile_size=profile['tile_size'], alpha_mode=profile['alpha_mode'],
             source_result=source_parent,check_active=ctx.check_active, **options)
 

@@ -1,0 +1,1751 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-17",
+  "authority": "mvp-release-scope-2026-10-15.md; current-operation-and-deferred-gates-source-2026-10-17.md",
+  "purpose": "Complete current/historical operation identity and accepted product scope supplement; not an activation command or synthetic qualification.",
+  "counts": {
+    "historical_identity_union": 114,
+    "product_task_producers": 106,
+    "foundation_no_product_producer": 6,
+    "bulk_control_commands": 1,
+    "removed_historical": 1
+  },
+  "legacy_union_note": "Baseline plus V2 JSON declaration union has111 IDs; capture.prepare and semantic.preview_local_exposure use exact supplemental production contract authority here. Historical storage.cleanup is not restored.",
+  "operations": [
+    {
+      "operation": "alpha.predict",
+      "declared_package": "BASE",
+      "scope_status": "foundation_no_independent_current_product_producer",
+      "implementation_status": "not_a_product_task_claim",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "foundation_catalogue_only_no_current_task_producer",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "alpha.refine",
+      "declared_package": "BASE",
+      "scope_status": "foundation_no_independent_current_product_producer",
+      "implementation_status": "not_a_product_task_claim",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "foundation_catalogue_only_no_current_task_producer",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "archive.build",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "export/download/delivery materialization",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "asset.decode",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "ingest/media materialization",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "asset.inspect",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "ingest/media materialization",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "asset.verify",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "ingest/media materialization",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "background.blur",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "background.compose",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "background.sky",
+      "declared_package": "BASE",
+      "scope_status": "foundation_no_independent_current_product_producer",
+      "implementation_status": "not_a_product_task_claim",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "foundation_catalogue_only_no_current_task_producer",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "capture.assess",
+      "declared_package": "V24",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "session/learning/capture dedicated admission",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run",
+      "scope_boundary": "MVP preset delivery/watch-folder assessment/available qualified identity primitive retained; accepted advanced-package deferral does not disable this operation wholesale."
+    },
+    {
+      "operation": "capture.prepare",
+      "declared_package": "V24",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "capture dedicated preparation",
+      "legacy_contract_registries": [],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run",
+      "supplemental_contract_authority": {
+        "params": "CapturePrepareParams",
+        "output": "CapturePrepared",
+        "source": "workers/photo_worker/operations/capture/contracts.py",
+        "producer": "workers/photo_worker/operations/capture/prepare_adapter.py",
+        "registry": "backend/db/migrations/00274_v24_capture_prepare_catalog.sql",
+        "activation": "backend/db/migrations/02547_editor_internal_dispatch_activation.sql"
+      },
+      "scope_boundary": "MVP preset delivery/watch-folder assessment/available qualified identity primitive retained; accepted advanced-package deferral does not disable this operation wholesale."
+    },
+    {
+      "operation": "collection.cull",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "collection/apply/collection-task materialization",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "collection.features",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "collection/apply/collection-task materialization",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "collection.features_pack",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "collection/apply/collection-task materialization",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "collection.group",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "collection/apply/collection-task materialization",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "collection.mutate",
+      "declared_package": "BASE",
+      "scope_status": "mvp_bulk_control_not_taskcommand",
+      "implementation_status": "not_a_product_task_claim",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "dedicated_bulk_control_command",
+      "current_family": "dedicated bulk control command",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "color.stats",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "composition.plan",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "composition.structure",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "defects.auto_repair",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "defects.propose",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "defects.repair",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "depth.predict",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "derivative.resize",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "export/download/delivery materialization",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "derivative.sharpen",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "export/download/delivery materialization",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "derivative.watermark",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "export/download/delivery materialization",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "editor.effects_seal",
+      "declared_package": "V25",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "private Editor origin/coordinator",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json",
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "editor.layers_precompose",
+      "declared_package": "Editor",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "private Editor origin/coordinator",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json",
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "editor.preview",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "export.encode",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "export/download/delivery materialization",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "face.detect",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "face.landmarks",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "face.parse",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "features.scene",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "training/style/apply generic plan",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "geometry.body",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "geometry.crop",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "hdr.merge",
+      "declared_package": "BASE",
+      "scope_status": "foundation_no_independent_current_product_producer",
+      "implementation_status": "not_a_product_task_claim",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "foundation_catalogue_only_no_current_task_producer",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "hdr.register",
+      "declared_package": "BASE",
+      "scope_status": "foundation_no_independent_current_product_producer",
+      "implementation_status": "not_a_product_task_claim",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "foundation_catalogue_only_no_current_task_producer",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "hdr.window_pull",
+      "declared_package": "BASE",
+      "scope_status": "foundation_no_independent_current_product_producer",
+      "implementation_status": "not_a_product_task_claim",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "foundation_catalogue_only_no_current_task_producer",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "identity.compare",
+      "declared_package": "V23",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "session/learning/capture dedicated admission",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run",
+      "scope_boundary": "MVP preset delivery/watch-folder assessment/available qualified identity primitive retained; accepted advanced-package deferral does not disable this operation wholesale."
+    },
+    {
+      "operation": "image.color",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "image.denoise",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "image.generate",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "image.inpaint",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "image.local",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "image.outpaint",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "image.reflection",
+      "declared_package": "V28",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "portrait/creative dedicated admission",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "image.relight",
+      "declared_package": "V28",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "portrait/creative dedicated admission",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "image.upscale",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "layer.compose",
+      "declared_package": "V25",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "V2 draft/renderer dedicated admission",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "learning.evaluate",
+      "declared_package": "V23",
+      "scope_status": "personal_learning_conditional_activation",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "session/learning/capture dedicated admission",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "learning.fit",
+      "declared_package": "V23",
+      "scope_status": "personal_learning_conditional_activation",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "session/learning/capture dedicated admission",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "mask.face_skin",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "mask.person",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "mask.prompt",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "mask.rasterize",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "mask.transform",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "media.preview",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "ingest/media materialization",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "media.thumbnail",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "ingest/media materialization",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "metadata.write",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "export/download/delivery materialization",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "optical.focus_stack",
+      "declared_package": "V29",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "optical dedicated draft/adoption",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "optical.lens",
+      "declared_package": "V25",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "optical dedicated draft/adoption",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "optical.negative",
+      "declared_package": "V29",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "optical dedicated draft/adoption",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "optical.panorama",
+      "declared_package": "V29",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "optical dedicated draft/adoption",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "optical.perspective",
+      "declared_package": "V29",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "optical dedicated draft/adoption",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "optical.perspective_lines",
+      "declared_package": "V29",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "optical dedicated draft/adoption",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "pair.fit.beauty",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "training/style/apply generic plan",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "pair.fit.body",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "training/style/apply generic plan",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "pair.fit.color",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "training/style/apply generic plan",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "pair.fit.defects",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "training/style/apply generic plan",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "pair.register",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "training/style/apply generic plan",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "portrait.beauty",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "portrait.clothing",
+      "declared_package": "V28",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "portrait/creative dedicated admission",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "portrait.detail",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "portrait.glare",
+      "declared_package": "V28",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "portrait/creative dedicated admission",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "portrait.hair",
+      "declared_package": "V28",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "portrait/creative dedicated admission",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "portrait.open_eyes",
+      "declared_package": "V28",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "portrait/creative dedicated admission",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "pose.detect",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "provenance.sign",
+      "declared_package": "V31",
+      "scope_status": "public_signing_conditional_activation",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "operator-qualified provenance dedicated admission",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "quality.check",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "region.preview",
+      "declared_package": "V26",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "V2 draft/renderer dedicated admission",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "render.compose",
+      "declared_package": "V26",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "V2 draft/renderer dedicated admission",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "report.contact_sheet",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "collection/apply/collection-task materialization",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "scene.parse",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Semantic native scene preparation",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run",
+      "current_producer": "backend/internal/semanticproposal/semantic_scene_stage_task.go:prepareSemanticSceneStageTask",
+      "current_authority": "backend/db/migrations/02551_semantic_transfer_scene_evidence.sql"
+    },
+    {
+      "operation": "semantic.adopt_shown_background_cleanup",
+      "declared_package": "V27",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "semantic proposal/preview/shown dedicated admission",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json",
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "semantic.adopt_shown_exposure",
+      "declared_package": "V27",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "semantic proposal/preview/shown dedicated admission",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json",
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "semantic.adopt_shown_removal",
+      "declared_package": "V27",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "semantic proposal/preview/shown dedicated admission",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json",
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "semantic.adopt_shown_retouch_region",
+      "declared_package": "V27",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "semantic proposal/preview/shown dedicated admission",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json",
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "semantic.local_exposure",
+      "declared_package": "V27",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "semantic proposal/preview/shown dedicated admission",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "semantic.preview_background_cleanup",
+      "declared_package": "V27",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "semantic proposal/preview/shown dedicated admission",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json",
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "semantic.preview_local_exposure",
+      "declared_package": "V27",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "semantic proposal/preview/shown dedicated admission",
+      "legacy_contract_registries": [],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run",
+      "supplemental_contract_authority": {
+        "params": "SemanticExposurePreviewInput",
+        "source": "workers/photo_worker/contracts/semantic_preview.py",
+        "producer": "workers/photo_worker/operations/semantic/preview_adapter.py",
+        "output_authority": "backend/db/migrations/02203_v27_preapply_preview_presentation_roles.sql",
+        "activation": "backend/db/migrations/02546_semantic_preview_activation_inventory.sql"
+      }
+    },
+    {
+      "operation": "semantic.preview_remove_object",
+      "declared_package": "V27",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "semantic proposal/preview/shown dedicated admission",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json",
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "semantic.preview_retouch_region",
+      "declared_package": "V27",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "semantic proposal/preview/shown dedicated admission",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json",
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "semantic.transfer",
+      "declared_package": "V27",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "semantic proposal/preview/shown dedicated admission",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "sensor.dust",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "sensor.dust_auto_repair",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "sensor.dust_repair",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "series.balance",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "series.measure",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "series.pack",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "Apply/Editor generic plans",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "session.describe",
+      "declared_package": "V22",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "session/learning/capture dedicated admission",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "session.plan",
+      "declared_package": "V22",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "session/learning/capture dedicated admission",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "storage.cleanup",
+      "declared_package": "BASE",
+      "scope_status": "removed_historical_not_current_operation",
+      "implementation_status": "not_a_product_task_claim",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "historical_registry_removed",
+      "current_family": "historical removed operation; maintenance GC uses its own protocol",
+      "legacy_contract_registries": [],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "style.aggregate",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "training/style/apply generic plan",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "style.import",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "training/style/apply generic plan",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "style.package",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "training/style/apply generic plan",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "style.resolve",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "training/style/apply generic plan",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "style.validate",
+      "declared_package": "BASE",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "training/style/apply generic plan",
+      "legacy_contract_registries": [
+        "packages/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "v2.delivery.assemble",
+      "declared_package": "V30",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "delivery prepare/assemble",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run",
+      "scope_boundary": "MVP preset delivery/watch-folder assessment/available qualified identity primitive retained; accepted advanced-package deferral does not disable this operation wholesale."
+    },
+    {
+      "operation": "v2.delivery.prepare",
+      "declared_package": "V30",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "delivery prepare/assemble",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run",
+      "scope_boundary": "MVP preset delivery/watch-folder assessment/available qualified identity primitive retained; accepted advanced-package deferral does not disable this operation wholesale."
+    },
+    {
+      "operation": "v2.interchange.export",
+      "declared_package": "V30",
+      "scope_status": "interchange_conditional_activation",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "interchange dedicated import/export",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "v2.interchange.import",
+      "declared_package": "V30",
+      "scope_status": "interchange_conditional_activation",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "interchange dedicated import/export",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "v2.interchange.parse",
+      "declared_package": "V30",
+      "scope_status": "interchange_conditional_activation",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "interchange dedicated import/export",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    },
+    {
+      "operation": "v2.semantic.assemble",
+      "declared_package": "V27",
+      "scope_status": "mvp_product_conditional_on_live_qualification",
+      "implementation_status": "source_reviewed_unverified",
+      "live_enabled": null,
+      "live_enabled_meaning": "Deployment-specific; derive only from current server capability and actual admission, never this static inventory.",
+      "classification": "product_task_producer_present; backend/installation/qualification conditional",
+      "current_family": "semantic proposal/preview/shown dedicated admission",
+      "legacy_contract_registries": [
+        "docs/implementation-v2/contracts/operations.json"
+      ],
+      "source_inventory": "audit/sql-admission-operation-source-inventory-2026-10-17.json",
+      "execution_evidence": "not_run"
+    }
+  ]
+}

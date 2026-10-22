@@ -14,6 +14,7 @@ def _fit(image:Image.Image,width:int,height:int)->Image.Image:
 
 
 def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
+    ctx.check_active()
     try:
         p=artifacts.params(ContactSheetParams);required=[entry.preview for entry in p.entries]+[p.font]
         if ctx.lease.execution_profile.get('backend')!='cpu' or list(ctx.lease.command.inputs)!=required:raise ValueError('Contact sheet input binding')
@@ -26,6 +27,7 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
         for page_index in range(page_count):
             ctx.check_active();start=page_index*per_page;entries=p.entries[start:start+per_page];canvas=Image.new('RGB',(width,height),'white');draw=ImageDraw.Draw(canvas)
             for offset,entry in enumerate(entries):
+                ctx.check_active()
                 try:
                     with artifacts.input(entry.preview,suffix={'image/jpeg':'.jpg','image/png':'.png','image/webp':'.webp'}[entry.media_type]) as local:
                         with Image.open(local.path) as source:thumb=_fit(source,p.cell_width-24,p.cell_height-58)
@@ -34,9 +36,11 @@ def execute(ctx:ExecutionContext,artifacts:TaskArtifacts)->OperationResult:
                 while label and draw.textbbox((0,0),label,font=font)[2]>p.cell_width-24:label=label[:-1]
                 if label!=entry.label:label=label[:-1]+'…' if len(label)>1 else '…'
                 draw.text((col*p.cell_width+12,row*p.cell_height+p.cell_height-38),label,fill='black',font=font)
+            ctx.check_active()
             with artifacts.scratch.reserve(width*height*3+1048576) as reservation:
-                path=reservation.path('contact-page','.png');canvas.save(path,format='PNG',optimize=True,compress_level=6);reservation.validate_file(path);ref=artifacts.stage(path,reservation,'contact_page','image/png');written+=path.stat().st_size
+                path=reservation.path('contact-page','.png');canvas.save(path,format='PNG',optimize=True,compress_level=6);reservation.validate_file(path);ctx.check_active();ref=artifacts.stage(path,reservation,'contact_page','image/png');written+=path.stat().st_size
             pages.append(ContactPage(artifact=ref,page=page_index+1,first_index=start,item_count=len(entries),width=width,height=height));ctx.progress(page_index+1,page_count+1)
+    ctx.check_active()
     manifest=ContactSheet(locale=p.locale,font_lock_id=p.font_lock_id,total_items=len(p.entries),pages=pages);manifest_ref=artifacts.stage_contract(manifest,'contact_sheet');ctx.progress(page_count+1,page_count+1);return OperationResult(outputs=[*[v.artifact for v in pages],manifest_ref],bytes_written=written+len(canonical_bytes(manifest)))
 
 

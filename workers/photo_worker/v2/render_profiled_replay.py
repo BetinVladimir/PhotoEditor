@@ -22,7 +22,7 @@ class ProfiledRenderReplay:
     """
     def __init__(self, *, backend, runtime_path, runtime_sha256, model_lock_sha,
                  icc_lock_sha, provider_peak, verify_qualification,
-                 load_providers, make_scratch, qualification_pin, check_active=lambda: None):
+                 load_providers, make_scratch, qualification_pin, check_active=lambda: None, provider_peak_for=None):
         if (backend not in ('cpu','cuda','mps') or any(not isinstance(value,str)
                 or re.fullmatch('[0-9a-f]{64}',value) is None
                 for value in (runtime_sha256,model_lock_sha,icc_lock_sha))
@@ -39,6 +39,8 @@ class ProfiledRenderReplay:
         self.backend=backend;self.runtime_path=runtime_path
         self.runtime_sha256=runtime_sha256;self.model_lock_sha=model_lock_sha;self.icc_lock_sha=icc_lock_sha
         self._peak=tuple(provider_peak.items())
+        if provider_peak_for is not None and not callable(provider_peak_for):raise AdoptionInvalid("RENDER_REPLAY_PROVIDERS_INVALID")
+        self._peak_for=provider_peak_for
         self.verify_qualification=verify_qualification;self.load_providers=load_providers
         self.make_scratch=make_scratch;self.check_active=check_active
 
@@ -83,7 +85,7 @@ class ProfiledRenderReplay:
             self.check_active()
             with prepare_authored_render(artifacts,inputs,supplied['operators'],supplied['scalar_overrides'],
                     supplied['render_base'],supplied['render_proposal'],self.verify_runtime,
-                    execution_profile=profile,provider_peak=dict(self._peak),tile_size=profile['tile_size'],
+                    execution_profile=profile,provider_peak=(dict(self._peak) if self._peak_for is None else self._peak_for(inputs,profile)),tile_size=profile['tile_size'],
                     alpha_mode=profile['alpha_mode'],source_result=source_parent,
                     check_active=self.check_active,**options) as prepared:
                 self.check_active()

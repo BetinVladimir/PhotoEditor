@@ -39,12 +39,15 @@ func serveImportReviewDecision(w http.ResponseWriter, r *http.Request, who auth.
 		return
 	}
 	if result.WorkflowID != workflowID || result.EntryID != req.EntryID || result.TargetVersionID != req.TargetVersionID ||
-		result.Kind != req.Kind || result.ProposalID != req.Proposal.ArtifactID || result.Epoch < 1 ||
+		result.Kind != req.Kind || result.ProposalID != req.Proposal.ArtifactID || result.Epoch < 1 || result.Epoch > 9007199254740991 || result.Epoch != req.ExpectedEpoch+1 ||
+		(req.Action != "grant" && req.Action != "revoke") ||
 		(req.Action == "grant" && result.Status != "granted") || (req.Action == "revoke" && result.Status != "revoked") {
 		writeError(w, r, domain.NewError("INTERCHANGE_DECISION_INVALID_RECEIPT", 503))
 		return
 	}
+	if r.Context().Err()!=nil{return}
 	writeJSON(w, http.StatusOK, result)
+
 }
 
 func serveImportReviewStatus(w http.ResponseWriter, r *http.Request, who auth.Identity, tenantID, projectID, workflowID, entryID, targetID uuid.UUID, kind string, proposalID uuid.UUID, decider InterchangeImportReviewDecider) {
@@ -61,5 +64,6 @@ func serveImportReviewStatus(w http.ResponseWriter, r *http.Request, who auth.Id
 		writeError(w, r, domain.NewError("INTERCHANGE_DECISION_INVALID_RECEIPT", 503))
 		return
 	}
+	if r.Context().Err()!=nil{return}
 	writeJSON(w, http.StatusOK, result)
 }

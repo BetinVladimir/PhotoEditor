@@ -55,7 +55,7 @@ func CommitRejections(ctx context.Context, tx pgx.Tx, tenant, intent, actor, ses
 	if _, err = tx.Exec(ctx, "SELECT set_config('app.tenant_id',$1,true)", tenant.String()); err != nil {
 		return empty, err
 	}
-	return idempotency.Use(ctx, tx, idempotency.Scope{Tenant: tenant, Principal: actor, PrincipalType: "user", Route: ApplyIdempotencyRoute, Key: key}, json.RawMessage(fingerprint), time.Now().Add(30*24*time.Hour), func() (idempotency.Response, error) {
+	return idempotency.Use(ctx, guardReceiptAuthority(tx, tenant, intent, actor, session, identity), idempotency.Scope{Tenant: tenant, Principal: actor, PrincipalType: "user", Route: ApplyIdempotencyRoute, Key: key}, json.RawMessage(fingerprint), time.Now().Add(30*24*time.Hour), func() (idempotency.Response, error) {
 		var body json.RawMessage
 		err := tx.QueryRow(ctx, `SELECT photo.commit_semantic_rejections($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb)`, tenant, intent, actor, session, key, prepared.Sources.Revision, string(fingerprint), published.Ref.ArtifactID, string(proof.Body), json.RawMessage(documents)).Scan(&body)
 		if err != nil {

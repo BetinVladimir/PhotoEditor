@@ -244,6 +244,14 @@
             }
           ],
           "default": null
+        },
+        "protections": {
+          "items": {
+            "$ref": "#/$defs/MaskRef"
+          },
+          "maxItems": 64,
+          "title": "Protections",
+          "type": "array"
         }
       },
       "required": [

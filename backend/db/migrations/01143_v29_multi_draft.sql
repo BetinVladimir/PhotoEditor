@@ -21,7 +21,7 @@ BEGIN
  params:=(plan->>'params_jcs')::jsonb;operation:=plan->>'operation';
  IF operation IS NULL OR operation NOT IN ('optical.panorama','optical.focus_stack') OR jsonb_typeof(params->'frames') IS DISTINCT FROM 'array' THEN RETURN false;END IF;
  count_frames:=jsonb_array_length(params->'frames');
- IF count_frames NOT BETWEEN 2 AND CASE operation WHEN 'optical.panorama' THEN 20 ELSE 30 END OR jsonb_array_length(plan->'sources_jcs')<>count_frames THEN RETURN false;END IF;
+ IF count_frames NOT BETWEEN 2 AND (CASE operation WHEN 'optical.panorama' THEN 20 ELSE 30 END) OR jsonb_array_length(plan->'sources_jcs')<>count_frames THEN RETURN false;END IF;
  profile:=plan->'execution_profile';pin:=profile->'multi_qualification';resources:=profile->'resource_estimate';
  v_run:=(plan->>'run_id')::uuid;v_project:=(plan->>'project_id')::uuid;v_snapshot:=(plan->>'snapshot_id')::uuid;
  IF v_run IS NULL OR v_project IS NULL OR v_snapshot IS NULL

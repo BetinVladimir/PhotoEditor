@@ -3,10 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -32,11 +30,12 @@ func TestIntegrationSemanticCreateDeployment(t *testing.T) {
 	if json.Unmarshal([]byte(os.Getenv("PHOTO_SEMANTIC_INTENT_PUBLISH_CASE")), &fixture) != nil {
 		t.Fatal("create fixture invalid")
 	}
+	applicationDSN, authDSN, schedulerDSN := sceneCreateApplicationLogins(t, ctx, dsn)
 	store, err := objectstore.New(fixture.Objects)
 	if err != nil {
 		t.Fatal("create fixture storage unavailable")
 	}
-	poolConfig, err := pgxpool.ParseConfig(dsn)
+	poolConfig, err := pgxpool.ParseConfig(applicationDSN)
 	if err != nil {
 		t.Fatal("create fixture database configuration unavailable")
 	}
@@ -61,20 +60,8 @@ func TestIntegrationSemanticCreateDeployment(t *testing.T) {
 	}
 	t.Setenv("PHOTO_V27_CREATE_CONFIG", path)
 	t.Setenv("PHOTO_ICC_ROOT", filepath.Join(root, "resources", "icc"))
-	roleDSN := func(role string) string {
-		if strings.HasPrefix(dsn, "postgres://") || strings.HasPrefix(dsn, "postgresql://") {
-			u, err := url.Parse(dsn)
-			if err != nil {
-				t.Fatal("create fixture DSN invalid")
-			}
-			query := u.Query()
-			query.Set("options", "-c role="+role)
-			u.RawQuery = query.Encode()
-			return u.String()
-		}
-		return dsn + " options='-c role=" + role + "'"
-	}
-	t.Setenv("V27_CREATE_SCHEDULER_DATABASE_URL", roleDSN("photo_scheduler"))
+
+	t.Setenv("V27_CREATE_SCHEDULER_DATABASE_URL", schedulerDSN)
 	service, closeService, err := buildSemanticCreate(ctx, api, store, fixture.Objects.Bucket)
 	if err != nil || service == nil || closeService == nil {
 		t.Fatal("configured create installation failed", err)
@@ -84,15 +71,15 @@ func TestIntegrationSemanticCreateDeployment(t *testing.T) {
 	if err := api.QueryRow(ctx, "SELECT current_user").Scan(&role); err != nil || role != "photo_api" {
 		t.Fatal("create close damaged caller API pool")
 	}
-	probeSemanticCreateExecutable(t, ctx, root, directory, path, dsn, roleDSN("photo_scheduler"), fixture.Objects, fixture.Tenant, fixture.Actor, fixture.Session, fixture.Intent)
+	probeSemanticCreateExecutable(t, ctx, root, directory, path, dsn, applicationDSN, authDSN, schedulerDSN, fixture.Objects, fixture.Tenant, fixture.Actor, fixture.Session, fixture.Intent)
 	// The same valid deployment cannot silently use API credentials to schedule.
-	t.Setenv("V27_CREATE_SCHEDULER_DATABASE_URL", roleDSN("photo_api"))
+	t.Setenv("V27_CREATE_SCHEDULER_DATABASE_URL", sceneCreateRoleDSN(t, applicationDSN, "photo_api"))
 	service, closeService, err = buildSemanticCreate(ctx, api, store, fixture.Objects.Bucket)
 	if err == nil || service != nil || closeService == nil {
 		t.Fatal("create startup accepted wrong scheduler role")
 	}
 	closeService()
-	t.Setenv("V27_CREATE_SCHEDULER_DATABASE_URL", roleDSN("photo_scheduler"))
+	t.Setenv("V27_CREATE_SCHEDULER_DATABASE_URL", schedulerDSN)
 	if os.WriteFile(path, []byte(`{"schema_version":1,"projects":[]}`), 0600) != nil {
 		t.Fatal("create fixture malformed configuration unavailable")
 	}

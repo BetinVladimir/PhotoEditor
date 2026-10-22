@@ -48,6 +48,8 @@ func ReadDelegatedSignedDependencyReceipt(ctx context.Context,
 	if err != nil { return SignedDependencyReceipt{}, false, err }
 	receipt.SignedObject.SHA256 = receipt.Signed.SHA256
 	receipt.ManifestObject.SHA256 = receipt.Manifest.SHA256
+	// v31_delivery_delegated_signed_receipt fixes this type in its WHERE proof.
+	receipt.ManifestObject.ContentType = "application/c2pa"
 	if receipt.Bucket != bucket || !validSignedDependencyReceipt(dependency, receipt) {
 		return SignedDependencyReceipt{}, false, v2input.ErrInvalid
 	}

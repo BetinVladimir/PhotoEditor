@@ -25,7 +25,7 @@ type SemanticQualificationPin struct {
 }
 
 func validSemanticQualificationPin(p SemanticQualificationPin) bool {
-	return p.PolicyID != uuid.Nil && p.QualificationID != uuid.Nil && p.IssuerID != uuid.Nil && p.Backend == "cuda" && validRef(p.Report) && validRef(p.Calibration) && p.Report.ArtifactID != p.Calibration.ArtifactID && digestPattern.MatchString(p.PolicySHA) && digestPattern.MatchString(p.ModelLockSHA) && digestPattern.MatchString(p.RuntimeLockSHA) && digestPattern.MatchString(p.DeviceProfileSHA) && digestPattern.MatchString(p.DatasetSHA)
+	return p.PolicyID != uuid.Nil && p.QualificationID != uuid.Nil && p.IssuerID != uuid.Nil && (p.Backend == "cuda" || p.Backend == "mps") && validRef(p.Report) && validRef(p.Calibration) && p.Report.ArtifactID != p.Calibration.ArtifactID && digestPattern.MatchString(p.PolicySHA) && digestPattern.MatchString(p.ModelLockSHA) && digestPattern.MatchString(p.RuntimeLockSHA) && digestPattern.MatchString(p.DeviceProfileSHA) && digestPattern.MatchString(p.DatasetSHA)
 }
 
 // CompileQualifiedSemanticSnapshotConfig extends full snapshot compilation
@@ -40,6 +40,12 @@ func CompileQualifiedSemanticSnapshotConfig(project, session, run uuid.UUID, sna
 		return SemanticDraftConfig{}, nil, "", err
 	}
 	for _, task := range tasks {
+		var profile struct {
+			Backend string `json:"backend"`
+		}
+		if json.Unmarshal(task.profile, &profile) != nil || profile.Backend != pin.Backend {
+			return SemanticDraftConfig{}, nil, "", ErrInvalid
+		}
 		params, err := DecodeSemanticTransferParams(task.closure.ParamsJCS)
 		if err != nil || params.ModelLockSHA != pin.ModelLockSHA || params.Calibration != pin.Calibration {
 			return SemanticDraftConfig{}, nil, "", ErrInvalid
@@ -61,7 +67,7 @@ func CompileQualifiedSemanticSnapshotConfig(project, session, run uuid.UUID, sna
 // SemanticQualificationPolicyHash hashes the full qualification acceptance
 // policy, with set fields sorted. Changes to checks/issuer/license invalidate it.
 func SemanticQualificationPolicyHash(policy uuid.UUID, e v2qualification.Expected) (string, error) {
-	if policy == uuid.Nil || e.Operation != "semantic.transfer" || e.Version != "1" || e.Backend != "cuda" || e.IssuerID == uuid.Nil || !e.LicenseCleared || !digestPattern.MatchString(e.ModelLockSHA) || !digestPattern.MatchString(e.RuntimeLockSHA) || !digestPattern.MatchString(e.DeviceProfileSHA) || !digestPattern.MatchString(e.DatasetSHA) || len(e.RequiredChecks) < 1 || len(e.RequiredChecks) > 1000 {
+	if policy == uuid.Nil || e.Operation != "semantic.transfer" || e.Version != "1" || (e.Backend != "cuda" && e.Backend != "mps") || e.IssuerID == uuid.Nil || !e.LicenseCleared || !digestPattern.MatchString(e.ModelLockSHA) || !digestPattern.MatchString(e.RuntimeLockSHA) || !digestPattern.MatchString(e.DeviceProfileSHA) || !digestPattern.MatchString(e.DatasetSHA) || len(e.RequiredChecks) < 1 || len(e.RequiredChecks) > 1000 {
 		return "", ErrInvalid
 	}
 	checks := append([]string(nil), e.RequiredChecks...)

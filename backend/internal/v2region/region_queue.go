@@ -53,9 +53,7 @@ func (s QueueService) Queue(ctx context.Context, who auth.Identity, tenant, asse
 	if who.SessionID == uuid.Nil || who.UserID == uuid.Nil || tenant == uuid.Nil || asset == uuid.Nil {
 		return empty, ErrRegionInvalid
 	}
-	if s.Preparation == nil || s.DB == nil || s.Scheduler == nil || s.Profiles == nil || (s.Dependencies == nil && (s.Resolver == nil || s.Params == nil || s.Closure == nil)) {
-		return empty, ErrRegionUnavailable
-	}
+	if s.DB == nil { return empty, ErrRegionUnavailable }
 	run, err := v2input.RunID(tenant, who.UserID, key)
 	if err != nil {
 		return empty, err
@@ -68,6 +66,11 @@ func (s QueueService) Queue(ctx context.Context, who auth.Identity, tenant, asse
 	if err != nil {
 		return empty, err
 	}
+
+
+ requestSHA,err:=regionRequestSHA(tenant,asset,request);if err!=nil{return empty,err}
+ if ticket,found,e:=s.acceptedRegion(ctx,who,tenant,asset,run,workflow,task,key,requestSHA,request);e!=nil||found{return ticket,e}
+ if s.Preparation == nil || s.Scheduler == nil || s.Profiles == nil || (s.Dependencies == nil && (s.Resolver == nil || s.Params == nil || s.Closure == nil)) { return empty, ErrRegionUnavailable }
 
 	// Avoid object downloads/publication and frozen orphan snapshots while disabled.
 	// This early check is advisory: Begin and Seal recheck live catalog authority.
@@ -136,14 +139,6 @@ func (s QueueService) Queue(ctx context.Context, who auth.Identity, tenant, asse
 		snapshot, e = prepared.Plan.FreezeSnapshotInTransaction(ctx, tx, who, key)
 		return e
 	})
-	if err != nil {
-		return empty, err
-	}
-	requestSHA, err := canonical.Hash(struct {
-		Tenant  uuid.UUID            `json:"tenant_id"`
-		Asset   uuid.UUID            `json:"asset_id"`
-		Request RegionPreviewRequest `json:"request"`
-	}{tenant, asset, request})
 	if err != nil {
 		return empty, err
 	}

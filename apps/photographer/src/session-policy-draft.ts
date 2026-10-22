@@ -1,3 +1,4 @@
+import {semanticJournalLock,type SemanticJournalLock} from './semantic-attempt-store';
 import type {DraftStorage} from './capture-draft-store';
 import {sessionName,editSessionPolicy} from './session-policy';
 import type {ShootSessionPolicy,ShootSessionUpdate} from './capture-types';
@@ -7,6 +8,8 @@ const prefix='photo.session-policy-draft.v1:',uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-
 const validID=(id:unknown):id is string=>typeof id==='string'&&uuid.test(id)&&id!=='00000000-0000-0000-0000-000000000000';
 const revokedScopes=new Map<string,number>();
 const scopeKey=(origin:string,tenant:string,session:string)=>JSON.stringify([origin,tenant,session]);
+const generationKey=(origin:string)=>'photo.session-policy-generation.v1:'+JSON.stringify(origin);
+const scopeGenerationKey=(scope:string)=>'photo.session-policy-scope-generation.v1:'+scope;
 const epochs=new Map<string,number>();let pending:Promise<unknown>=Promise.resolve();
 function enqueue<T>(action:()=>Promise<T>){const next=pending.catch(()=>{}).then(action);pending=next;return next;}
 export function parseSessionPolicyDraft(raw:string|null,session:string,now=Date.now()):SessionPolicyDraft|null{
@@ -21,18 +24,41 @@ export function parseSessionPolicyDraft(raw:string|null,session:string,now=Date.
  }catch{return null;}
 }
 /** Epoch changes before queueing deletes: pending writes cannot resurrect logged-out data. */
-export function clearSessionPolicyDrafts(storage:DraftStorage&{getAllKeys():Promise<readonly string[]>},origin:string){
+export function clearSessionPolicyDrafts(storage:DraftStorage&{getAllKeys():Promise<readonly string[]>},origin:string,lock:SemanticJournalLock=semanticJournalLock){
  epochs.set(origin,(epochs.get(origin)??0)+1);
- return enqueue(async()=>{for(const key of await storage.getAllKeys()){if(!key.startsWith(prefix))continue;let scope:unknown;try{scope=JSON.parse(key.slice(prefix.length));}catch{continue;}if(Array.isArray(scope)&&scope[0]===origin)await storage.removeItem(key);}});
+ return enqueue(()=>lock(origin,async()=>{await storage.setItem(generationKey(origin),crypto.randomUUID());for(const key of await storage.getAllKeys()){if(!key.startsWith(prefix))continue;let scope:unknown;try{scope=JSON.parse(key.slice(prefix.length));}catch{continue;}if(Array.isArray(scope)&&scope[0]===origin)await storage.removeItem(key);}}));
 }
 export class SessionPolicyDraftStore{
- readonly key:string;private epoch:number;private scope:string;private scopeEpoch:number;
- constructor(private storage:DraftStorage,private origin:string,user:string,tenant:string,private session:string){if(!origin||![user,tenant,session].every(validID))throw new Error('SESSION_DRAFT_SCOPE_INVALID');this.key=prefix+JSON.stringify([origin,user,tenant,session]);this.epoch=epochs.get(origin)??0;this.scope=scopeKey(origin,tenant,session);this.scopeEpoch=revokedScopes.get(this.scope)??0;}
- private valid(){return this.epoch===(epochs.get(this.origin)??0)&&this.scopeEpoch===(revokedScopes.get(this.scope)??0);}
- read(){return enqueue(async()=>{if(!this.valid())return null;const value=parseSessionPolicyDraft(await this.storage.getItem(this.key),this.session);if(!this.valid())return null;if(!value)await this.storage.removeItem(this.key);return value;});}
- write(value:SessionPolicyDraft){const parsed=parseSessionPolicyDraft(JSON.stringify(value),this.session);if(!parsed)return Promise.reject(new Error('SESSION_DRAFT_INVALID'));return enqueue(async()=>{if(this.valid())await this.storage.setItem(this.key,JSON.stringify(parsed));});}
- clearAttempt(key:string){return enqueue(async()=>{if(!this.valid())return false;const current=parseSessionPolicyDraft(await this.storage.getItem(this.key),this.session);if(!this.valid()||current?.attempt?.key!==key)return false;await this.storage.removeItem(this.key);return true;});}
- clear(){return enqueue(()=>this.storage.removeItem(this.key));}
+ readonly key:string;private epoch:number;private scope:string;private scopeEpoch:number;private expired=false;private generation:string|null|undefined;private scopeGeneration:string|null|undefined;
+ constructor(private storage:DraftStorage,private origin:string,user:string,tenant:string,private session:string,private lock:SemanticJournalLock=semanticJournalLock){if(!origin||![user,tenant,session].every(validID))throw new Error('SESSION_DRAFT_SCOPE_INVALID');this.key=prefix+JSON.stringify([origin,user,tenant,session]);this.epoch=epochs.get(origin)??0;this.scope=scopeKey(origin,tenant,session);this.scopeEpoch=revokedScopes.get(this.scope)??0;}
+ private transaction<T>(action:()=>Promise<T>){return enqueue(()=>this.lock(this.origin,async()=>{
+  const generation=await this.storage.getItem(generationKey(this.origin)),scopeGeneration=await this.storage.getItem(scopeGenerationKey(this.scope));
+  if(generation!==null&&!validID(generation)||scopeGeneration!==null&&!validID(scopeGeneration))throw new Error('SESSION_DRAFT_GENERATION_INVALID');
+  if(this.generation===undefined){this.generation=generation;this.scopeGeneration=scopeGeneration;}
+  else if(this.generation!==generation||this.scopeGeneration!==scopeGeneration)this.expired=true;
+  return action();
+ }));}
+ private valid(){return !this.expired&&this.epoch===(epochs.get(this.origin)??0)&&this.scopeEpoch===(revokedScopes.get(this.scope)??0);}
+ read(){return this.transaction(async()=>{if(!this.valid())return null;const value=parseSessionPolicyDraft(await this.storage.getItem(this.key),this.session);if(!this.valid())return null;if(!value)await this.storage.removeItem(this.key);return value;});}
+ write(value:SessionPolicyDraft,expectedAttemptKey?:string){const parsed=parseSessionPolicyDraft(JSON.stringify(value),this.session);if(!parsed)return Promise.reject(new Error('SESSION_DRAFT_INVALID'));return this.transaction(async()=>{
+  if(!this.valid())throw new Error('SESSION_DRAFT_SCOPE_EXPIRED');
+  const current=parseSessionPolicyDraft(await this.storage.getItem(this.key),this.session);
+  if(!this.valid())throw new Error('SESSION_DRAFT_SCOPE_EXPIRED');
+  if(expectedAttemptKey!==undefined){if(current?.attempt?.key!==expectedAttemptKey)throw new Error('SESSION_ATTEMPT_CHANGED');}
+  else if(current?.attempt&&(!parsed.attempt||current.attempt.key!==parsed.attempt.key||JSON.stringify(current.attempt.request)!==JSON.stringify(parsed.attempt.request)))throw new Error('SESSION_ATTEMPT_CHANGED');
+  await this.storage.setItem(this.key,JSON.stringify(parsed));
+ });}
+ /** Reserve lifecycle request atomically within the existing storage queue. */
+ reserveLifecycle(value:SessionPolicyDraft){const parsed=parseSessionPolicyDraft(JSON.stringify(value),this.session);if(!parsed?.attempt)return Promise.reject(new Error('SESSION_LIFECYCLE_ATTEMPT_INVALID'));return this.transaction(async()=>{
+  if(!this.valid())throw new Error('SESSION_DRAFT_SCOPE_EXPIRED');
+  const raw=await this.storage.getItem(this.key);if(!this.valid())throw new Error('SESSION_DRAFT_SCOPE_EXPIRED');
+  const current=parseSessionPolicyDraft(raw,this.session);
+  if(raw!==null&&!current)throw new Error('SESSION_DRAFT_INVALID');
+  if(current){if(!current.attempt)throw new Error('SESSION_LIFECYCLE_DRAFT_CONFLICT');if(current.attempt.key!==parsed.attempt!.key||JSON.stringify(current.attempt.request)!==JSON.stringify(parsed.attempt!.request))throw new Error('SESSION_LIFECYCLE_ATTEMPT_CONFLICT');return;}
+  await this.storage.setItem(this.key,JSON.stringify(parsed));if(!this.valid())throw new Error('SESSION_DRAFT_SCOPE_EXPIRED');
+ });}
+ clearAttempt(key:string){return this.transaction(async()=>{if(!this.valid())return false;const current=parseSessionPolicyDraft(await this.storage.getItem(this.key),this.session);if(!this.valid()||current?.attempt?.key!==key)return false;await this.storage.removeItem(this.key);return true;});}
+ clear(expectedAttemptKey?:string){return this.transaction(async()=>{if(!this.valid())throw new Error('SESSION_DRAFT_SCOPE_EXPIRED');const current=parseSessionPolicyDraft(await this.storage.getItem(this.key),this.session);if(expectedAttemptKey!==undefined?current?.attempt?.key!==expectedAttemptKey:!!current?.attempt)throw new Error('SESSION_ATTEMPT_CHANGED');await this.storage.removeItem(this.key);});}
 }
 
 /** Bounded raw fields: invalid partial input is a draft, never an admitted policy. */
@@ -47,9 +73,9 @@ export function parseSessionPolicyLocal(value:unknown):SessionPolicyLocal|null{
 }
 
 /** Access denial invalidates in-flight stores before serialized scoped deletion. */
-export function revokeSessionPolicyDrafts(storage:DraftStorage&{getAllKeys():Promise<readonly string[]>},origin:string,tenant:string,session:string){
+export function revokeSessionPolicyDrafts(storage:DraftStorage&{getAllKeys():Promise<readonly string[]>},origin:string,tenant:string,session:string,lock:SemanticJournalLock=semanticJournalLock){
  const scope=scopeKey(origin,tenant,session);revokedScopes.set(scope,(revokedScopes.get(scope)??0)+1);
- return enqueue(async()=>{for(const key of await storage.getAllKeys()){if(!key.startsWith(prefix))continue;let parts:unknown;try{parts=JSON.parse(key.slice(prefix.length));}catch{continue;}if(Array.isArray(parts)&&parts.length===4&&parts[0]===origin&&parts[2]===tenant&&parts[3]===session)await storage.removeItem(key);}});
+ return enqueue(()=>lock(origin,async()=>{await storage.setItem(scopeGenerationKey(scope),crypto.randomUUID());for(const key of await storage.getAllKeys()){if(!key.startsWith(prefix))continue;let parts:unknown;try{parts=JSON.parse(key.slice(prefix.length));}catch{continue;}if(Array.isArray(parts)&&parts.length===4&&parts[0]===origin&&parts[2]===tenant&&parts[3]===session)await storage.removeItem(key);}}));
 }
 
 export function parseSessionPolicyAttempt(value:unknown,session:string,now=Date.now()):SessionPolicyDraft['attempt']|null{

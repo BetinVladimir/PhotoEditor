@@ -49,7 +49,12 @@ func RestoreRegionDescriptor(ctx context.Context, objects RegionObjectReader, no
 		return RegionDescriptor{}, err
 	}
 	restored, err := freezeRegionPlan(tenant, asset, project, bucket, document.Request, source, recipe, evidence)
-	if err != nil || !bytes.Equal(restored.JSON(), frozen.JSON()) {
+	if err!=nil{return fail()}
+ if document.Execution!=nil{
+  restored,err=restored.freezeExecution(*document.Execution,document.Inputs)
+  if err!=nil{return fail()}
+ }
+ if !bytes.Equal(restored.JSON(), frozen.JSON()) {
 		return fail()
 	}
 	return restored.Descriptor(targetICC)

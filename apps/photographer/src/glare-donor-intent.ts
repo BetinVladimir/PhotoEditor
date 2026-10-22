@@ -41,3 +41,9 @@ export function readGlareDonorTicket(v:unknown):GlareDonorTicket{
  if(!fields(v,['run_id','workflow_id','task_id','state'])||!uuid(v.run_id)||!uuid(v.workflow_id)||!uuid(v.task_id)||v.state!=='queued')throw new Error('GLARE_DONOR_TICKET_INVALID');
  return {run_id:v.run_id,workflow_id:v.workflow_id,task_id:v.task_id,state:'queued'};
 }
+
+export function verifyGlareDonorRecoverySource(v:GlareDonorIntent,live:V2VersionBinding):GlareDonorIntent{
+ const frozen=freezeGlareDonorIntent(v),base=frozen.params_proposal.base;
+ if(!binding(live)||base.asset_version_id!==live.asset_version_id||base.canvas_hash!==live.canvas_hash||base.source.artifact_id!==live.source.artifact_id||base.source.sha256!==live.source.sha256)throw new Error('GLARE_DONOR_RECOVERY_SOURCE_CHANGED');
+ return frozen;
+}

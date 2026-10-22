@@ -64,3 +64,7 @@ func(r ImportCanonicalWarpNodeResolver)ResolveImportNode(ctx context.Context,ent
  final,err:=r.Catalog.LookupImportDocument(ctx,entry);if err!=nil{return ImportClosureNode{},err};if final!=object{return ImportClosureNode{},v2input.ErrInvalid}
  return ImportClosureNode{Entry:entry},ctx.Err()
 }
+
+func(r ImportNodeResolverRouter)AdditionalImportRoots(ctx context.Context)([]v2input.Entry,error){return r.Prepared.AdditionalImportRoots(ctx)}
+
+func(r ImportNodeResolverRouter)AdditionalImportRootsFor(ctx context.Context,reachable []v2input.Entry)([]v2input.Entry,error){return r.Prepared.AdditionalImportRootsFor(ctx,reachable)}

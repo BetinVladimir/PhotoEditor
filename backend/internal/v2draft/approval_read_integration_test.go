@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"strings"
+ "strconv"
 	"testing"
 	"time"
 
@@ -16,6 +17,11 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/canonical"
+ "photoeditor/backend/internal/domain"
+ "photoeditor/backend/internal/idempotency"
+ "photoeditor/backend/internal/tenant"
+ "photoeditor/backend/internal/v2resource"
+ "github.com/jackc/pgx/v5"
 	"photoeditor/backend/internal/objectstore"
 	"photoeditor/backend/internal/review"
 	"photoeditor/backend/internal/v2input"
@@ -53,6 +59,9 @@ func (s approvalReadStore) RecoverImmutable(_ context.Context, key string,
 	return objectstore.Object{Key: key, Bytes: length, SHA256: digest,
 		VersionID: "v1", ContentType: mediaType}, nil
 }
+
+type approvalReadHookStore struct { approvalReadStore; hook func() }
+func(s approvalReadHookStore)Open(ctx context.Context,obj objectstore.Object)(io.ReadCloser,error){reader,err:=s.approvalReadStore.Open(ctx,obj);if err==nil&&obj.Key=="layers"&&s.hook!=nil{s.hook()};return reader,err}
 
 func TestIntegrationReadApprovalDraftPinsCurrentDocument(t *testing.T) {
 	dsn := os.Getenv("PHOTO_TEST_DATABASE_URL")
@@ -188,6 +197,16 @@ func TestIntegrationReadApprovalDraftPinsCurrentDocument(t *testing.T) {
 	if e != nil || !bytes.Equal(layerRead, layerBody) {
 		t.Fatalf("pinned LayerStack read: %s %v", layerRead, e)
 	}
+ var layerDocumentID uuid.UUID
+ if e=admin.QueryRow(ctx,`SELECT id FROM photo.v2_documents WHERE tenant_id=$1 AND artifact_id=$2`,tenantID,layerArtifact).Scan(&layerDocumentID);e!=nil{t.Fatal(e)}
+ // Generic immutable LayerStack reads must repeat current project authority
+ // after object IO. This hook runs outside an API SQL transaction.
+ revoked:=service;revoked.Objects=approvalReadHookStore{approvalReadStore:store,hook:func(){if _,e:=admin.Exec(ctx,`UPDATE photo.projects SET archived_at=clock_timestamp() WHERE tenant_id=$1 AND id=$2`,tenantID,projectID);e!=nil{t.Fatal(e)}}}
+ if body,e:=revoked.GetDocument(ctx,who,tenantID,layerDocumentID);e==nil||len(body)!=0{t.Fatal("project withdrawal during layer IO exposed document",e)}
+ if _,e=admin.Exec(ctx,`UPDATE photo.projects SET archived_at=NULL WHERE tenant_id=$1 AND id=$2`,tenantID,projectID);e!=nil{t.Fatal(e)}
+ revoked.Objects=approvalReadHookStore{approvalReadStore:store,hook:func(){if _,e:=admin.Exec(ctx,`UPDATE photo.artifacts SET verified_at=NULL WHERE tenant_id=$1 AND id=$2`,tenantID,layerArtifact);e!=nil{t.Fatal(e)}}}
+ if body,e:=revoked.GetDocument(ctx,who,tenantID,layerDocumentID);e==nil||len(body)!=0{t.Fatal("withdrawn document pin exposed bytes",e)}
+ if _,e=admin.Exec(ctx,`UPDATE photo.artifacts SET verified_at=clock_timestamp() WHERE tenant_id=$1 AND id=$2`,tenantID,layerArtifact);e!=nil{t.Fatal(e)}
 	if _, e = service.GetLayerStack(ctx, who, tenantID, assetID, v2input.Ref{ArtifactID: layerArtifact, SHA256: strings.Repeat("f", 64)}); e == nil {
 		t.Fatal("changed layer SHA accepted")
 	}
@@ -385,6 +404,23 @@ func TestIntegrationReadApprovalDraftPinsCurrentDocument(t *testing.T) {
 	if err != nil || !replay.Replayed || !bytes.Equal(replay.Body, committed.Body) {
 		t.Fatal("approval replay", replay, err)
 	}
+ // The public domain entry point must recover this exact acknowledgement
+ // without the fresh model-lock selection which failed above.
+ beforeObjects:=len(store.bodies)
+ accepted,e:=service.Approve(ctx,who,tenantID,assetID,key,request)
+ if e!=nil||!accepted.Replayed||!bytes.Equal(accepted.Body,committed.Body)||len(store.bodies)!=beforeObjects{t.Fatal("accepted approval required fresh compilation",accepted,e)}
+ changed:=request;changed.ExpectedRevision="3"
+ if _,e=service.Approve(ctx,who,tenantID,assetID,key,changed);e==nil{t.Fatal("changed approval request replayed")}
+ // Advance the draft head using a legitimate immutable editing document. The
+ // old receipt remains an acknowledgement of its original approved document.
+ var nextDocument uuid.UUID
+ if e=admin.QueryRow(ctx,`INSERT INTO photo.v2_documents(tenant_id,project_id,stream_id,version_no,document_type,artifact_id,sha256) VALUES($1,$2,$3,3,'EditingRecipeV3',$4,$5) RETURNING id`,tenantID,projectID,streamID,recipeArtifactID,digest).Scan(&nextDocument);e!=nil{t.Fatal(e)}
+ if _,e=admin.Exec(ctx,`UPDATE photo.v2_document_streams SET current_document_id=$3,approved_document_id=NULL WHERE tenant_id=$1 AND id=$2`,tenantID,streamID,nextDocument);e!=nil{t.Fatal(e)}
+ accepted,e=service.Approve(ctx,who,tenantID,assetID,key,request)
+ if e!=nil||!accepted.Replayed||!bytes.Equal(accepted.Body,committed.Body){t.Fatal("later draft head blocked historical acknowledgement",accepted,e)}
+ if _,e=admin.Exec(ctx,`UPDATE photo.artifacts SET verified_at=NULL WHERE tenant_id=$1 AND id=$2`,tenantID,sourceID);e!=nil{t.Fatal(e)}
+ if _,e=service.Approve(ctx,who,tenantID,assetID,key,request);e==nil{t.Fatal("approval replay bypassed original source withdrawal")}
+ if _,e=admin.Exec(ctx,`UPDATE photo.artifacts SET verified_at=clock_timestamp() WHERE tenant_id=$1 AND id=$2`,tenantID,sourceID);e!=nil{t.Fatal(e)}
 	var approvals, audits int
 	if err = admin.QueryRow(ctx, "SELECT count(*) FROM photo.v2_document_approvals WHERE tenant_id=$1 AND document_id=$2", tenantID, documentID).Scan(&approvals); err != nil {
 		t.Fatal(err)
@@ -392,8 +428,33 @@ func TestIntegrationReadApprovalDraftPinsCurrentDocument(t *testing.T) {
 	if err = admin.QueryRow(ctx, "SELECT count(*) FROM photo.audit_log WHERE tenant_id=$1 AND resource_id=$2 AND action='v2_draft.approved'", tenantID, documentID).Scan(&audits); err != nil || approvals != 1 || audits != 1 {
 		t.Fatal("approval/audit cardinality", approvals, audits, err)
 	}
+ // Install a real immutable replacement document and exact API-role Use
+ // receipt, then advance the live head. Recovery must not invoke Publisher or
+ // demand that the historical command names today's editable head.
+ replacementKey:=uuid.NewString()
+ replacementDoc:=stableDraftID(tenantID,who.UserID,assetID,replacementKey,"recipe")
+ if _,e=admin.Exec(ctx,`INSERT INTO photo.v2_documents(id,tenant_id,project_id,stream_id,version_no,document_type,artifact_id,sha256) VALUES($1,$2,$3,$4,4,'EditingRecipeV3',$5,$6)`,replacementDoc,tenantID,projectID,streamID,recipeArtifactID,digest);e!=nil{t.Fatal(e)}
+ var replacementRevision int64
+ if e=admin.QueryRow(ctx,`UPDATE photo.v2_document_streams SET current_document_id=$3 WHERE tenant_id=$1 AND id=$2 RETURNING revision`,tenantID,streamID,replacementDoc).Scan(&replacementRevision);e!=nil{t.Fatal(e)}
+ replacementRequest:=ReplaceRequest{ExpectedRevision:strconv.FormatInt(replacementRevision-1,10),Recipe:recipe,Layers:json.RawMessage(`null`)}
+ var replacementReceipt idempotency.Response
+ e=tenant.WithTenant(ctx,api,who,tenantID,domain.Editor,func(tx pgx.Tx,_ domain.Role)error{
+  var er error
+  replacementReceipt,er=idempotency.Use(ctx,tx,idempotency.Scope{Tenant:tenantID,Principal:who.UserID,PrincipalType:"user",Route:"Draft.Replace."+assetID.String(),Key:replacementKey},replacementRequest,time.Now().Add(time.Hour),func()(idempotency.Response,error){raw,er:=v2resource.Load(ctx,tx,tenantID,streamID,"v2_document_streams");return idempotency.Response{Status:200,ResourceID:&streamID,Body:raw},er})
+  return er
+ });if e!=nil{t.Fatal(e)}
+ if _,e=admin.Exec(ctx,`UPDATE photo.v2_document_streams SET current_document_id=$3 WHERE tenant_id=$1 AND id=$2`,tenantID,streamID,nextDocument);e!=nil{t.Fatal(e)}
+ beforeObjects=len(store.bodies)
+ replaced,e:=service.Replace(ctx,who,tenantID,assetID,replacementKey,replacementRequest)
+ if e!=nil||!replaced.Replayed||!bytes.Equal(replaced.Body,replacementReceipt.Body)||len(store.bodies)!=beforeObjects{t.Fatal("historical replacement did not replay before fresh publication",replaced,e)}
+ changedReplace:=replacementRequest;changedReplace.Layers=json.RawMessage(`{}`)
+ if _,e=service.Replace(ctx,who,tenantID,assetID,replacementKey,changedReplace);e==nil{t.Fatal("replacement key accepted changed body")}
+ if _,e=admin.Exec(ctx,`UPDATE photo.artifacts SET verified_at=NULL WHERE tenant_id=$1 AND id=$2`,tenantID,sourceID);e!=nil{t.Fatal(e)}
+ if _,e=service.Replace(ctx,who,tenantID,assetID,replacementKey,replacementRequest);e==nil{t.Fatal("replacement replay bypassed source withdrawal")}
+ if _,e=admin.Exec(ctx,`UPDATE photo.artifacts SET verified_at=clock_timestamp() WHERE tenant_id=$1 AND id=$2`,tenantID,sourceID);e!=nil{t.Fatal(e)}
+
 	store.bodies["recipe"] = []byte(`{}`)
-	if _, err = service.ReadApprovalDraft(ctx, who, tenantID, assetID, documentID, 2); err == nil {
-		t.Fatal("accepted modified object bytes")
+	if _, err = service.GetDocument(ctx, who, tenantID, documentID); err == nil {
+		t.Fatal("accepted modified historical object bytes")
 	}
 }

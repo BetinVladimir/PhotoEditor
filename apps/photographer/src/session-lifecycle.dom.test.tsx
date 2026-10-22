@@ -4,7 +4,7 @@ import {render,screen,fireEvent,waitFor,cleanup,act} from '@testing-library/reac
 import type {ShootSession} from './capture-types';
 import en from '../../../locales/en/common.json';
 vi.mock('react-native',async()=>import('react-native-web'));
-vi.mock('./locale-context',()=>({useLocale:()=>({t:(key:keyof typeof en)=>en[key]})}));
+vi.mock('./locale-context',async()=>{const __factory=()=>({useLocale:()=>({t:(key:keyof typeof en)=>en[key]})});const __out=await __factory();const {withUILocaleDouble}=await import('./test/locale-double');return {...__out,useLocale:()=>withUILocaleDouble(__out.useLocale())};});
 import {SessionLifecycle} from './session-lifecycle';
 const session={id:'session',revision:'3',name:'Shoot',state:'open',policy:{time_gap_seconds:60,neighbor_count:2},capture_policy:null} as ShootSession;
 afterEach(cleanup);

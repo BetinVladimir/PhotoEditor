@@ -30,7 +30,7 @@ export async function readMultiReplacementResult(api:Pick<OwnerAPI,'get'|'multiP
  const current=status as Record<string,unknown>;
  if(current.run_id!==owned.run||current.workflow_id!==owned.workflow)throw new Error('MULTI_RESULT_SCOPE_CHANGED');
  if(current.state==='draft'||current.state==='queued'||current.state==='running'||current.state==='cancelling')return {state:'pending',workflow_state:current.state};
- if(current.state==='failed'||current.state==='cancelled')return {state:'terminal',workflow_state:current.state};
+ if(current.state==='failed'||current.state==='cancelled'||current.state==='completed_with_errors')return {state:'terminal',workflow_state:current.state};
  if(current.state!=='waiting_review'&&current.state!=='completed')throw new Error('MULTI_RESULT_UNAVAILABLE');
  const value=await api.multiProposal(owned.operation,owned.project,owned.task,owned.intent,signal);active();
  return {state:'available',proposal:readMultiProposal(value,owned.tenant,owned.project,owned.task,owned.operation,owned.intent)};

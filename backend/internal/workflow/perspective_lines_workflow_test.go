@@ -38,8 +38,11 @@ func TestPerspectiveLinesWorkflowProofRequiresPolicyAndVerifiedSameSource(t *tes
 	if _, _, err := perspectiveLinesWorkflowProof(f.plan, policy, changed, "photos"); err == nil {
 		t.Fatal("foreign run accepted")
 	}
-	if _, _, err := perspectiveLinesWorkflowProof(f.plan, policy, verified, "other-bucket"); err == nil {
-		t.Fatal("foreign bucket accepted")
+	// The object store DTO carries no bucket; the witness names the configured
+	// bucket and installed SQL compares it to every authorized locator. This
+	// pure compiler cannot prove an alternate bucket absent catalog evidence.
+	if _, witness, err := perspectiveLinesWorkflowProof(f.plan, policy, verified, "other-bucket"); err != nil || !bytes.Contains(witness, []byte(`"bucket":"other-bucket"`)) {
+		t.Fatal("configured bucket missing from SQL witness", err)
 	}
 }
 

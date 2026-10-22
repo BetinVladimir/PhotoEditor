@@ -1,3 +1,4 @@
+import {readDeadline} from './read-deadline';
 import type {ApiClient,SemanticChildStatus} from '@photoeditor/api-client';
 type Client=Pick<ApiClient,'semanticChildStatus'>;
 type State={status:SemanticChildStatus|null;failed:boolean};
@@ -21,7 +22,7 @@ class Channel{
  private async poll(){
   const controller=this.controller;
   let current:SemanticChildStatus;
-  try{current=await this.client.semanticChildStatus(this.tenant,this.run,controller.signal);}catch{if(!controller.signal.aborted){this.state={status:null,failed:true};for(const watch of [...this.watches])this.deliver(watch);}return;}
+  try{current=await readDeadline(controller.signal,signal=>this.client.semanticChildStatus(this.tenant,this.run,signal));}catch{if(!controller.signal.aborted){this.state={status:null,failed:true};for(const watch of [...this.watches])this.deliver(watch);}return;}
   if(controller.signal.aborted)return;this.state={status:structuredClone(current),failed:false};
   const watches=[...this.watches];for(const watch of watches)this.deliver(watch);
   if(terminal(current)){for(const watch of watches)this.finish(watch);return;}

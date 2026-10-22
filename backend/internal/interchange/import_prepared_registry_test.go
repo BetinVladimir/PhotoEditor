@@ -57,7 +57,7 @@ func TestPreparedRecipeRegistryRequiresCompleteQualificationAndFreshRootRead(t *
   leaf:=[]byte(`{}`)
   scope.Binding=v2input.SessionVersionBinding{AssetVersionID:uuid.New(),Source:v2input.Ref{ArtifactID:uuid.New(),SHA256:rawSHA(leaf)},CanvasHash:rawSHA([]byte("canvas"))}
   style:=v2input.Ref{ArtifactID:uuid.New(),SHA256:rawSHA(leaf)}
-  raw,err:=canonical.Marshal(map[string]any{"schema_version":3,"source":scope.Binding,"base_style":style,"session_corrections":nil,"learning_version_id":nil,"overrides":[]v2input.Ref{},"layer_stack":nil,"protected_mask":nil,"renderer_version":"v2.2","parameter_delta":map[string]any{"ev":0,"log_r":0,"log_g":0,"log_b":0,"saturation_delta":0,"retouch_delta":0}});if err!=nil{t.Fatal(err)}
+  raw,err:=canonical.Marshal(map[string]any{"schema_version":3,"source":scope.Binding,"base_style":style,"session_corrections":nil,"learning_version_id":nil,"overrides":[]v2input.Ref{},"layer_stack":nil,"renderer_version":"v2.2","parameter_delta":map[string]any{"ev":0,"log_r":0,"log_g":0,"log_b":0,"saturation_delta":0,"retouch_delta":0}});if err!=nil{t.Fatal(err)}
   ref:=v2input.Ref{ArtifactID:uuid.NewSHA1(scope.Workflow,[]byte("interchange:recipe:"+scope.Entry.String())),SHA256:rawSHA(raw)}
   registry:=&ImportPreparedNodeRegistry{}
   catalog:=&importCatalogStub{object:objectstore.Object{Key:"root",VersionID:"v1",SHA256:ref.SHA256,Bytes:int64(len(raw)),ContentType:"application/json"}}

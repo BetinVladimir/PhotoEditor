@@ -6,7 +6,7 @@ describe('RAW upload persistence',()=>{
  it('owns and persists the selected policy before Begin and restores it unchanged',async()=>{
   let stored:UploadRecord[]=[];let begun:UploadRecord|undefined;
   const persistence:UploadPersistence={load:async()=>stored,save:async value=>{stored=structuredClone(value)}};
-  const api={begin:async(record:UploadRecord)=>{begun=structuredClone(record);throw new Error('fixture offline')}} as MultipartAPI;
+  const api={begin:async(record:UploadRecord)=>{begun=structuredClone(record);throw new Error('fixture offline')}} as unknown as MultipartAPI;
   const policy={schema_version:1 as const,demosaic:'ahd' as const,wb_source:'camera' as const,exposure_ev:1.5,highlight_policy:'blend' as const,decoder_version:'rawpy-0.27.1/libraw-0.21.4'};
   const queue=new UploadQueue(api,persistence);
   const record=await queue.enqueue({...source(),name:'frame.nef'},{tenant:'t',projectId:'p',rawDevelopment:policy});
@@ -59,7 +59,7 @@ describe('multipart response admission',()=>{
   const begun={id:'u',part_bytes:4,parts_total:3};
   if(mode==='zero bytes')begun.part_bytes=0;if(mode==='fraction bytes')begun.part_bytes=1.5;if(mode==='too large bytes')begun.part_bytes=16777217;if(mode==='fraction total')begun.parts_total=3.5;if(mode==='wrong total')begun.parts_total=2;if(mode==='too many parts'){begun.part_bytes=1;begun.parts_total=10001}
   const read=vi.fn(async(a:number,b:number)=>new Uint8Array(b-a));
-  const api:MultipartAPI={begin:vi.fn(async()=>begun),sign:vi.fn(async(_id,parts)=>{const links=parts.map(part_no=>({part_no,url:'fixture:part'}));if(mode==='duplicate parts')links[1].part_no=links[0].part_no;if(mode==='foreign part')links[0].part_no=3;if(mode==='empty URL')links[0].url='';return links}),put:vi.fn(async()=>mode==='invalid etag'?'bad\nvalue':'etag'),complete:vi.fn(async()=>{}),abort:vi.fn(async()=>{})};
+  const api:MultipartAPI={begin:vi.fn(async()=>begun),sign:vi.fn(async(_id,parts)=>{const links=parts.map((part_no:number)=>({part_no,url:'fixture:part'}));if(mode==='duplicate parts')links[1].part_no=links[0].part_no;if(mode==='foreign part')links[0].part_no=3;if(mode==='empty URL')links[0].url='';return links}),put:vi.fn(async()=>mode==='invalid etag'?'bad\nvalue':'etag'),complete:vi.fn(async()=>{}),abort:vi.fn(async()=>{})};
   const queue=new UploadQueue(api,{load:async()=>[],save:async()=>{}});
   const failed=new Promise<void>(resolve=>queue.subscribe(()=>{if(queue.records[0]?.state==='error')resolve()}));
   await queue.enqueue({...source(),read},{tenant:'t',projectId:'p'});await failed;
@@ -79,11 +79,11 @@ describe('upload remote recovery',()=>{
   const settled=new Promise<void>(resolve=>queue.subscribe(()=>{if(queue.records[0].state===expected)resolve()}));
   await queue.resume('restore',source());await settled;
   expect(api.sign).not.toHaveBeenCalled();expect(api.put).not.toHaveBeenCalled();expect(api.complete).not.toHaveBeenCalled();
-  if(state==='completing'||state==='verifying'){api.status=vi.fn(async()=>({id:'u',part_bytes:4,parts_total:3,state:'verified'}));await queue.refresh('restore');expect(queue.records[0].state).toBe('complete')}
+  if(state==='completing'||state==='verifying'){api.status=vi.fn(async()=>({id:'u',part_bytes:4,parts_total:3,state:'verified' as const}));await vi.waitFor(async()=>{await queue.refresh('restore');expect(queue.records[0].state).toBe('complete')})}
   queue.close();
  });
  it('refuses substituted current upload identity before signing',async()=>{
-  const api:MultipartAPI={begin:vi.fn(async()=>({id:'u',part_bytes:9,parts_total:1})),status:vi.fn(async()=>({id:'foreign',part_bytes:9,parts_total:1,state:'uploading'})),sign:vi.fn(),put:vi.fn(),complete:vi.fn(),abort:vi.fn()};
+  const api:MultipartAPI={begin:vi.fn(async()=>({id:'u',part_bytes:9,parts_total:1})),status:vi.fn(async()=>({id:'foreign',part_bytes:9,parts_total:1,state:'uploading' as const})),sign:vi.fn(),put:vi.fn(),complete:vi.fn(),abort:vi.fn()};
   const queue=new UploadQueue(api,{load:async()=>[],save:async()=>{}});const failed=new Promise<void>(resolve=>queue.subscribe(()=>{if(queue.records[0]?.state==='error')resolve()}));
   await queue.enqueue(source(),{tenant:'t',projectId:'p'});await failed;expect(api.sign).not.toHaveBeenCalled();expect(queue.records[0].error).toBe('upload session changed');queue.close();
  });
@@ -184,7 +184,7 @@ describe('multipart batch settlement',()=>{
  it('retains the running attempt until every sibling PUT settles after a failure',async()=>{
   let release!:()=>void,entered!:()=>void,failed!:()=>void;
   const gate=new Promise<void>(r=>{release=r}),started=new Promise<void>(r=>{entered=r}),failure=new Promise<void>(r=>{failed=r});
-  const complete=vi.fn(async()=>{}),sign=vi.fn(async(_id:string,parts:number[])=>parts.map(part_no=>({part_no,url:String(part_no)})));
+  const complete=vi.fn(async()=>{}),sign=vi.fn(async(_id:string,parts:number[])=>parts.map((part_no:number)=>({part_no,url:String(part_no)})));
   const api:MultipartAPI={begin:async()=>({id:'u',part_bytes:4,parts_total:3}),sign,put:async url=>{
    if(url==='1')throw new Error('part failed');entered();await gate;return 'etag';
   },complete,abort:async()=>{}};
@@ -198,7 +198,7 @@ describe('multipart batch settlement',()=>{
  it('drains a delayed sibling after pause before restarting',async()=>{
   let release!:()=>void,entered!:()=>void,finished!:()=>void;let delayed=true;
   const gate=new Promise<void>(r=>{release=r}),started=new Promise<void>(r=>{entered=r}),done=new Promise<void>(r=>{finished=r});
-  const sign=vi.fn(async(_id:string,parts:number[])=>parts.map(part_no=>({part_no,url:String(part_no)})));
+  const sign=vi.fn(async(_id:string,parts:number[])=>parts.map((part_no:number)=>({part_no,url:String(part_no)})));
   const api:MultipartAPI={begin:async()=>({id:'u',part_bytes:4,parts_total:3}),sign,put:async url=>{
    if(delayed&&url==='2'){entered();await gate}return 'etag';
   },complete:async()=>{},abort:async()=>{}};
@@ -225,7 +225,7 @@ describe('Abort recovers unknown Begin',()=>{
   await queue.restore();await expect(queue.abort('original-key')).rejects.toThrow('offline');expect(queue.records[0].state).toBe('error');expect(abort).not.toHaveBeenCalled();await queue.abort('original-key');expect(begin.mock.calls.map(call=>call[0].localId)).toEqual(['original-key','original-key']);expect(queue.records[0].state).toBe('aborted');queue.close();
  });
  it('refuses malformed recovered layout without adopting its identity or calling Abort',async()=>{
-  const abort=vi.fn(async()=>{});const queue=new UploadQueue({begin:async()=>({id:'recovered',part_bytes:0,parts_total:1}),abort} as MultipartAPI,{load:async()=>[pendingRecord()],save:async()=>{}});
+  const abort=vi.fn(async()=>{});const queue=new UploadQueue({begin:async()=>({id:'recovered',part_bytes:0,parts_total:1}),abort} as unknown as MultipartAPI,{load:async()=>[pendingRecord()],save:async()=>{}});
   await queue.restore();await expect(queue.abort('original-key')).rejects.toThrow('UPLOAD_CHECKPOINT_INVALID');expect(queue.records[0].uploadId).toBeUndefined();expect(abort).not.toHaveBeenCalled();queue.close();
  });
 });
@@ -327,4 +327,19 @@ it('isolates in-flight PUT bytes from a source-owned reusable buffer',async()=>{
  const file={...source(),size:3,read:async()=>bytes};const queue=new UploadQueue(api,{load:async()=>[],save:async()=>{}});await queue.enqueue(file,{tenant:'t',projectId:'p'});await started;
  expect(sent).not.toBe(bytes);expect(sent?.byteLength).toBe(3);backing.fill(7);release();
  for(let i=0;i<60&&queue.records[0].state!=='complete';i++)await Promise.resolve();expect(queue.records[0].state).toBe('complete');queue.close();
+});
+
+describe('explicit missing ICC policy',()=>{
+ it.each(['srgb_v1','linear_srgb_v1','work_rec2020_gamma24_v1'] as const)('persists and restores %s before Begin',async assumeProfile=>{
+  let stored:UploadRecord[]=[];let begun:UploadRecord|undefined;
+  const persistence:UploadPersistence={load:async()=>stored,save:async rows=>{stored=structuredClone(rows)}};
+  const api={begin:async(row:UploadRecord)=>{begun=structuredClone(row);throw new Error('offline')}} as unknown as MultipartAPI;
+  const q=new UploadQueue(api,persistence);const scope={tenant:'t',projectId:'p',assumeProfile};await q.enqueue(source(),scope);scope.assumeProfile='srgb_v1';
+  for(let i=0;i<20&&!begun;i++)await Promise.resolve();expect(begun?.assumeProfile).toBe(assumeProfile);
+  q.close();const restored=new UploadQueue(api,persistence);await restored.restore();expect(restored.records[0].assumeProfile).toBe(assumeProfile);restored.close();
+ });
+ it.each([null,'sRGB','unknown',{},5])('refuses malformed persisted profile %s',async assumeProfile=>{
+  const row={localId:'l',tenant:'t',projectId:'p',...source(),parts:[],state:'paused',assumeProfile} as unknown as UploadRecord;
+  const save=vi.fn();const q=new UploadQueue({} as MultipartAPI,{load:async()=>[row],save});await expect(q.restore()).rejects.toThrow('UPLOAD_PROFILE_INVALID');expect(q.records).toEqual([]);expect(save).not.toHaveBeenCalled();
+ });
 });

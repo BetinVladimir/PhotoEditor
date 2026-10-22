@@ -117,6 +117,12 @@ func (s Service) pinRecipeSelection(ctx context.Context, who auth.Identity, tid 
 		if err := tx.QueryRow(ctx, `SELECT request_hash,response_body,expires_at>clock_timestamp(),response_status FROM photo.idempotency_records WHERE tenant_id=$1 AND principal_type='user' AND principal_id=$2 AND route=$3 AND key=$4 FOR UPDATE`, tid, who.UserID, route, key).Scan(&hash, &body, &live, &status); err != nil {
 			return err
 		}
+		if err := tx.QueryRow(ctx, `SELECT photo.v25_lens_snapshot_ready($1,$2,$3,$4,$5) AND EXISTS(SELECT 1 FROM photo.projects WHERE tenant_id=$1 AND id=$2 AND archived_at IS NULL AND download_allowed)`, tid, intent.request.ProjectID, intent.request.SnapshotID, who.UserID, who.SessionID).Scan(&authorized); err != nil {
+			return err
+		}
+		if !authorized {
+			return domain.NewError("DELIVERY_SOURCE_STALE", 409)
+		}
 		if hash != intent.requestSHA {
 			return domain.NewError("IDEMPOTENCY_CONFLICT", 409)
 		}

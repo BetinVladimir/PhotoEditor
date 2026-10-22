@@ -58,13 +58,13 @@ func TestCreateDeliveryHTTPValidationAndTicket(t *testing.T) {
 				expected = 422
 			case "duplicate":
 				payload = payload[:len(payload)-1] + `,"name":"other"}`
-				expected = 422
+				expected = 400
 			case "missing-policy":
 				payload = `{"project_id":"` + request.ProjectID.String() + `","snapshot_id":"` + request.SnapshotID.String() + `","name":"Delivery"}`
 				expected = 422
 			}
 			stub := &deliveryCreateStub{mode: mode}
-			r := httptest.NewRequest("POST", "/", strings.NewReader(payload))
+			r := newJSONTestRequest("POST", "/", strings.NewReader(payload))
 			r.Header.Set("Idempotency-Key", key)
 			w := httptest.NewRecorder()
 			serveCreateDelivery(w, r, who, tid, stub)
@@ -84,7 +84,7 @@ func TestCreateDeliveryHTTPValidationAndTicket(t *testing.T) {
 func TestCreateDeliveryRouteRequiresSession(t *testing.T) {
 	s := &Server{Auth: &auth.Service{Pepper: []byte("delivery-create")}}
 	w := httptest.NewRecorder()
-	s.Routes().ServeHTTP(w, httptest.NewRequest("POST", "/api/v1/tenants/"+uuid.NewString()+"/delivery-packages", strings.NewReader(`{}`)))
+	s.Routes().ServeHTTP(w, newJSONTestRequest("POST", "/api/v1/tenants/"+uuid.NewString()+"/delivery-packages", strings.NewReader(`{}`)))
 	if w.Code != 401 {
 		t.Fatalf("status=%d", w.Code)
 	}

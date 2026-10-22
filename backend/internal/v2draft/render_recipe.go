@@ -107,7 +107,13 @@ func DecodeFrozenRenderRecipe(raw []byte) (FrozenRenderRecipe, error) {
 		return invalid()
 	}
 	scalars := frozen.Scalars
-	if scalars.SchemaVersion != 1 || scalars.RendererVersion != "v2.2" || !scalars.EffectiveDelta.valid() || !correctionDigest(scalars.ICCLockSHA) || !correctionDigest(scalars.ModelLockSHA) || !isDocumentRef(scalars.BaseStyle) || v2input.ValidateEditingRecipeV3(frozen.Recipe, scalars.Source) != nil {
+	recipeValid := v2input.ValidateEditingRecipeV3(frozen.Recipe, scalars.Source) == nil
+	if !recipeValid {
+		// A receipt is only a typed shape here. Dedicated final-run SQL and
+		// independent worker replay must still establish its live authority.
+		recipeValid = v2input.ValidateExecutedEditingRecipeV3(frozen.Recipe, scalars.Source) == nil && scalars.EffectiveDelta == (CorrectionVector{}) && frozen.Learning == nil && frozen.BackgroundAsset == nil
+	}
+	if scalars.SchemaVersion != 1 || scalars.RendererVersion != "v2.2" || !scalars.EffectiveDelta.valid() || !correctionDigest(scalars.ICCLockSHA) || !correctionDigest(scalars.ModelLockSHA) || !isDocumentRef(scalars.BaseStyle) || !recipeValid {
 		return invalid()
 	}
 	digest := sha256.Sum256(frozen.Recipe)

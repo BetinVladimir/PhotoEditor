@@ -56,6 +56,7 @@ type regionObjectPin struct {
 	Bytes   int64       `json:"bytes"`
 }
 type regionPlanDocument struct {
+    Execution *RegionExecutionDescriptor `json:"execution,omitempty"`
 	Inputs        []v2input.Entry         `json:"inputs"`
 	SchemaVersion int                     `json:"schema_version"`
 	TenantID      uuid.UUID               `json:"tenant_id"`
@@ -81,7 +82,7 @@ func freezeRegionPlan(tenant, asset, project uuid.UUID, bucket string, req Regio
 		return FrozenRegionPlan{}, err
 	}
 	// Global recipe operators must see the original canvas before cropping.
-	document := regionPlanDocument{inputs, 1, tenant, project, asset, req, pin(source), pin(recipe), evidence.Recipe, evidence.Geometry, "full_canvas_then_crop_then_downscale"}
+	document := regionPlanDocument{Inputs:inputs,SchemaVersion:1,TenantID:tenant,ProjectID:project,AssetID:asset,Request:req,Source:pin(source),Recipe:pin(recipe),FrozenRecipe:evidence.Recipe,Geometry:evidence.Geometry,RenderOrder:"full_canvas_then_crop_then_downscale"}
 	body, err := canonical.Marshal(document)
 	if err != nil {
 		return FrozenRegionPlan{}, ErrRegionInvalid

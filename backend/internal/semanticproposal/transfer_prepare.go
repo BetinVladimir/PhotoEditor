@@ -16,20 +16,30 @@ type TransferPersonProtection struct {
 	Expected v2qualification.Expected
 }
 
+// Scene is operator policy and independently qualified scene/depth producers.
+// It never accepts thresholds or qualification locators from an API caller.
+type TransferScenePreparation struct {
+	Policy json.RawMessage
+	Scene  TransferSceneProducer
+	Depth  TransferSceneProducer
+}
+
 // TransferPreparation is deployment-selected; protection refs must be selected
 // by the required protection policy, not copied from caller input.
 type TransferPreparation struct {
-	legacyNativeQueueOmitted bool
+	legacyNativeQueueOmitted    bool
 	legacyAllTargetQueueOmitted bool
-	Qualification              v2input.SemanticQualificationPin
-	Expected                   v2qualification.Expected
-	Color                      TransferColorProfile
-	Costs                      v2input.SemanticQualifiedCosts
-	RAM, VRAM, Scratch, Output int64
-	MetadataBytes              int64
+	sceneEvidence               []json.RawMessage
+	Qualification               v2input.SemanticQualificationPin
+	Expected                    v2qualification.Expected
+	Color                       TransferColorProfile
+	Costs                       v2input.SemanticQualifiedCosts
+	RAM, VRAM, Scratch, Output  int64
+	MetadataBytes               int64
 	// Nil retains the internal blocked-draft scaffold only. Public create requires
 	// complete person/defect policy authority and final admission inventory locks.
 	PersonProtection *TransferPersonProtection
+	Scene            *TransferScenePreparation
 	SourceProtection v2input.Ref
 	TargetProtection []v2input.Ref
 }
@@ -201,7 +211,7 @@ func (s SQLTransferSourceReader) prepareTransferInputs(ctx context.Context, who 
 			}
 			targetPerson = &proof
 		}
-		profile, err := v2input.CompileSemanticTransferProfile(reference.Width, reference.Height, metadata.Width, metadata.Height, reference.Gamma, metadata.Gamma, configuration.Costs, configuration.RAM, configuration.VRAM, configuration.Scratch, configuration.Output)
+		profile, err := v2input.CompileSemanticTransferProfileForBackend(configuration.Expected.Backend, reference.Width, reference.Height, metadata.Width, metadata.Height, reference.Gamma, metadata.Gamma, configuration.Costs, configuration.RAM, configuration.VRAM, configuration.Scratch, configuration.Output)
 		if err != nil {
 			return nil, nil, err
 		}

@@ -31,8 +31,8 @@ func TestShareValidationAndOptionalExpiry(t *testing.T) {
 	if _, _, _, _, err := normalizeShare("", SharePermissions{}, base, "owner_review", nil, nil, now); err == nil {
 		t.Fatal("empty permissions accepted")
 	}
-	if _, _, _, _, err := normalizeShare("", SharePermissions{Download: true}, base, "owner_review", nil, nil, now); err == nil {
-		t.Fatal("download without view accepted")
+	if _, _, _, _, err := normalizeShare("", SharePermissions{Download: true}, base, "owner_review", nil, nil, now); err != nil {
+		t.Fatalf("independent download permission rejected: %v",err)
 	}
 	bad := base
 	bad.AllowedFormats = []string{"svg"}
@@ -49,4 +49,12 @@ func TestShareValidationAndOptionalExpiry(t *testing.T) {
 	if json.Unmarshal([]byte(`{"expires_at":null}`), &null) != nil || !null.Expires.Set || null.Expires.Value != nil {
 		t.Fatal("null expiry")
 	}
+}
+
+func TestShareWireOmitsNilTimesAndSecretButRetainsNullableSlices(t *testing.T){
+ row:=Share{ID:uuid.New(),CollectionID:uuid.New(),Label:"",Permissions:json.RawMessage(`{"view":true,"download":false,"upload":false}`),Limits:json.RawMessage(`{"max_upload_files":0,"max_upload_bytes_total":1,"max_file_bytes":1,"allowed_formats":null}`),Moderation:"owner_review",AllowedPresets:json.RawMessage(`null`),PolicyVersion:"1",CreatedAt:time.Date(2026,10,17,10,0,0,0,time.UTC)}
+ body,err:=json.Marshal(ShareCreated{Share:row});if err!=nil{t.Fatal(err)};var fields map[string]json.RawMessage;if err=json.Unmarshal(body,&fields);err!=nil{t.Fatal(err)}
+ for _,key:=range []string{"expires_at","revoked_at","secret","Replayed"}{if _,ok:=fields[key];ok{t.Fatalf("unexpected omitted field %s: %s",key,body)}}
+ if len(fields)!=9||string(fields["allowed_presets"])!="null"||string(fields["policy_version"])!=`"1"`{t.Fatalf("actual wire shape %s",body)}
+ fresh,err:=json.Marshal(ShareCreated{Share:row,Secret:strings.Repeat("A",43)});if err!=nil{t.Fatal(err)};if !strings.Contains(string(fresh),`"secret":"`+strings.Repeat("A",43)+`"`){t.Fatalf("fresh secret omitted %s",fresh)}
 }

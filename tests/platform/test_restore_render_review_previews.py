@@ -46,7 +46,7 @@ def test_review_previews_pin_both_sides_before_decision(monkeypatch,mode):
         if side in cached and not (mode=='changed_catalogue' and catalogue_reads[side]>1):
             return cached[side]
         value=NS(source=ref,variant='preview1600',profile_hash=m.media_profile_hash(
-            'preview1600',sha256(b'P'*128).hexdigest()),manifest=NS(),image=NS(),
+            'preview1600',sha256(b'P'*128).hexdigest()),manifest=NS(revision=catalogue_reads[side] if mode=='changed_catalogue' else 1),image=NS(),
             manifest_object=NS(),image_object=NS())
         cached[side]=value
         return value
@@ -75,7 +75,7 @@ def test_review_previews_pin_both_sides_before_decision(monkeypatch,mode):
         result=run();assert result.pending==pending
         assert result.before.verified.source==source_ref and result.after.verified.source==after_ref
         assert catalogue_reads=={'before':2,'after':2}
-        assert pending_reads[0]==2
+        assert pending_reads[0]==3
     else:
         with pytest.raises((ValueError,RuntimeError)):run()
         assert 'after download' not in events if mode in ('missing','changed_pending') else True

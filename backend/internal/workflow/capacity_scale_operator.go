@@ -31,6 +31,11 @@ type ScaleUpRequest struct {
 // configured operator provisioner. Job parameters and tenant input cannot
 // install a provisioner or override the maximum node count.
 func ApplyScaleUp(ctx context.Context, request ScaleUpRequest, provisioner NodeProvisioner) (string, error) {
+	// A retained operator action must not create paid capacity after its caller
+	// has cancelled. Provider-side idempotency still owns uncertain outcomes.
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	if request.Pool != "cpu" && request.Pool != "gpu" && request.Pool != "signer" ||
 		!capacityPolicySHA.MatchString(request.PolicySHA) ||
 		request.MaximumNodes < 1 || request.CurrentNodes < 1 || request.CurrentNodes >= request.MaximumNodes ||
@@ -44,6 +49,9 @@ func ApplyScaleUp(ctx context.Context, request ScaleUpRequest, provisioner NodeP
 	}
 	if provisioner == nil {
 		return "", errors.New("operator provisioner unavailable")
+	}
+	if err := ctx.Err(); err != nil {
+		return "", err
 	}
 	node, err := provisioner.ProvisionNode(ctx, request.Pool, request.PolicySHA, request.IdempotencyKey, request.MaximumNodes)
 	if err != nil {

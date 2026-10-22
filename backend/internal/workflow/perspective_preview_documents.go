@@ -115,7 +115,7 @@ func PublishPerspectivePreviewTasks(ctx context.Context, db *pgxpool.Pool, objec
 	if db == nil || objects == nil || bundle.Source() != plan.source {
 		return nil, objectstore.ErrInvalid
 	}
-	rebuilt, err := CompilePerspectivePreviewPlan(bundle, plan.srgb)
+	rebuilt, err := CompilePerspectivePreviewPlan(bundle, plan.srgb,plan.policy)
 	if err != nil {
 		return nil, err
 	}

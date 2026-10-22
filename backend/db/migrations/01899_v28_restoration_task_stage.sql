@@ -51,17 +51,17 @@ BEGIN
    '","sha256":"'||(ref->>'sha256')||'"}}';
   first_item:=false;prior:=aid;
  END LOOP;
- IF params_count<>1 OR array_count<CASE WHEN donor_mode THEN 4 ELSE 3 END
+ IF params_count<>1 OR array_count<(CASE WHEN donor_mode THEN 4 ELSE 3 END)
  OR (SELECT count(*) FROM jsonb_array_elements(p_entries) e WHERE e->>'contract'='Params')<>1
  OR (SELECT count(*) FROM jsonb_array_elements(p_entries) e WHERE e->>'contract'='Report')<>1
  OR (SELECT count(*) FROM jsonb_array_elements(p_entries) e WHERE e->>'contract'='Calibration')<>1
  OR (SELECT count(*) FROM jsonb_array_elements(p_entries) e WHERE e->>'contract'='MaskRef')<>2
  OR (SELECT count(*) FROM jsonb_array_elements(p_entries) e WHERE e->>'contract'='WorkingImage')<>
-  CASE WHEN donor_mode THEN 2 ELSE 1 END
+  (CASE WHEN donor_mode THEN 2 ELSE 1 END)
  OR (SELECT count(*) FROM jsonb_array_elements(p_entries) e WHERE e->>'contract'='FaceObservations')<>
-  CASE WHEN p_operation='portrait.glare' THEN CASE WHEN donor_mode THEN 2 ELSE 1 END ELSE 0 END
+  (CASE WHEN p_operation='portrait.glare' THEN CASE WHEN donor_mode THEN 2 ELSE 1 END ELSE 0 END)
  OR (SELECT count(*) FROM jsonb_array_elements(p_entries) e WHERE e->>'contract'='DonorConfirmation')<>
-  CASE WHEN p_operation='portrait.glare' THEN 1 ELSE 0 END
+  (CASE WHEN p_operation='portrait.glare' THEN 1 ELSE 0 END)
  THEN RETURN false;END IF;
  FOR required_contract,required_ref IN
   SELECT * FROM (VALUES('WorkingImage'::text,source),('MaskRef'::text,target),

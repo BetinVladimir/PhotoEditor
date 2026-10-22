@@ -1,5 +1,5 @@
 from sqlite3 import connect
-from uuid import uuid4
+from uuid import UUID, uuid4
 import pytest
 from photo_worker.contracts.base import ArtifactRef
 from photo_worker.v2.input_closure import V2InputIndex, V2InputsInvalid
@@ -44,7 +44,7 @@ def test_declared_entries_rejects_invalid_limit(limit):
 def test_exact_typed_entry_rejects_wrong_sha_and_contract():
     index, rows = index_fixture()
     try:
-        ref = ArtifactRef(artifact_id=rows[0][0], sha256=rows[0][1])
+        ref = ArtifactRef(artifact_id=UUID(rows[0][0]), sha256=rows[0][1])
         index.require_entry(ref, rows[0][2])
         with pytest.raises(V2InputsInvalid, match='TASK_INPUT_CONTRACT_MISMATCH'):
             index.require_entry(ref, 'NpyArray')

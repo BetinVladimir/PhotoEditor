@@ -28,7 +28,7 @@ func (s SQLTransferSourceReader) marshalPersonQualificationProof(ctx context.Con
 		return nil, v2input.ErrInvalid
 	}
 	q := proof.report
-	if retained.Operation != "mask.person" || retained.Backend != "cuda" || retained.Version != "1" || q.contract != "QualificationReport" || q.backend != retained.Backend || q.ref.ArtifactID == uuid.Nil || q.object.SHA256 != q.ref.SHA256 || q.object.Key == "" || q.object.VersionID == "" || q.object.VersionID == "null" || q.object.Bytes < 2 || q.object.Bytes > 8<<20 {
+	if retained.Operation != "mask.person" || (retained.Backend != "cuda" && retained.Backend != "mps") || retained.Version != "1" || q.contract != "QualificationReport" || q.backend != retained.Backend || q.ref.ArtifactID == uuid.Nil || q.object.SHA256 != q.ref.SHA256 || q.object.Key == "" || q.object.VersionID == "" || q.object.VersionID == "null" || q.object.Bytes < 2 || q.object.Bytes > 8<<20 {
 		return nil, v2input.ErrInvalid
 	}
 	if _, err := domain.ParseDigest(q.ref.SHA256); err != nil {

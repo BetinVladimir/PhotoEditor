@@ -60,7 +60,8 @@ func qualifyImportRestorationRuntimeReport(ctx context.Context,operation string,
  if objects==nil||lookup==nil||!validImportRef(report)||len(policy)<2||len(policy)>8<<20{return v2input.ErrInvalid}
  frozen:=append([]byte(nil),policy...)
  var expected v2qualification.Expected;if err:=json.Unmarshal(frozen,&expected);err!=nil{return err}
- if (operation!="image.denoise"&&operation!="image.upscale"&&operation!="color.stats"&&operation!="mask.person")||expected.Operation!=operation||expected.Version!="1"{return v2input.ErrInvalid}
+ if (operation!="image.denoise"&&operation!="image.upscale"&&operation!="color.stats"&&operation!="mask.person"&&operation!="defects.auto_repair"&&operation!="sensor.dust_auto_repair")||expected.Operation!=operation||expected.Version!="1"{return v2input.ErrInvalid}
+ if (operation=="defects.auto_repair"||operation=="sensor.dust_auto_repair")&&expected.Backend!="cpu"{return v2input.ErrInvalid}
  before,err:=lookup();if err!=nil{return err}
  if err:=ctx.Err();err!=nil{return err}
  if before.SHA256!=report.SHA256||before.ContentType!="application/json"||before.Bytes<2||before.Bytes>8<<20||before.Key==""||before.VersionID==""||before.VersionID=="null"{return v2input.ErrInvalid}

@@ -8,7 +8,7 @@ import (
 )
 
 func TestRestorationResultSelectionKeepsRejectedCandidateOutOfApply(t *testing.T) {
-	for _, kind := range []string{"portrait.glare", "portrait.open_eyes", "image.reflection"} {
+	for _, kind := range []string{"portrait.glare", "portrait.open_eyes", "image.reflection", "image.relight"} {
 		t.Run(kind, func(t *testing.T) {
 			snapshot := CandidateSnapshot{TenantID: uuid.New(), ReviewID: uuid.New(), RunID: uuid.New(), Revision: 1, State: "pending", Kind: kind, Candidate: ArtifactRef{ID: uuid.New(), SHA256: strings.Repeat("a", 64)}, Base: ArtifactRef{ID: uuid.New(), SHA256: strings.Repeat("b", 64)}}
 			actor := uuid.New()

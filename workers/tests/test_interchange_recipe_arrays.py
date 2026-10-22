@@ -114,7 +114,7 @@ def test_canonical_pixel_identity_cannot_claim_two_shapes(tmp_path):
 @pytest.mark.parametrize('mode', ['valid', 'wrong_shape', 'nan'])
 def test_dense_warp_uses_occurrence_output_grid_before_final_resize(tmp_path, mode, contract):
     from photo_worker.contracts.images import DenseWarpTransform, ResizeTransform, Rect, TransformChain
-    _, _, raw_image = adopted_fixture()
+    _, _, _, raw_image = adopted_fixture()
     image = WorkingImage.model_validate_json(raw_image)
     intermediate = image.canvas.model_copy(deep=True)
     intermediate.width = image.canvas.width + 1
@@ -154,7 +154,7 @@ def test_dense_warp_uses_occurrence_output_grid_before_final_resize(tmp_path, mo
 @pytest.mark.parametrize('contract,accepted', [('MaskArray', True), ('MaskPixels', True),
     ('PixelArray', False), ('WorkingAlpha', False), ('DenseWarpField', False), ('NpyArray', False)])
 def test_transport_role_aliases_preserve_mask_witness_authority(tmp_path, contract, accepted):
-    _, _, raw_image = adopted_fixture()
+    _, _, _, raw_image = adopted_fixture()
     image = WorkingImage.model_validate_json(raw_image)
     values = np.full((image.canvas.height,image.canvas.width), .5, dtype=np.float32)
     output = BytesIO();np.save(output, values, allow_pickle=False);raw = output.getvalue()
@@ -184,7 +184,7 @@ def test_transport_role_aliases_preserve_mask_witness_authority(tmp_path, contra
 
 
 def test_normative_mask_array_alpha_requires_canonical_image_witness(tmp_path):
-    _, _, raw_image = adopted_fixture()
+    _, _, _, raw_image = adopted_fixture()
     image = WorkingImage.model_validate_json(raw_image)
     output = BytesIO();np.save(output,np.ones((image.canvas.height,image.canvas.width),dtype=np.float32),allow_pickle=False)
     raw = output.getvalue();ref = ArtifactRef(artifact_id=uuid4(),sha256=sha256(raw).hexdigest())
@@ -206,7 +206,7 @@ def test_normative_mask_array_alpha_requires_canonical_image_witness(tmp_path):
 
 @pytest.mark.parametrize('changed', ['none', 'bytes', 'media', 'source', 'role', 'ref'])
 def test_array_rechecks_evidence_after_physical_io(tmp_path, changed):
-    _, _, raw_image = adopted_fixture()
+    _, _, _, raw_image = adopted_fixture()
     image = WorkingImage.model_validate_json(raw_image)
     output = BytesIO();np.save(output,np.ones((image.canvas.height,image.canvas.width,3),dtype=np.float32),allow_pickle=False)
     raw = output.getvalue();image.pixels = ArtifactRef(artifact_id=uuid4(),sha256=sha256(raw).hexdigest())
@@ -369,7 +369,7 @@ def test_absolute_lut_uses_resolved_witness_and_production_reader(tmp_path, mode
     value['absolute_lut'] = dict(artifact=json.loads(canonical_bytes(reference)), size=size,
         dtype='float32', order='RGB_C', profile_id='work_rec2020_gamma24_v1')
     value['hash'] = canonical_hash({key: item for key, item in value.items() if key != 'hash'})
-    resolved = ResolvedStyle.model_validate(value)
+    resolved = ResolvedStyle.model_validate_json(canonical_bytes(value))
     class Reader:
         opens = 0
         observations = 0
@@ -395,3 +395,45 @@ def test_absolute_lut_uses_resolved_witness_and_production_reader(tmp_path, mode
         else:
             with pytest.raises(ValueError): qualifier(reference, 'AbsoluteLUTArray', binding)
         if mode == 'unwitnessed': assert reader.opens == 0
+
+
+@pytest.mark.parametrize('mode', ['valid', 'different_pixels', 'hash', 'no_report', 'cancel'])
+def test_defect_png_is_exact_deterministic_diagnostic_of_attested_labels(tmp_path, mode):
+    from photo_worker.contracts.defects import DefectCandidates, DefectProposeParams, DefectProposeReport
+    from photo_worker.algorithms.mask_png import write_png16
+    _, _, _, raw_image = adopted_fixture()
+    image = WorkingImage.model_validate_json(raw_image)
+    labels = np.zeros((image.canvas.height, image.canvas.width), dtype=np.uint16)
+    output = BytesIO(); np.save(output, labels, allow_pickle=False); raw_labels = output.getvalue()
+    label_ref = ArtifactRef(artifact_id=uuid4(), sha256=sha256(raw_labels).hexdigest())
+    binding = VersionBinding(asset_version_id=uuid4(), source=ArtifactRef(artifact_id=uuid4(),
+        sha256=sha256(canonical_bytes(image)).hexdigest()), canvas_hash=canonical_hash(image.canvas))
+    proposal = DefectCandidates(image=binding.source, source_pixels=image.pixels, label_map=label_ref,
+        canvas=image.canvas, transform_chain=image.transform_chain, candidates=[])
+    proposal_ref = ArtifactRef(artifact_id=uuid4(), sha256=sha256(canonical_bytes(proposal)).hexdigest())
+    png_labels = labels.copy()
+    if mode == 'different_pixels': png_labels[0, 0] = 1
+    png_output = BytesIO(); write_png16(png_labels, png_output, max_bytes=1 << 20)
+    png_raw = png_output.getvalue()
+    png_ref = ArtifactRef(artifact_id=uuid4(), sha256=sha256(png_raw).hexdigest())
+    protected = MaskRef(artifact=ArtifactRef(artifact_id=uuid4(), sha256='a' * 64),
+        canvas=image.canvas, transform_chain=image.transform_chain, object_id=None,
+        selector='manual', confidence=1, model_lock_id=None, protected=True)
+    report = DefectProposeReport(params=DefectProposeParams(image=binding.source, faces=[]),
+        proposal=proposal_ref, protection=protected, label_png=png_ref, faces=[], warnings=['no_faces'])
+    class Reader:
+        def evidence(self, ref):
+            raw = png_raw if ref.artifact_id == png_ref.artifact_id else raw_labels
+            return ArtifactEvidence(ref, 'image/png' if ref.artifact_id == png_ref.artifact_id else 'application/x-npy', len(raw), None, 'input')
+        def iter_bytes(self, ref, maximum):
+            if mode == 'cancel' and ref.artifact_id == png_ref.artifact_id: raise RuntimeError('cancelled')
+            raw = png_raw if ref.artifact_id == png_ref.artifact_id else raw_labels
+            yield b'x' + raw[1:] if mode == 'hash' and ref.artifact_id == png_ref.artifact_id else raw
+    with ScratchSpace(tmp_path, uuid4(), uuid4(), 1, 1 << 20, min_free_bytes=0) as scratch:
+        qualifier = PreparedImportArrayQualifier(canonical_images=[(binding, image)], reader=Reader(), scratch=scratch, max_file_bytes=1 << 20)
+        qualifier.register_defect_proposal(binding, proposal)
+        if mode != 'no_report': qualifier.register_defect_report(binding, report)
+        if mode == 'valid': assert qualifier(png_ref, 'DefectLabelPNG', binding) is True
+        else:
+            with pytest.raises((AdoptionInvalid, RuntimeError)):
+                qualifier(png_ref, 'DefectLabelPNG', binding)

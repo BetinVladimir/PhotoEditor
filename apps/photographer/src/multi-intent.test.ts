@@ -44,8 +44,8 @@ describe('multi intent and durable retry',()=>{
   const first=new MultiAttempt('optical.panorama',id(7),'first',fixture('optical.panorama'),panorama).snapshot;
   await panorama.write(first);expect(await focus.read()).toBeNull();
   await expect(panorama.clear('first')).rejects.toThrow();
-  const changed=structuredClone(first);changed.body.params.frames.reverse();await expect(panorama.write(changed)).rejects.toThrow();
-  const foreign=structuredClone(first);foreign.operation='optical.focus_stack';await expect(focus.write(foreign)).rejects.toThrow();
+  const changed=structuredClone(first);changed.body.params.frames.reverse();await expect(async()=>panorama.write(changed)).rejects.toThrow();
+  const foreign=structuredClone(first);foreign.operation='optical.focus_stack';await expect(async()=>focus.write(foreign)).rejects.toThrow();
   await clearMultiAttempts(storage,'https://example.test',lock);
   await expect(panorama.read()).rejects.toThrow();await expect(focus.read()).rejects.toThrow();
   expect([...values.keys()].filter(k=>k.startsWith('photo.multi-attempt.v1:'))).toHaveLength(0);

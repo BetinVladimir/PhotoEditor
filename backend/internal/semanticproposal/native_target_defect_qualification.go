@@ -27,7 +27,7 @@ func (s SQLTransferSourceReader) targetDefectQualificationDigest(ctx context.Con
 	if q.preparationSeal != p.seal || !validQualificationPolicySnapshot(s, who, tenant, q.policy) || !reflect.DeepEqual(q.policy, p.landmarksPlan.detector.detector.policy) || q.costs.VRAMBytes != 0 {
 		return "", v2input.ErrConflict
 	}
-	selected, err := selectQualificationPolicies(q.policy, []string{"defects.propose"})
+	selected, err := selectNativeQualificationPolicies(q.policy, []string{"defects.propose"})
 	if err != nil {
 		return "", err
 	}
@@ -71,7 +71,7 @@ func (s SQLTransferSourceReader) prepareNativeTargetDefectQualification(ctx cont
 	if !reflect.DeepEqual(policy, p.landmarksPlan.detector.detector.policy) || costs.VRAMBytes != 0 {
 		return zero, v2input.ErrConflict
 	}
-	selected, err := selectQualificationPolicies(policy, []string{"defects.propose"})
+	selected, err := selectNativeQualificationPolicies(policy, []string{"defects.propose"})
 	if err != nil {
 		return zero, err
 	}
@@ -101,7 +101,7 @@ func (s SQLTransferSourceReader) recheckNativeTargetDefectQualification(ctx cont
 	if err := s.recheckNativeTargetDefectPreparation(ctx, who, p, color); err != nil {
 		return err
 	}
-	selected, err := selectQualificationPolicies(q.policy, []string{"defects.propose"})
+	selected, err := selectNativeQualificationPolicies(q.policy, []string{"defects.propose"})
 	if err != nil {
 		return err
 	}

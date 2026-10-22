@@ -66,6 +66,8 @@ def run_fixture_render_review_previews(connection,tenant_id,adoption,physical,pe
     for side,ref,image in (('before',source_binding.source,source),
                            ('after',pending.candidate,after)):
         guard()
+        if side=='after' and current()!=pending:
+            raise ValueError('RESTORE_RENDER_REVIEW_PREVIEWS_PENDING_CHANGED')
         def catalogue():
             if side=='before':
                 try:

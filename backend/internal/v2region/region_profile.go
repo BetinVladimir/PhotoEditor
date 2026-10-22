@@ -82,7 +82,7 @@ func CompileRegionExecutionPolicy(plan FrozenRegionPlan, cost RegionQualifiedCos
 		return invalid()
 	}
 	const safe int64 = 9007199254740991
-	// CUDA qualification must provide a measured positive device peak; no CPU or
+	// GPU qualification must provide a measured positive device peak; no CPU or
 	// unknown-device fallback is allowed for Region task admission.
 	if cost.VRAMBytes < 1 {
 		return invalid()
@@ -103,11 +103,33 @@ func CompileRegionExecutionPolicy(plan FrozenRegionPlan, cost RegionQualifiedCos
 	// Source budget includes row/tile validation. Full rendered RGB+alpha stays
 	// live through presentation. Reserve all ROI conversion/resize temporaries,
 	// a 3GiB StyleV2 parser floor, encoded derivative and bounded JSON manifest.
-	const outputCap int64 = 16*1024*1024 + 8*1024*1024
+ // All native geometry contexts remain retained until presentation completes.
+ // Count each actual target canvas, not original ROI dimensions; body linear
+ // premultiplication needs a further16 bytes/pixel plus bounded tiles.
+ retainedPixels:=source.PixelCount
+ geometryRAM:=int64(0)
+ geometryScratch:=int64(0)
+ if document.Execution!=nil{
+  for _,stage:=range document.Execution.Stages{
+   pixels:=stage.TargetCanvas.Width*stage.TargetCanvas.Height
+   if pixels<1||pixels>200000000{return invalid()}
+   if len(stage.Transform)>0{retainedPixels+=pixels}
+   if stage.Operation=="image.color"{geometryRAM+=12*pixels+8192;geometryScratch+=12*pixels+8192}
+   if stage.Operation=="geometry.body"{geometryRAM+=44*pixels+16*65536;geometryScratch+=24*pixels+2*1024*1024}
+   if stage.Operation=="portrait.detail"{geometryRAM+=max(int64(1073741824),(164+4*stage.InputMaskCount)*pixels+1048576);geometryScratch+=(16+4*stage.InputMaskCount)*pixels+16384}
+   if stage.Operation=="image.local"{geometryRAM+=(4+4*stage.InputMaskCount)*pixels+1048576;geometryScratch+=4*stage.InputMaskCount*pixels+1048576}
+   if stage.Operation=="sensor.dust_auto_repair"||stage.Operation=="defects.auto_repair"||stage.Operation=="sensor.dust_repair"||stage.Operation=="defects.repair"{geometryRAM+=max(int64(1073741824),(164+4*stage.InputMaskCount)*pixels+268435456);geometryScratch+=(48+4*stage.InputMaskCount)*pixels+1048576}
+   if stage.Operation=="image.inpaint"||stage.Operation=="image.generate"{geometryRAM+=max(int64(2147483648),(256+4*stage.InputMaskCount)*pixels+536870912);geometryScratch+=(24+4*stage.InputMaskCount)*pixels+16384}
+   if stage.Operation=="image.outpaint"{geometryRAM+=max(int64(2147483648),192*pixels+536870912);geometryScratch+=32*pixels+16384}
+   if stage.Operation=="background.compose"||stage.Operation=="background.blur"{geometryRAM+=max(int64(1073741824),256*pixels+1048576);geometryScratch+=20*pixels+16384}
+   if stage.BackgroundCanvas!=nil{assetPixels:=stage.BackgroundCanvas.Width*stage.BackgroundCanvas.Height;geometryRAM+=64*assetPixels;geometryScratch+=32*assetPixels+536870912}
+  }
+ }
+ const outputCap int64 = 16*1024*1024 + 8*1024*1024
 	resources := RegionResourceEstimate{
 		PixelCount:   source.PixelCount,
-		RAMBytes:     max(int64(3)<<30, source.RAMBytes+16*source.PixelCount+64*roi) + cost.RAMBytes,
-		ScratchBytes: source.ScratchBytes + 16*source.PixelCount + 5*roi + 2*1024*1024 + outputCap + cost.ScratchBytes,
+		RAMBytes:     max(int64(3)<<30, source.RAMBytes+16*retainedPixels+geometryRAM+64*roi) + cost.RAMBytes,
+		ScratchBytes: source.ScratchBytes + 16*retainedPixels + geometryScratch + 5*roi + 2*1024*1024 + outputCap + cost.ScratchBytes,
 		VRAMBytes:    cost.VRAMBytes,
 		OutputBytes:  outputCap + cost.OutputBytes,
 	}
@@ -125,7 +147,7 @@ func CompileRegionExecutionPolicy(plan FrozenRegionPlan, cost RegionQualifiedCos
 		AlphaMode     string                 `json:"alpha_mode"`
 		Resources     RegionResourceEstimate `json:"resource_estimate"`
 		Qualification RegionCalibrationPin   `json:"region_qualification"`
-	}{"cuda", "v2.2", cost.RuntimeSHA, cost.ModelLockSHA, cost.ICCLockSHA, "normalize_uint16", resources, cost.Pin})
+	}{cost.Pin.Qualification.Backend, "v2.2", cost.RuntimeSHA, cost.ModelLockSHA, cost.ICCLockSHA, "normalize_uint16", resources, cost.Pin})
 	if err != nil || !json.Valid(profile) {
 		return invalid()
 	}

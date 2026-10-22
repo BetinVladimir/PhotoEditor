@@ -44,7 +44,7 @@ func (s SQLTransferSourceReader) readQualifiedFaceParsePreparationProof(ctx cont
 		if err != nil {
 			return fail(err)
 		}
-		if _, err := v2qualification.Verify(raw, pin.ref.SHA256, expected[i]); err != nil {
+		if _, err := v2qualification.VerifyTyped(raw, pin.ref.SHA256, expected[i]); err != nil {
 			return fail(err)
 		}
 		reportPins[i] = pin

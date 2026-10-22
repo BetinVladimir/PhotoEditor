@@ -145,7 +145,7 @@ func PublishLensTask(ctx context.Context, frozen FrozenLensTask, publisher Publi
 	if err != nil {
 		return result, err
 	}
-	return PreparedLensTask{Graph: GraphTask{frozen.task, built, frozen.closure.Open, append([]Ref(nil), frozen.closure.Direct...)},
+	return PreparedLensTask{Graph: GraphTask{ID: frozen.task, Built: built, Open: frozen.closure.Open, Direct: append([]Ref(nil), frozen.closure.Direct...)},
 		Params: frozen.params, ParamsJCS: append(json.RawMessage(nil), frozen.closure.ParamsJCS...),
 		Profile: append(json.RawMessage(nil), frozen.profile...), InputDigest: frozen.closure.InputDigest, NodeKey: frozen.key}, nil
 }

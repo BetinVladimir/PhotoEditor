@@ -48,7 +48,7 @@ class FixturePool:
         yield FixtureEngine()
 
 
-def main():
+def main(runtime_dsn):
     dsn = os.environ['PHOTO_TEST_DATABASE_URL']
     task = UUID(os.environ['PHOTO_TEST_V27_GATEWAY_TASK'])
     with psycopg.connect(dsn) as db:
@@ -106,10 +106,10 @@ def main():
             for altered in [refs[::-1],refs[:-1],refs+[refs[0]],[refs[0]]*4]:
                 assert not ready(altered)
             assert db.execute('SELECT count(*) FROM photo.task_results WHERE task_id=%s',(task,)).fetchone()==(0,)
-    database = TaskDatabase(dsn)
+    database = TaskDatabase(runtime_dsn)
     payload = canonical_bytes(dict(outputs=[ref.model_dump(mode='json') for ref in result.outputs], metrics=dict(duration_ms=0, peak_memory_bytes=0, bytes_written=result.bytes_written), review_required=result.review_required))
     committed = database.commit_success(lease, payload)
-    assert committed[0] == 'committed'
+    assert committed[0] == 'committed', committed
     assert database.commit_success(lease, payload) == ('replayed', *committed[1:])
     with psycopg.connect(dsn) as db:
         assert db.execute('SELECT state,canonical_result_id FROM photo.tasks WHERE id=%s', (task,)).fetchone() == ('succeeded', committed[1])
@@ -120,4 +120,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    from wire_runtime_login import run_worker_probe
+    run_worker_probe(main, os.environ['PHOTO_TEST_DATABASE_URL'])

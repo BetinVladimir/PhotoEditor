@@ -64,6 +64,11 @@ func(s Service)DecideImport(ctx context.Context,who auth.Identity,tid,workflow u
   var err error
   response,err=idempotency.Use(ctx,tx,idempotency.Scope{Tenant:tid,Principal:who.UserID,PrincipalType:"user",Route:"Interchange.DecideImport",Key:key},request,time.Now().Add(24*time.Hour),func()(idempotency.Response,error){
    body,err:=intent.CommitDecisions(ctx,tx,selection,batch,resolved);if err!=nil{return idempotency.Response{},err};id:=intent.owner;return idempotency.Response{Status:200,Body:body,ResourceID:&id},nil
-  });return err
+  })
+  if err!=nil{return err}
+  authorized=false
+  if err=tx.QueryRow(ctx,`SELECT photo.v2_editor_authorized($1,(SELECT project_id FROM photo.v2_workflows WHERE tenant_id=$1 AND id=$2),$3,$4) IS TRUE`,tid,workflow,who.UserID,who.SessionID).Scan(&authorized);err!=nil{return err}
+  if !authorized{return domain.NewError("FORBIDDEN",403)}
+  return nil
  });return response,err
 }

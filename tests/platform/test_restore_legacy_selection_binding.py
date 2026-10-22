@@ -50,16 +50,16 @@ def test_selection_binding_uses_exact_dynamic_apply_output_and_pinned_preset(mod
     def active():
         if mode=='cancelled':raise RuntimeError('cancelled')
         if mode=='inactive':return False
-    def run():return bind_fixture_legacy_selection(Connection(),apply,binding,applied,
+    def bind_selection():return bind_fixture_legacy_selection(Connection(),apply,binding,applied,
         preset_id=preset,preset_revision=1,preset_sha256=preset_sha,selection_key='selection-key',
         expected_database='isolated',assert_fixture_scope=lambda:False if mode=='fixture_denied' else None,
         check_active=active)
     if mode in ('valid','max_revision'):
-        observed=run()
+        observed=bind_selection()
         assert observed.target.collection_id==output and observed.target.item_id==applied.item_id
         assert observed.target.collection_revision==revision
         assert observed.expected.snapshot_digest==one_item_selection_digest(applied,payload)
         assert observed.payload_sha256==sha256(canonical_bytes(payload)).hexdigest()
     else:
-        with pytest.raises((ValueError,RuntimeError)):run()
+        with pytest.raises((ValueError,RuntimeError)):bind_selection()
     if mode in ('inactive','fixture_denied'):assert not calls

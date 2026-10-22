@@ -10,7 +10,7 @@ import (
  "photoeditor/backend/internal/v2input"
 )
 func TestDeliveryWatermarkImageBinding(t *testing.T){
- steps:=[]any{};chainHash,_:=canonical.Hash(steps);chain,_:=canonical.Marshal(map[string]any{"steps":steps,"hash":chainHash})
+ steps:=[]any{};chainHash,_:=canonical.Hash(map[string]any{"steps":steps});chain,_:=canonical.Marshal(map[string]any{"steps":steps,"hash":chainHash})
  ref:=func()review.ArtifactRef{return review.ArtifactRef{ID:uuid.New(),SHA256:strings.Repeat("a",64)}}
  image:=review.WorkingImage{Pixels:ref(),Canvas:review.Canvas{Width:1000,Height:800,Orientation:1,SpaceID:"working:test",SourceSHA256:strings.Repeat("b",64)},Color:review.ColorSpace{ProfileID:"work_rec2020_gamma24_v1",ICCSHA256:strings.Repeat("c",64),Encoding:"gamma24"},DType:"float32",TransformChain:chain}
  mark:=image;mark.Canvas.Width=100;mark.Canvas.Height=50;alpha:=ref();mark.Alpha=&alpha

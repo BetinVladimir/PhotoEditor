@@ -13,7 +13,7 @@ BEGIN
  IF intent->>'schema_version' IS DISTINCT FROM '1' OR jsonb_typeof(intent->'params'->'frames') IS DISTINCT FROM 'array'
  OR (SELECT array_agg(k ORDER BY k) FROM jsonb_object_keys(intent) k) IS DISTINCT FROM ARRAY['params','schema_version','snapshot_id']::text[]
  OR photo.v27_semantic_policy_json(intent) IS DISTINCT FROM p_intent
- OR jsonb_array_length(intent->'params'->'frames') NOT BETWEEN 2 AND CASE p_operation WHEN 'optical.panorama' THEN 20 ELSE 30 END THEN RETURN 'stale';END IF;
+ OR jsonb_array_length(intent->'params'->'frames') NOT BETWEEN 2 AND (CASE p_operation WHEN 'optical.panorama' THEN 20 ELSE 30 END) THEN RETURN 'stale';END IF;
  PERFORM id FROM photo.tenants WHERE id=p_tenant AND status='active' FOR UPDATE;IF NOT FOUND THEN RETURN 'stale';END IF;
  FOR binding IN SELECT value FROM jsonb_array_elements(intent->'params'->'frames') LOOP
  IF photo.v28_local_portrait_source_scope(p_tenant,p_project,(intent->>'snapshot_id')::uuid,p_actor,p_session,binding) IS DISTINCT FROM true THEN RETURN 'stale';END IF;

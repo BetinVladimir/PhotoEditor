@@ -2,7 +2,7 @@
 
 Статус: код написан; tests/build/migrations NOT RUN. Конфигурация не импортирует qualification и не включает operation registry автоматически.
 
-Backend читает локальный JSON по `PHOTO_V28_RELIGHT_ANALYSIS_CONFIG`. Отсутствующая переменная оставляет endpoint `/api/v1/tenants/{t}/projects/{id}/relight-analyses` неустановленным (503). Подключение использует `V28_RELIGHT_SCHEDULER_DATABASE_URL` и явно выбирает `photo_scheduler`. Pool закрывается при завершении backend. При включённой конфигурации startup требует SQL admission/receipt/array locator/registration functions до установки сервиса.
+Backend читает локальный JSON по `PHOTO_V28_RELIGHT_ANALYSIS_CONFIG`. При отсутствии переменной и наличии `V28_RELIGHT_SCHEDULER_DATABASE_URL` устанавливается receipt-only router02421: восстановление исторического подтверждения по сохранённому плану без публикации и admission. При отсутствии и файла, и scheduler DSN endpoint остаётся неустановленным(503). Некорректный явно заданный файл по-прежнему останавливает startup. Подключение использует `V28_RELIGHT_SCHEDULER_DATABASE_URL` и явно выбирает `photo_scheduler`. Pool закрывается при завершении backend. При включённой конфигурации startup требует SQL admission/receipt/array locator/registration functions до установки сервиса.
 
 Манифест: объект с `schema_version:1` и `projects` (1..2048 записей). Каждая запись содержит:
 

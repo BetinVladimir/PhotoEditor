@@ -25,6 +25,10 @@ function decode(raw:string,version:string,collection:string):StoredSemanticAttem
  if(v.ticket!==null)decodeSemanticJobTicket(v.ticket);
  return structuredClone(v);
 }
+/** Only a fully decoded immutable journal body can bypass a live admission hint. */
+export function hasSemanticReplayBody(value:StoredSemanticAttempt,version:string,collection:string):boolean{
+ try{return decode(JSON.stringify(value),version,collection).body!==null}catch{return false}
+}
 export class SemanticAttemptStore{
  readonly key:string;private epoch:number;private generation:string|null|undefined;
  constructor(private storage:DraftStorage,private origin:string,user:string,tenant:string,asset:string,private version:string,private collection:string,private lock:SemanticJournalLock=semanticJournalLock){

@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+ "photoeditor/backend/internal/idempotency"
 	"context"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -50,7 +51,7 @@ func revision(r *http.Request) (int64, error) {
 		return 0, domain.NewError("VALIDATION_FAILED", 422)
 	}
 	n, err := strconv.ParseInt(h[1:len(h)-1], 10, 64)
-	if err != nil || n < 1 {
+	if err != nil || n < 1 || strconv.FormatInt(n, 10) != h[1:len(h)-1] {
 		return 0, domain.NewError("VALIDATION_FAILED", 422)
 	}
 	return n, nil
@@ -64,7 +65,7 @@ func revisionAllowZero(r *http.Request) (int64, error) {
 		return 0, domain.NewError("VALIDATION_FAILED", 422)
 	}
 	n, err := strconv.ParseInt(h[1:len(h)-1], 10, 64)
-	if err != nil || n < 0 {
+	if err != nil || n < 0 || strconv.FormatInt(n, 10) != h[1:len(h)-1] {
 		return 0, domain.NewError("VALIDATION_FAILED", 422)
 	}
 	return n, nil
@@ -101,6 +102,7 @@ func (s *Server) mutation(r *http.Request) (auth.Identity, error) {
 	return who, err
 }
 func (s *Server) catalogRoutes(r chi.Router) {
+ s.stylePackageUploadRoutes(r)
 	tenants := tenant.Service{DB: s.DB, Cursors: pagination.Codec{Key: auth.MAC(s.Auth.Pepper, "cursor-key")}, MailKeys: s.Auth.MailKeys}
 	projects := project.Service{DB: s.DB, Cursors: tenants.Cursors}
 	collections := collectionservice.Service{DB: s.DB, Cursors: tenants.Cursors, Pepper: s.Auth.Pepper}
@@ -115,9 +117,12 @@ func (s *Server) catalogRoutes(r chi.Router) {
 	runs := runservice.Service{DB: s.DB, Cursors: tenants.Cursors, Objects: runObjects,
 		ReadObjects: runReadObjects, OutputKey: auth.MAC(s.Auth.Pepper, "v26-run-output-capability"),
 		PublicOrigin: s.Config.APIPublicOrigin, Bucket: runBucket}
+ s.collectionApplyCapabilityRoutes(r,runs)
 	downloads := downloadservice.Service{DB: s.DB, Pepper: s.Auth.Pepper}
+ if s.Portal!=nil{downloads.DownloadPolicy=s.Portal.DownloadPolicy}
 	assets := assetservice.Service{DB: s.DB, Cursors: tenants.Cursors}
-	capabilities := capability.Service{DB: s.DB}
+ s.versionNavigationRoutes(r, assets)
+	capabilities := capability.Service{DB: s.DB, SemanticInstalled: s.semanticOperationInstalled}
 	events := eventstream.Service{DB: s.DB}
 	var styleObjects styleservice.DownloadSigner
 	var styleBucket string
@@ -126,10 +131,12 @@ func (s *Server) catalogRoutes(r chi.Router) {
 		styleBucket = s.Media.Bucket
 	}
 	styles := styleservice.Service{DB: s.DB, Cursors: tenants.Cursors, Objects: styleObjects, Bucket: styleBucket}
+	s.styleAnalysisCapabilityRoutes(r,styles)
 	edits := editor.Service{DB: s.DB}
 	interactive := interactiveservice.Service{DB: s.DB}
 	presets := exportpreset.Service{DB: s.DB, Cursors: tenants.Cursors}
-	exports := exportjob.Service{DB: s.DB}
+	exports := exportjob.Service{DB: s.DB, DeliveryCreator:s.DeliveryCreator}
+ if s.Portal!=nil{exports.DownloadPolicy=s.Portal.DownloadPolicy}
 	legacyImports := legacyimport.Service{DB: s.DB}
 	adminAPI := adminservice.Service{DB: s.DB, Cursors: tenants.Cursors}
 	var observationObjects v2observation.ObjectReader
@@ -150,6 +157,8 @@ func (s *Server) catalogRoutes(r chi.Router) {
 	sessionsV2 := v2sessions.Service{DB: s.DB, Cursors: people.Cursors,
 		Objects: sessionObjects, Bucket: sessionBucket,
 		Admission: s.AnalysisAdmission}
+	s.captureCapabilityRoutes(r,sessionsV2)
+	s.sessionAnalysisCapabilityRoutes(r,sessionsV2)
 	draftsV2 := v2draft.Service{DB: s.DB, Cursors: people.Cursors}
 	captureV2 := v2capture.Service{DB: s.DB, Cursors: tenants.Cursors}
 	r.Get("/api/v1/tenants/{t}/shoot-sessions/{id}/alerts", func(w http.ResponseWriter, r *http.Request) {
@@ -521,6 +530,21 @@ func (s *Server) catalogRoutes(r chi.Router) {
 		draftsV2.Objects, _ = s.Media.Objects.(v2draft.DraftStore)
 		draftsV2.Bucket = s.Media.Bucket
 	}
+
+ s.editorCapabilityRoutes(r,runs,draftsV2)
+ r.Get("/api/v1/tenants/{t}/projects/{id}/editor-effects/{build}",func(w http.ResponseWriter,r *http.Request){
+  who,tid,err:=s.tenantRequest(r,false);if err!=nil{writeError(w,r,err);return}
+  pid,err:=routeID(r,"id");if err!=nil{writeError(w,r,err);return};build,err:=routeID(r,"build");if err!=nil{writeError(w,r,err);return}
+  out,err:=(runservice.EditorEffectsService{Runs:runs,Drafts:draftsV2}).Status(r.Context(),who,tid,pid,build);if err!=nil{writeError(w,r,err);return};writeJSON(w,http.StatusOK,out)
+ })
+ r.Post("/api/v1/tenants/{t}/projects/{id}/editor-effects", func(w http.ResponseWriter,r *http.Request){
+  who,tid,err:=s.tenantRequest(r,true);if err!=nil{writeError(w,r,err);return}
+  pid,err:=routeID(r,"id");if err!=nil{writeError(w,r,err);return}
+  var req runservice.EditorEffectRequest;if err=decodeJSON(r,&req);err!=nil{writeError(w,r,err);return}
+  out,err:=(runservice.EditorEffectsService{Runs:runs,Drafts:draftsV2,FreshRenderInstalled:s.RenderCalibrations!=nil,Calibrations:s.RenderCalibrations}).Begin(r.Context(),who,tid,pid,r.Header.Get("Idempotency-Key"),req)
+  if err!=nil{writeError(w,r,err);return};if out.Replayed{w.Header().Set("Idempotency-Replayed","true")}
+  w.Header().Set("Content-Type","application/json");w.WriteHeader(out.Status);_,_=w.Write(out.Body)
+ })
 	correctionsV2.Drafts = draftsV2
 	r.Post("/api/v1/tenants/{t}/corrections", func(w http.ResponseWriter, r *http.Request) {
 		who, tid, err := s.tenantRequest(r, true)
@@ -907,6 +931,7 @@ func (s *Server) catalogRoutes(r chi.Router) {
 		}
 		ticket, replayed, err := sessionsV2.Analyze(r.Context(), who, tid,
 			sessionID, r.Header.Get("Idempotency-Key"), request)
+		if r.Context().Err() != nil { return }
 		if err != nil {
 			writeError(w, r, err)
 			return
@@ -995,6 +1020,9 @@ func (s *Server) catalogRoutes(r chi.Router) {
 		}
 		ticket, replayed, err := sessionsV2.ApplyAnalysis(r.Context(), who, tid,
 			analysisID, r.Header.Get("Idempotency-Key"), request)
+		if r.Context().Err() != nil {
+			return
+		}
 		if err != nil {
 			writeError(w, r, err)
 			return
@@ -1239,6 +1267,15 @@ func (s *Server) catalogRoutes(r chi.Router) {
 	if s.ContactSheets != nil {
 		contactSheets = *s.ContactSheets
 	}
+	r.Post("/api/v1/tenants/{t}/contact-sheets/abandon",func(w http.ResponseWriter,r *http.Request){
+		who,tid,err:=s.tenantRequest(r,true);if err!=nil{writeError(w,r,err);return}
+		if s.ContactSheets==nil{writeError(w,r,domain.NewError("DEPENDENCY_UNAVAILABLE",503));return}
+		var request contactsheetservice.CreateRequest
+		if err=decodeJSON(r,&request);err!=nil{writeError(w,r,err);return}
+		out,err:=contactSheets.Abandon(r.Context(),who,tid,r.Header.Get("Idempotency-Key"),request)
+		if r.Context().Err()!=nil{return};if err!=nil{writeError(w,r,err);return}
+		if out.Replayed{w.Header().Set("Idempotency-Replayed","true")};w.Header().Set("Content-Type","application/json");w.WriteHeader(out.Status);_,_=w.Write(out.Body)
+	})
 	r.Post("/api/v1/tenants/{t}/contact-sheets", func(w http.ResponseWriter, r *http.Request) {
 		who, tid, err := s.tenantRequest(r, true)
 		if err != nil {
@@ -1255,6 +1292,7 @@ func (s *Server) catalogRoutes(r chi.Router) {
 			return
 		}
 		out, err := contactSheets.Create(r.Context(), who, tid, r.Header.Get("Idempotency-Key"), request)
+		if r.Context().Err() != nil { return }
 		if err != nil {
 			writeError(w, r, err)
 			return
@@ -1300,7 +1338,11 @@ func (s *Server) catalogRoutes(r chi.Router) {
 			writeError(w, r, err)
 			return
 		}
-		out, err := interactive.Generate(r.Context(), who, tid, r.Header.Get("Idempotency-Key"), request)
+        replayOnly,modeErr:=generationReplayOnly(r.Header)
+        if modeErr!=nil {writeError(w,r,modeErr);return}
+        submit:=interactive.Generate
+        if replayOnly {submit=interactive.ReplayGeneration}
+		out, err := submit(r.Context(), who, tid, r.Header.Get("Idempotency-Key"), request)
 		if err != nil {
 			writeError(w, r, err)
 			return
@@ -1312,6 +1354,19 @@ func (s *Server) catalogRoutes(r chi.Router) {
 		w.WriteHeader(out.Status)
 		_, _ = w.Write(out.Body)
 	})
+	r.Post("/api/v1/tenants/{t}/generations/abandon", func(w http.ResponseWriter, r *http.Request) {
+		who, tid, err := s.tenantRequest(r, true)
+		if err != nil { writeError(w, r, err); return }
+		var request interactiveservice.GenerateRequest
+		if err = decodeJSON(r, &request); err != nil { writeError(w, r, err); return }
+		out, err := interactive.AbandonGeneration(r.Context(), who, tid, r.Header.Get("Idempotency-Key"), request)
+		if err != nil { writeError(w, r, err); return }
+		if out.Replayed { w.Header().Set("Idempotency-Replayed", "true") }
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(out.Status)
+		_, _ = w.Write(out.Body)
+	})
+
 	r.Post("/api/v1/tenants/{t}/previews", func(w http.ResponseWriter, r *http.Request) {
 		who, tid, err := s.tenantRequest(r, true)
 		if err != nil {
@@ -1351,7 +1406,10 @@ func (s *Server) catalogRoutes(r chi.Router) {
 			writeError(w, r, err)
 			return
 		}
-		out, err := runs.SaveEdits(r.Context(), who, tid, id, r.Header.Get("Idempotency-Key"), request)
+        resolve:=r.Header.Values("Save-Edits-Resolve-Only")
+        if len(resolve)>1||len(resolve)==1&&resolve[0]!="abandon"{writeError(w,r,domain.NewError("VALIDATION_FAILED",422));return}
+        var out idempotency.Response
+        if len(resolve)==1{out,err=runs.ResolveSaveEdits(r.Context(),who,tid,id,r.Header.Get("Idempotency-Key"),request)}else{out,err=runs.SaveEdits(r.Context(),who,tid,id,r.Header.Get("Idempotency-Key"),request)}
 		if err != nil {
 			writeError(w, r, err)
 			return
@@ -1363,6 +1421,11 @@ func (s *Server) catalogRoutes(r chi.Router) {
 		w.WriteHeader(out.Status)
 		_, _ = w.Write(out.Body)
 	})
+ r.Get("/api/v1/tenants/{t}/exports/batches/{id}",func(w http.ResponseWriter,r *http.Request){
+  who,tid,err:=s.tenantRequest(r,false);if err!=nil{writeError(w,r,err);return}
+  id,err:=uuid.Parse(chi.URLParam(r,"id"));if err!=nil{writeError(w,r,domain.NewError("VALIDATION_FAILED",422));return}
+  out,err:=exports.GetDeliveryBatch(r.Context(),who,tid,id);if err!=nil{writeError(w,r,err);return};writeJSON(w,http.StatusOK,out)
+ })
 	r.Post("/api/v1/tenants/{t}/exports", func(w http.ResponseWriter, r *http.Request) {
 		who, tid, err := s.tenantRequest(r, true)
 		if err != nil {
@@ -1484,6 +1547,7 @@ func (s *Server) catalogRoutes(r chi.Router) {
 			writeError(w, r, err)
 			return
 		}
+		if r.Context().Err()!=nil { return }
 		writeJSON(w, http.StatusOK, out)
 	})
 	r.Get("/api/v1/tenants/{t}/reviews", func(w http.ResponseWriter, r *http.Request) {
@@ -1510,6 +1574,19 @@ func (s *Server) catalogRoutes(r chi.Router) {
 	})
 	r.Get("/api/v1/tenants/{t}/reviews/{id}/previews/{side}/{variant}", s.serveReviewPreview)
 	r.Get("/api/v1/media/review-pending", s.servePendingReviewMedia)
+	r.Get("/api/v1/tenants/{t}/reviews/{id}/culling-items", s.serveCullingReviewItems)
+	r.Post("/api/v1/tenants/{t}/reviews/{id}/culling-decision", s.serveCullingReviewDecision)
+	r.Post("/api/v1/tenants/{t}/reviews/{id}/relight-viewed", s.serveRelightReviewViewed)
+	r.Post("/api/v1/tenants/{t}/reviews/{id}/relight-apply", s.serveRelightReviewApply)
+ r.Post("/api/v1/tenants/{t}/reviews/{id}/open-eyes-apply", s.serveOpenEyesReviewApply)
+ r.Post("/api/v1/tenants/{t}/reviews/{id}/local-portrait-apply", s.serveLocalPortraitReviewApply)
+ r.Get("/api/v1/tenants/{t}/runs/{id}/local-portrait-result", s.serveLocalPortraitDiscovery)
+ r.Get("/api/v1/tenants/{t}/v2-workflows/{id}/local-portrait-result", s.serveLocalPortraitResult)
+ r.Post("/api/v1/tenants/{t}/v2-workflows/{id}/local-portrait-apply", s.serveLocalPortraitResultApply)
+ r.Post("/api/v1/tenants/{t}/reviews/{id}/glare-apply", s.serveGlareReviewApply)
+ r.Post("/api/v1/tenants/{t}/reviews/{id}/reflection-apply", s.serveReflectionReviewApply)
+ r.Post("/api/v1/tenants/{t}/reviews/{id}/negative-apply", s.serveNegativeReviewApply)
+	r.Get("/api/v1/tenants/{t}/reviews/{id}/relight-collection-targets", s.serveRelightCollectionTargets)
 	r.Get("/api/v1/tenants/{t}/reviews/{id}/selected-preview/{variant}", s.serveSelectedRenderPreview)
 	r.Get("/api/v1/media/render-selected", s.serveSelectedRenderMedia)
 	r.Get("/api/v1/media/restoration-selected", s.serveSelectedRestorationMedia)
@@ -1567,6 +1644,7 @@ func (s *Server) catalogRoutes(r chi.Router) {
 		writeJSON(w, http.StatusOK, out)
 	})
 	r.Get("/api/v1/tenants/{t}/reviews/{id}/result-selection", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "private, no-store")
 		who, tid, err := s.tenantRequest(r, false)
 		if err != nil {
 			writeError(w, r, err)
@@ -1583,6 +1661,10 @@ func (s *Server) catalogRoutes(r chi.Router) {
 		}
 		out, err := s.Reviews.ReadNegativeResultSelection(r.Context(), who, tid, id)
 		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		if err = r.Context().Err(); err != nil {
 			writeError(w, r, err)
 			return
 		}
@@ -1769,7 +1851,7 @@ func (s *Server) catalogRoutes(r chi.Router) {
 			writeError(w, r, err)
 			return
 		}
-		out, err := collections.ListItems(r.Context(), who, tid, id, n, r.URL.Query().Get("cursor"), r.URL.Query().Get("section_id"), r.URL.Query().Get("flag"), r.URL.Query().Get("tag"), r.URL.Query().Get("rating"))
+		out, err := collections.ListItems(r.Context(), who, tid, id, n, r.URL.Query().Get("cursor"), r.URL.Query().Get("section_id"), r.URL.Query().Get("flag"), r.URL.Query().Get("tag"), r.URL.Query().Get("rating"),collectionservice.ItemGalleryFilter{Search:r.URL.Query().Get("search"),Review:r.URL.Query().Get("review"),Visibility:r.URL.Query().Get("visibility")})
 		if err != nil {
 			writeError(w, r, err)
 			return
@@ -1951,6 +2033,28 @@ func (s *Server) catalogRoutes(r chi.Router) {
 		}
 		w.WriteHeader(204)
 	})
+	r.Get("/api/v1/tenants/{t}/collections/{id}/guest-uploads", func(w http.ResponseWriter, r *http.Request) {
+        who,tid,err:=s.tenantRequest(r,false);if err!=nil{writeError(w,r,err);return}
+        id,err:=routeID(r,"id");if err!=nil{writeError(w,r,err);return}
+        n,err:=limit(r);if err!=nil{writeError(w,r,err);return}
+        out,err:=collections.ListGuestUploads(r.Context(),who,tid,id,n,r.URL.Query().Get("cursor"));if err!=nil{writeError(w,r,err);return}
+        if r.Context().Err()!=nil{return}
+        writeJSON(w,200,out)
+    })
+	r.Get("/api/v1/tenants/{t}/collections/{id}/sections", func(w http.ResponseWriter, r *http.Request) {
+        who,tid,err:=s.tenantRequest(r,false);if err!=nil{writeError(w,r,err);return}
+        id,err:=routeID(r,"id");if err!=nil{writeError(w,r,err);return}
+        n,err:=limit(r);if err!=nil{writeError(w,r,err);return}
+        out,err:=collections.ListSections(r.Context(),who,tid,id,n,r.URL.Query().Get("cursor"));if err!=nil{writeError(w,r,err);return}
+        w.Header().Set("ETag",`"`+out.Revision+`"`);writeJSON(w,200,out)
+    })
+    r.Post("/api/v1/tenants/{t}/collections/{id}/sections/abandon",func(w http.ResponseWriter,r *http.Request){
+        who,tid,err:=s.tenantRequest(r,true);if err!=nil{writeError(w,r,err);return}
+        id,err:=routeID(r,"id");if err!=nil{writeError(w,r,err);return}
+        var request collectionservice.SectionCreate;if err=decodeJSON(r,&request);err!=nil{writeError(w,r,err);return}
+        out,err:=collections.AbandonSectionCreation(r.Context(),who,tid,id,r.Header.Get("Idempotency-Key"),request);if err!=nil{writeError(w,r,err);return}
+        w.Header().Set("Content-Type","application/json");w.WriteHeader(out.Status);_,_=w.Write(out.Body)
+    })
 	r.Post("/api/v1/tenants/{t}/collections/{id}/sections", func(w http.ResponseWriter, r *http.Request) {
 		who, tid, err := s.tenantRequest(r, true)
 		if err != nil {
@@ -2060,6 +2164,9 @@ func (s *Server) catalogRoutes(r chi.Router) {
 		w.Header().Set("ETag", `"`+out.Revision+`"`)
 		writeJSON(w, 200, out)
 	})
+	s.shareUsageRoutes(r, collections)
+	s.collectionCreationAbandonRoutes(r, collections)
+ s.collectionCullingRoutes(r)
 	r.Get("/api/v1/tenants/{t}/collections/{id}/shares", func(w http.ResponseWriter, r *http.Request) {
 		who, tid, err := s.tenantRequest(r, false)
 		if err != nil {
@@ -2213,6 +2320,17 @@ func (s *Server) catalogRoutes(r chi.Router) {
 		w.WriteHeader(out.Status)
 		_, _ = w.Write(out.Body)
 	})
+    r.Post("/api/v1/tenants/{t}/collections/{id}/bulk-operations/abandon", func(w http.ResponseWriter, r *http.Request) {
+        who, tid, err := s.tenantRequest(r, true)
+        if err != nil { writeError(w,r,err); return }
+        id, err := routeID(r,"id")
+        if err != nil { writeError(w,r,err); return }
+        var request collectionservice.BulkAbandonRequest
+        if err = decodeJSON(r,&request); err != nil { writeError(w,r,err); return }
+        out, err := collections.AbandonBulk(r.Context(),who,tid,id,r.Header.Get("Idempotency-Key"),request)
+        if err != nil { writeError(w,r,err); return }
+        w.Header().Set("Content-Type","application/json"); w.WriteHeader(out.Status); _, _ = w.Write(out.Body)
+    })
 	r.Get("/api/v1/tenants/{t}/bulk-operations/{id}", func(w http.ResponseWriter, r *http.Request) {
 		who, tid, err := s.tenantRequest(r, false)
 		if err != nil {
@@ -2265,7 +2383,9 @@ func (s *Server) catalogRoutes(r chi.Router) {
 			writeError(w, r, err)
 			return
 		}
-		out, err := assets.List(r.Context(), who, tid, n, r.URL.Query().Get("cursor"), r.URL.Query().Get("project_id"), r.URL.Query().Get("status"), r.URL.Query().Get("search"))
+		state, err := assetUploadStateQuery(r.URL.Query())
+		if err != nil { writeError(w, r, err); return }
+		out, err := assets.List(r.Context(), who, tid, n, r.URL.Query().Get("cursor"), r.URL.Query().Get("project_id"), state, r.URL.Query().Get("search"))
 		if err != nil {
 			writeError(w, r, err)
 			return
@@ -2688,7 +2808,7 @@ func (s *Server) catalogRoutes(r chi.Router) {
 			return
 		}
 		rev, err := strconv.ParseInt(req.Expected, 10, 64)
-		if err != nil || rev < 1 {
+		if err != nil || rev < 1 || strconv.FormatInt(rev,10) != req.Expected || req.Target == uuid.Nil {
 			writeError(w, r, domain.NewError("VALIDATION_FAILED", 422))
 			return
 		}
@@ -3783,6 +3903,10 @@ func (s *Server) catalogRoutes(r chi.Router) {
 		}
 		out, err := capabilities.Get(r.Context(), who, tid)
 		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		if err = r.Context().Err(); err != nil {
 			writeError(w, r, err)
 			return
 		}

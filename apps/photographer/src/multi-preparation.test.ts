@@ -69,3 +69,49 @@ it('keeps acknowledged ticket independent of persistence adapter writes',async()
  const first=await attempt.submit(send);expect(first.run_id).toBe(id(13));first.run_id=id(98);
  const replay=await attempt.submit(send);expect(replay.run_id).toBe(id(13));expect(attempt.snapshot.ticket?.run_id).toBe(id(13));expect(sends).toBe(1);
 });
+
+it('retains the exact snapshot and request when admission is revoked between stages',async()=>{
+ const f=fixture(),store=f.store();await beginMultiPreparation(store,'optical.panorama',id(3),params(),{snapshot:id(10),intent:id(11)});
+ let snapshots=0,intents=0,checks=0;
+ const api:MultiPreparationAPI={createRenderInputSnapshot:async(_project,body)=>{snapshots++;return{id:id(12),digest:renderInputSnapshotDigest(body),item_count:body.sources.length};},submitMulti:async()=>{intents++;return{run_id:id(13),workflow_id:id(14),state:'queued'};}};
+ await expect(new MultiPreparation(store,api,async()=>{if(++checks===2)throw new Error('UNAVAILABLE');}).submit()).rejects.toThrow('UNAVAILABLE');
+ const saved=await store.read();expect(saved?.snapshot?.id).toBe(id(12));expect(saved?.attempt?.key).toBe(id(11));expect(saved?.params.frames).toEqual(params().frames);
+ expect(snapshots).toBe(1);expect(intents).toBe(0);
+ await new MultiPreparation(store,api,async()=>{}).submit();expect(snapshots).toBe(1);expect(intents).toBe(1);
+ await new MultiPreparation(store,api,async()=>{throw new Error('UNAVAILABLE');}).submit();expect(intents).toBe(1);
+});
+it('does not create a snapshot after cancellation during the availability read',async()=>{
+ const f=fixture(),store=f.store();await beginMultiPreparation(store,'optical.panorama',id(3),params(),{snapshot:id(10),intent:id(11)});
+ let mutations=0;const controller=new AbortController();
+ const api:MultiPreparationAPI={createRenderInputSnapshot:async()=>{mutations++;throw new Error('unexpected');},submitMulti:async()=>{mutations++;throw new Error('unexpected');}};
+ await expect(new MultiPreparation(store,api,async()=>{controller.abort();}).submit(controller.signal)).rejects.toThrow('CANCELLED');
+ expect(mutations).toBe(0);expect((await store.read())?.snapshot_key).toBe(id(10));
+});
+
+it('replays durable unknown inference after worker withdrawal while retaining fresh admission',async()=>{
+ const f=fixture(),store=f.store();await beginMultiPreparation(store,'optical.panorama',id(3),params(),{snapshot:id(10),intent:id(11)});
+ let admissions=0,posts=0,available=true;const commands:unknown[]=[];
+ const authorize=async()=>{admissions++;if(!available)throw new Error('worker unavailable');};
+ const api:MultiPreparationAPI={createRenderInputSnapshot:async(_p,body)=>({id:id(12),digest:renderInputSnapshotDigest(body),item_count:body.sources.length}),submitMulti:async(op,project,body,key)=>{commands.push({op,project,body,key});if(++posts===1)throw new Error('lost inference response');return {run_id:id(13),workflow_id:id(14),state:'queued'};}};
+ await expect(new MultiPreparation(store,api,authorize).submit()).rejects.toThrow('lost inference response');
+ available=false;const previous=admissions;
+ await expect(new MultiPreparation(f.store(),api,authorize).submit()).resolves.toMatchObject({run_id:id(13)});
+ expect(admissions).toBe(previous);expect(commands[1]).toEqual(commands[0]);
+ const fresh=fixture();await beginMultiPreparation(fresh.store(),'optical.panorama',id(3),params());
+ await expect(new MultiPreparation(fresh.store(),api,authorize).submit()).rejects.toThrow('worker unavailable');expect(posts).toBe(2);
+});
+
+it('publishes known acceptance even when its local receipt write fails',async()=>{
+ const f=fixture(),store=f.store();await beginMultiPreparation(store,'optical.panorama',id(3),params(),{snapshot:id(10),intent:id(11)});
+ const write=store.write.bind(store);store.write=async record=>{if(record.attempt?.ticket)throw new Error('accepted storage unavailable');return write(record);};
+ let posts=0;const receipt={run_id:id(13),workflow_id:id(14),state:'queued' as const};
+ const api:MultiPreparationAPI={createRenderInputSnapshot:async(_p,body)=>({id:id(12),digest:renderInputSnapshotDigest(body),item_count:body.sources.length}),submitMulti:async()=>{posts++;return receipt;}};
+ await expect(new MultiPreparation(store,api).submit()).resolves.toEqual(receipt);expect(posts).toBe(1);
+ expect((await store.read())?.attempt?.ticket).toBeNull(); // No fabricated durable acknowledgement.
+ await expect(new MultiPreparation(store,api,async()=>{throw new Error('worker gone');}).submit()).resolves.toEqual(receipt);expect(posts).toBe(1);
+ const saved=(await store.read())!;
+ await write({...saved,attempt:{...saved.attempt!,ticket:{run_id:id(15),workflow_id:id(16),state:'queued'}}});
+ await expect(new MultiPreparation(store,api).submit()).rejects.toThrow('MULTI_TICKET_SCOPE_CHANGED');expect(posts).toBe(1);
+ await clearMultiAttempts(f.storage,'https://multi.test',async(_origin,action)=>action());
+ await expect(new MultiPreparation(store,api).submit()).rejects.toThrow('MULTI_JOURNAL_EXPIRED');expect(posts).toBe(1);
+});

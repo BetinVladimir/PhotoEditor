@@ -24,6 +24,16 @@ func (s SQLTransferSourceReader) nativeTargetDefectResultCatalog(ctx context.Con
 	if _, err := s.compileNativeTargetDefectDraftPlan(ctx, who, plan.prepared, plan.shell.Bytes); err != nil {
 		return zero, err
 	}
+	return s.nativeTargetDefectResultCatalogCurrent(ctx, who, plan)
+}
+func (s SQLTransferSourceReader) nativeTargetDefectResultCatalogCurrent(ctx context.Context, who auth.Identity, plan nativeTargetDefectDraftPlan) (nativeInputDefectResultCatalog, error) {
+	var zero nativeInputDefectResultCatalog
+	if err := verifyNativeTargetDefectPlanSeal(ctx, plan); err != nil {
+		return zero, err
+	}
+	if s.DB == nil {
+		return zero, v2input.ErrInvalid
+	}
 	task, err := plan.prepared.frozen.DraftTask()
 	if err != nil {
 		return zero, err

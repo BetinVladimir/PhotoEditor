@@ -44,7 +44,7 @@ def test_signed_assembly_adoption_requires_pinned_inputs_and_exact_result():
         lambda ref: documents[ref.artifact_id], tenant, actor, parent)
     result_raw = canonical_bytes(expected)
     root = ArtifactRef(uuid4(), hashlib.sha256(result_raw).hexdigest())
-    documents.update({params_ref.artifact_id: params_raw, root.artifact_id: result_raw})
+    documents.update({envelope_ref.artifact_id:envelope_raw,params_ref.artifact_id: params_raw, root.artifact_id: result_raw})
     reader = SignedReader(documents, root)
     verified = verify_signed_delivery_assembly(reader, params_ref, root, tenant, actor, parent)
     assert verified.params_jcs == params_raw and verified.result_jcs == result_raw
@@ -68,7 +68,7 @@ def test_generic_adoption_uses_signed_root_only_with_explicit_scope():
         lambda ref: documents[ref.artifact_id], tenant, actor, parent)
     result_raw = canonical_bytes(signed)
     root = ArtifactRef(uuid4(), hashlib.sha256(result_raw).hexdigest())
-    documents.update({params_ref.artifact_id: params_raw, root.artifact_id: result_raw})
+    documents.update({envelope_ref.artifact_id:envelope_raw,params_ref.artifact_id: params_raw, root.artifact_id: result_raw})
     reader = SignedReader(documents, root)
     task_id = uuid4()
     prepared = prepare_v2_adoption(task_id=task_id, operation='v2.delivery.assemble',
@@ -89,19 +89,20 @@ def test_signed_dependency_bytes_require_exact_immutable_inputs():
     closure = json.loads(next(raw for raw in documents.values() if b'"entries"' in raw))
     entry = closure['entries'][0]
     export_bytes, signed_bytes, manifest_bytes = b'export-image', b'signed-image', b'c2pa-manifest'
-    entry['export']['sha256'] = hashlib.sha256(export_bytes).hexdigest()
-    entry['signed']['sha256'] = hashlib.sha256(signed_bytes).hexdigest()
-    entry['manifest']['sha256'] = hashlib.sha256(manifest_bytes).hexdigest()
+    for row in closure['entries']:
+        row['export']['sha256'] = hashlib.sha256(export_bytes).hexdigest()
+        row['signed']['sha256'] = hashlib.sha256(signed_bytes).hexdigest()
+        row['manifest']['sha256'] = hashlib.sha256(manifest_bytes).hexdigest()
     raw = canonical_bytes(closure)
 
     class BinaryReader:
         def __init__(self):
-            self.data = {UUID(entry['export']['artifact_id']): export_bytes,
-                         UUID(entry['signed']['artifact_id']): signed_bytes,
-                         UUID(entry['manifest']['artifact_id']): manifest_bytes}
+            self.data = {UUID(row[name]['artifact_id']): data
+                         for row in closure['entries']
+                         for name,data in (('export',export_bytes),('signed',signed_bytes),('manifest',manifest_bytes))}
 
         def evidence(self, ref):
-            media = ('application/c2pa' if ref.artifact_id == UUID(entry['manifest']['artifact_id'])
+            media = ('application/c2pa' if ref.artifact_id in {UUID(row['manifest']['artifact_id']) for row in closure['entries']}
                      else 'image/jpeg')
             return ArtifactEvidence(ref, media, len(self.data[ref.artifact_id]), None, 'input')
 

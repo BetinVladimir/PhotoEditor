@@ -15,10 +15,11 @@ ROOT=Path(__file__).resolve().parents[1]
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--backends',nargs='+',choices=('cpu','mps','cuda'),default=['cpu','mps'])
-    parser.add_argument('--metal-memory-limit-bytes',type=int,default=10_000_000_000)
+    parser.add_argument('--metal-memory-limit-bytes',type=int,default=None,
+                        help='Optional operator ceiling; defaults to the device recommendation')
     args=parser.parse_args()
-    if not 0<args.metal_memory_limit_bytes<=10_000_000_000:
-        parser.error('Metal verification limit must be positive and at most 10 GB')
+    if args.metal_memory_limit_bytes is not None and not 0<args.metal_memory_limit_bytes<=2**53-1:
+        parser.error('Metal verification limit must be positive')
     torch.set_num_threads(2)
     rng=np.random.default_rng(2026)
     train=rng.uniform(.12,.72,(512,3)).astype(np.float32)
@@ -42,12 +43,15 @@ def main():
         if backend=='mps':
             recommended=torch.mps.recommended_max_memory()
             if recommended<=0:raise RuntimeError('Invalid Metal recommended memory')
-            # PyTorch's allocator enforces this ceiling; never disable its guard.
-            torch.mps.set_per_process_memory_fraction(min(1.0,args.metal_memory_limit_bytes/recommended))
+            # Keep PyTorch's allocator guard; the device recommendation is the
+            # default ceiling, with an optional lower operator override.
+            metal_limit=min(recommended,args.metal_memory_limit_bytes or recommended)
+            torch.mps.set_per_process_memory_fraction(min(1.0,metal_limit/recommended))
+            report['metal_effective_limit_bytes']=metal_limit
         started=time.monotonic();deadline=started+900
         def active():
             if time.monotonic()>=deadline:raise RuntimeError('Qualification deadline exceeded')
-            if backend=='mps' and torch.mps.driver_allocated_memory()>args.metal_memory_limit_bytes:raise RuntimeError('Metal verification memory ceiling exceeded')
+            if backend=='mps' and torch.mps.driver_allocated_memory()>metal_limit:raise RuntimeError('Metal verification memory ceiling exceeded')
         try:
             options=FitOptions(device=backend)
             result=fit_color([pair],options,check_active=active)

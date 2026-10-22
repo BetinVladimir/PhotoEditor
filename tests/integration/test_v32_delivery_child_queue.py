@@ -7,7 +7,7 @@ import pytest
 
 def test_fresh_delivery_child_config_freezes_batch(db):
     tenant, project, child, export = (uuid4() for _ in range(4))
-    request = {"child_run_id": str(child)}
+    request = {"child_run_id": str(child), "config_jcs": json.dumps({"metadata_policy": "strip"})}
     actual = db.execute(
         "SELECT photo.v32_delivery_child_config(%s,%s,%s::jsonb,%s)",
         (tenant, project, json.dumps(request), export),

@@ -41,8 +41,8 @@ it('does not send if journal fails and restores an ambiguous attempt',async()=>{
 it('retries acknowledgement after ticket persistence failure',async()=>{
  const write=vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('storage')).mockResolvedValue(undefined);
  const send=vi.fn().mockResolvedValue(ticket),attempt=new RelightAttempt(id,'key',intent(),{write});
- await expect(attempt.submit(send)).rejects.toThrow('storage');expect(attempt.snapshot.ticket).toBeNull();
- await attempt.submit(send);expect(send).toHaveBeenCalledTimes(2);expect(attempt.state).toBe('accepted');
+ await expect(attempt.submit(send)).rejects.toThrow('storage');expect(attempt.snapshot.ticket).toEqual(ticket);
+ await attempt.submit(send);expect(send).toHaveBeenCalledTimes(1);expect(attempt.state).toBe('accepted');
 });
 it('keeps the accepted relight ticket after caller cancellation',async()=>{
  const signal=new AbortController(),writes:unknown[]=[];

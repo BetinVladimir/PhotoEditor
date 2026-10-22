@@ -96,3 +96,73 @@ func TestRenderBatchPassHandlesEmptyResultsWithoutSkippingSync(t *testing.T) {
 		t.Fatal(changed, err, db.calls)
 	}
 }
+
+
+func TestRenderBatchRelightRecoveryAndFinalizationBothRun(t *testing.T) {
+	for _, before := range []bool{false, true} {
+		for _, finalized := range []bool{false, true} {
+			for _, restoration := range []bool{false, true} {
+				rows := []expansionRow{}
+				for i := 0; i < 5; i++ {
+					rows = append(rows, expansionRow{values: []any{false}})
+				}
+				rows = append(rows, expansionRow{values: []any{before}}, expansionRow{values: []any{finalized}})
+				if restoration {
+					rows = append(rows, expansionRow{values: []any{false}})
+				}
+				db := &renderBatchQueries{rows: rows}
+				changed, err := (RenderBatchFinalizer{DB: db, Relight: true, Restoration: restoration}).ProcessOne(context.Background())
+				wantCalls := 7
+				if restoration { wantCalls++ }
+				if err != nil || changed != (before || finalized) || len(db.calls) != wantCalls {
+					t.Fatal(changed, err, db.calls)
+				}
+				if db.calls[5] != "SELECT photo.enqueue_next_v28_relight_before_media()" || db.calls[6] != "SELECT photo.finalize_v28_relight_selected_run()" {
+					t.Fatal("relight recovery/finalization skipped", db.calls)
+				}
+				if restoration && db.calls[7] != "SELECT photo.finalize_v28_restoration_selected_run()" {
+					t.Fatal("relight displaced restoration finalization", db.calls)
+				}
+			}
+		}
+	}
+}
+
+func TestRenderBatchRelightErrorPreservesCommittedProgress(t *testing.T) {
+	failure := errors.New("relight database unavailable")
+	for _, failRecovery := range []bool{false, true} {
+		rows := []expansionRow{{values: []any{true}}}
+		for i := 0; i < 4; i++ { rows = append(rows, expansionRow{values: []any{false}}) }
+		if !failRecovery { rows = append(rows, expansionRow{values: []any{true}}) }
+		rows = append(rows, expansionRow{err: failure})
+		db := &renderBatchQueries{rows: rows}
+		changed, err := (RenderBatchFinalizer{DB: db, Relight: true, Restoration: true}).ProcessOne(context.Background())
+		wantCalls := 7
+		if failRecovery { wantCalls = 6 }
+		if !changed || !errors.Is(err, failure) || len(db.calls) != wantCalls {
+			t.Fatal("relight failure lost committed progress or continued mutation", changed, err, db.calls)
+		}
+	}
+}
+
+func TestRenderBatchLocalPortraitRecoveryDoesNotDisplaceOtherFinalizers(t *testing.T) {
+ for _, local := range []bool{false, true} {
+  rows := []expansionRow{}
+  for i:=0;i<5;i++ { rows=append(rows,expansionRow{values:[]any{false}}) }
+  rows=append(rows,expansionRow{values:[]any{local}},expansionRow{values:[]any{false}},expansionRow{values:[]any{false}},expansionRow{values:[]any{false}})
+  db:=&renderBatchQueries{rows:rows}
+  changed,err:=(RenderBatchFinalizer{DB:db,LocalPortrait:true,Relight:true,Restoration:true}).ProcessOne(context.Background())
+  if err!=nil || changed!=local || len(db.calls)!=9 { t.Fatal(changed,err,db.calls) }
+  if db.calls[5]!="SELECT photo.enqueue_next_v28_local_portrait_before_media()" || db.calls[6]!="SELECT photo.enqueue_next_v28_relight_before_media()" || db.calls[8]!="SELECT photo.finalize_v28_restoration_selected_run()" { t.Fatal("local recovery displaced another module",db.calls) }
+ }
+}
+
+func TestRenderBatchLocalPortraitRecoveryFailurePreservesCommittedProgress(t *testing.T) {
+ failure:=errors.New("local media database unavailable")
+ rows:=[]expansionRow{{values:[]any{true}}}
+ for i:=0;i<4;i++ { rows=append(rows,expansionRow{values:[]any{false}}) }
+ rows=append(rows,expansionRow{err:failure})
+ db:=&renderBatchQueries{rows:rows}
+ changed,err:=(RenderBatchFinalizer{DB:db,LocalPortrait:true,Relight:true}).ProcessOne(context.Background())
+ if !changed || !errors.Is(err,failure) || len(db.calls)!=6 { t.Fatal(changed,err,db.calls) }
+}

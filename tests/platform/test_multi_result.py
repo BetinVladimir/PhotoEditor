@@ -29,7 +29,8 @@ def test_invalid_motion_evidence_rejected(fraction):
 def test_multi_clipping_fraction_counts_pixels_not_channels_and_preserves_hdr():
     rgb=np.array([[[.5,.5,.5],[1.,.5,.5]], [[-.1,.5,.5],[2.,2.,2.]]],dtype=np.float32)
     assert multi_clipping_fraction(rgb,tile=1)==.75
-    report=multi_image_report('focus_stack',[None,None],[ref(),ref()],motion_fraction=0.,
+    bindings=[VersionBinding(asset_version_id=uuid4(),source=ref(),canvas_hash='b'*64) for _ in range(2)]
+    report=multi_image_report('focus_stack',bindings,[ref(),ref()],motion_fraction=0.,
                               registration_inconsistent=False,clipping_fraction=.75)
     assert report.clipping_fraction==.75
     np.testing.assert_array_equal(rgb[1,1],[2.,2.,2.])

@@ -1,4 +1,5 @@
 """Measured numerical quality of an approved, color-qualified exposure."""
+import math
 import numpy as np
 from photo_worker.contracts.base import canonical_bytes
 from photo_worker.contracts.images import ColorSpace
@@ -9,13 +10,17 @@ from .local_exposure import local_exposure_memory, apply_local_exposure
 from .exposure_encoding import restore_local_exposure_encoding
 
 
-def measure_exposure_quality(edit, original, encoded, mask, protected, color, *,
-        max_bytes, verify_color, check_active):
+def verify_exposure_pixels(original, encoded, mask, protected, color, *,
+        ev, strength, max_bytes, verify_color, check_active):
+    """Independent numerical proof only; grants no preview or Apply authority."""
     if not callable(verify_color) or not callable(check_active):
         raise ValueError('SEMANTIC_EXPOSURE_INSTALLATION_REQUIRED')
-    edit = ApprovedSemanticEdit.model_validate_json(canonical_bytes(edit))
+    if (type(ev) not in (int, float) or not math.isfinite(ev) or not -1 <= ev <= 1
+            or type(strength) not in (int, float) or not math.isfinite(strength)
+            or not 0 <= strength <= 1):
+        raise ValueError('SEMANTIC_EXPOSURE_PARAMETERS_INVALID')
     color = ColorSpace.model_validate_json(canonical_bytes(color))
-    if (edit.kind != 'local_exposure' or not isinstance(original, np.ndarray)
+    if (not isinstance(original, np.ndarray)
             or original.dtype != np.float32 or original.ndim != 3 or original.shape[2] != 3
             or not isinstance(encoded, np.ndarray) or encoded.dtype != np.float32
             or encoded.shape != original.shape or any(not isinstance(value, np.ndarray)
@@ -41,13 +46,24 @@ def measure_exposure_quality(edit, original, encoded, mask, protected, color, *,
                 raise ValueError('SEMANTIC_EXPOSURE_ARRAYS_INVALID')
             with np.errstate(under='ignore', divide='raise'):
                 linear=to_working_linear(before,color)
-            changed=apply_local_exposure(linear,weights,protection,ev=edit.ev,
-                strength=edit.strength,max_bytes=96*256*256,check_active=check_active)
+            changed=apply_local_exposure(linear,weights,protection,ev=ev,
+                strength=strength,max_bytes=96*256*256,check_active=check_active)
             expected=restore_local_exposure_encoding(before,changed,weights,protection,color,
                 max_bytes=192*256*256,check_active=check_active)
             if not np.array_equal(expected.view(np.uint32),after.view(np.uint32)):
                 raise ValueError('SEMANTIC_EXPOSURE_QUALITY_FAILED')
     check_active()
+
+
+def measure_exposure_quality(edit, original, encoded, mask, protected, color, *,
+        max_bytes, verify_color, check_active):
+    """Apply report wrapper; admission remains enforced by its installed caller."""
+    edit = ApprovedSemanticEdit.model_validate_json(canonical_bytes(edit))
+    if edit.kind != 'local_exposure':
+        raise ValueError('SEMANTIC_EXPOSURE_ARRAYS_INVALID')
+    verify_exposure_pixels(original, encoded, mask, protected, color,
+        ev=edit.ev, strength=edit.strength, max_bytes=max_bytes,
+        verify_color=verify_color, check_active=check_active)
     return ImageReport(schema_version=1,status='pass',operation='semantic.local_exposure',
         skipped_count=0,reason=None,outside_mask_max_error=0.,clipping_fraction=0.,
         identity=None,transform=None,sources=[edit.source.model_copy(deep=True)],registrations=[])

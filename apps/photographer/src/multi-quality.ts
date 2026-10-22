@@ -1,3 +1,4 @@
+import {perspectiveQualityTask} from './perspective-quality';
 import {canonicalJSON} from '@photoeditor/api-client';
 import {sha256} from '@noble/hashes/sha2.js';
 import {bytesToHex} from '@noble/hashes/utils.js';
@@ -18,7 +19,7 @@ export function readMultiQuality(value:unknown,expected:MultiProposal,intent:Mul
  if(p.result_id!==expected.result_id||p.result.artifact_id!==expected.result.artifact_id||p.result.sha256!==expected.result.sha256||p.working_image.artifact_id!==expected.working_image.artifact_id||p.working_image.sha256!==expected.working_image.sha256)fail();
  const sameRef=(a:ArtifactRef,b:ArtifactRef)=>a.artifact_id===b.artifact_id&&a.sha256===b.sha256;
  if(!sameRef(p.changed_mask,owned.changed_mask)||!sameRef(p.report,owned.report)||p.reason!==owned.reason||p.registrations.some((r,i)=>!sameRef(r,owned.registrations[i]))||Object.keys(p.canvas).some(k=>p.canvas[k as keyof typeof p.canvas]!==owned.canvas[k as keyof typeof owned.canvas]))fail();
- if(!uuid(v.quality_run_id)||!uuid(v.quality_task_id)||!uuid(v.quality_result_id)||!ref(v.quality_report)||new Set([v.quality_run_id,v.quality_task_id,v.quality_result_id]).size!==3)fail();
+ if(!uuid(v.quality_run_id)||!uuid(v.quality_task_id)||!uuid(v.quality_result_id)||!ref(v.quality_report)||new Set([v.quality_run_id,v.quality_task_id,v.quality_result_id]).size!==3||v.quality_task_id!==perspectiveQualityTask(v.quality_run_id))fail();
  if([p.result,p.working_image,p.changed_mask,p.report,...p.sources.map(s=>s.source),...p.registrations,intent.params.calibration].some(r=>r.artifact_id===v.quality_report.artifact_id))fail();
  const q=v.quality;
  if(!fields(q,['target','target_kind','stage','threshold_profile_id','status','technical','reference','reasons'])||!ref(q.target)||q.target.artifact_id!==p.working_image.artifact_id||q.target.sha256!==p.working_image.sha256||q.target_kind!=='working'||q.stage!=='master'||q.threshold_profile_id!=='master_v1'||q.reference!==null)fail();

@@ -40,6 +40,10 @@ func(s *Service)ReadRenderResultSelection(ctx context.Context,who auth.Identity,
     &snapshot.Candidate.ID,&snapshot.Candidate.SHA256,&snapshot.Base.ID,&snapshot.Base.SHA256)
   if errors.Is(err,pgx.ErrNoRows){return domain.NewError("NOT_FOUND",404)}
   if err!=nil{return err}
+  // Row locks may wait after the initial tenant role was read. Refresh it
+  // before using the admin bypass in project authorization.
+  role,err=tenant.AuthorizeInTransaction(ctx,tx,who,tid,domain.Editor)
+  if err!=nil{return err}
   if _,err=project.Authorize(ctx,tx,tid,projectID,who.UserID,role,domain.Editor,false);err!=nil{return err}
   snapshot.TenantID=tid;snapshot.ReviewID=reviewID;snapshot.Kind="render.compose";snapshot.State="pending";snapshot.Revision=1
   request:=Decision{ExpectedRevision:1,CandidateHash:snapshot.Candidate.SHA256,Decision:decision}

@@ -30,7 +30,20 @@ func Bytes(raw []byte) ([]byte, error) {
 	if err := safeIntegers(value); err != nil {
 		return nil, err
 	}
-	return jcs.Transform(raw)
+	// The upstream parser accepts only container roots. RFC8785 also permits
+	// scalar JSON values; canonicalize those through an unambiguous singleton
+	// array, preserving the same number/string implementation and validation.
+	switch value.(type) {
+	case map[string]any, []any:
+		return jcs.Transform(raw)
+	}
+	wrapped := append([]byte{'['}, raw...)
+	wrapped = append(wrapped, ']')
+	normalized, err := jcs.Transform(wrapped)
+	if err != nil {
+		return nil, err
+	}
+	return append([]byte(nil), normalized[1:len(normalized)-1]...), nil
 }
 func safeIntegers(v any) error {
 	switch x := v.(type) {

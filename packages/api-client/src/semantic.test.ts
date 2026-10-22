@@ -8,3 +8,19 @@ describe('semantic targets',()=>{
  it('rejects invalid query before IO',async()=>{const request=vi.fn();await expect(listSemanticTargets({request},id,id,{limit:101})).rejects.toThrow('QUERY_INVALID');expect(request).not.toHaveBeenCalled()});
  it('escapes cursor and validates the fetched response',async()=>{const request=vi.fn().mockResolvedValue(fixture());await listSemanticTargets({request},id,id,{limit:1,cursor:'a+b&c'});expect(request.mock.calls[0][0]).toContain('limit=1&cursor=a%2Bb%26c')});
 });
+
+it.each(['1','9007199254740993','9223372036854775807'])('accepts exact int64 target revision %s',(revision)=>{
+ const raw=fixture();raw.items[0].revision=revision;raw.items[0].data.revision=revision;
+ expect(decodeSemanticTargets(raw,id,id).items[0].revision).toBe(revision);
+});
+it.each(['0','01','-1','1.0','9223372036854775808','9999999999999999999','10000000000000000000'])('rejects out-of-domain target revision %s',(revision)=>{
+ const raw=fixture();raw.items[0].revision=revision;raw.items[0].data.revision=revision;
+ expect(()=>decodeSemanticTargets(raw,id,id)).toThrow('SEMANTIC_TARGET_RESPONSE_INVALID');
+});
+
+it.each([1,[],{},null])('refuses non-string cursor before transport: %s',async cursor=>{
+ const request=vi.fn();await expect(listSemanticTargets({request},id,id,{cursor} as never)).rejects.toThrow('SEMANTIC_TARGET_QUERY_INVALID');expect(request).not.toHaveBeenCalled();
+});
+it.each(['2026-10-04T12:00:00','2026-10-04T12:00Z'])('refuses timezone-less or reduced Go row timestamps %s',created_at=>{
+ const value=fixture();value.items[0].data.created_at=created_at;expect(()=>decodeSemanticTargets(value,id,id)).toThrow();
+});

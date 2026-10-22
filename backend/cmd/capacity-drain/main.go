@@ -1,6 +1,7 @@
 package main
 
 import (
+ "photoeditor/backend/internal/database"
 	"context"
 	"encoding/json"
 	"errors"
@@ -52,6 +53,7 @@ func run(ctx context.Context, args []string, dsn string) error {
 		return errors.New("invalid scheduler database configuration")
 	}
 	config.ConnConfig.RuntimeParams["role"] = "photo_scheduler"
+	database.GuardApplicationRole(config)
 	config.ConnConfig.RuntimeParams["statement_timeout"] = "5000"
 	config.ConnConfig.RuntimeParams["lock_timeout"] = "3000"
 	config.MaxConns = 1

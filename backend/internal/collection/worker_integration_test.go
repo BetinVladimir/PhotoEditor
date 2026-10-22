@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"photoeditor/backend/internal/queue"
+	"photoeditor/backend/internal/auth"
 )
 
 func TestIntegrationRabbitBulkMutation(t *testing.T) {
@@ -26,11 +27,16 @@ func TestIntegrationRabbitBulkMutation(t *testing.T) {
 	}
 	defer admin.Close()
 
-	var user, tenant, project, artifact, asset, version, collection, item, snapshot, run, bulk uuid.UUID
+	var user, tenant, project, artifact, asset, version, collection, item, snapshot, run, bulk, authSession uuid.UUID
+	var authEpoch int64
 	email := uuid.NewString() + "@example.test"
-	if err = admin.QueryRow(ctx, "SELECT user_id FROM photo.auth_bootstrap_user($1,'en',true)", email).Scan(&user); err != nil {
+	if err = admin.QueryRow(ctx, "SELECT user_id,auth_epoch FROM photo.auth_bootstrap_user($1,'en',true)", email).Scan(&user, &authEpoch); err != nil {
 		t.Fatal(err)
 	}
+	if err = admin.QueryRow(ctx, `INSERT INTO photo.sessions
+ (user_id,refresh_hash,family_id,client_type,expires_at)
+ VALUES($1,$2,$3,'web',now()+interval '1 day') RETURNING id`,
+ user, auth.HashSecret(uuid.NewString()), uuid.New()).Scan(&authSession); err != nil { t.Fatal(err) }
 	digest := "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 	queries := []struct {
 		query string
@@ -143,6 +149,28 @@ func TestIntegrationRabbitBulkMutation(t *testing.T) {
 			t.Fatalf("bulk command was not consumed: %s %s rating=%d", bulkStatus, runStatus, rating)
 		}
 		time.Sleep(25 * time.Millisecond)
+	}
+	// Reports bind to the immutable selection, including after live membership
+	// removal. Joining current collection items would lose or mislabel results.
+	apiConfig, err := pgxpool.ParseConfig(dsn)
+	if err != nil { t.Fatal(err) }
+	apiConfig.ConnConfig.RuntimeParams["role"] = "photo_api"
+	api, err := pgxpool.NewWithConfig(ctx, apiConfig)
+	if err != nil { t.Fatal(err) }
+	defer api.Close()
+	service := Service{DB:api}
+	identity := auth.Identity{UserID:user, SessionID:authSession, Epoch:authEpoch}
+	for phase := 0; phase < 2; phase++ {
+		report, readErr := service.GetBulk(ctx, identity, tenant, bulk, 100, "")
+		if readErr != nil || len(report.Results.Items) != 1 || report.Results.Items[0].ItemID != item || report.Results.Items[0].Ordinal != 0 || report.Results.Items[0].Status != "succeeded" {
+			t.Fatalf("selection-bound item report phase%d: %+v %v", phase, report, readErr)
+		}
+		encoded, encodeErr := json.Marshal(report.Results.Items[0])
+		var wire map[string]any
+		if encodeErr != nil || json.Unmarshal(encoded,&wire) != nil || wire["item_id"] != item.String() { t.Fatal("item report omitted immutable item identity") }
+		if phase == 0 {
+			if _, err = admin.Exec(ctx, "DELETE FROM photo.collection_items WHERE tenant_id=$1 AND id=$2", tenant, item); err != nil { t.Fatal(err) }
+		}
 	}
 	stopWorker()
 	select {

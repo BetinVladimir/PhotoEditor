@@ -28,8 +28,8 @@ it('separates operations and fences logout journals',async()=>{
  const person=new RelightAnalysisAttemptStore(storage,'https://example.test',id,id,id,id,'mask.person',lock);
  const record:RelightAnalysisAttemptRecord={schema_version:1,project:id,key:'key',body:body(),ticket:null};
  await depth.write(record);expect(await person.read()).toBeNull();
- await expect(person.write(record)).rejects.toThrow('SCOPE_INVALID');
- await expect(depth.write({...record,key:'changed'})).rejects.toThrow('CONFLICT');
+ await expect(async()=>person.write(record)).rejects.toThrow('SCOPE_INVALID');
+ await expect(async()=>depth.write({...record,key:'changed'})).rejects.toThrow('CONFLICT');
  await clearRelightAnalysisAttempts(storage,'https://example.test',lock);
  await expect(depth.read()).rejects.toThrow('EXPIRED');expect(values.has(depth.key)).toBe(false);
 });

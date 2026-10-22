@@ -23,6 +23,7 @@ class GlareDonorInstallation:
     material_scratch_root: Path
     material_max_bytes: int
     alpha_mode: str
+    generative_enabled: bool = False
 
 
 def glare_donor_installation_from_environment(config, getenv=os.environ.get):
@@ -30,6 +31,10 @@ def glare_donor_installation_from_environment(config, getenv=os.environ.get):
     if enabled not in ('true', 'false'):
         raise WorkerConfigurationError('Invalid donor glare enablement')
     if enabled == 'false':
+        return None
+    # This installation has no qualified Metal implementation. Omit it before
+    # reading model/runtime/object-store configuration on Apple Silicon.
+    if config.resource_class == 'gpu' and config.backend == 'mps':
         return None
     if (config.resource_class != 'gpu' or config.backend != 'cpu'
             or config.model_lock is None or config.model_root is None):
@@ -40,6 +45,9 @@ def glare_donor_installation_from_environment(config, getenv=os.environ.get):
     root_value = getenv('PHOTO_GLARE_DONOR_MATERIAL_SCRATCH_ROOT', '')
     limit_value = getenv('PHOTO_GLARE_DONOR_MATERIAL_MAX_BYTES', '')
     alpha = getenv('PHOTO_GLARE_DONOR_ALPHA_MODE', 'require_float32')
+    generative = getenv('PHOTO_GLARE_GENERATIVE_ENABLED', 'false')
+    if generative not in ('true', 'false'):
+        raise WorkerConfigurationError('Invalid generative glare enablement')
     if (not re.fullmatch(r'[0-9a-f]{64}', runtime_sha)
             or not re.fullmatch(r'[0-9a-f]{64}', model_sha)
             or not lock_path or not Path(lock_path).is_absolute()
@@ -61,10 +69,20 @@ def glare_donor_installation_from_environment(config, getenv=os.environ.get):
                 or entries[0].backends['cpu'].status != 'passed'):
             raise ValueError('Unqualified glare mask')
         verify_model(config.model_root / model_sha / 'glare_mask', entries[0])
+        if generative == 'true':
+            generative_entries = [item for item in model_lock.models if item.id == 'big_lama']
+            if (len(generative_entries) != 1 or not generative_entries[0].approved_for_install
+                    or generative_entries[0].backends['cpu'].status != 'passed'
+                    or generative_entries[0].architecture != 'torchscript.big_lama.v1'):
+                raise ValueError('Unqualified generative glare model')
+            verify_model(config.model_root / model_sha / 'big_lama', generative_entries[0])
         runtime_lock = load_glare_donor_runtime_lock(Path(lock_path), runtime_sha)
+        if generative == 'true' and 'torch' not in runtime_lock.packages:
+            raise ValueError('Generative glare runtime must pin torch')
         from photo_worker.runtime.donor_config import qualified_object_storage_from_environment
         objects, bucket = qualified_object_storage_from_environment(config, getenv)
     except (OSError, ValueError, ModelError, KeyError):
         raise WorkerConfigurationError('Unqualified donor glare installation') from None
     return GlareDonorInstallation(objects, bucket, runtime_lock, runtime_sha,
-                                  model_sha, material_root, limit, alpha)
+                                  model_sha, material_root, limit, alpha,
+                                  generative_enabled=generative == 'true')

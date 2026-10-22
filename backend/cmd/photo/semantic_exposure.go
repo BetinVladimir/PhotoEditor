@@ -1,6 +1,7 @@
 package main
 
 import (
+ "photoeditor/backend/internal/database"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -50,8 +51,28 @@ func readPinnedExposureCatalog(path, expected string) (semanticreview.ExposurePr
 	return catalog, nil
 }
 
-func buildSemanticExposureApply(ctx context.Context, api *pgxpool.Pool, objects *objectstore.Store, bucket string) (httpapi.SemanticReviewApply, func(), error) {
+func buildSemanticExposureApply(ctx context.Context, api *pgxpool.Pool, objects *objectstore.Store, bucket string, previews ...*semanticreview.ExposurePreviewProvider) (httpapi.SemanticReviewApply, func(), error) {
 	noop := func() {}
+	if len(previews) > 1 {
+		return nil, noop, errors.New("ambiguous semantic preview provider")
+	}
+	var preview *semanticreview.ExposurePreviewProvider
+	if len(previews) == 1 {
+		preview = previews[0]
+	}
+	return buildSemanticShownApply(ctx, api, objects, bucket, preview, nil, nil)
+}
+
+func buildSemanticShownApply(ctx context.Context, api *pgxpool.Pool, objects *objectstore.Store, bucket string,
+	preview *semanticreview.ExposurePreviewProvider, removal *semanticreview.RemovalPreviewProvider, cleanup *semanticreview.BackgroundCleanupPreviewProvider, retouchProviders ...*semanticreview.RetouchPreviewProvider) (httpapi.SemanticReviewApply, func(), error) {
+	noop := func() {}
+	if len(retouchProviders) > 1 {
+		return nil, noop, errors.New("ambiguous retouch preview provider")
+	}
+	var retouch *semanticreview.RetouchPreviewProvider
+	if len(retouchProviders) == 1 {
+		retouch = retouchProviders[0]
+	}
 	path, sha, dsn := os.Getenv("PHOTO_SEMANTIC_EXPOSURE_CONFIG_FILE"), os.Getenv("PHOTO_SEMANTIC_EXPOSURE_CONFIG_SHA256"), os.Getenv("PHOTO_SEMANTIC_ADMISSION_DATABASE_URL")
 	if path == "" && sha == "" && dsn == "" {
 		return nil, noop, nil
@@ -88,6 +109,7 @@ func buildSemanticExposureApply(ctx context.Context, api *pgxpool.Pool, objects 
 		return nil, noop, errors.New("semantic admission database configuration invalid")
 	}
 	config.ConnConfig.RuntimeParams["role"] = "photo_semantic_admission"
+	database.GuardApplicationRole(config)
 	config.ConnConfig.RuntimeParams["statement_timeout"] = "30000"
 	config.MaxConns = 8
 	config.MinConns = 0
@@ -105,7 +127,7 @@ func buildSemanticExposureApply(ctx context.Context, api *pgxpool.Pool, objects 
 		admission.Close()
 		return nil, noop, errors.New("semantic admission login unsafe or unavailable")
 	}
-	service, err := semanticreview.InstallTenantExposureApplyService(ctx, semanticreview.ExposureApplyInstallation{API: api, Admission: admission, Objects: objects, Bucket: bucket, Color: color}, catalog)
+	service, err := semanticreview.InstallTenantExposureApplyService(ctx, semanticreview.ExposureApplyInstallation{API: api, Admission: admission, Objects: objects, Bucket: bucket, Color: color, ShownPreview: preview, ShownRemovalPreview: removal, ShownBackgroundCleanupPreview: cleanup, ShownRetouchPreview: retouch}, catalog)
 	if err != nil {
 		admission.Close()
 		return nil, noop, errors.New("semantic exposure installation unavailable")

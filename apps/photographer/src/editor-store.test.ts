@@ -92,3 +92,8 @@ it("keeps local masks until an explicit choice after a late mask save",()=>{
  expect(currentEditorSnapshot(server).maskRefs).toEqual(persisted.mask_refs);
  expect(currentEditorSnapshot(undoEditor(server)).params).toEqual({value:"newer"});
 });
+
+it('refuses an inexact or noncanonical initial draft revision before history creation',()=>{
+ for(const revision of ['9007199254740992','9223372036854775807','04','-1','NaN'])expect(()=>createEditorState({...draft,revision})).toThrow('LEGACY_REVISION_NOT_EXACT');
+ expect(createEditorState({...draft,revision:'9007199254740991'}).draftRevision).toBe(Number.MAX_SAFE_INTEGER);
+});

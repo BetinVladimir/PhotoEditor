@@ -20,7 +20,7 @@ type completedNativeTargetSkin struct {
 
 // Byte-verified source/parser/skin handoff. SQL admission and scientific model
 // acceptance are separate; stale catalog or object evidence exposes zero proof.
-func (s SQLTransferSourceReader) readCompletedNativeTargetSkin(ctx context.Context, who auth.Identity, plan nativeTargetSkinDraftPlan, color TransferColorProfile) (completedNativeTargetSkin, error) {
+func (s SQLTransferSourceReader) readCompletedNativeTargetSkinUncached(ctx context.Context, who auth.Identity, plan nativeTargetSkinDraftPlan, color TransferColorProfile) (completedNativeTargetSkin, error) {
 	var zero completedNativeTargetSkin
 	if err := verifyNativeTargetSkinPlanSeal(ctx, plan); err != nil {
 		return zero, err
@@ -70,7 +70,7 @@ func (s SQLTransferSourceReader) readCompletedNativeTargetSkin(ctx context.Conte
 	if err != nil {
 		return zero, err
 	}
-	current, err := s.nativeTargetSkinResultCatalog(ctx, who, plan)
+	current, err := s.nativeTargetSkinResultCatalogCurrent(ctx, who, plan)
 	if err != nil {
 		return zero, err
 	}

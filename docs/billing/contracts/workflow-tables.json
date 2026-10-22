@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "ddl_source": "workflow-schema.sql",
+  "tables": [
+    {
+      "name": "billing_workflow_controls",
+      "rls": "force_trusted_functions",
+      "runtime_direct_access": false
+    },
+    {
+      "name": "billing_photo_identities",
+      "rls": "force_trusted_functions",
+      "runtime_direct_access": false
+    },
+    {
+      "name": "billing_cost_quotes",
+      "rls": "force_trusted_functions",
+      "runtime_direct_access": false
+    },
+    {
+      "name": "billing_usage_requests",
+      "rls": "force_trusted_functions",
+      "runtime_direct_access": false
+    },
+    {
+      "name": "billing_usage_charge_items",
+      "rls": "force_trusted_functions",
+      "runtime_direct_access": false
+    },
+    {
+      "name": "billing_photo_free_slots",
+      "rls": "force_trusted_functions",
+      "runtime_direct_access": false
+    },
+    {
+      "name": "billing_usage_tickets",
+      "rls": "force_trusted_functions",
+      "runtime_direct_access": false
+    },
+    {
+      "name": "billing_usage_run_links",
+      "rls": "force_trusted_functions",
+      "runtime_direct_access": false
+    },
+    {
+      "name": "billing_result_references",
+      "rls": "force_trusted_functions",
+      "runtime_direct_access": false
+    }
+  ]
+}

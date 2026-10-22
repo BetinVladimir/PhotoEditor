@@ -5,10 +5,10 @@ const parent='11111111-1111-4111-8111-111111111111',child='22222222-2222-4222-82
 const ticket=()=>({run_id:parent,state:'queued' as const,child_run_ids:[child]});
 const status=()=>({id:parent,kind:'bulk',status:'cancelling',revision:'2',counts:{total:1,succeeded:0,failed:0,skipped:0,review:0},stage:'cancelling',progress:0,errors:[]});
 it('calls tenant-scoped cancellation and retains the server state',async()=>{
- const request=vi.fn((..._args:unknown[])=>Promise.resolve(status())),api=new OwnerAPI({request} as never,'tenant/id');
+ const request=vi.fn((..._args:unknown[])=>Promise.resolve(status())),api=new OwnerAPI({request} as never,parent);
  const signal=new AbortController().signal;
  const response=await cancelEditorRender(api,ticket(),signal);
- expect(request.mock.calls[0]).toEqual([`/api/v1/tenants/tenant%2Fid/runs/${parent}/cancel`,{method:'POST',signal}]);
+ expect(request.mock.calls[0]).toEqual([`/api/v1/tenants/${parent}/runs/${parent}/cancel`,expect.objectContaining({method:'POST',signal,idempotencyKey:expect.any(String)})]);
  expect(response.status).toBe('cancelling');
 });
 it('rejects a response for another run',async()=>{

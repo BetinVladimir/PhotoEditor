@@ -1,0 +1,91 @@
+{
+  "date": "2026-10-20",
+  "checks": {
+    "adaptive-foreground.png": {
+      "safeZone": true,
+      "pixels": 158408
+    },
+    "adaptive-monochrome.png": {
+      "safeZone": true,
+      "pixels": 158408
+    },
+    "iosOpaque1024": true,
+    "expoConfigResolved": true,
+    "visualReviewLightDark": true,
+    "androidSafeZone": true,
+    "visualReviewLightDarkAnd24px": true
+  },
+  "nativeBuild": false,
+  "deployed": false,
+  "files": [
+    {
+      "path": "docs/brand/framevela-app-icon-1024.png",
+      "sha256": "03a9a1bbccac3521e4c2ff3ef53c228b9446e14b0a791c0ef137408d5997b8b1"
+    },
+    {
+      "path": "docs/brand/framevela-app-icon.svg",
+      "sha256": "4f35ca8b65b0d035cbe62543097d10df03bed9db447396449a1b0bd065c9e6b6"
+    },
+    {
+      "path": "docs/brand/framevela-logo-4096.png",
+      "sha256": "f92e47ba4d544cbe645e9d608b51d3b8c55b3663d703b5bc42781959416d5385"
+    },
+    {
+      "path": "docs/brand/framevela-logo-dark-4096.png",
+      "sha256": "9dd87c420db6a760b6c376c289c8a7252d36843602ff5f64c1e0b5d786183fa1"
+    },
+    {
+      "path": "docs/brand/framevela-logo-dark.svg",
+      "sha256": "5623d5e718e1ba4657537efabf9cf554ee16e36a70ec73e70e301b93bf33e03e"
+    },
+    {
+      "path": "docs/brand/framevela-logo.svg",
+      "sha256": "179b87db2eef94c37adeb703c7cb7b62cd02b59a2a80ccef9d233a9c4a4b16e8"
+    },
+    {
+      "path": "docs/brand/preview.png",
+      "sha256": "583917e8496a6e6635689b390c7114b118b4e6ca58553e63ffc9d596412f275b"
+    },
+    {
+      "path": "apps/photographer/assets/brand/adaptive-foreground.png",
+      "sha256": "2c89b77a79a980de2d0585d693b3d91cead5d33781d0fcbc49c427dc279eb917"
+    },
+    {
+      "path": "apps/photographer/assets/brand/adaptive-monochrome.png",
+      "sha256": "08b9d1d04ec2bb8d774f52be13d1bb0cbea278db96fa8a86ccf603c8aada2377"
+    },
+    {
+      "path": "apps/photographer/assets/brand/favicon.png",
+      "sha256": "cd4a51b3e18d67c074f55870559674512e8756b9c582d738357161412a0d1527"
+    },
+    {
+      "path": "apps/photographer/assets/brand/icon.png",
+      "sha256": "03a9a1bbccac3521e4c2ff3ef53c228b9446e14b0a791c0ef137408d5997b8b1"
+    },
+    {
+      "path": "apps/portal/public/apple-touch-icon.png",
+      "sha256": "807da82db3d6dc0e7ef92876990b05248a66b21cb65315ddd1c097061ea1af0c"
+    },
+    {
+      "path": "apps/portal/public/favicon.ico",
+      "sha256": "7fb98dcf00c3af9c85d881ae8eec194c898d4ee8fcb66745574172856ab7ec1e"
+    },
+    {
+      "path": "apps/portal/public/favicon.svg",
+      "sha256": "4f35ca8b65b0d035cbe62543097d10df03bed9db447396449a1b0bd065c9e6b6"
+    },
+    {
+      "path": "apps/portal/public/icon-192.png",
+      "sha256": "fb356c652104ad5cd5e7d3fb2856ba4a9a1cd27fc1882e52137102fc3cdc5b20"
+    },
+    {
+      "path": "apps/portal/public/icon-32.png",
+      "sha256": "cd4a51b3e18d67c074f55870559674512e8756b9c582d738357161412a0d1527"
+    },
+    {
+      "path": "apps/portal/public/icon-512.png",
+      "sha256": "ee1683e81ad54f6fd49fea24f2334ef92f32ca9e2784c855ba477afd3bb3505d"
+    }
+  ],
+  "revision": "v3-camera-video-ai"
+}

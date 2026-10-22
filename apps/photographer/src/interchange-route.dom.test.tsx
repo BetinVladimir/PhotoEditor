@@ -1,16 +1,16 @@
 // @vitest-environment jsdom
 import {afterEach,beforeEach,expect,it,vi} from 'vitest';
-import {act,cleanup,render,screen,waitFor} from '@testing-library/react';
+import {act,cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
 const mocks=vi.hoisted(()=>({params:{tenant:'',project:'',id:''},values:new Map<string,string>(),me:vi.fn(),boundary:vi.fn(),client:{request:vi.fn()}}));
 vi.mock('react-native',async()=>import('react-native-web'));
-vi.mock('expo-router',()=>({useLocalSearchParams:()=>mocks.params}));
+vi.mock('./localized-router',()=>({useLocalSearchParams:()=>mocks.params}));
 vi.mock('@react-native-async-storage/async-storage',()=>({default:{getItem:async(k:string)=>mocks.values.get(k)??null,setItem:async(k:string,v:string)=>{mocks.values.set(k,v);},removeItem:async(k:string)=>{mocks.values.delete(k);}}}));
 vi.mock('./auth-context',()=>({useAuth:()=>({origin:'https://interchange-route.test',client:()=>mocks.client})}));
 vi.mock('./owner-api',()=>({OwnerAPI:class {me=mocks.me;}}));
 vi.mock('./interchange-job-screen',()=>({InterchangeJobScreen:(props:any)=>{
  props.journal.assertScope(props.tenant,props.project,props.id);mocks.boundary(props);return 'Current interchange screen';
 }}));
-import InterchangeRoute from '../app/interchange/[id]';
+import InterchangeRoute from '../screens/interchange/[id]';
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 beforeEach(()=>{mocks.values.clear();mocks.params={tenant:id(2),project:id(3),id:id(4)};mocks.client={request:vi.fn()};mocks.me.mockReset();mocks.boundary.mockReset();});
 afterEach(cleanup);
@@ -45,3 +45,15 @@ it('replacing client hides prior journal until new identity resolves',async()=>{
  await act(async()=>finish({id:id(90)}));await screen.findByText('Current interchange screen');
  expect(mocks.boundary.mock.lastCall![0].journal.key).toContain(id(90));
 });
+
+it('recovers identity read failure with the same review scope and no mutation',async()=>{
+ mocks.me.mockRejectedValueOnce(new Error('temporary failure')).mockResolvedValueOnce({id:id(1)});
+ render(<InterchangeRoute/>);await screen.findByRole('alert');expect(mocks.boundary).not.toHaveBeenCalled();
+ fireEvent.click(screen.getByRole('button',{name:/retry/i}));
+ await screen.findByText('Current interchange screen');expect(mocks.me).toHaveBeenCalledTimes(2);
+ expect(mocks.client.request).not.toHaveBeenCalled();
+ const props=mocks.boundary.mock.lastCall![0];
+ props.journal.assertScope(id(2),id(3),id(4));
+});
+
+vi.mock('./locale-context',async()=>{const {default:en}=await import('../../../locales/en/common.json');const {withUILocaleDouble}=await import('./test/locale-double');return {useLocale:()=>withUILocaleDouble({locale:'en',setLocale:()=>{},t:(key:keyof typeof en)=>en[key]})};});

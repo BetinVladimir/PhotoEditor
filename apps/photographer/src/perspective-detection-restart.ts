@@ -21,7 +21,7 @@ export async function restartPerspectiveDetection(api:Pick<OwnerAPI,'get'|'persp
  // Repeat the original POST, never infer expiry from age or a generic 410.
  if(!api.submitPerspectiveLineDetection)throw new Error('PERSPECTIVE_DETECTION_RESTART_INVALID');
  let admitted:unknown;let expired=false;
- try{admitted=await withPerspectiveDetectionDeadline(signal,300_000,child=>api.submitPerspectiveLineDetection!(project,expected,record.key,child));}
+ try{admitted=await withPerspectiveDetectionDeadline(signal,30_000,child=>api.submitPerspectiveLineDetection!(project,expected,record.key,child));}
  catch(error){active();if(!isPerspectiveDetectionDraftExpired(error))throw error;expired=true;}
  active();
  if(!expired){

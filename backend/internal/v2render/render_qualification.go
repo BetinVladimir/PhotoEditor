@@ -44,7 +44,13 @@ func (s SQLRenderQualificationResolver) Resolve(ctx context.Context, who auth.Id
 		if _, err := project.Authorize(ctx, tx, tenantID, projectID, who.UserID, role, domain.Editor, false); err != nil {
 			return err
 		}
-		return tx.QueryRow(ctx, `SELECT model_lock_sha,runtime_lock_sha,backend,device_profile_sha,dataset_sha FROM photo.resolve_v26_render_qualification($1,$2)`, tenantID, projectID).Scan(&out.ModelSHA, &out.RuntimeSHA, &out.Backend, &out.DeviceSHA, &out.DatasetSHA)
+		if err := tx.QueryRow(ctx, `SELECT model_lock_sha,runtime_lock_sha,backend,device_profile_sha,dataset_sha FROM photo.resolve_v26_render_qualification($1,$2)`, tenantID, projectID).Scan(&out.ModelSHA, &out.RuntimeSHA, &out.Backend, &out.DeviceSHA, &out.DatasetSHA); err != nil { return err }
+		// Qualification discovery can wait on concurrent catalog work. Withdrawn
+		// authority must not receive the result of an earlier authorized read.
+		currentAuthorityRole, err := tenant.AuthorizeInTransaction(ctx, tx, who, tenantID, domain.Editor)
+		if err != nil { return err }
+		_, err = project.Authorize(ctx, tx, tenantID, projectID, who.UserID, currentAuthorityRole, domain.Editor, false)
+		return err
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return RenderQualification{}, domain.NewError("RENDER_UNAVAILABLE", 503)

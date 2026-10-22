@@ -55,11 +55,15 @@ func (s Importer) Import(ctx context.Context, tenantID, projectID,
 	if err != nil || int64(len(body)) != object.Bytes {
 		return uuid.Nil, ErrUnqualified
 	}
-	if _, err := Verify(body, reportSHA, expected); err != nil {
+	if err := VerifyImportReport(body, reportSHA, expected); err != nil {
 		return uuid.Nil, err
 	}
 	var qualificationID uuid.UUID
-	err = s.DB.QueryRow(ctx, `SELECT photo.import_v2_qualification(
+	function := "photo.import_v2_qualification"
+	if expected.MPSResources != nil {
+		function = "photo.import_v2_mps_qualification"
+	}
+	err = s.DB.QueryRow(ctx, `SELECT `+function+`(
 	 $1,$2,$3,$4,$5,$6,$7::text)`, tenantID, projectID, reportID,
 		reportSHA, operatorID, expected.Backend, string(body)).Scan(&qualificationID)
 	if err != nil {

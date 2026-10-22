@@ -16,7 +16,7 @@ func deliveryExportPlanFixture(t *testing.T, customize func(*exportpreset.Config
 	base := downloadExportFixture()
 	image := base.Items[0].Image
 	steps := []any{}
-	stepsSHA, _ := canonical.Hash(steps)
+	stepsSHA, _ := canonical.Hash(map[string]any{"steps": steps})
 	image.TransformChain, _ = canonical.Marshal(map[string]any{"steps": steps, "hash": stepsSHA})
 	imageRaw, err := canonical.Marshal(image)
 	if err != nil {
@@ -141,20 +141,39 @@ func TestCompileDeliveryExportPinsWorkingSource(t *testing.T) {
 	}
 }
 
-func TestDeliveryMetadataModesEncodeCleanIntermediate(t *testing.T){
- registry,err:=LoadRegistry();if err!=nil{t.Fatal(err)}
- for _,mode:=range []string{"copyright","approved_exif"}{
-  t.Run(mode,func(t *testing.T){
-   plan,parent,child,image,base:=deliveryExportPlanFixture(t,func(config *exportpreset.Config){config.MetadataPolicy=mode})
-   request,_,err:=plan.ExportRequest(parent,child);if err!=nil{t.Fatal(err)}
-   pinned,err:=exportpreset.DecodeFrozenConfig([]byte(request.ConfigJCS),request.Preset.PresetSHA);if err!=nil||pinned.MetadataPolicy!=mode{t.Fatal("lost delivery policy",err)}
-   initial,err:=CompileDeliveryExport(plan,parent,child,image,base.TargetICCSHA256,registry);if err!=nil{t.Fatal(err)}
-   final,err:=CompileDeliveryFinalEncode(plan,parent,child,image,nil,base.TargetICCSHA256,registry);if err!=nil{t.Fatal(err)}
-   for _,node:=range []CompiledDownloadNode{initial,final}{
-    var params encodeParams
-    if json.Unmarshal(node.Params,&params)!=nil||params.MetadataPolicy!="strip"{t.Fatal("metadata leaked into encoder")}
-   }
-   if _,_,err:=plan.ChildConfig(parent,child,uuid.New());err==nil{t.Fatal("unbound metadata child admitted")}
-  })
- }
+func TestDeliveryMetadataModesEncodeCleanIntermediate(t *testing.T) {
+	registry, err := LoadRegistry()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, mode := range []string{"copyright", "approved_exif"} {
+		t.Run(mode, func(t *testing.T) {
+			plan, parent, child, image, base := deliveryExportPlanFixture(t, func(config *exportpreset.Config) { config.MetadataPolicy = mode })
+			request, _, err := plan.ExportRequest(parent, child)
+			if err != nil {
+				t.Fatal(err)
+			}
+			pinned, err := exportpreset.DecodeFrozenConfig([]byte(request.ConfigJCS), request.Preset.PresetSHA)
+			if err != nil || pinned.MetadataPolicy != mode {
+				t.Fatal("lost delivery policy", err)
+			}
+			initial, err := CompileDeliveryExport(plan, parent, child, image, base.TargetICCSHA256, registry)
+			if err != nil {
+				t.Fatal(err)
+			}
+			final, err := CompileDeliveryFinalEncode(plan, parent, child, image, nil, base.TargetICCSHA256, registry)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, node := range []CompiledDownloadNode{initial, final} {
+				var params encodeParams
+				if json.Unmarshal(node.Params, &params) != nil || params.MetadataPolicy != "strip" {
+					t.Fatal("metadata leaked into encoder")
+				}
+			}
+			if _, _, err := plan.ChildConfig(parent, child, uuid.New()); err == nil {
+				t.Fatal("unbound metadata child admitted")
+			}
+		})
+	}
 }

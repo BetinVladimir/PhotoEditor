@@ -21,7 +21,8 @@ BEGIN
  FOREACH signature IN ARRAY ARRAY[
  'photo.save_v29_perspective_draft(uuid,uuid,uuid,text)',
  'photo.save_v29_perspective_lines_draft(uuid,uuid,uuid,text)',
- 'photo.save_v29_multi_draft(uuid,uuid,uuid,text)',
+ -- Public entry point validates resources then calls this row-creating function.
+ 'photo.save_v29_multi_draft_pre_resource(uuid,uuid,uuid,text)',
  'photo.save_v29_perspective_line_detection_intent(uuid,uuid,uuid,text)'
  ] LOOP
   definition:=pg_get_functiondef(signature::regprocedure);

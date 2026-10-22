@@ -3,9 +3,31 @@ package delivery
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/auth"
 	"testing"
 )
+
+func TestLegacyPendingRestoresOnlyAsSelectionUntilRevalidatedPromotion(t *testing.T) {
+	intent, session, catalog, items := createDocumentsFixture(t)
+	raw, err := intent.EncodePending(context.Background(), session, catalog, items)
+	if err != nil { t.Fatal(err) }
+	var legacy map[string]any
+	if err := json.Unmarshal(raw, &legacy); err != nil { t.Fatal(err) }
+	delete(legacy, "stage")
+	raw, err = canonical.Marshal(legacy)
+	if err != nil { t.Fatal(err) }
+	if _, err := intent.DecodePending(context.Background(), session, raw); err == nil { t.Fatal("legacy ambiguity executed") }
+	selection, err := intent.decodeRecoveryPending(context.Background(), session, raw, false, true)
+	if err != nil || selection.Stage != "" { t.Fatal("legacy recovery lost", err) }
+	// Recompilation validates the current complete executable plan; production
+	// promotion additionally checks current SQL source/preset authority under lock.
+	promoted, err := intent.EncodePending(context.Background(), session, selection.Catalog, selection.Items)
+	if err != nil { t.Fatal(err) }
+	if _, err := intent.DecodePending(context.Background(), session, promoted); err != nil { t.Fatal(err) }
+	if _, err := intent.DecodeWatermarkSelectionPending(context.Background(), session, promoted); err == nil { t.Fatal("executable reclassified as selection") }
+}
 
 func TestOrdinarySelectedPendingRequiresExplicitPromotion(t *testing.T) {
 	intent, session, catalog, items := createDocumentsFixture(t)

@@ -49,11 +49,17 @@ class HTTPTransportTest(unittest.TestCase):
             return Response(response)
         if request.full_url.endswith("/parts"):
             return Response({"upload_id": self.upload_id, "items": [{"part_no": 1, "url": "https://storage.example.test/object?signature=secret", "expires_at": (datetime.now(timezone.utc)+timedelta(minutes=10)).isoformat()}]})
+        if request.full_url.endswith("/complete"):
+            response = {"job_id": self.upload_id, "status": "queued"}
+            response.update(getattr(self, "completion_override", {}))
+            return Response(response)
         if request.get_method() == "PUT":
             return Response({}, {"ETag": '"part-etag"'})
         response = {"id": self.upload_id, "state": "uploading", "part_bytes": 16777216,
                     "parts_total": 1, "project_id": self.ids[1],
                     "collection_id": self.ids[3], "expected_size": 3}
+        if request.get_method() == "POST":
+            response["filename"] = json.loads(request.data)["filename"].strip()
         response.update(getattr(self, "upload_override", {}))
         return Response(response)
 
@@ -467,6 +473,21 @@ class HTTPTransportTest(unittest.TestCase):
         self.assertEqual(json.loads(request.data), {
             "parts": [{"part_no": 1, "etag": "original"}], "expected_size": 3})
         self.assertEqual(request.get_header("Idempotency-key"), "completion-key")
+
+    def test_completion_requires_exact_original_upload_queued_receipt(self):
+        for changed in ({"job_id": str(uuid.uuid4())}, {"status": "verified"}, {"extra": True}):
+            self.completion_override = changed
+            with self.subTest(changed=changed), self.assertRaises(ValueError):
+                self.client.complete(self.upload_id, [{"part_no": 1, "etag": "etag"}], 3, "stable-key")
+        self.completion_override = {}
+        self.client.complete(self.upload_id, [{"part_no": 1, "etag": "etag"}], 3, "stable-key")
+
+    def test_begin_rejects_other_filename_and_unknown_remote_state(self):
+        entry = Entry(self.ids[4], 1, "frame.jpg", 3, 1, "hashed", "a"*64, None, 0, None)
+        for changed in ({"filename": "foreign.jpg"}, {"state": "success"}):
+            self.upload_override = changed
+            with self.subTest(changed=changed), self.assertRaises(ValueError):
+                self.client.begin(entry, "stable-begin-key")
 
 
     def test_storage_auth_refusal_retries_without_invalidating_device_token(self):

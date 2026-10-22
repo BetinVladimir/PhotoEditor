@@ -3,7 +3,7 @@ package provenance
 import (
 	"context"
 	"photoeditor/backend/internal/auth"
-	"photoeditor/backend/internal/workflow"
+	workflow "photoeditor/backend/internal/encodecontract"
 	"testing"
 )
 

@@ -28,6 +28,8 @@ type ImportPreparedScope struct {
 	Warp                         *ImportWarpOccurrence
 	LUT                          *ImportLUTOccurrence
 	DefectLabel                  *ImportDefectLabelOccurrence
+ Historical *HistoricalOriginPayload
+ DefectPNG *ImportDefectPNGOccurrence
 	Background                   *ImportBackgroundSource
 }
 
@@ -66,7 +68,7 @@ func (p PreparedImportArtifactPublisher) PublishImportDependency(ctx context.Con
 		return v2input.Ref{}, err
 	}
 	switch kind {
-	case "EditingRecipeV3", "StyleV2", "CorrectionPlan", "Override", "LayerStack", "MaskRef", "Params", "Stats20", "ResolvedStyle", "DefectCandidates", "DefectReview", "DustCandidates":
+	case "EditingRecipeV3", "StyleV2", "CorrectionPlan", "Override", "LayerStack", "MaskRef", "Params", "Stats20", "ResolvedStyle", "DefectCandidates", "DefectReview", "DustCandidates", "DefectProposeReport", "WorkingImage", "FaceLandmarks", "FaceBoxes", "HistoricalOriginReceipt":
 	default:
 		return v2input.Ref{}, v2input.ErrInvalid
 	}
@@ -85,7 +87,7 @@ func (p PreparedImportArtifactPublisher) PublishImportBinary(ctx context.Context
 	if err := ctx.Err(); err != nil {
 		return v2input.Ref{}, err
 	}
-	if kind != "MaskPixels" && kind != "DenseWarpField" && kind != "AbsoluteLUTArray" && kind != "DefectLabelMap" {
+	if kind != "MaskPixels" && kind != "DenseWarpField" && kind != "AbsoluteLUTArray" && kind != "DefectLabelMap" && kind != "WorkingPixels" && kind != "WorkingAlpha" {
 		return v2input.Ref{}, v2input.ErrInvalid
 	}
 	s, err := p.scope(entry, kind)
@@ -243,4 +245,13 @@ func (p PreparedImportArtifactPublisher) publish(ctx context.Context, s ImportPr
 		return v2input.Ref{}, objectstore.ErrIntegrity
 	}
 	return result, nil
+}
+
+func(p PreparedImportArtifactPublisher)PublishImportDefectPNG(ctx context.Context,entry uuid.UUID,ref v2input.Ref,source objectstore.Object,original v2input.Ref,reports []v2input.Ref)(v2input.Ref,error){
+ if err:=ctx.Err();err!=nil{return v2input.Ref{},err}
+ scope,err:=p.scope(entry,"DefectLabelPNG");if err!=nil{return v2input.Ref{},err}
+ scope.DefectPNG=&ImportDefectPNGOccurrence{Original:original,Reports:append([]v2input.Ref(nil),reports...)}
+ if err:=validateImportDefectPNGOccurrence(scope,ref);err!=nil{return v2input.Ref{},err}
+ if p.SourceObjects==nil||source.Key==""||source.VersionID==""||source.VersionID=="null"||source.SHA256!=ref.SHA256||source.ContentType!="image/png"||source.Bytes<8||source.Bytes>512<<20{return v2input.Ref{},v2input.ErrInvalid}
+ return p.publish(ctx,scope,ref,source.Bytes,"image/png",func()(io.ReadCloser,error){return p.SourceObjects.Open(ctx,source)})
 }

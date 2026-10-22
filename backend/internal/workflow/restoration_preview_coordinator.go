@@ -1,6 +1,7 @@
 package workflow
 
 import (
+	"photoeditor/backend/internal/media"
 	"context"
 
 	"github.com/google/uuid"
@@ -54,6 +55,8 @@ func (c RestorationPreviewCoordinator) Prepare(ctx context.Context,
 	if err != nil {
 		return zero, err
 	}
+	policy,err:=media.PolicyForPreview(ctx,c.DB,tenant,plan.run,producer);if err!=nil{return zero,err}
+	plan,err=CompileRestorationPreviewPlan(pin,c.SRGBSHA,before,after,policy);if err!=nil{return zero,err}
 	store := RestorationPreviewIntentStore{DB: c.DB}
 	if receipt, found, err := store.ReadReceipt(ctx, plan); err != nil {
 		return zero, err

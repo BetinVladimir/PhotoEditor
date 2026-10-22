@@ -131,9 +131,9 @@ def test_retryable_decode_does_not_starve_later_rows():
     runs = [UUID(int=10), UUID(int=11)]
     c = Coordinator([(runs[0], 'master', UUID(int=1)),
                      (runs[1], 'master', UUID(int=2))])
-    def adopt(tenant, run, variant):
+    def adopt(tenant, run):
         if run == runs[0]: raise RuntimeError('object store unavailable')
-        c.adoptions.append((tenant, run, variant))
+        c.adoptions.append((tenant, run))
         return True
     c.adopt = adopt
     retries = []

@@ -34,10 +34,16 @@ Object multipart, bounded concurrency, CDN только для разрешён�
 
 ## Экономика, наблюдаемость, восстановление
 
-v2 тарификация — metering и квоты, без автоматического списания платежей. Использовать существующий quota ledger: reserve estimated bytes/cost, settle canonical adopted result один раз; cancelled/failed не создают usage за неполученный output, фактический compute учитывать отдельно как infrastructure cost. Единицы: storage byte-days, successful export bytes, measured GPU milliseconds. Платёжный провайдер и цены — отдельное коммерческое решение, не неявное требование генерации.
+До коммерческого дополнения от 2026-10-18 v2 ограничивалась metering и квотами без платёжного провайдера. Для платного SaaS-запуска теперь принят отдельный [план биллинга со Stripe](billing-prelaunch-plan-2026-10-18.md): каталог планов/цен/лимитов и topup offers, tenant billing profile, скрытый Custom, Checkout и формы кабинета. План спроектирован, но не реализован; открытие продаж требует B0–B4. Это расширение коммерческого объёма, а не утверждение о готовности текущего кода.
+
+Использовать существующий quota ledger: reserve estimated bytes/cost, settle canonical adopted result один раз; cancelled/failed не создают usage за неполученный output, фактический compute учитывать отдельно как infrastructure cost. Внутренние единицы storage byte-days, successful export bytes, measured GPU milliseconds сохраняются; коммерческие standard_photo и оплаченные buckets интегрируются с тем же admission/reservation/settlement. Второй независимый механизм квот не создавать.
 
 Metrics: task wait/runtime by operation/version/class, OOM, admission rejects, stale fence, retries, adoption lag, purge lag, consent cleanup backlog, cache hits, protected-pixel failures. Labels не содержат tenant/person IDs (детализация в authorized audit). Trace request→run→task→attempt→artifact; redaction prompt/email/GPS. Alert: no heartbeat30s, queue age>5min, outbox lag>60s, disk<15%, oldest pending consent cleanup>24h, DB restore test failed.
 
 Backups: daily base + WAL continuous, versioned object manifests, keys отдельным encrypted backup с access audit. Проектные RPO≤15min, RTO≤4h, подтверждаются quarterly restore drill на отдельной среде. Restore сверяет DB artifact refs с объектами, paused scheduler, revocation epochs и deletion tombstones; objects с удалённых tenants не воскресают. Включение writers только после reconcile и smoke test old/new Apply.
 
 Рост допускается по доказательствам: этап A capacity report на реальном железе; B двухузловый kill/retry/fairness test; C load test с рабочими размерами metadata. Конкретные throughput/количество платящих студий до benchmark неизвестны.
+
+### Отдельный биллинг диска —18.10.2026
+
+Уточнение коммерческого плана: во всех тарифах задать включённый диск2/10/30/100/250/500ГБ; Custom — явно. Отдельные recurring storage add-ons и счётчики фото/байтов/исходящего трафика; оригиналы и готовые клиентские сессии хранятся до ручного удаления, прежний30дневный TTL отменён. Диск поддерживает storage-only после отмены AI. Цены, маржа, Stripe items, seed45resource offers и сценарии overquota — в [плане биллинга](billing-prelaunch-plan-2026-10-18.md). Годовой финансовый план обновлён с отдельным Storage MRR. Статус — документация, реализация не начата.

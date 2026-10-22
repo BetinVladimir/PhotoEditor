@@ -4,7 +4,7 @@ import {it,expect,vi,afterEach} from 'vitest';
 import {render,screen,fireEvent,waitFor,cleanup} from '@testing-library/react';
 import type {OwnerAPI} from './owner-api';
 import {MultiReplacementLinks} from './multi-replacement-links';
-vi.mock('react-native',()=>({View:({children}:any)=><div>{children}</div>,Text:({children,accessibilityRole}:any)=><span role={accessibilityRole}>{children}</span>,Pressable:({children,onPress}:any)=><button onClick={onPress}>{children}</button>}));
+vi.mock('react-native',async()=>({...await import('react-native-web')}));
 afterEach(cleanup);
 const props={tenant:'tenant',review:'review',decisionHash:'hash'};
 it('opens only a currently scoped replacement and paginates/refreshes',async()=>{

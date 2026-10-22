@@ -1,0 +1,22 @@
+{
+  "status": "DOCUMENT_INTEGRITY_PASS_RUNTIME_UNRUN",
+  "reviewer_inventory": "/root/browser_acceptance_inventory",
+  "route_templates": 45,
+  "displayed_screens": 44,
+  "photographer_screens": 42,
+  "photographer_localized_urls": 126,
+  "historical_source_drift": [
+    "apps/portal/src/components/AccessibleLightbox.tsx",
+    "apps/portal/src/components/Portal.tsx",
+    "apps/portal/src/app/global.css",
+    "apps/portal/src/app/layout.tsx",
+    "apps/portal/src/app/[locale]/page.tsx"
+  ],
+  "full_wcag_NOT_TESTED": 880,
+  "runtime_executed": false,
+  "files": {
+    "route-inventory.json": "6e2954dea227e1502c854aa0abde3c51c68b488cc330539c5b20df2540e281a0",
+    "font-contrast-state-registry.json": "3408a8a3826de78a828729aa65f7097411c3635033065aebda3ee79dfe63dd62",
+    "validate-operational-registry.py": "725d3d57c97c36c74cfa10dec6a6acb2c3440cf6a9b63bb5e551e32cc6766bc5"
+  }
+}

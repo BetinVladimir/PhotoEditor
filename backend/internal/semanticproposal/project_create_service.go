@@ -58,7 +58,7 @@ func (s *ProjectCreateService) Propose(ctx context.Context, who auth.Identity, t
 	if err := ctx.Err(); err != nil {
 		return zero, err
 	}
-	if s == nil || s.api == nil || len(s.projects) == 0 {
+	if s == nil || s.api == nil {
 		return zero, v2input.ErrInvalid
 	}
 	raw, err := canonical.Marshal(intent)
@@ -69,6 +69,7 @@ func (s *ProjectCreateService) Propose(ctx context.Context, who auth.Identity, t
 	if err != nil {
 		return zero, err
 	}
+	if replay,found,e:=replayCreateReceipt(ctx,s.api,who,request,key);e!=nil{return zero,e}else if found{return replay,nil}
 	inventory, err := ReadInventory(ctx, s.api, who, request)
 	if err != nil {
 		return zero, err

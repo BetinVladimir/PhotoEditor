@@ -67,3 +67,9 @@ func TestSemanticExposureBootstrapRequiresCompleteSettings(t *testing.T) {
 		t.Fatal("unpaired admission settings accepted")
 	}
 }
+
+func TestExposureStartupRejectsMultiplePreviewProviders(t *testing.T) {
+	if _, _, err := buildSemanticExposureApply(context.Background(), nil, nil, "", nil, nil); err == nil {
+		t.Fatal("ambiguous preview providers admitted")
+	}
+}

@@ -1,0 +1,18 @@
+# Privacy / App Privacy / Data safety inventory — NOT a submitted declaration
+
+Source-backed draft for the exact Photographer app; operator/legal review is required. No “data not collected”, “no sharing”, “not tracking”, encryption guarantee or global deletion guarantee is asserted. Definitions and purposes in store consoles must be confirmed against the deployed service and all included SDKs, not inferred from this inventory alone.
+
+| Candidate data category | Actual source / flow | Known purpose and unresolved declaration |
+|---|---|---|
+| Email, user/session identifiers | app/login.tsx; src/auth.ts; src/owner-api.ts /me | Email OTP login and user profile. Confirm linkage, retention, service providers and support contact. |
+| Photos/files and associated filenames, metadata, edits | app/imports/new.tsx; src/uploads.ts; src/upload-storage.ts; editor/[version].tsx | User-selected uploads and photo workflow. Confirm EXIF/location metadata handling, rights, storage region, encryption, subprocessors and training use. Never assume uploaded images are anonymous. |
+| Workspace/project/member/invitation data | app/workspaces.tsx; settings/members.tsx; src/owner-api.ts | Collaboration and permissions. Confirm member contact fields, invitations/mail processors and removal retention. |
+| Profile/preferences | settings/profile.tsx; src/locale-context.tsx | Timezone, language/theme/profile settings. Confirm server vs local storage and export/delete behavior. |
+| Authentication secrets | src/auth.ts | Native refresh and CSRF values use Expo SecureStore; access principal in memory. Web uses cookie/CSRF flow. Platform secure storage is not a blanket end-to-end encryption claim. Verify backup/device settings and server token lifetimes. |
+| Local resumable-operation state | src/upload-storage.ts; src/auth-context.tsx and journal modules | Upload/retry/reconciliation and session cleanup. Audit exact persisted identifiers/URLs and platform storage before claiming complete deletion on logout. |
+| Processing outputs / face-related derived data | semantic/[id].tsx; reviews/[id].tsx; backend/worker contracts | Processing may derive face/segmentation/protection artifacts when enabled. Establish whether/how the beta actually processes these, retention, legal basis and whether any use qualifies as sensitive/biometric under applicable rules. Do not assert identity recognition or absence of sensitive data without deployment evidence. |
+| Logs/diagnostics, network/device information | API transport and deployed service; package.json SDK inventory | Backend access logs may contain IP/request identifiers; exact analytics/crash SDK behavior and third-party transmission remain operator audit items. Absence of one frontend analytics import does not prove no collection. |
+
+Retention UI exposes processing_days, exports_days, temporary_hours; this is not evidence that all account/billing/security backups or provider copies follow those values. Tenant purge/runtime and full production readiness remain separately gated. Confirm user deletion request workflow, legal retention and backup expiry.
+
+Resolve before forms: legal entity/address/contact; privacy policy and support URLs; host/storage/email/CDN/AI subprocessors; actual environments and regions; collection purposes/linkage; sharing/processor distinctions; tracking/advertising/identifiers; user consent; children/age eligibility; account deletion; media permissions on signed iOS/Android builds; transport security; SDK privacy manifests and Android permissions; whether photo content is ever used for model training. Do not answer unresolved fields with invented negatives.

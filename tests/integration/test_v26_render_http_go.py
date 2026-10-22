@@ -1,4 +1,5 @@
 """Actual auth/HTTP contract with controlled queue; no GPU admission is asserted."""
+from pathlib import Path as _PhotoRepositoryPath
 from pathlib import Path
 import os
 import subprocess
@@ -7,13 +8,13 @@ from psycopg.conninfo import make_conninfo
 
 def test_render_http_authenticated_contract(database):
     root=Path(__file__).resolve().parents[2]
-    env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),GOCACHE='/private/tmp/photoeditor-go-cache')
+    env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),GOCACHE=str(_PhotoRepositoryPath(__file__).resolve().parents[2]/'work/go-cache'))
     result=subprocess.run(['go','test','./internal/httpapi','-run','^TestIntegrationRenderHTTP','-count=1'],cwd=root/'backend',env=env,capture_output=True,text=True,timeout=90)
     assert result.returncode==0,result.stdout+result.stderr
 
 
 def test_render_admission_startup_roles_and_partial_boundary(database):
     root=Path(__file__).resolve().parents[2]
-    env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),GOCACHE='/private/tmp/photoeditor-go-cache')
+    env=dict(os.environ,PHOTO_TEST_DATABASE_URL=make_conninfo(**database),GOCACHE=str(_PhotoRepositoryPath(__file__).resolve().parents[2]/'work/go-cache'))
     result=subprocess.run(['go','test','./cmd/photo','-run','^TestIntegrationRenderAdmissionBuilder$','-count=1'],cwd=root/'backend',env=env,capture_output=True,text=True,timeout=60)
     assert result.returncode==0,result.stdout+result.stderr

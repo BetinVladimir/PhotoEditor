@@ -51,7 +51,10 @@ func TestIntegrationCancelRunIsAuthorizedAuditedAndIdempotent(t *testing.T) {
 		t.Fatal(err)
 	}
 	hash := strings.Repeat("a", 64)
-	if err = admin.QueryRow(ctx, "INSERT INTO photo.snapshots(tenant_id,kind,principal_type,principal_id,digest,item_count) VALUES($1,'input','user',$2,$3,1) RETURNING id", tenantID, user, hash).Scan(&snapshot); err != nil {
+	var readProject,readCollection uuid.UUID
+	if err=admin.QueryRow(ctx,"INSERT INTO photo.projects(tenant_id,name) VALUES($1,'Run authority source') RETURNING id",tenantID).Scan(&readProject);err!=nil{t.Fatal(err)}
+	if err=admin.QueryRow(ctx,"INSERT INTO photo.collections(tenant_id,project_id,name) VALUES($1,$2,'Run source') RETURNING id",tenantID,readProject).Scan(&readCollection);err!=nil{t.Fatal(err)}
+	if err = admin.QueryRow(ctx, "INSERT INTO photo.snapshots(tenant_id,kind,principal_type,principal_id,digest,item_count,collection_id) VALUES($1,'input','user',$2,$3,1,$4) RETURNING id", tenantID, user, hash,readCollection).Scan(&snapshot); err != nil {
 		t.Fatal(err)
 	}
 	if err = admin.QueryRow(ctx, "INSERT INTO photo.runs(tenant_id,kind,status,input_snapshot_id,config_snapshot,config_hash,created_by) VALUES($1,'apply','running',$2,'{}',$3,$4) RETURNING id", tenantID, snapshot, hash, user).Scan(&runID); err != nil {

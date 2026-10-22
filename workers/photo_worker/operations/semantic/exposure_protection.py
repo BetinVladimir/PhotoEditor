@@ -3,14 +3,24 @@ from hashlib import sha256
 from photo_worker.contracts.base import ArtifactRef,canonical_bytes,parse_json
 from photo_worker.contracts.images import MaskRef
 from photo_worker.contracts.semantic import ApprovedSemanticEdit
-from .exposure_source import bind_local_exposure_source
+from .exposure_source import bind_exposure_working_source
+from photo_worker.operations.session.contracts import VersionBinding
 
 
 def bind_local_exposure_protection(edit,source_raw,protection_ref,protection_raw,*,verify_origin,check_active):
     if not callable(verify_origin) or not callable(check_active):
         raise ValueError('SEMANTIC_EXPOSURE_PROTECTION_INSTALLATION_REQUIRED')
     owned=ApprovedSemanticEdit.model_validate_json(canonical_bytes(edit))
-    image=bind_local_exposure_source(owned,source_raw)
+    return bind_exposure_protection_source(owned.source,source_raw,protection_ref,protection_raw,
+        verify_origin=verify_origin,check_active=check_active)
+
+
+def bind_exposure_protection_source(source,source_raw,protection_ref,protection_raw,*,verify_origin,check_active):
+    """Shared exact protection proof; canonical origin is mandatory for all callers."""
+    if not callable(verify_origin) or not callable(check_active):
+        raise ValueError('SEMANTIC_EXPOSURE_PROTECTION_INSTALLATION_REQUIRED')
+    source=VersionBinding.model_validate_json(canonical_bytes(source))
+    image=bind_exposure_working_source(source,source_raw)
     root=ArtifactRef.model_validate_json(canonical_bytes(protection_ref))
     if (root.artifact_id.int==0 or not isinstance(protection_raw,(bytes,bytearray))
             or not 2<=len(protection_raw)<=1048576):
@@ -25,7 +35,7 @@ def bind_local_exposure_protection(edit,source_raw,protection_ref,protection_raw
         raise ValueError('SEMANTIC_EXPOSURE_PROTECTION_CHANGED')
     # Callbacks receive independent values and cannot substitute returned pins.
     check_active()
-    if verify_origin(owned.source.model_copy(deep=True),root.model_copy(deep=True),mask.artifact.model_copy(deep=True)) is not True:
+    if verify_origin(source.model_copy(deep=True),root.model_copy(deep=True),mask.artifact.model_copy(deep=True)) is not True:
         raise ValueError('SEMANTIC_EXPOSURE_PROTECTION_ORIGIN_STALE')
     check_active()
     return mask

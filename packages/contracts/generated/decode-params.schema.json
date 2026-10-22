@@ -20,6 +20,64 @@
       ],
       "title": "ArtifactRef",
       "type": "object"
+    },
+    "RAWDevelopment": {
+      "additionalProperties": false,
+      "properties": {
+        "decoder_version": {
+          "maxLength": 128,
+          "pattern": "^rawpy-[0-9]+\\.[0-9]+\\.[0-9]+/libraw-[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "title": "Decoder Version",
+          "type": "string"
+        },
+        "demosaic": {
+          "enum": [
+            "ahd",
+            "dcb"
+          ],
+          "title": "Demosaic",
+          "type": "string"
+        },
+        "exposure_ev": {
+          "maximum": 3,
+          "minimum": -2,
+          "title": "Exposure Ev",
+          "type": "number"
+        },
+        "highlight_policy": {
+          "enum": [
+            "clip",
+            "blend",
+            "reconstruct"
+          ],
+          "title": "Highlight Policy",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "wb_source": {
+          "enum": [
+            "camera",
+            "daylight",
+            "auto"
+          ],
+          "title": "Wb Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "demosaic",
+        "wb_source",
+        "exposure_ev",
+        "highlight_policy",
+        "decoder_version"
+      ],
+      "title": "RAWDevelopment",
+      "type": "object"
     }
   },
   "$id": "https://photoeditor.local/contracts/decode-params.schema.json",
@@ -53,6 +111,17 @@
       "minimum": 1,
       "title": "Expected Bytes",
       "type": "integer"
+    },
+    "raw_development": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RAWDevelopment"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "source": {
       "$ref": "#/$defs/ArtifactRef"

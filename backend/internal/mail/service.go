@@ -1,6 +1,7 @@
 package mail
 
 import (
+ "photoeditor/backend/internal/database"
 	"context"
 	"errors"
 	"github.com/google/uuid"
@@ -45,11 +46,13 @@ func Run(ctx context.Context, dsn, url, listen string, keys auth.KeyRing, sender
 		return errors.New("mail database configuration invalid")
 	}
 	cfg.ConnConfig.RuntimeParams["role"] = "photo_mail"
+	database.GuardApplicationRole(cfg)
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		return errors.New("mail database unavailable")
 	}
 	defer pool.Close()
+	if err = database.RequireApplicationRole(ctx, pool, "photo_mail"); err != nil { return err }
 	worker := Worker{DB: pool, ID: uuid.New(), Keys: keys, Sender: sender}
 	var ready atomic.Bool
 	mux := http.NewServeMux()

@@ -29,12 +29,13 @@ export function freezeLearningCorrection(value:LearningCorrectionCreate):Learnin
     'base_document_id','approved_document_id'] as const){
     if(!validUUID(value[key]))throw new Error('INVALID_CORRECTION');
   }
-  if(!['exposure','color','crop','retouch','selection','other'].includes(value.reason)||
+  if(value.base_document_id===value.approved_document_id||!['exposure','color','crop','retouch','selection','other'].includes(value.reason)||
       typeof value.learn!=='boolean'||(value.person_id!==null&&!validUUID(value.person_id))||
       (value.scene_group_id!==null&&!validUUID(value.scene_group_id))||
       (value.consent_id!==null&&!validUUID(value.consent_id))||
       (value.consent_epoch!==null&&
-        (typeof value.consent_epoch!=='string'||!/^[1-9][0-9]{0,18}$/.test(value.consent_epoch)))||
+        (typeof value.consent_epoch!=='string'||!/^[1-9][0-9]{0,18}$/.test(value.consent_epoch)||BigInt(value.consent_epoch)>9223372036854775807n))||
+      (value.consent_id===null)!==(value.consent_epoch===null)||
       value.learn!==(value.consent_id!==null&&value.consent_epoch!==null))
     throw new Error('INVALID_CORRECTION');
   const selected=value.portrait_detail_producer;

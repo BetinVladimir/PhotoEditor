@@ -24,3 +24,10 @@ it('rejects foreign persisted rows before returning records',async()=>{
  const {io,values}=fixture();const store=new ScopedUploadStorage(io,'https://uploads-corrupt.test',id(1),id(2),id(3),id(4));
  values.set(store.key,JSON.stringify([{...row(),projectId:id(7)}]));await expect(store.load()).rejects.toThrow('UPLOAD_SCOPE_INVALID');
 });
+
+it('supports default same-origin storage and clears the identical logout scope',async()=>{
+ const {io}=fixture();const store=new ScopedUploadStorage(io,'',id(1),id(2),id(3),id(4));
+ await store.save([row()]);expect(await store.load()).toHaveLength(1);await clearUploadStorage(io,'');
+ await expect(store.load()).rejects.toThrow('UPLOAD_SCOPE_EXPIRED');
+ expect(await new ScopedUploadStorage(io,'',id(1),id(2),id(3),id(4)).load()).toEqual([]);
+});

@@ -19,7 +19,7 @@ from photo_worker.contracts.base import canonical_bytes
 from hashlib import sha256
 
 
-def main():
+def main(runtime_dsn):
     dsn=os.environ['PHOTO_TEST_DATABASE_URL']
     with psycopg.connect(dsn) as db:
         row=db.execute('SELECT tenant_id,run_id,id,worker_id,attempt,fencing_token,lease_until,deadline,execution_profile,input_digest,inputs,params_artifact_id FROM photo.tasks WHERE id=%s',(UUID(os.environ['PHOTO_TEST_V27_GATEWAY_TASK']),)).fetchone()
@@ -31,7 +31,7 @@ def main():
     tls=client_tls(directory/'ca.pem',directory/'client.pem',directory/'client.key')
     scratch=directory/'scratch';scratch.mkdir()
     config=ArtifactConfig(scratch,os.environ['PHOTO_TEST_V27_GATEWAY_ORIGIN'],tls,1024**3,8*1024**2,1024**3)
-    database=TaskDatabase(dsn)
+    database=TaskDatabase(runtime_dsn)
     objects=Minio(os.environ['PHOTO_TEST_MINIO_URL'].removeprefix('http://'),access_key=os.environ['PHOTO_TEST_MINIO_ACCESS'],secret_key=os.environ['PHOTO_TEST_MINIO_SECRET'],secure=False)
     factory=sql_semantic_assembly_factory(database=database,objects=objects,bucket=os.environ['PHOTO_TEST_MINIO_BUCKET'])
     with TaskArtifacts.create(ctx,config,frozenset({'document'})) as artifacts:
@@ -109,4 +109,6 @@ def main():
     print('V27_WORKER_WIRE_OK')
 
 
-if __name__=='__main__':main()
+if __name__ == '__main__':
+    from wire_runtime_login import run_worker_probe
+    run_worker_probe(main, os.environ['PHOTO_TEST_DATABASE_URL'])

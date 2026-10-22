@@ -24,3 +24,13 @@ describe('resume immutable RAW policy',()=>{
   expect(uploadPickerErrorKey(new Error('UPLOAD_FILE_MISMATCH'))).toBe('import_add_failed');
  });
 });
+
+describe('resume immutable missing-profile policy',()=>{
+ const raster={...source,name:'frame.jpg'};
+ const prior=(assumeProfile?:UploadRecord['assumeProfile'])=>record({name:raster.name,rawDevelopment:undefined,assumeProfile});
+ it.each(['srgb_v1','linear_srgb_v1','work_rec2020_gamma24_v1'] as const)('resumes the exact explicit %s choice',profile=>expect(findResumableUpload([prior(profile)],raster,undefined,profile)?.localId).toBe('one'));
+ it('refuses profile changes in both directions and between explicit profiles',()=>{
+  for(const [before,after] of [[undefined,'srgb_v1'],['srgb_v1',undefined],['srgb_v1','linear_srgb_v1']] as const)expect(()=>findResumableUpload([prior(before)],raster,undefined,after)).toThrow('UPLOAD_PROFILE_CHANGED');
+  expect(uploadPickerErrorKey(new Error('UPLOAD_PROFILE_CHANGED'))).toBe('import_profile_changed');
+ });
+});

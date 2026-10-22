@@ -1,4 +1,6 @@
-import {expect,it} from 'vitest';
+import type {ApiClient} from '@photoeditor/api-client';
+import {OwnerAPI} from './owner-api';
+import {expect,it,vi} from 'vitest';
 import {freezeLocalPortraitSelection,readLocalPortraitPrepared,readLocalPortraitTicket,verifyLocalPortraitRecoverySource,type LocalPortraitSelection} from './local-portrait-intent';
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const ref=(n:number)=>({artifact_id:id(n),sha256:'a'.repeat(64)});
@@ -12,7 +14,7 @@ it('keeps hair and clothing selections unprivileged and exact',()=>{
   expect(readLocalPortraitPrepared(JSON.parse(JSON.stringify(selection)),selection)).toEqual(selection);
   expect(verifyLocalPortraitRecoverySource(selection,base)).toEqual(selection);
   expect(()=>verifyLocalPortraitRecoverySource(selection,{...base,source:ref(9)})).toThrow();
-  expect(()=>freezeLocalPortraitSelection({...selection,runtime_sha:'c'.repeat(64)} as LocalPortraitSelection)).toThrow();
+  expect(()=>freezeLocalPortraitSelection({...selection,runtime_sha:'c'.repeat(64)} as unknown as LocalPortraitSelection)).toThrow();
   expect(()=>readLocalPortraitPrepared({...selection,protected_pixel:ref(8)},selection)).toThrow();
  }
  expect(()=>freezeLocalPortraitSelection({...hair,params:{...hair.params,hue_delta_degrees:31}})).toThrow();
@@ -23,4 +25,10 @@ it('accepts only a queued exact admission ticket',()=>{
  const ticket={run_id:id(10),workflow_id:id(11),task_id:id(12),state:'queued' as const};
  expect(readLocalPortraitTicket(ticket)).toEqual(ticket);
  expect(()=>readLocalPortraitTicket({...ticket,scope:'other'})).toThrow();
+});
+
+it('admits both local portrait operations with actual canonical project UUIDs',async()=>{
+ const ticket={run_id:id(10),workflow_id:id(11),task_id:id(12),state:'queued'};const request=vi.fn().mockResolvedValue(ticket),api=new OwnerAPI({request} as unknown as ApiClient,id(20));
+ for(const body of [hair,clothing]){await expect(api.submitLocalPortrait(id(21),body,'frozen-local-portrait-key')).resolves.toEqual(ticket);expect(request).toHaveBeenLastCalledWith(`/api/v1/tenants/${id(20)}/projects/${id(21)}/local-portrait-intents`,expect.objectContaining({method:'POST',body,idempotencyKey:'frozen-local-portrait-key'}));}
+ request.mockClear();await expect(api.submitLocalPortrait('project',hair,'key')).rejects.toThrow();expect(request).not.toHaveBeenCalled();
 });

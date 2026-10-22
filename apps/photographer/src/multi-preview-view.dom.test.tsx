@@ -1,4 +1,6 @@
+import {clickWhenEnabled} from './test/ui-readiness';
 // @vitest-environment jsdom
+vi.mock('expo-router',async()=> (await import('./test/locale-router')).localeRouterFixture);
 import {afterEach,expect,it,vi} from 'vitest';
 import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
 vi.mock('react-native',async()=>import('react-native-web'));
@@ -18,8 +20,8 @@ it('retries an unavailable preview and forwards variant',async()=>{
  const multiPreview=vi.fn().mockRejectedValue(new Error('not ready'));const api={multiPreview};
  render(<LocaleProvider><MultiPreviewView api={api} proposal={proposal} intent={intent}/></LocaleProvider>);
  await screen.findByText('Preview unavailable. Try again later.');
- fireEvent.click(screen.getByRole('button',{name:'Reload preview'}));await waitFor(()=>expect(multiPreview).toHaveBeenCalledTimes(2));
- fireEvent.click(screen.getByRole('button',{name:'Show 2560px preview'}));await waitFor(()=>expect(multiPreview.mock.calls[2][2]).toBe('preview2560'));
+ await clickWhenEnabled(screen.getByRole('button',{name:'Reload preview'}));await waitFor(()=>expect(multiPreview).toHaveBeenCalledTimes(2));
+ await clickWhenEnabled(screen.getByRole('button',{name:'Show 2560px preview'}));await waitFor(()=>expect(multiPreview.mock.calls[2][2]).toBe('preview2560'));
 });
 it('aborts pending request when unmounted',()=>{
  const multiPreview=vi.fn((_proposal:MultiProposal,_intent:MultiIntent,_variant?:string,_signal?:AbortSignal)=>new Promise<never>(()=>{}));

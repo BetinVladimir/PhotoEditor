@@ -79,32 +79,32 @@ func (s SQLTransferSourceReader) prepareDefectPersonAdmission(ctx context.Contex
 // coverage proof under the same SQL transaction. It does not activate the task.
 func (s SQLTransferSourceReader) lockDefectPersonAdmissionInTransaction(ctx context.Context, tx pgx.Tx, who auth.Identity, prepared defectPersonAdmissionPreparation) error {
 	if tx == nil {
-		return v2input.ErrInvalid
+		return defectAdmissionStageError(defectStagePersonTransaction, v2input.ErrInvalid)
 	}
 	if err := s.validateDefectPersonAdmission(ctx, who, prepared.plan, prepared.person); err != nil {
-		return err
+		return defectAdmissionStageError(defectStagePersonValidation, err)
 	}
 	if _, err := s.beginDefectPreparationDraftInTransaction(ctx, tx, who, prepared.plan); err != nil {
-		return err
+		return defectAdmissionStageError(defectStageBeginDraft, err)
 	}
 	if err := lockPersonProtectionProofsInTransaction(ctx, tx, who, prepared.plan.request.TenantID, s.ProjectID, []personProtectionProof{prepared.person}); err != nil {
-		return err
+		return defectAdmissionStageError(defectStagePersonProofs, err)
 	}
 	person, err := s.marshalDefectPersonAuthority(ctx, who, prepared)
 	if err != nil {
-		return err
+		return defectAdmissionStageError(defectStagePersonPacket, err)
 	}
 	content, err := marshalDefectActivationContent(ctx, prepared.plan)
 	if err != nil {
-		return err
+		return defectAdmissionStageError(defectStageActivationContent, err)
 	}
 	binding := prepared.plan.request.Intent.Reference
 	var matches bool
 	if err := tx.QueryRow(ctx, "SELECT photo.lock_semantic_defect_person_authority($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9::jsonb)", prepared.plan.request.TenantID, s.ProjectID, who.UserID, who.SessionID, binding.AssetVersionID, binding.Source.ArtifactID, binding.Source.SHA256, string(person), string(content)).Scan(&matches); err != nil {
-		return err
+		return defectAdmissionStageError(defectStagePersonQuery, err)
 	}
 	if !matches {
-		return v2input.ErrConflict
+		return defectAdmissionStageError(defectStagePersonState, v2input.ErrConflict)
 	}
-	return s.lockDefectPolicyExecutionInTransaction(ctx, tx, who, prepared.plan.request.TenantID, prepared.plan.request.Intent.Reference, prepared.plan.execution)
+	return defectAdmissionStageError(defectStagePersonPolicy, s.lockDefectPolicyExecutionInTransaction(ctx, tx, who, prepared.plan.request.TenantID, prepared.plan.request.Intent.Reference, prepared.plan.execution))
 }

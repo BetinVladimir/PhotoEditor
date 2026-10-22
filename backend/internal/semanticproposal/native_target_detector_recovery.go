@@ -115,7 +115,7 @@ func (s SQLTransferSourceReader) restoreNativeTargetDetectorPlan(ctx context.Con
 	if err != nil {
 		return zero, err
 	}
-	selected, err := selectQualificationPolicies(policy, []string{"face.detect"})
+	selected, err := selectNativeQualificationPolicies(policy, []string{"face.detect"})
 	if err != nil {
 		return zero, err
 	}
@@ -124,7 +124,9 @@ func (s SQLTransferSourceReader) restoreNativeTargetDetectorPlan(ctx context.Con
 		return zero, err
 	}
 	prepared.legacyTargetQueueOmitted, err = nativePreparationLegacyQueue(string(saved.Config))
-	if err != nil { return zero, err }
+	if err != nil {
+		return zero, err
+	}
 	plan, err := s.compileNativeTargetDetectorPlan(ctx, who, a, prepared, policy, metadata.Reserved)
 	if err != nil {
 		return zero, err

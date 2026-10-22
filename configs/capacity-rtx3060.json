@@ -5,7 +5,7 @@
   "cpu_threads_per_task": 2,
   "heavy_admission_inflight": 8,
   "tenant_heavy_queued": 2,
-  "gpu_budget_bytes": 10200547328,
+  "gpu_budget_bytes": 10000000000,
   "photo_ram_budget_bytes": 17179869184,
   "control_ram_budget_bytes": 8589934592,
   "scratch_free_floor_fraction": 0.15,

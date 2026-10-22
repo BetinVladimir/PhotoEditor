@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"net/http"
@@ -45,6 +46,7 @@ func semanticReviewResponse(response idempotency.Response) (semanticreview.Batch
 
 func (s *Server) semanticReviewRoutes(router chi.Router) {
 	s.semanticProposeRoutes(router)
+	s.semanticPreviewRoutes(router)
 	router.Get("/api/v1/tenants/{t}/runs/{id}/semantic-intent", func(w http.ResponseWriter, r *http.Request) {
 		who, tid, err := s.tenantRequest(r, false)
 		if err != nil {
@@ -80,6 +82,12 @@ func (s *Server) semanticReviewRoutes(router chi.Router) {
 			writeError(w, r, err)
 			return
 		}
+		result, err = enrichSemanticReviewStatus(r.Context(), who, tenant, intent, result, s.SemanticReviewKind)
+		if err != nil {
+			writeError(w, r, semanticReviewError(err))
+			return
+		}
+
 		writeJSON(w, 200, result)
 	})
 	router.Get("/api/v1/tenants/{t}/semantic-intents/{id}/targets", func(w http.ResponseWriter, r *http.Request) {
@@ -194,4 +202,53 @@ func (s *Server) semanticReviewRoutes(router chi.Router) {
 		}
 		writeJSON(w, 200, result)
 	})
+}
+
+// Advisory kind never hides an otherwise readable status solely because its
+// retained object is unavailable. Authority and corruption errors fail closed.
+func enrichSemanticReviewStatus(ctx context.Context, who auth.Identity, tenant, intent uuid.UUID, status semanticreview.ReviewStatus, read semanticreview.ReviewKindReader) (semanticreview.ReviewStatus, error) {
+	status.Kind = nil
+	if err := ctx.Err(); err != nil {
+		return semanticreview.ReviewStatus{}, err
+	}
+	if read == nil {
+		return status, nil
+	}
+	kind, err := read(ctx, who, tenant, intent)
+	if cancelled := ctx.Err(); cancelled != nil {
+		return semanticreview.ReviewStatus{}, cancelled
+	}
+	if err != nil {
+		if errors.Is(err, semanticreview.ErrUnavailable) {
+			return status, nil
+		}
+		return semanticreview.ReviewStatus{}, err
+	}
+	if err := ctx.Err(); err != nil {
+		return semanticreview.ReviewStatus{}, err
+	}
+	switch kind {
+	case "remove_object", "local_exposure", "background_cleanup", "retouch_region":
+		status.Kind = &kind
+	default:
+		return semanticreview.ReviewStatus{}, semanticreview.ErrInvalid
+	}
+	return status, nil
+}
+
+// Installation evidence is process-local and tenant-specific; it never grants
+// SQL authority or substitutes for qualified worker evidence.
+func (s *Server) semanticOperationInstalled(tenant uuid.UUID, operation string) bool {
+	type installed interface{ SemanticOperationInstalled(uuid.UUID, string) bool }
+	var provider any
+	switch operation {
+	case "semantic.preview_local_exposure", "semantic.preview_remove_object", "semantic.preview_background_cleanup", "semantic.preview_retouch_region":
+		provider = s.SemanticPreviewAdmission
+	case "semantic.adopt_shown_exposure", "semantic.adopt_shown_removal", "semantic.adopt_shown_background_cleanup", "semantic.adopt_shown_retouch_region":
+		provider = s.SemanticReviewApply
+	default:
+		return false
+	}
+	value, ok := provider.(installed)
+	return ok && value.SemanticOperationInstalled(tenant, operation)
 }

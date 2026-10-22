@@ -28,12 +28,12 @@ func (s SQLTransferSourceReader) selectInitialDetectorConfiguration(ctx context.
 	if err != nil {
 		return zero, err
 	}
-	selected, err := selectQualificationPolicies(snapshot, []string{"face.detect"})
+	selected, err := selectNativeQualificationPolicies(snapshot, []string{"face.detect"})
 	if err != nil {
 		return zero, err
 	}
 	expected := ownQualificationExpected(selected["face.detect"])
-	if expected.Backend != "cuda" {
+	if expected.Backend != "cuda" && expected.Backend != "mps" {
 		return zero, v2qualification.ErrUnqualified
 	}
 	report, err := s.discoverFaceQualificationReport(ctx, who, tenantID, expected)
@@ -51,11 +51,11 @@ func (s SQLTransferSourceReader) selectInitialDetectorConfiguration(ctx context.
 	if err := chargeMetadata(&used, capacity.MetadataBytes, len(snapshot.body), int(pin.object.Bytes)); err != nil {
 		return zero, err
 	}
-	verified, err := s.VerifyFaceQualification(ctx, who, tenantID, report, expected)
+	verified, err := s.VerifyFaceQualificationTyped(ctx, who, tenantID, report, expected)
 	if err != nil {
 		return zero, err
 	}
-	budget, err := initialNativeFaceBudget(capacity, reserved, verified.Metrics)
+	budget, err := initialNativeFaceResourceBudget(capacity, reserved, verified.Resources())
 	if err != nil {
 		return zero, err
 	}

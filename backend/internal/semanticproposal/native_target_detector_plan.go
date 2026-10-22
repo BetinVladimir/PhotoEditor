@@ -44,7 +44,7 @@ func (s SQLTransferSourceReader) compileNativeTargetDetectorPlan(ctx context.Con
 	if !validQualificationPolicySnapshot(s, who, a.request.TenantID, policy) {
 		return zero, v2input.ErrInvalid
 	}
-	selected, err := selectQualificationPolicies(policy, []string{"face.detect"})
+	selected, err := selectNativeQualificationPolicies(policy, []string{"face.detect"})
 	if err != nil {
 		return zero, err
 	}
@@ -94,7 +94,9 @@ func (s SQLTransferSourceReader) compileNativeTargetDetectorPlan(ctx context.Con
 		return zero, err
 	}
 	configValue := map[string]any{"project_id": s.ProjectID, "v27_target_detector_prepare": map[string]any{"schema_version": 1, "parent_run_id": a.request.RunID, "request_sha": a.request.RequestSHA, "auth_session_id": who.SessionID, "target_ordinal": a.entry.Ordinal, "target_namespace": a.entry.Namespace, "target_stage_id": a.stage.ID, "manifest_sha": a.manifest.sha, "source": a.entry.Binding, "intent": a.published.Ref, "snapshot": a.snapshot, "params_document": prepared.document, "params": v2input.Ref{ArtifactID: task.ParamsArtifactID, SHA256: task.ParamsSHA}, "task_id": task.ID, "input_digest": task.InputDigest, "policy_sha": policySHA, "recovery": recovery}}
-	if !prepared.legacyTargetQueueOmitted { configValue["queue_class"] = "batch" }
+	if !prepared.legacyTargetQueueOmitted {
+		configValue["queue_class"] = "batch"
+	}
 	config, err := canonical.Marshal(configValue)
 	if err != nil {
 		return zero, err
@@ -151,12 +153,12 @@ func (s SQLTransferSourceReader) prepareNativeTargetDetectorPlan(ctx context.Con
 	if err != nil {
 		return zero, err
 	}
-	selected, err := selectQualificationPolicies(policy, []string{"face.detect"})
+	selected, err := selectNativeQualificationPolicies(policy, []string{"face.detect"})
 	if err != nil {
 		return zero, err
 	}
 	expected := selected["face.detect"]
-	if expected.Backend != "cuda" {
+	if expected.Backend != "cuda" && expected.Backend != "mps" {
 		return zero, v2qualification.ErrUnqualified
 	}
 	document := uuid.NewSHA1(a.entry.Namespace, []byte("semantic.face.detect.params:reference"))

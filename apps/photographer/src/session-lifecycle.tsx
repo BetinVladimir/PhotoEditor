@@ -1,5 +1,6 @@
+import {Button,Text} from 'react-native-paper';
 import {useEffect,useRef,useState} from 'react';
-import {Pressable,Text,View} from 'react-native';
+import {View} from 'react-native';
 import {APIError} from '@photoeditor/api-client';
 import type {ShootSession,ShootSessionUpdate} from './capture-types';
 import {useLocale} from './locale-context';
@@ -17,10 +18,10 @@ export function SessionLifecycle({session,disabled,onSave,onPending}:{onPending:
  useEffect(()=>{alive.current=true;return()=>{alive.current=false;onPending(false);};},[onPending]);
  const blocked=disabled||pending||conflict||!!attempt.current;
  return <View style={{padding:12,gap:8}}>{failed?<Text accessibilityRole="alert">{t(conflict?'session_state_conflict':'session_state_failed')}</Text>:null}
-  {attempt.current?<Pressable accessibilityRole="button" disabled={disabled||pending} onPress={()=>void transition()} style={s.button}><Text style={s.buttonText}>{t('session_state_retry')}</Text></Pressable>:null}
-  {session.state==='open'?<Pressable accessibilityRole="button" disabled={blocked} onPress={()=>void transition('closed')} style={s.button}><Text style={s.buttonText}>{t('session_close')}</Text></Pressable>:null}
-  {session.state==='closed'?<><Pressable accessibilityRole="button" disabled={blocked} onPress={()=>void transition('open')} style={s.button}><Text style={s.buttonText}>{t('session_reopen')}</Text></Pressable>
-   <Pressable accessibilityRole="button" disabled={blocked} onPress={()=>setConfirm(true)} style={s.button}><Text style={s.buttonText}>{t('session_archive')}</Text></Pressable>{confirm?<><Text>{t('session_archive_warning')}</Text><Pressable accessibilityRole="button" disabled={blocked} onPress={()=>void transition('archived')} style={s.button}><Text style={s.buttonText}>{t('session_archive_confirm')}</Text></Pressable></>:null}</>:null}
+  {attempt.current?<Button accessibilityRole="button" disabled={disabled||pending} onPress={()=>void transition()}    mode="contained" contentStyle={{minHeight:48}}>{t('session_state_retry')}</Button>:null}
+  {session.state==='open'?<Button accessibilityRole="button" disabled={blocked} onPress={()=>void transition('closed')}    mode="contained" contentStyle={{minHeight:48}}>{t('session_close')}</Button>:null}
+  {session.state==='closed'?<><Button accessibilityRole="button" disabled={blocked} onPress={()=>void transition('open')}    mode="contained" contentStyle={{minHeight:48}}>{t('session_reopen')}</Button>
+   <Button accessibilityRole="button" disabled={blocked} onPress={()=>setConfirm(true)}    mode="contained" contentStyle={{minHeight:48}}>{t('session_archive')}</Button>{confirm?<><Text>{t('session_archive_warning')}</Text><Button accessibilityRole="button" disabled={blocked} onPress={()=>void transition('archived')}    mode="contained" contentStyle={{minHeight:48}}>{t('session_archive_confirm')}</Button></>:null}</>:null}
   {session.state==='archived'?<Text>{t('session_archived')}</Text>:null}
  </View>;
 }

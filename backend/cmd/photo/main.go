@@ -14,13 +14,18 @@ import (
 	"os/signal"
 	migrations "photoeditor/backend/db"
 	"photoeditor/backend/internal/auth"
+	"photoeditor/backend/internal/capability"
 	"photoeditor/backend/internal/collection"
 	"photoeditor/backend/internal/colorprofile"
 	"photoeditor/backend/internal/config"
 	"photoeditor/backend/internal/contactsheet"
+	"photoeditor/backend/internal/database"
 	"photoeditor/backend/internal/delivery"
+	"photoeditor/backend/internal/downloadpolicy"
 	"photoeditor/backend/internal/gateway"
 	"photoeditor/backend/internal/httpapi"
+	"photoeditor/backend/internal/idempotency"
+	"photoeditor/backend/internal/interactive"
 	"photoeditor/backend/internal/interchange"
 	"photoeditor/backend/internal/mail"
 	"photoeditor/backend/internal/maintenance"
@@ -31,8 +36,11 @@ import (
 	"photoeditor/backend/internal/queue"
 	"photoeditor/backend/internal/rawdevelopment"
 	"photoeditor/backend/internal/review"
+	"photoeditor/backend/internal/semanticreview"
+	"photoeditor/backend/internal/tenant"
 	"photoeditor/backend/internal/upload"
 	"photoeditor/backend/internal/v2draft"
+	"photoeditor/backend/internal/v2learning"
 	"photoeditor/backend/internal/v2optical"
 	"photoeditor/backend/internal/v2region"
 	"photoeditor/backend/internal/v2render"
@@ -55,6 +63,9 @@ func runWithAPIDependencies(dependencies apiProcessDependencies) error {
 		return err
 	}
 	if cfg.Role == "migrate" {
+		if err := migrations.ValidateBundle(migrations.FS); err != nil {
+			return err
+		}
 		db, err := sql.Open("pgx", cfg.DatabaseURL)
 		if err != nil {
 			return err
@@ -64,7 +75,10 @@ func runWithAPIDependencies(dependencies apiProcessDependencies) error {
 		if err = goose.SetDialect("postgres"); err != nil {
 			return err
 		}
-		return goose.Up(db, "migrations")
+		if err := goose.Up(db, "migrations"); err != nil {
+			return migrations.SummarizeError(err)
+		}
+		return migrations.ValidateInstalledSecurity(context.Background(), db)
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -172,6 +186,12 @@ func runWithAPIDependencies(dependencies apiProcessDependencies) error {
 			archiveCompletionFactory{}, signingFactory, exportFactory, importFactories...)
 	}
 	if cfg.Role == "restore-replay" {
+		var closeReplay func()
+		dependencies, closeReplay, err = installRestoreReplayProcess(ctx, os.Getenv("PHOTO_RESTORE_REPLAY_INSTALLATION_FILE"), os.Getenv("PHOTO_RESTORE_REPLAY_INSTALLATION_SHA256"), dependencies)
+		if err != nil {
+			return err
+		}
+		defer closeReplay()
 		if dependencies.RestoreReplay == nil || dependencies.RestoreReplayReceipt == nil {
 			return errors.New("restore replay requires installed isolation authority")
 		}
@@ -254,11 +274,45 @@ func runWithAPIDependencies(dependencies apiProcessDependencies) error {
 		return errors.New("database configuration invalid")
 	}
 	apiConfig.ConnConfig.RuntimeParams["role"] = "photo_api"
+	database.GuardApplicationRole(apiConfig)
 	pool, err := pgxpool.NewWithConfig(ctx, apiConfig)
 	if err != nil {
 		return errors.New("database configuration invalid")
 	}
 	defer pool.Close()
+	if err := database.RequireApplicationRole(ctx, pool, "photo_api"); err != nil {
+		return err
+	}
+	if err := idempotency.RequireParentBinding(ctx, pool); err != nil {
+		return err
+	}
+	if err := interchange.RequireImportReviewFinalAuthority(ctx, pool); err != nil {
+		return err
+	}
+	if err := tenant.RequireAdminInstallation(ctx, pool); err != nil {
+		return err
+	}
+	if err := collection.RequireGallerySort(ctx, pool); err != nil {
+		return err
+	}
+	if err := collection.RequireGuestVolumePublication(ctx, pool); err != nil {
+		return err
+	}
+	if err := collection.RequireCollectionPublicationHistory(ctx, pool); err != nil {
+		return err
+	}
+	if err := capability.RequireExecutionPoolInstallation(ctx, pool); err != nil {
+		return err
+	}
+	if err := interactive.RequireRuntimeInstallation(ctx, pool); err != nil {
+		return err
+	}
+	if err := v2learning.RequireAcceptedTrainingReceiptInstallation(ctx, pool); err != nil {
+		return err
+	}
+	if err := v2region.RequireRecoveryInstallation(ctx, pool); err != nil {
+		return err
+	}
 	if err = pool.Ping(ctx); err != nil {
 		return errors.New("database unavailable")
 	}
@@ -282,11 +336,15 @@ func runWithAPIDependencies(dependencies apiProcessDependencies) error {
 		return errors.New("portal database configuration invalid")
 	}
 	portalConfig.ConnConfig.RuntimeParams["role"] = "photo_portal"
+	database.GuardApplicationRole(portalConfig)
 	portalPool, err := pgxpool.NewWithConfig(ctx, portalConfig)
 	if err != nil {
 		return errors.New("portal database unavailable")
 	}
 	defer portalPool.Close()
+	if err := database.RequireApplicationRole(ctx, portalPool, "photo_portal"); err != nil {
+		return err
+	}
 	var portalInstalled bool
 	if err = portalPool.QueryRow(ctx, `SELECT to_regprocedure('photo.exchange_share_session(uuid,bytea,bytea,bytea,text,timestamptz)') IS NOT NULL
 		AND to_regprocedure('photo.authorize_portal_session(bytea,bytea,text)') IS NOT NULL
@@ -307,6 +365,9 @@ func runWithAPIDependencies(dependencies apiProcessDependencies) error {
 		AND to_regprocedure('photo.redeem_download_intent(bytea,text)') IS NOT NULL`).Scan(&portalInstalled); err != nil || !portalInstalled {
 		return errors.New("portal database functions unavailable")
 	}
+	if err := portal.RequirePreparationRecoveryInstallation(ctx, portalPool); err != nil {
+		return err
+	}
 	storage, err := objectstore.New(objectstore.ConfigFromEnv(cfg.Environment == "development"))
 	if err != nil {
 		return errors.New("object storage configuration invalid")
@@ -317,6 +378,9 @@ func runWithAPIDependencies(dependencies apiProcessDependencies) error {
 	if err != nil {
 		return errors.New("object storage unavailable")
 	}
+	if err := v2render.ValidateMultiRunReviewInstallation(ctx, pool); err != nil {
+		return err
+	}
 	profileSHAs, err := colorprofile.LoadSHAs(os.Getenv("PHOTO_ICC_ROOT"))
 	if err != nil {
 		return err
@@ -326,13 +390,23 @@ func runWithAPIDependencies(dependencies apiProcessDependencies) error {
 		return errors.New("auth database configuration invalid")
 	}
 	authConfig.ConnConfig.RuntimeParams["role"] = "photo_auth"
+	authConfig.ConnConfig.ConnectTimeout = 5 * time.Second
+	authConfig.ConnConfig.RuntimeParams["statement_timeout"] = "5000"
+	authConfig.ConnConfig.RuntimeParams["lock_timeout"] = "3000"
+	database.GuardApplicationRole(authConfig)
 	authPool, err := pgxpool.NewWithConfig(ctx, authConfig)
 	if err != nil {
 		return errors.New("auth database unavailable")
 	}
 	defer authPool.Close()
+	if err := database.RequireApplicationRole(ctx, authPool, "photo_auth"); err != nil {
+		return err
+	}
 	if err = authPool.Ping(ctx); err != nil {
 		return errors.New("auth database unavailable")
+	}
+	if err := auth.RequireOTPReceiptSchema(ctx, authPool); err != nil {
+		return err
 	}
 	authService := &auth.Service{DB: authPool, Pepper: pepper, MailKeys: mailKeys, Signer: signer, Registration: cfg.RegistrationEnabled}
 	uploadService := &upload.Service{DB: pool, Objects: storage}
@@ -350,36 +424,84 @@ func runWithAPIDependencies(dependencies apiProcessDependencies) error {
 		uploadService.RAWAdmission = source
 	}
 
-	portalService := &portal.Service{DB: portalPool, Pepper: pepper, Objects: storage, Bucket: objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket}
-	reviewService := &review.Service{DB: pool, Objects: storage, Bucket: objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket, Gate: workflow.ReviewExpansionGate{}, Cursors: pagination.Codec{Key: auth.MAC(pepper, "cursor-key")}}
+	downloadTTL, err := downloadpolicy.FromEnvironment(os.Getenv)
+	if err != nil {
+		return err
+	}
+	portalService := &portal.Service{DownloadPolicy: downloadTTL, DB: portalPool, Pepper: pepper, Objects: storage, Bucket: objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket}
+	reviewService := &review.Service{ViewedKey: auth.MAC(pepper, "v26-selected-preview-capability"), DB: pool, Objects: storage, Bucket: objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket, Gate: workflow.ReviewExpansionGate{}, Cursors: pagination.Codec{Key: auth.MAC(pepper, "cursor-key")}}
 	mediaService := &media.Service{DB: pool, Objects: storage, Bucket: objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket, SRGBSHA256: profileSHAs["srgb_v1"]}
 	contactSheetService := &contactsheet.Service{DB: pool, Resources: contactsheet.ResourceManager{DB: pool, Objects: storage, Bucket: objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket}, SRGBSHA256: profileSHAs["srgb_v1"]}
-	analysisAdmission, closeAnalysis, err := buildAnalysisAdmission(ctx, pool, cfg.DatabaseURL,
+	analysisAdmission, closeAnalysis, err := buildAnalysisAdmission(ctx, pool, admissionSchedulerDatabaseURL(cfg.DatabaseURL),
 		storage, objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket)
 	if err != nil {
 		return err
 	}
 	defer closeAnalysis()
 	trainingAdmission, closeTraining, err := buildTrainingAdmission(ctx, pool,
-		cfg.DatabaseURL, storage,
+		os.Getenv("V23_TRAINING_SCHEDULER_DATABASE_URL"), storage,
 		objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket)
 	if err != nil {
 		return err
 	}
 	defer closeTraining()
-	renderAdmission, closeRender, err := buildRenderAdmission(ctx, pool, cfg.DatabaseURL, storage,
+	renderAdmission, closeRender, err := buildRenderAdmission(ctx, pool, admissionSchedulerDatabaseURL(cfg.DatabaseURL), storage,
 		objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket, renderCalibrations)
 	if err != nil {
 		return err
 	}
 	defer closeRender()
-	regionAdmission, closeRegion, err := buildRegionAdmission(ctx, pool, cfg.DatabaseURL, storage,
+	regionAdmission, closeRegion, err := buildRegionAdmission(ctx, pool, admissionSchedulerDatabaseURL(cfg.DatabaseURL), storage,
 		objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket, regionCalibrations, cfg.RegionEvidenceSHA)
 	if err != nil {
 		return err
 	}
 	defer closeRegion()
-	semanticReviewApply, closeSemanticAdmission, err := buildSemanticExposureApply(ctx, pool, storage, objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket)
+	semanticPreview, err := buildSemanticPreview(pool, storage, objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket, profileSHAs["srgb_v1"])
+	if err != nil {
+		return err
+	}
+	semanticRemovalPreview, err := buildSemanticRemovalPreview(pool, storage, objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket, profileSHAs["srgb_v1"])
+	if err != nil {
+		return err
+	}
+	semanticBackgroundCleanupPreview, err := buildSemanticBackgroundCleanupPreview(pool, storage, objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket, profileSHAs["srgb_v1"])
+	if err != nil {
+		return err
+	}
+	semanticRetouchPreview, err := buildSemanticRetouchPreview(pool, storage, objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket, profileSHAs["srgb_v1"])
+	if err != nil {
+		return err
+	}
+	semanticIntentReader, err := semanticreview.NewPlanObjectReader(storage, objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket)
+	if err != nil {
+		return err
+	}
+	semanticReviewKind, err := semanticreview.SQLReviewKindReader(pool, semanticIntentReader)
+	if err != nil {
+		return err
+	}
+	semanticPreviewKind, err := semanticreview.SQLPreviewKindResolver(pool, semanticIntentReader)
+	if err != nil {
+		return err
+	}
+	semanticPreviewRouter := &semanticreview.PreviewOperationRouter{Resolve: semanticPreviewKind, Exposure: semanticPreview, Removal: semanticRemovalPreview, BackgroundCleanup: semanticBackgroundCleanupPreview, Retouch: semanticRetouchPreview}
+	var appliedPreviewSQLReady bool
+	if err := pool.QueryRow(ctx, "SELECT to_regprocedure('photo.semantic_shown_applied_preview_object(uuid,uuid,uuid,uuid,text,text,text)') IS NOT NULL").Scan(&appliedPreviewSQLReady); err != nil {
+		return err
+	}
+	if !appliedPreviewSQLReady {
+		return errors.New("semantic target applied preview migration required")
+	}
+	semanticAppliedPreview, err := semanticreview.NewShownAppliedPreviewService(pool, storage, storage, objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket, profileSHAs["srgb_v1"])
+	if err != nil {
+		return err
+	}
+	semanticShownVersion, err := semanticreview.NewShownVersionService(pool, storage, objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket)
+	if err != nil {
+		return err
+	}
+	semanticReviewApply, closeSemanticAdmission, err := buildSemanticShownApply(ctx, pool, storage, objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket, semanticPreview, semanticRemovalPreview, semanticBackgroundCleanupPreview, semanticRetouchPreview)
 	if err != nil {
 		return err
 	}
@@ -395,14 +517,14 @@ func runWithAPIDependencies(dependencies apiProcessDependencies) error {
 			return err
 		}
 	}
-	var semanticReviewClose httpapi.SemanticReviewClose
-	if tenantService, ok := semanticReviewApply.(httpapi.SemanticReviewClose); ok {
-		semanticReviewClose = tenantService
-	} else {
-		semanticReviewClose, err = buildSemanticReviewClose(pool, storage, objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket)
-		if err != nil {
-			return err
-		}
+	semanticReviewClose, err := buildSemanticCloseForApply(pool, storage, objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket, semanticReviewApply)
+	if err != nil {
+		return err
+	}
+
+	semanticPreviewAdmission, err := buildSemanticPreviewAdmission(pool, storage, objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket)
+	if err != nil {
+		return err
 	}
 	relightSubmit, closeRelight, err := buildRelightCreate(ctx, storage, objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket)
 	if err != nil {
@@ -447,6 +569,11 @@ func runWithAPIDependencies(dependencies apiProcessDependencies) error {
 		return err
 	}
 	defer closeNegative()
+	lensSubmit, closeLens, err := buildLens(ctx, pool, storage, objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket)
+	if err != nil {
+		return err
+	}
+	defer closeLens()
 	linesSubmit, closeLines, err := buildPerspectiveLines(ctx, storage, objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket)
 	if err != nil {
 		return err
@@ -546,7 +673,12 @@ func runWithAPIDependencies(dependencies apiProcessDependencies) error {
 	}
 	archiveBegin := interchange.ArchiveUploadBeginService{Repository: interchange.SQLArchiveUploadRepository{DB: pool, Bucket: snapshotBucket}, Objects: storage, Writers: interchange.SQLArchiveBeginWriters{DB: pool, Bucket: snapshotBucket}, Inspector: interchange.SQLArchiveBeginInspector{DB: pool, Bucket: snapshotBucket, Objects: storage}, Generations: interchange.SQLArchiveBeginGenerations{DB: pool, Bucket: snapshotBucket}, CrossKey: interchange.SQLArchiveCrossKeyStatus{DB: pool}}
 	archiveActions := interchange.ArchiveUploadActions{Repository: interchange.SQLArchiveUploadRepository{DB: pool, Bucket: snapshotBucket}, Authority: interchange.SQLArchivePartsAuthority{DB: pool, Bucket: snapshotBucket}, Signer: storage, BeginGenerations: interchange.SQLArchiveBeginGenerations{DB: pool, Bucket: snapshotBucket}, GenerationStatus: interchange.SQLArchiveBeginGenerations{DB: pool, Bucket: snapshotBucket}, OpenBegin: interchange.SQLArchiveOpenBeginStatus{DB: pool}}
-	server := (&httpapi.Server{OpenEyesPrepare: openEyesPrepare, OpenEyesSubmit: openEyesPrepare, OpenEyesSourceCandidates: openEyesPrepare, OpenEyesDonorCandidates: openEyesPrepare, OpenEyesMaskPairs: openEyesPrepare, LocalPortraitPrepare: localPortraitPrepare, LocalPortraitSubmit: localPortraitPrepare, ReflectionPrepare: reflectionSubmit, ReflectionSubmit: reflectionSubmit, GlareDonorSubmit: glareDonorSubmit, GlareDonorPrepare: glareDonorSubmit, GlareDonorCandidates: glareDonorSubmit, GlareSourceCandidates: glareDonorSubmit, GlareMaskPairs: manualMaskPairProjects{glare: glareDonorSubmit, reflection: reflectionSubmit, local: localPortraitPrepare}, InterchangeArchiveStatus: archiveActions, InterchangeArchiveActions: archiveActions, InterchangeArchiveBegin: archiveBegin, InterchangeSnapshots: snapshotPreparation, ExportSigner: exportSigner, InterchangeCreator: interchangeCreator, InterchangeMaskCandidates: interchange.ImportPersonMaskCandidateService{DB: pool, Objects: storage, Bucket: objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket}, InterchangeImportReviewDecider: interchange.ImportReviewDecisionService{DB: pool, Objects: storage, Bucket: objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket}, InterchangeImportReviewProposals: interchange.ImportReviewProposalListService{DB: pool, Objects: storage, Bucket: objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket}, InterchangeReviewDecider: httpapi.InterchangeReviewDecideService{Service: interchange.Service{DB: pool, ApprovalStyleFactory: importStyleFactory}, Objects: storage, Bucket: objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket, Drafts: v2draft.Service{DB: pool, Objects: storage, Bucket: objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket}}, InterchangeReviewCloser: httpapi.InterchangeReviewCloseService{Service: interchange.Service{DB: pool}, Objects: storage, Bucket: objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket}, DeliveryCreator: deliveryCreator, MultiProposals: &v2render.MultiProposalService{DB: pool, PreviewSigner: storage, SRGBSHA: profileSHAs["srgb_v1"], Source: v2render.SQLAdoptedMultiSource{DB: pool}, Objects: storage, Bucket: objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket}, PanoramaSubmit: panoramaSubmit, FocusStackSubmit: focusSubmit, PerspectiveLinesSubmit: linesSubmit, PerspectiveDetectedLines: &v2optical.PerspectiveDetectedLinesService{DB: pool}, PerspectiveProposals: &v2render.PerspectiveProposalService{DB: pool, Objects: storage, PreviewSigner: storage, SRGBSHA: profileSHAs["srgb_v1"], Bucket: objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket}, NegativeSubmit: negativeSubmit, PerspectiveSubmit: perspectiveSubmit, RelightAnalysis: relightAnalysis, RelightSubmit: relightSubmit, Config: cfg, DB: pool, Auth: authService, Uploads: uploadService, Portal: portalService, Reviews: reviewService, SelectedPreviewKey: auth.MAC(pepper, "v26-selected-preview-capability"), ReviewPreviews: &review.CandidatePreviewService{Catalog: review.SQLCandidatePreviewCatalog{DB: pool, Bucket: objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket, SRGBSHA: profileSHAs["srgb_v1"]}, Source: reviewService, Selection: reviewService, RestorationSelection: reviewService, Objects: storage, Signer: storage, SRGBSHA: profileSHAs["srgb_v1"]}, Media: mediaService, ContactSheets: contactSheetService, AnalysisAdmission: analysisAdmission, TrainingAdmission: trainingAdmission, RenderCalibrations: renderCalibrations, RenderQueue: renderAdmission, RegionQueue: regionAdmission, SemanticPropose: semanticPropose, SemanticReviewApply: semanticReviewApply, SemanticReviewClose: semanticReviewClose}).HTTPServer()
+	server := (&httpapi.Server{RuntimeReady: func(ready context.Context) error {
+		if err := authPool.Ping(ready); err != nil {
+			return err
+		}
+		return storage.Ready(ready)
+	}, SemanticReviewKind: semanticReviewKind, OpenEyesPrepare: openEyesPrepare, OpenEyesSubmit: openEyesPrepare, OpenEyesSourceCandidates: openEyesPrepare, OpenEyesDonorCandidates: openEyesPrepare, OpenEyesMaskPairs: openEyesPrepare, LocalPortraitPrepare: localPortraitPrepare, LocalPortraitSubmit: localPortraitPrepare, ReflectionPrepare: reflectionSubmit, ReflectionSubmit: reflectionSubmit, GlareDonorSubmit: glareDonorSubmit, GlareDonorPrepare: glareDonorSubmit, GlareDonorCandidates: glareDonorSubmit, GlareSourceCandidates: glareDonorSubmit, GlareMaskPairs: manualMaskPairProjects{glare: glareDonorSubmit, reflection: reflectionSubmit, local: localPortraitPrepare}, InterchangeArchiveStatus: archiveActions, InterchangeArchiveActions: archiveActions, InterchangeArchiveBegin: archiveBegin, InterchangeSnapshots: snapshotPreparation, ExportSigner: exportSigner, InterchangeCreator: interchangeCreator, InterchangeMaskCandidates: interchange.ImportPersonMaskCandidateService{DB: pool, Objects: storage, Bucket: objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket}, InterchangeImportReviewDecider: interchange.ImportReviewDecisionService{DB: pool, Objects: storage, Bucket: objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket}, InterchangeImportReviewProposals: interchange.ImportReviewProposalListService{DB: pool, Objects: storage, Bucket: objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket}, InterchangeReviewDecider: httpapi.InterchangeReviewDecideService{Service: interchange.Service{DB: pool, ApprovalStyleFactory: importStyleFactory}, Objects: storage, Bucket: objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket, Drafts: v2draft.Service{DB: pool, Objects: storage, Bucket: objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket}}, InterchangeReviewCloser: httpapi.InterchangeReviewCloseService{Service: interchange.Service{DB: pool}, Objects: storage, Bucket: objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket}, DeliveryCreator: deliveryCreator, MultiProposals: &v2render.MultiProposalService{DB: pool, PreviewSigner: storage, SRGBSHA: profileSHAs["srgb_v1"], Source: v2render.SQLAdoptedMultiSource{DB: pool}, Objects: storage, Bucket: objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket}, PanoramaSubmit: panoramaSubmit, FocusStackSubmit: focusSubmit, PerspectiveLinesSubmit: linesSubmit, PerspectiveDetectedLines: &v2optical.PerspectiveDetectedLinesService{DB: pool}, PerspectiveProposals: &v2render.PerspectiveProposalService{DB: pool, Objects: storage, PreviewSigner: storage, SRGBSHA: profileSHAs["srgb_v1"], Bucket: objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket}, NegativeSubmit: negativeSubmit, LensProposals: &v2render.LensProposalService{DB: pool, Objects: storage, PreviewSigner: storage, SRGBSHA: profileSHAs["srgb_v1"], Bucket: objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket}, LensSubmit: lensSubmit, PerspectiveSubmit: perspectiveSubmit, RelightAnalysis: relightAnalysis, RelightSubmit: relightSubmit, Config: cfg, DB: pool, Auth: authService, Uploads: uploadService, Portal: portalService, Reviews: reviewService, SelectedPreviewKey: auth.MAC(pepper, "v26-selected-preview-capability"), ReviewPreviews: &review.CandidatePreviewService{Catalog: review.SQLCandidatePreviewCatalog{DB: pool, Bucket: objectstore.ConfigFromEnv(cfg.Environment == "development").Bucket, SRGBSHA: profileSHAs["srgb_v1"]}, Source: reviewService, Selection: reviewService, RestorationSelection: reviewService, Objects: storage, Signer: storage, SRGBSHA: profileSHAs["srgb_v1"]}, Media: mediaService, ContactSheets: contactSheetService, AnalysisAdmission: analysisAdmission, TrainingAdmission: trainingAdmission, RenderCalibrations: renderCalibrations, RenderQueue: renderAdmission, RegionQueue: regionAdmission, SemanticPropose: semanticPropose, SemanticShownVersion: semanticShownVersion, SemanticAppliedPreview: semanticAppliedPreview, SemanticReviewApply: semanticReviewApply, SemanticReviewClose: semanticReviewClose, SemanticReviewPreview: semanticPreviewRouter, SemanticPreviewAdmission: semanticPreviewAdmission}).HTTPServer()
 	failure := make(chan error, 1)
 	go func() { failure <- server.ListenAndServe() }()
 	select {

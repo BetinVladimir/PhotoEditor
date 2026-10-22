@@ -1,6 +1,7 @@
 package main
 
 import (
+ "photoeditor/backend/internal/database"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -66,6 +67,7 @@ func buildMulti(ctx context.Context, objects *objectstore.Store, bucket, operati
 		return nil, noop, errors.New("multi-image scheduler configuration invalid")
 	}
 	config.ConnConfig.RuntimeParams["role"] = "photo_scheduler"
+	database.GuardApplicationRole(config)
 	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
 		return nil, noop, errors.New("multi-image scheduler unavailable")

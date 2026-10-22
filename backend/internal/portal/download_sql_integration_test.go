@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+ "photoeditor/backend/internal/database"
 )
 
 func TestPortalDownloadLockedAdmissionFailsClosedOnRemovedPermission(t *testing.T) {
@@ -90,8 +91,17 @@ func TestPortalUploadCompletionRejectsNullPartsBeforeSessionLookup(t *testing.T)
 		t.Fatal(err)
 	}
 	defer db.Close()
+ runtimeDSN := os.Getenv("PHOTO_TEST_RUNTIME_DATABASE_URL")
+ if runtimeDSN == "" { t.Fatal("isolated nonprivileged portal runtime connection required") }
+ config, err := pgxpool.ParseConfig(runtimeDSN)
+ if err != nil { t.Fatal(err) }
+ config.ConnConfig.RuntimeParams["role"] = "photo_portal"
+ database.GuardApplicationRole(config)
+ runtime, err := pgxpool.NewWithConfig(ctx, config)
+ if err != nil { t.Fatal(err) }
+ defer runtime.Close()
 	var outcome string
-	err = db.QueryRow(ctx, `SELECT outcome FROM photo.complete_portal_upload(
+	err = runtime.QueryRow(ctx, `SELECT outcome FROM photo.complete_portal_upload(
   $1,$2,'parts-key',$3,'00000000-0000-4000-8000-000000000001'::uuid,
   1,NULL::jsonb,'00000000-0000-4000-8000-000000000002'::uuid,
   '00000000-0000-4000-8000-000000000003'::uuid,

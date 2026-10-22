@@ -1,0 +1,1300 @@
+[
+  {
+    "name": "authored_native_replay_planned_prefix",
+    "body_sha256": "57f6043be5d6f4df86a66556ba8ed504b74e8c1e30778b4f98365aeb85aeb163",
+    "execute_roles": [
+      "photo_fn_owner",
+      "photo_scheduler"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_request_jcs",
+        "p_actor",
+        "p_session"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.text",
+        "pg_catalog.uuid",
+        "pg_catalog.uuid"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.jsonb",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "authored_render_face_candidate_current",
+    "body_sha256": "50540527d78596d27200d453095fefd34bb6f4f976934be14870bb9c3ca30a4f",
+    "execute_roles": [
+      "photo_fn_owner"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_body"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.jsonb"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.bool",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "authored_render_face_preparation_state",
+    "body_sha256": "5876f481543b619ba082c96ea7a3ed7fb33fee661790a8c56fe165dc4f756a9c",
+    "execute_roles": [
+      "photo_fn_owner",
+      "photo_scheduler"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_operation"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.text"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.text",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "authored_render_face_preview_scope",
+    "body_sha256": "3b7aa1c7265d5389f50acb08507a1a4ad646d70c82570daec8e0ae16e78aa4bc",
+    "execute_roles": [
+      "photo_fn_owner"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_sha",
+        "p_task",
+        "p_sealed"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.text",
+        "pg_catalog.uuid",
+        "pg_catalog.bool"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.bool",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "authored_render_face_producer_current",
+    "body_sha256": "0dffc1c4ba921a4cbd3aecdcf17395b4aa8dc4bada8be5a273173d8182dcea31",
+    "execute_roles": [
+      "photo_fn_owner"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_operation"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.text"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.jsonb",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "authored_render_face_producer_object",
+    "body_sha256": "fbbb498353a5f11302afed2a7560fd78ed02ca0b22ac26435a7c9922b370abbb",
+    "execute_roles": [
+      "photo_fn_owner",
+      "photo_scheduler"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_operation",
+        "p_artifact",
+        "p_sha",
+        "bucket",
+        "object_key",
+        "object_version",
+        "sha256",
+        "bytes",
+        "media_type"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.text",
+        "pg_catalog.uuid",
+        "pg_catalog.text",
+        "pg_catalog.text",
+        "pg_catalog.text",
+        "pg_catalog.text",
+        "pg_catalog.text",
+        "pg_catalog.int8",
+        "pg_catalog.text"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "t",
+        "t",
+        "t",
+        "t",
+        "t",
+        "t"
+      ],
+      "returns": "pg_catalog.record",
+      "setof": true,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "authored_render_face_sealed_current",
+    "body_sha256": "a25e0f484739a8cff260a3789747ac8e55243b3bbe66bbf3193ed58e271fcec5",
+    "execute_roles": [
+      "photo_fn_owner",
+      "photo_scheduler"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_operation",
+        "p_task"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.text",
+        "pg_catalog.uuid"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.bool",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "authored_render_face_task_scope",
+    "body_sha256": "a4c73ebbc4a8cdba446f6f5e187687d39c8c5fc960d60d91c1b14f4a134a21f7",
+    "execute_roles": [
+      "photo_fn_owner"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_operation",
+        "p_task",
+        "p_require_sealed"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.text",
+        "pg_catalog.uuid",
+        "pg_catalog.bool"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.jsonb",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "authored_render_layer_mask_transform_objects",
+    "body_sha256": "484c8f6219bdf260dc616ec30ea8c75cb0f44eea813e45f3e738be74a2c260dd",
+    "execute_roles": [
+      "photo_fn_owner",
+      "photo_scheduler"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_actor",
+        "p_session",
+        "p_task",
+        "p_root_jcs",
+        "p_target_jcs"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.text",
+        "pg_catalog.text"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.jsonb",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "authored_render_selected_faces_current",
+    "body_sha256": "006c55cb3d23c8218725ca109ca1dcb5a858f79a6b263e74f966c3c354482bfc",
+    "execute_roles": [
+      "photo_fn_owner"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_sha"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.text"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.jsonb",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "authored_render_skin_preparation_state",
+    "body_sha256": "4728b073b082f612417daf6cced0e0d2f9d8229722a86751fac59d216a418b6d",
+    "execute_roles": [
+      "photo_fn_owner",
+      "photo_scheduler"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_sha"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.text"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.text",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "authored_render_skin_producer_current",
+    "body_sha256": "0ff0e237ab9d95c1daba865ab6607eb8a6d1f99d41ef53ae3b20a6a0042ae97d",
+    "execute_roles": [
+      "photo_fn_owner"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_operation"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.text"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.jsonb",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "authored_render_skin_producer_object",
+    "body_sha256": "dbeeb14a951e129c3188c21edaf4b73c3c9f3d4cd4b26b27d63264aa940de921",
+    "execute_roles": [
+      "photo_fn_owner",
+      "photo_scheduler"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_operation",
+        "p_artifact",
+        "p_sha",
+        "bucket",
+        "object_key",
+        "object_version",
+        "sha256",
+        "bytes",
+        "media_type"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.text",
+        "pg_catalog.uuid",
+        "pg_catalog.text",
+        "pg_catalog.text",
+        "pg_catalog.text",
+        "pg_catalog.text",
+        "pg_catalog.text",
+        "pg_catalog.int8",
+        "pg_catalog.text"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "t",
+        "t",
+        "t",
+        "t",
+        "t",
+        "t"
+      ],
+      "returns": "pg_catalog.record",
+      "setof": true,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "authored_render_skin_sealed_current",
+    "body_sha256": "01616654b79fd009b621fd85be6e201ee47d9d0e12e13c8674706fb4aa4ebd1d",
+    "execute_roles": [
+      "photo_fn_owner",
+      "photo_scheduler"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_operation",
+        "p_task"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.text",
+        "pg_catalog.uuid"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.bool",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "authored_render_skin_task_scope",
+    "body_sha256": "7a766a34be31b003bd5a720a5032dc69b947caacd59909dfd710c9cbebef93c1",
+    "execute_roles": [
+      "photo_fn_owner"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_operation",
+        "p_task",
+        "p_require_sealed"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.text",
+        "pg_catalog.uuid",
+        "pg_catalog.bool"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.jsonb",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "authored_skin_qualification_object",
+    "body_sha256": "2f98d718437a6253dfe8b818a961afe8600584ff012aaf6e2da4546893a99719",
+    "execute_roles": [
+      "photo_api",
+      "photo_fn_owner"
+    ],
+    "language": "sql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_project",
+        "p_actor",
+        "p_session",
+        "p_expected",
+        "artifact_id",
+        "sha256",
+        "bucket",
+        "object_key",
+        "object_version",
+        "bytes"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.jsonb",
+        "pg_catalog.uuid",
+        "pg_catalog.text",
+        "pg_catalog.text",
+        "pg_catalog.text",
+        "pg_catalog.text",
+        "pg_catalog.int8"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "t",
+        "t",
+        "t",
+        "t",
+        "t",
+        "t"
+      ],
+      "returns": "pg_catalog.record",
+      "setof": true,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "begin_authored_render_face_task",
+    "body_sha256": "07906c21e158f095ad223c62fbb3d2cee64519c435d3ce1ff6385705b5937e13",
+    "execute_roles": [
+      "photo_fn_owner",
+      "photo_scheduler"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_operation",
+        "p_params",
+        "p_config_jcs",
+        "p_profile"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.text",
+        "pg_catalog.uuid",
+        "pg_catalog.text",
+        "pg_catalog.jsonb"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.bool",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "begin_authored_render_skin_task",
+    "body_sha256": "e066c69223d4f0d078fec7550cc35aebd60cb725f262c989645e1c3ca372eb97",
+    "execute_roles": [
+      "photo_fn_owner",
+      "photo_scheduler"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_operation",
+        "p_params",
+        "p_config_jcs",
+        "p_profile"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.text",
+        "pg_catalog.uuid",
+        "pg_catalog.text",
+        "pg_catalog.jsonb"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.bool",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "complete_authored_render_face_params",
+    "body_sha256": "3e7c5de28561dbd02bfdec32169aad81d01373f81516b3382fe7192e4f9888c5",
+    "execute_roles": [
+      "photo_fn_owner",
+      "photo_scheduler"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_operation",
+        "p_artifact",
+        "p_token",
+        "p_bucket",
+        "p_version"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.text",
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.text",
+        "pg_catalog.text"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.bool",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "complete_authored_render_skin_params",
+    "body_sha256": "2566288581862a69300ecfd978de43cadfa1460dd61c70f0b59bd815d578a612",
+    "execute_roles": [
+      "photo_fn_owner",
+      "photo_scheduler"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_operation",
+        "p_artifact",
+        "p_token",
+        "p_bucket",
+        "p_version"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.text",
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.text",
+        "pg_catalog.text"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.bool",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "decide_authored_face_selection",
+    "body_sha256": "5ae0375b85eebebf7a3cdcb25937b28a616cce5514527cbafe424765f5aa9106",
+    "execute_roles": [
+      "photo_api",
+      "photo_fn_owner"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_sha",
+        "p_actor",
+        "p_session",
+        "p_key",
+        "p_decision",
+        "p_selected"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.text",
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.text",
+        "pg_catalog.text",
+        "pg_catalog.jsonb"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.text",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "list_authored_face_selections",
+    "body_sha256": "5e80455af9391c64de8664c79c2ccd7fb35c9d8f63268d849f420b5fa35af73c",
+    "execute_roles": [
+      "photo_api",
+      "photo_fn_owner"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_actor",
+        "p_session",
+        "p_after_ordinal",
+        "p_limit"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.int4"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.jsonb",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "lock_authored_render_face_transport_scope",
+    "body_sha256": "33b10355e1f9c48f06e1fd4886edc881ee41919c47d43c1cd7cde612079248ef",
+    "execute_roles": [
+      "photo_fn_owner",
+      "photo_scheduler"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_operation",
+        "p_task"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.text",
+        "pg_catalog.uuid"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.jsonb",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "lock_authored_render_skin_transport_scope",
+    "body_sha256": "96e1d983f2ad607030dee198fea535d3e653c06c3cd797fa4ee3e5f0e2f75afa",
+    "execute_roles": [
+      "photo_fn_owner",
+      "photo_scheduler"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_operation",
+        "p_task"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.text",
+        "pg_catalog.uuid"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.jsonb",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "lock_authored_skin_qualification",
+    "body_sha256": "a05233c3e9c73876c36dcdbf61f5478a2975f84513bac9d33072b7a7eacab5f5",
+    "execute_roles": [
+      "photo_fn_owner",
+      "photo_scheduler"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_project",
+        "p_actor",
+        "p_session",
+        "p_expected",
+        "p_pin"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.jsonb",
+        "pg_catalog.jsonb"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.bool",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "publish_authored_face_selection_candidate",
+    "body_sha256": "01d5ef4230cfc17bf9ee425bdf83278a0a4001a48c3ed7e3532c83761322a063",
+    "execute_roles": [
+      "photo_fn_owner",
+      "photo_scheduler"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_body"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.text"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.text",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "read_authored_face_preview_media",
+    "body_sha256": "8bb54e9e6338c105d2700398bee6b5338ffe191db17e7ff45e2b468fcd632592",
+    "execute_roles": [
+      "photo_api",
+      "photo_fn_owner"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_sha",
+        "p_actor",
+        "p_session"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.text",
+        "pg_catalog.uuid",
+        "pg_catalog.uuid"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.jsonb",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "read_authored_face_selection",
+    "body_sha256": "1fc6d9be729bc57824b67c7fee846e603634e9e38ec40640f13d51c39fbb5d47",
+    "execute_roles": [
+      "photo_api",
+      "photo_fn_owner"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_sha",
+        "p_actor",
+        "p_session"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.text",
+        "pg_catalog.uuid",
+        "pg_catalog.uuid"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.jsonb",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "read_authored_render_face_producer",
+    "body_sha256": "653239767f3fbe6f0c95a0c1de46d9ef24812fd9827c4c1381d4be47df311c82",
+    "execute_roles": [
+      "photo_fn_owner",
+      "photo_scheduler"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_operation"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.text"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.jsonb",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "read_authored_render_selected_faces_current",
+    "body_sha256": "b605e5f65cdebd38aaa19a0e8c7d97b96e37ba39376f36dbc4578b42c7d45369",
+    "execute_roles": [
+      "photo_fn_owner",
+      "photo_scheduler"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_sha"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.text"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.jsonb",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "read_authored_render_skin_producer",
+    "body_sha256": "e1bf4e1727d32a401c93d36cb0f94a34bdd15af71a63c2193515c1c4be69ada4",
+    "execute_roles": [
+      "photo_fn_owner",
+      "photo_scheduler"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_operation"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.text"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i"
+      ],
+      "returns": "pg_catalog.jsonb",
+      "setof": false,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "reserve_authored_render_face_params",
+    "body_sha256": "0a4e8ab186996318d3bc2e1ddab2078534420f6edfc16ce318eae8d018741832",
+    "execute_roles": [
+      "photo_fn_owner",
+      "photo_scheduler"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_operation",
+        "p_bucket",
+        "artifact_id",
+        "token",
+        "ready"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.text",
+        "pg_catalog.text",
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.bool"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "t",
+        "t",
+        "t"
+      ],
+      "returns": "pg_catalog.record",
+      "setof": true,
+      "defaults": 0,
+      "variadic": false
+    }
+  },
+  {
+    "name": "reserve_authored_render_skin_params",
+    "body_sha256": "da7aed71f2eb04bec635d910985d6cc8a3f4d01ce8c6a5ed5b0334a2f7d0b248",
+    "execute_roles": [
+      "photo_fn_owner",
+      "photo_scheduler"
+    ],
+    "language": "plpgsql",
+    "abi": {
+      "names": [
+        "p_tenant",
+        "p_parent",
+        "p_ordinal",
+        "p_operation",
+        "p_bucket",
+        "artifact_id",
+        "token",
+        "ready"
+      ],
+      "types": [
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.int4",
+        "pg_catalog.text",
+        "pg_catalog.text",
+        "pg_catalog.uuid",
+        "pg_catalog.uuid",
+        "pg_catalog.bool"
+      ],
+      "modes": [
+        "i",
+        "i",
+        "i",
+        "i",
+        "i",
+        "t",
+        "t",
+        "t"
+      ],
+      "returns": "pg_catalog.record",
+      "setof": true,
+      "defaults": 0,
+      "variadic": false
+    }
+  }
+]

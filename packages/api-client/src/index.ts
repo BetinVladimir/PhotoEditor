@@ -1,3 +1,9 @@
+export * from "./semantic-applied-preview";
+import {readSemanticAppliedPreview} from "./semantic-applied-preview";
+export * from "./semantic-shown-version";
+import {materializeSemanticShownVersion} from "./semantic-shown-version";
+export * from "./semantic-review-preview";
+import {admitSemanticReviewPreview,readSemanticReviewPreview,type SemanticPreviewQuery} from "./semantic-review-preview";
 export * from "./semantic-propose";
 export * from "./provenance";
 import {signExport,signingPolicies,type SignCreate} from './provenance';
@@ -20,7 +26,7 @@ export { canonicalJSON } from "./canonical";
 import { canonicalJSON } from "./canonical";
 
 export class APIError extends Error {
-  constructor(readonly status: number, readonly code: string, message?: string, readonly requestID?: string) { super(message || code); }
+  constructor(readonly status: number, readonly code: string, message?: string, readonly requestID?: string, readonly previewRunID?: string) { super(message || code); }
 }
 
 export interface AuthStore {
@@ -31,10 +37,21 @@ export interface AuthStore {
   clientHeaders?(): HeadersInit;
 }
 
+const isAbortFailure = (error: unknown) => typeof error === "object" && error !== null && "name" in error && error.name === "AbortError";
+
 const safeRetry = (method: string, key?: string) => method === "GET" || method === "HEAD" || (!!key && method === "POST");
 const pause = (ms: number, signal?: AbortSignal) => new Promise<void>((resolve, reject) => {
-  const id = setTimeout(resolve, ms);
-  signal?.addEventListener("abort", () => { clearTimeout(id); reject(signal.reason || new DOMException("Aborted", "AbortError")); }, { once: true });
+  signal?.throwIfAborted();
+  const abort = () => {
+    clearTimeout(id);
+    signal?.removeEventListener("abort", abort);
+    reject(signal?.reason || new DOMException("Aborted", "AbortError"));
+  };
+  const id = setTimeout(() => {
+    signal?.removeEventListener("abort", abort);
+    resolve();
+  }, ms);
+  signal?.addEventListener("abort", abort, { once: true });
 });
 
 export class ApiClient {
@@ -48,10 +65,14 @@ export class ApiClient {
       const headers=new Headers(this.auth.clientHeaders?.());
       headers.set('Accept',mime);headers.set('Authorization',`Bearer ${principal.accessToken}`);
       const response=await this.transport(`${this.origin.replace(/\/$/,'')}${path}`,{method:'GET',headers,signal,credentials:'include',cache:'no-store'});
+      if(signal?.aborted){
+        await response.body?.cancel().catch(()=>{});
+        signal.throwIfAborted();
+      }
       if(response.status===401&&!refreshed){
         await response.body?.cancel();refreshed=true;
         if(!this.refreshFlight)this.refreshFlight=this.auth.refresh(signal).finally(()=>{this.refreshFlight=undefined});
-        try{await this.refreshFlight;}catch(error){await this.auth.clear();throw error;}
+        try{await this.refreshFlight;}catch(error){if(!signal?.aborted&&!isAbortFailure(error))await this.auth.clear();throw error;}
         continue;
       }
       if(!response.ok){await response.body?.cancel();throw new APIError(response.status,`HTTP_${response.status}`,undefined,response.headers.get('X-Request-ID')||undefined);}
@@ -63,8 +84,10 @@ export class ApiClient {
       let bytes:Uint8Array;
       if(response.body){
         const reader=response.body.getReader(),parts:Uint8Array[]=[];let total=0;
-        try{for(;;){signal?.throwIfAborted();const next=await reader.read();if(next.done)break;total+=next.value.byteLength;if(total>maxBytes)throw new Error('BINARY_RESPONSE_INVALID');parts.push(next.value);}}
-        finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
+        const abort=()=>{void reader.cancel(signal?.reason).catch(()=>{});};
+        signal?.addEventListener('abort',abort,{once:true});
+        try{for(;;){signal?.throwIfAborted();const next=await reader.read();signal?.throwIfAborted();if(next.done)break;total+=next.value.byteLength;if(total>maxBytes)throw new Error('BINARY_RESPONSE_INVALID');parts.push(next.value);}}
+        finally{signal?.removeEventListener('abort',abort);await reader.cancel().catch(()=>{});reader.releaseLock();}
         bytes=new Uint8Array(total);let offset=0;for(const part of parts){bytes.set(part,offset);offset+=part.byteLength;}
       }else{
         bytes=new Uint8Array(await response.arrayBuffer());if(bytes.byteLength>maxBytes)throw new Error('BINARY_RESPONSE_INVALID');
@@ -78,7 +101,11 @@ export class ApiClient {
  signExport(tenant:string,exportID:string,request:SignCreate,key:string,signal?:AbortSignal){return signExport(this,tenant,exportID,request,key,signal);}
  proposeSemanticIntent(tenant:string,input:SemanticEditIntent,key:string,signal?:AbortSignal) { return proposeSemanticIntent(this,tenant,input,key,signal); }
  semanticChildStatus(tenant:string,run:string,signal?:AbortSignal) { return readSemanticChildStatus(this,tenant,run,signal); }
+ semanticAppliedPreview(tenant:string,target:string,signal?:AbortSignal) { return readSemanticAppliedPreview(this,tenant,target,signal); }
+ materializeSemanticShownVersion(tenant:string,target:string,signal?:AbortSignal) { return materializeSemanticShownVersion(this,tenant,target,signal); }
  applySemanticReview(tenant:string,intent:string,request:SemanticApplyRequest,key:string,signal?:AbortSignal) { return applySemanticReview(this,tenant,intent,request,key,signal); }
+ semanticPreviewAdmission(query:SemanticPreviewQuery,signal?:AbortSignal) { return admitSemanticReviewPreview(this,query,signal); }
+ semanticReviewPreview(query:SemanticPreviewQuery,signal?:AbortSignal) { return readSemanticReviewPreview(this,query,signal); }
  semanticReviewStatus(tenant:string,intent:string,signal?:AbortSignal) { return readSemanticReviewStatus(this,tenant,intent,signal); }
  semanticRunIntent(tenant:string,run:string,signal?:AbortSignal) { return readSemanticRunIntent(this,tenant,run,signal); }
  closeSemanticReview(tenant:string,intent:string,request:SemanticReviewClose,key:string,signal?:AbortSignal) { return closeSemanticReview(this,tenant,intent,request,key,signal); }
@@ -86,7 +113,10 @@ export class ApiClient {
   semanticTargets(tenant:string,intent:string,query:SemanticTargetQuery={}) { return listSemanticTargets(this,tenant,intent,query); }
   private refreshFlight?: Promise<string>;
   private csrfFlight?: Promise<string>;
-  constructor(readonly origin: string, private auth: AuthStore, private transport: typeof fetch = fetch) {}
+  constructor(readonly origin: string, private auth: AuthStore, private transport: typeof fetch = fetch) {
+    // Browser fetch rejects a class instance as its Web IDL receiver.
+    const send=transport;this.transport=(input,init)=>send(input,init);
+  }
 
   private async csrf(signal?: AbortSignal): Promise<string> {
     const saved = this.auth.csrfToken?.();
@@ -99,13 +129,16 @@ export class ApiClient {
     const method = (options.method || "GET").toUpperCase();
     let refreshed = false;
     for (let networkAttempt = 0; ; networkAttempt++) {
+      options.signal?.throwIfAborted();
       try {
         return await this.raw<T>(path, { ...options, method }, true);
       } catch (error) {
+        options.signal?.throwIfAborted();
+        if (isAbortFailure(error)) throw error;
         if (error instanceof APIError && error.status === 401 && !refreshed && this.auth.principal()?.kind === "owner") {
           refreshed = true;
           if (!this.refreshFlight) this.refreshFlight = this.auth.refresh(options.signal).finally(() => { this.refreshFlight = undefined; });
-          try { await this.refreshFlight; } catch (refreshError) { await this.auth.clear(); throw refreshError; }
+          try { await this.refreshFlight; } catch (refreshError) { if (!options.signal?.aborted && !isAbortFailure(refreshError)) await this.auth.clear(); throw refreshError; }
           continue;
         }
         if (!(error instanceof APIError) && networkAttempt < 2 && safeRetry(method, options.idempotencyKey)) {
@@ -140,6 +173,7 @@ export class ApiClient {
 
   private async raw<T>(path: string, options: RequestOptions, attachAuth: boolean): Promise<T> {
     if (!path.startsWith("/api/v1/")) throw new Error("API path must be versioned");
+    options.signal?.throwIfAborted();
     const method = (options.method || "GET").toUpperCase();
     const headers = new Headers(options.headers);
     const clientHeaders = this.auth.clientHeaders?.();
@@ -149,14 +183,28 @@ export class ApiClient {
     if (principal?.kind === "owner") headers.set("Authorization", `Bearer ${principal.accessToken}`);
     if (options.idempotencyKey) headers.set("Idempotency-Key", options.idempotencyKey);
     const nativeBootstrap = headers.get("X-Photo-Client") === "native" && path.startsWith("/api/v1/auth/otp/");
-    if (!['GET','HEAD','OPTIONS'].includes(method) && !nativeBootstrap) headers.set("X-CSRF-Token", await this.csrf(options.signal));
+    // Auth receipts bind the exact bootstrap credential. Keep an explicit frozen
+    // OTP bootstrap header across keyed retries; other mutations derive CSRF.
+    const frozenOTPBootstrap=method==='POST'&&!!options.idempotencyKey&&(path==='/api/v1/auth/otp/request'||path==='/api/v1/auth/otp/verify')&&headers.has('X-CSRF-Token');
+    if (!['GET','HEAD','OPTIONS'].includes(method) && !nativeBootstrap&&!frozenOTPBootstrap) headers.set("X-CSRF-Token", await this.csrf(options.signal));
     let body: BodyInit | undefined;
     if (options.body !== undefined) { headers.set("Content-Type", "application/json"); body = canonicalJSON(options.body); }
+    options.signal?.throwIfAborted();
     const response = await this.transport(`${this.origin.replace(/\/$/, "")}${path}`, { method, headers, body, signal: options.signal, credentials: "include", cache: "no-store" });
-    if (response.ok) return response.status === 204 ? undefined as T : response.json() as Promise<T>;
+    if (options.signal?.aborted) {
+      await response.body?.cancel().catch(() => {});
+      options.signal.throwIfAborted();
+    }
+    if (response.ok) {
+      const value = response.status === 204 ? undefined as T : await response.json() as T;
+      options.signal?.throwIfAborted();
+      return value;
+    }
     let decoded: APIErrorBody = {};
     try { decoded = await response.json() as APIErrorBody; } catch { /* generic public failure */ }
-    throw new APIError(response.status, decoded.error?.code || decoded.code || `HTTP_${response.status}`, decoded.error?.message || decoded.message, response.headers.get("X-Request-ID") || undefined);
+    const previewHeader=response.headers.get('X-Preview-Run-ID');
+    const previewRunID=method==='POST'&&/\/semantic-intents\/[^/]+\/targets\/[^/]+\/preview\?/.test(path)&&previewHeader&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(previewHeader)&&previewHeader!=='00000000-0000-0000-0000-000000000000'?previewHeader:undefined;
+    throw new APIError(response.status, decoded.error?.code || decoded.code || `HTTP_${response.status}`, decoded.error?.message || decoded.message, response.headers.get("X-Request-ID") || undefined,previewRunID);
   }
 }
 

@@ -41,7 +41,11 @@ func (f SQLRegionDependencies) ForRegionPlan(ctx context.Context, plan FrozenReg
 	if err != nil || doc.TenantID == uuid.Nil || doc.ProjectID == uuid.Nil || doc.Request.VersionID == uuid.Nil {
 		return RegionQueueDependencies{}, ErrRegionInvalid
 	}
-	resolver := v2draft.ClosureResolver{Catalog: v2draft.SQLArtifactCatalog{DB: f.API, Bucket: f.Bucket, ProjectID: doc.ProjectID, AssetVersionID: doc.Request.VersionID}, Objects: f.Objects}
+	var resolver RegionInputResolver = v2draft.ClosureResolver{Catalog: v2draft.SQLArtifactCatalog{DB: f.API, Bucket: f.Bucket, ProjectID: doc.ProjectID, AssetVersionID: doc.Request.VersionID}, Objects: f.Objects}
+ if doc.Execution!=nil{
+  resolver=regionExecutionResolver{base:resolver,plan:plan,catalog:regionExecutionCatalog{API:f.API,Objects:f.Objects,Bucket:f.Bucket,Tenant:doc.TenantID,Asset:doc.AssetID,Version:doc.Request.VersionID,Source:doc.Source.Ref,Style:doc.FrozenRecipe.BaseStyle}}
+ }
+
 	documents := artifactjson.Publisher{Repository: artifactjson.SQLRepository{DB: f.Scheduler, Bucket: f.Bucket}, Objects: f.Objects}
 	return RegionQueueDependencies{Resolver: resolver, Params: v2draft.Publisher{DB: f.API, Objects: f.Objects, Bucket: f.Bucket},
 		Closure: v2input.ScopedPublisher{Documents: documents, Tenant: doc.TenantID, Run: run}}, nil

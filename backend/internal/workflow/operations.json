@@ -376,7 +376,7 @@
       "resource_class": "cpu",
       "routing_key": "cpu.mask_transform",
       "model": null,
-      "timeout_seconds": 180,
+      "timeout_seconds": 7200,
       "input_type": "MaskAndTransform",
       "params_type": "MaskTransformParams",
       "output_type": "TransformedMask",
@@ -622,7 +622,7 @@
       "resource_class": "cpu",
       "routing_key": "cpu.group",
       "model": null,
-      "timeout_seconds": 300,
+      "timeout_seconds": 7200,
       "input_type": "CollectionFeatures",
       "params_type": "GroupParams",
       "output_type": "SceneGroups",
@@ -732,7 +732,7 @@
       "resource_class": "cpu",
       "routing_key": "cpu.series_balance",
       "model": null,
-      "timeout_seconds": 180,
+      "timeout_seconds": 7200,
       "input_type": "SeriesStatsCollection",
       "params_type": "SeriesParams",
       "output_type": "SeriesCorrections",
@@ -1498,6 +1498,282 @@
       ],
       "retry_policy": "bounded-transient-and-oom",
       "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "semantic.adopt_shown_exposure",
+      "version": "1",
+      "module": "workers/photo_worker/operations/semantic/preview_adopt_adapter.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.semantic_adopt_shown_exposure",
+      "model": null,
+      "timeout_seconds": 1800,
+      "params_type": "ShownExposureAdoptionInput",
+      "output_type": "WorkingImage",
+      "backends": [
+        "cpu"
+      ],
+      "methods": [
+        "execute_shown_exposure_task"
+      ]
+    },
+    {
+      "name": "semantic.preview_remove_object",
+      "version": "1",
+      "module": "workers/photo_worker/operations/semantic/preview_removal_adapter.py",
+      "resource_class": "gpu",
+      "routing_key": "gpu.semantic_preview_remove_object",
+      "model": "big_lama",
+      "timeout_seconds": 1800,
+      "params_type": "SemanticRemovalPreviewInput",
+      "output_type": "RemovalPreviewPresentation",
+      "backends": [
+        "cpu",
+        "cuda",
+        "mps"
+      ],
+      "methods": [
+        "execute_removal_preview_task"
+      ]
+    },
+    {
+      "name": "semantic.adopt_shown_removal",
+      "version": "1",
+      "module": "workers/photo_worker/operations/semantic/preview_removal_adopt_adapter.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.semantic_adopt_shown_removal",
+      "model": null,
+      "timeout_seconds": 1800,
+      "params_type": "ShownRemovalAdoptionInput",
+      "output_type": "WorkingImage",
+      "backends": [
+        "cpu"
+      ],
+      "methods": [
+        "execute_shown_removal_task"
+      ]
+    },
+    {
+      "name": "semantic.preview_background_cleanup",
+      "version": "1",
+      "module": "workers/photo_worker/operations/semantic/preview_background_cleanup_adapter.py",
+      "resource_class": "gpu",
+      "routing_key": "gpu.semantic_preview_remove_object",
+      "model": "big_lama",
+      "timeout_seconds": 1800,
+      "params_type": "SemanticBackgroundCleanupPreviewInput",
+      "output_type": "BackgroundCleanupPreviewPresentation",
+      "backends": [
+        "cpu",
+        "cuda",
+        "mps"
+      ],
+      "methods": [
+        "execute_background_cleanup_preview_task"
+      ]
+    },
+    {
+      "name": "semantic.adopt_shown_background_cleanup",
+      "version": "1",
+      "module": "workers/photo_worker/operations/semantic/preview_background_cleanup_adopt_adapter.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.semantic_adopt_shown_background_cleanup",
+      "model": null,
+      "timeout_seconds": 1800,
+      "params_type": "ShownBackgroundCleanupAdoptionInput",
+      "output_type": "WorkingImage",
+      "backends": [
+        "cpu"
+      ],
+      "methods": [
+        "execute_shown_background_cleanup_task"
+      ]
+    },
+    {
+      "name": "semantic.preview_retouch_region",
+      "version": "1",
+      "module": "workers/photo_worker/operations/semantic/preview_retouch_adapter.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.semantic_preview_retouch_region",
+      "model": null,
+      "timeout_seconds": 1800,
+      "params_type": "SemanticRetouchPreviewInput",
+      "output_type": "RetouchPreviewPresentation",
+      "backends": [
+        "cpu"
+      ],
+      "methods": [
+        "execute_retouch_preview_task"
+      ]
+    },
+    {
+      "name": "semantic.adopt_shown_retouch_region",
+      "version": "1",
+      "module": "workers/photo_worker/operations/semantic/preview_retouch_adopt_adapter.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.semantic_adopt_shown_retouch_region",
+      "model": null,
+      "timeout_seconds": 1800,
+      "params_type": "ShownRetouchAdoptionInput",
+      "output_type": "WorkingImage",
+      "backends": [
+        "cpu"
+      ],
+      "methods": [
+        "execute_shown_retouch_task"
+      ]
+    },
+    {
+      "name": "defects.auto_repair",
+      "version": "1",
+      "module": "workers/photo_worker/operations/conservative.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.defects_auto_repair",
+      "model": null,
+      "timeout_seconds": 300,
+      "input_type": "ImageDefectProposalResolved",
+      "params_type": "DefectAutoRepairParams",
+      "output_type": "ConservativeRepairReport",
+      "methods": [
+        "validate_source_and_resolved_policy",
+        "select_conservative_v1",
+        "preserve_protected_pixels",
+        "telea_float_channels"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "conservative-auto-v1",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "sensor.dust_auto_repair",
+      "version": "1",
+      "module": "workers/photo_worker/operations/conservative.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.dust_auto_repair",
+      "model": null,
+      "timeout_seconds": 300,
+      "input_type": "ImageDustProposalResolvedProtection",
+      "params_type": "DustAutoRepairParams",
+      "output_type": "ConservativeRepairReport",
+      "methods": [
+        "validate_source_and_resolved_policy",
+        "select_conservative_v1",
+        "preserve_protected_pixels",
+        "telea_float_channels"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "conservative-auto-v1",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "collection.features",
+      "version": "1",
+      "module": "workers/photo_worker/operations/collection/features.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.collection_features",
+      "model": null,
+      "timeout_seconds": 300,
+      "input_type": "WorkingImage",
+      "params_type": "CollectionFeatureParams",
+      "output_type": "SceneFeatures",
+      "methods": [
+        "source_measurements",
+        "phash",
+        "bind_embedding"
+      ],
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "collection.features_pack",
+      "version": "1",
+      "module": "workers/photo_worker/operations/collection/features.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.collection_features_pack",
+      "model": null,
+      "timeout_seconds": 300,
+      "input_type": "SceneFeatures",
+      "params_type": "FeaturePackParams",
+      "output_type": "SceneFeaturePack",
+      "methods": [
+        "verify_sources",
+        "pack"
+      ],
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "series.pack",
+      "version": "1",
+      "module": "workers/photo_worker/operations/series/pack.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.series_pack",
+      "model": null,
+      "timeout_seconds": 300,
+      "input_type": "SeriesStats",
+      "params_type": "SeriesPackParams",
+      "output_type": "SeriesStatsPack",
+      "methods": [
+        "validate_sources",
+        "pack"
+      ],
+      "review_policy": "quality-driven",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "editor.effects_seal",
+      "version": "1",
+      "module": "workers/photo_worker/operations/editor/effects_seal.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.editor_effects_seal",
+      "model": null,
+      "timeout_seconds": 300,
+      "input_type": "EditorExecutedBaseInputs",
+      "params_type": "EditorEffectsSealParams",
+      "output_type": "EditorExecutedBaseReceipt",
+      "methods": [
+        "qualify_current_build_origin",
+        "verify_processed_source_and_quality",
+        "measure_finite_pixels_and_clipping",
+        "publish_executed_base_receipt"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "inherit-quality-and-generative-review",
+      "backends": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "editor.layers_precompose",
+      "version": "1",
+      "module": "workers/photo_worker/operations/editor/layers_precompose.py",
+      "resource_class": "cpu",
+      "routing_key": "cpu.editor_layers_precompose",
+      "model": null,
+      "timeout_seconds": 300,
+      "input_type": "FrozenRenderRecipe",
+      "params_type": "EditorLayersPrecomposeParams",
+      "output_type": "ImageResult",
+      "methods": [
+        "qualify_original_frozen_source",
+        "compose_complete_original_layer_inventory",
+        "measure_changed_support_and_clipping",
+        "retain_generated_and_review_evidence"
+      ],
+      "retry_policy": "bounded-transient-and-oom",
+      "review_policy": "inherit-layer-and-clipping-review",
       "backends": [
         "cpu"
       ]

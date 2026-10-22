@@ -64,7 +64,12 @@ type GlareDonorSubmissionService struct {
 	pin           v2portrait.RestorationQualificationPin
 	profile       []byte
 	reservedBytes int64
+ generativeEnabled bool
 }
+
+// ConfigureGenerativeGlare is deployment configuration, never client input.
+// Runtime/model/policy qualification remains mandatory at each admission.
+func(s *GlareDonorSubmissionService)ConfigureGenerativeGlare(enabled bool){s.generativeEnabled=enabled}
 
 func NewGlareDonorSubmissionService(scheduler, catalog *pgxpool.Pool,
 	objects *objectstore.Store, bucket string, tenant, project uuid.UUID,

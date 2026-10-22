@@ -3,6 +3,7 @@ import hashlib,json
 from types import SimpleNamespace
 from uuid import uuid4
 import numpy as np
+import pytest
 from photo_worker.contracts.base import ArtifactRef,canonical_bytes
 from photo_worker.contracts.images import Canvas,ColorSpace,MaskRef,TransformChain,WorkingImage
 from photo_worker.contracts.quality import QualityParams,QualityReport,Seam
@@ -11,10 +12,10 @@ from test_asset_adapters import context_for
 
 
 class Artifacts:
-    def __init__(self,root):
+    def __init__(self,root,protected_value=1):
         self.paths={};self.contracts={};self.staged=[];h=w=32;base=np.random.default_rng(2).random((h,w,3),dtype=np.float32)*.8+.1;target=base.copy();target[10,10]=.9
         canvas=Canvas(width=w,height=h,orientation=1,space_id='source',source_sha256='a'*64);chain=TransformChain.create([]);color=ColorSpace(profile_id='work_rec2020_gamma24_v1',icc_sha256='b'*64,encoding='gamma24')
-        self.target=self.image(root,'target',target,canvas,chain,color);self.baseline=self.image(root,'base',base,canvas,chain,color);mask=np.zeros((h,w),np.float32);mask[10,10]=1;mr=self.array(root,'mask',mask);protected=MaskRef(artifact=mr,canvas=canvas,transform_chain=chain,selector='manual',confidence=1,model_lock_id=None,protected=True)
+        self.target=self.image(root,'target',target,canvas,chain,color);self.baseline=self.image(root,'base',base,canvas,chain,color);mask=np.zeros((h,w),np.float32);mask[10,10]=protected_value;mr=self.array(root,'mask',mask);protected=MaskRef(artifact=mr,canvas=canvas,transform_chain=chain,selector='manual',confidence=1,model_lock_id=None,protected=True)
         self.value=QualityParams(target=self.target,target_kind='working',stage='master',threshold_profile_id='master_v1',baseline=self.baseline,protected=[protected],seams=[Seam(orientation='vertical',position=.5)])
     def array(self,root,name,value):path=root/(name+'.npy');np.save(path,value,allow_pickle=False);r=ArtifactRef(artifact_id=uuid4(),sha256=hashlib.sha256(path.read_bytes()).hexdigest());self.paths[r.artifact_id]=path;return r
     def image(self,root,name,rgb,canvas,chain,color,alpha=None):
@@ -26,11 +27,19 @@ class Artifacts:
     def stage_contract(self,value,role):self.staged.append((role,value));return ArtifactRef(artifact_id=uuid4(),sha256=hashlib.sha256(canonical_bytes(value)).hexdigest())
 
 
-def test_master_quality_fails_changed_protected_pixel(tmp_path):
-    a=Artifacts(tmp_path);target=a.contracts[a.target.artifact_id];base=a.contracts[a.baseline.artifact_id];ctx=context_for(a.target,'quality.check');ctx.lease.command.inputs=[a.target,target.pixels,a.baseline,base.pixels,a.value.protected[0].artifact]
+@pytest.mark.parametrize('protected_value',[1,.25,np.nextafter(np.float32(0),np.float32(1))])
+def test_master_quality_fails_changed_protected_pixel(tmp_path,protected_value):
+    a=Artifacts(tmp_path,protected_value);target=a.contracts[a.target.artifact_id];base=a.contracts[a.baseline.artifact_id];ctx=context_for(a.target,'quality.check');ctx.lease.command.inputs=[a.target,target.pixels,a.baseline,base.pixels,a.value.protected[0].artifact]
     result=execute(ctx,a);report=a.staged[0][1];QualityReport.model_validate_json(canonical_bytes(report))
     assert report.status=='fail' and 'protected_pixels_changed' in report.reasons
     assert report.reference.protected_max_delta>2/65535 and result.review_required
+
+
+def test_master_quality_zero_mask_does_not_claim_protected_change(tmp_path):
+    a=Artifacts(tmp_path,0);target=a.contracts[a.target.artifact_id];base=a.contracts[a.baseline.artifact_id];ctx=context_for(a.target,'quality.check');ctx.lease.command.inputs=[a.target,target.pixels,a.baseline,base.pixels,a.value.protected[0].artifact]
+    execute(ctx,a);report=a.staged[0][1]
+    assert report.reference.protected_max_delta==0
+    assert 'protected_pixels_changed' not in report.reasons
 
 
 def test_quality_contract_rejects_export_baseline():

@@ -2,6 +2,8 @@ package delivery
 
 import (
 	"context"
+ "encoding/json"
+ "photoeditor/backend/internal/canonical"
 
 	"github.com/google/uuid"
 	"photoeditor/backend/internal/v2input"
@@ -35,6 +37,21 @@ func PublishSignedAssemblyBundle(ctx context.Context, frozen FrozenInput, snapsh
 	invalid := func() (SignedAssemblyPublication, error) { return SignedAssemblyPublication{}, v2input.ErrInvalid }
 	if err := ctx.Err(); err != nil { return SignedAssemblyPublication{}, err }
 	if shards == nil || rootFactory == nil || signed == nil { return invalid() }
+ // Own the complete invocation before the first external publication callback.
+ // The same frozen slots/receipts must drive both documents and final envelope.
+ frozenRaw,copyErr:=canonical.Marshal(frozen)
+ if copyErr!=nil||json.Unmarshal(frozenRaw,&frozen)!=nil{return invalid()}
+ snapshotRaw=append([]byte(nil),snapshotRaw...)
+ ownedSlots:=make([]Slot,len(slots))
+ for index,slot:=range slots{
+  ownedSlots[index]=slot
+  if slot.ExportID!=nil{value:=*slot.ExportID;ownedSlots[index].ExportID=&value}
+  if slot.Export!=nil{value:=*slot.Export;ownedSlots[index].Export=&value}
+  if slot.Reason!=nil{value:=*slot.Reason;ownedSlots[index].Reason=&value}
+ }
+ slots=ownedSlots
+ dependencies=append([]SigningDependency(nil),dependencies...)
+ receipts=append([]SignedDependencyReceipt(nil),receipts...)
 	var bodies [][]byte
 	artifactIDs := make(map[uuid.UUID]struct{})
 	unique := func(ref v2input.Ref) bool {
@@ -44,7 +61,7 @@ func PublishSignedAssemblyBundle(ctx context.Context, frozen FrozenInput, snapsh
 		return true
 	}
 	capture := func(call context.Context, purpose string, raw []byte) (v2input.Ref, error) {
-		ref, err := shards(call, purpose, raw)
+		ref, err := shards(call, purpose, append([]byte(nil), raw...))
 		if err != nil { return v2input.Ref{}, err }
 		if !unique(ref) || ref.SHA256 != digest(raw) { return v2input.Ref{}, v2input.ErrInvalid }
 		bodies = append(bodies, append([]byte(nil), raw...))
@@ -54,15 +71,17 @@ func PublishSignedAssemblyBundle(ctx context.Context, frozen FrozenInput, snapsh
 		tenant, actor, parent, dependencies, receipts, capture)
 	if err != nil { return SignedAssemblyPublication{}, err }
 	if len(bodies) != len(documents.Assembly.Shards) { return invalid() }
-	root, err := rootFactory(bodies)
+	ownedBodies:=make([][]byte,len(bodies))
+ for index,body:=range bodies{ownedBodies[index]=append([]byte(nil),body...)}
+ root, err := rootFactory(ownedBodies)
 	if err != nil { return SignedAssemblyPublication{}, err }
 	if root == nil { return invalid() }
 	if err := ctx.Err(); err != nil { return SignedAssemblyPublication{}, err }
-	assemblyRef, err := root(ctx, "v30_delivery_assembly", documents.AssemblyJCS)
+	assemblyRef, err := root(ctx, "v30_delivery_assembly", append([]byte(nil),documents.AssemblyJCS...))
 	if err != nil { return SignedAssemblyPublication{}, err }
 	if !unique(assemblyRef) || assemblyRef.SHA256 != documents.AssemblySHA { return invalid() }
 	if err := ctx.Err(); err != nil { return SignedAssemblyPublication{}, err }
-	closureRef, err := signed(ctx, "v30_delivery_signed_closure", documents.ClosureJCS)
+	closureRef, err := signed(ctx, "v30_delivery_signed_closure", append([]byte(nil),documents.ClosureJCS...))
 	if err != nil { return SignedAssemblyPublication{}, err }
 	if !unique(closureRef) || closureRef.SHA256 != documents.ClosureSHA { return invalid() }
 	envelope, envelopeJCS, envelopeSHA, err := CompileSignedAssemblyEnvelope(assemblyRef,
@@ -70,8 +89,9 @@ func PublishSignedAssemblyBundle(ctx context.Context, frozen FrozenInput, snapsh
 		tenant, actor, parent, slots, dependencies, receipts)
 	if err != nil { return SignedAssemblyPublication{}, err }
 	if err := ctx.Err(); err != nil { return SignedAssemblyPublication{}, err }
-	envelopeRef, err := signed(ctx, "v30_delivery_signed_envelope", envelopeJCS)
+	envelopeRef, err := signed(ctx, "v30_delivery_signed_envelope", append([]byte(nil),envelopeJCS...))
 	if err != nil { return SignedAssemblyPublication{}, err }
+ if err:=ctx.Err();err!=nil{return SignedAssemblyPublication{},err}
 	if !unique(envelopeRef) || envelopeRef.SHA256 != envelopeSHA { return invalid() }
 	return SignedAssemblyPublication{documents, bodies, assemblyRef, closureRef, envelope, envelopeJCS, envelopeRef}, nil
 }

@@ -9,12 +9,19 @@ from photo_worker.v2.adoption import AdoptionInvalid
 from photo_worker.v2.service import Adopter, AdopterConfig
 
 
+def role_connection():
+    def execute(query, params=()):
+        assert "current_user=" in query
+        return SimpleNamespace(fetchone=lambda:(True,))
+    return SimpleNamespace(autocommit=True,execute=execute)
+
+
 def test_service_installs_render_replay_into_adopter(tmp_path, monkeypatch):
     from threading import Event
     from photo_worker.v2 import service
     config=AdopterConfig('postgres://unused','https://objects.example','bucket','key','secret',
         layer_scratch_root=tmp_path,layer_scratch_bytes=4096)
-    connections=[object(),object()]
+    connections=[SimpleNamespace(execute=lambda query:Cursor([(True,)])),SimpleNamespace(execute=lambda query:Cursor([(True,)]))]
     def connect(*args,**kwargs):
         assert kwargs['autocommit'] is True
         assert 'role=photo_scheduler' in kwargs['options']
@@ -30,7 +37,7 @@ def test_service_installs_render_replay_into_adopter(tmp_path, monkeypatch):
     assert len(installed)==1 and not connections
     assert installed[0][0][2:] == (objects,'bucket')
     assert installed[0][1] == dict(layer_scratch_root=tmp_path,layer_scratch_bytes=4096,
-        render_replay=replay,render_max_tile_bytes=2048,region_target_icc_sha="a"*64,stop=stopped)
+        render_replay=replay,render_max_tile_bytes=2048,region_target_icc_sha="a"*64,region_replay=None,stop=stopped)
 
 
 @pytest.mark.parametrize('replay,budget,scratch',[
@@ -68,6 +75,10 @@ class ReadConnection:
         self.unlocked = False
 
     def execute(self, query, params=()):
+        if "pending_v29_negative_reviews" in query:
+            return Cursor([])
+        if "editor_effect_pending_seal_adoptions" in query:
+            return Cursor([])
         if "v2_pending_adoptions" in query:
             return Cursor([(self.tenant, self.run, self.task)])
         if "pg_try_advisory_lock" in query:
@@ -277,7 +288,7 @@ def test_service_installs_configured_region_pin(monkeypatch):
     from photo_worker.v2 import service
     config = AdopterConfig('postgres://unused', 'https://objects.example', 'bucket',
         'key', 'secret', region_target_icc_sha='e' * 64)
-    monkeypatch.setattr(service.psycopg, 'connect', lambda *args, **kwargs: nullcontext(object()))
+    monkeypatch.setattr(service.psycopg, 'connect', lambda *args, **kwargs: nullcontext(role_connection()))
     monkeypatch.setattr(service, 'Minio', lambda *args, **kwargs: object())
     installed = []
     monkeypatch.setattr(service, 'Adopter', lambda *args, **kwargs: installed.append(kwargs))
@@ -305,7 +316,7 @@ def test_derivative_startup_checks_both_connections_before_install(monkeypatch, 
     config = AdopterConfig('postgres://unused', 'https://objects.example',
         'bucket', 'key', 'secret', region_target_icc_sha='a'*64,
         derivative_work_icc_sha='b'*64)
-    connections = [object(), object()]
+    connections = [role_connection(), role_connection()]
     pending = list(connections)
     monkeypatch.setattr(service.psycopg, 'connect',
         lambda *args, **kwargs: nullcontext(pending.pop(0)))
@@ -398,7 +409,7 @@ def test_service_forwards_semantic_dependencies_from_trusted_icc_config(tmp_path
     from photo_worker.v2 import service,render_derivative_schema
     config=AdopterConfig('unused','https://objects.example','bucket','key','secret',layer_scratch_root=tmp_path,
         layer_scratch_bytes=33554432,region_target_icc_sha='a'*64,derivative_work_icc_sha='b'*64)
-    monkeypatch.setattr(service.psycopg,'connect',lambda *args,**kwargs:nullcontext(object()))
+    monkeypatch.setattr(service.psycopg,'connect',lambda *args,**kwargs:nullcontext(role_connection()))
     monkeypatch.setattr(service,'Minio',lambda *args,**kwargs:object())
     monkeypatch.setattr(render_derivative_schema,'require_render_derivative_schema',lambda *args:None)
     installed=[];monkeypatch.setattr(service,'Adopter',lambda *args,**kwargs:installed.append(kwargs))
@@ -467,7 +478,7 @@ def test_run_adopter_forwards_enabled_exposure(tmp_path,monkeypatch):
     config=AdopterConfig('postgres://unused','https://objects.example','bucket','key','secret',
         layer_scratch_root=tmp_path,layer_scratch_bytes=128*1024**2,
         region_target_icc_sha=srgb,derivative_work_icc_sha=WORKING_PROFILE_SHA,exposure_enabled=True)
-    monkeypatch.setattr(service.psycopg,'connect',lambda *a,**k:nullcontext(object()))
+    monkeypatch.setattr(service.psycopg,'connect',lambda *a,**k:nullcontext(role_connection()))
     monkeypatch.setattr(service,'Minio',lambda *a,**k:object())
     monkeypatch.setattr(render_derivative_schema,'require_render_derivative_schema',lambda *a:None)
     calls=[]
@@ -501,12 +512,13 @@ def test_delivery_encode_runtime_processed_before_finalizations():
             trace.append(sql)
             return SimpleNamespace(fetchall=lambda:[])
     adopter=object.__new__(Adopter)
-    adopter.stop=Event();adopter.read=Read();adopter.write=object();adopter.exposure_enabled=False
+    adopter.stop=Event();adopter.read=Read();adopter.write=object();adopter.exposure_enabled=False;adopter.shown_exposure_enabled=False;adopter.shown_removal_enabled=False;adopter.shown_background_cleanup_enabled=False;adopter.shown_retouch_enabled=False;adopter.lens_preview_runner=None
     def pending(limit):
         trace.append('delivery encode')
         assert limit==10
         return SimpleNamespace(adopted=2,rejected=((uuid4(),uuid4(),'refused'),))
     adopter.delivery_encode=SimpleNamespace(process_pending=pending)
+    adopter.restoration_preview_runner=None
     adopter.derivative_coordinator=None
     adopter.multi_quality_runner=None
     adopter.multi_preview_runner=None
@@ -515,3 +527,183 @@ def test_delivery_encode_runtime_processed_before_finalizations():
     counts=adopter.run_once()
     assert counts['adopted']==2 and counts['retry']==1
     assert trace.index('delivery encode')<trace.index('SELECT * FROM photo.v2_pending_finalizations()')
+
+
+def test_adopter_installs_shown_copy_report_authority_independently(monkeypatch):
+    from photo_worker.v2 import service,shown_exposure_installation
+    installed=[];authority=lambda *args:None
+    def factory(connection,objects,bucket,**kwargs):
+        installed.append((connection,objects,bucket,kwargs))
+        return authority
+    monkeypatch.setattr(shown_exposure_installation,'versioned_shown_exposure_adoption_installation',factory)
+    read=SimpleNamespace(autocommit=True);write=SimpleNamespace(autocommit=True);objects=object()
+    adopter=service.Adopter(read,write,objects,'owned',shown_exposure_enabled=True)
+    assert adopter.coordinator.shown_exposure_installation is authority
+    assert adopter.shown_exposure_enabled is True
+    assert adopter.exposure_enabled is False
+    assert installed[0][:3]==(read,objects,'owned')
+    baseline=service.Adopter(read,write,objects,'owned')
+    assert baseline.coordinator.shown_exposure_installation is None
+    assert baseline.shown_exposure_enabled is False
+
+
+@pytest.mark.parametrize('value',[None,1,'true'])
+def test_adopter_rejects_ambiguous_shown_copy_enablement(value):
+    with pytest.raises(ValueError,match='shown exposure adopter'):
+        Adopter(SimpleNamespace(autocommit=True),object(),object(),'owned',shown_exposure_enabled=value)
+
+
+def test_adopter_installs_shown_removal_copy_report_authority_independently(monkeypatch):
+    from photo_worker.v2 import service,shown_removal_installation
+    installed=[];authority=lambda *args:None
+    def factory(connection,objects,bucket,**kwargs):
+        installed.append((connection,objects,bucket,kwargs))
+        return authority
+    monkeypatch.setattr(shown_removal_installation,'versioned_shown_removal_adoption_installation',factory)
+    read=SimpleNamespace(autocommit=True);write=SimpleNamespace(autocommit=True);objects=object()
+    adopter=service.Adopter(read,write,objects,'owned',shown_removal_enabled=True)
+    assert adopter.coordinator.shown_removal_installation is authority
+    assert adopter.shown_removal_enabled is True
+    assert adopter.exposure_enabled is False
+    assert installed[0][:3]==(read,objects,'owned')
+    baseline=service.Adopter(read,write,objects,'owned')
+    assert baseline.coordinator.shown_removal_installation is None
+    assert baseline.shown_removal_enabled is False
+
+
+@pytest.mark.parametrize('value',[None,1,'true'])
+def test_adopter_rejects_ambiguous_shown_removal_copy_enablement(value):
+    with pytest.raises(ValueError,match='shown removal adopter'):
+        Adopter(SimpleNamespace(autocommit=True),object(),object(),'owned',shown_removal_enabled=value)
+
+
+def test_adopter_installs_shown_background_cleanup_copy_report_authority_independently(monkeypatch,tmp_path):
+    from photo_worker.v2 import service,shown_background_cleanup_installation
+    installed=[];authority=lambda *args:None
+    def factory(connection,objects,bucket,**kwargs):
+        installed.append((connection,objects,bucket,kwargs))
+        return authority
+    monkeypatch.setattr(shown_background_cleanup_installation,'versioned_shown_background_cleanup_adoption_installation',factory)
+    read=SimpleNamespace(autocommit=True);write=SimpleNamespace(autocommit=True);objects=object()
+    adopter=service.Adopter(read,write,objects,'owned',shown_background_cleanup_enabled=True,
+        layer_scratch_root=tmp_path,layer_scratch_bytes=1024)
+    assert adopter.coordinator.shown_background_cleanup_installation is authority
+    assert adopter.shown_background_cleanup_enabled is True
+    assert adopter.exposure_enabled is False
+    assert installed[0][:3]==(read,objects,'owned')
+    baseline=service.Adopter(read,write,objects,'owned')
+    assert baseline.coordinator.shown_background_cleanup_installation is None
+    assert baseline.shown_background_cleanup_enabled is False
+
+
+@pytest.mark.parametrize('value',[None,1,'true'])
+def test_adopter_rejects_ambiguous_shown_background_cleanup_copy_enablement(value):
+    with pytest.raises(ValueError,match='shown background cleanup adopter'):
+        Adopter(SimpleNamespace(autocommit=True),object(),object(),'owned',shown_background_cleanup_enabled=value)
+
+
+@pytest.mark.parametrize('enabled',[False,True])
+def test_cleanup_adopter_discovers_own_results_only_when_installed(tmp_path,enabled):
+    queries=[]
+    def execute(query,*args):
+        queries.append(query)
+        return SimpleNamespace(fetchall=lambda:[])
+    read=SimpleNamespace(autocommit=True,execute=execute)
+    write=SimpleNamespace(autocommit=True)
+    adopter=Adopter(read,write,object(),'owned',shown_background_cleanup_enabled=enabled,
+        layer_scratch_root=tmp_path if enabled else None,layer_scratch_bytes=1024 if enabled else None)
+    assert (adopter.coordinator.shown_background_cleanup_installation is not None)==enabled
+    assert queries==[]
+    assert adopter.run_once()=={'adopted':0,'rejected':0,'finalized':0,'retry':0}
+    own='SELECT * FROM photo.v27_pending_shown_background_cleanup_adoptions()'
+    assert queries.count(own)==(1 if enabled else 0)
+    assert queries.count('SELECT * FROM photo.v2_pending_adoptions()')==1
+    assert 'SELECT * FROM photo.v27_pending_shown_removal_adoptions()' not in queries
+    assert 'SELECT * FROM photo.v27_pending_shown_exposure_adoptions()' not in queries
+
+
+def test_adopter_installs_shown_retouch_copy_report_authority_independently(monkeypatch,tmp_path):
+    from photo_worker.v2 import service,shown_retouch_installation
+    installed=[];authority=lambda *args:None
+    def factory(connection,objects,bucket,**kwargs):
+        installed.append((connection,objects,bucket,kwargs))
+        return authority
+    monkeypatch.setattr(shown_retouch_installation,'versioned_shown_retouch_adoption_installation',factory)
+    read=SimpleNamespace(autocommit=True);write=SimpleNamespace(autocommit=True);objects=object()
+    adopter=service.Adopter(read,write,objects,'owned',shown_retouch_enabled=True,
+        layer_scratch_root=tmp_path,layer_scratch_bytes=1024)
+    assert adopter.coordinator.shown_retouch_installation is authority
+    assert adopter.shown_retouch_enabled is True
+    assert adopter.exposure_enabled is False
+    assert installed[0][:3]==(read,objects,'owned')
+    baseline=service.Adopter(read,write,objects,'owned')
+    assert baseline.coordinator.shown_retouch_installation is None
+    assert baseline.shown_retouch_enabled is False
+
+
+@pytest.mark.parametrize('value',[None,1,'true'])
+def test_adopter_rejects_ambiguous_shown_retouch_copy_enablement(value):
+    with pytest.raises(ValueError,match='shown retouch adopter'):
+        Adopter(SimpleNamespace(autocommit=True),object(),object(),'owned',shown_retouch_enabled=value)
+
+
+@pytest.mark.parametrize('enabled',[False,True])
+def test_retouch_adopter_discovers_own_results_only_when_installed(tmp_path,enabled):
+    queries=[]
+    def execute(query,*args):
+        queries.append(query)
+        return SimpleNamespace(fetchall=lambda:[])
+    read=SimpleNamespace(autocommit=True,execute=execute)
+    write=SimpleNamespace(autocommit=True)
+    adopter=Adopter(read,write,object(),'owned',shown_retouch_enabled=enabled,
+        layer_scratch_root=tmp_path if enabled else None,layer_scratch_bytes=1024 if enabled else None)
+    assert (adopter.coordinator.shown_retouch_installation is not None)==enabled
+    assert queries==[]
+    assert adopter.run_once()=={'adopted':0,'rejected':0,'finalized':0,'retry':0}
+    own='SELECT * FROM photo.v27_pending_shown_retouch_adoptions()'
+    assert queries.count(own)==(1 if enabled else 0)
+    assert queries.count('SELECT * FROM photo.v2_pending_adoptions()')==1
+    assert 'SELECT * FROM photo.v27_pending_shown_removal_adoptions()' not in queries
+    assert 'SELECT * FROM photo.v27_pending_shown_exposure_adoptions()' not in queries
+
+
+@pytest.mark.parametrize('lane', ['exposure', 'removal', 'background_cleanup', 'retouch'])
+@pytest.mark.parametrize('failure', ['permanent', 'stale', 'transport'])
+def test_shown_lane_failure_routing_keeps_result_scope_and_releases_lock(lane, failure, tmp_path):
+    # Service boundary only: operation-specific physical adoption is covered by
+    # the separate real-SQL child operation fixtures, not this fake coordinator.
+    tenant, run, task, result = uuid4(), uuid4(), uuid4(), uuid4()
+    suffix = 'retouch' if lane == 'retouch' else lane
+    own_query = f'SELECT * FROM photo.v27_pending_shown_{suffix}_adoptions()'
+    queries, writes = [], []
+    def read_execute(query, params=()):
+        queries.append(query)
+        if query == own_query: return Cursor([(tenant, run, task)])
+        if 'pg_try_advisory_lock' in query or 'pg_advisory_unlock' in query: return Cursor([(True,)])
+        return Cursor([])
+    def write_execute(query, params):
+        writes.append((query, params))
+        assert query == 'SELECT photo.reject_v2_adoption(%s,%s,%s,%s)'
+        return Cursor([(True,)])
+    read = SimpleNamespace(autocommit=True, execute=read_execute)
+    write = SimpleNamespace(autocommit=True, execute=write_execute, transaction=lambda:nullcontext())
+    adopter = Adopter(read, write, object(), 'owned', layer_scratch_root=tmp_path, layer_scratch_bytes=1024, **{f'shown_{lane}_enabled':True})
+    contexts = []
+    def invalid(actual_tenant, actual_task):
+        assert (actual_tenant, actual_task) == (tenant, task)
+        if failure == 'transport': raise OSError('temporary object outage')
+        raise AdoptionInvalid('V2_ADOPTION_CONTEXT_STALE' if failure == 'stale' else 'ARTIFACT_SCHEMA_INVALID')
+    def context(actual_tenant, actual_task):
+        contexts.append((actual_tenant, actual_task))
+        return SimpleNamespace(result_id=result)
+    adopter.coordinator = SimpleNamespace(adopt=invalid, context=context)
+    counts = adopter.run_once()
+    assert counts == {'adopted':0,'rejected':int(failure == 'permanent'),'finalized':0,'retry':int(failure != 'permanent')}
+    if failure == 'permanent':
+        assert contexts == [(tenant, task)]
+        assert writes[0][1] == (tenant, task, result, 'ARTIFACT_SCHEMA_INVALID')
+    else:
+        assert contexts == [] and writes == []
+    assert queries.count(own_query) == 1
+    assert sum('pg_try_advisory_lock' in query for query in queries) == 1
+    assert sum('pg_advisory_unlock' in query for query in queries) == 1

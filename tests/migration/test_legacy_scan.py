@@ -93,6 +93,24 @@ def test_execute_stops_before_api_when_file_changed(tmp_path):
     with pytest.raises(MigrationError):execute(plan,transport,'20000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001')
     assert transport.calls==[]
 
+@pytest.mark.parametrize('field,value',[
+    ('upload_id','10000000-0000-0000-0000-000000000002'),
+    ('asset_version_id','00000000-0000-0000-0000-000000000000'),
+    ('plan_hash','0'*64),('source_relative','other.jpg'),
+    ('source_sha256','0'*64),('provenance',[]),('unexpected',True),
+])
+def test_execute_rejects_malformed_or_foreign_reconciliation_receipt(tmp_path,field,value):
+    fixture(tmp_path);plan=scan(tmp_path)
+    class BrokenReceipt(Transport):
+        def json(self,method,path,body=None,*,idempotency_key=None):
+            result=super().json(method,path,body,idempotency_key=idempotency_key)
+            if path.endswith('/legacy-imports/reconcile'):result[field]=value
+            return result
+    transport=BrokenReceipt()
+    with pytest.raises(MigrationError):
+        execute(plan,transport,'20000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001')
+    assert len([c for c in transport.calls if c[1].endswith('/legacy-imports/reconcile')])==1
+
 def test_cli_requires_explicit_execute_flag_for_scope(tmp_path, capsys):
     fixture(tmp_path)
     assert main([str(tmp_path),'--tenant-id','20000000-0000-0000-0000-000000000001'])==2

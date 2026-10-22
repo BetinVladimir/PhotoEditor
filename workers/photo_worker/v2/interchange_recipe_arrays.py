@@ -31,6 +31,7 @@ class PreparedImportArrayQualifier:
         self.maximum = max_file_bytes
         self.images, self.specs, self.canonical_arrays = {}, {}, {}
         self.defect_proposals = {}
+        self.defect_png = {}
         self.defect_proposal_count = 0
         for binding, image in canonical_images:
             binding = VersionBinding.model_validate_json(canonical_bytes(binding))
@@ -122,7 +123,66 @@ class PreparedImportArrayQualifier:
             self.defect_proposal_count += 1
         self.active()
 
+    def register_defect_report(self,binding,report):
+        from photo_worker.contracts.defects import DefectProposeReport
+        report=DefectProposeReport.model_validate_json(canonical_bytes(report))
+        binding=VersionBinding.model_validate_json(canonical_bytes(binding))
+        owned=self.images.get(binding.asset_version_id)
+        if owned is None or owned[0]!=binding or report.params.image!=binding.source:raise AdoptionInvalid('INTERCHANGE_ARRAY_DEFECT_REPORT_SOURCE')
+        key=(binding.asset_version_id,report.label_png.artifact_id)
+        record=(report.label_png,report.proposal)
+        if key in self.defect_png and self.defect_png[key]!=record:raise AdoptionInvalid('INTERCHANGE_ARRAY_CONFLICT')
+        if key not in self.defect_png and len(self.defect_png)>=30000:raise AdoptionInvalid('INTERCHANGE_ARRAY_LIMIT')
+        self.defect_png[key]=record
+
+    def qualify_defect_png(self,reference,binding):
+        from photo_worker.algorithms.mask_png import write_png16,png16_bound
+        self.active();binding=VersionBinding.model_validate_json(canonical_bytes(binding))
+        witness=self.defect_png.get((binding.asset_version_id,reference.artifact_id))
+        if witness is None or witness[0]!=reference:raise AdoptionInvalid('INTERCHANGE_ARRAY_UNWITNESSED')
+        matches=[proposal for (version,_),bucket in self.defect_proposals.items() if version==binding.asset_version_id for digest,proposal in bucket.items() if digest==witness[1].sha256]
+        if len(matches)!=1:raise AdoptionInvalid('INTERCHANGE_ARRAY_DEFECT_PNG_PROPOSAL')
+        proposal=matches[0];h,w=proposal.canvas.height,proposal.canvas.width
+        # First attest the physical NPY independently, including every label.
+        self(proposal.label_map,'DefectLabelMap',binding)
+        labels_ref=ArtifactRef(proposal.label_map.artifact_id,proposal.label_map.sha256);item=self.reader.evidence(labels_ref)
+        if item.ref!=labels_ref or item.source!='input' or item.media_type not in ('application/octet-stream','application/x-npy') or type(item.bytes) is not int or not 1<=item.bytes<=min(self.maximum,2*h*w+MAX_HEADER+12):raise AdoptionInvalid('INTERCHANGE_ARRAY_EVIDENCE')
+        png_ref=ArtifactRef(reference.artifact_id,reference.sha256);png=self.reader.evidence(png_ref)
+        maximum=min(self.maximum,png16_bound(w,h))
+        if png.ref!=png_ref or png.source!='input' or png.media_type!='image/png' or type(png.bytes) is not int or not 1<=png.bytes<=maximum:raise AdoptionInvalid('INTERCHANGE_ARRAY_EVIDENCE')
+        actual=sha256();count=0;iterator=iter(self.reader.iter_bytes(png_ref,png.bytes))
+        try:
+            for block in iterator:
+                self.active()
+                if not isinstance(block,bytes) or not 1<=len(block)<=1<<20 or count+len(block)>png.bytes:raise AdoptionInvalid('INTERCHANGE_ARRAY_STREAM')
+                count+=len(block);actual.update(block)
+        finally:
+            close=getattr(iterator,'close',None)
+            if close is not None:close()
+        if count!=png.bytes or actual.hexdigest()!=reference.sha256:raise AdoptionInvalid('INTERCHANGE_ARRAY_HASH')
+        with self.scratch.reserve(item.bytes) as reservation:
+            path=reservation.path('prepared-import-png-labels','.npy');count=0;checksum=sha256();iterator=iter(self.reader.iter_bytes(labels_ref,item.bytes))
+            try:
+                with self.scratch.open_writer(path,reservation) as writer:
+                    for block in iterator:
+                        self.active()
+                        if not isinstance(block,bytes) or not 1<=len(block)<=1<<20 or count+len(block)>item.bytes or writer.write(block)!=len(block):raise AdoptionInvalid('INTERCHANGE_ARRAY_STREAM')
+                        count+=len(block);checksum.update(block)
+            finally:
+                close=getattr(iterator,'close',None)
+                if close is not None:close()
+            if count!=item.bytes or checksum.hexdigest()!=labels_ref.sha256:raise AdoptionInvalid('INTERCHANGE_ARRAY_HASH')
+            expected=sha256()
+            class Sink:
+                def write(inner,block):expected.update(block);return len(block)
+            with read_array(path,(h,w),'uint16',self.active) as labels:
+                write_png16(labels,Sink(),max_bytes=maximum,check_active=self.active)
+            if expected.hexdigest()!=reference.sha256:raise AdoptionInvalid('INTERCHANGE_ARRAY_DEFECT_PNG_PIXELS')
+        if self.reader.evidence(png_ref)!=png or self.reader.evidence(labels_ref)!=item:raise AdoptionInvalid('INTERCHANGE_ARRAY_EVIDENCE_CHANGED')
+        self.active();return True
+
     def __call__(self, reference, contract, binding):
+        if contract=='DefectLabelPNG':return self.qualify_defect_png(reference,binding)
         reference = reference.model_copy(deep=True)
         binding = VersionBinding.model_validate_json(canonical_bytes(binding))
         self.active()

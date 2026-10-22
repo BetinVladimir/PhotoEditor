@@ -53,7 +53,7 @@ func MaterializeRestorationPreviewTasks(ctx context.Context, db *pgxpool.Pool,
 		return objectstore.ErrInvalid
 	}
 	rebuilt, err := CompileRestorationPreviewPlan(plan.source, plan.srgb,
-		baseRaw, candidateRaw)
+		baseRaw, candidateRaw,plan.policy)
 	if err != nil {
 		return err
 	}

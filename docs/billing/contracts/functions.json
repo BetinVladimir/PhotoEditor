@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "stage": "catalog_scaffold",
+  "functions": [],
+  "reason": "No public SQL functions in this stage. Global catalog RLS is deny-by-default; future publication and runtime grants require additive migrations."
+}

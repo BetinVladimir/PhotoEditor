@@ -18,7 +18,7 @@ func(v ExportDependencyDocumentValidator)ExportDocumentChildren(ctx context.Cont
  if v.Semantics==nil||!validImportRef(entry.Ref)||len(raw)<2||len(raw)>8<<20||rawSHA(raw)!=entry.Ref.SHA256{return nil,v2input.ErrInvalid}
  normalized,err:=canonical.Bytes(raw);if err!=nil||!bytes.Equal(normalized,raw){return nil,v2input.ErrInvalid}
  switch entry.Contract{
- case "LayerStack","Params","CorrectionPlan","CandidateProfile","DescriptorShard","MaskRef","ManualMask","DefectCandidates","DefectReview","Stats20":
+ case "LayerStack","Params","CorrectionPlan","CandidateProfile","DescriptorShard","MaskRef","ManualMask","DefectCandidates","DefectReview","DefectProposeReport","Stats20":
  default:
   if v.Other==nil{return nil,v2input.ErrInvalid}
   return v.Other.ExportDocumentChildren(ctx,entry,append([]byte(nil),raw...))

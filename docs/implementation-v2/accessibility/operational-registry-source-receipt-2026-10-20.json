@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "status": "DOCUMENTATION_REGISTRY_NOT_CONFORMANCE",
+  "files": {
+    "wcag22-aa-criteria.json": "7b1366c7d3ec9877edf8be2cf196510164a25eb00f9bcb1b96ca29c9d07aa9d3",
+    "application-platform-registry.json": "e3f40366dfcb4077e4c0a26bce56854748a0cfe803bc53a06ba90af4eebe33c3",
+    "native-screen-state-inventory.json": "8de5e4d066ca75e3e0fa32fbe4ecac6c95c71cbd1e1feb943848a0cb663aadf5",
+    "supporting-evidence-registry.json": "f168a42dc57ecbe7b763d7fdbf404e844adcaa9fb7d1580dbed394cc06378844",
+    "ACCEPTANCE-RUNORDER.md": "f8f8221d52e12342985110d66a8771fc7e021303d7158f8e5d2f3304ab3db6e2",
+    "validate-operational-registry.py": "d23f39f58b7717a7d20ac843e5bcd5952af28fcc20be801a3f431f7f65d5f386"
+  },
+  "counts": {
+    "A": 31,
+    "AA": 24,
+    "platform_profiles": 16,
+    "NOT_TESTED_cells": 880,
+    "route_templates": 44,
+    "native_Qt_states": 15
+  },
+  "existing_evidence_modified": false,
+  "browser_native_SQL_build_executed": false
+}

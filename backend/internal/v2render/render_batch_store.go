@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"photoeditor/backend/internal/auth"
+	"photoeditor/backend/internal/billing"
 	"photoeditor/backend/internal/canonical"
 	"photoeditor/backend/internal/database"
 	"photoeditor/backend/internal/domain"
@@ -66,6 +67,10 @@ func (s SQLRenderDraftStore) BeginBatch(ctx context.Context, tenant, batch, proj
 		}
 		if role != "photo_scheduler" {
 			return v2input.ErrInvalid
+		}
+		billable, billingErr := billing.PrepareRender(ctx, tx, tenant, project, who)
+		if billingErr != nil {
+			return billingErr
 		}
 		if s.SubmissionKey != "" {
 			var outcome string
@@ -141,6 +146,11 @@ func (s SQLRenderDraftStore) BeginBatch(ctx context.Context, tenant, batch, proj
 				return renderUnavailable()
 			default:
 				return v2input.ErrInvalid
+			}
+		}
+		if billable {
+			if err := billing.BindRender(ctx, tx, tenant, batch, who); err != nil {
+				return err
 			}
 		}
 		return nil

@@ -4,7 +4,7 @@ export type RunRetryAttempt={version:1;key:string;expected_revision:string;creat
 const prefix='photo.run-retry-attempt.v1:';
 const epochs=new Map<string,number>();
 let pending:Promise<unknown>=Promise.resolve();
-const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const revision=/^[1-9][0-9]{0,18}$/;
 function queue<T>(action:()=>Promise<T>):Promise<T>{const result=pending.catch(()=>{}).then(action);pending=result;return result;}
 

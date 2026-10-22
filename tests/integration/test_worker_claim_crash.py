@@ -28,7 +28,7 @@ def test_worker_claim_crash_reaper_invalidates_late_commit(database,rabbit_vhost
         channel.queue_declare(queue,durable=True,arguments={'x-queue-type':'quorum'})
         channel.confirm_delivery()
         channel.basic_publish('',queue,json.dumps(case['command']).encode(),pika.BasicProperties(delivery_mode=2),mandatory=True)
-        env={**os.environ,'PYTHONPATH':str(ROOT/'workers')+':'+str(ROOT/'src'),
+        env={**os.environ,'PYTHONPATH':str(ROOT/'workers')+':'+str(ROOT/'apps'/'local-editor'/'src'),
              'PHOTO_TEST_RESTART_DSN':make_conninfo(**database),'PHOTO_TEST_RESTART_BROKER':str(rabbit_vhost),
              'PHOTO_TEST_RESTART_WORKER':str(case['worker']),'PHOTO_TEST_RESTART_MODE':'crash-after-claim'}
         proc=subprocess.run([str(ROOT/'.venv-platform/bin/python'),str(ROOT/'tests/integration/worker_commit_restart_probe.py')],env=env,cwd=ROOT,capture_output=True,text=True,timeout=30)

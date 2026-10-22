@@ -56,6 +56,7 @@ func TestPerspectiveOwnedOriginalQualificationAndProfile(t *testing.T) {
 		t.Fatal(err)
 	}
 	calibration["qualified"] = true
+	calibration["loss_weights"] = []float64{1, 0, 0, 0, 0, 0}
 	calibration["model_lock_sha"] = fixture.Pin.ModelLockSHA
 	calibration["dataset_sha"] = fixture.Pin.DatasetSHA
 	calibrationRaw, err := canonical.Marshal(calibration)

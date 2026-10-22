@@ -22,6 +22,8 @@ func (r ArtifactRef) valid() bool {
 }
 
 type Decision struct {
+ ViewedToken string `json:"viewed_token,omitempty"`
+ viewedGrant *RelightViewedGrant
 	ExpectedRevision int64    `json:"expected_revision"`
 	CandidateHash    string   `json:"candidate_hash"`
 	Decision         string   `json:"decision"`
