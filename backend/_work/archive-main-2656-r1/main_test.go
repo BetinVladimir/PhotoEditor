@@ -1,0 +1,4 @@
+package main
+import("testing";"strings")
+func TestNoConfirmationRefusesBeforeConnection(t *testing.T){t.Setenv("CONFIRM_ARCHIVE_2656_MAIN","");if e:=run();e==nil||!strings.Contains(e.Error(),"confirmation"){t.Fatal("missing confirmation did not refuse")}}
+func TestWrongAuthorityRefusesBeforeSourceOrConnection(t *testing.T){t.Setenv("CONFIRM_ARCHIVE_2656_MAIN","reviewed-main2655-to2656");for _,dsn:=range []string{"host=127.0.0.1 port=57432 dbname=other user=rtx_snapshot_admin","host=localhost port=57432 dbname=photoeditor user=rtx_snapshot_admin","host=127.0.0.1 port=57432 dbname=photoeditor user=photo_scheduler","host=127.0.0.1 port=56432 dbname=photoeditor user=rtx_snapshot_admin"}{t.Setenv("DATABASE_URL",dsn);if e:=run();e==nil||!strings.Contains(e.Error(),"exact MAIN"){t.Fatal("wrong authority did not refuse")}}}
