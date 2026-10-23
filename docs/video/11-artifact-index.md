@@ -93,7 +93,7 @@
 | `workers/photo_worker/contracts/video.py` | контракты Params/Result | WP-01 |
 | `workers/photo_worker/runtime/ffmpeg.py`, `runtime/mlx_budget.py` | среда | WP-03 |
 | `workers/photo_worker/algorithms/video_lut.py` | генератор LUT | WP-10 |
-| `workers/photo_worker/operations/video/graph.py` | `compile_graph` | WP-12 |
+| `workers/photo_worker/video/graph.py`, `graph_fmt.py`, `graph_video.py`, `graph_audio.py` | `compile_graph` и цепочки ([24](24-render-compiler.md)) | WP-12, WP-20 |
 | `deploy/compose.video-worker*.yaml`, SQL провижининга | развёртывание | WP-03, 15 |
 | `packages/api-client/src/video-{upload,timeline,api}.ts` | клиент | WP-05, 09 |
 | `apps/photographer/{app,app/[locale],screens}/video/**`, `src/video-*.ts(x)` | приложение | WP-05…13 |

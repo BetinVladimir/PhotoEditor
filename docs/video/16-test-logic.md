@@ -251,6 +251,8 @@ TK-801 (злонамеренные образцы) и: межтенантные 
 | Python | `cd workers && python -m pytest tests -q -p no:cacheprovider` и `python -m pytest tests/platform -q -p no:cacheprovider` из корня |
 | Go | `go -C backend test ./internal/video/... ./internal/httpapi/... ./internal/portal/... -count=1` |
 | SQL | `python -m pytest tests/integration/test_video_*.py -q -p no:cacheprovider` |
+| Пакеты карточек | `python3 docs/video/tools/ctx.py --check` (код 0: ссылки разрешаются, пакеты ≤ 18 000 токенов; [12](12-decomposition-method.md), раздел 8) |
+| Паритет рендера | `python3 docs/video/vectors/reference/render_parity/run_all.py <каталог>` при ffmpeg 6.1.x ([24](24-render-compiler.md), раздел 9) |
 | Всё | `make test` и `make test-db` |
 
 ### 12.2 Формат отчёта о тестах
