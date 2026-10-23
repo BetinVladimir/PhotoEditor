@@ -1,6 +1,6 @@
 # Аудит полноты и согласованности биллинга
 
-Дата21.10.2026. Проверены документы01–08 и конкретные source entrypoints; исправления внесены в исходные разделы, точные дополнения собраны в09. Это документальный аудит рабочей копии; installed DB, реальные Stripe settings, квалификация производительности и e2e execution не заявляются проверенными.
+Дата 21.10.2026. Проверены документы 01–08 и конкретные source entrypoints; исправления внесены в исходные разделы, точные дополнения собраны в 09. Это документальный аудит рабочей копии; installed DB, реальные Stripe settings, квалификация производительности и e2e execution не заявляются проверенными.
 
 ## Существенные противоречия и решения
 
@@ -23,7 +23,7 @@
 | A15 | Meter фактических bytes поверх direct signed URL | Controlled backend URL с сохранением DownloadLink, current authority и receipt accounting | E81,E82 |
 | A16 | Exactly-once TCP bytes недостижимо, crash двусмыслен | Bounded uncertain hold и reconciliation, no full object automatic charge | E82 |
 | A17 | Billing outbox одновременно назывался существующим task outbox | Раздельные task и financial queues, atomic bridge и отдельные consumers | E83 |
-| A18 | Max-file/manual retention можно было вывести из старого7/30 DTO | Явная policy version/manual asset classes, запрет0/NULL и no baseline DDL rewrite | E84,E85 |
+| A18 | Max-file/manual retention можно было вывести из старого 7/30 DTO | Явная policy version/manual asset classes, запрет 0/NULL и no baseline DDL rewrite | E84,E85 |
 | A19 | Storage Checkout мог создать вторую subscription | Existing subscription invoice saga; new subscription только при её отсутствии | E86 |
 | A20 | Из оплаченного egress урезался Trial | Trial remainder закрывается, новый paid период получает полный grant | E87 |
 | A21 | AI upgrade egress delta и renewal race не определены |10×delta included storage; no open renewal invoice и >24h guard; compensation при гонке | E18,E88 |
@@ -58,7 +58,9 @@
 | apps/photographer/screens/settings/quotas.tsx | Существующий Paper screen читает tenant settings/capabilities, commercial balance отсутствует |
 | apps/photographer/package.json | react-native-paper^5.15.3 и Expo router; native Checkout capability не квалифицирована одним наличием зависимости |
 
-Идентифицированный source migration filename head02597 не является обещанием следующего номера; source bundles и установленная DB могут отличаться. Текущий packages route union323 identities, v2 source39 operations; baseline/SQL registry шире. Перед кодогенерацией записать commit/dirty source fingerprint, не сбрасывать пользовательские изменения.
+- Идентифицированный source migration filename head02597 не является обещанием следующего номера; source bundles и установленная DB могут отличаться.
+- Текущий packages route union323 identities, v2 source39 operations; baseline/SQL registry шире.
+- Перед кодогенерацией записать commit/dirty source fingerprint, не сбрасывать пользовательские изменения.
 
 ## Дополнительные обязательные e2e E71–E90
 
@@ -69,33 +71,40 @@
 | E71 Transport parity | Registry/HTTP/OwnerAPI schemas совпадают с /api/v1 identities и existing envelope | Неверный alias{tenant},unknown fields,unquoted/missing If-Match отвергаются до effects |
 | E72 Receipt lifecycle | Replay возвращает исходные stable202 bytes/status; GET выдаёт current action | Истёкший URL не извлекается из receipt; revoke/re-role не раскрывает старый owner response; expired API receipt не позволяет второй grant |
 | E73 Cumulative allowance | Один allowance1 принят, следующий после grant/correct cover не переоткрывает period budget | Lease expiry/restart/другой instance/новый topup не получают ещё allowance1; сумма outstanding+settled<=configured |
-| E74 Rollover held credit | Bucket100,consumed60,leased10 переносит30; late success10 остаётся original | При переносе40 тест падает; late failure10 добавляет child ровно один раз только пока paid next period eligible |
+| E74 Rollover held credit | Bucket100,consumed60,leased10 переносит 30; late success10 остаётся original | При переносе 40 тест падает; late failure10 добавляет child ровно один раз только пока paid next period eligible |
 | E75 Free rerun zero balance | При available0 и свободном slot accepted free result без paid lease | Третий/expired slot отказывает без credit; initial same digest in-flight409; no quote price change от другого failure |
 | E76 Finance FK scope | Invoice с двумя ресурсами создаёт два typed allocations и один денежный payment | Другой sandbox/subject/tenant/line ID не связывается; orphan polymorphic refs не дают grant |
-| E77 One user charge | Один standard user request с несколькими child runs и retries списывает1 | Каждый adopted model step не создаёт ещё credit debit; task-only result без видимого final output не charged |
+| E77 One user charge | Один standard user request с несколькими child runs и retries списывает 1 | Каждый adopted model step не создаёт ещё credit debit; task-only result без видимого final output не charged |
 | E78 Owner erase | Transfer активному admin до revoke сохраняет studio billing; former owner erases | Старая revision/неактивная цель/попытка transfer через revoked session отказ; deleting former owner не отменяет новую чужую subscription |
 | E79 Onboarding auth | Pending user входит по OTP, принимает required set и создаёт tenant после complete | Нельзя создать tenant/Checkout до completion; нельзя закрыть сам accept endpoint users.status=pending |
-| E80 Fresh proof/epoch | Новая purpose-bound OTP proof в5min принимается один раз | Refresh/new access token,чужой purpose,старый auth_epoch,OTP recovery после erasure не открывают deletion/auth |
+| E80 Fresh proof/epoch | Новая purpose-bound OTP proof в 5min принимается один раз | Refresh/new access token,чужой purpose,старый auth_epoch,OTP recovery после erasure не открывают deletion/auth |
 | E81 Controlled URL | Actual photographer и portal validators принимают controlled URL с единственным bound versionId, исходным DTO и finite TTL | New enforced link не выдаёт direct object URL; bucket public access/expired capability/revoked share отвергнуты |
 | E82 Crash byte ambiguity | Подтверждённые chunks settled once; unresolved bounded hold виден и reconciled | Crash после write до DB не списывает весь ZIP и не возвращает unlimited allocation; HEAD0/no duplicate receipt |
 | E83 Outbox isolation | Одно событие user result порождает нужный task/finance bridge atomic | Task publisher не запускает financial grant, billing consumer не повторяет DAG activation |
-| E84 Retention migration | Manual cohort хранит retained results/previews/archive дольше30дней, temporary cleanup работает | Legacy DTO0/NULL не включает manual; ни один age-GC не удаляет клиентский архив в обход policy |
+| E84 Retention migration | Manual cohort хранит retained results/previews/archive дольше 30 дней, temporary cleanup работает | Legacy DTO0/NULL не включает manual; ни один age-GC не удаляет клиентский архив в обход policy |
 | E85 Source generation | Новые catalog/migrations additive, baseline hashes unchanged | Перегенерация billing не меняет DDL1–9, frozen source hashes и существующие parameter identities |
 | E86 Single subscription | Storage add на existing AI и AI resume на storage-only используют тот же sub/anchor | Второй subscription_checkout запрещён; incomplete/failed invoice не даёт capacity |
-| E87 Anchor conversion | Trial использовал5GB,переход Start выдаёт100GB paid и закрывает leftover Trial | Paid grant не уменьшается до85/80GB, Trial20GB не остаётся вторым активным base entitlement |
+| E87 Anchor conversion | Trial использовал 5GB,переход Start выдаёт 100GB paid и закрывает leftover Trial | Paid grant не уменьшается до 85/80GB, Trial20GB не остаётся вторым активным base entitlement |
 | E88 Upgrade entitlements | Полная AI delta даёт photo/storage/egress10×storage delta один раз | Open renewal invoice/<=24h window не создают charge; unavoidable race компенсирует paid upgrade без двойного renewal |
 | E89 Closed scopes | Sandbox BG synthetic20% pass,live flag off; unsupported country fails before Stripe | Fixture price/operation limits не публикуются live; account/scope/currency подмена отвергается |
 | E90 Multi-resource admission | Batch с free и paid items сохраняет all tickets и root stubs до seal | Late shortage одного ресурса не публикует половину DAG; abort/releases идемпотентны; active old tickets не украдены |
 
 ## Матрица начала работ
 
-BILL-01 включает source inventory и function lock/adoption mapping; BILL-03 включает additive catalog и supported source generator; BILL-05 включает cumulative allowance/free slots/rollover; BILL-08 включает typed financial allocation/provider effects и отдельный outbox; BILL-10 включает actual Paper shell и fresh action URLs; BILL-11–12 включают onboarding state/recent-auth/privacy preflight; BILL-13 проверяет E01–E90 и recovery evidence. BILL-14 остаётся live gate.
+- BILL-01 включает source inventory и function lock/adoption mapping;
+- BILL-03 включает additive catalog и supported source generator;
+- BILL-05 включает cumulative allowance/free slots/rollover;
+- BILL-08 включает typed financial allocation/provider effects и отдельный outbox;
+- BILL-10 включает actual Paper shell и fresh action URLs;
+- BILL-11–12 включают onboarding state/recent-auth/privacy preflight;
+- BILL-13 проверяет E01–E90 и recovery evidence.
+- BILL-14 остаётся live gate.
 
-Незакрытые продуктовые решения перечислены в09 с default-disabled поведением. Они не требуют догадок при создании scaffold и не считаются готовыми к публикации. Ни юридическое одобрение, ни налоговая настройка, ни квалификация операции не выводятся из успешного unit test.
+Незакрытые продуктовые решения перечислены в 09 с default-disabled поведением. Они не требуют догадок при создании scaffold и не считаются готовыми к публикации. Ни юридическое одобрение, ни налоговая настройка, ни квалификация операции не выводятся из успешного unit test.
 
 ## Дополнительная проверка совместимости URL
 
-Существующие photographer/portal validators требуют versionId и конкретный DTO shape; сохранение только имени DownloadLink недостаточно. Правило сохранения versionId, numeric safe bytes, срока и safe URL закреплено в09, E81 проверяет actual client parsers. Код parser/UI в рамках аудита не меняется.
+Существующие photographer/portal validators требуют versionId и конкретный DTO shape; сохранение только имени DownloadLink недостаточно. Правило сохранения versionId, numeric safe bytes, срока и safe URL закреплено в 09, E81 проверяет actual client parsers. Код parser/UI в рамках аудита не меняется.
 
 ## Fingerprint обследованных источников
 

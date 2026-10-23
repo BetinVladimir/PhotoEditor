@@ -131,7 +131,10 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts) -> OperationResult:
                 entries=[entry.model_dump(mode='json') for entry in manifest_entries])
             manifest_payload=json.dumps(provisional, ensure_ascii=False, sort_keys=True,
                 separators=(',', ':')).encode('utf-8')
-            archive.writestr('manifest.json',manifest_payload,compress_type=zipfile.ZIP_DEFLATED)
+            manifest_info = zipfile.ZipInfo('manifest.json', date_time=(1980, 1, 1, 0, 0, 0))
+            manifest_info.external_attr = 0o600 << 16
+            manifest_info.compress_type = zipfile.ZIP_DEFLATED
+            archive.writestr(manifest_info, manifest_payload)
         reservation.validate_file(archive_path)
         archive_hash = hashlib.sha256()
         archive_bytes = 0

@@ -2,13 +2,19 @@
 
 ## Правовые основания и границы
 
-Основа — [GDPR, официальный текст EUR-Lex](https://eur-lex.europa.eu/eli/reg/2016/679/oj/eng), в частности статьи 5–7, 12–13, 17, 20, 25, 28 и 32. Privacy notice не является универсальным согласием. Для аккаунта/оплаты документируется договорное основание и применимые законные обязанности; optional analytics, marketing и специальная обработка требуют отдельных применимых оснований. Удаление имеет законные исключения для минимальных обязательных records; это не право бессрочно хранить весь профиль.
+- Основа — [GDPR, официальный текст EUR-Lex](https://eur-lex.europa.eu/eli/reg/2016/679/oj/eng), в частности статьи 5–7, 12–13, 17, 20, 25, 28 и 32. Privacy notice не является универсальным согласием.
+- Для аккаунта/оплаты документируется договорное основание и применимые законные обязанности; optional analytics, marketing и специальная обработка требуют отдельных применимых оснований.
+- Удаление имеет законные исключения для минимальных обязательных records; это не право бессрочно хранить весь профиль.
 
-Этот раздел задаёт инженерные требования и проверяемые gates, а не юридическое заключение о полном соответствии продукта. Юрист/ответственный за privacy должен подтвердить применимые основания, договоры, налоговые retention и трансграничные передачи перед live. Закрытый test contour использует синтетические данные.
+- Этот раздел задаёт инженерные требования и проверяемые gates, а не юридическое заключение о полном соответствии продукта.
+- Юрист/ответственный за privacy должен подтвердить применимые основания, договоры, налоговые retention и трансграничные передачи перед live.
+- Закрытый test contour использует синтетические данные.
 
 ## Ссылки на legal.beeloy.org
 
-Пути подтверждены локальным router юридического проекта; публичная доступность, redirect и конкретный текст production-домена в рамках анализа не квалифицированы. Все пользовательские ссылки должны вести именно на этот домен. Подставлять только поддерживаемую locale; если перевода нет — явно обозначенный English fallback, не silent substitution.
+- Пути подтверждены локальным router юридического проекта; публичная доступность, redirect и конкретный текст production-домена в рамках анализа не квалифицированы.
+- Все пользовательские ссылки должны вести именно на этот домен.
+- Подставлять только поддерживаемую locale; если перевода нет — явно обозначенный English fallback, не silent substitution.
 
 | Документ | Целевая ссылка для RU | Локальный источник | Что проверить до включения |
 |---|---|---|---|
@@ -18,7 +24,11 @@
 | DPA | https://legal.beeloy.org/ru/dpa | app/dpa/page.tsx + app/[locale]/dpa/page.tsx | Обработка фотографий, лица, AI providers, TOMs, deletion и backups |
 | Consumer Terms | https://legal.beeloy.org/ru/consumer-terms | app/page.tsx, B | Сейчас loyalty-specific; не применять к PhotoEditor без дополнения |
 
-English fallback: те же пути с `/en/`. Дополнение PhotoEditor должно быть опубликовано в legal репозитории на legal.beeloy.org и получить точный version/hash/URL. Путь нового addendum ещё не существует в обследованном router: не добавлять выдуманную production ссылку в UI. До публикации закрыть self-service для неподдержанного B2C scope. Изменение legal репозитория вне объёма этой документационной задачи.
+- English fallback: те же пути с `/en/`.
+- Дополнение PhotoEditor должно быть опубликовано в legal репозитории на legal.beeloy.org и получить точный version/hash/URL.
+- Путь нового addendum ещё не существует в обследованном router: не добавлять выдуманную production ссылку в UI.
+- До публикации закрыть self-service для неподдержанного B2C scope.
+- Изменение legal репозитория вне объёма этой документационной задачи.
 
 ## Юридические пробелы, обязательные к устранению
 
@@ -33,25 +43,49 @@ English fallback: те же пути с `/en/`. Дополнение PhotoEditor
 | Внешние providers | Документировать Stripe, hosting/object storage, email, AI и optional analytics; договоры/местоположения/EEA transfers; не предполагать всё EU |
 | Matching/biometrics | Отдельная оценка целей: не всякое фото special-category; identification biometrics может требовать Article 9 assessment/DPIA; release gate по реальным функциям |
 
-Никакой checkbox Terms не создаёт согласия изображённых на загруженных фото людей. Tenant отвечает за основания customer content; Beeloy выполняет processor duties и отдельные controller обязанности для аккаунта/биллинга. Существующие consent_grants scope/epoch продолжают контролировать identity_matching и learning, onboarding не ставит их в granted.
+- Никакой checkbox Terms не создаёт согласия изображённых на загруженных фото людей.
+- Tenant отвечает за основания customer content;
+- Beeloy выполняет processor duties и отдельные controller обязанности для аккаунта/биллинга.
+- Существующие consent_grants scope/epoch продолжают контролировать identity_matching и learning, onboarding не ставит их в granted.
 
 ## Онбординг
 
-Сначала показать ссылки и версии необходимых документов. Пользователь явно отмечает принятие Terms; B2B representative подтверждает полномочия и применимость DPA; отдельно отмечает ознакомление с Privacy. Если для определённой реально optional цели нужно consent, показать отдельный выключенный checkbox с purpose и отзывом. Нельзя сделать обязательным «согласие на любую обработку данных» вместо договорного основания.
+- Сначала показать ссылки и версии необходимых документов.
+- Пользователь явно отмечает принятие Terms;
+- B2B representative подтверждает полномочия и применимость DPA; отдельно отмечает ознакомление с Privacy.
+- Если для определённой реально optional цели нужно consent, показать отдельный выключенный checkbox с purpose и отзывом.
+- Нельзя сделать обязательным «согласие на любую обработку данных» вместо договорного основания.
 
-На сервер отправляются document_set_hash, events(document_version_id,action), client_event_id; locale и capture channel уже связаны с показанным requirement set/auth context. Server восстанавливает individual text hashes из version IDs. Server проверяет current required version и меняет account_onboarding_states на complete вместе с legal receipt одной транзакцией; users.status остаётся active для доступа к онбордингу. Новая версия между показом и submit → 409 LEGAL_REACCEPTANCE_REQUIRED и повторное ознакомление. Архив принятого текста доступен пользователю; ссылка на изменяемую страницу без сохранённой версии недостаточна.
+- На сервер отправляются document_set_hash, events(document_version_id,action), client_event_id; locale и capture channel уже связаны с показанным requirement set/auth context.
+- Server восстанавливает individual text hashes из version IDs.
+- Server проверяет current required version и меняет account_onboarding_states на complete вместе с legal receipt одной транзакцией; users.status остаётся active для доступа к онбордингу.
+- Новая версия между показом и submit → 409 LEGAL_REACCEPTANCE_REQUIRED и повторное ознакомление.
+- Архив принятого текста доступен пользователю; ссылка на изменяемую страницу без сохранённой версии недостаточна.
 
-Существующие аккаунты получают pending legal status при переходе, видят объяснение и документы. Не приписывать старым пользователям согласие задним числом. При необходимости reacceptance новые paid actions закрыты; доступ к privacy controls, deletion, export и обязательным правам сохраняется согласно policy. Выход из onboarding не создаёт подписку.
+- Существующие аккаунты получают pending legal status при переходе, видят объяснение и документы.
+- Не приписывать старым пользователям согласие задним числом.
+- При необходимости reacceptance новые paid actions закрыты; доступ к privacy controls, deletion, export и обязательным правам сохраняется согласно policy.
+- Выход из onboarding не создаёт подписку.
 
 ## Cookies и optional SDK
 
-Necessary auth/security storage объясняется без фиктивного consent gate. Optional SDK не инициализируются до явного выбора. Reject optional столь же доступен, как accept; closing banner не считается accept. Consent сохраняет purpose/version/time и применяется при следующем визите; истечение/изменение purposes требует нового выбора. Отзыв прекращает будущую загрузку SDK и очищает доступное optional storage. Если optional cookies отсутствуют, не показывать ложный analytics consent — достаточно информирования и действующей cookie policy.
+- Necessary auth/security storage объясняется без фиктивного consent gate.
+- Optional SDK не инициализируются до явного выбора.
+- Reject optional столь же доступен, как accept; closing banner не считается accept.
+- Consent сохраняет purpose/version/time и применяется при следующем визите; истечение/изменение purposes требует нового выбора.
+- Отзыв прекращает будущую загрузку SDK и очищает доступное optional storage.
+- Если optional cookies отсутствуют, не показывать ложный analytics consent — достаточно информирования и действующей cookie policy.
 
-Paper UI используется также для consent banner/dialog. На native вместо browser cookie механики учитываются SecureStore/device identifiers и platform privacy permissions; web consent не выдаёт системное разрешение на устройстве. Существующие refresh/CSRF tokens имеют отдельный security lifecycle и очищаются при deletion.
+- Paper UI используется также для consent banner/dialog.
+- На native вместо browser cookie механики учитываются SecureStore/device identifiers и platform privacy permissions; web consent не выдаёт системное разрешение на устройстве.
+- Существующие refresh/CSRF tokens имеют отдельный security lifecycle и очищаются при deletion.
 
 ## Удаление профиля и студии
 
-Профиль — пользователь, студия — tenant; удаление одного не должно стирать чужую общую студию. Функция доступна независимо от квот/задолженности. Для запроса — свежая аутентификация; proposed max age=5 минут. До подтверждения показать последствия, возможность export, shared ownership и legally retained records.
+- Профиль — пользователь, студия — tenant; удаление одного не должно стирать чужую общую студию.
+- Функция доступна независимо от квот/задолженности.
+- Для запроса — свежая аутентификация; proposed max age=5 минут.
+- До подтверждения показать последствия, возможность export, shared ownership и legally retained records.
 
 | Ситуация | Поведение |
 |---|---|
@@ -73,7 +107,10 @@ Paper UI используется также для consent banner/dialog. На 
 7. Создать erasure tombstones для backup/restore. Backup copies изолированы от обычной обработки и истекают по утверждённому конечному сроку. Restore сначала применяет deletion tombstones, затем разрешает serving. Тест restore должен доказать, что login/email/photo/download не воскресли.
 8. Зафиксировать completion evidence по каждой системе. Статус completed только при выполненных active-system шагах и раскрытом backup lifecycle; retained legal exceptions → partially_retained с категорией, основанием и сроком. Пользователь видит проверяемый статус, а не неподтверждённое «всё удалено».
 
-Операционная цель для активных систем — до 7 дней, для первичного ответа по запросу — в пределах одного месяца согласно GDPR Article 12 с применимыми исключениями/продлением. Это proposed internal SLA, не утверждённый срок хранения backup. До live нужны конкретные approved maximum backup days и statutory retention по категории/юрисдикции. Draft retention policy не должна препятствовать немедленному удалению необязательной PII.
+- Операционная цель для активных систем — до 7 дней, для первичного ответа по запросу — в пределах одного месяца согласно GDPR Article 12 с применимыми исключениями/продлением.
+- Это proposed internal SLA, не утверждённый срок хранения backup.
+- До live нужны конкретные approved maximum backup days и statutory retention по категории/юрисдикции.
+- Draft retention policy не должна препятствовать немедленному удалению необязательной PII.
 
 ## Матрица PII и доказательств
 

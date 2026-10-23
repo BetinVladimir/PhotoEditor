@@ -2,13 +2,34 @@
 
 ## Общие правила
 
-Это целевая логическая схема для последующей реализации в существующей PostgreSQL схеме `photo`. Перед созданием сверить текущий каталог и переиспользовать существующую эквивалентную сущность. Имена здесь обязательны как предметные контракты; переименование требует traceability. Исполняемого SQL в документации нет.
+- Это целевая логическая схема для последующей реализации в существующей PostgreSQL схеме `photo`.
+- Перед созданием сверить текущий каталог и переиспользовать существующую эквивалентную сущность.
+- Имена здесь обязательны как предметные контракты; переименование требует traceability.
+- Исполняемого SQL в документации нет.
 
-Все новые таблицы имеют `id uuid PK`, `created_at timestamptz NOT NULL` по серверному времени, кроме явно указанных natural PK. Mutable строки дополнительно имеют `updated_at timestamptz NOT NULL`, `revision bigint NOT NULL DEFAULT 1 CHECK >0`. Immutable rows не редактируются бизнес-ролями. Все поля ниже NOT NULL, если не отмечены `?`; отсутствие значения не означает unlimited. `enum` означает закрытый набор, реализуемый enum или CHECK. Деньги — bigint minor units >=0, currency char(3)=EUR на старте. Quantity и bytes — bigint >=0; дробных credit нет. SHA-256 — bytea длины 32, версии digest указываются явно. Timestamp UTC, interval=[start,end), expires_at исключительный. На wire bigint идут десятичными строками, а не JS float. Цены/лимиты опубликованной версии immutable.
+- Все новые таблицы имеют `id uuid PK`, `created_at timestamptz NOT NULL` по серверному времени, кроме явно указанных natural PK.
+- Mutable строки дополнительно имеют `updated_at timestamptz NOT NULL`, `revision bigint NOT NULL DEFAULT 1 CHECK >0`.
+- Immutable rows не редактируются бизнес-ролями.
+- Все поля ниже NOT NULL, если не отмечены `?`; отсутствие значения не означает unlimited.
+- `enum` означает закрытый набор, реализуемый enum или CHECK.
+- Деньги — bigint minor units >=0, currency char(3)=EUR на старте.
+- Quantity и bytes — bigint >=0; дробных credit нет.
+- SHA-256 — bytea длины 32, версии digest указываются явно.
+- Timestamp UTC, interval=[start,end), expires_at исключительный.
+- На wire bigint идут десятичными строками, а не JS float.
+- Цены/лимиты опубликованной версии immutable.
 
-Все tenant scoped таблицы имеют `tenant_id uuid FK tenants`, `UNIQUE(tenant_id,id)`, FORCE RLS и cross-tenant FK с tenant_id. Даже UUID соседнего tenant не принимается. Финансовые сохранённые записи используют отдельный ограниченный retention scope и обезличенный subject reference после удаления tenant; им нельзя навязать CASCADE на все invoices. Ссылки пользователя после erasure становятся nullable/pseudonymous по утверждённой retention policy. Уникальность Stripe refs всегда включает provider_account_id и environment; нельзя смешивать два sandbox с одинаковым режимом test.
+- Все tenant scoped таблицы имеют `tenant_id uuid FK tenants`, `UNIQUE(tenant_id,id)`, FORCE RLS и cross-tenant FK с tenant_id.
+- Даже UUID соседнего tenant не принимается.
+- Финансовые сохранённые записи используют отдельный ограниченный retention scope и обезличенный subject reference после удаления tenant; им нельзя навязать CASCADE на все invoices.
+- Ссылки пользователя после erasure становятся nullable/pseudonymous по утверждённой retention policy.
+- Уникальность Stripe refs всегда включает provider_account_id и environment; нельзя смешивать два sandbox с одинаковым режимом test.
 
-Для каждого справочника ниже common fields действуют также. Цена в snapshots включает net, tax, gross и currency; gross=net+tax и сумма строк=order totals. Налог не всегда 20%; rounding сохраняется построчно. `policy_snapshot jsonb` допустим только с versioned JSON schema и hash; неизвестные поля отклоняются. Arbitrary JSON не заменяет typed FK и суммы.
+- Для каждого справочника ниже common fields действуют также.
+- Цена в snapshots включает net, tax, gross и currency; gross=net+tax и сумма строк=order totals.
+- Налог не всегда 20%; rounding сохраняется построчно.
+- `policy_snapshot jsonb` допустим только с versioned JSON schema и hash; неизвестные поля отклоняются.
+- Arbitrary JSON не заменяет typed FK и суммы.
 
 ## Каталог и политики
 
@@ -90,12 +111,24 @@ Storage schema не должна требовать двух transactional updat
 
 ## Доступ и индексы
 
-Каталог читается через public view только для public/published plans. Current Custom возвращается отдельно авторизованной summary. API не получает прямые INSERT/UPDATE/DELETE финансовых таблиц. Функции с SECURITY DEFINER имеют фиксированный search_path, владельца по действующей модели, REVOKE PUBLIC и точечные EXECUTE. Worker только settlement своего task/result через существующую adoption authority, без возможности grant/смены цены. Maintenance отдельно обрабатывает inbox/outbox/erasure. Финансовые retained записи доступны только уполномоченной support/accounting роли с аудитом.
+- Каталог читается через public view только для public/published plans.
+- Current Custom возвращается отдельно авторизованной summary.
+- API не получает прямые INSERT/UPDATE/DELETE финансовых таблиц.
+- Функции с SECURITY DEFINER имеют фиксированный search_path, владельца по действующей модели, REVOKE PUBLIC и точечные EXECUTE.
+- Worker только settlement своего task/result через существующую adoption authority, без возможности grant/смены цены.
+- Maintenance отдельно обрабатывает inbox/outbox/erasure.
+- Финансовые retained записи доступны только уполномоченной support/accounting роли с аудитом.
 
-Обязательные индексы: active bucket(tenant,resource,expires_at,created_at,id); lease(tenant,resource,state,expires_at); ticket(tenant,run_id,state); ledger(tenant,resource,occurred_at,id); pending inbox/outbox(state,next_retry_at); subscription(tenant,state); order(tenant,created_at,id); erasure(state,deadline_at). PII и raw webhook payload не включать в индексы и telemetry labels. Крупные append-only tables партиционировать только по доказанной необходимости; business unique dedup должен сохраняться между partitions.
+- Обязательные индексы: active bucket(tenant,resource,expires_at,created_at,id); lease(tenant,resource,state,expires_at); ticket(tenant,run_id,state); ledger(tenant,resource,occurred_at,id); pending inbox/outbox(state,next_retry_at); subscription(tenant,state); order(tenant,created_at,id); erasure(state,deadline_at).
+- PII и raw webhook payload не включать в индексы и telemetry labels.
+- Крупные append-only tables партиционировать только по доказанной необходимости; business unique dedup должен сохраняться между partitions.
 
 ## Обязательное уточнение схемы для генерации
 
-Дополнительные typed поля, FK, natural identities, enum и новые supporting tables перечислены в разделе09. Они входят в эту модель, а не являются optional расширением. В частности, вводятся financial_subjects, allowance_budgets, typed entitlement allocations, delivery receipts, onboarding state, recent-auth grants, privacy cases и capacity revisions. Ссылки source_type/source_id в ledger — только audit description; денежное основание выдачи имеет typed invoice/order allocation FK.
+- Дополнительные typed поля, FK, natural identities, enum и новые supporting tables перечислены в разделе 09. Они входят в эту модель, а не являются optional расширением.
+- В частности, вводятся financial_subjects, allowance_budgets, typed entitlement allocations, delivery receipts, onboarding state, recent-auth grants, privacy cases и capacity revisions.
+- Ссылки source_type/source_id в ledger — только audit description; денежное основание выдачи имеет typed invoice/order allocation FK.
 
-Любая строка, участвующая в отзыве/погашении, изменяется только с сохранением conservation equation. Expire/revoke/rollover имеют отдельные reason и business event, не подменяют финансовый refund. Отсутствие срока допускается только с explicit expiry_policy=never для Trial photo; не применять этот режим к диску/трафику/платным packs.
+- Любая строка, участвующая в отзыве/погашении, изменяется только с сохранением conservation equation.
+- Expire/revoke/rollover имеют отдельные reason и business event, не подменяют финансовый refund.
+- Отсутствие срока допускается только с explicit expiry_policy=never для Trial photo; не применять этот режим к диску/трафику/платным packs.

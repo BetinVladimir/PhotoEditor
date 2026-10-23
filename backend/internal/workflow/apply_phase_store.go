@@ -18,6 +18,7 @@ type ApplyPhaseStore interface {
 	Advance(ctx context.Context, l ApplyLease, to string) (bool, error)
 	SetGroupCount(ctx context.Context, l ApplyLease, count int) (bool, error)
 	Fail(ctx context.Context, l ApplyLease, code string) (bool, error)
+	FailTerminalPredecessor(ctx context.Context, l ApplyLease) (bool, error)
 	Adopt(ctx context.Context, l ApplyLease) (bool, error)
 	Inputs(ctx context.Context, l ApplyLease) ([]applyInput, error)
 	Outputs(ctx context.Context, l ApplyLease, op, role string) ([]applyOutput, error)

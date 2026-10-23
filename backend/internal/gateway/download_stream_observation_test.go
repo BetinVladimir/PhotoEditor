@@ -71,7 +71,7 @@ func TestDownloadStreamObservationPreservesOutcomes(t *testing.T) {
 			slog.SetDefault(slog.New(slog.NewJSONHandler(&logs, nil)))
 			defer slog.SetDefault(old)
 			recorder := httptest.NewRecorder()
-			var writer http.ResponseWriter = recorder
+			var writer http.ResponseWriter = &deadlineStreamWriter{ResponseRecorder: recorder}
 			if tc.writeFail {
 				writer = failingStreamWriter{recorder}
 			}
@@ -177,7 +177,9 @@ func TestDownloadRefreshesAuthorityBeforeNearDeadlineWrite(t *testing.T) {
 	r.TLS = &tls.ConnectionState{HandshakeComplete: true, PeerCertificates: []*x509.Certificate{cert}, VerifiedChains: [][]*x509.Certificate{{cert}}}
 	w := &deadlineStreamWriter{ResponseRecorder: httptest.NewRecorder(), delay: 700 * time.Millisecond}
 	h.Handler().ServeHTTP(w, r)
-	if w.Body.String() != "0123456789" || checks != 3 {
+	// Authorization, initial stream guard, and at least one successful renewal.
+	// Earlier safe renewal may add checks without changing delivered bytes.
+	if w.Body.String() != "0123456789" || checks < 3 {
 		t.Fatalf("healthy stream truncated or authority not refreshed: bytes=%d checks=%d", w.Body.Len(), checks)
 	}
 }

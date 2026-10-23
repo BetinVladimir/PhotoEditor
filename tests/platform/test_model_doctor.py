@@ -143,3 +143,46 @@ def test_generation_doctor_requires_exact_512_unit_rgb_and_known_model_id():
             smoke('sd15_inpaint', Generator(invalid))
     with pytest.raises(ModelError, match='MODEL_DOCTOR_UNSUPPORTED'):
         smoke('unregistered_model', Infer(good))
+
+
+def test_empty_doctor_does_not_import_unloaded_torch(tmp_path,monkeypatch):
+    import builtins,sys
+    import photo_worker.models.doctor as doctor
+    from photo_worker.contracts.base import canonical_hash
+    payload={"schema_version":1,"models":[]}
+    lock=tmp_path/"empty-lock.json"
+    import json
+    lock.write_text(json.dumps({**payload,"lock_id":canonical_hash(payload)}))
+    monkeypatch.delitem(sys.modules,"torch",raising=False)
+    original=builtins.__import__
+    def guarded(name,*args,**kwargs):
+        if name=="torch" or name.startswith("torch."):
+            raise AssertionError("EMPTY_DOCTOR_EAGER_TORCH_IMPORT")
+        return original(name,*args,**kwargs)
+    monkeypatch.setattr(builtins,"__import__",guarded)
+    report=doctor.run(tmp_path,lock,"cpu")
+    assert report["models"]==[] and report["backend"]=="cpu"
+    assert "torch" not in sys.modules
+
+
+def test_loaded_model_pool_preserves_withdrawal_gc_and_device_cleanup(tmp_path,monkeypatch):
+    import sys
+    from types import SimpleNamespace
+    from photo_worker.models.pool import ModelPool
+    from photo_worker.models.lock import ModelLock
+    from photo_worker.contracts.base import canonical_hash
+    import photo_worker.models.pool as pool_module
+    payload={"schema_version":1,"models":[]};lock=ModelLock.model_validate({**payload,"lock_id":canonical_hash(payload)})
+    pool=ModelPool(tmp_path,lock,{})
+    pool._model=object();pool._key=("loaded",);pool._resident=object()
+    generation=pool._generation;events=[]
+    def collect():
+        assert pool._resident is None and pool._model is None and pool._key is None
+        events.append("gc")
+    cuda=SimpleNamespace(is_available=lambda:True,empty_cache=lambda:events.append("cuda"))
+    mps=SimpleNamespace(is_available=lambda:True,empty_cache=lambda:events.append("mps"))
+    monkeypatch.setitem(sys.modules,"torch",SimpleNamespace(cuda=cuda,mps=mps,backends=SimpleNamespace(mps=mps)))
+    monkeypatch.setattr(pool_module.gc,"collect",collect)
+    pool.close()
+    assert events==["gc","cuda","mps"]
+    assert pool._generation==generation+1 and pool.residency_snapshot()==()

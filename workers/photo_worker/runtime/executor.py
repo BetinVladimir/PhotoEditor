@@ -13,6 +13,7 @@ from photo_worker.contracts.base import ArtifactRef, canonical_bytes, parse_json
 from photo_worker.contracts.wire import TaskCommand, TaskError, TaskMetrics
 from .database import Heartbeat, Lease, TaskDatabase
 from .gateway import GatewayError
+from .diagnostics import emit_failure_metadata
 from .materialize import ArtifactTransferError
 from .scratch import DiskQuota, ScratchError
 from photo_worker.v2.input_closure import V2InputsInvalid
@@ -180,7 +181,8 @@ class Executor:
                     beat = self.database.heartbeat(ctx.lease,ctx.snapshot_progress())
                     if not ctx.accept_heartbeat(beat):
                         return
-                except Exception:
+                except Exception as exc:
+                    emit_failure_metadata(exc,'LEASE_LOST','heartbeat')
                     # A transient unknown heartbeat result does not justify
                     # continued writes. Stop conservatively; reaper retries.
                     ctx._lost.set(); return
@@ -211,6 +213,7 @@ class Executor:
                     return 'lease_lost'
                 allowed={'DEPENDENCY_UNAVAILABLE','ARTIFACT_MISSING','ARTIFACT_HASH_MISMATCH','DISK_QUOTA','CONFIG_INVALID'}
                 code=exc.code if exc.code in allowed else 'INTERNAL_ERROR'
+                emit_failure_metadata(exc,code,'operation')
                 failure=TaskError(code=code,retryable=code=='DEPENDENCY_UNAVAILABLE' and exc.retryable,message_key='errors.'+code.lower(),args={})
             except ArtifactTransferError as exc:
                 code='ARTIFACT_HASH_MISMATCH' if exc.args==('ARTIFACT_HASH_MISMATCH',) else 'INPUT_INVALID'
@@ -224,7 +227,8 @@ class Executor:
                 failure=TaskError(code='CONFIG_INVALID',retryable=False,message_key='errors.config_invalid',args={})
             except MemoryError:
                 failure = TaskError(code='RESOURCE_OOM',retryable=True,message_key='errors.resource_oom',args={})
-            except (psycopg.errors.SerializationFailure, psycopg.errors.DeadlockDetected):
+            except (psycopg.errors.SerializationFailure, psycopg.errors.DeadlockDetected) as exc:
+                emit_failure_metadata(exc,'DEPENDENCY_UNAVAILABLE','operation')
                 # The DB adapter already exhausted its bounded transaction retry.
                 # Preserve this as a dependency failure for normal fenced task
                 # recovery, never replay the operation inline or persist SQL text.
@@ -235,6 +239,7 @@ class Executor:
                 torch = sys.modules.get('torch')
                 oom = torch is not None and isinstance(exc,torch.OutOfMemoryError)
                 code = 'RESOURCE_OOM' if oom else 'INTERNAL_ERROR'
+                emit_failure_metadata(exc,code,'operation')
                 failure = TaskError(code=code,retryable=oom,message_key='errors.'+code.lower(),args={})
             metrics = TaskMetrics(duration_ms=max(0,int((monotonic()-started)*1000)),
                                   peak_memory_bytes=max(peak_memory,process.memory_info().rss),

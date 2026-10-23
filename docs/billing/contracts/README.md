@@ -11,6 +11,7 @@
 | 1Б.4, V2 render | render-workflow.sql,render-functions.json | scripts/generate-billing-render.py | 02605 |
 | 1Б.5, Editor effects | editor-workflow.sql,editor-functions.json | scripts/generate-billing-editor.py | 02606 |
 | 1Б.6, отдельные операции | operations-workflow.sql,operations-functions.json | scripts/generate-billing-operations.py | 02607 |
+| 1Б.6, paid funding | paid-operation-funding.sql,paid-operation-functions.json | scripts/generate-billing-paid-operation.py | 02608 |
 
 Имена таблиц между каталогами не пересекаются. `functions.json` первого подэтапа остаётся пустым: новые quota signatures находятся в `quota-functions.json`. Публикационные ограничения 1А сохраняются. Миграции 1Б.1 добавляют только read policies resource/admission catalog для доверенного SQL owner; никакого PUBLIC/runtime EXECUTE нет.
 
@@ -21,4 +22,4 @@
 В 1Б.2 только scoped Prepare/Bind выдаются photo_api, а существующие scheduler Adopt/Fail оборачиваются без потери guards. Низкоуровневый funding finalize и privileged canonical settlement остаются закрыты. Поля workflow таблиц/FK/CHECK/ACL авторитетно заданы в workflow-schema.sql; JSON inventory ссылается на этот DDL source.
 
 
-Selected/final: selected-workflow.sql и selected-functions.json → scripts/generate-billing-selected.py →02609, строго после paid-funding02608. См. [этап18](../18-selected-final-operations.md).
+Selected/final: selected-workflow.sql и selected-functions.json → scripts/generate-billing-selected.py →02609, строго после paid-funding02608. См. [этап 18](../18-selected-final-operations.md).

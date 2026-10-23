@@ -4,6 +4,26 @@
 
 Цель — оплачиваемые планы, докупка фото и отдельных операций, самостоятельная подписка на диск, учёт трафика, дешёвая оптимистичная блокировка новых запросов, онбординг с юридическими документами и удаление профиля с очисткой PII. Нужны подробные контракты на понятном языке: таблицы и функции описаны без исполняемого кода.
 
+## Для исполнителя (читать первыми)
+
+| Файл | Зачем |
+|---|---|
+| [RULES.md](RULES.md) | Нумерованные запреты и инварианты, чек-лист перед коммитом |
+| [TASKS.md](TASKS.md) | Атомарные задачи и шаблон для новых |
+| [EXAMPLES.md](EXAMPLES.md) | Образцы SQL-функции, записи в functions.json, миграции |
+| [OPEN.md](OPEN.md) | Открытые параметры: что нельзя реализовывать |
+| [STATUS.md](STATUS.md) | Журнал прогонов и состояние этапов |
+| [QWEN-PROMPT.md](QWEN-PROMPT.md) | Что грузить в контекст малой модели, системный промпт, порядок проверки |
+| [briefs/](briefs/README.md) | Короткие карточки этапов, сгенерированные из contracts/ |
+| [CODE-REVIEW.md](CODE-REVIEW.md) | Ревью кода: что проверено, находки, что не проверено |
+| [ERROR-CODES.md](ERROR-CODES.md) | Коды ошибок SQL и их обработка в Go |
+| [backlog/](backlog/README.md) | Сгенерированные задачи: таблицы, функции, API, Stripe, Paper UI, e2e E01–E90 |
+| [STRIPE-CONFIG.md](STRIPE-CONFIG.md) | Конфигурация Stripe без ключей и порядок добавления ключей позже |
+| [EXAMPLES-GO.md](EXAMPLES-GO.md), [EXAMPLES-API.md](EXAMPLES-API.md), [EXAMPLES-TESTS.md](EXAMPLES-TESTS.md) | Образцы из живого кода |
+| tools/check-static.sh | Все статические проверки одной командой |
+| tools/build-pack.py | Собирает пакет контекста под окно 32K и проверяет бюджет |
+| tools/lint-docs.py | Проверка пробелов, ссылок и символов (`--fix` чинит пробелы; проверяет и размеры секций) |
+
 ## Навигация
 
 | Документ | Содержание |
@@ -43,12 +63,12 @@
 
 Рабочее подключение стандартного Apply v3/v4 (admission, canonical success, failure/cancel, reruns и restart recovery): [13-standard-apply-workflow.md](13-standard-apply-workflow.md). По умолчанию выключено, требует явного операторского opt-in для этого workflow; остальные workflow boundaries и продажи не считаются покрытыми.
 
-Подключение SessionAnalysis.Apply и SaveEdits со стилем, единственный debit дочернего Apply и manual-free сохранение: [14-routed-apply-workflow.md](14-routed-apply-workflow.md). Миграция02604 расширяет существующий opt-in на эти маршруты.
+Подключение SessionAnalysis.Apply и SaveEdits со стилем, единственный debit дочернего Apply и manual-free сохранение: [14-routed-apply-workflow.md](14-routed-apply-workflow.md). Миграция 02604 расширяет существующий opt-in на эти маршруты.
 
 Квоты standalone/batch V2 render и отложенный durable settlement: [15-v2-render-workflow.md](15-v2-render-workflow.md). Отдельный opt-in выключен по умолчанию.
 
 - [16-editor-effects-workflow.md](16-editor-effects-workflow.md) — единый Editor ticket, дочерний final render, bounded settlement и тесты.
 
-Квоты отдельных фото-операций: [17-standalone-operations.md](17-standalone-operations.md). Миграция02607, отдельный default-disabled operation cohort, context policies и canonical proof settlement. Цены/benchmark не выдумываются; специализированные success contracts требуют своих адаптеров.
+Квоты отдельных фото-операций: [17-standalone-operations.md](17-standalone-operations.md). Миграция 02607, отдельный default-disabled operation cohort, context policies и canonical proof settlement. Цены/benchmark не выдумываются; специализированные success contracts требуют своих адаптеров.
 
 Selected/final adapters и границы незавершённой runtime-приёмки: [18-selected-final-operations.md](18-selected-final-operations.md).

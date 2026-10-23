@@ -148,7 +148,7 @@ func (h *HTTP) download(w http.ResponseWriter, r *http.Request) {
 			return time.Time{}, e
 		}
 		if current.Identity != task.Identity {
-			return time.Time{}, errStreamAuthority
+			return time.Time{}, errStreamIdentityChanged
 		}
 		until := time.Now().Add(5 * time.Second)
 		if !current.LeaseUntil.IsZero() && current.LeaseUntil.Before(until) {

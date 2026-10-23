@@ -786,6 +786,12 @@ func (c ApplyCoordinator) ProcessOne(ctx context.Context) (bool, error) {
 	if e != nil || l == nil {
 		return false, e
 	}
+	if l.GraphVersion == 4 {
+		failed, err := c.Store.FailTerminalPredecessor(ctx, *l)
+		if err != nil || failed {
+			return failed, err
+		}
+	}
 	if l.Phase == "adopt" {
 		reports, err := c.Store.Outputs(ctx, *l, "quality.check", "quality_report")
 		if err != nil || len(reports) != l.ItemCount {

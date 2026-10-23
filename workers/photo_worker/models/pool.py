@@ -1,6 +1,7 @@
 from __future__ import annotations
 from contextlib import contextmanager
 import gc
+import sys
 from pathlib import Path
 import threading
 from dataclasses import dataclass
@@ -38,9 +39,11 @@ class ModelPool:
             self._resident=None
             self._generation+=1
         self._model=None;self._key=None;gc.collect()
-        import torch
-        if torch.cuda.is_available():torch.cuda.empty_cache()
-        if torch.backends.mps.is_available():torch.mps.empty_cache()
+        # Cache cleanup must not load a framework for an empty/ONNX-only pool.
+        torch = sys.modules.get('torch')
+        if torch is not None:
+            if torch.cuda.is_available():torch.cuda.empty_cache()
+            if torch.backends.mps.is_available():torch.mps.empty_cache()
 
     @contextmanager
     def acquire(self,model_id:str,backend:str,*,allow_unqualified:bool=False):

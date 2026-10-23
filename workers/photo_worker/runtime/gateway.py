@@ -80,7 +80,11 @@ class ArtifactStream:
             raise GatewayError('DEPENDENCY_UNAVAILABLE',True) from exc
         self._check_active()
         if not data and self._remaining and size:
-            raise GatewayError('ARTIFACT_SIZE_MISMATCH')
+            # A connection closed before its promised Content-Length is a
+            # failed transfer, not evidence that the stored object is corrupt.
+            # Discard the partial materialization; only normal fenced recovery
+            # may retry the task. Complete-body size/SHA checks remain separate.
+            raise GatewayError('DEPENDENCY_UNAVAILABLE', True)
         self._remaining-=len(data)
         return data
 

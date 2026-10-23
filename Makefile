@@ -2,7 +2,7 @@ SHELL := /bin/bash
 ROOT := $(abspath .)
 PYTHON := $(ROOT)/.venv-platform/bin/python
 RUN := ./scripts/run-platform.sh
-.PHONY: sqlc dev-infra dev-infra-stop setup-platform setup-ml contracts contracts-check v2-check test test-unit test-integration test-fault test-security test-web test-native benchmark test-restore test-visual test-hardware test-legacy test-python test-go test-db deploy-check release-evidence release-check
+.PHONY: sqlc dev-infra dev-infra-stop setup-platform setup-ml contracts contracts-check v2-check test test-unit test-integration test-fault test-security test-web test-native benchmark test-restore test-visual test-hardware test-legacy test-python test-billing-contracts test-go test-db deploy-check release-evidence release-check
 dev-infra:
 	$(RUN) python3 scripts/dev-infra.py up
 dev-infra-stop:
@@ -31,8 +31,8 @@ v2-check:
 	$(PYTHON) scripts/build-v23-schema.py --check
 	$(PYTHON) scripts/build-v23-migration.py --check
 	$(PYTHON) docs/implementation-v2/check-docs.py
-test: contracts-check v2-check test-legacy test-python test-go
-test-unit: contracts-check v2-check test-legacy test-python test-go
+test: contracts-check v2-check test-legacy test-python test-billing-contracts test-go
+test-unit: contracts-check v2-check test-legacy test-python test-billing-contracts test-go
 test-integration: test-db
 test-fault:
 	$(RUN) $(PYTHON) -m pytest tests/integration/test_task_leases.py tests/integration/test_dead_letters.py tests/integration/test_generation_preview_continuation.py tests/integration/test_media_retry_intake.py -q -p no:cacheprovider
@@ -60,6 +60,8 @@ test-legacy:
 test-python:
 	$(RUN) $(PYTHON) -m pytest tests/platform -q -p no:cacheprovider
 	PYTHONPATH=apps/studio-agent $(PYTHON) -m unittest discover -s apps/studio-agent/tests
+test-billing-contracts:
+	$(RUN) env PYTHON=$(PYTHON) bash docs/billing/tools/check-static.sh
 test-go:
 	$(RUN) go -C backend test ./...
 test-db:

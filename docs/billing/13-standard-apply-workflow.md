@@ -1,16 +1,28 @@
 # Этап 1Б.2: рабочая граница стандартного Apply
 
-Историческая граница02602/02603; актуальное расширение маршрутов02604 описано в [14-routed-apply-workflow.md](14-routed-apply-workflow.md).
+Историческая граница 02602/02603; актуальное расширение маршрутов 02604 описано в [14-routed-apply-workflow.md](14-routed-apply-workflow.md).
 
 ## Что подключено
 
-Стандартный `run.Service.Apply` / `Run.Create(kind=apply)` использует учёт standard_photo в существующей admission-транзакции. Создание run, снимка выбора, physical quota reservation, billing request/items/tickets и idempotency receipt атомарно. Scheduler продолжает вызывать существующие `ApplyStore.Adopt` и `ApplyStore.Fail`: новые SQL-обёртки соединяют прежнюю canonical authority с учётом funding. Окончательная отмена возвращает funding в транзакции существующего finalize_run_cancellation.
+- Стандартный `run.Service.Apply` / `Run.Create(kind=apply)` использует учёт standard_photo в существующей admission-транзакции.
+- Создание run, снимка выбора, physical quota reservation, billing request/items/tickets и idempotency receipt атомарно.
+- Scheduler продолжает вызывать существующие `ApplyStore.Adopt` и `ApplyStore.Fail`: новые SQL-обёртки соединяют прежнюю canonical authority с учётом funding.
+- Окончательная отмена возвращает funding в транзакции существующего finalize_run_cancellation.
 
-Поддержаны обе реальные версии Apply v3/v4, первый успешный результат исходника, два бесплатных успешных повтора за 168 часов, платные последующие повторы, частичный skip без результата, технический retry, окончательная ошибка и отмена. Во время промежуточных попыток worker ничего повторно не оплачивает: billing ticket относится к пользовательскому запросу, а не к task attempt.
+- Поддержаны обе реальные версии Apply v3/v4, первый успешный результат исходника, два бесплатных успешных повтора за 168 часов, платные последующие повторы, частичный skip без результата, технический retry, окончательная ошибка и отмена.
+- Во время промежуточных попыток worker ничего повторно не оплачивает: billing ticket относится к пользовательскому запросу, а не к task attempt.
 
-Существующие студии автоматически не подключаются. Новый `billing_workflow_controls.enabled` по умолчанию false, миграция не создаёт ни одной строки opt-in. Оператор закрытого тестового cohort должен отдельно подготовить active shadow accounting control, один текущий accounting period и разрешённый bootstrap grant, затем включить standard Apply. Это не включение продаж или всего биллинга: тарифы остаются draft, Stripe accounts test-only/disabled. Публичного endpoint для включения нет.
+- Существующие студии автоматически не подключаются.
+- Новый `billing_workflow_controls.enabled` по умолчанию false, миграция не создаёт ни одной строки opt-in.
+- Оператор закрытого тестового cohort должен отдельно подготовить active shadow accounting control, один текущий accounting period и разрешённый bootstrap grant, затем включить standard Apply.
+- Это не включение продаж или всего биллинга: тарифы остаются draft, Stripe accounts test-only/disabled.
+- Публичного endpoint для включения нет.
 
-Граница текущего кода — только route `Run.Apply`, включая делегирующий ему Run.Create. `SessionAnalysis.Apply`, SaveEdits, dedicated Editor effects, V2 render, previews, самостоятельные операции и download/egress этим переключателем не тарифицируются. У них иные parent/child authority и success boundaries; подключение требует отдельных wrappers, а не повторного списания на каждом техническом узле. До покрытия этих entrypoints и остальных publication gates продажи остаются закрыты. UI в этом этапе не меняется; дальнейший UI только React Native Paper в apps/photographer.
+- Граница текущего кода — только route `Run.Apply`, включая делегирующий ему Run.Create.
+- `SessionAnalysis.Apply`, SaveEdits, dedicated Editor effects, V2 render, previews, самостоятельные операции и download/egress этим переключателем не тарифицируются.
+- У них иные parent/child authority и success boundaries; подключение требует отдельных wrappers, а не повторного списания на каждом техническом узле.
+- До покрытия этих entrypoints и остальных publication gates продажи остаются закрыты.
+- UI в этом этапе не меняется; дальнейший UI только React Native Paper в apps/photographer.
 
 ## Источники
 
@@ -26,7 +38,11 @@
 
 ## Таблицы и поля
 
-Все связи включают tenant_id; cross-tenant IDs отвергаются FK и scoped queries. Runtime API/worker/scheduler не получают прямой доступ к таблицам биллинга. Владельцу SQL-функций выданы минимальные DML для внутренних переходов; history имеет trigger-запрет UPDATE/DELETE. UUID — внутренние FK, не внешние провайдерские IDs. Полная SQL схема является обязательным источником типов и nullable.
+- Все связи включают tenant_id; cross-tenant IDs отвергаются FK и scoped queries.
+- Runtime API/worker/scheduler не получают прямой доступ к таблицам биллинга.
+- Владельцу SQL-функций выданы минимальные DML для внутренних переходов; history имеет trigger-запрет UPDATE/DELETE.
+- UUID — внутренние FK, не внешние провайдерские IDs.
+- Полная SQL схема является обязательным источником типов и nullable.
 
 | Таблица | Поля/инварианты |
 |---|---|
@@ -40,7 +56,10 @@
 | billing_usage_run_links | PK tenant/charge_item/run,relation=root,created_at; tenant FK к item и настоящему runs. Технические attempts остаются внутри того же run, не создают новые charge items. Иные child-run relations этим этапом не разрешаются. |
 | billing_result_references | id,tenant_id,charge_item_id,canonical_run_id,final_artifact_id,adopted_result_id,asset_version_id,adopted_at,authority_kind=run_final. Immutable, unique charge item; composite FK к root run link, реальные artifacts/task_results/asset_versions. Произвольный client result UUID не принимается. |
 
-Добавлена одна included_standard operation policy для registry `image.local/1`, charge_context=standard_root, policy_version1, success_contract=apply_final_adoption_v1, rerun_policy=standard_window. Она описывает включённый шаг; units_per_success=0 **для отдельного operation debit**. Standard photo debit формируется root ticket. Платные operation offers или фиктивные benchmark/Stripe refs не создаются.
+- Добавлена одна included_standard operation policy для registry `image.local/1`, charge_context=standard_root, policy_version1, success_contract=apply_final_adoption_v1, rerun_policy=standard_window.
+- Она описывает включённый шаг; units_per_success=0 **для отдельного operation debit**.
+- Standard photo debit формируется root ticket.
+- Платные operation offers или фиктивные benchmark/Stripe refs не создаются.
 
 ## Admission и повторы
 
@@ -51,24 +70,44 @@
 5. В resource mutex принимается price decision каждого distinct оригинала. Пока initial in-flight, независимый request получает PHOTO_INITIAL_IN_PROGRESS409. Technical retry/adoption retry использует тот же run/item/ticket.
 6. При действующем окне атомарно удерживаются rerun_1/rerun_2. После исчерпания slots quantity=1. Освободившийся позже slot не меняет цену уже accepted paid request.
 7. Known batch deficit проверяется целиком до executable tasks: если paid demand>1 и доступного paid funding недостаточно, вся TX отказывает. Однофотографический недостаток может использовать существующий единый allowance периода. Free requests не требуют paid balance и проходят даже при overrun, если сохраняются остальные authority/safety gates.
-8. Используется конечный process instance UUID. Перед доменными locks preflight восстанавливает до16 истёкших active issuers по индексированному tenant/resource/expiry, включая предыдущие process instances. Возвращается только проверенный unissued funding; accepted claims переходят с lease в draining и сохраняются. Это не сбрасывает budget или settled overrun. Текущий неистёкший DB lease переиспользуется; exhausted/expired lease закрывается только по unissued funding, затем выдаётся новая generation. Leases другого instance не создают дополнительные credits. Это root-level admission; model steps не читают billing catalog и не создают новые списания.
+8. Используется конечный process instance UUID. Перед доменными locks preflight восстанавливает до 16 истёкших active issuers по индексированному tenant/resource/expiry, включая предыдущие process instances. Возвращается только проверенный unissued funding; accepted claims переходят с lease в draining и сохраняются. Это не сбрасывает budget или settled overrun. Текущий неистёкший DB lease переиспользуется; exhausted/expired lease закрывается только по unissued funding, затем выдаётся новая generation. Leases другого instance не создают дополнительные credits. Это root-level admission; model steps не читают billing catalog и не создают новые списания.
 9. Exact binding replay возвращает прежний request UUID; несовпадение canonical hash/run — conflict. Финансовая uniqueness живёт независимо от TTL обычного API receipt. На API прежний exact 202 response возвращается существующим idempotency механизмом после current authority gates.
 
-In-memory entitlement cache/cold network fallback не добавлены: оптимизация этого этапа — конечные DB-backed порции, reuse lease и отсутствие billing работы на DAG steps. Нельзя считать поле cacheTTL в исходном catalog доказательством реализованного cache. Перенос process-local оптимизаций должен сохранить durable issue и общий allowance bound.
+- In-memory entitlement cache/cold network fallback не добавлены: оптимизация этого этапа — конечные DB-backed порции, reuse lease и отсутствие billing работы на DAG steps.
+- Нельзя считать поле cacheTTL в исходном catalog доказательством реализованного cache.
+- Перенос process-local оптимизаций должен сохранить durable issue и общий allowance bound.
 
 ## Canonical success и возврат
 
-`adopt_apply_results` переименован в закрытый `adopt_apply_results_before_billing`. Новая публичная scheduler-функция берёт billing locks до прежних build/run/task locks, вызывает старый adopter и при true вызывает settlement **в той же TX**. Вся прежняя цепочка, включая atomic refusal rollback и Editor/source/inventory/current-authority guards, сохранена; права исполнения прежнего bypass отозваны. Если старый adopter отказывает, нет ни частичных новых asset versions, ни billing debit. Ошибка settlement откатывает также adoption.
+- `adopt_apply_results` переименован в закрытый `adopt_apply_results_before_billing`.
+- Новая публичная scheduler-функция берёт billing locks до прежних build/run/task locks, вызывает старый adopter и при true вызывает settlement **в той же TX**.
+- Вся прежняя цепочка, включая atomic refusal rollback и Editor/source/inventory/current-authority guards, сохранена; права исполнения прежнего bypass отозваны.
+- Если старый adopter отказывает, нет ни частичных новых asset versions, ни billing debit.
+- Ошибка settlement откатывает также adoption.
 
-`billing_settle_apply_run` не принимает result/proof/hash от клиента. После mutex заново читает request и run под locks; ищет реально adopted output collection item с нужным source item/parent version, `asset_versions.created_by_run_id`, ready/versioned/nonexpired final artifact и его canonical task_result/attempt/fence/outputs. Сохраняет typed result reference и только затем завершает kernel funding claim. Policy snapshot хранит SHA-256 canonical JSON schema_version1 (included_reruns,policy_version,rerun_window_hours,success_contract). Внутренний terminal digest — настоящий SHA-256, он лишь dedup receipt; authority получена из существующих typed rows и adopter, а не из digest.
+- `billing_settle_apply_run` не принимает result/proof/hash от клиента.
+- После mutex заново читает request и run под locks; ищет реально adopted output collection item с нужным source item/parent version, `asset_versions.created_by_run_id`, ready/versioned/nonexpired final artifact и его canonical task_result/attempt/fence/outputs.
+- Сохраняет typed result reference и только затем завершает kernel funding claim.
+- Policy snapshot хранит SHA-256 canonical JSON schema_version1 (included_reruns,policy_version,rerun_window_hours,success_contract).
+- Внутренний terminal digest — настоящий SHA-256, он лишь dedup receipt; authority получена из существующих typed rows и adopter, а не из digest.
 
-Первый success оплачивает одну единицу, фиксирует неизменное окно и открывает два slots. Free success потребляет held slot без финансового zero debit; paid rerun списывает заранее pinned quantity. Completed run с легитимно skipped item без adopted result возвращает funding этого item. Failure/cancel не расходуют успешный rerun; initial marker или free hold возвращаются, либо slot истекает после конца окна.
+- Первый success оплачивает одну единицу, фиксирует неизменное окно и открывает два slots.
+- Free success потребляет held slot без финансового zero debit; paid rerun списывает заранее pinned quantity.
+- Completed run с легитимно skipped item без adopted result возвращает funding этого item.
+- Failure/cancel не расходуют успешный rerun; initial marker или free hold возвращаются, либо slot истекает после конца окна.
 
-`fail_apply_build` аналогично обёрнут с сохранением token/lease/current-run checks. Только окончательно failed run возвращает funding; промежуточные retryable task attempts этого не делают. Late intermediate artifacts после окончательной ошибки не создают пользовательского результата: старый adopter отвергает failed/cancelled run.
+- `fail_apply_build` аналогично обёрнут с сохранением token/lease/current-run checks.
+- Только окончательно failed run возвращает funding; промежуточные retryable task attempts этого не делают.
+- Late intermediate artifacts после окончательной ошибки не создают пользовательского результата: старый adopter отвергает failed/cancelled run.
 
-Cancellation finalizer сохраняет все нынешние guards и SKIP LOCKED; reviewed source insertion добавляет billing lock **до** existing run lock и settlement перед return1. Если источник функции больше не имеет ожидаемых anchors, миграция отказывает. Не устанавливается AFTER-run trigger, приобретающий billing locks в обратном порядке.
+- Cancellation finalizer сохраняет все нынешние guards и SKIP LOCKED; reviewed source insertion добавляет billing lock **до** existing run lock и settlement перед return1.
+- Если источник функции больше не имеет ожидаемых anchors, миграция отказывает.
+- Не устанавливается AFTER-run trigger, приобретающий billing locks в обратном порядке.
 
-После подтверждённого terminal accounting `billing_guard_terminal_run` запрещает перевод billed terminal run обратно в executable status. Run.Retry преобразует этот guard в RUN_NOT_RETRYABLE409, откатывая также task resets. Для нового пользовательского запуска нужен новый Apply admission; технические retry до terminal сохраняют исходный funding. Это исключает возобновление run после уже выполненного возврата.
+- После подтверждённого terminal accounting `billing_guard_terminal_run` запрещает перевод billed terminal run обратно в executable status.
+- Run.Retry преобразует этот guard в RUN_NOT_RETRYABLE409, откатывая также task resets.
+- Для нового пользовательского запуска нужен новый Apply admission; технические retry до terminal сохраняют исходный funding.
+- Это исключает возобновление run после уже выполненного возврата.
 
 ## Полномочия и lock graph
 
@@ -78,7 +117,11 @@ Cancellation finalizer сохраняет все нынешние guards и SKIP
 - billing_lock_apply_run, billing_settle_apply_run и terminal trigger: только доверенный photo_fn_owner, никаких runtime/PUBLIC EXECUTE.
 - Kernel grant/finalize/release helpers остаются закрытыми; worker не может заявить success или выдать себе bootstrap.
 
-Lock graph: auth/receipt → tenant/control SHARE → balance standard_photo mutex → коллекция/snapshot/physical reservation → apply build/run/task/adoption. Внутренние повторные kernel locks уже принадлежат той же TX. SQL canonical wrappers первыми берут тот же resource mutex. Обычный API Cancel берёт только run locks и не ждёт billing; финализация отмены отдельной TX следует billing→run. Разные resource/tenant не используют общий mutex.
+- Lock graph: auth/receipt → tenant/control SHARE → balance standard_photo mutex → коллекция/snapshot/physical reservation → apply build/run/task/adoption.
+- Внутренние повторные kernel locks уже принадлежат той же TX.
+- SQL canonical wrappers первыми берут тот же resource mutex.
+- Обычный API Cancel берёт только run locks и не ждёт billing; финализация отмены отдельной TX следует billing→run.
+- Разные resource/tenant не используют общий mutex.
 
 Новые billing функции нельзя вызывать из конца произвольного parent workflow, уже захватившего run/task locks. Именно поэтому SessionAnalysis/Editor/V2 root wiring оставлен отдельными этапами с собственным lock graph, а не притворяется покрытым стандартным Apply.
 
@@ -92,7 +135,7 @@ env PHOTO_TEST_DB_TEMPLATES=1 scripts/run-platform.sh .venv-platform/bin/python 
 scripts/run-platform.sh /usr/local/go/bin/go -C backend test ./internal/billing ./internal/run ./db
 ```
 
-Каждый SQL test получает собственную одноразовую БД/клон. Стандартный Apply test применяет всю цепочку до02603. Shared migration templates принадлежат существующему test harness и удаляются им; рабочая БД не меняется.
+Каждый SQL test получает собственную одноразовую БД/клон. Стандартный Apply test применяет всю цепочку до 02603. Shared migration templates принадлежат существующему test harness и удаляются им; рабочая БД не меняется.
 
 Проверки включают:
 
@@ -106,15 +149,7 @@ scripts/run-platform.sh /usr/local/go/bin/go -C backend test ./internal/billing 
 - закрытие старых SQL bypass и отсутствие API/worker EXECUTE на settlement primitive; deterministic migration/ACL/hook-order contracts;
 - прежние kernel/catalog, canonical adoption и failure/cancellation регрессии.
 
-Готовность этапа: новые миграции применимы до текущего полного head, сквозные tests реально исполняют API и SQL (не skip/mock), журнал и counters сходятся, runtime default-disabled, новый код не включает live Stripe. Полные коммерческие publication gates, legal/privacy/erasure, paid fulfillment/renewals/rollover, все остальные workflow boundaries и пользовательский Paper billing UI остаются отдельными следующими этапами.
+- Готовность этапа: новые миграции применимы до текущего полного head, сквозные tests реально исполняют API и SQL (не skip/mock), журнал и counters сходятся, runtime default-disabled, новый код не включает live Stripe.
+- Полные коммерческие publication gates, legal/privacy/erasure, paid fulfillment/renewals/rollover, все остальные workflow boundaries и пользовательский Paper billing UI остаются отдельными следующими этапами.
 
-## Проверено 21.10.2026
-
-- Общий regression прогон catalog/kernel/workflow и прежних Apply adoption/failure tests: **106 passed in 161.09s**.
-- После уточнений fresh-session replay, canonical policy digest и bounded restart recovery финальный прогон новой границы: **20 passed in 132.62s**, без migration-template оптимизации; включает 18 SQL/API/concurrency cases и 2 contract checks. Эти прогоны пересекаются; их counts нельзя складывать как уникальные тесты.
-- `go test ./internal/billing ./internal/run ./internal/workflow ./internal/taskrecovery ./db` — PASS; настоящий Go API integration отдельно реально исполняется внутри SQL harness с PHOTO_TEST_DATABASE_URL и fixture, а не считается проверенным по skip без окружения.
-- Три generator `--check` — PASS; embedded migration bundle содержит02602/02603; `git diff --check` для изменённых файлов — PASS.
-
-Сбой ускоренного migration-template harness на проверке завершения baseline connection произошёл до выполнения SQL scenarios; итоговый прогон выполнен с обычными отдельными БД. Инфраструктуру templates и рабочую БД это изменение не модифицирует.
-
-Граница lifecycle/erasure остаётся отдельной задачей: kernel намеренно отказывает inactive/deleting tenant. До включения коммерческого cohort erasure coordinator должен получить reviewed funding-drain/terminal-cleanup protocol; завершённость удаления профиля/GDPR из этих workflow tests не следует.
+> Результаты проверок этого этапа перенесены в [STATUS.md](STATUS.md).

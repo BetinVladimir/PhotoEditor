@@ -110,6 +110,9 @@ func runSchedulerWithDeliverySigning(ctx context.Context, dsn, listen string, st
 	if err := database.RequireApplicationRole(ctx, pool, "photo_scheduler"); err != nil {
 		return err
 	}
+	if err := requireApplyTerminalFailureInstallation(ctx, pool); err != nil {
+		return err
+	}
 	if err := media.RequireRendererPolicy(ctx, pool); err != nil {
 		return err
 	}

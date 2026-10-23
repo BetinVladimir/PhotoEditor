@@ -197,3 +197,73 @@ def test_archive_failure_does_not_relabel_lease_loss_as_a_member_failure():
     with pytest.raises(GatewayError) as caught:
         _entry_failure(original, ArchiveEntry(artifact=ref(), bytes=1, entry_name='photo.jpg'))
     assert caught.value is original
+
+
+def test_execute_archive_bytes_and_manifest_metadata_ignore_wall_clock(tmp_path, monkeypatch):
+    """Identical planned volume must publish identical ZIP bytes across attempts."""
+    import json
+    from photo_worker.contracts.base import canonical_bytes
+
+    data = b'unchanged encoded full-resolution bytes'
+    source = ArtifactRef(artifact_id=uuid4(), sha256=hashlib.sha256(data).hexdigest())
+    params = ArchiveParams(snapshot_id=uuid4(), snapshot_digest='d' * 64, volume_no=1,
+        entries=[ArchiveEntry(artifact=source, bytes=len(data), entry_name='photo.jpg')])
+
+    class ArchiveContext(Context):
+        lease = SimpleNamespace(execution_profile={'backend': 'cpu'}, command=SimpleNamespace(inputs=[source]))
+
+        def progress(self, done, total):
+            assert 0 <= done <= total
+
+    class ArchiveArtifacts:
+        def __init__(self):
+            self.scratch = ScratchSpace(tmp_path, uuid4(), uuid4(), 1, 2 * 1024**2, min_free_bytes=0)
+
+        def params(self, model):
+            assert model is ArchiveParams
+            return params
+
+        @contextmanager
+        def stream(self, artifact):
+            assert artifact == source
+            yield io.BytesIO(data)
+
+        def stage(self, path, reservation, role, media_type):
+            assert (role, media_type) == ('archive', 'application/zip')
+            self.zip_bytes = path.read_bytes()
+            return ArtifactRef(artifact_id=uuid4(), sha256=hashlib.sha256(self.zip_bytes).hexdigest())
+
+        def stage_contract(self, manifest, role):
+            assert role == 'archive_manifest'
+            self.manifest = manifest
+            return ArtifactRef(artifact_id=uuid4(), sha256=hashlib.sha256(canonical_bytes(manifest)).hexdigest())
+
+    attempts = []
+    clocks = [(2021, 2, 3, 4, 5, 6, 2, 34, -1), (2035, 9, 10, 11, 12, 14, 0, 253, -1)]
+    for clock in clocks:
+        # The old string-name writestr path consumes this clock for manifest.json.
+        with monkeypatch.context() as patch:
+            patch.setattr(zipfile.time, 'localtime', lambda *args, value=clock: value)
+            artifacts = ArchiveArtifacts()
+            try:
+                result = execute(ArchiveContext(), artifacts)
+                assert len(result.outputs) == 2
+                assert artifacts.manifest.archive_sha256 == hashlib.sha256(artifacts.zip_bytes).hexdigest()
+                assert artifacts.manifest.archive_bytes == len(artifacts.zip_bytes)
+                attempts.append((artifacts.zip_bytes, canonical_bytes(artifacts.manifest)))
+            finally:
+                artifacts.scratch.cleanup()
+
+    assert attempts[0] == attempts[1]
+    with zipfile.ZipFile(io.BytesIO(attempts[0][0])) as archive:
+        assert archive.namelist() == ['photo.jpg', 'manifest.json']
+        assert archive.read('photo.jpg') == data
+        info = archive.getinfo('manifest.json')
+        assert info.date_time == (1980, 1, 1, 0, 0, 0)
+        assert info.external_attr >> 16 == 0o600
+        assert info.compress_type == zipfile.ZIP_DEFLATED
+        embedded = json.loads(archive.read(info))
+        assert embedded['snapshot_id'] == str(params.snapshot_id)
+        assert embedded['snapshot_digest'] == params.snapshot_digest
+        assert embedded['entries'][0]['artifact'] == source.model_dump(mode='json')
+        assert archive.testzip() is None

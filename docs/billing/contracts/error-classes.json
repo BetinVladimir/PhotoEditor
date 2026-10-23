@@ -1,0 +1,230 @@
+{
+ "schema_version": 1,
+ "source": "Решение владельца продукта 23.10.2026 (ответы на вопросы OPEN-11). Группы определены по именам кодов; при пересмотре менять только этот файл.",
+ "groups": {
+  "A": "внутренние инварианты: оставить 500 INTERNAL_ERROR",
+  "B": "неверный запрос: 422 VALIDATION_FAILED",
+  "C": "конфликт состояния: 409 BILLING_STATE_CONFLICT (новый код)",
+  "D": "доказательство пока недоступно: 503 BILLING_UNAVAILABLE"
+ },
+ "decisions": {
+  "BILLING_ALLOCATION_INCONSISTENT": {
+   "class": "internal",
+   "group": "A"
+  },
+  "BILLING_BATCH_INVALID": {
+   "class": "http",
+   "code": "VALIDATION_FAILED",
+   "status": 422,
+   "group": "B"
+  },
+  "BILLING_BUDGET_IMMUTABLE": {
+   "class": "internal",
+   "group": "A"
+  },
+  "BILLING_CANCELLATION_ANCHOR_MISSING": {
+   "class": "internal",
+   "group": "A"
+  },
+  "BILLING_CHILD_ALREADY_CHARGED": {
+   "class": "http",
+   "code": "BILLING_STATE_CONFLICT",
+   "status": 409,
+   "group": "C"
+  },
+  "BILLING_CHILD_INVALID": {
+   "class": "http",
+   "code": "VALIDATION_FAILED",
+   "status": 422,
+   "group": "B"
+  },
+  "BILLING_CHILD_NOT_ROOT": {
+   "class": "http",
+   "code": "VALIDATION_FAILED",
+   "status": 422,
+   "group": "B"
+  },
+  "BILLING_CLAIM_INPUT_INVALID": {
+   "class": "internal",
+   "group": "A"
+  },
+  "BILLING_CLAIM_INVALID": {
+   "class": "internal",
+   "group": "A"
+  },
+  "BILLING_CLAIM_SCOPE_INVALID": {
+   "class": "internal",
+   "group": "A"
+  },
+  "BILLING_FENCE_INVALID": {
+   "class": "internal",
+   "group": "A"
+  },
+  "BILLING_FREE_SLOT_INCONSISTENT": {
+   "class": "internal",
+   "group": "A"
+  },
+  "BILLING_GRANT_INVALID": {
+   "class": "internal",
+   "group": "A"
+  },
+  "BILLING_GRANT_NOT_CURRENT": {
+   "class": "internal",
+   "group": "A"
+  },
+  "BILLING_GRAPH_REFUSED": {
+   "class": "http",
+   "code": "BILLING_STATE_CONFLICT",
+   "status": 409,
+   "group": "C"
+  },
+  "BILLING_IMMUTABLE": {
+   "class": "internal",
+   "group": "A"
+  },
+  "BILLING_INITIAL_SLOT_INCONSISTENT": {
+   "class": "internal",
+   "group": "A"
+  },
+  "BILLING_ISSUANCE_INCONSISTENT": {
+   "class": "internal",
+   "group": "A"
+  },
+  "BILLING_LEASE_EXPIRED": {
+   "class": "http",
+   "code": "BILLING_STATE_CONFLICT",
+   "status": 409,
+   "group": "C"
+  },
+  "BILLING_LEASE_INPUT_INVALID": {
+   "class": "internal",
+   "group": "A"
+  },
+  "BILLING_LOCAL_LEASE_LIMIT": {
+   "class": "http",
+   "code": "BILLING_STATE_CONFLICT",
+   "status": 409,
+   "group": "C"
+  },
+  "BILLING_LOCAL_REVIEW_FINALIZATION_RACE": {
+   "class": "http",
+   "code": "BILLING_STATE_CONFLICT",
+   "status": 409,
+   "group": "C"
+  },
+  "BILLING_OPERATION_ITEM_IMMUTABLE": {
+   "class": "internal",
+   "group": "A"
+  },
+  "BILLING_OPERATION_PROOF_UNAVAILABLE": {
+   "class": "http",
+   "code": "BILLING_UNAVAILABLE",
+   "status": 503,
+   "group": "D"
+  },
+  "BILLING_PAID_OPERATION_CALLER_DRIFT": {
+   "class": "internal",
+   "group": "A"
+  },
+  "BILLING_PAID_OPERATION_HELPER_OCCUPIED": {
+   "class": "http",
+   "code": "BILLING_UNAVAILABLE",
+   "status": 503,
+   "group": "D"
+  },
+  "BILLING_PAID_OPERATION_NOT_OVERSIZE": {
+   "class": "internal",
+   "group": "A"
+  },
+  "BILLING_PAID_OPERATION_OWNER_DRIFT": {
+   "class": "internal",
+   "group": "A"
+  },
+  "BILLING_PAID_OPERATION_PREDECESSOR_DRIFT": {
+   "class": "internal",
+   "group": "A"
+  },
+  "BILLING_PAID_OPERATION_QUANTITY_INVALID": {
+   "class": "internal",
+   "group": "A"
+  },
+  "BILLING_PAID_OPERATION_SCOPE_INVALID": {
+   "class": "internal",
+   "group": "A"
+  },
+  "BILLING_RENDER_PROOF_UNAVAILABLE": {
+   "class": "http",
+   "code": "BILLING_UNAVAILABLE",
+   "status": 503,
+   "group": "D"
+  },
+  "BILLING_REQUEST_INVALID": {
+   "class": "http",
+   "code": "VALIDATION_FAILED",
+   "status": 422,
+   "group": "B"
+  },
+  "BILLING_RESOURCE_INVALID": {
+   "class": "http",
+   "code": "VALIDATION_FAILED",
+   "status": 422,
+   "group": "B"
+  },
+  "BILLING_ROUTE_INVALID": {
+   "class": "http",
+   "code": "VALIDATION_FAILED",
+   "status": 422,
+   "group": "B"
+  },
+  "BILLING_RUN_INVALID": {
+   "class": "http",
+   "code": "VALIDATION_FAILED",
+   "status": 422,
+   "group": "B"
+  },
+  "BILLING_RUN_TERMINAL": {
+   "class": "http",
+   "code": "BILLING_STATE_CONFLICT",
+   "status": 409,
+   "group": "C"
+  },
+  "BILLING_SETTLED_ALLOWANCE_IMMUTABLE": {
+   "class": "internal",
+   "group": "A"
+  },
+  "BILLING_SOURCE_INVALID": {
+   "class": "http",
+   "code": "VALIDATION_FAILED",
+   "status": 422,
+   "group": "B"
+  },
+  "BILLING_STALE_GENERATION": {
+   "class": "http",
+   "code": "BILLING_STATE_CONFLICT",
+   "status": 409,
+   "group": "C"
+  },
+  "BILLING_TENANT_INACTIVE": {
+   "class": "http",
+   "code": "BILLING_STATE_CONFLICT",
+   "status": 409,
+   "group": "C"
+  },
+  "BILLING_TERMINAL_AUTHORITY_CONFLICT": {
+   "class": "internal",
+   "group": "A"
+  },
+  "BILLING_TERMINAL_CONFLICT": {
+   "class": "internal",
+   "group": "A"
+  },
+  "BILLING_TERMINAL_INPUT_INVALID": {
+   "class": "internal",
+   "group": "A"
+  },
+  "BILLING_TERMINAL_QUANTITY_INVALID": {
+   "class": "internal",
+   "group": "A"
+  }
+ }
+}

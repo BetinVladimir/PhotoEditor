@@ -2,13 +2,25 @@
 
 ## Правила исполнения
 
-Имена функций ниже целевые, до реализации сверить реальные сигнатуры и generator workflow. SQL функции не обращаются по HTTP в Stripe, storage или email. Одна локальная транзакция фиксирует состояние и outbox; внешнее действие выполняет сервис с persisted idempotency key. Повтор с тем же key и тем же canonical request hash возвращает сохранённый результат; другой hash даёт 409 IDEMPOTENCY_CONFLICT.
+- Имена функций ниже целевые, до реализации сверить реальные сигнатуры и generator workflow.
+- SQL функции не обращаются по HTTP в Stripe, storage или email.
+- Одна локальная транзакция фиксирует состояние и outbox; внешнее действие выполняет сервис с persisted idempotency key.
+- Повтор с тем же key и тем же canonical request hash возвращает сохранённый результат; другой hash даёт 409 IDEMPOTENCY_CONFLICT.
 
-Actor/tenant берутся из authenticated context. Client-supplied actor не является доказательством прав. Для финансовых действий действующая роль owner; отдельный billing-admin можно включить только после расширения существующей role model и тестов. Для admin summary read-only без PII/invoices/payment links; editor/viewer имеют workflow capability hints, но не billing summary.
+- Actor/tenant берутся из authenticated context.
+- Client-supplied actor не является доказательством прав.
+- Для финансовых действий действующая роль owner; отдельный billing-admin можно включить только после расширения существующей role model и тестов.
+- Для admin summary read-only без PII/invoices/payment links; editor/viewer имеют workflow capability hints, но не billing summary.
 
-Перед доменными locks при mutation использовать текущий idempotency receipt lock после preflight authorization и регистрации authority revalidation gates; затем порядок обязан согласовываться с текущим lock order проекта: tenant lifecycle → billing entitlement/usage → run и quota holder → task и terminal adoption. Нельзя вставить billing lock после уже взятого run lock, если другая функция делает наоборот. До кодирования составить один полный lock graph всех затронутых entrypoints; settlement встраивать в canonical adoption, а не отдельным callback с обратным порядком. Stripe HTTP и object I/O никогда не держат SQL row locks.
+- Перед доменными locks при mutation использовать текущий idempotency receipt lock после preflight authorization и регистрации authority revalidation gates; затем порядок обязан согласовываться с текущим lock order проекта: tenant lifecycle → billing entitlement/usage → run и quota holder → task и terminal adoption.
+- Нельзя вставить billing lock после уже взятого run lock, если другая функция делает наоборот.
+- До кодирования составить один полный lock graph всех затронутых entrypoints; settlement встраивать в canonical adoption, а не отдельным callback с обратным порядком.
+- Stripe HTTP и object I/O никогда не держат SQL row locks.
 
-Новые функции возвращают типизированный result с revision, business references и статусом. Финансовые ошибки не содержат secrets/PII. Неизвестный исход commit восстанавливается повтором того же запроса с тем же Idempotency-Key и canonical body, без новой покупки. Existing idempotency.Use возвращает точные сохранённые bytes/status после актуальной authority validation; финансовая business dedup живёт независимо от TTL API receipt.
+- Новые функции возвращают типизированный result с revision, business references и статусом.
+- Финансовые ошибки не содержат secrets/PII.
+- Неизвестный исход commit восстанавливается повтором того же запроса с тем же Idempotency-Key и canonical body, без новой покупки.
+- Existing idempotency.Use возвращает точные сохранённые bytes/status после актуальной authority validation; финансовая business dedup живёт независимо от TTL API receipt.
 
 ## Хранимые функции каталога и финансов
 
@@ -49,7 +61,11 @@ Actor/tenant берутся из authenticated context. Client-supplied actor н
 | billing_reconcile_storage | tenant,cursor,verified object inventory → report | Сравнить tenant_usage/reservations/object versions; несовпадения quarantine/report, не произвольный отрицательный correction; maintenance не открывает новое entitlement |
 | billing_register_photo_success | tenant,photo_identity,charge_item,result,policy → success audit | Проверить admission free-slot/paid decision; first_success открывает окно и два free slots; не менять согласованную цену по порядку завершения; technical retries не новые user requests; внутри settlement TX |
 
-Коммерческая порция, run ticket и техническая quota_reservation — разные уровни одной admission цепочки. Tickets не отменяют reserve bytes/files. Сумма paid bucket remaining+leased+consumed+revoked сохраняется; при settlement consumed возрастает ровно на уменьшение leased. При allowance ledger bucket_id отсутствует и отдельный overrun увеличивается. Внешняя цена никогда не выводится из суммы технических reservations.
+- Коммерческая порция, run ticket и техническая quota_reservation — разные уровни одной admission цепочки.
+- Tickets не отменяют reserve bytes/files.
+- Сумма paid bucket remaining+leased+consumed+revoked сохраняется; при settlement consumed возрастает ровно на уменьшение leased.
+- При allowance ledger bucket_id отсутствует и отдельный overrun увеличивается.
+- Внешняя цена никогда не выводится из суммы технических reservations.
 
 ## Юридические функции
 
@@ -64,13 +80,27 @@ Actor/tenant берутся из authenticated context. Client-supplied actor н
 
 ## Сервисные обязанности
 
-BillingCatalog отвечает за published данные и hidden Custom. QuoteService — налоги, цены, rounding и snapshots. CheckoutService — customer/session creation и recovery после неизвестного Stripe outcome. SubscriptionChangeSaga — paid upgrade, renewal race и compensation. WebhookIngress — raw signature verify и durable receipt. BillingProcessor — authoritative Stripe lookup, financial dedup и grant. MeteringService — lease cache/fence/tickets. ReconciliationService — периодическая сверка Stripe/DB и ledger/projections. LegalService — версии документов, события и onboarding gate. ErasureCoordinator — ownership, database/storage/Stripe/cache/backup шаги.
+- BillingCatalog отвечает за published данные и hidden Custom.
+- QuoteService — налоги, цены, rounding и snapshots.
+- CheckoutService — customer/session creation и recovery после неизвестного Stripe outcome.
+- SubscriptionChangeSaga — paid upgrade, renewal race и compensation.
+- WebhookIngress — raw signature verify и durable receipt.
+- BillingProcessor — authoritative Stripe lookup, financial dedup и grant.
+- MeteringService — lease cache/fence/tickets.
+- ReconciliationService — периодическая сверка Stripe/DB и ledger/projections.
+- LegalService — версии документов, события и onboarding gate.
+- ErasureCoordinator — ownership, database/storage/Stripe/cache/backup шаги.
 
-Предлагаемые интервалы: inbox/outbox retry exponential с jitter 1s→1min, затем до 15min; dead-letter после 24h с alert, не молчаливое прекращение. Reconciliation incremental каждые 5 минут с overlap 1 час; полный scoped audit ежедневно. Это configurable defaults. Мягкая недоступность Stripe не должна блокировать чтение готовых файлов по уже известным правам.
+- Предлагаемые интервалы: inbox/outbox retry exponential с jitter 1s→1min, затем до 15min; dead-letter после 24h с alert, не молчаливое прекращение.
+- Reconciliation incremental каждые 5 минут с overlap 1 час; полный scoped audit ежедневно.
+- Это configurable defaults.
+- Мягкая недоступность Stripe не должна блокировать чтение готовых файлов по уже известным правам.
 
 ## Предлагаемые API операции
 
-Пути — канонические целевые identities для внесения в source registry/contracts, не считаются существующими. Поля key и expected_revision в таблице — логические входы: Idempotency-Key и If-Match headers, а не дублирующие JSON поля. Точные DTO и success status определены в 09. Все tenant operations имеют authenticated tenant scope.
+- Пути — канонические целевые identities для внесения в source registry/contracts, не считаются существующими.
+- Поля key и expected_revision в таблице — логические входы: Idempotency-Key и If-Match headers, а не дублирующие JSON поля.
+- Точные DTO и success status определены в 09. Все tenant operations имеют authenticated tenant scope.
 
 | Метод и путь | Вход | Ответ и доступ |
 |---|---|---|
@@ -91,7 +121,12 @@ BillingCatalog отвечает за published данные и hidden Custom. Qu
 | POST /api/v1/me/deletion | fresh auth,ownership resolution,key | 202 request_id + limited status capability; avoid email in URL |
 | GET /api/v1/me/deletion/{request}/status | scoped status token | Own request progress/retention exceptions; no global lookup |
 
-Ресурсные quantities и amounts на wire строки для bigint. Ошибка сохраняет существующий envelope: code, message_key, args, request_id. resource_code, needed, available, quote_revision и retryable размещаются в args с versioned schema. Не вводить параллельные top-level correlation_id/retryable. X-Request-ID соответствует request_id. Основные codes: QUOTA_EXCEEDED, STORAGE_OVER_QUOTA, EGRESS_EXCEEDED, OPERATION_NOT_PRICED, PLAN_NOT_AVAILABLE, OFFER_NOT_ELIGIBLE, QUOTE_EXPIRED, BILLING_REVISION_CONFLICT, BILLING_STATE_UNAVAILABLE, LEGAL_REACCEPTANCE_REQUIRED, ACCOUNT_DELETING. Sensitive ошибки внешнего Stripe нормализуются, raw messages остаются только в restricted diagnostics.
+- Ресурсные quantities и amounts на wire строки для bigint.
+- Ошибка сохраняет существующий envelope: code, message_key, args, request_id. resource_code, needed, available, quote_revision и retryable размещаются в args с versioned schema.
+- Не вводить параллельные top-level correlation_id/retryable.
+- X-Request-ID соответствует request_id.
+- Основные codes: QUOTA_EXCEEDED, STORAGE_OVER_QUOTA, EGRESS_EXCEEDED, OPERATION_NOT_PRICED, PLAN_NOT_AVAILABLE, OFFER_NOT_ELIGIBLE, QUOTE_EXPIRED, BILLING_REVISION_CONFLICT, BILLING_STATE_UNAVAILABLE, LEGAL_REACCEPTANCE_REQUIRED, ACCOUNT_DELETING.
+- Sensitive ошибки внешнего Stripe нормализуются, raw messages остаются только в restricted diagnostics.
 
 ## Дополнительные функции обязательной цепочки
 
@@ -107,4 +142,6 @@ BillingCatalog отвечает за published данные и hidden Custom. Qu
 | account_prepare_deletion | user,recent authenticated session → privacy case+ownership choices | Auth boundary до revoke; case deadline обязателен; чужие tenant details не раскрываются |
 | account_issue_recent_auth | verified fresh OTP purpose binding → opaque one-use proof | photo_auth, user/session/epoch/purpose bound; refresh не доказательство |
 
-Полные SQL signatures в будущем functions.json включают explicit input/output PostgreSQL types, SECURITY DEFINER owner/search_path, allowed executor и вызываемые private helpers. Публичный API hash не равен свободной строке actor proof. New callable function без этих деклараций и negative ACL test не готова к подключению.
+- Полные SQL signatures в будущем functions.json включают explicit input/output PostgreSQL types, SECURITY DEFINER owner/search_path, allowed executor и вызываемые private helpers.
+- Публичный API hash не равен свободной строке actor proof.
+- New callable function без этих деклараций и negative ACL test не готова к подключению.

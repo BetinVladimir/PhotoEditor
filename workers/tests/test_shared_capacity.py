@@ -92,3 +92,9 @@ def test_worker_config_default_and_explicit_shared_roundtrip(installation,tmp_pa
     # Shared module is never sampled by ordinary workers.
     monkeypatch.setattr(shared,'_state',lambda _:(_ for _ in ()).throw(AssertionError('unexpected shared sampling')))
     config=WorkerConfig.from_env(values);assert _capacity_sample(config,Capacity(77,100)).ram_bytes==77
+
+
+@pytest.mark.parametrize('measured',[Capacity(True,1,0),Capacity(-1,1,0),Capacity(1,1,1)])
+def test_invalid_or_gpu_measurement_never_advertises_shared_cpu_capacity(installation,measured):
+    with pytest.raises(ValueError,match='INVALID_MEASUREMENT'):
+        shared.cap_measurement(installation[-1],measured)
