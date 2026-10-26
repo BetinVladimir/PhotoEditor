@@ -47,6 +47,7 @@ def table_task(i, g, n):
      "- Вход: строка 03 ниже; уточнения 09 §3 (если есть); образец формата — `contracts/quota-tables.json` (columns, primary_key, constraints, indexes).",
      "- Выход: запись в `contracts/%s-tables.json`, затем перегенерация миграции генератором этапа." % g,
      "- Критерий: A. `scripts/generate-billing-%s.py --check` PASS. B. contract-тест видит таблицу, PK, FK, CHECK. C. integration-тест: tenant composite FK, RLS, ограничения (образец `EXAMPLES-TESTS.md`). D. Новых колонок сверх 03/09 нет." % g,
+     "- Тесты (в этой же задаче, R33, `TESTING.md`): `tests/contracts/test_billing_%s_contract.py` — колонки, PK, FK, CHECK из JSON; `tests/integration/test_billing_%s.py` — по одному негативному тесту на каждый CHECK и FK, RLS чужого tenant. Без них задача не принята." % (g, g),
      "- Запреты: R7, R8, R9; типы по 09 §3 (`*_id uuid`, `*_at timestamptz`, деньги и количества `bigint`); неоднозначный тип → STOP и строка в `OPEN.md`.",
      "- Из 03:", "", r3] + (["- Уточнения из 09:", "", r9] if r9 else []) + [""]
 def func_task(i, g, n):
@@ -55,6 +56,7 @@ def func_task(i, g, n):
      "- Вход: строка 04 ниже; типы аргументов по 09 §3 (в 04 даны имена, не типы); образец — `EXAMPLES.md` §1–2.",
      "- Выход: тело в `contracts/%s-functions.sql`, запись в `contracts/%s-functions.json`, перегенерация миграции." % (g, g),
      "- Критерий: A. `--check` генератора PASS. B. `execute_roles` в JSON = `GRANT` в SQL, роли из колонки «права» строки 04. C. integration-тест: положительный путь, отказ авторизации, точный повтор и конфликт hash. D. Порядок блокировок R23–R26.",
+     "- Тесты (в этой же задаче, R33, `TESTING.md` T4): `tests/contracts/test_billing_%s_contract.py` — ACL JSON = GRANT; `tests/integration/test_billing_%s.py` — успех, отказ авторизации, точный повтор, конфликт при другом hash; при общих остатках ещё конкурентный тест на двух соединениях; если функцию вызывает Go — harness под ролью БД. Без них задача не принята." % (g, g),
      "- Запреты: R11, R12, R16–R26; не писать сетевые вызовы.",
      "- Из 04:", "", f4[n][0], ""]
 def api_task(i, line):
@@ -64,6 +66,7 @@ def api_task(i, line):
      "- Вход: строка 04 ниже; DTO и success status — 09 §7; образцы — `EXAMPLES-API.md`, `EXAMPLES-GO.md`.",
      "- Выход: запись в оба `endpoints.json`; DTO в `schemas.json`; handler и сервисный интерфейс; маршрут в `httpapi`.",
      "- Критерий: A. DTO `additionalProperties=false`, `required`, без server-only полей. B. role/tenant проверены (09 §2). C. Handler с `Idempotency-Key`/`If-Match`, где указано. D. Go-тест handler + drift DTO.",
+     "- Тесты (в этой же задаче, R33, `TESTING.md`): Go-тест handler в `backend/internal/httpapi/*_test.go` — успех, 422, чужая роль, идемпотентный повтор; contract-тест, что endpoint и DTO есть в обоих реестрах `endpoints.json` и `schemas.json`. Без них задача не принята.",
      "- Запреты: R7, R13; endpoint без рабочего handler не регистрировать.",
      "- Из 04:", "", line, ""]
 FILES = {}
@@ -77,11 +80,11 @@ def emit(g, items):
 idx = ["# Бэклог 1В–4: задачи для ещё не реализованного", "",
        "Сгенерировано `tools/gen-backlog.py` из строк 03/04/09 и сверки с `backend/db/migrations`. Вручную не править.",
        "ВНИМАНИЕ: названия функций в 04 — целевые. Этапы 1Б реализовали часть из них под другими именами (см. 12–18 и `contracts/*-functions.json`). Перед каждой задачей `*-F*` проверить «возможно покрыта»: если функция уже есть, задачу не делать, а записать в `STATUS.md`, чем она покрыта.",
-       "Порядок: сначала `*-00` (каркас группы), затем таблицы, затем функции, затем API. Зависимости — по пакетам BILL в `08-delivery-migrations-e2e.md`.", "",
+       "Тесты пишутся вместе с кодом (`TESTING.md`, R33); приёмка модулей — группы `acceptance`, инфраструктура тестов — `testinfra`.", "Порядок: сначала `*-00` (каркас группы), затем таблицы, затем функции, затем API. Зависимости — по пакетам BILL в `08-delivery-migrations-e2e.md`.", "",
        "| Группа | Пакеты | Таблиц | Функций | Файлы |", "|---|---|---|---|---|"]
 for g, (bill, _, _) in GROUP.items():
     ts = [n for n in tables if group_of(n, "t") == g]; fs = [n for n in funcs if group_of(n, "f") == g]
-    items = [["### %s-00 — каркас этапа группы `%s`" % (g[:3].upper(), g), "", "- Выход: " + SCAFFOLD.format(g=g), "- Критерий: A. Генератор `--check` PASS на пустых источниках. B. Пустой contract-тест PASS. C. Миграция-пустышка не создаётся, пока нет таблиц.", "- Запреты: R9, R28.", ""]]
+    items = [["### %s-00 — каркас этапа группы `%s`" % (g[:3].upper(), g), "", "- Выход: " + SCAFFOLD.format(g=g), "- Тесты (R33): сами файлы `tests/contracts/test_billing_%s_contract.py` и `tests/integration/test_billing_%s.py` создаются здесь (пустой набор проходит, не skip)." % (g, g), "- Критерий: A. Генератор `--check` PASS на пустых источниках. B. Пустой contract-тест PASS. C. Миграция-пустышка не создаётся, пока нет таблиц.", "- Запреты: R9, R28.", ""]]
     items += [table_task(i, g, n) for i, n in enumerate(ts, 1)] + [func_task(i, g, n) for i, n in enumerate(fs, 1)]
     names = []
     for k, ch in enumerate(emit(g, items), 1):
@@ -96,6 +99,10 @@ idx.append("| api | BILL-10 | — | %d операций | %s |" % (len(api), ", 
 import backlog_extra
 xf, xi, xc = backlog_extra.build(DOCS, est, CHUNK)
 FILES.update(xf)
+import backlog_tests
+tf, ti, tc = backlog_tests.build(DOCS, REPO, est, CHUNK)
+FILES.update(tf)
+xi = list(xi) + list(ti)
 for g, bill, _, cnt, nms in xi: idx.append("| %s | %s | — | %s | %s |" % (g, bill, cnt, ", ".join("[%s](%s)" % (x, x) for x in nms)))
 idx += ["", "Stripe-задачи не требуют ключей: проверяются на fake-провайдере (`STR-01`); `STR-14` и `STR-15` ждут ключей (`OPEN-14`, порядок — `STRIPE-CONFIG.md`).", "e2e: каждый сценарий — один положительный и один отрицательный тест; сценарии зависят от остальных групп."]
 FILES["README.md"] = "\n".join(idx) + "\n"
@@ -105,5 +112,5 @@ for nm, tx in FILES.items():
     if check:
         if not os.path.exists(p) or rd(p) != tx: print("drift:", nm); bad += 1
     else: open(p, "w", encoding="utf-8").write(tx)
-if not check: print("таблиц:", len(tables), "функций:", len(funcs), "API:", len(api), "stripe/ui/e2e:", xc, "файлов:", len(FILES))
+if not check: print("таблиц:", len(tables), "функций:", len(funcs), "API:", len(api), "stripe/ui/e2e:", xc, "acc/tst:", tc, "файлов:", len(FILES))
 sys.exit(1 if bad else 0)

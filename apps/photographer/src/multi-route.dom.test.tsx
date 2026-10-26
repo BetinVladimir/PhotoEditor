@@ -186,3 +186,12 @@ it('keeps a known multi receipt across wrapper recreation after accepted persist
  await clickWhenEnabled(await screen.findByRole('button',{name:'Retry saved submission'}));
  await waitFor(()=>expect(mocks.push).toHaveBeenCalledTimes(2));expect(mocks.submit).toHaveBeenCalledTimes(1);expect(mocks.snapshot).toHaveBeenCalledTimes(1);
 });
+
+it('numbers sparse multi-photo choices and selected frames without changing source versions',async()=>{
+ mocks.request.mockImplementation(async(path:string)=>path.includes('/items?')?{revision:'1',items:items().map((item,index)=>({...item,position:(index+1)*1024}))}:{id:mocks.params.id,tenant_id:id(1),project_id:id(3),name:'Sparse collection',revision:'1'});
+ render(<MultiRoute/>);await addTwo();
+ expect(screen.queryByRole('button',{name:'Add photo 1025'})).toBeNull();expect(screen.getByText(/1\. Photo 1/)).toBeDefined();expect(screen.getByText(/2\. Photo 2/)).toBeDefined();
+ expect(mocks.binding.mock.calls.map(call=>call[0])).toEqual([id(204),id(206)]);
+ fireEvent.click(screen.getByRole('button',{name:'Create multi-image result'}));await waitFor(()=>expect(mocks.submit).toHaveBeenCalled());
+ expect(mocks.submit.mock.calls[0][2].params.frames.map((frame:{asset_version_id:string})=>frame.asset_version_id)).toEqual([id(4),id(6)]);
+});

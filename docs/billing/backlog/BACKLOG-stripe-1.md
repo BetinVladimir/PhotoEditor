@@ -5,6 +5,7 @@
 - Группа: Stripe (BILL-07/08/09). Ключи не нужны: проверяется на fake-провайдере (`STR-01`). Контракт: `STRIPE-CONFIG.md`.
 - Вход: строки 05 ниже; `STRIPE-CONFIG.md`; зависит от таблиц и функций групп `finance`, `provider`, `usage` из `backlog/README.md`.
 - Выход: backend/internal/config/config.go: поля и валидация; backend/internal/config/config_test.go; deploy/env/production.env.example (значения REPLACE).
+- Тесты (в этой же задаче, R33, `TESTING.md` T7): Go-тесты рядом с кодом на fake-провайдере (`STR-01`); общий контрактный набор провайдера `TST-02` расширяется кейсами этой задачи; секретов и сети нет. Без них задача не принята.
 - Критерий: A. `BILLING_STRIPE_ENABLED` не true → ошибок нет. B. true без любой переменной → ошибка без значений секретов. C. `STRIPE_ENVIRONMENT` не `test` → ошибка. D. Относительный путь `*_REF` → ошибка. E. `go test ./internal/config` PASS.
 - Запреты: R6, R7, R10; секреты не логировать; live-режима нет.
 - Из 05:
@@ -20,6 +21,7 @@
 - Группа: Stripe (BILL-07/08/09). Ключи не нужны: проверяется на fake-провайдере (`STR-01`).
 - Вход: строки 05 ниже; `STRIPE-CONFIG.md`; зависит от таблиц и функций групп `finance`, `provider`, `usage` из `backlog/README.md`.
 - Выход: Новый пакет Go (имя выбрать по соседним: `backend/internal/billingprovider`, проверить отсутствие конфликта): интерфейс (Product, Price, Customer, Checkout Session, Invoice, Refund, чтение объектов и событий), in-memory fake с идемпотентностью по `provider_request_key`, real-адаптер-заглушка, возвращающий `BILLING_UNAVAILABLE`, пока нет конфигурации.
+- Тесты (в этой же задаче, R33, `TESTING.md` T7): Go-тесты рядом с кодом на fake-провайдере (`STR-01`); общий контрактный набор провайдера `TST-02` расширяется кейсами этой задачи; секретов и сети нет. Без них задача не принята.
 - Критерий: A. Один набор контрактных тестов прогоняется на fake (позже на real). B. В тестах нет сети. C. Повтор того же `provider_request_key` возвращает прежний ответ. D. Timeout после успеха не разрешается новым ключом, а чтением объекта.
 - Запреты: R6, R7, R10; секреты не логировать; live-режима нет.
 - Из 05:
@@ -35,6 +37,7 @@
 - Группа: Stripe (BILL-07/08/09). Ключи не нужны: проверяется на fake-провайдере (`STR-01`).
 - Вход: строки 05 ниже; `STRIPE-CONFIG.md`; зависит от таблиц и функций групп `finance`, `provider`, `usage` из `backlog/README.md`.
 - Выход: Функция/команда provisioning по catalog version и account ref; запись mapping в БД (таблицы из группы `finance`/`provider`); повтор без дублей.
+- Тесты (в этой же задаче, R33, `TESTING.md` T7): Go-тесты рядом с кодом на fake-провайдере (`STR-01`); общий контрактный набор провайдера `TST-02` расширяется кейсами этой задачи; секретов и сети нет. Без них задача не принята.
 - Критерий: A. Повторный запуск не создаёт Product/Price. B. Изменение цены → новая Stripe Price и новая local price version. C. Trial без paid price. D. Локальные amount/interval/currency совпадают с провайдером.
 - Запреты: R6, R7, R10; секреты не логировать; live-режима нет.
 - Из 05:
@@ -50,6 +53,7 @@
 - Группа: Stripe (BILL-07/08/09). Ключи не нужны: проверяется на fake-провайдере (`STR-01`).
 - Вход: строки 05 ниже; `STRIPE-CONFIG.md`; зависит от таблиц и функций групп `finance`, `provider`, `usage` из `backlog/README.md`.
 - Выход: Сервис создания Customer один раз на tenant/account с durable idempotency key; неопределённый ответ разрешается чтением.
+- Тесты (в этой же задаче, R33, `TESTING.md` T7): Go-тесты рядом с кодом на fake-провайдере (`STR-01`); общий контрактный набор провайдера `TST-02` расширяется кейсами этой задачи; секретов и сети нет. Без них задача не принята.
 - Критерий: A. Двойной вызов → один Customer. B. Неизвестный результат → retrieval/reconciliation, не второй create.
 - Запреты: R6, R7, R10; секреты не логировать; live-режима нет.
 - Из 05:
@@ -61,6 +65,7 @@
 - Группа: Stripe (BILL-07/08/09). Ключи не нужны: проверяется на fake-провайдере (`STR-01`).
 - Вход: строки 05 ниже; `STRIPE-CONFIG.md`; зависит от таблиц и функций групп `finance`, `provider`, `usage` из `backlog/README.md`.
 - Выход: Outbox-запись о создании Checkout, серверные price IDs, возврат action URL через GET order; суммы с клиента не принимаются.
+- Тесты (в этой же задаче, R33, `TESTING.md` T7): Go-тесты рядом с кодом на fake-провайдере (`STR-01`); общий контрактный набор провайдера `TST-02` расширяется кейсами этой задачи; секретов и сети нет. Без них задача не принята.
 - Критерий: A. Цена не берётся из запроса клиента. B. Повтор Idempotency-Key возвращает тот же order. C. URL возврата не доказывает оплату.
 - Запреты: R6, R7, R10; секреты не логировать; live-режима нет.
 - Из 05:
@@ -69,20 +74,3 @@
 - Quote → order → durable Checkout create intent → Stripe Hosted Checkout → signed inbox → authoritative payment verification → invoice line allocation → atomic grant → summary update.
 - URL возврата не доказывает оплату.
 - `checkout.session.completed` сам по себе при отложенной оплате не гарантирует paid.
-
-### STR-05 — Webhook ingress и inbox
-
-- Группа: Stripe (BILL-07/08/09). Ключи не нужны: проверяется на fake-провайдере (`STR-01`). Реальная подпись Stripe — в `STR-14`.
-- Вход: строки 05 ниже; `STRIPE-CONFIG.md`; зависит от таблиц и функций групп `finance`, `provider`, `usage` из `backlog/README.md`.
-- Выход: HTTP-приём с проверкой подписи по сырому телу, запись в inbox до 2xx, worker с retry lease.
-- Критерий: A. Неверная подпись → отказ, inbox пуст. B. Дубликат и out-of-order не дают двойного эффекта. C. Неожиданный customer/order/mode/currency/price → quarantine без entitlement. D. Список событий и payload paths — по `OPEN-13`, не выдумывать.
-- Запреты: R6, R7, R10; секреты не логировать; live-режима нет.
-- Из 05:
-
-| Webhooks | HTTPS endpoint конкретного sandbox; raw-body signature; выбранный payload format и API version | Signed реальное событие проходит inbox и grant; неверный secret отвергнут |
-- Поддержать lifecycle Checkout completed/expired/async success/failure, invoices paid/payment_failed/finalization_failed, subscription created/updated/deleted, refunds и disputes.
-- Точный список и payload paths закрепить с реальной API version в spike.
-- Не определять порядок только по event timestamp: получать актуальный provider object и проверять business state.
-- Неожиданный customer/order/mode/currency/price переводит событие в quarantine без entitlement.
-- Ingress проверяет исходное тело и timestamp штатным SDK, сохраняет inbox до 2xx.
-- Worker имеет retry lease и обрабатывает событие повторяемо.

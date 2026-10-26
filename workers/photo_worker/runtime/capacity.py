@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import shutil
 from threading import Event
+from time import monotonic
 from typing import Callable
 import psutil
 
@@ -52,22 +53,49 @@ def measure_accelerator(root:Path,backend:str)->Capacity:
     raise ValueError('Unknown worker backend')
 
 
+class RegistrationRejected(RuntimeError):
+    """Server explicitly refused the worker: always fail closed."""
+
+
+# W-2: transient control-plane outages (VPN blip, DB restart) are tolerated for
+# this long since the last successful report before the worker aborts.
+CAPACITY_OUTAGE_GRACE_SECONDS = 90.0
+
+
 class CapacityReporter:
     def __init__(self,report:Callable[[Capacity],bool],sample:Callable[[],Capacity],abort:Callable[[],None],*,interval_seconds:float=10):
         if not 0<interval_seconds<=10:raise ValueError('Invalid capacity report interval')
         self.report,self.sample,self.abort=report,sample,abort
         self.interval=interval_seconds
         self.failed=Event()
+        self.grace=CAPACITY_OUTAGE_GRACE_SECONDS
 
     def report_once(self):
-        if self.report(self.sample()) is not True:raise RuntimeError('Worker registration rejected')
+        if self.report(self.sample()) is not True:raise RegistrationRejected('Worker registration rejected')
 
     def run(self,stop:Event):
         # Startup executes report_once synchronously before consuming any message.
+        last_ok=monotonic()
         while not stop.wait(self.interval):
-            try:self.report_once()
-            except Exception:
+            try:
+                self.report_once()
+                last_ok=monotonic()
+                continue
+            except Exception as exc:
+                if not isinstance(exc,RegistrationRejected) and monotonic()-last_ok<self.grace:
+                    try:
+                        from photo_worker.runtime.diagnostics import emit_failure_metadata
+                        emit_failure_metadata(exc, 'DEPENDENCY_UNAVAILABLE', 'capacity_retry')
+                    except BaseException:
+                        pass
+                    continue
                 self.failed.set()
                 stop.set()
+                try:
+                    from photo_worker.runtime.diagnostics import emit_failure_metadata
+                    emit_failure_metadata(exc, 'INTERNAL_ERROR', 'heartbeat')
+                except BaseException:
+                    # Diagnostics must never prevent fail-closed shutdown.
+                    pass
                 self.abort()
                 return

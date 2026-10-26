@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 import zipfile
 from pydantic import ValidationError
-from photo_worker.contracts.archive import ArchiveManifest, ArchiveManifestEntry, ArchiveParams
+from photo_worker.contracts.archive import ARCHIVE_DOCUMENT_MAX_BYTES, ArchiveManifest, ArchiveManifestEntry, ArchiveParams
 from photo_worker.contracts.base import canonical_bytes
 from photo_worker.runtime.artifacts import ArtifactConfig, TaskArtifacts
 from photo_worker.runtime.gateway import GatewayError
@@ -97,16 +97,16 @@ def execute(ctx: ExecutionContext, artifacts: TaskArtifacts) -> OperationResult:
     # Stored payload needs no percentage expansion. Reserve per-entry ZIP64
     # headers/names and the bounded JSON manifest as well: 5000 tiny images
     # otherwise overflow the old fixed 1MiB minimum despite valid admission.
-    reserve_bytes = estimate + 1024 * 1024 + 4096 * len(params.entries)
+    reserve_bytes = estimate + ARCHIVE_DOCUMENT_MAX_BYTES + 4096 * len(params.entries)
     manifest_entries = [ArchiveManifestEntry(ordinal=ordinal, entry_name=entry.entry_name,
         artifact=entry.artifact.model_copy(deep=True), bytes=entry.bytes, sha256=entry.artifact.sha256)
         for ordinal, entry in enumerate(params.entries)]
-    # Check ordinary archive_manifest's 1MiB contract before image IO. The
+    # Check archive_manifest's explicitly bounded 8MiB contract before image IO. The
     # reserved-size spelling bounds actual archive_bytes in the final document.
     manifest_bound = ArchiveManifest(snapshot_id=params.snapshot_id, snapshot_digest=params.snapshot_digest,
         volume_no=params.volume_no, entries=manifest_entries, archive_sha256='0' * 64,
         archive_bytes=reserve_bytes)
-    if len(canonical_bytes(manifest_bound)) > 1048576:
+    if len(canonical_bytes(manifest_bound)) > ARCHIVE_DOCUMENT_MAX_BYTES:
         raise OperationFailure('INPUT_INVALID')
     del manifest_bound
     ctx.check_active()

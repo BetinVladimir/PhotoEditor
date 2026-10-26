@@ -2,7 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from threading import Event, Lock, Thread
-from time import monotonic
+from time import monotonic, sleep
 from typing import Callable
 from uuid import UUID
 import psutil
@@ -36,6 +36,10 @@ class OperationFailure(RuntimeError):
         super().__init__(code)
         self.error = TaskError(code=code, retryable=retryable,
                                message_key='errors.'+code.lower(), args=args or {})
+
+
+HEARTBEAT_SAFETY_MARGIN_SECONDS = 2.0
+COMMIT_RETRY_ATTEMPTS = 6
 
 
 @dataclass(frozen=True)
@@ -147,14 +151,38 @@ class Executor:
 
     def decode(self, raw: bytes) -> tuple[TaskCommand, Operation]:
         try:
-            parse_json(raw, max_bytes=65536)
+            parse_json(raw, max_bytes=1048576)
             command = TaskCommand.model_validate_json(raw)
+            archive = (command.operation == 'archive.build' and command.operation_version == '1'
+                       and command.resource_class == 'archive')
+            if not archive and len(raw)>65536:
+                raise ValueError('Non-archive task command exceeds byte limit')
         except (ValueError,ValidationError) as exc:
             raise PoisonCommand('Invalid task command') from exc
         op = self.operations.get(command.operation)
         if op is None or op.version != command.operation_version or op.resource_class != command.resource_class or command.attempt > 6:
             raise PoisonCommand('Unsupported task command')
         return command, op
+
+    @staticmethod
+    def _commit_with_retry(stop: Event, call, attempts: int = COMMIT_RETRY_ATTEMPTS):
+        """W-3: retry a terminal commit over transient transport errors.
+
+        commit_* are fenced and idempotent in SQL ('replayed'/'stale'), so a
+        repeat after an unknown result is safe. Non-transient errors and the
+        final failure propagate unchanged; the message is then redelivered
+        and the reaper handles the task.
+        """
+        delay = 1.0
+        for attempt in range(attempts):
+            try:
+                return call()
+            except (psycopg.OperationalError, OSError, TimeoutError) as exc:
+                if attempt == attempts - 1:
+                    raise
+                emit_failure_metadata(exc,'DEPENDENCY_UNAVAILABLE','commit_retry')
+                sleep(delay)
+                delay = min(delay*2,15.0)
 
     def process(self, raw: bytes) -> str:
         command, op = self.decode(raw)
@@ -175,7 +203,8 @@ class Executor:
 
         def heartbeat():
             nonlocal peak_memory
-            while not stop.wait(self.heartbeat_seconds):
+            beat_failures = 0
+            while not stop.wait(self.heartbeat_seconds if beat_failures == 0 else 0):
                 try:
                     peak_memory = max(peak_memory,process.memory_info().rss)
                     beat = self.database.heartbeat(ctx.lease,ctx.snapshot_progress())
@@ -183,9 +212,20 @@ class Executor:
                         return
                 except Exception as exc:
                     emit_failure_metadata(exc,'LEASE_LOST','heartbeat')
-                    # A transient unknown heartbeat result does not justify
-                    # continued writes. Stop conservatively; reaper retries.
-                    ctx._lost.set(); return
+                    # W-1: a transient control-plane error (VPN blip, DB
+                    # restart) must not abort GPU work while the last lease
+                    # confirmed by SQL is still valid locally. Retry with a
+                    # short backoff; the SQL fence stays the authority for
+                    # every write and commit. Once the local lease margin is
+                    # exhausted, stop conservatively and let the reaper retry.
+                    if monotonic() >= ctx._lease_until - HEARTBEAT_SAFETY_MARGIN_SECONDS:
+                        ctx._lost.set(); return
+                    # Back off 1s..5s, never past the next regular beat.
+                    if stop.wait(min(5.0,1.0+0.5*beat_failures,self.heartbeat_seconds)):
+                        return
+                    beat_failures += 1
+                    continue
+                beat_failures = 0
 
         thread = Thread(target=heartbeat,name='task-heartbeat',daemon=True)
         with self._active_lock:
@@ -248,14 +288,14 @@ class Executor:
             if ctx._lost.is_set():
                 return 'lease_lost'
             if failure is not None:
-                outcome = self.database.commit_failure(ctx.lease,failure,metrics)
+                outcome = self._commit_with_retry(stop,lambda: self.database.commit_failure(ctx.lease,failure,metrics))
             else:
                 payload = canonical_bytes(dict(outputs=[x.model_dump(mode='json') for x in result.outputs],
                                                metrics=metrics.model_dump(mode='json'),review_required=result.review_required))
-                outcome,_,_ = self.database.commit_success(ctx.lease,payload)
+                outcome,_,_ = self._commit_with_retry(stop,lambda: self.database.commit_success(ctx.lease,payload))
                 if outcome == 'cancelled':
                     error = TaskError(code='TASK_CANCELLED',retryable=False,message_key='errors.cancelled',args={})
-                    outcome = self.database.commit_failure(ctx.lease,error,metrics)
+                    outcome = self._commit_with_retry(stop,lambda: self.database.commit_failure(ctx.lease,error,metrics))
             if outcome == 'conflict':
                 raise RuntimeError('COMMIT_CONFLICT')
             if outcome not in ('committed','replayed','stale'):

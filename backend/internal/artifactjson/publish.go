@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"io"
+	"photoeditor/backend/internal/archivecontract"
 	"strconv"
 	"strings"
 
@@ -28,7 +29,8 @@ type Scope struct {
 	// AssemblyLease fences expansion params and task-owned input transport.
 	AssemblyLease uuid.UUID
 	// LocalPortrait routes task_params through the saved V28 intent authority.
-	LocalPortrait bool
+	DownloadArchive bool
+	LocalPortrait   bool
 	// DonorPortrait routes Params through the separate saved donor intent.
 	DonorPortrait bool
 	// RestorationPortrait routes Params through the saved restoration intent.
@@ -60,6 +62,10 @@ type Publisher struct {
 }
 
 func DocumentKey(s Scope, id uuid.UUID) (string, error) {
+	if s.DownloadArchive && (s.Purpose != "task_params" || s.AssemblyLease != uuid.Nil || s.LocalPortrait || s.DonorPortrait || s.RestorationPortrait) {
+		return "", objectstore.ErrInvalid
+	}
+
 	if (s.Purpose == "v23_detail_holdout" || s.Purpose == "v23_series_holdout") &&
 		(s.Project == uuid.Nil || s.Actor == uuid.Nil ||
 			s.AuthSession == uuid.Nil) {
@@ -215,6 +221,9 @@ func v25LensPurpose(purpose string) bool {
 }
 
 func maxScopeDocumentBytes(s Scope) int {
+	if s.DownloadArchive && s.Purpose == "task_params" && s.AssemblyLease == uuid.Nil && !s.LocalPortrait && !s.DonorPortrait && !s.RestorationPortrait {
+		return archivecontract.DocumentBytes
+	}
 	if s.LocalPortrait || s.DonorPortrait || s.RestorationPortrait {
 		return 65536
 	}

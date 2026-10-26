@@ -6,7 +6,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"io"
-	"net"
 	"net/http"
 	adminservice "photoeditor/backend/internal/admin"
 	assetservice "photoeditor/backend/internal/asset"
@@ -287,11 +286,7 @@ func (s *Server) catalogRoutes(r chi.Router) {
 			writeError(w, r, err)
 			return
 		}
-		ip, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			writeError(w, r, domain.NewError("VALIDATION_FAILED", 422))
-			return
-		}
+		ip := s.clientIP(r)
 		out, err := capturePublic.CreateChallenge(r.Context(), tid, deviceID, ip, request)
 		if err != nil {
 			writeError(w, r, err)
@@ -315,11 +310,7 @@ func (s *Server) catalogRoutes(r chi.Router) {
 			writeError(w, r, err)
 			return
 		}
-		ip, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			writeError(w, r, domain.NewError("VALIDATION_FAILED", 422))
-			return
-		}
+		ip := s.clientIP(r)
 		out, err := capturePublic.ExchangeChallenge(r.Context(), tid, deviceID, ip, request)
 		if err != nil {
 			writeError(w, r, err)

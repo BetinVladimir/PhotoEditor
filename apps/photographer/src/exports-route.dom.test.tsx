@@ -70,9 +70,9 @@ it('retries an uncertain download start with the original idempotency key',async
  mocks.startDownload.mockRejectedValueOnce(new Error('network')).mockResolvedValueOnce({download_job_id:'00000000-0000-4000-8000-000000000099',status:'queued'});
  render(<Exports/>);
  await screen.findByText('Old');
- fireEvent.click(screen.getByText('Old'));
+ await clickWhenEnabled(screen.getByText('Old')); 
  await screen.findByText('Unable to start download job');
- fireEvent.click(screen.getByText('Old'));
+ await clickWhenEnabled(screen.getByText('Old')); 
  await waitFor(()=>expect(screen.getByText(/Download job 00000000 is Queued/)).toBeTruthy());
  expect(mocks.startDownload).toHaveBeenCalledTimes(2);
  expect(mocks.startDownload.mock.calls[0].slice(0,3)).toEqual(mocks.startDownload.mock.calls[1].slice(0,3));

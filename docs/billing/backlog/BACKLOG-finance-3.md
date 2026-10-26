@@ -1,11 +1,51 @@
 # Бэклог: группа finance (BILL-04), часть 3
 
+### FIN-T11 — таблица `billing_quotes`
+
+- Статус: нет `CREATE TABLE photo.billing_quotes` в `backend/db/migrations`.
+- Вход: строка 03 ниже; уточнения 09 §3 (если есть); образец формата — `contracts/quota-tables.json` (columns, primary_key, constraints, indexes).
+- Выход: запись в `contracts/finance-tables.json`, затем перегенерация миграции генератором этапа.
+- Критерий: A. `scripts/generate-billing-finance.py --check` PASS. B. contract-тест видит таблицу, PK, FK, CHECK. C. integration-тест: tenant composite FK, RLS, ограничения (образец `EXAMPLES-TESTS.md`). D. Новых колонок сверх 03/09 нет.
+- Тесты (в этой же задаче, R33, `TESTING.md`): `tests/contracts/test_billing_finance_contract.py` — колонки, PK, FK, CHECK из JSON; `tests/integration/test_billing_finance.py` — по одному негативному тесту на каждый CHECK и FK, RLS чужого tenant. Без них задача не принята.
+- Запреты: R7, R8, R9; типы по 09 §3 (`*_id uuid`, `*_at timestamptz`, деньги и количества `bigint`); неоднозначный тип → STOP и строка в `OPEN.md`.
+- Из 03:
+
+| billing_quotes | tenant_id; actor_id uuid?; kind text; plan_revision bigint; resource_snapshot jsonb; resource_snapshot_hash bytea; net_minor/tax_minor/gross_minor bigint; currency; tax_policy_version text; expires_at; accepted_at?; request_hash bytea | Immutable; default TTL=15 минут; membership, price и policy revalidation перед order |
+
+### FIN-T12 — таблица `billing_refunds`
+
+- Статус: нет `CREATE TABLE photo.billing_refunds` в `backend/db/migrations`.
+- Вход: строка 03 ниже; уточнения 09 §3 (если есть); образец формата — `contracts/quota-tables.json` (columns, primary_key, constraints, indexes).
+- Выход: запись в `contracts/finance-tables.json`, затем перегенерация миграции генератором этапа.
+- Критерий: A. `scripts/generate-billing-finance.py --check` PASS. B. contract-тест видит таблицу, PK, FK, CHECK. C. integration-тест: tenant composite FK, RLS, ограничения (образец `EXAMPLES-TESTS.md`). D. Новых колонок сверх 03/09 нет.
+- Тесты (в этой же задаче, R33, `TESTING.md`): `tests/contracts/test_billing_finance_contract.py` — колонки, PK, FK, CHECK из JSON; `tests/integration/test_billing_finance.py` — по одному негативному тесту на каждый CHECK и FK, RLS чужого tenant. Без них задача не принята.
+- Запреты: R7, R8, R9; типы по 09 §3 (`*_id uuid`, `*_at timestamptz`, деньги и количества `bigint`); неоднозначный тип → STOP и строка в `OPEN.md`.
+- Из 03:
+
+| billing_refunds | financial_subject_id; payment_id FK; external_refund_id text; amount_minor bigint; state pending/succeeded/failed; resource_reversal_key text?; reason_code text | UNIQUE(account,refund); partial resource reversal по immutable line mapping; consumed usage не исчезает |
+
+### FIN-T13 — таблица `billing_subscription_items`
+
+- Статус: нет `CREATE TABLE photo.billing_subscription_items` в `backend/db/migrations`.
+- Вход: строка 03 ниже; уточнения 09 §3 (если есть); образец формата — `contracts/quota-tables.json` (columns, primary_key, constraints, indexes).
+- Выход: запись в `contracts/finance-tables.json`, затем перегенерация миграции генератором этапа.
+- Критерий: A. `scripts/generate-billing-finance.py --check` PASS. B. contract-тест видит таблицу, PK, FK, CHECK. C. integration-тест: tenant composite FK, RLS, ограничения (образец `EXAMPLES-TESTS.md`). D. Новых колонок сверх 03/09 нет.
+- Тесты (в этой же задаче, R33, `TESTING.md`): `tests/contracts/test_billing_finance_contract.py` — колонки, PK, FK, CHECK из JSON; `tests/integration/test_billing_finance.py` — по одному негативному тесту на каждый CHECK и FK, RLS чужого tenant. Без них задача не принята.
+- Запреты: R7, R8, R9; типы по 09 §3 (`*_id uuid`, `*_at timestamptz`, деньги и количества `bigint`); неоднозначный тип → STOP и строка в `OPEN.md`.
+- Из 03:
+
+| billing_subscription_items | tenant_id; subscription_id FK; kind ai/storage; price_id FK?; offer_id FK?; external_item_id text; quantity int; starts_at/end_at timestamptz; state active/pending/canceled | XOR local target; ai quantity=1 и максимум один active AI item; storage quantity>0; unique account/item |
+- Уточнения из 09:
+
+| billing_subscription_items | provider_account_id FK; external_item_id text; UNIQUE(account,external_item_id); item starts_at/ends_at timestamptz; entitlement_status pending/active/ending/ended отдельно от provider presence |
+
 ### FIN-T14 — таблица `billing_subscriptions`
 
 - Статус: нет `CREATE TABLE photo.billing_subscriptions` в `backend/db/migrations`.
 - Вход: строка 03 ниже; уточнения 09 §3 (если есть); образец формата — `contracts/quota-tables.json` (columns, primary_key, constraints, indexes).
 - Выход: запись в `contracts/finance-tables.json`, затем перегенерация миграции генератором этапа.
 - Критерий: A. `scripts/generate-billing-finance.py --check` PASS. B. contract-тест видит таблицу, PK, FK, CHECK. C. integration-тест: tenant composite FK, RLS, ограничения (образец `EXAMPLES-TESTS.md`). D. Новых колонок сверх 03/09 нет.
+- Тесты (в этой же задаче, R33, `TESTING.md`): `tests/contracts/test_billing_finance_contract.py` — колонки, PK, FK, CHECK из JSON; `tests/integration/test_billing_finance.py` — по одному негативному тесту на каждый CHECK и FK, RLS чужого tenant. Без них задача не принята.
 - Запреты: R7, R8, R9; типы по 09 §3 (`*_id uuid`, `*_at timestamptz`, деньги и количества `bigint`); неоднозначный тип → STOP и строка в `OPEN.md`.
 - Из 03:
 
@@ -20,6 +60,7 @@
 - Вход: строка 03 ниже; уточнения 09 §3 (если есть); образец формата — `contracts/quota-tables.json` (columns, primary_key, constraints, indexes).
 - Выход: запись в `contracts/finance-tables.json`, затем перегенерация миграции генератором этапа.
 - Критерий: A. `scripts/generate-billing-finance.py --check` PASS. B. contract-тест видит таблицу, PK, FK, CHECK. C. integration-тест: tenant composite FK, RLS, ограничения (образец `EXAMPLES-TESTS.md`). D. Новых колонок сверх 03/09 нет.
+- Тесты (в этой же задаче, R33, `TESTING.md`): `tests/contracts/test_billing_finance_contract.py` — колонки, PK, FK, CHECK из JSON; `tests/integration/test_billing_finance.py` — по одному негативному тесту на каждый CHECK и FK, RLS чужого tenant. Без них задача не принята.
 - Запреты: R7, R8, R9; типы по 09 §3 (`*_id uuid`, `*_at timestamptz`, деньги и количества `bigint`); неоднозначный тип → STOP и строка в `OPEN.md`.
 - Из 03:
 
@@ -27,58 +68,3 @@
 - Уточнения из 09:
 
 | tenant_billing_profiles | financial_subject_id uuid UNIQUE FK; active_provider_account_id uuid? FK; lifecycle active/deleting/closed; lifecycle_epoch bigint>0; beta_policy_id uuid? FK; transition_at timestamptz?; current_price_id nullable только Trial/manual. UNIQUE(tenant,subject). Новый subject не создаётся при каждом входе |
-
-### FIN-F01 — функция `billing_accept_quote`
-
-- Статус: нет `FUNCTION photo.billing_accept_quote(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_project_quota`, `billing_append_quota_event`, `billing_expire_quota_buckets`.
-- Вход: строка 04 ниже; типы аргументов по 09 §3 (в 04 даны имена, не типы); образец — `EXAMPLES.md` §1–2.
-- Выход: тело в `contracts/finance-functions.sql`, запись в `contracts/finance-functions.json`, перегенерация миграции.
-- Критерий: A. `--check` генератора PASS. B. `execute_roles` в JSON = `GRANT` в SQL, роли из колонки «права» строки 04. C. integration-тест: положительный путь, отказ авторизации, точный повтор и конфликт hash. D. Порядок блокировок R23–R26.
-- Запреты: R11, R12, R16–R26; не писать сетевые вызовы.
-- Из 04:
-
-| billing_accept_quote | quote_id, actor, key, hash → order+change | Revalidate role, lifecycle, revision, expiry и price mapping; freeze order lines; поставить Checkout create outbox | Duplicate key возвращает order; смена цены требует нового quote |
-
-### FIN-F02 — функция `billing_apply_paid_upgrade`
-
-- Статус: нет `FUNCTION photo.billing_apply_paid_upgrade(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_quota_pin_budget`, `billing_allocate_paid_operation_lease`, `billing_lock_apply_run`.
-- Вход: строка 04 ниже; типы аргументов по 09 §3 (в 04 даны имена, не типы); образец — `EXAMPLES.md` §1–2.
-- Выход: тело в `contracts/finance-functions.sql`, запись в `contracts/finance-functions.json`, перегенерация миграции.
-- Критерий: A. `--check` генератора PASS. B. `execute_roles` в JSON = `GRANT` в SQL, роли из колонки «права» строки 04. C. integration-тест: положительный путь, отказ авторизации, точный повтор и конфликт hash. D. Порядок блокировок R23–R26.
-- Запреты: R11, R12, R16–R26; не писать сетевые вызовы.
-- Из 04:
-
-| billing_apply_paid_upgrade | change_id, verified invoice allocation → applied/applying | Проверить source/target и renewal race; atomic local delta quota+capacity+revision после подтверждения provider price update по saga | Exact replay no new quota; Stripe update не вызывается из SQL |
-
-### FIN-F03 — функция `billing_apply_refund`
-
-- Статус: нет `FUNCTION photo.billing_apply_refund(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_lock_apply_run`, `billing_settle_apply_run`, `billing_prepare_render`.
-- Вход: строка 04 ниже; типы аргументов по 09 §3 (в 04 даны имена, не типы); образец — `EXAMPLES.md` §1–2.
-- Выход: тело в `contracts/finance-functions.sql`, запись в `contracts/finance-functions.json`, перегенерация миграции.
-- Критерий: A. `--check` генератора PASS. B. `execute_roles` в JSON = `GRANT` в SQL, роли из колонки «права» строки 04. C. integration-тест: положительный путь, отказ авторизации, точный повтор и конфликт hash. D. Порядок блокировок R23–R26.
-- Запреты: R11, R12, R16–R26; не писать сетевые вызовы.
-- Из 04:
-
-| billing_apply_refund | refund_id, verified refund state → reversal refs | Отозвать unissued остатки пропорционально строкам refund; issued funding пометить для correction; policy consumed handling | Только provider finance worker; partial repeat не отзывает дважды |
-
-### FIN-F04 — функция `billing_assign_custom`
-
-- Статус: нет `FUNCTION photo.billing_assign_custom(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_bind_editor`, `billing_quota_pin_budget`, `billing_close_admission_lease`.
-- Вход: строка 04 ниже; типы аргументов по 09 §3 (в 04 даны имена, не типы); образец — `EXAMPLES.md` §1–2.
-- Выход: тело в `contracts/finance-functions.sql`, запись в `contracts/finance-functions.json`, перегенерация миграции.
-- Критерий: A. `--check` генератора PASS. B. `execute_roles` в JSON = `GRANT` в SQL, роли из колонки «права» строки 04. C. integration-тест: положительный путь, отказ авторизации, точный повтор и конфликт hash. D. Порядок блокировок R23–R26.
-- Запреты: R11, R12, R16–R26; не писать сетевые вызовы.
-- Из 04:
-
-| billing_assign_custom | tenant, complete assignment+limits,actor,reason,key → assignment | Полнота, dates, amount, manual/Stripe, no overlap; публичность false; atomic entitlement revision | Privileged audited operator; не owner public API |
-
-### FIN-F05 — функция `billing_attach_checkout`
-
-- Статус: нет `FUNCTION photo.billing_attach_checkout(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_quota_lock`, `billing_check_operation_claim`, `billing_append_quota_event`.
-- Вход: строка 04 ниже; типы аргументов по 09 §3 (в 04 даны имена, не типы); образец — `EXAMPLES.md` §1–2.
-- Выход: тело в `contracts/finance-functions.sql`, запись в `contracts/finance-functions.json`, перегенерация миграции.
-- Критерий: A. `--check` генератора PASS. B. `execute_roles` в JSON = `GRANT` в SQL, роли из колонки «права» строки 04. C. integration-тест: положительный путь, отказ авторизации, точный повтор и конфликт hash. D. Порядок блокировок R23–R26.
-- Запреты: R11, R12, R16–R26; не писать сетевые вызовы.
-- Из 04:
-
-| billing_attach_checkout | order_id, provider session snapshot, operation_key → order | Проверить account/customer/mode/currency/order ownership и ещё не привязанный другой session | Provider worker; unique session; no grant |

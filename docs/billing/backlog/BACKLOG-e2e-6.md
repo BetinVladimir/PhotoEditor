@@ -1,81 +1,73 @@
 # Бэклог: e2e E01–E90 (разделы 08 и 10), часть 6
 
-### E51 — Tenant isolation
+### E40 — Storage purchase
 
-- Положительный: Switching tenant показывает только новую summary
-- Отрицательный: Foreign UUID/order/quote/bucket/result404/403, no cross-tenant RLS bypass
-- Тема (подсказка по ключевым словам): `quota`. Выход: функция `test_e51_*` в `tests/integration/test_billing_e2e_quota.py`; UI-часть — `apps/photographer/src/billing-e2e-quota.dom.test.tsx`. Образцы — `EXAMPLES-TESTS.md`.
+- Положительный: Paid add-on расширяет capacity и prorated egress один раз
+- Отрицательный: Unpaid update не даёт capacity; storage не превращается в 90-day photo bucket
+- Тема (подсказка по ключевым словам): `provider`. Выход: функция `test_e40_*` в `tests/integration/test_billing_e2e_provider.py`; UI-часть — `apps/photographer/src/billing-e2e-provider.dom.test.tsx`. Образцы — `EXAMPLES-TESTS.md`.
+- Описание теста: сначала docstring по шаблону из `TESTING.md` (модули, предусловия, положительный и отрицательный Дано/Когда/Тогда, инварианты), затем код; описание и тест — в одном коммите (R33).
 - Критерий: оба сценария (положительный и отрицательный) обязательны, один без другого не принимается (08). Гонки и recovery — отдельными тестами.
 - Блокеры: функциональность из групп бэклога (`finance`, `provider`, `usage`, `legal`, `api`, `stripe`, `ui`) — сценарий можно начинать, когда соответствующие задачи закрыты.
 
-### E52 — Old settings
+### E41 — Storage reserve
 
-- Положительный: Технические настройки меняются только разрешённым процессом
-- Отрицательный: Старый tenant PATCH/прямой SQL role не повышает paid entitlement
-- Тема (подсказка по ключевым словам): `provider`. Выход: функция `test_e52_*` в `tests/integration/test_billing_e2e_provider.py`; UI-часть — `apps/photographer/src/billing-e2e-provider.dom.test.tsx`. Образцы — `EXAMPLES-TESTS.md`.
+- Положительный: Upload declared/actual bytes и output reservations сходятся
+- Отрицательный: Full disk/oversized object блокируют admission, GPU не стартует без safety reserve
+- Тема (подсказка по ключевым словам): `quota`. Выход: функция `test_e41_*` в `tests/integration/test_billing_e2e_quota.py`; UI-часть — `apps/photographer/src/billing-e2e-quota.dom.test.tsx`. Образцы — `EXAMPLES-TESTS.md`.
+- Описание теста: сначала docstring по шаблону из `TESTING.md` (модули, предусловия, положительный и отрицательный Дано/Когда/Тогда, инварианты), затем код; описание и тест — в одном коммите (R33).
 - Критерий: оба сценария (положительный и отрицательный) обязательны, один без другого не принимается (08). Гонки и recovery — отдельными тестами.
 - Блокеры: функциональность из групп бэклога (`finance`, `provider`, `usage`, `legal`, `api`, `stripe`, `ui`) — сценарий можно начинать, когда соответствующие задачи закрыты.
 
-### E53 — Paper screens
+### E42 — Storage decrease
 
-- Положительный: Все billing/legal/deletion экраны используют реальные Paper components
-- Отрицательный: Нет HTML substitute/нового framework; portal recipient не получает payment controls
-- Тема (подсказка по ключевым словам): `provider`. Выход: функция `test_e53_*` в `tests/integration/test_billing_e2e_provider.py`; UI-часть — `apps/photographer/src/billing-e2e-provider.dom.test.tsx`. Образцы — `EXAMPLES-TESTS.md`.
-- Критерий: оба сценария (положительный и отрицательный) обязательны, один без другого не принимается (08). Гонки и recovery — отдельными тестами. Stripe-зависимо: сначала на fake-провайдере (`STR-01`), затем повтор на sandbox после ключей (`OPEN-14`, `STR-14`).
-- Блокеры: функциональность из групп бэклога (`finance`, `provider`, `usage`, `legal`, `api`, `stripe`, `ui`) — сценарий можно начинать, когда соответствующие задачи закрыты.
-
-### E54 — UI states
-
-- Положительный: Mobile, keyboard, dark mode, bigint, timezone и decimal GB корректны
-- Отрицательный: Loading/offline/stale/failed не выглядят successful/zero balance; focus восстанавливается
-- Тема (подсказка по ключевым словам): `ui`. Выход: функция `test_e54_*` в `tests/integration/test_billing_e2e_ui.py`; UI-часть — `apps/photographer/src/billing-e2e-ui.dom.test.tsx`. Образцы — `EXAMPLES-TESTS.md`.
+- Положительный: Next-boundary decrease даёт overquota и понятный read grace
+- Отрицательный: Ни cancel, ни возраст 30 дней автоматически не purges client originals/results
+- Тема (подсказка по ключевым словам): `quota`. Выход: функция `test_e42_*` в `tests/integration/test_billing_e2e_quota.py`; UI-часть — `apps/photographer/src/billing-e2e-quota.dom.test.tsx`. Образцы — `EXAMPLES-TESTS.md`.
+- Описание теста: сначала docstring по шаблону из `TESTING.md` (модули, предусловия, положительный и отрицательный Дано/Когда/Тогда, инварианты), затем код; описание и тест — в одном коммите (R33).
 - Критерий: оба сценария (положительный и отрицательный) обязательны, один без другого не принимается (08). Гонки и recovery — отдельными тестами.
 - Блокеры: функциональность из групп бэклога (`finance`, `provider`, `usage`, `legal`, `api`, `stripe`, `ui`) — сценарий можно начинать, когда соответствующие задачи закрыты.
 
-### E55 — Resume purchase
+### E43 — Storage dedup
 
-- Положительный: Reload/return from Stripe восстанавливает тот же order и batch selection
-- Отрицательный: Tampered deep link/success param не дает платный доступ, новый charge не создаётся
-- Тема (подсказка по ключевым словам): `provider`. Выход: функция `test_e55_*` в `tests/integration/test_billing_e2e_provider.py`; UI-часть — `apps/photographer/src/billing-e2e-provider.dom.test.tsx`. Образцы — `EXAMPLES-TESTS.md`.
-- Критерий: оба сценария (положительный и отрицательный) обязательны, один без другого не принимается (08). Гонки и recovery — отдельными тестами. Stripe-зависимо: сначала на fake-провайдере (`STR-01`), затем повтор на sandbox после ключей (`OPEN-14`, `STR-14`).
-- Блокеры: функциональность из групп бэклога (`finance`, `provider`, `usage`, `legal`, `api`, `stripe`, `ui`) — сценарий можно начинать, когда соответствующие задачи закрыты.
-
-### E56 — Notifications
-
-- Положительный: 80/95/100% один раз на resource/period
-- Отрицательный: Re-render/replayed outbox не спамят; новая квота пересчитывает threshold корректно
-- Тема (подсказка по ключевым словам): `general`. Выход: функция `test_e56_*` в `tests/integration/test_billing_e2e_general.py`; UI-часть — `apps/photographer/src/billing-e2e-general.dom.test.tsx`. Образцы — `EXAMPLES-TESTS.md`.
+- Положительный: Одна physical version shared внутри tenant counted once
+- Отрицательный: Отдельная ZIP/export copy counted; ссылка не удваивает bytes
+- Тема (подсказка по ключевым словам): `quota`. Выход: функция `test_e43_*` в `tests/integration/test_billing_e2e_quota.py`; UI-часть — `apps/photographer/src/billing-e2e-quota.dom.test.tsx`. Образцы — `EXAMPLES-TESTS.md`.
+- Описание теста: сначала docstring по шаблону из `TESTING.md` (модули, предусловия, положительный и отрицательный Дано/Когда/Тогда, инварианты), затем код; описание и тест — в одном коммите (R33).
 - Критерий: оба сценария (положительный и отрицательный) обязательны, один без другого не принимается (08). Гонки и recovery — отдельными тестами.
 - Блокеры: функциональность из групп бэклога (`finance`, `provider`, `usage`, `legal`, `api`, `stripe`, `ui`) — сценарий можно начинать, когда соответствующие задачи закрыты.
 
-### E57 — Onboarding
+### E44 — Purge bytes
 
-- Положительный: Явное принятие актуальных Terms/DPA и Privacy acknowledgement активирует account
-- Отрицательный: Unchecked/подменённая версия/locale/hash/изменившийся текст не создают фиктивный consent
-- Тема (подсказка по ключевым словам): `legal`. Выход: функция `test_e57_*` в `tests/integration/test_billing_e2e_legal.py`; UI-часть — `apps/photographer/src/billing-e2e-legal.dom.test.tsx`. Образцы — `EXAMPLES-TESTS.md`.
+- Положительный: После verified physical deletion committed bytes уменьшаются
+- Отрицательный: Delete requested/failed object removal не освобождают место заранее
+- Тема (подсказка по ключевым словам): `legal`. Выход: функция `test_e44_*` в `tests/integration/test_billing_e2e_legal.py`; UI-часть — `apps/photographer/src/billing-e2e-legal.dom.test.tsx`. Образцы — `EXAMPLES-TESTS.md`.
+- Описание теста: сначала docstring по шаблону из `TESTING.md` (модули, предусловия, положительный и отрицательный Дано/Когда/Тогда, инварианты), затем код; описание и тест — в одном коммите (R33).
 - Критерий: оба сценария (положительный и отрицательный) обязательны, один без другого не принимается (08). Гонки и recovery — отдельными тестами.
 - Блокеры: функциональность из групп бэклога (`finance`, `provider`, `usage`, `legal`, `api`, `stripe`, `ui`) — сценарий можно начинать, когда соответствующие задачи закрыты.
 
-### E58 — Optional consent
+### E45 — Egress
 
-- Положительный: Reject optional позволяет core service; accepted SDK только после выбора
-- Отрицательный: До consent нет optional network/storage; closing banner не accept
-- Тема (подсказка по ключевым словам): `legal`. Выход: функция `test_e58_*` в `tests/integration/test_billing_e2e_legal.py`; UI-часть — `apps/photographer/src/billing-e2e-legal.dom.test.tsx`. Образцы — `EXAMPLES-TESTS.md`.
+- Положительный: Body/Range/preview/repeat download/CDN feed counts реальные bytes
+- Отрицательный: HEAD/304/no-body=0; internal worker I/O не billable; invalid Range не тратит full object
+- Тема (подсказка по ключевым словам): `quota`. Выход: функция `test_e45_*` в `tests/integration/test_billing_e2e_quota.py`; UI-часть — `apps/photographer/src/billing-e2e-quota.dom.test.tsx`. Образцы — `EXAMPLES-TESTS.md`.
+- Описание теста: сначала docstring по шаблону из `TESTING.md` (модули, предусловия, положительный и отрицательный Дано/Когда/Тогда, инварианты), затем код; описание и тест — в одном коммите (R33).
 - Критерий: оба сценария (положительный и отрицательный) обязательны, один без другого не принимается (08). Гонки и recovery — отдельными тестами.
 - Блокеры: функциональность из групп бэклога (`finance`, `provider`, `usage`, `legal`, `api`, `stripe`, `ui`) — сценарий можно начинать, когда соответствующие задачи закрыты.
 
-### E59 — Withdrawal
+### E46 — Egress bound
 
-- Положительный: Отзыв analytics/marketing применяется и документируется
-- Отрицательный: Не отнимает paid core service и не открывает matching/learning consent
-- Тема (подсказка по ключевым словам): `provider`. Выход: функция `test_e59_*` в `tests/integration/test_billing_e2e_provider.py`; UI-часть — `apps/photographer/src/billing-e2e-provider.dom.test.tsx`. Образцы — `EXAMPLES-TESTS.md`.
+- Положительный: Active streams тратят выделенные chunks, bounded tail after cutoff
+- Отрицательный: Большой ZIP/direct URL не обходят quota; превышение не равно неограниченному full stream
+- Тема (подсказка по ключевым словам): `quota`. Выход: функция `test_e46_*` в `tests/integration/test_billing_e2e_quota.py`; UI-часть — `apps/photographer/src/billing-e2e-quota.dom.test.tsx`. Образцы — `EXAMPLES-TESTS.md`.
+- Описание теста: сначала docstring по шаблону из `TESTING.md` (модули, предусловия, положительный и отрицательный Дано/Когда/Тогда, инварианты), затем код; описание и тест — в одном коммите (R33).
 - Критерий: оба сценария (положительный и отрицательный) обязательны, один без другого не принимается (08). Гонки и recovery — отдельными тестами.
 - Блокеры: функциональность из групп бэклога (`finance`, `provider`, `usage`, `legal`, `api`, `stripe`, `ui`) — сценарий можно начинать, когда соответствующие задачи закрыты.
 
-### E60 — Existing legal
+### E47 — Egress restart
 
-- Положительный: Existing account явно принимает новую требуемую версию
-- Отрицательный: Backfill не записывает accepted задним числом; obsolete version не покупает новый план
-- Тема (подсказка по ключевым словам): `legal`. Выход: функция `test_e60_*` в `tests/integration/test_billing_e2e_legal.py`; UI-часть — `apps/photographer/src/billing-e2e-legal.dom.test.tsx`. Образцы — `EXAMPLES-TESTS.md`.
+- Положительный: Partial flush receipt replay без double consumption
+- Отрицательный: Потеря метрики после crash не скрывает неограниченные bytes; ambiguous scope закрыт/reconciled
+- Тема (подсказка по ключевым словам): `quota`. Выход: функция `test_e47_*` в `tests/integration/test_billing_e2e_quota.py`; UI-часть — `apps/photographer/src/billing-e2e-quota.dom.test.tsx`. Образцы — `EXAMPLES-TESTS.md`.
+- Описание теста: сначала docstring по шаблону из `TESTING.md` (модули, предусловия, положительный и отрицательный Дано/Когда/Тогда, инварианты), затем код; описание и тест — в одном коммите (R33).
 - Критерий: оба сценария (положительный и отрицательный) обязательны, один без другого не принимается (08). Гонки и recovery — отдельными тестами.
 - Блокеры: функциональность из групп бэклога (`finance`, `provider`, `usage`, `legal`, `api`, `stripe`, `ui`) — сценарий можно начинать, когда соответствующие задачи закрыты.

@@ -22,6 +22,7 @@ x-go-env: &go-env
   APP_ORIGIN: ${APP_ORIGIN:?required}
   API_PUBLIC_ORIGIN: ${API_PUBLIC_ORIGIN:?required}
   PORTAL_ORIGIN: ${PORTAL_ORIGIN:?required}
+  TRUSTED_PROXY_CIDRS: ${TRUSTED_PROXY_CIDRS:-}
   PHOTO_ICC_ROOT: /opt/photo/icc
 
 x-worker-env: &worker-env

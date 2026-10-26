@@ -203,6 +203,9 @@ func runWithAPIDependencies(dependencies apiProcessDependencies) error {
 			"initially_pending", result.InitiallyPending, "confirmed", result.Confirmed, "receipt_sha256", receipt.SHA256)
 		return nil
 	}
+	if cfg.Role == "event-consumer" {
+		return queue.RunEventConsumer(ctx, cfg.DatabaseURL, cfg.AMQPURL, cfg.Listen)
+	}
 	if cfg.Role == "publisher" {
 		if cfg.AMQPURL == "" {
 			return errors.New("AMQP_URL required")

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"photoeditor/backend/internal/archivecontract"
 	"sort"
 	"strings"
 	"unicode/utf8"
@@ -59,15 +60,17 @@ type archiveParams struct {
 // Validate the frozen name without normalizing it: renaming after planning
 // would invalidate collision decisions and the immutable manifest mapping.
 func validArchiveEntryName(name string) bool {
-    if name == "" || name == "." || name == ".." || !utf8.ValidString(name) ||
-        len([]byte(name)) > maxEntryNameBytes || strings.ContainsAny(name, "/\\") ||
-        norm.NFKC.String(name) != name || cases.Fold().String(name) == "manifest.json" {
-        return false
-    }
-    for _, char := range name {
-        if char < 32 || char == 127 { return false }
-    }
-    return true
+	if name == "" || name == "." || name == ".." || !utf8.ValidString(name) ||
+		len([]byte(name)) > maxEntryNameBytes || strings.ContainsAny(name, "/\\") ||
+		norm.NFKC.String(name) != name || cases.Fold().String(name) == "manifest.json" {
+		return false
+	}
+	for _, char := range name {
+		if char < 32 || char == 127 {
+			return false
+		}
+	}
+	return true
 }
 
 func CompileDownloadArchives(spec DownloadArchiveSpec, registry Registry) ([]CompiledDownloadArchive, error) {
@@ -83,7 +86,9 @@ func CompileDownloadArchives(spec DownloadArchiveSpec, registry Registry) ([]Com
 	}
 	totalEntries := 0
 	for _, volume := range spec.Volumes {
-		if len(volume.Entries) < 1 || len(volume.Entries) > MaxDownloadItems-totalEntries { return fail() }
+		if len(volume.Entries) < 1 || len(volume.Entries) > MaxDownloadItems-totalEntries {
+			return fail()
+		}
 		totalEntries += len(volume.Entries)
 	}
 	seenOrdinals := make(map[int64]bool, totalEntries)
@@ -107,9 +112,11 @@ func CompileDownloadArchives(spec DownloadArchiveSpec, registry Registry) ([]Com
 			if entry.Ordinal < 0 || entry.Ordinal >= MaxDownloadItems || seenOrdinals[entry.Ordinal] || !validExpansionRef(entry.Artifact) || entry.Bytes < 1 || entry.Bytes > DefaultVolumeByteLimit || !validArchiveEntryName(entry.EntryName) || entry.ProducerTask == uuid.Nil || names[nameKey] {
 				return fail()
 			}
-            manifestEntry, err := archiveManifestEntryBytes(entry.Artifact,entry.Bytes,entry.EntryName)
-            if err != nil || len(manifestEntry)+1 > 1048576-manifestBytes { return fail() }
-            manifestBytes += len(manifestEntry)+1
+			manifestEntry, err := archiveManifestEntryBytes(entry.Artifact, entry.Bytes, entry.EntryName)
+			if err != nil || len(manifestEntry)+1 > archivecontract.DocumentBytes-manifestBytes {
+				return fail()
+			}
+			manifestBytes += len(manifestEntry) + 1
 			names[nameKey] = true
 			seenOrdinals[entry.Ordinal] = true
 			if total > DefaultVolumeByteLimit-entry.Bytes {
@@ -121,7 +128,7 @@ func CompileDownloadArchives(spec DownloadArchiveSpec, registry Registry) ([]Com
 			producers = append(producers, entry.ProducerTask)
 		}
 		raw, err := canonical.Marshal(archiveParams{spec.SnapshotID, spec.SnapshotDigest, volume.Number, params})
-		if err != nil || len(raw) > 1048576 {
+		if err != nil || len(raw) > archivecontract.DocumentBytes {
 			return fail()
 		}
 		key := fmt.Sprintf("archive.build/%04d", volume.Number)
@@ -133,8 +140,12 @@ func CompileDownloadArchives(spec DownloadArchiveSpec, registry Registry) ([]Com
 type DownloadArchiveRepository struct{ DB artifactjson.RowQuerier }
 
 func (r DownloadArchiveRepository) Register(ctx context.Context, tenant uuid.UUID, spec DownloadArchiveSpec) ([]CompiledDownloadArchive, error) {
-    if err := ctx.Err(); err != nil { return nil, err }
-    if r.DB == nil || tenant == uuid.Nil { return nil, errors.New("invalid archive registration scope") }
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if r.DB == nil || tenant == uuid.Nil {
+		return nil, errors.New("invalid archive registration scope")
+	}
 	registry, err := LoadRegistry()
 	if err != nil {
 		return nil, err
@@ -144,7 +155,9 @@ func (r DownloadArchiveRepository) Register(ctx context.Context, tenant uuid.UUI
 		return nil, err
 	}
 	for _, n := range nodes {
-		if err := ctx.Err(); err != nil { return nil, err }
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		sum := sha256.Sum256(n.Params)
 		inputs, _ := canonical.Marshal(n.Inputs)
 		producers, _ := canonical.Marshal(n.Producers)
@@ -153,7 +166,9 @@ func (r DownloadArchiveRepository) Register(ctx context.Context, tenant uuid.UUI
 		if err != nil {
 			return nil, err
 		}
-        if err := ctx.Err(); err != nil { return nil, err }
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		if !ok {
 			return nil, errors.New("download archive plan conflict")
 		}
@@ -171,21 +186,29 @@ type DownloadArchiveBuilder struct {
 }
 
 func (b DownloadArchiveBuilder) Publish(ctx context.Context, tenant uuid.UUID, spec DownloadArchiveSpec) ([]PublishedDownloadArchive, error) {
-    if err := ctx.Err(); err != nil { return nil, err }
-    if b.Publisher == nil || b.Plans.DB == nil { return nil, errors.New("archive publisher unavailable") }
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if b.Publisher == nil || b.Plans.DB == nil {
+		return nil, errors.New("archive publisher unavailable")
+	}
 	nodes, err := b.Plans.Register(ctx, tenant, spec)
 	if err != nil {
 		return nil, err
 	}
 	out := make([]PublishedDownloadArchive, 0, len(nodes))
 	for _, n := range nodes {
-		if err := ctx.Err(); err != nil { return nil, err }
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		sum := sha256.Sum256(n.Params)
-		ref, e := b.Publisher.Publish(ctx, artifactjson.Scope{Tenant: tenant, Run: spec.RunID, Owner: n.ID, Purpose: "task_params"}, append([]byte(nil), n.Params...))
+		ref, e := b.Publisher.Publish(ctx, artifactjson.Scope{Tenant: tenant, Run: spec.RunID, Owner: n.ID, Purpose: "task_params", DownloadArchive: true}, append([]byte(nil), n.Params...))
 		if e != nil {
 			return nil, e
 		}
-		if err := ctx.Err(); err != nil { return nil, err }
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		if ref.ID == uuid.Nil || ref.SHA256 != hex.EncodeToString(sum[:]) {
 			return nil, errors.New("archive params integrity failure")
 		}
@@ -204,8 +227,8 @@ func PrepareDownloadArchiveTask(entry PublishedDownloadArchive) (PreparedTask, e
 		return PreparedTask{}, errors.New("archive params hash mismatch")
 	}
 	// Match worker payload + per-entry ZIP/manifest accounting, retaining
-	// another 1MiB for the separately staged external manifest.
-	output := n.InputBytes + 2*1048576 + 4096*int64(len(n.Inputs))
+	// another 8MiB for the separately staged external manifest.
+	output := n.InputBytes + 2*archivecontract.DocumentBytes + archivecontract.ZIPEntryOverheadBytes*int64(len(n.Inputs))
 	profile, err := canonical.Marshal(struct {
 		Backend   string           `json:"backend"`
 		Precision string           `json:"precision"`

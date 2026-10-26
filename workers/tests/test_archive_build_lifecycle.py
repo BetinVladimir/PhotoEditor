@@ -75,18 +75,5 @@ def test_complete_archive_lifecycle_including_large_long_name_inventory(tmp_path
         assert embedded['snapshot_digest'] == params.snapshot_digest
 
 
-def test_unplanned_5000_entry_manifest_overflow_refuses_before_scratch_and_image_io():
-    ref = ArtifactRef(artifact_id=uuid4(), sha256=hashlib.sha256(b'x').hexdigest())
-    params = ArchiveParams(snapshot_id=uuid4(), snapshot_digest='a' * 64, volume_no=1,
-        entries=[{'artifact': ref, 'bytes': 1, 'entry_name': f'{index:04d}.jpg'} for index in range(5000)])
-    artifacts = Mock()
-    artifacts.params.return_value = params
-    ctx = SimpleNamespace(lease=SimpleNamespace(execution_profile={'backend': 'cpu'},
-        command=SimpleNamespace(inputs=[ref] * 5000)), check_active=lambda: None, progress=Mock())
-    with pytest.raises(OperationFailure) as failure:
-        execute(ctx, artifacts)
-    assert failure.value.error.code == 'INPUT_INVALID'
-    artifacts.scratch.reserve.assert_not_called()
-    artifacts.stream.assert_not_called()
-    artifacts.stage.assert_not_called()
-    artifacts.stage_contract.assert_not_called()
+def test_full_5000_entry_inventory_is_supported_with_archive_specific_document_budget(tmp_path):
+    test_complete_archive_lifecycle_including_large_long_name_inventory(tmp_path, 5000)

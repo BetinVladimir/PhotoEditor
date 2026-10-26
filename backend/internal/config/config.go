@@ -8,9 +8,12 @@ import (
 	"path/filepath"
 	"photoeditor/backend/internal/domain"
 	"strconv"
+	"strings"
 )
 
 type Config struct {
+	// TrustedProxyCIDRs lists reverse proxies (Caddy) whose X-Forwarded-For is trusted for client IP.
+	TrustedProxyCIDRs     []string
 	RegionCalibrationFile string
 	RegionCalibrationSHA  string
 	RegionEvidenceSHA     string
@@ -35,6 +38,11 @@ type Config struct {
 
 func Load() (Config, error) {
 	c := Config{Role: env("PHOTO_ROLE", "api"), Listen: env("HTTP_LISTEN", "127.0.0.1:8080"), DatabaseURL: os.Getenv("DATABASE_URL"), Environment: env("APP_ENV", "development"), AppOrigin: env("APP_ORIGIN", "http://localhost:8080"), PortalOrigin: env("PORTAL_ORIGIN", "http://localhost:3000"), MaxJSONBytes: 1048576}
+	for _, part := range strings.Split(os.Getenv("TRUSTED_PROXY_CIDRS"), ",") {
+		if part = strings.TrimSpace(part); part != "" {
+			c.TrustedProxyCIDRs = append(c.TrustedProxyCIDRs, part)
+		}
+	}
 	c.RenderCalibrationFile = os.Getenv("PHOTO_RENDER_CALIBRATION_FILE")
 	c.RenderCalibrationSHA = os.Getenv("PHOTO_RENDER_CALIBRATION_SHA256")
 	if (c.RenderCalibrationFile == "") != (c.RenderCalibrationSHA == "") {
@@ -85,6 +93,11 @@ func Load() (Config, error) {
 	}
 	if c.Environment != "development" && c.Environment != "production" {
 		return c, fmt.Errorf("APP_ENV must be development or production")
+	}
+	for _, cidr := range c.TrustedProxyCIDRs {
+		if _, _, e := net.ParseCIDR(cidr); e != nil {
+			return c, fmt.Errorf("TRUSTED_PROXY_CIDRS must be a comma-separated CIDR list")
+		}
 	}
 	for _, raw := range []string{c.AppOrigin, c.PortalOrigin, c.CaptureOrigin, c.APIPublicOrigin} {
 		u, e := url.Parse(raw)

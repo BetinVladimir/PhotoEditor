@@ -3,6 +3,7 @@
 ### FIN-00 — каркас этапа группы `finance`
 
 - Выход: Создать каркас этапа по образцу quota-этапа (копировать структуру, не логику): `contracts/finance-tables.json`, `contracts/finance-functions.json`, `contracts/finance-functions.sql`, `scripts/generate-billing-finance.py` (копия `scripts/generate-billing-quota.py`), `tests/contracts/test_billing_finance_contract.py` (копия `tests/contracts/test_billing_quota_contract.py`), `tests/integration/test_billing_finance.py` (копия структуры `tests/integration/test_billing_quota.py`).
+- Тесты (R33): сами файлы `tests/contracts/test_billing_finance_contract.py` и `tests/integration/test_billing_finance.py` создаются здесь (пустой набор проходит, не skip).
 - Критерий: A. Генератор `--check` PASS на пустых источниках. B. Пустой contract-тест PASS. C. Миграция-пустышка не создаётся, пока нет таблиц.
 - Запреты: R9, R28.
 
@@ -12,6 +13,7 @@
 - Вход: строка 03 ниже; уточнения 09 §3 (если есть); образец формата — `contracts/quota-tables.json` (columns, primary_key, constraints, indexes).
 - Выход: запись в `contracts/finance-tables.json`, затем перегенерация миграции генератором этапа.
 - Критерий: A. `scripts/generate-billing-finance.py --check` PASS. B. contract-тест видит таблицу, PK, FK, CHECK. C. integration-тест: tenant composite FK, RLS, ограничения (образец `EXAMPLES-TESTS.md`). D. Новых колонок сверх 03/09 нет.
+- Тесты (в этой же задаче, R33, `TESTING.md`): `tests/contracts/test_billing_finance_contract.py` — колонки, PK, FK, CHECK из JSON; `tests/integration/test_billing_finance.py` — по одному негативному тесту на каждый CHECK и FK, RLS чужого tenant. Без них задача не принята.
 - Запреты: R7, R8, R9; типы по 09 §3 (`*_id uuid`, `*_at timestamptz`, деньги и количества `bigint`); неоднозначный тип → STOP и строка в `OPEN.md`.
 - Из 03:
 
@@ -23,6 +25,7 @@
 - Вход: строка 03 ниже; уточнения 09 §3 (если есть); образец формата — `contracts/quota-tables.json` (columns, primary_key, constraints, indexes).
 - Выход: запись в `contracts/finance-tables.json`, затем перегенерация миграции генератором этапа.
 - Критерий: A. `scripts/generate-billing-finance.py --check` PASS. B. contract-тест видит таблицу, PK, FK, CHECK. C. integration-тест: tenant composite FK, RLS, ограничения (образец `EXAMPLES-TESTS.md`). D. Новых колонок сверх 03/09 нет.
+- Тесты (в этой же задаче, R33, `TESTING.md`): `tests/contracts/test_billing_finance_contract.py` — колонки, PK, FK, CHECK из JSON; `tests/integration/test_billing_finance.py` — по одному негативному тесту на каждый CHECK и FK, RLS чужого tenant. Без них задача не принята.
 - Запреты: R7, R8, R9; типы по 09 §3 (`*_id uuid`, `*_at timestamptz`, деньги и количества `bigint`); неоднозначный тип → STOP и строка в `OPEN.md`.
 - Из 03:
 
@@ -37,6 +40,7 @@
 - Вход: строка 03 ниже; уточнения 09 §3 (если есть); образец формата — `contracts/quota-tables.json` (columns, primary_key, constraints, indexes).
 - Выход: запись в `contracts/finance-tables.json`, затем перегенерация миграции генератором этапа.
 - Критерий: A. `scripts/generate-billing-finance.py --check` PASS. B. contract-тест видит таблицу, PK, FK, CHECK. C. integration-тест: tenant composite FK, RLS, ограничения (образец `EXAMPLES-TESTS.md`). D. Новых колонок сверх 03/09 нет.
+- Тесты (в этой же задаче, R33, `TESTING.md`): `tests/contracts/test_billing_finance_contract.py` — колонки, PK, FK, CHECK из JSON; `tests/integration/test_billing_finance.py` — по одному негативному тесту на каждый CHECK и FK, RLS чужого tenant. Без них задача не принята.
 - Запреты: R7, R8, R9; типы по 09 §3 (`*_id uuid`, `*_at timestamptz`, деньги и количества `bigint`); неоднозначный тип → STOP и строка в `OPEN.md`.
 - Из 03:
 
@@ -48,6 +52,7 @@
 - Вход: строка 03 ниже; уточнения 09 §3 (если есть); образец формата — `contracts/quota-tables.json` (columns, primary_key, constraints, indexes).
 - Выход: запись в `contracts/finance-tables.json`, затем перегенерация миграции генератором этапа.
 - Критерий: A. `scripts/generate-billing-finance.py --check` PASS. B. contract-тест видит таблицу, PK, FK, CHECK. C. integration-тест: tenant composite FK, RLS, ограничения (образец `EXAMPLES-TESTS.md`). D. Новых колонок сверх 03/09 нет.
+- Тесты (в этой же задаче, R33, `TESTING.md`): `tests/contracts/test_billing_finance_contract.py` — колонки, PK, FK, CHECK из JSON; `tests/integration/test_billing_finance.py` — по одному негативному тесту на каждый CHECK и FK, RLS чужого tenant. Без них задача не принята.
 - Запреты: R7, R8, R9; типы по 09 §3 (`*_id uuid`, `*_at timestamptz`, деньги и количества `bigint`); неоднозначный тип → STOP и строка в `OPEN.md`.
 - Из 03:
 
@@ -59,21 +64,8 @@
 - Вход: строка 03 ниже; уточнения 09 §3 (если есть); образец формата — `contracts/quota-tables.json` (columns, primary_key, constraints, indexes).
 - Выход: запись в `contracts/finance-tables.json`, затем перегенерация миграции генератором этапа.
 - Критерий: A. `scripts/generate-billing-finance.py --check` PASS. B. contract-тест видит таблицу, PK, FK, CHECK. C. integration-тест: tenant composite FK, RLS, ограничения (образец `EXAMPLES-TESTS.md`). D. Новых колонок сверх 03/09 нет.
+- Тесты (в этой же задаче, R33, `TESTING.md`): `tests/contracts/test_billing_finance_contract.py` — колонки, PK, FK, CHECK из JSON; `tests/integration/test_billing_finance.py` — по одному негативному тесту на каждый CHECK и FK, RLS чужого tenant. Без них задача не принята.
 - Запреты: R7, R8, R9; типы по 09 §3 (`*_id uuid`, `*_at timestamptz`, деньги и количества `bigint`); неоднозначный тип → STOP и строка в `OPEN.md`.
 - Из 03:
 
 | billing_customers | tenant_id FK; provider_account_id FK; external_customer_id text; financial_subject_id uuid; state active/deleting/deleted | UNIQUE(account,external_customer_id); UNIQUE(tenant,account); metadata без email/фото |
-
-### FIN-T06 — таблица `billing_invoice_allocations`
-
-- Статус: нет `CREATE TABLE photo.billing_invoice_allocations` в `backend/db/migrations`.
-- Вход: строка 03 ниже; уточнения 09 §3 (если есть); образец формата — `contracts/quota-tables.json` (columns, primary_key, constraints, indexes).
-- Выход: запись в `contracts/finance-tables.json`, затем перегенерация миграции генератором этапа.
-- Критерий: A. `scripts/generate-billing-finance.py --check` PASS. B. contract-тест видит таблицу, PK, FK, CHECK. C. integration-тест: tenant composite FK, RLS, ограничения (образец `EXAMPLES-TESTS.md`). D. Новых колонок сверх 03/09 нет.
-- Запреты: R7, R8, R9; типы по 09 §3 (`*_id uuid`, `*_at timestamptz`, деньги и количества `bigint`); неоднозначный тип → STOP и строка в `OPEN.md`.
-- Из 03:
-
-| billing_invoice_allocations | tenant_id?; invoice_id FK; external_line_id text; order_line_id uuid?; period_id uuid?; allocation_kind renewal/upgrade/storage/egress; resource_snapshot jsonb; state pending/applied/compensated | UNIQUE(account,invoice,external_line_id,allocation_kind); несколько resources хранятся typed children в billing_entitlement_allocations с отдельными business keys |
-- Уточнения из 09:
-
-| billing_invoice_allocations | Ровно одна provider invoice line; её идемпотентность UNIQUE(account,invoice_id,external_line_id,allocation_kind). Удалить business_grant_key из строки как универсальный ключ нескольких ресурсов; typed entitlement allocations ниже имеют собственный key |

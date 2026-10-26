@@ -1,5 +1,20 @@
 # Согласование с существующим worker/gateway protocol
 
+
+## Узкое исключение archive.build/v1 — контракт 23 октября 2026
+
+Для `operation=archive.build`, `operation_version=1`, `resource_class=archive` применяется отдельный согласованный контракт. Он имеет приоритет над общими legacy-пределами ниже только в этом scope. Schema version остаётся 1; остальные команды сохраняют 512 inputs и 64 KiB wire envelope, события — 64 KiB и прежние ограничения outputs.
+
+- Один архивный том поддерживает до 5000 записей; обычный planner больше не делит его только из-за прежнего transport-предела 512. Явно заданные меньшие file limits и byte limits продолжают разделять тома.
+- Точный архивный command допускает до 5000 input refs и до 1 MiB сериализованного wire envelope. Повторная ссылка на один артефакт допустима; уникальность имён/порядка записей проверяется отдельно. Это не разрешение читать произвольные nested refs.
+- Только точные типы `ArchiveParams` и `ArchiveManifest` получают предел 8 MiB при чтении/публикации typed JSON. Общий предел legacy-документов остаётся 1 MiB; подклассы/одноимённые поддельные типы не получают исключение. HTTP control/body limits от этого не расширяются.
+- `reserve_backend_document` разрешает task_params свыше 1 MiB только после проверки точного существующего archive plan, его tenant/run/owner и params SHA. Миграция 02659 добавляет nullable UUID `backend_documents.archive_plan_id`; у прежних строк он остаётся NULL. Старое bytes-условие сохраняется для NULL; отдельная ветвь допускает до 8 MiB только при `purpose=task_params` и `owner_id=archive_plan_id`.
+- FK `(tenant_id,archive_plan_id)` ссылается на `(tenant_id,id)` archive plan, `NO ACTION DEFERRABLE INITIALLY DEFERRED`. Это согласовано со штатным fenced tenant purge, который откладывает FK до конца полного удаления metadata. Cascade и отключение guards не допускаются.
+- Backend резервирует scratch/output как сумму входных bytes + 16 MiB + 4096 bytes на запись. Worker резервирует ZIP как сумму входных bytes + 8 MiB + 4096 bytes на запись; оставшиеся 8 MiB покрывают внешний manifest. RAM минимум 1 GiB, VRAM 0, timeout 7200 секунд. Старые точные materialized rows replay-ятся без переписывания immutable profile; новые недостаточные бюджеты отклоняются.
+- Output policy: `archive` до 10766286848 bytes, `archive_manifest` до 8388608 bytes, по одному output каждого role. Tenant quota, task execution budget, media type, lease/fence/cancellation и gateway authority сохраняются.
+
+Реализация: `backend/internal/archivecontract/limits.go`, workflow compiler/planner, artifactjson publisher, queue publisher/replay/DLQ, worker contracts/artifacts/executor/archive build и forward-only `02659_archive_5000_contracts.sql`. Изменения внесены в canonical source; обычный изолированный Goose 2658→2659 и 29 SQL cases прошли, canonical три Go-пакета и 27 Python cases прошли. Рабочая MAIN обновлена до 2659 штатным CLI и независимо проверена (work/archive-main-2659-root-install-r3/root-independent-result.json): каталог/политики совпадают с квалифицированным Goose, данные и права сохранены, пять сервисов восстановлены. Runtime/Doctor нового worker и реальные 5000-file/ZIP64 large-IO остаются отдельными обязательными gates. Source candidate на RTX не означает runtime qualification.
+
 ## Найденные реальные ограничения baseline
 
 workers/photo_worker/contracts/wire.py: TaskCommand.inputs≤512, TaskResult.outputs≤128; resource_class не содержит signer. runtime/artifacts.py: TaskArtifacts._allowed строится только из command.inputs/params; stage_contract ограничен1MiB. SQL receive_task_event также ограничивает outputs128. Поэтому расширить только operations.json недостаточно: Session Brain с128 face artifacts,5000 correction plans и export bundles иначе не проходят транспорт. Этот документ — обязательная часть V21, consumers/tests изменяются до включения v2.

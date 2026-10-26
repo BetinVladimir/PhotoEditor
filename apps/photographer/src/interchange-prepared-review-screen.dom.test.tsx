@@ -159,7 +159,11 @@ it('hides photo authority in background and requires fresh media on foreground',
  lifecycle.active=true;lifecycle.generation++;view.rerender(<InterchangePreparedReviewScreen client={client as never} tenant={id(7)} project={id(8)} workflow={id(9)}/>);
  await clickWhenEnabled(await screen.findByRole('button',{name:/interchange_prepared_defects/}));
  await waitFor(()=>expect(mocks.media).toHaveBeenCalledTimes(2));expect((screen.getByRole('button',{name:'interchange_prepared_skip'}) as HTMLButtonElement).disabled).toBe(true);
- fireEvent.load(oldPhoto);fireEvent.error(oldPhoto);expect(screen.getByLabelText('interchange_prepared_photo')).not.toBe(oldPhoto);expect((screen.getByRole('button',{name:'interchange_prepared_skip'}) as HTMLButtonElement).disabled).toBe(true);
+ // A requested media link is not yet a committed Image in React. Wait for the
+ // replacement before testing that callbacks from the detached image are inert.
+ const freshPhoto=await screen.findByLabelText('interchange_prepared_photo');expect(freshPhoto).not.toBe(oldPhoto);
+ fireEvent.load(oldPhoto);fireEvent.error(oldPhoto);expect((screen.getByRole('button',{name:'interchange_prepared_skip'}) as HTMLButtonElement).disabled).toBe(true);
+ fireEvent.load(freshPhoto);await waitFor(()=>expect((screen.getByRole('button',{name:'interchange_prepared_skip'}) as HTMLButtonElement).disabled).toBe(false));
 });
 
 it('restores a saved decision and writes it before exact replay without a live catalogue',async()=>{

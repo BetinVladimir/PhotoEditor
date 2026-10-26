@@ -3,7 +3,6 @@ package httpapi
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -110,10 +109,7 @@ func (s *Server) authRoutes(r chi.Router) {
 			writeError(w, r, err)
 			return
 		}
-		ip, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			ip = r.RemoteAddr
-		}
+		ip := s.clientIP(r)
 		receipt, err := s.otpRecoveryScope(r)
 		if err != nil {
 			writeError(w, r, err)

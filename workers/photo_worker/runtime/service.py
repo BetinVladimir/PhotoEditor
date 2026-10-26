@@ -1,6 +1,15 @@
 """Worker process entrypoint; queue and registrations are provisioned externally."""
 from __future__ import annotations
-from photo_worker.operations.conservative import conservative_operations
+def _lazy_operation_factory(module_name, factory_name):
+    """Keep public patch points; import the unchanged factory only on use."""
+    def factory(*args, **kwargs):
+        from importlib import import_module
+        return getattr(import_module(module_name), factory_name)(*args, **kwargs)
+    factory.__name__ = factory_name
+    factory.__qualname__ = factory_name
+    return factory
+
+conservative_operations = _lazy_operation_factory('photo_worker.operations.conservative', 'conservative_operations')
 from dataclasses import dataclass,field
 import os
 from pathlib import Path
@@ -13,42 +22,57 @@ if TYPE_CHECKING:
 from uuid import UUID
 from urllib.parse import urlsplit
 from psycopg.conninfo import conninfo_to_dict
-from photo_worker.operations.asset.adapters import asset_operations
-from photo_worker.operations.pair.register import pair_operations
-from photo_worker.operations.pair.fit.body import body_fit_operations
-from photo_worker.operations.pair.fit import beauty_fit_operations,defect_fit_operations
-from photo_worker.operations.color.stats import stats_operations
-from photo_worker.operations.style.resolve import resolve_operations
-from photo_worker.operations.style.aggregate import aggregate_operations
-from photo_worker.operations.style import validate_operations,package_operations
-from photo_worker.operations.style.import_style import import_operations
-from photo_worker.operations.defects.propose import defect_propose_operations
-from photo_worker.operations.defects.repair import defect_repair_operations
-from photo_worker.operations.portrait.beauty import beauty_operations
-from photo_worker.operations.portrait import detail_operations
-from photo_worker.operations.alpha import refine_operations
-from photo_worker.operations.geometry import body_operations,crop_operations
-from photo_worker.operations.composition import composition_operations,structure_operations
-from photo_worker.operations.derivative import resize_operations,sharpen_operations,watermark_operations
-from photo_worker.operations.metadata import metadata_operations
-from photo_worker.operations.report import contact_sheet_operations
-from photo_worker.operations.quality import quality_operations
-from photo_worker.operations.collection import group_operations,cull_operations,feature_operations
-from photo_worker.operations.session.adapter import session_plan_operations
-from photo_worker.operations.learning.fit import learning_fit_operations
-from photo_worker.operations.series import measure_operations,balance_operations,series_pack_operations
-from photo_worker.operations.mask.transform import mask_transform_operations
-from photo_worker.operations.mask.rasterize import mask_operations
-from photo_worker.operations.mask.face_skin import face_skin_operations
-from photo_worker.operations.image.local import image_local_operations
-from photo_worker.operations.image.color import image_color_operations
-from photo_worker.operations.background import background_operations,blur_operations,sky_operations
-from photo_worker.operations.hdr import hdr_operations,register_operations,merge_operations
-from photo_worker.operations.sensor import dust_repair_operations, sensor_operations
-from photo_worker.operations.archive import archive_operations
-from photo_worker.operations.export import export_operations
-from photo_worker.operations.media import media_operations
-from photo_worker.operations.editor import preview_operations
+asset_operations = _lazy_operation_factory('photo_worker.operations.asset.adapters', 'asset_operations')
+pair_operations = _lazy_operation_factory('photo_worker.operations.pair.register', 'pair_operations')
+body_fit_operations = _lazy_operation_factory('photo_worker.operations.pair.fit.body', 'body_fit_operations')
+beauty_fit_operations = _lazy_operation_factory('photo_worker.operations.pair.fit', 'beauty_fit_operations')
+defect_fit_operations = _lazy_operation_factory('photo_worker.operations.pair.fit', 'defect_fit_operations')
+stats_operations = _lazy_operation_factory('photo_worker.operations.color.stats', 'stats_operations')
+resolve_operations = _lazy_operation_factory('photo_worker.operations.style.resolve', 'resolve_operations')
+aggregate_operations = _lazy_operation_factory('photo_worker.operations.style.aggregate', 'aggregate_operations')
+validate_operations = _lazy_operation_factory('photo_worker.operations.style', 'validate_operations')
+package_operations = _lazy_operation_factory('photo_worker.operations.style', 'package_operations')
+import_operations = _lazy_operation_factory('photo_worker.operations.style.import_style', 'import_operations')
+defect_propose_operations = _lazy_operation_factory('photo_worker.operations.defects.propose', 'defect_propose_operations')
+defect_repair_operations = _lazy_operation_factory('photo_worker.operations.defects.repair', 'defect_repair_operations')
+beauty_operations = _lazy_operation_factory('photo_worker.operations.portrait.beauty', 'beauty_operations')
+detail_operations = _lazy_operation_factory('photo_worker.operations.portrait', 'detail_operations')
+refine_operations = _lazy_operation_factory('photo_worker.operations.alpha', 'refine_operations')
+body_operations = _lazy_operation_factory('photo_worker.operations.geometry', 'body_operations')
+crop_operations = _lazy_operation_factory('photo_worker.operations.geometry', 'crop_operations')
+composition_operations = _lazy_operation_factory('photo_worker.operations.composition', 'composition_operations')
+structure_operations = _lazy_operation_factory('photo_worker.operations.composition', 'structure_operations')
+resize_operations = _lazy_operation_factory('photo_worker.operations.derivative', 'resize_operations')
+sharpen_operations = _lazy_operation_factory('photo_worker.operations.derivative', 'sharpen_operations')
+watermark_operations = _lazy_operation_factory('photo_worker.operations.derivative', 'watermark_operations')
+metadata_operations = _lazy_operation_factory('photo_worker.operations.metadata', 'metadata_operations')
+contact_sheet_operations = _lazy_operation_factory('photo_worker.operations.report', 'contact_sheet_operations')
+quality_operations = _lazy_operation_factory('photo_worker.operations.quality', 'quality_operations')
+group_operations = _lazy_operation_factory('photo_worker.operations.collection', 'group_operations')
+cull_operations = _lazy_operation_factory('photo_worker.operations.collection', 'cull_operations')
+feature_operations = _lazy_operation_factory('photo_worker.operations.collection', 'feature_operations')
+session_plan_operations = _lazy_operation_factory('photo_worker.operations.session.adapter', 'session_plan_operations')
+learning_fit_operations = _lazy_operation_factory('photo_worker.operations.learning.fit', 'learning_fit_operations')
+measure_operations = _lazy_operation_factory('photo_worker.operations.series', 'measure_operations')
+balance_operations = _lazy_operation_factory('photo_worker.operations.series', 'balance_operations')
+series_pack_operations = _lazy_operation_factory('photo_worker.operations.series', 'series_pack_operations')
+mask_transform_operations = _lazy_operation_factory('photo_worker.operations.mask.transform', 'mask_transform_operations')
+mask_operations = _lazy_operation_factory('photo_worker.operations.mask.rasterize', 'mask_operations')
+face_skin_operations = _lazy_operation_factory('photo_worker.operations.mask.face_skin', 'face_skin_operations')
+image_local_operations = _lazy_operation_factory('photo_worker.operations.image.local', 'image_local_operations')
+image_color_operations = _lazy_operation_factory('photo_worker.operations.image.color', 'image_color_operations')
+background_operations = _lazy_operation_factory('photo_worker.operations.background', 'background_operations')
+blur_operations = _lazy_operation_factory('photo_worker.operations.background', 'blur_operations')
+sky_operations = _lazy_operation_factory('photo_worker.operations.background', 'sky_operations')
+hdr_operations = _lazy_operation_factory('photo_worker.operations.hdr', 'hdr_operations')
+register_operations = _lazy_operation_factory('photo_worker.operations.hdr', 'register_operations')
+merge_operations = _lazy_operation_factory('photo_worker.operations.hdr', 'merge_operations')
+dust_repair_operations = _lazy_operation_factory('photo_worker.operations.sensor', 'dust_repair_operations')
+sensor_operations = _lazy_operation_factory('photo_worker.operations.sensor', 'sensor_operations')
+archive_operations = _lazy_operation_factory('photo_worker.operations.archive', 'archive_operations')
+export_operations = _lazy_operation_factory('photo_worker.operations.export', 'export_operations')
+media_operations = _lazy_operation_factory('photo_worker.operations.media', 'media_operations')
+preview_operations = _lazy_operation_factory('photo_worker.operations.editor', 'preview_operations')
 from .artifacts import ArtifactConfig
 from .database import TaskDatabase
 from .capacity import CapacityReporter,measure_cpu,measure_accelerator
@@ -340,14 +364,17 @@ def build_worker(config:WorkerConfig, *, render_renderer=None, region_renderer=N
 
     if (config.interchange_enabled or interchange_installation is not None or interchange_import_installation is not None or interchange_export_installation is not None) and (config.resource_class!='cpu' or config.backend!='cpu'):
         raise WorkerConfigurationError('Interchange runtime requires CPU worker')
-    from photo_worker.operations.interchange.installation import resolve_interchange_export_installation
-    try:
-        interchange_export_installation=resolve_interchange_export_installation(interchange_export_installation)
-    except ValueError as error:
-        raise WorkerConfigurationError(str(error)) from None
+    if config.resource_class != 'archive' or interchange_export_installation is not None:
+        from photo_worker.operations.interchange.installation import resolve_interchange_export_installation
+        try:
+            interchange_export_installation=resolve_interchange_export_installation(interchange_export_installation)
+        except ValueError as error:
+            raise WorkerConfigurationError(str(error)) from None
     if (config.delivery_enabled or delivery_installation is not None) and config.resource_class!='cpu':
         raise WorkerConfigurationError('Delivery runtime requires CPU worker')
-    from photo_worker.v2.render_native_installation import NativeRenderInstallation
+    NativeRenderInstallation = ()
+    if render_renderer is not None:
+        from photo_worker.v2.render_native_installation import NativeRenderInstallation
     # The concrete CPU installation supplies original-layer precomposition only.
     # It must never register the separately admitted GPU render.compose task.
     native_cpu_precompose = (isinstance(render_renderer, NativeRenderInstallation)
@@ -418,11 +445,11 @@ def build_worker(config:WorkerConfig, *, render_renderer=None, region_renderer=N
         from photo_worker.color.icc import ICCRegistry
         if ICCRegistry(config.icc_root).resolve('linear_srgb_v1').sha256 != perspective_lines_installation.working_icc_sha:
             raise WorkerConfigurationError('Perspective lines working ICC mismatch')
-    from photo_worker.operations.optical.multi_installation import MultiImageInstallation,MultiImageRuntimeOptions
     if not isinstance(multi_installations,(list,tuple)):
         raise WorkerConfigurationError('Invalid multi-image installations')
     installed_multi=set()
     for installation in multi_installations:
+        from photo_worker.operations.optical.multi_installation import MultiImageInstallation,MultiImageRuntimeOptions
         if (not isinstance(installation,MultiImageInstallation) or not isinstance(installation.options,MultiImageRuntimeOptions)
                 or installation.options.operation not in ('optical.panorama','optical.focus_stack')
                 or installation.options.operation in installed_multi or config.resource_class!='cpu'
@@ -587,7 +614,6 @@ def build_worker(config:WorkerConfig, *, render_renderer=None, region_renderer=N
         from photo_worker.operations.editor.effects_seal import effects_seal_operations
         from photo_worker.operations.editor.seal_admission import SQLEditorEffectsSealAdmission
         operations += effects_seal_operations(artifacts, SQLEditorEffectsSealAdmission(database))
-    from photo_worker.v2.render_native_installation import NativeRenderInstallation
     if isinstance(render_renderer, NativeRenderInstallation) and config.resource_class=='cpu' and render_renderer.backend=='cpu':
         if database.editor_internal_dispatch_installed('editor.layers_precompose') is not True:
             raise WorkerConfigurationError('Editor precompose authority is not installed')
@@ -674,12 +700,16 @@ def build_worker(config:WorkerConfig, *, render_renderer=None, region_renderer=N
         operations += installed_v28_operations(artifacts,database,config,
             glare_factory=glare_admission_factory,
             reflection_factory=reflection_admission_factory)
-    from photo_worker.operations.delivery.installation import resolve_delivery_installation
-    from photo_worker.operations.interchange.installation import resolve_interchange_installation, resolve_interchange_import_installation
     try:
-        delivery_installation=resolve_delivery_installation(database,config.delivery_enabled,delivery_installation)
-        interchange_installation=resolve_interchange_installation(database,config.interchange_enabled,interchange_installation)
-        interchange_import_installation=resolve_interchange_import_installation(interchange_import_installation)
+        if config.resource_class != 'archive' or config.delivery_enabled is not False or delivery_installation is not None:
+            from photo_worker.operations.delivery.installation import resolve_delivery_installation
+            delivery_installation=resolve_delivery_installation(database,config.delivery_enabled,delivery_installation)
+        if config.resource_class != 'archive' or config.interchange_enabled is not False or interchange_installation is not None:
+            from photo_worker.operations.interchange.installation import resolve_interchange_installation
+            interchange_installation=resolve_interchange_installation(database,config.interchange_enabled,interchange_installation)
+        if config.resource_class != 'archive' or interchange_import_installation is not None:
+            from photo_worker.operations.interchange.installation import resolve_interchange_import_installation
+            interchange_import_installation=resolve_interchange_import_installation(interchange_import_installation)
     except ValueError as error:
         raise WorkerConfigurationError(str(error)) from None
     if learning_evaluation_installation is not None:

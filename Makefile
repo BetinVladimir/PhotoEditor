@@ -2,7 +2,7 @@ SHELL := /bin/bash
 ROOT := $(abspath .)
 PYTHON := $(ROOT)/.venv-platform/bin/python
 RUN := ./scripts/run-platform.sh
-.PHONY: sqlc dev-infra dev-infra-stop setup-platform setup-ml contracts contracts-check v2-check test test-unit test-integration test-fault test-security test-web test-native benchmark test-restore test-visual test-hardware test-legacy test-python test-billing-contracts test-go test-db deploy-check release-evidence release-check
+.PHONY: sqlc dev-infra dev-infra-stop setup-platform setup-ml contracts contracts-check v2-check test test-unit test-integration test-fault test-security test-web test-native benchmark test-restore test-visual test-hardware test-legacy test-python test-billing-contracts test-go test-db check-skips verify deploy-check release-evidence release-check
 dev-infra:
 	$(RUN) python3 scripts/dev-infra.py up
 dev-infra-stop:
@@ -97,3 +97,9 @@ test-gateway-large-io:
 .PHONY: test-gateway-wire-large-io
 test-gateway-wire-large-io:
 	PHOTO_RUN_GATEWAY_WIRE_LARGE_IO=1 PYTHONPATH=$(ROOT)/workers:$(ROOT)/apps/local-editor/src $(RUN) $(PYTHON) -m pytest tests/integration/test_v25_gateway_wire.py -q -s
+
+check-skips:
+	python3 scripts/check-skips.py
+
+# Pre-merge gate: unit + web + skip policy. Integration (test-db) needs dev-infra.
+verify: test test-web check-skips

@@ -14,22 +14,34 @@ func downloadSource(ordinal int64, bytes int64, name, hash string) DownloadSourc
 }
 
 func TestDownloadPlannerTransportBoundaries(t *testing.T) {
-    for _, count := range []int{512, 513, 5000} {
-        t.Run(fmt.Sprint(count), func(t *testing.T) {
-            sources := make([]DownloadSource, count)
-            for i := range sources { sources[i] = downloadSource(int64(i), 1, fmt.Sprintf("%04d.jpg", i), fmt.Sprintf("%064x", i+1)) }
-            plan, err := PlanDownloadVolumesWithLimits(sources, DefaultVolumeByteLimit, 5000)
-            if err != nil || len(plan) != count { t.Fatal("inventory lost", err, len(plan)) }
-            sizes := map[int]int{}
-            for i, item := range plan {
-                if item.Ordinal != int64(i) || item.ArtifactID != sources[i].ArtifactID { t.Fatal("selection changed", i) }
-                sizes[item.Volume]++
-                if sizes[item.Volume] > MaxDownloadArchiveInputs { t.Fatal("wire input ceiling exceeded") }
-            }
-            if len(sizes) != (count+511)/512 { t.Fatal("wrong split", sizes) }
-            if sizes[1] != 512 { t.Fatal("unnecessarily reduced first volume", sizes) }
-        })
-    }
+	for _, count := range []int{512, 513, 5000} {
+		t.Run(fmt.Sprint(count), func(t *testing.T) {
+			sources := make([]DownloadSource, count)
+			for i := range sources {
+				sources[i] = downloadSource(int64(i), 1, fmt.Sprintf("%04d.jpg", i), fmt.Sprintf("%064x", i+1))
+			}
+			plan, err := PlanDownloadVolumesWithLimits(sources, DefaultVolumeByteLimit, 5000)
+			if err != nil || len(plan) != count {
+				t.Fatal("inventory lost", err, len(plan))
+			}
+			sizes := map[int]int{}
+			for i, item := range plan {
+				if item.Ordinal != int64(i) || item.ArtifactID != sources[i].ArtifactID {
+					t.Fatal("selection changed", i)
+				}
+				sizes[item.Volume]++
+				if sizes[item.Volume] > MaxDownloadArchiveInputs {
+					t.Fatal("wire input ceiling exceeded")
+				}
+			}
+			if len(sizes) != 1 {
+				t.Fatal("wrong split", sizes)
+			}
+			if sizes[1] != count {
+				t.Fatal("unnecessarily reduced first volume", sizes)
+			}
+		})
+	}
 }
 
 func TestPlanDownloadVolumesStablePackingAndSingles(t *testing.T) {
@@ -115,56 +127,113 @@ func TestPlanDownloadVolumesMaximumCardinalityHasNoOmissionsOrDuplicates(t *test
 }
 
 func TestDownloadPlanLongNamesSplitByParameterBudgetWithoutLosingInventory(t *testing.T) {
-    items := make([]DownloadSource, MaxDownloadItems)
-    for index := range items {
-        items[index] = downloadSource(int64(index), 1,
-            fmt.Sprintf("%04d_%s.jpg", index, strings.Repeat("x", 171)), strings.Repeat("a", 64))
-    }
-    plan, err := PlanDownloadVolumes(items, DefaultVolumeByteLimit)
-    if err != nil { t.Fatal(err) }
-    repeated, err := PlanDownloadVolumes(items, DefaultVolumeByteLimit)
-    if err != nil || len(plan) != len(items) { t.Fatal("inventory lost", err) }
-    volumes := []DownloadArchiveVolume{}
-    for index, item := range plan {
-        if item.Volume != repeated[index].Volume || item.EntryName != repeated[index].EntryName ||
-            item.Ordinal != int64(index) || item.ArtifactID != items[index].ArtifactID || item.DeliveryKind != "zip" {
-            t.Fatal("unstable or reordered plan", index)
-        }
-        if len(volumes) == 0 || volumes[len(volumes)-1].Number != item.Volume {
-            volumes = append(volumes, DownloadArchiveVolume{Number: item.Volume})
-        }
-        last := &volumes[len(volumes)-1]
-        last.Entries = append(last.Entries, DownloadArchiveEntry{Ordinal: item.Ordinal,
-            Artifact: review.ArtifactRef{ID: item.ArtifactID, SHA256: item.SHA256},
-            Bytes: item.Bytes, EntryName: item.EntryName, ProducerTask: uuid.New()})
-    }
-    if len(volumes) < 2 { t.Fatal("long names did not split") }
-    registry, err := LoadRegistry()
-    if err != nil { t.Fatal(err) }
-    nodes, err := CompileDownloadArchives(DownloadArchiveSpec{RunID: uuid.New(), SnapshotID: uuid.New(),
-        SnapshotDigest: strings.Repeat("b", 64), Volumes: volumes}, registry)
-    if err != nil { t.Fatal("planned volumes exceed transport budget", err) }
-    count := 0
-    for _, node := range nodes {
-        count += len(node.Inputs)
-        if len(node.Params) > 1048576 { t.Fatal("oversized archive params") }
-    }
-    if count != MaxDownloadItems { t.Fatal("compiled inventory lost", count) }
+	items := make([]DownloadSource, MaxDownloadItems)
+	for index := range items {
+		items[index] = downloadSource(int64(index), 1,
+			fmt.Sprintf("%04d_%s.jpg", index, strings.Repeat("x", 171)), strings.Repeat("a", 64))
+	}
+	plan, err := PlanDownloadVolumes(items, DefaultVolumeByteLimit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	repeated, err := PlanDownloadVolumes(items, DefaultVolumeByteLimit)
+	if err != nil || len(plan) != len(items) {
+		t.Fatal("inventory lost", err)
+	}
+	volumes := []DownloadArchiveVolume{}
+	for index, item := range plan {
+		if item.Volume != repeated[index].Volume || item.EntryName != repeated[index].EntryName ||
+			item.Ordinal != int64(index) || item.ArtifactID != items[index].ArtifactID || item.DeliveryKind != "zip" {
+			t.Fatal("unstable or reordered plan", index)
+		}
+		if len(volumes) == 0 || volumes[len(volumes)-1].Number != item.Volume {
+			volumes = append(volumes, DownloadArchiveVolume{Number: item.Volume})
+		}
+		last := &volumes[len(volumes)-1]
+		last.Entries = append(last.Entries, DownloadArchiveEntry{Ordinal: item.Ordinal,
+			Artifact: review.ArtifactRef{ID: item.ArtifactID, SHA256: item.SHA256},
+			Bytes:    item.Bytes, EntryName: item.EntryName, ProducerTask: uuid.New()})
+	}
+	if len(volumes) != 1 {
+		t.Fatal("valid5000 names unexpectedly split")
+	}
+	registry, err := LoadRegistry()
+	if err != nil {
+		t.Fatal(err)
+	}
+	nodes, err := CompileDownloadArchives(DownloadArchiveSpec{RunID: uuid.New(), SnapshotID: uuid.New(),
+		SnapshotDigest: strings.Repeat("b", 64), Volumes: volumes}, registry)
+	if err != nil {
+		t.Fatal("planned volumes exceed transport budget", err)
+	}
+	count := 0
+	for _, node := range nodes {
+		count += len(node.Inputs)
+		if len(node.Params) > 8*1048576 {
+			t.Fatal("oversized archive params")
+		}
+	}
+	if count != MaxDownloadItems {
+		t.Fatal("compiled inventory lost", count)
+	}
 }
 
 func TestDownloadPlanAlsoBoundsLargerExternalArchiveManifest(t *testing.T) {
-    items:=make([]DownloadSource,MaxDownloadItems)
-    for index:=range items { items[index]=downloadSource(int64(index),1,fmt.Sprintf("%04d.jpg",index),strings.Repeat("a",64)) }
-    plan,err:=PlanDownloadVolumes(items,DefaultVolumeByteLimit)
-    if err!=nil { t.Fatal(err) }
-    volumes:=map[int]int{}
-    for _,item:=range plan {
-        entry,err:=archiveManifestEntryBytes(review.ArtifactRef{ID:item.ArtifactID,SHA256:item.SHA256},item.Bytes,item.EntryName)
-        if err!=nil { t.Fatal(err) }
-        if volumes[item.Volume]==0 { volumes[item.Volume]=512 }
-        volumes[item.Volume]+=len(entry)+1
-    }
-    if len(volumes)<2 { t.Fatal("5000 short names did not split for manifest limit") }
-    for _,bytes:=range volumes { if bytes>1048576 { t.Fatal("external manifest would exceed output staging",bytes) } }
-    if len(plan)!=MaxDownloadItems { t.Fatal("inventory truncated") }
+	items := make([]DownloadSource, MaxDownloadItems)
+	for index := range items {
+		items[index] = downloadSource(int64(index), 1, fmt.Sprintf("%04d.jpg", index), strings.Repeat("a", 64))
+	}
+	plan, err := PlanDownloadVolumes(items, DefaultVolumeByteLimit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	volumes := map[int]int{}
+	for _, item := range plan {
+		entry, err := archiveManifestEntryBytes(review.ArtifactRef{ID: item.ArtifactID, SHA256: item.SHA256}, item.Bytes, item.EntryName)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if volumes[item.Volume] == 0 {
+			volumes[item.Volume] = 512
+		}
+		volumes[item.Volume] += len(entry) + 1
+	}
+	if len(volumes) != 1 {
+		t.Fatal("full5000 manifest unexpectedly split")
+	}
+	for _, bytes := range volumes {
+		if bytes > 8*1048576 {
+			t.Fatal("external manifest would exceed output staging", bytes)
+		}
+	}
+	if len(plan) != MaxDownloadItems {
+		t.Fatal("inventory truncated")
+	}
+}
+
+func TestDownloadPlannerExplicitLowerFileLimitsRemainHonored(t *testing.T) {
+	sources := make([]DownloadSource, 5000)
+	for i := range sources {
+		sources[i] = downloadSource(int64(i), 1, fmt.Sprintf("%04d.jpg", i), fmt.Sprintf("%064x", i+1))
+	}
+	for _, limit := range []int{512, 2000, 5000} {
+		plan, err := PlanDownloadVolumesWithLimits(sources, DefaultVolumeByteLimit, limit)
+		if err != nil || len(plan) != 5000 {
+			t.Fatal("selectionlost", limit, err)
+		}
+		counts := map[int]int{}
+		for _, item := range plan {
+			counts[item.Volume]++
+			if counts[item.Volume] > limit {
+				t.Fatal("configuredlimitignored", limit)
+			}
+		}
+		if len(counts) != (5000+limit-1)/limit || counts[1] != limit {
+			t.Fatal("explicitpacking", limit, counts)
+		}
+	}
+	plan, err := PlanDownloadVolumesWithLimits(sources[:7], 3, 5000)
+	if err != nil || plan[0].Volume != 1 || plan[3].Volume != 2 || plan[6].Volume != 3 {
+		t.Fatal("configuredbyteboundignored", plan, err)
+	}
 }

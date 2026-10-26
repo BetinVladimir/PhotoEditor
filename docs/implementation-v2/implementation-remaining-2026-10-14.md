@@ -7138,3 +7138,631 @@ Root выполнил coherent readonly capture MAIN2656: schema,28roles (без
 IsolatedGooserunner7dd756 source фактически собран offline: work/v21-root-goose-build-r2/goose-runner SHAc762c9cf69d47d24c2513ed554758be671afddd63e1ce351141c4d3600be9fce, exit0. Первыйr1buildfailedиз-за выбранногопустогоmodulecache сохранён; r2использовалсуществующийofflinecache, sourceunchanged. Этот binary ещё не подключалсякБД. FrozenR2harnessreview нашёл killpg-error containmentgap, authorготовит successor доisolatedSQLexecution. MAIN2657 не применяется.
 
 Sharedsource exactfourhunks/newmodule independently3controlsPASS; candidatefull1234 ещё не создан/квалифицирован. Следующий шаг—реальныйcreateonlyconstructor, затем sharedphysicalparent и currentSQLadmissionqualification.
+
+
+## 2026-10-23: isolatedV21 actualrefusal и sharedcandidate actualruntime
+
+Первый реальный isolatedPG18R3прогон восстановил актуальную2656schema/roles/history/registry и дошёл доGooserunner; childrefused, но binaryлог содержит лишь genericGoose2657failed. ПричинаSQL НЕустановлена; нужен новыйboundeddiagnosticbinary, guardsнеослаблять. OwnedPG containerd6d9... удалён, отсутствие независимо подтверждено. MAIN повторноreadonlyпроверена: head2656 и полныйphoto pg_proc metadata digest равенпредыдущемубазису. Evidence work/v21-root-sql-qualification-r2/root-result.json, actualattempt work/v21-event-progress-2657-qualification-r3/attempt-1792717950106097000. Локальный r1manifestpath preparationотказ был доинфраструктурныхдействий и сохранён.
+
+Отдельно createonlysharedsource фактически создан и full1234readback совпалс3a5b23a70f910a553441a065f7272723c4cf99cc6590035707cc649ded10b06c. Реально вычисленruntime2028e3de15a9b673739e710058c59398dddd5576ea07fb05e3ce3b0ab5069b27; настоящийemptyDoctorPASSбезTorch. Evidence work/shared-archive-construction-root-r1/root-result.json SHA549cbf947c3638905e8eaa13e475972ef876cc0af9f70f95935d3c15a0104a7b. Это НЕsharedparentphysicalqualification, НЕworkeradmission/SQLattach; рабочиеworkerнепереключены.
+
+
+## 2026-10-23: V21 actualSQL timeout установлен, guard cost исправляется
+
+Новый diagnosticGoose binary фактически собран SHА233e298c90475d3238ac9f068e89f1b5e39feeb71614d1790ca3e539457f68a7. Actual isolatedR4attempt1792718253168759000 завершился SQLSTATE57014: cancelingstatementduetostatementtimeout, PL/pgSQLinline_code_blockline6atIF. Это не подтверждение логического отказа migration. OwnedPG удалён и отсутствие проверено; MAIN повторноhead2656. Root readonly измерил3639photo функций/14424674байтJSONBmetadata. Evidence work/v21-root-sql-qualification-r3/root-result.json SHAfc8f5f2f101693dc522793d4c58e010596194204205a53bfdefe7384884eb703.
+
+Source review выявил повторное извлечение after.functions целиком внутри per-functionloop; связь этого копирования с временем — пока inference, не benchmark. СледующийR5 должен заменить только способ сравнения на setbasedLEFTJOIN двухjsonb_each, сохраняя каждую старуюполнуюpg_procстроку, exactleafprosrc-only исключение и exact3newfunctions. SQLtimeout/guardcoverage не ослабляются радиPASS; новыйactualSQLпрогон обязателен. Стараяошибка/диагностика/история сохраняются.
+
+
+## 2026-10-23: V21 actual normalGoose2657 + fullguard PASS1.78s
+
+R5actual isolatedPG18attempt1792718455246975000 применил proposal2657 настоящимGoose за1.78s при прежнемstatement_timeout20000. Fullmetadata/data sameTXguards прошли; subsequent installedhead2657/onehistoryrow/oldhistoryexact assertions выполнены до начала eventmatrix. Loop→setjoin сохранил оставшуюсячастьguard побайтно. Это подтверждает исправление дорогогоguard на реальном3639functioncatalog; guardнеослаблен. Receipt work/v21-root-sql-qualification-r4/root-result.json.
+
+SQLmatrix затем остановилась на testfixture event_matrix.py62: NULLcreated_by запрещён действующимrunsNOTNULL. Нельзяослаблятьschema/отключатьconstraint радификстуры или объявлятьconsumerNULLbranch проверенным. Авторготовит currentdomain fixture correction и честноеотражениеcoverage. ПолнаяSQLmatrix/heartbeat/broker ещё не приняты. OwnPGудалён/отсутствиеподтверждено; MAINmigration2657неприменена.
+
+
+## 2026-10-23: actualR6 migrationPASS, downloadfixture transaction defect
+
+IsolatedR6 normalGoose2657+sameTXguards PASS1.47s; NULLownerfixture теперь проходит domainNOTNULL refusal безconsumerNULLbranchclaim. Затем event_matrix.py116 вызывает download_job(root) наautocommitroot, а tenant helperожидаетобщуюtransactionдляtenant+owner membership; actualCheckViolation tenantownermembershipinvariant (enforce_ownerline8). Исправление—действительная общаяtransaction созданияфикстуры, безотключенияguard. Evidence work/v21-root-sql-qualification-r5/root-result.json; actualattempt1792718677406032000. OwnPGудалён/отсутствиеподтверждено; полнаяSQLmatrixещёнепринята, MAINDDLнеизменялась. СледующийR7такжедолженсохранять per-case actualevidence до возможногоследующегоотказа.
+
+
+## 2026-10-23: actual19eventSQLcases PASS; heartbeatfixtureconnection gap
+
+R7actualattempt1792718899748689000: guardedGoose2657 PASS, все19eventSQLcases имеют отдельные actualcase receipts (настоящийrestrictedLOGIN/прямыеtable/executeотказы/startupACLguard, acceptedduplicate,privateaudience,schemas/crossTenant/stale/digest/cursorrollback/concurrency, actualdownloadtriggerreceipt-only). Rootсверил19uniquePASScasefiles+SHA; work/v21-root-sql-qualification-r6/root-result.json. Это не полнаяV21/SQLmatrixприёмка.
+
+Progressfixture остановилась на install_capacity_policy_timing: operator требует connection.autocommitFalse, а explicittransaction наautocommitTrue connection propertyнеизменяет. R8должендатьподлинныйoperatorconnectionFalse справильнымcommit/rollback/clusteridentity; productionguardнеослаблять. WorkertrueLOGIN/publicheartbeat проверкиещёневыполнены. OwnPGудалён иотсутствиеподтверждено, MAINнеобновлялась.
+
+
+## 2026-10-23: actual26SQLcases PASS, disabledprincipal expectation correctednext
+
+R8actualattempt1792719066828381000 имеет26uniquePASScase receipts:19eventcases+7publicheartbeatcases. Подлинный operatorautocommitFalse+commit восстановлен, trueworkerLOGIN/publicclaim/publicheartbeat выполнены; burstcoalesce/rate/monotone/atomicrollback/stalefence/wrongworker/wrongattempt/expired/cancelled прошли. Evidence work/v21-root-sql-qualification-r7/root-result.json. Это SQLrelationalqualification, нефизическоеworker/modelimageexecution.
+
+Последний disabled_worker testcase ожидалFalse, ноpublicauthorizationwrapperправильноотказал InsufficientPrivilege42501/AUTHORED_MASK_EXECUTION_PRINCIPAL. R9долженутвердить точныйdenial+отсутствиеDMLэффектов, не менятьproductionguard/не blanketcatch. Disabledprincipalcaseнеподменяетsemanticconsentrevocation. OwnPGудалён/отсутствиепроверено. ПолнаяSQLmatrixещёнепринята, MAINнеобновлена.
+
+
+## 2026-10-23: V21 SQL27 PASS; shared physical probe recovery required
+
+V21 proposal2657 passed27 actual isolated PostgreSQL cases with normalGoose/fullcatalog/data guards; root receipt work/v21-root-sql-qualification-r8/root-result.json. MAIN remains2656; broker qualification and consumer production installation remain OPEN. Combined broker attempt failed ownRabbit readiness before handler checks; identical standalone limited Rabbit readiness subsequently passed. Original readiness cause remains UNKNOWN; R10 adds preserved bounded diagnostics rather than changing resource limits.
+
+Shared physical r1 actual CPU child refused PINNED_ADJACENT_RUNNER_REQUIRED before CPU readiness; archive child never started. Root actual read-only diagnosis preserved in work/shared-archive-physical-root-r1/root-diagnosis-r1/result.json and actual-readonly.json. Parent slice is inactive with empty ControlGroup; common service-terminal helper wrongly requires MainPID on a slice. Manager retains ownership and host controller retains locks; original CPU and five producer restoration is NOT yet claimed. Untouched media/GPU stable properties match; ExecStart display metadata changed following daemon-reload and requires actual /proc validation before explicit recovery. No source edits to frozen r1 or blind rerun. Full V20–V32 objective remains OPEN.
+
+
+## 2026-10-23: shared physical r1 отказ сохранён, исходные сервисы восстановлены
+
+Root reviewed recoveryR2 restored exact originalCPU source8fbc/runtime14b2 on PID1199823, unitphotoeditor-archive-qualified-window-shared-currentcpu-r1.service. Source/kernel/environment/credential/mTLS readiness and authenticatedDBfresh verified BEFORE allfiveproducer restoration by the ORIGINAL live hostcontroller. Post-observe/database17queues/producer baseline PASS,199orchestrator events preserved. Controller terminated exit1 honestly because actualdiagnostic failed; both child/parent containment verified. No archive qualification/admission/dispatch claimed. Evidence work/shared-archive-physical-root-r1/root-result.json and execution-records/cpu-ready-before-producer-restore.json/producers-restored.json. Recovery also exact-binds untouched media/GPU finalexecargv, launcher/entrySHA, originalPID/starttime and stableproperties, normalizing only volatile ExecStart presentation. Frozenr1 preserved. Required successor fixes: valid samePID guardedCPU runner, slice-specific terminalguard, persisted failure evidence and behavior-level regressions before another physicalwindow.
+
+
+## 2026-10-23: V21 R10 SQL27 PASS; actual Rabbit cookie EACCES
+
+Actual combinedR10 attempt1792720703651279000 repeated27SQLcasesPASS, then ownRabbit exited1 before handler phase. Preserved actual State OOMKilledfalse and logs establish rabbit_prelaunch .erlang.cookie read EACCES. Earlyrootdiagnostic creating rootownedcookie is an inference pending targeted reproduction, not yet proven cause. Source successor must bind diagnostic CLI to rabbitmquser, preserve budgets/permissions and record UID/cookie metadata without contents; no blind retry. Both actual ownPG/Rabbit removed and absence independently confirmed. Rootreceipt work/v21-root-broker-qualification-r2/root-result.json. MAIN remains2656, livebroker untouched; fullV21 remainsOPEN. Root local logging-launch AttributeError happened BEFORE harness and is preserved; actualR10 execution used separate execution-r2.private.log.
+
+
+## 2026-10-23: shared R2 CPU ready, archive TypeError; automatic restoration PASS
+
+R2 actual shared parent8GiB/CPU2/no-swap launched CPU child8GiB and archive child1GiB. CPU actualsource/runtime/Doctor/sharedsampler ready; archive failed imports_runtime TypeError, failureclosure alsoTypeError. No safe tracebackframes existed, so cause remainsUNKNOWN. Actual archive memoryevents all0, childpeak502857728/parentpeak869056512. UnlikeR1, durable error receipts and normal containment/restoration worked automatically: originalCPU source8fbc/runtime14b2 PID1296106 unitphotoeditor-archive-qualified-window-shared-currentcpu-r2.service; authenticatedreadiness BEFORE5producerrestore, postDB/17queuebaselinePASS. Controllerterminal1, noqualification. Rootreceipt work/shared-archive-physical-root-r2/root-result.json; actualfiles copied underactual/. Nextsource diagnostic must add safe frame(file/function/line,noarbitrarymessage/locals) and reproduce TypeError, not relaxclosure or imply memoryfailure.
+
+V21R11 repeatedSQL27PASS and server-userRabbit nodepingPASS, then firstadd_vhost failed withdiscardedstderr; causeUNKNOWN. Owncontainers removed+absencechecked. Rootreceipt work/v21-root-broker-qualification-r3/root-result.json. R12 adds applicationawait_startup and preserved allbootstrapcommands/allphasefailure snapshots; actualcombined launched via root session16121. NoMAIN2657installation or livebrokeractions.
+
+
+## 2026-10-23: V21 actual SQL27 + realRabbit handler acceptance PASS
+
+R12 actualattempt1792721289214667000 completed normalGoose/wholecatalogguard/SQL27 and actualrealRabbit productionhandler integration with exit0. Installedimage accepts server-user rabbitmqctl await_startup; all7bootstrapcommandsPASS. ActualSQLcommit→channelclose(noACK)→redelivery/dedup→ACK, fault-injected unknownnotification AFTERrealcommit→noACK→redelivery, actualpoisonReject→DLX→digest-onlyquarantinepersist→ACK and restrictedbrokerpermissions passed. OwnPG/Rabbit removed, absence independentlyconfirmed. Rootreceipt work/v21-root-broker-qualification-r4/root-result.json. This doesNOTprove processkill/fullservicehealth/shutdown/reconnect/privateUIcursor orMAINinstallation; no changes tolive199events/currentbroker. FullV21 and fullV20–V32 remainOPEN. Next: wholeconsumer service lifecycle qualification/promotion review, withoutduplicating existinggraph/approval/GC authorities.
+
+
+## 2026-10-23: shared R3 actual dependency refusal and eager-import production finding
+
+R3 actual CPUready; archive imports_runtime now passed TypeError seam and reached strictdependencygate: actualclosure3640,958unreviewedexternalentries, UNREVIEWED_EXTERNAL_DEPENDENCY. Actual childmemory.max1GiB reached (max18507,oom/kill0), parentpeak1440198656 with propagatedmaxevents. Source reading establishes runtime.service top-levelimports unrelatedoperationfactories including pair.fit→torchfitting and body_fit→scipy; this is an unnecessary eager import path for archive-onlyclass. DoNOTblindapprove958orrelaxmemorygate. Next change: lazyoperationfactoryimports preserving operationimplementations/quality and registry/patchAPI, archiveimport regression + finalsource/runtime requalification. HistoricalR2TypeError identity remainsunproven.
+
+R3 automatic containment/restorationPASS: originalCPU1359815 unitphotoeditor-archive-qualified-window-shared-currentcpu-r3.service, source8fbc/runtime14b2, authenticatedreadiness before5producerresume, postDB/17queuesbaselinePASS. Evidence work/shared-archive-physical-root-r3/root-result.json and actual/failed-actual-closure.json/failed-report.json. Controllerterminal1; noarchiveadmissionoruserZIPclaim.
+
+
+## 2026-10-23: production lazy worker imports promoted, current regressions PASS
+
+Root CAS-promoted workers/photo_worker/runtime/service.py from2ef18 to74471261ef7d535d1740fc0ae7306bd1b6f93e722392caa8880c0c2fc24abe49 and added workers/tests/test_service_lazy_imports.py (eca9c4dc...). 52publicfactorypatchpoints retain exactmodule/function mapping and forward unchangedargs/results/exceptions. Optionalinstallation imports defer only semanticno-op None/False branches; present/invalidinstallation authority remains. Actualarchive build_worker now works whileTorch/Scipy/OpenCV/RawPyimports are forbidden. No algorithms/quality implementations modified.
+
+Staged focused existingservice/precompose/delivery/interchange+newregressions77PASS4.98s; exactactualdefaultregistrytuple+execute-bytecode parity CPU49/media2/archive1/GPU1. These are baseline configs, not all optionalmodelruntimequalification. Root canonical3regressionsPASS0.77s afterpromotion, evidence work/service-lazy-import-root-review-r1/promotion.json/canonical-result.json; independentfinalsource review in work/shared-archive-lazy-service-independent-review-r1/final-review.json. CurrentRTXworker8fbc/runtime14b2 unchanged; newfullsourceconstructor/actualruntime/physicalsharedqualification remainOPEN. Historical ed5top-onlycandidate/rootfailedextendedbuild preserved.
+
+V21 whole-service lifecycle source799654d5... Go compile/listPASS lists BOTH TestV21ServiceChild and TestV21ServiceLifecycle; evidence work/v21-root-service-compile-r1/compile.log. No lifecycle service execution claimed yet. R12 actualSQL27+brokerhandler acceptance remains accepted; next lifecycle source independentreview and actualownedwindow required.
+
+
+## 2026-10-23: lazy shared source constructed and actual runtime observed
+
+Root create-only constructor shipped3verifiedfiles and created candidates/archive-shared-lazy-source-r1. Independent fullreadback1234 matches38c1f827e792d1fe4595db44af55d0f15c6b05bd86da000cbdc43c0b28e2d087; exactlyservice7447 differs from acceptedshared3a5b. ActualRenderRuntimeLock fingerprint18dbf71ecde931e9a3354f8e580035658309cfa4eea6d4578e0c9b158f5148d0 observed; realemptyDoctor withTorchimportforbidden PASS, peakRSS65220608. Evidence work/shared-archive-lazy-construction-root-r1/root-result.json and actual-readback-runtime-doctor.json SHA61442913d82ca224942d0ffc01eef83bd1fd3c102282ab4cadc0b9cc288d264d. Worker8fbc/runtime14b2 notswitched; physicalshared/archiveadmission remainsOPEN.
+
+Actual V21serviceR1 attempt1792722287869056000 repeatedSQL27PASS then bootstrapadd_user exit64 BEFOREservice: randomsecret began withdash and RabbitCLI parsedoptions. Privateerrors preserved; never copysecretvalues into reports. OwnPG/Rabbit removed+absencechecked, rootreceipt work/v21-root-service-lifecycle-r1/root-result.json. Successor must prefixgeneratedCLIpasswords withsafealphabet without reducingentropy, deterministic leadingdash regression; preserveacceptedR12source. CurrentMAIN/livebroker untouched.
+
+
+## 2026-10-23: lazy shared R4 actual memory improvement, narrow Pika review pending
+
+R4 actualarchiveimport RSS70885376 vsR3 641863680; childpeak45780992/sharedparentpeak88129536, ALLmemoryevents0. Strictdependencygate now refuses54entries, independentlyverified ALLinstalledpika package paths (source/pyc), actualclosure890. No archive.execute orqualification claim yet. Next scopedpackage provenance/RECORD+pairedsource-bytecode review of54actualentries;958old eagerdependencies remain unapproved. Rootreceipt work/shared-archive-physical-root-r4/root-result.json.
+
+Automaticcontainment/restorationPASS: originalCPU1647810 unitphotoeditor-archive-qualified-window-shared-currentcpu-r4.service (source8fbc/runtime14b2), authenticatedreadiness beforefiveproducerresume, postDB/17queuesbaselinePASS. No queuesdrained/purged, no originalqualityscope changed.
+
+V21lifecycleR2 bootstrap/SQL27 passed and actualnormalchild exitedPASS after startup/brokerloss/reconnect path, but parent failedline382 queueidle assertion AFTER orderlychildstop. Values/errors notpersisted; causeUNKNOWN, nofullserviceacceptance. Before/afterprocesskill cases notyetexercised. Owncontainersremoved+absencechecked; rootreceipt work/v21-root-service-lifecycle-r2/root-result.json. Successor must preserveactualqueuevalues/safeerror and verifyreal messages_unacknowledged0 beforeidle orderlyshutdown, withoutsleepguess/forcedACK/purge. MAINstill2656/livebrokeruntouched.
+
+
+## 2026-10-23: exact54 Pika provenance accepted; lifecycle R3 pre-execution defect
+
+Root actualreadonly verification accepted ONLY54R4observedPikafiles: installedpika1.4.4,27source verifieddistributionRECORD SHA4fb40988686fc4833c14a846fa47e0a2887e7b5b8d99316bc0a3de83eec25580 +27pyc fullrecursivecodeobject/source/header/MAGIC comparison. ActualmetadataSHA b6cf69d64be79e11cb46d43b113d5ca618cf896bc04e7133e453f2e7e4ed7530. Groupwrite0664 justified byactualeffectivewriters UIDset[1000] andbefore/afterpwd/grpsnapshots; worldwrite/foreignwriters/symlinks/CASdrift refused. No chmod/chown/packageimport. Evidence work/shared-archive-pika-root-review-r2/root-result.json, actual-review.json SHA2d312c402631acbd37fdbeb501862e551aa817aa957cb3890b71e32737c48680. EarlierR1guardrefusal preserved. Nextphysicalmap mayaddONLYthese54plusnewstaticshipping, never958eagerdeps.
+
+LifecycleR3 changedGo compile/list and pureTestV21AckIdlePolicy PASS in work/v21-root-service-compile-r3. Peerfoundpreexecutionbarrierbug: expectsconsumer1BEFOREservice starts plus reusedcreate-onlyevidencetag. NoR3infraexecution. Successor firstbarrier mustexpect0+uniqueinitialtag; laterbrokerlossbarrier remains1. Root/authoragree scopedfix; no weakeningACK-idle condition.
+
+
+## 2026-10-23: V21 actual wholeconsumer lifecycle increment PASS
+
+ActualR4 attempt1792723394766327000: SQL27+realRunEventConsumer lifecycle testPASS39.78s, hostexit0. Root independentlyreviewed16durable milestones: startup live200/ready503 while ownRabbitappdown→ready200, brokerlosslive200/ready503→reconnect, strictconfirmedpublish+ready/unacked/consumer ACK-idle before/aftercleanSIGTERM, freshactualbefore/afterSQLcommitbarriers→ownedchildSIGKILL/PIDabsence→redelivery/restart→exactlyone receipt/privatecursor, truephoto_apiLOGIN ownercursor/resume/viewer isolation. Go overlay/hooks test-onlyinversechecked; actualSQLcommit notmocked. OwnPG/Rabbitremoved andabsence independentlychecked.
+
+Evidence work/v21-root-service-lifecycle-r4/root-result.json, broker/go-broker.private.log and16case-* files under work/v21-root-service-lifecycle-r4/bundle/attempt-1792723394766327000/broker/service-children. FullV21 stillOPEN: canonicalsourcepromotion/MAIN2657installation/live199events policy, actualSSEHTTP+photographer screen refresh/reconnect, sourceconsentwithdrawal/tenantpurgerecovery races. Acceptedhandler/DLQphaseR12 remainsseparate (notfalselyretestedbyserviceincrement). Nextrootreviewedsourcepromotion/installproposal; noautomaticqueueACK/purge/drain orsecondgraphengine.
+
+
+## 2026-10-23: actual shared CPU/archive R5 technical pair accepted
+
+R5 actualcontrollerexit0, independentrootbytesverificationPASS. Source38c1/runtime18db; parent8GiB/swap0/CPU2, CPUtechnicalchild8GiB, archivechild1GiB; childpeak311980032/RSS74080256/parentpeak354078720, ALLchild+parentmemoryevents0. Actualproductionarchive.execute+TaskArtifacts on3CC0RAWbytepayloads generated two86122329-byte ZIP with identicalSHA0c86f08cc77faf4dac0072bbaff09be9456b3297d91388a09d70def831b247e6. Root independentlydownloadedboth andcheckedfullSHA/CRC/everymemberSHA/embedded+externalmanifest/1980timestamp0600Deflatemanifestmetadata. Cancel/shortsource/hashmismatch3PASS, unsafenames6PASS, scratch0, actualdependencyclosurechecked withONLY54approvedPika addition.
+
+OriginalCPU restored source8fbc/runtime14b2 PID1693654 unitphotoeditor-archive-qualified-window-shared-currentcpu-r5.service; actualreadiness beforefiveproducerrestore; postDB/17queuesbaselinePASS. Rootreceipt work/shared-archive-physical-root-r5/root-result.json; downloadedZIP andactualreports underactual/. NOTregisteredarchiveworkerqualification, NOTactualCPU8operationsscope, NOTuserJPEG/TIFF/livegatewaydownload, NOT5000entry/ZIP64/10GiB proof. Nextcurrent2656sharedSQLadmissionclonequalification→qualifiedworkeridentity/policy/cert/sharednode+dualreadiness→normalexistinguserarchive tasks andownerdownload. FullV20–V32 goal remainsOPEN.
+
+
+## 2026-10-23: V21 canonical source promoted and ordinary CLI build accepted
+
+Root CAS-promoted exact9Go targets and SQL02657 from testedsource-r2 using reviewedconstructor and per-targetbackups; no test-onlylifecyclehooks promoted. Evidence work/v21-canonical-promotion-root-r1/source-backup/result.json. Canonical queue/database/cmdphoto tests allPASS, normalCGO_ENABLED0 darwinarm64 CLI buildPASS; source/embed/transitiveGo/toolbefore/after14029files equal. ActualbinarySHA343e89f994310587b07639c3fe1ffce5a48542ab21230b74eb024fede9241ffa; closure455f7d62637ef16c2e2ac53d42c96cc8587920949f71306413a1a2ef7f65cd34; embeddedSQL2657ffc73d563f5258a6cc539f06aa0c3b267d60750d7011182da0a26257f31ae03e. Rootreceipt work/v21-canonical-promotion-root-r1/root-build-result.json. This is LOCALMacbinary, NOTdeployedLinuximage/MAINmigration/serviceactivation.
+
+FreshconsistentreadonlyMAIN2656capture finished: work/shared-admission-current-capture-root-r1/capture; actual28roles/schema/history/operation_registry only, no customerrows/noMAINwrites. Rootreceipt work/shared-admission-current-capture-root-r1/root-result.json. SharedadmissionSQLcandidateR1 review found BaseException childcontainmentgap BEFOREanySQLexecution; successor catch-all/provenabsence/unknownownerretention required. IsolatedPGbootstrap mustrestorefresh2656capture and provision syntheticrestrictedLOGINs ONLYinsideowncluster, neverapplycanonical2657 orcreateMAINrolesjustfortests. MAINhead2656 remainsauthoritative untilarchivewindow settles and fresh2657installerreview. FullV20–V32 remainsOPEN.
+
+
+## 2026-10-23: current2656 shared admission SQL20 accepted
+
+Actual R3 bootstrap exit0; root independently checked20 JUnit cases/0failure/error/skip and exact owned Docker container absence. Genuine restricted CPU/archive/scheduler LOGIN cross-class heartbeat and aggregate reservation scenario passed alongside19 existing cases. MAIN normalized catalog and global roles unchanged; own database removed. Root receipt work/shared-admission-sql-root-r3/root-result.json. R2 proxy-autocommit fixture failure and cacheprovider RLIMIT failure remain historical; R3 forwards real connection property and disables pytest cache without production guard changes. This closes current2656 relational admission qualification ONLY, not CPU8 runtime qualification, real archive identity/cert/policy registration, physical dual readiness or user archive/download. MAIN remains2656; V21 installation and all13 full-module acceptance remain OPEN.
+
+
+## 2026-10-23: photographer access-denial stream cancellation fixed
+
+Canonical watchRun now owns a linked AbortController: load or stream401/403/404 aborts both in-flight load/SSE, clears polling/reconnect and preserves caller signal ownership. Three new real AbortSignal regressions plus existing watcher tests10PASS; typecheckPASS. Broader suite exposed two test readiness races: interchange waited for media call instead of committed replacement Image, exports clicked Paper retry before enabled. Tests now await actual readiness and preserve stale-image/idempotency invariants; no product quality algorithm changed. Targeted36PASS. Final full photographer run3600PASS/0fail/7skip (3607total), report work/photographer-watch-cancellation-root-r1-full-r3.json; exact source hashes and report digest work/photographer-watch-cancellation-root-r1/source-checkpoint.json. Historical failures preserved. This is unit/DOM evidence, not actual production HTTP/SSE/React-native/browser acceptance. HTTP acceptance packet source pins independently verified11files+10533dependencies, actual compile/infra still pending.
+
+
+## 2026-10-23: HTTP/SSE acceptance compile prerequisite found test source error
+
+Root verified frozenHTTP packet11files+10533dependencies exact and attempted actual Go compile/list under both locks/offline limits. Compile failed at http_sse_test.go:333: cannot call pointer method Delete on tenant.Service composite literal. Evidence work/v21-http-root-compile-r1/compile.log/result.json. No HTTP/SQL/broker/containers executed. Successor must use addressable service/pointer and fresh frozen packet; production tenant.Delete signature unchanged. Full V21 acceptance and MAIN2657 activation remain OPEN.
+
+
+## 2026-10-23: HTTP R2 compile PASS; generated evidence scope correction required
+
+Root recompile/list of immutableR2 passed and found exact3 intended HTTP tests; work/v21-http-root-compile-r2/compile.log/result.json. Root derived a private UNAPPROVED bundle/config, no containers/API/SQL executed. Generated http_phase retained predecessor true flags for service health/processkill/privatecursor lifecycle, although new test selection does not rerun those assertions. Execution held pending immutableR3 truthful result payload + regression; work/v21-http-root-runtime-r1/review-blocker.json. Actual earlier lifecycle evidence remains separate and valid, not re-proven by this increment. FullV21 OPEN.
+
+
+## 2026-10-23: actual SQL27 + real HTTP/SSE/SDK/session/purge increment accepted
+
+ImmutableR3 actualattempt attempt-1792725896959080000 completed exit0:27SQLcasesPASS and all3 actualHTTP testsPASS6.533s. Production Routes/SSE owner-private viewer exclusion, durable Last-Event-ID resume, normal session revoke closing active stream and denying reconnect passed through true restrictedLOGINs. Actual ApiClient+photographer watchRun received one invalidation, re-fetched authoritative GET and reconnected with durablecursor against real loopbackHTTP. Normal tenant.Delete→scoped maintenance claim→fenced finish raced eventacceptance; empty-storage fixture had no orphan metadata and postpurge replay rejected. This is ONE observed race interleaving, not both orderings/real brokerredelivery.
+
+Rootreceipt work/v21-http-root-runtime-r3/root-result.json; actualGo log work/v21-http-root-runtime-r3/bundle/attempt-1792725896959080000/broker/go-broker.private.log. Both exact ownedPG/Rabbit containers removed and root independentlyverified absence. NoMAIN migration/currentbroker mutation. Reports explicitly exclude lifecycle/processkill retest, brokertransport retest, semantic source revoke and actualReact/browser/native screens. FullV21/all13packages remainOPEN.
+
+
+## 2026-10-23: fresh CPU8 binding found stopped media/GPU; recovery incomplete
+
+ReadonlycollectorR1 refused before capture because bothmedia/GPU originalunits wereFAILED/MainPID0, actual exit1 at03:19:53UTC, noOOM per systemd (originalcauseUNKNOWN). CPU1693654 remainsactive/fresh. Root verified reverseTCP3ports live and SQLactive/reservations/occupiedslots/unsentoutbox all0. Underbothlocks exactfailedunits hademptyControlGroup/noPID andsame8/12GiB/zeroSwap/CPU2; root started unchangeddefinitions. GPU2171115 returnedactive withauthenticatedworker/nodefreshness. Media2171112 failed atobserver exceptions.jsonl O_EXCL because fixeddiagnosticsession alreadyexists. Nooldlogsdeleted/truncated, nosource/SQLgrant/qualitychange. Fullmediarestoration pending fresh restart-safe diagnosticentry. Evidence work/shared-cpu8-root-worker-recovery-r1/root-checkpoint.json/execution.private.log and work/shared-cpu8-root-preflight-r1/collector-failure.json. NoCPU8physicalwindow/archiveactivation/userarchive dispatch performed.
+
+
+## 2026-10-23: actual purge orderings/broker redelivery/consent source gate accepted
+
+Actual attempt-1792726654839034000 exit0:27SQLcases and3new testsPASS1.078s. NormalownerDelete+exactmaintenanceclaim+fencedfinish verified accept→purge and purge→accept. ActualRabbit confirmedpublish→SQLacceptcommit→channelclosewithoutACK→purge→Redelivered→productionrejection→DLX/digestquarantine passed. True restrictedworkerLOGIN source getter admitted pinnedpersonsource before normalowner ChangeConsent CAS, denied after epochrevocation; frozenlink/oldtask/slot/attempthistory unchanged anddirectartifactSELECT denied. Rootverified bothownPG/Rabbitabsent. Evidence work/v21-purge-root-runtime-r1/root-result.json. NoMAINmigration/currentbroker mutation. This is source authorization, not publicclaim/heartbeat or physicalinference; fullV21/all13 stillOPEN.
+
+
+## 2026-10-23: restart-safe media observer deployed and authenticated ready
+
+Root create-only staged6files, independentlyreadbackSHA, started NEWphotoeditor-media-safe-observed-recovery-r2.service PID2171284. Actualstartup source13fe1232/runtime7b86/media3ops/policy gatesPASS, uniqueactualsessionedd55cdb-9132-46c1-8f66-24c0f18d03e1 mode0700/log0600. Actualkernel8GiB/swap0/CPU2/pids128/memoryeventsall0. All3registeredworker+node authenticatedcapacityfresh; mediaownqueue1consumer/ready0/unacked0. CPU1693654/GPU2171115 unchanged bymediarecovery. Oldlogsretained; noSQL/sourcealgorithm/quality/allowlistchange. Evidence work/media-restartable-root-r2/root-result.json. Originalsimultaneous03:19failurecause remainsUNKNOWN; perprocessobserverrestartcollision fixed, automaticrestartpolicy notchanged. CPU8collector mustbindNEWmediaunit+sixactualfiles beforephysicalwindow.
+
+
+## 2026-10-23: CPU8 real RAW adapter outputs pass; strict dependency review remains
+
+ActualCPU8 window controllerexit1 after real8unique/9positive servicefactory adaptercalls passed on publicRAW6032x4028, nativepixelsc48248..., independentcolorerror1.257e-7/localdisabledidentity, qualityfinite, wronglength/cancel andscratch0. Root independentlydownloaded/fullSHA/fullDecode/ICC checked JPEG10044420842322B087aec... andTIFF16Deflate117855024B82786e.... Childpeak4177801216B/parent4178092032B/allmemoryevents0. Strictclosuregate thenrefused486unreviewedentries/0hashdrift; noarchivechild orqualifiedruntimeclaim. OldCPU source8fbc/runtime14b2 restoredPID2172054 newunitphotoeditor-archive-qualified-window-shared-cpu8-currentcpu-r1.service, authenticatedreadiness BEFORE5producerrestore. Rootreceipt work/rtx-shared-cpu8-qualification-r1/window/concrete-current-r3/root-result.json. Pre-stage∞→poststage boundedinactiveparentconfig mismatch was separatelymeasured/rebound in NEWrootR2plan; oldrefusal/planspreserved. Next exactdependencyprovenance review, neverblanketapproval.
+
+Actualbrowserreadonlyinspection also found sparseorderingkeys1024/2048 displayedasPhoto1025/2049. CanonicalUI fix nowusescurrentorderedlistordinals withoutchangingAPI/routing/storedposition; targeted60/typecheck/fullapp3603PASS7skip. Evidence work/gallery-display-ordinal-r1/result.json. Rootreloadconfirmed existing58081staticbundle stillOLD; freshlocalwebexport/deploymentpending, nofalsevisualfixclaim. FullV20–V32 remainsOPEN.
+
+
+## 2026-10-23: exact486 installed provenance accepted; local display fix served
+
+Actualreadonly verifier486 passed:477sitepackage entries owningRECORD SHA/size+exactuv.lock versions,8actualCPythonstdlibsource/pyc,1OSliblcms2 dpkgmetadata. Fullrecursivepyc/source comparison, preapprovedinterpreter, nativechunkhash and effectivewritersbefore/after passed; reviewedpackagesnotimported. Root comparedall486path/hashpairs toactualCPU8missinglist. Rootreceipt work/rtx-shared-cpu8-dependency-review-r1/root-review.json; actualresultSHA8bc98f87e7db466f382cc00c90c1306236e5737492cb0e08be53c98aa6580999. Acceptance is exactinstalledbytes/provenance, not reconstructedupstreamwheels orblanketsite-packagesapproval. Physicalnewruntimeclosure mustrecheckexactbytesbeforequalification; CPU8fullwindowstillOPEN.
+
+Rootdeployed23pinnedwebassets only tolocalphotographercontainer; Caddyimage/ports/other services retained. ActualIABbrowser oldURL reusedcachedoldHTML; explicitnewbuildquery loadednewentry34f618... and visiblyconfirmed Openphoto1/2 +Selectframe1/2 whileorderingfields stayed1024/2048. Evidence work/gallery-display-ordinal-r1/local-deploy-result.json. Cachefreshnessissue recorded; no falseclaim oldcachedtabsautomaticallyupgraded. Fullbrowser/native/moduleacceptance remainsOPEN.
+
+
+## 2026-10-23: local QA HTML cache policy deployed and browser reload verified
+
+Root reviewed successorR2 exactroot+indexmatcher, validatedCaddyconfiguration using actualinstalledCaddy, and changedonlylocalphotographer Caddyfilemount (newwebassets/image/ports/other services retained). ActualHTTP /, /index.html anddeepcollectionSPA each returned Cache-Control no-cache,no-store,must-revalidate; hashedentry keeps priorCache-Controlabsence+ETag. ActualIAB normalcollectionURL WITHOUTqaquery afterreload loadedentry34f618... and showed Openphoto1/2 +Selectframe1/2, whileeditableorderingvalues remained1024/2048. Evidence work/gallery-html-cache-local-r2/root-result.json. This closeslocalQA freshHTML/displayordinal deployment proof, not productioncache/rootcause orwholebrowser/native acceptance. NoAPI/DB/workerchanges. CPU8R5physicalsuccessor/source review remainspending; exact486provenance accepted separately.
+
+
+## 2026-10-23: actual CPU8 and shared archive R5 technical window accepted
+
+Root independent readback verified actual8unique/9positive CPU servicefactory calls on publicRAW6032x4028 and complete CPU3076/archive891 dependency closures against exact approved externalmap plus pinned sourcefiles (0missing/0drift). Actual source38c1/runtime18db unchanged. Shared parent8GiB/swap0/CPU2 peak2901245952B; CPU peak2901217280B/archive378368000B; all memoryevents0. Root downloaded both86122329B ZIPs, verified fullSHA0c86f08c... equality, CRC and each memberSHA. Cancel/short/hash negatives3, unsafe names6, scratch0. No real gateway/lease/DB operation qualification inferred from local transport.
+
+Controllerexit0; originalCPU source8fbc/runtime14b2 restoredPID2172964 unitphotoeditor-archive-qualified-window-shared-cpu8-currentcpu-r2.service. AuthenticatedDB/source/kernel readiness precedes exactfiveproducer restoration. Receipt work/rtx-shared-cpu8-qualification-r5/window/concrete-current-r1/root-result.json; independent fullreadback underindependent-root-readback-r1. Failed future-clock capture retained; fresh capture used unchanged120s freshness guard after bounded localclock catchup. Registered archiveidentity/policy/dualworker activation and existinguserJPEG/TIFF normaldownload remainOPEN. MAIN2656/2657HOLD unchanged; all13wholemodulesOPEN.
+
+
+## 2026-10-23: dedicated archive identity actually prepared locally
+
+Fresh read-only MAIN2656 verified existingCPU tenant/node/freshness and actualgateway publicCA pin. OriginalidentityR2 refused BEFORE output because pinned legacyCA has noKeyUsage; noCAreplacement or DB/broker mutation. ImmutableR3 permits missingKU only for exactpinned selfsignedCA with criticalCAtrue/pathlen0/selfsignature; presentKU must permitkeyCertSign (RFC5280 6.1.4(n)). Root independentlyreran16syntheticchecksPASS, then actualcreate-onlygenerated worker d7c3a4df-ec28-4ee5-b13c-591ee1f612ca in work/archive-identity-root-preparation-r1/identity-r3. Root verified chain/keypair/nonCA/clientAuth/private0600/output0700 and sameexistingtenant/node; publicidentitySHA7fe7290e92757e1773926908cd22dee487503c8452b56b926edccbd7014db0c8. Leafexpires2026-11-20T11:17:39Z. Receipt work/archive-identity-root-preparation-r1/r3-root-result.json. This is LOCALidentity preparation ONLY: no role/user/queue/registration/targetdeployment, qualified_operations{}, enabledfalse. Next actualrestrictedregistration/bootstrap and permanent sharedparent dualworkeradoption remainOPEN.
+
+
+## 2026-10-23: archive registration prerequisite defects caught before mutation
+
+Root built actualtarget-only Gohelper invoking normalqueue.DeclareWorker (noglobalDeclare/noconsume), verifiedbinary+allrecordedbackend/helper sourcepins; receipt work/archive-registration-root-build-r1/root-result.json. Actualread-onlyinstalledRabbitCLI JSONcapture revealedarguments listoftypedtriples, notdict; R1postmutation assertions would fail. Snapshot17queues/41bindings/3users/events199ready0unacked0consumers preserved in work/archive-registration-root-prerequisites-r1/actual-broker-readonly.json; authorcorrecting strictshapeadapter+fixtures BEFOREregistration. Independentreview alsofound missingAMQPidentity/parentCPU guard inruntimeR1 and outputancestortrustgap inregistrationR1; successors pending. No actualrole/user/queue created.
+
+Automaticapproval review rejected a proposed oldRTXenv export/newlocalpayload BEFOREexecution because it would duplicateexistingcredentials ontoMac. No rejectedcommandran. Safer source-only work/rtx-shared-archive-target-environment-r1 composes twoenvfiles ONRTX only andreturnssolelyhashes;7syntheticchecksPASS(correctvenventry; globalPythonwrapperimportfailurepreserved). No actualenv/privateinput/targetexecution. This is not a credentialtransferapproval or runtimeadoptionreceipt. Existing13modulegoal staysOPEN.
+
+
+## 2026-10-23: actual dedicated archive LOGIN and personal queue accepted
+
+ReviewedregistrationR2 actualcontrollerexit0. Root independenttrueDBroleflags/membership/ownershipmarker and actualbrokerreadback PASS; actualnewrestrictedDBsession rolephoto_worker and AMQPauthentication succeeded withoutconsume. Worker d7c3a4df-ec28-4ee5-b13c-591ee1f612ca nowhasdedicatedLOGIN and Rabbituser; configure/write ^$, readexact q.worker.d7c3a4df-ec28-4ee5-b13c-591ee1f612ca.archive only. Newquorumqueue ready0/unacked0/consumers0; normalDeclareWorker args/bothbindingsverified. Actualstdinpasswordcreation worked, nopasswordargv/newsecretfiles. Existinglocalinfra.env readinmemoryonly. Root comparedALLold17queues and41bindings exactunchanged; orchestrator199/0/0 retained. No workerregistration/source/policy/Doctor/slots/taskstate changed; main2656. Receipt work/archive-registration-root-execution-r2/root-result.json with durablephase receipts actual-attempt-r1/. Next permanentparent/rotation/attach+activate/dualheartbeat/livegateway/userdownload stillOPEN.
+
+
+## 2026-10-23: safer protected RTX preparation actually completed
+
+After automaticreview refused oldRTXsecret export BEFOREexecution, reviewedtarget-onlyalternative executed successfully: newdedicatedarchive identity andpublicR2runtime/rootcomposer staged viaSSHstdin create-only0700/0600 in processing/shared-archive-live-r1; noCAprivatekey transfer. ExistingCPUenv NEVERleftRTX. Targetcomposer dryrun+executePASS createdcpu.env/archive.env there; onlypublichashes/usernames/certDER metadata returned. Rootbuilt actualmetadata-boundR2publicruntimeplans locally, noDSN/passwordvalues. ActualarchiveDoctor report independentlyfetched+SHA2b2c295b...verified fromacceptedphysicalR5, models[]/backendcpu/emptylocke3c...; noinventedDoctor. Rootreceipt work/archive-permanent-protected-stage-r1/root-result.json.
+
+RuntimeR2/registrationR2/composerR1 independentsourcereview42pins+37syntheticchecksPASS; receipt work/shared-archive-three-packets-independent-review-r1/result.json. Actualpermanentparent/sourceadoption/canonicalpolicyrotation/SQLattach+activation/dualheartbeat notyetperformed. CurrentoldCPU2172964 continues; media/GPU untouched. Main2656/orchestrator199 retained; no userarchive tasks reset/recreated/dispatched. Executablepermanentadoptioncontroller nowbeingimplemented againsttheseactualbindings; all13wholemodulegoalOPEN.
+
+
+## 2026-10-23: permanent shared CPU/archive activation accepted after explicit recovery
+
+Actual R4 transaction committed policy rotation and archive registration/activation at MAIN2656. New CPU PID2173574 and archive PID2173577 run source38c1/runtime18db under shared8GiB/noSwap/CPU2 parent; CPU8GiB/archive1GiB are child limits, not additive host reservation. Both retain exact operation allowlists. R4 readiness failed because helper RLIMIT_AS64MiB was inherited by journalctl, which returned0 with empty stdout and journal mmap allocation error. Root reproduced limited versus unlimited-AS behavior; no worker failure or OOM inferred. Frozen R4 preserved.
+
+Checked readonly recovery helper ran as separate physical64MiB/swap0/CPU2/tasks32 systemd one-shot with unlimitedAS. Full exact-PID/source/runtime/environment/cert/kernel/mTLS checks passed for both live workers, helper memoryevents all0. Fresh authenticated DB/capacity and empty own queues(one consumer each) passed BEFORE durable readiness and exactfiveproducer restoration. Known held controller PID94252 was SIGTERM only AFTER durable normal-state proof; session63240 terminal -15 honestly retained, not exit0 claimed. Root then reacquired BOTH locks and repeated target proof plus DB/queues/producers successfully. Final receipt work/archive-permanent-adoption-root-r4/actual-attempt-r1/root-independent-final-acceptance.json.
+
+MAIN remains2656, orchestrator199 untouched, media/GPU unchanged. This closes permanent sharedCPU/archive activation for the qualified exact source and scope. It does NOT close user JPEG/TIFF archive execution, normal finalizer/owner downloads, large ZIP64 or wholeV20/V30 acceptance. No existing task reset/recreated/dispatched. Next normal two existing archive tasks and owner download; future installer must replace virtual-memory diagnostic bound with physical bound.
+
+
+## 2026-10-23: actual normal TIFF archive dispatch exposed missing output policies
+
+Permanent archive worker accepted normal dispatcher command for existing TIFF taskaa4e6164/run e991510e. Scoped Go caller transaction committed exactly one queued task/reservation/slot/outbox, no foreign active tasks. Exactfive producers restored, normalpublisher delivered, worker claimed attempt1/fence1. Actual task finished retry_wait/DEPENDENCY_UNAVAILABLE in32.394s; safe exception metadata identifies GatewayError caused by BrokenPipeError at archive upload. No automaticretry/reset/newtask. Global reservations/occupiedslots/unsent all0 after failure; JPEG task remains READY/attempt0.
+
+Root readonly schema/function/policy evidence found ZERO operation_output_policies for archive.build. Installed begin_output necessarily returns forbidden for missing roles; no output_uploads row exists. Gateway size limit20GiB and tenant quota100GiB/usage~9GiB are sufficient. This is a concrete missing production configuration contract, not an image quality failure. Exact early HTTP response was not observed, so the missing policy is not asserted as the sole demonstrated cause of BrokenPipe. Source forward-only policy migration and isolated qualification are next, followed by reviewed MAIN chain installation and normal explicit recovery.
+
+Evidence work/user-three-normal-archive-root-dispatch-r1/attempt-1792734855306837000/root-result.json, committed-scoped-dispatch-readback.json, actual-attempt-failure.private.json and installed-begin-output.sql. Capture R1/R2 safe refusals and unexecuted R3 wrong-table finding preserved; R4 actual read-only capture passed. User ZIP/finalizer/ownerdownload still OPEN.
+
+
+## 2026-10-23: canonical archive output policy correction prepared, SQL qualification pending
+
+Added canonical forward-only backend/db/migrations/02658_archive_output_policies.sql (SHAeb5b8801baaa4df48f38cd708531cf779cd516c80eeee2dff4e13c8fbfc5f1ea): exact version1 archive/application-zip and archive_manifest/application-json roles, count1 each, ZIP10758946816bytes and externalmanifest1048576bytes. Bounds derive production10GiB payload/5000entries plus1MiB+4096perentry ZIP allowance; separate externalmanifest remains in task output budget. Migration requires normal2657 predecessor/exactregistry/no existing archive rows, inserts only2rows, changes no grants/functions/algorithms. Root reran3sourcecontrolsPASS. Focused realSQL authorization tests prepared but NOTRUN; no MAIN installation yet. Frozen source work/archive-output-policies-2658-r1/manifest.json SHA2993ade7d82a00a6ad4fc5f8e6f19ca75d8b89c595ff672dab79c5140d166cb8.
+
+Postfailure independentreadback verifies4authenticatedfreshworkers,5runningproducers,18queues/no unacked/global idle. Events200 vs original199 is explicitly accounted by one normal published task.failed event846580cc-32ac-4c76-a818-0db9f1812c16 for TIFFattempt1/fence1; old199 remain untouched, no consumer/ACK/purge. own-event-accounting.json and post-failure-infrastructure.json under actual dispatch attempt preserve this. Old baseline199 operators must not be blindly reused. Next owned isolated normalGoose2656→2657→2658 and SQLcases, then reviewed MAIN chain/new-head helpers/normal explicit recovery; no handwritten task reset.
+
+
+## 2026-10-23: actual independent PostgreSQL normal2656→2657→2658 and SQL12 PASS
+
+Root executed reviewed ownedadapterR2 a0c2851e... using existing normalCLI343e89 to2657 then newnormalCLId03a2f to2658. Actual observed heads[2656,2657,2658], both normal Goose/installed-security checks passed. Real begin_output matrix12PASS/0failure/error/skip; root independently parsed JUnitSHA0e6bbe9bbc433ea2182e999cdd38350b9a159e439dcaad687eb949b6c6cfc6cd. Exact2658 delta is two expectedpolicyrows; selected functiondefinitions/ownership/ACL/config/constraint/relation/RLS/registry metadata and clusterroles/memberships unchanged. This is not literally every PostgreSQLcatalogfield; otherpolicyrows in the clone were initiallyempty because capture includes schema/history/operation_registry only.
+
+CurrentMAIN catalogue/roles/policies readonly before/after unchanged. Owncluster/systemID != MAIN checked before role/schemaDDL, ownDB dropped, exactcontainer912dc607fda793ce960c2148aecbfeb50fe233297bd7a0d3571fb69088088101 removed and root independentlyconfirmedabsence. Host session75255 terminal0, locksreleased, no livequalificationhandle. Receipt work/archive-output-policies-owned-qualification-r2/root-result.json and root-owned-run-r2/tests/terminal.json. MAIN still2656; no worker/queue/task/reset or ownerdownload success claimed. Next reviewed MAINnormalchain then newhead deliveryhelpers and normalexplicit retry.
+
+R1bootstrap receipt-writer retention defect caught BEFOREinfra, fixedR2 with6purecontrols including actual nested hold/OSError witness; R1preserved. RootR2preparation first refused existingcopiedroot-config.private.json create-only, then used newroot-config.root-r2.private.json; no overwrite. MAINcredential remains existingfile reference only. CanonicalSQL2658eb5unchanged; expanded12-case canonicaltest supersedes preserved11-case source under policyR2packet backup.
+
+
+## 2026-10-23: MAIN normal2656→2657→2658 installed, independent final acceptance PASS
+
+ReviewedMAINadapterR2 9a1484fa... actualcontroller session66978 exit0. NormalCLId03a2f applied both migrations through ordinary Goose plus installedsecurity validation. Snapshot proof preserves existing photo rows except declared livecapacitytelemetry/newNULL inboxfield, priorhistory and rolememberships; exactnewNOLOGIN photo_event_consumer and twoarchivepolicyrows; selected finalcatalog metadata matches actualisolated2658. No eventconsumer started. Exactfiveproducers restored and fourworkers authenticatedfresh. Independentroot readback repeatedhead/catalog/worker/queue/producers proof;18queues exactbaseline/events200/noACK/no consume. Receipt work/archive-main-2658-r2/root-installed.reviewed.json SHA881bb7228c41a6f513079a4847db96173a429c58a4d0cbe238a734a8b1586d19, statusROOT_REVIEWED_MAIN2658_INSTALLED/head2658/mode0600. Root independent session30668 terminal0. No activeinstaller/locks retained.
+
+R1queuebaseline defect caught beforeexecution: oldpermanent config retained archiveconsumer0, actualacceptedpermanentworkerhas1; R2 binds exact0→1 toactualpermanentacceptance and199→200 toownfailedTIFFevent, withoutgeneralrebase. Rootreadonlycatalogcomparison beforemigration observed onlythreeexpectednewfunctions and expectedheartbeatdefinition change, registryidentical. Workingworker source38c1/runtime18db and CPU2173574/archive2173577/media/GPU unchanged. Missingpolicydefect now fixed in MAIN. FailedTIFFattempt1/fence1 andJPEGready0 untouched; normalrecovery/dispatch/finalization/ownerdownload remainOPEN.
+
+## 2026-10-23: strict2658 delivery helper compiled and source-bound
+
+Configured source work/user-three-normal-archive-delivery-2658-root-source-r1/manifest.json SHA0fe37094fa190db195fdf712700ca3b867eb1431599b637d4c548d3ed2558b81 againstactual881bb installreceipt; nofuturehashinvented/no2656guardwaiver. Narrowpeer source review passed, capture permitsretry_wait ONLYrecovery/exactownTIFFa1f1. RootcopiedexacteightGo files into backend/_work/user-three-normal-archive-delivery-2658-root-r1, ranpackage unit tests andnormalbuildoffline.5191actualGo/test/embed/module/tool dependencies before/after equal, sourcepinsSHA71a777af074dd8cdfdbf0cf2503c20a454ebf351613f345b02acaef838f1749f. Binary work/user-three-normal-archive-delivery-2658-root-build-r1/archive-delivery SHA089e3603c1b95f2309aec8b1bd04c30e76d1d9e77633a374b010d8f15a71ff81, result.json samefolder. Session64799 exit0, no business action.
+
+Actualreadonlyrecoverycapture passed at2658; publicscopeunapprovedSHA88b97f688447d5c659b74ecfeeef6feb264a1e17b32bdc2b774061432bbef046, file root-recovery-readback-r1.private.json inconfiguredsourcefolder. Outercomponentwindow stillmustbindstrict2658 catalog/allfourworker authority/currentqueues; oldpermanentdatabase_gate remainsstrict2656 and mustnotbereused/bypassed. Noactualrecovery/retry/newZIP/download claimed. FullV20–V32/all13wholemoduleacceptance remainOPEN.
+
+
+## 2026-10-23: recovery phase guard и реальный предел archive manifest
+
+Перед штатным повтором TIFF обнаружено: Recovery(ctx,1) сначала планирует retry, сохраняя retry_wait, а отдельным проходом активирует due retry. Старый host guard ошибочно ожидал ready сразу. Подготовлен successor с явными plan/activate и проверкой точного эффекта внутри caller transaction ДО commit; старый helper не разрешён для Recovery. Новая сборка и source binding проверяются отдельно. Никакого нового retry/ZIP/owner download этим дополнением не подтверждено; исходная завершённая попытка a1/f1 сохраняется полностью.
+
+Открыт подтверждённый V30 boundary defect: допустимый ArchiveManifest на 5000 записей с допустимыми уникальными ASCII-именами по180 UTF-8 bytes сериализуется в 2204176 bytes, превышая текущий лимит1048576 и worker stage_contract, и установленной archive_manifest policy. Evidence: work/user-three-normal-archive-delivery-2658-root-build-r1/5000-entry-manifest-boundary-finding.json. Это metadata-only reproduction, без создания изображений/ZIP. Три текущие фотографии в этот предел укладываются. До полной V30 приёмки согласованно исправить контракт/worker staging, backend resource estimates и forward-only policy migration; проверить5000/max-name/JSON-escaping границы и реальные большие ZIP/IO. Одного расширения SQL policy недостаточно. Полная цель V20–V32 остаётся OPEN.
+
+
+### Actual recovery phase helper build
+
+Новый helper work/user-three-archive-recovery-phase-root-build-r1/archive-delivery собран; package tests PASS0.656s. Binary SHA37cdb035cce333b090acfd7375df6c8b8f85fa8b68ce6e0036fa6210dc07b2d3; source5193files до/после неизменны, source-pins SHA7ca8051bdd58c8ae90fb1389d4a9e383d9218bfca57d7d7e27e406d9acda096e. Phase source manifest d941b7e708e0d2a350a09cb8a057ded4ddbc1297a61eef775f285be41901e9cc. Проверены раздельные plan/activate, отказ combined count2 и изменения immutable fields. Это build/unit evidence, НЕвыполнение Recovery/ZIP. Host successor обязан до execution проверить membership именно нового phase source; old089 helper запрещён для recovery.
+
+
+## 2026-10-23: actual normal TIFF retry plan + due activation PASS
+
+Штатный Recovery выполнен двумя отдельными caller transactions через новый phase-helper37cdb: plan exit0/count1 сохранил retry_wait и назначил next_attempt_at/retry_count1; отдельный activate exit0/count1 перевёл тот же TIFF aa4e6164… в ready, next_attempt_atNULL, attempt1/fence1 неизменны. Полные finished attempt rows до/после совпадают; исходная ошибка DEPENDENCY_UNAVAILABLE сохранена. Каждый window восстановил exact5 producers. Evidence work/user-three-archive-plan-root-r1 и work/user-three-archive-activate-root-r1/root-result.json. Это ещё НЕ новый dispatch/ZIP/download; JPEG ready/a0/f0 сохраняется. Следующий шаг — отдельный штатный dispatch и точный учёт новых outbox events.
+
+
+## 2026-10-23: actual TIFF archive worker SUCCEEDED attempt2
+
+Отдельный production Dispatcher через phase-helper37cdb выполнил ровно1 dispatch; five producers восстановлены. Фактический readonly readback work/user-three-archive-dispatch-root-r2/runtime-readback-1792738847954451000.private.json: TIFF taskaa4e6164-4366-5cee-a1d3-cafaae8333f0 succeeded/attempt2/fence2/canonical_result_id d48fc920-11b8-448e-9d65-60b2b407f980. Первый finished attempt1/fence1 с DEPENDENCY_UNAVAILABLE сохранён; attempt2 finished2026-10-23T07:00:07.415462Z/errorNULL. Canonical result binding проверен production-state verifier. Global foreignactive/reserved/occupied/unsent0. JPEG task1e66… остаётся ready/a0/f0. Это worker completion, НЕнезависимая проверка ZIP bytes/owner API download; следующая работа — actualZIP verification и точный учёт новых task events перед отдельным JPEG dispatch. Baseline200 нельзя переиспользовать без reconciliation.
+
+
+## 2026-10-23: actual TIFF canonical ZIP verified
+
+work/user-three-tiff-canonical-archive-root-verification-r1/result.json SHAe00fac1bd0559b721b8c330bf6282d1e7a70fc4de5024e471258c0427a939213: оба outputs exactversion HEAD/GET/fullSHA PASS, externalmanifest связан с archiveSHA/bytes, embeddedmanifest совпадает с externalбезсамоссылки. ZIP содержит ровно3TIFF+manifest, fullCRC/PASS, имена/порядок/memberSHA/bytes совпадают с accepted six-encode receipt. Все3TIFF полностью декодированы с исходными dimensions/ICC. Локальный archive.zip доступен внутри evidencefolder. Это canonicalobject verification, НЕ ownerAPI download и НЕ художественная приёмка.
+
+Root readonly broker inventory:18queues, allunacked0, orchestrator202ready/0consumer. Рост200→202 соответствует ровно двум sent outboxevent TIFFa2/f2:66305f9b-ddc6-487d-ab7c-21fd499083a5 task.progress и434d1cc4-ec76-41b3-a95f-23bedf191688 task.succeeded. Evidence work/user-three-archive-dispatch-root-r2/root-own-event-accounting.json; очередь не читалась/ACK/purge не выполнялись. JPEG dispatch successor должен привязать этот точный переход и freshstate, не произвольно заменить baseline.
+
+
+## 2026-10-23: actual JPEG archive worker SUCCEEDED
+
+R4 exacteventtransition200→202 controller выполнял единственный JPEG dispatch через productionDispatcher; independent24pure/1328pinsreviewPASS иroot24purePASS. Dispatch terminal0/exactfiveproducersrestored. Readonly work/user-three-jpeg-archive-dispatch-root-r1/runtime-readback-1792739164157207000.private.json: JPEG task1e66b2eb-536b-579a-a940-397e6506d870 succeeded/a1/f1/canonical9e3bbc53-2fa7-4e46-8127-1c12c33d75ca. TIFF прежнийsucceeded/a2/f2/d48f сохраняется; globalforeignactive/reserved/occupied/unsent0. Оба archive tasks технически завершены. JPEGZIP bytes ещёнепроверены; downloadjobs ещёнезаявленыready/ownerfetchнепроверен. Далее exactJPEGeventaccounting→отдельныеproductionDownloadBuildRunnerV2 ticks/finalizers→ownerintent/redeem/versionedfetch/fullZIPverification.
+
+
+## 2026-10-23: actual JPEG canonical ZIP verified
+
+work/user-three-jpeg-canonical-archive-root-verification-r1/result.json SHAe76e7254f8198871291359b31c979cb1f6716bac40101af272e3739b909dfa95: exactJPEGcanonical9e3bbc53/a1/f1, обаversionedoutput HEAD/GET/fullSHA, embedded/externalmanifest一致, полныйCRC всехZIPmembers и триJPEGfullSHA/bytes/dimensions/ICC/decoder совпали с accepted six-encode receipt. Source3purePASS и actualverifierterminal0. ОбаJPEG/TIFFZIP теперь технически проверены. OwnerAPI download, jobfinalization и художественнаяоценка всёещёOPEN. Нормальный finalizer должендовести jobsдоready передcapture/intent/redeem; прежнийownerhelperhardcodea1/f1 несовместим сTIFFa2, подготовленsourceR3сфактическойпривязкой безсбросаистории.
+
+
+## 2026-10-23: owner-download capture pre-execution schema defect
+
+Independent source review выявил реальный дефект вспомогательного work/user-three-owner-download-r3/capture.py: collect читает j.files_done/files_total изto_jsonb(download_jobs), хотя эти колонки отсутствуют; DTOсчётчикиAPI вычисляются отдельно. OwnerHTTP/intent/redeem ещёневызывались. Successor должен проверить volume.files_done3, selectionsnapshot/actualitems3 и явный principal_type=user/principal_id=actualOWNER; затем readonlycapture по реальнойсхеме. Это дефект acceptancehelper, НЕподтверждённая ошибка productionAPI. Доисправления R3captureнеиспользовать. ПроверкиJPEG/TIFFZIP остаются действительными; исходныефайлы иruntimeнеизменны.
+
+
+## 2026-10-23: owner binder schema fix tested; finalizer actual source captured
+
+OwnercaptureR4 work/user-three-owner-download-r4 исправляет неподдерживаемыеDTOполя на реальныйvolume.files_done3, snapshotitems3/jobitems3, явныйprincipal_type=user/principal_id db3f69a8…; root8purePASS0.204s. HTTPкод прежний, никакихownerPOSTещёнебыло. Последнийactualreadonlyfinalizer/source/rows: work/user-three-jpeg-archive-dispatch-root-r1/finalizer-current-readonly.json. Обаjobsbuilding/runsrunning/buildphasearchiving/volumesqueued; workerarchivesобаsucceeded. Следующийnormaladvance обязанменять только выбранныйrun/job/volume/архивныеexpiry/терминальныйevent/cursor; actualpostcommitguardнеявляетсяtransactionrollback. ПодготовкаR5идёт, MAINфинализацияещёнеисполнялась.
+
+
+## 2026-10-23: owner OTP/ephemeral-FD launcher verified source
+
+work/user-three-owner-flow-launcher-r1 manifest46ebbc7b2659b17214bbc3cebc88441586345b37b4ce103f5a1b7ab3f0e68e00 подготовлендляодногоформата. Root2mocktestsPASS; actualOTP/login/downloadНЕзапускались. СначалаR4readonlycaptureдолженподтвердитьready; затемодноOTPrequest/verifyчерезnormalAPI58080 иMailpit58025 адресованноеexistingtestemail. JWTsubсверяетсясownerdb3, токенпередаётсятольковmemory/pipeFD безновыхсекретныхфайлов/env/stdout. Изсуществующейruntimeconfig read-onlyподтверждён S3_PUBLIC_ENDPOINT=http://localhost:56901; этотoriginнужендляsignedGET. ИсторическиеsessionaccessJWTexpired; новыйloginнеподменяетowner. FullgoalOPEN, финализация иownerAPIприёмка ещёвпереди.
+
+
+## 2026-10-23: actual finalizer R5 refused before mutation, root reconciled/restored
+
+R5 actualwindow work/user-three-finalize-root-r1 childreportedgenericerrorclass, heldcontrollerPID14428/session3886. Root readonlyallphoto normalizeddigests and FULLselectedrun/job/volume/artifacts/cursor beforeafterequal; active/reserved/occupied/unsent0. Exactfiveproducers restored and18queuebaselineverified BEFORE terminatingonlyverifiedownPID14428. Restorationreceipt root-five-restored-before-owner-stop.json; sessionterminal143. No normalfinalizationready/ownerdownload claimed.
+
+Confirmed source/scope blocker: actualscope omits volume_byte_limit/volume_file_limit, decodedGozeros rejectedbyvalidateAdvanceScope BEFORE DBpool/claim. Separatelyindependentreviewfound post-child old.state wouldreject expectedunsent download_status at pausedpublisher evenaftersuccess. Need immutableR6: actualnormalvolumeconstants/binding and localpreflighttestbeforechild, narrowselectedjob deterministicready-event allowance while retainingallforeignguards. No automaticretry, task/historyreset orqueueconsumption. R5source/evidence preserved.
+
+
+## 2026-10-23: actual saved-scope Go preflight closes missing-limit diagnosis
+
+Отдельный copied-source Go package backend/_work/archive-advance-actual-scope-preflight-r1 использует настоящий validateAdvanceScope, читая сохранённый R5scope. Только observedtimestamp обновлён дляofflinevalidation. С исходными нулевымиvolume limits воспроизведён точный отказ actual phase target and normal volume limits required; с workflow.DefaultVolumeByteLimit/MaxDownloadItems ВСЯvalidateAdvanceScope проходит. Actualtestterminal0/PASS0.402s, безDB/API/worker; accepted37binary/sourceclosureнеизменны. Receipt work/archive-advance-actual-scope-preflight-root-r1/result.json. R6должен добавлятьпроверенныелимитыиподдерживатьтолькоexactownreadyoutboxevent. Ниодинjobещёнефинализирован.
+
+
+## 2026-10-23: both normal jobs ready; actual JPEG owner download fully verified
+
+R6 root41purePASS, independent1344pins/41pureSOURCEPASS. ActualseparateDownloadBuildRunnerV2 windows work/user-three-finalize-root-r2 (TIFF) /root-r3 (JPEG) terminal0; allphotoPOSTCOMMITdelta/historyguardPASS, exact5restored. Обаjobsready, volumesready3files, canonicaloutputs24hexpiry, deterministicprivate/download_statusevents сохранены.
+
+ActualJPEGownerflow work/user-three-owner-jpeg-root-r1: normalOTPlogin→GETjob200→intent201→redeem200→versionpinnedGET76212613bytes/fullSHA. EphemeraltokenFDбезtoken/URLpersistence. Fullzipverification.json statusACTUAL_OWNER_ZIP_THREE_FULL_FILES_VERIFIED, все3JPEGCRC/SHA/размеры/ICC/fullDecodePASS.
+
+ActualTIFFownerlaunch session78950exit1 TimeoutError AFTERreadycapture work/user-three-owner-tiff-root-r1.binding.json; downloadoutputdirне создан. Точнаяфазаrequest/verify/pollнеустановлена: genericexceptionclass неявляется доказательством отсутствияverifyPOST. Mailpitreadonlymetadataпоказывает только1новоеownerписьмо07:56:00.483Z. Sourceauthserviceимеет1mincooldownсopaqueacceptedID/безинвалидациипредыдущегокода; это вероятнаяпричина, требуетactualreadonlycorrelation. Никакогоавтоматическогоповтора/POSTнебыло; TIFFjobreadyиZIPнеизменны. FullV20–V32OPEN; browser/native/wholemoduleприёмкаэтимнеподтверждена.
+
+
+## 2026-10-23: actual owner JPEG + TIFF downloads fully verified
+
+Оба normaljobsready послеотдельныхR6finalizers. JPEG normalownerOTP/GETjob/intent201/redeem200/versionedGET76212613bytes иTIFF отдельныйnormalownerOTP/GETjob/intent201/redeem200/versionedGET387734331bytes фактическиPASS. TIFFпервыйauthTimeout сохранён; передновымотдельнымзапуском readonlylastchallengeage154.269s подтвердил истечение60scooldown, прежниеPOSTнереплеились. НоваяTIFFсессия65327terminal0, offlinefullZIPverification54723terminal0.
+
+Evidence work/user-three-owner-jpeg-root-r1/full-zip-verification.json и work/user-three-owner-tiff-root-r2/full-zip-verification.json: полныйCRC/memberSHA/bytes/dimensions/ICC/fullDecodeвсех3JPEGи3TIFFPASS. Токены иsignedURLнесохранены. Сводныйreceipt work/user-three-owner-download-accepted-20261023.json содержитactualSHAкаждогоподтверждения. Теперьactual3RAW→Apply→6encodes→2archives→normalfinalizers→ownerintent/redeem/fullversionfetch технически подтверждён. ЭтоНЕполнаяbrowser/native/5000/ZIP64/500frames/весьV20–V32приёмка; художественноепринятиеостаётсязафотографом. Следующийfullscopeпланнеуменьшен.
+
+
+## 2026-10-23: full archive5000 remediation design
+
+Сохранён audit/archive-5000-contract-remediation-2026-10-23.md: различает работающий planner5000total→512-per-volume и несогласованный прямойArchiveParams5000. Решено scopedarchive-only1MiBcommand/5000inputs +8MiBtyped Params/Manifest ссогласованнымиSQL/publication/resourcebounds. Sourcechangesготовятсяstaged, canonical/liveworkersнеизменены; никакая5000/10GiBквалификациянеприсваивается.
+
+
+## 2026-10-23: staged archive5000 Python implementation passes local runtime tests
+
+Подготовленный пакет work/archive-large-documents-python-r1 (manifest23d0a2303bc4d3c2020bc194b813c585c9f9bc6b977cd6e7c971b21fb321d2c1) содержит пять source overlays: archive contracts, wire contracts, TaskArtifacts, Executor, archive build. Архивные Params/Manifest ограничены8MiB через точную идентичность типов. Только archive.build/v1/archive допускает5000refs/1MiBcommand; остальныеоперации сохраняют512refs/64KiB. Worker reserve увеличен до input+8MiB+4096*entries; backend ещёдолженсогласоватьbudget/policy.
+
+Root exactfrozen локальныйpytest:8PASS3.03s, затем34PASS/1deselected4.33s с archive lifecycle/copy/error mapping/executor installation suites. Исключён только obsolete тест ожидаемого1MiBотказа, заменяемый реальным5000success. Реальная операция на5000уникальныхArtifactIDs и180-byteUTF8именахсэкранированием создалаZIP5001members; CRC/полныеbytes всехmembers проверены. Крупные Params/Manifest проходятTaskArtifactsread/stage; сверхлимиты и чужиеоперации отклоняются. Это fakegateway/localScratchoperation, не реальная очередь/SQL/Gateway/RTX/10GiBIOквалификация. Canonicalpreimages иfrozenfilesSHA совпали; liveworkersнеизменны. Receipt work/archive-large-documents-python-root-r1/result.json.
+
+
+## 2026-10-23: archive SQL dependency audit finds pre-existing authored-mask guard drift
+
+Root фактически прочитал установленный MAIN2658 каталог: дополнительные wire limits присутствуют только в пяти целевых функциях register_download_archive_plan/materialize_download_archive_task/reserve_dispatch_resources/claim_task_reserved/reserve_backend_document; wrappers claim_task/reserve_dispatch отдельных64KiB/512ограниченийнеимеют. Staged2659ещёнеустанавливалась.
+
+Отдельная actualreadonly проверка photo.authored_mask_transform_dispatch_installed() вернула false УЖЕ на2658. В её frozen dependency snapshots есть claim_task_reserved (expectedprosrcSHA168436e36972072b8d8386bf32d2e1363bbba246f18d796d7c46fcedbc96118d) иreserve_dispatch_resources (d2fd12425316862f55ac99ddb4f472989e6ee74a08998ef56b7f27a8b04af8c8). Evidence work/archive-5000-root-dependency-audit-r1/result.json. Это не доказательство, что именно эти две строки вызвалиfalse, и не регрессия новойнеустановленноймиграции. Требуется полныйpredicate/dependencyаудит иqualified восстановлениеV26масок; нельзяслепозаменятьfrozenhashes. Доразбораguardсохраняется. Все13полныхmoduleacceptanceOPEN.
+
+
+## 2026-10-23: isolated Go workspace and complete installed-mask guard diagnosis
+
+Для проверки archive5000 подготовлена отдельная backend copy work/archive-5000-backend-root-r1/backend:10142source/resource/migration files, исключены_work/.cache. ИсходныеSHA сохраненывoriginal-source-pins.json; canonicalbackendнеизменён. StagedGo/SQL ещёожидает frozen packet и actualpackage tests.
+
+Завершён отдельныйreadonlyaudit work/authored-mask-installed-guard-diagnosis-r1 (manifest363f3edf2112a3506a7dd291669796897af7dba70fb0da9246aea2e657598a8c). Проверены все8predicate и938snapshotentries:913basecatalog/effectiveEXEC mismatches по числовымOID, отдельно20basebodySHAразличий,1privatebodySHAразличие и1private returntypeOID mismatch. Эти причины нельзя смешивать илиобъявлятьвсёсемантическиэквивалентным. ПрямойguardcallerтолькоSQLconfigure; HTTP/CLIcallerне найден, блокировкаобычногоarchiveнеподтверждена. Productdetail schedulerпользуетсяотдельнымdetail_dispatch_installed, егоfalseэтимаудитомнеутверждается. Требуетсяоригинальнаяqualifiedidentitymap, семантическаясверкасхемы/языка/владельца/типов/ACLимен ипереквалификация21bodyизменения. Guardbytes иprivilegesсохраняются; слепогообновленияхешейнет.
+
+
+## 2026-10-23: archive5000 backend R2 actual Go package tests PASS
+
+Изолированная backend copy work/archive-5000-backend-root-r1 использовала frozen work/archive-5000-backend-contracts-r2 manifest94397fa3c0263857e7dcd1efd97309d940774a41ff532de5897d50bd68579c2c. Root проверил всеfile/dependencySHA и10147sourcefiles до/после; измененийнет. Actual go test -p1 -count1 ./internal/workflow ./internal/artifactjson ./internal/queue terminal0: workflow4.969s, artifactjson0.749s, queue1.105s. Evidence go-tests-r2.result.json/log. ЭтоGo-package evidence, неSQL/AMQP/RTXквалификация.
+
+ПервыйR1прогон сохранён: отсутствовали двавнешнихtestfixtures висolatedcopy иlegacyтестожидал512split при новом5000limit. Добавленыточныеcapacityconfig/restoreinventoryfixture; immutableR2исправляеттолькоустаревшийboundarytest (полныйнабор/порядоксохранены; меньшиенастроенныелимитыотдельнопроверяются). ProductionGoR1/R2одинаков. Подготовлено14Go-файлов иproposed02659:5точныхSQLfunctionbodychanges+2policyrows, metadata/ACLpreimagesCAS, archive-only1MiBwire/5000refs,8MiBdocs, profilepayload+16MiB+4096*n. Дублирующиесяcontentrefsсохраненыкакдопустимые, большиесообщениясверяютrouting/eventidentity. Никакихcanonical/Main/runtimeизмененийнебыло. Следующийэтап — независимоеsource review иisolatedPG SQLqualification.
+
+
+## 2026-10-23: archive5000 SQL preflight finds transport CHECK and legacy replay seam
+
+До SQLexecution обнаружен дополнительный действующий CHECK photo.download_archive_plans.download_archive_transport_inputs: jsonb_array_length(inputs) BETWEEN1AND512, NOTVALID. Новые5function bodies сами по себе этотбарьернеснимают. Rootactualreadonlyinventory work/archive-5000-legacy-inventory-root-r1/constraint-bounds.json подтверждает ограничение; наtasks/outbox других512/64KiB CHECKнет. Nullablepurpose-specificbackend_documentограничениядлядругихмодулейнеменяются. Нужен immutableR3 с точнойpreimage-CAS заменойCHECK на5000 безизмененияостальныхconstraints/ACL.
+
+Также новаяминимальнаяresourceestimate проверка доoldrowreplay нарушаетидемпотентностьточногоповторастаройmaterializedtask. Требуется oldrow exactreplaytrue послеполнойпроверкиавторизации/неизменяемыхполей; underbudgetНОВЫЕстроки отклоняются. Старыеprofilesнепереписываются. Передактивациейновогоworker нуженконтрольнезавершённыхlegacyarchives: actual MAIN2658 read-only показываетровно2succeeded, nonterminal0 (result.json втомжекаталоге). Этоактуальныйсрез, неуниверсальнаягарантиядлябудущегоразвёртывания. GoR2PASSостаётсявалиднымдлянеизменённогоGo; SQLR2неустанавливалась.
+
+
+## 2026-10-23: fresh2658 capture accepted; SQLR3 source compatibility checked
+
+Root actualcapture session21549terminal0: work/archive-5000-owned-qualification-r1/capture. Единственный exported PostgreSQL snapshot даёт schema-onlydump,30passwordlessroles сmembership,2657Goosehistoryrows/head2658 иdataONLYoperation_registry/operation_output_policies. Все4SHA свереныспредшественником; customerrowsнеэкспортировались, MAINwritesнет. ExistingDSNиспользовалсятолькочерезpinnedfileref, копийсекретовнет.
+
+Frozen backendR3 manifest49909f7f35b12faabb9a7c1b531529f06e75982e68f8aa14e1bf0faaa83df0c9:root6sourcecontrolsPASS, все14Go sourcefilesпобайтноравныactualtestedR2 (повторGoненужен). ProposedSQL добавляетточныйCHECK512→5000ссохранениемNOTVALID иexactoldrowreplayпослеrun/plan/paramsавторизациидоновогобюджета. ПодготовленныйownedPGadapter применяетproposedSQLнаизолированнойкопии иНЕменяетGoosehead/НЕназываетэтоnormalGoosequalification. ПолнаяSQLmatrixещёнезапущена; canonicalMAIN/runtimeнеизменны.
+
+
+## 2026-10-23: isolated ordinary CLI with exact proposed2659 built
+
+Rootbuild work/archive-5000-normal-cli-root-build-r1/photo PASS, session99332terminal0, binarySHA d82c811437bdca2d4f9c38b1e95c59368a1797a86603c191f8ab52823be2af1b.9015dependency/module/tool/embeddedSQLpins до/после совпали. В изолированнуюbackendcopy добавленаexactcandidate02659SQL SHA094fb824b1cbf8ceb310843cb8dae154dec6f2bb9e0be3f17bcfa0db02d736d2, равнаяR3proposal. Canonicalрепозиторныйmigrationfileнесоздавался; binaryещёнеисполнялся иGooseнеприменялся. ЭтотartifactготовдляследующейnormalGoosequalificationпослеSQLmatrix.
+
+Frozen SQLmatrixR1 иownedharnessR1 НЕзапускать: доDBexecution найденfixturedefect, queued_task оставляетsnapshotkindinput, тогдакакdownloadjobтребуетselection. ГотовятсяimmutableR2matrix/harness, исходныйR1сохраняется. Этоошибкаподготовкипроверки, не доказанныйproductionSQLdefect. MAIN2658/workersбезизменений.
+
+
+## 2026-10-23: actual owned PG SQL compile caught proposal syntax defect
+
+Root executed frozenownedharnessR3 withmatrixR3 inactualindependentPG18.4; schema/passwordlessroles/history/configrestorepassed and independentCID/systemIDpreDDLguardpassed. Session20275terminal1 BEFOREfixtures/JUnit: proposedSQL failedCREATE OR REPLACE photo.reserve_dispatch_resources withSQLSTATE42601/syntaxerroratendinput. НовыеIF conditions используют >CASE WHEN...END THEN; parenthesizedCASEfixподготавливается, точнаяпричинанебудетсчитатьсязакрытойдореальногоPGcompile.
+
+Ownclone removed byverifiedOID/owner; container3cca83d7e63f06d8f264515e07ee7f4ca23ba2dc48c27cf9e0fd2ab74d3a0733 removed withvolumes; rootindependentdockerinspect confirmednoobject. MAINcatalog/roles/policiesbeforeafterunchanged. Evidence work/archive-5000-owned-qualification-r3/root-owned-run-r1/root-independent-result.json иtests/terminal.json. Никакие25SQLtestsнебылиначаты, ledgerнеобновлялся, normalGooseнепроверен. R3proposal иcandidateCLId82сэтимиSQLbytes запрещеныдляустановки; нужныimmutableR4SQL/matrix/harness ипересборкаCLIпослеsource review. Рабочиеworker/userarchivesбезизменений.
+
+
+## 2026-10-23: actual R4 SQL compile passes; matrix21PASS4FAIL
+
+Rootsession62037terminal1: proposedR4 сparenthesizedCASE реально скомпилированвownedPG18. Exactfunctionmetadata/roles/constraint/policydeltaPASS. Затемactual25SQLcases:21PASS,4FAIL,0errors,0skips (rootindependentJUnitparse). Evidence work/archive-5000-owned-qualification-r4/root-owned-run-r1/root-independent-result.json.
+
+ОдинFAIL — productiongap: backend_documents_bytes_check сохраняетtask_params1MiB. Он присутствовал вconstraint-bounds.json, ноrootранееошибочноназвалвсеbackenddoclimitsnullablepurpose-specific; этотвыводНЕВЕРЕН иисправляетсяданнымдополнением. Требуетсяscopedarchiveplan-bindingcolumn/FK+CHECK+reservefunction, анеобщееувеличениевсехtask_params. ТриFAIL — fixtureзаявляет5000refбезсозданияартефактов, guard_ready_artifact_reference правильноотклоняетUPDATE; нужносоздатьreferencedfixtures, неотключатьguard.
+
+OwnDBудалена, container06fadc789adeae38944e2882e68a6c4fb290faeea4a28eff72b533d113785954 удалён, rootdockerinspectподтвердилотсутствие. MAINнеизменна, normalGooseнепроверен. НужныimmutableR5source/matrix/harness; результатыR4сохранены, полнаяSQLквалификациянеприсвоена.
+
+
+## 2026-10-23: archive5000 R5 lifecycle blocker confirmed before execution
+
+Root independently inspected staged R5 SQL: backend_documents_archive_plan_fk is NO ACTION/non-deferrable. Existing finish_tenant_deletion (01388 body, later allowlist maintained) deletes download_archive_plans before backend_documents; SET CONSTRAINTS ALL DEFERRED cannot defer this FK. Therefore a large bound archive document would block tenant purge with FK violation. This is a source-confirmed dependency defect, not an observed MAIN purge failure: R5 has NOT been installed or executed. R5 source manifest 2e7fde1a6f51ce9dd947eaa428a9b0041c04f0296902d42898022176d0a6a0d5, SQL ec9ff5e245e0e9e764e619c5a41d4bcb25dcc6119bf4f57a8e6cd698813aa428.
+
+R5 harness and 28-case matrix remain historical staged candidates. Required immutable successor: DEFERRABLE INITIALLY DEFERRED FK, preserving NO ACTION/same-tenant composite identity, with a real fenced finish_tenant_deletion regression and exact catalogue-delta review. No cascade, trigger bypass, broad grants, old migration editing, or MAIN mutation. Current database remains 2658; actual last archive5000 SQL matrix remains R4 21 PASS/4 FAIL. All V20–V32 whole-module acceptance stays OPEN.
+
+
+## 2026-10-23: R6 SQL compiled; catalogue guard refused before all29 tests
+
+Root actual isolatedPG18 R6 session4031 terminal1. Corrected deferred-FK SQL compiled; postcatalog comparison raised AssertionError BEFORE fixtures. Therefore 0/29 cases executed, no SQLmatrix/normalGoose acceptance. Root independently confirmed container2cc21367cf685b060d7a8e17461061d8407197866c30561d75611ebb18facd21 absent; terminal proves ownedDBabsent and MAIN unchanged. Evidence work/archive-5000-owned-qualification-r6/root-owned-run-r1/root-independent-result.json. Root9backend source controls/4harness controls passed earlier; those do not supersede actual guard refusal.
+
+No after-proposal catalogue snapshot was retained because write followed comparison. CHECK dependency column metadata expansion is a diagnosis hypothesis, not proven cause. Required next: inspect narrow exact column dependency expectation; retain private aftercatalog before guard; immutable reviewed successor, no blanket constraint waiver or automatic rerun. MAIN remains2658, all V20–V32 whole-module acceptance OPEN.
+
+
+## 2026-10-23: actual archive5000 SQL29 —28PASS/1fixtureFAIL
+
+Root R8 actualsession24525 terminal1: backendR6 SQL compiled, exactcatalog/column/constraint/functionmetadata/role/policydelta passed, actual29cases ran:28PASS/1FAIL/0error/0skip. Root independently parsed JUnit SHA0fd4b21fb8cc4a58e42b2a4b3c0c6428bb9a81041e3ef86577e13b5bd4256c6d. Actualconkey for scopedbytesCHECK is[67,9,5,4]; parser-derived exactcomparison passed, no blanketmetadata allowance.
+
+OnlyFAIL is genuinepurgefixture, beforeclaim/finish: creating neighbor tenant enforces deferred constraints and exposes synthetic producer task_results without corresponding task_attempts. Fix fixture coherently; retain foreignkey/guards and explicitly enforce deferred constraints in5000positivecase. No actualpurgePASS yet. MAIN unchanged; ownedDBabsent/containerab0713d8a3c825bfd3af39cdc4c0a2d7d7e4528b11ddfbebc38dd05279f77e94 removed with independentrootabsence. Receipt work/archive-5000-owned-qualification-r8/root-owned-run-r1/root-independent-result.json. BackendSQL unchanged; normalGoose/MAIN install/workerphysicalqualification remain pending; fullV20–V32 goal OPEN.
+
+
+## 2026-10-23: actual archive5000 SQL29 ALL PASS, genuine tenant purge PASS
+
+Root R9 actualsession28793 exit0:29PASS/0FAIL/0ERROR/0SKIP in34.79s, independently parsed JUnit d6a0e5a3277b27f3a860963f817a6993a91ab819596cbbeba0a48b2f5d586339. ExactproposedSQL cb75562560a94b5cf5e69b3c97cb0ec9e0cf2655ba0a95654fb0b08f3590e3ff/backendR6, matrixR7 ed254d..., harnessR9 be8692... . Full5000 register/largeparams/materialize/resourceadmission/fullwireclaim passes with ALL IMMEDIATE deferred-integrity enforcement and5000coherent producerattempt/results. Genuine maintenanceclaim/wrongtokenrefusal/actualtokenfinish and foreigntenantfullrows preservation PASS; finalconstraints enforced. Scoped8MiB/1MiBwire/ordinarybounds/quota/fence/legacyreplay/outputpolicy negatives passed.
+
+Exactcatalog/functionmetadata/columns/FK/check/roles/policies guard PASS. MAIN unchanged; ownedDBabsent, exactcontainer4a85352da582279dbccb82292d473b943afdcb5b39903ca09d9005e2a768eb13 removed and root independentlyconfirmedabsence. Evidence work/archive-5000-owned-qualification-r9/root-owned-run-r1/root-independent-result.json. R6/R8 failures preserved, no rewrittenhistory. This is DIRECT proposedSQL with realGoosehead2658; normalCLI/Goose2659 upgrade, canonicalpromotion/MAIN installation, realgateway/worker5000 and ZIP64physicalIO remain pending. All13 V20–V32 whole-module acceptances remain OPEN.
+
+
+## 2026-10-23: ordinary CLI rebuilt with SQL29-qualified archive5000 migration
+
+Root isolatedbuild session90505 exit0. Normal cmd/photo binary work/archive-5000-normal-cli-root-build-r2/photo SHA4a17819d23ff69f7b752ea99a0d60ed39f92d6f50beb08e8eea55de817569977 embeds exact R6 proposed2659 SQL cb75562560a94b5cf5e69b3c97cb0ec9e0cf2655ba0a95654fb0b08f3590e3ff. Actual9015source/dependency/embed/tool pins beforeafterequal, sourcepinsSHAe7caf92fb6ee07bd14a509972819006aaaf67fd438598e85b552658ee86a68ad. Onlyisolatedbuildcopy updated from obsoleteR3; canonical migrations unchanged. No CLI/database/broker execution. Next genuine owned normalGoose2658→2659 with installedsecurity checks and adapted29casehead2659 matrix; directSQL29PASS alone is not normalupgrade proof.
+
+
+## 2026-10-23: actual normalGoose2658→2659 success; crossproof type seam refused beforetests
+
+Root actual session6115 terminal1: ordinaryCLI4a178 completed migration2659 and ValidateInstalledSecurity (childexit0); fulloldhistoryprefix plus exactONE2659record proven, exactcatalogdeltaPASS. Before29fixtures, crossdirectcomparison failed because snapshot policies use list-of-tuples while savedJSON directproof policies use list-of-lists. Root independently compared bothsavedJSON catalogs excludinghead and policies: exactequal. This confirms a harness representation defect, not a schema mismatch. No29case result at2659 yet.
+
+Required narrow successor: validate exactpolicyrow shape and align ONLYrowcontainer(list→tuple), retaining media_types list and allvalues; realJSONroundtrip regression. No generalcatalognormalization/guardweakening. MAIN unchanged, ownDBabsent, container a836303a08e9d3ea7a7df55aaace7d40d9da108428d21efa5b1138b84b8b8061 removed and rootindependentlyconfirmedabsence. Receipt work/archive-5000-goose-owned-qualification-r1/root-owned-run-r1/root-independent-result.json. EarlierdirectSQL29PASS remainsvalid; full normalupgrade+matrix gate pending.
+
+
+## 2026-10-23: normalGoose2658→2659 +29SQL PASS; canonical21files promoted/tested
+
+Root normalGooseR2 actualsession80251 exit0: actualCLI4a178→Goose2659→installedsecurityPASS, fulloldhistoryprefix+ONE2659row, exactcatalog/functionmetadata/column/FK/check/roles/policies delta and crossdirectproof allPASS. All29 actualSQL cases29PASS/0FAIL/0ERROR/0SKIP34.67s; independently parsed JUnit c143584be5b8a4bdce82e8b1423d54c9929f84eb9daf46f7d16a654a18e15836. Receipt work/archive-5000-goose-owned-qualification-r2/root-owned-run-r1/root-independent-result.json. MAIN unchanged, ownDBabsent and exactcontainer8a5a28de641bdb70709c6627aa343e07cd34d7a8c7cdee1120388da540f469cd absent independentlyconfirmed.
+
+Root then promoted exact21 reviewedfiles (14Go,5Pythonproduction+1existingPythonlifecycle test,canonical02659SQL) after all20preimagesCAS and exactpayloadpins underbothlocks. Oldsource backups+intent/result work/archive-5000-canonical-promotion-r1. CanonicalSQL bytes remain cb75562560a94b5cf5e69b3c97cb0ec9e0cf2655ba0a95654fb0b08f3590e3ff, no oldmigration edits. ActualcanonicalGo tests session76237 exit0: workflow3.946s/artifactjson0.493s/queue0.985s. CanonicalPython session40024 exit0:27PASS1.14s (archive lifecycle incl5000,copyboundaries,entryfailure,executorinstallationboundary). Receipts work/archive-5000-canonical-tests-r1 and work/archive-5000-canonical-python-tests-r1.
+
+This closes sourcepromotion and genuine normalupgrade/SQLqualification; MAINstill2658 and liveworkers unchanged. Next exact MAINinstallation+freshhead2659guards, archivecandidate source/runtime/Doctor/resource qualification, real5000/ZIP64largeIO. No fullV30/V20–V32 acceptance inferred; all13wholemoduleacceptances remainOPEN.
+
+
+## 2026-10-23: archive5000 sourcecandidate actually created onRTX; oldmedia/archive failure discovered
+
+Root actualreadonly inspect→create-onlystage→readonlyconstructor dryrun→separateexplicitconstruct succeeded using reviewed shippingR1/candidateR2. NEW /home/ubuntu/photoeditor-rtx-test/candidates/archive-shared-5000-source-r1 has full1234 manifest132cbf75c7d198b29fceb8adbaca885ffb9e3bc037b1cb49f80f6eb78882e289 independently verified. Exactly5reviewedPython overlays, other1229unchanged. Evidence work/archive-5000-worker-source-{inspect,stage,dryrun,construct}-r1; rootfullreadback construct-r1/root-independent-result.json. No worker imports, runtime/Doctor/activation or service changes occurred; candidate is NOT qualified.
+
+Independenthealthread found originalarchive+media failed since08:15:26/27UTC, BEFOREnewsourceconstruction. CPU2173574/GPU2171115 remainactive; archive/mediaPID0. Media prior safeobserver sessionedd55cdb-9132-46c1-8f66-24c0f18d03e1 records actual ConnectionTimeout in database._connect→heartbeat_policy_worker_with_residency→capacityreport and RuntimeError shutdown; archivejournalclasses GatewayError/BrokenPipeError→capacityreportstopped. NoOOM claim: systemd Result exit-code/1; archiveMemoryPeak50253824/media383488000. ActualreadonlyDBhead2658 activequeued/leased/running0,reserved0; archive/media heartbeat08:15:09,CPU/GPUfresh. Safeexceptionreceipts underconstruct-r1. Twoinitialrootreadbackprobes refused onhealth/systemdnamespace assumptions, notsourcefailure; finalfullsourceverificationrecordsactualfailedstatus.
+
+MAINinstaller remainsUNEXECUTED until exactsamequalifiedoldworkerrecovery and freshauthority/queues. Actualreadonlycapture work/archive-main-2659-r1/root-pre-recovery-capture.private.json:18queues/events205/noeventconsumer/allunacked0; archive/media consumer0 reflects failures, notapprovedmigrationbaseline. Fiveownsent events account old200→205 (TIFFprogress+success,JPEGsuccess,twojobready). No brokerconsume/ACK/purge. FullV20–V32goal OPEN; sourcecreation is notruntimeacceptance.
+
+
+## 2026-10-23: recoverycollector actual refusal diagnosed via typed D-Bus, no service mutation
+
+Root collectorR2 sixpurePASS0.77s, actualreadonlyoutput work/archive-media-recovery-readonly-root-r1.json exit1 KeyError/closedUNCLASSIFIED_STATIC_BOUNDARY; no start/stop/DB/workerimport. Root specificpropertynames probe work/archive-media-recovery-systemd-property-keys-root-r1.json proves systemctlshow omits emptyExecStartPre/Post/ExecStop/Post arrays for all4units and EnvironmentFiles for media/GPU. Actual --all probe stillomits these, so --all alone is NOT acceptedfix.
+
+Root typedD-Bus read proof work/archive-media-recovery-dbus-empty-properties-root-r1.json: archive/media everyhook a(sasbttttuii) count0; mediaEnvironmentFiles a(sb)count0,archivecount1. Required narrow collector/controller successor fills ONLYallowlistedmissingproperty after exacttypedemptyresponse+exit0; nonempty/unknown/permission/IOfailure refuse. Earlierunitcgroup containment fixes remainrequired. Workerrecovery/MAINmigration stillUNEXECUTED. Also MAIN ready_dual's immutableuntouchedmediaPID/starttime must be narrowly rebound from actualreviewedrecoveryreceipt aftersuccessfulrestart; no historicalPIDwaiver.
+
+
+## 2026-10-23: allfour workers stopped; missing reverse-tunnel root cause resolved
+
+Root actualcollectorR4 eightpurePASS0.76s thenreadonlyrefused UNTOUCHED_PID_STATE. Independent systemdread proves CPU/GPU alsofailed/PID0/exit1 at09:49:35/09:49:30UTC; no rootserviceactions precededthis. LocalPG57432 remainshealthy(head2658,12connections,0activequeued/leased/runningtasks). RTXreverse56432/56672/58443 allConnectionRefused; actual ssh-ControlMastercheck returns socketmissing. PlainSSH commands hadfallbackdirectsessions, so SSH availability didNOTprove tunnel availability.
+
+Root createdONEnew explicitControlMaster PID56447 underbothlocks afterprovingoldsocketabsent. Fixedmaps remote56432→Mac57432,56672→56672,58443→58443; ExitOnForwardFailure/ServerAlive/indefiniteControlPersist. Creationknownsuccess; initialreadonlyprobe overstrictS-onlyexpectation refused because PG correctlyreturnsN(TLSoffinsideSSH), then sameactualmaster reconciled withoutrecreation. All3remoteTCPnowPASS and PGprotocolresponseN validated. Receipt work/rtx-infrastructure-tunnel-recovery-root-r1/result.json. Actualserver-only existingcredentials checks ALL4workers PostgreSQL SELECT1 READONLY +gatewaymTLShealthready200 PASS (worker-authority-readonly.json); no credentialcopies/output.
+
+All4workerunits stillfailed atlastobservation; none restarted yet. RequiredNEWexplicit4failedunit collector/once-start contract, notwaive olduntouchedPIDgates. Preserve existingqualifiedsources/caps/certs and no taskreset/retry. MAINinstaller remainsUNEXECUTED(head2658). Userphotos/ZIPs unchanged.
+
+
+## 2026-10-23: восстановление четырёх worker и диагностика capacity
+
+После восстановления SSH-туннелей выполнен один запуск исходных четырёх worker. Готовность media потребовала исправления проверяющего кода: его принятый launcher задаёт PYTHONPATH явно; исходники и окружение процесса не изменялись. CPU затем завершился с exit=1 / `Worker capacity reporting stopped`; исходный тип исключения старый capacity reporter не сохранял. Остальные три worker прошли полные проверки. Результат прежнего контроллера согласован, завершён только собственный локальный контроллер, его tool session 81496 терминальна; удалённые процессы при передаче владения не завершались.
+
+Отдельный сценарий CPU-only выполнен один раз, session 95925 exit=0. Evidence: `work/archive-cpu-only-root-execute-r1/ready.json`, статус CPU_ONLY_KNOWN_TERMINAL_RECOVERY_ALL_FOUR_READY. CPU PID3561311, archive3493713, media3493715, GPU3493717. Проверены source/env/cert/caps, доступ к PostgreSQL и gateway, очередь и состояние authority; остальные три процесса не перезапускались. Это текущая готовность, не доказательство длительной стабильности.
+
+В canonical `workers/photo_worker/runtime/capacity.py` внесена безопасная диагностика исходного исключения через существующий emit_failure_metadata после установки failed/stop. Ошибки самой диагностики не препятствуют abort. Добавлен `tests/platform/test_capacity_safe_diagnostics.py`. Целевой прогон capacity + safe diagnostics + executor diagnostics: **35 PASS, 1.65 s**, session47812 exit0. Evidence `work/capacity-report-safe-diagnostics-root-promotion-r1/`. Новая диагностика пока НЕ развёрнута в работающих worker; runtime/source qualification не подменялась.
+
+Основная БД остаётся на2658. Следующий шаг: точная привязка MAIN2659 installer к новым подтверждённым PID/starttime media/GPU, свежая сверка authority/очередей и применение квалифицированной2659. Затем runtime-квалификация archive5000 и реальные5000/ZIP64. Все13 полных модульных приёмок остаются открыты.
+
+
+## 2026-10-23: MAIN2659 preliminary gate refused before mutation
+
+R2 installer independently reviewed: controller identical to R1, only reviewed canonical capacity dependency delta plus exact recovered media/GPU PID/starttime rebind; 5 pure controls PASS0.48s. One new public target plan staged create-only and SHA verified. Fresh read-only capture `work/archive-main-2659-r2/root-four-ready-capture.private.json` SHAfa4cc7825830daffcacc4a6eee2feac4b6c7ec3e19dc74d3ac02fb994bc86fb7 confirms head2658,18queues,21ownoutbox; customer/catalog/own events exactly unchanged versus previous4failed snapshot,205inert events retained without consumption.
+
+Actual installer session37494 exited1 at target.ready_dual / EXACT_PID_STARTUP_GATE BEFORE producer pause and BEFORE migration intent/CLI. Therefore2659 was NOT applied; no automatic retry. Direct bounded read-only target invocation confirmed the exact assertion; private diagnostic and public refusal receipt under `work/archive-main-2659-root-install-r1/`. Next task: inspect actual startup journal versus strict PID/runtime evidence gate, preserve old packets and qualify a narrow correction if warranted. This does not revoke earlier full4ready proof, but neither substitutes that proof for the specific installer gate.
+
+
+## 2026-10-23: installer startup-gate root cause verified
+
+Bounded actual journald read filtered by exact unit/current PID and startup status found one matching structured startup record for CPU3561311 and archive3493713. Both records bind expected worker IDs, runtime18dbf71ecde931e9a3354f8e580035658309cfa4eea6d4578e0c9b158f5148d0 and execute=true. Evidence `work/archive-main-2659-root-install-r1/root-exact-pid-startup-filtered.json`. Old target checker tails50 all log lines before seeking startup; capacity logs can evict startup from that tail. This is a proven observation defect, not missing startup or permission to waive exact runtime evidence. Narrow successor must filter startup records before bounded tail while retaining exact unit/PID/worker/runtime/execute checks and64KiB output bound. No worker/service/DB mutation performed for diagnosis.
+
+
+## 2026-10-23: MAIN2659 R3 selection fix tested; contextual journal refusal remains
+
+Root verified narrow target diff, all manifest dependencies and8tests+3subtests PASS0.24s. New target and plan staged create-only with byte readback pins12cf1fe9/354d7d26. Fresh capture0e1bb6b00855a56bfcae69e35ee6a077ba0aa34190dceee17f938f6ebde77d2c confirms exactunchanged customer/catalog/21ownoutbox/18queues relative to reviewed R2 capture, head2658.
+
+Actual single execution session63621 exited1 at ready_dual BEFORE pause/migration intent; this time target_common.cmd refused journalctl nonzero, before payload match. Immediately direct exact unit/currentPID/statusfiltered journalctl via python3 returned0 for BOTH workers and expected startuprecords. Evidence under `work/archive-main-2659-root-install-r2/` (private target diagnostic, private returncodes and public refusal receipt). Thus no blind retry or waived guard: investigate execution-context/argument difference in complete target path. MAIN remains2658, services not paused, no migration performed.
+
+
+## 2026-10-23: finite checker-memory diagnosis
+
+Exact original target execution context at64MiB RLIMIT_AS reproduces journalctl exit1 with Cannot allocate memory and0stdout. Bounded separate fresh-child matrix `work/archive-main-2659-root-install-r2/root-journal-finite-memory-matrix.json`:128MiB fails bothunits;256MiB returns expected records but stderr239 indicates a journal file was ignored;512MiB bothunits return0, exactone startuprecord each andstderr0. Therefore the successor checker should retain a finite512MiB address-space bound. This is checker-only, does not change archive1GiB or sharedparent8GiB cgroup budgets or any worker/source/runtime qualification. Actual migration remainsunexecuted/head2658 pending full correctedpreflight.
+
+
+## 2026-10-23: MAIN2659 installed and independently verified
+
+CorrectedR4 checker actualfullready_dual PASS; root11tests+3subtests PASS1.57s. Freshcapture/queueaccounting reconciled exactdata/catalog/21ownoutbox/205events; no messageconsumption. One normalCLI migration executed underbothlocks/exactfiveproducerwindow, session83791 terminal exit0. `work/archive-main-2659-root-install-r3/root-installed.json` reports ROOT_REVIEWED_MAIN2659_INSTALLED, head2659, dataunchanged, allfive restored, fourauthenticatedfreshworkers.
+
+Separate freshreadonly independentreadback session85454 exit0 reconfirmed fullcatalog+policies equal actualqualifiednormalGoose, exactoldledgerprefix+one2659append, customerdata/roles/membersunchanged and exactfiveproducerstate restored. Evidence `root-independent-result.json` in samefolder. Thus MAIN2659 installation gate is CLOSED. Historical preflightrefusals preserved, not rewritten as passes.
+
+Next open gate: measure/Doctor/qualify newarchivecandidate132cb and adopt it only after actualbounded5000-entry/largeZIP64 evidence. Currentoldarchive38c/18db worker remains running; installedschema does not establish newworkerqualification. All13 whole-moduleacceptances remainopen.
+
+
+## 2026-10-23: V20 evidence exporter review and actual privilege prerequisite
+
+Root independently verified frozenR1source/dependencies and27offlinecontrolsPASS2.11s (session15515), evidence `work/v20-operational-evidence-root-review-r1/tests.json`. Reviewconfirmed reportingdefect: persisted model_qualifications.operation_version allows1..256characters, exporterincorrectlyapplied trustedimport20characterpolicy toallstoredrows. NarrowR2 mustaccept exactstoredlengthcontract incllegacy/nontrustedversions, withoutchanging import/admission semantics.
+
+Actual MAIN2659 readonlymetadata probe (session11987 exit0) inventoried17LOGINroles and table/privatefreshness-function privileges withoutgrants. Only authored_goose_owner andrtx_snapshot_admin currently haveallrequiredpermissions; bothsuper/bypassRLS. Evidence `work/v20-operational-evidence-root-review-r1/observer-role-inventory.json`. Thus no restrictedobserveractualcapture qualification claimed. Explicit privilegedrootreadonly diagnosticcapture, if performed, must be labelled assuch; no implicitadminfallback or permissionbroadening. Canonicaltool promotionandactualcapture remainpendingR2review.
+
+
+## 2026-10-23: V20 exporter canonical implementation promoted
+
+FrozenR2 e310fedbce459dbe4f9e485aae4e4d904f89ff068b07dca62565d05b5a696455 independently pinned/reviewed. Version reporting corrected to exactpersisted1..256character contract, no trustedimport policy change. Rootstaged35PASS1.11s then promoted create-only underbothlocks: `tools/v20_operation_evidence.py`, `tests/platform/test_v20_operation_evidence.py`, `docs/implementation-v2/operations/v20-operation-evidence-export.md`. Canonical35PASS0.13s. Evidence `work/v20-operational-evidence-root-promotion-r1/`.
+
+Actual scopeddb_get SELECTs independently succeeded onMAIN2659 using explicitlyselected rtx_snapshot_admin READONLY transaction:4workers/0projectqualifications/functionpins captured (work/v20-operational-evidence-root-review-r1/actual-db-metadata-probe.json). This is privilegeddiagnostic SQL proof, not restrictedobserver/fullAPIexport/photographicqualification. Canonicalexporter copies existingAPIavailability and accounts114identities without promoting storedreports into readiness; actualauthenticatedfullcapture stillpending. No grants/newroles/SD functions added.
+
+
+## 2026-10-23: actual V20 API integration exposed stale scope and duplicate identity
+
+First realfullcapture refused401; exporterperformedno refresh. Separateexplicitexistingtestsession refresh via normalAPI succeededwithsameactor andsessionpersisted privately; no workflowactions. Subsequentreadonlycapture reachedassembly butrefused CAPABILITY_SHAPE. Safeactualidentityprobefound117APIrows, newIDs `region.authored_crop`, `render.authored_geometry`, `render.authored_segment` absentfrom frozen114scope, and two `render.compose` rows. Evidence `work/v20-operational-evidence-root-promotion-r1/actual-capability-identity-diagnostic.json`. No fullreportcreated/no arbitraryunknownIDdrop or duplicateavailabilitymerge.
+
+This is a realintegrationgap missedby35offlinecontrols: currentoperationinventorymustincludeadditional authoredfunctions, and duplicateAPIidentity needs actualSQL/versionsemantics diagnosis. Existing114historicalscope remains preserved; successorcurrentinventory/exporttests mustbind finalcurrentidentityuniverse, notlabel oldscope ascomplete. CanonicalR2 tool remains failclosed; no readinessclaim. Sourcescope/export fix and duplicatecapability rootcause assigned forimplementation.
+
+
+## 2026-10-23: versioned capability defect confirmed; archive window controls verified
+
+SavedactualMAIN2659 catalog confirms operation_registry render.compose versions1and2. Installedtenant_capabilities returnsnooperationversion, SELECTemitsbothrows, availableCTE/distinct/correlation dropversion; API DTOpassesthroughwithoutversion. Bothcurrentlyunqualified, but futureversioneligibility could be wronglyshared. Requiredfix is coherentversionedSQL/API/client/export evidence, not duplicateORmerge or droppingoneversion. ThreeadditionalauthoredIDs havecanonicalproductgraphproducers; successorinventorymustretain themwithoutclaiming independentUI/runtimequalification.
+
+Archive-onlymeasurementwindowR3 root12controlsPASS0.33s and11memberlocalstagedryrunPASS; no remotestage/serviceaction yet. Actualreadonlycomparisonafterseparateauthrefresh proves ONLYphoto.sessions tablehashchanged; allotherphoto data/catalog/roles/members/policies/historyequalacceptedMAIN2659afterimage. Evidence `work/archive-main-2659-root-install-r3/root-post-refresh-snapshot-diff.json`, session21554exit0. Nextwindowmustbind exact reviewed old/newsessionhashtransition, preservingallotherbaselinechecks and freshentirewindow sessionsprotection; no blankettableexclusion or arbitraryrebase.
+
+
+## 2026-10-23: actual archive5000 runtime/Doctor measurement PASS
+
+RootR4/R5 15controlsPASS,11payloadfiles stagedonce/create-only withhashreadback. R4fullreadonlypreflight PASS. FirstR5execution refused BEFOREOps due rootaccountingfilemode644; correctedonlymode600 (contentSHAunchanged), separateapprovedattempt used. Actualownedwindow session46384 terminalexit0 underbothlocks: fivepaused, onlyidlearchive stopped, boundeddiagnostic1GiBunderexisting8GiBparent, measurementcontained, originalarchive38c/18db restored BEFOREfiveproducersresume, finalhead2659/photodataunchanged.
+
+Actualmeasurement status ACTUAL_ARCHIVE5000_RUNTIME_DOCTOR_CLOSURE_CAPTURE_NOT_OPERATION_QUALIFICATION; source132cb full1234, observedruntime **13ac290f91593cce3820bd66a1dbb788ec860765f65a0318b178f9d2c9343644**, peak58339328bytes, torch_imported=false. Fullmeasurement result +finalrestorereceipt in `work/archive-5000-measurement-root-execute-r2/`. Rootindependentlycompared all18preflightqueues topreviousreviewedMAINR4capture EXACTequal, addressinglatepeer genericbaseline concern forTHISactualrun; futurecontroller should enforcefullbaseline directly.
+
+FinalCPU3561311/media3493715/GPU3493717 unchanged; restoredoriginalarchiveNEWPID3706719. Evidence `root-independent-window-result.json`. Actualruntime/emptyDoctorcapture is nowDONE; import/mappedclosure stillneedsrootreview and physical5000+largeZIP64 execution remainOPEN. No candidateactivation/newruntimequalification or5000ZIPclaim. Do notrerun create-onlymeasurementnames or oldPID3493713 helpers.
+
+
+## 2026-10-23: actual runtime reports acquired; V20 version-aware exporter promoted
+
+FiveactualRTXcapturefiles downloadedreadonly with bounded allowlist+SHAreadback to `work/archive-5000-runtime-actual-root-r1/`: actualruntime,Doctor,before/afterclosure,result. Result JSONexactmatchescontrollerreceipt; readbackpins retained. Closureafter890files, noTorch/CUDA/NVIDIApaths; previouslyloadedclosureentriesunchanged,14additionalDoctorentries. Doctor backendcpu/models[]; installedTorchversionmetadata doesNOTmeanTorchimport (actualguard+pathcapture confirmsnone). Externalclosure comparison againstoldqualifiedruntime stillpending, no runtimequalificationclaim.
+
+V20 R3 manifest49125f9a1d1e75a3c9d105436e099e7225fed833cdd2510bde12d4bc4d597d64 source/deps verified, staged40PASS1.06s. CASpromoted current117identity/109product scope2026-10-23 preservingall114oldrecords, version-awareexporter/tests/operatorguide withbackups under `work/v20-operational-evidence-root-promotion-r2/`. Canonical40PASS0.35s. Peridentity→exactoperation_version availability/evidence, noORmerge; unknown/duplicatepair/versionlessAPIrefuse. RequiresadditiveversionedSQL/API02660 stillbeingimplemented; no actualnewAPIexportclaim.
+
+
+## 2026-10-23: root-reviewed actual archive runtime dependency closure
+
+Frozencomparepacket a55e3eee12d81418898e98cf14de5d83bc66b050e55214f266370be6fb9f8ad9 independentlyverified. Root4negativecontrolsPASS0.94s, actualcomparisonresult exactmatchesagent (session84254exit0). Actual890entries:39candidateimports bindfull1234sourceCASandexactfivearchivechanges;850external path+SHAidenticaltoprioractualqualifiedarchiveclosure;onenewstaticmeasurementrunner exactshippingpinned. No unusedsitepackageblanketapproval/no targetorpackageimportsforcomparison. Correction toearliernavigationlabel: observednewhelper is runner.py, notshared_probe.py (compiledshared_probe independentlyshippingpinned). Oldcp437 notimportedyet inmeasurement; physicalZIPexercise mustaccount actualcodecimport.
+
+Rootreceipt `work/archive-5000-runtime-actual-root-r1/root-closure-review.json`, statusROOT_REVIEWED_EXACT_RUNTIME_DEPENDENCY_CLOSURE_PASS. Newruntime13ac290f91593cce3820bd66a1dbb788ec860765f65a0318b178f9d2c9343644 andactualDoctor/dependencyreview gate nowCLOSED fornextphysicalqualification. 5000entry+largeZIP64operationqualification/liveadoption remainOPEN; no productionworkeractivation.
+
+
+## 2026-10-23: versioned capability source review and authored integration seam
+
+InitialoverlayGo capability package PASS0.649s; firstclientisolatedview55executedtestsPASS but6suitesfailedbeforeassertions due missingcopiedlocales/config. Author correctingtestview, no claimclientPASSyet. RootSQLreviewrequires exact2650authoredpair/versionfences and explicitreviewofnewauthoredv2enablement/installation, not merelyadding versioncolumn tooldavailabilityCTE.
+
+Additional staticgap for region.authored_crop: actualAPIidentityandcanonicalv2regionproducer/installconfigpresent, but no literal in canonicalworkflowoperations.json, workerphoto_worker or SQLmigrations. This is unresolvedregistration/runtimeintegration, notproofmissingalgorithm orpermissiontosilentlydrop retainedfeature. Trackproducer→registeredoperation→workerhandler→qualification→adoption beforewholemoduleacceptance. Reviewfindings saved `work/versioned-capability-authority-root-review-r1/source-findings.json`.
+
+
+## 2026-10-23: user-approved unified migration documentation
+
+New normative change/test package: `docs/implementation-v2/changes/README.md`, `2026-10-23-database-capabilities.md`, `2026-10-23-database-capabilities-tests.md`. Userdecision: one normalentireDB migrate via existingPHOTO_ROLE=migrate/GooseUp/securityvalidation, no separate02660 installer/manualobjectversionmanagement. SQLtestfixturemustconsumealreadyfullymigratedDB, no selfapply02660; cleanfullchain, upgrade2659 andno-oprepeat required. Internaloperationversions retainedonlyforcontract/data compatibility, noUIversionselector.
+
+Documents specifyfunction/data/API/client changes,117scope, currentregionintegrationgap,33acceptancematrixIDs groupedDB/SEC/CAP/API/UI/EXP, genuine02652geometryfixtureblocker andproofrequirements. DocumentationdoesNOTclaim02660 applied orSQLtestsPASSED. No runtime/DBactionsperformedforthisdocumentationrequest.
+
+
+## 2026-10-23: новый пользовательский порог MVP
+
+Нормативныйплан changes/2026-10-23-mvp-two-contours.md: подготовитьисохранитьнабор50фото; полныйлокальныйMLX путь иполныйсерверныйCUDAпуть upload→process→clientgallery→download. Затемрелизноеразвёртывание. Отдельные5000/largeZIP64,длительныйCPUsoak,перефункциональнаявсяAIqualification/полноеauthoredзакрытие перенесеныпослеMVP,кромезависимостейдвухпутей. MLXнеподменяетсяMPS; actualMLXbridgeиполныйнабор50покаНЕподтверждены. Серверноеразмещениеуточняется. Историческиеevidence/общийV20–V32scopeсохранены.
+
+
+Уточнение пользователя: для локального50фотопрогона принят существующий MPS/Metal, не MLX. Перенос моделей на MLX из текущегоMVPисключён. Серверныйпуть CUDA сохранён.
+
+
+## 2026-10-23: пауза по запросу пользователя
+
+Подготовкасохраненаchanges/2026-10-23-mvp-pause-handoff.md. Набор15/50SHAпроверенныхисходниковвwork/mvp-two-contours-50/input,ещёнужны35фото;никакихфиктивных50. ЛокальныйMPS/Metalподтверждён;серверCUDAразмещениеожидаетответа. Четыреworkeractualactive/runningпередпаузой;неостановлены. Новыепрогоны/деплойнепроводились. Цельприостановлена,незавершена.
+
+
+## 2026-10-23: подготовлен полный набор 50 фото, тесты не запускались
+
+По запросу пользователя завершена только подготовка материалов: work/mvp-two-contours-50/input содержит 50 уникальных исходников (6JPEG/44RAW), 1 098 014 110 байт. Manifest с SHA/размерами/источниками сохранён; dataset SHA3ed017884ab0918533f6d022fc669e564beaea4a6fdfb167c610f2a5c1ccf749. Дополнительно скачаны35CC0RAW с проверкой опубликованных SHA. Прочитаны только заголовки; демозаика, AI-инференс, клиентская загрузка, тестовые прогоны, миграции и деплой не выполнялись. Оба plan JSON execution_enabled=false, result-template NOT_STARTED. Новые инструкции/передача работы сохранены в changes/2026-10-23-mvp-pause-handoff.md. Нехватка35фото устранена. Подготовка не доказывает readiness приложения или backend; работа остаётся на паузе.
+
+
+## Подтверждённое размещение серверного контура
+
+Пользователь выбрал: backend и серверная инфраструктура — `178.104.19.245`; CUDA worker — `ubuntu@192.168.1.3`. PostgreSQL на backend использует ранее выбранный раздел `/mnt/HC_Volume_107202006`. Серверы должны связываться напрямую через защищённые каналы; Mac не участвует как промежуточная DB/AMQP/gateway или reverse-tunnel зависимость. Точные сетевые настройки проверяются после команды на старт.
+
+Вариант «весь compose на RTX» больше не является выбранным. Это уточнение подготовительного плана, а не отмена запрета на запуск: тестирование, миграции и деплой остаются на паузе.

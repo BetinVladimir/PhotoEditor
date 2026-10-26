@@ -56,3 +56,15 @@ it('keeps missing derivative separate from revoked collection access',async()=>{
  fireEvent.click(screen.getByLabelText('Select frame 1'));fireEvent.click(screen.getByLabelText('Select frame 2'));
  await screen.findByText(en.compare_unavailable);expect(denied).not.toHaveBeenCalled();
 });
+
+it('numbers sparse comparison items by visible order while selecting original IDs',async()=>{
+ const owner=api(),sparse=items.slice(0,2).map((item,index)=>({...item,position:(index+1)*1024}));
+ const view=render(<GalleryComparison items={sparse} api={owner}/>);
+ fireEvent.click(screen.getByLabelText('Select frame 1'));fireEvent.click(screen.getByLabelText('Select frame 2'));
+ await screen.findByText(en.compare_local_decisions);
+ expect(owner.draft).toHaveBeenCalledWith('asset0',expect.any(AbortSignal));expect(owner.draft).toHaveBeenCalledWith('asset1',expect.any(AbortSignal));
+ expect(screen.queryByLabelText('Select frame 1025')).toBeNull();expect(sparse.map(item=>item.position)).toEqual([1024,2048]);
+ // A filtered ordered subset restarts display numbering without changing identity.
+ view.rerender(<GalleryComparison items={[sparse[1]]} api={owner}/>);
+ expect(screen.getByLabelText('Select frame 1')).toBeDefined();expect(screen.queryByLabelText('Select frame 2')).toBeNull();
+});

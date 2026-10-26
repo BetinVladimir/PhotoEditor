@@ -21,11 +21,19 @@ class TaskCommand(Contract):
     operation_version: Literal['1']
     resource_class: Literal['cpu','gpu','media','archive','collection','mail']
     correlation_id: UUID
-    inputs: Annotated[list[ArtifactRef],Field(max_length=512)]
+    inputs: Annotated[list[ArtifactRef],Field(max_length=5000)]
     params: ArtifactRef
     model: ModelRef|None
     timeout_seconds: Annotated[int,Field(ge=1,le=7200)]
     traceparent: Annotated[str,Field(max_length=128)]
+
+    @model_validator(mode='after')
+    def scoped_input_bound(self):
+        archive = (self.operation == 'archive.build' and self.operation_version == '1'
+                   and self.resource_class == 'archive')
+        if not archive and len(self.inputs)>512:
+            raise ValueError('Non-archive task input limit exceeded')
+        return self
 
 
 class TaskError(Contract):

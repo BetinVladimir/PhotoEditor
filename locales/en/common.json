@@ -1878,5 +1878,6 @@
   "import_profile_srgb": "Assume sRGB for untagged images",
   "import_profile_linear": "Assume linear sRGB for untagged images",
   "import_profile_rec2020": "Assume Rec.2020 gamma 2.4 for untagged images",
-  "import_profile_changed": "This upload uses a different color profile policy. Restore its original choice to resume, or cancel it before importing again."
+  "import_profile_changed": "This upload uses a different color profile policy. Restore its original choice to resume, or cancel it before importing again.",
+  "feature_not_in_mvp": "This feature is not available in this release."
 }

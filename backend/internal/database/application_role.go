@@ -11,7 +11,7 @@ import (
 type RoleQueryer interface { QueryRow(context.Context,string,...any) pgx.Row }
 
 func ApplicationRoleAllowed(role string) bool {
- switch role {case "photo_api","photo_auth","photo_portal","photo_worker","photo_scheduler","photo_publisher","photo_maintenance","photo_gateway","photo_mail","photo_semantic_admission":return true}
+ switch role {case "photo_api","photo_auth","photo_portal","photo_worker","photo_scheduler","photo_publisher","photo_maintenance","photo_gateway","photo_mail","photo_semantic_admission","photo_event_consumer":return true}
  return false
 }
 

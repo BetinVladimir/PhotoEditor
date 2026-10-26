@@ -148,7 +148,7 @@ function MultiScope({id,tenant,operation,origin,client}:{id:string;tenant:string
   <Text style={s.name}>{t('multi_frames')} · {frames.length}{capabilities?__uiT('ui_eec3e13813c1', {p0:(capabilities.frame_limit)}):''}</Text>
   {prepared?<Text style={s.subtitle}>{t(ticket?'multi_acknowledged':'multi_locked')}</Text>:<Text style={s.subtitle}>{t('multi_instructions')}</Text>}
   {frames.map((frame,index)=><View key={frame.asset_version_id} style={{gap:8,paddingVertical:8}}>
-   <Text style={s.name}>{index+1}. {items.find(item=>item.asset_version_id===frame.asset_version_id)?__uiT('ui_8cbaa55a52ef', {p0:(t('multi_photo')),p1:(items.find(item=>item.asset_version_id===frame.asset_version_id)!.position+1)}):frame.asset_version_id}{reference===frame.asset_version_id?__uiT('ui_04420b9dfe3f', {p0:(t('multi_reference'))}):''}</Text>
+   <Text style={s.name}>{index+1}. {items.find(item=>item.asset_version_id===frame.asset_version_id)?__uiT('ui_8cbaa55a52ef', {p0:(t('multi_photo')),p1:(items.findIndex(item=>item.asset_version_id===frame.asset_version_id)+1)}):frame.asset_version_id}{reference===frame.asset_version_id?__uiT('ui_04420b9dfe3f', {p0:(t('multi_reference'))}):''}</Text>
    <View style={{flexDirection:'row',flexWrap:'wrap',gap:8}}>
     <Button  accessibilityRole="button" accessibilityLabel={t('multi_move_up').replace('{n}',String(index+1))} disabled={locked||index===0} onPress={()=>edit(value=>value.move(frame.asset_version_id,index-1))}  mode="contained" contentStyle={{minHeight:48}}>{t('multi_up')}</Button>
     <Button  accessibilityRole="button" accessibilityLabel={t('multi_move_down').replace('{n}',String(index+1))} disabled={locked||index===frames.length-1} onPress={()=>edit(value=>value.move(frame.asset_version_id,index+1))}  mode="contained" contentStyle={{minHeight:48}}>{t('multi_down')}</Button>
@@ -162,10 +162,10 @@ function MultiScope({id,tenant,operation,origin,client}:{id:string;tenant:string
   {currentPrepared&&ticket&&prepared?.attempt?<MultiReviewView key={JSON.stringify([origin,tenant,id,operation,prepared.intent_key])} api={api} tenant={tenant} onAccessDenied={withdrawAccess} attempt={prepared.attempt} apply={{api,origin,collection:id,selection:applySelection,disabled:busy||!applySelection,onApplied:value=>{if(applySelection)router.push({pathname:'/editor/[version]',params:{version:value.asset_version_id,tenant,asset:applySelection.asset,collection:id,item:applySelection.item}});else router.push({pathname:'/collections/[id]',params:{id,tenant}});}}}/>:null}
   {ticket?<Button  accessibilityRole="button" disabled={busy||!capabilities} onPress={()=>void startAnother()}  mode="contained" contentStyle={{minHeight:48}}>{t('multi_start_another')}</Button>:null}
   {!prepared?<Text style={s.name}>{t('multi_collection_photos')}</Text>:null}
- </View>} renderItem={({item})=><MultiPhoto item={item} api={api} disabled={locked||!capabilities||frames.length>=(capabilities?.frame_limit??0)||frames.some(frame=>frame.asset_version_id===item.asset_version_id)} onAdd={()=>void add(item)}/>}/></SafeAreaView>;
+ </View>} renderItem={({item,index})=><MultiPhoto item={item} ordinal={index+1} api={api} disabled={locked||!capabilities||frames.length>=(capabilities?.frame_limit??0)||frames.some(frame=>frame.asset_version_id===item.asset_version_id)} onAdd={()=>void add(item)}/>}/></SafeAreaView>;
 }
 
-function MultiPhoto({item,api,disabled,onAdd}:{item:CollectionItem;api:OwnerAPI;disabled:boolean;onAdd:()=>void}){
+function MultiPhoto({item,ordinal,api,disabled,onAdd}:{item:CollectionItem;ordinal:number;api:OwnerAPI;disabled:boolean;onAdd:()=>void}){
  const {t}=useLocale();
  const [url,setURL]=useState<string|null>(null);
  useEffect(()=>{
@@ -175,8 +175,8 @@ function MultiPhoto({item,api,disabled,onAdd}:{item:CollectionItem;api:OwnerAPI;
   }).catch(()=>{});
   return()=>controller.abort();
  },[api,item.asset_id,item.asset_version_id]);
- return <TouchableRipple accessibilityRole="button" accessibilityLabel={t('multi_add_photo').replace('{n}',String(item.position+1))} disabled={disabled} onPress={onAdd} style={s.row}><View style={{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}>
-  {url?<Image source={{uri:url}} accessibilityLabel={t('multi_preview').replace('{n}',String(item.position+1))} style={{width:80,height:80,borderRadius:6}} resizeMode="cover"/>:<Text style={s.meta}>{t('multi_preview_pending')}</Text>}
-  <Text style={s.name}>{t('multi_add_photo').replace('{n}',String(item.position+1))}</Text>
+ return <TouchableRipple accessibilityRole="button" accessibilityLabel={t('multi_add_photo').replace('{n}',String(ordinal))} disabled={disabled} onPress={onAdd} style={s.row}><View style={{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}>
+  {url?<Image source={{uri:url}} accessibilityLabel={t('multi_preview').replace('{n}',String(ordinal))} style={{width:80,height:80,borderRadius:6}} resizeMode="cover"/>:<Text style={s.meta}>{t('multi_preview_pending')}</Text>}
+  <Text style={s.name}>{t('multi_add_photo').replace('{n}',String(ordinal))}</Text>
  </View></TouchableRipple>;
 }

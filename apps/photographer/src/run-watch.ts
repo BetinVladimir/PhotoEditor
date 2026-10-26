@@ -7,10 +7,14 @@ export interface RunWatchReader {
  stream(cursor:string|undefined,receive:(event:Event)=>void,signal:AbortSignal):Promise<void>;
 }
 /** Events invalidate catalog state; their payload never supplies authoritative run state. */
-export function watchRun(reader:RunWatchReader,id:string,signal:AbortSignal,receive:(run:RunStatus)=>void,failed:(error:unknown)=>void){
+export function watchRun(reader:RunWatchReader,id:string,callerSignal:AbortSignal,receive:(run:RunStatus)=>void,failed:(error:unknown)=>void){
+ const lifetime=new AbortController(),signal=lifetime.signal;
+ const stop=()=>lifetime.abort();
+ callerSignal.addEventListener('abort',stop,{once:true});
+ if(callerSignal.aborted)stop();
  let denied=false,timer:ReturnType<typeof setInterval>|undefined;
  const inactive=()=>signal.aborted||denied;
- const report=(error:unknown)=>{if(inactive())return;if(error instanceof APIError&&[401,403,404].includes(error.status)){denied=true;if(timer!==undefined)clearInterval(timer);}failed(error);};
+ const report=(error:unknown)=>{if(inactive())return;if(error instanceof APIError&&[401,403,404].includes(error.status)){denied=true;stop();}failed(error);};
  let latest:RunStatus|undefined,cursor:string|undefined,flight:Promise<void>|undefined,pending=false,reconnectDelay=2000,lastPoll=Date.now();
  const accept=(value:RunStatus)=>{
   if(inactive()||value.id!==id||typeof value.revision!=='string'||!/^[1-9][0-9]{0,18}$/.test(value.revision)||BigInt(value.revision)>9223372036854775807n)return;
@@ -32,7 +36,7 @@ export function watchRun(reader:RunWatchReader,id:string,signal:AbortSignal,rece
   if(signal.aborted)done();
  });
  timer=setInterval(()=>{const now=Date.now(),delay=latest&&terminal.has(latest.status)?10000:2000;if(now-lastPoll>=delay){lastPoll=now;void refresh();}},2000);
- const abort=()=>{if(timer!==undefined)clearInterval(timer);};
+ const abort=()=>{if(timer!==undefined)clearInterval(timer);callerSignal.removeEventListener('abort',stop);};
  signal.addEventListener('abort',abort,{once:true});
  if(signal.aborted)abort();
  void refresh();

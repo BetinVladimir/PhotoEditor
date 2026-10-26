@@ -327,3 +327,20 @@ it.each([new Error('network unavailable'),new APIError(503,'UNAVAILABLE'),new AP
  await act(async()=>{await vi.advanceTimersByTimeAsync(1000);});
  expect(mocks.media).toHaveBeenCalledTimes(2);expect(document.querySelector('img[src="https://media.test/recovered-transient"]')).not.toBeNull();
 });
+
+// Display sequence must follow the loaded page order, not sparse business sort keys.
+it('numbers sparse paginated photos consecutively and preserves editor identity',async()=>{
+ load();const original=mocks.request.getMockImplementation()!;
+ mocks.request.mockImplementation(async(path:string,...rest:unknown[])=>{
+  const value=await original(path,...rest);if(!path.includes('/items?'))return value;
+  const second=path.includes('cursor=second-page');
+  return {revision:'1',items:[{...value.items[0],id:id(second?14:4),asset_id:id(second?15:5),asset_version_id:id(second?16:6),position:second?2048:1024}],next_cursor:second?undefined:'second-page'};
+ });
+ render(<CollectionDetail/>);
+ await screen.findByLabelText('Open photo 2');expect(screen.getByText('Photo 1')).toBeDefined();expect(screen.getByText('Photo 2')).toBeDefined();
+ expect(screen.queryByText('Photo 1025')).toBeNull();expect(screen.queryByText('Photo 2049')).toBeNull();
+ expect(screen.getByLabelText('Set Blue color label for photo 2')).toBeDefined();expect(screen.getByLabelText('Accept photo 2')).toBeDefined();
+ fireEvent.click(screen.getByLabelText('Open photo 2'));
+ expect(mocks.push).toHaveBeenLastCalledWith({pathname:'/editor/[version]',params:{version:id(16),asset:id(15),tenant:id(2),collection:id(9),item:id(14)}});
+ expect(mocks.request.mock.calls.some(([path])=>String(path).includes('cursor=second-page'))).toBe(true);
+});

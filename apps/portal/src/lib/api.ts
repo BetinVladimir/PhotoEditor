@@ -49,13 +49,13 @@ export const createSelection = async (csrf: string, revision: string, itemIDs?: 
 export const startDownload = async (csrf: string, snapshotID: string, presetID: string, signal?: AbortSignal, key = idempotencyKey()) => readDownloadAccepted(await request<unknown>("/api/v1/portal/download-jobs", { method:"POST",signal,headers:{"Content-Type":"application/json","X-CSRF-Token":csrf,"Idempotency-Key":key},body:json({selection_snapshot_id:snapshotID,preset_id:presetID}) },[202]));
 export const getDownload = async (id: string, signal?: AbortSignal) => validateDownloadStatus(await request<unknown>(`/api/v1/portal/download-jobs/${id}`, { signal }), id);
 export const cancelDownload = async (csrf: string, id: string, signal?: AbortSignal) => validateDownloadStatus(await request<unknown>(`/api/v1/portal/download-jobs/${id}/cancel`, { signal, method: "POST", headers: { "X-CSRF-Token": csrf } }), id);
-export async function redeemDownload(csrf: string, id: string, volume: number, signal?: AbortSignal) {
-  const intent = await request<{ intent_token: string }>(`/api/v1/portal/download-jobs/${id}/download-intent`, { method: "POST", signal, headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf, "Idempotency-Key": idempotencyKey() }, body: json({ volume }) },[201]);
+export async function redeemDownload(csrf: string, id: string, volume: number, signal?: AbortSignal, key = idempotencyKey()) {
+  const intent = await request<{ intent_token: string }>(`/api/v1/portal/download-jobs/${id}/download-intent`, { method: "POST", signal, headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf, "Idempotency-Key": key }, body: json({ volume }) },[201]);
   signal?.throwIfAborted();
   return validateDownloadLink(await request<unknown>("/api/v1/downloads/redeem", { method: "POST", signal, headers: { "Content-Type": "application/json" }, body: json({ token: validateDownloadIntent(intent) }) }));
 }
-export async function downloadItem(csrf: string, itemID: string, presetID: string, signal?: AbortSignal) {
-  const intent = await request<{ intent_token: string }>(`/api/v1/portal/items/${itemID}/download-intent`, { method: "POST", signal, headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf, "Idempotency-Key": idempotencyKey() }, body: json({ preset_id: presetID }) },[201]);
+export async function downloadItem(csrf: string, itemID: string, presetID: string, signal?: AbortSignal, key = idempotencyKey()) {
+  const intent = await request<{ intent_token: string }>(`/api/v1/portal/items/${itemID}/download-intent`, { method: "POST", signal, headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf, "Idempotency-Key": key }, body: json({ preset_id: presetID }) },[201]);
   signal?.throwIfAborted();
   return validateDownloadLink(await request<unknown>("/api/v1/downloads/redeem", { method: "POST", signal, headers: { "Content-Type": "application/json" }, body: json({ token: validateDownloadIntent(intent) }) }));
 }

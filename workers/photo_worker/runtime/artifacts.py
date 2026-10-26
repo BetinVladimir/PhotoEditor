@@ -5,6 +5,7 @@ from pathlib import Path
 import ssl
 from typing import TypeVar
 from contextlib import contextmanager
+from photo_worker.contracts.archive import ArchiveParams,ArchiveManifest,ARCHIVE_DOCUMENT_MAX_BYTES
 from photo_worker.contracts.base import ArtifactRef,Contract,canonical_bytes
 from .credentials import TaskCredentials
 from .executor import ExecutionContext
@@ -13,6 +14,9 @@ from .materialize import materialize_gateway
 from .parameters import read_contract,read_style,read_contract_bytes
 from .scratch import ScratchSpace,Reservation,ScratchError
 from photo_worker.v2.input_closure import V2InputIndex
+
+def _archive_document_limit(model):
+    return ARCHIVE_DOCUMENT_MAX_BYTES if model is ArchiveParams or model is ArchiveManifest else 1048576
 
 T=TypeVar('T',bound=Contract)
 
@@ -104,13 +108,13 @@ class TaskArtifacts:
         if not self._allows(ref):
             raise ValueError('Artifact is not a declared task input')
         return read_contract(ref,model,self.gateway.open_stream,self.ctx.check_active,
-                             max_bytes=8*1024*1024 if self._v2_index is not None or model.__name__ in {"SceneGroups","CullRecommendations","SeriesCorrections"} else 1048576)
+                             max_bytes=8*1024*1024 if self._v2_index is not None or model.__name__ in {"SceneGroups","CullRecommendations","SeriesCorrections"} else _archive_document_limit(model))
 
     def contract_bytes(self,ref:ArtifactRef,model:type[T])->bytes:
         self._check()
         if not self._allows(ref):raise ValueError('Artifact is not a declared task input')
         return read_contract_bytes(ref,model,self.gateway.open_stream,self.ctx.check_active,
-            max_bytes=8*1024*1024 if self._v2_index is not None or model.__name__ in {"SceneGroups","CullRecommendations","SeriesCorrections"} else 1048576)
+            max_bytes=8*1024*1024 if self._v2_index is not None or model.__name__ in {"SceneGroups","CullRecommendations","SeriesCorrections"} else _archive_document_limit(model))
 
     def declared_contract_refs(self, contract: str, maximum: int = 1) -> tuple[ArtifactRef, ...]:
         self._check()
@@ -146,7 +150,7 @@ class TaskArtifacts:
         self._check(params_only=True)
         ref=self.ctx.lease.command.params
         if not self._allows(ref):raise ValueError('Params artifact is not a declared task input')
-        return read_contract(ref,model,self.gateway.open_stream,self.ctx.check_active)
+        return read_contract(ref,model,self.gateway.open_stream,self.ctx.check_active,max_bytes=_archive_document_limit(model))
 
     def style(self,ref:ArtifactRef):
         self._check()
@@ -190,7 +194,7 @@ class TaskArtifacts:
         self._check()
         if not isinstance(value,Contract):raise TypeError('Output manifest requires a strict contract')
         payload=canonical_bytes(value)
-        limit=8*1024*1024 if self._v2_index is not None or type(value).__name__ in {"SceneGroups","CullRecommendations","SeriesCorrections"} else 1048576
+        limit=8*1024*1024 if self._v2_index is not None or type(value).__name__ in {"SceneGroups","CullRecommendations","SeriesCorrections"} else _archive_document_limit(type(value))
         if len(payload)>limit:raise ValueError('Output manifest exceeds typed document limit')
         with self.scratch.reserve(len(payload)) as reservation:
             path=reservation.path('manifest','.json')

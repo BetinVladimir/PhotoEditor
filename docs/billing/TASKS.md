@@ -1,6 +1,6 @@
 # TASKS — атомарные задачи
 
-Перед любой задачей прочитать `RULES.md`. Взять одну задачу. Контекст собирать `tools/build-pack.py` (см. `QWEN-PROMPT.md`).
+Перед любой задачей прочитать `RULES.md`. Тесты пишутся вместе с кодом в той же задаче (`TESTING.md`, R33). Взять одну задачу. Контекст собирать `tools/build-pack.py` (см. `QWEN-PROMPT.md`).
 Задачи для ещё не реализованных таблиц, функций и API — в `backlog/` (сгенерированы, ID вида `FIN-T09`, `USA-F19`, `API-03`).
 
 ## Шаблон задачи (обязательные поля)
@@ -33,6 +33,7 @@ ID:        T-NN
 - **Критерий:** A. `python3 scripts/generate-billing-selected.py --check` PASS. B. `tests/contracts/test_billing_selected_contract.py`, `tests/integration/test_billing_selected.py`, `tests/integration/test_billing_selected_upgrade_guards.py` PASS без skip, включая open-eyes (`v28_open_eyes_selected_authority`) и glare (`v28_glare_completed_source_ready`). C. Go-команда выше PASS. D. Числа разных прогонов не суммировать.
 - **Запреты:** R9, R14, R30; цены и policies не публиковать.
 - **Стоп:** прогон невозможен без рабочей БД → `OPEN-08`.
+- **Тесты и команды:** готовый пакет — задача `ACC-1B7` в `backlog/BACKLOG-acceptance-*.md`. T-01 = выполнить её на машине с PostgreSQL и Go и записать блок в `STATUS.md` по `TESTING.md`.
 - **Контекст:** `python3 docs/billing/tools/build-pack.py --task T-01 --brief 1B7 --section "18#Admission" --section "18#Контракты" --func selected-workflow.sql:billing_bind_operations --out pack.md`
 
 ### T-02 — Реализовать решение OPEN-11: обработка кодов ошибок и контрактный тест

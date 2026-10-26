@@ -82,3 +82,17 @@ it('stops requests on stream access denial even when its failure callback does n
  resolve(value('1'));await vi.advanceTimersByTimeAsync(60000);
  expect(receive).not.toHaveBeenCalled();expect(load).toHaveBeenCalledOnce();expect(stream).toHaveBeenCalledOnce();stop.abort();
 });
+
+for(const status of [401,403,404])it(`aborts the open stream when status loading denies access (${status})`,async()=>{
+ vi.useFakeTimers();const stop=new AbortController(),failed=vi.fn(),receive=vi.fn();
+ let reject!:(error:unknown)=>void;let streamSignal:AbortSignal|undefined,loadSignal:AbortSignal|undefined;
+ const load=vi.fn((signal:AbortSignal)=>{loadSignal=signal;return new Promise<RunStatus>((_resolve,fail)=>{reject=fail;});});
+ const stream=vi.fn((_cursor,_callback,signal:AbortSignal)=>{streamSignal=signal;return new Promise<void>(resolve=>signal.addEventListener('abort',()=>resolve(),{once:true}));});
+ const watch=watchRun({load,stream},'run',stop.signal,receive,failed);
+ reject(new APIError(status,'DENIED'));await vi.advanceTimersByTimeAsync(0);
+ expect(streamSignal?.aborted).toBe(true);expect(loadSignal?.aborted).toBe(true);
+ expect(stop.signal.aborted).toBe(false);expect(failed).toHaveBeenCalledOnce();
+ await watch.refresh();await vi.advanceTimersByTimeAsync(60000);
+ expect(load).toHaveBeenCalledOnce();expect(stream).toHaveBeenCalledOnce();expect(receive).not.toHaveBeenCalled();
+ expect(vi.getTimerCount()).toBe(0);stop.abort();
+});

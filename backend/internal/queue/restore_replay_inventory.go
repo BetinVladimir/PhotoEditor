@@ -24,7 +24,7 @@ type restoreEnvelopeInventory struct {
 // The task publisher claims only these exchanges and refuses oversized
 // payloads. Reject an unpublishable inventory before any broker mutation.
 func restoreTaskEnvelopePublishable(destination string, payload []byte) bool {
-	return (destination == Commands || destination == Events) && len(payload) <= 65536
+	return taskEnvelopePublishable(destination, payload)
 }
 
 func newRestoreEnvelopeInventory() *restoreEnvelopeInventory {
@@ -98,7 +98,7 @@ func (o *Outbox) verifyRestoreInventoryPage(ctx context.Context, database string
 			var id, tenant, event uuid.UUID
 			var destination, routing string
 			var payload []byte
-			if err = rows.Scan(&id, &tenant, &event, &destination, &routing, &payload); err == nil && !restoreTaskEnvelopePublishable(destination, payload) {
+			if err = rows.Scan(&id, &tenant, &event, &destination, &routing, &payload); err == nil && (!restoreTaskEnvelopePublishable(destination, payload) || (len(payload) > 65536 && !archiveEnvelopeIdentity(routing, event, payload))) {
 				err = errors.New("restore outbox envelope not publishable")
 			}
 			if err == nil {

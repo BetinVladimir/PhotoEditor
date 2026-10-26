@@ -7,6 +7,9 @@ from pydantic import Field, field_validator, model_validator
 from .base import ArtifactRef, Contract, SHA256
 
 
+ARCHIVE_DOCUMENT_MAX_BYTES = 8 * 1024 * 1024
+
+
 class ArchiveEntry(Contract):
     artifact: ArtifactRef
     bytes: Annotated[int, Field(ge=1, le=10 * 1024**3)]

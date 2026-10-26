@@ -53,6 +53,7 @@ export function Portal({ locale, shareID }: { locale: Locale; shareID: string })
   const downloadCancellation = useRef<AbortController | null>(null);
   const downloadPreparation = useRef<AbortController | null>(null);
   const downloadFlight = useRef<AbortController | null>(null);
+  const downloadKeys = useRef(new Map<string, string>());
   const downloadPoll = useRef<AbortController | null>(null);
   function refuseDownloadAccess(error: unknown) {
     if (!(error instanceof api.APIError) || ![401,403,404,410].includes(error.status)) return false;
@@ -293,12 +294,16 @@ export function Portal({ locale, shareID }: { locale: Locale; shareID: string })
     } catch (error) { if (action.current() && downloadCancellation.current === controller && !refuseDownloadAccess(error)) setNotice(t.error); }
     finally { if (downloadCancellation.current === controller) downloadCancellation.current = null;action.finish(); }
   }
-  async function openDownload(fetchLink: (signal: AbortSignal) => Promise<{ url: string }>) {
+  async function openDownload(slot: string, fetchLink: (signal: AbortSignal, key: string) => Promise<{ url: string }>) {
+    // PT-3: reuse one Idempotency-Key per logical download until it succeeds, so a retry after a network error cannot create a second intent.
+    const key = downloadKeys.current.get(slot) ?? api.idempotencyKey();
+    downloadKeys.current.set(slot, key);
     if (phase !== "ready" || !can(collection, "download") || downloadFlight.current || document.visibilityState !== "visible") return;
     const action=beginAction();if(!action)return;const {controller}=action;downloadFlight.current=controller;
     setBusy(true);
     try {
-      const link = await fetchLink(controller.signal);
+      const link = await fetchLink(controller.signal, key);
+      downloadKeys.current.delete(slot);
       if (action.current() && downloadFlight.current === controller && document.visibilityState === "visible") location.assign(link.url);
     } catch (error) {
       if (action.current() && downloadFlight.current === controller && !refuseDownloadAccess(error)) setNotice(t.error);
@@ -309,11 +314,11 @@ export function Portal({ locale, shareID }: { locale: Locale; shareID: string })
   async function downloadVolume(volume: number) {
     if (!download || !downloadReady(download.status) || !download.volumes.some(v => v.number === volume && downloadReady(v.status))) return;
     const id = download.id;
-    await openDownload(signal => api.redeemDownload(csrf, id, volume, signal));
+    await openDownload(`vol:${id}:${volume}`, (signal, key) => api.redeemDownload(csrf, id, volume, signal, key));
   }
   async function downloadItem(item: GuestItem) {
     const preset = collection?.allowed_presets[0]; if (!preset) { setNotice(t.noPermission); return; }
-    await openDownload(signal => api.downloadItem(csrf, item.id, presetID(preset), signal));
+    await openDownload(`item:${item.id}:${presetID(preset)}`, (signal, key) => api.downloadItem(csrf, item.id, presetID(preset), signal, key));
   }
   async function uploadFiles(files: FileList | File[] | null) {
     if(!files?.length||!can(collection,'upload'))return;

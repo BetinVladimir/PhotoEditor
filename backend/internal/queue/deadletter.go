@@ -1,7 +1,6 @@
 package queue
 
 import (
- "photoeditor/backend/internal/database"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -9,6 +8,8 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"photoeditor/backend/internal/archivecontract"
+	"photoeditor/backend/internal/database"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -39,7 +40,17 @@ type DeadLetterRecord struct {
 }
 
 func DecodeDeadLetter(raw []byte, routing string) (DeadLetterRecord, error) {
-	if len(raw) == 0 || len(raw) > 65536 || len(routing) < 1 || len(routing) > 160 {
+	if routing == "dead.events" {
+		sum := sha256.Sum256(raw)
+		return DeadLetterRecord{WorkerClass: "events", RoutingKey: routing, PayloadSHA256: hex.EncodeToString(sum[:]), Metadata: json.RawMessage(`{"schema_version":1,"parse_status":"event_quarantine"}`)}, nil
+	}
+	// A malformed large archive command must quarantine once, never become a
+	// permanently requeued poison record or acquire task/replay authority.
+	if routing == "dead.archive" && len(raw) > 65536 && len(raw) <= archivecontract.CommandBytes && !archiveCommandPayload(raw) {
+		sum := sha256.Sum256(raw)
+		return DeadLetterRecord{WorkerClass: "archive", RoutingKey: routing, PayloadSHA256: hex.EncodeToString(sum[:]), Metadata: json.RawMessage(`{"schema_version":1,"parse_status":"invalid_command"}`)}, nil
+	}
+	if len(raw) == 0 || len(raw) > 65536 && !(routing == "dead.archive" && archiveCommandPayload(raw)) || len(routing) < 1 || len(routing) > 160 {
 		return DeadLetterRecord{}, errors.New("invalid dead letter")
 	}
 	sum := sha256.Sum256(raw)
@@ -50,6 +61,7 @@ func DecodeDeadLetter(raw []byte, routing string) (DeadLetterRecord, error) {
 		class = "unknown"
 	}
 	record := DeadLetterRecord{WorkerClass: class, RoutingKey: routing, PayloadSHA256: hex.EncodeToString(sum[:])}
+
 	canonicalBody, err := canonical.Bytes(json.RawMessage(raw))
 	if err != nil {
 		record.Metadata = json.RawMessage(`{"schema_version":1,"parse_status":"invalid_json"}`)
@@ -83,7 +95,12 @@ func DecodeDeadLetter(raw []byte, routing string) (DeadLetterRecord, error) {
 
 func recordDeadLetter(ctx context.Context, db *pgxpool.Pool, record DeadLetterRecord) error {
 	var id *uuid.UUID
-	err := db.QueryRow(ctx, `SELECT photo.record_dead_letter($1,$2,$3,$4,$5,$6)`, record.TaskID, record.EventID, record.WorkerClass, record.RoutingKey, record.PayloadSHA256, record.Metadata).Scan(&id)
+	var err error
+	if record.WorkerClass == "events" {
+		err = db.QueryRow(ctx, `SELECT photo.record_event_dead_letter($1,$2,$3)`, record.RoutingKey, record.PayloadSHA256, record.Metadata).Scan(&id)
+	} else {
+		err = db.QueryRow(ctx, `SELECT photo.record_dead_letter($1,$2,$3,$4,$5,$6)`, record.TaskID, record.EventID, record.WorkerClass, record.RoutingKey, record.PayloadSHA256, record.Metadata).Scan(&id)
+	}
 	if err != nil {
 		return err
 	}
@@ -107,13 +124,15 @@ func RunDeadLetterCollector(ctx context.Context, dsn, url, listen string) error 
 		return errors.New("dead-letter database unavailable")
 	}
 	defer db.Close()
-	if err = database.RequireApplicationRole(ctx, db, "photo_publisher"); err != nil { return err }
+	if err = database.RequireApplicationRole(ctx, db, "photo_publisher"); err != nil {
+		return err
+	}
 	conn, err := dial(url)
 	if err != nil {
 		return errors.New("dead-letter broker unavailable")
 	}
 	defer conn.Close()
-	classes := []string{"cpu", "gpu", "media", "archive", "collection", "mail"}
+	classes := []string{"cpu", "gpu", "media", "archive", "collection", "mail", "events"}
 	var wg sync.WaitGroup
 	errCh := make(chan error, len(classes)+1)
 	var ready atomic.Bool
@@ -140,13 +159,8 @@ func RunDeadLetterCollector(ctx context.Context, dsn, url, listen string) error 
 						errCh <- errors.New("dead-letter consumer closed")
 						return
 					}
-					record, decodeErr := DecodeDeadLetter(delivery.Body, delivery.RoutingKey)
-					if decodeErr != nil || recordDeadLetter(ctx, db, record) != nil {
-						_ = delivery.Nack(false, true)
-						continue
-					}
-					if ackErr := delivery.Ack(false); ackErr != nil {
-						errCh <- ackErr
+					if deliveryErr := ProcessDeadLetterDelivery(ctx, delivery, func(c context.Context, r DeadLetterRecord) error { return recordDeadLetter(c, db, r) }); deliveryErr != nil {
+						errCh <- deliveryErr
 						return
 					}
 				}
@@ -194,4 +208,16 @@ func RunDeadLetterCollector(ctx context.Context, dsn, url, listen string) error 
 		wg.Wait()
 		return err
 	}
+}
+
+// Persist before ACK, including event poison that violates the command body limit.
+func ProcessDeadLetterDelivery(ctx context.Context, d amqp.Delivery, record func(context.Context, DeadLetterRecord) error) error {
+	r, err := DecodeDeadLetter(d.Body, d.RoutingKey)
+	if err != nil {
+		return d.Nack(false, true)
+	}
+	if err = record(ctx, r); err != nil {
+		return d.Nack(false, true)
+	}
+	return d.Ack(false)
 }
