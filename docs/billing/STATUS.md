@@ -139,3 +139,16 @@ TST-02 заблокирован до STR-01 (fake provider Go-пакет).
 - TypeScript: PASS
 - Статические проверки: 18/18 PASS
 - Изменения: workspace-access.ts (ownerRoutes/adminRoutes), navigation-targets.ts (роль-фильтр), navigation-entry-links.tsx, локали en/ru/bg (+nav_usage/nav_billing_payment/nav_privacy)
+
+---
+
+### UI-13 — Числа, доступность, уведомления 80/95/100% — 01.11.2026
+
+Источник: `backlog/BACKLOG-ui-3.md`, задача UI-13
+
+- `apps/photographer/src/billing-format.test.ts`: **15 passed** (parseBillingInt, formatGB/GiB/TB, formatMoney, quotaProgress)
+- `apps/photographer/src/billing-quota-bar.dom.test.tsx`: **5 passed** (ProgressBar 0..1, overflow text, accessible role)
+- `apps/photographer/src/billing-quota-notify.dom.test.tsx`: **6 passed** (dedup по resource/period/threshold, стабильность при rerender)
+- TypeScript: PASS
+- Статические проверки: 18/18 PASS
+- Изменения: billing-format.ts, billing-quota-bar.tsx, billing-quota-notify.ts (новые файлы)
