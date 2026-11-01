@@ -35,14 +35,18 @@ func TestSemanticPolicyExpectedPreservesNullAndTrustedMPSResources(t *testing.T)
 				t.Fatal("decode")
 			}
 			resources, exists := wire["MPSResources"]
-			if !exists {
-				t.Fatal("missing exact Expected field")
-			}
 			if backend != "mps" {
-				if string(resources) != "null" || got.MPSResources != nil {
-					t.Fatal("non-MPS gained resources")
+				// nil MPSResources must be absent in JSON (omitempty, backward compat with pre-MPS hashes)
+				if exists {
+					t.Fatal("non-MPS backend has MPSResources in JSON")
+				}
+				if got.MPSResources != nil {
+					t.Fatal("non-MPS policy has non-nil MPSResources")
 				}
 				return
+			}
+			if !exists {
+				t.Fatal("missing exact Expected field for mps backend")
 			}
 			expectedResources, _ := canonical.Marshal(row.MPSResources)
 			if string(resources) != string(expectedResources) {
@@ -132,8 +136,11 @@ func TestSemanticPolicyExpectedPreservesOptionalMPSCommonReportPolicy(t *testing
 				t.Fatal(err)
 			}
 			var wire map[string]json.RawMessage
-			if json.Unmarshal(raw, &wire) != nil || string(wire["MPSResources"]) != "null" {
+			if json.Unmarshal(raw, &wire) != nil {
 				t.Fatal("optional resource representation changed")
+			}
+			if _, present := wire["MPSResources"]; present {
+				t.Fatal("optional resource representation changed: nil MPSResources must be absent, not null")
 			}
 		})
 	}

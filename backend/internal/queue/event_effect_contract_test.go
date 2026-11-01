@@ -9,7 +9,7 @@ import (
 // Unit verifies actual delivery function treats stale/duplicate as committed ACK,
 // never a task/graph mutation. Authority predicates themselves need isolated SQL tests.
 func TestFocusedSQLPrivateAndAlreadyPublishedEffects(t *testing.T) {
-	raw, e := os.ReadFile("/Users/freelancer/Documents/PhotoEditor/work/v21-event-progress-2657-source-r2/02657_orchestrator_event_receipts_progress.sql")
+	raw, e := os.ReadFile("../../db/migrations/02657_orchestrator_event_receipts_progress.sql")
 	if e != nil {
 		t.Fatal(e)
 	}
