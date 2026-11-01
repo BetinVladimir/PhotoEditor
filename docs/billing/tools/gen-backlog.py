@@ -10,7 +10,7 @@ OUT = os.path.join(DOCS, "backlog"); CHUNK = 3000
 def rd(p): return open(p, encoding="utf-8").read()
 sql = "".join(rd(f) for f in sorted(glob.glob(os.path.join(REPO, "backend/db/migrations/02[0-9][0-9][0-9]_*.sql"))))
 have_t = set(re.findall(r"CREATE TABLE (?:IF NOT EXISTS )?photo\.(\w+)", sql))
-have_f = set(re.findall(r"FUNCTION photo\.(\w+)\(", sql))
+have_f = set(re.findall(r"^\s*CREATE(?: OR REPLACE)? FUNCTION photo\.(\w+)\(", sql, re.M | re.I))
 d3, d4, d9 = (rd(os.path.join(DOCS, n)) for n in ("03-data-model.md", "04-functions-and-api.md", "09-codegen-contract.md"))
 def rows(text, pat):
     out = {}
@@ -19,7 +19,13 @@ def rows(text, pat):
         if m: out.setdefault(m.group(1), []).append(ln.strip())
     return out
 t3 = rows(d3, r"[a-z][a-z0-9_]+"); t9 = rows(d9, r"[a-z][a-z0-9_]+")
-f4 = rows(d4, r"(?:billing|account|legal|privacy|erasure)_[a-z0-9_]+")
+f4 = {}
+for line in d4.splitlines():
+    if not line.startswith('|'): continue
+    cell = line.split('|')[1].strip()
+    if not re.fullmatch(r'(?:billing|account|legal|privacy|erasure)_[a-z0-9_]+(?:\s*/\s*(?:billing|account|legal|privacy|erasure)_[a-z0-9_]+)*', cell): continue
+    for name in re.findall(r'(?:billing|account|legal|privacy|erasure)_[a-z0-9_]+', cell):
+        f4.setdefault(name, []).append(line.strip())
 api = [ln.strip() for ln in d4.split("\n") if re.match(r"^\|\s*(GET|POST|PUT|PATCH|DELETE)\s+/", ln)]
 tables = sorted(n for n in t3 if re.match(r"(billing|legal|privacy|erasure|tenant_billing|consent)_", n) and n not in have_t and n not in ("billing_class",))
 funcs = sorted(n for n in f4 if n not in have_f)
@@ -83,9 +89,11 @@ idx = ["# Бэклог 1В–4: задачи для ещё не реализов
        "Тесты пишутся вместе с кодом (`TESTING.md`, R33); приёмка модулей — группы `acceptance`, инфраструктура тестов — `testinfra`.", "Порядок: сначала `*-00` (каркас группы), затем таблицы, затем функции, затем API. Зависимости — по пакетам BILL в `08-delivery-migrations-e2e.md`.", "",
        "| Группа | Пакеты | Таблиц | Функций | Файлы |", "|---|---|---|---|---|"]
 for g, (bill, _, _) in GROUP.items():
-    ts = [n for n in tables if group_of(n, "t") == g]; fs = [n for n in funcs if group_of(n, "f") == g]
+    all_ts = sorted(n for n in t3 if re.match(r"(billing|legal|privacy|erasure|tenant_billing|consent)_", n) and n != 'billing_class' and group_of(n, "t") == g)
+    all_fs = sorted(n for n in f4 if group_of(n, "f") == g)
+    ts = [n for n in all_ts if n in tables]; fs = [n for n in all_fs if n not in have_f]
     items = [["### %s-00 — каркас этапа группы `%s`" % (g[:3].upper(), g), "", "- Выход: " + SCAFFOLD.format(g=g), "- Тесты (R33): сами файлы `tests/contracts/test_billing_%s_contract.py` и `tests/integration/test_billing_%s.py` создаются здесь (пустой набор проходит, не skip)." % (g, g), "- Критерий: A. Генератор `--check` PASS на пустых источниках. B. Пустой contract-тест PASS. C. Миграция-пустышка не создаётся, пока нет таблиц.", "- Запреты: R9, R28.", ""]]
-    items += [table_task(i, g, n) for i, n in enumerate(ts, 1)] + [func_task(i, g, n) for i, n in enumerate(fs, 1)]
+    items += [table_task(i, g, n) for i, n in enumerate(all_ts, 1) if n in ts] + [func_task(i, g, n) for i, n in enumerate(all_fs, 1) if n in fs]
     names = []
     for k, ch in enumerate(emit(g, items), 1):
         nm = "BACKLOG-%s-%d.md" % (g, k); names.append(nm)
@@ -107,6 +115,13 @@ for g, bill, _, cnt, nms in xi: idx.append("| %s | %s | — | %s | %s |" % (g, b
 idx += ["", "Stripe-задачи не требуют ключей: проверяются на fake-провайдере (`STR-01`); `STR-14` и `STR-15` ждут ключей (`OPEN-14`, порядок — `STRIPE-CONFIG.md`).", "e2e: каждый сценарий — один положительный и один отрицательный тест; сценарии зависят от остальных групп."]
 FILES["README.md"] = "\n".join(idx) + "\n"
 check = "--check" in sys.argv; bad = 0; os.makedirs(OUT, exist_ok=True)
+# Old chunks must not leave completed tasks or duplicate IDs behind after repacking.
+for name in sorted(os.listdir(OUT)):
+    if re.fullmatch(r'BACKLOG-(?:finance|provider|usage|legal|api|stripe|ui|e2e|acceptance|testinfra)-[0-9]+\.md', name) and name not in FILES:
+        if check:
+            print("stale generated file:", name); bad += 1
+        else:
+            os.unlink(os.path.join(OUT, name))
 for nm, tx in FILES.items():
     p = os.path.join(OUT, nm)
     if check:

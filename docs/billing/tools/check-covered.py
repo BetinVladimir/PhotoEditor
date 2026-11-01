@@ -48,10 +48,11 @@ def load_target_04() -> list[str]:
     """Вернуть имена функций из таблиц в 04-functions-and-api.md."""
     text = DOC_04.read_text()
     names = []
-    for m in re.finditer(r"^\| (billing_\w+)", text, re.MULTILINE):
-        name = m.group(1)
-        if name not in names:
-            names.append(name)
+    for line in text.splitlines():
+        if not line.startswith('|'): continue
+        cell = line.split('|')[1].strip()
+        for name in re.findall(r"(?:billing|account|legal|privacy|erasure)_[a-z0-9_]+", cell):
+            if name not in names: names.append(name)
     return names
 
 
@@ -60,7 +61,7 @@ def load_backlog_functions() -> dict[str, str]:
     result: dict[str, str] = {}
     # Ищем паттерн "### FIN-F01" или "billing_xxx" в строке с function name
     fn_task_re = re.compile(r"^### (\w+-F\d+)", re.MULTILINE)
-    fn_name_re = re.compile(r"`(billing_\w+)`")
+    fn_name_re = re.compile(r"`((?:billing|account|legal|privacy|erasure)_\w+)`")
     for path in sorted(BACKLOG_DIR.glob("BACKLOG-*.md")):
         text = path.read_text()
         for task_m in fn_task_re.finditer(text):
