@@ -4,7 +4,7 @@
 
 Решения владельца 23.10.2026 (`OPEN-11`): A — остаётся `500 INTERNAL_ERROR`; B — `422 VALIDATION_FAILED`; C — `409 BILLING_STATE_CONFLICT` (новый код); D — `503 BILLING_UNAVAILABLE`.
 
-Всего кодов: 82. Обработано в Go сейчас: 11. Решено, но Go ещё не изменён: 19. Внутренние (500 по решению): 26. Без решения: 26. Устаревших записей в решениях: 0.
+Всего кодов: 87. Обработано в Go сейчас: 11. Решено, но Go ещё не изменён: 19. Внутренние (500 по решению): 26. Без решения: 31. Устаревших записей в решениях: 0.
 
 ## Обработаны в Go сейчас
 
@@ -86,6 +86,9 @@
 - BILLING_CHANGE_NOT_FOUND
 - BILLING_CHANGE_STATE_INVALID
 - BILLING_CHECKOUT_SESSION_CONFLICT
+- BILLING_CLAIM_BATCH_INVALID
+- BILLING_FENCE_STALE
+- BILLING_INBOX_NOT_FOUND
 - BILLING_ORDER_NOT_FOUND
 - BILLING_ORDER_STATE_INVALID
 - BILLING_PAYMENT_NOT_FOUND
@@ -103,3 +106,5 @@
 - BILLING_REFUND_NOT_FOUND
 - BILLING_REFUND_STATE_INVALID
 - BILLING_REVISION_CONFLICT
+- BILLING_WEBHOOK_HASH_QUARANTINE
+- BILLING_WEBHOOK_INPUT_INCOMPLETE

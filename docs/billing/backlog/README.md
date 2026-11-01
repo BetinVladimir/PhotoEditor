@@ -8,7 +8,7 @@
 | Группа | Пакеты | Таблиц | Функций | Файлы |
 |---|---|---|---|---|
 | finance | BILL-04 | 0 | 0 | [BACKLOG-finance-1.md](BACKLOG-finance-1.md) |
-| provider | BILL-07/08 | 4 | 3 | [BACKLOG-provider-1.md](BACKLOG-provider-1.md), [BACKLOG-provider-2.md](BACKLOG-provider-2.md) |
+| provider | BILL-07/08 | 0 | 0 | [BACKLOG-provider-1.md](BACKLOG-provider-1.md) |
 | usage | BILL-05/06/09 | 7 | 20 | [BACKLOG-usage-1.md](BACKLOG-usage-1.md), [BACKLOG-usage-2.md](BACKLOG-usage-2.md), [BACKLOG-usage-3.md](BACKLOG-usage-3.md), [BACKLOG-usage-4.md](BACKLOG-usage-4.md), [BACKLOG-usage-5.md](BACKLOG-usage-5.md), [BACKLOG-usage-6.md](BACKLOG-usage-6.md) |
 | legal | BILL-11/12 | 4 | 8 | [BACKLOG-legal-1.md](BACKLOG-legal-1.md), [BACKLOG-legal-2.md](BACKLOG-legal-2.md), [BACKLOG-legal-3.md](BACKLOG-legal-3.md) |
 | api | BILL-10 | — | 16 операций | [BACKLOG-api-1.md](BACKLOG-api-1.md), [BACKLOG-api-2.md](BACKLOG-api-2.md) |

@@ -2,7 +2,7 @@
 
 ### USA-F14 — функция `billing_record_egress_chunk`
 
-- Статус: нет `FUNCTION photo.billing_record_egress_chunk(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_request_change`, `billing_guard_terminal_run`, `billing_operation_session`.
+- Статус: нет `FUNCTION photo.billing_record_egress_chunk(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_record_webhook`, `billing_request_change`, `billing_guard_terminal_run`.
 - Вход: строка 04 ниже; типы аргументов по 09 §3 (в 04 даны имена, не типы); образец — `EXAMPLES.md` §1–2.
 - Выход: тело в `contracts/usage-functions.sql`, запись в `contracts/usage-functions.json`, перегенерация миграции.
 - Критерий: A. `--check` генератора PASS. B. `execute_roles` в JSON = `GRANT` в SQL, роли из колонки «права» строки 04. C. integration-тест: положительный путь, отказ авторизации, точный повтор и конфликт hash. D. Порядок блокировок R23–R26.

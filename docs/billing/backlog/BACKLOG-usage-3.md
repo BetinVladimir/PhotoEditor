@@ -14,7 +14,7 @@
 
 ### USA-F05 — функция `billing_cover_overrun`
 
-- Статус: нет `FUNCTION photo.billing_cover_overrun(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_settle_operations`, `billing_lock_apply_run`, `billing_check_operation_claim`.
+- Статус: нет `FUNCTION photo.billing_cover_overrun(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_settle_operations`, `billing_record_webhook`, `billing_lock_apply_run`.
 - Вход: строка 04 ниже; типы аргументов по 09 §3 (в 04 даны имена, не типы); образец — `EXAMPLES.md` §1–2.
 - Выход: тело в `contracts/usage-functions.sql`, запись в `contracts/usage-functions.json`, перегенерация миграции.
 - Критерий: A. `--check` генератора PASS. B. `execute_roles` в JSON = `GRANT` в SQL, роли из колонки «права» строки 04. C. integration-тест: положительный путь, отказ авторизации, точный повтор и конфликт hash. D. Порядок блокировок R23–R26.
@@ -50,7 +50,7 @@
 
 ### USA-F08 — функция `billing_hold_photo_slot`
 
-- Статус: нет `FUNCTION photo.billing_hold_photo_slot(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_quota_lock`, `billing_operation_session`, `billing_bind_operations`.
+- Статус: нет `FUNCTION photo.billing_hold_photo_slot(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_quota_lock`, `billing_operation_session`, `billing_record_webhook`.
 - Вход: строка 04 ниже; типы аргументов по 09 §3 (в 04 даны имена, не типы); образец — `EXAMPLES.md` §1–2.
 - Выход: тело в `contracts/usage-functions.sql`, запись в `contracts/usage-functions.json`, перегенерация миграции.
 - Критерий: A. `--check` генератора PASS. B. `execute_roles` в JSON = `GRANT` в SQL, роли из колонки «права» строки 04. C. integration-тест: положительный путь, отказ авторизации, точный повтор и конфликт hash. D. Порядок блокировок R23–R26.

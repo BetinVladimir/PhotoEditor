@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "stage": "provider",
+  "functions": [
+    {
+      "signature": "billing_record_webhook(uuid,text,text,text,timestamptz,bytea,bytea)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Durably store incoming webhook event; idempotent on (account,event_id); hash mismatch quarantine"
+    },
+    {
+      "signature": "billing_claim_webhook(uuid,bigint)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "SKIP LOCKED batch claim of webhook events; lease expires in 5 minutes; increments attempts counter"
+    },
+    {
+      "signature": "billing_apply_provider_snapshot(uuid,uuid,jsonb)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Apply verified provider event snapshot; fence check prevents stale writes; no duplicate grant; returns applied/retry/ignored"
+    }
+  ]
+}

@@ -50,7 +50,7 @@
 
 ### USA-F03 — функция `billing_apply_storage_entitlement`
 
-- Статус: нет `FUNCTION photo.billing_apply_storage_entitlement(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_guard_source_item`, `billing_apply_refund`, `billing_settle_render`.
+- Статус: нет `FUNCTION photo.billing_apply_storage_entitlement(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_guard_source_item`, `billing_apply_refund`, `billing_apply_provider_snapshot`.
 - Вход: строка 04 ниже; типы аргументов по 09 §3 (в 04 даны имена, не типы); образец — `EXAMPLES.md` §1–2.
 - Выход: тело в `contracts/usage-functions.sql`, запись в `contracts/usage-functions.json`, перегенерация миграции.
 - Критерий: A. `--check` генератора PASS. B. `execute_roles` в JSON = `GRANT` в SQL, роли из колонки «права» строки 04. C. integration-тест: положительный путь, отказ авторизации, точный повтор и конфликт hash. D. Порядок блокировок R23–R26.

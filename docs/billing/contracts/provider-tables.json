@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "stage": "provider",
+  "tables": [
+    {
+      "name": "billing_notification_marks",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false},
+        {"name": "tenant_id", "type": "uuid", "nullable": false},
+        {"name": "resource_code", "type": "text", "nullable": false},
+        {"name": "period_id", "type": "uuid", "nullable": false},
+        {"name": "threshold_percent", "type": "bigint", "nullable": false},
+        {"name": "channel", "type": "text", "nullable": false},
+        {"name": "delivered_at", "type": "timestamptz", "nullable": true},
+        {"name": "business_key", "type": "text", "nullable": false},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "primary_key": ["id"],
+      "constraints": [
+        "FOREIGN KEY(tenant_id) REFERENCES photo.tenants(id)",
+        "FOREIGN KEY(period_id) REFERENCES photo.billing_periods(id)",
+        "UNIQUE(tenant_id,resource_code,period_id,threshold_percent,channel)",
+        "CHECK(channel IN ('in_app','email'))",
+        "CHECK(threshold_percent IN (80,95,100))"
+      ],
+      "indexes": [],
+      "append_only": false,
+      "acl": {"photo_fn_owner": ["SELECT","INSERT","UPDATE"]},
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "billing_outbox",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false},
+        {"name": "tenant_id", "type": "uuid", "nullable": true},
+        {"name": "topic", "type": "text", "nullable": false},
+        {"name": "business_key", "type": "text", "nullable": false},
+        {"name": "payload", "type": "jsonb", "nullable": false},
+        {"name": "state", "type": "text", "nullable": false, "default": "'pending'"},
+        {"name": "attempts", "type": "bigint", "nullable": false, "default": "0"},
+        {"name": "next_retry_at", "type": "timestamptz", "nullable": true},
+        {"name": "processing_token", "type": "uuid", "nullable": true},
+        {"name": "lease_until", "type": "timestamptz", "nullable": true},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "primary_key": ["id"],
+      "constraints": [
+        "UNIQUE(topic,business_key)",
+        "CHECK(state IN ('pending','processing','sent','retry','dead'))",
+        "CHECK(attempts >= 0)"
+      ],
+      "indexes": [
+        "CREATE INDEX billing_outbox_retry_idx ON photo.billing_outbox(state,next_retry_at) WHERE state IN ('pending','retry')"
+      ],
+      "append_only": false,
+      "acl": {"photo_fn_owner": ["SELECT","INSERT","UPDATE"]},
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "billing_reconciliation_runs",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false},
+        {"name": "tenant_id", "type": "uuid", "nullable": true},
+        {"name": "provider_account_id", "type": "uuid", "nullable": false},
+        {"name": "scope", "type": "text", "nullable": false},
+        {"name": "cursor", "type": "text", "nullable": true},
+        {"name": "window_start", "type": "timestamptz", "nullable": false},
+        {"name": "window_end", "type": "timestamptz", "nullable": false},
+        {"name": "state", "type": "text", "nullable": false, "default": "'running'"},
+        {"name": "mismatch_count", "type": "bigint", "nullable": false, "default": "0"},
+        {"name": "error_code", "type": "text", "nullable": true},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "primary_key": ["id"],
+      "constraints": [
+        "CHECK(scope IN ('payments','subscriptions','grants'))",
+        "CHECK(state IN ('running','completed','failed'))",
+        "CHECK(mismatch_count >= 0)",
+        "CHECK(window_end > window_start)"
+      ],
+      "indexes": [
+        "CREATE INDEX billing_reconciliation_runs_account_idx ON photo.billing_reconciliation_runs(provider_account_id,created_at)"
+      ],
+      "append_only": false,
+      "acl": {"photo_fn_owner": ["SELECT","INSERT","UPDATE"]},
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "billing_webhook_inbox",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false},
+        {"name": "tenant_id", "type": "uuid", "nullable": true},
+        {"name": "provider_account_id", "type": "uuid", "nullable": false},
+        {"name": "event_id", "type": "text", "nullable": false},
+        {"name": "event_type", "type": "text", "nullable": false},
+        {"name": "object_id", "type": "text", "nullable": false},
+        {"name": "provider_created_at", "type": "timestamptz", "nullable": false},
+        {"name": "payload_encrypted", "type": "bytea", "nullable": true},
+        {"name": "payload_hash", "type": "bytea", "nullable": false},
+        {"name": "state", "type": "text", "nullable": false, "default": "'received'"},
+        {"name": "attempts", "type": "bigint", "nullable": false, "default": "0"},
+        {"name": "next_retry_at", "type": "timestamptz", "nullable": true},
+        {"name": "processing_token", "type": "uuid", "nullable": true},
+        {"name": "lease_until", "type": "timestamptz", "nullable": true},
+        {"name": "last_error_code", "type": "text", "nullable": true},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "primary_key": ["id"],
+      "constraints": [
+        "UNIQUE(provider_account_id,event_id)",
+        "CHECK(state IN ('received','processing','applied','ignored','retry','dead'))",
+        "CHECK(attempts >= 0)"
+      ],
+      "indexes": [
+        "CREATE INDEX billing_webhook_inbox_retry_idx ON photo.billing_webhook_inbox(state,next_retry_at) WHERE state IN ('received','retry')"
+      ],
+      "append_only": false,
+      "acl": {"photo_fn_owner": ["SELECT","INSERT","UPDATE"]},
+      "rls": "force_trusted_functions"
+    }
+  ]
+}
