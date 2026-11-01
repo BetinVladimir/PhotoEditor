@@ -11,6 +11,7 @@
 | OPEN-09 | Capacity gate Studio Pro, benchmark тяжёлых операций | OPEN | Live-продажи закрыты; benchmark запускается — ждём параметры тестового окружения | Параметры capacity-теста от владельца | README |
 | OPEN-10 | Native pixel execution и fresh public compiler Editor | NOT QUALIFIED (следующий спринт) | Не заявлять как проверенные | Тестовое окружение GPU/NPU — запланировано на следующий спринт | 11 (1Б.5) |
 | OPEN-14 | Stripe sandbox-аккаунты (dev, CI), ключи, webhook secrets, реквизиты продавца | IN PROGRESS | Ключи записываются в файлы вне репозитория (`~/.photo/secrets/`); env-ссылки — `STRIPE_SECRET_KEY_REF`, `STRIPE_WEBHOOK_SECRET_REF`; нужны ещё `STRIPE_ACCOUNT_ID`, `STRIPE_PORTAL_CONFIG_ID` | Владелец добавляет значения; код тестируется на fake-провайдере до завершения | 05, STRIPE-CONFIG.md |
+| OPEN-15 | LEG-F02 `account_claim_deletion_step` — параметры и backing-таблица шагов удаления | OPEN | Функцию не реализовывать; задача LEG-F02 заблокирована | 09 §3 не содержит типов параметров для этой функции. Нужно: (1) параметры и их SQL-типы; (2) нужна ли отдельная таблица `profile_deletion_steps` с lease/fence-колонками (09 §3 строка 325 ссылается на `deletion_step_id` FK, таблицы в 02666–02667 нет); (3) колонки возвращаемого TABLE. | 04, 09 §3 |
 
 Как добавлять строку: ID по порядку, один параметр на строку, колонка «Пока» обязательна и конкретна («вернуть 422», «capability=false»), не «будет решено».
 

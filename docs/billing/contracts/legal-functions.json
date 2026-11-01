@@ -3,6 +3,7 @@
   "stage": "legal_scaffold",
   "functions": [
     {"signature": "account_legal_set_hash(uuid[])", "owner": "photo_fn_owner", "execute_roles": []},
-    {"signature": "account_accept_legal(uuid,uuid,uuid,jsonb,jsonb,text)", "owner": "photo_fn_owner", "execute_roles": ["photo_auth"]}
+    {"signature": "account_accept_legal(uuid,uuid,uuid,jsonb,jsonb,text)", "owner": "photo_fn_owner", "execute_roles": ["photo_auth"]},
+    {"signature": "account_issue_recent_auth(uuid,uuid,uuid,text,text)", "owner": "photo_fn_owner", "execute_roles": ["photo_auth"]}
   ]
 }

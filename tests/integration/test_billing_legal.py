@@ -234,6 +234,76 @@ def test_account_accept_legal_missing_required_doc(legal_env):
             _accept_call(c, tenant_id, user_id, session_id, [doc_ids[0]])
 
 
+# ---------------------------------------------------------------------------
+# LEG-F04: account_issue_recent_auth
+# ---------------------------------------------------------------------------
+
+def _issue_call(c, tenant_id, user_id, session_id, purpose, challenge_ref):
+    """Call account_issue_recent_auth; return (grant_id, proof_hash, expires_at)."""
+    c.execute("SELECT set_config('app.tenant_id',%s,true)", (str(tenant_id),))
+    return c.execute(
+        "SELECT grant_id,proof_hash,expires_at"
+        " FROM photo.account_issue_recent_auth(%s,%s,%s,%s,%s)",
+        (tenant_id, user_id, session_id, purpose, challenge_ref),
+    ).fetchone()
+
+
+def test_account_issue_recent_auth_success(legal_env):
+    """LEG-F04 happy path: returns grant_id, 32-byte proof_hash, expires in ~5min."""
+    c, tenant_id, user_id, session_id, doc_ids = legal_env
+    ref = str(uuid4())
+    row = _issue_call(c, tenant_id, user_id, session_id, 'delete_profile', ref)
+    assert row is not None
+    grant_id, proof_hash, expires_at = row
+    assert grant_id is not None
+    assert len(bytes(proof_hash)) == 32
+    from datetime import timezone
+    now = c.execute("SELECT clock_timestamp()").fetchone()[0]
+    delta = (expires_at - now).total_seconds()
+    assert 240 < delta <= 310, f"expires_at not ~5min from now: {delta}s"
+
+
+def test_account_issue_recent_auth_auth_failure(legal_env):
+    """LEG-F04: wrong tenant → BILLING_AUTHORITY_INVALID."""
+    c, tenant_id, user_id, session_id, doc_ids = legal_env
+    other = uuid4()
+    c.execute("SELECT set_config('app.tenant_id',%s,true)", (str(other),))
+    with pytest.raises(psycopg.errors.RaiseException, match='BILLING_AUTHORITY_INVALID'):
+        with c.transaction():
+            c.execute(
+                "SELECT * FROM photo.account_issue_recent_auth(%s,%s,%s,%s,%s)",
+                (tenant_id, user_id, session_id, 'delete_profile', str(uuid4())),
+            )
+
+
+def test_account_issue_recent_auth_exact_repeat_idempotent(legal_env):
+    """LEG-F04: same challenge ref+purpose → same grant returned (R20)."""
+    c, tenant_id, user_id, session_id, doc_ids = legal_env
+    ref = str(uuid4())
+    row1 = _issue_call(c, tenant_id, user_id, session_id, 'delete_profile', ref)
+    row2 = _issue_call(c, tenant_id, user_id, session_id, 'delete_profile', ref)
+    assert row1[0] == row2[0], "idempotent call must return the same grant_id"
+    assert bytes(row1[1]) == bytes(row2[1]), "idempotent call must return the same proof_hash"
+
+
+def test_account_issue_recent_auth_challenge_conflict(legal_env):
+    """LEG-F04: same challenge ref reused for a different purpose → LEGAL_RECENT_AUTH_CHALLENGE_CONFLICT."""
+    c, tenant_id, user_id, session_id, doc_ids = legal_env
+    ref = str(uuid4())
+    _issue_call(c, tenant_id, user_id, session_id, 'delete_profile', ref)
+    with pytest.raises(psycopg.errors.RaiseException, match='LEGAL_RECENT_AUTH_CHALLENGE_CONFLICT'):
+        with c.transaction():
+            _issue_call(c, tenant_id, user_id, session_id, 'resolve_ownership', ref)
+
+
+def test_account_issue_recent_auth_invalid_purpose(legal_env):
+    """LEG-F04: unrecognised purpose → LEGAL_PURPOSE_INVALID."""
+    c, tenant_id, user_id, session_id, doc_ids = legal_env
+    with pytest.raises(psycopg.errors.RaiseException, match='LEGAL_PURPOSE_INVALID'):
+        with c.transaction():
+            _issue_call(c, tenant_id, user_id, session_id, 'bad_purpose', str(uuid4()))
+
+
 def test_account_accept_legal_concurrent_same_user(legal_env):
     """LEG-F01 concurrent: two concurrent calls for the same user → one succeeds, one idempotent."""
     c, tenant_id, user_id, session_id, doc_ids = legal_env

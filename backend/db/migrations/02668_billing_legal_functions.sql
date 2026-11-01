@@ -92,6 +92,48 @@ ALTER FUNCTION photo.account_accept_legal(uuid,uuid,uuid,jsonb,jsonb,text) OWNER
 REVOKE ALL ON FUNCTION photo.account_accept_legal(uuid,uuid,uuid,jsonb,jsonb,text) FROM PUBLIC;
 
 GRANT EXECUTE ON FUNCTION photo.account_accept_legal(uuid,uuid,uuid,jsonb,jsonb,text) TO photo_auth;
+
+-- +goose StatementBegin
+CREATE FUNCTION photo.account_issue_recent_auth(
+ p_tenant uuid,p_actor uuid,p_session uuid,
+ p_purpose text,
+ p_otp_challenge_ref text
+) RETURNS TABLE(grant_id uuid,proof_hash bytea,expires_at timestamptz)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,photo AS $$
+DECLARE
+ v_epoch bigint; v_proof bytea; v_row photo.account_recent_auth_grants%ROWTYPE;
+BEGIN
+ IF nullif(current_setting('app.tenant_id',true),'')::uuid IS DISTINCT FROM p_tenant
+ THEN RAISE EXCEPTION 'BILLING_AUTHORITY_INVALID'; END IF;
+ IF NOT EXISTS(SELECT 1 FROM photo.authorize_tenant(p_actor,p_session,p_tenant))
+ THEN RAISE EXCEPTION 'BILLING_AUTHORITY_INVALID'; END IF;
+ IF p_purpose NOT IN ('delete_profile','resolve_ownership')
+ THEN RAISE EXCEPTION 'LEGAL_PURPOSE_INVALID'; END IF;
+ SELECT * INTO v_row FROM photo.account_recent_auth_grants
+ WHERE user_id=p_actor AND otp_challenge_ref=p_otp_challenge_ref AND purpose=p_purpose;
+ IF FOUND THEN
+  RETURN QUERY SELECT v_row.grant_id,v_row.proof_hash,v_row.expires_at; RETURN;
+ END IF;
+ IF EXISTS(SELECT 1 FROM photo.account_recent_auth_grants
+           WHERE user_id=p_actor AND otp_challenge_ref=p_otp_challenge_ref)
+ THEN RAISE EXCEPTION 'LEGAL_RECENT_AUTH_CHALLENGE_CONFLICT'; END IF;
+ SELECT auth_epoch INTO v_epoch FROM photo.users WHERE id=p_actor;
+ IF NOT FOUND THEN RAISE EXCEPTION 'BILLING_AUTHORITY_INVALID'; END IF;
+ v_proof:=sha256(gen_random_uuid()::text::bytea);
+ INSERT INTO photo.account_recent_auth_grants(
+  user_id,session_id,auth_epoch,purpose,proof_hash,otp_challenge_ref,expires_at
+ ) VALUES(p_actor,p_session,v_epoch,p_purpose,v_proof,p_otp_challenge_ref,
+          clock_timestamp()+interval '5 minutes')
+ RETURNING * INTO v_row;
+ RETURN QUERY SELECT v_row.grant_id,v_row.proof_hash,v_row.expires_at;
+END $$;
+-- +goose StatementEnd
+
+ALTER FUNCTION photo.account_issue_recent_auth(uuid,uuid,uuid,text,text) OWNER TO photo_fn_owner;
+
+REVOKE ALL ON FUNCTION photo.account_issue_recent_auth(uuid,uuid,uuid,text,text) FROM PUBLIC;
+
+GRANT EXECUTE ON FUNCTION photo.account_issue_recent_auth(uuid,uuid,uuid,text,text) TO photo_auth;
 -- +goose Down
 -- +goose StatementBegin
 DO $$ BEGIN RAISE EXCEPTION 'Forward-only billing legal migration'; END $$;
