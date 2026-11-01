@@ -1,25 +1,84 @@
 {
   "schema_version": 1,
   "stage": "legal_scaffold",
+  "tables_comment": "schema_file groups tables into separate migrations; 02666=legal base, 02667=auth junction",
   "tables": [
     {
       "name": "legal_document_versions",
       "columns": [
-        {"name": "document_id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()"},
-        {"name": "document_key", "type": "text", "nullable": false},
-        {"name": "locale", "type": "text", "nullable": false},
-        {"name": "version", "type": "text", "nullable": false},
-        {"name": "url", "type": "text", "nullable": false},
-        {"name": "content_sha256", "type": "bytea", "nullable": false},
-        {"name": "archive_ref", "type": "text", "nullable": false},
-        {"name": "archive_version", "type": "text", "nullable": false},
-        {"name": "published_at", "type": "timestamptz", "nullable": true},
-        {"name": "effective_at", "type": "timestamptz", "nullable": true},
-        {"name": "state", "type": "text", "nullable": false, "default": "'draft'"},
-        {"name": "reacceptance_required", "type": "boolean", "nullable": false, "default": "false"},
-        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+        {
+          "name": "document_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "document_key",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "locale",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "version",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "url",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "content_sha256",
+          "type": "bytea",
+          "nullable": false
+        },
+        {
+          "name": "archive_ref",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "archive_version",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "published_at",
+          "type": "timestamptz",
+          "nullable": true
+        },
+        {
+          "name": "effective_at",
+          "type": "timestamptz",
+          "nullable": true
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "nullable": false,
+          "default": "'draft'"
+        },
+        {
+          "name": "reacceptance_required",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        }
       ],
-      "primary_key": ["document_id"],
+      "primary_key": [
+        "document_id"
+      ],
       "constraints": [
         "UNIQUE(document_key,locale,version)",
         "CHECK(document_key IN ('terms','privacy','cookies','dpa','photoeditor_addendum'))",
@@ -35,26 +94,87 @@
         "CREATE INDEX ON photo.legal_document_versions(document_key,locale) WHERE state='active'"
       ],
       "append_only": false,
-      "acl": {"photo_fn_owner": ["SELECT","INSERT","UPDATE"]},
-      "rls": "force_trusted_functions"
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "rls": "force_trusted_functions",
+      "schema_file": "02666_billing_legal_schema.sql"
     },
     {
       "name": "privacy_retention_policies",
       "columns": [
-        {"name": "policy_id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()"},
-        {"name": "code", "type": "text", "nullable": false},
-        {"name": "version", "type": "integer", "nullable": false},
-        {"name": "data_category", "type": "text", "nullable": false},
-        {"name": "legal_basis", "type": "text", "nullable": false},
-        {"name": "retention_days", "type": "bigint", "nullable": true},
-        {"name": "retention_trigger", "type": "text", "nullable": false},
-        {"name": "backup_max_days", "type": "bigint", "nullable": true},
-        {"name": "approval_ref", "type": "text", "nullable": true},
-        {"name": "state", "type": "text", "nullable": false, "default": "'draft'"},
-        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"},
-        {"name": "updated_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+        {
+          "name": "policy_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "code",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "version",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "data_category",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "legal_basis",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "retention_days",
+          "type": "bigint",
+          "nullable": true
+        },
+        {
+          "name": "retention_trigger",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "backup_max_days",
+          "type": "bigint",
+          "nullable": true
+        },
+        {
+          "name": "approval_ref",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "nullable": false,
+          "default": "'draft'"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        }
       ],
-      "primary_key": ["policy_id"],
+      "primary_key": [
+        "policy_id"
+      ],
       "constraints": [
         "UNIQUE(code,version)",
         "CHECK(version > 0)",
@@ -69,23 +189,71 @@
         "CREATE UNIQUE INDEX ON photo.privacy_retention_policies(code) WHERE state='approved'"
       ],
       "append_only": false,
-      "acl": {"photo_fn_owner": ["SELECT","INSERT","UPDATE"]},
-      "rls": "force_trusted_functions"
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "rls": "force_trusted_functions",
+      "schema_file": "02666_billing_legal_schema.sql"
     },
     {
       "name": "privacy_erasure_tombstones",
       "columns": [
-        {"name": "tombstone_id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()"},
-        {"name": "subject_ref", "type": "uuid", "nullable": false},
-        {"name": "deletion_request_id", "type": "uuid", "nullable": false},
-        {"name": "scope_type", "type": "text", "nullable": false},
-        {"name": "opaque_scope_ref", "type": "text", "nullable": false},
-        {"name": "erased_at", "type": "timestamptz", "nullable": false, "default": "now()"},
-        {"name": "expires_at", "type": "timestamptz", "nullable": false},
-        {"name": "backup_cutoff_at", "type": "timestamptz", "nullable": false},
-        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+        {
+          "name": "tombstone_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "subject_ref",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "deletion_request_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "scope_type",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "opaque_scope_ref",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "erased_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamptz",
+          "nullable": false
+        },
+        {
+          "name": "backup_cutoff_at",
+          "type": "timestamptz",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        }
       ],
-      "primary_key": ["tombstone_id"],
+      "primary_key": [
+        "tombstone_id"
+      ],
       "constraints": [
         "CHECK(scope_type IN ('user','tenant','object'))",
         "CHECK(expires_at > erased_at)",
@@ -97,24 +265,75 @@
         "CREATE INDEX ON photo.privacy_erasure_tombstones(expires_at)"
       ],
       "append_only": true,
-      "acl": {"photo_fn_owner": ["SELECT","INSERT"]},
-      "rls": "force_trusted_functions"
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT",
+          "INSERT"
+        ]
+      },
+      "rls": "force_trusted_functions",
+      "schema_file": "02666_billing_legal_schema.sql"
     },
     {
       "name": "privacy_retained_records",
       "columns": [
-        {"name": "record_id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()"},
-        {"name": "subject_ref", "type": "uuid", "nullable": false},
-        {"name": "record_type", "type": "text", "nullable": false},
-        {"name": "source_record_id", "type": "uuid", "nullable": false},
-        {"name": "retention_policy_id", "type": "uuid", "nullable": false},
-        {"name": "legal_hold_ref", "type": "text", "nullable": true},
-        {"name": "retain_until", "type": "timestamptz", "nullable": false},
-        {"name": "restricted_at", "type": "timestamptz", "nullable": false, "default": "now()"},
-        {"name": "erased_at", "type": "timestamptz", "nullable": true},
-        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+        {
+          "name": "record_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "subject_ref",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "record_type",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "source_record_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "retention_policy_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "legal_hold_ref",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "retain_until",
+          "type": "timestamptz",
+          "nullable": false
+        },
+        {
+          "name": "restricted_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "erased_at",
+          "type": "timestamptz",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        }
       ],
-      "primary_key": ["record_id"],
+      "primary_key": [
+        "record_id"
+      ],
       "constraints": [
         "FOREIGN KEY(retention_policy_id) REFERENCES photo.privacy_retention_policies(policy_id)",
         "CHECK(record_type != '')",
@@ -126,7 +345,319 @@
         "CREATE INDEX ON photo.privacy_retained_records(retain_until) WHERE erased_at IS NULL"
       ],
       "append_only": false,
-      "acl": {"photo_fn_owner": ["SELECT","INSERT","UPDATE"]},
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "rls": "force_trusted_functions",
+      "schema_file": "02666_billing_legal_schema.sql"
+    },
+    {
+      "name": "account_onboarding_states",
+      "schema_file": "02667_billing_legal_auth_tables.sql",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "nullable": false,
+          "default": "'pending'"
+        },
+        {
+          "name": "required_document_set_hash",
+          "type": "bytea",
+          "nullable": false
+        },
+        {
+          "name": "accepted_document_set_hash",
+          "type": "bytea",
+          "nullable": true
+        },
+        {
+          "name": "revision",
+          "type": "bigint",
+          "nullable": false,
+          "default": "1"
+        },
+        {
+          "name": "completed_at",
+          "type": "timestamptz",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "primary_key": [
+        "user_id"
+      ],
+      "constraints": [
+        "FOREIGN KEY(user_id) REFERENCES photo.users(id)",
+        "CHECK(state IN ('pending','complete','reacceptance_required'))",
+        "CHECK(revision > 0)",
+        "CHECK(octet_length(required_document_set_hash) = 32)",
+        "CHECK(accepted_document_set_hash IS NULL OR octet_length(accepted_document_set_hash) = 32)"
+      ],
+      "indexes": [],
+      "append_only": false,
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "account_recent_auth_grants",
+      "schema_file": "02667_billing_legal_auth_tables.sql",
+      "columns": [
+        {
+          "name": "grant_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "session_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "auth_epoch",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "purpose",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "proof_hash",
+          "type": "bytea",
+          "nullable": false
+        },
+        {
+          "name": "otp_challenge_ref",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "verified_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamptz",
+          "nullable": false
+        },
+        {
+          "name": "used_at",
+          "type": "timestamptz",
+          "nullable": true
+        }
+      ],
+      "primary_key": [
+        "grant_id"
+      ],
+      "constraints": [
+        "CHECK(purpose IN ('delete_profile','resolve_ownership'))",
+        "CHECK(expires_at > verified_at)",
+        "CHECK(octet_length(proof_hash) = 32)",
+        "UNIQUE(proof_hash)"
+      ],
+      "indexes": [
+        "CREATE INDEX ON photo.account_recent_auth_grants(user_id)",
+        "CREATE INDEX ON photo.account_recent_auth_grants(expires_at) WHERE used_at IS NULL"
+      ],
+      "append_only": false,
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "privacy_cases",
+      "schema_file": "02667_billing_legal_auth_tables.sql",
+      "columns": [
+        {
+          "name": "case_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "subject_ref",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "nullable": false,
+          "default": "'open'"
+        },
+        {
+          "name": "deadline_at",
+          "type": "timestamptz",
+          "nullable": false
+        },
+        {
+          "name": "preferred_contact_encrypted",
+          "type": "bytea",
+          "nullable": true
+        },
+        {
+          "name": "assigned_queue",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "primary_key": [
+        "case_id"
+      ],
+      "constraints": [
+        "CHECK(kind IN ('erasure','ownership_resolution'))",
+        "CHECK(state IN ('open','resolving','closed'))",
+        "CHECK(deadline_at > created_at)",
+        "CHECK(assigned_queue != '')"
+      ],
+      "indexes": [
+        "CREATE INDEX ON photo.privacy_cases(user_id) WHERE user_id IS NOT NULL",
+        "CREATE INDEX ON photo.privacy_cases(state) WHERE state != 'closed'"
+      ],
+      "append_only": false,
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "profile_deletion_requests",
+      "schema_file": "02667_billing_legal_auth_tables.sql",
+      "columns": [
+        {
+          "name": "request_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "privacy_case_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "nullable": false,
+          "default": "'preflight'"
+        },
+        {
+          "name": "ownership_snapshot_hash",
+          "type": "bytea",
+          "nullable": false
+        },
+        {
+          "name": "auth_epoch_at_acceptance",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "subject_lifecycle_epoch",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "primary_key": [
+        "request_id"
+      ],
+      "constraints": [
+        "FOREIGN KEY(privacy_case_id) REFERENCES photo.privacy_cases(case_id)",
+        "UNIQUE(privacy_case_id)",
+        "CHECK(state IN ('preflight','ownership_action_required','erasure_requested','revoking','purging','external_pending','completed','partially_retained','failed'))",
+        "CHECK(auth_epoch_at_acceptance > 0)",
+        "CHECK(subject_lifecycle_epoch > 0)",
+        "CHECK(octet_length(ownership_snapshot_hash) = 32)"
+      ],
+      "indexes": [
+        "CREATE INDEX ON photo.profile_deletion_requests(privacy_case_id)"
+      ],
+      "append_only": false,
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
       "rls": "force_trusted_functions"
     }
   ]

@@ -29,7 +29,7 @@ def test_legal_no_migration_while_tables_empty():
     if not source['tables'] and not funcs['functions']:
         rendered = generator.render()
         assert rendered == {}, 'No migrations should be generated with empty contracts'
-        for name in [generator.SCHEMA, generator.FUNCTIONS]:
+        for name in [generator.SCHEMA, generator.AUTH_SCHEMA, generator.FUNCTIONS]:
             assert not (ROOT / 'backend/db/migrations' / name).exists(), \
                 f'Migration {name} must not exist while contracts are empty'
 
@@ -75,8 +75,7 @@ def test_security_drift_rejected(tmp_path, mutation):
 
 def test_legal_schema_migration_exists():
     """LEG-T*: schema migration generated and present on disk."""
-    import json as _json
-    source = _json.loads((ROOT / 'docs/billing/contracts/legal-tables.json').read_text())
+    source = json.loads((ROOT / 'docs/billing/contracts/legal-tables.json').read_text())
     if not source['tables']:
         pytest.skip('No tables yet')
     path = ROOT / 'backend/db/migrations/02666_billing_legal_schema.sql'
@@ -89,6 +88,63 @@ def test_legal_schema_migration_exists():
                 'privacy_erasure_tombstones', 'privacy_retained_records']
     for t in expected:
         assert f'photo.{t}' in text
+
+
+def test_legal_auth_schema_migration_exists():
+    """LEG-T05: auth junction tables migration generated and present on disk."""
+    source = json.loads((ROOT / 'docs/billing/contracts/legal-tables.json').read_text())
+    auth_tables = [t for t in source['tables']
+                   if t.get('schema_file') == generator.AUTH_SCHEMA]
+    if not auth_tables:
+        pytest.skip('No auth tables yet')
+    path = ROOT / 'backend/db/migrations' / generator.AUTH_SCHEMA
+    assert path.exists(), f'Auth tables migration {generator.AUTH_SCHEMA} missing'
+    text = path.read_text()
+    assert '-- +goose Up' in text
+    assert 'Forward-only billing legal migration' in text
+    assert 'CREATE OR REPLACE' not in text
+    for t in auth_tables:
+        assert f"photo.{t['name']}" in text
+
+
+def test_legal_auth_tables_constraints():
+    """LEG-T05: auth tables have correct PK, FK, state enums and hash checks."""
+    source = json.loads((ROOT / 'docs/billing/contracts/legal-tables.json').read_text())
+    by_name = {t['name']: t for t in source['tables']}
+
+    for tname in ['account_onboarding_states', 'account_recent_auth_grants',
+                  'privacy_cases', 'profile_deletion_requests']:
+        if tname not in by_name:
+            pytest.skip(f'Table {tname} not yet defined')
+
+    ons = by_name['account_onboarding_states']
+    assert ons['primary_key'] == ['user_id']
+    ons_constr = ' '.join(ons['constraints'])
+    assert 'complete' in ons_constr and 'reacceptance_required' in ons_constr
+    assert any('proof' in c or 'required_document_set_hash' in c for c in ons['constraints'])
+
+    arg = by_name['account_recent_auth_grants']
+    assert 'grant_id' in [c['name'] for c in arg['columns']]
+    assert any('delete_profile' in c for c in arg['constraints'])
+    assert any('proof_hash' in c for c in arg['constraints'])
+
+    pc = by_name['privacy_cases']
+    assert 'case_id' in [c['name'] for c in pc['columns']]
+    assert any('erasure' in c for c in pc['constraints'])
+
+    pdr = by_name['profile_deletion_requests']
+    assert any('privacy_cases' in c for c in pdr['constraints'])
+    assert any('partially_retained' in c for c in pdr['constraints'])
+
+
+def test_legal_tables_schema_file_field():
+    """LEG-T05: every table has a schema_file field and no unknown migration targets."""
+    allowed = {generator.SCHEMA, generator.AUTH_SCHEMA}
+    source = json.loads((ROOT / 'docs/billing/contracts/legal-tables.json').read_text())
+    for t in source['tables']:
+        sf = t.get('schema_file')
+        assert sf is not None, f'{t["name"]} missing schema_file'
+        assert sf in allowed, f'{t["name"]} schema_file {sf!r} is not a known migration'
 
 
 def test_legal_document_versions_constraints():
@@ -138,10 +194,11 @@ def test_privacy_retained_records_fk_to_policy():
 
 def test_legal_tables_have_subject_identifier_and_no_delete():
     source = json.loads((ROOT / 'docs/billing/contracts/legal-tables.json').read_text())
+    SUBJECT_COLS = {'tenant_id', 'subject_ref', 'document_key', 'code', 'user_id', 'privacy_case_id'}
     for table in source['tables']:
         col_names = {c['name'] for c in table['columns']}
-        has_id = bool(col_names & {'tenant_id', 'subject_ref', 'document_key', 'code'})
-        assert has_id, f'{table["name"]} must have tenant_id, subject_ref, document_key or code'
+        has_id = bool(col_names & SUBJECT_COLS)
+        assert has_id, f'{table["name"]} must have a subject identifier column'
         assert 'DELETE' not in table['acl'].get('photo_fn_owner', []), \
             f'{table["name"]} must not grant DELETE'
         assert table['rls'] == 'force_trusted_functions', \
