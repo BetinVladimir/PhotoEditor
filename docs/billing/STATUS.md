@@ -4,71 +4,106 @@
 
 Новая запись: дата, команда, число PASS по каждому набору отдельно, что НЕ покрыто.
 
-## Сводка по этапам
+---
 
-| Этап | Миграции | Состояние |
-|---|---|---|
-| 1А каталог | 02598, 02599 | закрыто, продажи закрыты |
-| 1Б.1 quota kernel | 02600, 02601 | закрыто, shadow |
-| 1Б.2 standard Apply | 02602, 02603 | закрыто, opt-in |
-| 1Б.3 routed Apply | 02604 | закрыто, opt-in |
-| 1Б.4 V2 render | 02605 | закрыто, default-disabled |
-| 1Б.5 Editor effects | 02606 | закрыто, default-disabled |
-| 1Б.6 отдельные операции | 02607 (+ paid 02608) | закрыто, default-disabled |
-| 1Б.7 selected/final | 02609 | **приёмка не завершена**, см. OPEN-08 |
+## Сводка по этапам (обновлять при закрытии/изменении статуса)
 
-Полный журнал по этапам: [11-implementation-progress.md](11-implementation-progress.md).
+| Этап | Миграции | Состояние | Детали |
+|---|---|---|---|
+| 1А каталог | 02598, 02599 | закрыто, продажи закрыты | [11](11-implementation-progress.md) |
+| 1Б.1 quota kernel | 02600, 02601 | закрыто, shadow | [12](12-quota-kernel.md) |
+| 1Б.2 standard Apply | 02602, 02603 | закрыто, opt-in | [13](13-standard-apply-workflow.md) |
+| 1Б.3 routed Apply | 02604 | закрыто, opt-in | [14](14-routed-apply-workflow.md) |
+| 1Б.4 V2 render | 02605 | закрыто, default-disabled | [15](15-v2-render-workflow.md) |
+| 1Б.5 Editor effects | 02606 | закрыто, default-disabled | [16](16-editor-effects-workflow.md) |
+| 1Б.6 отдельные операции | 02607 (+ paid 02608) | закрыто, default-disabled | [17](17-standalone-operations.md) |
+| 1Б.7 selected/final | 02609 | **приёмка не завершена**, OPEN-08 | [18](18-selected-final-operations.md) |
+| 1В finance | — | не начато | [backlog/README.md](backlog/README.md) |
+| 1В provider | — | не начато | [backlog/README.md](backlog/README.md) |
+| 1В usage | — | не начато | [backlog/README.md](backlog/README.md) |
+| 1В legal | — | не начато | [backlog/README.md](backlog/README.md) |
 
+Шаблон новой записи приёмки — в разделе «Приёмка модуля» файла `TESTING.md`.
 
 ---
 
-<!-- перенесено из 12-quota-kernel.md -->
+## Журнал прогонов
 
-## 12 — Результат проверки 21.10.2026
+### 1Б.1 quota kernel — 21.10.2026
 
-Общий billing-прогон: **77 passed in 59.48s**, включая 38 новых contract/SQL сценариев и регрессию предыдущего этапа. Проверка полного head02601 включает реальный цикл funding и settlement. `go -C backend test ./db` — PASS; оба generator `--check` — PASS. Рабочая БД не мигрировалась. Этап 1Б.1 закрытого quota kernel завершён; включение workflow enforcement остаётся следующим отдельным этапом.
+Источник: `12-quota-kernel.md`
 
+Общий billing-прогон: **77 passed in 59.48s**, включая 38 новых contract/SQL сценариев и регрессию предыдущего этапа. Проверка полного head 02601 включает реальный цикл funding и settlement.
 
----
+- `go -C backend test ./db` — PASS
+- Оба generator `--check` — PASS
+- Рабочая БД не мигрировалась
 
-<!-- перенесено из 13-standard-apply-workflow.md -->
-
-## 13 — Проверено 21.10.2026
-
-- Общий regression прогон catalog/kernel/workflow и прежних Apply adoption/failure tests: **106 passed in 161.09s**.
-- После уточнений fresh-session replay, canonical policy digest и bounded restart recovery финальный прогон новой границы: **20 passed in 132.62s**, без migration-template оптимизации; включает 18 SQL/API/concurrency cases и 2 contract checks. Эти прогоны пересекаются; их counts нельзя складывать как уникальные тесты.
-- `go test ./internal/billing ./internal/run ./internal/workflow ./internal/taskrecovery ./db` — PASS; настоящий Go API integration отдельно реально исполняется внутри SQL harness с PHOTO_TEST_DATABASE_URL и fixture, а не считается проверенным по skip без окружения.
-- Три generator `--check` — PASS; embedded migration bundle содержит 02602/02603; `git diff --check` для изменённых файлов — PASS.
-
-Сбой ускоренного migration-template harness на проверке завершения baseline connection произошёл до выполнения SQL scenarios; итоговый прогон выполнен с обычными отдельными БД. Инфраструктуру templates и рабочую БД это изменение не модифицирует.
-
-Граница lifecycle/erasure остаётся отдельной задачей: kernel намеренно отказывает inactive/deleting tenant. До включения коммерческого cohort erasure coordinator должен получить reviewed funding-drain/terminal-cleanup protocol; завершённость удаления профиля/GDPR из этих workflow tests не следует.
-
+Этап 1Б.1 закрытого quota kernel завершён; включение workflow enforcement остаётся следующим отдельным этапом.
 
 ---
 
-<!-- перенесено из 14-routed-apply-workflow.md -->
+### 1Б.2 standard Apply — 21.10.2026
 
-## 14 — Проверено 21.10.2026
+Источник: `13-standard-apply-workflow.md`
 
-- Финальный набор нового этапа: **29 PASS за 128.14s**, включая реальные Go API и PostgreSQL races.
-- Прежние workflow/contract/adoption/failure/V22 regression cases: **51 PASS**. Это непересекающийся с новым набором поднабор общего regression прогона; результаты нового набора взяты из финального повторного прогона после исправления admission fixture.
-- Go billing/run/v2sessions/workflow/taskrecovery/db: PASS. Все четыре generator --check: PASS.
-- Миграция применялась только в одноразовых тестовых БД. Реальное исполнение пиксельных worker и Stripe network calls в эти результаты не входят.
+- Общий regression прогон catalog/kernel/workflow и прежних Apply adoption/failure tests: **106 passed in 161.09s**
+- Финальный прогон новой границы (fresh-session replay, canonical policy digest, bounded restart recovery): **20 passed in 132.62s** — включает 18 SQL/API/concurrency cases и 2 contract checks. Эти два прогона пересекаются; counts не суммировать.
+- `go test ./internal/billing ./internal/run ./internal/workflow ./internal/taskrecovery ./db` — PASS
+- Три generator `--check` — PASS; embedded migration bundle содержит 02602/02603
 
+Сбой migration-template harness: произошёл до выполнения SQL scenarios; итоговый прогон выполнен с обычными отдельными БД. Рабочая БД не изменялась.
+
+Граница lifecycle/erasure остаётся отдельной задачей: kernel намеренно отказывает inactive/deleting tenant.
 
 ---
 
-<!-- перенесено из 15-v2-render-workflow.md -->
+### 1Б.3 routed Apply — 21.10.2026
 
-## 15 — Проверено 21.10.2026
+Источник: `14-routed-apply-workflow.md`
 
-- Новый этап: **30 PASS за 70.89s** в финальном повторном прогоне после уточнения partial-failure success contract.
-- Прежние billing contracts и Apply/SessionAnalysis/SaveEdits: **68 PASS** в общем прогоне **98 PASS за 168.25s**. Новый набор пересекается с этим общим прогоном; не суммировать 98+30.
-- Прежние V2 manifest/state/cancellation/submission/finalizer tests: **18 PASS за 129.85s** (отдельный непересекающийся набор).
-- Всего проверено 116 различных contract/integration scenarios:30 нового этапа +68 billing regression +18 V2 regression.
-- Обычный Go-прогон без временных modfile: billing/v2render/workflow/run/db PASS. Все пять generator --check и diff whitespace checks PASS.
+- Финальный набор нового этапа: **29 PASS за 128.14s**, включая реальные Go API и PostgreSQL races
+- Прежние regression cases: **51 PASS** (непересекающийся поднабор общего regression)
+- Go billing/run/v2sessions/workflow/taskrecovery/db: PASS
+- Все четыре generator `--check`: PASS
+- Миграция применялась только в одноразовых тестовых БД
 
-Промежуточные попытки обнаруживали ошибки подготовки multi-frame frozen snapshot, конфликт SQL alias и ошибки template isolation при изменении source/параллельных pytest. Fixtures/alias исправлены; финальные прогоны выполнены последовательно на зафиксированной миграции. Никакие проверки не ослаблялись и рабочая БД не обновлялась. Ранее мешавшие общему Go build сторонние dependency/type ошибки в текущем дереве устранены; финальный обычный Go-прогон проходит. Pixel/GPU/Stripe network e2e в эти результаты не входят.
+---
 
-Уточнение следующего этапа: миграция 02606 добавляет dedicated Editor ticket и защищает typed final child отдельным Editor opt-in. Актуальная граница описана в [16-editor-effects-workflow.md](16-editor-effects-workflow.md); самостоятельный Render по-прежнему не списывает за Editor child.
+### 1Б.4 V2 render — 21.10.2026
+
+Источник: `15-v2-render-workflow.md`
+
+- Новый этап: **30 PASS за 70.89s** (после уточнения partial-failure success contract)
+- Прежние billing/Apply: **68 PASS** в общем прогоне **98 PASS за 168.25s** — новый набор пересекается; не суммировать 98+30
+- Прежние V2 manifest/state/cancellation: **18 PASS за 129.85s** (непересекающийся набор)
+- Итого различных scenarios: 30 + 68 + 18 = 116
+- Обычный Go-прогон: billing/v2render/workflow/run/db PASS
+- Все пять generator `--check` и diff whitespace checks — PASS
+
+Pixel/GPU/Stripe network e2e в эти результаты не входят.
+
+---
+
+### TST-01 — e2e-фикстура — 01.11.2026
+
+Источник: `backlog/BACKLOG-testinfra-1.md`, задача TST-01
+
+- `tests/integration/test_billing_e2e_fixture.py`: **13 passed** — создание tenant, RLS-изоляция, FakeProvider, insert_period с офсетами, T8 (no secrets in repr)
+- Статические проверки: 15/15 PASS (`check-static.sh`)
+- Рабочая БД не мигрировалась
+
+TST-02 заблокирован до STR-01 (fake provider Go-пакет).
+
+---
+
+### TST-03 — Makefile-цели test-billing-integration/e2e — 01.11.2026
+
+Источник: `backlog/BACKLOG-testinfra-1.md`, задача TST-03
+
+- `tests/contracts/test_billing_check_e2e_coverage.py`: **9 passed** (unit-тесты скрипта без БД и сети)
+- Статические проверки: 15/15 PASS
+- `test-billing-integration`: запускает `tests/integration/test_billing_*.py`, падает при `skipped>0`
+- `test-billing-e2e`: запускает `tests/integration/test_billing_e2e_*.py` + `check-e2e-coverage.py`, падает при `skipped>0`
+- `check-e2e-coverage.py --json` на текущем репо: 90 E-IDs в бэклоге, 0 покрыто (сценарии ещё не реализованы — ожидается до завершения групп finance/provider/usage/legal/api/stripe/ui)
+- Real пробег STR-02 (provider contract): не запускался (TST-02 ждёт STR-01)
