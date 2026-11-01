@@ -11,6 +11,19 @@ import (
 	"strings"
 )
 
+// StripeConfig holds Stripe integration settings. Only active when Enabled is true.
+// SecretKeyRef and WebhookSecretRef are absolute filesystem paths to files containing
+// the actual credentials — the credentials themselves are never stored here.
+type StripeConfig struct {
+	Enabled          bool
+	SecretKeyRef     string // absolute path; file contains sk_test_... value
+	WebhookSecretRef string // absolute path; file contains whsec_... value
+	AccountID        string // acct_... Stripe account identifier
+	Environment      string // must be "test" (R6: no live Stripe)
+	APIVersion       string // e.g. "2024-04-10"
+	PortalConfigID   string // bpc_... Stripe portal configuration
+}
+
 type Config struct {
 	// TrustedProxyCIDRs lists reverse proxies (Caddy) whose X-Forwarded-For is trusted for client IP.
 	TrustedProxyCIDRs     []string
@@ -34,6 +47,7 @@ type Config struct {
 	PortalOrigin          string
 	RegistrationEnabled   bool
 	MaxJSONBytes          int64
+	Stripe                StripeConfig
 }
 
 func Load() (Config, error) {
@@ -118,7 +132,64 @@ func Load() (Config, error) {
 		return c, fmt.Errorf("HTTP_LISTEN must be host:port")
 	}
 
+	if err = loadStripeConfig(&c.Stripe); err != nil {
+		return c, err
+	}
+
 	return c, nil
+}
+
+func loadStripeConfig(s *StripeConfig) error {
+	enabled := os.Getenv("BILLING_STRIPE_ENABLED")
+	if enabled != "true" {
+		return nil
+	}
+	s.Enabled = true
+	s.SecretKeyRef = os.Getenv("STRIPE_SECRET_KEY_REF")
+	s.WebhookSecretRef = os.Getenv("STRIPE_WEBHOOK_SECRET_REF")
+	s.AccountID = os.Getenv("STRIPE_ACCOUNT_ID")
+	s.Environment = os.Getenv("STRIPE_ENVIRONMENT")
+	s.APIVersion = os.Getenv("STRIPE_API_VERSION")
+	s.PortalConfigID = os.Getenv("STRIPE_PORTAL_CONFIG_ID")
+
+	var missing []string
+	if s.SecretKeyRef == "" {
+		missing = append(missing, "STRIPE_SECRET_KEY_REF")
+	}
+	if s.WebhookSecretRef == "" {
+		missing = append(missing, "STRIPE_WEBHOOK_SECRET_REF")
+	}
+	if s.AccountID == "" {
+		missing = append(missing, "STRIPE_ACCOUNT_ID")
+	}
+	if s.Environment == "" {
+		missing = append(missing, "STRIPE_ENVIRONMENT")
+	}
+	if s.APIVersion == "" {
+		missing = append(missing, "STRIPE_API_VERSION")
+	}
+	if s.PortalConfigID == "" {
+		missing = append(missing, "STRIPE_PORTAL_CONFIG_ID")
+	}
+	if len(missing) > 0 {
+		return fmt.Errorf("BILLING_STRIPE_ENABLED=true requires: %s", strings.Join(missing, ", "))
+	}
+
+	// R6: only test/sandbox Stripe environment allowed
+	if s.Environment != "test" {
+		return fmt.Errorf("STRIPE_ENVIRONMENT must be \"test\"; live mode is not permitted")
+	}
+
+	// *_REF values are filesystem paths — they must be absolute so the server
+	// can open them unambiguously regardless of working directory.
+	if !filepath.IsAbs(s.SecretKeyRef) {
+		return fmt.Errorf("STRIPE_SECRET_KEY_REF must be an absolute path")
+	}
+	if !filepath.IsAbs(s.WebhookSecretRef) {
+		return fmt.Errorf("STRIPE_WEBHOOK_SECRET_REF must be an absolute path")
+	}
+
+	return nil
 }
 func env(key, fallback string) string {
 	if s := os.Getenv(key); s != "" {
