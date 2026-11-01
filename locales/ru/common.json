@@ -2016,5 +2016,8 @@
   "profile_delete_confirm_label": "Введите DELETE для подтверждения",
   "profile_delete_confirm_placeholder": "DELETE",
   "profile_delete_proceed": "Удалить мой аккаунт",
-  "profile_delete_cancel": "Отмена"
+  "profile_delete_cancel": "Отмена",
+  "profile_delete_pending": "Удаление аккаунта выполняется…",
+  "profile_delete_failed": "Удаление аккаунта не удалось. Обратитесь в поддержку.",
+  "profile_delete_timeout": "Время ожидания статуса удаления истекло. Проверьте электронную почту."
 }

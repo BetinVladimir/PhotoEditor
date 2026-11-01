@@ -152,3 +152,14 @@ TST-02 заблокирован до STR-01 (fake provider Go-пакет).
 - TypeScript: PASS
 - Статические проверки: 18/18 PASS
 - Изменения: billing-format.ts, billing-quota-bar.tsx, billing-quota-notify.ts (новые файлы)
+
+---
+
+### UI-14 — Привязка к существующему Paper shell — 01.11.2026
+
+Источник: `backlog/BACKLOG-ui-3.md`, задача UI-14
+
+- `apps/photographer/src/billing-shell-bind.dom.test.tsx`: **5 passed** (criterии A/B/C/D)
+- TypeScript: PASS
+- Статические проверки: 18/18 PASS
+- Изменения: workspace-access.ts (legal-onboarding в globalRoutes), legal-onboarding.tsx (без обязательного tenant), billing-change-confirm.tsx (useCASMutation), profile-delete.tsx (scoped статус удаления через request_id), billing-payment-details.tsx (NATIVE_PAYMENT_CAPABILITY=false), локали +3 ключа profile_delete_pending/failed/timeout

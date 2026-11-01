@@ -2016,5 +2016,8 @@
   "profile_delete_confirm_label": "Въведете DELETE за потвърждение",
   "profile_delete_confirm_placeholder": "DELETE",
   "profile_delete_proceed": "Изтрий моя акаунт",
-  "profile_delete_cancel": "Отказ"
+  "profile_delete_cancel": "Отказ",
+  "profile_delete_pending": "Изтриването на акаунта е в ход…",
+  "profile_delete_failed": "Изтриването на акаунта е неуспешно. Свържете се с поддръжката.",
+  "profile_delete_timeout": "Изчакването за статус на изтриване изтече. Проверете имейла си."
 }

@@ -19,6 +19,9 @@ type PaymentMethod = {
 };
 type PaymentDetails = {method: PaymentMethod | null};
 
+/** Native payment channel is not auto-enabled (R14). Capability requires separate store qualification. */
+export const NATIVE_PAYMENT_CAPABILITY = false as const;
+
 export default function BillingPaymentDetails() {
   const {t} = useLocale();
   const {tenant} = useLocalSearchParams<{tenant: string}>();

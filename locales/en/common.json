@@ -2016,5 +2016,8 @@
   "profile_delete_confirm_label": "Type DELETE to confirm",
   "profile_delete_confirm_placeholder": "DELETE",
   "profile_delete_proceed": "Delete my account",
-  "profile_delete_cancel": "Cancel"
+  "profile_delete_cancel": "Cancel",
+  "profile_delete_pending": "Account deletion is in progress…",
+  "profile_delete_failed": "Account deletion failed. Contact support.",
+  "profile_delete_timeout": "Deletion status check timed out. Check your email for confirmation."
 }

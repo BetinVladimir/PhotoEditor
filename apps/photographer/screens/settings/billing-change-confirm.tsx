@@ -7,6 +7,7 @@ import {useAuth} from '../../src/auth-context';
 import {OwnerAPI} from '../../src/owner-api';
 import {useReadResource} from '../../src/use-read-resource';
 import {ReadResourceState} from '../../src/read-resource-state';
+import {useCASMutation} from '../../src/use-cas-mutation';
 import {catalogStyle as s} from '../../src/catalog-style';
 
 // Local DTO — mirrors billing change-preview endpoint (DTO 09 §7).
@@ -45,12 +46,15 @@ export default function BillingChangeConfirm() {
 
   const data = resource.data;
   const router = useRouter();
-  const handleConfirm = async () => {
+  const mutation = useCASMutation(api, resource.current, resource.retry);
+  const handleConfirm = () => {
     if (!tenant || !planCode) return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (api as any).billingChangePlan(planCode);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (router.push as any)({pathname: '/settings/billing', params: {tenant}});
+    void mutation.run(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      signal => (api as any).billingChangePlan(planCode, signal),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      () => (router.push as any)({pathname: '/settings/billing', params: {tenant}}),
+    );
   };
   const handleCancel = () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -106,10 +110,11 @@ export default function BillingChangeConfirm() {
         )}
         {data && (
           <View style={{flexDirection: 'row', gap: 8}}>
-            <Button mode="outlined" onPress={handleCancel}>{t('billing_change_confirm_cancel')}</Button>
-            <Button mode="contained" onPress={handleConfirm}>{t('billing_change_confirm_proceed')}</Button>
+            <Button mode="outlined" onPress={handleCancel} disabled={mutation.busy}>{t('billing_change_confirm_cancel')}</Button>
+            <Button mode="contained" onPress={handleConfirm} disabled={mutation.busy} loading={mutation.busy}>{t('billing_change_confirm_proceed')}</Button>
           </View>
         )}
+        {mutation.uncertain && <Text accessibilityRole="alert" style={s.error}>{t('settings_cas_uncertain')}</Text>}
       </View>
     </SafeAreaView>
   );

@@ -3,7 +3,7 @@ export type WorkspaceRole='owner'|'admin'|'editor'|'viewer';
 export const scopeUUID=(value:unknown):value is string=>typeof value==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value)&&value!=='00000000-0000-0000-0000-000000000000';
 const rank:Record<WorkspaceRole,number>={viewer:0,editor:1,admin:2,owner:3};
 export function roleAllows(actual:unknown,required:WorkspaceRole){return typeof actual==='string'&&Object.hasOwn(rank,actual)&&rank[actual as WorkspaceRole]>=rank[required]}
-export const globalRoutes=new Set<PhotographerRoute>(['/','/login','/register','/workspaces','/settings/profile']);
+export const globalRoutes=new Set<PhotographerRoute>(['/','/login','/register','/workspaces','/settings/profile','/settings/legal-onboarding']);
 /** Read access remains Viewer for mixed browsing screens. Their editing controls
  * consume the current role; each server action still repeats project/session ACL. */
 const editorScreens=new Set<PhotographerRoute>(['/reviews','/reviews/[id]','/imports/new','/collections/[id]/apply','/collections/[id]/multi','/collections/[id]/lens','/styles/[id]/training','/editor/[version]','/exports/sign','/deliveries/new','/multi-replacements/[original]','/perspective-replacements/[original]','/interchange/new','/interchange/format','/interchange/prepare','/interchange/prepared/[id]','/interchange/import-format','/interchange/upload','/interchange/masks/[id]']);

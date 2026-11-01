@@ -24,10 +24,11 @@ export default function LegalOnboarding() {
   const api = useMemo(() => new OwnerAPI(auth.client(), tenant || ''), [auth, tenant]);
 
   const resource = useReadResource(
-    JSON.stringify([auth.origin, tenant, 'legal-onboarding']),
+    JSON.stringify([auth.origin, 'legal-onboarding']),
     api,
     async signal => {
-      if (!tenant) throw new Error('Workspace required');
+      // Criterion B: legal onboarding works for users without a tenant.
+      // GET /api/v1/legal/requirements is user-level (no tenant scope).
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (api as any).legalOnboarding(signal) as Promise<LegalOnboardingData>;
     },
