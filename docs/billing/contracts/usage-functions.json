@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "stage": "usage",
+  "functions": [
+    {
+      "signature": "billing_project_usage(uuid,text,text)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Rebuild usage summary projection for tenant/resource/period; monotonic revision; no new ledger authority"
+    },
+    {
+      "signature": "billing_expire_buckets(uuid,text,timestamptz,text,bigint)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Paginated expiry of remaining_quantity in expired buckets; returns cursor; stops at batch limit"
+    },
+    {
+      "signature": "billing_cover_overrun(uuid,text,uuid)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Apply new grant to existing resource overrun; no negative bucket; no new money"
+    },
+    {
+      "signature": "billing_admit_usage_request(uuid,bytea,jsonb,text)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Multi-resource gate before publish; cost quote hash check; free slots and tickets in one TX; idempotent on request_id"
+    },
+    {
+      "signature": "billing_apply_period_boundary(uuid,uuid)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Close billing period boundary: pending downgrade/cancel; grant rollover; bump entitlement revision"
+    },
+    {
+      "signature": "billing_apply_storage_entitlement(uuid,uuid,bigint)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Update commercial storage ceiling after paid allocation; revision guard; active reservation preserved"
+    },
+    {
+      "signature": "billing_close_lease(uuid,uuid,bytea)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Close admission lease; return only unissued quantity; stale fence rejected"
+    },
+    {
+      "signature": "billing_grant_paid_allocation(uuid,bytea)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Verify payment and create credit bucket or capacity; cover overrun; idempotent business grant key"
+    },
+    {
+      "signature": "billing_hold_photo_slot(uuid,uuid,timestamptz)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Check free slot availability inside admission; first_result check; technical retry same item"
+    },
+    {
+      "signature": "billing_issue_ticket(uuid,uuid,text,uuid,bigint)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Issue billing ticket within admission TX; validates lease/fence; saves ticket+allocation+outbox"
+    },
+    {
+      "signature": "billing_open_delivery(uuid,bytea)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Private delivery adapter; returns opaque capability; no direct object URL; validates object proof"
+    },
+    {
+      "signature": "billing_reconcile_storage(uuid,text,jsonb)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Compare tenant_usage/reservations/object versions; quarantine mismatches; no negative correction"
+    },
+    {
+      "signature": "billing_reconcile_uncertain_chunk(bytea,bytea)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Maintenance: confirm/release/quarantine uncertain egress chunk; requires transport evidence"
+    },
+    {
+      "signature": "billing_record_egress_chunk(uuid,uuid,bigint,uuid,bigint,bytea)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Record egress chunk; UNIQUE(delivery,sequence); partial flush dedup; returns consumed/uncertain"
+    },
+    {
+      "signature": "billing_register_photo_success(uuid,uuid,uuid,uuid,text)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Register photo adoption; first_success opens window; technical retries do not create new requests"
+    },
+    {
+      "signature": "billing_release_ticket(uuid,bytea)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Release unspent ticket allocation on failure/cancel; return funding to origin bucket with original expiry"
+    },
+    {
+      "signature": "billing_reserve_delivery_chunk(uuid,uuid,bigint,bigint)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Reserve delivery chunk allocation; cumulative allowance check; no chunk without delivery permission"
+    },
+    {
+      "signature": "billing_rollover_bucket(uuid,uuid)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Rollover generation-0 remainder to next period; excludes outstanding tickets; no continuous payment = no rollover"
+    },
+    {
+      "signature": "billing_settle_ticket(uuid,uuid,bytea,bigint)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Terminal CAS settle: leased→consumed exactly once; overrun handling; partial batch per photo/operation"
+    },
+    {
+      "signature": "billing_transfer_rollover_remainder(uuid,uuid,text)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Transfer nonleased free quantity to next period bucket; late failure adds to same child; idempotent terminal reference"
+    }
+  ]
+}
