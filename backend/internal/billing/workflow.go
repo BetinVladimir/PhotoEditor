@@ -25,10 +25,7 @@ func PrepareApply(ctx context.Context, tx pgx.Tx, tenantID uuid.UUID, who auth.I
 	defer cancel()
 	var enabled bool
 	err := tx.QueryRow(cold, `SELECT photo.billing_prepare_apply($1,$2,$3,$4)`, tenantID, who.UserID, who.SessionID, route).Scan(&enabled)
-	if err != nil && ctx.Err() == nil && errors.Is(cold.Err(), context.DeadlineExceeded) {
-		return false, domain.NewError("BILLING_UNAVAILABLE", 503)
-	}
-	return enabled, MapError(err)
+	return enabled, checkColdLock(ctx, cold, err)
 }
 
 func BindApply(ctx context.Context, tx pgx.Tx, tenantID uuid.UUID, who auth.Identity, runID uuid.UUID, key string, route string, request any) error {
@@ -65,9 +62,31 @@ func MapError(err error) error {
 		return domain.NewError("IDEMPOTENCY_CONFLICT", 409)
 	case "BILLING_AUTHORITY_INVALID":
 		return domain.NewError("FORBIDDEN", 403)
+	// Group B (OPEN-11): invalid request → 422 VALIDATION_FAILED
+	case "BILLING_BATCH_INVALID", "BILLING_CHILD_INVALID", "BILLING_CHILD_NOT_ROOT",
+		"BILLING_REQUEST_INVALID", "BILLING_RESOURCE_INVALID", "BILLING_ROUTE_INVALID",
+		"BILLING_RUN_INVALID", "BILLING_SOURCE_INVALID":
+		return domain.NewError("VALIDATION_FAILED", 422)
+	// Group C (OPEN-11): state conflict → 409 BILLING_STATE_CONFLICT
+	case "BILLING_CHILD_ALREADY_CHARGED", "BILLING_GRAPH_REFUSED", "BILLING_LEASE_EXPIRED",
+		"BILLING_LOCAL_LEASE_LIMIT", "BILLING_LOCAL_REVIEW_FINALIZATION_RACE",
+		"BILLING_RUN_TERMINAL", "BILLING_STALE_GENERATION", "BILLING_TENANT_INACTIVE":
+		return domain.NewError("BILLING_STATE_CONFLICT", 409)
+	// Group D (OPEN-11) + existing unavailable codes → 503 BILLING_UNAVAILABLE
 	case "BILLING_OPERATION_POLICY_REQUIRED", "BILLING_UNAVAILABLE",
-		"BILLING_PERIOD_INVALID", "BILLING_ACCOUNTING_DISABLED", "BILLING_POLICY_INVALID", "BILLING_PERIOD_POLICY_PINNED":
+		"BILLING_PERIOD_INVALID", "BILLING_ACCOUNTING_DISABLED", "BILLING_POLICY_INVALID",
+		"BILLING_PERIOD_POLICY_PINNED", "BILLING_OPERATION_PROOF_UNAVAILABLE",
+		"BILLING_PAID_OPERATION_HELPER_OCCUPIED", "BILLING_RENDER_PROOF_UNAVAILABLE":
 		return domain.NewError("BILLING_UNAVAILABLE", 503)
 	}
 	return err
+}
+
+// checkColdLock converts a DB lock-wait timeout to BILLING_UNAVAILABLE.
+// ctx is the parent context; cold is the short-deadline child used for the query.
+func checkColdLock(ctx, cold context.Context, err error) error {
+	if err != nil && ctx.Err() == nil && errors.Is(cold.Err(), context.DeadlineExceeded) {
+		return domain.NewError("BILLING_UNAVAILABLE", 503)
+	}
+	return MapError(err)
 }

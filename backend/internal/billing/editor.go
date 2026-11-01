@@ -3,12 +3,10 @@ package billing
 import (
 	"context"
 	"encoding/hex"
-	"errors"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/canonical"
-	"photoeditor/backend/internal/domain"
 	"time"
 )
 
@@ -19,10 +17,7 @@ func PrepareEditor(ctx context.Context, tx pgx.Tx, tenant, project uuid.UUID, wh
 	defer cancel()
 	var enabled bool
 	err := tx.QueryRow(cold, `SELECT photo.billing_prepare_editor($1,$2,$3,$4)`, tenant, who.UserID, who.SessionID, project).Scan(&enabled)
-	if err != nil && ctx.Err() == nil && errors.Is(cold.Err(), context.DeadlineExceeded) {
-		return false, domain.NewError("BILLING_UNAVAILABLE", 503)
-	}
-	return enabled, MapError(err)
+	return enabled, checkColdLock(ctx, cold, err)
 }
 func BindEditor(ctx context.Context, tx pgx.Tx, tenant, root uuid.UUID, who auth.Identity, key, route string, request any) error {
 	hash, err := canonical.Hash(request)
