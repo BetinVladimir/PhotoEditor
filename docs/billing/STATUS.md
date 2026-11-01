@@ -107,3 +107,22 @@ TST-02 заблокирован до STR-01 (fake provider Go-пакет).
 - `test-billing-e2e`: запускает `tests/integration/test_billing_e2e_*.py` + `check-e2e-coverage.py`, падает при `skipped>0`
 - `check-e2e-coverage.py --json` на текущем репо: 90 E-IDs в бэклоге, 0 покрыто (сценарии ещё не реализованы — ожидается до завершения групп finance/provider/usage/legal/api/stripe/ui)
 - Real пробег STR-02 (provider contract): не запускался (TST-02 ждёт STR-01)
+
+---
+
+### TST-04 — billing-test-utils + locale keys — 01.11.2026
+
+Источник: `backlog/BACKLOG-testinfra-1.md`, задача TST-04
+
+- `apps/photographer/src/billing-locale-keys.dom.test.tsx`: **7 passed** (ключи billing_* в en/ru/bg консистентны)
+- `cd apps/photographer && npm test -- --run`: **530 passed | 5 skipped** (hardware/GPU only, не billing)
+- 7 billing UI locale keys добавлены в locales/en/ru/bg: nav_billing, billing_period_trial/active, billing_quota_credits_title/used_of/expires_never/resource_standard_photo
+
+---
+
+### TST-05 — record-evidence.py — 01.11.2026
+
+Источник: `backlog/BACKLOG-testinfra-1.md`, задача TST-05
+
+- `tests/contracts/test_billing_record_evidence.py`: **16 passed** (parser, verdict, append, no-overwrite)
+- Статические проверки: 15/15 PASS

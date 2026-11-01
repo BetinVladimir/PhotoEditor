@@ -14,9 +14,16 @@
 | OPEN-08 | Приёмка 1Б.7 (миграция 02609) | BLOCKED | Cohort выключены; цены и production-qualified policies не публикуются | Совместный PostgreSQL/Go прогон (команды — в `TASKS.md` T-01) после исправления open-eyes consent authority и интеграции paid 02608 | 11, 18 |
 | OPEN-09 | Capacity gate Studio Pro, benchmark тяжёлых операций | OPEN | Live-продажи закрыты | Результат capacity-проверки | README |
 | OPEN-10 | Native pixel execution и fresh public compiler Editor | NOT QUALIFIED | Не заявлять как проверенные | Отдельный прогон | 11 (1Б.5) |
-| OPEN-11 | Какие из 45 необработанных SQL-кодов ошибок биллинга пользовательские и какой HTTP-статус им дать | DECIDED 23.10.2026 | Решение владельца: группа A (26, внутренние) — остаётся 500; B (8, неверный запрос) — 422 `VALIDATION_FAILED`; C (8, конфликт состояния) — 409 новый код `BILLING_STATE_CONFLICT`; D (3, доказательство недоступно) — 503 `BILLING_UNAVAILABLE`. Источник: `contracts/error-classes.json` | Реализация в Go — задача T-02 | ERROR-CODES.md |
-| OPEN-12 | Намеренно ли `billing.PrepareOperations` отбрасывает флаг `enabled` | RESOLVED 23.10.2026 | Намеренно. `billing_bind_operations` внутри SQL-обёртки seal сам первой строкой повторно вызывает `billing_prepare_operations` и возвращает NULL при выключенной когорте или уже покрытом run. Go-вызов нужен для порядка блокировок и раннего отказа. Поведение не меняется; добавлен комментарий в `operations.go` | — | operations-workflow.sql, selected-workflow.sql |
 | OPEN-13 | Версия Stripe API и список событий с payload paths | OPEN | Версию не выдумывать; код читает `STRIPE_API_VERSION` из конфигурации | Integration spike на реальном sandbox (нужны ключи) | 05 |
 | OPEN-14 | Stripe sandbox-аккаунты (dev, CI), ключи, webhook secrets, реквизиты продавца | WAITING owner | Stripe выключен, capability=false; код проверяется на fake-провайдере | Владелец добавляет значения в конфиг после кода; порядок — `STRIPE-CONFIG.md` | 05, STRIPE-CONFIG.md |
 
 Как добавлять строку: ID по порядку, один параметр на строку, колонка «Пока» обязательна и конкретна («вернуть 422», «capability=false»), не «будет решено».
+
+---
+
+## Закрытые вопросы (история решений — не реализовывать ничего нового)
+
+| ID | Параметр | Статус | Итог | Источник |
+|---|---|---|---|---|
+| OPEN-11 | HTTP-статусы для 45 SQL-кодов ошибок биллинга | DECIDED 23.10.2026 | Группа A (26, внутренние) — 500; B (8, неверный запрос) — 422 `VALIDATION_FAILED`; C (8, конфликт состояния) — 409 `BILLING_STATE_CONFLICT`; D (3, proof недоступен) — 503 `BILLING_UNAVAILABLE`. Источник: `contracts/error-classes.json`. Реализация — задача T-02. | ERROR-CODES.md |
+| OPEN-12 | Намеренно ли `billing.PrepareOperations` отбрасывает флаг `enabled` | RESOLVED 23.10.2026 | Намеренно. `billing_bind_operations` внутри SQL-обёртки первой строкой повторно вызывает `billing_prepare_operations` и возвращает NULL при выключенной когорте или уже покрытом run. Go-вызов нужен для порядка блокировок и раннего отказа. Добавлен комментарий в `operations.go`. | operations-workflow.sql, selected-workflow.sql |

@@ -2,6 +2,31 @@
 
 Правила пронумерованы (T1…T8), в задачах и PR ссылайтесь как `T4`.
 
+## Быстрый старт локально
+
+Минимальная последовательность для нового окружения (все команды из корня репозитория):
+
+```sh
+# 1. Поднять тестовую инфраструктуру (PostgreSQL + зависимости)
+make dev-infra
+# или: PHOTO_TEST_NATIVE_INFRA=1 (если инфраструктура уже запущена)
+
+# 2. Статические проверки (без БД и Go, работают в любом окружении)
+bash docs/billing/tools/check-static.sh
+
+# 3. Контрактные тесты Python (без БД)
+.venv-platform/bin/python -m pytest -q -p no:cacheprovider tests/contracts/test_billing_*.py
+
+# 4. Integration тесты (нужна БД из шага 1)
+scripts/run-platform.sh .venv-platform/bin/python -m pytest -q -p no:cacheprovider tests/integration/test_billing_*.py
+
+# 5. Go тесты (нужен Go 1.26)
+scripts/run-platform.sh go -C backend test ./internal/billing ./internal/run ./internal/v2sessions ./internal/workflow ./internal/v2input ./internal/v2render ./db
+```
+
+Миграции применяются автоматически к одноразовым тестовым БД; рабочая БД не трогается (R30).
+Результаты записывать в `STATUS.md` по шаблону приёмки.
+
 ## Правила
 
 - **T1.** Тест пишется в той же задаче и в том же коммите, что и код. Задача без тестов не принята (`R33`).
