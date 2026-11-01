@@ -1,5 +1,483 @@
 {
   "schema_version": 1,
   "stage": "finance",
-  "tables": []
+  "tables": [
+    {
+      "name": "billing_contacts",
+      "columns": [
+        {"name": "financial_subject_id", "type": "uuid", "nullable": false},
+        {"name": "status", "type": "text", "nullable": false, "default": "'active'"},
+        {"name": "email", "type": "text", "nullable": true},
+        {"name": "legal_name", "type": "text", "nullable": true},
+        {"name": "company_name", "type": "text", "nullable": true},
+        {"name": "tax_id", "type": "text", "nullable": true},
+        {"name": "country", "type": "text", "nullable": true},
+        {"name": "postal_address", "type": "jsonb", "nullable": true},
+        {"name": "encryption_key_ref", "type": "text", "nullable": false},
+        {"name": "erased_at", "type": "timestamptz", "nullable": true},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "primary_key": ["financial_subject_id"],
+      "constraints": [
+        "CHECK(status IN ('active','retained','erased'))"
+      ],
+      "indexes": [],
+      "append_only": false,
+      "acl": {"photo_fn_owner": ["SELECT","INSERT","UPDATE"]},
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "billing_quotes",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false},
+        {"name": "tenant_id", "type": "uuid", "nullable": false},
+        {"name": "actor_id", "type": "uuid", "nullable": true},
+        {"name": "kind", "type": "text", "nullable": false},
+        {"name": "plan_revision", "type": "bigint", "nullable": false},
+        {"name": "resource_snapshot", "type": "jsonb", "nullable": false},
+        {"name": "resource_snapshot_hash", "type": "bytea", "nullable": false},
+        {"name": "net_minor", "type": "bigint", "nullable": false},
+        {"name": "tax_minor", "type": "bigint", "nullable": false},
+        {"name": "gross_minor", "type": "bigint", "nullable": false},
+        {"name": "currency", "type": "text", "nullable": false},
+        {"name": "tax_policy_version", "type": "text", "nullable": false},
+        {"name": "expires_at", "type": "timestamptz", "nullable": false},
+        {"name": "accepted_at", "type": "timestamptz", "nullable": true},
+        {"name": "request_hash", "type": "bytea", "nullable": false},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "primary_key": ["id"],
+      "constraints": [
+        "FOREIGN KEY(tenant_id) REFERENCES photo.tenants(id)",
+        "CHECK(kind IN ('subscription','topup','operation_topup','upgrade','storage','egress'))",
+        "CHECK(net_minor >= 0)",
+        "CHECK(tax_minor >= 0)",
+        "CHECK(gross_minor >= 0)",
+        "CHECK(plan_revision > 0)"
+      ],
+      "indexes": [
+        "CREATE INDEX billing_quotes_tenant_idx ON photo.billing_quotes(tenant_id)"
+      ],
+      "append_only": false,
+      "acl": {"photo_fn_owner": ["SELECT","INSERT","UPDATE"]},
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "billing_orders",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false},
+        {"name": "tenant_id", "type": "uuid", "nullable": false},
+        {"name": "quote_id", "type": "uuid", "nullable": false},
+        {"name": "kind", "type": "text", "nullable": false},
+        {"name": "state", "type": "text", "nullable": false},
+        {"name": "net_minor", "type": "bigint", "nullable": false},
+        {"name": "tax_minor", "type": "bigint", "nullable": false},
+        {"name": "gross_minor", "type": "bigint", "nullable": false},
+        {"name": "currency", "type": "text", "nullable": false},
+        {"name": "idempotency_key", "type": "text", "nullable": false},
+        {"name": "request_hash", "type": "bytea", "nullable": false},
+        {"name": "provider_account_id", "type": "uuid", "nullable": true},
+        {"name": "provider_checkout_id", "type": "text", "nullable": true},
+        {"name": "paid_at", "type": "timestamptz", "nullable": true},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "primary_key": ["id"],
+      "constraints": [
+        "FOREIGN KEY(tenant_id) REFERENCES photo.tenants(id)",
+        "FOREIGN KEY(quote_id) REFERENCES photo.billing_quotes(id)",
+        "UNIQUE(tenant_id,idempotency_key)",
+        "CHECK(kind IN ('subscription','topup','operation_topup','upgrade','storage','egress'))",
+        "CHECK(state IN ('created','checkout_pending','payment_pending','paid','fulfilling','fulfilled','failed','canceled','refunded','partially_refunded'))",
+        "CHECK(net_minor >= 0)",
+        "CHECK(tax_minor >= 0)",
+        "CHECK(gross_minor >= 0)"
+      ],
+      "indexes": [
+        "CREATE INDEX billing_orders_tenant_idx ON photo.billing_orders(tenant_id)"
+      ],
+      "append_only": false,
+      "acl": {"photo_fn_owner": ["SELECT","INSERT","UPDATE"]},
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "billing_order_lines",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false},
+        {"name": "tenant_id", "type": "uuid", "nullable": false},
+        {"name": "order_id", "type": "uuid", "nullable": false},
+        {"name": "ordinal", "type": "bigint", "nullable": false},
+        {"name": "price_id", "type": "uuid", "nullable": true},
+        {"name": "offer_id", "type": "uuid", "nullable": true},
+        {"name": "resource_code", "type": "text", "nullable": false},
+        {"name": "pack_count", "type": "bigint", "nullable": false},
+        {"name": "unit_net_minor", "type": "bigint", "nullable": false},
+        {"name": "net_minor", "type": "bigint", "nullable": false},
+        {"name": "tax_minor", "type": "bigint", "nullable": false},
+        {"name": "gross_minor", "type": "bigint", "nullable": false},
+        {"name": "currency", "type": "text", "nullable": false},
+        {"name": "resource_quantity", "type": "bigint", "nullable": false},
+        {"name": "included_egress_bytes", "type": "bigint", "nullable": false, "default": "0"},
+        {"name": "expiry_policy", "type": "text", "nullable": false},
+        {"name": "ttl_seconds", "type": "bigint", "nullable": true},
+        {"name": "operation_policy_id", "type": "uuid", "nullable": true},
+        {"name": "provider_price_binding_id", "type": "uuid", "nullable": true},
+        {"name": "snapshot", "type": "jsonb", "nullable": false},
+        {"name": "grant_starts_at", "type": "timestamptz", "nullable": true},
+        {"name": "grant_expires_at", "type": "timestamptz", "nullable": true},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "primary_key": ["id"],
+      "constraints": [
+        "FOREIGN KEY(tenant_id) REFERENCES photo.tenants(id)",
+        "FOREIGN KEY(order_id) REFERENCES photo.billing_orders(id)",
+        "UNIQUE(order_id,ordinal)",
+        "CHECK(pack_count > 0)",
+        "CHECK(resource_quantity > 0)",
+        "CHECK(unit_net_minor >= 0)",
+        "CHECK(net_minor >= 0)",
+        "CHECK(tax_minor >= 0)",
+        "CHECK(gross_minor >= 0)",
+        "CHECK(included_egress_bytes >= 0)",
+        "CHECK(expiry_policy IN ('fixed_ttl','period_end','never','none'))",
+        "CHECK(ttl_seconds IS NULL OR ttl_seconds > 0)"
+      ],
+      "indexes": [],
+      "append_only": true,
+      "acl": {"photo_fn_owner": ["SELECT","INSERT"]},
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "billing_invoices",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false},
+        {"name": "financial_subject_id", "type": "uuid", "nullable": false},
+        {"name": "tenant_id", "type": "uuid", "nullable": true},
+        {"name": "provider_account_id", "type": "uuid", "nullable": false},
+        {"name": "provider_invoice_id", "type": "text", "nullable": false},
+        {"name": "order_id", "type": "uuid", "nullable": true},
+        {"name": "currency", "type": "text", "nullable": false},
+        {"name": "net_minor", "type": "bigint", "nullable": false},
+        {"name": "tax_minor", "type": "bigint", "nullable": false},
+        {"name": "gross_minor", "type": "bigint", "nullable": false},
+        {"name": "state", "type": "text", "nullable": false},
+        {"name": "paid_at", "type": "timestamptz", "nullable": true},
+        {"name": "retention_policy_id", "type": "uuid", "nullable": false},
+        {"name": "hosted_url", "type": "text", "nullable": true},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "primary_key": ["id"],
+      "constraints": [
+        "FOREIGN KEY(order_id) REFERENCES photo.billing_orders(id)",
+        "UNIQUE(provider_account_id,provider_invoice_id)",
+        "CHECK(state IN ('draft','open','paid','void','uncollectible'))",
+        "CHECK(net_minor >= 0)",
+        "CHECK(tax_minor >= 0)",
+        "CHECK(gross_minor >= 0)"
+      ],
+      "indexes": [
+        "CREATE INDEX billing_invoices_subject_idx ON photo.billing_invoices(financial_subject_id)"
+      ],
+      "append_only": false,
+      "acl": {"photo_fn_owner": ["SELECT","INSERT","UPDATE"]},
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "billing_payments",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false},
+        {"name": "financial_subject_id", "type": "uuid", "nullable": false},
+        {"name": "tenant_id", "type": "uuid", "nullable": true},
+        {"name": "provider_account_id", "type": "uuid", "nullable": false},
+        {"name": "provider_payment_id", "type": "text", "nullable": false},
+        {"name": "invoice_id", "type": "uuid", "nullable": true},
+        {"name": "order_id", "type": "uuid", "nullable": true},
+        {"name": "amount_minor", "type": "bigint", "nullable": false},
+        {"name": "refunded_minor", "type": "bigint", "nullable": false, "default": "0"},
+        {"name": "currency", "type": "text", "nullable": false},
+        {"name": "state", "type": "text", "nullable": false},
+        {"name": "settled_at", "type": "timestamptz", "nullable": true},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "primary_key": ["id"],
+      "constraints": [
+        "FOREIGN KEY(invoice_id) REFERENCES photo.billing_invoices(id)",
+        "FOREIGN KEY(order_id) REFERENCES photo.billing_orders(id)",
+        "UNIQUE(provider_account_id,provider_payment_id)",
+        "CHECK(state IN ('pending','succeeded','failed','refunded','disputed'))",
+        "CHECK(amount_minor >= 0)",
+        "CHECK(refunded_minor >= 0)",
+        "CHECK(refunded_minor <= amount_minor)"
+      ],
+      "indexes": [
+        "CREATE INDEX billing_payments_subject_idx ON photo.billing_payments(financial_subject_id)"
+      ],
+      "append_only": false,
+      "acl": {"photo_fn_owner": ["SELECT","INSERT","UPDATE"]},
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "billing_refunds",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false},
+        {"name": "financial_subject_id", "type": "uuid", "nullable": false},
+        {"name": "payment_id", "type": "uuid", "nullable": false},
+        {"name": "external_refund_id", "type": "text", "nullable": false},
+        {"name": "amount_minor", "type": "bigint", "nullable": false},
+        {"name": "state", "type": "text", "nullable": false},
+        {"name": "resource_reversal_key", "type": "text", "nullable": true},
+        {"name": "reason_code", "type": "text", "nullable": false},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "primary_key": ["id"],
+      "constraints": [
+        "FOREIGN KEY(payment_id) REFERENCES photo.billing_payments(id)",
+        "UNIQUE(payment_id,external_refund_id)",
+        "CHECK(state IN ('pending','succeeded','failed'))",
+        "CHECK(amount_minor > 0)"
+      ],
+      "indexes": [],
+      "append_only": false,
+      "acl": {"photo_fn_owner": ["SELECT","INSERT","UPDATE"]},
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "billing_invoice_allocations",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false},
+        {"name": "tenant_id", "type": "uuid", "nullable": true},
+        {"name": "invoice_id", "type": "uuid", "nullable": false},
+        {"name": "external_line_id", "type": "text", "nullable": false},
+        {"name": "order_line_id", "type": "uuid", "nullable": true},
+        {"name": "period_id", "type": "uuid", "nullable": true},
+        {"name": "allocation_kind", "type": "text", "nullable": false},
+        {"name": "resource_snapshot", "type": "jsonb", "nullable": false},
+        {"name": "state", "type": "text", "nullable": false},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "primary_key": ["id"],
+      "constraints": [
+        "FOREIGN KEY(invoice_id) REFERENCES photo.billing_invoices(id)",
+        "FOREIGN KEY(order_line_id) REFERENCES photo.billing_order_lines(id)",
+        "FOREIGN KEY(period_id) REFERENCES photo.billing_periods(id)",
+        "UNIQUE(invoice_id,external_line_id,allocation_kind)",
+        "CHECK(allocation_kind IN ('renewal','upgrade','storage','egress'))",
+        "CHECK(state IN ('pending','applied','compensated'))"
+      ],
+      "indexes": [],
+      "append_only": false,
+      "acl": {"photo_fn_owner": ["SELECT","INSERT","UPDATE"]},
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "tenant_billing_profiles",
+      "columns": [
+        {"name": "tenant_id", "type": "uuid", "nullable": false},
+        {"name": "financial_subject_id", "type": "uuid", "nullable": false},
+        {"name": "current_plan_version_id", "type": "uuid", "nullable": false},
+        {"name": "current_price_id", "type": "uuid", "nullable": true},
+        {"name": "billing_mode", "type": "text", "nullable": false},
+        {"name": "active_provider_account_id", "type": "uuid", "nullable": true},
+        {"name": "lifecycle", "type": "text", "nullable": false, "default": "'active'"},
+        {"name": "lifecycle_epoch", "type": "bigint", "nullable": false, "default": "1"},
+        {"name": "entitlement_revision", "type": "bigint", "nullable": false, "default": "1"},
+        {"name": "beta_policy_id", "type": "uuid", "nullable": true},
+        {"name": "transition_at", "type": "timestamptz", "nullable": true},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "primary_key": ["tenant_id"],
+      "constraints": [
+        "FOREIGN KEY(tenant_id) REFERENCES photo.tenants(id)",
+        "FOREIGN KEY(financial_subject_id) REFERENCES photo.billing_contacts(financial_subject_id)",
+        "UNIQUE(financial_subject_id)",
+        "CHECK(billing_mode IN ('beta','trial','stripe','manual','deleting'))",
+        "CHECK(lifecycle IN ('active','deleting','closed'))",
+        "CHECK(lifecycle_epoch > 0)",
+        "CHECK(entitlement_revision > 0)"
+      ],
+      "indexes": [],
+      "append_only": false,
+      "acl": {"photo_fn_owner": ["SELECT","INSERT","UPDATE"]},
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "billing_subscriptions",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false},
+        {"name": "tenant_id", "type": "uuid", "nullable": false},
+        {"name": "financial_subject_id", "type": "uuid", "nullable": false},
+        {"name": "provider_account_id", "type": "uuid", "nullable": false},
+        {"name": "provider_subscription_id", "type": "text", "nullable": false},
+        {"name": "state", "type": "text", "nullable": false},
+        {"name": "period_id", "type": "uuid", "nullable": true},
+        {"name": "cancel_at_period_end", "type": "boolean", "nullable": false, "default": "false"},
+        {"name": "pending_change_id", "type": "uuid", "nullable": true},
+        {"name": "provider_snapshot_hash", "type": "bytea", "nullable": false},
+        {"name": "synced_at", "type": "timestamptz", "nullable": false},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "primary_key": ["id"],
+      "constraints": [
+        "FOREIGN KEY(tenant_id) REFERENCES photo.tenants(id)",
+        "FOREIGN KEY(financial_subject_id) REFERENCES photo.billing_contacts(financial_subject_id)",
+        "FOREIGN KEY(period_id) REFERENCES photo.billing_periods(id)",
+        "UNIQUE(provider_account_id,provider_subscription_id)",
+        "CHECK(state IN ('incomplete','trialing','active','past_due','unpaid','paused','canceled'))"
+      ],
+      "indexes": [
+        "CREATE INDEX billing_subscriptions_tenant_idx ON photo.billing_subscriptions(tenant_id)"
+      ],
+      "append_only": false,
+      "acl": {"photo_fn_owner": ["SELECT","INSERT","UPDATE"]},
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "billing_subscription_items",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false},
+        {"name": "tenant_id", "type": "uuid", "nullable": false},
+        {"name": "subscription_id", "type": "uuid", "nullable": false},
+        {"name": "provider_account_id", "type": "uuid", "nullable": false},
+        {"name": "kind", "type": "text", "nullable": false},
+        {"name": "price_id", "type": "uuid", "nullable": true},
+        {"name": "offer_id", "type": "uuid", "nullable": true},
+        {"name": "external_item_id", "type": "text", "nullable": false},
+        {"name": "quantity", "type": "bigint", "nullable": false},
+        {"name": "starts_at", "type": "timestamptz", "nullable": false},
+        {"name": "ends_at", "type": "timestamptz", "nullable": true},
+        {"name": "state", "type": "text", "nullable": false},
+        {"name": "entitlement_status", "type": "text", "nullable": false},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "primary_key": ["id"],
+      "constraints": [
+        "FOREIGN KEY(tenant_id) REFERENCES photo.tenants(id)",
+        "FOREIGN KEY(subscription_id) REFERENCES photo.billing_subscriptions(id)",
+        "UNIQUE(provider_account_id,external_item_id)",
+        "CHECK(kind IN ('ai','storage'))",
+        "CHECK(state IN ('active','pending','canceled'))",
+        "CHECK(entitlement_status IN ('pending','active','ending','ended'))",
+        "CHECK(quantity > 0)"
+      ],
+      "indexes": [],
+      "append_only": false,
+      "acl": {"photo_fn_owner": ["SELECT","INSERT","UPDATE"]},
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "billing_change_requests",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false},
+        {"name": "tenant_id", "type": "uuid", "nullable": false},
+        {"name": "subscription_id", "type": "uuid", "nullable": true},
+        {"name": "change_type", "type": "text", "nullable": false},
+        {"name": "source_version_id", "type": "uuid", "nullable": true},
+        {"name": "target_version_id", "type": "uuid", "nullable": true},
+        {"name": "quote_id", "type": "uuid", "nullable": false},
+        {"name": "effective_at", "type": "timestamptz", "nullable": false},
+        {"name": "idempotency_key", "type": "text", "nullable": false},
+        {"name": "request_hash", "type": "bytea", "nullable": false},
+        {"name": "state", "type": "text", "nullable": false},
+        {"name": "order_id", "type": "uuid", "nullable": true},
+        {"name": "last_error_code", "type": "text", "nullable": true},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "primary_key": ["id"],
+      "constraints": [
+        "FOREIGN KEY(tenant_id) REFERENCES photo.tenants(id)",
+        "FOREIGN KEY(subscription_id) REFERENCES photo.billing_subscriptions(id)",
+        "FOREIGN KEY(quote_id) REFERENCES photo.billing_quotes(id)",
+        "FOREIGN KEY(order_id) REFERENCES photo.billing_orders(id)",
+        "UNIQUE(tenant_id,idempotency_key)",
+        "CHECK(change_type IN ('upgrade','downgrade','cancel_ai','storage_add','storage_reduce'))",
+        "CHECK(state IN ('quoted','payment_pending','paid','applying','applied','compensating','failed','canceled'))"
+      ],
+      "indexes": [],
+      "append_only": false,
+      "acl": {"photo_fn_owner": ["SELECT","INSERT","UPDATE"]},
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "billing_customers",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false},
+        {"name": "tenant_id", "type": "uuid", "nullable": false},
+        {"name": "provider_account_id", "type": "uuid", "nullable": false},
+        {"name": "external_customer_id", "type": "text", "nullable": false},
+        {"name": "financial_subject_id", "type": "uuid", "nullable": false},
+        {"name": "state", "type": "text", "nullable": false, "default": "'active'"},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "primary_key": ["id"],
+      "constraints": [
+        "FOREIGN KEY(tenant_id) REFERENCES photo.tenants(id)",
+        "UNIQUE(provider_account_id,external_customer_id)",
+        "UNIQUE(tenant_id,provider_account_id)",
+        "CHECK(state IN ('active','deleting','deleted'))"
+      ],
+      "indexes": [],
+      "append_only": false,
+      "acl": {"photo_fn_owner": ["SELECT","INSERT","UPDATE"]},
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "billing_custom_assignments",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false},
+        {"name": "tenant_id", "type": "uuid", "nullable": false},
+        {"name": "custom_plan_version_id", "type": "uuid", "nullable": false},
+        {"name": "amount_net_minor", "type": "bigint", "nullable": false},
+        {"name": "currency", "type": "text", "nullable": false},
+        {"name": "billing_mode", "type": "text", "nullable": false},
+        {"name": "starts_at", "type": "timestamptz", "nullable": false},
+        {"name": "ends_at", "type": "timestamptz", "nullable": false},
+        {"name": "state", "type": "text", "nullable": false, "default": "'draft'"},
+        {"name": "reason", "type": "text", "nullable": false},
+        {"name": "assigned_by", "type": "uuid", "nullable": true},
+        {"name": "approved_at", "type": "timestamptz", "nullable": true},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "primary_key": ["id"],
+      "constraints": [
+        "FOREIGN KEY(tenant_id) REFERENCES photo.tenants(id)",
+        "CHECK(amount_net_minor >= 0)",
+        "CHECK(billing_mode IN ('stripe','manual'))",
+        "CHECK(state IN ('draft','active','ended'))",
+        "CHECK(ends_at > starts_at)"
+      ],
+      "indexes": [
+        "CREATE INDEX billing_custom_assignments_tenant_idx ON photo.billing_custom_assignments(tenant_id)"
+      ],
+      "append_only": false,
+      "acl": {"photo_fn_owner": ["SELECT","INSERT","UPDATE"]},
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "billing_custom_limits",
+      "columns": [
+        {"name": "id", "type": "uuid", "nullable": false},
+        {"name": "tenant_id", "type": "uuid", "nullable": false},
+        {"name": "assignment_id", "type": "uuid", "nullable": false},
+        {"name": "resource_code", "type": "text", "nullable": false},
+        {"name": "integer_value", "type": "bigint", "nullable": true},
+        {"name": "enum_value", "type": "text", "nullable": true},
+        {"name": "grant_period", "type": "text", "nullable": false},
+        {"name": "rollover_periods", "type": "bigint", "nullable": false, "default": "0"},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "primary_key": ["id"],
+      "constraints": [
+        "FOREIGN KEY(tenant_id) REFERENCES photo.tenants(id)",
+        "FOREIGN KEY(assignment_id) REFERENCES photo.billing_custom_assignments(id)",
+        "UNIQUE(assignment_id,resource_code)",
+        "CHECK(grant_period IN ('once','month','none'))",
+        "CHECK(rollover_periods >= 0)",
+        "CHECK(num_nonnulls(integer_value, enum_value) = 1)",
+        "CHECK(integer_value IS NULL OR integer_value > 0)"
+      ],
+      "indexes": [],
+      "append_only": false,
+      "acl": {"photo_fn_owner": ["SELECT","INSERT","UPDATE"]},
+      "rls": "force_trusted_functions"
+    }
+  ]
 }
