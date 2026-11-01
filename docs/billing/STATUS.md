@@ -126,3 +126,16 @@ TST-02 заблокирован до STR-01 (fake provider Go-пакет).
 
 - `tests/contracts/test_billing_record_evidence.py`: **16 passed** (parser, verdict, append, no-overwrite)
 - Статические проверки: 15/15 PASS
+
+---
+
+### UI-00 — Навигация и routes — 01.11.2026
+
+Источник: `backlog/BACKLOG-ui-1.md`, задача UI-00
+
+- `apps/photographer/src/billing-settings-nav.dom.test.tsx`: **5 passed** (роли owner/admin/editor/viewer видят ровно назначенные пункты)
+- `apps/photographer/src/navigation-entry-links.dom.test.tsx`: **4 passed** (без регрессий, viewer видит базовые пункты)
+- `apps/photographer/src/routes.test.ts`: **34 passed** (без регрессий)
+- TypeScript: PASS
+- Статические проверки: 18/18 PASS
+- Изменения: workspace-access.ts (ownerRoutes/adminRoutes), navigation-targets.ts (роль-фильтр), navigation-entry-links.tsx, локали en/ru/bg (+nav_usage/nav_billing_payment/nav_privacy)

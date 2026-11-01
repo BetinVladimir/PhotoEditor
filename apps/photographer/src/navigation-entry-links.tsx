@@ -14,7 +14,7 @@ export function WorkspaceSettingsNavigation({ tenant }: {
     const access = useWorkspaceAccess(tenant);
     if (!access)
         return null;
-    return <View>{workspaceSettingsTargets(tenant).map(item => <Button key={item.href.pathname} accessibilityRole="button" onPress={() => router.push(item.href)} mode="contained">{t(item.labelKey)}</Button>)}</View>;
+    return <View>{workspaceSettingsTargets(tenant,access.role).map(item => <Button key={item.href.pathname} accessibilityRole="button" onPress={() => router.push(item.href as Parameters<typeof router.push>[0])} mode="contained">{t(item.labelKey)}</Button>)}</View>;
 }
 export function SessionAnalysisNavigation({ tenant, id, project, disabled = false }: {
     tenant: string;

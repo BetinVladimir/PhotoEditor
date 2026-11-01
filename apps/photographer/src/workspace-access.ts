@@ -7,7 +7,11 @@ export const globalRoutes=new Set<PhotographerRoute>(['/','/login','/register','
 /** Read access remains Viewer for mixed browsing screens. Their editing controls
  * consume the current role; each server action still repeats project/session ACL. */
 const editorScreens=new Set<PhotographerRoute>(['/reviews','/reviews/[id]','/imports/new','/collections/[id]/apply','/collections/[id]/multi','/collections/[id]/lens','/styles/[id]/training','/editor/[version]','/exports/sign','/deliveries/new','/multi-replacements/[original]','/perspective-replacements/[original]','/interchange/new','/interchange/format','/interchange/prepare','/interchange/prepared/[id]','/interchange/import-format','/interchange/upload','/interchange/masks/[id]']);
-export const routeRolePolicies=Object.fromEntries(photographerRoutes.map(route=>[route,{tenant:!globalRoutes.has(route),read:editorScreens.has(route)?'editor':'viewer'}])) as Record<PhotographerRoute,{tenant:boolean;read:WorkspaceRole}>;
+/** Billing financial routes: plan changes, payment PII, order history — owner only. */
+const ownerRoutes=new Set<PhotographerRoute>(['/settings/billing','/settings/billing-change-confirm','/settings/billing-order-status','/settings/billing-payment-details','/settings/billing-plans','/settings/billing-resources']);
+/** Usage summary readable by admin and above; billing contacts/payment links are not included. */
+const adminRoutes=new Set<PhotographerRoute>(['/settings/usage']);
+export const routeRolePolicies=Object.fromEntries(photographerRoutes.map(route=>[route,{tenant:!globalRoutes.has(route),read:ownerRoutes.has(route)?'owner':adminRoutes.has(route)?'admin':editorScreens.has(route)?'editor':'viewer'}])) as Record<PhotographerRoute,{tenant:boolean;read:WorkspaceRole}>;
 export function scopedRoute(segments:readonly string[]):PhotographerRoute{
  const normalized=[...segments];if(normalized.at(-1)==='index')normalized.pop();
  const route=('/'+normalized.join('/')) as PhotographerRoute;
