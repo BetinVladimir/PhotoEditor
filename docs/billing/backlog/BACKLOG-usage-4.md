@@ -2,7 +2,7 @@
 
 ### USA-F09 — функция `billing_issue_ticket`
 
-- Статус: нет `FUNCTION photo.billing_issue_ticket(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_issue_funding_claim`, `billing_expire_quota_buckets`, `billing_quota_lock`.
+- Статус: нет `FUNCTION photo.billing_issue_ticket(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_issue_funding_claim`, `billing_expire_quota_buckets`, `billing_ensure_profile`.
 - Вход: строка 04 ниже; типы аргументов по 09 §3 (в 04 даны имена, не типы); образец — `EXAMPLES.md` §1–2.
 - Выход: тело в `contracts/usage-functions.sql`, запись в `contracts/usage-functions.json`, перегенерация миграции.
 - Критерий: A. `--check` генератора PASS. B. `execute_roles` в JSON = `GRANT` в SQL, роли из колонки «права» строки 04. C. integration-тест: положительный путь, отказ авторизации, точный повтор и конфликт hash. D. Порядок блокировок R23–R26.
@@ -26,7 +26,7 @@
 
 ### USA-F11 — функция `billing_project_usage`
 
-- Статус: нет `FUNCTION photo.billing_project_usage(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_project_quota`, `billing_quota_reject_immutable`, `billing_prepare_apply`.
+- Статус: нет `FUNCTION photo.billing_project_usage(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_project_quota`, `billing_request_change`, `billing_quota_reject_immutable`.
 - Вход: строка 04 ниже; типы аргументов по 09 §3 (в 04 даны имена, не типы); образец — `EXAMPLES.md` §1–2.
 - Выход: тело в `contracts/usage-functions.sql`, запись в `contracts/usage-functions.json`, перегенерация миграции.
 - Критерий: A. `--check` генератора PASS. B. `execute_roles` в JSON = `GRANT` в SQL, роли из колонки «права» строки 04. C. integration-тест: положительный путь, отказ авторизации, точный повтор и конфликт hash. D. Порядок блокировок R23–R26.
@@ -38,7 +38,7 @@
 
 ### USA-F12 — функция `billing_reconcile_storage`
 
-- Статус: нет `FUNCTION photo.billing_reconcile_storage(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_render_source_frames`, `billing_selected_source`, `billing_prepare_editor`.
+- Статус: нет `FUNCTION photo.billing_reconcile_storage(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_request_change`, `billing_render_source_frames`, `billing_selected_source`.
 - Вход: строка 04 ниже; типы аргументов по 09 §3 (в 04 даны имена, не типы); образец — `EXAMPLES.md` §1–2.
 - Выход: тело в `contracts/usage-functions.sql`, запись в `contracts/usage-functions.json`, перегенерация миграции.
 - Критерий: A. `--check` генератора PASS. B. `execute_roles` в JSON = `GRANT` в SQL, роли из колонки «права» строки 04. C. integration-тест: положительный путь, отказ авторизации, точный повтор и конфликт hash. D. Порядок блокировок R23–R26.
@@ -50,7 +50,7 @@
 
 ### USA-F13 — функция `billing_reconcile_uncertain_chunk`
 
-- Статус: нет `FUNCTION photo.billing_reconcile_uncertain_chunk(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_link_operation_child`, `billing_settle_operations`, `billing_check_operation_claim`.
+- Статус: нет `FUNCTION photo.billing_reconcile_uncertain_chunk(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_request_change`, `billing_link_operation_child`, `billing_settle_operations`.
 - Вход: строка 04 ниже; типы аргументов по 09 §3 (в 04 даны имена, не типы); образец — `EXAMPLES.md` §1–2.
 - Выход: тело в `contracts/usage-functions.sql`, запись в `contracts/usage-functions.json`, перегенерация миграции.
 - Критерий: A. `--check` генератора PASS. B. `execute_roles` в JSON = `GRANT` в SQL, роли из колонки «права» строки 04. C. integration-тест: положительный путь, отказ авторизации, точный повтор и конфликт hash. D. Порядок блокировок R23–R26.

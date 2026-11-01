@@ -2,7 +2,7 @@
 
 ### USA-F14 — функция `billing_record_egress_chunk`
 
-- Статус: нет `FUNCTION photo.billing_record_egress_chunk(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_guard_terminal_run`, `billing_operation_session`, `billing_prepare_render`.
+- Статус: нет `FUNCTION photo.billing_record_egress_chunk(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_request_change`, `billing_guard_terminal_run`, `billing_operation_session`.
 - Вход: строка 04 ниже; типы аргументов по 09 §3 (в 04 даны имена, не типы); образец — `EXAMPLES.md` §1–2.
 - Выход: тело в `contracts/usage-functions.sql`, запись в `contracts/usage-functions.json`, перегенерация миграции.
 - Критерий: A. `--check` генератора PASS. B. `execute_roles` в JSON = `GRANT` в SQL, роли из колонки «права» строки 04. C. integration-тест: положительный путь, отказ авторизации, точный повтор и конфликт hash. D. Порядок блокировок R23–R26.
@@ -14,7 +14,7 @@
 
 ### USA-F15 — функция `billing_register_photo_success`
 
-- Статус: нет `FUNCTION photo.billing_register_photo_success(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_render_source_frames`, `billing_expire_quota_buckets`, `billing_operation_session`.
+- Статус: нет `FUNCTION photo.billing_register_photo_success(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_create_quote`, `billing_render_source_frames`, `billing_expire_quota_buckets`.
 - Вход: строка 04 ниже; типы аргументов по 09 §3 (в 04 даны имена, не типы); образец — `EXAMPLES.md` §1–2.
 - Выход: тело в `contracts/usage-functions.sql`, запись в `contracts/usage-functions.json`, перегенерация миграции.
 - Критерий: A. `--check` генератора PASS. B. `execute_roles` в JSON = `GRANT` в SQL, роли из колонки «права» строки 04. C. integration-тест: положительный путь, отказ авторизации, точный повтор и конфликт hash. D. Порядок блокировок R23–R26.
@@ -26,7 +26,7 @@
 
 ### USA-F16 — функция `billing_release_ticket`
 
-- Статус: нет `FUNCTION photo.billing_release_ticket(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_prepare_editor`, `billing_expire_quota_buckets`, `billing_prepare_render`.
+- Статус: нет `FUNCTION photo.billing_release_ticket(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_create_quote`, `billing_request_change`, `billing_prepare_editor`.
 - Вход: строка 04 ниже; типы аргументов по 09 §3 (в 04 даны имена, не типы); образец — `EXAMPLES.md` §1–2.
 - Выход: тело в `contracts/usage-functions.sql`, запись в `contracts/usage-functions.json`, перегенерация миграции.
 - Критерий: A. `--check` генератора PASS. B. `execute_roles` в JSON = `GRANT` в SQL, роли из колонки «права» строки 04. C. integration-тест: положительный путь, отказ авторизации, точный повтор и конфликт hash. D. Порядок блокировок R23–R26.
@@ -50,7 +50,7 @@
 
 ### USA-F18 — функция `billing_rollover_bucket`
 
-- Статус: нет `FUNCTION photo.billing_rollover_bucket(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_expire_quota_buckets`, `billing_quota_lock`, `billing_quota_pin_budget`.
+- Статус: нет `FUNCTION photo.billing_rollover_bucket(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_expire_quota_buckets`, `billing_bind_provider_price`, `billing_quota_lock`.
 - Вход: строка 04 ниже; типы аргументов по 09 §3 (в 04 даны имена, не типы); образец — `EXAMPLES.md` §1–2.
 - Выход: тело в `contracts/usage-functions.sql`, запись в `contracts/usage-functions.json`, перегенерация миграции.
 - Критерий: A. `--check` генератора PASS. B. `execute_roles` в JSON = `GRANT` в SQL, роли из колонки «права» строки 04. C. integration-тест: положительный путь, отказ авторизации, точный повтор и конфликт hash. D. Порядок блокировок R23–R26.

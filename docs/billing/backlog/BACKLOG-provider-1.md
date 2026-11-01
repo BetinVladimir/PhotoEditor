@@ -57,7 +57,7 @@
 
 ### PRO-F01 — функция `billing_apply_provider_snapshot`
 
-- Статус: нет `FUNCTION photo.billing_apply_provider_snapshot(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_lock_apply_run`, `billing_settle_apply_run`, `billing_project_quota`.
+- Статус: нет `FUNCTION photo.billing_apply_provider_snapshot(` в `backend/db/migrations`. Возможно покрыта под другим именем (проверить до работы): `billing_apply_refund`, `billing_apply_paid_upgrade`, `billing_bind_provider_price`.
 - Вход: строка 04 ниже; типы аргументов по 09 §3 (в 04 даны имена, не типы); образец — `EXAMPLES.md` §1–2.
 - Выход: тело в `contracts/provider-functions.sql`, запись в `contracts/provider-functions.json`, перегенерация миграции.
 - Критерий: A. `--check` генератора PASS. B. `execute_roles` в JSON = `GRANT` в SQL, роли из колонки «права» строки 04. C. integration-тест: положительный путь, отказ авторизации, точный повтор и конфликт hash. D. Порядок блокировок R23–R26.

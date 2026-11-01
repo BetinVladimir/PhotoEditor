@@ -77,6 +77,9 @@ def render(root=ROOT):
             if 'SECURITY DEFINER SET search_path=pg_catalog,photo' not in chunk:
                 raise ValueError('Unsafe finance function: ' + signature)
             grants = entry.get('execute_roles', [])
+            for role in grants:
+                if role not in ('photo_worker',):
+                    raise ValueError('Unapproved execute_role for finance function ' + signature + ': ' + role)
             code += [
                 '-- +goose StatementBegin\n' + chunk.strip() + '\n-- +goose StatementEnd',
                 'ALTER FUNCTION photo.' + signature + ' OWNER TO photo_fn_owner;',

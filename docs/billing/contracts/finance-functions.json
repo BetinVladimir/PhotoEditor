@@ -1,5 +1,72 @@
 {
   "schema_version": 1,
   "stage": "finance",
-  "functions": []
+  "functions": [
+    {
+      "signature": "billing_ensure_profile(uuid,uuid,text)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Create trial billing profile and contact for a tenant; idempotent — returns existing subject if already created"
+    },
+    {
+      "signature": "billing_create_quote(uuid,uuid,text,jsonb,bytea,bigint,bigint,bigint,text,text,text)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Create immutable quote for subscription/topup/upgrade; validates lifecycle/revision; expires in 15 minutes"
+    },
+    {
+      "signature": "billing_create_cost_quote(uuid,uuid,jsonb,bytea)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Create finite max-cost quote for workflow operations; no resource issuance; read-only catalog access"
+    },
+    {
+      "signature": "billing_accept_quote(uuid,uuid,text,bytea)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Accept quote and freeze order lines; idempotent on key; hash mismatch forces new quote"
+    },
+    {
+      "signature": "billing_request_change(uuid,uuid,bigint,text)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Create change request (upgrade/downgrade/cancel); enforces one unresolved change per tenant; revision conflict guard"
+    },
+    {
+      "signature": "billing_attach_checkout(uuid,jsonb,text)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Attach provider checkout session snapshot to order; idempotent on session ID; rejects mismatched session"
+    },
+    {
+      "signature": "billing_apply_paid_upgrade(uuid,uuid)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Apply paid upgrade: mark allocation applied, bump entitlement revision; exact replay safe; no Stripe call from SQL"
+    },
+    {
+      "signature": "billing_apply_refund(uuid,bytea)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Apply verified refund; accumulate refunded_minor on payment; partial repeat no-op; exceeds-payment guard"
+    },
+    {
+      "signature": "billing_assign_custom(uuid,jsonb,uuid,text,text)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Create custom plan assignment for tenant; operator-only; validates completeness, dates, overlap, amount >= 0"
+    },
+    {
+      "signature": "billing_bind_provider_price(uuid,uuid,bytea)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Bind provider price to an order line; validates XOR target, active account, snapshot hash; unique per target"
+    },
+    {
+      "signature": "billing_publish_plan_version(uuid,bigint)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [],
+      "purpose": "Publish plan version; validates completeness and revision; exact replay no-op; catalog operator only"
+    }
+  ]
 }
