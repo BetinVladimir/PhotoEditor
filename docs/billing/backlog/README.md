@@ -10,7 +10,7 @@
 | finance | BILL-04 | 0 | 0 | [BACKLOG-finance-1.md](BACKLOG-finance-1.md) |
 | provider | BILL-07/08 | 0 | 0 | [BACKLOG-provider-1.md](BACKLOG-provider-1.md) |
 | usage | BILL-05/06/09 | 0 | 0 | [BACKLOG-usage-1.md](BACKLOG-usage-1.md) |
-| legal | BILL-11/12 | 4 | 8 | [BACKLOG-legal-1.md](BACKLOG-legal-1.md), [BACKLOG-legal-2.md](BACKLOG-legal-2.md), [BACKLOG-legal-3.md](BACKLOG-legal-3.md) |
+| legal | BILL-11/12 | 0 | 8 | [BACKLOG-legal-1.md](BACKLOG-legal-1.md), [BACKLOG-legal-2.md](BACKLOG-legal-2.md) |
 | api | BILL-10 | — | 16 операций | [BACKLOG-api-1.md](BACKLOG-api-1.md), [BACKLOG-api-2.md](BACKLOG-api-2.md) |
 | stripe | BILL-07/08/09 | — | 17 задач | [BACKLOG-stripe-1.md](BACKLOG-stripe-1.md), [BACKLOG-stripe-2.md](BACKLOG-stripe-2.md), [BACKLOG-stripe-3.md](BACKLOG-stripe-3.md), [BACKLOG-stripe-4.md](BACKLOG-stripe-4.md) |
 | ui | BILL-10 | — | 17 задач | [BACKLOG-ui-1.md](BACKLOG-ui-1.md), [BACKLOG-ui-2.md](BACKLOG-ui-2.md), [BACKLOG-ui-3.md](BACKLOG-ui-3.md), [BACKLOG-ui-4.md](BACKLOG-ui-4.md) |

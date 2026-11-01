@@ -6,8 +6,12 @@ export const photographerRoutes = [
   "/reviews", "/reviews/[id]", "/runs/[id]", "/exports", "/exports/sign",
   "/deliveries", "/deliveries/new", "/deliveries/[id]",
   "/interchange/new", "/interchange/format", "/interchange/prepare", "/interchange/prepared/[id]",
-  "/interchange/import-format", "/interchange/upload", "/interchange/[id]", "/interchange/masks/[id]", "/settings/profile", "/settings/members",
-  "/settings/quotas", "/settings/retention",
+  "/interchange/import-format", "/interchange/upload", "/interchange/[id]", "/interchange/masks/[id]",
+  "/settings/billing", "/settings/billing-batch-gate", "/settings/billing-change-confirm",
+  "/settings/billing-order-status", "/settings/billing-payment-details",
+  "/settings/billing-plans", "/settings/billing-resources",
+  "/settings/legal-onboarding", "/settings/privacy", "/settings/profile", "/settings/profile-delete",
+  "/settings/members", "/settings/quotas", "/settings/retention", "/settings/usage",
 ] as const;
 export type PhotographerRoute = typeof photographerRoutes[number];
 
@@ -51,10 +55,21 @@ const declaredRouteCapabilities: readonly RouteCapability[] = [
   {route:"/interchange/upload",api:["GET /api/v1/me","POST /api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads","POST /api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/attempt-status","GET /api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/{upload}","POST /api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/{upload}/parts","POST /api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/{upload}/complete","POST /api/v1/tenants/{t}/projects/{id}/interchange-archive-uploads/{upload}/abort"],native:true,web:true},
   {route:"/interchange/[id]",api:["GET /api/v1/tenants/{t}/runs/{id}/outputs","GET /api/v1/me","GET /api/v1/tenants/{t}/interchange-jobs/{id}/inspection","GET /api/v1/tenants/{t}/interchange-jobs/{id}","POST /api/v1/tenants/{t}/interchange-jobs/{id}/decisions","POST /api/v1/tenants/{t}/interchange-jobs/{id}/close-review"],native:true,web:true},
   {route:"/interchange/masks/[id]",api:["GET /api/v1/me","GET /api/v1/tenants/{t}/projects/{id}/interchange-jobs/{workflow}/person-mask-candidates","GET /api/v1/tenants/{t}/projects/{id}/interchange-jobs/{workflow}/person-mask-candidates/{entry}","GET /api/v1/tenants/{t}/projects/{id}/interchange-jobs/{workflow}/person-mask-candidates/{entry}/previews/{override}/{mask}","GET /api/v1/tenants/{t}/projects/{id}/interchange-jobs/{workflow}/person-mask-confirmations","POST /api/v1/tenants/{t}/projects/{id}/interchange-jobs/{workflow}/person-mask-confirmations","POST /api/v1/tenants/{t}/assets/{id}/media-links"],native:true,web:true},
+  {route:"/settings/billing",api:["GET /api/v1/tenants/{t}/billing","POST /api/v1/tenants/{t}/billing/portal"],native:true,web:true},
+  {route:"/settings/billing-batch-gate",api:[],apiInventory:{kind:"local",reason:"Quota gate dialog shown inline from the editor screen; no independent HTTP call — quota state is carried from the parent route."},native:true,web:true},
+  {route:"/settings/billing-change-confirm",api:["POST /api/v1/tenants/{t}/billing/quotes","POST /api/v1/tenants/{t}/billing/changes"],native:true,web:true},
+  {route:"/settings/billing-order-status",api:["GET /api/v1/tenants/{t}/billing/orders/{order}"],native:true,web:true},
+  {route:"/settings/billing-payment-details",api:["GET /api/v1/tenants/{t}/billing","POST /api/v1/tenants/{t}/billing/portal"],native:true,web:true},
+  {route:"/settings/billing-plans",api:["GET /api/v1/billing/catalog","POST /api/v1/tenants/{t}/billing/changes"],native:true,web:true},
+  {route:"/settings/billing-resources",api:["GET /api/v1/billing/catalog","POST /api/v1/tenants/{t}/billing/quotes","POST /api/v1/tenants/{t}/billing/orders"],native:true,web:true},
+  {route:"/settings/legal-onboarding",api:["GET /api/v1/legal/requirements","POST /api/v1/me/legal/acceptances"],native:true,web:true},
+  {route:"/settings/privacy",api:["GET /api/v1/legal/requirements","PATCH /api/v1/me/privacy"],native:true,web:true},
   {route:"/settings/profile",api:["GET /api/v1/me","PATCH /api/v1/me"],native:true,web:true},
+  {route:"/settings/profile-delete",api:["POST /api/v1/me/deletion","GET /api/v1/me/deletion/{request}/status"],native:true,web:true},
   {route:"/settings/members",api:["PATCH /api/v1/tenants/{t}/members/{user}","GET /api/v1/tenants/{t}/members","POST /api/v1/tenants/{t}/invites"],native:true,web:true},
   {route:"/settings/quotas",api:["GET /api/v1/tenants/{t}","GET /api/v1/tenants/{t}/capabilities"],native:true,web:true},
   {route:"/settings/retention",api:["GET /api/v1/tenants/{t}","PATCH /api/v1/tenants/{t}"],native:true,web:true},
+  {route:"/settings/usage",api:["GET /api/v1/tenants/{t}/billing/usage","GET /api/v1/tenants/{t}/billing/buckets"],native:true,web:true},
 ];
 
 /** Screen body APIs and the shared authorization boundary are recorded separately.
