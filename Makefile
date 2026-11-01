@@ -2,7 +2,7 @@ SHELL := /bin/bash
 ROOT := $(abspath .)
 PYTHON := $(ROOT)/.venv-platform/bin/python
 RUN := ./scripts/run-platform.sh
-.PHONY: sqlc dev-infra dev-infra-stop setup-platform setup-ml contracts contracts-check v2-check test test-unit test-integration test-fault test-security test-web test-native benchmark test-restore test-visual test-hardware test-legacy test-python test-billing-contracts test-go test-db check-skips verify deploy-check release-evidence release-check
+.PHONY: sqlc dev-infra dev-infra-stop setup-platform setup-ml contracts contracts-check v2-check test test-unit test-integration test-fault test-security test-web test-native benchmark test-restore test-visual test-hardware test-legacy test-python test-billing-contracts test-billing-integration test-billing-e2e test-go test-db check-skips verify deploy-check release-evidence release-check
 dev-infra:
 	$(RUN) python3 scripts/dev-infra.py up
 dev-infra-stop:
@@ -62,6 +62,27 @@ test-python:
 	PYTHONPATH=apps/studio-agent $(PYTHON) -m unittest discover -s apps/studio-agent/tests
 test-billing-contracts:
 	$(RUN) env PYTHON=$(PYTHON) bash docs/billing/tools/check-static.sh
+test-billing-integration:
+	$(RUN) bash -c '\
+	  set -uo pipefail; \
+	  tmp=$$(mktemp); \
+	  $(PYTHON) -m pytest tests/integration/test_billing_*.py -q -p no:cacheprovider 2>&1 | tee "$$tmp"; \
+	  rc=$${PIPESTATUS[0]}; \
+	  if grep -qE "[1-9][0-9]* skipped" "$$tmp"; then \
+	    rm -f "$$tmp"; echo "FAIL: skipped>0 — all billing integration tests must pass without skip (TST-03)"; exit 1; \
+	  fi; \
+	  rm -f "$$tmp"; exit "$$rc"'
+test-billing-e2e: test-billing-contracts
+	$(RUN) bash -c '\
+	  set -uo pipefail; \
+	  tmp=$$(mktemp); \
+	  $(PYTHON) -m pytest tests/integration/test_billing_e2e_*.py -q -p no:cacheprovider 2>&1 | tee "$$tmp"; \
+	  rc=$${PIPESTATUS[0]}; \
+	  if grep -qE "[1-9][0-9]* skipped" "$$tmp"; then \
+	    rm -f "$$tmp"; echo "FAIL: skipped>0 — all e2e billing tests must pass without skip (TST-03)"; exit 1; \
+	  fi; \
+	  rm -f "$$tmp"; exit "$$rc"'
+	$(RUN) $(PYTHON) docs/billing/tools/check-e2e-coverage.py
 test-go:
 	$(RUN) go -C backend test ./...
 test-db:
