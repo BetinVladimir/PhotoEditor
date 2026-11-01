@@ -1,5 +1,133 @@
 {
   "schema_version": 1,
   "stage": "legal_scaffold",
-  "tables": []
+  "tables": [
+    {
+      "name": "legal_document_versions",
+      "columns": [
+        {"name": "document_id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()"},
+        {"name": "document_key", "type": "text", "nullable": false},
+        {"name": "locale", "type": "text", "nullable": false},
+        {"name": "version", "type": "text", "nullable": false},
+        {"name": "url", "type": "text", "nullable": false},
+        {"name": "content_sha256", "type": "bytea", "nullable": false},
+        {"name": "archive_ref", "type": "text", "nullable": false},
+        {"name": "archive_version", "type": "text", "nullable": false},
+        {"name": "published_at", "type": "timestamptz", "nullable": true},
+        {"name": "effective_at", "type": "timestamptz", "nullable": true},
+        {"name": "state", "type": "text", "nullable": false, "default": "'draft'"},
+        {"name": "reacceptance_required", "type": "boolean", "nullable": false, "default": "false"},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "primary_key": ["document_id"],
+      "constraints": [
+        "UNIQUE(document_key,locale,version)",
+        "CHECK(document_key IN ('terms','privacy','cookies','dpa','photoeditor_addendum'))",
+        "CHECK(locale ~ '^[a-z]{2}(-[A-Z]{2})?$')",
+        "CHECK(version ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}(\\.[0-9]+)?$')",
+        "CHECK(url ~ '^https://legal\\.beeloy\\.org/')",
+        "CHECK(state IN ('draft','active','retired'))",
+        "CHECK(octet_length(content_sha256) = 32)",
+        "CHECK(state != 'active' OR (published_at IS NOT NULL AND effective_at IS NOT NULL))",
+        "CHECK(state != 'active' OR (archive_ref != '' AND archive_version != ''))"
+      ],
+      "indexes": [
+        "CREATE INDEX ON photo.legal_document_versions(document_key,locale) WHERE state='active'"
+      ],
+      "append_only": false,
+      "acl": {"photo_fn_owner": ["SELECT","INSERT","UPDATE"]},
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "privacy_retention_policies",
+      "columns": [
+        {"name": "policy_id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()"},
+        {"name": "code", "type": "text", "nullable": false},
+        {"name": "version", "type": "integer", "nullable": false},
+        {"name": "data_category", "type": "text", "nullable": false},
+        {"name": "legal_basis", "type": "text", "nullable": false},
+        {"name": "retention_days", "type": "bigint", "nullable": true},
+        {"name": "retention_trigger", "type": "text", "nullable": false},
+        {"name": "backup_max_days", "type": "bigint", "nullable": true},
+        {"name": "approval_ref", "type": "text", "nullable": true},
+        {"name": "state", "type": "text", "nullable": false, "default": "'draft'"},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"},
+        {"name": "updated_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "primary_key": ["policy_id"],
+      "constraints": [
+        "UNIQUE(code,version)",
+        "CHECK(version > 0)",
+        "CHECK(state IN ('draft','approved','retired'))",
+        "CHECK(state != 'approved' OR (retention_days IS NOT NULL AND retention_days > 0))",
+        "CHECK(state != 'approved' OR (backup_max_days IS NOT NULL AND backup_max_days > 0))",
+        "CHECK(state != 'approved' OR approval_ref IS NOT NULL)",
+        "CHECK(retention_days IS NULL OR retention_days > 0)",
+        "CHECK(backup_max_days IS NULL OR backup_max_days > 0)"
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX ON photo.privacy_retention_policies(code) WHERE state='approved'"
+      ],
+      "append_only": false,
+      "acl": {"photo_fn_owner": ["SELECT","INSERT","UPDATE"]},
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "privacy_erasure_tombstones",
+      "columns": [
+        {"name": "tombstone_id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()"},
+        {"name": "subject_ref", "type": "uuid", "nullable": false},
+        {"name": "deletion_request_id", "type": "uuid", "nullable": false},
+        {"name": "scope_type", "type": "text", "nullable": false},
+        {"name": "opaque_scope_ref", "type": "text", "nullable": false},
+        {"name": "erased_at", "type": "timestamptz", "nullable": false, "default": "now()"},
+        {"name": "expires_at", "type": "timestamptz", "nullable": false},
+        {"name": "backup_cutoff_at", "type": "timestamptz", "nullable": false},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "primary_key": ["tombstone_id"],
+      "constraints": [
+        "CHECK(scope_type IN ('user','tenant','object'))",
+        "CHECK(expires_at > erased_at)",
+        "CHECK(backup_cutoff_at >= expires_at)",
+        "CHECK(opaque_scope_ref != '')"
+      ],
+      "indexes": [
+        "CREATE INDEX ON photo.privacy_erasure_tombstones(subject_ref)",
+        "CREATE INDEX ON photo.privacy_erasure_tombstones(expires_at)"
+      ],
+      "append_only": true,
+      "acl": {"photo_fn_owner": ["SELECT","INSERT"]},
+      "rls": "force_trusted_functions"
+    },
+    {
+      "name": "privacy_retained_records",
+      "columns": [
+        {"name": "record_id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()"},
+        {"name": "subject_ref", "type": "uuid", "nullable": false},
+        {"name": "record_type", "type": "text", "nullable": false},
+        {"name": "source_record_id", "type": "uuid", "nullable": false},
+        {"name": "retention_policy_id", "type": "uuid", "nullable": false},
+        {"name": "legal_hold_ref", "type": "text", "nullable": true},
+        {"name": "retain_until", "type": "timestamptz", "nullable": false},
+        {"name": "restricted_at", "type": "timestamptz", "nullable": false, "default": "now()"},
+        {"name": "erased_at", "type": "timestamptz", "nullable": true},
+        {"name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()"}
+      ],
+      "primary_key": ["record_id"],
+      "constraints": [
+        "FOREIGN KEY(retention_policy_id) REFERENCES photo.privacy_retention_policies(policy_id)",
+        "CHECK(record_type != '')",
+        "CHECK(retain_until > restricted_at)",
+        "CHECK(erased_at IS NULL OR erased_at >= retain_until)"
+      ],
+      "indexes": [
+        "CREATE INDEX ON photo.privacy_retained_records(subject_ref)",
+        "CREATE INDEX ON photo.privacy_retained_records(retain_until) WHERE erased_at IS NULL"
+      ],
+      "append_only": false,
+      "acl": {"photo_fn_owner": ["SELECT","INSERT","UPDATE"]},
+      "rls": "force_trusted_functions"
+    }
+  ]
 }

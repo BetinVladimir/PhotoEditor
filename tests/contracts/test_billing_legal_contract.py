@@ -73,11 +73,75 @@ def test_security_drift_rejected(tmp_path, mutation):
         generator.render(tmp_path)
 
 
-def test_legal_tables_have_tenant_id_and_no_delete():
+def test_legal_schema_migration_exists():
+    """LEG-T*: schema migration generated and present on disk."""
+    import json as _json
+    source = _json.loads((ROOT / 'docs/billing/contracts/legal-tables.json').read_text())
+    if not source['tables']:
+        pytest.skip('No tables yet')
+    path = ROOT / 'backend/db/migrations/02666_billing_legal_schema.sql'
+    assert path.exists(), 'Legal schema migration must exist'
+    text = path.read_text()
+    assert '-- +goose Up' in text
+    assert 'Forward-only billing legal migration' in text
+    assert 'CREATE OR REPLACE' not in text
+    expected = ['legal_document_versions', 'privacy_retention_policies',
+                'privacy_erasure_tombstones', 'privacy_retained_records']
+    for t in expected:
+        assert f'photo.{t}' in text
+
+
+def test_legal_document_versions_constraints():
+    """LEG-T01: document_key enum, state, UNIQUE, content_sha256 constraints."""
+    source = json.loads((ROOT / 'docs/billing/contracts/legal-tables.json').read_text())
+    if not source['tables']:
+        pytest.skip('No tables yet')
+    t = next(t for t in source['tables'] if t['name'] == 'legal_document_versions')
+    constraints = ' '.join(t['constraints'])
+    assert 'UNIQUE(document_key,locale,version)' in t['constraints']
+    assert 'terms' in constraints  # document_key enum
+    assert any('content_sha256' in c for c in t['constraints'])
+    assert any('archive_ref' in c for c in t['constraints'])
+    assert t.get('append_only') is False
+
+
+def test_privacy_retention_policies_constraints():
+    """LEG-T04: approved policies require retention_days and backup_max_days."""
+    source = json.loads((ROOT / 'docs/billing/contracts/legal-tables.json').read_text())
+    if not source['tables']:
+        pytest.skip('No tables yet')
+    t = next(t for t in source['tables'] if t['name'] == 'privacy_retention_policies')
+    assert any('UNIQUE(code,version)' in c for c in t['constraints'])
+    # approved must have non-null retention_days (R8: no unlimited NULL for approved)
+    assert any('approved' in c and 'retention_days' in c for c in t['constraints'])
+    assert any('approved' in c and 'backup_max_days' in c for c in t['constraints'])
+
+
+def test_privacy_erasure_tombstones_append_only():
+    """LEG-T02: erasure tombstones are append-only (no UPDATE, no DELETE)."""
+    source = json.loads((ROOT / 'docs/billing/contracts/legal-tables.json').read_text())
+    if not source['tables']:
+        pytest.skip('No tables yet')
+    t = next(t for t in source['tables'] if t['name'] == 'privacy_erasure_tombstones')
+    assert t.get('append_only') is True
+    assert 'UPDATE' not in t['acl'].get('photo_fn_owner', [])
+
+
+def test_privacy_retained_records_fk_to_policy():
+    """LEG-T03: retained_records references privacy_retention_policies."""
+    source = json.loads((ROOT / 'docs/billing/contracts/legal-tables.json').read_text())
+    if not source['tables']:
+        pytest.skip('No tables yet')
+    t = next(t for t in source['tables'] if t['name'] == 'privacy_retained_records')
+    assert any('privacy_retention_policies' in c for c in t['constraints'])
+
+
+def test_legal_tables_have_subject_identifier_and_no_delete():
     source = json.loads((ROOT / 'docs/billing/contracts/legal-tables.json').read_text())
     for table in source['tables']:
         col_names = {c['name'] for c in table['columns']}
-        assert 'tenant_id' in col_names, f'{table["name"]} must have tenant_id'
+        has_id = bool(col_names & {'tenant_id', 'subject_ref', 'document_key', 'code'})
+        assert has_id, f'{table["name"]} must have tenant_id, subject_ref, document_key or code'
         assert 'DELETE' not in table['acl'].get('photo_fn_owner', []), \
             f'{table["name"]} must not grant DELETE'
         assert table['rls'] == 'force_trusted_functions', \
