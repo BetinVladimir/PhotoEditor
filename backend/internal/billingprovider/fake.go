@@ -23,6 +23,8 @@ type FakeProvider struct {
 	counter int
 
 	idempotency   map[string]idempotencyRecord // key → record
+	products      map[string]Product
+	prices        map[string]Price
 	customers     map[string]Customer
 	portalSess    map[string]PortalSession
 	checkouts     map[string]CheckoutSession
@@ -35,6 +37,8 @@ type FakeProvider struct {
 func NewFakeProvider() *FakeProvider {
 	return &FakeProvider{
 		idempotency:   make(map[string]idempotencyRecord),
+		products:      make(map[string]Product),
+		prices:        make(map[string]Price),
 		customers:     make(map[string]Customer),
 		portalSess:    make(map[string]PortalSession),
 		checkouts:     make(map[string]CheckoutSession),
@@ -63,6 +67,67 @@ func (f *FakeProvider) checkIdempotency(key, hash, kind string) (string, bool, e
 
 func (f *FakeProvider) registerIdempotency(key, hash, objectID, kind string) {
 	f.idempotency[key] = idempotencyRecord{requestHash: hash, objectID: objectID, kind: kind}
+}
+
+// CreateProduct creates a product or replays the existing one for the key.
+func (f *FakeProvider) CreateProduct(_ context.Context, key, requestHash string, params CreateProductParams) (Product, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if existingID, exists, err := f.checkIdempotency(key, requestHash, "product"); err != nil {
+		return Product{}, err
+	} else if exists {
+		return f.products[existingID], nil
+	}
+	id := f.nextID("prod")
+	p := Product{ID: id, Name: params.Name, Description: params.Description, CreatedAt: time.Now()}
+	f.products[id] = p
+	f.registerIdempotency(key, requestHash, id, "product")
+	return p, nil
+}
+
+// GetProduct retrieves a product by ID.
+func (f *FakeProvider) GetProduct(_ context.Context, id string) (Product, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	p, ok := f.products[id]
+	if !ok {
+		return Product{}, ErrNotFound{ID: id}
+	}
+	return p, nil
+}
+
+// CreatePrice creates a price or replays the existing one for the key.
+func (f *FakeProvider) CreatePrice(_ context.Context, key, requestHash string, params CreatePriceParams) (Price, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if existingID, exists, err := f.checkIdempotency(key, requestHash, "price"); err != nil {
+		return Price{}, err
+	} else if exists {
+		return f.prices[existingID], nil
+	}
+	id := f.nextID("price")
+	p := Price{
+		ID:          id,
+		ProductID:   params.ProductID,
+		AmountMinor: params.AmountMinor,
+		Currency:    params.Currency,
+		Interval:    params.Interval,
+		CreatedAt:   time.Now(),
+	}
+	f.prices[id] = p
+	f.registerIdempotency(key, requestHash, id, "price")
+	return p, nil
+}
+
+// GetPrice retrieves a price by ID.
+func (f *FakeProvider) GetPrice(_ context.Context, id string) (Price, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	p, ok := f.prices[id]
+	if !ok {
+		return Price{}, ErrNotFound{ID: id}
+	}
+	return p, nil
 }
 
 // CreateCustomer creates a new customer or replays the existing one for the key.

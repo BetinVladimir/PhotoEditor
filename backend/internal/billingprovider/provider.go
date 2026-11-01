@@ -7,6 +7,40 @@ import (
 	"time"
 )
 
+// Product is a billing provider product (plan catalog entry).
+type Product struct {
+	ID          string
+	Name        string
+	Description string
+	CreatedAt   time.Time
+}
+
+// CreateProductParams holds parameters for product creation.
+type CreateProductParams struct {
+	Name        string
+	Description string
+	Metadata    map[string]string
+}
+
+// Price is a billing provider price for a product.
+type Price struct {
+	ID          string
+	ProductID   string
+	AmountMinor int64  // in smallest currency unit (e.g. cents)
+	Currency    string // ISO 4217 lowercase
+	Interval    string // "month" or "year"
+	CreatedAt   time.Time
+}
+
+// CreatePriceParams holds parameters for price creation.
+type CreatePriceParams struct {
+	ProductID   string
+	AmountMinor int64
+	Currency    string
+	Interval    string
+	Metadata    map[string]string
+}
+
 // Customer is a billing provider customer record.
 type Customer struct {
 	ID        string
@@ -114,12 +148,19 @@ type ErrUnavailable struct{}
 func (ErrUnavailable) Error() string { return "BILLING_UNAVAILABLE" }
 
 // Provider is the interface for external payment provider operations.
+// Product and Price operations support catalog provisioning.
 // All mutating calls accept a providerRequestKey for idempotency:
 // identical key + identical hash → same response;
 // identical key + different hash → ErrIdempotencyConflict.
 // A timeout after a successful call must be recovered by reading the
-// object, not by retrying with a new key (criteria D).
+// object, not by retrying with a new key.
 type Provider interface {
+	// Product/Price provisioning
+	CreateProduct(ctx context.Context, key, requestHash string, params CreateProductParams) (Product, error)
+	GetProduct(ctx context.Context, id string) (Product, error)
+	CreatePrice(ctx context.Context, key, requestHash string, params CreatePriceParams) (Price, error)
+	GetPrice(ctx context.Context, id string) (Price, error)
+
 	// Customer operations
 	CreateCustomer(ctx context.Context, key, requestHash string, params CreateCustomerParams) (Customer, error)
 	GetCustomer(ctx context.Context, id string) (Customer, error)
@@ -149,6 +190,18 @@ type Provider interface {
 // incomplete.
 type UnavailableProvider struct{}
 
+func (UnavailableProvider) CreateProduct(_ context.Context, _, _ string, _ CreateProductParams) (Product, error) {
+	return Product{}, ErrUnavailable{}
+}
+func (UnavailableProvider) GetProduct(_ context.Context, _ string) (Product, error) {
+	return Product{}, ErrUnavailable{}
+}
+func (UnavailableProvider) CreatePrice(_ context.Context, _, _ string, _ CreatePriceParams) (Price, error) {
+	return Price{}, ErrUnavailable{}
+}
+func (UnavailableProvider) GetPrice(_ context.Context, _ string) (Price, error) {
+	return Price{}, ErrUnavailable{}
+}
 func (UnavailableProvider) CreateCustomer(_ context.Context, _, _ string, _ CreateCustomerParams) (Customer, error) {
 	return Customer{}, ErrUnavailable{}
 }
