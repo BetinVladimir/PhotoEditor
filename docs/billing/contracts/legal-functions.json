@@ -1,5 +1,8 @@
 {
   "schema_version": 1,
   "stage": "legal_scaffold",
-  "functions": []
+  "functions": [
+    {"signature": "account_legal_set_hash(uuid[])", "owner": "photo_fn_owner", "execute_roles": []},
+    {"signature": "account_accept_legal(uuid,uuid,uuid,jsonb,jsonb,text)", "owner": "photo_fn_owner", "execute_roles": ["photo_auth"]}
+  ]
 }

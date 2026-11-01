@@ -192,6 +192,44 @@ def test_privacy_retained_records_fk_to_policy():
     assert any('privacy_retention_policies' in c for c in t['constraints'])
 
 
+def test_legal_functions_acl_json_matches_grant():
+    """LEG-F01: execute_roles in JSON must exactly equal GRANT EXECUTE in migration SQL."""
+    funcs = json.loads((ROOT / 'docs/billing/contracts/legal-functions.json').read_text())
+    if not funcs['functions']:
+        pytest.skip('No functions yet')
+    migration = ROOT / 'backend/db/migrations' / generator.FUNCTIONS
+    assert migration.exists(), f'Functions migration {generator.FUNCTIONS} missing'
+    text = migration.read_text()
+    for f in funcs['functions']:
+        sig = f['signature']
+        roles = set(f.get('execute_roles', []))
+        # Check each expected role has a GRANT line
+        for role in roles:
+            assert f'GRANT EXECUTE ON FUNCTION photo.{sig} TO {role};' in text, \
+                f'Missing GRANT for {sig} → {role}'
+        # Check REVOKE ALL is present (R16)
+        assert f'REVOKE ALL ON FUNCTION photo.{sig} FROM PUBLIC;' in text, \
+            f'Missing REVOKE ALL for {sig}'
+        # Check no extra grants exist for this signature (grant matrix must match exactly)
+        import re as _re
+        actual_grants = set(_re.findall(
+            rf'GRANT EXECUTE ON FUNCTION photo\.{_re.escape(sig)} TO (\w+);', text))
+        assert actual_grants == roles, \
+            f'Grant mismatch for {sig}: JSON={roles}, SQL={actual_grants}'
+
+
+def test_legal_functions_have_security_definer():
+    """LEG-F01: all functions in SQL have SECURITY DEFINER SET search_path (R16)."""
+    funcs = json.loads((ROOT / 'docs/billing/contracts/legal-functions.json').read_text())
+    if not funcs['functions']:
+        pytest.skip('No functions yet')
+    src = (ROOT / 'docs/billing/contracts/legal-functions.sql').read_text()
+    for f in funcs['functions']:
+        name = f['signature'].split('(')[0]
+        assert 'SECURITY DEFINER SET search_path=pg_catalog,photo' in src, \
+            f'Function {name} missing SECURITY DEFINER'
+
+
 def test_legal_tables_have_subject_identifier_and_no_delete():
     source = json.loads((ROOT / 'docs/billing/contracts/legal-tables.json').read_text())
     SUBJECT_COLS = {'tenant_id', 'subject_ref', 'document_key', 'code', 'user_id', 'privacy_case_id'}
