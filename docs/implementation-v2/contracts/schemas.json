@@ -31050,6 +31050,1426 @@
           "$ref": "#/$defs/PositiveInt64Revision"
         }
       }
+    },
+    "BillingMoney": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "currency": {
+          "type": "string",
+          "enum": [
+            "EUR"
+          ]
+        },
+        "net_minor": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "tax_minor": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "gross_minor": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "tax_mode": {
+          "type": "string",
+          "enum": [
+            "test_bg20",
+            "approved"
+          ]
+        },
+        "tax_lines": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "rate_decimal": {
+                "type": "string"
+              },
+              "amount_minor": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]*)$"
+              }
+            },
+            "required": [
+              "code",
+              "rate_decimal",
+              "amount_minor"
+            ]
+          }
+        }
+      },
+      "required": [
+        "currency",
+        "net_minor",
+        "tax_minor",
+        "gross_minor",
+        "tax_mode",
+        "tax_lines"
+      ]
+    },
+    "BillingPlanLimit": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "resource_code": {
+          "type": "string"
+        },
+        "quantity": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "credit",
+            "byte",
+            "count"
+          ]
+        }
+      },
+      "required": [
+        "resource_code",
+        "quantity",
+        "unit"
+      ]
+    },
+    "BillingPlanEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "version_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "code": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "price": {
+          "$ref": "#/$defs/BillingMoney"
+        },
+        "limits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BillingPlanLimit"
+          }
+        },
+        "can_purchase": {
+          "type": "boolean"
+        },
+        "unavailable_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "version_id",
+        "code",
+        "label",
+        "price",
+        "limits",
+        "can_purchase",
+        "unavailable_reason"
+      ]
+    },
+    "BillingCatalogQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "locale": {
+          "type": "string",
+          "enum": [
+            "en",
+            "ru",
+            "bg"
+          ]
+        },
+        "currency": {
+          "type": "string",
+          "enum": [
+            "EUR"
+          ]
+        }
+      },
+      "required": [
+        "locale",
+        "currency"
+      ]
+    },
+    "BillingCatalog": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "catalog_revision": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "currency": {
+          "type": "string",
+          "enum": [
+            "EUR"
+          ]
+        },
+        "plans": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BillingPlanEntry"
+          }
+        }
+      },
+      "required": [
+        "catalog_revision",
+        "scope",
+        "currency",
+        "plans"
+      ]
+    },
+    "BillingResourceBalance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "resource_code": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "credit",
+            "byte",
+            "count"
+          ]
+        },
+        "granted": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "consumed": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "allocated": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "available": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "overrun": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "blocked": {
+          "type": "boolean"
+        },
+        "blocked_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "next_expiry_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "as_of": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "resource_code",
+        "unit",
+        "granted",
+        "consumed",
+        "allocated",
+        "available",
+        "overrun",
+        "blocked",
+        "blocked_reason",
+        "next_expiry_at",
+        "as_of"
+      ]
+    },
+    "BillingStorageBalance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "included": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "additional": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "total": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "committed": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "reserved": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "free": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "over_capacity": {
+          "type": "boolean"
+        },
+        "categories": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "original": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$"
+            },
+            "result": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$"
+            },
+            "preview": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$"
+            },
+            "archive": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$"
+            }
+          },
+          "required": [
+            "original",
+            "result",
+            "preview",
+            "archive"
+          ]
+        },
+        "policy_revision": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "as_of": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "included",
+        "additional",
+        "total",
+        "committed",
+        "reserved",
+        "free",
+        "over_capacity",
+        "categories",
+        "policy_revision",
+        "as_of"
+      ]
+    },
+    "BillingSubscriptionItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "resource_code": {
+          "type": "string"
+        },
+        "quantity": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "price": {
+          "$ref": "#/$defs/BillingMoney"
+        }
+      },
+      "required": [
+        "id",
+        "resource_code",
+        "quantity",
+        "price"
+      ]
+    },
+    "BillingPendingChange": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "type": {
+          "type": "string"
+        },
+        "effective_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "effective_at"
+      ]
+    },
+    "BillingSummaryActions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "can_upgrade": {
+          "type": "boolean"
+        },
+        "can_downgrade": {
+          "type": "boolean"
+        },
+        "can_cancel": {
+          "type": "boolean"
+        },
+        "can_reactivate": {
+          "type": "boolean"
+        },
+        "can_purchase_addons": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "can_upgrade",
+        "can_downgrade",
+        "can_cancel",
+        "can_reactivate",
+        "can_purchase_addons"
+      ]
+    },
+    "BillingSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "entitlement_revision": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "plan": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*$"
+            },
+            "name_key": {
+              "type": "string"
+            },
+            "custom": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "code",
+            "version",
+            "name_key",
+            "custom"
+          ]
+        },
+        "entitlement_state": {
+          "type": "string"
+        },
+        "billing_mode": {
+          "type": "string"
+        },
+        "period": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "starts_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "ends_at": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "required": [
+            "starts_at",
+            "ends_at"
+          ]
+        },
+        "balances": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BillingResourceBalance"
+          }
+        },
+        "storage": {
+          "$ref": "#/$defs/BillingStorageBalance"
+        },
+        "recurring_total": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/BillingMoney"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BillingSubscriptionItem"
+          }
+        },
+        "pending_change": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/BillingPendingChange"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "actions": {
+          "$ref": "#/$defs/BillingSummaryActions"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "revision",
+        "entitlement_revision",
+        "plan",
+        "entitlement_state",
+        "billing_mode",
+        "period",
+        "balances",
+        "storage",
+        "recurring_total",
+        "items",
+        "pending_change",
+        "actions"
+      ]
+    },
+    "BillingUsageQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "resource_code": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "cursor": {
+          "type": "string"
+        }
+      },
+      "required": []
+    },
+    "BillingUsageSummaryResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "balances": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BillingResourceBalance"
+          }
+        },
+        "storage": {
+          "$ref": "#/$defs/BillingStorageBalance"
+        },
+        "as_of": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "summary_revision": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        }
+      },
+      "required": [
+        "balances",
+        "storage",
+        "as_of",
+        "summary_revision"
+      ]
+    },
+    "BillingBucketsQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "resource_code": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "cursor": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "resource_code"
+      ]
+    },
+    "BillingBucketEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "resource": {
+          "type": "string"
+        },
+        "remaining": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "allocated": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "consumed": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "expires_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "expiry_policy": {
+          "type": "string"
+        },
+        "source_label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "resource",
+        "remaining",
+        "allocated",
+        "consumed",
+        "expires_at",
+        "expiry_policy",
+        "source_label"
+      ]
+    },
+    "BillingUsagePage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BillingBucketEntry"
+          }
+        },
+        "next_cursor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "summary_revision": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        }
+      },
+      "required": [
+        "items",
+        "next_cursor",
+        "summary_revision"
+      ]
+    },
+    "BillingQuoteLineEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ordinal": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "target_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "pack_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "resource_code": {
+          "type": "string"
+        },
+        "quantity": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "effective_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expires_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "price": {
+          "$ref": "#/$defs/BillingMoney"
+        }
+      },
+      "required": [
+        "ordinal",
+        "target_id",
+        "pack_count",
+        "resource_code",
+        "quantity",
+        "effective_at",
+        "expires_at",
+        "price"
+      ]
+    },
+    "BillingQuote": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "summary_revision": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "request_hash": {
+          "type": "string"
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BillingQuoteLineEntry"
+          }
+        },
+        "total": {
+          "$ref": "#/$defs/BillingMoney"
+        },
+        "effective_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "provider_action": {
+          "type": "string",
+          "enum": [
+            "checkout",
+            "new_invoice",
+            "none"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "expires_at",
+        "summary_revision",
+        "request_hash",
+        "lines",
+        "total",
+        "effective_at",
+        "provider_action"
+      ]
+    },
+    "BillingQuoteLineInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "offer_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "pack_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        }
+      },
+      "required": [
+        "offer_id",
+        "pack_count"
+      ]
+    },
+    "BillingQuoteRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "target_plan_version_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BillingQuoteLineInput"
+          },
+          "maxItems": 20
+        }
+      },
+      "required": [
+        "kind"
+      ]
+    },
+    "BillingOrderRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "quote_id": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "required": [
+        "quote_id"
+      ]
+    },
+    "BillingOrderAccepted": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "order_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "order_id",
+        "status"
+      ]
+    },
+    "BillingOrderAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "kind",
+        "url",
+        "expires_at"
+      ]
+    },
+    "BillingOrder": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "status": {
+          "type": "string"
+        },
+        "payment_status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "succeeded",
+            "failed",
+            "refunded"
+          ]
+        },
+        "fulfillment_status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "applying",
+            "applied",
+            "compensating",
+            "closed"
+          ]
+        },
+        "total": {
+          "$ref": "#/$defs/BillingMoney"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "action": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/BillingOrderAction"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "payment_status",
+        "fulfillment_status",
+        "total",
+        "created_at",
+        "updated_at",
+        "action"
+      ]
+    },
+    "BillingChangeRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "quote_id": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "required": [
+        "quote_id"
+      ]
+    },
+    "BillingChange": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "type": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "effective_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "order_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uuid"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "status",
+        "effective_at",
+        "revision",
+        "order_id"
+      ]
+    },
+    "BillingChangeCancelRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "BillingPortalRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "return_route": {
+          "type": "string",
+          "enum": [
+            "billing",
+            "profile"
+          ]
+        }
+      },
+      "required": [
+        "return_route"
+      ]
+    },
+    "BillingPortalAccepted": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "portal_action_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "portal_action_id",
+        "status"
+      ]
+    },
+    "StripeWebhookBody": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Raw Stripe webhook body; validated by signature, not schema."
+    },
+    "StripeWebhookReceived": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "received": {
+          "type": "boolean",
+          "enum": [
+            true
+          ]
+        }
+      },
+      "required": [
+        "received"
+      ]
+    },
+    "LegalRequirementsQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "locale": {
+          "type": "string",
+          "enum": [
+            "en",
+            "ru",
+            "bg"
+          ]
+        },
+        "account_kind": {
+          "type": "string",
+          "enum": [
+            "personal",
+            "business"
+          ]
+        }
+      },
+      "required": [
+        "locale",
+        "account_kind"
+      ]
+    },
+    "LegalDocumentEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "key": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "content_sha256": {
+          "type": "string"
+        },
+        "required_action": {
+          "type": "string",
+          "enum": [
+            "accepted",
+            "acknowledged"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "version",
+        "url",
+        "content_sha256",
+        "required_action"
+      ]
+    },
+    "LegalOptionalPurpose": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "enabled_by_default": {
+          "type": "boolean",
+          "enum": [
+            false
+          ]
+        }
+      },
+      "required": [
+        "code",
+        "enabled_by_default"
+      ]
+    },
+    "LegalRequirementSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "set_hash": {
+          "type": "string"
+        },
+        "locale": {
+          "type": "string"
+        },
+        "documents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LegalDocumentEntry"
+          }
+        },
+        "optional_purposes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LegalOptionalPurpose"
+          }
+        }
+      },
+      "required": [
+        "set_hash",
+        "locale",
+        "documents",
+        "optional_purposes"
+      ]
+    },
+    "LegalAcceptanceEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "document_version_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "accepted",
+            "acknowledged"
+          ]
+        }
+      },
+      "required": [
+        "document_version_id",
+        "action"
+      ]
+    },
+    "LegalAcceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "document_set_hash": {
+          "type": "string"
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LegalAcceptanceEvent"
+          },
+          "minItems": 1
+        },
+        "client_event_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "document_set_hash",
+        "events",
+        "client_event_id"
+      ]
+    },
+    "LegalAcceptanceResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "onboarding_state": {
+          "type": "string",
+          "enum": [
+            "complete",
+            "pending"
+          ]
+        },
+        "accepted_set_hash": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        }
+      },
+      "required": [
+        "onboarding_state",
+        "accepted_set_hash",
+        "revision"
+      ]
+    },
+    "PrivacyPreferences": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "revision": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "analytics": {
+          "type": "boolean"
+        },
+        "marketing": {
+          "type": "boolean"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "revision",
+        "analytics",
+        "marketing",
+        "updated_at"
+      ]
+    },
+    "PrivacyPreferencesUpdate": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "analytics": {
+          "type": "boolean"
+        },
+        "marketing": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "minProperties": 1
+    },
+    "DeletionOwnershipResolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "tenant_revision": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "close",
+            "transfer"
+          ]
+        },
+        "transfer_receipt_id": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "tenant_revision",
+        "action"
+      ]
+    },
+    "DeletionRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "privacy_case_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "recent_auth_grant": {
+          "type": "string"
+        },
+        "ownership_resolution": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DeletionOwnershipResolution"
+          }
+        }
+      },
+      "required": [
+        "privacy_case_id",
+        "recent_auth_grant",
+        "ownership_resolution"
+      ]
+    },
+    "DeletionAccepted": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "status": {
+          "type": "string"
+        },
+        "deadline_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status_capability": {
+          "type": "string"
+        },
+        "status_expires_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "request_id",
+        "status",
+        "deadline_at",
+        "status_capability",
+        "status_expires_at"
+      ]
+    },
+    "DeletionStatusStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "category",
+        "state"
+      ]
+    },
+    "DeletionStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DeletionStatusStep"
+          }
+        },
+        "retained_categories": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "category": {
+                "type": "string"
+              },
+              "deadline": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "category",
+              "deadline"
+            ]
+          }
+        }
+      },
+      "required": [
+        "state",
+        "steps",
+        "retained_categories"
+      ]
     }
   }
 }

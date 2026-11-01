@@ -8,11 +8,14 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"net/http"
 	"photoeditor/backend/internal/auth"
+	"photoeditor/backend/internal/billing"
 	"photoeditor/backend/internal/config"
 	"photoeditor/backend/internal/contactsheet"
 	"photoeditor/backend/internal/domain"
+	"photoeditor/backend/internal/legal"
 	"photoeditor/backend/internal/media"
 	"photoeditor/backend/internal/portal"
+	"photoeditor/backend/internal/privacy"
 	"photoeditor/backend/internal/review"
 	"photoeditor/backend/internal/semanticreview"
 	"photoeditor/backend/internal/upload"
@@ -91,6 +94,15 @@ type Server struct {
 	AuthoredRegionQueue              AuthoredRegionQueue
 	AuthoredRegionMedia              AuthoredRegionMediaReader
 	AuthoredFaceMedia v2render.AuthoredFaceMediaService
+	BillingCatalog    billing.CatalogService
+	BillingSummary    billing.BillingSummaryService
+	BillingQuotes     billing.QuoteService
+	BillingOrders     billing.OrderService
+	BillingChanges    billing.ChangeService
+	BillingPortal     billing.PortalService
+	BillingWebhook    billing.WebhookIngressService
+	Legal             legal.Service
+	Privacy           privacy.Service
 }
 
 func (s *Server) Routes() http.Handler {
@@ -161,6 +173,7 @@ func (s *Server) Routes() http.Handler {
 	if s.Portal != nil {
 		s.portalRoutes(r)
 	}
+	s.billingAPIRoutes(r)
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) { writeError(w, r, domain.NewError("NOT_FOUND", 404)) })
 	return r
 }

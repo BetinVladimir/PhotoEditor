@@ -1539,6 +1539,181 @@
       "idempotency": false,
       "revision_required": false,
       "description": "Current project-authorized quota counters and consumed download authorizations; no-store, no guest identities or secrets."
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/billing/catalog",
+      "authorization": "public",
+      "request": "BillingCatalogQuery",
+      "response": "BillingCatalog",
+      "status": 200,
+      "handler": "Billing.GetCatalog",
+      "idempotency": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/billing",
+      "authorization": "owner",
+      "request": "Empty",
+      "response": "BillingSummary",
+      "status": 200,
+      "handler": "Billing.GetSummary",
+      "idempotency": false,
+      "revision_required": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/billing/usage",
+      "authorization": "owner",
+      "request": "BillingUsageQuery",
+      "response": "BillingUsageSummaryResponse",
+      "status": 200,
+      "handler": "Billing.GetUsage",
+      "idempotency": false,
+      "revision_required": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/billing/buckets",
+      "authorization": "owner",
+      "request": "BillingBucketsQuery",
+      "response": "BillingUsagePage",
+      "status": 200,
+      "handler": "Billing.GetBuckets",
+      "idempotency": false,
+      "revision_required": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/billing/quotes",
+      "authorization": "owner",
+      "request": "BillingQuoteRequest",
+      "response": "BillingQuote",
+      "status": 201,
+      "handler": "Billing.CreateQuote",
+      "idempotency": true,
+      "revision_required": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/billing/orders",
+      "authorization": "owner",
+      "request": "BillingOrderRequest",
+      "response": "BillingOrderAccepted",
+      "status": 202,
+      "handler": "Billing.CreateOrder",
+      "idempotency": true,
+      "revision_required": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/billing/orders/{order}",
+      "authorization": "owner",
+      "request": "Empty",
+      "response": "BillingOrder",
+      "status": 200,
+      "handler": "Billing.GetOrder",
+      "idempotency": false,
+      "revision_required": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/billing/changes",
+      "authorization": "owner",
+      "request": "BillingChangeRequest",
+      "response": "BillingChange",
+      "status": 202,
+      "handler": "Billing.CreateChange",
+      "idempotency": true,
+      "revision_required": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/billing/changes/{change}/cancel",
+      "authorization": "owner",
+      "request": "BillingChangeCancelRequest",
+      "response": "BillingChange",
+      "status": 200,
+      "handler": "Billing.CancelChange",
+      "idempotency": true,
+      "revision_required": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/billing/portal",
+      "authorization": "owner",
+      "request": "BillingPortalRequest",
+      "response": "BillingPortalAccepted",
+      "status": 202,
+      "handler": "Billing.CreatePortalSession",
+      "idempotency": true,
+      "revision_required": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/webhooks/stripe/{account}",
+      "authorization": "webhook",
+      "request": "StripeWebhookBody",
+      "response": "StripeWebhookReceived",
+      "status": 200,
+      "handler": "Billing.ReceiveStripeWebhook",
+      "idempotency": false,
+      "revision_required": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/legal/requirements",
+      "authorization": "public",
+      "request": "LegalRequirementsQuery",
+      "response": "LegalRequirementSet",
+      "status": 200,
+      "handler": "Legal.GetRequirements",
+      "idempotency": false,
+      "revision_required": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/legal/acceptances",
+      "authorization": "user",
+      "request": "LegalAcceptance",
+      "response": "LegalAcceptanceResult",
+      "status": 200,
+      "handler": "Legal.RecordAcceptance",
+      "idempotency": true,
+      "revision_required": false
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/me/privacy",
+      "authorization": "user",
+      "request": "PrivacyPreferencesUpdate",
+      "response": "PrivacyPreferences",
+      "status": 200,
+      "handler": "Privacy.UpdatePreferences",
+      "idempotency": true,
+      "revision_required": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/deletion",
+      "authorization": "user",
+      "request": "DeletionRequest",
+      "response": "DeletionAccepted",
+      "status": 202,
+      "handler": "Privacy.RequestDeletion",
+      "idempotency": true,
+      "revision_required": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/deletion/{request}/status",
+      "authorization": "status_token",
+      "request": "Empty",
+      "response": "DeletionStatus",
+      "status": 200,
+      "handler": "Privacy.GetDeletionStatus",
+      "idempotency": false,
+      "revision_required": false
     }
   ]
 }
