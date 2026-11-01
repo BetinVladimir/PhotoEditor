@@ -1078,4 +1078,10 @@ export class OwnerAPI {
   async events(cursor?:string,signal?:AbortSignal){signal?.throwIfAborted();const after=cursor===undefined?undefined:eventCursor(cursor);const raw=await this.get<unknown>(`/api/v1/tenants/{t}/events${after!==undefined?`?after=${encodeURIComponent(after)}`:""}`,signal);signal?.throwIfAborted();return readTenantEventPage(raw,after);}
   // billing summary — endpoint group "api" not yet live; mocked in billing tests.
   async billingSummary(signal?:AbortSignal){signal?.throwIfAborted();return this.get<unknown>('/api/v1/tenants/{t}/billing/summary',signal);}
+  // billing usage — endpoint group "api" not yet live; mocked in billing tests.
+  async billingUsage(signal?:AbortSignal){signal?.throwIfAborted();return this.get<unknown>('/api/v1/tenants/{t}/billing/usage',signal);}
+  // billing catalog — endpoint group "api" not yet live; mocked in billing tests.
+  async billingCatalog(signal?:AbortSignal){signal?.throwIfAborted();return this.get<unknown>('/api/v1/tenants/{t}/billing/catalog',signal);}
+  // billing addon offers — endpoint group "api" not yet live; mocked in billing tests.
+  async billingAddonOffers(signal?:AbortSignal){signal?.throwIfAborted();return this.get<unknown>('/api/v1/tenants/{t}/billing/addon-offers',signal);}
 }
