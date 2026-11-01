@@ -289,9 +289,12 @@ func (f *FakeProvider) ParseEvent(payload []byte, signature, secret string) (Eve
 	if signature == "" {
 		return Event{}, fmt.Errorf("STRIPE_SIGNATURE_MISSING")
 	}
-	// Fake: accept any non-empty signature when secret == "test_secret".
-	if secret != "test_secret" && signature != "valid" {
+	// Fake: only the literal "valid" is accepted as a valid test signature.
+	if signature != "valid" {
 		return Event{}, fmt.Errorf("STRIPE_SIGNATURE_INVALID")
+	}
+	if secret == "" {
+		return Event{}, fmt.Errorf("STRIPE_SECRET_MISSING")
 	}
 	f.mu.Lock()
 	defer f.mu.Unlock()
