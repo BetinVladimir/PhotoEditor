@@ -1,3 +1,4 @@
+import {formatMoney as formatBillingMoney} from '../../src/billing-format';
 import {useLocale} from '../../src/locale-context';
 import {Card, Text} from 'react-native-paper';
 import {useMemo} from 'react';
@@ -25,7 +26,7 @@ const STATE_KEYS: Record<string, keyof ReturnType<ReturnType<typeof useLocale>['
 void STATE_KEYS; // unused — state label mapped inline
 
 export default function BillingOrderStatus() {
-  const {t} = useLocale();
+  const {t,locale} = useLocale();
   // id is the order ID used as API parameter only (Criteria E).
   const {tenant, id} = useLocalSearchParams<{tenant: string; id: string}>();
   const auth = useAuth();
@@ -56,7 +57,7 @@ export default function BillingOrderStatus() {
 
   const formatMoney = (m: OrderMoney | null | undefined) => {
     if (!m) return '';
-    return `${m.gross_minor} ${m.currency.toUpperCase()}`;
+    return `${formatBillingMoney(m.gross_minor,m.currency,locale)}`;
   };
 
   return (

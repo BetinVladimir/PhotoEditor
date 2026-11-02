@@ -1,0 +1,51 @@
+CREATE TABLE photo.account_legal_events (
+ event_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+ user_id uuid REFERENCES photo.users(id) ON DELETE SET NULL,
+ tenant_id uuid REFERENCES photo.tenants(id) ON DELETE SET NULL,
+ subject_ref uuid NOT NULL,
+ document_version_id uuid REFERENCES photo.legal_document_versions(document_id),
+ purpose text NOT NULL CHECK(purpose IN ('contract','privacy_notice','cookie_analytics','marketing')),
+ action text NOT NULL CHECK(action IN ('accepted','acknowledged','granted','revoked')),
+ occurred_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+ capture_channel text NOT NULL CHECK(capture_channel IN ('web','native')),
+ client_event_id text NOT NULL CHECK(length(client_event_id) BETWEEN 1 AND 128),
+ evidence_hash bytea NOT NULL CHECK(octet_length(evidence_hash)=32),
+ UNIQUE(subject_ref,client_event_id,document_version_id,purpose,action),
+ CHECK((purpose='contract' AND action='accepted' AND document_version_id IS NOT NULL)
+ OR (purpose='privacy_notice' AND action='acknowledged' AND document_version_id IS NOT NULL)
+ OR (purpose IN ('cookie_analytics','marketing') AND action IN ('granted','revoked')))
+);
+CREATE UNIQUE INDEX account_optional_event_identity ON photo.account_legal_events(subject_ref,client_event_id,purpose,action) WHERE document_version_id IS NULL;
+CREATE TABLE photo.user_privacy_preferences (
+ user_id uuid PRIMARY KEY REFERENCES photo.users(id),
+ subject_ref uuid NOT NULL UNIQUE DEFAULT gen_random_uuid(),
+ analytics boolean NOT NULL DEFAULT false,
+ marketing boolean NOT NULL DEFAULT false,
+ preference_version bigint NOT NULL DEFAULT 1 CHECK(preference_version>0),
+ last_event_id uuid REFERENCES photo.account_legal_events(event_id),
+ updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+ revision bigint NOT NULL DEFAULT 1 CHECK(revision>0)
+);
+CREATE TABLE photo.privacy_preference_requests (
+ request_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+ user_id uuid NOT NULL REFERENCES photo.users(id),
+ idempotency_key text NOT NULL CHECK(length(idempotency_key) BETWEEN 1 AND 128),
+ request_hash bytea NOT NULL CHECK(octet_length(request_hash)=32),
+ response_revision bigint NOT NULL CHECK(response_revision>0),
+ response_analytics boolean NOT NULL,
+ response_marketing boolean NOT NULL,
+ response_updated_at timestamptz NOT NULL,
+ UNIQUE(user_id,idempotency_key)
+);
+REVOKE ALL ON photo.account_legal_events,photo.user_privacy_preferences,photo.privacy_preference_requests FROM PUBLIC;
+ALTER TABLE photo.account_legal_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE photo.account_legal_events FORCE ROW LEVEL SECURITY;
+ALTER TABLE photo.user_privacy_preferences ENABLE ROW LEVEL SECURITY;
+ALTER TABLE photo.user_privacy_preferences FORCE ROW LEVEL SECURITY;
+ALTER TABLE photo.privacy_preference_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE photo.privacy_preference_requests FORCE ROW LEVEL SECURITY;
+CREATE POLICY privacy_functions ON photo.account_legal_events TO photo_fn_owner USING(true) WITH CHECK(true);
+CREATE POLICY privacy_functions ON photo.user_privacy_preferences TO photo_fn_owner USING(true) WITH CHECK(true);
+CREATE POLICY privacy_functions ON photo.privacy_preference_requests TO photo_fn_owner USING(true) WITH CHECK(true);
+GRANT SELECT,INSERT ON photo.account_legal_events,photo.privacy_preference_requests TO photo_fn_owner;
+GRANT SELECT,INSERT,UPDATE ON photo.user_privacy_preferences TO photo_fn_owner;

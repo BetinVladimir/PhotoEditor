@@ -47,6 +47,11 @@ describe('formatMoney', () => {
   it('formats EUR cents in English locale', () => {
     expect(formatMoney('1050', 'EUR', 'en-US')).toBe('€10.50');
   });
+  it('preserves the full signed int64 amount without rounding cents',()=>{
+    expect(formatMoney('9223372036854775807','EUR','en-US')).toBe('€92,233,720,368,547,758.07');
+    expect(formatMoney('-1','EUR','en-US')).toBe('-€0.01');
+    expect(formatMoney('-1050','EUR','en-US')).toBe('-€10.50');
+  });
   it('handles zero amount', () => {
     expect(formatMoney('0', 'EUR', 'en-US')).toBe('€0.00');
   });

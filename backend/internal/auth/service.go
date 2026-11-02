@@ -111,6 +111,10 @@ func (s *Service) RequestOTP(ctx context.Context, raw, locale, ip string) (Chall
 }
 
 func (s *Service) requestOTP(ctx context.Context, raw, locale, ip string, receipt *otpRequestReceipt) (Challenge, error) {
+ return s.requestOTPScoped(ctx,raw,locale,ip,receipt,nil)
+}
+
+func (s *Service) requestOTPScoped(ctx context.Context, raw, locale, ip string, receipt *otpRequestReceipt,recent *recentAuthScope) (Challenge, error) {
 	if err := s.valid(); err != nil {
 		return Challenge{}, err
 	}
@@ -122,6 +126,7 @@ func (s *Service) requestOTP(ctx context.Context, raw, locale, ip string, receip
 	var outcome error
 	err = database.InTransaction(ctx, s.DB, func(tx pgx.Tx) (txErr error) {
 		outcome = nil
+ if recent!=nil {if err:=s.lockRecentIdentity(ctx,tx,*recent,email);err!=nil{return err}}
 		if receipt!=nil {
 			prior,e:=lockOTPRequestReceipt(ctx,tx,*receipt);if e!=nil{return e}
 			if prior!=nil{out=*prior;return nil}
@@ -162,12 +167,18 @@ func (s *Service) requestOTP(ctx context.Context, raw, locale, ip string, receip
 		}
 		// A cooldown request still returns an opaque accepted ID and cannot invalidate the previous code.
 		if e == nil && now.Before(last.Add(time.Minute)) {
+ if recent!=nil {failure:=domain.NewError("RATE_LIMITED",429);failure.Args["retry_after_seconds"]=60;outcome=failure}
 			return nil
 		}
-		_, e = tx.Exec(ctx, `INSERT INTO photo.auth_challenges(id,created_at,email_normalized,code_hmac,expires_at,locale,request_ip_hash) VALUES($1,$2,$3,$4,$5,$6,$7)`, id, now, email, MAC(s.Pepper, "otp", id.String(), email, code), expires, locale, MAC(s.Pepper, "ip", ip))
+ challengeMAC:=MAC(s.Pepper,"otp",id.String(),email,code)
+ if recent!=nil {challengeMAC=s.recentOTPHash(id,email,*recent,code)}
+		_, e = tx.Exec(ctx, `INSERT INTO photo.auth_challenges(id,created_at,email_normalized,code_hmac,expires_at,locale,request_ip_hash) VALUES($1,$2,$3,$4,$5,$6,$7)`, id, now, email, challengeMAC, expires, locale, MAC(s.Pepper, "ip", ip))
 		if e != nil {
 			return e
 		}
+ if recent!=nil {
+  if _,err:=tx.Exec(ctx,`SELECT photo.account_bind_recent_auth_challenge($1,$2,$3,$4,$5)`,recent.Who.UserID,recent.Who.SessionID,recent.Who.Epoch,recent.Purpose,id);err!=nil{return err}
+ }
 		var allowed bool
 		e = tx.QueryRow(ctx, `SELECT COALESCE((SELECT status='active' FROM photo.users WHERE email_normalized=$1),$2)`, email, s.Registration).Scan(&allowed)
 		if e != nil {
@@ -185,7 +196,9 @@ func (s *Service) requestOTP(ctx context.Context, raw, locale, ip string, receip
 		if e != nil {
 			return e
 		}
-		body, e := json.Marshal(map[string]string{"kind": "otp", "code": code, "locale": locale})
+		payload:=map[string]string{"kind":"otp","code":code,"locale":locale}
+ if recent!=nil {payload["kind"]="recent_auth";payload["purpose"]=recent.Purpose}
+ body,e:=json.Marshal(payload)
 		if e != nil {
 			return e
 		}

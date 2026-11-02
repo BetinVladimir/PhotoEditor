@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "scope": "recent-auth-hardening",
+  "functions": [
+    {
+      "signature": "account_issue_recent_auth(uuid,uuid,uuid,text,text)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [
+        "photo_auth"
+      ],
+      "preimage_sha256": "9e9b2ee0cf4e11b048df86c65d4e4917b5d439558ad172407cf0adce1291d5ce",
+      "postimage_sha256": "22c30ee3e7f0c388f218d12e6166074c95749eadb3c80a919a65dd0d7cb2ce5f"
+    }
+  ]
+}

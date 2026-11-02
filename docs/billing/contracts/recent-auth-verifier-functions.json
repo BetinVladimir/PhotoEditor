@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "authority": "owner delegated technical contracts 2026-11-01",
+  "schema_sha256": "f3d6cde8c10c8600591ebc33a3691d42da334403554e879aa3026e72df266ea0",
+  "functions": [
+    {
+      "signature": "account_bind_recent_auth_challenge(uuid,uuid,bigint,text,uuid)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [
+        "photo_auth"
+      ]
+    },
+    {
+      "signature": "account_lock_recent_auth_challenge(uuid,uuid,bigint,text,uuid)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [
+        "photo_auth"
+      ]
+    },
+    {
+      "signature": "account_finish_recent_auth_challenge(uuid,uuid,bigint,text,uuid,uuid,bytea,bytea,bytea)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [
+        "photo_auth"
+      ]
+    },
+    {
+      "signature": "account_consume_recent_auth(uuid,uuid,bigint,text,uuid,bytea)",
+      "owner": "photo_fn_owner",
+      "execute_roles": []
+    }
+  ]
+}

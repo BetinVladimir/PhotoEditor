@@ -2507,7 +2507,8 @@
       "package": "V1",
       "success_status": 200,
       "idempotency": false,
-      "description": "Public published plans and topup offers; Custom excluded; cache revision."
+      "description": "Public published plans and topup offers; Custom excluded; cache revision.",
+      "role": "public"
     },
     {
       "method": "GET",
@@ -2628,7 +2629,8 @@
       "package": "V1",
       "success_status": 200,
       "idempotency": false,
-      "description": "200 only after durable inbox; invalid signature 400; storage failure 5xx; no user cookies/CSRF."
+      "description": "200 only after durable inbox; invalid signature 400; storage failure 5xx; no user cookies/CSRF.",
+      "role": "public"
     },
     {
       "method": "GET",
@@ -2639,7 +2641,8 @@
       "package": "V1",
       "success_status": 200,
       "idempotency": false,
-      "description": "Active document URLs/versions/hash by locale and account kind; no remote fetch per click."
+      "description": "Active document URLs/versions/hash by locale and account kind; no remote fetch per click.",
+      "role": "public"
     },
     {
       "method": "POST",
@@ -2686,7 +2689,46 @@
       "package": "V1",
       "success_status": 200,
       "idempotency": false,
-      "description": "Own deletion request progress; scoped status token in Authorization header, not query param."
+      "description": "Own deletion request progress; scoped status token in Authorization header, not query param.",
+      "role": "status_token"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/deletion/preflight",
+      "request_schema": "DeletionPreflightRequest",
+      "response_schema": "DeletionPreflight",
+      "handler": "Privacy.PrepareDeletion",
+      "package": "V1",
+      "role": "user",
+      "success_status": 200,
+      "idempotency": true,
+      "description": "Register a privacy case before ownership resolution; snapshot only owned active studios; does not revoke sessions or erase data."
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/recent-auth/challenges",
+      "request_schema": "RecentAuthChallengeRequest",
+      "response_schema": "RecentAuthChallenge",
+      "handler": "Auth.RequestRecentAuth",
+      "package": "V1",
+      "role": "user",
+      "success_status": 202,
+      "idempotency": true,
+      "auth_nonce_required": true,
+      "description": "Request a fresh purpose/session/epoch-bound OTP for a sensitive action; does not create another login identity."
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/recent-auth",
+      "request_schema": "RecentAuthVerifyRequest",
+      "response_schema": "RecentAuthGrant",
+      "handler": "Auth.VerifyRecentAuth",
+      "package": "V1",
+      "role": "user",
+      "success_status": 201,
+      "idempotency": true,
+      "auth_nonce_required": true,
+      "description": "Verify the dedicated sensitive-action OTP and recover the same opaque one-use grant for the same caller nonce and key."
     }
   ]
 }

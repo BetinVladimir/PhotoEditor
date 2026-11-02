@@ -390,6 +390,31 @@ def synchronize(document, endpoints):
             for code,schema in [('200','CollectionCreationAbandoned'),('201','CollectionCreated')]:
                 response=responses.setdefault(code,{'description':'Original creation resolution'})
                 response['content']={'application/json':{'schema':{'$ref':'schemas.json#/$defs/'+schema}}}
+        billing_scope = '/billing' in path or path.startswith('/api/v1/legal/') or path.startswith('/api/v1/me/legal/') or path.startswith('/api/v1/me/deletion') or path == '/api/v1/me/privacy' or path.startswith('/api/v1/me/recent-auth') or path.startswith('/api/v1/webhooks/stripe/')
+        if billing_scope:
+            operation['security'] = [] if role == 'public' else [{'userBearer': []}]
+            operation['x-web-mutation-csrf'] = method not in ('get','head') and role != 'public'
+            parameters[:] = [p for p in parameters if not (p.get('in') == 'header' and p.get('name') in ('Idempotency-Key','If-Match'))]
+            if endpoint.get('idempotency'):
+                parameters.append({'name':'Idempotency-Key','in':'header','required':True,'schema':{'type':'string','minLength':1,'maxLength':128,'pattern':r'^[!-~]+$'}})
+            if endpoint.get('auth_nonce_required'):
+                parameters[:] = [p for p in parameters if not (p.get('in')=='header' and p.get('name')=='X-Photo-Auth-Nonce')]
+                parameters.append({'name':'X-Photo-Auth-Nonce','in':'header','required':True,'schema':{'type':'string','minLength':43,'maxLength':43,'pattern':'^[A-Za-z0-9_-]{43}$'},'description':'Independent client-held 32-byte random recovery nonce, base64url without padding. Reuse exactly for retries; separate from browser CSRF.'})
+            if endpoint.get('revision_required'):
+                parameters.append({'name':'If-Match','in':'header','required':True,'schema':{'type':'string','pattern':'^"[1-9][0-9]{0,18}"$'}})
+            if path in ('/api/v1/billing/catalog','/api/v1/legal/requirements'):
+                names = ('locale','currency') if path.endswith('/catalog') else ('locale','account_kind')
+                parameters[:] = [p for p in parameters if p.get('in') != 'query']
+                parameters.extend({'name':name,'in':'query','required':True,'schema':{'$ref':'schemas.json#/$defs/'+endpoint['request_schema']+'/properties/'+name}} for name in names)
+            schemes=result.setdefault('components',{}).setdefault('securitySchemes',{})
+            if path.startswith('/api/v1/webhooks/stripe/'):
+                schemes['stripeSignature']={'type':'apiKey','in':'header','name':'Stripe-Signature','description':'Stripe SDK verifies the original raw body and timestamp using the configured Sandbox endpoint secret.'}
+                operation['security']=[{'stripeSignature':[]}]
+                operation['x-web-mutation-csrf']=False
+            if role == 'status_token':
+                schemes['deletionStatusBearer']={'type':'http','scheme':'bearer','description':'Deletion-request scoped status capability; not an ordinary user access token.'}
+                operation['security']=[{'deletionStatusBearer':[]}]
+                operation['x-web-mutation-csrf']=False
         if role.startswith('guest:'):
             schemes=result.setdefault('components',{}).setdefault('securitySchemes',{})
             schemes.setdefault('csrfHeader',{'type':'apiKey','in':'header','name':'X-CSRF-Token'})

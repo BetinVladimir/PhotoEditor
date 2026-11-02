@@ -8,10 +8,10 @@
 | Группа | Пакеты | Таблиц | Функций | Файлы |
 |---|---|---|---|---|
 | finance | BILL-04 | 0 | 0 | [BACKLOG-finance-1.md](BACKLOG-finance-1.md) |
-| provider | BILL-07/08 | 0 | 2 | [BACKLOG-provider-1.md](BACKLOG-provider-1.md) |
+| provider | BILL-07/08 | 0 | 0 | [BACKLOG-provider-1.md](BACKLOG-provider-1.md) |
 | usage | BILL-05/06/09 | 0 | 0 | [BACKLOG-usage-1.md](BACKLOG-usage-1.md) |
-| legal | BILL-11/12 | 0 | 6 | [BACKLOG-legal-1.md](BACKLOG-legal-1.md), [BACKLOG-legal-2.md](BACKLOG-legal-2.md) |
-| api | BILL-10 | — | 16 операций | [BACKLOG-api-1.md](BACKLOG-api-1.md), [BACKLOG-api-2.md](BACKLOG-api-2.md) |
+| legal | BILL-11/12 | 0 | 2 | [BACKLOG-legal-1.md](BACKLOG-legal-1.md) |
+| api | BILL-10 | — | 20 операций | [BACKLOG-api-1.md](BACKLOG-api-1.md), [BACKLOG-api-2.md](BACKLOG-api-2.md), [BACKLOG-api-3.md](BACKLOG-api-3.md) |
 | stripe | BILL-07/08/09 | — | 17 задач | [BACKLOG-stripe-1.md](BACKLOG-stripe-1.md), [BACKLOG-stripe-2.md](BACKLOG-stripe-2.md), [BACKLOG-stripe-3.md](BACKLOG-stripe-3.md), [BACKLOG-stripe-4.md](BACKLOG-stripe-4.md) |
 | ui | BILL-10 | — | 16 задач | [BACKLOG-ui-1.md](BACKLOG-ui-1.md), [BACKLOG-ui-2.md](BACKLOG-ui-2.md), [BACKLOG-ui-3.md](BACKLOG-ui-3.md), [BACKLOG-ui-4.md](BACKLOG-ui-4.md) |
 | e2e | 08, 10 | — | 90 сценариев | [BACKLOG-e2e-1.md](BACKLOG-e2e-1.md), [BACKLOG-e2e-2.md](BACKLOG-e2e-2.md), [BACKLOG-e2e-3.md](BACKLOG-e2e-3.md), [BACKLOG-e2e-4.md](BACKLOG-e2e-4.md), [BACKLOG-e2e-5.md](BACKLOG-e2e-5.md), [BACKLOG-e2e-6.md](BACKLOG-e2e-6.md), [BACKLOG-e2e-7.md](BACKLOG-e2e-7.md), [BACKLOG-e2e-8.md](BACKLOG-e2e-8.md), [BACKLOG-e2e-9.md](BACKLOG-e2e-9.md), [BACKLOG-e2e-10.md](BACKLOG-e2e-10.md), [BACKLOG-e2e-11.md](BACKLOG-e2e-11.md), [BACKLOG-e2e-12.md](BACKLOG-e2e-12.md) |

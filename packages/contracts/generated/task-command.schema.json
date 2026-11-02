@@ -65,7 +65,7 @@
       "items": {
         "$ref": "#/$defs/ArtifactRef"
       },
-      "maxItems": 512,
+      "maxItems": 5000,
       "title": "Inputs",
       "type": "array"
     },

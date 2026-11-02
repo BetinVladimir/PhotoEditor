@@ -17,12 +17,14 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.migration_head(17)]
 
 LEGAL_MIGRATIONS = [
     '02666_billing_legal_schema.sql',
     '02667_billing_legal_auth_tables.sql',
     '02668_billing_legal_functions.sql',
+    '02671_billing_legal_acceptance_hardening.sql',
+    '02678_billing_recent_auth_gate.sql',
 ]
 
 
@@ -87,7 +89,7 @@ def _set_hash(c: psycopg.Connection, doc_ids: list) -> bytes:
         " WHERE document_id=ANY(%s) ORDER BY document_id",
         (doc_ids,),
     ).fetchall()
-    concatenated = b''.join(r[0].tobytes() for r in rows)
+    concatenated = b''.join(bytes(r[0]) for r in rows)
     return digest(concatenated)
 
 
@@ -95,33 +97,33 @@ def _accept_call(c, tenant_id, user_id, session_id, doc_ids,
                  contract_accepted=True, privacy_acknowledged=True,
                  actions_override=None):
     """Build and call account_accept_legal; return (state, revision, hash)."""
-    c.execute("SELECT set_config('app.tenant_id',%s,true)", (str(tenant_id),))
-    # Build events: terms → accepted, privacy → acknowledged
-    def _action_for(doc_id):
-        row = c.execute(
-            "SELECT document_key FROM photo.legal_document_versions WHERE document_id=%s",
-            (doc_id,),
+    with c.transaction():
+        c.execute("SELECT set_config('app.tenant_id',%s,true)", (str(tenant_id),))
+        # Build events: terms → accepted, privacy → acknowledged
+        def _action_for(doc_id):
+            row = c.execute(
+                "SELECT document_key FROM photo.legal_document_versions WHERE document_id=%s",
+                (doc_id,),
+            ).fetchone()
+            key = row[0]
+            if key in ('terms', 'dpa', 'photoeditor_addendum'):
+                return 'accepted'
+            return 'acknowledged'
+
+        events = [{'version_id': str(doc_id), 'action': _action_for(doc_id)} for doc_id in doc_ids]
+        if actions_override:
+            events = actions_override
+
+        doc_versions = json.dumps({'events': events})
+        explicit = json.dumps({
+            'contract_accepted': contract_accepted,
+            'privacy_acknowledged': privacy_acknowledged,
+        })
+        return c.execute(
+            "SELECT state,revision,accepted_set_hash"
+            " FROM photo.account_accept_legal(%s,%s,%s,%s::jsonb,%s::jsonb,%s)",
+            (tenant_id, user_id, session_id, doc_versions, explicit, str(uuid4())),
         ).fetchone()
-        key = row[0]
-        if key in ('terms', 'dpa', 'photoeditor_addendum'):
-            return 'accepted'
-        return 'acknowledged'
-
-    events = [{'version_id': str(doc_id), 'action': _action_for(doc_id)} for doc_id in doc_ids]
-    if actions_override:
-        events = actions_override
-
-    doc_versions = json.dumps({'events': events})
-    explicit = json.dumps({
-        'contract_accepted': contract_accepted,
-        'privacy_acknowledged': privacy_acknowledged,
-    })
-    return c.execute(
-        "SELECT state,revision,accepted_set_hash"
-        " FROM photo.account_accept_legal(%s,%s,%s,%s::jsonb,%s::jsonb,%s)",
-        (tenant_id, user_id, session_id, doc_versions, explicit, str(uuid4())),
-    ).fetchone()
-
 
 # ---------------------------------------------------------------------------
 # Fixture
@@ -240,27 +242,20 @@ def test_account_accept_legal_missing_required_doc(legal_env):
 
 def _issue_call(c, tenant_id, user_id, session_id, purpose, challenge_ref):
     """Call account_issue_recent_auth; return (grant_id, proof_hash, expires_at)."""
-    c.execute("SELECT set_config('app.tenant_id',%s,true)", (str(tenant_id),))
-    return c.execute(
-        "SELECT grant_id,proof_hash,expires_at"
-        " FROM photo.account_issue_recent_auth(%s,%s,%s,%s,%s)",
-        (tenant_id, user_id, session_id, purpose, challenge_ref),
-    ).fetchone()
+    with c.transaction():
+        c.execute("SELECT set_config('app.tenant_id',%s,true)", (str(tenant_id),))
+        return c.execute(
+            "SELECT grant_id,proof_hash,expires_at"
+            " FROM photo.account_issue_recent_auth(%s,%s,%s,%s,%s)",
+            (tenant_id, user_id, session_id, purpose, challenge_ref),
+        ).fetchone()
 
-
-def test_account_issue_recent_auth_success(legal_env):
-    """LEG-F04 happy path: returns grant_id, 32-byte proof_hash, expires in ~5min."""
-    c, tenant_id, user_id, session_id, doc_ids = legal_env
-    ref = str(uuid4())
-    row = _issue_call(c, tenant_id, user_id, session_id, 'delete_profile', ref)
-    assert row is not None
-    grant_id, proof_hash, expires_at = row
-    assert grant_id is not None
-    assert len(bytes(proof_hash)) == 32
-    from datetime import timezone
-    now = c.execute("SELECT clock_timestamp()").fetchone()[0]
-    delta = (expires_at - now).total_seconds()
-    assert 240 < delta <= 310, f"expires_at not ~5min from now: {delta}s"
+@pytest.mark.parametrize('reference', [None, 'arbitrary-client-reference', str(uuid4())])
+def test_recent_auth_refuses_unverified_reference(legal_env, reference):
+    c, tenant, user, session, _ = legal_env
+    with pytest.raises(psycopg.errors.RaiseException, match='LEGAL_RECENT_AUTH_VERIFIER_REQUIRED'):
+        _issue_call(c, tenant, user, session, 'delete_profile', reference)
+    assert c.execute('SELECT count(*) FROM photo.account_recent_auth_grants').fetchone()[0] == 0
 
 
 def test_account_issue_recent_auth_auth_failure(legal_env):
@@ -276,24 +271,14 @@ def test_account_issue_recent_auth_auth_failure(legal_env):
             )
 
 
-def test_account_issue_recent_auth_exact_repeat_idempotent(legal_env):
-    """LEG-F04: same challenge ref+purpose → same grant returned (R20)."""
-    c, tenant_id, user_id, session_id, doc_ids = legal_env
-    ref = str(uuid4())
-    row1 = _issue_call(c, tenant_id, user_id, session_id, 'delete_profile', ref)
-    row2 = _issue_call(c, tenant_id, user_id, session_id, 'delete_profile', ref)
-    assert row1[0] == row2[0], "idempotent call must return the same grant_id"
-    assert bytes(row1[1]) == bytes(row2[1]), "idempotent call must return the same proof_hash"
-
-
-def test_account_issue_recent_auth_challenge_conflict(legal_env):
-    """LEG-F04: same challenge ref reused for a different purpose → LEGAL_RECENT_AUTH_CHALLENGE_CONFLICT."""
-    c, tenant_id, user_id, session_id, doc_ids = legal_env
-    ref = str(uuid4())
-    _issue_call(c, tenant_id, user_id, session_id, 'delete_profile', ref)
-    with pytest.raises(psycopg.errors.RaiseException, match='LEGAL_RECENT_AUTH_CHALLENGE_CONFLICT'):
-        with c.transaction():
-            _issue_call(c, tenant_id, user_id, session_id, 'resolve_ownership', ref)
+def test_recent_auth_does_not_replay_legacy_unverified_grant(legal_env):
+    c, tenant, user, session, _ = legal_env
+    reference = str(uuid4())
+    c.execute("INSERT INTO photo.account_recent_auth_grants(user_id,session_id,auth_epoch,purpose,proof_hash,otp_challenge_ref,expires_at) VALUES(%s,%s,0,'delete_profile',%s,%s,clock_timestamp()+interval '5 minutes')", (user, session, digest(b'legacy-unverified-grant'), reference))
+    for purpose in ('delete_profile', 'resolve_ownership'):
+        with pytest.raises(psycopg.errors.RaiseException, match='LEGAL_RECENT_AUTH_VERIFIER_REQUIRED'):
+            _issue_call(c, tenant, user, session, purpose, reference)
+    assert c.execute('SELECT count(*) FROM photo.account_recent_auth_grants').fetchone()[0] == 1
 
 
 def test_account_issue_recent_auth_invalid_purpose(legal_env):
@@ -304,27 +289,16 @@ def test_account_issue_recent_auth_invalid_purpose(legal_env):
             _issue_call(c, tenant_id, user_id, session_id, 'bad_purpose', str(uuid4()))
 
 
-def test_account_accept_legal_concurrent_same_user(legal_env):
+def test_account_accept_legal_concurrent_same_user(legal_env, database):
     """LEG-F01 concurrent: two concurrent calls for the same user → one succeeds, one idempotent."""
     c, tenant_id, user_id, session_id, doc_ids = legal_env
-    db_config = dict(c.pgconn.get_params())
-    # Extract connection params from fixture connection for new threads
-    host = c.info.host
-    port = c.info.port
-    dbname = c.info.dbname
-    user = c.info.user
-    password = getattr(c.info, 'password', None)
-
     barrier = Barrier(2)
     results = []
     errors = []
 
     def _call():
         try:
-            kw = dict(host=host, port=port, dbname=dbname, user=user)
-            if password:
-                kw['password'] = password
-            with psycopg.connect(**kw, autocommit=True) as conn2:
+            with psycopg.connect(**database, autocommit=False) as conn2:
                 conn2.execute("SELECT set_config('app.tenant_id',%s,true)", (str(tenant_id),))
                 events = [
                     {'version_id': str(doc_ids[0]), 'action': 'accepted'},
@@ -349,6 +323,31 @@ def test_account_accept_legal_concurrent_same_user(legal_env):
             f.result()
 
     # Both should succeed (idempotent): same state, same or equal revision
-    assert len(errors) == 0 or len(results) >= 1, f'unexpected errors: {errors}'
+    assert not errors, f'unexpected errors: {errors}'
+    assert len(results) == 2
+    assert [row[1] for row in results] == [2, 2]
+    assert bytes(results[0][2]) == bytes(results[1][2])
     for row in results:
         assert row[0] == 'complete'
+
+
+@pytest.mark.parametrize('mutation', ['body', 'acl', 'search_path'])
+def test_legal_correction_rejects_changed_preimage(database, mutation):
+    with psycopg.connect(**database, autocommit=True) as c:
+        for name in LEGAL_MIGRATIONS[:3]:
+            with c.transaction():
+                c.execute((ROOT / 'backend/db/migrations' / name).read_text().split('-- +goose Down')[0])
+        signature = 'photo.account_accept_legal(uuid,uuid,uuid,jsonb,jsonb,text)'
+        if mutation == 'body':
+            definition = c.execute('SELECT pg_get_functiondef(%s::regprocedure)', (signature,)).fetchone()[0]
+            c.execute(definition.replace('LEGAL_NO_EVENTS', 'LEGAL_CHANGED'))
+        elif mutation == 'acl':
+            c.execute('GRANT EXECUTE ON FUNCTION ' + signature + ' TO photo_api')
+        else:
+            c.execute('ALTER FUNCTION ' + signature + ' SET search_path=photo,pg_catalog')
+        before = c.execute('SELECT to_jsonb(p) FROM pg_proc p WHERE oid=%s::regprocedure', (signature,)).fetchone()[0]
+        with pytest.raises(psycopg.errors.RaiseException, match='LEGAL_ACCEPTANCE_(PREIMAGE|ACL)_CHANGED'):
+            with c.transaction():
+                c.execute((ROOT / 'backend/db/migrations' / '02671_billing_legal_acceptance_hardening.sql').read_text().split('-- +goose Down')[0])
+        after = c.execute('SELECT to_jsonb(p) FROM pg_proc p WHERE oid=%s::regprocedure', (signature,)).fetchone()[0]
+        assert after == before

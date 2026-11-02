@@ -78,19 +78,22 @@ func (w *Worker) Process(ctx context.Context, raw []byte) error {
 		plain, e = w.Keys.Open(*kid, payloadCipher, []byte(c.PayloadID.String()+":payload"))
 		if e == nil {
 			var p struct {
-				Kind   string `json:"kind"`
-				Code   string `json:"code,omitempty"`
-				Locale string `json:"locale"`
-				Tenant string `json:"tenant,omitempty"`
-				Token  string `json:"token,omitempty"`
+				Kind    string `json:"kind"`
+				Purpose string `json:"purpose,omitempty"`
+				Code    string `json:"code,omitempty"`
+				Locale  string `json:"locale"`
+				Tenant  string `json:"tenant,omitempty"`
+				Token   string `json:"token,omitempty"`
 			}
 			d := json.NewDecoder(bytes.NewReader(plain))
 			d.DisallowUnknownFields()
 			e = d.Decode(&p)
-			if e == nil && (p.Kind == "otp" || p.Kind == "invite") {
+			if e == nil && (p.Kind == "otp" || p.Kind == "invite" || p.Kind == "recent_auth") {
 				var message Message
 				if p.Kind == "otp" {
 					message, e = OTPMessage(string(recipient), *id, p.Locale, p.Code)
+				} else if p.Kind == "recent_auth" {
+					message, e = RecentAuthMessage(string(recipient), *id, p.Locale, p.Code, p.Purpose)
 				} else {
 					message, e = InviteMessage(string(recipient), *id, p.Locale, p.Tenant, p.Token)
 				}

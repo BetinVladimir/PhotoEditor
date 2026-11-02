@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "authority": "owner delegated technical contracts 2026-11-01",
+  "schema_sha256": "c9574c8c948fabac6ef9f02d81d5ea0a0697bb3b6539f2f11e2a883471888294",
+  "functions": [
+    {
+      "signature": "billing_ingest_stripe_webhook(uuid,uuid,text,text,text,text,text,timestamptz,bytea,bytea)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [
+        "photo_maintenance"
+      ]
+    },
+    {
+      "signature": "billing_stripe_ingress_ready(uuid,text,text)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [
+        "photo_maintenance"
+      ]
+    }
+  ]
+}

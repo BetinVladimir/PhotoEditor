@@ -1,10 +1,10 @@
 # ERROR-CODES — коды ошибок биллинг-SQL и их HTTP-обработка
 
-Сгенерировано `tools/gen-error-codes.py` из миграций 02598–02609, `backend/internal/billing/workflow.go` и решений в `contracts/error-classes.json`. Вручную не править.
+Сгенерировано `tools/gen-error-codes.py` из billing-миграций 025xx–026xx, `backend/internal/billing/workflow.go` и решений в `contracts/error-classes.json`. Вручную не править.
 
 Решения владельца 23.10.2026 (`OPEN-11`): A — остаётся `500 INTERNAL_ERROR`; B — `422 VALIDATION_FAILED`; C — `409 BILLING_STATE_CONFLICT` (новый код); D — `503 BILLING_UNAVAILABLE`.
 
-Всего кодов: 109. Обработано в Go сейчас: 30. Решено, но Go ещё не изменён: 19. Внутренние (500 по решению): 26. Без решения: 53. Устаревших записей в решениях: 0.
+Всего кодов: 112. Обработано в Go сейчас: 30. Решено, но Go ещё не изменён: 0. Внутренние (500 по решению): 29. Без решения: 53. Устаревших записей в решениях: 0.
 
 ## Обработаны в Go сейчас
 
@@ -45,25 +45,6 @@
 
 | SQL-код | Группа | Ответ клиенту | HTTP |
 |---|---|---|---|
-| BILLING_BATCH_INVALID | B | VALIDATION_FAILED | 422 |
-| BILLING_CHILD_ALREADY_CHARGED | C | BILLING_STATE_CONFLICT | 409 |
-| BILLING_CHILD_INVALID | B | VALIDATION_FAILED | 422 |
-| BILLING_CHILD_NOT_ROOT | B | VALIDATION_FAILED | 422 |
-| BILLING_GRAPH_REFUSED | C | BILLING_STATE_CONFLICT | 409 |
-| BILLING_LEASE_EXPIRED | C | BILLING_STATE_CONFLICT | 409 |
-| BILLING_LOCAL_LEASE_LIMIT | C | BILLING_STATE_CONFLICT | 409 |
-| BILLING_LOCAL_REVIEW_FINALIZATION_RACE | C | BILLING_STATE_CONFLICT | 409 |
-| BILLING_OPERATION_PROOF_UNAVAILABLE | D | BILLING_UNAVAILABLE | 503 |
-| BILLING_PAID_OPERATION_HELPER_OCCUPIED | D | BILLING_UNAVAILABLE | 503 |
-| BILLING_RENDER_PROOF_UNAVAILABLE | D | BILLING_UNAVAILABLE | 503 |
-| BILLING_REQUEST_INVALID | B | VALIDATION_FAILED | 422 |
-| BILLING_RESOURCE_INVALID | B | VALIDATION_FAILED | 422 |
-| BILLING_ROUTE_INVALID | B | VALIDATION_FAILED | 422 |
-| BILLING_RUN_INVALID | B | VALIDATION_FAILED | 422 |
-| BILLING_RUN_TERMINAL | C | BILLING_STATE_CONFLICT | 409 |
-| BILLING_SOURCE_INVALID | B | VALIDATION_FAILED | 422 |
-| BILLING_STALE_GENERATION | C | BILLING_STATE_CONFLICT | 409 |
-| BILLING_TENANT_INACTIVE | C | BILLING_STATE_CONFLICT | 409 |
 
 ## Внутренние: остаются 500 (группа A)
 
@@ -82,6 +63,9 @@
 - BILLING_ISSUANCE_INCONSISTENT
 - BILLING_LEASE_INPUT_INVALID
 - BILLING_OPERATION_ITEM_IMMUTABLE
+- BILLING_OUTBOX_HASH_CONFLICT
+- BILLING_OUTBOX_INPUT_INVALID
+- BILLING_OUTBOX_NOT_FOUND
 - BILLING_PAID_OPERATION_CALLER_DRIFT
 - BILLING_PAID_OPERATION_NOT_OVERSIZE
 - BILLING_PAID_OPERATION_OWNER_DRIFT

@@ -1,4 +1,4 @@
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["apps/local-editor/src", "workers", "tests"]
-markers = ["migration_head(number): create isolated integration database through this migration before testing upgrade"]
+markers = ["integration: exercises a disposable local database or service", "migration_head(number): create isolated integration database through this migration before testing upgrade"]

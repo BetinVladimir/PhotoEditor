@@ -129,13 +129,21 @@ func (s *Server) billingAPIRoutes(r chi.Router) {
 		serveLegalRecordAcceptance(w, r, s.Legal, s)
 	})
 
-	r.Patch("/api/v1/me/privacy", func(w http.ResponseWriter, r *http.Request) {
-		if s.Privacy == nil {
-			writeError(w, r, unavailable())
-			return
-		}
-		servePrivacyUpdatePreferences(w, r, s.Privacy, s)
-	})
+ r.Patch("/api/v1/me/privacy", func(w http.ResponseWriter, r *http.Request) {
+  preferences := s.PrivacyPreferences
+  if preferences == nil { preferences = s.Privacy }
+  if preferences == nil { writeError(w,r,unavailable());return }
+  servePrivacyUpdatePreferences(w,r,preferences,s)
+ })
+
+
+ r.Post("/api/v1/me/recent-auth/challenges",s.serveRecentAuthChallenge)
+ r.Post("/api/v1/me/recent-auth",s.serveRecentAuthVerify)
+
+ r.Post("/api/v1/me/deletion/preflight",func(w http.ResponseWriter,r *http.Request){
+  if s.PrivacyPreflight==nil{writeError(w,r,unavailable());return}
+  serveDeletionPreflight(w,r,s.PrivacyPreflight,s)
+ })
 
 	r.Post("/api/v1/me/deletion", func(w http.ResponseWriter, r *http.Request) {
 		if s.Privacy == nil {

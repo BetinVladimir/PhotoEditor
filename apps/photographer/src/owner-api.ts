@@ -1,3 +1,5 @@
+import {readBillingCatalog} from './billing-catalog-response';
+import {privacyRevision,privacyMutationKey,privacyUpdateBody,readPrivacyPreferences,readDeletionPreflight,type PrivacyPreferencesUpdate} from './privacy-response';
 import {freezeContactSheetAdmission,readContactSheetAccepted} from './contact-sheet-response';
 import {freezeSaveEditsBody,readSaveEditsResolution,type SaveEditsBody} from './editor-save-edits-attempt';
 import {eventCursor,readTenantEvent,readTenantEventPage,freezeTenantInvitation,readInvitationReceipt} from './tenant-admin-response';
@@ -1076,12 +1078,19 @@ export class OwnerAPI {
   async mediaLinks(assetId:string,assetVersionId:string,variants:MediaLink["variant"][],signal?:AbortSignal){signal?.throwIfAborted();requireArchiveUUID(assetId);requireArchiveUUID(assetVersionId);const selected=[...variants];if(selected.length<1||selected.length>4||new Set(selected).size!==selected.length||selected.some(v=>!['thumb320','thumb640','preview1600','preview2560'].includes(v)))throw Error('MEDIA_LINK_REQUEST_INVALID');const value=await this.mutate<unknown>(`/api/v1/tenants/{t}/assets/${encodeURIComponent(assetId)}/media-links`,{asset_version_id:assetVersionId,variants:[...selected]},undefined,"POST",undefined,signal);signal?.throwIfAborted();return readMediaLinks(value,assetVersionId,selected);}
   streamEvents(cursor:string|undefined,onEvent:(event:{cursor:string;type:string;payload:unknown})=>void,signal:AbortSignal){signal.throwIfAborted();let after=cursor===undefined?undefined:eventCursor(cursor);return this.client.eventStream(this.path('/api/v1/tenants/{t}/events'),after,event=>{signal.throwIfAborted();const row=readTenantEvent(event,after);after=row.cursor;onEvent(row);},signal);}
   async events(cursor?:string,signal?:AbortSignal){signal?.throwIfAborted();const after=cursor===undefined?undefined:eventCursor(cursor);const raw=await this.get<unknown>(`/api/v1/tenants/{t}/events${after!==undefined?`?after=${encodeURIComponent(after)}`:""}`,signal);signal?.throwIfAborted();return readTenantEventPage(raw,after);}
-  // billing summary — endpoint group "api" not yet live; mocked in billing tests.
-  async billingSummary(signal?:AbortSignal){signal?.throwIfAborted();return this.get<unknown>('/api/v1/tenants/{t}/billing/summary',signal);}
-  // billing usage — endpoint group "api" not yet live; mocked in billing tests.
+  async updatePrivacyPreferences(selection:PrivacyPreferencesUpdate,revision:string,key:string,signal?:AbortSignal){
+    signal?.throwIfAborted();const expected=privacyRevision(revision),request=privacyUpdateBody(selection),receipt=privacyMutationKey(key);
+    const raw=await this.mutate<unknown>('/api/v1/me/privacy',request,receipt,'PATCH',{'If-Match':`"${expected}"`},signal);signal?.throwIfAborted();
+    const result=readPrivacyPreferences(raw),before=BigInt(expected),after=BigInt(result.revision);
+    if(after<before||after>before+1n||request.analytics!==undefined&&request.analytics!==result.analytics||request.marketing!==undefined&&request.marketing!==result.marketing)throw new Error('PRIVACY_RESPONSE_INVALID');
+    return result;
+  }
+  async prepareProfileDeletion(key:string,signal?:AbortSignal){
+    signal?.throwIfAborted();const receipt=privacyMutationKey(key),raw=await this.mutate<unknown>('/api/v1/me/deletion/preflight',{},receipt,'POST',undefined,signal);signal?.throwIfAborted();return readDeletionPreflight(raw);
+  }
+  // Read paths follow the executable billing registry; server capabilities remain authoritative.
+  async billingSummary(signal?:AbortSignal){signal?.throwIfAborted();return this.get<unknown>('/api/v1/tenants/{t}/billing',signal);}
   async billingUsage(signal?:AbortSignal){signal?.throwIfAborted();return this.get<unknown>('/api/v1/tenants/{t}/billing/usage',signal);}
-  // billing catalog — endpoint group "api" not yet live; mocked in billing tests.
-  async billingCatalog(signal?:AbortSignal){signal?.throwIfAborted();return this.get<unknown>('/api/v1/tenants/{t}/billing/catalog',signal);}
-  // billing addon offers — endpoint group "api" not yet live; mocked in billing tests.
-  async billingAddonOffers(signal?:AbortSignal){signal?.throwIfAborted();return this.get<unknown>('/api/v1/tenants/{t}/billing/addon-offers',signal);}
+  async billingCatalog(signal?:AbortSignal,locale:'en'|'ru'|'bg'='en'){signal?.throwIfAborted();if(!['en','ru','bg'].includes(locale))throw new Error('BILLING_CATALOG_INVALID');const raw=await this.get<unknown>(`/api/v1/billing/catalog?locale=${locale}&currency=EUR`,signal);signal?.throwIfAborted();return readBillingCatalog(raw);}
+  async billingAddonOffers(signal?:AbortSignal){signal?.throwIfAborted();return this.get<unknown>('/api/v1/tenants/{t}/billing/offers',signal);}
 }

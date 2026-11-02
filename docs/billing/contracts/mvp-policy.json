@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "decision_date": "2026-11-01",
+  "authority": "Owner delegated MVP defaults in chat on 2026-11-01",
+  "environment": "test",
+  "currency": "EUR",
+  "heavy_operation_unit_minor": 5,
+  "heavy_operation_unit_quantity": 1,
+  "max_file_bytes": 134217728,
+  "per_tenant_processing_concurrency": 2,
+  "per_tenant_queued_operations": 20,
+  "per_tenant_api_requests_per_minute": 60,
+  "per_tenant_api_burst": 10,
+  "native_purchase_distribution": "web_hosted_checkout_only",
+  "existing_tenants": {
+    "transition": "explicit_opt_in",
+    "preserve_existing_finite_quotas": true,
+    "automatic_trial_backfill": false,
+    "automatic_purge": false
+  },
+  "capacity": {
+    "qualification": "not_run",
+    "required_vcpu": 4,
+    "required_ram_bytes": 8589934592,
+    "required_gpu_vram_bytes": 12884901888,
+    "images_per_scenario": 100,
+    "concurrent_tenants": 2,
+    "samples_are_not_quality_qualification": true
+  },
+  "sales_enabled": false,
+  "studio_pro_enabled": false,
+  "privacy_case_target_days": 30,
+  "privacy_case_queue": "privacy-self-service",
+  "privacy_deadline_status": "draft operational target; pending privacy review"
+}

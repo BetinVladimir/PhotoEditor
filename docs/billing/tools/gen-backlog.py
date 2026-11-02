@@ -26,8 +26,14 @@ for line in d4.splitlines():
     if not re.fullmatch(r'(?:billing|account|legal|privacy|erasure)_[a-z0-9_]+(?:\s*/\s*(?:billing|account|legal|privacy|erasure)_[a-z0-9_]+)*', cell): continue
     for name in re.findall(r'(?:billing|account|legal|privacy|erasure)_[a-z0-9_]+', cell):
         f4.setdefault(name, []).append(line.strip())
-api = [ln.strip() for ln in d4.split("\n") if re.match(r"^\|\s*(GET|POST|PUT|PATCH|DELETE)\s+/", ln)]
-tables = sorted(n for n in t3 if re.match(r"(billing|legal|privacy|erasure|tenant_billing|consent)_", n) and n not in have_t and n not in ("billing_class",))
+api_by_identity = {}
+for source in (d4, d9):
+    for line in source.splitlines():
+        match = re.match(r'^\|\s*((?:GET|POST|PUT|PATCH|DELETE)\s+/[^|\s]+)\s*\|', line)
+        if match:
+            api_by_identity.setdefault(match.group(1), line.strip())
+api = list(api_by_identity.values())
+tables = sorted(n for n in t3 if re.match(r"(billing|legal|privacy|erasure|tenant_billing|consent|account|user_privacy|profile_deletion)_", n) and n not in have_t and n not in ("billing_class",))
 funcs = sorted(n for n in f4 if n not in have_f)
 GROUP = {"finance": ("BILL-04", "quotes orders order_lines invoices invoice_allocations payments refunds change_requests customers contacts subscriptions subscription_items custom_assignments custom_limits tenant_billing_profiles".split(),
           "create_quote accept_quote request_change attach_checkout apply_paid_upgrade apply_refund assign_custom ensure_profile create_cost_quote publish_plan_version bind_provider_price".split()),
@@ -40,7 +46,7 @@ def group_of(name, kind):
     for g, (bill, ts, fs) in GROUP.items():
         key = name.split("_", 1)[1] if "_" in name else name
         if (kind == "t" and (key in ts or name in ts)) or (kind == "f" and (key in fs or name in fs)): return g
-    return "legal" if name.startswith(("account_", "privacy_", "legal_", "erasure_")) else "finance"
+    return "legal" if name.startswith(("account_", "privacy_", "legal_", "erasure_", "user_privacy_", "profile_deletion_")) else "finance"
 SCAFFOLD = ("Создать каркас этапа по образцу quota-этапа (копировать структуру, не логику): "
  "`contracts/{g}-tables.json`, `contracts/{g}-functions.json`, `contracts/{g}-functions.sql`, `scripts/generate-billing-{g}.py` (копия `scripts/generate-billing-quota.py`), "
  "`tests/contracts/test_billing_{g}_contract.py` (копия `tests/contracts/test_billing_quota_contract.py`), `tests/integration/test_billing_{g}.py` (копия структуры `tests/integration/test_billing_quota.py`).")
@@ -68,8 +74,8 @@ def func_task(i, g, n):
 def api_task(i, line):
     cells = [c.strip() for c in line.strip("|").split("|")]
     return ["### API-%02d — `%s`" % (i, cells[0]), "",
-     "- Статус: целевая identity из 04, в `endpoints.json` нет (проверено при генерации).",
-     "- Вход: строка 04 ниже; DTO и success status — 09 §7; образцы — `EXAMPLES-API.md`, `EXAMPLES-GO.md`.",
+     "- Статус: целевая операция из 04/09. Наличие DTO или interface в registry не доказывает рабочий service; фактическая приёмка — STATUS.md.",
+     "- Вход: строка 04/09 ниже; DTO и success status — 09 §7; образцы — `EXAMPLES-API.md`, `EXAMPLES-GO.md`.",
      "- Выход: запись в оба `endpoints.json`; DTO в `schemas.json`; handler и сервисный интерфейс; маршрут в `httpapi`.",
      "- Критерий: A. DTO `additionalProperties=false`, `required`, без server-only полей. B. role/tenant проверены (09 §2). C. Handler с `Idempotency-Key`/`If-Match`, где указано. D. Go-тест handler + drift DTO.",
      "- Тесты (в этой же задаче, R33, `TESTING.md`): Go-тест handler в `backend/internal/httpapi/*_test.go` — успех, 422, чужая роль, идемпотентный повтор; contract-тест, что endpoint и DTO есть в обоих реестрах `endpoints.json` и `schemas.json`. Без них задача не принята.",
@@ -89,7 +95,7 @@ idx = ["# Бэклог 1В–4: задачи для ещё не реализов
        "Тесты пишутся вместе с кодом (`TESTING.md`, R33); приёмка модулей — группы `acceptance`, инфраструктура тестов — `testinfra`.", "Порядок: сначала `*-00` (каркас группы), затем таблицы, затем функции, затем API. Зависимости — по пакетам BILL в `08-delivery-migrations-e2e.md`.", "",
        "| Группа | Пакеты | Таблиц | Функций | Файлы |", "|---|---|---|---|---|"]
 for g, (bill, _, _) in GROUP.items():
-    all_ts = sorted(n for n in t3 if re.match(r"(billing|legal|privacy|erasure|tenant_billing|consent)_", n) and n != 'billing_class' and group_of(n, "t") == g)
+    all_ts = sorted(n for n in t3 if re.match(r"(billing|legal|privacy|erasure|tenant_billing|consent|account|user_privacy|profile_deletion)_", n) and n != 'billing_class' and group_of(n, "t") == g)
     all_fs = sorted(n for n in f4 if group_of(n, "f") == g)
     ts = [n for n in all_ts if n in tables]; fs = [n for n in all_fs if n not in have_f]
     items = [["### %s-00 — каркас этапа группы `%s`" % (g[:3].upper(), g), "", "- Выход: " + SCAFFOLD.format(g=g), "- Тесты (R33): сами файлы `tests/contracts/test_billing_%s_contract.py` и `tests/integration/test_billing_%s.py` создаются здесь (пустой набор проходит, не skip)." % (g, g), "- Критерий: A. Генератор `--check` PASS на пустых источниках. B. Пустой contract-тест PASS. C. Миграция-пустышка не создаётся, пока нет таблиц.", "- Запреты: R9, R28.", ""]]

@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "scope": "deletion-steps",
+  "functions": [
+    {
+      "signature": "account_enqueue_deletion_step(uuid,text,bigint,bytea)",
+      "returns": "uuid",
+      "owner": "photo_fn_owner",
+      "execute_roles": [
+        "photo_maintenance"
+      ]
+    },
+    {
+      "signature": "account_claim_deletion_step(uuid,bigint,bigint)",
+      "returns": "TABLE(step_id uuid,request_id uuid,step_key text,fence uuid,lease_until timestamptz)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [
+        "photo_maintenance"
+      ]
+    },
+    {
+      "signature": "account_record_deletion_step(uuid,uuid,uuid,text,bytea,text,bigint)",
+      "returns": "text",
+      "owner": "photo_fn_owner",
+      "execute_roles": [
+        "photo_maintenance"
+      ]
+    }
+  ]
+}

@@ -14,9 +14,9 @@ import json
 dec = json.load(open(os.path.join(DOCS, "contracts", "error-classes.json"), encoding="utf-8"))["decisions"]
 und = [c for c in codes if c not in mapped and c not in dec]
 stale = [c for c in dec if c not in codes]
-todo = [c for c in codes if c in dec and dec[c]["class"] == "http"]
+todo = [c for c in codes if c in dec and dec[c]["class"] == "http" and c not in mapped]
 L = ["# ERROR-CODES — коды ошибок биллинг-SQL и их HTTP-обработка", "",
-     "Сгенерировано `tools/gen-error-codes.py` из миграций 02598–02609, `backend/internal/billing/workflow.go` и решений в `contracts/error-classes.json`. Вручную не править.", "",
+     "Сгенерировано `tools/gen-error-codes.py` из billing-миграций 025xx–026xx, `backend/internal/billing/workflow.go` и решений в `contracts/error-classes.json`. Вручную не править.", "",
      "Решения владельца 23.10.2026 (`OPEN-11`): A — остаётся `500 INTERNAL_ERROR`; B — `422 VALIDATION_FAILED`; C — `409 BILLING_STATE_CONFLICT` (новый код); D — `503 BILLING_UNAVAILABLE`.", "",
      "Всего кодов: %d. Обработано в Go сейчас: %d. Решено, но Go ещё не изменён: %d. Внутренние (500 по решению): %d. Без решения: %d. Устаревших записей в решениях: %d." % (
         len(codes), sum(c in mapped for c in codes), len(todo), sum(1 for c in codes if c in dec and dec[c]["class"] == "internal"), len(und), len(stale)), "",

@@ -103,6 +103,8 @@ type Server struct {
 	BillingWebhook    billing.WebhookIngressService
 	Legal             legal.Service
 	Privacy           privacy.Service
+ PrivacyPreferences privacy.PreferencesService
+ PrivacyPreflight privacy.DeletionPreflightService
 }
 
 func (s *Server) Routes() http.Handler {

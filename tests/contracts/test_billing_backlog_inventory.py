@@ -97,3 +97,32 @@ def test_alter_reference_is_not_implementation_and_compound_rows_are_split(tmp_p
     for path in (tmp_path / 'docs/billing/backlog').glob('BACKLOG-*.md'):
         headings.extend(re.findall(r'^### ([A-Z][A-Z0-9-]*) —', path.read_text(), re.M))
     assert len(headings) == len(set(headings))
+
+
+def test_inventory_includes_legal_event_and_preference_tables(tmp_path):
+    fixture_repository(tmp_path)
+    assert generate(tmp_path).returncode == 0
+    legal = '\n'.join(p.read_text() for p in (tmp_path / 'docs/billing/backlog').glob('BACKLOG-legal-*.md'))
+    for name in ('account_legal_events', 'user_privacy_preferences', 'profile_deletion_steps'):
+        assert 'таблица `' + name + '`' in legal
+
+
+def test_error_inventory_does_not_report_mapped_codes_as_unimplemented(tmp_path):
+    migrations = fixture_repository(tmp_path)
+    (migrations / '02598_billing_fixture.sql').write_text("RAISE EXCEPTION 'BILLING_BATCH_INVALID';\n")
+    source = tmp_path / 'backend/internal/billing/workflow.go'
+    source.parent.mkdir(parents=True)
+    source.write_text('func MapError() { case "BILLING_BATCH_INVALID": return domain.NewError("VALIDATION_FAILED", 422) }')
+    result = subprocess.run([sys.executable, str(tmp_path / 'docs/billing/tools/gen-error-codes.py')], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    text = (tmp_path / 'docs/billing/ERROR-CODES.md').read_text()
+    assert 'Решено, но Go ещё не изменён: 0.' in text
+
+
+def test_api_inventory_includes_additional_targets_from_precise_contract(tmp_path):
+    fixture_repository(tmp_path)
+    assert generate(tmp_path).returncode == 0
+    content = '\n'.join(p.read_text() for p in (tmp_path / 'docs/billing/backlog').glob('BACKLOG-api-*.md'))
+    assert content.count('— `POST /api/v1/me/deletion/preflight`') == 1
+    assert content.count('— `GET /api/v1/tenants/{t}/billing/offers`') == 1
+    assert 'в `endpoints.json` нет (проверено при генерации)' not in content

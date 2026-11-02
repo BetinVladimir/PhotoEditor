@@ -1,3 +1,4 @@
+import {formatMoney as formatBillingMoney} from '../../src/billing-format';
 import {useLocale} from '../../src/locale-context';
 import {Banner, Button, Card, Text} from 'react-native-paper';
 import {useMemo} from 'react';
@@ -27,7 +28,7 @@ type BillingSummary = {
 };
 
 export default function Billing() {
-  const {t} = useLocale();
+  const {t,locale} = useLocale();
   const {tenant} = useLocalSearchParams<{tenant: string}>();
   const auth = useAuth();
   const api = useMemo(() => new OwnerAPI(auth.client(), tenant || ''), [auth, tenant]);
@@ -57,7 +58,7 @@ export default function Billing() {
 
   const formatMoney = (m: BillingMoney | null | undefined) => {
     if (!m) return '';
-    return `${m.gross_minor} ${m.currency.toUpperCase()} (${m.net_minor} ${t('billing_tax_net')})`;
+    return `${formatBillingMoney(m.gross_minor,m.currency,locale)} (${formatBillingMoney(m.net_minor,m.currency,locale)} ${t('billing_tax_net')})`;
   };
 
   return (

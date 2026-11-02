@@ -149,3 +149,10 @@ it('renders action buttons with paper Button text', async () => {
   expect(screen.getByText(en.billing_action_addon)).toBeTruthy();
   expect(screen.getByText(en.billing_action_payment_methods)).toBeTruthy();
 });
+
+
+it('formats server cents as currency amounts',async()=>{
+ render(<Billing />);
+ expect(await screen.findByText(/€12\.00.*€10\.00/)).toBeTruthy();
+ expect(screen.queryByText(/1200 EUR/)).toBeNull();
+});

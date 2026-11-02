@@ -1,3 +1,4 @@
+import {formatMoney as formatBillingMoney} from '../../src/billing-format';
 import {useLocale} from '../../src/locale-context';
 import {Button, HelperText, List, Text} from 'react-native-paper';
 import {useMemo, useState} from 'react';
@@ -26,7 +27,7 @@ type AddonQuote = {
 };
 
 export default function BillingResources() {
-  const {t} = useLocale();
+  const {t,locale} = useLocale();
   const {tenant} = useLocalSearchParams<{tenant: string}>();
   const auth = useAuth();
   const api = useMemo(() => new OwnerAPI(auth.client(), tenant || ''), [auth, tenant]);
@@ -65,8 +66,8 @@ export default function BillingResources() {
             title={offer.resource_code}
             description={
               offer.recurring
-                ? `${t('billing_addon_recurring_note')} · ${offer.price_per_pack.gross_minor} ${offer.price_per_pack.currency.toUpperCase()}`
-                : `${offer.price_per_pack.gross_minor} ${offer.price_per_pack.currency.toUpperCase()}`
+                ? `${t('billing_addon_recurring_note')} · ${formatBillingMoney(offer.price_per_pack.gross_minor,offer.price_per_pack.currency,locale)}`
+                : `${formatBillingMoney(offer.price_per_pack.gross_minor,offer.price_per_pack.currency,locale)}`
             }
             right={() => (
               <View>
@@ -80,8 +81,8 @@ export default function BillingResources() {
         {data && (
           <>
             <List.Item
-              title={`${t('billing_addon_subtotal')}: ${data.subtotal.gross_minor} ${data.subtotal.currency.toUpperCase()}`}
-              description={`${t('billing_addon_tax')}: ${data.tax.gross_minor} / ${t('billing_addon_total')}: ${data.total.gross_minor}`}
+              title={`${t('billing_addon_subtotal')}: ${formatBillingMoney(data.subtotal.gross_minor,data.subtotal.currency,locale)}`}
+              description={`${t('billing_addon_tax')}: ${formatBillingMoney(data.tax.gross_minor,data.tax.currency,locale)} / ${t('billing_addon_total')}: ${formatBillingMoney(data.total.gross_minor,data.total.currency,locale)}`}
             />
             {hasSelection && (
               <HelperText type="info" visible>

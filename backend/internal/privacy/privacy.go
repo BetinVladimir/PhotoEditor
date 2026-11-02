@@ -34,9 +34,9 @@ func (p PreferencesUpdate) Validate() error {
 
 // OwnershipResolution is one tenant ownership decision in a deletion request.
 type OwnershipResolution struct {
-	TenantID         uuid.UUID  `json:"tenant_id"`
-	TenantRevision   string     `json:"tenant_revision"`
-	Action           string     `json:"action"`
+	TenantID          uuid.UUID  `json:"tenant_id"`
+	TenantRevision    string     `json:"tenant_revision"`
+	Action            string     `json:"action"`
 	TransferReceiptID *uuid.UUID `json:"transfer_receipt_id,omitempty"`
 }
 
@@ -49,11 +49,11 @@ type DeletionRequest struct {
 
 // DeletionAccepted is the 202 response for POST /me/deletion.
 type DeletionAccepted struct {
-	RequestID       uuid.UUID `json:"request_id"`
-	Status          string    `json:"status"`
-	DeadlineAt      time.Time `json:"deadline_at"`
-	StatusCapability string   `json:"status_capability"`
-	StatusExpiresAt time.Time `json:"status_expires_at"`
+	RequestID        uuid.UUID `json:"request_id"`
+	Status           string    `json:"status"`
+	DeadlineAt       time.Time `json:"deadline_at"`
+	StatusCapability string    `json:"status_capability"`
+	StatusExpiresAt  time.Time `json:"status_expires_at"`
 }
 
 // DeletionStatusStep is one step in a deletion status response.
@@ -70,9 +70,9 @@ type RetainedCategory struct {
 
 // DeletionStatus is the response for GET /me/deletion/{request}/status.
 type DeletionStatus struct {
-	State             string             `json:"state"`
-	Steps             []DeletionStatusStep `json:"steps"`
-	RetainedCategories []RetainedCategory `json:"retained_categories"`
+	State              string               `json:"state"`
+	Steps              []DeletionStatusStep `json:"steps"`
+	RetainedCategories []RetainedCategory   `json:"retained_categories"`
 }
 
 // Validate checks that the deletion request is well-formed.
@@ -94,9 +94,14 @@ func (d DeletionRequest) Validate() error {
 	return nil
 }
 
+// PreferencesService updates optional consent independently of deletion readiness.
+type PreferencesService interface {
+	UpdatePreferences(ctx context.Context, who auth.Identity, req PreferencesUpdate, revision int64, idempotencyKey string) (Preferences, error)
+}
+
 // Service provides privacy preference and deletion request operations.
 type Service interface {
-	UpdatePreferences(ctx context.Context, who auth.Identity, req PreferencesUpdate, revision int64, idempotencyKey string) (Preferences, error)
+	PreferencesService
 	RequestDeletion(ctx context.Context, who auth.Identity, req DeletionRequest, idempotencyKey string) (DeletionAccepted, error)
 	GetDeletionStatus(ctx context.Context, requestID uuid.UUID, statusToken string) (DeletionStatus, error)
 }

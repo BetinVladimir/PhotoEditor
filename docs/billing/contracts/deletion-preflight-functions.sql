@@ -1,0 +1,31 @@
+CREATE FUNCTION photo.account_prepare_deletion(p_actor uuid,p_session uuid,p_epoch bigint,p_key text)
+RETURNS TABLE(privacy_case_id uuid,revision bigint,ownership_choices jsonb,required_recent_auth_purpose text)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,photo AS $$
+DECLARE prior photo.profile_deletion_preflights%ROWTYPE;subject uuid;lifecycle bigint;choices jsonb;case_id uuid;
+BEGIN
+ SELECT u.privacy_lifecycle_epoch INTO lifecycle FROM photo.users u
+ WHERE u.id=p_actor AND u.status='active' AND u.auth_epoch=p_epoch FOR SHARE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'BILLING_AUTHORITY_INVALID';END IF;
+ PERFORM 1 FROM photo.sessions s WHERE s.id=p_session AND s.user_id=p_actor
+ AND s.revoked_at IS NULL AND s.expires_at>clock_timestamp() FOR SHARE NOWAIT;
+ IF NOT FOUND THEN RAISE EXCEPTION 'BILLING_AUTHORITY_INVALID';END IF;
+ IF p_key IS NULL OR length(p_key) NOT BETWEEN 1 AND 128 THEN RAISE EXCEPTION 'DELETION_PREFLIGHT_INPUT_INVALID';END IF;
+ INSERT INTO photo.user_privacy_preferences(user_id) VALUES(p_actor) ON CONFLICT(user_id) DO NOTHING;
+ SELECT p.subject_ref INTO subject FROM photo.user_privacy_preferences p WHERE p.user_id=p_actor FOR UPDATE;
+ SELECT * INTO prior FROM photo.profile_deletion_preflights f WHERE f.user_id=p_actor AND f.idempotency_key=p_key;
+ IF FOUND THEN
+  IF prior.auth_epoch<>p_epoch OR prior.subject_lifecycle_epoch<>lifecycle
+  THEN RAISE EXCEPTION 'DELETION_PREFLIGHT_STALE';END IF;
+  RETURN QUERY SELECT prior.privacy_case_id,prior.revision,prior.ownership_snapshot,'delete_profile'::text;RETURN;
+ END IF;
+ SELECT coalesce(jsonb_agg(jsonb_build_object('tenant_id',t.id,'tenant_revision',t.revision::text,
+  'allowed_actions',jsonb_build_array('transfer','close')) ORDER BY t.id),'[]'::jsonb) INTO choices
+ FROM photo.tenants t WHERE t.owner_user_id=p_actor AND t.status='active';
+ -- Draft operational target, not a claim of legally approved retention or SLA.
+ INSERT INTO photo.privacy_cases(subject_ref,user_id,kind,deadline_at,assigned_queue)
+ VALUES(subject,p_actor,'erasure',clock_timestamp()+interval '30 days','privacy-self-service')
+ RETURNING photo.privacy_cases.case_id INTO case_id;
+ INSERT INTO photo.profile_deletion_preflights(privacy_case_id,user_id,idempotency_key,auth_epoch,subject_lifecycle_epoch,ownership_snapshot,ownership_snapshot_hash)
+ VALUES(case_id,p_actor,p_key,p_epoch,lifecycle,choices,sha256(convert_to(choices::text,'UTF8')));
+ RETURN QUERY SELECT case_id,1::bigint,choices,'delete_profile'::text;
+END $$;

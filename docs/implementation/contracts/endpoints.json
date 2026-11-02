@@ -1714,6 +1714,44 @@
       "handler": "Privacy.GetDeletionStatus",
       "idempotency": false,
       "revision_required": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/deletion/preflight",
+      "handler": "Privacy.PrepareDeletion",
+      "idempotency": true,
+      "description": "Register a privacy case before ownership resolution; snapshot only owned active studios; does not revoke sessions or erase data.",
+      "authorization": "user",
+      "request": "DeletionPreflightRequest",
+      "response": "DeletionPreflight",
+      "status": 200,
+      "revision_required": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/recent-auth/challenges",
+      "handler": "Auth.RequestRecentAuth",
+      "idempotency": true,
+      "auth_nonce_required": true,
+      "description": "Request a fresh purpose/session/epoch-bound OTP for a sensitive action; does not create another login identity.",
+      "authorization": "user",
+      "request": "RecentAuthChallengeRequest",
+      "response": "RecentAuthChallenge",
+      "status": 202,
+      "revision_required": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/recent-auth",
+      "handler": "Auth.VerifyRecentAuth",
+      "idempotency": true,
+      "auth_nonce_required": true,
+      "description": "Verify the dedicated sensitive-action OTP and recover the same opaque one-use grant for the same caller nonce and key.",
+      "authorization": "user",
+      "request": "RecentAuthVerifyRequest",
+      "response": "RecentAuthGrant",
+      "status": 201,
+      "revision_required": false
     }
   ]
 }

@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "scope": "legal-hardening",
+  "functions": [
+    {
+      "signature": "account_accept_legal(uuid,uuid,uuid,jsonb,jsonb,text)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [
+        "photo_auth"
+      ],
+      "preimage_sha256": "056703a89fd30fe1c260fdfb58162cba4ba68d3c6eb9f0fa18879b792190ea5f",
+      "postimage_sha256": "9ac40c38f6d91b7b0f56fbe894946f4ea918cdf3df9c10acf45770470eba6a10"
+    }
+  ]
+}

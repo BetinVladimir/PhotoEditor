@@ -21,7 +21,11 @@ class EndpointPackaging(unittest.TestCase):
         value = module.package_endpoints(baseline, current, schemas)
         rows = {(r['method'], r['path']): r for r in value['endpoints']}
         self.assertEqual(set(rows), {(r['method'], r['path']) for r in baseline['endpoints']+current['endpoints']})
-        self.assertEqual(len(rows), 323)
+        preflight = rows['POST', '/api/v1/me/deletion/preflight']
+        self.assertEqual(preflight['handler'], 'Privacy.PrepareDeletion')
+        self.assertEqual(preflight['role'], 'user')
+        self.assertEqual(preflight['response_schema'], 'DeletionPreflight')
+        self.assertEqual(preflight['contract_format'], 'executable_schema')
         # Actual changed DTO: the old RunAccepted declaration cannot override
         # current batch acceptance or its production handler identity.
         export = rows['POST', '/api/v1/tenants/{t}/exports']

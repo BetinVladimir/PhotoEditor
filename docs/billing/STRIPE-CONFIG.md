@@ -1,6 +1,6 @@
 # STRIPE-CONFIG — конфигурация Stripe без ключей
 
-Статус на 23.10.2026: ключей и аккаунтов нет. Решение владельца: ключи добавляются в конфиг после написания кода.
+Статус на 01.11.2026: настроен открытый в Chrome Sandbox; webhook пока отключён. Signing secret хранится вне Git локально и на сервере Framevela по отдельному разрешению владельца. Secret API key ещё не подключён.
 Поэтому весь код пишется против интерфейса провайдера и его подмены (fake) и по умолчанию выключен.
 
 ## Правила
@@ -56,3 +56,23 @@
 ## Что не блокирует разработку
 
 Контракты, таблицы, функции, handlers, webhook inbox, fulfillment, saga, refund, reconciliation, UI и e2e на fake-провайдере (`STR-01`).
+
+
+## Фактическая конфигурация Sandbox — 01.11.2026
+
+- Stripe account: `acct_1UQsiRH8KN2oQFiH`, BEELOY LTD Sandbox.
+- Portal configuration: `bpc_1UX2htH8KN2oQFiHtsyhtDmC`; переключение планов и количества выключено.
+- Endpoint: `we_1UX3OwH8KN2oQFiH0s5o1PVH`, состояние **disabled**.
+- URL: `https://api.framevela.com/api/v1/webhooks/stripe/35860902-e436-46c2-9673-49f6a832caf3`.
+- Provider UUID зарезервирован; строка provider account на сервере ещё не создана.
+- Snapshot API version: `2026-10-28.endive`; значение передаётся через конфигурацию.
+- Signing secret на сервере: `/srv/photoeditor/secrets/stripe/webhook-secret`, права 0600, uid/gid 10001. Значение не публикуется.
+- Секрет не означает готовый обработчик: сервер остаётся на прежней версии схемы; full migration rehearsal заблокирован переносимостью исторических authored capture migrations.
+
+Подписки endpoint: checkout.session.completed/expired/async_payment_succeeded/async_payment_failed;
+invoice.paid/payment_failed/finalization_failed;
+customer.subscription.created/updated/deleted;
+charge.refunded; refund.created/updated/failed;
+charge.dispute.created/updated/closed.
+
+Официальный Stripe SDK проверяет исходные байты и timestamp; локальный parser дополнительно требует test mode, account и точную версию snapshot. Это проверено синтетически подписанными событиями, не реальной доставкой из Sandbox. Включение доставки — после durable inbox и готовности обработчика на сервере.

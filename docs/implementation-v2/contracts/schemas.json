@@ -32470,6 +32470,166 @@
         "steps",
         "retained_categories"
       ]
+    },
+    "DeletionPreflightRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "DeletionPreflightOwnershipChoice": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          }
+        },
+        "tenant_revision": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "allowed_actions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "close",
+              "transfer"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "tenant_id",
+        "tenant_revision",
+        "allowed_actions"
+      ]
+    },
+    "DeletionPreflight": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "privacy_case_id": {
+          "type": "string",
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          }
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "ownership_choices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DeletionPreflightOwnershipChoice"
+          }
+        },
+        "required_recent_auth_purpose": {
+          "type": "string",
+          "const": "delete_profile"
+        }
+      },
+      "required": [
+        "privacy_case_id",
+        "revision",
+        "ownership_choices",
+        "required_recent_auth_purpose"
+      ]
+    },
+    "RecentAuthChallengeRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "purpose": {
+          "type": "string",
+          "enum": [
+            "delete_profile",
+            "resolve_ownership"
+          ]
+        }
+      },
+      "required": [
+        "purpose"
+      ]
+    },
+    "RecentAuthChallenge": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "challenge_id": {
+          "type": "string",
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          }
+        },
+        "expires_in": {
+          "type": "integer",
+          "const": 300
+        }
+      },
+      "required": [
+        "challenge_id",
+        "expires_in"
+      ]
+    },
+    "RecentAuthVerifyRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "purpose": {
+          "type": "string",
+          "enum": [
+            "delete_profile",
+            "resolve_ownership"
+          ]
+        },
+        "challenge_id": {
+          "type": "string",
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          }
+        },
+        "code": {
+          "type": "string",
+          "pattern": "^[0-9]{6}$"
+        }
+      },
+      "required": [
+        "purpose",
+        "challenge_id",
+        "code"
+      ]
+    },
+    "RecentAuthGrant": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "grant": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.[A-Za-z0-9_-]{43}$",
+          "not": {
+            "pattern": "^00000000-0000-0000-0000-000000000000\\."
+          }
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "grant",
+        "expires_at"
+      ]
     }
   }
 }

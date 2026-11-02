@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "authority": "owner delegated technical contracts 2026-11-01",
+  "schema_sha256": "8a838d14c86f9e4d0a39119a47fb4564029868481732fc0d70ec2246140ba515",
+  "functions": [
+    {
+      "signature": "billing_claim_outbox(text,uuid,bigint,bigint)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [
+        "photo_maintenance"
+      ]
+    },
+    {
+      "signature": "billing_finish_outbox(uuid,uuid,uuid,text,bytea,text,bigint)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [
+        "photo_maintenance"
+      ]
+    }
+  ]
+}

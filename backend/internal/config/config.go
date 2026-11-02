@@ -48,6 +48,7 @@ type Config struct {
 	RegistrationEnabled   bool
 	MaxJSONBytes          int64
 	Stripe                StripeConfig
+ StripeIngress StripeIngressConfig
 }
 
 func Load() (Config, error) {
@@ -135,6 +136,7 @@ func Load() (Config, error) {
 	if err = loadStripeConfig(&c.Stripe); err != nil {
 		return c, err
 	}
+ if err=loadStripeIngressConfig(&c.StripeIngress);err!=nil{return c,err}
 
 	return c, nil
 }

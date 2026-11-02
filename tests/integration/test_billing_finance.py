@@ -5,6 +5,7 @@ constraints, FK, RLS isolation. No secrets in fixtures (T8). Working DB
 never touched (R30).
 """
 from pathlib import Path
+import re
 
 import pytest
 
@@ -85,11 +86,10 @@ def test_rls_force_for_all_tables():
 def test_no_delete_grant_in_migration():
     """FIN-T*: no DELETE grant in finance schema migration (R11)."""
     sql = (ROOT / 'backend/db/migrations/02660_billing_finance_schema.sql').read_text()
-    assert 'GRANT DELETE' not in sql.upper(), 'Finance migration must not grant DELETE'
-    assert 'DELETE' not in sql.split('-- +goose Down')[0].upper().replace(
-        'REVOKE ALL', ''
-    ).replace('NO DELETE', ''), \
-        'Finance migration must not grant DELETE to any role'
+    grants = re.findall(r'\bGRANT\s+(.+?)\s+ON\s+', sql.split('-- +goose Down')[0], re.I | re.S)
+    assert grants
+    assert all(not re.search(r'\b(?:DELETE|ALL)\b', privileges, re.I) for privileges in grants), \
+        'Finance migration must not grant DELETE or ALL privileges'
 
 
 def test_no_delete_grant_simple():

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "authority": "owner delegated technical contracts 2026-11-01",
+  "schema_sha256": "1c5e1b37d6eda24a7d1a986a5c17cf4d6cce4eed8384de144985f64e98c87020",
+  "functions": [
+    {
+      "signature": "account_update_privacy_preferences(uuid,uuid,bigint,bigint,boolean,boolean,text,text)",
+      "owner": "photo_fn_owner",
+      "execute_roles": [
+        "photo_auth"
+      ]
+    }
+  ]
+}

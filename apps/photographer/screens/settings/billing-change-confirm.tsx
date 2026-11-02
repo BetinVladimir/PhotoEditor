@@ -1,3 +1,4 @@
+import {formatMoney as formatBillingMoney} from '../../src/billing-format';
 import {useLocale} from '../../src/locale-context';
 import {Button, Card, Divider, HelperText, Text} from 'react-native-paper';
 import {useMemo} from 'react';
@@ -28,7 +29,7 @@ type ChangePreview = {
 };
 
 export default function BillingChangeConfirm() {
-  const {t} = useLocale();
+  const {t,locale} = useLocale();
   // planCode is used only as an API parameter, never displayed as a price (Criteria E).
   const {tenant, planCode} = useLocalSearchParams<{tenant: string; planCode: string}>();
   const auth = useAuth();
@@ -63,7 +64,7 @@ export default function BillingChangeConfirm() {
 
   const formatMoney = (m: ChangePreviewMoney | null | undefined) => {
     if (!m) return '';
-    return `${m.gross_minor} ${m.currency.toUpperCase()} (${m.net_minor} ${t('billing_tax_net')})`;
+    return `${formatBillingMoney(m.gross_minor,m.currency,locale)} (${formatBillingMoney(m.net_minor,m.currency,locale)} ${t('billing_tax_net')})`;
   };
 
   return (

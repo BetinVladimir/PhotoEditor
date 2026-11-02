@@ -436,7 +436,7 @@ func serveLegalRecordAcceptance(w http.ResponseWriter, r *http.Request, svc lega
 	writeJSON(w, 200, result)
 }
 
-func servePrivacyUpdatePreferences(w http.ResponseWriter, r *http.Request, svc privacy.Service, s *Server) {
+func servePrivacyUpdatePreferences(w http.ResponseWriter, r *http.Request, svc privacy.PreferencesService, s *Server) {
 	if r.Context().Err() != nil {
 		return
 	}
@@ -446,7 +446,8 @@ func servePrivacyUpdatePreferences(w http.ResponseWriter, r *http.Request, svc p
 		return
 	}
 	key := r.Header.Get("Idempotency-Key")
-	if !idempotency.ValidKey(key) {
+	if key=="" { writeError(w,r,domain.NewError("VALIDATION_FAILED",400));return }
+ if !idempotency.ValidKey(key) {
 		writeError(w, r, domain.NewError("VALIDATION_FAILED", 422))
 		return
 	}

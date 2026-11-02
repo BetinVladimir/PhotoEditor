@@ -1,0 +1,9 @@
+ALTER TABLE photo.billing_outbox
+ ADD COLUMN worker_id uuid,
+ ADD COLUMN finish_hash bytea,
+ ADD COLUMN result_hash bytea,
+ ADD COLUMN last_error_code text,
+ ADD CONSTRAINT billing_outbox_finish_hash_length CHECK(finish_hash IS NULL OR octet_length(finish_hash)=32),
+ ADD CONSTRAINT billing_outbox_result_hash_length CHECK(result_hash IS NULL OR octet_length(result_hash)=32),
+ ADD CONSTRAINT billing_outbox_error_code_format CHECK(last_error_code IS NULL OR last_error_code ~ '^[A-Z][A-Z0-9_]{0,63}$');
+CREATE INDEX billing_outbox_expired_lease_idx ON photo.billing_outbox(lease_until,id) WHERE state='processing';

@@ -278,6 +278,33 @@
     },
     {
       "method": "GET",
+      "path": "/api/v1/billing/catalog",
+      "request_schema": "BillingCatalogQuery",
+      "response_schema": "BillingCatalog",
+      "handler": "Billing.GetCatalog",
+      "package": "V1",
+      "success_status": 200,
+      "idempotency": false,
+      "description": "Public published plans and topup offers; Custom excluded; cache revision.",
+      "role": "public",
+      "origin": [
+        "baseline",
+        "v2"
+      ],
+      "contract_format": "executable_schema",
+      "typed_source_contract": {
+        "method": "GET",
+        "path": "/api/v1/billing/catalog",
+        "authorization": "public",
+        "request": "BillingCatalogQuery",
+        "response": "BillingCatalog",
+        "status": 200,
+        "handler": "Billing.GetCatalog",
+        "idempotency": false
+      }
+    },
+    {
+      "method": "GET",
       "path": "/api/v1/config",
       "handler": "Config.Public",
       "role": "public",
@@ -305,6 +332,34 @@
     },
     {
       "method": "GET",
+      "path": "/api/v1/legal/requirements",
+      "request_schema": "LegalRequirementsQuery",
+      "response_schema": "LegalRequirementSet",
+      "handler": "Legal.GetRequirements",
+      "package": "V1",
+      "success_status": 200,
+      "idempotency": false,
+      "description": "Active document URLs/versions/hash by locale and account kind; no remote fetch per click.",
+      "role": "public",
+      "origin": [
+        "baseline",
+        "v2"
+      ],
+      "contract_format": "executable_schema",
+      "typed_source_contract": {
+        "method": "GET",
+        "path": "/api/v1/legal/requirements",
+        "authorization": "public",
+        "request": "LegalRequirementsQuery",
+        "response": "LegalRequirementSet",
+        "status": 200,
+        "handler": "Legal.GetRequirements",
+        "idempotency": false,
+        "revision_required": false
+      }
+    },
+    {
+      "method": "GET",
       "path": "/api/v1/me",
       "handler": "User.Get",
       "role": "user",
@@ -326,6 +381,33 @@
         "response": "User",
         "status": 200,
         "handler": "User.Get",
+        "idempotency": false,
+        "revision_required": false
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/deletion/{request}/status",
+      "response_schema": "DeletionStatus",
+      "handler": "Privacy.GetDeletionStatus",
+      "package": "V1",
+      "success_status": 200,
+      "idempotency": false,
+      "description": "Own deletion request progress; scoped status token in Authorization header, not query param.",
+      "role": "status_token",
+      "origin": [
+        "baseline",
+        "v2"
+      ],
+      "contract_format": "executable_schema",
+      "typed_source_contract": {
+        "method": "GET",
+        "path": "/api/v1/me/deletion/{request}/status",
+        "authorization": "status_token",
+        "request": "Empty",
+        "response": "DeletionStatus",
+        "status": 200,
+        "handler": "Privacy.GetDeletionStatus",
         "idempotency": false,
         "revision_required": false
       }
@@ -779,6 +861,116 @@
         "v2"
       ],
       "contract_format": "executable_schema"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/billing",
+      "response_schema": "BillingSummary",
+      "handler": "Billing.GetSummary",
+      "package": "V1",
+      "role": "owner",
+      "success_status": 200,
+      "idempotency": false,
+      "description": "Current plan, prices/status/period, changes, capability flags. PII only owner; admin sees no invoices/payment links.",
+      "origin": [
+        "baseline",
+        "v2"
+      ],
+      "contract_format": "executable_schema",
+      "typed_source_contract": {
+        "method": "GET",
+        "path": "/api/v1/tenants/{t}/billing",
+        "authorization": "owner",
+        "request": "Empty",
+        "response": "BillingSummary",
+        "status": 200,
+        "handler": "Billing.GetSummary",
+        "idempotency": false,
+        "revision_required": false
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/billing/buckets",
+      "request_schema": "BillingBucketsQuery",
+      "response_schema": "BillingUsagePage",
+      "handler": "Billing.GetBuckets",
+      "package": "V1",
+      "role": "owner",
+      "success_status": 200,
+      "idempotency": false,
+      "description": "Paginated credit buckets with expiry; owner/admin.",
+      "origin": [
+        "baseline",
+        "v2"
+      ],
+      "contract_format": "executable_schema",
+      "typed_source_contract": {
+        "method": "GET",
+        "path": "/api/v1/tenants/{t}/billing/buckets",
+        "authorization": "owner",
+        "request": "BillingBucketsQuery",
+        "response": "BillingUsagePage",
+        "status": 200,
+        "handler": "Billing.GetBuckets",
+        "idempotency": false,
+        "revision_required": false
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/billing/orders/{order}",
+      "response_schema": "BillingOrder",
+      "handler": "Billing.GetOrder",
+      "package": "V1",
+      "role": "owner",
+      "success_status": 200,
+      "idempotency": false,
+      "description": "Local authoritative order status and safe next action; foreign order returns 404.",
+      "origin": [
+        "baseline",
+        "v2"
+      ],
+      "contract_format": "executable_schema",
+      "typed_source_contract": {
+        "method": "GET",
+        "path": "/api/v1/tenants/{t}/billing/orders/{order}",
+        "authorization": "owner",
+        "request": "Empty",
+        "response": "BillingOrder",
+        "status": 200,
+        "handler": "Billing.GetOrder",
+        "idempotency": false,
+        "revision_required": false
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tenants/{t}/billing/usage",
+      "request_schema": "BillingUsageQuery",
+      "response_schema": "BillingUsageSummaryResponse",
+      "handler": "Billing.GetUsage",
+      "package": "V1",
+      "role": "owner",
+      "success_status": 200,
+      "idempotency": false,
+      "description": "Resource usage: used/leased/available/overrun, storage categories, egress, updated_at and revision; owner/admin read-only.",
+      "origin": [
+        "baseline",
+        "v2"
+      ],
+      "contract_format": "executable_schema",
+      "typed_source_contract": {
+        "method": "GET",
+        "path": "/api/v1/tenants/{t}/billing/usage",
+        "authorization": "owner",
+        "request": "BillingUsageQuery",
+        "response": "BillingUsageSummaryResponse",
+        "status": 200,
+        "handler": "Billing.GetUsage",
+        "idempotency": false,
+        "revision_required": false
+      }
     },
     {
       "method": "GET",
@@ -2767,6 +2959,35 @@
     },
     {
       "method": "PATCH",
+      "path": "/api/v1/me/privacy",
+      "request_schema": "PrivacyPreferencesUpdate",
+      "response_schema": "PrivacyPreferences",
+      "handler": "Privacy.UpdatePreferences",
+      "package": "V1",
+      "role": "user",
+      "success_status": 200,
+      "idempotency": true,
+      "revision_required": true,
+      "description": "Update privacy preferences with at least one field; returns updated preferences.",
+      "origin": [
+        "baseline",
+        "v2"
+      ],
+      "contract_format": "executable_schema",
+      "typed_source_contract": {
+        "method": "PATCH",
+        "path": "/api/v1/me/privacy",
+        "authorization": "user",
+        "request": "PrivacyPreferencesUpdate",
+        "response": "PrivacyPreferences",
+        "status": 200,
+        "handler": "Privacy.UpdatePreferences",
+        "idempotency": true,
+        "revision_required": true
+      }
+    },
+    {
+      "method": "PATCH",
       "path": "/api/v1/tenants/{t}",
       "handler": "Tenant.Update",
       "role": "admin",
@@ -3230,6 +3451,153 @@
     },
     {
       "method": "POST",
+      "path": "/api/v1/me/deletion",
+      "request_schema": "DeletionRequest",
+      "response_schema": "DeletionAccepted",
+      "handler": "Privacy.RequestDeletion",
+      "package": "V1",
+      "role": "user",
+      "success_status": 202,
+      "idempotency": true,
+      "description": "202 with request_id and status capability; fresh auth and ownership resolution required.",
+      "origin": [
+        "baseline",
+        "v2"
+      ],
+      "contract_format": "executable_schema",
+      "typed_source_contract": {
+        "method": "POST",
+        "path": "/api/v1/me/deletion",
+        "authorization": "user",
+        "request": "DeletionRequest",
+        "response": "DeletionAccepted",
+        "status": 202,
+        "handler": "Privacy.RequestDeletion",
+        "idempotency": true,
+        "revision_required": false
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/deletion/preflight",
+      "request_schema": "DeletionPreflightRequest",
+      "response_schema": "DeletionPreflight",
+      "handler": "Privacy.PrepareDeletion",
+      "package": "V1",
+      "role": "user",
+      "success_status": 200,
+      "idempotency": true,
+      "description": "Register a privacy case before ownership resolution; snapshot only owned active studios; does not revoke sessions or erase data.",
+      "origin": [
+        "baseline",
+        "v2"
+      ],
+      "contract_format": "executable_schema",
+      "typed_source_contract": {
+        "method": "POST",
+        "path": "/api/v1/me/deletion/preflight",
+        "handler": "Privacy.PrepareDeletion",
+        "idempotency": true,
+        "description": "Register a privacy case before ownership resolution; snapshot only owned active studios; does not revoke sessions or erase data.",
+        "authorization": "user",
+        "request": "DeletionPreflightRequest",
+        "response": "DeletionPreflight",
+        "status": 200,
+        "revision_required": false
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/legal/acceptances",
+      "request_schema": "LegalAcceptance",
+      "response_schema": "LegalAcceptanceResult",
+      "handler": "Legal.RecordAcceptance",
+      "package": "V1",
+      "role": "user",
+      "success_status": 200,
+      "idempotency": true,
+      "description": "Record legal acceptance; no auth activation without contract.",
+      "origin": [
+        "baseline",
+        "v2"
+      ],
+      "contract_format": "executable_schema",
+      "typed_source_contract": {
+        "method": "POST",
+        "path": "/api/v1/me/legal/acceptances",
+        "authorization": "user",
+        "request": "LegalAcceptance",
+        "response": "LegalAcceptanceResult",
+        "status": 200,
+        "handler": "Legal.RecordAcceptance",
+        "idempotency": true,
+        "revision_required": false
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/recent-auth",
+      "request_schema": "RecentAuthVerifyRequest",
+      "response_schema": "RecentAuthGrant",
+      "handler": "Auth.VerifyRecentAuth",
+      "package": "V1",
+      "role": "user",
+      "success_status": 201,
+      "idempotency": true,
+      "auth_nonce_required": true,
+      "description": "Verify the dedicated sensitive-action OTP and recover the same opaque one-use grant for the same caller nonce and key.",
+      "origin": [
+        "baseline",
+        "v2"
+      ],
+      "contract_format": "executable_schema",
+      "typed_source_contract": {
+        "method": "POST",
+        "path": "/api/v1/me/recent-auth",
+        "handler": "Auth.VerifyRecentAuth",
+        "idempotency": true,
+        "auth_nonce_required": true,
+        "description": "Verify the dedicated sensitive-action OTP and recover the same opaque one-use grant for the same caller nonce and key.",
+        "authorization": "user",
+        "request": "RecentAuthVerifyRequest",
+        "response": "RecentAuthGrant",
+        "status": 201,
+        "revision_required": false
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/recent-auth/challenges",
+      "request_schema": "RecentAuthChallengeRequest",
+      "response_schema": "RecentAuthChallenge",
+      "handler": "Auth.RequestRecentAuth",
+      "package": "V1",
+      "role": "user",
+      "success_status": 202,
+      "idempotency": true,
+      "auth_nonce_required": true,
+      "description": "Request a fresh purpose/session/epoch-bound OTP for a sensitive action; does not create another login identity.",
+      "origin": [
+        "baseline",
+        "v2"
+      ],
+      "contract_format": "executable_schema",
+      "typed_source_contract": {
+        "method": "POST",
+        "path": "/api/v1/me/recent-auth/challenges",
+        "handler": "Auth.RequestRecentAuth",
+        "idempotency": true,
+        "auth_nonce_required": true,
+        "description": "Request a fresh purpose/session/epoch-bound OTP for a sensitive action; does not create another login identity.",
+        "authorization": "user",
+        "request": "RecentAuthChallengeRequest",
+        "response": "RecentAuthChallenge",
+        "status": 202,
+        "revision_required": false
+      }
+    },
+    {
+      "method": "POST",
       "path": "/api/v1/portal/download-jobs",
       "handler": "Download.StartGuest",
       "role": "guest:download",
@@ -3675,6 +4043,150 @@
         "v2"
       ],
       "contract_format": "executable_schema"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/billing/changes",
+      "request_schema": "BillingChangeRequest",
+      "response_schema": "BillingChange",
+      "handler": "Billing.CreateChange",
+      "package": "V1",
+      "role": "owner",
+      "success_status": 202,
+      "idempotency": true,
+      "revision_required": true,
+      "description": "Schedule subscription change; returns scheduled/applied/pending change. Owner only.",
+      "origin": [
+        "baseline",
+        "v2"
+      ],
+      "contract_format": "executable_schema",
+      "typed_source_contract": {
+        "method": "POST",
+        "path": "/api/v1/tenants/{t}/billing/changes",
+        "authorization": "owner",
+        "request": "BillingChangeRequest",
+        "response": "BillingChange",
+        "status": 202,
+        "handler": "Billing.CreateChange",
+        "idempotency": true,
+        "revision_required": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/billing/changes/{change}/cancel",
+      "request_schema": "BillingChangeCancelRequest",
+      "response_schema": "BillingChange",
+      "handler": "Billing.CancelChange",
+      "package": "V1",
+      "role": "owner",
+      "success_status": 200,
+      "idempotency": true,
+      "revision_required": true,
+      "description": "Cancel future scheduled change; paid saga requires compensation, not a simple delete.",
+      "origin": [
+        "baseline",
+        "v2"
+      ],
+      "contract_format": "executable_schema",
+      "typed_source_contract": {
+        "method": "POST",
+        "path": "/api/v1/tenants/{t}/billing/changes/{change}/cancel",
+        "authorization": "owner",
+        "request": "BillingChangeCancelRequest",
+        "response": "BillingChange",
+        "status": 200,
+        "handler": "Billing.CancelChange",
+        "idempotency": true,
+        "revision_required": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/billing/orders",
+      "request_schema": "BillingOrderRequest",
+      "response_schema": "BillingOrderAccepted",
+      "handler": "Billing.CreateOrder",
+      "package": "V1",
+      "role": "owner",
+      "success_status": 202,
+      "idempotency": true,
+      "revision_required": true,
+      "description": "Accept quote and create stable order; GET order returns fresh action URL. Owner only.",
+      "origin": [
+        "baseline",
+        "v2"
+      ],
+      "contract_format": "executable_schema",
+      "typed_source_contract": {
+        "method": "POST",
+        "path": "/api/v1/tenants/{t}/billing/orders",
+        "authorization": "owner",
+        "request": "BillingOrderRequest",
+        "response": "BillingOrderAccepted",
+        "status": 202,
+        "handler": "Billing.CreateOrder",
+        "idempotency": true,
+        "revision_required": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/billing/portal",
+      "request_schema": "BillingPortalRequest",
+      "response_schema": "BillingPortalAccepted",
+      "handler": "Billing.CreatePortalSession",
+      "package": "V1",
+      "role": "owner",
+      "success_status": 202,
+      "idempotency": true,
+      "description": "202 portal_action_id; GET /billing/portal-actions/{action} returns fresh URL. No-store.",
+      "origin": [
+        "baseline",
+        "v2"
+      ],
+      "contract_format": "executable_schema",
+      "typed_source_contract": {
+        "method": "POST",
+        "path": "/api/v1/tenants/{t}/billing/portal",
+        "authorization": "owner",
+        "request": "BillingPortalRequest",
+        "response": "BillingPortalAccepted",
+        "status": 202,
+        "handler": "Billing.CreatePortalSession",
+        "idempotency": true,
+        "revision_required": false
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tenants/{t}/billing/quotes",
+      "request_schema": "BillingQuoteRequest",
+      "response_schema": "BillingQuote",
+      "handler": "Billing.CreateQuote",
+      "package": "V1",
+      "role": "owner",
+      "success_status": 201,
+      "idempotency": true,
+      "revision_required": true,
+      "description": "Create immutable quote: id/hash/expires, lines, gross/net/tax, rights and effective dates.",
+      "origin": [
+        "baseline",
+        "v2"
+      ],
+      "contract_format": "executable_schema",
+      "typed_source_contract": {
+        "method": "POST",
+        "path": "/api/v1/tenants/{t}/billing/quotes",
+        "authorization": "owner",
+        "request": "BillingQuoteRequest",
+        "response": "BillingQuote",
+        "status": 201,
+        "handler": "Billing.CreateQuote",
+        "idempotency": true,
+        "revision_required": true
+      }
     },
     {
       "method": "POST",
@@ -6318,6 +6830,34 @@
         "v2"
       ],
       "contract_format": "executable_schema"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/webhooks/stripe/{account}",
+      "request_schema": "StripeWebhookBody",
+      "response_schema": "StripeWebhookReceived",
+      "handler": "Billing.ReceiveStripeWebhook",
+      "package": "V1",
+      "success_status": 200,
+      "idempotency": false,
+      "description": "200 only after durable inbox; invalid signature 400; storage failure 5xx; no user cookies/CSRF.",
+      "role": "public",
+      "origin": [
+        "baseline",
+        "v2"
+      ],
+      "contract_format": "executable_schema",
+      "typed_source_contract": {
+        "method": "POST",
+        "path": "/api/v1/webhooks/stripe/{account}",
+        "authorization": "webhook",
+        "request": "StripeWebhookBody",
+        "response": "StripeWebhookReceived",
+        "status": 200,
+        "handler": "Billing.ReceiveStripeWebhook",
+        "idempotency": false,
+        "revision_required": false
+      }
     },
     {
       "method": "PUT",

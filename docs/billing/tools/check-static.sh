@@ -11,7 +11,7 @@ run "gen-briefs --check"   "$PY" "$DOCS/tools/gen-briefs.py" --check
 run "gen-examples --check" "$PY" "$DOCS/tools/gen-examples.py" --check
 run "gen-backlog --check"  "$PY" "$DOCS/tools/gen-backlog.py" --check
 run "gen-error-codes --check" "$PY" "$DOCS/tools/gen-error-codes.py" --check
-for g in catalog quota workflow routed-workflow render editor operations paid-operation selected finance provider usage legal; do
+for g in catalog quota workflow routed-workflow render editor operations paid-operation selected finance provider usage legal deletion legal-hardening outbox privacy deletion-preflight recent-auth stripe-inbox recent-auth-verifier; do
   run "generate-billing-$g --check" "$PY" "scripts/generate-billing-$g.py" --check
 done
 if "$PY" -c "import pytest" 2>/dev/null; then

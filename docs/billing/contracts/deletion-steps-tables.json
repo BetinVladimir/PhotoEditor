@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "tables": [
+    {
+      "name": "profile_deletion_steps",
+      "columns": [
+        {
+          "name": "step_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "request_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "step_key",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "ordinal",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "input_hash",
+          "type": "bytea",
+          "nullable": false
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "nullable": false,
+          "default": "'pending'"
+        },
+        {
+          "name": "attempts",
+          "type": "bigint",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "worker_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "lease_token",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "lease_until",
+          "type": "timestamptz",
+          "nullable": true
+        },
+        {
+          "name": "next_retry_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "clock_timestamp()"
+        },
+        {
+          "name": "result_hash",
+          "type": "bytea",
+          "nullable": true
+        },
+        {
+          "name": "last_error_code",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "finish_hash",
+          "type": "bytea",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "clock_timestamp()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "clock_timestamp()"
+        }
+      ],
+      "primary_key": [
+        "step_id"
+      ],
+      "constraints": [
+        "FOREIGN KEY(request_id) REFERENCES photo.profile_deletion_requests(request_id)",
+        "UNIQUE(request_id,step_key)",
+        "UNIQUE(request_id,ordinal)",
+        "CHECK(step_key ~ '^[a-z][a-z0-9_]{0,63}$')",
+        "CHECK(ordinal>0)",
+        "CHECK(octet_length(input_hash)=32)",
+        "CHECK(state IN ('pending','processing','retry','completed','failed'))",
+        "CHECK(attempts>=0)",
+        "CHECK(result_hash IS NULL OR octet_length(result_hash)=32)",
+        "CHECK((state='processing')=(lease_until IS NOT NULL))",
+        "CHECK(state<>'processing' OR (worker_id IS NOT NULL AND lease_token IS NOT NULL))",
+        "CHECK(state<>'completed' OR result_hash IS NOT NULL)",
+        "CHECK(last_error_code IS NULL OR last_error_code ~ '^[A-Z][A-Z0-9_]{0,63}$')"
+      ],
+      "indexes": [
+        "CREATE INDEX profile_deletion_steps_ready_idx ON photo.profile_deletion_steps(request_id,ordinal,next_retry_at) WHERE state IN ('pending','processing','retry')"
+      ],
+      "rls": "force_trusted_functions",
+      "acl": {
+        "photo_fn_owner": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      }
+    }
+  ]
+}

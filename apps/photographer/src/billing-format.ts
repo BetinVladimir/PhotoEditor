@@ -8,21 +8,15 @@ export function parseBillingInt(value: string): bigint {
 
 /**
  * Format a monetary minor-unit string (e.g. "1050" → "€10.50" for EUR).
- * Uses locale-aware Intl.NumberFormat. Safe for amounts up to ~9 quadrillion minor units.
+ * Uses locale-aware Intl.NumberFormat and bigint throughout, preserving signed int64 cents.
  */
 export function formatMoney(grossMinor: string, currency: string, locale: string): string {
-  const minor = parseBillingInt(grossMinor);
-  const whole = minor / 100n;
-  const frac = (minor < 0n ? -minor : minor) % 100n;
-  const absWhole = whole < 0n ? -whole : whole;
-  // Build a precise decimal to hand to Intl (safe for realistic monetary amounts)
-  const decimal = Number(absWhole) + Number(frac) / 100;
-  const sign = minor < 0n ? '-' : '';
-  const formatted = new Intl.NumberFormat(locale, {
-    style: 'currency', currency,
-    minimumFractionDigits: 2, maximumFractionDigits: 2,
-  }).format(decimal);
-  return minor < 0n ? formatted.replace(/^([^0-9]*)/, `$1-`) : formatted;
+  const minor = parseBillingInt(grossMinor),negative=minor<0n,absolute=negative?-minor:minor;
+  const whole=absolute/100n,fraction=absolute%100n;
+  const formatter=new Intl.NumberFormat(locale,{style:'currency',currency,minimumFractionDigits:2,maximumFractionDigits:2});
+  const amount=negative?(whole===0n?-0:-whole):whole;
+  const digits=new Intl.NumberFormat(locale,{useGrouping:false,minimumIntegerDigits:2,maximumFractionDigits:0}).format(fraction);
+  return formatter.formatToParts(amount).map(part=>part.type==='fraction'?digits:part.value).join('');
 }
 
 /**

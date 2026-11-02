@@ -27464,6 +27464,957 @@
         ],
         "x-web-mutation-csrf": true
       }
+    },
+    "/api/v1/billing/catalog": {
+      "get": {
+        "operationId": "Billing.GetCatalog",
+        "x-role": "public",
+        "x-package": "V1",
+        "parameters": [
+          {
+            "name": "locale",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "schemas.json#/$defs/BillingCatalogQuery/properties/locale"
+            }
+          },
+          {
+            "name": "currency",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "schemas.json#/$defs/BillingCatalogQuery/properties/currency"
+            }
+          }
+        ],
+        "security": [],
+        "x-web-mutation-csrf": false,
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "schemas.json#/$defs/BillingCatalog"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenants/{t}/billing": {
+      "get": {
+        "operationId": "Billing.GetSummary",
+        "x-role": "owner",
+        "x-package": "V1",
+        "parameters": [
+          {
+            "name": "t",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "userBearer": []
+          }
+        ],
+        "x-web-mutation-csrf": false,
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "schemas.json#/$defs/BillingSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenants/{t}/billing/usage": {
+      "get": {
+        "operationId": "Billing.GetUsage",
+        "x-role": "owner",
+        "x-package": "V1",
+        "parameters": [
+          {
+            "name": "t",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "userBearer": []
+          }
+        ],
+        "x-web-mutation-csrf": false,
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "schemas.json#/$defs/BillingUsageSummaryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenants/{t}/billing/buckets": {
+      "get": {
+        "operationId": "Billing.GetBuckets",
+        "x-role": "owner",
+        "x-package": "V1",
+        "parameters": [
+          {
+            "name": "t",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "userBearer": []
+          }
+        ],
+        "x-web-mutation-csrf": false,
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "schemas.json#/$defs/BillingUsagePage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenants/{t}/billing/quotes": {
+      "post": {
+        "operationId": "Billing.CreateQuote",
+        "x-role": "owner",
+        "x-package": "V1",
+        "parameters": [
+          {
+            "name": "t",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[!-~]+$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"[1-9][0-9]{0,18}\"$"
+            }
+          }
+        ],
+        "security": [
+          {
+            "userBearer": []
+          }
+        ],
+        "x-web-mutation-csrf": true,
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "schemas.json#/$defs/BillingQuote"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "schemas.json#/$defs/BillingQuoteRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenants/{t}/billing/orders": {
+      "post": {
+        "operationId": "Billing.CreateOrder",
+        "x-role": "owner",
+        "x-package": "V1",
+        "parameters": [
+          {
+            "name": "t",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[!-~]+$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"[1-9][0-9]{0,18}\"$"
+            }
+          }
+        ],
+        "security": [
+          {
+            "userBearer": []
+          }
+        ],
+        "x-web-mutation-csrf": true,
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "schemas.json#/$defs/BillingOrderAccepted"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "schemas.json#/$defs/BillingOrderRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenants/{t}/billing/orders/{order}": {
+      "get": {
+        "operationId": "Billing.GetOrder",
+        "x-role": "owner",
+        "x-package": "V1",
+        "parameters": [
+          {
+            "name": "t",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "order",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "userBearer": []
+          }
+        ],
+        "x-web-mutation-csrf": false,
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "schemas.json#/$defs/BillingOrder"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenants/{t}/billing/changes": {
+      "post": {
+        "operationId": "Billing.CreateChange",
+        "x-role": "owner",
+        "x-package": "V1",
+        "parameters": [
+          {
+            "name": "t",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[!-~]+$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"[1-9][0-9]{0,18}\"$"
+            }
+          }
+        ],
+        "security": [
+          {
+            "userBearer": []
+          }
+        ],
+        "x-web-mutation-csrf": true,
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "schemas.json#/$defs/BillingChange"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "schemas.json#/$defs/BillingChangeRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenants/{t}/billing/changes/{change}/cancel": {
+      "post": {
+        "operationId": "Billing.CancelChange",
+        "x-role": "owner",
+        "x-package": "V1",
+        "parameters": [
+          {
+            "name": "t",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "change",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[!-~]+$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"[1-9][0-9]{0,18}\"$"
+            }
+          }
+        ],
+        "security": [
+          {
+            "userBearer": []
+          }
+        ],
+        "x-web-mutation-csrf": true,
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "schemas.json#/$defs/BillingChange"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "schemas.json#/$defs/BillingChangeCancelRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenants/{t}/billing/portal": {
+      "post": {
+        "operationId": "Billing.CreatePortalSession",
+        "x-role": "owner",
+        "x-package": "V1",
+        "parameters": [
+          {
+            "name": "t",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[!-~]+$"
+            }
+          }
+        ],
+        "security": [
+          {
+            "userBearer": []
+          }
+        ],
+        "x-web-mutation-csrf": true,
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "schemas.json#/$defs/BillingPortalAccepted"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "schemas.json#/$defs/BillingPortalRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks/stripe/{account}": {
+      "post": {
+        "operationId": "Billing.ReceiveStripeWebhook",
+        "x-role": "public",
+        "x-package": "V1",
+        "parameters": [
+          {
+            "name": "account",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "stripeSignature": []
+          }
+        ],
+        "x-web-mutation-csrf": false,
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "schemas.json#/$defs/StripeWebhookReceived"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "schemas.json#/$defs/StripeWebhookBody"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/legal/requirements": {
+      "get": {
+        "operationId": "Legal.GetRequirements",
+        "x-role": "public",
+        "x-package": "V1",
+        "parameters": [
+          {
+            "name": "locale",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "schemas.json#/$defs/LegalRequirementsQuery/properties/locale"
+            }
+          },
+          {
+            "name": "account_kind",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "schemas.json#/$defs/LegalRequirementsQuery/properties/account_kind"
+            }
+          }
+        ],
+        "security": [],
+        "x-web-mutation-csrf": false,
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "schemas.json#/$defs/LegalRequirementSet"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/legal/acceptances": {
+      "post": {
+        "operationId": "Legal.RecordAcceptance",
+        "x-role": "user",
+        "x-package": "V1",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[!-~]+$"
+            }
+          }
+        ],
+        "security": [
+          {
+            "userBearer": []
+          }
+        ],
+        "x-web-mutation-csrf": true,
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "schemas.json#/$defs/LegalAcceptanceResult"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "schemas.json#/$defs/LegalAcceptance"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/privacy": {
+      "patch": {
+        "operationId": "Privacy.UpdatePreferences",
+        "x-role": "user",
+        "x-package": "V1",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[!-~]+$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"[1-9][0-9]{0,18}\"$"
+            }
+          }
+        ],
+        "security": [
+          {
+            "userBearer": []
+          }
+        ],
+        "x-web-mutation-csrf": true,
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "schemas.json#/$defs/PrivacyPreferences"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "schemas.json#/$defs/PrivacyPreferencesUpdate"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/deletion": {
+      "post": {
+        "operationId": "Privacy.RequestDeletion",
+        "x-role": "user",
+        "x-package": "V1",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[!-~]+$"
+            }
+          }
+        ],
+        "security": [
+          {
+            "userBearer": []
+          }
+        ],
+        "x-web-mutation-csrf": true,
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "schemas.json#/$defs/DeletionAccepted"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "schemas.json#/$defs/DeletionRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/deletion/{request}/status": {
+      "get": {
+        "operationId": "Privacy.GetDeletionStatus",
+        "x-role": "status_token",
+        "x-package": "V1",
+        "parameters": [
+          {
+            "name": "request",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "deletionStatusBearer": []
+          }
+        ],
+        "x-web-mutation-csrf": false,
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "schemas.json#/$defs/DeletionStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/deletion/preflight": {
+      "post": {
+        "operationId": "Privacy.PrepareDeletion",
+        "x-role": "user",
+        "x-package": "V1",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[!-~]+$"
+            }
+          }
+        ],
+        "security": [
+          {
+            "userBearer": []
+          }
+        ],
+        "x-web-mutation-csrf": true,
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "schemas.json#/$defs/DeletionPreflight"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "schemas.json#/$defs/DeletionPreflightRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/recent-auth/challenges": {
+      "post": {
+        "operationId": "Auth.RequestRecentAuth",
+        "x-role": "user",
+        "x-package": "V1",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[!-~]+$"
+            }
+          },
+          {
+            "name": "X-Photo-Auth-Nonce",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 43,
+              "maxLength": 43,
+              "pattern": "^[A-Za-z0-9_-]{43}$"
+            },
+            "description": "Independent client-held 32-byte random recovery nonce, base64url without padding. Reuse exactly for retries; separate from browser CSRF."
+          }
+        ],
+        "security": [
+          {
+            "userBearer": []
+          }
+        ],
+        "x-web-mutation-csrf": true,
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "schemas.json#/$defs/RecentAuthChallenge"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "schemas.json#/$defs/RecentAuthChallengeRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/recent-auth": {
+      "post": {
+        "operationId": "Auth.VerifyRecentAuth",
+        "x-role": "user",
+        "x-package": "V1",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[!-~]+$"
+            }
+          },
+          {
+            "name": "X-Photo-Auth-Nonce",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 43,
+              "maxLength": 43,
+              "pattern": "^[A-Za-z0-9_-]{43}$"
+            },
+            "description": "Independent client-held 32-byte random recovery nonce, base64url without padding. Reuse exactly for retries; separate from browser CSRF."
+          }
+        ],
+        "security": [
+          {
+            "userBearer": []
+          }
+        ],
+        "x-web-mutation-csrf": true,
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "schemas.json#/$defs/RecentAuthGrant"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "schemas.json#/$defs/RecentAuthVerifyRequest"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -27491,6 +28442,17 @@
         "in": "cookie",
         "name": "__Host-photo_portal_session",
         "description": "Production portal session cookie; development uses photo_dev_portal_session."
+      },
+      "stripeSignature": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Stripe-Signature",
+        "description": "Stripe SDK verifies the original raw body and timestamp using the configured Sandbox endpoint secret."
+      },
+      "deletionStatusBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Deletion-request scoped status capability; not an ordinary user access token."
       }
     }
   }

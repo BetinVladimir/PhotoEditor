@@ -1,14 +1,17 @@
 package billingprovider
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-// WebhookInboxState tracks processing state for a received event.
 type WebhookInboxState string
 
 const (
@@ -17,172 +20,241 @@ const (
 	WebhookInboxStateQuarantined WebhookInboxState = "quarantined"
 )
 
-// WebhookInboxEntry is a persisted record of a received provider event.
-// Written before returning 2xx so no event is lost.
+var ErrWebhookPayloadConflict = errors.New("BILLING_WEBHOOK_HASH_CONFLICT")
+
 type WebhookInboxEntry struct {
-	ID             uuid.UUID
-	AccountID      string // Stripe account that sent the event
-	ProviderEventID string // provider-side dedup key
-	EventType      string
-	RawPayload     []byte
-	ReceivedAt     time.Time
-	State          WebhookInboxState
-	QuarantineReason string // set when state == quarantined
-	LeaseExpiry    *time.Time // set when a worker holds a retry lease
-	ProcessedAt    *time.Time
+	ID               uuid.UUID
+	AccountID        string
+	ProviderEventID  string
+	EventType        string
+	RawPayload       []byte
+	ReceivedAt       time.Time
+	State            WebhookInboxState
+	QuarantineReason string
+	LeaseExpiry      *time.Time
+	ProcessedAt      *time.Time
 }
 
-// WebhookInboxStore persists inbox entries.
+// Record atomically inserts by (account,event), acknowledges the same bytes,
+// and rejects a repeated identity carrying a different payload.
+// Production implementations must durably commit before returning created=true.
 type WebhookInboxStore interface {
-	// Exists returns true if an entry with this providerEventID already exists.
-	Exists(ctx context.Context, providerEventID string) (bool, error)
-	// Save writes a new entry; must fail if providerEventID already exists.
-	Save(ctx context.Context, entry WebhookInboxEntry) error
-	// Update persists state changes (quarantine, processed, lease).
-	Update(ctx context.Context, entry WebhookInboxEntry) error
-	// ClaimLease acquires a processing lease; returns false if already leased.
-	ClaimLease(ctx context.Context, entryID uuid.UUID, leaseDuration time.Duration) (bool, error)
-	// ListPending returns up to limit entries eligible for processing.
-	ListPending(ctx context.Context, limit int) ([]WebhookInboxEntry, error)
+	Record(context.Context, WebhookInboxEntry) (created bool, err error)
+	Exists(context.Context, string) (bool, error)
+	Save(context.Context, WebhookInboxEntry) error
+	Update(context.Context, WebhookInboxEntry) error
+	ClaimLease(context.Context, uuid.UUID, time.Duration) (bool, error)
+	ListPending(context.Context, int) ([]WebhookInboxEntry, error)
 }
 
-// WebhookIngress verifies and stores incoming provider webhook events.
-// It writes to the inbox before returning 2xx, enforcing at-least-once delivery.
-// Criteria A: invalid signature is rejected before any inbox write.
-// Criteria B: duplicate providerEventID is detected and skipped silently.
-// Criteria C: unexpected customer/order/mode/currency/price → quarantine.
-// Criteria D: exact event list and payload paths per OPEN-13 (not yet known).
+type WebhookEventParser interface {
+	ParseEvent(payload []byte, signature, secret string) (Event, error)
+}
+
+type WebhookInboxRecorder interface {
+	Record(context.Context, WebhookInboxEntry) (bool, error)
+}
+
 type WebhookIngress struct {
-	provider    Provider
-	inboxStore  WebhookInboxStore
+	provider      WebhookEventParser
+	inboxStore    WebhookInboxRecorder
 	webhookSecret string
 }
 
-// NewWebhookIngress returns a WebhookIngress for the given provider and inbox store.
-// webhookSecret is the raw secret value read from the *_REF file at runtime.
-func NewWebhookIngress(p Provider, s WebhookInboxStore, webhookSecret string) *WebhookIngress {
-	return &WebhookIngress{provider: p, inboxStore: s, webhookSecret: webhookSecret}
+func NewWebhookIngress(p WebhookEventParser, s WebhookInboxRecorder, secret string) *WebhookIngress {
+	return &WebhookIngress{provider: p, inboxStore: s, webhookSecret: secret}
 }
-
-// IngestRaw receives a raw webhook payload, verifies its signature, and writes
-// it to the inbox. Returns the inbox entry on success.
-// Criteria A: bad signature → error, inbox not written.
-// Criteria B: known providerEventID → returns nil error (duplicate acknowledged).
-func (wi *WebhookIngress) IngestRaw(ctx context.Context, accountID string, payload []byte, signature string) (*WebhookInboxEntry, error) {
-	// Criteria A: verify signature before any side effects.
-	event, err := wi.provider.ParseEvent(payload, signature, wi.webhookSecret)
+func (wi *WebhookIngress) IngestRaw(ctx context.Context, account string, payload []byte, signature string) (*WebhookInboxEntry, error) {
+	if wi == nil || wi.provider == nil || wi.inboxStore == nil {
+		return nil, ErrUnavailable{}
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if account == "" || len(payload) == 0 || wi.webhookSecret == "" {
+		return nil, errors.New("STRIPE_WEBHOOK_INPUT_INVALID")
+	}
+	// Snapshot caller-owned bytes before verification; persist these exact bytes.
+	raw := bytes.Clone(payload)
+	event, err := wi.provider.ParseEvent(raw, signature, wi.webhookSecret)
 	if err != nil {
 		return nil, fmt.Errorf("STRIPE_SIGNATURE_INVALID: %w", err)
 	}
-
-	// Criteria B: deduplicate by providerEventID.
-	if exists, err := wi.inboxStore.Exists(ctx, event.ID); err != nil {
-		return nil, fmt.Errorf("inbox dedup check: %w", err)
-	} else if exists {
-		return nil, nil // duplicate — acknowledged silently, no double-write
+	if event.ID == "" || event.Type == "" || (event.AccountID != "" && event.AccountID != account) {
+		return nil, errors.New("STRIPE_EVENT_ACCOUNT_OR_IDENTITY_INVALID")
 	}
-
-	entry := WebhookInboxEntry{
-		ID:              uuid.New(),
-		AccountID:       accountID,
-		ProviderEventID: event.ID,
-		EventType:       event.Type,
-		RawPayload:      payload,
-		ReceivedAt:      time.Now(),
-		State:           WebhookInboxStatePending,
+	entry := WebhookInboxEntry{ID: uuid.New(), AccountID: account, ProviderEventID: event.ID, EventType: event.Type, RawPayload: raw, ReceivedAt: time.Now(), State: WebhookInboxStatePending}
+	created, err := wi.inboxStore.Record(ctx, entry)
+	if err != nil {
+		return nil, fmt.Errorf("inbox record: %w", err)
 	}
-	if err := wi.inboxStore.Save(ctx, entry); err != nil {
-		return nil, fmt.Errorf("inbox save: %w", err)
+	if !created {
+		return nil, nil
 	}
 	return &entry, nil
 }
-
-// QuarantineEntry moves an entry to quarantined state with a reason.
-// Criteria C: called when processing detects unexpected customer/order/mode/currency/price.
-func (wi *WebhookIngress) QuarantineEntry(ctx context.Context, entry WebhookInboxEntry, reason string) error {
-	entry.State = WebhookInboxStateQuarantined
-	entry.QuarantineReason = reason
-	return wi.inboxStore.Update(ctx, entry)
+func (wi *WebhookIngress) QuarantineEntry(ctx context.Context, e WebhookInboxEntry, reason string) error {
+	e.State = WebhookInboxStateQuarantined
+	e.QuarantineReason = reason
+	store, ok := wi.inboxStore.(interface {
+		Update(context.Context, WebhookInboxEntry) error
+	})
+	if !ok {
+		return ErrUnavailable{}
+	}
+	return store.Update(ctx, e)
 }
 
-// InMemoryWebhookInboxStore is an in-memory WebhookInboxStore for testing.
+// InMemoryWebhookInboxStore is a synchronized test store, not durable storage.
 type InMemoryWebhookInboxStore struct {
-	byEventID map[string]bool
+	mu        sync.Mutex
+	byEventID map[string]uuid.UUID
 	byID      map[uuid.UUID]WebhookInboxEntry
 	pending   []uuid.UUID
 }
 
-// NewInMemoryWebhookInboxStore returns a ready-to-use in-memory inbox store.
 func NewInMemoryWebhookInboxStore() *InMemoryWebhookInboxStore {
-	return &InMemoryWebhookInboxStore{
-		byEventID: make(map[string]bool),
-		byID:      make(map[uuid.UUID]WebhookInboxEntry),
+	return &InMemoryWebhookInboxStore{byEventID: map[string]uuid.UUID{}, byID: map[uuid.UUID]WebhookInboxEntry{}}
+}
+func webhookKey(e WebhookInboxEntry) string { return e.AccountID + "\x00" + e.ProviderEventID }
+func cloneInbox(e WebhookInboxEntry) WebhookInboxEntry {
+	e.RawPayload = bytes.Clone(e.RawPayload)
+	if e.LeaseExpiry != nil {
+		v := *e.LeaseExpiry
+		e.LeaseExpiry = &v
+	}
+	if e.ProcessedAt != nil {
+		v := *e.ProcessedAt
+		e.ProcessedAt = &v
+	}
+	return e
+}
+func (s *InMemoryWebhookInboxStore) insert(e WebhookInboxEntry) {
+	s.byEventID[webhookKey(e)] = e.ID
+	s.byID[e.ID] = cloneInbox(e)
+	if e.State == WebhookInboxStatePending {
+		s.pending = append(s.pending, e.ID)
 	}
 }
-
-func (s *InMemoryWebhookInboxStore) Exists(_ context.Context, providerEventID string) (bool, error) {
-	return s.byEventID[providerEventID], nil
-}
-
-func (s *InMemoryWebhookInboxStore) Save(_ context.Context, entry WebhookInboxEntry) error {
-	if s.byEventID[entry.ProviderEventID] {
-		return fmt.Errorf("duplicate event ID: %s", entry.ProviderEventID)
+func (s *InMemoryWebhookInboxStore) Record(ctx context.Context, e WebhookInboxEntry) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return false, err
 	}
-	s.byEventID[entry.ProviderEventID] = true
-	s.byID[entry.ID] = entry
-	if entry.State == WebhookInboxStatePending {
-		s.pending = append(s.pending, entry.ID)
+	if e.ID == uuid.Nil || e.AccountID == "" || e.ProviderEventID == "" {
+		return false, errors.New("inbox identity incomplete")
 	}
-	return nil
-}
-
-func (s *InMemoryWebhookInboxStore) Update(_ context.Context, entry WebhookInboxEntry) error {
-	s.byID[entry.ID] = entry
-	s.byEventID[entry.ProviderEventID] = true
-	return nil
-}
-
-func (s *InMemoryWebhookInboxStore) ClaimLease(_ context.Context, entryID uuid.UUID, dur time.Duration) (bool, error) {
-	e, ok := s.byID[entryID]
-	if !ok {
-		return false, fmt.Errorf("entry not found: %s", entryID)
-	}
-	if e.State != WebhookInboxStatePending {
+	if id, ok := s.byEventID[webhookKey(e)]; ok {
+		old := s.byID[id]
+		if sha256.Sum256(old.RawPayload) != sha256.Sum256(e.RawPayload) || old.EventType != e.EventType {
+			return false, ErrWebhookPayloadConflict
+		}
 		return false, nil
 	}
-	now := time.Now()
-	exp := now.Add(dur)
-	if e.LeaseExpiry != nil && now.Before(*e.LeaseExpiry) {
-		return false, nil // already leased
+	if _, ok := s.byID[e.ID]; ok {
+		return false, errors.New("inbox entry identity conflict")
 	}
-	e.LeaseExpiry = &exp
-	s.byID[entryID] = e
+	s.insert(e)
 	return true, nil
 }
-
-func (s *InMemoryWebhookInboxStore) ListPending(_ context.Context, limit int) ([]WebhookInboxEntry, error) {
-	var out []WebhookInboxEntry
+func (s *InMemoryWebhookInboxStore) Exists(ctx context.Context, event string) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
+	for _, e := range s.byID {
+		if e.ProviderEventID == event {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+func (s *InMemoryWebhookInboxStore) Save(ctx context.Context, e WebhookInboxEntry) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if e.ID == uuid.Nil || e.AccountID == "" || e.ProviderEventID == "" {
+		return errors.New("inbox identity incomplete")
+	}
+	if _, ok := s.byEventID[webhookKey(e)]; ok {
+		return fmt.Errorf("duplicate event ID: %s", e.ProviderEventID)
+	}
+	if _, ok := s.byID[e.ID]; ok {
+		return errors.New("inbox entry identity conflict")
+	}
+	s.insert(e)
+	return nil
+}
+func (s *InMemoryWebhookInboxStore) Update(ctx context.Context, e WebhookInboxEntry) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	old, ok := s.byID[e.ID]
+	if !ok {
+		return errors.New("inbox entry not found")
+	}
+	if webhookKey(old) != webhookKey(e) || old.EventType != e.EventType || !bytes.Equal(old.RawPayload, e.RawPayload) {
+		return ErrWebhookPayloadConflict
+	}
+	s.byID[e.ID] = cloneInbox(e)
+	return nil
+}
+func (s *InMemoryWebhookInboxStore) ClaimLease(ctx context.Context, id uuid.UUID, d time.Duration) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
+	if d <= 0 {
+		return false, errors.New("inbox lease duration must be positive")
+	}
+	e, ok := s.byID[id]
+	if !ok {
+		return false, errors.New("inbox entry not found")
+	}
+	now := time.Now()
+	if e.State != WebhookInboxStatePending || (e.LeaseExpiry != nil && now.Before(*e.LeaseExpiry)) {
+		return false, nil
+	}
+	deadline := now.Add(d)
+	e.LeaseExpiry = &deadline
+	s.byID[id] = e
+	return true, nil
+}
+func (s *InMemoryWebhookInboxStore) ListPending(ctx context.Context, limit int) ([]WebhookInboxEntry, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if limit < 0 {
+		return nil, errors.New("inbox limit must not be negative")
+	}
+	out := []WebhookInboxEntry{}
+	if limit == 0 {
+		return out, nil
+	}
 	now := time.Now()
 	for _, id := range s.pending {
 		e, ok := s.byID[id]
-		if !ok {
+		if !ok || e.State != WebhookInboxStatePending || (e.LeaseExpiry != nil && now.Before(*e.LeaseExpiry)) {
 			continue
 		}
-		if e.State != WebhookInboxStatePending {
-			continue
-		}
-		if e.LeaseExpiry != nil && now.Before(*e.LeaseExpiry) {
-			continue // currently leased
-		}
-		out = append(out, e)
-		if len(out) >= limit {
+		out = append(out, cloneInbox(e))
+		if len(out) == limit {
 			break
 		}
 	}
 	return out, nil
 }
-
-// CountInbox returns the total number of entries (for test assertions).
 func (s *InMemoryWebhookInboxStore) CountInbox() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	return len(s.byID)
 }

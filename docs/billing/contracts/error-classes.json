@@ -1,6 +1,6 @@
 {
  "schema_version": 1,
- "source": "Решение владельца продукта 23.10.2026 (ответы на вопросы OPEN-11). Группы определены по именам кодов; при пересмотре менять только этот файл.",
+ "source": "Решение владельца продукта 23.10.2026 (ответы на вопросы OPEN-11). Группы определены по именам кодов; при пересмотре менять только этот файл. Technical maintenance-only outbox codes: owner delegation 01.11.2026.",
  "groups": {
   "A": "внутренние инварианты: оставить 500 INTERNAL_ERROR",
   "B": "неверный запрос: 422 VALIDATION_FAILED",
@@ -121,6 +121,18 @@
    "code": "BILLING_UNAVAILABLE",
    "status": 503,
    "group": "D"
+  },
+  "BILLING_OUTBOX_HASH_CONFLICT": {
+   "class": "internal",
+   "group": "A"
+  },
+  "BILLING_OUTBOX_INPUT_INVALID": {
+   "class": "internal",
+   "group": "A"
+  },
+  "BILLING_OUTBOX_NOT_FOUND": {
+   "class": "internal",
+   "group": "A"
   },
   "BILLING_PAID_OPERATION_CALLER_DRIFT": {
    "class": "internal",

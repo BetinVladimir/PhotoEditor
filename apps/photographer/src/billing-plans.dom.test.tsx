@@ -31,20 +31,20 @@ vi.mock('./locale-context', async () => {
 vi.mock('./use-review-foreground', () => ({useReviewForeground: () => ({active: true, generation: 0})}));
 
 const CATALOG = {
-  catalog_revision: 'r1', scope: 'public', currency: 'eur',
-  items: [
-    {plan_code: 'starter', name_key: 'Starter', custom: false, published: true, draft_only: false,
-     price: {currency: 'eur', net_minor: '0', gross_minor: '0', tax_mode: 'bg_exclusive_20'},
+  catalog_revision: '1', scope: 'sandbox', currency: 'EUR',
+  plans: [
+    {id: '00000000-0000-4000-8000-000000000001',version_id: '00000000-0000-4000-8000-000000000011',code: 'starter', label: 'Starter',
+     price: {currency: 'EUR', net_minor: '0', tax_minor:'0',gross_minor: '0', tax_mode: 'test_bg20',tax_lines:[]},
      limits: [], can_purchase: true, unavailable_reason: null},
-    {plan_code: 'pro', name_key: 'Pro', custom: false, published: true, draft_only: false,
-     price: {currency: 'eur', net_minor: '1000', gross_minor: '1200', tax_mode: 'bg_exclusive_20'},
+    {id: '00000000-0000-4000-8000-000000000002',version_id: '00000000-0000-4000-8000-000000000012',code: 'pro', label: 'Pro',
+     price: {currency: 'EUR', net_minor: '1000',tax_minor:'200', gross_minor: '1200', tax_mode: 'test_bg20',tax_lines:[{code:'fixture_vat',rate_decimal:'0.20',amount_minor:'200'}]},
      limits: [], can_purchase: true, unavailable_reason: null},
-    {plan_code: 'studio_pro', name_key: 'Studio Pro', custom: false, published: true, draft_only: false,
-     price: {currency: 'eur', net_minor: '2000', gross_minor: '2400', tax_mode: 'bg_exclusive_20'},
+    {id: '00000000-0000-4000-8000-000000000003',version_id: '00000000-0000-4000-8000-000000000013',code: 'studio_pro', label: 'Studio Pro',
+     price: {currency: 'EUR', net_minor: '2000',tax_minor:'400', gross_minor: '2400', tax_mode: 'test_bg20',tax_lines:[{code:'fixture_vat',rate_decimal:'0.20',amount_minor:'400'}]},
      limits: [], can_purchase: false, unavailable_reason: 'gate_disabled'},
     // Custom plan must be hidden (criteria)
-    {plan_code: 'custom', name_key: 'Custom', custom: true, published: true, draft_only: false,
-     price: {currency: 'eur', net_minor: '0', gross_minor: '0', tax_mode: 'bg_exclusive_20'},
+    {id: '00000000-0000-4000-8000-000000000004',version_id: '00000000-0000-4000-8000-000000000014',code: 'custom', label: 'Custom',
+     price: {currency: 'EUR', net_minor: '0', tax_minor:'0',gross_minor: '0', tax_mode: 'test_bg20',tax_lines:[]},
      limits: [], can_purchase: false, unavailable_reason: null},
   ],
 };
@@ -92,4 +92,15 @@ it('shows error state', async () => {
   state.billingCatalog.mockRejectedValue(new Error('net'));
   render(<BillingPlans />);
   await screen.findByText(en.read_error);
+});
+
+
+it('shows cents as major currency units from the actual catalog DTO',async()=>{
+ render(<BillingPlans />);
+ expect(await screen.findByText(/€10\.00.*€12\.00/)).toBeTruthy();
+ expect(screen.queryByText(/1000 EUR/)).toBeNull();
+});
+it('shows an empty published catalog',async()=>{
+ state.billingCatalog.mockResolvedValue({...CATALOG,plans:[]});render(<BillingPlans />);
+ expect(await screen.findByText(en.billing_plans_empty)).toBeTruthy();
 });

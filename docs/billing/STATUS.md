@@ -18,10 +18,10 @@
 | 1Б.5 Editor effects | 02606 | закрыто, default-disabled | [16](16-editor-effects-workflow.md) |
 | 1Б.6 отдельные операции | 02607 (+ paid 02608) | закрыто, default-disabled | [17](17-standalone-operations.md) |
 | 1Б.7 selected/final | 02609 | **приёмка не завершена**, OPEN-08 | [18](18-selected-final-operations.md) |
-| 1В finance | — | не начато | [backlog/README.md](backlog/README.md) |
-| 1В provider | — | не начато | [backlog/README.md](backlog/README.md) |
-| 1В usage | — | не начато | [backlog/README.md](backlog/README.md) |
-| 1В legal | — | не начато | [backlog/README.md](backlog/README.md) |
+| 1В finance | 02660–02661 | источники есть; бизнес-приёмка не завершена | [backlog/README.md](backlog/README.md) |
+| 1В provider | 02662–02663, 02672–02673 | outbox проверен на БД; ingress не развёрнут | [backlog/README.md](backlog/README.md) |
+| 1В usage | 02664–02665 | источники есть; бизнес-приёмка не завершена | [backlog/README.md](backlog/README.md) |
+| 1В legal | 02666–02671, 02674–02675 | acceptance, steps, preferences проверены; erasure не завершён | [backlog/README.md](backlog/README.md) |
 
 Шаблон новой записи приёмки — в разделе «Приёмка модуля» файла `TESTING.md`.
 
@@ -163,3 +163,30 @@ TST-02 заблокирован до STR-01 (fake provider Go-пакет).
 - TypeScript: PASS
 - Статические проверки: 18/18 PASS
 - Изменения: workspace-access.ts (legal-onboarding в globalRoutes), legal-onboarding.tsx (без обязательного tenant), billing-change-confirm.tsx (useCASMutation), profile-delete.tsx (scoped статус удаления через request_id), billing-payment-details.tsx (NATIVE_PAYMENT_CAPABILITY=false), локали +3 ключа profile_delete_pending/failed/timeout
+
+
+### Аудит и технические контракты — 01.11.2026
+
+- `PHOTO_TEST_DB_TEMPLATES=1 .venv-platform/bin/python -m pytest -q -p no:cacheprovider tests/integration/test_billing_finance.py tests/integration/test_billing_provider.py tests/integration/test_billing_usage.py tests/integration/test_billing_legal.py tests/integration/test_billing_deletion.py tests/integration/test_billing_outbox.py tests/integration/test_billing_privacy_preferences.py`: **111 passed in 94.65s**, 0 skipped. Finance/provider/usage старые наборы преимущественно проверяют текст SQL; их PASS не доказывает выполнение бизнес-сценариев на БД. Новые legal/deletion/outbox/preferences используют одноразовые БД.
+- Отдельный combined contracts+legal/deletion прогон: **53 passed in 20.37s**, 0 skipped. Пересекается с предыдущим, числа не суммировать.
+- Outbox contracts+DB: **16 passed in 8.55s**, 0 skipped; crash reclaim, stale fence, retry/backoff, dead-letter, ACL.
+- Privacy contracts+DB: **19 passed in 13.96s**, 0 skipped; default false, audit, replay, CAS, session/epoch, ACL. После этого capture channel дополнительно привязан к session; повторный прогон фиксируется отдельно.
+- `go test -race ./internal/billingprovider ./internal/billing ./internal/config -count=1`: **PASS**, три пакета; SDK подписи, атомарные повторы, подмена payload и отказ записи. Только локальные подписанные фикстуры.
+- `PYTHON=.venv-platform/bin/python bash docs/billing/tools/check-static.sh`: **PASS**, включая **127 contract tests in 1.71s** на момент прогона; до добавления outbox/privacy. Финальный прогон новых наборов фиксируется отдельно.
+
+Исправлены: пропущенные account/user_privacy/profile_deletion таблицы в inventory, compound outbox targets, стабильность ID и устаревшие chunks; неоднозначные имена SQL и race первого legal acceptance; ошибочные транзакции в старых legal-тестах; ложное определение DELETE-привилегии по слову deleted в CHECK.
+
+Новые 02669–02675 ещё не применялись к рабочей БД. Full-head migration qualification и деплой не выполнены. Наличие имени функции в migration не равно реализации: например, старый billing_admit_usage_request возвращает UUID без durable admission, а recent-auth issuance ещё не проверяет purpose-bound OTP. Эти части не квалифицированы. Финансовые продажи и Sandbox webhook остаются выключены.
+
+
+### API приватности, preflight и отказ фиктивного recent-auth — 01.11.2026
+
+- `PHOTO_TEST_DB_TEMPLATES=1 .venv-platform/bin/python -m pytest -q -x -p no:cacheprovider tests/contracts/test_billing_recent_auth_contract.py tests/integration/test_billing_legal.py`: **23 passed in 14.54s**, 0 skipped. Старый issuer теперь отказывает до установки purpose-bound verifier; произвольная ссылка и старый непроверенный grant не дают proof. Это исправление отказа, не реализация OTP flow.
+- `PHOTO_TEST_DB_TEMPLATES=1 .venv-platform/bin/python -m pytest -q -x -p no:cacheprovider tests/integration/test_billing_deletion_preflight.py tests/integration/test_billing_privacy_preferences.py -k 'actual_http or real_http'`: **2 passed, 25 deselected in 9.78s**, 0 skipped. Внутри каждого теста запущен настоящий Go HTTP route с auth token и role photo_auth PostgreSQL, без fake service.
+- Предыдущий прогон preflight contract+DB и HTTP privacy: **15 passed, 15 deselected in 31.61s**; пересекается, не суммировать.
+- Privacy DB после привязки capture channel к сессии: **15 passed in 17.78s**, 0 skipped.
+- `go test -race ./internal/privacy ./internal/billingprovider ./internal/billing ./internal/config -count=1`: **PASS**, четыре пакета.
+- `go test ./cmd/photo -run '^$'`: **PASS**, проверка сборки без выполнения тестов.
+- `check-static.sh` после outbox/privacy/preflight: **139 passed in 1.63s** contracts и все генераторы PASS. После этого добавлены recent-auth gate и regression inventory; финальный результат отдельно.
+
+API POST `/api/v1/me/deletion/preflight` зарегистрирован в обоих исходных endpoint registries, DTO strict, сервис подключён к authPool. PATCH `/api/v1/me/privacy` подключён отдельно от ещё неготового erasure. Missing key возвращает 400, invalid revision/unknown fields отклоняются. Генерация packaged endpoints также синхронизировала ранее неупакованные 16 billing endpoints. Генератор выявил прежний drift TaskCommand.inputs: canonical worker source уже допускает 5000, generated artifact ранее содержал 512; артефакт приведён к canonical source.

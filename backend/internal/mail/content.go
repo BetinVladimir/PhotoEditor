@@ -59,3 +59,35 @@ func InviteMessage(recipient, id, locale, tenant, token string) (Message, error)
 	}
 	return Message{Recipient: recipient, Subject: subject, Body: body, ID: id}, nil
 }
+
+// RecentAuthMessage makes the sensitive purpose explicit and never calls it sign-in.
+func RecentAuthMessage(recipient, id, locale, code, purpose string) (Message, error) {
+	message, err := OTPMessage(recipient, id, locale, code)
+	if err != nil {
+		return Message{}, err
+	}
+	if purpose != "delete_profile" && purpose != "resolve_ownership" {
+		return Message{}, errors.New("invalid recent auth mail purpose")
+	}
+	switch locale {
+	case "en":
+		message.Subject = "Confirm profile deletion in PhotoEditor"
+		if purpose == "resolve_ownership" {
+			message.Subject = "Confirm a studio ownership action in PhotoEditor"
+		}
+		message.Body = "Confirmation code: " + code + "\nThis code expires in 5 minutes and only authorizes this action. It cannot sign you in. If you did not request this action, ignore this message."
+	case "ru":
+		message.Subject = "Подтверждение удаления профиля PhotoEditor"
+		if purpose == "resolve_ownership" {
+			message.Subject = "Подтверждение действия с владельцем студии PhotoEditor"
+		}
+		message.Body = "Код подтверждения: " + code + "\nКод действует 5 минут и подходит только для этого действия. Для входа он не подходит. Если вы не запрашивали действие, проигнорируйте письмо."
+	case "bg":
+		message.Subject = "Потвърждение за изтриване на профил в PhotoEditor"
+		if purpose == "resolve_ownership" {
+			message.Subject = "Потвърждение за действие със собствеността на студио в PhotoEditor"
+		}
+		message.Body = "Код за потвърждение: " + code + "\nКодът е валиден 5 минути само за това действие. Не може да се използва за вход. Ако не сте поискали действието, игнорирайте съобщението."
+	}
+	return message, nil
+}
