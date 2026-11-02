@@ -84,7 +84,7 @@
 | Артефакт | Тип | Пакет работ |
 |---|---|---|
 | `docs/video/*.md` | документация (этот каталог) | WP-00 |
-| `backend/db/migrations/02651…` | миграции | WP-04 |
+| `backend/db/migrations/02683…` | миграции | WP-04 |
 | `backend/internal/video/{media,sequence,job,quota,share}` | Go-модули | WP-04…13 |
 | `backend/internal/httpapi/video_*.go` | эндпоинты | WP-05…13 |
 | `backend/internal/objectstore/video_upload.go` | загрузка | WP-05 |
@@ -102,7 +102,7 @@
 | `tests/fixtures/video/manifest.json`, `tests/contracts/video-*` | тестовые материалы | WP-01, 14 |
 | `docs/implementation-v2/runbooks/video-worker-*.md` | эксплуатация | WP-15 |
 | `backend/internal/video/quota/scale.go` | допуск, стоимость, Retry-After, аренды (`FN-Q-09…13`) | WP-17 |
-| `backend/db/migrations/02663…02665_video_*.sql` | бюджеты трафика, лимиты арендатора, допуск и обслуживание | WP-17 |
+| `backend/db/migrations/02695…02697_video_*.sql` | бюджеты трафика, лимиты арендатора, допуск и обслуживание | WP-17 |
 | `backend/internal/portal/video_stream_limit.go` | лимиты потоков и аренды (`FN-G-14`) | WP-17 |
 | `workers/photo_worker/runtime/source_cache.py` | кэш исходников запуска (D-14) | WP-17 |
 | `workers/photo_worker/operations/video/lut_validate.py` | проверка `.cube` (`FN-W-12`) | WP-06 |

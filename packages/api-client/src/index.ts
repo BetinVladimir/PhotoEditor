@@ -250,3 +250,4 @@ export class EventPoller {
 export * from "./upload";
 
 export * from "./raw-development";
+export * from "./video-timeline";

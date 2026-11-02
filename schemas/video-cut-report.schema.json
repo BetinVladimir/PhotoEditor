@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "video-cut-report.schema.json",
+  "title": "VideoCutReport",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "media_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "source_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "fps": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "num": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "den": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "num",
+        "den"
+      ]
+    },
+    "frame_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "method": {
+      "enum": [
+        "model",
+        "classic"
+      ]
+    },
+    "model": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "weights_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "name",
+            "weights_sha256"
+          ]
+        }
+      ]
+    },
+    "backend_used": {
+      "enum": [
+        "cuda",
+        "mlx",
+        "mps",
+        "cpu"
+      ]
+    },
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "enum": [
+            "all",
+            "hard_only"
+          ]
+        },
+        "sensitivity": {
+          "enum": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        "min_shot_frames": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "include_flash": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "mode",
+        "sensitivity",
+        "min_shot_frames",
+        "include_flash"
+      ]
+    },
+    "boundaries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^b[0-9]+$"
+          },
+          "kind": {
+            "enum": [
+              "cut",
+              "dissolve",
+              "fade_in",
+              "fade_out",
+              "flash"
+            ]
+          },
+          "frame_in": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "frame_out": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "start_ticks": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "end_ticks": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "frame_in",
+          "frame_out",
+          "start_ticks",
+          "end_ticks",
+          "confidence"
+        ]
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "media_id",
+    "source_sha256",
+    "fps",
+    "frame_count",
+    "method",
+    "model",
+    "backend_used",
+    "params",
+    "boundaries"
+  ]
+}

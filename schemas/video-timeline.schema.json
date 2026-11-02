@@ -1,0 +1,574 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "video-timeline.schema.json",
+  "title": "VideoTimelineDocument",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "sequence_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "base_revision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "timebase": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ticks_per_second": {
+          "const": 705600000
+        }
+      },
+      "required": [
+        "ticks_per_second"
+      ]
+    },
+    "video": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fps": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "num": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "den": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "num",
+            "den"
+          ]
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "color": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "space": {
+              "const": "rec709"
+            },
+            "range": {
+              "const": "limited"
+            }
+          },
+          "required": [
+            "space",
+            "range"
+          ]
+        },
+        "background": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        }
+      },
+      "required": [
+        "fps",
+        "width",
+        "height",
+        "color",
+        "background"
+      ]
+    },
+    "audio": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sample_rate": {
+          "enum": [
+            48000,
+            44100
+          ]
+        },
+        "channels": {
+          "const": 2
+        }
+      },
+      "required": [
+        "sample_rate",
+        "channels"
+      ]
+    },
+    "tracks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Track"
+      }
+    },
+    "markers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Marker"
+      }
+    },
+    "master": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "effects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Effect"
+          }
+        },
+        "audio": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "loudness": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "target_lufs": {
+                  "type": "number"
+                },
+                "true_peak_db": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "target_lufs",
+                "true_peak_db"
+              ]
+            }
+          },
+          "required": [
+            "loudness"
+          ]
+        }
+      },
+      "required": [
+        "effects",
+        "audio"
+      ]
+    },
+    "rights": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "music_declared": {
+          "type": "boolean"
+        },
+        "declared_at": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "music_declared"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "sequence_id",
+    "base_revision",
+    "timebase",
+    "video",
+    "audio",
+    "tracks",
+    "markers",
+    "master",
+    "rights"
+  ],
+  "$defs": {
+    "Effect": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "type": {
+          "enum": [
+            "color.basic",
+            "color.cdl",
+            "color.curves",
+            "color.lut3d",
+            "color.match",
+            "audio.gain",
+            "audio.fade",
+            "audio.duck"
+          ]
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "params": {
+          "type": "object"
+        },
+        "meta": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "enabled",
+        "params"
+      ]
+    },
+    "Clip": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "source": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "video",
+                    "audio",
+                    "lut"
+                  ]
+                },
+                "media_id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,64}$"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              },
+              "required": [
+                "kind",
+                "media_id",
+                "sha256"
+              ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "photo"
+                },
+                "asset_version_id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,64}$"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              },
+              "required": [
+                "kind",
+                "asset_version_id",
+                "sha256"
+              ]
+            }
+          ]
+        },
+        "at": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "src_in": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "src_out": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "duration": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "speed": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "num": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "den": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "num",
+            "den"
+          ]
+        },
+        "fit": {
+          "enum": [
+            "fit",
+            "fill",
+            "none"
+          ]
+        },
+        "transform": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "scale": {
+              "type": "number"
+            },
+            "position": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "rotate": {
+              "type": "number"
+            },
+            "crop": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 4,
+              "maxItems": 4
+            }
+          },
+          "required": [
+            "scale",
+            "position",
+            "rotate",
+            "crop"
+          ]
+        },
+        "motion": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "pan_zoom"
+            },
+            "from": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "scale": {
+                  "type": "number"
+                },
+                "center": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                }
+              },
+              "required": [
+                "scale",
+                "center"
+              ]
+            },
+            "to": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "scale": {
+                  "type": "number"
+                },
+                "center": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                }
+              },
+              "required": [
+                "scale",
+                "center"
+              ]
+            },
+            "easing": {
+              "enum": [
+                "linear",
+                "ease_in_out"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "from",
+            "to",
+            "easing"
+          ]
+        },
+        "audio": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "gain_db": {
+              "type": "number"
+            },
+            "fade_in": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "fade_out": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "mute": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "gain_db",
+            "fade_in",
+            "fade_out",
+            "mute"
+          ]
+        },
+        "transition_in": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "enum": [
+                "cut",
+                "crossfade",
+                "dip_to_black",
+                "fade_in",
+                "fade_out"
+              ]
+            },
+            "duration": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "align": {
+              "enum": [
+                "center",
+                "start",
+                "end"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "duration"
+          ]
+        },
+        "effects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Effect"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "source",
+        "at",
+        "effects"
+      ]
+    },
+    "Track": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "kind": {
+          "enum": [
+            "video",
+            "audio"
+          ]
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "visible": {
+          "type": "boolean"
+        },
+        "muted": {
+          "type": "boolean"
+        },
+        "gain_db": {
+          "type": "number"
+        },
+        "clips": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Clip"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "clips"
+      ]
+    },
+    "Marker": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "at": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "kind": {
+          "enum": [
+            "cut",
+            "beat",
+            "user"
+          ]
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "at",
+        "kind",
+        "label"
+      ]
+    }
+  }
+}

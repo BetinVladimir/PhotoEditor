@@ -100,7 +100,7 @@ sequenceDiagram
 - `backend/internal/video/share` — публикация видео-коллекций, учёт трафика.
 - `backend/internal/httpapi/video_*.go` — эндпоинты (см. [04](04-data-model-and-api.md)).
 - `backend/internal/objectstore/video_upload.go` — multipart большого размера, проверка частей.
-- `backend/db/migrations/02651…` — таблицы и функции (см. [04](04-data-model-and-api.md)).
+- `backend/db/migrations/02683…` — таблицы и функции (см. [04](04-data-model-and-api.md)).
 
 ### Worker (Python)
 

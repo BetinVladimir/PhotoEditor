@@ -5,7 +5,7 @@
 ## 1. Принципы
 
 - Схема `photo`, все таблицы с `tenant_id`, составными внешними ключами `(tenant_id, …)` и `UNIQUE (tenant_id, id)` — как в [`01219_v30_delivery_storage.sql`](../../backend/db/migrations/01219_v30_delivery_storage.sql).
-- Миграции forward-only, номера после `02650`; функции с `SECURITY DEFINER`, фиксированным `search_path`, владельцем `photo_fn_owner`, `REVOKE ALL … FROM PUBLIC` и точечным `GRANT` (образец — [`02641_user_project_upload_completion.sql`](../../backend/db/migrations/02641_user_project_upload_completion.sql)). Прямых DML-прав приложению на новые таблицы нет.
+- Миграции forward-only, номера после `02682` (проверять `ls backend/db/migrations | tail -3` при создании); функции с `SECURITY DEFINER`, фиксированным `search_path`, владельцем `photo_fn_owner`, `REVOKE ALL … FROM PUBLIC` и точечным `GRANT` (образец — [`02641_user_project_upload_completion.sql`](../../backend/db/migrations/02641_user_project_upload_completion.sql)). Прямых DML-прав приложению на новые таблицы нет.
 - Крупные неизменяемые данные (документ монтажа, отчёты, probe) хранятся артефактами в MinIO, в БД — хеш, размер и ограниченная сводка (`jsonb` ≤ 16 КиБ).
 - Каждая мутация имеет идемпотентный ключ и запись-квитанцию (см. [generic-idempotency-retention-contract.md](../implementation-v2/generic-idempotency-retention-contract.md)).
 - Состояние объекта меняют только функции БД, а не произвольные UPDATE из Go.

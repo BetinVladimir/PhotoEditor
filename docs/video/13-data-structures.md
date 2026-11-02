@@ -2,7 +2,7 @@
 
 Статус: спроектировано, не реализовано (2026-10-22). Начало: [README](README.md). Метод — [12](12-decomposition-method.md). Это **нормативный** источник точных имён и типов для задач [15](15-task-cards.md). Более общие описания — [04](04-data-model-and-api.md) и [07](07-timeline-edl-and-render-spec.md); если здесь и там расхождение, остановиться (п. 5.4 документа 12).
 
-Оглавление: DS-01 константы · DS-02…DS-08 SQL · DS-09…DS-12 TypeScript · DS-13…DS-17 Python · DS-18 Go · DS-19…DS-23 JSON по проводу · DS-24 коды ошибок · DS-25 SSE · DS-26 клиентские журналы попыток · DS-27 ключи локализации · DS-28…DS-29 SQL масштабирования (миграции 02663…02664) · DS-30 тела ошибок и расширение capabilities · DS-31 ссылки воспроизведения.
+Оглавление: DS-01 константы · DS-02…DS-08 SQL · DS-09…DS-12 TypeScript · DS-13…DS-17 Python · DS-18 Go · DS-19…DS-23 JSON по проводу · DS-24 коды ошибок · DS-25 SSE · DS-26 клиентские журналы попыток · DS-27 ключи локализации · DS-28…DS-29 SQL масштабирования (миграции 02695…02696) · DS-30 тела ошибок и расширение capabilities · DS-31 ссылки воспроизведения.
 
 ## DS-01. Константы (единственное место значений)
 
@@ -64,7 +64,7 @@
 | `SOURCE_CACHE_TTL_SECONDS` | `1800` | кэш исходников запуска на узле |
 | `MAX_TASK_ATTEMPTS_INFRA` | `3` | попытки при потере воркера |
 
-## SQL (миграции 02651…02665, все forward-only; 02665 — только функции допуска и обслуживания, см. [14](14-function-catalog.md))
+## SQL (миграции 02683…02697, все forward-only; 02697 — только функции допуска и обслуживания, см. [14](14-function-catalog.md))
 
 Общие правила для всех файлов (скопировать структуру из [`01219_v30_delivery_storage.sql`](../../backend/db/migrations/01219_v30_delivery_storage.sql) и [`02641_user_project_upload_completion.sql`](../../backend/db/migrations/02641_user_project_upload_completion.sql)):
 
@@ -75,7 +75,7 @@
 5. Функции: `LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,photo`, затем `ALTER FUNCTION … OWNER TO photo_fn_owner; REVOKE ALL … FROM PUBLIC; GRANT EXECUTE … TO <роль>`.
 6. Состояния — `text` с `CHECK (state IN (…))` и `CHECK (length(state) BETWEEN 1 AND 256)`.
 
-### DS-02. `photo.video_upload_sessions` (файл `02651_video_upload_sessions.sql`)
+### DS-02. `photo.video_upload_sessions` (файл `02683_video_upload_sessions.sql`)
 
 ```sql
 CREATE TABLE photo.video_upload_sessions (
@@ -115,7 +115,7 @@ CREATE INDEX video_upload_sessions_expiry ON photo.video_upload_sessions(expires
 
 Разрешённые переходы `state` — [04](04-data-model-and-api.md), раздел 3. Часть-метаданные (номера, ETag) хранятся в `photo.video_upload_parts(tenant_id, upload_id, part_no integer CHECK (part_no BETWEEN 1 AND 10000), etag text CHECK (length(etag) BETWEEN 1 AND 256), bytes bigint CHECK (bytes>0), PRIMARY KEY (tenant_id,upload_id,part_no))` в том же файле.
 
-### DS-03. `photo.video_media` (файл `02652_video_media.sql`)
+### DS-03. `photo.video_media` (файл `02684_video_media.sql`)
 
 ```sql
 CREATE TABLE photo.video_media (
@@ -158,7 +158,7 @@ CREATE INDEX video_media_project_page ON photo.video_media(tenant_id,project_id,
 
 Для `kind='video'` без аудиодорожки `waveform_artifact_id` всё равно заполняется артефактом-пустышкой «нет звука» (JSON `{"channels":0}`), чтобы CHECK не ветвился.
 
-### DS-04. Монтажи (файл `02653_video_sequences.sql`)
+### DS-04. Монтажи (файл `02685_video_sequences.sql`)
 
 ```sql
 CREATE TABLE photo.video_sequences (
@@ -211,7 +211,7 @@ CREATE INDEX video_sequence_sources_usage ON photo.video_sequence_sources(tenant
 
 Триггер или `REVOKE UPDATE,DELETE` на `video_sequence_revisions` для всех ролей, кроме функции GC-свёртки `autosave` (TK-108): ревизии иначе неизменяемы.
 
-### DS-05. Задания (файл `02654_video_jobs.sql`)
+### DS-05. Задания (файл `02686_video_jobs.sql`)
 
 ```sql
 CREATE TABLE photo.video_jobs (
@@ -265,7 +265,7 @@ CREATE TABLE photo.video_job_outputs (
 );
 ```
 
-### DS-06. Рендеры (файл `02655_video_renders.sql`)
+### DS-06. Рендеры (файл `02687_video_renders.sql`)
 
 Колонки — как в [04](04-data-model-and-api.md), раздел 2.5, со следующими точными типами и CHECK:
 
@@ -288,7 +288,7 @@ CREATE TABLE photo.video_job_outputs (
 
 `CHECK (state <> 'ready' OR (output_artifact_id IS NOT NULL AND qc_report_artifact_id IS NOT NULL AND output_bytes IS NOT NULL AND duration_ticks IS NOT NULL))`. Дополнительно `UNIQUE (tenant_id,job_id)` — один рендер на задание.
 
-### DS-07. Выдача (файл `02656_video_delivery.sql`)
+### DS-07. Выдача (файл `02688_video_delivery.sql`)
 
 ```sql
 ALTER TABLE photo.collections ADD COLUMN content_kind text NOT NULL DEFAULT 'photo'
@@ -324,13 +324,13 @@ CREATE INDEX video_egress_events_period ON photo.video_egress_events(tenant_id,a
 
 Перед миграцией проверить, что в таблице `photo.collections` нет конфликтующего столбца `content_kind` (`grep -rn content_kind backend/db/migrations`); если есть — остановиться.
 
-### DS-08. Квота (файл `02657_video_quota_roles.sql`)
+### DS-08. Квота (файл `02689_video_quota_roles.sql`)
 
 1. Найти ограничение(я) на `photo.quota_reservations.holder_type` и на `photo.artifacts.output_role` (`grep -n "holder_type\|output_role" backend/db/migrations/*.sql | grep -i check`). Изменить **только** найденные CHECK: добавить значения `video_upload`, `video_job` для `holder_type` и роли `video_original, audio_original, video_probe, video_proxy, video_filmstrip, video_waveform, video_cut_report, video_color_report, video_preview_frame, video_sequence_document, video_render, video_qc_report` для `output_role`.
 2. Если ограничения нет (значения свободны) — файл содержит только комментарий и `SELECT 1`, а решение записывается в отчёт задачи.
 3. Не менять поведение функций резерва; новые функции видео вызывают существующие внутренние функции резервирования (список — `grep -n "FUNCTION photo.*reserve" backend/db/migrations/026*.sql`).
 
-### DS-28. Учёт трафика потока: счётчики, аренды, бюджеты (файл `02663_video_egress_budget.sql`)
+### DS-28. Учёт трафика потока: счётчики, аренды, бюджеты (файл `02695_video_egress_budget.sql`)
 
 Правила — [20](20-saas-scaling-operations.md), 5.2. Строки создаются только функциями `FN-D-19`/`FN-D-20`/`FN-D-22`.
 
@@ -376,7 +376,7 @@ CREATE INDEX video_egress_leases_expiry ON photo.video_egress_leases(expires_at)
 ```
 Инвариант: `consumed + leased ≤ limit` в обеих таблицах бюджета (нарушение невозможно по `CHECK`). `limit_bytes` общей строки берётся при первом обращении периода из существующего расчёта лимита трафика (`EGRESS_PLAN_MULTIPLIER` × включённый диск; функцию определяет TK-001, допущение A-5). Просроченная аренда (`expires_at < now()`) переводится согласователем в `consumed` (консервативно).
 
-### DS-29. Лимиты и суточный расход арендатора (файл `02664_video_tenant_limits.sql`)
+### DS-29. Лимиты и суточный расход арендатора (файл `02696_video_tenant_limits.sql`)
 
 ```sql
 CREATE TABLE photo.video_tenant_limits (          -- строки только для переопределений; нет строки = значения DS-01
