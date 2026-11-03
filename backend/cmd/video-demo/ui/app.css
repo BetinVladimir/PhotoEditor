@@ -1,0 +1,36 @@
+:root{--bg:#f4f3f0;--panel:#fff;--ink:#1d1b18;--mute:#6c675f;--line:#dcd8d0;--accent:#c4491c;--accent-ink:#fff;--ok:#2f7d4f;--warn:#a86a00;--bad:#b3261e;--clip:#e9c9b9;--clip-sel:#c4491c;--tl:#ece9e3}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#17161a;--panel:#201f24;--ink:#ece8e1;--mute:#9d978d;--line:#343139;--accent:#e86a3a;--accent-ink:#17161a;--ok:#5fc08a;--warn:#e0a63a;--bad:#f08a82;--clip:#5a3a2d;--clip-sel:#e86a3a;--tl:#18171b;color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+header#top{display:flex;align-items:center;gap:.75rem;padding:.6rem max(16px,env(safe-area-inset-left));border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap;position:sticky;top:0;z-index:5}
+.brand{font-size:1.05rem;letter-spacing:.01em}.demo{font-size:.7rem;border:1px solid var(--accent);color:var(--accent);padding:0 .35rem;border-radius:3px;letter-spacing:.08em}
+nav{display:flex;gap:.25rem;margin-left:.5rem}nav a{padding:.3rem .7rem;border-radius:6px;color:var(--mute);text-decoration:none}nav a.on{background:var(--tl);color:var(--ink);font-weight:600}
+#status{margin-left:auto;color:var(--mute);font-size:.85rem}
+main{max-width:1180px;margin:0 auto;padding:1rem max(16px,env(safe-area-inset-left));display:grid;gap:1rem}
+section.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:1rem;min-width:0}
+h2{margin:0 0 .6rem;font-size:1rem}h3{margin:.8rem 0 .3rem;font-size:.9rem;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
+button,select,input{font:inherit;color:inherit}
+button{background:var(--tl);border:1px solid var(--line);border-radius:6px;padding:.4rem .8rem;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--accent)}button:disabled{opacity:.5;cursor:default}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+input[type=text],input[type=number],select{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:.35rem .5rem;min-width:0}
+.row{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}.grow{flex:1 1 12rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:.8rem}
+.media{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel);display:grid}
+.media .film{height:54px;background:var(--tl) center/cover;border-bottom:1px solid var(--line)}
+.media .body{padding:.6rem;display:grid;gap:.3rem}.name{font-weight:600;overflow-wrap:anywhere}
+.badge{display:inline-block;font-size:.72rem;padding:0 .4rem;border-radius:99px;border:1px solid currentColor}
+.ready{color:var(--ok)}.probing,.queued,.rendering{color:var(--warn)}.rejected,.failed{color:var(--bad)}
+.mute{color:var(--mute)}.small{font-size:.8rem}
+video{width:100%;max-height:420px;background:#000;border-radius:8px}
+.bar{height:8px;background:var(--tl);border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--accent);transition:width .3s}
+#tl{position:relative;height:74px;background:var(--tl);border:1px solid var(--line);border-radius:8px;overflow-x:auto;white-space:nowrap}
+#tl .clip{position:absolute;top:8px;height:56px;background:var(--clip);border:1px solid var(--line);border-radius:5px;padding:.2rem .4rem;overflow:hidden;cursor:pointer;font-size:.78rem}
+#tl .clip.sel{background:var(--clip-sel);color:var(--accent-ink);border-color:var(--clip-sel)}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1rem}@media(max-width:800px){.layout{grid-template-columns:1fr}}
+.issues{margin:.4rem 0 0;padding-left:1.1rem;color:var(--bad);font-size:.85rem}
+#toast{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:.6rem 1rem;border-radius:8px;max-width:90vw;z-index:9}
+code{background:var(--tl);padding:.05rem .3rem;border-radius:4px;overflow-wrap:anywhere}
+.link{display:flex;gap:.4rem;align-items:center}.link input{flex:1}
+.viewer{max-width:860px;margin:0 auto}
