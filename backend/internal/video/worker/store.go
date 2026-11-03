@@ -104,3 +104,6 @@ func HashFile(path string) (string, int64, error) {
 	}
 	return hex.EncodeToString(h.Sum(nil)), n, nil
 }
+
+// Path returns the local file of an object, for serving with Range support.
+func (s LocalStore) Path(bucket, key string) (string, error) { return s.path(bucket, key) }

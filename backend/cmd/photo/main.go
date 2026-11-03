@@ -681,7 +681,12 @@ func runWithAPIDependencies(dependencies apiProcessDependencies) error {
 	}
 	archiveBegin := interchange.ArchiveUploadBeginService{Repository: interchange.SQLArchiveUploadRepository{DB: pool, Bucket: snapshotBucket}, Objects: storage, Writers: interchange.SQLArchiveBeginWriters{DB: pool, Bucket: snapshotBucket}, Inspector: interchange.SQLArchiveBeginInspector{DB: pool, Bucket: snapshotBucket, Objects: storage}, Generations: interchange.SQLArchiveBeginGenerations{DB: pool, Bucket: snapshotBucket}, CrossKey: interchange.SQLArchiveCrossKeyStatus{DB: pool}}
 	archiveActions := interchange.ArchiveUploadActions{Repository: interchange.SQLArchiveUploadRepository{DB: pool, Bucket: snapshotBucket}, Authority: interchange.SQLArchivePartsAuthority{DB: pool, Bucket: snapshotBucket}, Signer: storage, BeginGenerations: interchange.SQLArchiveBeginGenerations{DB: pool, Bucket: snapshotBucket}, GenerationStatus: interchange.SQLArchiveBeginGenerations{DB: pool, Bucket: snapshotBucket}, OpenBegin: interchange.SQLArchiveOpenBeginStatus{DB: pool}}
-	server := (&httpapi.Server{RuntimeReady: func(ready context.Context) error {
+	video, closeVideo, err := installVideo(ctx, pool)
+	if err != nil {
+		return err
+	}
+	defer closeVideo()
+	server := (&httpapi.Server{Video: video, RuntimeReady: func(ready context.Context) error {
 		if err := authPool.Ping(ready); err != nil {
 			return err
 		}

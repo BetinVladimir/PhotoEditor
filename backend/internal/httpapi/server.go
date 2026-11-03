@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	videoapi "photoeditor/backend/internal/video/api"
 	"context"
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
@@ -26,6 +27,7 @@ import (
 )
 
 type Server struct {
+	Video *videoapi.Service
 	RuntimeReady func(context.Context) error
 	SemanticReviewKind               semanticreview.ReviewKindReader
 	OpenEyesPrepare                  OpenEyesPrepare
@@ -171,6 +173,9 @@ func (s *Server) Routes() http.Handler {
 		RegisterAuthoredRegionMediaRoutes(r, s.tenantRequest, s.AuthoredRegionMedia)
 		s.renderRoutes(r)
 		s.renderFreezeRoutes(r)
+		if s.Video != nil {
+			videoapi.Routes(r, s.Video, s.tenantRequest)
+		}
 	}
 	if s.Portal != nil {
 		s.portalRoutes(r)
