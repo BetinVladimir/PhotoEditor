@@ -7,6 +7,7 @@ package videoapi_test
 //	VIDEO_E2E_DSN='host=... port=... user=... dbname=scratch_v' go test -tags videoe2e ./internal/video/api
 
 import (
+	"crypto/rand"
 	"bytes"
 	"context"
 	"crypto/sha256"
@@ -28,6 +29,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"photoeditor/backend/internal/auth"
 	"photoeditor/backend/internal/domain"
+	"photoeditor/backend/internal/portal"
 	videoapi "photoeditor/backend/internal/video/api"
 	"photoeditor/backend/internal/video/worker"
 )
@@ -131,7 +133,11 @@ func TestVideoAPIScenario(t *testing.T) {
 	must(t, tx.QueryRow(ctx, `INSERT INTO photo.projects(tenant_id,name) VALUES($1,'Film') RETURNING id`, tid).Scan(&pid), "project")
 	must(t, tx.Commit(ctx), "commit")
 
-	svc := &videoapi.Service{Pool: api, Scheduler: sched, Store: store, Bucket: bucket, TempDir: root,
+	pepper := make([]byte, 32)
+	_, _ = rand.Read(pepper)
+	portalPool := rolePool(t, dsn, "photo_portal")
+	portalSvc := portal.Service{DB: portalPool, Pepper: pepper}
+	svc := &videoapi.Service{Pool: api, Scheduler: sched, Portal: portalPool, Pepper: pepper, Store: store, Bucket: bucket, TempDir: root,
 		Authz: func(_ context.Context, _ pgx.Tx, who auth.Identity, t uuid.UUID, _ domain.Role) (domain.Role, error) {
 			if t != tid || who.UserID != user {
 				return "", domain.NewError("NOT_FOUND", 404)
@@ -147,6 +153,18 @@ func TestVideoAPIScenario(t *testing.T) {
 		t, err := uuid.Parse(chi.URLParam(r, "t"))
 		return auth.Identity{UserID: u, SessionID: uuid.New()}, t, err
 	})
+	viewerAuth := func(r *http.Request, permission string) (videoapi.Viewer, error) {
+		ck, err := r.Cookie("portal_session")
+		if err != nil {
+			return videoapi.Viewer{}, domain.NewError("INVALID_GUEST_SESSION", 401)
+		}
+		who, err := portalSvc.Authorize(r.Context(), ck.Value, "", permission, false)
+		if err != nil {
+			return videoapi.Viewer{}, err
+		}
+		return videoapi.Viewer{Tenant: who.TenantID, Share: who.ShareID, Collection: who.CollectionID}, nil
+	}
+	videoapi.PortalRoutes(router, svc, viewerAuth)
 	c := &client{t: t, h: router, base: "/api/v1/tenants/" + tid.String(), user: user}
 
 	// two real sources
@@ -270,4 +288,81 @@ func TestVideoAPIScenario(t *testing.T) {
 	cid := c.json("POST", "/projects/"+pid.String()+"/video/deliveries", map[string]any{"name": "Wedding film"}, 201)["delivery_id"].(string)
 	c.json("POST", "/video/deliveries/"+cid+"/renders", map[string]any{"render_id": rid, "title": "Full film"}, 200)
 	c.json("POST", "/video/deliveries/"+cid+"/publish", map[string]any{"published": true}, 200)
+
+	// viewer link: a draft delivery cannot be shared, a published one can
+	// (the delivery was published above)
+	view := c.json("POST", "/video/deliveries/"+cid+"/shares", map[string]any{"label": "client", "download": false}, 201)
+	dl := c.json("POST", "/video/deliveries/"+cid+"/shares", map[string]any{"label": "client-dl", "download": true}, 201)
+	session := func(sh map[string]any) string {
+		sid, _ := uuid.Parse(sh["share_id"].(string))
+		out, err := portalSvc.Exchange(ctx, portal.ExchangeRequest{ShareID: sid, Secret: sh["secret"].(string), Locale: "en"})
+		must(t, err, "portal exchange")
+		return out.Token
+	}
+	get := func(token, path string, hdr map[string]string) (int, []byte) {
+		r := httptest.NewRequest("GET", path, nil)
+		if token != "" {
+			r.AddCookie(&http.Cookie{Name: "portal_session", Value: token})
+		}
+		for k, v := range hdr {
+			r.Header.Set(k, v)
+		}
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, r)
+		b, _ := io.ReadAll(w.Result().Body)
+		return w.Code, b
+	}
+	if code, _ := get("", "/api/v1/portal/video/delivery", nil); code != 401 {
+		t.Fatalf("viewer without session: %d", code)
+	}
+	vt := session(view)
+	code, body := get(vt, "/api/v1/portal/video/delivery", nil)
+	var d struct {
+		Name  string `json:"name"`
+		Items []struct {
+			RenderID string `json:"render_id"`
+			Title    string `json:"title"`
+			Width    int    `json:"width"`
+		} `json:"items"`
+	}
+	_ = json.Unmarshal(body, &d)
+	if code != 200 || d.Name != "Wedding film" || len(d.Items) != 1 || d.Items[0].RenderID != rid || d.Items[0].Title != "Full film" || d.Items[0].Width != 640 {
+		t.Fatalf("viewer delivery: %d %s", code, body)
+	}
+	code, body = get(vt, "/api/v1/portal/video/renders/"+rid+"/content", map[string]string{"Range": "bytes=0-49"})
+	if code != 206 || len(body) != 50 {
+		t.Fatalf("viewer stream: %d %d", code, len(body))
+	}
+	if code, _ = get(vt, "/api/v1/portal/video/renders/"+uuid.NewString()+"/content", nil); code != 404 {
+		t.Fatalf("foreign render: %d", code)
+	}
+	if code, _ = get(vt, "/api/v1/portal/video/renders/"+rid+"/content?download=1", nil); code != 401 {
+		t.Fatalf("download without permission must be refused: %d", code)
+	}
+	dt := session(dl)
+	code, body = get(dt, "/api/v1/portal/video/renders/"+rid+"/content?download=1", nil)
+	if code != 200 || len(body) < 1000 {
+		t.Fatalf("download: %d %d", code, len(body))
+	}
+	var events, sum int64
+	must(t, admin.QueryRow(ctx, `SELECT count(*),coalesce(sum(bytes),0) FROM photo.video_egress_events WHERE tenant_id=$1`, tid).Scan(&events, &sum), "egress")
+	if events != 1 || sum != int64(len(body)) {
+		t.Fatalf("egress accounting: %d events, %d bytes (served %d)", events, sum, len(body))
+	}
+	// revoking cuts off sessions that already exist
+	sid, _ := uuid.Parse(dl["share_id"].(string))
+	if code, _ := c.do("DELETE", "/video/shares/"+sid.String(), nil, nil); code != 204 {
+		t.Fatalf("revoke: %d", code)
+	}
+	if code, _ = get(dt, "/api/v1/portal/video/renders/"+rid+"/content?download=1", nil); code != 401 {
+		t.Fatalf("revoked session still works: %d", code)
+	}
+	if code, _ = get(vt, "/api/v1/portal/video/delivery", nil); code != 200 {
+		t.Fatalf("other share must keep working: %d", code)
+	}
+	// unpublishing closes the delivery for everyone
+	c.json("POST", "/video/deliveries/"+cid+"/publish", map[string]any{"published": false}, 200)
+	if code, _ = get(vt, "/api/v1/portal/video/delivery", nil); code != 404 {
+		t.Fatalf("unpublished delivery visible: %d", code)
+	}
 }

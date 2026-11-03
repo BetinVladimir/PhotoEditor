@@ -179,6 +179,9 @@ func (s *Server) Routes() http.Handler {
 	}
 	if s.Portal != nil {
 		s.portalRoutes(r)
+		if s.Video != nil {
+			videoapi.PortalRoutes(r, s.Video, s.videoViewer)
+		}
 	}
 	s.billingAPIRoutes(r)
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) { writeError(w, r, domain.NewError("NOT_FOUND", 404)) })

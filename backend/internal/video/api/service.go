@@ -6,6 +6,7 @@ package videoapi
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -17,6 +18,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -44,6 +46,8 @@ type Authorizer func(ctx context.Context, tx pgx.Tx, who auth.Identity, tid uuid
 type Service struct {
 	Pool      *pgxpool.Pool // photo_api
 	Scheduler *pgxpool.Pool // photo_scheduler; DEMO completes uploads inline instead of a sweeper
+	Portal    *pgxpool.Pool // photo_portal: viewer reads and egress accounting
+	Pepper    []byte        // MAC key of share secrets (same as the portal's)
 	Store     worker.Store
 	Bucket    string
 	Authz     Authorizer
@@ -592,4 +596,96 @@ func (s *Service) Publish(ctx context.Context, who auth.Identity, tid, cid uuid.
 		var ok bool
 		return tx.QueryRow(ctx, `SELECT photo.publish_video_delivery($1,$2,$3)`, tid, cid, publish).Scan(&ok)
 	})
+}
+
+// ---- shares (owner side)
+
+type NewShare struct {
+	Label        string `json:"label"`
+	Download     bool   `json:"download"`
+	ExpiresHours int    `json:"expires_in_hours"`
+}
+
+type Share struct {
+	ShareID   uuid.UUID `json:"share_id"`
+	Secret    string    `json:"secret"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
+// CreateShare issues a viewer link for a published delivery. The secret is shown once; only its MAC is stored.
+func (s *Service) CreateShare(ctx context.Context, who auth.Identity, tid, cid uuid.UUID, r NewShare) (Share, error) {
+	if len(s.Pepper) < 32 {
+		return Share{}, domain.NewError("SHARES_UNAVAILABLE", 503)
+	}
+	if r.ExpiresHours == 0 {
+		r.ExpiresHours = 24 * 7
+	}
+	if r.ExpiresHours < 1 || r.ExpiresHours > 24*90 {
+		return Share{}, bad("VIDEO_SHARE_INVALID")
+	}
+	secret, err := auth.NewSecret(rand.Reader)
+	if err != nil {
+		return Share{}, err
+	}
+	out := Share{ShareID: uuid.New(), Secret: secret, ExpiresAt: time.Now().Add(time.Duration(r.ExpiresHours) * time.Hour)}
+	err = s.with(ctx, who, tid, domain.Editor, func(tx pgx.Tx) error {
+		return tx.QueryRow(ctx, `SELECT photo.create_video_share($1,$2,$3,$4,$5,$6,$7,'{}'::jsonb,$8)`, tid, cid, out.ShareID,
+			auth.MAC(s.Pepper, "share-secret", out.ShareID.String(), secret), r.Label, r.Download, out.ExpiresAt, who.UserID).Scan(&out.ShareID)
+	})
+	return out, err
+}
+
+func (s *Service) RevokeShare(ctx context.Context, who auth.Identity, tid, share uuid.UUID) error {
+	return s.with(ctx, who, tid, domain.Editor, func(tx pgx.Tx) error {
+		var ok bool
+		if err := tx.QueryRow(ctx, `SELECT photo.revoke_video_share($1,$2)`, tid, share).Scan(&ok); err != nil {
+			return err
+		}
+		if !ok {
+			return notFound()
+		}
+		return nil
+	})
+}
+
+// ---- viewer side (portal share session)
+
+// Viewer is the authorized portal session.
+type Viewer struct{ Tenant, Share, Collection uuid.UUID }
+
+func (s *Service) Delivery(ctx context.Context, v Viewer) (json.RawMessage, error) {
+	var raw []byte
+	if err := mapErr(s.Portal.QueryRow(ctx, `SELECT photo.get_video_delivery_view($1,$2)::text`, v.Tenant, v.Collection).Scan(&raw)); err != nil || raw == nil {
+		if err == nil {
+			err = notFound()
+		}
+		return nil, err
+	}
+	return raw, nil
+}
+
+// ViewerObject resolves a render file of the viewer's delivery. With download set the egress is accounted first;
+// a share without the download permission is refused.
+func (s *Service) ViewerObject(ctx context.Context, v Viewer, render uuid.UUID, download bool) (Object, error) {
+	var o Object
+	var raw []byte
+	if err := mapErr(s.Portal.QueryRow(ctx, `SELECT photo.get_video_delivery_object($1,$2,$3)::text`, v.Tenant, v.Collection, render).Scan(&raw)); err != nil || raw == nil {
+		if err == nil {
+			err = notFound()
+		}
+		return o, err
+	}
+	if err := json.Unmarshal(raw, &o); err != nil {
+		return o, err
+	}
+	if download {
+		var ok bool
+		if err := mapErr(s.Portal.QueryRow(ctx, `SELECT photo.record_video_egress($1,$2,$3,$4)`, v.Tenant, v.Share, render, o.Bytes).Scan(&ok)); err != nil {
+			return o, err
+		}
+		if !ok {
+			return o, domain.NewError("FORBIDDEN", 403)
+		}
+	}
+	return o, nil
 }

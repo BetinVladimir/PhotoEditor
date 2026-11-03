@@ -19,7 +19,7 @@ import (
 
 // installVideo enables the DEMO video API when VIDEO_STORE_DIR is set. Objects live in that directory;
 // VIDEO_SCHEDULER_DATABASE_URL carries the photo_scheduler credential used to complete uploads inline.
-func installVideo(ctx context.Context, api *pgxpool.Pool) (*videoapi.Service, func(), error) {
+func installVideo(ctx context.Context, api, portal *pgxpool.Pool, pepper []byte) (*videoapi.Service, func(), error) {
 	root := os.Getenv("VIDEO_STORE_DIR")
 	if root == "" {
 		return nil, func() {}, nil
@@ -47,7 +47,7 @@ func installVideo(ctx context.Context, api *pgxpool.Pool) (*videoapi.Service, fu
 		scheduler.Close()
 		return nil, func() {}, err
 	}
-	return &videoapi.Service{Pool: api, Scheduler: scheduler, Store: worker.LocalStore{Root: filepath.Join(root, "objects")}, Bucket: "photo-video",
+	return &videoapi.Service{Pool: api, Scheduler: scheduler, Portal: portal, Pepper: pepper, Store: worker.LocalStore{Root: filepath.Join(root, "objects")}, Bucket: "photo-video",
 		Authz: tenantAuthorizer, TempDir: tmp}, scheduler.Close, nil
 }
 

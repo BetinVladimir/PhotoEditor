@@ -41,6 +41,8 @@ func Routes(r chi.Router, svc *Service, req Requester) {
 	r.Post(b+"/projects/{p}/video/deliveries", h.createDelivery)
 	r.Post(b+"/video/deliveries/{c}/renders", h.addRender)
 	r.Post(b+"/video/deliveries/{c}/publish", h.publish)
+	r.Post(b+"/video/deliveries/{c}/shares", h.createShare)
+	r.Delete(b+"/video/shares/{sh}", h.revokeShare)
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
@@ -349,4 +351,79 @@ func (h handler) publish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, 200, map[string]any{"published": req.Published})
+}
+
+func (h handler) createShare(w http.ResponseWriter, r *http.Request) {
+	who, tid, ids, ok := h.begin(w, r, true, "c")
+	if !ok {
+		return
+	}
+	var req NewShare
+	if err := decode(r, &req, 2048); err != nil {
+		writeErr(w, r, err)
+		return
+	}
+	sh, err := h.svc.CreateShare(r.Context(), who, tid, ids[0], req)
+	if err != nil {
+		writeErr(w, r, err)
+		return
+	}
+	writeJSON(w, 201, sh)
+}
+
+func (h handler) revokeShare(w http.ResponseWriter, r *http.Request) {
+	who, tid, ids, ok := h.begin(w, r, true, "sh")
+	if !ok {
+		return
+	}
+	if err := h.svc.RevokeShare(r.Context(), who, tid, ids[0]); err != nil {
+		writeErr(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// ViewerAuth authorizes a portal share session for one permission ("view" or "download").
+type ViewerAuth func(r *http.Request, permission string) (Viewer, error)
+
+// PortalRoutes registers the viewer endpoints of a published delivery.
+func PortalRoutes(r chi.Router, svc *Service, authz ViewerAuth) {
+	h := handler{svc: svc}
+	r.Get("/api/v1/portal/video/delivery", func(w http.ResponseWriter, r *http.Request) {
+		v, err := authz(r, "view")
+		if err != nil {
+			writeErr(w, r, err)
+			return
+		}
+		raw, err := svc.Delivery(r.Context(), v)
+		if err != nil {
+			writeErr(w, r, err)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(raw)
+	})
+	r.Get("/api/v1/portal/video/renders/{r}/content", func(w http.ResponseWriter, r *http.Request) {
+		rid, err := id(r, "r")
+		if err != nil {
+			writeErr(w, r, err)
+			return
+		}
+		download := r.URL.Query().Get("download") == "1"
+		perm := "view"
+		if download {
+			perm = "download"
+		}
+		v, err := authz(r, perm)
+		if err != nil {
+			writeErr(w, r, err)
+			return
+		}
+		o, err := svc.ViewerObject(r.Context(), v, rid, download)
+		if err != nil {
+			writeErr(w, r, err)
+			return
+		}
+		h.serve(w, r, o, download)
+	})
 }

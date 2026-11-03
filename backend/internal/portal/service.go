@@ -464,7 +464,9 @@ func (s Service) Exchange(ctx context.Context, raw ExchangeRequest) (SessionInfo
 	if err != nil {
 		return out, err
 	}
-	expires := s.now().Add(24 * time.Hour)
+	// photo.exchange_share_session rejects anything beyond 24h of the database clock, so ask for a minute less:
+	// a client whose clock runs ahead of the database by even a fraction of a second would otherwise get INVALID_SHARE.
+	expires := s.now().Add(24*time.Hour - time.Minute)
 	secretHash := auth.MAC(s.Pepper, "share-secret", request.ShareID.String(), request.Secret)
 	sessionHash := auth.MAC(s.Pepper, "portal-session", token)
 	csrfHash := auth.MAC(s.Pepper, "portal-csrf", token, csrf)
