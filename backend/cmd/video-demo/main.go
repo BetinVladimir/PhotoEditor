@@ -23,6 +23,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -78,6 +79,7 @@ func main() {
 	ffprobe := flag.String("ffprobe", "ffprobe", "ffprobe binary")
 	encoder := flag.String("encoder", "libx264", "default encoder: libx264 or h264_nvenc")
 	portalOrigin := flag.String("portal-origin", "", "loopback origin of the Next.js portal (e.g. http://127.0.0.1:3000) to serve it as a cross-origin client")
+	s3flag := flag.String("s3", "", "optional MinIO/S3 as endpoint,access,secret[,public-endpoint]; enables presigned multipart uploads (the bucket is created and versioned)")
 	flag.Parse()
 	if *dsn == "" || *store == "" {
 		flag.Usage()
@@ -95,7 +97,7 @@ func main() {
 		}
 	}
 	allowedOrigin = *portalOrigin
-	if err := run(ctx, *dsn, *store, *addr, *ffmpeg, *ffprobe, *encoder); err != nil && !errors.Is(err, context.Canceled) {
+	if err := run(ctx, *dsn, *store, *addr, *ffmpeg, *ffprobe, *encoder, *s3flag); err != nil && !errors.Is(err, context.Canceled) {
 		log.Fatal(err)
 	}
 }
@@ -148,7 +150,7 @@ func seed(ctx context.Context, admin *pgxpool.Pool) (user, tenant, project uuid.
 	return
 }
 
-func run(ctx context.Context, dsn, store, addr, ffmpeg, ffprobe, encoder string) error {
+func run(ctx context.Context, dsn, store, addr, ffmpeg, ffprobe, encoder string, s3spec string) error {
 	pools := map[string]*pgxpool.Pool{}
 	for _, role := range []string{"", "photo_api", "photo_scheduler", "photo_worker", "photo_portal", "photo_maintenance"} {
 		p, err := rolePool(ctx, dsn, role)
@@ -167,7 +169,26 @@ func run(ctx context.Context, dsn, store, addr, ffmpeg, ffprobe, encoder string)
 			return err
 		}
 	}
-	objects := worker.LocalStore{Root: filepath.Join(store, "objects")}
+	var objects worker.Store = worker.LocalStore{Root: filepath.Join(store, "objects")}
+	var multipart videoapi.Multipart
+	if s3spec != "" {
+		f := strings.Split(s3spec, ",")
+		if len(f) < 3 {
+			return fmt.Errorf("-s3 wants endpoint,access,secret[,public-endpoint]")
+		}
+		public := ""
+		if len(f) > 3 {
+			public = f[3]
+		}
+		s3, err := worker.NewS3Store(f[0], public, f[1], f[2], false)
+		if err != nil {
+			return err
+		}
+		if err := s3.EnsureBucket(ctx, "photo-video"); err != nil {
+			return fmt.Errorf("s3 bucket: %w", err)
+		}
+		objects, multipart = s3, s3
+	}
 	// The MAC key of share secrets must survive restarts or every issued link dies with the process.
 	pepper, err := os.ReadFile(filepath.Join(store, "pepper"))
 	if err != nil || len(pepper) != 32 {
@@ -181,7 +202,7 @@ func run(ctx context.Context, dsn, store, addr, ffmpeg, ffprobe, encoder string)
 	}
 	const bucket = "photo-video"
 	svc := &videoapi.Service{Pool: pools["photo_api"], Scheduler: pools["photo_scheduler"], Portal: pools["photo_portal"], Pepper: pepper,
-		Store: objects, Bucket: bucket, TempDir: filepath.Join(store, "tmp"),
+		Store: objects, Multipart: multipart, Bucket: bucket, TempDir: filepath.Join(store, "tmp"),
 		Authz: func(_ context.Context, _ pgx.Tx, who auth.Identity, t uuid.UUID, _ domain.Role) (domain.Role, error) {
 			if t != tenant || who.UserID != user {
 				return "", domain.NewError("NOT_FOUND", 404)
@@ -196,7 +217,7 @@ func run(ctx context.Context, dsn, store, addr, ffmpeg, ffprobe, encoder string)
 		_ = json.NewEncoder(w).Encode(map[string]any{"csrf_token": csrfPlaceholder(), "expires_at": time.Now().Add(time.Hour)})
 	})
 	r.Get("/api/v1/demo/context", func(w http.ResponseWriter, _ *http.Request) {
-		_ = json.NewEncoder(w).Encode(map[string]any{"tenant_id": tenant, "project_id": project, "encoder": encoder})
+		_ = json.NewEncoder(w).Encode(map[string]any{"tenant_id": tenant, "project_id": project, "encoder": encoder, "multipart": multipart != nil})
 	})
 	videoapi.Routes(r, svc, func(req *http.Request, _ bool) (auth.Identity, uuid.UUID, error) {
 		t, err := uuid.Parse(chi.URLParam(req, "t"))

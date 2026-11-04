@@ -33,6 +33,9 @@ func Routes(r chi.Router, svc *Service, req Requester) {
 	const b = "/api/v1/tenants/{t}"
 	r.Post(b+"/projects/{p}/video/uploads", h.beginUpload)
 	r.Put(b+"/video/uploads/{u}/content", h.putContent)
+	r.Post(b+"/video/uploads/{u}/multipart", h.startMultipart)
+	r.Post(b+"/video/uploads/{u}/parts", h.signParts)
+	r.Post(b+"/video/uploads/{u}/complete", h.completeMultipart)
 	r.Get(b+"/projects/{p}/video/media", h.listMedia)
 	r.Get(b+"/video/media/{m}/{which}", h.mediaFile)
 	r.Post(b+"/projects/{p}/video/sequences", h.createSequence)

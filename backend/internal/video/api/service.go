@@ -33,6 +33,7 @@ import (
 
 const (
 	partBytes      = 33554432
+	lutMaxBytes    = 20 << 20 // DS-01 LUT_MAX_BYTES
 	tps            = 705600000
 	derivFractionP = 15
 	derivBase      = 134217728
@@ -49,6 +50,7 @@ type Service struct {
 	Portal     *pgxpool.Pool // photo_portal: viewer reads and egress accounting
 	Pepper     []byte        // MAC key of share secrets (same as the portal's)
 	Store      worker.Store
+	Multipart  Multipart // optional: presigned multipart uploads; nil answers 501
 	Bucket     string
 	Authz      Authorizer
 	TempDir    string
@@ -123,7 +125,7 @@ func (s *Service) BeginUpload(ctx context.Context, who auth.Identity, tid, pid u
 	if len(key) < 8 || len(key) > 128 {
 		return uuid.Nil, bad("IDEMPOTENCY_KEY_INVALID")
 	}
-	if (req.Kind != "video" && req.Kind != "audio") || !shaRE.MatchString(req.SHA256) || req.Bytes < 1 || req.Name == "" {
+	if (req.Kind != "video" && req.Kind != "audio" && req.Kind != "lut") || (req.Kind == "lut" && req.Bytes > lutMaxBytes) || !shaRE.MatchString(req.SHA256) || req.Bytes < 1 || req.Name == "" {
 		return uuid.Nil, bad("VIDEO_UPLOAD_INVALID")
 	}
 	parts := (req.Bytes + partBytes - 1) / partBytes
@@ -152,6 +154,7 @@ type upload struct {
 	SHA256    string    `json:"sha256"`
 	ObjectKey string    `json:"object_key"`
 	Parts     int       `json:"parts_total"`
+	Multipart *string   `json:"multipart_id"`
 }
 
 type Media struct {
@@ -201,10 +204,19 @@ func (s *Service) PutContent(ctx context.Context, who auth.Identity, tid, uid uu
 	if _, _, err := s.Store.Put(ctx, s.Bucket, up.ObjectKey, tmp.Name()); err != nil {
 		return Media{}, err
 	}
+	etags := make([]string, up.Parts)
+	for i := range etags {
+		etags[i] = fmt.Sprintf("p%d", i+1)
+	}
+	return s.finalize(ctx, who, tid, up, "local", "local-v1", etags)
+}
+
+// finalize records the parts, completes the upload session, lets the scheduler verify it and queues the ingest job.
+func (s *Service) finalize(ctx context.Context, who auth.Identity, tid uuid.UUID, up upload, multipartID, version string, etags []string) (Media, error) {
 	var token uuid.UUID
-	err = s.with(ctx, who, tid, domain.Editor, func(tx pgx.Tx) error {
+	err := s.with(ctx, who, tid, domain.Editor, func(tx pgx.Tx) error {
 		var ok bool
-		if err := tx.QueryRow(ctx, `SELECT photo.bind_video_upload_multipart($1,$2,'local')`, tid, uid).Scan(&ok); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT photo.bind_video_upload_multipart($1,$2,$3)`, tid, up.ID, multipartID).Scan(&ok); err != nil {
 			return err
 		}
 		for i := 1; i <= up.Parts; i++ {
@@ -212,16 +224,19 @@ func (s *Service) PutContent(ctx context.Context, who auth.Identity, tid, uid uu
 			if i == up.Parts {
 				b = up.Bytes - int64(up.Parts-1)*partBytes
 			}
-			if err := tx.QueryRow(ctx, `SELECT photo.record_video_upload_part($1,$2,$3,$4,$5)`, tid, uid, i, fmt.Sprintf("p%d", i), b).Scan(&ok); err != nil {
+			if err := tx.QueryRow(ctx, `SELECT photo.record_video_upload_part($1,$2,$3,$4,$5)`, tid, up.ID, i, etags[i-1], b).Scan(&ok); err != nil {
 				return err
+			}
+			if !ok {
+				return bad("VIDEO_UPLOAD_PARTS")
 			}
 		}
 		parts := make([]map[string]any, up.Parts)
 		for i := range parts {
-			parts[i] = map[string]any{"part_no": i + 1, "etag": fmt.Sprintf("p%d", i+1)}
+			parts[i] = map[string]any{"part_no": i + 1, "etag": etags[i]}
 		}
 		pj, _ := json.Marshal(parts)
-		return tx.QueryRow(ctx, `SELECT photo.complete_video_upload($1,$2,$3::jsonb)`, tid, uid, string(pj)).Scan(&token)
+		return tx.QueryRow(ctx, `SELECT photo.complete_video_upload($1,$2,$3::jsonb)`, tid, up.ID, string(pj)).Scan(&token)
 	})
 	if err != nil {
 		return Media{}, err
@@ -231,7 +246,7 @@ func (s *Service) PutContent(ctx context.Context, who auth.Identity, tid, uid uu
 		mt = "application/octet-stream"
 	}
 	var mid uuid.UUID
-	if err := mapErr(s.Scheduler.QueryRow(ctx, `SELECT photo.finish_video_upload_completion($1,$2,$3,$4,'local-v1',$5,$6)`, tid, uid, token, s.Bucket, up.SHA256, mt).Scan(&mid)); err != nil {
+	if err := mapErr(s.Scheduler.QueryRow(ctx, `SELECT photo.finish_video_upload_completion($1,$2,$3,$4,$5,$6,$7)`, tid, up.ID, token, s.Bucket, version, up.SHA256, mt).Scan(&mid)); err != nil {
 		return Media{}, err
 	}
 	err = s.with(ctx, who, tid, domain.Editor, func(tx pgx.Tx) error {
@@ -748,3 +763,5 @@ func (s *Service) eventEvery() time.Duration {
 	}
 	return time.Second
 }
+
+func jsonUnmarshal(raw []byte, v any) error { return json.Unmarshal(raw, v) }

@@ -67,19 +67,42 @@ function put(url, file, onProgress) {
     x.onerror = () => rej(new Error('network')); x.send(file);
   });
 }
+// putPart sends one slice straight to the object store (presigned URL) and reports bytes sent.
+function putPart(url, blob, onProgress) {
+  return new Promise((res, rej) => {
+    const x = new XMLHttpRequest(); x.open('PUT', url);
+    x.upload.onprogress = e => e.lengthComputable && onProgress(e.loaded);
+    x.onload = () => x.status === 200 ? res() : rej(new Error('part upload ' + x.status));
+    x.onerror = () => rej(new Error('network')); x.send(blob);
+  });
+}
+// uploadMultipart: start, sign every part, PUT them one by one, then ask the server to assemble and verify.
+async function uploadMultipart(uploadID, file, onProgress) {
+  const st = await api('POST', `/video/uploads/${uploadID}/multipart`);
+  let done = 0;
+  for (let n = 1; n <= st.parts_total; n++) {
+    const { urls } = await api('POST', `/video/uploads/${uploadID}/parts`, { part_numbers: [n] });
+    const lo = (n - 1) * st.part_bytes, base0 = done;
+    await putPart(urls[0].url, file.slice(lo, Math.min(lo + st.part_bytes, file.size)), sent => onProgress((base0 + sent) / file.size));
+    done = Math.min(lo + st.part_bytes, file.size);
+  }
+  return api('POST', `/video/uploads/${uploadID}/complete`);
+}
 const listMedia = async () => (await api('GET', `/projects/${ctx.project_id}/video/media`)).items;
 
 async function libraryView(root, token) {
   const grid = h('div', { class: 'grid' }), prog = h('div', { class: 'bar', hidden: true }, h('i')), note = h('span', { class: 'mute small' });
-  const input = h('input', { type: 'file', accept: 'video/*,audio/*', id: 'file' });
+  const input = h('input', { type: 'file', accept: 'video/*,audio/*,.cube', id: 'file' });
   input.addEventListener('change', async () => {
     const f = input.files[0]; if (!f) return;
     try {
       note.textContent = 'Hashing…'; const sha = await sha256(f);
-      const kind = f.type.startsWith('audio/') ? 'audio' : 'video';
+      const kind = f.name.toLowerCase().endsWith('.cube') ? 'lut' : f.type.startsWith('audio/') ? 'audio' : 'video';
       const up = await api('POST', `/projects/${ctx.project_id}/video/uploads`, { name: f.name, kind, bytes: f.size, sha256: sha });
       prog.hidden = false; note.textContent = 'Uploading…';
-      await put(`${base}/video/uploads/${up.upload_id}/content`, f, p => prog.firstChild.style.width = (p * 100) + '%');
+      const progress = p => prog.firstChild.style.width = (p * 100) + '%';
+      if (ctx.multipart) await uploadMultipart(up.upload_id, f, progress);
+      else await put(`${base}/video/uploads/${up.upload_id}/content`, f, progress);
       note.textContent = 'Uploaded — analysing…'; prog.hidden = true; input.value = ''; refresh();
     } catch (e) { prog.hidden = true; note.textContent = ''; fail(e); }
   });

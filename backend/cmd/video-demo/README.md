@@ -29,3 +29,11 @@ against it:
     cd ../apps/portal && NEXT_PUBLIC_API_ORIGIN=http://127.0.0.1:8088 npx next dev -H 127.0.0.1 -p 3000
 
 `-portal-origin` only adds CORS for that origin and a placeholder CSRF bootstrap (the demo has no CSRF of its own).
+
+## MinIO / presigned multipart uploads
+
+`-s3 host:port,access,secret[,public-host:port]` stores objects in an S3-compatible bucket (`photo-video`, created and
+versioned on start) and makes the library upload large files in 32 MiB parts straight to the store through presigned
+URLs (`POST /video/uploads/{u}/multipart`, `/parts`, `/complete`). The server lists the parts the store holds,
+assembles the object and refuses it when size or sha256 differ from the declaration. Integration test:
+`VIDEO_E2E_MINIO=host:port,access,secret go test -tags videoe2e ./internal/video/api -run Multipart`.
