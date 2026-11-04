@@ -42,6 +42,10 @@ func (s *Sweeper) Once(ctx context.Context) (recovered, expired int, err error) 
 	if err = s.Pool.QueryRow(ctx, `SELECT photo.purge_video_history(500)`).Scan(&purged); err != nil {
 		return
 	}
+	var parts int
+	if err = s.Pool.QueryRow(ctx, `SELECT photo.ensure_video_egress_partitions(2)`).Scan(&parts); err != nil {
+		return
+	}
 	if s.Store != nil {
 		err = s.deleteWithdrawn(ctx)
 	}
