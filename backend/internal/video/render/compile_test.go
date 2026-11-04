@@ -412,3 +412,48 @@ func TestRenderDuckingWithRealFFmpeg(t *testing.T) {
 		t.Fatalf("%+v %v", got, err)
 	}
 }
+
+func TestLoudnessRealFFmpeg(t *testing.T) {
+	ff, e1 := exec.LookPath("ffmpeg")
+	fp, e2 := exec.LookPath("ffprobe")
+	if e1 != nil || e2 != nil {
+		t.Skip("ffmpeg not installed")
+	}
+	dir := t.TempDir()
+	src := filepath.Join(dir, "a.m4a")
+	if out, err := exec.Command(ff, "-v", "error", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000", "-af", "volume=-30dB", "-t", "6", "-c:a", "aac", "-ac", "1", src).CombinedOutput(); err != nil {
+		t.Fatalf("%v %s", err, out)
+	}
+	d := doc(t, `{"video":{"fps":{"num":25,"den":1},"width":320,"height":240},"tracks":[{"id":"A1","kind":"audio","clips":[
+	 {"id":"a","source":{"kind":"audio","media_id":"m"},"at":0,"src_in":0,"src_out":4233600000,"effects":[]}]}]}`)
+	plan, err := Compile(d, map[string]Source{"m": {HasAudio: true, Channels: 1}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	paths := map[string]string{"m": src}
+	a1, _ := LoudnessPass1(plan, paths, -14, -1)
+	out, err := exec.CommandContext(t.Context(), ff, a1...).CombinedOutput()
+	if err != nil {
+		t.Fatalf("pass1: %v\n%s", err, out)
+	}
+	m, err := ParseMeasured(out)
+	if err != nil || m.Silent() {
+		t.Fatalf("%+v %v", m, err)
+	}
+	p2 := WithLoudness(plan, -14, -1, m)
+	outPath := filepath.Join(dir, "o.mp4")
+	args, _ := Args(p2, paths, outPath, "libx264", 25, 1)
+	if o, err := exec.CommandContext(t.Context(), ff, args...).CombinedOutput(); err != nil {
+		t.Fatalf("pass2: %v\n%s\n%s", err, o, p2.FilterComplex)
+	}
+	// Measure the result: integrated loudness lands near the target.
+	chk, err := exec.CommandContext(t.Context(), ff, "-hide_banner", "-nostdin", "-i", outPath, "-af", "loudnorm=I=-14:TP=-1:LRA=11:print_format=json", "-f", "null", "-").CombinedOutput()
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err := ParseMeasured(chk)
+	if err != nil || r.InputI < -14.7 || r.InputI > -13.3 {
+		t.Fatalf("result %+v %v (source was %.1f LUFS)", r, err, m.InputI)
+	}
+	_ = fp
+}

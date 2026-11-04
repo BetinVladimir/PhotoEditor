@@ -362,6 +362,19 @@ func (w *Worker) render(ctx context.Context, j job, dir string, cancel context.C
 	fps := v["fps"].(map[string]any)
 	fn, fd := int64(fps["num"].(float64)), int64(fps["den"].(float64))
 	outFile := filepath.Join(dir, "out.mp4")
+	loud := "none"
+	if t, tp, ok := loudnessTarget(doc); ok {
+		m, err := w.measureLoudness(ctx, plan, paths, t, tp)
+		switch {
+		case err != nil:
+			return err
+		case m.Silent():
+			loud = "skipped_silent"
+		default:
+			plan = render.WithLoudness(plan, t, tp, m)
+			loud = fmt.Sprintf("measured_%.1f_lufs", m.InputI)
+		}
+	}
 	args, err := render.Args(plan, paths, outFile, encoder, fn, fd)
 	if err != nil {
 		return err
@@ -380,7 +393,7 @@ func (w *Worker) render(ctx context.Context, j job, dir string, cancel context.C
 	qc, _ := json.Marshal(map[string]any{"checks": map[string]any{
 		"duration_ticks_expected": plan.DurationTicks, "duration_ticks_actual": facts.DurationTicks,
 		"width": facts.Width, "height": facts.Height, "has_audio": facts.HasAudio, "audio_channels": facts.Channels,
-		"video_codec": facts.VideoCodec, "audio_codec": facts.AudioCodec, "compiler": plan.Version, "encoder": encoder}})
+		"loudness": loud, "video_codec": facts.VideoCodec, "audio_codec": facts.AudioCodec, "compiler": plan.Version, "encoder": encoder}})
 	qcFile := filepath.Join(dir, "qc.json")
 	if err := os.WriteFile(qcFile, qc, 0o640); err != nil {
 		return err
@@ -401,6 +414,33 @@ func (w *Worker) render(ctx context.Context, j job, dir string, cancel context.C
 	}
 	return w.finishJob(ctx, j, backend, []map[string]any{
 		{"role": "video_render", "ordinal": 0, "artifact_id": outID}, {"role": "video_qc_report", "ordinal": 0, "artifact_id": qcID}})
+}
+
+// loudnessTarget reads master.audio.loudness of the document.
+func loudnessTarget(doc render.Doc) (target, truePeak float64, ok bool) {
+	m, _ := doc["master"].(map[string]any)
+	a, _ := m["audio"].(map[string]any)
+	l, _ := a["loudness"].(map[string]any)
+	t, ok1 := l["target_lufs"].(float64)
+	tp, ok2 := l["true_peak_db"].(float64)
+	return t, tp, ok1 && ok2
+}
+
+// measureLoudness is pass 1 of section 7.
+func (w *Worker) measureLoudness(ctx context.Context, plan render.Plan, paths map[string]string, t, tp float64) (render.Measured, error) {
+	args, err := render.LoudnessPass1(plan, paths, t, tp)
+	if err != nil {
+		return render.Measured{}, err
+	}
+	out, err := exec.CommandContext(ctx, w.FFmpeg, args...).CombinedOutput()
+	if err != nil {
+		return render.Measured{}, failure{"VIDEO_RENDER_FFMPEG_FAILED", tail(out)}
+	}
+	m, err := render.ParseMeasured(out)
+	if err != nil {
+		return render.Measured{}, failure{"VIDEO_RENDER_FFMPEG_FAILED", err.Error()}
+	}
+	return m, nil
 }
 
 // runFFmpeg runs the command, forwarding -progress output as job progress. When the
