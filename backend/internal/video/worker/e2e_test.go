@@ -146,7 +146,13 @@ func TestUploadProbeMontageRenderDelivery(t *testing.T) {
 	}
 
 	w := &worker.Worker{Pool: wpool, Store: store, FFmpeg: ff, FFprobe: fp, Encoder: "libx264", Bucket: bucket, WorkDir: root}
-	for n := 0; n < 3; n++ {
+	// The queue is shared with other tests and runs: work until our three media are out of "probing" (bounded).
+	for n := 0; n < 30; n++ {
+		var pending int
+		must(t, admin.QueryRow(ctx, `SELECT count(*) FROM photo.video_media WHERE id::text=ANY($1) AND state='probing'`, []string{media[0].String(), media[1].String(), media[2].String()}).Scan(&pending), "pending")
+		if pending == 0 {
+			break
+		}
 		found, err := w.RunOnce(ctx)
 		must(t, err, "run ingest")
 		if !found {
@@ -197,10 +203,17 @@ func TestUploadProbeMontageRenderDelivery(t *testing.T) {
 	var render uuid.UUID
 	must(t, api.QueryRow(ctx, `SELECT photo.create_video_render($1,$2,$3,$4,$5,'{"name":"web","encoder":"libx264"}'::jsonb,$6,$7,$8,'auto',$9,$10,50000000,1)`,
 		tid, pid, user, sid, rev, hex64(t), uuid.New(), params, int64(35*tps/10), hex64(t)).Scan(&render), "create render")
-	found, err := w.RunOnce(ctx)
-	must(t, err, "run render")
-	if !found {
-		t.Fatal("render job not claimed")
+	for n := 0; n < 30; n++ {
+		var st string
+		must(t, admin.QueryRow(ctx, `SELECT state FROM photo.video_renders WHERE id=$1`, render).Scan(&st), "render state")
+		if st != "queued" {
+			break
+		}
+		found, err := w.RunOnce(ctx)
+		must(t, err, "run render")
+		if !found {
+			t.Fatal("render job not claimed")
+		}
 	}
 	var rstate, enc string
 	var outArt uuid.UUID
