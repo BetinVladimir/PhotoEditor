@@ -44,14 +44,15 @@ const (
 type Authorizer func(ctx context.Context, tx pgx.Tx, who auth.Identity, tid uuid.UUID, required domain.Role) (domain.Role, error)
 
 type Service struct {
-	Pool      *pgxpool.Pool // photo_api
-	Scheduler *pgxpool.Pool // photo_scheduler; DEMO completes uploads inline instead of a sweeper
-	Portal    *pgxpool.Pool // photo_portal: viewer reads and egress accounting
-	Pepper    []byte        // MAC key of share secrets (same as the portal's)
-	Store     worker.Store
-	Bucket    string
-	Authz     Authorizer
-	TempDir   string
+	Pool       *pgxpool.Pool // photo_api
+	Scheduler  *pgxpool.Pool // photo_scheduler; DEMO completes uploads inline instead of a sweeper
+	Portal     *pgxpool.Pool // photo_portal: viewer reads and egress accounting
+	Pepper     []byte        // MAC key of share secrets (same as the portal's)
+	Store      worker.Store
+	Bucket     string
+	Authz      Authorizer
+	TempDir    string
+	EventEvery time.Duration // SSE polling period; zero means one second
 
 	streams streamLimiter
 }
@@ -738,4 +739,12 @@ func (s *Service) leaseEgress(ctx context.Context, v Viewer, want int64) (egress
 func (s *Service) settleEgress(ctx context.Context, v Viewer, l egressLease, used int64, render uuid.UUID) error {
 	var ok bool
 	return s.Portal.QueryRow(context.WithoutCancel(ctx), `SELECT photo.settle_video_egress($1,$2,$3,$4,'stream')`, v.Tenant, l.ID, used, render).Scan(&ok)
+}
+
+// eventEvery is the polling period of the SSE stream.
+func (s *Service) eventEvery() time.Duration {
+	if s.EventEvery > 0 {
+		return s.EventEvery
+	}
+	return time.Second
 }

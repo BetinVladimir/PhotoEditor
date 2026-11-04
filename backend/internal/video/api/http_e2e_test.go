@@ -279,6 +279,13 @@ func TestVideoAPIScenario(t *testing.T) {
 	if r["state"] != "ready" || r["job_state"] != "succeeded" || r["width"].(float64) != 640 {
 		t.Fatalf("render: %v", r)
 	}
+	// SSE: a finished render yields one event with the final state and closes.
+	if code, ev := c.do("GET", "/video/renders/"+rid+"/events", nil, nil); code != 200 || !strings.HasPrefix(string(ev), "event: render\ndata: {") || !strings.Contains(string(ev), `"state": "ready"`) || strings.Count(string(ev), "event: render") != 1 {
+		t.Fatalf("events: %d %s", code, ev)
+	}
+	if code, _ := c.do("GET", "/video/renders/"+uuid.NewString()+"/events", nil, nil); code != 404 {
+		t.Fatalf("events of an unknown render: %d", code)
+	}
 	code, out := c.do("GET", "/video/renders/"+rid+"/content", nil, map[string]string{"Range": "bytes=0-99"})
 	if code != 206 || len(out) != 100 {
 		t.Fatalf("range read: %d %d", code, len(out))

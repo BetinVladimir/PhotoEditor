@@ -9,6 +9,7 @@ import (
 	"log"
 	"mime"
 	"net/http"
+	"time"
 	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
@@ -39,6 +40,7 @@ func Routes(r chi.Router, svc *Service, req Requester) {
 	r.Put(b+"/video/sequences/{s}/document", h.saveDocument)
 	r.Post(b+"/video/sequences/{s}/renders", h.createRender)
 	r.Get(b+"/video/renders/{r}", h.getRender)
+	r.Get(b+"/video/renders/{r}/events", h.renderEvents)
 	r.Get(b+"/video/renders/{r}/content", h.renderFile)
 	r.Get(b+"/projects/{p}/video/deliveries", h.listDeliveries)
 	r.Post(b+"/projects/{p}/video/deliveries", h.createDelivery)
@@ -282,6 +284,60 @@ func (h handler) getRender(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	_, _ = w.Write(raw)
+}
+
+// renderEvents streams the render state as server-sent events: one "render"
+// event per change, a comment as keep-alive, closed at a terminal state.
+func (h handler) renderEvents(w http.ResponseWriter, r *http.Request) {
+	who, tid, ids, ok := h.begin(w, r, false, "r")
+	if !ok {
+		return
+	}
+	fl, can := w.(http.Flusher)
+	if !can {
+		writeErr(w, r, fmt.Errorf("streaming unsupported"))
+		return
+	}
+	var last []byte
+	started, beat := time.Now(), time.Now()
+	tick := time.NewTicker(h.svc.eventEvery())
+	defer tick.Stop()
+	for {
+		raw, err := h.svc.GetRender(r.Context(), who, tid, ids[0])
+		if err != nil {
+			if last == nil {
+				writeErr(w, r, err)
+			}
+			return
+		}
+		if last == nil {
+			w.Header().Set("Content-Type", "text/event-stream")
+			w.Header().Set("Cache-Control", "no-store")
+			w.Header().Set("X-Accel-Buffering", "no")
+		}
+		if !bytes.Equal(raw, last) {
+			last, beat = raw, time.Now()
+			_, _ = fmt.Fprintf(w, "event: render\ndata: %s\n\n", raw)
+			fl.Flush()
+		} else if time.Since(beat) > 15*time.Second {
+			beat = time.Now()
+			_, _ = fmt.Fprint(w, ": keep-alive\n\n")
+			fl.Flush()
+		}
+		var st struct {
+			State    string `json:"state"`
+			JobState string `json:"job_state"`
+		}
+		_ = json.Unmarshal(raw, &st)
+		if st.State == "ready" || st.State == "failed" || st.State == "cancelled" || st.JobState == "failed" || time.Since(started) > time.Hour {
+			return
+		}
+		select {
+		case <-r.Context().Done():
+			return
+		case <-tick.C:
+		}
+	}
 }
 
 func (h handler) renderFile(w http.ResponseWriter, r *http.Request) {

@@ -20,6 +20,26 @@ function h(tag, props = {}, ...kids) {
 let ctx, base, view = 0;
 function toast(msg, ms = 4500) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.id); toast.id = setTimeout(() => t.hidden = true, ms); }
 
+// renderFeed delivers render states from the SSE stream and falls back to polling when it is unavailable.
+function renderFeed(id) {
+  const queue = []; let wake = null, es = null;
+  try {
+    es = new EventSource(`${base}/video/renders/${id}/events`);
+    es.addEventListener('render', e => { queue.push(JSON.parse(e.data)); if (wake) wake(); });
+    es.onerror = () => { es.close(); es = null; if (wake) wake(); };
+  } catch { es = null; }
+  return {
+    async next() {
+      if (es && !queue.length) await new Promise(res => { wake = res; });
+      wake = null;
+      if (queue.length) return queue.shift();
+      await new Promise(res => setTimeout(res, 1000));
+      return api('GET', `/video/renders/${id}`);
+    },
+    close() { if (es) es.close(); es = null; },
+  };
+}
+
 async function api(method, path, body, raw) {
   const headers = {};
   if (body !== undefined && !(body instanceof Blob)) headers['Content-Type'] = 'application/json';
@@ -161,9 +181,10 @@ async function editorView(root, token) {
   }
   async function watch(id) {
     const bar = h('i'), line = h('div', { class: 'row' }); renderBox.replaceChildren(h('h3', {}, 'Render'), line, h('div', { class: 'bar' }, bar));
-    for (;;) {
+    const feed = renderFeed(id);
+    try { for (;;) {
       if (token !== view) return;
-      let r; try { r = await api('GET', `/video/renders/${id}`); } catch (e) { return fail(e); }
+      let r; try { r = await feed.next(); } catch (e) { return fail(e); }
       bar.style.width = ((r.state === 'ready' ? 1 : r.progress || 0) * 100) + '%';
       line.replaceChildren(h('span', { class: 'badge ' + r.state }, r.state), h('span', { class: 'mute small' }, r.state === 'ready' ? '' : r.stage || '', r.error_code ? ' ' + r.error_code : ''));
       if (r.state === 'ready') {
@@ -173,8 +194,7 @@ async function editorView(root, token) {
         return;
       }
       if (r.state === 'failed' || r.state === 'cancelled' || r.job_state === 'failed') { renderBtn.disabled = false; return toast('Render failed: ' + (r.error_code || r.state)); }
-      await new Promise(res => setTimeout(res, 1000));
-    }
+    } } finally { feed.close(); }
   }
   paint();
   const last = store.get('render', null); if (last) { api('GET', `/video/renders/${last}`).then(r => { if (r.sequence_id === E.seq.id && r.state !== 'failed') watch(last); }).catch(() => 0); }
