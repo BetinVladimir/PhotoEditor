@@ -487,3 +487,48 @@ func TestRenderNVENCIfAvailable(t *testing.T) {
 		t.Fatalf("%+v %v", got, err)
 	}
 }
+
+// A clip CDL (slope 0.5) and a master LUT reach the pixels: white drops to mid grey, and a second halving darkens further.
+func TestRenderColorWithRealFFmpeg(t *testing.T) {
+	ff, e1 := exec.LookPath("ffmpeg")
+	fp, e2 := exec.LookPath("ffprobe")
+	if e1 != nil || e2 != nil {
+		t.Skip("ffmpeg not installed")
+	}
+	dir := t.TempDir()
+	srcPath := filepath.Join(dir, "src.mp4")
+	if out, err := exec.Command(ff, "-v", "error", "-f", "lavfi", "-i", "color=c=white:s=640x360:r=30", "-t", "2", "-c:v", "libx264", "-pix_fmt", "yuv420p", srcPath).CombinedOutput(); err != nil {
+		t.Fatalf("%v %s", err, out)
+	}
+	cdl := `{"id":"e1","type":"color.cdl","enabled":true,"params":{"slope":[0.5,0.5,0.5],"offset":[0,0,0],"power":[1,1,1],"saturation":1}}`
+	luma := func(clipFx, masterFx string) byte {
+		d := doc(t, `{"video":{"fps":{"num":25,"den":1},"width":320,"height":240},"master":{"effects":[`+masterFx+`]},"tracks":[{"id":"V1","kind":"video","clips":[
+		 {"id":"c1","source":{"kind":"video","media_id":"m1"},"at":0,"src_in":0,"src_out":705600000,"fit":"fit","effects":[`+clipFx+`]}]}]}`)
+		plan, err := Compile(d, map[string]Source{"m1": {DurationTicks: 2 * TicksPerSecond, HasVideo: true}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := WriteLUTs(plan, dir); err != nil {
+			t.Fatal(err)
+		}
+		outPath := filepath.Join(dir, "o.mp4")
+		args, _ := Args(plan, map[string]string{"m1": srcPath}, outPath, "libx264", 25, 1)
+		cmd := exec.CommandContext(t.Context(), ff, args...)
+		cmd.Dir = dir
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("%v\n%s\n%s", err, out, plan.FilterComplex)
+		}
+		if _, _, err := probe.Run(t.Context(), fp, outPath); err != nil {
+			t.Fatal(err)
+		}
+		raw, err := exec.CommandContext(t.Context(), ff, "-v", "error", "-i", outPath, "-frames:v", "1", "-vf", "crop=2:2:100:100,format=yuv420p", "-f", "rawvideo", "-").Output()
+		if err != nil || len(raw) == 0 {
+			t.Fatal(err)
+		}
+		return raw[0]
+	}
+	plain, clip, both := luma("", ""), luma(cdl, ""), luma(cdl, cdl)
+	if plain < 230 || clip < 100 || clip > 140 || both >= clip-20 {
+		t.Errorf("luma plain=%d clip=%d clip+master=%d", plain, clip, both)
+	}
+}

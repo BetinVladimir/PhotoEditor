@@ -23,6 +23,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"photoeditor/backend/internal/video/color"
 	"photoeditor/backend/internal/video/probe"
 	"photoeditor/backend/internal/video/render"
 )
@@ -195,6 +196,9 @@ func (w *Worker) ingest(ctx context.Context, j job, dir string) error {
 	if sha, _, err := HashFile(src); err != nil || sha != m.SHA256 {
 		return failure{"VIDEO_SOURCE_HASH_MISMATCH", ""}
 	}
+	if m.Kind == "lut" {
+		return w.ingestLUT(ctx, j, m, src, dir)
+	}
 	facts, raw, perr := probe.Run(ctx, w.FFprobe, src)
 	if perr != nil {
 		// A bad file is a domain outcome, not a job failure: the media is rejected.
@@ -274,6 +278,36 @@ func (w *Worker) ingest(ctx context.Context, j job, dir string) error {
 	return w.finishJob(ctx, j, "cpu", nil)
 }
 
+// ingestLUT validates a .cube file (FN-W-12): a bad file rejects the media, a good one needs only its probe record.
+func (w *Worker) ingestLUT(ctx context.Context, j job, m mediaIn, src, dir string) error {
+	text, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	l, perr := color.ParseCube(string(text))
+	if perr != nil {
+		if _, err := w.Pool.Exec(ctx, `SELECT photo.finish_video_ingest($1,$2,'rejected','VIDEO_UNSUPPORTED_FORMAT',NULL,NULL,NULL,NULL,NULL)`, j.Tenant, m.ID); err != nil {
+			return err
+		}
+		_, err := w.Pool.Exec(ctx, `SELECT photo.finish_video_job($1,$2,$3,'succeeded',NULL,NULL,'cpu','[]'::jsonb)`, j.Tenant, j.ID, j.Token)
+		return err
+	}
+	pj, _ := json.Marshal(map[string]any{"kind": "lut", "lut_size": l.Size})
+	probeFile := filepath.Join(dir, "probe.json")
+	if err := os.WriteFile(probeFile, pj, 0o640); err != nil {
+		return err
+	}
+	probeID, _, err := w.register(ctx, j, "video_probe", "probe.json", "application/json", probeFile, 0, 0)
+	if err != nil {
+		return err
+	}
+	var ok bool
+	if err := w.Pool.QueryRow(ctx, `SELECT photo.finish_video_ingest($1,$2,'ready',NULL,$3::jsonb,$4,NULL,NULL,NULL)`, j.Tenant, m.ID, string(pj), probeID).Scan(&ok); err != nil {
+		return err
+	}
+	return w.finishJob(ctx, j, "cpu", nil)
+}
+
 func (w *Worker) finishJob(ctx context.Context, j job, backend string, outs []map[string]any) error {
 	if outs == nil {
 		outs = []map[string]any{}
@@ -322,14 +356,34 @@ func (w *Worker) render(ctx context.Context, j job, dir string, cancel context.C
 		return failure{"VIDEO_DOCUMENT_INVALID", err.Error()}
 	}
 	sources, paths := map[string]render.Source{}, map[string]string{}
+	luts := map[string]*color.Lut3D{}
 	for _, m := range in.Media {
+		if m.Kind != "lut" {
+			continue
+		}
+		dst := filepath.Join(dir, "lut-"+m.ID.String())
+		if err := w.Store.Fetch(ctx, m.Bucket, m.ObjectKey, dst); err != nil {
+			return err
+		}
+		text, err := os.ReadFile(dst)
+		if err != nil {
+			return err
+		}
+		if luts[m.ID.String()], err = color.ParseCube(string(text)); err != nil {
+			return failure{"VIDEO_LUT_INVALID", m.ID.String()}
+		}
+	}
+	for _, m := range in.Media {
+		if m.Kind == "lut" {
+			continue
+		}
 		var f probe.Facts
 		if json.Unmarshal(m.Probe, &f) != nil {
 			continue
 		}
 		sources[m.ID.String()] = render.Source{DurationTicks: f.DurationTicks, HasVideo: f.HasVideo, HasAudio: f.HasAudio, Channels: f.Channels}
 	}
-	plan, err := render.Compile(doc, sources)
+	plan, err := render.CompileWith(doc, sources, luts)
 	if err != nil {
 		var ce render.Error
 		if errors.As(err, &ce) {
@@ -362,6 +416,9 @@ func (w *Worker) render(ctx context.Context, j job, dir string, cancel context.C
 	fps := v["fps"].(map[string]any)
 	fn, fd := int64(fps["num"].(float64)), int64(fps["den"].(float64))
 	outFile := filepath.Join(dir, "out.mp4")
+	if err := render.WriteLUTs(plan, dir); err != nil {
+		return err
+	}
 	loud := "none"
 	if t, tp, ok := loudnessTarget(doc); ok {
 		m, err := w.measureLoudness(ctx, plan, paths, t, tp)
@@ -379,7 +436,7 @@ func (w *Worker) render(ctx context.Context, j job, dir string, cancel context.C
 	if err != nil {
 		return err
 	}
-	if err := w.runFFmpeg(ctx, j, args, plan.DurationTicks, cancel); err != nil {
+	if err := w.runFFmpeg(ctx, j, args, plan.DurationTicks, cancel, dir); err != nil {
 		return err
 	}
 	facts, _, err := probe.Run(ctx, w.FFprobe, outFile)
@@ -445,8 +502,9 @@ func (w *Worker) measureLoudness(ctx context.Context, plan render.Plan, paths ma
 
 // runFFmpeg runs the command, forwarding -progress output as job progress. When the
 // lease is lost or a cancel is requested the process is killed.
-func (w *Worker) runFFmpeg(ctx context.Context, j job, args []string, total int64, cancel context.CancelFunc) error {
+func (w *Worker) runFFmpeg(ctx context.Context, j job, args []string, total int64, cancel context.CancelFunc, dir string) error {
 	cmd := exec.CommandContext(ctx, w.FFmpeg, args...)
+	cmd.Dir = dir // lut_*.cube files are read relative to it
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	stdout, err := cmd.StdoutPipe()

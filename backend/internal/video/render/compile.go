@@ -12,8 +12,13 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+
+	"photoeditor/backend/internal/canonical"
+	"photoeditor/backend/internal/video/color"
 )
 
 const (
@@ -43,9 +48,10 @@ type Plan struct {
 	Maps          []string
 	DurationTicks int64
 	Version       string
-	Shortened     []Shortened // VID-T-07 TRANSITION_SHORTENED
-	Decisions     []string    // e.g. AUDIO_EFFECT_NOT_RENDERED:<clip>
-	AudioGraph    string      // audio part of FilterComplex, ends in [abus]; for the loudness pass
+	Shortened     []Shortened       // VID-T-07 TRANSITION_SHORTENED
+	Decisions     []string          // e.g. AUDIO_EFFECT_NOT_RENDERED:<clip>
+	LUTs          map[string]string // file name -> .cube text, written next to the command (cwd of ffmpeg)
+	AudioGraph    string            // audio part of FilterComplex, ends in [abus]; for the loudness pass
 }
 
 // Shortened records a transition the sources could not fully cover.
@@ -280,6 +286,64 @@ func contains(a []string, s string) bool {
 	return false
 }
 
+func lutFilter(name string, alpha bool) string {
+	f := fmt.Sprintf("scale=in_color_matrix=bt709:in_range=tv,format=rgba,lut3d=file='%s':interp=tetrahedral,scale=out_color_matrix=bt709:out_range=tv", name)
+	if alpha {
+		f += ",format=yuva420p"
+	}
+	return f
+}
+
+// LutName is FN-R-14: the file name of the folded LUT of the enabled colour effects, "" without any.
+func LutName(effects []any) (string, error) {
+	var list []any
+	for _, e := range effects {
+		if em := obj(e); em["enabled"] != false && strings.HasPrefix(str(em["type"]), "color.") {
+			list = append(list, e)
+		}
+	}
+	if len(list) == 0 {
+		return "", nil
+	}
+	h, err := canonical.Hash(list)
+	if err != nil {
+		return "", err
+	}
+	return "lut_" + h[:16] + ".cube", nil
+}
+
+// addLUT folds the effects (FN-L-08), records the cube under its content-addressed name and returns the name.
+func (p *Plan) addLUT(effects []any, luts map[string]*color.Lut3D, clip string) (string, error) {
+	name, err := LutName(effects)
+	if err != nil {
+		return "", err
+	}
+	if _, done := p.LUTs[name]; done {
+		return name, nil
+	}
+	var fx []color.Effect
+	for _, e := range effects {
+		em := obj(e)
+		ce := color.Effect{Type: str(em["type"]), Params: obj(em["params"])}
+		if ce.Type == "color.lut3d" {
+			ce.LUT = luts[str(obj(ce.Params["lut"])["media_id"])]
+			if ce.LUT == nil {
+				return "", Error{Code: "COMPILE_SOURCE_MISSING", Clip: clip}
+			}
+		}
+		fx = append(fx, ce)
+	}
+	l, err := color.Fold(fx, color.FoldSize)
+	if err != nil {
+		return "", Error{Code: "COMPILE_COLOR_UNSUPPORTED", Clip: clip}
+	}
+	if p.LUTs == nil {
+		p.LUTs = map[string]string{}
+	}
+	p.LUTs[name] = color.WriteCube(l)
+	return name, nil
+}
+
 // kbSupersample is FN-R-15: 4, reduced until max(W,H)*S fits in 8192.
 func kbSupersample(w, h int64) int64 {
 	s := int64(4)
@@ -466,7 +530,10 @@ func sourceKey(c map[string]any) string {
 }
 
 // Compile builds the plan. mode "audio" skips video chains (loudness pass).
-func Compile(d Doc, sources map[string]Source) (Plan, error) {
+func Compile(d Doc, sources map[string]Source) (Plan, error) { return CompileWith(d, sources, nil) }
+
+// CompileWith is Compile with the parsed .cube files of the document's lut3d effects, keyed by media id.
+func CompileWith(d Doc, sources map[string]Source, luts map[string]*color.Lut3D) (Plan, error) {
 	v := obj(d["video"])
 	fr := obj(v["fps"])
 	fn, fd := num(fr["num"]), num(fr["den"])
@@ -511,6 +578,7 @@ func Compile(d Doc, sources map[string]Source) (Plan, error) {
 				return Plan{}, Error{Code: "COMPILE_SPEED_UNSUPPORTED", Clip: id}
 			}
 			var duck map[string]any
+			var colorFx []any
 			for _, e := range arr(cm["effects"]) {
 				em := obj(e)
 				if em["enabled"] == false {
@@ -519,6 +587,8 @@ func Compile(d Doc, sources map[string]Source) (Plan, error) {
 				switch ty := str(em["type"]); ty {
 				case "audio.duck":
 					duck = obj(em["params"])
+				case "color.basic", "color.cdl", "color.curves", "color.lut3d":
+					colorFx = append(colorFx, em)
 				case "audio.gain", "audio.fade":
 					p.Decisions = append(p.Decisions, "AUDIO_EFFECT_NOT_RENDERED:"+id)
 				default:
@@ -612,6 +682,13 @@ func Compile(d Doc, sources map[string]Source) (Plan, error) {
 					z, x, y := kbExpr(cm, (at-l0)/frame, dur/frame)
 					chain += fmt.Sprintf(",zoompan=z='%s':x='%s':y='%s':d=1:s=%dx%d:fps=%s,scale=out_color_matrix=bt709:out_range=tv,format=yuva420p", z, x, y, W, H, fps)
 				}
+				if len(colorFx) > 0 {
+					name, err := p.addLUT(colorFx, luts, id)
+					if err != nil {
+						return Plan{}, err
+					}
+					chain += "," + lutFilter(name, true)
+				}
 				px, py := "0", "0"
 				if tf != nil {
 					var tch string
@@ -693,7 +770,21 @@ func Compile(d Doc, sources map[string]Source) (Plan, error) {
 		g = append(g, fmt.Sprintf("[%s][%s]overlay=x='(W-w)/2+(%s)*W':y='(H-h)/2+(%s)*H':eof_action=pass:enable='between(t,%s,%s)':format=auto[%s]", prev, parts[0], parts[3], parts[4], parts[1], parts[2], next))
 		prev = next
 	}
-	g = append(g, fmt.Sprintf("[%s]format=yuv420p[vout]", prev))
+	var masterFx []any
+	for _, e := range arr(obj(d["master"])["effects"]) {
+		if em := obj(e); em["enabled"] != false && strings.HasPrefix(str(em["type"]), "color.") {
+			masterFx = append(masterFx, em)
+		}
+	}
+	if len(masterFx) > 0 {
+		name, err := p.addLUT(masterFx, luts, "master")
+		if err != nil {
+			return Plan{}, err
+		}
+		g = append(g, fmt.Sprintf("[%s]%s,format=yuv420p[vout]", prev, lutFilter(name, false)))
+	} else {
+		g = append(g, fmt.Sprintf("[%s]format=yuv420p[vout]", prev))
+	}
 	ag, abus := audioGraph(voices, D)
 	p.AudioGraph = strings.Join(ag, ";\n")
 	g = append(g, ag...)
@@ -728,4 +819,14 @@ func Args(p Plan, paths map[string]string, out, encoder string, fn, fd int64) ([
 	}
 	a = append(a, "-pix_fmt", "yuv420p", "-r", fpsExpr(fn, fd), "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-movflags", "+faststart", out)
 	return a, nil
+}
+
+// WriteLUTs writes the plan's .cube files into dir, the working directory of the ffmpeg command (FN-R-17).
+func WriteLUTs(p Plan, dir string) error {
+	for name, text := range p.LUTs {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o640); err != nil {
+			return err
+		}
+	}
+	return nil
 }

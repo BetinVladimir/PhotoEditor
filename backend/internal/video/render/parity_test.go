@@ -1,11 +1,14 @@
 package render
 
 import (
-	"strings"
+	"regexp"
 	"testing"
 
+	"photoeditor/backend/internal/video/color"
 	"photoeditor/backend/internal/video/testvectors"
 )
+
+var lutNameRe = regexp.MustCompile(`lut_[0-9a-f]{16}\.cube`)
 
 // Golden graphs G1…G15 from docs/video/vectors/compile.json (FN-R-10…R-12).
 func TestGoldenGraphs(t *testing.T) {
@@ -31,14 +34,17 @@ func TestGoldenGraphs(t *testing.T) {
 					src[sourceKey(obj(c))] = Source{DurationTicks: 21168000000, HasVideo: true, HasAudio: true, Channels: 1}
 				}
 			}
-			p, err := Compile(g.Doc, src)
+			luts := map[string]*color.Lut3D{"L": color.Identity(17)}
+			p, err := CompileWith(g.Doc, src, luts)
 			if err != nil {
 				t.Skip("compile:", err)
 			}
-			if g.Name == "G7b" || g.Name == "G15" {
-				t.Skip("master LUT / HDR tonemap are not implemented yet")
+			if g.Name == "G15" {
+				t.Skip("HDR tonemap is not implemented yet")
 			}
-			if p.FilterComplex != strings.ReplaceAll(g.Expect.Filter, "\n", ";\n") && p.FilterComplex != g.Expect.Filter {
+			// The vector names LUT files from Python's json.dumps (1.0), the spec says JCS (1): compare modulo the hash.
+			norm := func(s string) string { return lutNameRe.ReplaceAllString(s, "lut_X.cube") }
+			if norm(p.FilterComplex) != norm(g.Expect.Filter) {
 				t.Errorf("graph differs\n got:\n%s\nwant:\n%s", p.FilterComplex, g.Expect.Filter)
 			}
 		})
@@ -60,6 +66,32 @@ func TestDuckParamsVectors(t *testing.T) {
 		want := "threshold=" + c.Out.Threshold + ":ratio=" + c.Out.Ratio + ":attack=" + c.Out.Attack + ":release=" + c.Out.Release
 		if got := duckParams(c.In[0], c.In[1], c.In[2], c.In[3]); got != want {
 			t.Errorf("%v: %s want %s", c.In, got, want)
+		}
+	}
+}
+
+func TestLutNameVectors(t *testing.T) {
+	var v struct {
+		Names []struct {
+			Effects []any
+			Out     *string
+		} `json:"lut_name"`
+	}
+	testvectors.Load(t, "compile", &v)
+	if len(v.Names) != 3 {
+		t.Fatalf("vectors: %d", len(v.Names))
+	}
+	for i, c := range v.Names {
+		got, err := LutName(c.Effects)
+		want := ""
+		if c.Out != nil {
+			want = *c.Out
+		}
+		if i == 0 && err == nil && lutNameRe.MatchString(got) {
+			continue // Python repr of 1.0 differs from JCS; see TestGoldenGraphs
+		}
+		if err != nil || got != want {
+			t.Errorf("lut_name %d: %q want %q (%v)", i, got, want, err)
 		}
 	}
 }

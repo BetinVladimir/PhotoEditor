@@ -23,6 +23,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"photoeditor/backend/internal/video/color"
 	"photoeditor/backend/internal/video/probe"
 	"photoeditor/backend/internal/video/worker"
 )
@@ -112,12 +113,16 @@ func TestUploadProbeMontageRenderDelivery(t *testing.T) {
 		must(t, err, "ffmpeg gen: "+string(out))
 		return p
 	}
-	srcs := []string{gen("a.mp4", "640x360", "30", "1", "3"), gen("b.mp4", "1280x720", "25", "2", "2")}
+	// a .cube that halves every channel (CDL slope 0.5), uploaded as a LUT media
+	cube := filepath.Join(root, "half.cube")
+	must(t, os.WriteFile(cube, []byte(color.WriteCube(color.Build(17, func(c color.RGB) color.RGB { return color.RGB{c[0] / 2, c[1] / 2, c[2] / 2} }))), 0o600), "write cube")
+	srcs := []string{gen("a.mp4", "640x360", "30", "1", "3"), gen("b.mp4", "1280x720", "25", "2", "2"), cube}
+	kinds := []string{"video", "video", "lut"}
 
 	// --- upload (photo_api) and completion (photo_scheduler)
 	const part = 33554432
-	var media [2]uuid.UUID
-	var shas [2]string
+	var media [3]uuid.UUID
+	var shas [3]string
 	for i, src := range srcs {
 		sha, size, err := worker.HashFile(src)
 		must(t, err, "hash")
@@ -126,14 +131,14 @@ func TestUploadProbeMontageRenderDelivery(t *testing.T) {
 		_, _, err = store.Put(ctx, bucket, key, src)
 		must(t, err, "put source")
 		var up uuid.UUID
-		must(t, api.QueryRow(ctx, `SELECT photo.begin_video_upload($1,$2,$3,'video',$4,$5,$6,$7,$8,1,$9,$10)`,
-			tid, pid, user, filepath.Base(src), size, sha, hex64(t), int64(part), key, size+10_000_000).Scan(&up), "begin upload")
+		must(t, api.QueryRow(ctx, `SELECT photo.begin_video_upload($1,$2,$3,$11,$4,$5,$6,$7,$8,1,$9,$10)`,
+			tid, pid, user, filepath.Base(src), size, sha, hex64(t), int64(part), key, size+10_000_000, kinds[i]).Scan(&up), "begin upload")
 		var ok bool
 		must(t, api.QueryRow(ctx, `SELECT photo.bind_video_upload_multipart($1,$2,'mp-1')`, tid, up).Scan(&ok), "bind")
 		must(t, api.QueryRow(ctx, `SELECT photo.record_video_upload_part($1,$2,1,'e1',$3)`, tid, up, size).Scan(&ok), "part")
 		var tok uuid.UUID
 		must(t, api.QueryRow(ctx, `SELECT photo.complete_video_upload($1,$2,'[{"part_no":1,"etag":"e1"}]'::jsonb)`, tid, up).Scan(&tok), "complete")
-		must(t, sched.QueryRow(ctx, `SELECT photo.finish_video_upload_completion($1,$2,$3,$4,'v1',$5,'video/mp4')`, tid, up, tok, bucket, sha).Scan(&media[i]), "finish completion")
+		must(t, sched.QueryRow(ctx, `SELECT photo.finish_video_upload_completion($1,$2,$3,$4,'v1',$5,$6)`, tid, up, tok, bucket, sha, map[string]string{"video": "video/mp4", "lut": "text/plain"}[kinds[i]]).Scan(&media[i]), "finish completion")
 		// ingest job is created by the scheduler when completion is observed
 		var job uuid.UUID
 		must(t, sched.QueryRow(ctx, `SELECT photo.create_video_job($1,$2,$3,'ingest',$4,NULL,NULL,$5,$6,'auto',$7,$8,0,1)`,
@@ -141,14 +146,14 @@ func TestUploadProbeMontageRenderDelivery(t *testing.T) {
 	}
 
 	w := &worker.Worker{Pool: wpool, Store: store, FFmpeg: ff, FFprobe: fp, Encoder: "libx264", Bucket: bucket, WorkDir: root}
-	for n := 0; n < 2; n++ {
+	for n := 0; n < 3; n++ {
 		found, err := w.RunOnce(ctx)
 		must(t, err, "run ingest")
 		if !found {
 			t.Fatal("ingest job not claimed")
 		}
 	}
-	for i, m := range media {
+	for i, m := range media[:2] {
 		var state string
 		var pj []byte
 		must(t, admin.QueryRow(ctx, `SELECT state,probe::text FROM photo.video_media WHERE id=$1`, m).Scan(&state, &pj), "media")
@@ -163,10 +168,10 @@ func TestUploadProbeMontageRenderDelivery(t *testing.T) {
 	doc := fmt.Sprintf(`{"schema_version":1,"sequence_id":"s","base_revision":0,"timebase":{"ticks_per_second":705600000},
 "video":{"fps":{"num":25,"den":1},"width":640,"height":360,"color":{"space":"rec709","range":"limited"},"background":"#000000"},
 "audio":{"sample_rate":48000,"channels":2},"tracks":[{"id":"V1","kind":"video","clips":[
-{"id":"c1","source":{"kind":"video","media_id":"%s","sha256":"%s"},"at":0,"src_in":0,"src_out":%d,"fit":"fit","effects":[]},
+{"id":"c1","source":{"kind":"video","media_id":"%s","sha256":"%s"},"at":0,"src_in":0,"src_out":%d,"fit":"fit","effects":[{"id":"e1","type":"color.lut3d","enabled":true,"params":{"lut":{"kind":"lut","media_id":"%s","sha256":"%s"},"intensity":1}}]},
 {"id":"c2","source":{"kind":"video","media_id":"%s","sha256":"%s"},"at":%d,"src_in":%d,"src_out":%d,"fit":"fill","audio":{"gain_db":-3,"fade_in":0,"fade_out":0,"mute":false},"effects":[]}]}],
 "markers":[],"master":{"effects":[],"audio":{"loudness":{"target_lufs":-14,"true_peak_db":-1}}},"rights":{"music_declared":true}}`,
-		media[0], shas[0], 2*tps, media[1], shas[1], 2*tps, tps/2, 2*tps)
+		media[0], shas[0], 2*tps, media[2], shas[2], media[1], shas[1], 2*tps, tps/2, 2*tps)
 	docSum := sha256.Sum256([]byte(doc))
 	docSha := hex.EncodeToString(docSum[:])
 	var sid uuid.UUID
@@ -185,7 +190,7 @@ func TestUploadProbeMontageRenderDelivery(t *testing.T) {
 		VALUES($1,$2,$3,'v1',$4,$5,'application/json','ready',now(),'video_sequence_document') RETURNING id`, tid, bucket, docKey, docSha, len(doc)).Scan(&docArt), "doc artifact")
 	must(t, atx.Commit(ctx), "commit doc artifact")
 	var rev int64
-	srcJSON := fmt.Sprintf(`[{"kind":"video","id":"%s","sha256":"%s"},{"kind":"video","id":"%s","sha256":"%s"}]`, media[0], shas[0], media[1], shas[1])
+	srcJSON := fmt.Sprintf(`[{"kind":"video","id":"%s","sha256":"%s"},{"kind":"video","id":"%s","sha256":"%s"},{"kind":"lut","id":"%s","sha256":"%s"}]`, media[0], shas[0], media[1], shas[1], media[2], shas[2])
 	must(t, api.QueryRow(ctx, `SELECT photo.save_video_sequence_revision($1,$2,0,$3,$4,'{"clips":2}'::jsonb,$5::jsonb,'manual',$6)`, tid, sid, docArt, docSha, srcJSON, user).Scan(&rev), "save revision")
 
 	// --- render (photo_api creates the job + render row; worker renders)
