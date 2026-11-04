@@ -34,7 +34,8 @@ def test_every_table_is_owned_by_the_function_owner_and_has_only_its_policy(db):
         pols = db.execute('SELECT polname,array_agg(r.rolname) FROM pg_policy p LEFT JOIN LATERAL unnest(p.polroles) o(oid) ON true '
                           'LEFT JOIN pg_roles r ON r.oid=o.oid WHERE polrelid=%s::regclass GROUP BY polname', (t,)).fetchall()
         assert pols == [('trusted_functions', ['photo_fn_owner'])], (t, pols)
-        assert owner in ('photo_fn_owner', 'photo_test') or owner.startswith('photo_'), (t, owner)
+        # tables belong to the role that runs the migrations (like the other photo tables); never to an application role
+        assert owner not in ROLES, (t, owner)
 
 
 def test_functions_are_security_definer_pinned_and_not_public(db):

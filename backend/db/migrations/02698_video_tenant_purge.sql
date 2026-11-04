@@ -11,14 +11,17 @@ DECLARE definition text; name text;
   'video_sequence_revisions','video_sequences','video_media','video_upload_parts','video_upload_sessions'];
  anchor constant text:='tables_to_purge constant text[]:=ARRAY[';
  loop_head constant text:=' FOREACH t IN ARRAY tables_to_purge LOOP';
- loop_tail constant text:='USING j.tenant_id;END LOOP;';
+ -- the loop ends differently before and after 02650 (the artifacts/style-ledger step was added inside it)
+ loop_tails constant text[]:=ARRAY['USING j.tenant_id;END LOOP;',E'END IF;\nEND LOOP;\n DELETE FROM photo.audit_log'];
+ loop_tail text;
  prefix text:='';
 BEGIN
  definition:=pg_get_functiondef('photo.finish_tenant_deletion(uuid,uuid)'::regprocedure);
- IF definition IS NULL
+ SELECT x INTO loop_tail FROM unnest(loop_tails) x
+  WHERE (length(definition)-length(replace(definition,x,'')))/length(x)=1 LIMIT 1;
+ IF definition IS NULL OR loop_tail IS NULL
   OR (length(definition)-length(replace(definition,anchor,'')))/length(anchor)<>1
-  OR (length(definition)-length(replace(definition,loop_head,'')))/length(loop_head)<>1
-  OR (length(definition)-length(replace(definition,loop_tail,'')))/length(loop_tail)<>1 THEN
+  OR (length(definition)-length(replace(definition,loop_head,'')))/length(loop_head)<>1 THEN
   RAISE EXCEPTION 'VIDEO_TENANT_PURGE_SHAPE';
  END IF;
  FOREACH name IN ARRAY entries LOOP
@@ -29,7 +32,7 @@ BEGIN
  END LOOP;
  definition:=replace(definition,anchor,anchor||prefix);
  definition:=replace(definition,loop_head,' PERFORM set_config(''photo.video_gc'',''purge'',true);'||loop_head);
- definition:=replace(definition,loop_tail,loop_tail||' PERFORM set_config(''photo.video_gc'','''',true);');
+ definition:=replace(definition,loop_tail,replace(loop_tail,'END LOOP;','END LOOP; PERFORM set_config(''photo.video_gc'','''',true);'));
  EXECUTE definition;
 END $$;
 -- +goose StatementEnd

@@ -38,14 +38,16 @@ def main() -> int:
     ap.add_argument('--user', default='photo_test')
     ap.add_argument('--db', default='scratch_v')
     ap.add_argument('--run', action='store_true')
+    ap.add_argument('--existing', action='store_true', help='do not build: run the tests on a database that already holds the full chain')
     a = ap.parse_args()
     kw = dict(host=a.socket_dir, port=a.port, user=a.user)
     files = sorted(p for p in (ROOT / 'backend/db/migrations').glob('*.sql') if int(p.name[:5]) not in SKIP)
-    with psycopg.connect(**kw, dbname='postgres', autocommit=True) as c:
-        c.execute(f'DROP DATABASE IF EXISTS {a.db} WITH (FORCE)')
-        c.execute(f'CREATE DATABASE {a.db}')
+    if not a.existing:
+        with psycopg.connect(**kw, dbname='postgres', autocommit=True) as c:
+            c.execute(f'DROP DATABASE IF EXISTS {a.db} WITH (FORCE)')
+            c.execute(f'CREATE DATABASE {a.db}')
     with psycopg.connect(**kw, dbname=a.db, autocommit=True) as c:
-        for p in files:
+        for p in ([] if a.existing else files):
             up = p.read_text().split('-- +goose Down')[0]
             try:
                 if '-- +goose NO TRANSACTION' in up:
