@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -39,8 +40,32 @@ func installVideo(ctx context.Context, api, portal *pgxpool.Pool, pepper []byte)
 		scheduler.Close()
 		return nil, func() {}, err
 	}
-	store := worker.LocalStore{Root: filepath.Join(root, "objects")}
-	svc := &videoapi.Service{Pool: api, Scheduler: scheduler, Portal: portal, Pepper: pepper, Store: store, Bucket: "photo-video", Authz: tenantAuthorizer, TempDir: tmp}
+	var store worker.Store = worker.LocalStore{Root: filepath.Join(root, "objects")}
+	var multipart videoapi.Multipart
+	// VIDEO_S3=endpoint,access,secret[,public-endpoint] moves objects to MinIO/S3 and enables presigned multipart uploads;
+	// the video-worker process must use the same store.
+	if spec := os.Getenv("VIDEO_S3"); spec != "" {
+		f := strings.Split(spec, ",")
+		if len(f) < 3 {
+			scheduler.Close()
+			return nil, func() {}, errors.New("VIDEO_S3 wants endpoint,access,secret[,public-endpoint]")
+		}
+		public := ""
+		if len(f) > 3 {
+			public = f[3]
+		}
+		s3, err := worker.NewS3Store(f[0], public, f[1], f[2], os.Getenv("VIDEO_S3_TLS") == "1")
+		if err != nil {
+			scheduler.Close()
+			return nil, func() {}, errors.New("VIDEO_S3 configuration invalid")
+		}
+		if err := s3.EnsureBucket(ctx, "photo-video"); err != nil {
+			scheduler.Close()
+			return nil, func() {}, errors.New("video object store unavailable")
+		}
+		store, multipart = s3, s3
+	}
+	svc := &videoapi.Service{Pool: api, Scheduler: scheduler, Portal: portal, Pepper: pepper, Store: store, Multipart: multipart, Bucket: "photo-video", Authz: tenantAuthorizer, TempDir: tmp}
 	closeAll := scheduler.Close
 	// Housekeeping (stuck uploads, abandoned ingests, withdrawn media, expired traffic leases, old autosaves) needs the
 	// photo_maintenance credential; without it the API runs but nothing sweeps.
