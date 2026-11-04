@@ -15,12 +15,23 @@ type Sweeper struct {
 	Store Store // when set, withdrawn media are removed from it and their quota released
 }
 
-// Once returns stuck completions to 'uploading' and expires uploads past their deadline, releasing their reservations.
+// Once returns stuck completions to 'uploading', expires uploads past their deadline (releasing their reservations),
+// rejects abandoned ingests, folds old autosaves and, with a Store, finishes withdrawn media.
 func (s *Sweeper) Once(ctx context.Context) (recovered, expired int, err error) {
 	if err = s.Pool.QueryRow(ctx, `SELECT photo.recover_video_upload_completions(500)`).Scan(&recovered); err != nil {
 		return
 	}
 	if err = s.Pool.QueryRow(ctx, `SELECT photo.expire_video_uploads(500)`).Scan(&expired); err != nil {
+		return
+	}
+	// Housekeeping that changes nothing a user sees: abandoned ingests are rejected (counted with recovered), old autosaves folded.
+	var reconciled int
+	if err = s.Pool.QueryRow(ctx, `SELECT photo.reconcile_video_stuck(500)`).Scan(&reconciled); err != nil {
+		return
+	}
+	recovered += reconciled
+	var compacted int
+	if err = s.Pool.QueryRow(ctx, `SELECT photo.compact_video_autosaves(500)`).Scan(&compacted); err != nil {
 		return
 	}
 	if s.Store != nil {
