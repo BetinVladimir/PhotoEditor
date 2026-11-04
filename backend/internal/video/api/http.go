@@ -454,12 +454,18 @@ func PortalRoutes(r chi.Router, svc *Service, authz ViewerAuth) {
 			return
 		}
 		// Traffic is paid from a leased budget; a response never writes more than it was granted.
+		release, err := svc.streams.acquire(v.Session, v.Share)
+		if err != nil {
+			writeErr(w, r, err)
+			return
+		}
+		defer release()
 		l, err := svc.leaseEgress(r.Context(), v, wantBytes(r.Header.Get("Range"), o.Bytes))
 		if err != nil {
 			writeErr(w, r, err)
 			return
 		}
-		cw := &countWriter{ResponseWriter: w, limit: l.Granted}
+		cw := &countWriter{ResponseWriter: newPaced(w), limit: l.Granted}
 		h.serve(cw, r, o, download)
 		if err := svc.settleEgress(r.Context(), v, l, cw.n, rid); err != nil {
 			log.Printf("video egress settle: %v", err)

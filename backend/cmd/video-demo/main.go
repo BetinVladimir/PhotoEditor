@@ -171,7 +171,7 @@ func run(ctx context.Context, dsn, store, addr, ffmpeg, ffprobe, encoder string)
 		if err != nil {
 			return videoapi.Viewer{}, err
 		}
-		return videoapi.Viewer{Tenant: who.TenantID, Share: who.ShareID, Collection: who.CollectionID}, nil
+		return videoapi.Viewer{Tenant: who.TenantID, Share: who.ShareID, Collection: who.CollectionID, Session: who.SessionID}, nil
 	})
 	r.Post("/api/v1/portal/sessions", func(w http.ResponseWriter, req *http.Request) {
 		var in portal.ExchangeRequest

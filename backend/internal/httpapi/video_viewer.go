@@ -16,5 +16,5 @@ func (s *Server) videoViewer(r *http.Request, permission string) (videoapi.Viewe
 	if err != nil {
 		return videoapi.Viewer{}, err
 	}
-	return videoapi.Viewer{Tenant: who.TenantID, Share: who.ShareID, Collection: who.CollectionID}, nil
+	return videoapi.Viewer{Tenant: who.TenantID, Share: who.ShareID, Collection: who.CollectionID, Session: who.SessionID}, nil
 }

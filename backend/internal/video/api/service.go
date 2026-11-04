@@ -52,6 +52,8 @@ type Service struct {
 	Bucket    string
 	Authz     Authorizer
 	TempDir   string
+
+	streams streamLimiter
 }
 
 func (s *Service) with(ctx context.Context, who auth.Identity, tid uuid.UUID, required domain.Role, fn func(pgx.Tx) error) error {
@@ -673,7 +675,7 @@ func (s *Service) RevokeShare(ctx context.Context, who auth.Identity, tid, share
 // ---- viewer side (portal share session)
 
 // Viewer is the authorized portal session.
-type Viewer struct{ Tenant, Share, Collection uuid.UUID }
+type Viewer struct{ Tenant, Share, Collection, Session uuid.UUID }
 
 func (s *Service) Delivery(ctx context.Context, v Viewer) (json.RawMessage, error) {
 	var raw []byte

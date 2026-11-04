@@ -162,7 +162,7 @@ func TestVideoAPIScenario(t *testing.T) {
 		if err != nil {
 			return videoapi.Viewer{}, err
 		}
-		return videoapi.Viewer{Tenant: who.TenantID, Share: who.ShareID, Collection: who.CollectionID}, nil
+		return videoapi.Viewer{Tenant: who.TenantID, Share: who.ShareID, Collection: who.CollectionID, Session: who.SessionID}, nil
 	}
 	videoapi.PortalRoutes(router, svc, viewerAuth)
 	c := &client{t: t, h: router, base: "/api/v1/tenants/" + tid.String(), user: user}
