@@ -38,6 +38,10 @@ func (s *Sweeper) Once(ctx context.Context) (recovered, expired int, err error) 
 	if err = s.Pool.QueryRow(ctx, `SELECT photo.compact_video_autosaves(500)`).Scan(&compacted); err != nil {
 		return
 	}
+	var purged int
+	if err = s.Pool.QueryRow(ctx, `SELECT photo.purge_video_history(500)`).Scan(&purged); err != nil {
+		return
+	}
 	if s.Store != nil {
 		err = s.deleteWithdrawn(ctx)
 	}
