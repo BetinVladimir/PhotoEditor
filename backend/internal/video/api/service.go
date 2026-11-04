@@ -621,6 +621,7 @@ type NewShare struct {
 	Label        string `json:"label"`
 	Download     bool   `json:"download"`
 	ExpiresHours int    `json:"expires_in_hours"`
+	EgressBytes  int64  `json:"egress_bytes,omitempty"` // optional cap on the traffic of this link
 }
 
 type Share struct {
@@ -646,8 +647,12 @@ func (s *Service) CreateShare(ctx context.Context, who auth.Identity, tid, cid u
 	}
 	out := Share{ShareID: uuid.New(), Secret: secret, ExpiresAt: time.Now().Add(time.Duration(r.ExpiresHours) * time.Hour)}
 	err = s.with(ctx, who, tid, domain.Editor, func(tx pgx.Tx) error {
-		return tx.QueryRow(ctx, `SELECT photo.create_video_share($1,$2,$3,$4,$5,$6,$7,'{}'::jsonb,$8)`, tid, cid, out.ShareID,
-			auth.MAC(s.Pepper, "share-secret", out.ShareID.String(), secret), r.Label, r.Download, out.ExpiresAt, who.UserID).Scan(&out.ShareID)
+		limits := map[string]any{}
+		if r.EgressBytes > 0 {
+			limits["egress_bytes"] = r.EgressBytes
+		}
+		return tx.QueryRow(ctx, `SELECT photo.create_video_share($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9)`, tid, cid, out.ShareID,
+			auth.MAC(s.Pepper, "share-secret", out.ShareID.String(), secret), r.Label, r.Download, out.ExpiresAt, limits, who.UserID).Scan(&out.ShareID)
 	})
 	return out, err
 }
@@ -705,4 +710,30 @@ func (s *Service) ViewerObject(ctx context.Context, v Viewer, render uuid.UUID, 
 		}
 	}
 	return o, nil
+}
+
+// egressLease is a slice of the traffic budget held while one response is written (FN-D-19).
+type egressLease struct {
+	ID      uuid.UUID `json:"lease_id"`
+	Granted int64     `json:"granted"`
+}
+
+func (s *Service) leaseEgress(ctx context.Context, v Viewer, want int64) (egressLease, error) {
+	var l egressLease
+	var raw []byte
+	// DEMO: one lease per response, sized to it (the spec renews 8-256 MiB leases while a stream runs). A grant smaller
+	// than the response ends it short, which is how a limit shows up mid-stream.
+	if want < 1 {
+		want = 1
+	}
+	if err := mapErr(s.Portal.QueryRow(ctx, `SELECT photo.lease_video_egress($1,$2,$3)::text`, v.Tenant, v.Share, want).Scan(&raw)); err != nil {
+		return l, err
+	}
+	return l, json.Unmarshal(raw, &l)
+}
+
+// settleEgress returns what a response did not use; it runs even when the client went away.
+func (s *Service) settleEgress(ctx context.Context, v Viewer, l egressLease, used int64, render uuid.UUID) error {
+	var ok bool
+	return s.Portal.QueryRow(context.WithoutCancel(ctx), `SELECT photo.settle_video_egress($1,$2,$3,$4,'stream')`, v.Tenant, l.ID, used, render).Scan(&ok)
 }

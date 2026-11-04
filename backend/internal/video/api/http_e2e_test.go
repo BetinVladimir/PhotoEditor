@@ -349,6 +349,21 @@ func TestVideoAPIScenario(t *testing.T) {
 	if events != 1 || sum != int64(len(body)) {
 		t.Fatalf("egress accounting: %d events, %d bytes (served %d)", events, sum, len(body))
 	}
+	// stream traffic is booked per hour and a link with a traffic cap stops when the cap is spent
+	var streamed int64
+	must(t, admin.QueryRow(ctx, `SELECT coalesce(sum(bytes),0) FROM photo.video_egress_counters WHERE tenant_id=$1`, tid).Scan(&streamed), "counters")
+	if streamed != 50+int64(len(body)) {
+		t.Fatalf("stream counters: %d, want %d", streamed, 50+len(body))
+	}
+	capped := session(c.json("POST", "/video/deliveries/"+cid+"/shares", map[string]any{"label": "capped", "download": false, "egress_bytes": 100}, 201))
+	for i := 0; i < 2; i++ {
+		if code, b := get(capped, "/api/v1/portal/video/renders/"+rid+"/content", map[string]string{"Range": "bytes=0-49"}); code != 206 || len(b) != 50 {
+			t.Fatalf("capped link, request %d: %d %d", i, code, len(b))
+		}
+	}
+	if code, _ = get(capped, "/api/v1/portal/video/renders/"+rid+"/content", map[string]string{"Range": "bytes=0-49"}); code != 429 {
+		t.Fatalf("capped link must stop at its cap: %d", code)
+	}
 	// revoking cuts off sessions that already exist
 	sid, _ := uuid.Parse(dl["share_id"].(string))
 	if code, _ := c.do("DELETE", "/video/shares/"+sid.String(), nil, nil); code != 204 {
@@ -369,7 +384,7 @@ func TestVideoAPIScenario(t *testing.T) {
 			revoked++
 		}
 	}
-	if len(dlist) != 1 || len(shares) != 2 || revoked != 1 || strings.Contains(fmt.Sprint(dlist), "secret") {
+	if len(dlist) != 1 || len(shares) != 3 || revoked != 1 || strings.Contains(fmt.Sprint(dlist), "secret") {
 		t.Fatalf("delivery list: %v", dlist)
 	}
 	// unpublishing closes the delivery for everyone

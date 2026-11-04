@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"log"
 	"mime"
 	"net/http"
 	"unicode/utf8"
@@ -451,6 +453,48 @@ func PortalRoutes(r chi.Router, svc *Service, authz ViewerAuth) {
 			writeErr(w, r, err)
 			return
 		}
-		h.serve(w, r, o, download)
+		// Traffic is paid from a leased budget; a response never writes more than it was granted.
+		l, err := svc.leaseEgress(r.Context(), v, wantBytes(r.Header.Get("Range"), o.Bytes))
+		if err != nil {
+			writeErr(w, r, err)
+			return
+		}
+		cw := &countWriter{ResponseWriter: w, limit: l.Granted}
+		h.serve(cw, r, o, download)
+		if err := svc.settleEgress(r.Context(), v, l, cw.n, rid); err != nil {
+			log.Printf("video egress settle: %v", err)
+		}
 	})
 }
+
+// wantBytes sizes the lease: the requested single range, else the whole object.
+func wantBytes(rangeHeader string, size int64) int64 {
+	var a, b int64
+	if n, _ := fmt.Sscanf(rangeHeader, "bytes=%d-%d", &a, &b); n == 2 && b >= a {
+		return b - a + 1
+	}
+	if n, _ := fmt.Sscanf(rangeHeader, "bytes=%d-", &a); n == 1 && a < size {
+		return size - a
+	}
+	return size
+}
+
+// countWriter counts body bytes and refuses to pass more than the leased budget.
+type countWriter struct {
+	http.ResponseWriter
+	n, limit int64
+}
+
+func (c *countWriter) Write(p []byte) (int, error) {
+	if c.n+int64(len(p)) > c.limit {
+		p = p[:max(c.limit-c.n, 0)]
+		if len(p) == 0 {
+			return 0, io.ErrShortWrite
+		}
+	}
+	n, err := c.ResponseWriter.Write(p)
+	c.n += int64(n)
+	return n, err
+}
+
+func (c *countWriter) Unwrap() http.ResponseWriter { return c.ResponseWriter }

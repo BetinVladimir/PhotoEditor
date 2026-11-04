@@ -30,6 +30,10 @@ func (s *Sweeper) Once(ctx context.Context) (recovered, expired int, err error) 
 		return
 	}
 	recovered += reconciled
+	var leases int
+	if err = s.Pool.QueryRow(ctx, `SELECT photo.expire_video_egress_leases(500)`).Scan(&leases); err != nil {
+		return
+	}
 	var compacted int
 	if err = s.Pool.QueryRow(ctx, `SELECT photo.compact_video_autosaves(500)`).Scan(&compacted); err != nil {
 		return
