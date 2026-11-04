@@ -7,9 +7,9 @@ package videoapi_test
 //	VIDEO_E2E_DSN='host=... port=... user=... dbname=scratch_v' go test -tags videoe2e ./internal/video/api
 
 import (
-	"crypto/rand"
 	"bytes"
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -359,6 +359,18 @@ func TestVideoAPIScenario(t *testing.T) {
 	}
 	if code, _ = get(vt, "/api/v1/portal/video/delivery", nil); code != 200 {
 		t.Fatalf("other share must keep working: %d", code)
+	}
+	// the studio sees the same state from the server: two links, the downloadable one revoked
+	dlist := c.json("GET", "/projects/"+pid.String()+"/video/deliveries", nil, 200)["items"].([]any)
+	shares := dlist[0].(map[string]any)["shares"].([]any)
+	revoked := 0
+	for _, x := range shares {
+		if x.(map[string]any)["revoked"].(bool) {
+			revoked++
+		}
+	}
+	if len(dlist) != 1 || len(shares) != 2 || revoked != 1 || strings.Contains(fmt.Sprint(dlist), "secret") {
+		t.Fatalf("delivery list: %v", dlist)
 	}
 	// unpublishing closes the delivery for everyone
 	c.json("POST", "/video/deliveries/"+cid+"/publish", map[string]any{"published": false}, 200)

@@ -111,7 +111,7 @@ func seed(ctx context.Context, admin *pgxpool.Pool) (user, tenant, project uuid.
 
 func run(ctx context.Context, dsn, store, addr, ffmpeg, ffprobe, encoder string) error {
 	pools := map[string]*pgxpool.Pool{}
-	for _, role := range []string{"", "photo_api", "photo_scheduler", "photo_worker", "photo_portal"} {
+	for _, role := range []string{"", "photo_api", "photo_scheduler", "photo_worker", "photo_portal", "photo_maintenance"} {
 		p, err := rolePool(ctx, dsn, role)
 		if err != nil {
 			return err
@@ -208,6 +208,9 @@ func run(ctx context.Context, dsn, store, addr, ffmpeg, ffprobe, encoder string)
 			}
 		}
 	}()
+
+	sw := &worker.Sweeper{Pool: pools["photo_maintenance"]}
+	go sw.Loop(ctx, 30*time.Second)
 
 	srv := &http.Server{Addr: addr, Handler: r, ReadHeaderTimeout: 10 * time.Second}
 	go func() {

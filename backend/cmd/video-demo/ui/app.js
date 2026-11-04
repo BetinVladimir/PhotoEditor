@@ -197,9 +197,19 @@ async function deliveryView(root) {
   root.append(h('section', { class: 'card' }, h('h2', {}, 'Deliver the latest render'),
     render ? h('p', { class: 'mute' }, `Render ${render.state} · ${render.width || '?'}×${render.height || '?'} · ${render.duration_ticks ? fmt(render.duration_ticks) : ''}`) : h('p', { class: 'mute' }, 'No render yet — render in the editor first.'),
     h('div', { class: 'row' }, name, h('label', { class: 'small' }, dl, ' allow download'), go)), h('section', { class: 'card' }, h('h2', {}, 'Client links'), out));
-  function showShares() {
-    out.replaceChildren(...(shares.length ? shares.map(s => h('div', { class: 'link', style: 'margin-bottom:.5rem' }, h('input', { type: 'text', readonly: true, value: s.link, onfocus: e => e.target.select() }), h('span', { class: 'small mute' }, s.dl ? 'download' : 'view only'),
-      h('button', { onclick: async () => { try { await api('DELETE', `/video/shares/${s.id}`); toast('Link revoked'); } catch (e) { fail(e); } } }, 'Revoke'))) : [h('p', { class: 'mute' }, 'No links created in this browser yet.')]));
+  // The server lists deliveries and links (never secrets); a link is clickable only in the browser that created it.
+  async function showShares() {
+    let items = [];
+    try { items = (await api('GET', `/projects/${ctx.project_id}/video/deliveries`)).items; } catch (e) { fail(e); }
+    const known = new Map(shares.map(x => [x.id, x]));
+    const rows = items.flatMap(d => d.shares.map(x => ({ ...x, delivery: d, local: known.get(x.id) })));
+    out.replaceChildren(...(rows.length ? rows.map(x => {
+      const gone = x.revoked || (x.expires_at && new Date(x.expires_at) < new Date());
+      return h('div', { class: 'link', style: 'margin-bottom:.5rem' },
+        x.local ? h('input', { type: 'text', readonly: true, value: x.local.link, onfocus: e => e.target.select() }) : h('span', { class: 'grow mute small' }, `${x.delivery.name} — link secret was shown once, create a new link`),
+        h('span', { class: 'small mute' }, `${x.download ? 'download' : 'view only'} · ${x.revoked ? 'revoked' : gone ? 'expired' : x.delivery.state === 'published' ? 'active' : 'delivery unpublished'}`),
+        gone ? '' : h('button', { onclick: async () => { try { await api('DELETE', `/video/shares/${x.id}`); toast('Link revoked'); showShares(); } catch (e) { fail(e); } } }, 'Revoke'));
+    }) : [h('p', { class: 'mute' }, 'No links yet.')]));
   }
   showShares();
 }

@@ -583,6 +583,15 @@ func (s *Service) CreateDelivery(ctx context.Context, who auth.Identity, tid, pi
 	return id, err
 }
 
+// ListDeliveries returns the project's video deliveries with their items and share links (never the link secrets).
+func (s *Service) ListDeliveries(ctx context.Context, who auth.Identity, tid, pid uuid.UUID) (json.RawMessage, error) {
+	var raw []byte
+	err := s.with(ctx, who, tid, domain.Viewer, func(tx pgx.Tx) error {
+		return tx.QueryRow(ctx, `SELECT photo.list_video_deliveries($1,$2)::text`, tid, pid).Scan(&raw)
+	})
+	return raw, err
+}
+
 func (s *Service) AddRender(ctx context.Context, who auth.Identity, tid, cid, rid uuid.UUID, title string) (int, error) {
 	var ord int
 	err := s.with(ctx, who, tid, domain.Editor, func(tx pgx.Tx) error {

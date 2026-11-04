@@ -38,6 +38,7 @@ func Routes(r chi.Router, svc *Service, req Requester) {
 	r.Post(b+"/video/sequences/{s}/renders", h.createRender)
 	r.Get(b+"/video/renders/{r}", h.getRender)
 	r.Get(b+"/video/renders/{r}/content", h.renderFile)
+	r.Get(b+"/projects/{p}/video/deliveries", h.listDeliveries)
 	r.Post(b+"/projects/{p}/video/deliveries", h.createDelivery)
 	r.Post(b+"/video/deliveries/{c}/renders", h.addRender)
 	r.Post(b+"/video/deliveries/{c}/publish", h.publish)
@@ -291,6 +292,19 @@ func (h handler) renderFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.serve(w, r, o, r.URL.Query().Get("download") == "1")
+}
+
+func (h handler) listDeliveries(w http.ResponseWriter, r *http.Request) {
+	who, tid, ids, ok := h.begin(w, r, false, "p")
+	if !ok {
+		return
+	}
+	out, err := h.svc.ListDeliveries(r.Context(), who, tid, ids[0])
+	if err != nil {
+		writeErr(w, r, err)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"items": json.RawMessage(out)})
 }
 
 func (h handler) createDelivery(w http.ResponseWriter, r *http.Request) {
