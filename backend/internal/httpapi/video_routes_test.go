@@ -25,6 +25,9 @@ func videoRoutes() []videoRoute {
 		{"POST", b + "/projects/" + p + "/video/deliveries"}, {"POST", b + "/video/deliveries/" + x + "/renders"},
 		{"POST", b + "/video/deliveries/" + x + "/publish"}, {"POST", b + "/video/deliveries/" + x + "/shares"},
 		{"DELETE", b + "/video/shares/" + x},
+		{"GET", b + "/video/renders/" + x + "/events"}, {"GET", b + "/projects/" + p + "/video/deliveries"},
+		{"DELETE", b + "/video/media/" + x}, {"POST", b + "/video/uploads/" + x + "/multipart"},
+		{"POST", b + "/video/uploads/" + x + "/parts"}, {"POST", b + "/video/uploads/" + x + "/complete"},
 	}
 }
 

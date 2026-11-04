@@ -279,8 +279,11 @@ func TestVideoAPIScenario(t *testing.T) {
 	if r["state"] != "ready" || r["job_state"] != "succeeded" || r["width"].(float64) != 640 {
 		t.Fatalf("render: %v", r)
 	}
+	if _, leaked := r["output"]; leaked {
+		t.Fatalf("storage coordinates leaked: %v", r["output"])
+	}
 	// SSE: a finished render yields one event with the final state and closes.
-	if code, ev := c.do("GET", "/video/renders/"+rid+"/events", nil, nil); code != 200 || !strings.HasPrefix(string(ev), "event: render\ndata: {") || !strings.Contains(string(ev), `"state": "ready"`) || strings.Count(string(ev), "event: render") != 1 {
+	if code, ev := c.do("GET", "/video/renders/"+rid+"/events", nil, nil); code != 200 || !strings.HasPrefix(string(ev), "event: render\ndata: {") || !strings.Contains(string(ev), `"state":"ready"`) || strings.Count(string(ev), "event: render") != 1 || strings.Contains(string(ev), "object_key") {
 		t.Fatalf("events: %d %s", code, ev)
 	}
 	if code, _ := c.do("GET", "/video/renders/"+uuid.NewString()+"/events", nil, nil); code != 404 {

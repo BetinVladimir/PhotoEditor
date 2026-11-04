@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -57,6 +58,7 @@ type Service struct {
 	EventEvery time.Duration // SSE polling period; zero means one second
 
 	streams streamLimiter
+	events  counter // open SSE streams per user
 }
 
 func (s *Service) with(ctx context.Context, who auth.Identity, tid uuid.UUID, required domain.Role, fn func(pgx.Tx) error) error {
@@ -765,3 +767,32 @@ func (s *Service) eventEvery() time.Duration {
 }
 
 func jsonUnmarshal(raw []byte, v any) error { return json.Unmarshal(raw, v) }
+
+const maxEventStreams = 8
+
+// counter bounds concurrent holders per key.
+type counter struct {
+	mu sync.Mutex
+	n  map[string]int
+}
+
+func (c *counter) acquire(key string, limit int) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.n == nil {
+		c.n = map[string]int{}
+	}
+	if c.n[key] >= limit {
+		return false
+	}
+	c.n[key]++
+	return true
+}
+
+func (c *counter) release(key string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.n[key]--; c.n[key] <= 0 {
+		delete(c.n, key)
+	}
+}

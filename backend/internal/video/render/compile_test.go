@@ -572,3 +572,20 @@ func TestRenderHDRWithRealFFmpeg(t *testing.T) {
 		t.Fatalf("%+v %v", got, err)
 	}
 }
+
+// Identifiers reach filtergraph labels; anything that could end a label or a chain is refused.
+func TestCompileRejectsHostileIDs(t *testing.T) {
+	src := map[string]Source{"m1": {DurationTicks: 1411200000, HasVideo: true, HasAudio: true, Channels: 1}}
+	for _, bad := range []string{`A2][x;movie=/etc/passwd[y`, `a b`, ``, strings.Repeat("a", 65)} {
+		for _, d := range []string{
+			strings.Replace(twoClips, `"id":"V1"`, `"id":"`+bad+`"`, 1),
+			strings.Replace(twoClips, `"id":"c1"`, `"id":"`+bad+`"`, 1),
+		} {
+			_, err := Compile(doc(t, d), src)
+			var ce Error
+			if !errors.As(err, &ce) || ce.Code != "COMPILE_ID_INVALID" {
+				t.Errorf("id %q: %v", bad, err)
+			}
+		}
+	}
+}

@@ -14,6 +14,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -441,6 +442,10 @@ func AtempoChain(num, den int64) []string {
 	return out
 }
 
+// idRe bounds the identifiers that reach filtergraph labels (track ids name sidechain buses): the document validator
+// enforces the same shape, this is the compiler's own guard because it must not trust its caller.
+var idRe = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
+
 type trans struct {
 	kind            string // cut, fade_in, crossfade, dip_to_black
 	start, end, dur int64
@@ -549,6 +554,16 @@ func CompileWith(d Doc, sources map[string]Source, luts map[string]*color.Lut3D)
 	D := docEnd(d)
 	if D == 0 {
 		return Plan{}, Error{Code: "COMPILE_EMPTY"}
+	}
+	for _, t := range arr(d["tracks"]) {
+		if !idRe.MatchString(str(obj(t)["id"])) {
+			return Plan{}, Error{Code: "COMPILE_ID_INVALID", Clip: str(obj(t)["id"])}
+		}
+		for _, c := range arr(obj(t)["clips"]) {
+			if !idRe.MatchString(str(obj(c)["id"])) {
+				return Plan{}, Error{Code: "COMPILE_ID_INVALID", Clip: str(obj(c)["id"])}
+			}
+		}
 	}
 	fps := fpsExpr(fn, fd)
 	frame := new(big.Int).Quo(new(big.Int).Mul(big.NewInt(TicksPerSecond), big.NewInt(fd)), big.NewInt(fn)).Int64()

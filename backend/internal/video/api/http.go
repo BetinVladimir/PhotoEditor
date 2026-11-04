@@ -286,7 +286,21 @@ func (h handler) getRender(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_, _ = w.Write(raw)
+	_, _ = w.Write(publicRender(raw))
+}
+
+// publicRender drops the storage coordinates (bucket, object key) from a render document before it leaves the API.
+func publicRender(raw []byte) []byte {
+	var m map[string]json.RawMessage
+	if json.Unmarshal(raw, &m) != nil {
+		return raw
+	}
+	delete(m, "output")
+	out, err := json.Marshal(m)
+	if err != nil {
+		return raw
+	}
+	return out
 }
 
 // renderEvents streams the render state as server-sent events: one "render"
@@ -301,6 +315,13 @@ func (h handler) renderEvents(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, r, fmt.Errorf("streaming unsupported"))
 		return
 	}
+	// Every open stream polls the database; bound them per user.
+	if !h.svc.events.acquire(who.UserID.String(), maxEventStreams) {
+		w.Header().Set("Retry-After", "5")
+		writeErr(w, r, domain.NewError("TOO_MANY_STREAMS", 429))
+		return
+	}
+	defer h.svc.events.release(who.UserID.String())
 	var last []byte
 	started, beat := time.Now(), time.Now()
 	tick := time.NewTicker(h.svc.eventEvery())
@@ -320,7 +341,7 @@ func (h handler) renderEvents(w http.ResponseWriter, r *http.Request) {
 		}
 		if !bytes.Equal(raw, last) {
 			last, beat = raw, time.Now()
-			_, _ = fmt.Fprintf(w, "event: render\ndata: %s\n\n", raw)
+			_, _ = fmt.Fprintf(w, "event: render\ndata: %s\n\n", publicRender(raw))
 			fl.Flush()
 		} else if time.Since(beat) > 15*time.Second {
 			beat = time.Now()

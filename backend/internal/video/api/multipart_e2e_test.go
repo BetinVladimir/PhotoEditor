@@ -46,6 +46,10 @@ func TestMultipartUploadAgainstMinIO(t *testing.T) {
 	must(t, err, "usage")
 	must(t, tx.QueryRow(ctx, `INSERT INTO photo.projects(tenant_id,name) VALUES($1,'Film') RETURNING id`, tid).Scan(&pid), "project")
 	must(t, tx.Commit(ctx), "commit")
+	// The uploaded bytes are not a video: drop the ingest jobs so they never reach a worker sharing this queue.
+	t.Cleanup(func() {
+		_, _ = admin.Exec(context.Background(), `UPDATE photo.video_jobs SET state='cancelled',finished_at=now() WHERE tenant_id=$1 AND state='queued'`, tid)
+	})
 	svc := &videoapi.Service{Pool: api, Scheduler: sched, Store: s3, Multipart: s3, Bucket: bkt, TempDir: t.TempDir(),
 		Authz: func(_ context.Context, _ pgx.Tx, who auth.Identity, tt uuid.UUID, _ domain.Role) (domain.Role, error) {
 			if tt != tid || who.UserID != user {
