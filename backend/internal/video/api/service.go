@@ -270,6 +270,14 @@ func (s *Service) MediaObject(ctx context.Context, who auth.Identity, tid, mid u
 	return o, err
 }
 
+// WithdrawMedia starts the two-phase removal of a library item; the maintenance sweeper finishes it.
+func (s *Service) WithdrawMedia(ctx context.Context, who auth.Identity, tid, mid uuid.UUID) error {
+	return s.with(ctx, who, tid, domain.Editor, func(tx pgx.Tx) error {
+		var ok bool
+		return tx.QueryRow(ctx, `SELECT photo.withdraw_video_media($1,$2)`, tid, mid).Scan(&ok)
+	})
+}
+
 // ---- sequences
 
 type NewSequence struct {

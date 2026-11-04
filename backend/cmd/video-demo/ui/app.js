@@ -79,7 +79,8 @@ async function libraryView(root, token) {
       m.has_filmstrip ? h('div', { class: 'film', style: `background-image:url(${base}/video/media/${m.id}/filmstrip)` }) : h('div', { class: 'film' }),
       h('div', { class: 'body' }, h('span', { class: 'name' }, m.name), h('div', { class: 'row' }, h('span', { class: 'badge ' + m.state }, m.state + (m.reject_code ? ' · ' + m.reject_code : '')),
         p.duration_ticks ? h('span', { class: 'mute small' }, fmt(p.duration_ticks), p.width ? ` · ${p.width}×${p.height}` : '', p.has_audio ? ' · audio' : '') : null),
-        m.has_proxy ? h('button', { onclick: () => { $('#pv').hidden = false; player.hidden = false; player.src = `${base}/video/media/${m.id}/proxy`; player.play().catch(() => 0); } }, 'Preview') : null));
+        m.has_proxy ? h('button', { onclick: () => { $('#pv').hidden = false; player.hidden = false; player.src = `${base}/video/media/${m.id}/proxy`; player.play().catch(() => 0); } }, 'Preview') : null,
+        m.state === 'ready' ? h('button', { onclick: async () => { try { await api('DELETE', `/video/media/${m.id}`); toast('Removed'); refresh(); } catch (e) { fail(e); } } }, 'Remove') : null));
   }
   refresh();
 }

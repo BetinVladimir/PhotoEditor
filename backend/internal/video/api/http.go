@@ -44,6 +44,7 @@ func Routes(r chi.Router, svc *Service, req Requester) {
 	r.Post(b+"/video/deliveries/{c}/publish", h.publish)
 	r.Post(b+"/video/deliveries/{c}/shares", h.createShare)
 	r.Delete(b+"/video/shares/{sh}", h.revokeShare)
+	r.Delete(b+"/video/media/{m}", h.withdrawMedia)
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
@@ -383,6 +384,18 @@ func (h handler) createShare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, 201, sh)
+}
+
+func (h handler) withdrawMedia(w http.ResponseWriter, r *http.Request) {
+	who, tid, ids, ok := h.begin(w, r, true, "m")
+	if !ok {
+		return
+	}
+	if err := h.svc.WithdrawMedia(r.Context(), who, tid, ids[0]); err != nil {
+		writeErr(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h handler) revokeShare(w http.ResponseWriter, r *http.Request) {

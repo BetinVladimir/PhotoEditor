@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"time"
 
@@ -10,7 +11,8 @@ import (
 
 // Sweeper is the periodic maintenance of video uploads. Pool must run as photo_maintenance.
 type Sweeper struct {
-	Pool *pgxpool.Pool
+	Pool  *pgxpool.Pool
+	Store Store // when set, withdrawn media are removed from it and their quota released
 }
 
 // Once returns stuck completions to 'uploading' and expires uploads past their deadline, releasing their reservations.
@@ -18,8 +20,44 @@ func (s *Sweeper) Once(ctx context.Context) (recovered, expired int, err error) 
 	if err = s.Pool.QueryRow(ctx, `SELECT photo.recover_video_upload_completions(500)`).Scan(&recovered); err != nil {
 		return
 	}
-	err = s.Pool.QueryRow(ctx, `SELECT photo.expire_video_uploads(500)`).Scan(&expired)
+	if err = s.Pool.QueryRow(ctx, `SELECT photo.expire_video_uploads(500)`).Scan(&expired); err != nil {
+		return
+	}
+	if s.Store != nil {
+		err = s.deleteWithdrawn(ctx)
+	}
 	return
+}
+
+// deleteWithdrawn is phase two of FN-D-13: objects first, quota only after every object is gone.
+func (s *Sweeper) deleteWithdrawn(ctx context.Context) error {
+	var raw []byte
+	if err := s.Pool.QueryRow(ctx, `SELECT photo.list_video_media_deletions(100)::text`).Scan(&raw); err != nil {
+		return err
+	}
+	var todo []struct {
+		Tenant  string `json:"tenant_id"`
+		Media   string `json:"media_id"`
+		Objects []struct {
+			Bucket string `json:"bucket"`
+			Key    string `json:"object_key"`
+		} `json:"objects"`
+	}
+	if err := json.Unmarshal(raw, &todo); err != nil {
+		return err
+	}
+	for _, m := range todo {
+		for _, o := range m.Objects {
+			if err := s.Store.Remove(ctx, o.Bucket, o.Key); err != nil {
+				return err
+			}
+		}
+		var ok bool
+		if err := s.Pool.QueryRow(ctx, `SELECT photo.finish_video_media_delete($1,$2)`, m.Tenant, m.Media).Scan(&ok); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Loop runs Once every interval until ctx ends.

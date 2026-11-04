@@ -4,7 +4,7 @@ package videoapi_test
 
 // Same scenario as the worker test, but driven through the HTTP API.
 //
-//	VIDEO_E2E_DSN='host=... port=... user=... dbname=scratch_v' go test -tags videoe2e ./internal/video/api
+//	VIDEO_E2E_DSN='host=... port=... user=... dbname=scratch_v' go test -p 1 -tags videoe2e ./internal/video/api
 
 import (
 	"bytes"
@@ -376,5 +376,30 @@ func TestVideoAPIScenario(t *testing.T) {
 	c.json("POST", "/video/deliveries/"+cid+"/publish", map[string]any{"published": false}, 200)
 	if code, _ = get(vt, "/api/v1/portal/video/delivery", nil); code != 404 {
 		t.Fatalf("unpublished delivery visible: %d", code)
+	}
+	// withdrawing a library item: gone from the list at once, quota and objects released by the sweeper
+	var usedBefore int64
+	must(t, admin.QueryRow(ctx, `SELECT storage_bytes FROM photo.tenant_usage WHERE tenant_id=$1`, tid).Scan(&usedBefore), "usage before")
+	var obj struct{ Bucket, Key string }
+	must(t, admin.QueryRow(ctx, `SELECT a.bucket,a.object_key FROM photo.video_media m JOIN photo.artifacts a ON a.id=m.source_artifact_id WHERE m.id=$1`, media[1]).Scan(&obj.Bucket, &obj.Key), "source object")
+	if code, _ := c.do("DELETE", "/video/media/"+media[1], nil, nil); code != 204 {
+		t.Fatalf("withdraw: %d", code)
+	}
+	if n := len(c.json("GET", "/projects/"+pid.String()+"/video/media", nil, 200)["items"].([]any)); n != 1 {
+		t.Fatalf("withdrawn media still listed: %d", n)
+	}
+	sw := &worker.Sweeper{Pool: rolePool(t, dsn, "photo_maintenance"), Store: store}
+	if _, _, err := sw.Once(ctx); err != nil {
+		t.Fatalf("sweeper: %v", err)
+	}
+	var usedAfter int64
+	must(t, admin.QueryRow(ctx, `SELECT storage_bytes FROM photo.tenant_usage WHERE tenant_id=$1`, tid).Scan(&usedAfter), "usage after")
+	if usedAfter >= usedBefore || usedAfter < 0 {
+		t.Fatalf("quota not released: %d -> %d", usedBefore, usedAfter)
+	}
+	if p, _ := store.Path(obj.Bucket, obj.Key); p != "" {
+		if _, err := os.Stat(p); err == nil {
+			t.Fatalf("source object still present: %s", p)
+		}
 	}
 }

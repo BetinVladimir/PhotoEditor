@@ -209,7 +209,7 @@ func run(ctx context.Context, dsn, store, addr, ffmpeg, ffprobe, encoder string)
 		}
 	}()
 
-	sw := &worker.Sweeper{Pool: pools["photo_maintenance"]}
+	sw := &worker.Sweeper{Pool: pools["photo_maintenance"], Store: objects}
 	go sw.Loop(ctx, 30*time.Second)
 
 	srv := &http.Server{Addr: addr, Handler: r, ReadHeaderTimeout: 10 * time.Second}

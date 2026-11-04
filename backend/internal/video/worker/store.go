@@ -18,6 +18,8 @@ type Store interface {
 	Fetch(ctx context.Context, bucket, key, dst string) error
 	// Put uploads src and returns its sha256 and size.
 	Put(ctx context.Context, bucket, key, src string) (sha string, size int64, err error)
+	// Remove deletes the object; a missing object is not an error.
+	Remove(ctx context.Context, bucket, key string) error
 }
 
 // LocalStore keeps objects under Root/<bucket>/<key>.
@@ -107,3 +109,15 @@ func HashFile(path string) (string, int64, error) {
 
 // Path returns the local file of an object, for serving with Range support.
 func (s LocalStore) Path(bucket, key string) (string, error) { return s.path(bucket, key) }
+
+// Remove deletes the object file; removing a missing object succeeds.
+func (s LocalStore) Remove(_ context.Context, bucket, key string) error {
+	p, err := s.path(bucket, key)
+	if err != nil {
+		return err
+	}
+	if err := os.Remove(p); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return nil
+}
