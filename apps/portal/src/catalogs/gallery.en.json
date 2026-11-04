@@ -30,5 +30,10 @@
   "progress": "Progress",
   "queued": "Queued",
   "processing": "Processing",
-  "failed": "Failed"
+  "failed": "Failed",
+  "videoTitle": "Your video",
+  "videoDownload": "Download video",
+  "videoNoItems": "No videos are available on this link.",
+  "videoPlayer": "Video player",
+  "videoList": "Videos"
 }

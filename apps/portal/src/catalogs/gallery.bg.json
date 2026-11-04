@@ -30,5 +30,10 @@
   "progress": "Напредък",
   "queued": "На опашка",
   "processing": "Обработка",
-  "failed": "Грешка"
+  "failed": "Грешка",
+  "videoTitle": "Вашето видео",
+  "videoDownload": "Изтегляне на видеото",
+  "videoNoItems": "По тази връзка няма налични видеа.",
+  "videoPlayer": "Видео плейър",
+  "videoList": "Видеа"
 }

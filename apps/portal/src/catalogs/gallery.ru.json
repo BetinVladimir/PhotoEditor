@@ -30,5 +30,10 @@
   "progress": "Прогресс",
   "queued": "В очереди",
   "processing": "Обработка",
-  "failed": "Ошибка"
+  "failed": "Ошибка",
+  "videoTitle": "Ваше видео",
+  "videoDownload": "Скачать видео",
+  "videoNoItems": "По этой ссылке нет доступных видео.",
+  "videoPlayer": "Видеоплеер",
+  "videoList": "Видео"
 }

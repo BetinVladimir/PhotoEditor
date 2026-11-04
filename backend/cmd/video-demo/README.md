@@ -19,3 +19,13 @@ Needs a database with migrations up to 02706. Open http://127.0.0.1:8088. Librar
 Editor: Add clips, trim, Render. Delivery: Publish & create link; the link opens the client viewer.
 State: `<store>/objects` (files), `<store>/pepper` (MAC key of share secrets; keep it or issued links stop working).
 The UI is plain HTML/JS embedded from `ui/`; the studio keeps its last sequence/render/links in the browser's localStorage.
+
+## Client page in apps/portal
+
+The real portal page `/{locale}/v/{share_id}#secret` plays a delivery from this server. Start the demo with the portal origin and the portal
+against it:
+
+    go run ./cmd/video-demo -dsn '...' -store /tmp/video-demo -portal-origin http://127.0.0.1:3000
+    cd ../apps/portal && NEXT_PUBLIC_API_ORIGIN=http://127.0.0.1:8088 npx next dev -H 127.0.0.1 -p 3000
+
+`-portal-origin` only adds CORS for that origin and a placeholder CSRF bootstrap (the demo has no CSRF of its own).

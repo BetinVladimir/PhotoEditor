@@ -10,6 +10,7 @@ import (
 	"context"
 	"crypto/rand"
 	"embed"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -18,6 +19,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -39,6 +41,35 @@ var uiFiles embed.FS
 
 const email = "video-demo@example.invalid"
 
+// allowedOrigin is the one cross-origin client (the Next.js portal in development) that may call the API with the session cookie.
+var allowedOrigin string
+
+// portalCompat lets apps/portal talk to the demo: CORS for its origin and the CSRF bootstrap it expects. The demo has no
+// CSRF protection of its own (loopback only, one built-in user), so the token is a placeholder of the right shape.
+func portalCompat(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if allowedOrigin != "" && r.Header.Get("Origin") == allowedOrigin {
+			h := w.Header()
+			h.Set("Access-Control-Allow-Origin", allowedOrigin)
+			h.Set("Access-Control-Allow-Credentials", "true")
+			h.Set("Access-Control-Allow-Headers", "Content-Type, X-CSRF-Token, Idempotency-Key, Range")
+			h.Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+			h.Add("Vary", "Origin")
+			if r.Method == http.MethodOptions {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func csrfPlaceholder() string {
+	b := make([]byte, 32)
+	_, _ = rand.Read(b)
+	return base64.RawURLEncoding.EncodeToString(b)
+}
+
 func main() {
 	dsn := flag.String("dsn", "", "superuser DSN of the database with migrations up to 02706")
 	store := flag.String("store", "", "directory for objects and temp files")
@@ -46,6 +77,7 @@ func main() {
 	ffmpeg := flag.String("ffmpeg", "ffmpeg", "ffmpeg binary")
 	ffprobe := flag.String("ffprobe", "ffprobe", "ffprobe binary")
 	encoder := flag.String("encoder", "libx264", "default encoder: libx264 or h264_nvenc")
+	portalOrigin := flag.String("portal-origin", "", "loopback origin of the Next.js portal (e.g. http://127.0.0.1:3000) to serve it as a cross-origin client")
 	flag.Parse()
 	if *dsn == "" || *store == "" {
 		flag.Usage()
@@ -56,6 +88,13 @@ func main() {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
+	if *portalOrigin != "" {
+		u, err := url.Parse(*portalOrigin)
+		if err != nil || u.Scheme != "http" || (u.Hostname() != "127.0.0.1" && u.Hostname() != "localhost") || u.Path != "" {
+			log.Fatal("-portal-origin must be an http loopback origin")
+		}
+	}
+	allowedOrigin = *portalOrigin
 	if err := run(ctx, *dsn, *store, *addr, *ffmpeg, *ffprobe, *encoder); err != nil && !errors.Is(err, context.Canceled) {
 		log.Fatal(err)
 	}
@@ -152,6 +191,10 @@ func run(ctx context.Context, dsn, store, addr, ffmpeg, ffprobe, encoder string)
 	portalSvc := portal.Service{DB: pools["photo_portal"], Pepper: pepper}
 
 	r := chi.NewRouter()
+	r.Use(portalCompat)
+	r.Get("/api/v1/auth/csrf", func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{"csrf_token": csrfPlaceholder(), "expires_at": time.Now().Add(time.Hour)})
+	})
 	r.Get("/api/v1/demo/context", func(w http.ResponseWriter, _ *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]any{"tenant_id": tenant, "project_id": project, "encoder": encoder})
 	})
@@ -191,7 +234,7 @@ func run(ctx context.Context, dsn, store, addr, ffmpeg, ffprobe, encoder string)
 		}
 		http.SetCookie(w, &http.Cookie{Name: "portal_session", Value: out.Token, Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode, Expires: out.ExpiresAt})
 		w.WriteHeader(http.StatusCreated)
-		_ = json.NewEncoder(w).Encode(map[string]any{"expires_at": out.ExpiresAt, "capabilities": out.Capabilities})
+		_ = json.NewEncoder(w).Encode(map[string]any{"id": uuid.New(), "expires_at": out.ExpiresAt, "csrf_token": csrfPlaceholder(), "capabilities": out.Capabilities, "allowed_presets": []string{}})
 	})
 	sub, err := fs.Sub(uiFiles, "ui")
 	if err != nil {

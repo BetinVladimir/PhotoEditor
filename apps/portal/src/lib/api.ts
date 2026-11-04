@@ -1,4 +1,5 @@
 import {readSession,readCollection,readItems,readMedia,readSelection,readDownloadAccepted,readUpload,readParts,readUploadAccepted,readBootstrap,readError} from './response';
+import { readVideoDelivery } from "./video-response";
 import { validateDownloadStatus } from "./download-state";
 import { validateDownloadIntent, validateDownloadLink } from "./download-link";
 import type { APIErrorBody, Collection, DownloadStatus, GuestItem, MediaLink, Page, PartURL, Upload } from "./types";
@@ -32,6 +33,9 @@ export async function exchange(shareID: string, secret: string, locale: string, 
   return readSession(await request<unknown>("/api/v1/portal/sessions", { signal, method: "POST", headers: { "Content-Type": "application/json", "X-CSRF-Token": bootstrap }, body: json({ share_id: shareID, secret, locale }) },[201]));
 }
 export const getCollection = async (signal?: AbortSignal) => readCollection(await request<unknown>("/api/v1/portal/collection", { signal }));
+export const getVideoDelivery = async (signal?: AbortSignal) => readVideoDelivery(await request<unknown>("/api/v1/portal/video/delivery", { signal }));
+/** URL of a render file for <video src> or a download link; the session cookie authorizes it. */
+export const videoContentURL = (renderID: string, download = false) => `${base()}/api/v1/portal/video/renders/${encodeURIComponent(renderID)}/content${download ? "?download=1" : ""}`;
 export const getItems = async (cursor?: string, sectionID?: string, signal?: AbortSignal, expectedRevision?:string) => {
   const query = new URLSearchParams({ limit: "100" });
   if (cursor) query.set("cursor", cursor);
