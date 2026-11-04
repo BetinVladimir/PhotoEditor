@@ -381,7 +381,7 @@ func (w *Worker) render(ctx context.Context, j job, dir string, cancel context.C
 		if json.Unmarshal(m.Probe, &f) != nil {
 			continue
 		}
-		sources[m.ID.String()] = render.Source{DurationTicks: f.DurationTicks, HasVideo: f.HasVideo, HasAudio: f.HasAudio, Channels: f.Channels}
+		sources[m.ID.String()] = render.Source{DurationTicks: f.DurationTicks, HasVideo: f.HasVideo, HasAudio: f.HasAudio, Channels: f.Channels, Matrix: f.ColorSpace, HDR: f.HDR()}
 	}
 	plan, err := render.CompileWith(doc, sources, luts)
 	if err != nil {

@@ -29,6 +29,19 @@ type Facts struct {
 	AudioCodec    string `json:"audio_codec,omitempty"`
 	Channels      int    `json:"channels,omitempty"`
 	SampleRate    int    `json:"sample_rate,omitempty"`
+	ColorSpace    string `json:"color_space,omitempty"`    // ffprobe color_space (bt709, bt470bg, smpte170m, ...)
+	ColorTransfer string `json:"color_transfer,omitempty"` // smpte2084 (PQ) or arib-std-b67 (HLG) mark HDR
+}
+
+// HDR returns "pq" or "hlg" for an HDR video stream, "" otherwise.
+func (f Facts) HDR() string {
+	switch f.ColorTransfer {
+	case "smpte2084":
+		return "pq"
+	case "arib-std-b67":
+		return "hlg"
+	}
+	return ""
 }
 
 // Reject codes (stable, stored in video_media.reject_code).
@@ -46,16 +59,18 @@ type raw struct {
 		FormatName string `json:"format_name"`
 	} `json:"format"`
 	Streams []struct {
-		CodecType   string `json:"codec_type"`
-		CodecName   string `json:"codec_name"`
-		Width       int    `json:"width"`
-		Height      int    `json:"height"`
-		RFrameRate  string `json:"r_frame_rate"`
-		PixFmt      string `json:"pix_fmt"`
-		Channels    int    `json:"channels"`
-		SampleRate  string `json:"sample_rate"`
-		Duration    string `json:"duration"`
-		Disposition struct {
+		CodecType     string `json:"codec_type"`
+		CodecName     string `json:"codec_name"`
+		Width         int    `json:"width"`
+		Height        int    `json:"height"`
+		RFrameRate    string `json:"r_frame_rate"`
+		PixFmt        string `json:"pix_fmt"`
+		ColorSpace    string `json:"color_space"`
+		ColorTransfer string `json:"color_transfer"`
+		Channels      int    `json:"channels"`
+		SampleRate    string `json:"sample_rate"`
+		Duration      string `json:"duration"`
+		Disposition   struct {
 			AttachedPic int `json:"attached_pic"`
 		} `json:"disposition"`
 	} `json:"streams"`
@@ -76,6 +91,7 @@ func ParseJSON(b []byte) (Facts, error) {
 				continue
 			}
 			f.HasVideo, f.Width, f.Height, f.VideoCodec, f.PixFmt = true, s.Width, s.Height, s.CodecName, s.PixFmt
+			f.ColorSpace, f.ColorTransfer = s.ColorSpace, s.ColorTransfer
 			f.FPSNum, f.FPSDen = parseRate(s.RFrameRate)
 			if dur == "" {
 				dur = s.Duration

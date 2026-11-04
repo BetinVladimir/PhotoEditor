@@ -532,3 +532,43 @@ func TestRenderColorWithRealFFmpeg(t *testing.T) {
 		t.Errorf("luma plain=%d clip=%d clip+master=%d", plain, clip, both)
 	}
 }
+
+// HDR (PQ) video is detected by the probe and tone-mapped to SDR by the compiled graph (needs ffmpeg with zscale).
+func TestRenderHDRWithRealFFmpeg(t *testing.T) {
+	ff, e1 := exec.LookPath("ffmpeg")
+	fp, e2 := exec.LookPath("ffprobe")
+	if e1 != nil || e2 != nil {
+		t.Skip("ffmpeg not installed")
+	}
+	if out, _ := exec.Command(ff, "-hide_banner", "-filters").Output(); !strings.Contains(string(out), "zscale") {
+		t.Skip("ffmpeg without zscale")
+	}
+	dir := t.TempDir()
+	srcPath := filepath.Join(dir, "hdr.mp4")
+	if out, err := exec.Command(ff, "-v", "error", "-f", "lavfi", "-i", "gradients=s=640x360:r=25:d=2", "-c:v", "libx264", "-profile:v", "high10", "-pix_fmt", "yuv420p10le",
+		"-x264-params", "colorprim=bt2020:transfer=smpte2084:colormatrix=bt2020nc", srcPath).CombinedOutput(); err != nil {
+		t.Skipf("cannot make an HDR source: %v %s", err, out)
+	}
+	f, _, err := probe.Run(t.Context(), fp, srcPath)
+	if err != nil || f.HDR() != "pq" {
+		t.Fatalf("probe: %+v %v", f, err)
+	}
+	d := doc(t, `{"video":{"fps":{"num":25,"den":1},"width":320,"height":240},"tracks":[{"id":"V1","kind":"video","clips":[
+	 {"id":"c1","source":{"kind":"video","media_id":"h"},"at":0,"src_in":0,"src_out":705600000,"fit":"fit","effects":[]}]}]}`)
+	plan, err := Compile(d, map[string]Source{"h": {DurationTicks: f.DurationTicks, HasVideo: true, Matrix: f.ColorSpace, HDR: f.HDR()}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(plan.Decisions) != 1 || plan.Decisions[0] != "HDR_TONEMAPPED:c1:pq" {
+		t.Fatalf("decisions %v", plan.Decisions)
+	}
+	outPath := filepath.Join(dir, "o.mp4")
+	args, _ := Args(plan, map[string]string{"h": srcPath}, outPath, "libx264", 25, 1)
+	if out, err := exec.CommandContext(t.Context(), ff, args...).CombinedOutput(); err != nil {
+		t.Fatalf("%v\n%s\n%s", err, out, plan.FilterComplex)
+	}
+	got, _, err := probe.Run(t.Context(), fp, outPath)
+	if err != nil || got.PixFmt != "yuv420p" || got.HDR() != "" {
+		t.Fatalf("%+v %v", got, err)
+	}
+}

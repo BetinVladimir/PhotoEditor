@@ -31,16 +31,19 @@ func TestGoldenGraphs(t *testing.T) {
 			src := map[string]Source{}
 			for _, tr := range arr(g.Doc["tracks"]) {
 				for _, c := range arr(obj(tr)["clips"]) {
-					src[sourceKey(obj(c))] = Source{DurationTicks: 21168000000, HasVideo: true, HasAudio: true, Channels: 1}
+					k := sourceKey(obj(c))
+					s := Source{DurationTicks: 21168000000, HasVideo: true, HasAudio: true, Channels: 1}
+					switch k { // G15 sources
+					case "hdrpq", "hdrhlg":
+						s.HasAudio, s.HDR = false, k[3:]
+					}
+					src[k] = s
 				}
 			}
 			luts := map[string]*color.Lut3D{"L": color.Identity(17)}
 			p, err := CompileWith(g.Doc, src, luts)
 			if err != nil {
 				t.Skip("compile:", err)
-			}
-			if g.Name == "G15" {
-				t.Skip("HDR tonemap is not implemented yet")
 			}
 			// The vector names LUT files from Python's json.dumps (1.0), the spec says JCS (1): compare modulo the hash.
 			norm := func(s string) string { return lutNameRe.ReplaceAllString(s, "lut_X.cube") }

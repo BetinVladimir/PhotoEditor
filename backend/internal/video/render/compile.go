@@ -33,7 +33,8 @@ type Source struct {
 	HasVideo      bool
 	HasAudio      bool
 	Channels      int
-	Matrix        string // colour matrix of the video stream; "" means bt709
+	Matrix        string // bt709, bt601, smpte170m or bt470bg; "" means bt709
+	HDR           string // pq or hlg; such video is tone-mapped to SDR (HDR_TONEMAPPED)
 }
 
 type Input struct {
@@ -285,6 +286,10 @@ func contains(a []string, s string) bool {
 	}
 	return false
 }
+
+const hdrTonemap = "zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=yuv420p"
+
+var matrices = map[string]string{"": "bt709", "bt709": "bt709", "bt601": "bt601", "smpte170m": "bt601", "bt470bg": "bt601"}
 
 func lutFilter(name string, alpha bool) string {
 	f := fmt.Sprintf("scale=in_color_matrix=bt709:in_range=tv,format=rgba,lut3d=file='%s':interp=tetrahedral,scale=out_color_matrix=bt709:out_range=tv", name)
@@ -646,9 +651,14 @@ func CompileWith(d Doc, sources map[string]Source, luts map[string]*color.Lut3D)
 			p.Inputs = append(p.Inputs, Input{ClipID: id, Options: opts, Source: key})
 			if needV {
 				fit := str(cm["fit"])
-				m := src.Matrix
-				if m == "" {
+				m, known := matrices[src.Matrix]
+				hdr := src.HDR != "" && sk == "video"
+				if (!known && !hdr) || (src.HDR != "" && src.HDR != "pq" && src.HDR != "hlg") {
+					return Plan{}, Error{Code: "COMPILE_COLOR_UNSUPPORTED", Clip: id}
+				}
+				if hdr { // the tone-mapper outputs Rec.709, whatever matrix the source carried
 					m = "bt709"
+					p.Decisions = append(p.Decisions, "HDR_TONEMAPPED:"+id+":"+src.HDR)
 				}
 				cmx := "in_color_matrix=" + m + ":out_color_matrix=bt709:out_range=tv"
 				var scale string
@@ -676,6 +686,9 @@ func CompileWith(d Doc, sources map[string]Source, luts map[string]*color.Lut3D)
 					ss := kbSupersample(W, H)
 					cw, ch, pix = W*ss, H*ss, "rgba"
 					scale = strings.ReplaceAll(scale, fmt.Sprintf("%d:%d", W, H), fmt.Sprintf("%d:%d", cw, ch))
+				}
+				if hdr {
+					fpsF += "," + hdrTonemap
 				}
 				chain := fmt.Sprintf("[%d:v]%s,%s,%s,format=%s,pad=%d:%d:(ow-iw)/2:(oh-ih)/2:color=black@0", idx, pts, fpsF, scale, pix, cw, ch)
 				if mo != nil {
