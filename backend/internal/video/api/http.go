@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"mime"
 	"net/http"
 	"time"
@@ -540,16 +539,16 @@ func PortalRoutes(r chi.Router, svc *Service, authz ViewerAuth) {
 			return
 		}
 		defer release()
-		l, err := svc.leaseEgress(r.Context(), v, wantBytes(r.Header.Get("Range"), o.Bytes))
-		if err != nil {
+		lw := &leasedWriter{ResponseWriter: newPaced(w), ctx: r.Context(), svc: svc, v: v, render: rid,
+			streams: svc.streams.open(v.Share) - 1, need: wantBytes(r.Header.Get("Range"), o.Bytes)}
+		lw.need = max(lw.need, 1)
+		defer lw.close()
+		// the first lease is taken before any byte or header goes out, so an exhausted budget still answers 429
+		if err := lw.next(); err != nil {
 			writeErr(w, r, err)
 			return
 		}
-		cw := &countWriter{ResponseWriter: newPaced(w), limit: l.Granted}
-		h.serve(cw, r, o, download)
-		if err := svc.settleEgress(r.Context(), v, l, cw.n, rid); err != nil {
-			log.Printf("video egress settle: %v", err)
-		}
+		h.serve(lw, r, o, download)
 	})
 }
 
@@ -564,23 +563,3 @@ func wantBytes(rangeHeader string, size int64) int64 {
 	}
 	return size
 }
-
-// countWriter counts body bytes and refuses to pass more than the leased budget.
-type countWriter struct {
-	http.ResponseWriter
-	n, limit int64
-}
-
-func (c *countWriter) Write(p []byte) (int, error) {
-	if c.n+int64(len(p)) > c.limit {
-		p = p[:max(c.limit-c.n, 0)]
-		if len(p) == 0 {
-			return 0, io.ErrShortWrite
-		}
-	}
-	n, err := c.ResponseWriter.Write(p)
-	c.n += int64(n)
-	return n, err
-}
-
-func (c *countWriter) Unwrap() http.ResponseWriter { return c.ResponseWriter }

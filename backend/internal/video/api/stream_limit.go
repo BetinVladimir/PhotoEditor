@@ -83,3 +83,10 @@ func (p *pacedWriter) Write(b []byte) (int, error) {
 }
 
 func (p *pacedWriter) Unwrap() http.ResponseWriter { return p.ResponseWriter }
+
+// open is how many streams the share has open in this process.
+func (l *streamLimiter) open(share uuid.UUID) int {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.share[share]
+}
