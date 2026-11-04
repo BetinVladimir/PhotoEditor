@@ -27,6 +27,7 @@ type Source struct {
 	HasVideo      bool
 	HasAudio      bool
 	Channels      int
+	Matrix        string // colour matrix of the video stream; "" means bt709
 }
 
 type Input struct {
@@ -96,8 +97,10 @@ func SamplesAt(ticks int64) int64 {
 	return r.Int64()
 }
 
-func fmtNum(x float64) string {
-	s := strconv.FormatFloat(x, 'f', 6, 64)
+func fmtNum(x float64) string { return fmtNumD(x, 6) }
+
+func fmtNumD(x float64, digits int) string {
+	s := strconv.FormatFloat(x, 'f', digits, 64)
 	s = strings.TrimRight(strings.TrimRight(s, "0"), ".")
 	if s == "" || s == "-0" {
 		return "0"
@@ -327,7 +330,8 @@ func Compile(d Doc, sources map[string]Source) (Plan, error) {
 	frame := new(big.Int).Quo(new(big.Int).Mul(big.NewInt(TicksPerSecond), big.NewInt(fd)), big.NewInt(fn)).Int64()
 
 	var p Plan
-	var chains, vlabels, alabels []string
+	var vchains, achains, vlabels, alabels []string
+	silences := 0
 	for _, t := range arr(d["tracks"]) {
 		tm := obj(t)
 		kind := str(tm["kind"])
@@ -410,14 +414,19 @@ func Compile(d Doc, sources map[string]Source) (Plan, error) {
 			p.Inputs = append(p.Inputs, Input{ClipID: id, Options: opts, Source: key})
 			if needV {
 				fit := str(cm["fit"])
+				m := src.Matrix
+				if m == "" {
+					m = "bt709"
+				}
+				cmx := "in_color_matrix=" + m + ":out_color_matrix=bt709:out_range=tv"
 				var scale string
 				switch fit {
 				case "fill":
-					scale = fmt.Sprintf("scale=%d:%d:force_original_aspect_ratio=increase:force_divisible_by=2:out_color_matrix=bt709:out_range=tv,crop=%d:%d", W, H, W, H)
+					scale = fmt.Sprintf("scale=%d:%d:force_original_aspect_ratio=increase:force_divisible_by=2:%s,crop=%d:%d", W, H, cmx, W, H)
 				case "none":
 					return Plan{}, Error{Code: "COMPILE_FIT_UNSUPPORTED", Clip: id}
 				default:
-					scale = fmt.Sprintf("scale=%d:%d:force_original_aspect_ratio=decrease:force_divisible_by=2:out_color_matrix=bt709:out_range=tv", W, H)
+					scale = fmt.Sprintf("scale=%d:%d:force_original_aspect_ratio=decrease:force_divisible_by=2:%s", W, H, cmx)
 				}
 				// D-39: layer starts on the frame grid, rounded up.
 				start := (l0 + frame - 1) / frame * frame
@@ -427,9 +436,6 @@ func Compile(d Doc, sources map[string]Source) (Plan, error) {
 					pts = fmt.Sprintf("setpts=(PTS-STARTPTS)*%d/%d", sd, sn)
 				}
 				fpsF := "fps=" + fps
-				if pts != "setpts=PTS-STARTPTS" {
-					fpsF += ":round=near"
-				}
 				cw, ch, pix := W, H, "yuva420p"
 				if mo != nil {
 					ss := kbSupersample(W, H)
@@ -457,24 +463,33 @@ func Compile(d Doc, sources map[string]Source) (Plan, error) {
 					chain += "," + fadeBlack("out", out.start-l0, out.dur/2)
 				}
 				chain += fmt.Sprintf(",setpts=PTS-STARTPTS+%s/TB[%s]", FmtSeconds(start), label)
-				chains = append(chains, chain)
+				vchains = append(vchains, chain)
 				vlabels = append(vlabels, strings.Join([]string{label, FmtSeconds(start), FmtSeconds(l1), px, py}, "|"))
 			}
 			if needA {
-				label := fmt.Sprintf("ac%d", idx)
-				ch := "aformat=sample_fmts=fltp:channel_layouts=stereo"
+				label := fmt.Sprintf("av%d", idx)
+				chain := fmt.Sprintf("[%d:a]asetpts=PTS-STARTPTS,aresample=48000", idx)
 				if src.Channels == 1 {
-					ch = "pan=stereo|c0=c0|c1=c0,aformat=sample_fmts=fltp"
+					chain += ",pan=stereo|c0=c0|c1=c0"
 				}
-				chain := fmt.Sprintf("[%d:a]asetpts=PTS-STARTPTS,aresample=48000,%s", idx, ch)
+				chain += ",aformat=sample_fmts=fltp:channel_layouts=stereo"
 				for _, f := range AtempoChain(sn, sd) {
 					chain += ",atempo=" + f
 				}
-				if ac != nil && flt(ac["gain_db"]) != 0 {
-					chain += ",volume=" + fmtNum(flt(ac["gain_db"])) + "dB"
+				g := flt(tm["gain_db"])
+				if ac != nil {
+					g += flt(ac["gain_db"])
 				}
-				if g := flt(tm["gain_db"]); g != 0 {
-					chain += ",volume=" + fmtNum(g) + "dB"
+				if g != 0 {
+					chain += ",volume=" + fmtNumD(g, 4) + "dB:precision=float"
+				}
+				if ac != nil {
+					if fi := num(ac["fade_in"]); fi > 0 {
+						chain += fmt.Sprintf(",afade=t=in:st=%s:d=%s:curve=tri", FmtSeconds(at-l0), FmtSeconds(fi))
+					}
+					if fo := num(ac["fade_out"]); fo > 0 {
+						chain += fmt.Sprintf(",afade=t=out:st=%s:d=%s:curve=tri", FmtSeconds(at+dur-fo-l0), FmtSeconds(fo))
+					}
 				}
 				switch in.kind {
 				case "crossfade":
@@ -489,7 +504,7 @@ func Compile(d Doc, sources map[string]Source) (Plan, error) {
 					chain += fmt.Sprintf(",afade=t=out:st=%s:d=%s:curve=tri", FmtSeconds(out.start-l0), FmtSeconds(out.dur/2))
 				}
 				chain += fmt.Sprintf(",adelay=%dS:all=1[%s]", SamplesAt(l0), label) // S = samples, not ms
-				chains = append(chains, chain)
+				achains = append(achains, chain)
 				alabels = append(alabels, label)
 			}
 		}
@@ -498,8 +513,8 @@ func Compile(d Doc, sources map[string]Source) (Plan, error) {
 		return Plan{}, Error{Code: "COMPILE_EMPTY"}
 	}
 	canvas := fmt.Sprintf("color=c=black:s=%dx%d:r=%s:d=%s,format=yuv420p,setparams=colorspace=bt709:color_primaries=bt709:color_trc=bt709:range=tv[bg]", W, H, fps, FmtSeconds(D))
-	g := []string{canvas}
-	g = append(g, chains...)
+	g := append([]string{}, vchains...)
+	g = append(g, canvas)
 	prev := "bg"
 	for i, vl := range vlabels {
 		parts := strings.Split(vl, "|")
@@ -508,9 +523,11 @@ func Compile(d Doc, sources map[string]Source) (Plan, error) {
 		prev = next
 	}
 	g = append(g, fmt.Sprintf("[%s]format=yuv420p[vout]", prev))
+	g = append(g, achains...)
 	// Silent base keeps the audio bus (and the container) present for every doc.
-	g = append(g, fmt.Sprintf("anullsrc=r=48000:cl=stereo:d=%s[abase]", FmtSeconds(D)))
-	mix := "[abase]"
+	silences++
+	g = append(g, fmt.Sprintf("anullsrc=r=48000:cl=stereo,atrim=duration=%s,asetpts=PTS-STARTPTS[sil%d]", FmtSeconds(D), silences))
+	mix := fmt.Sprintf("[sil%d]", silences)
 	for _, l := range alabels {
 		mix += "[" + l + "]"
 	}

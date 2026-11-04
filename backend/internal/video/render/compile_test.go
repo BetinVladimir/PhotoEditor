@@ -192,7 +192,7 @@ func TestCompileSpeedAndTransitionGraph(t *testing.T) {
 		t.Fatal(err)
 	}
 	g := p.FilterComplex
-	for _, want := range []string{"setpts=(PTS-STARTPTS)*1/2", "round=near", "atempo=2", "fade=t=in:st=0:d=0.5:alpha=1", "afade=t=in:st=0:d=0.5:curve=tri", "afade=t=out:st=0.75:d=0.5:curve=tri"} {
+	for _, want := range []string{"setpts=(PTS-STARTPTS)*1/2", "atempo=2", "fade=t=in:st=0:d=0.5:alpha=1", "afade=t=in:st=0:d=0.5:curve=tri", "afade=t=out:st=0.75:d=0.5:curve=tri"} {
 		if !strings.Contains(g, want) {
 			t.Errorf("missing %q in\n%s", want, g)
 		}
