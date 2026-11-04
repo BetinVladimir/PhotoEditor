@@ -457,3 +457,33 @@ func TestLoudnessRealFFmpeg(t *testing.T) {
 	}
 	_ = fp
 }
+
+// NVENC: the same compiled graph encodes on the GPU when the host has it.
+func TestRenderNVENCIfAvailable(t *testing.T) {
+	ff, e1 := exec.LookPath("ffmpeg")
+	fp, e2 := exec.LookPath("ffprobe")
+	if e1 != nil || e2 != nil {
+		t.Skip("ffmpeg not installed")
+	}
+	if err := exec.Command(ff, "-v", "error", "-f", "lavfi", "-i", "color=c=black:s=320x240:d=0.2", "-c:v", "h264_nvenc", "-f", "null", "-").Run(); err != nil {
+		t.Skip("no usable h264_nvenc")
+	}
+	dir := t.TempDir()
+	srcPath := filepath.Join(dir, "src.mp4")
+	if out, err := exec.Command(ff, "-v", "error", "-f", "lavfi", "-i", "testsrc2=size=640x360:rate=30", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=44100", "-t", "3", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", srcPath).CombinedOutput(); err != nil {
+		t.Fatalf("%v %s", err, out)
+	}
+	plan, err := Compile(doc(t, twoClips), map[string]Source{"m1": {DurationTicks: 3 * TicksPerSecond, HasVideo: true, HasAudio: true, Channels: 1}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	outPath := filepath.Join(dir, "o.mp4")
+	args, _ := Args(plan, map[string]string{"m1": srcPath}, outPath, "h264_nvenc", 25, 1)
+	if out, err := exec.CommandContext(t.Context(), ff, args...).CombinedOutput(); err != nil {
+		t.Fatalf("nvenc: %v\n%s", err, out)
+	}
+	got, _, err := probe.Run(t.Context(), fp, outPath)
+	if err != nil || got.VideoCodec != "h264" || got.Width != 320 || got.Height != 240 {
+		t.Fatalf("%+v %v", got, err)
+	}
+}
