@@ -167,5 +167,5 @@ DoD по слою — `17-acceptance-and-dod.md` §3; UI-ЧЕК — §4; фор�
 - Реальная авторизация студии: веб-студия работает только через `cmd/video-demo` со встроенным пользователем; в `cmd/photo` маршруты API зарегистрированы, но свипер и полный прогон с авторизацией/CSRF не подключены.
 - Видео-эндпоинты не описаны в `packages/contracts` (нужны схемы в `docs/implementation-v2/contracts/schemas.json` и генерация); без этого экраны `apps/photographer` не пройдут `routes.test.ts`.
 - NVENC не проверен (на хосте нет сборки ffmpeg с ним).
-- Компилятор рендера — подмножество (канва, fit/fill, микс, обрезка); переходы, движение, скорость, LUT, ducking, двухпроходная громкость — нет.
+- Компилятор рендера (`render-compiler/demo-2`) — подмножество: канва, fit/fill, микс, обрезка, постоянная скорость (`setpts` + `atempoChain`), переходы `fade_in`/`crossfade`/`dip_to_black` по FN-E-02 с затуханием звука (векторы `atempo_chain` и `effective_transition` ET-01…10 проходят, на реальном ffmpeg чёрный dip даёт Y=16). Нет: движение/transform, LUT и цветовые эффекты, ducking, двухпроходная громкость, затухания `audio.fade_in/out`; `Plan.Shortened` (TRANSITION_SHORTENED) заполняется, но в БД пока не пишется.
 - `baseline.sql` для чистой сборки БД после `02650`.

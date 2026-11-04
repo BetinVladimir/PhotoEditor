@@ -1,9 +1,11 @@
 // Package render compiles a timeline document (DS-09) into an ffmpeg command.
 //
 // DEMO MVP subset of docs/video/24-render-compiler.md: black canvas plus an
-// overlay chain (D-37), fit/fill scaling, per-clip gain and mute, mono->stereo
-// via pan (D-45), amix with a silent base. Transitions, motion, speed, LUTs,
-// ducking and two-pass loudness are rejected or ignored with an explicit code.
+// overlay chain (D-37), fit/fill scaling, per-clip gain and mute, constant
+// speed (video setpts, audio atempoChain), transitions fade_in / crossfade /
+// dip_to_black (FN-E-02, D-40, D-41) with audio fades, mono->stereo via pan
+// (D-45), amix with a silent base. Motion, transforms, effects, LUTs, ducking
+// and two-pass loudness are rejected with an explicit code.
 package render
 
 import (
@@ -16,7 +18,7 @@ import (
 const (
 	TicksPerSecond = 705600000
 	MaxInputs      = 128
-	Version        = "render-compiler/demo-1"
+	Version        = "render-compiler/demo-2"
 )
 
 // Source is what the worker learned from video_probe for a media/asset id.
@@ -39,6 +41,14 @@ type Plan struct {
 	Maps          []string
 	DurationTicks int64
 	Version       string
+	Shortened     []Shortened // VID-T-07 TRANSITION_SHORTENED
+}
+
+// Shortened records a transition the sources could not fully cover.
+type Shortened struct {
+	Clip      string
+	Requested int64
+	Effective int64
 }
 
 // Error carries a stable COMPILE_* code.
@@ -95,6 +105,11 @@ func fmtNum(x float64) string {
 	return s
 }
 
+// fadeBlack is D-41: fade the luma to broadcast black (Y=16), not Y=0.
+func fadeBlack(dir string, st, d int64) string {
+	return fmt.Sprintf("scale=in_range=tv:out_range=pc,fade=t=%s:st=%s:d=%s,scale=in_range=pc:out_range=tv", dir, FmtSeconds(st), FmtSeconds(d))
+}
+
 func fpsExpr(num, den int64) string {
 	if den == 1 {
 		return strconv.FormatInt(num, 10)
@@ -102,11 +117,127 @@ func fpsExpr(num, den int64) string {
 	return fmt.Sprintf("%d/%d", num, den)
 }
 
+func speedOf(c map[string]any) (int64, int64) {
+	if sp := obj(c["speed"]); sp != nil {
+		return num(sp["num"]), num(sp["den"])
+	}
+	return 1, 1
+}
+
+// clipDuration is the timeline length (FN-T-04): source length divided by speed.
 func clipDuration(c map[string]any) int64 {
 	if str(obj(c["source"])["kind"]) == "photo" {
 		return num(c["duration"])
 	}
-	return num(c["src_out"]) - num(c["src_in"])
+	n, d := speedOf(c)
+	return mulDiv(num(c["src_out"])-num(c["src_in"]), d, n)
+}
+
+// mulDiv is a*b/c truncated, in arbitrary precision.
+func mulDiv(a, b, c int64) int64 {
+	r := new(big.Int).Mul(big.NewInt(a), big.NewInt(b))
+	return r.Quo(r, big.NewInt(c)).Int64()
+}
+
+// AtempoChain is FN-R-08 atempoChain: factors from [0.5; 2], the remainder
+// at nine digits; nothing for 1/1.
+func AtempoChain(num, den int64) []string {
+	t := big.NewRat(num, den)
+	two, half := big.NewRat(2, 1), big.NewRat(1, 2)
+	var out []string
+	for t.Cmp(two) > 0 {
+		out = append(out, "2")
+		t.Quo(t, two)
+	}
+	for t.Cmp(half) < 0 {
+		out = append(out, "0.5")
+		t.Mul(t, two)
+	}
+	if t.Cmp(big.NewRat(1, 1)) != 0 {
+		s := new(big.Rat).Mul(t, big.NewRat(1000000000, 1))
+		s.Add(s, half)
+		n := new(big.Int).Quo(s.Num(), s.Denom())
+		f := fmt.Sprintf("%010d", n)
+		x := strings.TrimRight(f[len(f)-9:], "0")
+		if x == "" {
+			out = append(out, f[:len(f)-9])
+		} else {
+			out = append(out, f[:len(f)-9]+"."+x)
+		}
+	}
+	return out
+}
+
+type trans struct {
+	kind            string // cut, fade_in, crossfade, dip_to_black
+	start, end, dur int64
+	requested       int64
+	shortened       bool
+}
+
+const unlimited = int64(1) << 62
+
+// effectiveTransition is FN-E-02 for clips[i] of one video track.
+func effectiveTransition(clips []any, i int, sources map[string]Source) trans {
+	c := obj(clips[i])
+	tr := obj(c["transition_in"])
+	kind := str(tr["kind"])
+	if tr == nil || kind == "" || kind == "cut" {
+		return trans{kind: "cut"}
+	}
+	at, D := num(c["at"]), num(tr["duration"])
+	prevOK := i > 0 && num(obj(clips[i-1])["at"])+clipDuration(obj(clips[i-1])) == at
+	if (kind == "crossfade" || kind == "dip_to_black") && !prevOK {
+		kind = "fade_in"
+	}
+	cut := trans{kind: "cut", start: at, end: at, requested: D, shortened: D > 0}
+	switch kind {
+	case "fade_in":
+		d := D
+		if dc := clipDuration(c); dc < d {
+			d = dc
+		}
+		if d <= 0 {
+			return trans{kind: "cut", start: at, end: at}
+		}
+		return trans{kind: kind, start: at, end: at + d, dur: d, requested: D, shortened: d < D}
+	case "dip_to_black":
+		half := D / 2
+		if half <= 0 {
+			return cut
+		}
+		return trans{kind: kind, start: at - half, end: at + half, dur: 2 * half, requested: D, shortened: 2*half < D}
+	}
+	head, tail := unlimited, unlimited
+	if str(obj(c["source"])["kind"]) != "photo" {
+		n, d := speedOf(c)
+		head = mulDiv(num(c["src_in"]), d, n)
+	}
+	prev := obj(clips[i-1])
+	if str(obj(prev["source"])["kind"]) != "photo" {
+		n, d := speedOf(prev)
+		tail = mulDiv(sources[sourceKey(prev)].DurationTicks-num(prev["src_out"]), d, n)
+		if tail < 0 {
+			tail = 0
+		}
+	}
+	var t trans
+	switch str(tr["align"]) {
+	case "start":
+		d := min(D, tail)
+		t = trans{start: at, end: at + d, dur: d}
+	case "end":
+		d := min(D, head)
+		t = trans{start: at - d, end: at, dur: d}
+	default:
+		half := min(D/2, head, tail)
+		t = trans{start: at - half, end: at + half, dur: 2 * half}
+	}
+	if t.dur <= 0 {
+		return cut
+	}
+	t.kind, t.requested, t.shortened = "crossfade", D, t.dur < D
+	return t
 }
 
 func docEnd(d Doc) int64 {
@@ -151,16 +282,22 @@ func Compile(d Doc, sources map[string]Source) (Plan, error) {
 	for _, t := range arr(d["tracks"]) {
 		tm := obj(t)
 		kind := str(tm["kind"])
-		for _, c := range arr(tm["clips"]) {
+		clips := arr(tm["clips"])
+		for ci, c := range clips {
 			cm := obj(c)
 			id := str(cm["id"])
-			if tr := obj(cm["transition_in"]); tr != nil && str(tr["kind"]) != "" && str(tr["kind"]) != "cut" {
-				return Plan{}, Error{Code: "COMPILE_TRANSITION_UNSUPPORTED", Clip: id}
+			if tr := obj(cm["transition_in"]); tr != nil {
+				switch str(tr["kind"]) {
+				case "", "cut", "fade_in", "crossfade", "dip_to_black":
+				default:
+					return Plan{}, Error{Code: "COMPILE_TRANSITION_UNSUPPORTED", Clip: id}
+				}
 			}
 			if cm["motion"] != nil || cm["transform"] != nil {
 				return Plan{}, Error{Code: "COMPILE_TRANSFORM_UNSUPPORTED", Clip: id}
 			}
-			if sp := obj(cm["speed"]); sp != nil && (num(sp["num"]) != 1 || num(sp["den"]) != 1) {
+			sn, sd := speedOf(cm)
+			if sn <= 0 || sd <= 0 || sn*1 > 4*sd || sd > 4*sn {
 				return Plan{}, Error{Code: "COMPILE_SPEED_UNSUPPORTED", Clip: id}
 			}
 			for _, e := range arr(cm["effects"]) {
@@ -184,10 +321,29 @@ func Compile(d Doc, sources map[string]Source) (Plan, error) {
 			if len(p.Inputs) >= MaxInputs {
 				return Plan{}, Error{Code: "COMPILE_TOO_MANY_INPUTS"}
 			}
+			// Layer interval [l0, l1]: the clip plus the head/tail a crossfade
+			// borrows from its neighbours (FN-E-02).
+			var in, out trans
+			if kind == "video" {
+				in = effectiveTransition(clips, ci, sources)
+				if ci+1 < len(clips) {
+					out = effectiveTransition(clips, ci+1, sources)
+				}
+				if in.shortened {
+					p.Shortened = append(p.Shortened, Shortened{Clip: id, Requested: in.requested, Effective: in.dur})
+				}
+			}
+			l0, l1 := at, at+dur
+			if in.kind == "crossfade" {
+				l0 = in.start
+			}
+			if out.kind == "crossfade" && out.end > l1 {
+				l1 = out.end
+			}
 			idx := len(p.Inputs)
 			var opts []string
 			if sk == "photo" {
-				opts = []string{"-loop", "1", "-framerate", fps, "-t", FmtSeconds(dur)}
+				opts = []string{"-loop", "1", "-framerate", fps, "-t", FmtSeconds(l1 - l0)}
 			} else {
 				if !needV {
 					opts = append(opts, "-vn")
@@ -195,7 +351,7 @@ func Compile(d Doc, sources map[string]Source) (Plan, error) {
 				if !needA {
 					opts = append(opts, "-an")
 				}
-				opts = append(opts, "-ss", FmtSeconds(num(cm["src_in"])), "-t", FmtSeconds(dur))
+				opts = append(opts, "-ss", FmtSeconds(num(cm["src_in"])-mulDiv(at-l0, sn, sd)), "-t", FmtSeconds(mulDiv(l1-l0, sn, sd)))
 			}
 			p.Inputs = append(p.Inputs, Input{ClipID: id, Options: opts, Source: key})
 			if needV {
@@ -210,11 +366,29 @@ func Compile(d Doc, sources map[string]Source) (Plan, error) {
 					scale = fmt.Sprintf("scale=%d:%d:force_original_aspect_ratio=decrease:force_divisible_by=2:out_color_matrix=bt709:out_range=tv", W, H)
 				}
 				// D-39: layer starts on the frame grid, rounded up.
-				start := (at + frame - 1) / frame * frame
+				start := (l0 + frame - 1) / frame * frame
 				label := fmt.Sprintf("vc%d", idx)
-				chains = append(chains, fmt.Sprintf("[%d:v]setpts=PTS-STARTPTS,fps=%s,%s,format=yuva420p,pad=%d:%d:(ow-iw)/2:(oh-ih)/2:color=black@0,setpts=PTS-STARTPTS+%s/TB[%s]",
-					idx, fps, scale, W, H, FmtSeconds(start), label))
-				vlabels = append(vlabels, label+"|"+FmtSeconds(start)+"|"+FmtSeconds(at+dur))
+				pts := "setpts=PTS-STARTPTS"
+				if sk != "photo" && (sn != 1 || sd != 1) {
+					pts = fmt.Sprintf("setpts=(PTS-STARTPTS)*%d/%d", sd, sn)
+				}
+				fpsF := "fps=" + fps
+				if pts != "setpts=PTS-STARTPTS" {
+					fpsF += ":round=near"
+				}
+				chain := fmt.Sprintf("[%d:v]%s,%s,%s,format=yuva420p,pad=%d:%d:(ow-iw)/2:(oh-ih)/2:color=black@0", idx, pts, fpsF, scale, W, H)
+				switch in.kind {
+				case "crossfade", "fade_in":
+					chain += fmt.Sprintf(",fade=t=in:st=0:d=%s:alpha=1", FmtSeconds(in.dur))
+				case "dip_to_black":
+					chain += "," + fadeBlack("in", 0, in.dur/2)
+				}
+				if out.kind == "dip_to_black" {
+					chain += "," + fadeBlack("out", out.start-l0, out.dur/2)
+				}
+				chain += fmt.Sprintf(",setpts=PTS-STARTPTS+%s/TB[%s]", FmtSeconds(start), label)
+				chains = append(chains, chain)
+				vlabels = append(vlabels, label+"|"+FmtSeconds(start)+"|"+FmtSeconds(l1))
 			}
 			if needA {
 				label := fmt.Sprintf("ac%d", idx)
@@ -223,13 +397,28 @@ func Compile(d Doc, sources map[string]Source) (Plan, error) {
 					ch = "pan=stereo|c0=c0|c1=c0,aformat=sample_fmts=fltp"
 				}
 				chain := fmt.Sprintf("[%d:a]asetpts=PTS-STARTPTS,aresample=48000,%s", idx, ch)
+				for _, f := range AtempoChain(sn, sd) {
+					chain += ",atempo=" + f
+				}
 				if ac != nil && flt(ac["gain_db"]) != 0 {
 					chain += ",volume=" + fmtNum(flt(ac["gain_db"])) + "dB"
 				}
 				if g := flt(tm["gain_db"]); g != 0 {
 					chain += ",volume=" + fmtNum(g) + "dB"
 				}
-				chain += fmt.Sprintf(",adelay=%dS:all=1[%s]", SamplesAt(at), label) // S = samples, not ms
+				switch in.kind {
+				case "crossfade":
+					chain += fmt.Sprintf(",afade=t=in:st=0:d=%s:curve=tri", FmtSeconds(in.dur))
+				case "dip_to_black":
+					chain += fmt.Sprintf(",afade=t=in:st=0:d=%s:curve=tri", FmtSeconds(in.dur/2))
+				}
+				switch out.kind {
+				case "crossfade":
+					chain += fmt.Sprintf(",afade=t=out:st=%s:d=%s:curve=tri", FmtSeconds(out.start-l0), FmtSeconds(out.dur))
+				case "dip_to_black":
+					chain += fmt.Sprintf(",afade=t=out:st=%s:d=%s:curve=tri", FmtSeconds(out.start-l0), FmtSeconds(out.dur/2))
+				}
+				chain += fmt.Sprintf(",adelay=%dS:all=1[%s]", SamplesAt(l0), label) // S = samples, not ms
 				chains = append(chains, chain)
 				alabels = append(alabels, label)
 			}
