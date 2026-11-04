@@ -10,6 +10,7 @@ package render
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 	"strconv"
 	"strings"
@@ -43,6 +44,8 @@ type Plan struct {
 	DurationTicks int64
 	Version       string
 	Shortened     []Shortened // VID-T-07 TRANSITION_SHORTENED
+	Decisions     []string    // e.g. AUDIO_EFFECT_NOT_RENDERED:<clip>
+	AudioGraph    string      // audio part of FilterComplex, ends in [abus]; for the loudness pass
 }
 
 // Shortened records a transition the sources could not fully cover.
@@ -126,6 +129,155 @@ func transformSteps(tf map[string]any, W, H int64) (px, py, chain string) {
 		chain += fmt.Sprintf(",rotate=a=%s:ow='rotw(%s)':oh='roth(%s)':c=none", e, e, e)
 	}
 	return
+}
+
+type duckCfg struct {
+	sides  []string
+	params string // threshold:ratio:attack:release options of sidechaincompress
+}
+
+type voice struct {
+	label, track, chain string
+	duck                *duckCfg
+}
+
+func duckNum(m map[string]any, k string, def float64) float64 {
+	if v, ok := m[k].(float64); ok {
+		return v
+	}
+	return def
+}
+
+// duckParams is FN-R-13 duckParams.
+func duckParams(thrDB, depth, attackMs, releaseMs float64) string {
+	thr := math.Min(math.Max(math.Pow(10, thrDB/20), 0.000976563), 1)
+	ratio := 1.0
+	switch {
+	case depth >= 11.4:
+		ratio = 20
+	case depth > 0:
+		ratio = 1 / (1 - depth/12)
+	}
+	at := math.Min(math.Max(attackMs, 0.01), 2000)
+	rel := math.Min(math.Max(releaseMs, 0.01), 9000)
+	return fmt.Sprintf("threshold=%s:ratio=%s:attack=%s:release=%s", fmtNumD(thr, 9), fmtNumD(ratio, 6), fmtNumD(at, 3), fmtNumD(rel, 3))
+}
+
+func silence(D int64, n int) string {
+	return fmt.Sprintf("anullsrc=r=48000:cl=stereo,atrim=duration=%s,asetpts=PTS-STARTPTS[sil%d]", FmtSeconds(D), n)
+}
+
+// audioGraph is section 6.2/6.3: the voices, the sidechain buses, the
+// compressors and the final amix onto [abus].
+func audioGraph(voices []voice, D int64) ([]string, string) {
+	// Tracks used as a sidechain, with the number of ducking clips reading them.
+	refs := map[string]int{}
+	var order []string
+	for _, v := range voices {
+		if v.duck == nil {
+			continue
+		}
+		for _, t := range v.duck.sides {
+			if refs[t] == 0 {
+				order = append(order, t)
+			}
+			refs[t]++
+		}
+	}
+	var g []string
+	for i := range voices {
+		v := &voices[i]
+		if v.duck != nil && len(v.duck.sides) > 0 && !hasVoiceOn(voices, v.duck.sides) {
+			v.duck = nil
+		}
+	}
+	for i, v := range voices {
+		if refs[v.track] > 0 && !(v.duck != nil && contains(v.duck.sides, v.track)) {
+			g = append(g, fmt.Sprintf("%s,asplit=2[%s][bs%s]", v.chain, v.label, strings.TrimPrefix(v.label, "av")))
+		} else {
+			g = append(g, fmt.Sprintf("%s[%s]", v.chain, v.label))
+		}
+		_ = i
+	}
+	sil := 0
+	// One bus per sidechain track; asplit gives each referencing clip its own copy.
+	buses := map[string][]string{}
+	for _, t := range order {
+		var in []string
+		for _, v := range voices {
+			if v.track == t {
+				in = append(in, "[bs"+strings.TrimPrefix(v.label, "av")+"]")
+			}
+		}
+		if len(in) == 0 {
+			continue
+		}
+		sil++
+		g = append(g, silence(D, sil))
+		n := refs[t]
+		outs := ""
+		for j := 0; j < n; j++ {
+			l := fmt.Sprintf("bus_%s_%d", t, j)
+			buses[t] = append(buses[t], l)
+			outs += "[" + l + "]"
+		}
+		g = append(g, fmt.Sprintf("[sil%d]%samix=inputs=%d:normalize=0:duration=first,asplit=%d%s", sil, strings.Join(in, ""), len(in)+1, n, outs))
+	}
+	final := make([]string, len(voices))
+	used := map[string]int{}
+	for i, v := range voices {
+		final[i] = v.label
+		if v.duck == nil {
+			continue
+		}
+		var side []string
+		for _, t := range v.duck.sides {
+			if bl := buses[t]; len(bl) > 0 {
+				side = append(side, bl[used[t]])
+				used[t]++
+			}
+		}
+		if len(side) == 0 {
+			continue
+		}
+		sc := side[0]
+		if len(side) > 1 {
+			sil++
+			g = append(g, silence(D, sil))
+			sc = "scm" + strings.TrimPrefix(v.label, "av")
+			g = append(g, fmt.Sprintf("[sil%d][%s]amix=inputs=%d:normalize=0:duration=first[%s]", sil, strings.Join(side, "]["), len(side)+1, sc))
+		}
+		du := "du" + strings.TrimPrefix(v.label, "av") + "_1"
+		g = append(g, fmt.Sprintf("[%s][%s]sidechaincompress=%s:makeup=1:level_sc=1[%s]", v.label, sc, v.duck.params, du))
+		final[i] = du
+	}
+	// Silent base keeps the audio bus (and the container) present for every doc.
+	sil++
+	g = append(g, silence(D, sil))
+	mix := fmt.Sprintf("[sil%d]", sil)
+	for _, l := range final {
+		mix += "[" + l + "]"
+	}
+	g = append(g, fmt.Sprintf("%samix=inputs=%d:normalize=0:duration=first[abus]", mix, len(final)+1))
+	return g, "abus"
+}
+
+func hasVoiceOn(voices []voice, tracks []string) bool {
+	for _, v := range voices {
+		if contains(tracks, v.track) {
+			return true
+		}
+	}
+	return false
+}
+
+func contains(a []string, s string) bool {
+	for _, x := range a {
+		if x == s {
+			return true
+		}
+	}
+	return false
 }
 
 // kbSupersample is FN-R-15: 4, reduced until max(W,H)*S fits in 8192.
@@ -330,8 +482,8 @@ func Compile(d Doc, sources map[string]Source) (Plan, error) {
 	frame := new(big.Int).Quo(new(big.Int).Mul(big.NewInt(TicksPerSecond), big.NewInt(fd)), big.NewInt(fn)).Int64()
 
 	var p Plan
-	var vchains, achains, vlabels, alabels []string
-	silences := 0
+	var vchains, vlabels []string
+	var voices []voice
 	for _, t := range arr(d["tracks"]) {
 		tm := obj(t)
 		kind := str(tm["kind"])
@@ -358,8 +510,18 @@ func Compile(d Doc, sources map[string]Source) (Plan, error) {
 			if sn <= 0 || sd <= 0 || sn*1 > 4*sd || sd > 4*sn {
 				return Plan{}, Error{Code: "COMPILE_SPEED_UNSUPPORTED", Clip: id}
 			}
+			var duck map[string]any
 			for _, e := range arr(cm["effects"]) {
-				if obj(e)["enabled"] != false {
+				em := obj(e)
+				if em["enabled"] == false {
+					continue
+				}
+				switch ty := str(em["type"]); ty {
+				case "audio.duck":
+					duck = obj(em["params"])
+				case "audio.gain", "audio.fade":
+					p.Decisions = append(p.Decisions, "AUDIO_EFFECT_NOT_RENDERED:"+id)
+				default:
 					return Plan{}, Error{Code: "COMPILE_EFFECT_UNSUPPORTED", Clip: id}
 				}
 			}
@@ -424,7 +586,10 @@ func Compile(d Doc, sources map[string]Source) (Plan, error) {
 				case "fill":
 					scale = fmt.Sprintf("scale=%d:%d:force_original_aspect_ratio=increase:force_divisible_by=2:%s,crop=%d:%d", W, H, cmx, W, H)
 				case "none":
-					return Plan{}, Error{Code: "COMPILE_FIT_UNSUPPORTED", Clip: id}
+					if mo != nil {
+						return Plan{}, Error{Code: "COMPILE_FIT_UNSUPPORTED", Clip: id}
+					}
+					scale = fmt.Sprintf("scale=%s,crop=w='min(iw,%d)':h='min(ih,%d)'", cmx, W, H)
 				default:
 					scale = fmt.Sprintf("scale=%d:%d:force_original_aspect_ratio=decrease:force_divisible_by=2:%s", W, H, cmx)
 				}
@@ -503,9 +668,15 @@ func Compile(d Doc, sources map[string]Source) (Plan, error) {
 				case "dip_to_black":
 					chain += fmt.Sprintf(",afade=t=out:st=%s:d=%s:curve=tri", FmtSeconds(out.start-l0), FmtSeconds(out.dur/2))
 				}
-				chain += fmt.Sprintf(",adelay=%dS:all=1[%s]", SamplesAt(l0), label) // S = samples, not ms
-				achains = append(achains, chain)
-				alabels = append(alabels, label)
+				chain += fmt.Sprintf(",adelay=%dS:all=1", SamplesAt(l0)) // S = samples, not ms
+				v := voice{label: label, track: str(tm["id"]), chain: chain}
+				if duck != nil {
+					v.duck = &duckCfg{params: duckParams(duckNum(duck, "threshold_db", -30), duckNum(duck, "depth_db", 12), duckNum(duck, "attack_ms", 20), duckNum(duck, "release_ms", 250))}
+					for _, t := range arr(duck["sidechain_tracks"]) {
+						v.duck.sides = append(v.duck.sides, str(t))
+					}
+				}
+				voices = append(voices, v)
 			}
 		}
 	}
@@ -523,15 +694,10 @@ func Compile(d Doc, sources map[string]Source) (Plan, error) {
 		prev = next
 	}
 	g = append(g, fmt.Sprintf("[%s]format=yuv420p[vout]", prev))
-	g = append(g, achains...)
-	// Silent base keeps the audio bus (and the container) present for every doc.
-	silences++
-	g = append(g, fmt.Sprintf("anullsrc=r=48000:cl=stereo,atrim=duration=%s,asetpts=PTS-STARTPTS[sil%d]", FmtSeconds(D), silences))
-	mix := fmt.Sprintf("[sil%d]", silences)
-	for _, l := range alabels {
-		mix += "[" + l + "]"
-	}
-	g = append(g, fmt.Sprintf("%samix=inputs=%d:normalize=0:duration=first[abus]", mix, len(alabels)+1))
+	ag, abus := audioGraph(voices, D)
+	p.AudioGraph = strings.Join(ag, ";\n")
+	g = append(g, ag...)
+	_ = abus
 	p.FilterComplex = strings.Join(g, ";\n")
 	p.Maps = []string{"[vout]", "[abus]"}
 	p.DurationTicks = D

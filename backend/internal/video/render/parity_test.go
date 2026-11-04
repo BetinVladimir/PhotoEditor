@@ -44,3 +44,22 @@ func TestGoldenGraphs(t *testing.T) {
 		})
 	}
 }
+
+func TestDuckParamsVectors(t *testing.T) {
+	var v struct {
+		Duck []struct {
+			In  [4]float64
+			Out struct{ Threshold, Ratio, Attack, Release string }
+		} `json:"duck_params"`
+	}
+	testvectors.Load(t, "compile", &v)
+	if len(v.Duck) != 6 {
+		t.Fatalf("vectors: %d", len(v.Duck))
+	}
+	for _, c := range v.Duck {
+		want := "threshold=" + c.Out.Threshold + ":ratio=" + c.Out.Ratio + ":attack=" + c.Out.Attack + ":release=" + c.Out.Release
+		if got := duckParams(c.In[0], c.In[1], c.In[2], c.In[3]); got != want {
+			t.Errorf("%v: %s want %s", c.In, got, want)
+		}
+	}
+}

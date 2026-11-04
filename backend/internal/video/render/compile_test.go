@@ -374,3 +374,41 @@ func TestRenderTransformWithRealFFmpeg(t *testing.T) {
 		t.Errorf("layer not placed: corner %d, centre-of-layer %d", px(2, 2), px(240, 60))
 	}
 }
+
+// G8 shape: music ducked by speech on another track runs in real ffmpeg and
+// keeps the document length.
+func TestRenderDuckingWithRealFFmpeg(t *testing.T) {
+	ff, e1 := exec.LookPath("ffmpeg")
+	fp, e2 := exec.LookPath("ffprobe")
+	if e1 != nil || e2 != nil {
+		t.Skip("ffmpeg not installed")
+	}
+	dir := t.TempDir()
+	mk := func(name, freq string) string {
+		p := filepath.Join(dir, name)
+		if out, err := exec.Command(ff, "-v", "error", "-f", "lavfi", "-i", "sine=frequency="+freq+":sample_rate=48000", "-t", "6", "-c:a", "aac", "-ac", "1", p).CombinedOutput(); err != nil {
+			t.Fatalf("%v %s", err, out)
+		}
+		return p
+	}
+	music, speech := mk("m.m4a", "880"), mk("s.m4a", "220")
+	d := doc(t, `{"video":{"fps":{"num":25,"den":1},"width":320,"height":240},"tracks":[
+	 {"id":"A1","kind":"audio","clips":[{"id":"mus","source":{"kind":"audio","media_id":"m"},"at":0,"src_in":0,"src_out":4233600000,"effects":[
+	   {"type":"audio.duck","enabled":true,"params":{"sidechain_tracks":["A2"],"threshold_db":-30,"depth_db":12,"attack_ms":20,"release_ms":250}}]}]},
+	 {"id":"A2","kind":"audio","clips":[{"id":"sp","source":{"kind":"audio","media_id":"s"},"at":1411200000,"src_in":0,"src_out":1411200000,"effects":[]}]}]}`)
+	plan, err := Compile(d, map[string]Source{"m": {HasAudio: true, Channels: 1}, "s": {HasAudio: true, Channels: 1}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(plan.AudioGraph, "sidechaincompress=threshold=0.031622777:ratio=20") {
+		t.Fatal(plan.AudioGraph)
+	}
+	outPath := filepath.Join(dir, "o.mp4")
+	args, _ := Args(plan, map[string]string{"m": music, "s": speech}, outPath, "libx264", 25, 1)
+	if out, err := exec.CommandContext(t.Context(), ff, args...).CombinedOutput(); err != nil {
+		t.Fatalf("%v\n%s\n%s", err, out, plan.FilterComplex)
+	}
+	if got, _, err := probe.Run(t.Context(), fp, outPath); err != nil || !got.HasAudio {
+		t.Fatalf("%+v %v", got, err)
+	}
+}
