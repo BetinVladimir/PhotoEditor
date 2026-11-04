@@ -105,6 +105,26 @@ func fmtNum(x float64) string {
 	return s
 }
 
+// transformSteps is section 5.3: crop (returned to the canvas by pad), scale,
+// rotate; the offset goes into overlay. Returns px, py and the chain suffix.
+func transformSteps(tf map[string]any, W, H int64) (px, py, chain string) {
+	pos, cr := arr(tf["position"]), arr(tf["crop"])
+	px, py = fmtNum(flt(pos[0])), fmtNum(flt(pos[1]))
+	l, t, r, b := flt(cr[0]), flt(cr[1]), flt(cr[2]), flt(cr[3])
+	if l != 0 || t != 0 || r != 0 || b != 0 {
+		chain += fmt.Sprintf(",crop=w=iw*(1-%s-%s):h=ih*(1-%s-%s):x=iw*%s:y=ih*%s,pad=%d:%d:%d*%s:%d*%s:color=black@0",
+			fmtNum(l), fmtNum(r), fmtNum(t), fmtNum(b), fmtNum(l), fmtNum(t), W, H, W, fmtNum(l), H, fmtNum(t))
+	}
+	if sc := flt(tf["scale"]); tf["scale"] != nil && sc != 1 {
+		chain += fmt.Sprintf(",scale=w='trunc(iw*%s/2)*2':h='trunc(ih*%s/2)*2'", fmtNum(sc), fmtNum(sc))
+	}
+	if a := flt(tf["rotate"]); a != 0 {
+		e := fmtNum(a) + "*PI/180"
+		chain += fmt.Sprintf(",rotate=a=%s:ow='rotw(%s)':oh='roth(%s)':c=none", e, e, e)
+	}
+	return
+}
+
 // kbSupersample is FN-R-15: 4, reduced until max(W,H)*S fits in 8192.
 func kbSupersample(w, h int64) int64 {
 	s := int64(4)
@@ -323,7 +343,11 @@ func Compile(d Doc, sources map[string]Source) (Plan, error) {
 				}
 			}
 			mo := obj(cm["motion"])
-			if cm["transform"] != nil || (mo != nil && (str(mo["kind"]) != "pan_zoom" || str(obj(cm["source"])["kind"]) != "photo")) {
+			tf := obj(cm["transform"])
+			if tf != nil && (len(arr(tf["position"])) != 2 || len(arr(tf["crop"])) != 4) {
+				return Plan{}, Error{Code: "COMPILE_TRANSFORM_UNSUPPORTED", Clip: id}
+			}
+			if tf != nil && (tf["scale"] != nil && flt(tf["scale"]) <= 0 || mo != nil) || (mo != nil && (str(mo["kind"]) != "pan_zoom" || str(obj(cm["source"])["kind"]) != "photo")) {
 				return Plan{}, Error{Code: "COMPILE_TRANSFORM_UNSUPPORTED", Clip: id}
 			}
 			sn, sd := speedOf(cm)
@@ -417,6 +441,12 @@ func Compile(d Doc, sources map[string]Source) (Plan, error) {
 					z, x, y := kbExpr(cm, (at-l0)/frame, dur/frame)
 					chain += fmt.Sprintf(",zoompan=z='%s':x='%s':y='%s':d=1:s=%dx%d:fps=%s,scale=out_color_matrix=bt709:out_range=tv,format=yuva420p", z, x, y, W, H, fps)
 				}
+				px, py := "0", "0"
+				if tf != nil {
+					var tch string
+					px, py, tch = transformSteps(tf, W, H)
+					chain += tch
+				}
 				switch in.kind {
 				case "crossfade", "fade_in":
 					chain += fmt.Sprintf(",fade=t=in:st=0:d=%s:alpha=1", FmtSeconds(in.dur))
@@ -428,7 +458,7 @@ func Compile(d Doc, sources map[string]Source) (Plan, error) {
 				}
 				chain += fmt.Sprintf(",setpts=PTS-STARTPTS+%s/TB[%s]", FmtSeconds(start), label)
 				chains = append(chains, chain)
-				vlabels = append(vlabels, label+"|"+FmtSeconds(start)+"|"+FmtSeconds(l1))
+				vlabels = append(vlabels, strings.Join([]string{label, FmtSeconds(start), FmtSeconds(l1), px, py}, "|"))
 			}
 			if needA {
 				label := fmt.Sprintf("ac%d", idx)
@@ -474,7 +504,7 @@ func Compile(d Doc, sources map[string]Source) (Plan, error) {
 	for i, vl := range vlabels {
 		parts := strings.Split(vl, "|")
 		next := fmt.Sprintf("ov%d", i)
-		g = append(g, fmt.Sprintf("[%s][%s]overlay=x='(W-w)/2':y='(H-h)/2':eof_action=pass:enable='between(t,%s,%s)':format=auto[%s]", prev, parts[0], parts[1], parts[2], next))
+		g = append(g, fmt.Sprintf("[%s][%s]overlay=x='(W-w)/2+(%s)*W':y='(H-h)/2+(%s)*H':eof_action=pass:enable='between(t,%s,%s)':format=auto[%s]", prev, parts[0], parts[3], parts[4], parts[1], parts[2], next))
 		prev = next
 	}
 	g = append(g, fmt.Sprintf("[%s]format=yuv420p[vout]", prev))

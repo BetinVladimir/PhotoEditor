@@ -3,6 +3,7 @@ package render
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -326,5 +327,50 @@ func TestRenderKenBurnsWithRealFFmpeg(t *testing.T) {
 	}
 	if frame("0") == frame("1.9") {
 		t.Error("motion produced identical frames")
+	}
+}
+
+func TestRenderTransformWithRealFFmpeg(t *testing.T) {
+	ff, e1 := exec.LookPath("ffmpeg")
+	fp, e2 := exec.LookPath("ffprobe")
+	if e1 != nil || e2 != nil {
+		t.Skip("ffmpeg not installed")
+	}
+	dir := t.TempDir()
+	img := filepath.Join(dir, "p.png")
+	if out, err := exec.Command(ff, "-v", "error", "-f", "lavfi", "-i", "color=c=white:s=320x240", "-frames:v", "1", img).CombinedOutput(); err != nil {
+		t.Fatalf("%v %s", err, out)
+	}
+	tf := `{"crop":[0,0,0,0],"position":[0.25,-0.25],"rotate":30,"scale":0.5}`
+	d := doc(t, `{"video":{"fps":{"num":25,"den":1},"width":320,"height":240},"tracks":[{"id":"V1","kind":"video","clips":[
+	 {"id":"p1","source":{"kind":"photo","asset_version_id":"a1"},"at":0,"duration":705600000,"fit":"fit","effects":[],"transform":`+tf+`}]}]}`)
+	plan, err := Compile(d, map[string]Source{"a1": {HasVideo: true}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"scale=w='trunc(iw*0.5/2)*2'", "rotate=a=30*PI/180:ow='rotw(30*PI/180)'", "(W-w)/2+(0.25)*W", "(H-h)/2+(-0.25)*H"} {
+		if !strings.Contains(plan.FilterComplex, want) {
+			t.Errorf("missing %q", want)
+		}
+	}
+	outPath := filepath.Join(dir, "o.mp4")
+	args, _ := Args(plan, map[string]string{"a1": img}, outPath, "libx264", 25, 1)
+	if out, err := exec.CommandContext(t.Context(), ff, args...).CombinedOutput(); err != nil {
+		t.Fatalf("%v\n%s\n%s", err, out, plan.FilterComplex)
+	}
+	if got, _, err := probe.Run(t.Context(), fp, outPath); err != nil || got.Width != 320 || got.Height != 240 {
+		t.Fatalf("%+v %v", got, err)
+	}
+	// The layer moved up-right: the top-left pixel stays black, the point at
+	// (0.25, -0.25) from the centre is white (Y of tv white is 235).
+	px := func(x, y int) byte {
+		b, err := exec.CommandContext(t.Context(), ff, "-v", "error", "-i", outPath, "-frames:v", "1", "-vf", fmt.Sprintf("crop=2:2:%d:%d,format=yuv420p", x, y), "-f", "rawvideo", "-").Output()
+		if err != nil || len(b) == 0 {
+			t.Fatalf("pixel: %v", err)
+		}
+		return b[0]
+	}
+	if px(2, 2) > 20 || px(240, 60) < 200 {
+		t.Errorf("layer not placed: corner %d, centre-of-layer %d", px(2, 2), px(240, 60))
 	}
 }
