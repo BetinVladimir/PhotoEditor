@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -18,7 +19,8 @@ import (
 )
 
 // installVideo enables the DEMO video API when VIDEO_STORE_DIR is set. Objects live in that directory;
-// VIDEO_SCHEDULER_DATABASE_URL carries the photo_scheduler credential used to complete uploads inline.
+// VIDEO_SCHEDULER_DATABASE_URL carries the photo_scheduler credential used to complete uploads inline;
+// the optional VIDEO_MAINTENANCE_DATABASE_URL (photo_maintenance) starts the housekeeping sweeper.
 func installVideo(ctx context.Context, api, portal *pgxpool.Pool, pepper []byte) (*videoapi.Service, func(), error) {
 	root := os.Getenv("VIDEO_STORE_DIR")
 	if root == "" {
@@ -28,18 +30,8 @@ func installVideo(ctx context.Context, api, portal *pgxpool.Pool, pepper []byte)
 	if dsn == "" {
 		return nil, func() {}, errors.New("VIDEO_SCHEDULER_DATABASE_URL is required with VIDEO_STORE_DIR")
 	}
-	config, err := pgxpool.ParseConfig(dsn)
+	scheduler, err := videoRolePool(ctx, dsn, "photo_scheduler")
 	if err != nil {
-		return nil, func() {}, errors.New("video scheduler configuration invalid")
-	}
-	config.ConnConfig.RuntimeParams["role"] = "photo_scheduler"
-	database.GuardApplicationRole(config)
-	scheduler, err := pgxpool.NewWithConfig(ctx, config)
-	if err != nil {
-		return nil, func() {}, errors.New("video scheduler configuration invalid")
-	}
-	if err := database.RequireApplicationRole(ctx, scheduler, "photo_scheduler"); err != nil {
-		scheduler.Close()
 		return nil, func() {}, err
 	}
 	tmp := filepath.Join(root, "tmp")
@@ -47,8 +39,41 @@ func installVideo(ctx context.Context, api, portal *pgxpool.Pool, pepper []byte)
 		scheduler.Close()
 		return nil, func() {}, err
 	}
-	return &videoapi.Service{Pool: api, Scheduler: scheduler, Portal: portal, Pepper: pepper, Store: worker.LocalStore{Root: filepath.Join(root, "objects")}, Bucket: "photo-video",
-		Authz: tenantAuthorizer, TempDir: tmp}, scheduler.Close, nil
+	store := worker.LocalStore{Root: filepath.Join(root, "objects")}
+	svc := &videoapi.Service{Pool: api, Scheduler: scheduler, Portal: portal, Pepper: pepper, Store: store, Bucket: "photo-video", Authz: tenantAuthorizer, TempDir: tmp}
+	closeAll := scheduler.Close
+	// Housekeeping (stuck uploads, abandoned ingests, withdrawn media, expired traffic leases, old autosaves) needs the
+	// photo_maintenance credential; without it the API runs but nothing sweeps.
+	if mdsn := os.Getenv("VIDEO_MAINTENANCE_DATABASE_URL"); mdsn != "" {
+		maintenance, err := videoRolePool(ctx, mdsn, "photo_maintenance")
+		if err != nil {
+			scheduler.Close()
+			return nil, func() {}, err
+		}
+		sweepCtx, stop := context.WithCancel(ctx)
+		go (&worker.Sweeper{Pool: maintenance, Store: store}).Loop(sweepCtx, 30*time.Second)
+		closeAll = func() { stop(); maintenance.Close(); scheduler.Close() }
+	}
+	return svc, closeAll, nil
+}
+
+// videoRolePool opens a pool that may only act as the given database role.
+func videoRolePool(ctx context.Context, dsn, role string) (*pgxpool.Pool, error) {
+	config, err := pgxpool.ParseConfig(dsn)
+	if err != nil {
+		return nil, errors.New("video " + role + " configuration invalid")
+	}
+	config.ConnConfig.RuntimeParams["role"] = role
+	database.GuardApplicationRole(config)
+	pool, err := pgxpool.NewWithConfig(ctx, config)
+	if err != nil {
+		return nil, errors.New("video " + role + " configuration invalid")
+	}
+	if err := database.RequireApplicationRole(ctx, pool, role); err != nil {
+		pool.Close()
+		return nil, err
+	}
+	return pool, nil
 }
 
 // tenantAuthorizer is the production role check: live membership through photo.authorize_tenant.
