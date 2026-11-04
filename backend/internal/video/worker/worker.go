@@ -450,7 +450,7 @@ func (w *Worker) render(ctx context.Context, j job, dir string, cancel context.C
 	qc, _ := json.Marshal(map[string]any{"checks": map[string]any{
 		"duration_ticks_expected": plan.DurationTicks, "duration_ticks_actual": facts.DurationTicks,
 		"width": facts.Width, "height": facts.Height, "has_audio": facts.HasAudio, "audio_channels": facts.Channels,
-		"loudness": loud, "video_codec": facts.VideoCodec, "audio_codec": facts.AudioCodec, "compiler": plan.Version, "encoder": encoder}})
+		"loudness": loud, "decisions": plan.Decisions, "transitions_shortened": plan.Shortened, "video_codec": facts.VideoCodec, "audio_codec": facts.AudioCodec, "compiler": plan.Version, "encoder": encoder}})
 	qcFile := filepath.Join(dir, "qc.json")
 	if err := os.WriteFile(qcFile, qc, 0o640); err != nil {
 		return err
