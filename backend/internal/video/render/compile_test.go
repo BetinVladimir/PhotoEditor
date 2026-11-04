@@ -261,3 +261,70 @@ func TestRenderSpeedAndTransitionsWithRealFFmpeg(t *testing.T) {
 		}
 	}
 }
+
+func TestKenBurnsVectors(t *testing.T) {
+	var v struct {
+		Sup []struct{ W, H, Out int64 } `json:"kb_supersample"`
+		Exp []struct {
+			Clip map[string]any
+			Head int64
+			N    int64
+			Out  struct{ X, Y, Z string }
+		} `json:"kb_expr"`
+	}
+	testvectors.Load(t, "compile", &v)
+	if len(v.Sup) != 4 || len(v.Exp) != 2 {
+		t.Fatalf("vectors %d %d", len(v.Sup), len(v.Exp))
+	}
+	for _, c := range v.Sup {
+		if got := kbSupersample(c.W, c.H); got != c.Out {
+			t.Errorf("%dx%d: %d want %d", c.W, c.H, got, c.Out)
+		}
+	}
+	for i, c := range v.Exp {
+		z, x, y := kbExpr(c.Clip, c.Head, c.N)
+		if z != c.Out.Z || x != c.Out.X || y != c.Out.Y {
+			t.Errorf("kb_expr %d: %s | %s | %s", i, z, x, y)
+		}
+	}
+}
+
+func TestRenderKenBurnsWithRealFFmpeg(t *testing.T) {
+	ff, e1 := exec.LookPath("ffmpeg")
+	fp, e2 := exec.LookPath("ffprobe")
+	if e1 != nil || e2 != nil {
+		t.Skip("ffmpeg not installed")
+	}
+	dir := t.TempDir()
+	img := filepath.Join(dir, "p.png")
+	if out, err := exec.Command(ff, "-v", "error", "-f", "lavfi", "-i", "testsrc2=size=640x360:rate=1", "-frames:v", "1", img).CombinedOutput(); err != nil {
+		t.Fatalf("%v %s", err, out)
+	}
+	d := doc(t, `{"video":{"fps":{"num":25,"den":1},"width":320,"height":240},"tracks":[{"id":"V1","kind":"video","clips":[
+	 {"id":"p1","source":{"kind":"photo","asset_version_id":"a1"},"at":0,"duration":1411200000,"fit":"fit","effects":[],
+	  "motion":{"kind":"pan_zoom","easing":"ease_in_out","from":{"scale":1,"center":[0.5,0.5]},"to":{"scale":2,"center":[0.75,0.5]}}}]}]}`)
+	plan, err := Compile(d, map[string]Source{"a1": {HasVideo: true}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	outPath := filepath.Join(dir, "o.mp4")
+	args, _ := Args(plan, map[string]string{"a1": img}, outPath, "libx264", 25, 1)
+	if out, err := exec.CommandContext(t.Context(), ff, args...).CombinedOutput(); err != nil {
+		t.Fatalf("%v\n%s\n%s", err, out, plan.FilterComplex)
+	}
+	got, _, err := probe.Run(t.Context(), fp, outPath)
+	if err != nil || got.Width != 320 || got.Height != 240 {
+		t.Fatalf("%+v %v", got, err)
+	}
+	// Zoom must change the picture: first and last frame differ.
+	frame := func(ts string) string {
+		b, err := exec.CommandContext(t.Context(), ff, "-v", "error", "-ss", ts, "-i", outPath, "-frames:v", "1", "-f", "md5", "-").Output()
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(b)
+	}
+	if frame("0") == frame("1.9") {
+		t.Error("motion produced identical frames")
+	}
+}

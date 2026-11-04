@@ -105,6 +105,35 @@ func fmtNum(x float64) string {
 	return s
 }
 
+// kbSupersample is FN-R-15: 4, reduced until max(W,H)*S fits in 8192.
+func kbSupersample(w, h int64) int64 {
+	s := int64(4)
+	for s > 1 && max(w, h)*s > 8192 {
+		s--
+	}
+	return s
+}
+
+// kbExpr is FN-R-11: zoompan z, x, y for a photo's pan_zoom motion. head is
+// the number of frames the layer runs before the clip, n the clip's frames.
+func kbExpr(clip map[string]any, head, n int64) (z, x, y string) {
+	mo := obj(clip["motion"])
+	u := fmt.Sprintf("min(max((on-%d)/%d,0),1)", head, n)
+	e := u
+	if str(mo["easing"]) == "ease_in_out" {
+		e = fmt.Sprintf("(%s*%s*(3-2*%s))", u, u, u)
+	}
+	lerp := func(a, b float64) string {
+		return fmt.Sprintf("(%s+(%s-(%s))*%s)", fmtNum(a), fmtNum(b), fmtNum(a), e)
+	}
+	f, t := obj(mo["from"]), obj(mo["to"])
+	fc, tc := arr(f["center"]), arr(t["center"])
+	z = lerp(flt(f["scale"]), flt(t["scale"]))
+	x = fmt.Sprintf("max(0,min(iw-iw/zoom,%s*iw-iw/zoom/2))", lerp(flt(fc[0]), flt(tc[0])))
+	y = fmt.Sprintf("max(0,min(ih-ih/zoom,%s*ih-ih/zoom/2))", lerp(flt(fc[1]), flt(tc[1])))
+	return
+}
+
 // fadeBlack is D-41: fade the luma to broadcast black (Y=16), not Y=0.
 func fadeBlack(dir string, st, d int64) string {
 	return fmt.Sprintf("scale=in_range=tv:out_range=pc,fade=t=%s:st=%s:d=%s,scale=in_range=pc:out_range=tv", dir, FmtSeconds(st), FmtSeconds(d))
@@ -293,7 +322,8 @@ func Compile(d Doc, sources map[string]Source) (Plan, error) {
 					return Plan{}, Error{Code: "COMPILE_TRANSITION_UNSUPPORTED", Clip: id}
 				}
 			}
-			if cm["motion"] != nil || cm["transform"] != nil {
+			mo := obj(cm["motion"])
+			if cm["transform"] != nil || (mo != nil && (str(mo["kind"]) != "pan_zoom" || str(obj(cm["source"])["kind"]) != "photo")) {
 				return Plan{}, Error{Code: "COMPILE_TRANSFORM_UNSUPPORTED", Clip: id}
 			}
 			sn, sd := speedOf(cm)
@@ -376,7 +406,17 @@ func Compile(d Doc, sources map[string]Source) (Plan, error) {
 				if pts != "setpts=PTS-STARTPTS" {
 					fpsF += ":round=near"
 				}
-				chain := fmt.Sprintf("[%d:v]%s,%s,%s,format=yuva420p,pad=%d:%d:(ow-iw)/2:(oh-ih)/2:color=black@0", idx, pts, fpsF, scale, W, H)
+				cw, ch, pix := W, H, "yuva420p"
+				if mo != nil {
+					ss := kbSupersample(W, H)
+					cw, ch, pix = W*ss, H*ss, "rgba"
+					scale = strings.ReplaceAll(scale, fmt.Sprintf("%d:%d", W, H), fmt.Sprintf("%d:%d", cw, ch))
+				}
+				chain := fmt.Sprintf("[%d:v]%s,%s,%s,format=%s,pad=%d:%d:(ow-iw)/2:(oh-ih)/2:color=black@0", idx, pts, fpsF, scale, pix, cw, ch)
+				if mo != nil {
+					z, x, y := kbExpr(cm, (at-l0)/frame, dur/frame)
+					chain += fmt.Sprintf(",zoompan=z='%s':x='%s':y='%s':d=1:s=%dx%d:fps=%s,scale=out_color_matrix=bt709:out_range=tv,format=yuva420p", z, x, y, W, H, fps)
+				}
 				switch in.kind {
 				case "crossfade", "fade_in":
 					chain += fmt.Sprintf(",fade=t=in:st=0:d=%s:alpha=1", FmtSeconds(in.dur))
