@@ -240,3 +240,7 @@ backend/bin/
 !apps/portal/src/lib/
 !apps/portal/src/lib/**
 **/audit/**
+# built binaries
+/backend/photo
+/backend/cmd/video-demo/video-demo
+/backend/cmd/video-worker/video-worker
